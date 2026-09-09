@@ -32,13 +32,14 @@ a Muldraugh mannequin zone, a duplicate basement RoomDef) — allowlisted; a
 clean vanilla boot now scores **0 errors**, so any nonzero count is a real
 finding.
 
-Open follow-ups: warm-start with a *reused* world dir (golden-fixture path);
-RCON `quit` as alternative shutdown (`servermsg` succeeded; `quit` untested).
+Open follow-ups: warm-start with a *reused* world dir (golden-fixture path).
+RCON `quit` as alternative shutdown: verified during S2 (clean exit 0) — the
+orchestrator can stop a server it does not own the stdin of.
 
 ## S2 — Auto-join (in progress, 2026-09-09)
 
 Driver: `testing/pzt/join.py` (launches a real client into an isolated
-cachedir with `-nosteam -safemode -nosound -novoip -debug +connect ip:port`,
+cachedir with `-nosteam -nosound -novoip [-debug] +connect ip:port`,
 tails its `console.txt`, kills after an observation window). Harness mod:
 `testing/PZTestKit/PZTestKitClient/` (auto-fills the join popup, auto-creates
 a character, logs `PZTK:` lines).
@@ -89,8 +90,8 @@ dropping locally-enabled mods; #8 harness server-listed → success.
   `default.txt` + reset marker), `db/ServerList.db` (saved credentials),
   `Lua/pzt-join.txt` (manifest). ~1 MB. Second joins skip character
   creation entirely (account + character persist server-side).
-- Budget for L3: ~45 s to connect, ~15 s creation, world load 100 s cold —
-  a reused world/cachedir should cut the last figure sharply (measure in T3).
+- Budget for L3 (admin `-debug` client, normal rendering): ~10 s to connect,
+  ~5 s creation, world load ~17 s → **in-world ≈ 30 s** per client launch.
 
 **Admin-mode run** (`s2-20260909-133311`, `--username admin --debug
 --exit-on-spawn`, logo skip seeded): harness 10 s → main menu **16 s** (logo
@@ -105,8 +106,28 @@ World-load phase breakdown (client `Logs/*DebugLog.txt` timestamps, gaps >4 s):
 join), 21 s between `SafeMode is on` and `IsoMetaGrid.Create` (asset
 streaming), 4–5 s each for model loading and `bWaitForAssetLoadingToFinish2`.
 Everything else is sub-second. So the fix for L3 latency is whatever makes
-animal definitions load fast (warm cache? sandbox option to disable animals
-on the test world? — measure in T3), not the join flow, which is now ~33 s.
+animal definitions load fast, not the join flow, which is now ~33 s.
+
+**Warm rerun** (`--reuse-cache` on the admin client dir, same server):
+character creation **skipped entirely** (existing character loaded — the
+golden-fixture behaviour works), join at 19 s, Lua reload 24 s, but
+`game loading took 120 seconds` — identical cost, so the phase is neither
+disk-cache nor world-creation bound. The server log shows it idle for the
+whole window: the cost is entirely client-side.
+
+**Root cause: `-safemode`.** In the jar, `loadAnimalDefinitions` is Lua-table
+parsing plus `ModelManager.getLoadedModel` for each animal type's five body
+models (body/fleece/headless/skeleton/skel-no-head); under `-safemode` those
+model loads stall. Run `s2-20260909-134516` (same admin cachedir, **no
+`-safemode`**, fresh server so character creation ran again): harness 8 s →
+connect 10 s → Lua reload 14 s → spawn/profession/appearance NEXT by 15 s →
+**`game loading took 17 seconds`** → in-world at **32 s** from launch.
+`loadAnimalDefinitions` dropped from 81 s to under a second. Driver default is
+now normal rendering; `--safemode` is opt-in for GPU-less hosts (and would
+need this cost budgeted).
+
+RCON `quit` (the S1 open follow-up) verified on this server: auth + `quit`
+→ clean "Shutdown handling finished", exit 0.
 ## S3 — Mods under -nosteam
 ## S4 — Result channel
 ## S5 — Time acceleration in MP

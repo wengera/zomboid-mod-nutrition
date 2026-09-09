@@ -16,7 +16,7 @@ orchestrated in python.
 |---|---|
 | Client auto-connects with `+connect ip:port` / `+password` (or `-Dargs.server.connect/.password`) — no server-browser UI needed | wiki Startup parameters (42.20.4); literal in `MainScreenState`, `LuaManager$GlobalObject` |
 | Lua can join directly: `serverConnect(...)` exposed on the lua global object; `canConnect()`, `forceDisconnect()` also exposed | jar `LuaManager$GlobalObject` methods |
-| Multiple client instances: `-cachedir` per instance + `-nosteam`; cheap rendering via `-safemode -nosound -novoip`; `-debug`, `-debuglog=All`, `-modfolders` | wiki Startup parameters |
+| Multiple client instances: `-cachedir` per instance + `-nosteam`; `-nosound -novoip`; `-debug`, `-debuglog=All`, `-modfolders`. **Not `-safemode`**: it stalls model loading and turns a 17 s world load into ~120 s (spike S2) | wiki Startup parameters; S2 |
 | Dedicated server: `ProjectZomboidServer.bat` (java `zombie.network.GameServer`); args `-servername -adminpassword -adminusername -port -ip -cachedir -nosteam -debuglog -statistic` | install dir + wiki |
 | Server RCON exists (`zombie/network/RCONServer`, `RCONPort`/`RCONPassword` in ServerOptions) | jar |
 | Admin commands are classes: additem, teleportto, setaccesslevel, servermsg, godmode, **reloadlua/reloadalllua** (hot reload) | jar `zombie/commands/serverCommands/*` |
@@ -81,8 +81,9 @@ under test via `mod.info require=`.
 - **Process manager**: launch server (`java ... zombie.network.GameServer
   -nosteam -servername pzt -adminpassword ... -cachedir ...`), wait for
   "server started" in console, launch clients with `-nosteam -cachedir
-  <c1> -safemode -nosound -novoip -debug +connect 127.0.0.1:<port> +password
-  <pw>`; kill trees on timeout.
+  <c1> -nosound -novoip -debug +connect 127.0.0.1:<port> +password <pw>`
+  (JVM started directly, no launcher exe → no UAC prompt); kill trees on
+  timeout.
 - **Log watcher**: tails server/client console.txt for lua error signatures,
   definition-integrity warnings (the KBW MP checksum class), and harness
   markers; every error is attached to the failing test.
@@ -103,7 +104,7 @@ ship for: item numeric fields, character modData, nutrition values.
 
 | Risk | Mitigation |
 |---|---|
-| Client windows on a desktop (no true headless) | `-safemode -nosound -novoip`, small window; Windows session must stay unlocked; CI runs L0–L2 only |
+| Client windows on a desktop (no true headless) | `-nosound -novoip`, small window (normal rendering — `-safemode` is ~7× slower to load); Windows session must stay unlocked; CI runs L0–L2 only |
 | First-join UI screens (account, character) | Golden fixture with pre-created accounts/characters — screens never render; lua fallback for the rare reset |
 | Timing/races (spawn not ready, chunk not loaded) | Every step is `eventually(pred, budget)`; no sleeps; world-ready barrier = harness handshake, not a timer |
 | Game/mod updates changing behavior | Run pins game build; harness self-reports versions; a `smoke` suite runs after every Steam update |
@@ -117,10 +118,11 @@ ship for: item numeric fields, character modData, nutrition values.
   start 57 s to `*** SERVER STARTED ****`, RCON honored from a pre-seeded ini,
   `quit` on stdin exits 0 in 8 s, 15 MB fixture footprint, vanilla noise
   baseline captured in `boot.py`.
-- **S2 Auto-join**: client `+connect 127.0.0.1:16261 +password` with
-  `-nosteam -cachedir`; document exactly which screens still appear and what
-  `serverConnect(...)` needs (args list from the GlobalObject signature:
-  ip, port, user, pass, ... ×11); confirm character persistence across joins.
+- **S2 Auto-join** ✅ — done 2026-09-09, see [spikes.md](spikes.md): fully
+  automated join (harness mod fills the connect popup and drives the three
+  character-creation screens), characters persist across joins, admin
+  `-debug` client skips the logo; **in-world ≈ 30 s** from launch once
+  `-safemode` was dropped (it alone cost ~100 s of world load).
 - **S3 Mods under -nosteam**: whether `-modfolders workshop,steam,mods` loads
   workshop content without Steam, else copy strategy.
 - **S4 Result channel**: harness writes JSON + `.ready` to cachedir on both

@@ -101,6 +101,7 @@ def main():
     ap.add_argument("--debug", action="store_true", help="launch client in -debug mode (admin accounts only)")
     ap.add_argument("--exit-on-spawn", action="store_true", help="stop observing once the client is in-world")
     ap.add_argument("--reuse-cache", default="", help="existing client cachedir (warm run: account/character persist)")
+    ap.add_argument("--safemode", action="store_true", help="launch with -safemode (GPU-less hosts; ~100 s slower world load)")
     ap.add_argument("--launcher", choices=["java", "exe"], default="java",
                     help="java: start the JVM directly (no UAC prompt); exe: use ProjectZomboid64.exe")
     args = ap.parse_args()
@@ -121,8 +122,12 @@ def main():
         os.makedirs(cache, exist_ok=True)
         seed_client_cache(cache, args)
 
-    game_args = ["-nosteam", f"-cachedir={cache}", "-safemode", "-nosound", "-novoip",
+    game_args = ["-nosteam", f"-cachedir={cache}", "-nosound", "-novoip",
                  "-debuglog=Network", "+connect", args.server]
+    if args.safemode:
+        # -safemode stalls model loading during world load (loadAnimalDefinitions
+        # 82 s vs <1 s, spike S2): opt-in for GPU-less hosts only.
+        game_args.insert(2, "-safemode")
     if args.debug:
         # Servers reject debug-mode clients on non-admin accounts ("debug connection
         # not allowed for non admin") — only use with an admin test account.
@@ -154,7 +159,10 @@ def main():
     proc = subprocess.Popen(cmd, cwd=PZ_DIR, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     console = os.path.join(cache, "console.txt")
     seen = {}
-    pos = 0
+    # A reused cachedir still holds last run's console.txt; start at its end so stale
+    # lines can't match. The game truncates the file on boot, which the size<pos
+    # guard below turns into a restart from offset 0.
+    pos = os.path.getsize(console) if os.path.exists(console) else 0
     deadline = t0 + args.observe
     while time.time() < deadline:
         if proc.poll() is not None:
