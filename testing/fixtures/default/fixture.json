@@ -1,8 +1,8 @@
 {
- "created": "2026-09-09T14:03:37",
+ "created": "2026-09-09T14:10:02",
  "build": "42.20.4",
  "game_dir": "D:\\SteamLibrary\\steamapps\\common\\ProjectZomboid",
- "provision_run": "prov-20260909-140115",
+ "provision_run": "prov-20260909-140905",
  "server": {
   "name": "pzt",
   "port": 27261,
@@ -23,31 +23,10 @@
   }
  },
  "timings": {
-  "server_start": 13.9,
-  "client_admin_ready": 118.5
+  "server_start": 14.3,
+  "client_admin_ready": 32.3
  },
- "boot_errors": [
-  "ERROR: General      f:0 st:694,214,760> AdvancedAnimator$1.visitFileFailed> Exception thrown",
-  "\t\tjava.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "ERROR: General      f:0 st:694,214,760> AdvancedAnimator$1.visitFileFailed> Exception thrown",
-  "\t\tjava.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "ERROR: General      f:0 st:694,214,761> AdvancedAnimator$1.visitFileFailed> Exception thrown",
-  "\t\tjava.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "ERROR: General      f:0 st:694,214,761> AdvancedAnimator$1.visitFileFailed> Exception thrown",
-  "\t\tjava.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "\t\tjava.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
-  "LOG  : General      f:1154 st:694,337,027> ERROR: IsoThumpable not found on square 10704,10240,0",
-  "LOG  : General      f:1154 st:694,337,030> ERROR: IsoThumpable not found on square 10704,10240,0",
-  "LOG  : General      f:1154 st:694,337,031> ERROR: IsoThumpable not found on square 10704,10241,0",
-  "LOG  : General      f:1154 st:694,337,032> ERROR: IsoThumpable not found on square 10704,10242,0"
- ],
+ "boot_errors": [],
  "name": "default",
  "size_mb": 10.9
 }
