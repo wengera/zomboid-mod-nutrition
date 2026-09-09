@@ -117,7 +117,7 @@ ship for: item numeric fields, character modData, nutrition values.
 - **S1 Boot loop** ✅ — done 2026-09-09, see [spikes.md](spikes.md): cold
   start 57 s to `*** SERVER STARTED ****`, RCON honored from a pre-seeded ini,
   `quit` on stdin exits 0 in 8 s, 15 MB fixture footprint, vanilla noise
-  baseline captured in `boot.py`.
+  baseline captured in `pzt/server.py`.
 - **S2 Auto-join** ✅ — done 2026-09-09, see [spikes.md](spikes.md): fully
   automated join (harness mod fills the connect popup and drives the three
   character-creation screens), characters persist across joins, admin
@@ -136,9 +136,12 @@ ship for: item numeric fields, character modData, nutrition values.
 
 ## Roadmap
 
-- **T0** repo layout: `testing/pzt/` (python), `testing/PZTestKit/` (mod),
-  `testing/profiles/`, `testing/fixtures/` (golden world, gitignored blobs +
-  a `make-fixture` recipe).
+- **T0** ✅ 2026-09-09 (measurements in [spikes.md](spikes.md)): `testing/pzt/`
+  package with `provision` (golden fixture: server world + client cachedirs,
+  gitignored blobs + tracked `fixture.json`), `boot` (13 s), `attach` (player
+  ready 34 s, no creation screens), `run` (boot + attach + hold + teardown +
+  report); harness command bus (`ping`, `quit`). `testing/profiles/` comes
+  with T1.
 - **T1** L0+L1: lint + boot validation against the *current* modlist subset
   (proves the pipeline on other people's mods before ours exists).
 - **T2** L2: server scenarios + result channel + RCON; accelerated-time
