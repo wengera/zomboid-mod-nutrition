@@ -1,0 +1,6592 @@
+[
+ {
+  "mod_id": "91range",
+  "name": "'91 RANGE ROVER Classic",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 24
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 7,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 22,
+  "sandbox_options": false,
+  "workshop_id": "2409333430",
+  "folder": "91range",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "FH",
+  "name": "Fluffy Hair",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2447729538",
+  "folder": "FluffyHair",
+  "class": "other"
+ },
+ {
+  "mod_id": "SpnHair",
+  "name": "Spongie's Hair",
+  "author": "?",
+  "require": [
+   "FH"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 2
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "2463184726",
+  "folder": "Spongie Hair",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SkillRecoveryJournal",
+  "name": "Skill Recovery Journal",
+  "author": "?",
+  "require": [],
+  "layout": "42.19",
+  "stats": {
+   "lua_client": 4,
+   "lua_shared": 8,
+   "script_files": 2
+  },
+  "signals": {
+   "events_add": 12,
+   "sandbox_vars": 26,
+   "send_client_cmd": 5,
+   "mod_data": 8,
+   "require_line": 4,
+   "global_write_vanilla": 2,
+   "send_server_cmd": 6,
+   "timed_action_new": 1,
+   "food_nutrition": 8,
+   "getfilewriter": 1,
+   "on_client_cmd": 3
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    2
+   ],
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnPreFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "OnGameTimeLoaded",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 93,
+  "sandbox_options": true,
+  "workshop_id": "2503622437",
+  "folder": "Skill Recovery Journal",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "86oshkoshP19A",
+  "name": "'86 Oshkosh P19A + Military Trailers",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 4,
+   "lua_shared": 2,
+   "script_files": 28
+  },
+  "signals": {
+   "mod_data": 12,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 20,
+  "sandbox_options": false,
+  "workshop_id": "2566953935",
+  "folder": "86oshkoshP19A",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "82oshkoshM911",
+  "name": "'82 Oshkosh M911",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 29
+  },
+  "signals": {
+   "mod_data": 12,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 23,
+  "sandbox_options": true,
+  "workshop_id": "2618213077",
+  "folder": "82oshkoshM911",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "isoContainers",
+  "name": "Containers!",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 1,
+   "lua_shared": 2,
+   "script_files": 12
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "2625625421",
+  "folder": "isoContainers",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "92amgeneralM998",
+  "name": "'92 AM General M998 + M101A3 Trailer",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 32
+  },
+  "signals": {
+   "mod_data": 12,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "2642541073",
+  "folder": "92amgeneralM998",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "92amgeneralM998extra",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    1
+   ]
+  ],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2642541073",
+  "folder": "92amgeneralM998extra",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Spongie Clothing",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.18",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 2,
+   "script_files": 5
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 8,
+  "sandbox_options": false,
+  "workshop_id": "2684285534",
+  "folder": "Spongie Clothing",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "P4TidyUpMeister",
+  "name": "Tidy Up Meister",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 1,
+   "lua_shared": 2
+  },
+  "signals": {
+   "events_add": 4,
+   "mod_data": 4,
+   "transmit_mod_data": 2,
+   "require_line": 10,
+   "global_write_vanilla": 5,
+   "onplayerupdate": 1,
+   "timed_action_new": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnLoad",
+    1
+   ]
+  ],
+  "lua_kb": 48,
+  "sandbox_options": false,
+  "workshop_id": "2769706949",
+  "folder": "P4TidyUpMeister",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "59meteor",
+  "name": "'59 Cadillac Miller-Meteor",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "2772575623",
+  "folder": "59 Cadillac Miller-Meteor",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ECTO1",
+  "name": "'59 Cadillac Miller-Meteor ECTO-1",
+  "author": "?",
+  "require": [
+   "59meteor"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1
+  },
+  "signals": {
+   "require_line": 1
+  },
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2772575623",
+  "folder": "59 Cadillac Miller-Meteor ECTO1",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "MorePlushies",
+  "name": "More Plushies!",
+  "author": "RyanHayes",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 1,
+   "lua_shared": 2,
+   "script_files": 3
+  },
+  "signals": {
+   "events_add": 6,
+   "mod_data": 1,
+   "monkey_patch": 1,
+   "require_line": 8,
+   "global_write_vanilla": 6,
+   "timed_action_new": 1,
+   "ui_panel": 1,
+   "sandbox_vars": 2
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    3
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnFillContainer",
+    1
+   ],
+   [
+    "OnInitGlobalModData",
+    1
+   ]
+  ],
+  "lua_kb": 46,
+  "sandbox_options": true,
+  "workshop_id": "2795036124",
+  "folder": "MorePlushies",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "78amgeneralM35A2",
+  "name": "'78 AM General M35 Series Trucks",
+  "author": "?",
+  "require": [],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 24
+  },
+  "signals": {
+   "mod_data": 11,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 12,
+  "sandbox_options": false,
+  "workshop_id": "2799152995",
+  "folder": "78amgeneralM35A2",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "78amgeneralM35A2extra",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    1
+   ]
+  ],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2799152995",
+  "folder": "78amgeneralM35A2extra",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "78amgeneralM49A2C",
+  "name": "'78 AM General M49A2C",
+  "author": "?",
+  "require": [
+   "78amgeneralM35A2"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2799152995",
+  "folder": "78amgeneralM49A2C",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "78amgeneralM50A3",
+  "name": "'78 AM General M50A3 Water Tanker",
+  "author": "?",
+  "require": [
+   "78amgeneralM35A2"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2799152995",
+  "folder": "78amgeneralM50A3",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "78amgeneralM62",
+  "name": "'78 AM General M62 Wrecker",
+  "author": "?",
+  "require": [
+   "78amgeneralM35A2"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2799152995",
+  "folder": "78amgeneralM62",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "84merc",
+  "name": "'84 Mercedes Benz W460",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 26
+  },
+  "signals": {
+   "mod_data": 18,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 21,
+  "sandbox_options": false,
+  "workshop_id": "2805630347",
+  "folder": "84mercW460",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SpongieOpenJackets",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.18",
+  "stats": {
+   "lua_shared": 1,
+   "script_files": 11
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 4,
+  "sandbox_options": false,
+  "workshop_id": "2812326159",
+  "folder": "SpongieOpenJackets",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SpongieOpenJackets_Base",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.18",
+  "stats": {
+   "lua_shared": 4
+  },
+  "signals": {
+   "require_line": 1,
+   "events_add": 1,
+   "monkey_patch": 1
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    1
+   ]
+  ],
+  "lua_kb": 13,
+  "sandbox_options": false,
+  "workshop_id": "2812326159",
+  "folder": "SpongieOpenJackets_Base",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "TryhonestyTiles",
+  "name": "Tryhonesty's Tiles",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2844685624",
+  "folder": "Tryhonesty's Tiles",
+  "class": "other"
+ },
+ {
+  "mod_id": "92nissanGTR",
+  "name": "'92 NISSAN Skyline GT-R (R32)",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 17,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 20,
+  "sandbox_options": false,
+  "workshop_id": "2846036306",
+  "folder": "92nissanGTR",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ProximityInventory",
+  "name": "Proximity Inventory",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": true,
+  "workshop_id": "2847184718",
+  "folder": "ProximityInventory",
+  "class": "other"
+ },
+ {
+  "mod_id": "simonMDsTiles",
+  "name": "Simon MDs Tiles",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2852704777",
+  "folder": "Simon-MDs-Tiles",
+  "class": "other"
+ },
+ {
+  "mod_id": "MiniHealthPanel",
+  "name": "Mini Health Panel",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 4
+  },
+  "signals": {
+   "ui_panel": 2,
+   "global_write_vanilla": 38,
+   "getfilewriter": 1,
+   "require_line": 1,
+   "events_add": 5
+  },
+  "top_events": [
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnPlayerDeath",
+    1
+   ],
+   [
+    "OnSave",
+    1
+   ],
+   [
+    "OnResolutionChange",
+    1
+   ],
+   [
+    "OnPreMapLoad",
+    1
+   ]
+  ],
+  "lua_kb": 57,
+  "sandbox_options": false,
+  "workshop_id": "2866258937",
+  "folder": "MiniHealthPanel",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "simpleStatus",
+  "name": "Simple Status",
+  "author": "?",
+  "require": [],
+  "layout": "42.16",
+  "stats": {
+   "lua_client": 7
+  },
+  "signals": {
+   "mod_data": 4,
+   "transmit_mod_data": 1,
+   "ui_panel": 1,
+   "events_add": 2,
+   "require_line": 2,
+   "food_nutrition": 12
+  },
+  "top_events": [
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ]
+  ],
+  "lua_kb": 46,
+  "sandbox_options": false,
+  "workshop_id": "2867431511",
+  "folder": "SimpleStatus",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "86fordE150",
+  "name": "'86 Ford Econoline E150",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 33
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 9,
+   "send_client_cmd": 1
+  },
+  "top_events": [],
+  "lua_kb": 26,
+  "sandbox_options": false,
+  "workshop_id": "2870394916",
+  "folder": "86fordE150",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "86fordE150dnd",
+  "name": "'86 Ford Econoline E150 Mutt Cutts van",
+  "author": "?",
+  "require": [
+   "86fordE150"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1
+  },
+  "signals": {
+   "require_line": 1
+  },
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2870394916",
+  "folder": "86fordE150dnd",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "86fordE150expanded",
+  "name": "'86 Ford Econoline E150 Expanded",
+  "author": "?",
+  "require": [
+   "86fordE150"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 6
+  },
+  "signals": {
+   "require_line": 3
+  },
+  "top_events": [],
+  "lua_kb": 29,
+  "sandbox_options": false,
+  "workshop_id": "2870394916",
+  "folder": "86fordE150expanded",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "86fordE150mm",
+  "name": "'86 Ford Econoline E150 Mystery Machine",
+  "author": "?",
+  "require": [
+   "86fordE150"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2870394916",
+  "folder": "86fordE150mm",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "86fordE150pd",
+  "name": "'86 Ford Econoline E150 Payday Escape Van",
+  "author": "?",
+  "require": [
+   "86fordE150"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2870394916",
+  "folder": "86fordE150pd",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "70dodge",
+  "name": "'70 Dodge Challenger",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 23
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "2873290424",
+  "folder": "70dodge",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "melos_tiles_for_miles_pack",
+  "name": "Melos Tiles For Miles",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2879745353",
+  "folder": "Melos Tiles for Miles",
+  "class": "other"
+ },
+ {
+  "mod_id": "HayesCustoms",
+  "name": "Hayes Customs",
+  "author": "RyanHayes",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 6,
+   "lua_client": 1,
+   "lua_server": 3,
+   "script_files": 21
+  },
+  "signals": {
+   "require_line": 9,
+   "events_add": 3,
+   "pcall": 2,
+   "sandbox_vars": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnFillContainer",
+    1
+   ],
+   [
+    "OnPostDistributionMerge",
+    1
+   ]
+  ],
+  "lua_kb": 123,
+  "sandbox_options": true,
+  "workshop_id": "2884278892",
+  "folder": "HayesCustoms",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Petroville",
+  "name": "b42_petroville",
+  "author": "?",
+  "require": [],
+  "layout": "42.0",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2886261613",
+  "folder": "Petroville",
+  "class": "other"
+ },
+ {
+  "mod_id": "82jeepJ10",
+  "name": "'82 Jeep J10",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 25
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "2886832257",
+  "folder": "82jeepJ10",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "82jeepJ10t",
+  "name": "'82 Jeep J10 Mellow Yellow",
+  "author": "?",
+  "require": [
+   "82jeepJ10"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1
+  },
+  "signals": {
+   "require_line": 1
+  },
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "2886832257",
+  "folder": "82jeepJ10t",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "88chevyS10",
+  "name": "'88 Chevrolet S10",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 14,
+  "sandbox_options": false,
+  "workshop_id": "2886832936",
+  "folder": "88chevyS10",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "89fordBronco",
+  "name": "'89 Ford Bronco",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 24
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "2886833398",
+  "folder": "89fordBronco",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "errorMagnifier",
+  "name": "errorMagnifier",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 3
+  },
+  "signals": {
+   "events_add": 15,
+   "pcall": 2,
+   "ui_panel": 1,
+   "getfilewriter": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerMove",
+    9
+   ],
+   [
+    "OnMainMenuEnter",
+    2
+   ],
+   [
+    "OnLoad",
+    1
+   ],
+   [
+    "OnTickEvenPaused",
+    1
+   ],
+   [
+    "OnFETick",
+    1
+   ],
+   [
+    "OnResolutionChange",
+    1
+   ]
+  ],
+  "lua_kb": 45,
+  "sandbox_options": false,
+  "workshop_id": "2896041179",
+  "folder": "errorMagnifier",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "97bushmaster",
+  "name": "'97 ADI Bushmaster",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 25
+  },
+  "signals": {
+   "mod_data": 7,
+   "require_line": 5
+  },
+  "top_events": [],
+  "lua_kb": 22,
+  "sandbox_options": true,
+  "workshop_id": "2897390033",
+  "folder": "97bushmaster",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "49powerWagon",
+  "name": "'49 Dodge Power Wagon Crew Cab",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 19,
+  "sandbox_options": true,
+  "workshop_id": "2900580391",
+  "folder": "49powerWagon",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "70barracuda",
+  "name": "'70 Plymouth Barracuda",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 13,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "2913633066",
+  "folder": "70barracuda",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "biogas",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "tile_packs": 2,
+   "lua_client": 4,
+   "lua_server": 5,
+   "lua_shared": 5,
+   "models": 2,
+   "script_files": 6
+  },
+  "signals": {
+   "require_line": 11,
+   "mod_data": 8,
+   "sandbox_vars": 37,
+   "ui_panel": 1,
+   "global_write_vanilla": 17,
+   "transmit_mod_data": 2,
+   "events_add": 3,
+   "timed_action_new": 2
+  },
+  "top_events": [
+   [
+    "OnInitGlobalModData",
+    2
+   ],
+   [
+    "EveryHours",
+    1
+   ]
+  ],
+  "lua_kb": 32,
+  "sandbox_options": true,
+  "workshop_id": "2925657627",
+  "folder": "biogas",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "93townCar",
+  "name": "'93 Lincoln Town Car",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 18
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "2932547723",
+  "folder": "93townCar",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "89trooper",
+  "name": "'89 Isuzu Trooper",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 17,
+   "require_line": 6,
+   "global_write_vanilla": 1
+  },
+  "top_events": [],
+  "lua_kb": 19,
+  "sandbox_options": false,
+  "workshop_id": "2932549988",
+  "folder": "89trooper",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "69mini",
+  "name": "'69 Mini Mk2",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "2937786633",
+  "folder": "69mini",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "69mini_ItalianJob",
+  "name": "'69 Mini Mk2 Italian Job",
+  "author": "?",
+  "require": [
+   "69mini"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2937786633",
+  "folder": "69mini_ItalianJob",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "69mini_MrBean",
+  "name": "'69 Mini Mk2 Mr Bean",
+  "author": "?",
+  "require": [
+   "69mini"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2937786633",
+  "folder": "69mini_MrBean",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "69mini_PitbullSpecial",
+  "name": "'69 Mini Mk2 Pitbull Special",
+  "author": "?",
+  "require": [
+   "69mini"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "2937786633",
+  "folder": "69mini_PitbullSpecial",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "90pierceArrow",
+  "name": "'90 Pierce Arrow Pumper and Ladder Trucks",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 17
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 19,
+  "sandbox_options": false,
+  "workshop_id": "2942793445",
+  "folder": "90pierceArrow",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "90fordF350ambulance",
+  "name": "'90 Ford F350 Ambulance Type 1",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 16
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "2952802178",
+  "folder": "90fordF350ambulance",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "92fordCVPI",
+  "name": "'92 Ford Crown Victoria Police Interceptor",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 29
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 19,
+  "sandbox_options": false,
+  "workshop_id": "2962175696",
+  "folder": "92fordCVPI",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "99fordCVPI",
+  "name": "'99 Ford Crown Victoria Police Interceptor",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 18,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "2971246021",
+  "folder": "99fordCVPI",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "69camaro",
+  "name": "'69 Chevrolet Camaro",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "2991201484",
+  "folder": "69camaro",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "CustomGamepadUI",
+  "name": "Custom Gamepad UI",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 7,
+   "lua_shared": 1
+  },
+  "signals": {
+   "events_add": 3,
+   "onplayerupdate": 1,
+   "monkey_patch": 11,
+   "getfilewriter": 1,
+   "global_write_vanilla": 10,
+   "food_nutrition": 1,
+   "mod_data": 3
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnPressRackButton",
+    1
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ]
+  ],
+  "lua_kb": 35,
+  "sandbox_options": false,
+  "workshop_id": "3001154607",
+  "folder": "CustomGamepadUI",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "93mustangSSP",
+  "name": "'93 Ford Mustang",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 28
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 24,
+  "sandbox_options": false,
+  "workshop_id": "3001592312",
+  "folder": "93mustangSSP",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "63beetle",
+  "name": "'63 Volkswagen 1300 Beetle",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 23
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 5
+  },
+  "top_events": [],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3005903549",
+  "folder": "63beetle",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "91geoMetro",
+  "name": "'91 Geo Metro",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 16
+  },
+  "signals": {
+   "mod_data": 18,
+   "require_line": 5
+  },
+  "top_events": [],
+  "lua_kb": 14,
+  "sandbox_options": false,
+  "workshop_id": "3008795514",
+  "folder": "91geoMetro",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "67gt500",
+  "name": "'67 Shelby GT500 + Eleanor",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 18
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3026723485",
+  "folder": "67gt500",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "89dodgeCaravan",
+  "name": "'89 Dodge Caravan",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 23
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "3034636011",
+  "folder": "89dodgeCaravan",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "63Type2Van",
+  "name": "'63 Volkswagen Type 2 Van",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 26
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 5
+  },
+  "top_events": [],
+  "lua_kb": 23,
+  "sandbox_options": false,
+  "workshop_id": "3041122351",
+  "folder": "63Type2Van",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "87toyotaMR2",
+  "name": "'87 Toyota MR2",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 7,
+   "events_add": 3,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "3052360250",
+  "folder": "87toyotaMR2",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "93fordF350",
+  "name": "'93 Ford F-Series",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 33
+  },
+  "signals": {
+   "mod_data": 20,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 33,
+  "sandbox_options": false,
+  "workshop_id": "3073430075",
+  "folder": "93fordF350",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ChuckleberryFinnAlertSystem",
+  "name": "[Optional] Mod Update and Alert System",
+  "author": "?",
+  "require": [],
+  "layout": "42.0",
+  "stats": {
+   "lua_client": 4
+  },
+  "signals": {
+   "events_add": 4,
+   "getfilewriter": 2,
+   "require_line": 2,
+   "monkey_patch": 2
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    1
+   ],
+   [
+    "OnMainMenuEnter",
+    1
+   ],
+   [
+    "OnLoad",
+    1
+   ],
+   [
+    "OnResolutionChange",
+    1
+   ]
+  ],
+  "lua_kb": 34,
+  "sandbox_options": false,
+  "workshop_id": "3077900375",
+  "folder": "chuckleberryModdingAlertSystem",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "93fordTaurus",
+  "name": "'93 Ford Taurus",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 5
+  },
+  "top_events": [],
+  "lua_kb": 20,
+  "sandbox_options": false,
+  "workshop_id": "3088951320",
+  "folder": "93fordTaurus",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "87fordB700",
+  "name": "'87 Ford B700/F700 Trucks",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 39
+  },
+  "signals": {
+   "mod_data": 38,
+   "require_line": 6,
+   "events_add": 2,
+   "onplayerupdate": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    2
+   ]
+  ],
+  "lua_kb": 47,
+  "sandbox_options": true,
+  "workshop_id": "3110911330",
+  "folder": "87fordB700",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "90bmwE30",
+  "name": "'90 BMW 3 Series (E30)",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 24,
+  "sandbox_options": false,
+  "workshop_id": "3110913021",
+  "folder": "90bmwE30",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "93chevySuburban",
+  "name": "'93 Chevrolet Suburban / Silverado",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 3,
+   "script_files": 47
+  },
+  "signals": {
+   "mod_data": 20,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 41,
+  "sandbox_options": false,
+  "workshop_id": "3152529790",
+  "folder": "93chevySuburban",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "93chevySuburbanExpanded",
+  "name": "'93 Chevrolet Suburban / Silverado Expanded",
+  "author": "?",
+  "require": [
+   "93chevySuburban"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 11
+  },
+  "signals": {
+   "require_line": 3
+  },
+  "top_events": [],
+  "lua_kb": 11,
+  "sandbox_options": false,
+  "workshop_id": "3152529790",
+  "folder": "93chevySuburbanExpanded",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "76chevyKseries",
+  "name": "'76 Chevrolet K series",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 43
+  },
+  "signals": {
+   "mod_data": 24,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 57,
+  "sandbox_options": true,
+  "workshop_id": "3161951724",
+  "folder": "76chevyKseries",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "76chevyKserieseExpanded",
+  "name": "'76 Chevrolet K series Expanded",
+  "author": "?",
+  "require": [
+   "76chevyKseries"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 1,
+   "lua_shared": 1,
+   "script_files": 4
+  },
+  "signals": {
+   "require_line": 3
+  },
+  "top_events": [],
+  "lua_kb": 5,
+  "sandbox_options": false,
+  "workshop_id": "3161951724",
+  "folder": "76chevyKseriesExpanded",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "damnlib",
+  "name": "that DAMN Library 0.9872b",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_shared": 10,
+   "lua_client": 9,
+   "lua_server": 13,
+   "script_files": 69
+  },
+  "signals": {
+   "events_add": 15,
+   "send_client_cmd": 8,
+   "onplayerupdate": 1,
+   "require_line": 12,
+   "global_write_vanilla": 1,
+   "on_client_cmd": 2,
+   "mod_data": 25,
+   "transmit_mod_data": 1,
+   "send_server_cmd": 1,
+   "monkey_patch": 7,
+   "getfilewriter": 5
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    3
+   ],
+   [
+    "OnEnterVehicle",
+    2
+   ],
+   [
+    "OnExitVehicle",
+    2
+   ],
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "OnSwitchVehicleSeat",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 185,
+  "sandbox_options": true,
+  "workshop_id": "3171167894",
+  "folder": "damnlib",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "87chevySuburban",
+  "name": "'87 Chevrolet Suburban",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.17",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 17,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 21,
+  "sandbox_options": false,
+  "workshop_id": "3196180339",
+  "folder": "87chevySuburban",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "75grandPrix",
+  "name": "'75 Pontiac Grand Prix",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "3213391371",
+  "folder": "75grandPrix",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "87buickRegal",
+  "name": "'87 Buick Regal",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "3226885926",
+  "folder": "87buickRegal",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "81deloreanDMC12",
+  "name": "'81 DeLorean DMC-12",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 16
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": true,
+  "workshop_id": "3253385114",
+  "folder": "81deloreanDMC12",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "81deloreanDMC12BTTF",
+  "name": "'81 DeLorean DMC-12 Time Machine",
+  "author": "?",
+  "require": [
+   "81deloreanDMC12"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3253385114",
+  "folder": "81deloreanDMC12BTTF",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "68firebird",
+  "name": "'68 Pontiac Firebird",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 18,
+   "require_line": 6,
+   "events_add": 2,
+   "onplayerupdate": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    2
+   ]
+  ],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "3258343790",
+  "folder": "68firebird",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "FancyLanterns",
+  "name": "Fancy Lanterns",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 5,
+   "lua_server": 1,
+   "lua_shared": 4,
+   "models": 2,
+   "script_files": 8
+  },
+  "signals": {
+   "events_add": 5,
+   "sandbox_vars": 7,
+   "onplayerupdate": 1,
+   "monkey_patch": 1,
+   "global_write_vanilla": 1,
+   "require_line": 2,
+   "timed_action_new": 1
+  },
+  "top_events": [
+   [
+    "OnInitGlobalModData",
+    2
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ]
+  ],
+  "lua_kb": 13,
+  "sandbox_options": true,
+  "workshop_id": "3267733558",
+  "folder": "FancyLanterns",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "92jeepYJ",
+  "name": "'92 Jeep Wrangler YJ",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 4,
+   "lua_shared": 2,
+   "script_files": 28
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 23,
+  "sandbox_options": false,
+  "workshop_id": "3287727378",
+  "folder": "92jeepYJ",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "92jeepYJJP18",
+  "name": "'92 Jeep Wrangler YJ JP18",
+  "author": "?",
+  "require": [
+   "92jeepYJ"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3287727378",
+  "folder": "92jeepYJJP18",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "89volvo200",
+  "name": "'89 Volvo 200 Series",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 29,
+  "sandbox_options": false,
+  "workshop_id": "3292659291",
+  "folder": "89volvo200",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "GanydeBielovzki's Frockin Splendor!",
+  "name": "Frockin Splendor!",
+  "author": "GanydeBielovzki",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 5
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "3307376332",
+  "folder": "Frockin Splendor!",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "98stagea",
+  "name": "'98 Nissan Stagea 260RS Autech",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3315443103",
+  "folder": "98stagea",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "82firebird",
+  "name": "'82 Pontiac Firebird",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 23
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6,
+   "events_add": 2,
+   "onplayerupdate": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    2
+   ]
+  ],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3320947974",
+  "folder": "82firebird",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "82firebirdKITT",
+  "name": "'82 Pontiac Firebird Trans Am KITT",
+  "author": "?",
+  "require": [
+   "82firebird"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "3320947974",
+  "folder": "82firebirdKITT",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "MoreDifficultZonesB42",
+  "name": "More Difficult Zones",
+  "author": "?",
+  "require": [
+   "MoodleFramework"
+  ],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": true,
+  "workshop_id": "3325808670",
+  "folder": "MoreDifficultyB42",
+  "class": "other"
+ },
+ {
+  "mod_id": "MoreDifficultZombiesB42",
+  "name": "More Difficult Zombies",
+  "author": "?",
+  "require": [
+   "MoreDifficultZonesB42"
+  ],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3325808670",
+  "folder": "MoreDifficultZombiesB42",
+  "class": "other"
+ },
+ {
+  "mod_id": "OZD-ZonesB42",
+  "name": "ZombieLootDropZones",
+  "author": "?",
+  "require": [
+   "MoreDifficultZonesB42"
+  ],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": true,
+  "workshop_id": "3325808670",
+  "folder": "OZD-ZonesB42",
+  "class": "other"
+ },
+ {
+  "mod_id": "KI5trailers",
+  "name": "Trailers!",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "require_line": 4
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3330403100",
+  "folder": "KI5trailers",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Erikas_Tiles",
+  "name": "Erika's Tiles",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3346506593",
+  "folder": "Erikas Tiles",
+  "class": "other"
+ },
+ {
+  "mod_id": "77firebird",
+  "name": "'77 Pontiac Firebird",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3346905070",
+  "folder": "77firebird",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "EssentialCarNotifications",
+  "name": "Essential Car Notifications",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {
+   "events_add": 3,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnEnterVehicle",
+    1
+   ],
+   [
+    "OnExitVehicle",
+    1
+   ]
+  ],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "3350173580",
+  "folder": "EssentialCarNotifications",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "91fordLTD",
+  "name": "'91 Ford LTD Crown Victoria",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 24
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 22,
+  "sandbox_options": false,
+  "workshop_id": "3366300557",
+  "folder": "91fordLTD",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "82porsche911",
+  "name": "'82 Porsche 911",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 24,
+  "sandbox_options": false,
+  "workshop_id": "3379334330",
+  "folder": "82porsche911",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ElyonLib",
+  "name": "Elyon Lib",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 5,
+   "lua_shared": 25
+  },
+  "signals": {
+   "ui_panel": 6,
+   "require_line": 8,
+   "global_write_vanilla": 22,
+   "events_add": 9,
+   "send_client_cmd": 7,
+   "on_client_cmd": 1,
+   "send_server_cmd": 1,
+   "everyoneminute": 1,
+   "getfilewriter": 2,
+   "sandbox_vars": 2
+  },
+  "top_events": [
+   [
+    "OnTick",
+    2
+   ],
+   [
+    "OnResolutionChange",
+    2
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnPlayerDeath",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ],
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "EveryOneMinute",
+    1
+   ]
+  ],
+  "lua_kb": 211,
+  "sandbox_options": false,
+  "workshop_id": "3384377738",
+  "folder": "ElyonLib",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "AutoCook",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3
+  },
+  "signals": {
+   "mod_data": 9,
+   "require_line": 5,
+   "food_nutrition": 4,
+   "global_write_vanilla": 21
+  },
+  "top_events": [],
+  "lua_kb": 41,
+  "sandbox_options": false,
+  "workshop_id": "3388721641",
+  "folder": "AutoCook",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "MoodleFramework",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {
+   "events_add": 2,
+   "mod_data": 1,
+   "food_nutrition": 1
+  },
+  "top_events": [
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnPlayerDeath",
+    1
+   ]
+  ],
+  "lua_kb": 27,
+  "sandbox_options": false,
+  "workshop_id": "3396446795",
+  "folder": "MoodleFramework",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "PainkillersRemoveMuscleStrain",
+  "name": "PainkillersRemoveMuscleStrain",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3398090604",
+  "folder": "PainkillersRemoveMuscleStrain",
+  "class": "other"
+ },
+ {
+  "mod_id": "VanillaGearExpanded",
+  "name": "Vanilla Gear Expanded",
+  "author": "Tango",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1,
+   "models": 6,
+   "script_files": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 11,
+  "sandbox_options": false,
+  "workshop_id": "3401134276",
+  "folder": "Vanilla Gear Expanded",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ExerciseWithCorpses",
+  "name": "ExerciseWithCorpses",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3404074048",
+  "folder": "ExerciseWithCorpses",
+  "class": "other"
+ },
+ {
+  "mod_id": "84jeepXJ",
+  "name": "'84 Jeep XJ Cherokee",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 20,
+  "sandbox_options": false,
+  "workshop_id": "3409287192",
+  "folder": "84jeepXJ",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.2",
+  "name": "Frockin Splendor! Vol.2",
+  "author": "GanydeBielovzki",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 3,
+   "lua_server": 2,
+   "script_files": 7
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 58,
+  "sandbox_options": false,
+  "workshop_id": "3411888105",
+  "folder": "Frockin Splendor! Vol.2",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "RemoveAllItems",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.14",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 1
+  },
+  "signals": {
+   "send_client_cmd": 1,
+   "global_write_vanilla": 2,
+   "events_add": 1,
+   "on_client_cmd": 3
+  },
+  "top_events": [
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 8,
+  "sandbox_options": false,
+  "workshop_id": "3413255058",
+  "folder": "RemoveAllItems",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "85chevyCaprice",
+  "name": "'85 Chevrolet Caprice / Impala",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 4,
+   "lua_shared": 2,
+   "script_files": 37
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 37,
+  "sandbox_options": false,
+  "workshop_id": "3413704851",
+  "folder": "85chevyCaprice",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "85pontiacParisienne",
+  "name": "'85 Pontiac Parisienne",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 24,
+  "sandbox_options": false,
+  "workshop_id": "3413706334",
+  "folder": "85pontiacParisienne",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "85buickLeSabre",
+  "name": "'85 Buick LeSabre",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 28,
+  "sandbox_options": false,
+  "workshop_id": "3418252689",
+  "folder": "85buickLeSabre",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "85oldsmobileDelta88",
+  "name": "'85 Oldsmobile Delta 88",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 28,
+  "sandbox_options": false,
+  "workshop_id": "3418253716",
+  "folder": "85oldsmobileDelta88",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "1VCESTANDARD",
+  "name": "Vanilla Clothing Expansion",
+  "author": "Reconspiracy",
+  "require": [],
+  "layout": "42.19",
+  "stats": {
+   "script_files": 3
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3421271152",
+  "folder": "Vanilla Clothing Expansion MP",
+  "class": "content(scripts-only)"
+ },
+ {
+  "mod_id": "VVR",
+  "name": "Vanilla Vehicles Replacer (KI5)",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 2,
+   "lua_shared": 6
+  },
+  "signals": {
+   "events_add": 7,
+   "sandbox_vars": 10,
+   "require_line": 4
+  },
+  "top_events": [
+   [
+    "OnLoadMapZones",
+    3
+   ],
+   [
+    "OnSpawnVehicleStart",
+    2
+   ],
+   [
+    "OnSpawnVehicleEnd",
+    1
+   ],
+   [
+    "OnLoadedMapZones",
+    1
+   ]
+  ],
+  "lua_kb": 171,
+  "sandbox_options": true,
+  "workshop_id": "3423424077",
+  "folder": "VanillaVehiclesReplacerKI5",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "CombatTraits",
+  "name": "Combat Traits",
+  "author": "?",
+  "require": [
+   "CombatTraitsCore"
+  ],
+  "layout": "42.15",
+  "stats": {
+   "lua_shared": 3,
+   "script_files": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 2,
+  "sandbox_options": false,
+  "workshop_id": "3427091746",
+  "folder": "CombatTraits",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "CombatTraitsCore",
+  "name": "Combat Traits Core",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 1
+  },
+  "signals": {
+   "events_add": 8,
+   "send_client_cmd": 1,
+   "onplayerupdate": 1,
+   "everyoneminute": 1,
+   "on_client_cmd": 1
+  },
+  "top_events": [
+   [
+    "OnWeaponSwing",
+    2
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnWeaponSwingHitPoint",
+    1
+   ],
+   [
+    "OnEquipPrimary",
+    1
+   ],
+   [
+    "EveryTenMinutes",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 6,
+  "sandbox_options": false,
+  "workshop_id": "3427091746",
+  "folder": "CombatTraitsCore",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "NSOENMIOEACTDD",
+  "name": "No Stop On Exit No Move Items On Enter And Close That Damn Door",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {
+   "monkey_patch": 6,
+   "global_write_vanilla": 6
+  },
+  "top_events": [],
+  "lua_kb": 7,
+  "sandbox_options": false,
+  "workshop_id": "3427114019",
+  "folder": "NSOENMIOEACTDD",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "86chevyCUCV",
+  "name": "'86 Chevrolet CUCVs + M101A2 Trailer",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.17",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 36
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 37,
+  "sandbox_options": false,
+  "workshop_id": "3428008364",
+  "folder": "86chevyCUCV",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.3",
+  "name": "Frockin Splendor! Vol.3",
+  "author": "GanydeBielovzki",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 4
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 20,
+  "sandbox_options": false,
+  "workshop_id": "3431256608",
+  "folder": "Frockin Splendor! Vol.3",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "88toyotaHilux",
+  "name": "'88 Toyota Hilux",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 18,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3435796523",
+  "folder": "88toyotaHilux",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "CleanUI",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.19",
+  "stats": {
+   "lua_client": 51,
+   "lua_shared": 3
+  },
+  "signals": {
+   "events_add": 18,
+   "pcall": 101,
+   "require_line": 112,
+   "send_client_cmd": 8,
+   "ui_panel": 6,
+   "mod_data": 12,
+   "food_nutrition": 11,
+   "getfilewriter": 2,
+   "global_write_vanilla": 287,
+   "monkey_patch": 3,
+   "sandbox_vars": 2,
+   "timed_action_new": 2
+  },
+  "top_events": [
+   [
+    "OnTick",
+    5
+   ],
+   [
+    "OnGameBoot",
+    5
+   ],
+   [
+    "OnGameStart",
+    5
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ],
+   [
+    "OnContainerUpdate",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ]
+  ],
+  "lua_kb": 1064,
+  "sandbox_options": false,
+  "workshop_id": "3437629766",
+  "folder": "CleanUI",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "66pontiacLeMans",
+  "name": "'66 Pontiac LeMans / GTO",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3447272250",
+  "folder": "66pontiacLeMans",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "KWRR_Security",
+  "name": "KWRR Security",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {
+   "send_client_cmd": 20
+  },
+  "top_events": [],
+  "lua_kb": 12,
+  "sandbox_options": true,
+  "workshop_id": "3455571945",
+  "folder": "KWRR_Security",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "CleanHotBar",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3461263912",
+  "folder": "CleanHotBar",
+  "class": "other"
+ },
+ {
+  "mod_id": "KATTAJ1_ClothesCore",
+  "name": "KATTAJ1 Clothes Core",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_shared": 4,
+   "lua_client": 4,
+   "lua_server": 1,
+   "script_files": 5
+  },
+  "signals": {
+   "monkey_patch": 1,
+   "require_line": 4,
+   "global_write_vanilla": 1,
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ]
+  ],
+  "lua_kb": 27,
+  "sandbox_options": false,
+  "workshop_id": "3470422050",
+  "folder": "KATTAJ1 Clothes Core",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "KATTAJ1_Military",
+  "name": "KATTAJ1 Military Pack",
+  "author": "?",
+  "require": [
+   "KATTAJ1_ClothesCore"
+  ],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 2,
+   "script_files": 26
+  },
+  "signals": {
+   "events_add": 3,
+   "require_line": 2,
+   "sandbox_vars": 68
+  },
+  "top_events": [
+   [
+    "OnInitGlobalModData",
+    2
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ]
+  ],
+  "lua_kb": 35,
+  "sandbox_options": true,
+  "workshop_id": "3470426196",
+  "folder": "KATTAJ1 Military Pack",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.4",
+  "name": "Frockin Splendor! Vol.4",
+  "author": "GanydeBielovzki",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 10
+  },
+  "signals": {
+   "require_line": 1
+  },
+  "top_events": [],
+  "lua_kb": 10,
+  "sandbox_options": false,
+  "workshop_id": "3475347500",
+  "folder": "Frockin Splendor! Vol.4",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "04vwTouran",
+  "name": "'04 Volkswagen Touran",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 17
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 14,
+  "sandbox_options": false,
+  "workshop_id": "3478633453",
+  "folder": "04vwTouran",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "73fordFalcon",
+  "name": "'73 Ford Falcon",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 3,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6,
+   "events_add": 3,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnKeyStartPressed",
+    1
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ]
+  ],
+  "lua_kb": 21,
+  "sandbox_options": false,
+  "workshop_id": "3490370700",
+  "folder": "73fordFalcon",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "73fordFalconPS",
+  "name": "'73 Ford Falcon XB GT Pursuit Special",
+  "author": "?",
+  "require": [
+   "73fordFalcon"
+  ],
+  "layout": "42.0",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3490370700",
+  "folder": "73fordFalconPS",
+  "class": "other"
+ },
+ {
+  "mod_id": "SomewhatTraits",
+  "name": "Somewhat Traits",
+  "author": "?",
+  "require": [
+   "SomewhatTraitsCore"
+  ],
+  "layout": "42.15",
+  "stats": {
+   "lua_shared": 3,
+   "script_files": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 7,
+  "sandbox_options": false,
+  "workshop_id": "3498347699",
+  "folder": "SomewhatTraits",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SomewhatTraitsCore",
+  "name": "Somewhat Traits Core",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 2,
+   "lua_server": 1,
+   "lua_shared": 1
+  },
+  "signals": {
+   "monkey_patch": 66,
+   "global_write_vanilla": 56,
+   "events_add": 37,
+   "send_client_cmd": 3,
+   "onplayerupdate": 6,
+   "on_client_cmd": 1,
+   "food_nutrition": 3
+  },
+  "top_events": [
+   [
+    "OnTick",
+    24
+   ],
+   [
+    "OnPlayerUpdate",
+    6
+   ],
+   [
+    "OnWeaponSwing",
+    2
+   ],
+   [
+    "OnAIStateChange",
+    1
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnHitZombie",
+    1
+   ],
+   [
+    "OnNewGame",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 44,
+  "sandbox_options": true,
+  "workshop_id": "3498347699",
+  "folder": "SomewhatTraitsCore",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SomewhatTraitsSkills",
+  "name": "Somewhat Traits Skills",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_shared": 2,
+   "script_files": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "3498347699",
+  "folder": "SomewhatTraitsSkills",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Neat_Crafting",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.13",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3502080466",
+  "folder": "Neat_Crafting",
+  "class": "other"
+ },
+ {
+  "mod_id": "91nissan240sx",
+  "name": "'91 Nissan 240SX",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 7,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 19,
+  "sandbox_options": false,
+  "workshop_id": "3504401781",
+  "folder": "91nissan240sx",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "NeatUI_Framework",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 11
+  },
+  "signals": {
+   "require_line": 6,
+   "global_write_vanilla": 10,
+   "monkey_patch": 9
+  },
+  "top_events": [],
+  "lua_kb": 72,
+  "sandbox_options": false,
+  "workshop_id": "3508537032",
+  "folder": "NeatUI_Framework",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "EN_Newburbs",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3520263838",
+  "folder": "EN_Newburbs",
+  "class": "other"
+ },
+ {
+  "mod_id": "91fordRanger",
+  "name": "'91 Ford Ranger",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 23
+  },
+  "signals": {
+   "mod_data": 18,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3539691958",
+  "folder": "91fordRanger",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "65banshee",
+  "name": "'65 Pontiac Banshee",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 17,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3566868353",
+  "folder": "65banshee",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "89defender",
+  "name": "'89 LAND ROVER Defender",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 32
+  },
+  "signals": {
+   "mod_data": 17,
+   "require_line": 5,
+   "events_add": 3,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 34,
+  "sandbox_options": false,
+  "workshop_id": "3570973322",
+  "folder": "89defender",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "STA_PryOpen",
+  "name": "StarkTruffle Additions - Pry Open",
+  "author": "StarkTruffle",
+  "require": [],
+  "layout": "42.20",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": true,
+  "workshop_id": "3579640010",
+  "folder": "STA_PryOpen",
+  "class": "other"
+ },
+ {
+  "mod_id": "SomewhatCompanions",
+  "name": "Somewhat Companions",
+  "author": "?",
+  "require": [],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 1,
+   "lua_shared": 1,
+   "models": 4,
+   "script_files": 4
+  },
+  "signals": {
+   "events_add": 2,
+   "mod_data": 4,
+   "sandbox_vars": 4,
+   "monkey_patch": 3,
+   "global_write_vanilla": 3,
+   "require_line": 1
+  },
+  "top_events": [
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnInitGlobalModData",
+    1
+   ]
+  ],
+  "lua_kb": 12,
+  "sandbox_options": true,
+  "workshop_id": "3582919946",
+  "folder": "SomewhatCompanions",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SomewhatWater",
+  "name": "Somewhat Water",
+  "author": "somewhatfrog",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3582960654",
+  "folder": "SomewhatWater",
+  "class": "other"
+ },
+ {
+  "mod_id": "SomewhatWaterBright",
+  "name": "Somewhat Water Bright",
+  "author": "somewhatfrog",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3582960654",
+  "folder": "SomewhatWaterBright",
+  "class": "other"
+ },
+ {
+  "mod_id": "84cadillacDeVille",
+  "name": "'84 Cadillac DeVille",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 18
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 5,
+   "events_add": 5,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnExitVehicle",
+    1
+   ],
+   [
+    "OnSwitchVehicleSeat",
+    1
+   ]
+  ],
+  "lua_kb": 25,
+  "sandbox_options": false,
+  "workshop_id": "3592777775",
+  "folder": "84cadillacDeVille",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "84buickElectra",
+  "name": "'84 Buick Electra",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 18
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 5,
+   "events_add": 5,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnExitVehicle",
+    1
+   ],
+   [
+    "OnSwitchVehicleSeat",
+    1
+   ]
+  ],
+  "lua_kb": 25,
+  "sandbox_options": false,
+  "workshop_id": "3596903773",
+  "folder": "84buickElectra",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "85chevyStepVan",
+  "name": "'85 Chevrolet Step-Van",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 7,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3614034284",
+  "folder": "85chevyStepVan",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "85chevyStepVanexpanded",
+  "name": "'85 Chevrolet Step-Van Expanded",
+  "author": "?",
+  "require": [
+   "85chevyStepVan"
+  ],
+  "layout": "42.0",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 2
+  },
+  "signals": {
+   "require_line": 2
+  },
+  "top_events": [],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "3614034284",
+  "folder": "85chevyStepVanExpanded",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ResearchLabInternProfession",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_shared": 7,
+   "script_files": 3
+  },
+  "signals": {
+   "mod_data": 2,
+   "events_add": 4,
+   "require_line": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnGameBoot",
+    1
+   ],
+   [
+    "OnNewGame",
+    1
+   ]
+  ],
+  "lua_kb": 18,
+  "sandbox_options": true,
+  "workshop_id": "3615135168",
+  "folder": "ResearchLabInternProfession",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ZVirusVaccine42BETA",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_shared": 17,
+   "lua_client": 10,
+   "lua_server": 15,
+   "script_files": 35
+  },
+  "signals": {
+   "events_add": 28,
+   "pcall": 26,
+   "require_line": 18,
+   "mod_data": 22,
+   "send_server_cmd": 7,
+   "transmit_mod_data": 15,
+   "on_client_cmd": 3,
+   "sandbox_vars": 5,
+   "everyoneminute": 3,
+   "send_client_cmd": 11,
+   "timed_action_new": 14,
+   "global_write_vanilla": 18
+  },
+  "top_events": [
+   [
+    "OnServerCommand",
+    6
+   ],
+   [
+    "OnTick",
+    3
+   ],
+   [
+    "EveryTenMinutes",
+    2
+   ],
+   [
+    "OnGameStart",
+    2
+   ],
+   [
+    "OnServerStarted",
+    2
+   ],
+   [
+    "OnInitGlobalModData",
+    2
+   ],
+   [
+    "OnLabBloodTestComplete",
+    1
+   ],
+   [
+    "OnLabAutopsyComplete",
+    1
+   ]
+  ],
+  "lua_kb": 240,
+  "sandbox_options": true,
+  "workshop_id": "3615135168",
+  "folder": "ZVirusVaccine42BETA",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "HereGoesTheSun",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 2,
+   "lua_shared": 3
+  },
+  "signals": {
+   "events_add": 12,
+   "require_line": 1,
+   "pcall": 6,
+   "everyoneminute": 2
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    3
+   ],
+   [
+    "OnLoad",
+    2
+   ],
+   [
+    "EveryOneMinute",
+    2
+   ],
+   [
+    "EveryHours",
+    1
+   ],
+   [
+    "OnPreUIDraw",
+    1
+   ],
+   [
+    "OnResolutionChange",
+    1
+   ],
+   [
+    "OnTick",
+    1
+   ],
+   [
+    "OnWeatherPeriodStart",
+    1
+   ]
+  ],
+  "lua_kb": 22,
+  "sandbox_options": true,
+  "workshop_id": "3618557184",
+  "folder": "HereGoesTheSun",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SWMisc_Fixes",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {
+   "monkey_patch": 3,
+   "global_write_vanilla": 3
+  },
+  "top_events": [],
+  "lua_kb": 2,
+  "sandbox_options": false,
+  "workshop_id": "3621968227",
+  "folder": "SWMisc_Fixes",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SWMisc_Items",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "models": 10,
+   "script_files": 3
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3621968227",
+  "folder": "SWMisc_Items",
+  "class": "content(scripts-only)"
+ },
+ {
+  "mod_id": "SWMisc_Patches",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 2,
+   "lua_shared": 4,
+   "script_files": 2,
+   "tile_packs": 1
+  },
+  "signals": {
+   "events_add": 8,
+   "send_client_cmd": 1,
+   "monkey_patch": 7,
+   "sandbox_vars": 5,
+   "global_write_vanilla": 6
+  },
+  "top_events": [
+   [
+    "OnInitGlobalModData",
+    5
+   ],
+   [
+    "OnPreFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ]
+  ],
+  "lua_kb": 11,
+  "sandbox_options": true,
+  "workshop_id": "3621968227",
+  "folder": "SWMisc_Patches",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SWMisc_Resting",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 2
+  },
+  "signals": {
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "3621968227",
+  "folder": "SWMisc_Resting",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SWMisc_Slots",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 2,
+   "lua_client": 2,
+   "script_files": 1
+  },
+  "signals": {
+   "monkey_patch": 2,
+   "global_write_vanilla": 2,
+   "require_line": 2
+  },
+  "top_events": [],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "3621968227",
+  "folder": "SWMisc_Slots",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "RikuFriends",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "models": 17,
+   "script_files": 2
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3623584152",
+  "folder": "RikuFriends",
+  "class": "content(scripts-only)"
+ },
+ {
+  "mod_id": "RikuGoldPlating",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 2,
+   "lua_shared": 1,
+   "models": 3,
+   "script_files": 3
+  },
+  "signals": {
+   "mod_data": 3,
+   "monkey_patch": 2,
+   "pcall": 1,
+   "require_line": 2,
+   "global_write_vanilla": 1,
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnWeaponSwing",
+    1
+   ]
+  ],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "3623584152",
+  "folder": "RikuGoldPlating",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "RikuMelee",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 3,
+   "lua_server": 1,
+   "models": 94,
+   "script_files": 10
+  },
+  "signals": {
+   "require_line": 1
+  },
+  "top_events": [],
+  "lua_kb": 14,
+  "sandbox_options": false,
+  "workshop_id": "3623584152",
+  "folder": "RikuMelee",
+  "class": "content(3d+lua)"
+ },
+ {
+  "mod_id": "BaseQuests",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 46
+  },
+  "signals": {
+   "require_line": 46
+  },
+  "top_events": [],
+  "lua_kb": 423,
+  "sandbox_options": false,
+  "workshop_id": "3624538051",
+  "folder": "BaseQuests",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "Economy",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 21,
+   "lua_client": 30,
+   "lua_server": 12,
+   "sounds": 1,
+   "script_files": 6
+  },
+  "signals": {
+   "events_add": 18,
+   "require_line": 352,
+   "send_client_cmd": 36,
+   "sandbox_vars": 13,
+   "ui_panel": 12,
+   "pcall": 58,
+   "mod_data": 9,
+   "on_client_cmd": 6,
+   "send_server_cmd": 6,
+   "getfilewriter": 2
+  },
+  "top_events": [
+   [
+    "OnFillWorldObjectContextMenu",
+    4
+   ],
+   [
+    "OnClientCommand",
+    4
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    3
+   ],
+   [
+    "OnServerCommand",
+    2
+   ],
+   [
+    "OnServerStarted",
+    2
+   ],
+   [
+    "OnGameBoot",
+    1
+   ],
+   [
+    "EveryHours",
+    1
+   ],
+   [
+    "OnInitGlobalModData",
+    1
+   ]
+  ],
+  "lua_kb": 497,
+  "sandbox_options": true,
+  "workshop_id": "3624538051",
+  "folder": "Economy",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "ItemQuality",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 8,
+   "lua_server": 3,
+   "lua_shared": 8,
+   "script_files": 1
+  },
+  "signals": {
+   "require_line": 79,
+   "events_add": 10,
+   "ui_panel": 1,
+   "monkey_patch": 5,
+   "global_write_vanilla": 9,
+   "send_client_cmd": 1,
+   "timed_action_new": 1,
+   "pcall": 1,
+   "on_client_cmd": 1,
+   "send_server_cmd": 1,
+   "onplayerupdate": 1,
+   "mod_data": 13
+  },
+  "top_events": [
+   [
+    "OnFillInventoryObjectContextMenu",
+    2
+   ],
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ],
+   [
+    "OnClothingUpdated",
+    1
+   ],
+   [
+    "OnEquipPrimary",
+    1
+   ],
+   [
+    "OnEquipSecondary",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ]
+  ],
+  "lua_kb": 56,
+  "sandbox_options": true,
+  "workshop_id": "3624538051",
+  "folder": "ItemQuality",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "QualityEnhancements",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 5,
+   "lua_server": 3,
+   "lua_shared": 7,
+   "script_files": 2
+  },
+  "signals": {
+   "require_line": 84,
+   "events_add": 4,
+   "monkey_patch": 3,
+   "send_client_cmd": 2,
+   "ui_panel": 2,
+   "on_client_cmd": 1,
+   "send_server_cmd": 2,
+   "getfilewriter": 1,
+   "sandbox_vars": 1,
+   "mod_data": 3
+  },
+  "top_events": [
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ],
+   [
+    "OnServerStarted",
+    1
+   ]
+  ],
+  "lua_kb": 201,
+  "sandbox_options": true,
+  "workshop_id": "3624538051",
+  "folder": "QualityEnhancements",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "QuestSystem",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "sounds": 1,
+   "lua_client": 45,
+   "lua_server": 22,
+   "lua_shared": 27,
+   "script_files": 3
+  },
+  "signals": {
+   "events_add": 54,
+   "send_client_cmd": 45,
+   "require_line": 420,
+   "onplayerupdate": 1,
+   "everyoneminute": 3,
+   "mod_data": 28,
+   "monkey_patch": 12,
+   "global_write_vanilla": 27,
+   "ui_panel": 9,
+   "pcall": 13,
+   "getfilewriter": 10,
+   "timed_action_new": 1,
+   "on_client_cmd": 23,
+   "send_server_cmd": 28,
+   "sandbox_vars": 13,
+   "food_nutrition": 1
+  },
+  "top_events": [
+   [
+    "OnClientCommand",
+    10
+   ],
+   [
+    "OnGameStart",
+    5
+   ],
+   [
+    "OnInitGlobalModData",
+    5
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    5
+   ],
+   [
+    "OnServerCommand",
+    4
+   ],
+   [
+    "EveryOneMinute",
+    3
+   ],
+   [
+    "OnTick",
+    3
+   ],
+   [
+    "OnZombieUpdate",
+    2
+   ]
+  ],
+  "lua_kb": 718,
+  "sandbox_options": true,
+  "workshop_id": "3624538051",
+  "folder": "QuestSystem",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "YetAnotherPZLib",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 3,
+   "lua_shared": 8
+  },
+  "signals": {
+   "events_add": 12,
+   "send_client_cmd": 1,
+   "on_client_cmd": 1,
+   "mod_data": 3,
+   "require_line": 2
+  },
+  "top_events": [
+   [
+    "OnSpawnVehicleEnd",
+    3
+   ],
+   [
+    "OnSpawnVehicleStart",
+    2
+   ],
+   [
+    "OnTick",
+    2
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ],
+   [
+    "LoadChunk",
+    1
+   ],
+   [
+    "OnLoadMapZones",
+    1
+   ],
+   [
+    "OnInitGlobalModData",
+    1
+   ]
+  ],
+  "lua_kb": 70,
+  "sandbox_options": false,
+  "workshop_id": "3624971238",
+  "folder": "YetAnotherPZLib",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "CHGRedux",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 3,
+   "models": 138,
+   "script_files": 4
+  },
+  "signals": {
+   "events_add": 4,
+   "sandbox_vars": 4
+  },
+  "top_events": [
+   [
+    "OnInitGlobalModData",
+    2
+   ],
+   [
+    "OnNewGame",
+    2
+   ]
+  ],
+  "lua_kb": 4,
+  "sandbox_options": true,
+  "workshop_id": "3625590608",
+  "folder": "CHGRedux",
+  "class": "content(3d+lua)"
+ },
+ {
+  "mod_id": "PlumbingFixed",
+  "name": "PlumbingFixed (B41)",
+  "author": "DuongC",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 7,
+   "lua_server": 2,
+   "lua_shared": 4
+  },
+  "signals": {
+   "require_line": 23,
+   "send_client_cmd": 3,
+   "ui_panel": 2,
+   "events_add": 7,
+   "sandbox_vars": 9,
+   "on_client_cmd": 2,
+   "mod_data": 8,
+   "everyoneminute": 1,
+   "transmit_mod_data": 2
+  },
+  "top_events": [
+   [
+    "OnFillWorldObjectContextMenu",
+    2
+   ],
+   [
+    "OnPreFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ],
+   [
+    "OnWaterAmountChange",
+    1
+   ],
+   [
+    "EveryOneMinute",
+    1
+   ]
+  ],
+  "lua_kb": 86,
+  "sandbox_options": false,
+  "workshop_id": "3626008449",
+  "folder": "PlumbingFixed",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "OCsPacking",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_shared": 2,
+   "script_files": 6
+  },
+  "signals": {
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnInitWorld",
+    1
+   ]
+  ],
+  "lua_kb": 5,
+  "sandbox_options": false,
+  "workshop_id": "3626823538",
+  "folder": "OCsPacking",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "STA_EngineRebuild",
+  "name": "StarkTruffle Additions - Engine Rebuild",
+  "author": "StarkTruffle",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": true,
+  "workshop_id": "3628452306",
+  "folder": "STA_EngineRebuild",
+  "class": "other"
+ },
+ {
+  "mod_id": "UnofficialMappersCommunityTilePack",
+  "name": "CommunityTilePack",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3628736763",
+  "folder": "CommunityTilePack",
+  "class": "other"
+ },
+ {
+  "mod_id": "69charger",
+  "name": "'69 Dodge Charger",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.20",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6,
+   "events_add": 2,
+   "onplayerupdate": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    2
+   ]
+  ],
+  "lua_kb": 20,
+  "sandbox_options": true,
+  "workshop_id": "3631989559",
+  "folder": "69charger",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "FasterResting",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 1
+  },
+  "signals": {
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnTick",
+    1
+   ]
+  ],
+  "lua_kb": 2,
+  "sandbox_options": false,
+  "workshop_id": "3634568288",
+  "folder": "FasterResting",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.5",
+  "name": "Frockin Splendor! Vol.5",
+  "author": "GanydeBielovzki",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 2,
+   "lua_shared": 1,
+   "script_files": 8
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 100,
+  "sandbox_options": false,
+  "workshop_id": "3635394848",
+  "folder": "Frockin Splendor! Vol.5",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "70roadRunner",
+  "name": "'70 Plymouth Road Runner",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 17
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3642935062",
+  "folder": "70roadRunner",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "ProjectArcade",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "script_files": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3645980077",
+  "folder": "ProjectArcade",
+  "class": "content(scripts-only)"
+ },
+ {
+  "mod_id": "95impreza",
+  "name": "'95 Subaru Impreza WRX STI",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 15,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 16,
+  "sandbox_options": false,
+  "workshop_id": "3647735736",
+  "folder": "95impreza",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "96lancerEVO",
+  "name": "'96 Mitsubishi Lancer EVO IV",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3647736504",
+  "folder": "96lancerEVO",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "HorseMod",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 45,
+   "lua_client": 34,
+   "lua_server": 14,
+   "script_files": 26
+  },
+  "signals": {
+   "events_add": 54,
+   "mod_data": 29,
+   "transmit_mod_data": 5,
+   "require_line": 5,
+   "monkey_patch": 22,
+   "global_write_vanilla": 27,
+   "onplayerupdate": 4,
+   "sandbox_vars": 7,
+   "on_client_cmd": 1,
+   "send_client_cmd": 2,
+   "send_server_cmd": 2,
+   "timed_action_new": 5
+  },
+  "top_events": [
+   [
+    "OnTick",
+    8
+   ],
+   [
+    "OnInitGlobalModData",
+    7
+   ],
+   [
+    "OnCharacterDeath",
+    6
+   ],
+   [
+    "OnGameStart",
+    5
+   ],
+   [
+    "OnTickEvenPaused",
+    5
+   ],
+   [
+    "OnPlayerUpdate",
+    4
+   ],
+   [
+    "OnCreatePlayer",
+    3
+   ],
+   [
+    "OnGameBoot",
+    3
+   ]
+  ],
+  "lua_kb": 476,
+  "sandbox_options": true,
+  "workshop_id": "3661336777",
+  "folder": "HorseMod",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "sd-bus",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3662913642",
+  "folder": "sd-bus",
+  "class": "other"
+ },
+ {
+  "mod_id": "SDDistro",
+  "name": "SDDistro",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3662913642",
+  "folder": "SD-distro",
+  "class": "other"
+ },
+ {
+  "mod_id": "sd-teleporter",
+  "name": "Sunday Drivers Teleporter",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3662913642",
+  "folder": "SD-teleporter",
+  "class": "other"
+ },
+ {
+  "mod_id": "SDUtils",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3662913642",
+  "folder": "SDUtils",
+  "class": "other"
+ },
+ {
+  "mod_id": "70fordEscort",
+  "name": "'70 Ford Escort",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 21
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 22,
+  "sandbox_options": false,
+  "workshop_id": "3670063857",
+  "folder": "70fordEscort",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "KI5campers",
+  "name": "Campers!",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 5,
+   "require_line": 8
+  },
+  "top_events": [],
+  "lua_kb": 23,
+  "sandbox_options": false,
+  "workshop_id": "3670064951",
+  "folder": "KI5campers",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "storm",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 6,
+   "lua_server": 4,
+   "lua_shared": 3
+  },
+  "signals": {
+   "events_add": 12,
+   "require_line": 6,
+   "send_client_cmd": 7,
+   "monkey_patch": 9,
+   "global_write_vanilla": 7,
+   "on_client_cmd": 2,
+   "send_server_cmd": 2,
+   "getfilewriter": 1,
+   "mod_data": 2,
+   "pcall": 1
+  },
+  "top_events": [
+   [
+    "OnServerCommand",
+    4
+   ],
+   [
+    "OnTick",
+    3
+   ],
+   [
+    "OnClientCommand",
+    2
+   ],
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnConnected",
+    1
+   ],
+   [
+    "OnGameBoot",
+    1
+   ]
+  ],
+  "lua_kb": 45,
+  "sandbox_options": true,
+  "workshop_id": "3670772371",
+  "folder": "storm",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "dustinguished_bolt_cutters",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3671176591",
+  "folder": "dustinguished_bolt_cutters",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SaveServerModlist",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {
+   "monkey_patch": 1,
+   "getfilewriter": 2
+  },
+  "top_events": [],
+  "lua_kb": 2,
+  "sandbox_options": false,
+  "workshop_id": "3672021948",
+  "folder": "SaveServerModlist",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "96saturnSseries",
+  "name": "'96 Saturn S Series",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 17
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 14,
+  "sandbox_options": false,
+  "workshop_id": "3679880253",
+  "folder": "96saturnSseries",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "PALSJs Clothing",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1,
+   "script_files": 6
+  },
+  "signals": {
+   "require_line": 2
+  },
+  "top_events": [],
+  "lua_kb": 4,
+  "sandbox_options": false,
+  "workshop_id": "3683898699",
+  "folder": "PALSJs Clothing",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "PALSJs Cosmetics",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 4,
+   "script_files": 4
+  },
+  "signals": {
+   "require_line": 2
+  },
+  "top_events": [],
+  "lua_kb": 57,
+  "sandbox_options": false,
+  "workshop_id": "3683898699",
+  "folder": "PALSJs Cosmetics",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "PALSJs Piercing Additions",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1,
+   "script_files": 4
+  },
+  "signals": {
+   "require_line": 2
+  },
+  "top_events": [],
+  "lua_kb": 8,
+  "sandbox_options": false,
+  "workshop_id": "3683898699",
+  "folder": "PALSJs Piercing Additions",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "PALSJs Piercing Replacements",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {
+   "lua_shared": 1,
+   "script_files": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "3683898699",
+  "folder": "PALSJs Piercing Replacements",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "PALSJs Poofs",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.15",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3683898699",
+  "folder": "PALSJs Poofs",
+  "class": "other"
+ },
+ {
+  "mod_id": "84corvette",
+  "name": "'84 Chevrolet Corvette",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 19
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 18,
+  "sandbox_options": false,
+  "workshop_id": "3684254299",
+  "folder": "84corvette",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "KeenPerception",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 1,
+   "tile_packs": 1
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "3685392864",
+  "folder": "KeenPerception",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "odz_gasmaskM40_replacer",
+  "name": "GasMaskReplacer",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "script_files": 2
+  },
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3701820916",
+  "folder": "gasmask",
+  "class": "content(scripts-only)"
+ },
+ {
+  "mod_id": "79camaro",
+  "name": "'79 Chevrolet Camaro",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 19,
+  "sandbox_options": false,
+  "workshop_id": "3703948448",
+  "folder": "79camaro",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "RollinNTowin",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnInitGlobalModData",
+    1
+   ]
+  ],
+  "lua_kb": 1,
+  "sandbox_options": false,
+  "workshop_id": "3713220544",
+  "folder": "RollinNTowin",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "BVF42",
+  "name": "Better Vanilla Firearms",
+  "author": "Chris_Vector",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 2,
+   "lua_server": 4,
+   "models": 11,
+   "script_files": 6
+  },
+  "signals": {
+   "require_line": 6
+  },
+  "top_events": [],
+  "lua_kb": 34,
+  "sandbox_options": false,
+  "workshop_id": "3715977706",
+  "folder": "BetterVanillaFirearms42",
+  "class": "content(3d+lua)"
+ },
+ {
+  "mod_id": "WorkingKnowledge",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 2,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 2
+  },
+  "signals": {
+   "events_add": 4,
+   "send_client_cmd": 3,
+   "mod_data": 7,
+   "pcall": 9,
+   "sandbox_vars": 6,
+   "require_line": 2,
+   "global_write_vanilla": 3,
+   "on_client_cmd": 1
+  },
+  "top_events": [
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnFillContainer",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 86,
+  "sandbox_options": true,
+  "workshop_id": "3717099183",
+  "folder": "WorkingKnowledge",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "78lamboCountach",
+  "name": "'78 Lamborghini Countach",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 22
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 20,
+  "sandbox_options": false,
+  "workshop_id": "3726526329",
+  "folder": "78lamboCountach",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Mailbox Stories",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 2,
+   "lua_server": 1,
+   "lua_shared": 2
+  },
+  "signals": {
+   "ui_panel": 1,
+   "require_line": 10,
+   "global_write_vanilla": 6,
+   "events_add": 4,
+   "monkey_patch": 1,
+   "pcall": 20,
+   "mod_data": 3,
+   "transmit_mod_data": 10,
+   "sandbox_vars": 4
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnFillContainer",
+    1
+   ]
+  ],
+  "lua_kb": 55,
+  "sandbox_options": true,
+  "workshop_id": "3728301676",
+  "folder": "Mailbox Stories",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "76chryslerNewYorker",
+  "name": "'76 Chrysler New Yorker",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 20
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6,
+   "events_add": 2,
+   "onplayerupdate": 2
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    2
+   ]
+  ],
+  "lua_kb": 17,
+  "sandbox_options": true,
+  "workshop_id": "3730833846",
+  "folder": "76chryslerNewYorker",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "EmergencyVomitB42",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 1
+  },
+  "signals": {
+   "events_add": 4,
+   "send_client_cmd": 3,
+   "pcall": 8,
+   "timed_action_new": 1,
+   "require_line": 5,
+   "global_write_vanilla": 10,
+   "onplayerupdate": 2,
+   "mod_data": 3,
+   "on_client_cmd": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    2
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 24,
+  "sandbox_options": false,
+  "workshop_id": "3731711925",
+  "folder": "EmergencyVomitB42",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Undead Survivor",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 4,
+   "lua_server": 2,
+   "lua_shared": 5,
+   "models": 124,
+   "script_files": 9,
+   "sounds": 1
+  },
+  "signals": {
+   "require_line": 4,
+   "global_write_vanilla": 2,
+   "events_add": 3,
+   "send_server_cmd": 1,
+   "monkey_patch": 1,
+   "sandbox_vars": 1
+  },
+  "top_events": [
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "OnZombieDead",
+    1
+   ],
+   [
+    "OnInitGlobalModData",
+    1
+   ]
+  ],
+  "lua_kb": 21,
+  "sandbox_options": true,
+  "workshop_id": "3739427877",
+  "folder": "Undead Survivor",
+  "class": "content(3d+lua)"
+ },
+ {
+  "mod_id": "73nissanGTR",
+  "name": "'73 NISSAN Skyline GT-R",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 18
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 15,
+  "sandbox_options": false,
+  "workshop_id": "3743371090",
+  "folder": "73nissanGTR",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SWServerUtils",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 6,
+   "lua_server": 2,
+   "lua_shared": 2
+  },
+  "signals": {
+   "events_add": 18,
+   "send_client_cmd": 3,
+   "monkey_patch": 3,
+   "sandbox_vars": 21,
+   "onplayerupdate": 3,
+   "everyoneminute": 6,
+   "on_client_cmd": 1,
+   "global_write_vanilla": 1
+  },
+  "top_events": [
+   [
+    "EveryOneMinute",
+    5
+   ],
+   [
+    "OnWeaponSwingHitPoint",
+    3
+   ],
+   [
+    "OnPlayerUpdate",
+    3
+   ],
+   [
+    "EveryHours",
+    2
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ],
+   [
+    "EveryTenMinutes",
+    1
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 21,
+  "sandbox_options": true,
+  "workshop_id": "3744609615",
+  "folder": "SWServerUtils",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "DataLogger",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "sounds": 1,
+   "lua_client": 2,
+   "lua_server": 7,
+   "lua_shared": 1,
+   "script_files": 1
+  },
+  "signals": {
+   "events_add": 19,
+   "send_client_cmd": 3,
+   "global_write_vanilla": 2,
+   "everyoneminute": 3,
+   "ui_panel": 1,
+   "require_line": 22,
+   "on_client_cmd": 5,
+   "send_server_cmd": 2,
+   "mod_data": 3,
+   "monkey_patch": 11,
+   "pcall": 12,
+   "getfilewriter": 3
+  },
+  "top_events": [
+   [
+    "OnClientCommand",
+    5
+   ],
+   [
+    "EveryOneMinute",
+    2
+   ],
+   [
+    "OnGameStart",
+    1
+   ],
+   [
+    "OnServerCommand",
+    1
+   ],
+   [
+    "OnHitZombie",
+    1
+   ],
+   [
+    "OnZombieDead",
+    1
+   ],
+   [
+    "OnCharacterDeath",
+    1
+   ],
+   [
+    "OnPlayerDisconnect",
+    1
+   ]
+  ],
+  "lua_kb": 83,
+  "sandbox_options": false,
+  "workshop_id": "3745960616",
+  "folder": "DataLogger",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "GirthsTweaks",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 39,
+   "lua_server": 25,
+   "lua_shared": 31,
+   "models": 3,
+   "script_files": 12,
+   "tile_packs": 1
+  },
+  "signals": {
+   "events_add": 88,
+   "require_line": 68,
+   "global_write_vanilla": 28,
+   "sandbox_vars": 32,
+   "everyoneminute": 6,
+   "monkey_patch": 19,
+   "send_client_cmd": 18,
+   "ui_panel": 4,
+   "mod_data": 32,
+   "pcall": 4,
+   "onplayerupdate": 3,
+   "getfilewriter": 3,
+   "on_client_cmd": 11,
+   "send_server_cmd": 16,
+   "transmit_mod_data": 1,
+   "timed_action_new": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    13
+   ],
+   [
+    "OnGameBoot",
+    13
+   ],
+   [
+    "OnClientCommand",
+    11
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    8
+   ],
+   [
+    "OnServerCommand",
+    8
+   ],
+   [
+    "EveryOneMinute",
+    4
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    3
+   ],
+   [
+    "OnTick",
+    3
+   ]
+  ],
+  "lua_kb": 269,
+  "sandbox_options": true,
+  "workshop_id": "3745960616",
+  "folder": "GirthsTweaks",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "SDQuests",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 11,
+   "lua_server": 9,
+   "lua_shared": 31,
+   "script_files": 9
+  },
+  "signals": {
+   "require_line": 64,
+   "events_add": 27,
+   "send_client_cmd": 10,
+   "monkey_patch": 5,
+   "ui_panel": 4,
+   "global_write_vanilla": 4,
+   "mod_data": 16,
+   "sandbox_vars": 3,
+   "on_client_cmd": 7,
+   "send_server_cmd": 21,
+   "everyoneminute": 3,
+   "timed_action_new": 1
+  },
+  "top_events": [
+   [
+    "OnServerCommand",
+    9
+   ],
+   [
+    "OnClientCommand",
+    7
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    5
+   ],
+   [
+    "OnGameBoot",
+    2
+   ],
+   [
+    "EveryTenMinutes",
+    2
+   ],
+   [
+    "OnPreDistributionMerge",
+    1
+   ],
+   [
+    "EveryOneMinute",
+    1
+   ]
+  ],
+  "lua_kb": 181,
+  "sandbox_options": true,
+  "workshop_id": "3745960616",
+  "folder": "SDQuests",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "69fordMustang",
+  "name": "'69 Ford Mustang",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 30
+  },
+  "signals": {
+   "mod_data": 19,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 24,
+  "sandbox_options": true,
+  "workshop_id": "3756938756",
+  "folder": "69fordMustang",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "69fordMustangExtra",
+  "name": "'69 Ford Mustang Extra Textures",
+  "author": "?",
+  "require": [
+   "69fordMustang"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    1
+   ]
+  ],
+  "lua_kb": 2,
+  "sandbox_options": false,
+  "workshop_id": "3756938756",
+  "folder": "69fordMustangExtra",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Big Bottles",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 1,
+   "script_files": 1
+  },
+  "signals": {
+   "require_line": 3
+  },
+  "top_events": [],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "3759421894",
+  "folder": "Big Bottles",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SDVC",
+  "name": "Sunday Drivers Vehicle Claim",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3763759011",
+  "folder": "SDVC",
+  "class": "other"
+ },
+ {
+  "mod_id": "BeyondTen",
+  "name": "Beyond Ten - Level 15 Skills",
+  "author": "Patryk",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 1,
+   "lua_shared": 4
+  },
+  "signals": {
+   "events_add": 26,
+   "send_client_cmd": 1,
+   "pcall": 47,
+   "require_line": 12,
+   "onplayerupdate": 1,
+   "monkey_patch": 12,
+   "global_write_vanilla": 8,
+   "on_client_cmd": 3,
+   "send_server_cmd": 4,
+   "mod_data": 14,
+   "food_nutrition": 4,
+   "sandbox_vars": 6
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    5
+   ],
+   [
+    "OnTick",
+    3
+   ],
+   [
+    "OnServerStarted",
+    3
+   ],
+   [
+    "AddXP",
+    2
+   ],
+   [
+    "OnSave",
+    2
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnPlayerUpdate",
+    1
+   ],
+   [
+    "OnServerCommand",
+    1
+   ]
+  ],
+  "lua_kb": 170,
+  "sandbox_options": false,
+  "workshop_id": "3765241705",
+  "folder": "BeyondTen",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "70chevelle",
+  "name": "'70 Chevrolet Chevelle / El Camino",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 24
+  },
+  "signals": {
+   "mod_data": 16,
+   "require_line": 6,
+   "events_add": 1,
+   "onplayerupdate": 1
+  },
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 29,
+  "sandbox_options": false,
+  "workshop_id": "3766571591",
+  "folder": "70chevelle",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "91lexusLS400",
+  "name": "'91 Lexus LS400",
+  "author": "?",
+  "require": [
+   "damnlib"
+  ],
+  "layout": "42.13",
+  "stats": {
+   "lua_client": 3,
+   "lua_server": 3,
+   "lua_shared": 2,
+   "script_files": 17
+  },
+  "signals": {
+   "mod_data": 14,
+   "require_line": 7
+  },
+  "top_events": [],
+  "lua_kb": 14,
+  "sandbox_options": false,
+  "workshop_id": "3770890864",
+  "folder": "91lexusLS400",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "KnoxBuildworks",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 41,
+   "lua_server": 5,
+   "lua_shared": 35,
+   "models": 2,
+   "script_files": 4
+  },
+  "signals": {
+   "events_add": 41,
+   "send_client_cmd": 14,
+   "mod_data": 66,
+   "require_line": 92,
+   "onplayerupdate": 1,
+   "ui_panel": 19,
+   "getfilewriter": 5,
+   "transmit_mod_data": 16,
+   "monkey_patch": 5,
+   "global_write_vanilla": 5,
+   "on_client_cmd": 1,
+   "send_server_cmd": 13,
+   "everyoneminute": 2,
+   "timed_action_new": 1
+  },
+  "top_events": [
+   [
+    "OnGameStart",
+    8
+   ],
+   [
+    "OnTick",
+    7
+   ],
+   [
+    "OnCreatePlayer",
+    2
+   ],
+   [
+    "OnFillWorldObjectContextMenu",
+    2
+   ],
+   [
+    "OnServerStarted",
+    2
+   ],
+   [
+    "EveryOneMinute",
+    2
+   ],
+   [
+    "LoadGridsquare",
+    2
+   ],
+   [
+    "OnObjectAdded",
+    2
+   ]
+  ],
+  "lua_kb": 1389,
+  "sandbox_options": true,
+  "workshop_id": "3772269882",
+  "folder": "KnoxBuildworks",
+  "class": "systems(heavy-lua)"
+ },
+ {
+  "mod_id": "KnoxBuildworks_Vanilla_Expanded",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3772269882",
+  "folder": "KnoxBuildworks_Vanilla_Expanded",
+  "class": "other"
+ },
+ {
+  "mod_id": "BookConsumerB42",
+  "name": "Book Consumer [B42]",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3772533498",
+  "folder": "BookConsumerB42",
+  "class": "other"
+ },
+ {
+  "mod_id": "sd_cc_test",
+  "name": "SD CC TEST",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3774052732",
+  "folder": "SD_CC_TEST",
+  "class": "other"
+ },
+ {
+  "mod_id": "LongTermPreservation4220",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42.20",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 1,
+   "models": 1,
+   "script_files": 3
+  },
+  "signals": {
+   "food_nutrition": 4,
+   "events_add": 1
+  },
+  "top_events": [
+   [
+    "onAddForageDefs",
+    1
+   ]
+  ],
+  "lua_kb": 3,
+  "sandbox_options": false,
+  "workshop_id": "3774789651",
+  "folder": "LongTermPreservation4220",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "alicesWeaponSling",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_shared": 7,
+   "lua_client": 5,
+   "lua_server": 1,
+   "models": 5,
+   "script_files": 3
+  },
+  "signals": {
+   "global_write_vanilla": 19,
+   "events_add": 8,
+   "pcall": 12,
+   "mod_data": 4,
+   "require_line": 3
+  },
+  "top_events": [
+   [
+    "OnTick",
+    4
+   ],
+   [
+    "OnFillInventoryObjectContextMenu",
+    1
+   ],
+   [
+    "OnClothingUpdated",
+    1
+   ],
+   [
+    "OnCreatePlayer",
+    1
+   ],
+   [
+    "OnGameStart",
+    1
+   ]
+  ],
+  "lua_kb": 54,
+  "sandbox_options": false,
+  "workshop_id": "3775549570",
+  "folder": "alicesWeaponSling",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "alicesWeaponSlingRadialMenu",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 1
+  },
+  "signals": {
+   "events_add": 4
+  },
+  "top_events": [
+   [
+    "OnKeyStartPressed",
+    1
+   ],
+   [
+    "OnKeyPressed",
+    1
+   ],
+   [
+    "OnGameBoot",
+    1
+   ],
+   [
+    "OnGameStart",
+    1
+   ]
+  ],
+  "lua_kb": 9,
+  "sandbox_options": false,
+  "workshop_id": "3775549570",
+  "folder": "alicesWeaponSlingRadialMenu",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "VolumeExtended",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_client": 2
+  },
+  "signals": {
+   "events_add": 1,
+   "require_line": 3,
+   "global_write_vanilla": 1
+  },
+  "top_events": [
+   [
+    "OnGameBoot",
+    1
+   ]
+  ],
+  "lua_kb": 12,
+  "sandbox_options": false,
+  "workshop_id": "3776009396",
+  "folder": "VolumeExtended",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SundayDriversPatch",
+  "name": "Sunday Drivers Patch - 42.20.1 percent escape",
+  "author": "DOTD",
+  "require": [],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3778020957",
+  "folder": "SundayDriversPatch",
+  "class": "other"
+ },
+ {
+  "mod_id": "JadePacking",
+  "name": "Jade Packing B41",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 1,
+   "lua_shared": 2,
+   "script_files": 60
+  },
+  "signals": {
+   "mod_data": 2,
+   "events_add": 1,
+   "pcall": 1
+  },
+  "top_events": [
+   [
+    "OnGameTimeLoaded",
+    1
+   ]
+  ],
+  "lua_kb": 19,
+  "sandbox_options": false,
+  "workshop_id": "3778300586",
+  "folder": "JadePackingB42",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "JadePackingSD",
+  "name": "Jade Packing SD",
+  "author": "?",
+  "require": [
+   "damnlib",
+   "ZVirusVaccine42BETA"
+  ],
+  "layout": "42",
+  "stats": {
+   "lua_client": 1,
+   "lua_server": 1,
+   "lua_shared": 5,
+   "script_files": 44
+  },
+  "signals": {
+   "require_line": 3,
+   "global_write_vanilla": 3,
+   "mod_data": 3,
+   "events_add": 1,
+   "pcall": 2
+  },
+  "top_events": [
+   [
+    "OnGameTimeLoaded",
+    1
+   ]
+  ],
+  "lua_kb": 29,
+  "sandbox_options": false,
+  "workshop_id": "3779653231",
+  "folder": "JadePackingSD",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "Skill Recovery Journal",
+  "name": "?",
+  "author": "?",
+  "require": [],
+  "layout": "common",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3782784855",
+  "folder": "Skill Recovery Journal",
+  "class": "other"
+ },
+ {
+  "mod_id": "ArcadiaAnimalFix_B42",
+  "name": "Animal Fix [B42.20] - Beta 1.2 Standalone",
+  "author": "?",
+  "require": [],
+  "layout": "42",
+  "stats": {
+   "lua_server": 3,
+   "lua_shared": 2
+  },
+  "signals": {
+   "events_add": 3,
+   "on_client_cmd": 1,
+   "mod_data": 1,
+   "pcall": 6,
+   "require_line": 9,
+   "global_write_vanilla": 9,
+   "everyoneminute": 1
+  },
+  "top_events": [
+   [
+    "OnServerStarted",
+    1
+   ],
+   [
+    "EveryOneMinute",
+    1
+   ],
+   [
+    "OnClientCommand",
+    1
+   ]
+  ],
+  "lua_kb": 17,
+  "sandbox_options": false,
+  "workshop_id": "3786854702",
+  "folder": "ArcadiaAnimalFix_B42",
+  "class": "systems(light-lua)"
+ },
+ {
+  "mod_id": "SDHC",
+  "name": "Sunday Drivers Horse Claim",
+  "author": "?",
+  "require": [
+   "HorseMod"
+  ],
+  "layout": "42",
+  "stats": {},
+  "signals": {},
+  "top_events": [],
+  "lua_kb": 0,
+  "sandbox_options": false,
+  "workshop_id": "3789019583",
+  "folder": "SDHC",
+  "class": "other"
+ }
+]
