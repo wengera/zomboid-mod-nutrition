@@ -1,0 +1,156 @@
+# Integration testing pipeline — design
+
+**Goal:** a command (`pzt run`) that installs a mod build into a real PZ
+dedicated server + real game clients on this machine, drives scripted
+scenarios, and produces a pass/fail report with sync-correctness assertions —
+confidently enough that "it passed" means "it works on the server."
+
+**Posture (brainstorm 2026-09-13):** aim for true e2e with driven clients;
+engineer fragility down layer by layer; runs locally now with server-only
+layers portable to Linux CI; tests authored in lua (harness mod) and
+orchestrated in python.
+
+## Confirmed facts the design stands on
+
+| Fact | Source |
+|---|---|
+| Client auto-connects with `+connect ip:port` / `+password` (or `-Dargs.server.connect/.password`) — no server-browser UI needed | wiki Startup parameters (42.20.4); literal in `MainScreenState`, `LuaManager$GlobalObject` |
+| Lua can join directly: `serverConnect(...)` exposed on the lua global object; `canConnect()`, `forceDisconnect()` also exposed | jar `LuaManager$GlobalObject` methods |
+| Multiple client instances: `-cachedir` per instance + `-nosteam`; cheap rendering via `-safemode -nosound -novoip`; `-debug`, `-debuglog=All`, `-modfolders` | wiki Startup parameters |
+| Dedicated server: `ProjectZomboidServer.bat` (java `zombie.network.GameServer`); args `-servername -adminpassword -adminusername -port -ip -cachedir -nosteam -debuglog -statistic` | install dir + wiki |
+| Server RCON exists (`zombie/network/RCONServer`, `RCONPort`/`RCONPassword` in ServerOptions) | jar |
+| Admin commands are classes: additem, teleportto, setaccesslevel, servermsg, godmode, **reloadlua/reloadalllua** (hot reload) | jar `zombie/commands/serverCommands/*` |
+| `GameTime.setMultiplier(F)` exists → accelerated simulation; nutrition ticks scale with game-world seconds | jar `zombie/GameTime`; Nutrition.updateWeight |
+| Structured output from lua: `getFileWriter` (ini/cfg/txt/log/json) and unlimited `getModFileWriter`; spool+`.ready`-marker handoff pattern already proven server-side by DataLogger (on the approved list) | wiki; DataLogger.lua:409-419 |
+| MP character creation is lua UI (`CoopCharacterCreation*.lua`); characters persist per account server-side | lua client/OptionScreens |
+| Server world lives in `Zomboid/Server/<name>.ini`, `Zomboid/db/<name>.db`, `Zomboid/Saves/Multiplayer/<name>/`; client caches per `-cachedir` | local dirs |
+| `loadstring` is gone — no runtime code shipping; tests must be files in the harness mod | wiki 42.20.x news |
+
+## Layers
+
+```
+L0  static      luacheck/LuaLS (Umbrella stubs), script-DSL parse, mod.info/layout lint   seconds, CI
+L1  boot        dedicated server boots with mod → clean console.txt (no lua errors,
+                no checksum/definition mismatch), clean shutdown                            ~1 min, CI
+L2  server sim  harness-server lua scenarios: spawn/mutate world & items, run
+                accelerated time, assert via JSON spool                                     minutes, CI
+L3  e2e         1–2 real clients auto-join; harness-client executes scripted
+                player actions; server asserts authoritative state                          minutes, local
+L4  sync        "sync witness": client reports its view of an object, server
+                diffs against authority (fields, modData) → the ItemQuality class
+                of bug becomes a failing test                                                rides on L3
+```
+
+Every layer's failure is a hard fail of the run; `pzt run --upto L2` for fast
+loops, full stack on demand / nightly.
+
+## Components
+
+### PZTestKit — the harness mod (lua)
+
+Ships only in test profiles (never in the released mod). Depends on the mod
+under test via `mod.info require=`.
+
+- **shared/**: test registry `TK.test(name, {tags, timeoutMin, fn})`,
+  assertion lib (`TK.eq`, `TK.near`, `TK.within`, `TK.eventually(pred,
+  gameMinutes)`), step scheduler driven by `EveryOneMinute`/`OnTick` with
+  budgets, and the **result writer** — JSON per test to
+  `<cachedir>/Lua/PZTestKit/results/<run-id>/<test>.json` then a `.ready`
+  marker (DataLogger's atomic handoff).
+- **server/**: `OnServerStarted` → load run manifest (written by orchestrator
+  into a `.json` the mod reads via `getFileReader`), execute L2 scenarios,
+  serve **witness requests** (`OnClientCommand PZTestKit witness`) by
+  returning authoritative snapshots, host world-mutation helpers (spawn
+  items/zombies/containers at coords, set time, `GameTime:setMultiplier`).
+- **client/**: on `OnGameStart` → identify itself (client N from manifest),
+  wait for spawn, run L3 steps: equip/eat/craft/move via the same lua
+  actions the UI uses (ISTimedActionQueue), then send `witness` snapshots
+  and step results to the server via `sendClientCommand`. Join automation:
+  `+connect` handles connection; harness completes account/character
+  screens via the lua handlers **or** (preferred) reuses pre-created
+  characters so those screens never appear.
+
+### `pzt` — the orchestrator (python, stdlib + one RCON client)
+
+- **Profile builder**: from `pzt.toml` — server name, ports, mods list
+  (`Mods=`/`WorkshopItems=` in the ini), sandbox vars (fixed seed, fast
+  spoilage etc.), client count, layer ceiling. Writes ini + SandboxVars.lua.
+- **Fixture manager**: **golden world** snapshot (server dirs + db + client
+  cachedirs with pre-created test accounts/characters). Restore before each
+  run → deterministic start, no character-creation UI at all.
+- **Process manager**: launch server (`java ... zombie.network.GameServer
+  -nosteam -servername pzt -adminpassword ... -cachedir ...`), wait for
+  "server started" in console, launch clients with `-nosteam -cachedir
+  <c1> -safemode -nosound -novoip -debug +connect 127.0.0.1:<port> +password
+  <pw>`; kill trees on timeout.
+- **Log watcher**: tails server/client console.txt for lua error signatures,
+  definition-integrity warnings (the KBW MP checksum class), and harness
+  markers; every error is attached to the failing test.
+- **RCON driver**: admin commands mid-run (`additem`, `teleportto`,
+  `setaccesslevel`, `reloadlua` for iterate-without-reboot, `save`, `quit`).
+- **Collector/reporter**: gathers result JSON from every cachedir, builds
+  JUnit XML + markdown summary; exit code = pass/fail.
+
+### Sync witness (L4) — the assertion that would have caught ItemQuality
+
+`TK.witness(item|player, fields, modDataKeys)` on a client sends its local
+view; the server replies with its authoritative view; the test asserts
+equality **after a forced round-trip** (relog, or a `syncItemFields` call)
+so unsynced-field bugs surface deterministically. Standard witness suites
+ship for: item numeric fields, character modData, nutrition values.
+
+## Fragility budget — where it bites and what we do
+
+| Risk | Mitigation |
+|---|---|
+| Client windows on a desktop (no true headless) | `-safemode -nosound -novoip`, small window; Windows session must stay unlocked; CI runs L0–L2 only |
+| First-join UI screens (account, character) | Golden fixture with pre-created accounts/characters — screens never render; lua fallback for the rare reset |
+| Timing/races (spawn not ready, chunk not loaded) | Every step is `eventually(pred, budget)`; no sleeps; world-ready barrier = harness handshake, not a timer |
+| Game/mod updates changing behavior | Run pins game build; harness self-reports versions; a `smoke` suite runs after every Steam update |
+| Port/cachedir collisions between runs | Unique run-id per run; distinct ports; teardown verifies process exit |
+| `-nosteam` ignores the workshop folder | Profile builder copies required workshop mods into `Zomboid/mods` (or uses `-modfolders`, spike S3) |
+| Time acceleration side effects in MP | Only in L2/L3 with explicit multiplier; nutrition tests assert against game-seconds, not wall-clock |
+
+## Spikes (each is a one-session verification, in order)
+
+- **S1 Boot loop** ✅ — done 2026-09-09, see [spikes.md](spikes.md): cold
+  start 57 s to `*** SERVER STARTED ****`, RCON honored from a pre-seeded ini,
+  `quit` on stdin exits 0 in 8 s, 15 MB fixture footprint, vanilla noise
+  baseline captured in `boot.py`.
+- **S2 Auto-join**: client `+connect 127.0.0.1:16261 +password` with
+  `-nosteam -cachedir`; document exactly which screens still appear and what
+  `serverConnect(...)` needs (args list from the GlobalObject signature:
+  ip, port, user, pass, ... ×11); confirm character persistence across joins.
+- **S3 Mods under -nosteam**: whether `-modfolders workshop,steam,mods` loads
+  workshop content without Steam, else copy strategy.
+- **S4 Result channel**: harness writes JSON + `.ready` to cachedir on both
+  sides; orchestrator collects; confirm `getModFileWriter` path semantics.
+- **S5 Time acceleration**: `GameTime:setMultiplier` on server in MP — does
+  world time and Nutrition ticking accelerate for connected clients?
+- **S6 Witness round-trip**: force sync (`syncItemFields`) and prove a
+  deliberately unsynced field (set conditionMax client-side) is caught.
+- **S7 reloadlua iteration**: hot-reload the mod under test mid-run for fast
+  authoring loops; measure what state survives.
+
+## Roadmap
+
+- **T0** repo layout: `testing/pzt/` (python), `testing/PZTestKit/` (mod),
+  `testing/profiles/`, `testing/fixtures/` (golden world, gitignored blobs +
+  a `make-fixture` recipe).
+- **T1** L0+L1: lint + boot validation against the *current* modlist subset
+  (proves the pipeline on other people's mods before ours exists).
+- **T2** L2: server scenarios + result channel + RCON; accelerated-time
+  nutrition scenario on vanilla (e.g. "3 game-days at 4000 cal gains ≥3 kg")
+  — a real test of a real system before any mod code.
+- **T3** L3/L4: one driven client, witness suite, relog round-trip.
+- **T4** two clients (multi-player interactions), nightly full run, CI job for
+  L0–L2 on a Linux dedicated server image.
+
+## Prior art to lean on
+
+DataLogger (approved list) — spool/ready handoff, admin `OnClientCommand`
+plumbing; wiki *Testing mods in multiplayer* (manual two-instance procedure
+we're automating; page is B41-era); wiki *Startup parameters* (mirrored:
+[startup-parameters](../../references/wiki-mirrors/startup-parameters.md));
+"PZ AI agent" / "Pythoid" in wiki Modding projects — check for driven-client
+prior art (spike S2 adjunct).
