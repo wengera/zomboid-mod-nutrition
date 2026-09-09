@@ -25,17 +25,33 @@ BASELINE_NOISE = [
     r"CraftRecipeComponentScript: Recipe Piano missing UiConfigScript",
     r"handleMannequinZone .*Mannequin zone missing properties",
     r"Basements\.mergeRoomsOntoMetaCell .*duplicate RoomDef\.metaID",
+    # every mod: the loader probes optional folders (AnimSets, actiongroups, ...)
+    r"NoSuchFileException: .*[\\/]mods[\\/].*[\\/]media[\\/](AnimSets|actiongroups|anims_X|AnimSets_X)",
 ]
 
-def seed_ini(cache, name, port, rcon_port, rcon_pw, admin_pw):
+HARNESS_MODS = {"PZTestKitClient": os.path.abspath(os.path.join(HERE, "..", "PZTestKit", "PZTestKitClient"))}
+
+def seed_ini(cache, name, port, rcon_port, rcon_pw, admin_pw, mods=()):
+    """Server ini + any harness mods. Mods listed in Mods= are what the CLIENT
+    reloads its Lua with after connecting (spike S2: locally-enabled client mods
+    are dropped at join), so the harness must be server-listed and present in
+    the server's own mods/ folder."""
+    import shutil
     sdir = os.path.join(cache, "Server")
     os.makedirs(sdir, exist_ok=True)
+    for mod_id in mods:
+        src = HARNESS_MODS.get(mod_id)
+        if src:
+            dst = os.path.join(cache, "mods", mod_id)
+            if os.path.isdir(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
     ini = os.path.join(sdir, f"{name}.ini")
     if not os.path.exists(ini):
         with open(ini, "w") as fh:
             fh.write(f"DefaultPort={port}\nUDPPort={port+1}\nRCONPort={rcon_port}\n"
                      f"RCONPassword={rcon_pw}\nPublic=false\nOpen=true\nSteamVAC=false\n"
-                     f"Mods=\nWorkshopItems=\nPauseEmpty=false\nUPnP=false\n")
+                     f"Mods={';'.join(mods)}\nWorkshopItems=\nPauseEmpty=false\nUPnP=false\n")
     return ini
 
 def rcon_probe(host, port, password, cmd="quit", timeout=5.0):
@@ -70,6 +86,7 @@ def main():
     ap.add_argument("--startup-timeout", type=int, default=420)
     ap.add_argument("--shutdown", choices=["stdin", "rcon"], default="stdin")
     ap.add_argument("--keep-alive", type=int, default=10, help="seconds to idle after start")
+    ap.add_argument("--mods", default="", help="semicolon-separated mod ids for Mods= (harness mods are copied in)")
     args = ap.parse_args()
 
     run_id = datetime.datetime.now().strftime("s1-%Y%m%d-%H%M%S")
@@ -77,7 +94,8 @@ def main():
     cache = os.path.join(run_dir, "cache")
     os.makedirs(cache, exist_ok=True)
     admin_pw, rcon_pw = "pzt-admin-pw", "pzt-rcon-pw"
-    seed_ini(cache, args.name, args.port, args.rcon_port, rcon_pw, admin_pw)
+    seed_ini(cache, args.name, args.port, args.rcon_port, rcon_pw, admin_pw,
+             mods=[m for m in args.mods.split(";") if m])
 
     cmd = [JAVA, "--enable-native-access=ALL-UNNAMED",
            "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED",
