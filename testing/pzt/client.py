@@ -1,10 +1,7 @@
 """Game client process, driven through the PZTestKit harness mod.
 
-Control channel (both files live in <cachedir>/Lua/, read by the harness via
-getFileReader/getFileWriter): the orchestrator writes pzt-cmd.txt {seq, cmd},
-the harness executes each seq once and answers in pzt-ack.txt {seq, cmd, result}.
-Observation: the client's console.txt is tailed for STATE transitions and
-"PZTK:" harness lines.
+Control: the file-based command bus in <cachedir>/Lua/ (see bus.py).
+Observation: the client's console.txt is tailed for STATE transitions and "PZTK:" lines.
 """
 import os
 import re
@@ -14,6 +11,7 @@ import threading
 import time
 
 from . import harness, win32
+from .bus import CommandBus
 from .paths import EXE, JAVA, PZ_DIR
 
 MARKERS = [
@@ -27,6 +25,7 @@ MARKERS = [
     ("kicked",        re.compile(r"[Kk]icked|[Dd]isconnect(ed)? from server|connection lost|Connection failed")),
 ]
 HARNESS_RX = re.compile(r"PZTK: (.*)")
+MOD_MISSING_RX = re.compile(r'required mod "([^"]+)" not found')   # a WARN only; see spike S3
 
 JVM = ["-Djava.awt.headless=true", "--enable-native-access=ALL-UNNAMED",
        "--add-exports=java.base/jdk.internal.misc=ALL-UNNAMED", "-Xmx3072m",
@@ -45,22 +44,9 @@ CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, server
 """
 
 
-def read_kv(path):
-    out = {}
-    try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                if "=" in line:
-                    k, v = line.split("=", 1)
-                    out[k.strip()] = v.strip()
-    except OSError:
-        pass
-    return out
-
-
 class Client:
     def __init__(self, cache, server, username, password, server_password="", debug=False,
-                 safemode=False, launcher="java", mods=("PZTestKitClient",), echo=None):
+                 safemode=False, launcher="java", mods=("PZTestKit",), echo=None, workshop=True):
         self.cache = os.path.abspath(cache)
         self.server = server
         self.ip, self.port = server.split(":")
@@ -71,17 +57,16 @@ class Client:
         self.safemode = safemode
         self.launcher = launcher
         self.mods = list(mods)
+        self.workshop = workshop
+        self.missing_mods = []        # not placed in mods/ by us
+        self.mods_not_found = []      # reported missing by the game at load
         self.echo = echo
+        self.bus = CommandBus(os.path.join(self.cache, "Lua"), alive=lambda: self.alive)
         self.proc = None
         self.seen = {}
         self.events = []
-        self.seq = 0
         self.t0 = None
         self._stop = threading.Event()
-
-    @property
-    def lua_dir(self):
-        return os.path.join(self.cache, "Lua")
 
     @property
     def console(self):
@@ -100,18 +85,13 @@ class Client:
         self.prepare()
 
     def prepare(self):
-        """Fresh or restored cachedir: harness mods, join manifest, saved server/account
-        row (prefills the connect popup), debug options; reset the command channel so
-        seq numbering starts from 0 on both sides."""
+        """Fresh or restored cachedir: mods, join manifest, saved server/account row
+        (prefills the connect popup), debug options; reset the command channel."""
         mods_dir = os.path.join(self.cache, "mods")
-        harness.install(mods_dir, self.mods)
+        self.missing_mods = harness.install(mods_dir, self.mods, workshop=self.workshop)
         harness.enable_client_mods(mods_dir, self.mods)
-        os.makedirs(self.lua_dir, exist_ok=True)
-        for name in ("pzt-cmd.txt", "pzt-ack.txt"):
-            p = os.path.join(self.lua_dir, name)
-            if os.path.exists(p):
-                os.remove(p)
-        with open(os.path.join(self.lua_dir, "pzt-join.txt"), "w") as fh:
+        self.bus.reset()
+        with open(os.path.join(self.bus.lua_dir, "pzt-join.txt"), "w") as fh:
             fh.write(f"username={self.username}\npassword={self.password}\n"
                      f"ip={self.ip}\nport={self.port}\nserverPassword={self.server_password}\n")
         self._upsert_serverlist()
@@ -189,6 +169,10 @@ class Client:
         m = HARNESS_RX.search(line)
         if m:
             self._event("harness", t, msg=m.group(1)[:200])
+        m = MOD_MISSING_RX.search(line)
+        if m and m.group(1) not in self.mods_not_found:
+            self.mods_not_found.append(m.group(1))
+            self._event("mod_not_found", t, msg=m.group(1))
         for name, rx in MARKERS:
             if name not in self.seen and rx.search(line):
                 self.seen[name] = t
@@ -211,8 +195,8 @@ class Client:
         raise TimeoutError(f"{self.username}: no '{name}' within {timeout}s (seen: {list(self.seen)})")
 
     def click_to_start(self):
-        """After the world is loaded, GameLoadingState shows 'Click to Start' and waits
-        for a mouse click: post one to this client's own window (matched by pid)."""
+        """After the world is loaded, GameLoadingState waits for a mouse click ('Click to
+        Start'); post one to this client's own window (matched by pid)."""
         hwnds = win32.find_windows(pid=self.proc.pid)
         for hwnd in hwnds:
             win32.post_click(hwnd)
@@ -234,37 +218,24 @@ class Client:
                 n = self.click_to_start()
                 clicks += 1
                 if clicks == 1:
-                    self._event("click_to_start", round(time.time() - self.t0, 1),
-                                msg=f"{n} window(s)")
+                    self._event("click_to_start", round(time.time() - self.t0, 1), msg=f"{n} window(s)")
             time.sleep(0.5)
         raise TimeoutError(f"{self.username}: not ready within {timeout}s "
                            f"(seen: {list(self.seen)}, clicks: {clicks})")
 
     # ---- command channel ---------------------------------------------------
-    def send(self, cmd, wait=True, timeout=30):
-        self.seq += 1
-        tmp = os.path.join(self.lua_dir, "pzt-cmd.tmp")
-        with open(tmp, "w", encoding="utf-8") as fh:
-            fh.write(f"seq={self.seq}\ncmd={cmd}\n")
-        os.replace(tmp, os.path.join(self.lua_dir, "pzt-cmd.txt"))
-        if not wait:
-            return None
-        end = time.time() + timeout
-        while time.time() < end:
-            ack = read_kv(os.path.join(self.lua_dir, "pzt-ack.txt"))
-            if ack.get("seq") == str(self.seq) and ack.get("result", "running") != "running":
-                return ack["result"]
-            if self.proc.poll() is not None:
-                raise RuntimeError(f"{self.username}: client exited while waiting for ack of '{cmd}'")
-            time.sleep(0.25)
-        raise TimeoutError(f"{self.username}: no ack for #{self.seq} {cmd} within {timeout}s")
+    def send(self, cmd, args="", wait=True, timeout=30):
+        return self.bus.send(cmd, args, wait=wait, timeout=timeout)
+
+    def results(self):
+        return self.bus.results()
 
     def quit(self, timeout=60):
         """Graceful: harness calls getCore():quitToDesktop() (proper disconnect, server
         saves the player); kill on timeout."""
         if not self.alive:
             return self.proc.returncode if self.proc else None
-        self.send("quit", wait=False)
+        self.bus.send("quit", wait=False)
         try:
             rc = self.proc.wait(timeout)
         except subprocess.TimeoutExpired:

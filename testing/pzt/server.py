@@ -7,14 +7,18 @@ import threading
 import time
 
 from . import harness
+from .bus import CommandBus
 from .paths import ADMIN_PW, JAVA, PZ_DIR, RCON_PW
 from .rcon import rcon
 
 STARTED_RX = re.compile(r"\*\*\* SERVER STARTED")
 ERROR_RX = re.compile(r"ERROR|Exception|STACK TRACE|LuaError|lua error")
 BUILD_RX = re.compile(r"\bversion=(\d+\.\d+\.\d+)")
+# A mod listed in Mods= that the game cannot find is only a WARN: the server boots and
+# clients join without it (spike S3). Treated as a hard failure by the orchestrator.
+MOD_MISSING_RX = re.compile(r'required mod "([^"]+)" not found')
 
-# Known vanilla 42.20.4 boot noise (baseline from spike S1); matched lines are not
+# Known vanilla 42.20.4 noise (baseline from spikes S1/T0); matched head lines are not
 # counted as errors. Re-baseline after game updates.
 BASELINE_NOISE = [re.compile(p) for p in (
     r"FluidContainerScript\.load .*Sanitizing container name",
@@ -41,7 +45,7 @@ JVM = ["--enable-native-access=ALL-UNNAMED", "--add-exports=java.base/jdk.intern
 
 # Written only when the ini does not exist yet; the server fills in every other option
 # with defaults and rewrites the file on first boot, keeping these values (spike S1).
-FRESH_INI = {"Public": "false", "Open": "true", "SteamVAC": "false", "WorkshopItems": "",
+FRESH_INI = {"Public": "false", "Open": "true", "SteamVAC": "false",
              "PauseEmpty": "false", "UPnP": "false"}
 
 
@@ -68,24 +72,30 @@ def update_ini(path, values):
 
 def write_sandbox_vars(path, overrides):
     """Partial table: unlisted keys take server defaults; the server rewrites the full
-    file on boot."""
+    file on boot (verified in T0)."""
     body = "".join(f"    {k} = {v},\n" for k, v in overrides.items())
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("SandboxVars = {\n    VERSION = 6,\n" + body + "}\n")
 
 
 class Server:
-    def __init__(self, cache, name="pzt", port=27261, rcon_port=27015, mods=("PZTestKitClient",),
-                 admin_pw=ADMIN_PW, rcon_pw=RCON_PW, log_path=None, echo=None):
+    def __init__(self, cache, name="pzt", port=27261, rcon_port=27015, mods=("PZTestKit",),
+                 admin_pw=ADMIN_PW, rcon_pw=RCON_PW, log_path=None, echo=None,
+                 workshop=True, workshop_items=()):
         self.cache = os.path.abspath(cache)
         self.name = name
         self.port = int(port)
         self.rcon_port = int(rcon_port)
         self.mods = list(mods)
+        self.workshop = workshop                  # copy non-harness mods in from the workshop folder
+        self.workshop_items = list(workshop_items)
+        self.missing_mods = []        # not placed in mods/ by us
+        self.mods_not_found = []      # reported missing by the game at load
         self.admin_pw = admin_pw
         self.rcon_pw = rcon_pw
         self.log_path = log_path or os.path.join(os.path.dirname(self.cache), "server-stdout.log")
         self.echo = echo
+        self.bus = CommandBus(os.path.join(self.cache, "Lua"), alive=lambda: self.alive)
         self.proc = None
         self.errors = []
         self.build = None
@@ -108,12 +118,14 @@ class Server:
 
     def seed(self, sandbox=None):
         """Fresh cache: write the ini (+ sandbox overrides). Restored cache: keep the world,
-        refresh the harness mods, rewrite ports so a fixture can boot on any port."""
+        refresh the mods, rewrite ports so a fixture can boot on any port."""
         os.makedirs(os.path.join(self.cache, "Server"), exist_ok=True)
-        harness.install(os.path.join(self.cache, "mods"), self.mods)
+        self.missing_mods = harness.install(os.path.join(self.cache, "mods"), self.mods, workshop=self.workshop)
+        self.bus.reset()
         values = {} if os.path.exists(self.ini) else dict(FRESH_INI)
         values.update({"DefaultPort": self.port, "UDPPort": self.port + 1, "RCONPort": self.rcon_port,
-                       "RCONPassword": self.rcon_pw, "Mods": ";".join(self.mods)})
+                       "RCONPassword": self.rcon_pw, "Mods": ";".join(self.mods),
+                       "WorkshopItems": ";".join(self.workshop_items)})
         update_ini(self.ini, values)
         if sandbox:
             write_sandbox_vars(self.sandbox_path, sandbox)
@@ -152,6 +164,11 @@ class Server:
                         self.build = m.group(1)
                 if not self._started.is_set() and STARTED_RX.search(line):
                     self._started.set()
+                m = MOD_MISSING_RX.search(line)
+                if m:
+                    self.mods_not_found.append(m.group(1))
+                    if self.echo:
+                        self.echo(f"  [server] mod not found at load: {m.group(1)}")
                 if line[:1] in (" ", "\t"):
                     # indented = stack frame of the preceding head line: attach, don't count
                     if head_is_error and frames < MAX_FRAMES:
@@ -167,6 +184,13 @@ class Server:
 
     def rcon(self, cmd):
         return rcon("127.0.0.1", self.rcon_port, self.rcon_pw, cmd)
+
+    def send(self, cmd, args="", wait=True, timeout=30):
+        """Harness command on the server's Lua side (see bus.py)."""
+        return self.bus.send(cmd, args, wait=wait, timeout=timeout)
+
+    def results(self):
+        return self.bus.results()
 
     def stop(self, timeout=120):
         """Graceful: 'quit' on stdin (falls back to RCON), wait; kill on timeout."""

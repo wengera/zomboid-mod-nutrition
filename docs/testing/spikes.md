@@ -178,8 +178,146 @@ Lua reset (last executed command seq is recovered from `pzt-ack.txt`);
 `Saves/Multiplayer/<ip>_<port>_<md5(user)>` is the client's chunk cache, keyed
 by port, so booting a fixture on its recorded port keeps it warm.
 
-## S3 — Mods under -nosteam
-## S4 — Result channel
-## S5 — Time acceleration in MP
-## S6 — Witness round-trip
-## S7 — reloadlua iteration
+## S3 — Mods under -nosteam ✅ 2026-09-09
+
+`pzt spike S3` (runs `s3-20260909-143715` / `-143818`). Subject: KeenPerception
+(workshop item 3685392864 — 1 KB of *shared* Lua, no dependencies, visible
+effect: removes the Keen Hearing ↔ Deaf trait exclusivity) added to the
+fixture server's `Mods=`.
+
+| Variant | Server | Client |
+|---|---|---|
+| A — mod exists only in the Steam workshop folder | `WARN … ZomboidFileSystem.loadModAndRequired> required mod "KeenPerception" not found`; **boots normally, 0 errors** | same WARN; **joins and spawns normally** (ready 34.8 s); mod inactive (`trait.check`: exclusivity intact) |
+| B — copied into `<cachedir>/mods/` on both sides | `loading KeenPerception`; mod active | `loading KeenPerception` (menu + post-join reload); mod active |
+
+Facts:
+- Bytecode: `ZomboidFileSystem.getAllModFolders` (order `workshop,steam,mods`)
+  resolves `workshop` via `getStagedItemModsFolders` and `steam` via
+  `getInstalledItemModsFolders`, **both gated on `SteamUtils.isSteamModeEnabled`**
+  → under `-nosteam` only `<cachedir>/mods` is searched. There is no server
+  `-modfolders` (the string exists only in `MainScreenState`), and
+  `WorkshopItems=` needs Steam too. Copying is the only option.
+- **A missing mod is a WARN, not a failure.** Server boots, client joins,
+  everything runs without it. `pzt` now records `required mod "X" not found`
+  as `mods_not_found` on both drivers and `pzt run` fails on it — otherwise a
+  broken profile passes vacuously.
+- The copy strategy is the seed of the T1 profile builder: `pzt/mods.py`
+  indexes `steamapps/workshop/content/108600/*/mods/*` by the `id=` in their
+  (version-folder) `mod.info` and copies by folder name; `harness.install`
+  places harness mods from the repo and everything else from that index.
+- Every copied mod adds the `AdvancedAnimator … NoSuchFileException` probe
+  noise for its optional `AnimSets`/`actiongroups` folders (baselined), and
+  clients log `WARN:MISSING in SettingsTable: WorkshopItems` — harmless.
+
+## S4 — Result channel ✅ 2026-09-09
+
+`pzt spike S4` (run `spike-20260909-143930`). `TK.result(name, table)` in the
+harness writes `<cachedir>/Lua/pzt-results/<name>.json` via
+`getFileWriter("pzt-results/<name>.json", true, false)`; `pzt` (`bus.py`)
+collects and `wait_result()` blocks on one.
+
+| Side | Command → file | Latency |
+|---|---|---|
+| client | `result s4_client hello` → `clients/admin/Lua/pzt-results/s4_client.json` | **0.27 s** |
+| server | `result s4_server hello` → `server/Lua/pzt-results/s4_server.json` | **1.5 s** (server bus polls every 20 ticks) |
+
+Facts:
+- `LuaManager$GlobalObject.getFileWriter` roots at `<cachedir>/Lua/`, rejects
+  `..` (`hasRelativePath`), **accepts subfolders** (creates them), and checks
+  the extension against `LuaManager.ALLOWED_FILE_EXTENSIONS` (ini/cfg/txt/log/
+  **json**). So `.ready` marker files are not possible — and not needed: a
+  file that parses as a complete JSON object (`"complete": true` is the last
+  key the harness writes) is the ready signal; a partial write never parses.
+- `getModFileWriter(modId, name, …)` writes into the **mod's own folder**
+  (`ChooseGameInfo.getModDetails(id).getCommonDir()`), not the cachedir — not
+  what we want for run artefacts.
+- The same `getFileReader`/`getFileWriter` pair is the command bus on both
+  sides (`pzt-cmd.txt` / `pzt-ack.txt`); the dedicated server polls it from
+  `OnTick` (fires fine on the server) and `EveryOneMinute`.
+- JSON is encoded by a 40-line encoder in `PZTestKit_Core.lua` (Kahlua has no
+  json lib); Java objects fall back to their `toString()`.
+## S5 — Time acceleration in MP ✅ 2026-09-09
+
+`pzt spike S5` (runs `spike-20260909-143930`, re-run `spike-20260909-144417`).
+Mechanism (jar): admin command **`settimespeed <x>`** = `GameTime.getInstance()
+.setMultiplier(x)` on the server **plus a `SetMultiplierPacket` to every
+client** (`processClient` applies it). Works over RCON; no debug flag needed.
+(RCON `help`, by contrast, throws `MissingFormatArgumentException` inside the
+server's translator and logs two error lines — don't call it.)
+
+| Measure (run 1) | Server | Client |
+|---|---|---|
+| baseline rate | 0.25 game-min per wall-second (a game day = 96 min real) | 0.25 |
+| after `settimespeed 30` | **8.0 game-min/s (32×)** | **8.7 game-min/s (35×)** — the packet reached the client |
+| `getMultiplier()` | 4.80 → 143.9 | 0.80 → 115.2 (the getter is scaled, not the argument you passed — compare ratios, not values) |
+| player calories (client) | | −4.35 kcal in 18 s at 1× vs **−238.9 kcal in 31 s at 30×** (≈32×): nutrition ticks scale with game time |
+| player weight | | unchanged over a minute (expected: weight moves on the daily calorie balance) |
+
+Lesson from run 1: restoring with the server-only Lua `setMultiplier(1)`
+left the client at 30× and the two clocks drifted **3.4 game-hours apart
+within a minute** with no correction. Always change speed through
+`settimespeed` (broadcast).
+
+Re-run with `settimespeed` both ways: baseline 0.26 / 0.26 game-min/s,
+30× → **8.0 (server) / 8.9 (client)**, calories −238.8 kcal in 31 s; after
+`settimespeed 1` the server returned to 0.26 and the client's clock ran
+**backwards** for the next window (−5.6 game-min/s: it snapped back onto the
+server's clock, which it had overtaken at 35× vs 32×), ending **0.13 game-h**
+apart. So a multiplier change re-syncs the client clock; steady state does
+not. `getMultiplier()` ratios: server ×29.9, client ×143.8 (the client keeps
+a different internal scale — never compare raw getter values across sides).
+RCON replies to `settimespeed` are sometimes empty; verify via the snapshot.
+## S6 — Witness round-trip ✅ 2026-09-09
+
+`pzt spike S6` (runs `spike-20260909-143930`, re-run `spike-20260909-144417`).
+Client `witness.*` → `sendClientCommand(player, "PZTestKit", "witness", …)`;
+server `OnClientCommand` answers with its own view via `sendServerCommand`;
+the client compares, logs `PZTK: witness <kind> match=…` and writes
+`witness_<kind>.json`. Round-trip ≈ 1 s.
+
+| Probe | Client view | Server view | Match |
+|---|---|---|---|
+| player modData `pzt_probe` set client-side | `v1` | **nil** | ✗ caught |
+| … after `player:transmitModData()` | `v1` | `v1` | ✓ |
+| nutrition (calories / weight / carbs / lipids / proteins) | 498.64 / 80 / −65.65 / −21.20 / −16.13 | 498.43 / 80 / −65.70 / −21.21 / −16.14 | ✓ within 0.2 kcal — **the client computes nutrition; the server keeps a live mirror** |
+| item spawned by the server (`additem`) | id 2130049510, 10/10 | **same id**, found, 10/10; player inventory = 8 items server-side | ✓ the server holds the player's inventory |
+| … after client-side `setConditionMax(5)`, `setCondition(3)`, modData `pzt_tag`, `sendItemStats(item)` | 3/5, `tag1` | **10/10, nil** | ✗ caught — nothing reached the server |
+| item created client-side (`inventory:AddItem("Base.Carrots")`) | id 592978320 | **not found**, inventory still 8 | ✗ caught |
+| both item probes again **60 s later** (re-run) | 3/5 `tag1`; carrot present | still 10/10 nil; carrot still absent | ✗ — no periodic inventory sync catches up |
+
+Facts:
+- The Lua global `sendItemStats` is `GameServer.sendItemStats` (packet
+  `ItemStats`, server → the owning player's connection); on a client it is a
+  silent no-op. `SyncItemFieldsPacket` is likewise server-originated. **There
+  is no client→server "push my item's fields" API**: a mod that edits an
+  inventory item's fields or modData client-side (food nutrition values,
+  condition, custom modData) desyncs silently — mutate on the server
+  (`sendClientCommand` → server edits → `sendItemStats`) or accept
+  client-only semantics. This is the ItemQuality class of bug, now a failing
+  witness.
+- Player modData is not auto-synced; `IsoPlayer:transmitModData()` pushes
+  it (works in 42.20.4 MP).
+- `additem` over RCON: `additem "user" "Module.Item" [n]` → "Item … Added in
+  admin's inventory." — items reach the client with server-assigned ids.
+## S7 — reloadlua iteration ✅ 2026-09-09
+
+`pzt spike S7 --reloadalllua` (run `spike-20260909-143930`). The harness's
+`TK.version` constant was edited on disk (in the run's own copy of the mod)
+and reloaded.
+
+| Step | Result |
+|---|---|
+| RCON `reloadlua PZTestKit_Core.lua` (server) | "Lua file reloaded"; `version` 1 → 2, `TK.ticks` **continued** (1140 → 1174) and the command bus kept its seq — state in globals survives (`TK = TK or {}`) |
+| client after the server reload | untouched (`version` 1): `reloadlua` is server-local, no packet to clients |
+| client `reloadLuaFile("PZTestKit_Core.lua")` | returns nil, **no effect** |
+| client `reloadLuaFile("<absolute path to the client's copy>")` | `version` → 3 — the global wants the full path |
+| RCON `reloadalllua` (server) | "Lua files reloaded", server stays up, state survives — but re-running every file on the dedicated server throws **~31 Lua errors** (`Lua(Vanilla).ISStyle> Exception thrown` + stack traces: UI files executed server-side) |
+
+Consequences: the fast authoring loop is `reloadlua <file>` on the server plus
+`reloadLuaFile(<abs path>)` through the client command bus (`lua.reload`),
+one file at a time; `reloadalllua` is not usable on a dedicated server. The
+`ReloadLuaCommand` matches the argument with `endsWith` against the loaded
+file list and `LuaManager.RunLua`s it — nothing else (no re-registration of
+events: a file that `Events.X.Add`s on load will add a second handler, so
+harness/mod files must guard against double registration if they are meant
+to be reloaded).

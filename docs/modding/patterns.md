@@ -68,6 +68,30 @@ on; treat divergence as a decision point, not a free choice.**
    server; render through MoodleFramework/own panels, don't patch the same
    widgets it patches.
 
+## Measured MP sync facts (42.20.4, spike S6 — [testing/spikes.md](../testing/spikes.md))
+
+Established with the sync witness on a real dedicated server + real client;
+they sharpen KEEP 1–2 and FILTER 1.
+
+| Change made on the client | Reaches the server? |
+|---|---|
+| `player:getModData().k = v` | **no** — until `player:transmitModData()`, then yes |
+| `setCondition` / `setConditionMax` / `getModData()` on an inventory item, then `sendItemStats(item)` | **never** — `sendItemStats` is `GameServer.sendItemStats` (server → owning client, packet `ItemStats`); on a client it is a silent no-op. There is no client→server "push my item fields" API, and waiting 60 s changes nothing |
+| `inventory:AddItem("Base.X")` client-side | **never** — the server's copy of the player's inventory (it does hold one: a server-side `additem` shows up on both sides with one id) never gains the item |
+| nutrition (`getNutrition()` calories/weight/macros) | the client computes; the server keeps a live mirror (within 0.2 kcal). Nutrition is client-authoritative in MP; server-side code reads a lagging copy |
+
+Consequences for the nutrition mod:
+- **Item mutations go through the command bus** (KEEP 2): client →
+  `sendClientCommand` → server edits the item → `sendItemStats` broadcasts.
+  Editing a food item's fields client-side (e.g. per-item nutrient values)
+  desyncs silently — the ItemQuality failure, now reproducible on demand.
+- **Per-player nutrient state lives in player modData and is
+  `transmitModData()`-ed on change**, or lives server-side and is pushed with
+  `sendServerCommand`. One owner per value; the witness suite checks it.
+- Accelerated tests: RCON `settimespeed <x>` broadcasts to every client and
+  nutrition ticks scale with it (spike S5); always restore through the same
+  command.
+
 ## Open pattern questions (feed into teardowns)
 
 - How does LongTermPreservation4220 override vanilla food spoilage — item

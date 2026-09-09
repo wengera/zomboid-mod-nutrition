@@ -1,14 +1,14 @@
 {
- "created": "2026-09-09T14:10:02",
+ "created": "2026-09-09T14:36:57",
  "build": "42.20.4",
  "game_dir": "D:\\SteamLibrary\\steamapps\\common\\ProjectZomboid",
- "provision_run": "prov-20260909-140905",
+ "provision_run": "prov-20260909-143529",
  "server": {
   "name": "pzt",
   "port": 27261,
   "rcon_port": 27015,
   "mods": [
-   "PZTestKitClient"
+   "PZTestKit"
   ],
   "sandbox": {
    "Zombies": "6"
@@ -23,8 +23,8 @@
   }
  },
  "timings": {
-  "server_start": 14.3,
-  "client_admin_ready": 32.3
+  "server_start": 41.4,
+  "client_admin_ready": 35.8
  },
  "boot_errors": [],
  "name": "default",

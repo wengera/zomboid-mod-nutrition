@@ -94,11 +94,16 @@ under test via `mod.info require=`.
 
 ### Sync witness (L4) — the assertion that would have caught ItemQuality
 
-`TK.witness(item|player, fields, modDataKeys)` on a client sends its local
-view; the server replies with its authoritative view; the test asserts
-equality **after a forced round-trip** (relog, or a `syncItemFields` call)
-so unsynced-field bugs surface deterministically. Standard witness suites
-ship for: item numeric fields, character modData, nutrition values.
+`witness.*` commands on a client send its local view over
+`sendClientCommand`; the server's `OnClientCommand` handler replies with its
+authoritative view over `sendServerCommand`; the client compares and writes a
+`witness_*` result (implemented in S6). There is **no client→server item
+field sync API** (`sendItemStats` is `GameServer.sendItemStats`, server →
+owning client), so a client-side edit of an inventory item's fields or
+modData is invisible to the server until something server-side replaces the
+item — the witness is exactly what surfaces that. Player modData needs
+`transmitModData()`. Witness kinds so far: player modData, nutrition values,
+one inventory item (condition, conditionMax, modData).
 
 ## Fragility budget — where it bites and what we do
 
@@ -123,16 +128,27 @@ ship for: item numeric fields, character modData, nutrition values.
   character-creation screens), characters persist across joins, admin
   `-debug` client skips the logo; **in-world ≈ 30 s** from launch once
   `-safemode` was dropped (it alone cost ~100 s of world load).
-- **S3 Mods under -nosteam**: whether `-modfolders workshop,steam,mods` loads
-  workshop content without Steam, else copy strategy.
-- **S4 Result channel**: harness writes JSON + `.ready` to cachedir on both
-  sides; orchestrator collects; confirm `getModFileWriter` path semantics.
-- **S5 Time acceleration**: `GameTime:setMultiplier` on server in MP — does
-  world time and Nutrition ticking accelerate for connected clients?
-- **S6 Witness round-trip**: force sync (`syncItemFields`) and prove a
-  deliberately unsynced field (set conditionMax client-side) is caught.
-- **S7 reloadlua iteration**: hot-reload the mod under test mid-run for fast
-  authoring loops; measure what state survives.
+- **S3 Mods under -nosteam** ✅ 2026-09-09: both workshop roots are gated on
+  Steam mode, so only `<cachedir>/mods` is searched — copy strategy
+  (`pzt/mods.py`). A mod the game cannot find is a **WARN** and the session
+  runs without it; `pzt run` now fails on `required mod "X" not found`.
+- **S4 Result channel** ✅ 2026-09-09: `getFileWriter` accepts subfolders of
+  `<cachedir>/Lua` and `.json`; a complete JSON object is the ready signal
+  (`.ready` is not an allowed extension; `getModFileWriter` writes into the
+  mod folder instead). Client 0.3 s, server 1.5 s.
+- **S5 Time acceleration** ✅ 2026-09-09: RCON `settimespeed <x>` sets the
+  server multiplier and broadcasts `SetMultiplierPacket`; at 30× both sides
+  ran ~32× and calorie burn scaled with it. Always restore through the same
+  command (a server-only reset leaves clients accelerated and drifting).
+- **S6 Witness round-trip** ✅ 2026-09-09: the witness catches client-side
+  player modData (fixed by `transmitModData()`), client-side item field/
+  modData edits (never reach the server — no client→server API) and
+  client-created items (absent server-side, still after 60 s); nutrition is
+  computed on the client and mirrored live by the server.
+- **S7 reloadlua iteration** ✅ 2026-09-09: server `reloadlua <file>` (RCON)
+  re-runs one file with globals intact; clients reload their own copy via
+  `reloadLuaFile(<absolute path>)` (bare names do nothing); `reloadalllua`
+  throws ~31 Lua errors on a dedicated server — not usable.
 
 ## Roadmap
 

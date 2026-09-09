@@ -1,0 +1,3 @@
+name=PZTestKit
+id=PZTestKit
+description=Integration-test harness (auto-join, command bus, sync witness). Test profiles only.

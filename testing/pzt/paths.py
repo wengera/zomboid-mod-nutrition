@@ -4,12 +4,13 @@ import os
 PZ_DIR = r"D:\SteamLibrary\steamapps\common\ProjectZomboid"
 JAVA = os.path.join(PZ_DIR, "jre64", "bin", "java.exe")
 EXE = os.path.join(PZ_DIR, "ProjectZomboid64.exe")
+WORKSHOP_DIR = r"D:\SteamLibrary\steamapps\workshop\content\108600"
 
 PKG = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(PKG)
 RUNS = os.path.join(TESTING, "runs")
 FIXTURES = os.path.join(TESTING, "fixtures")
-HARNESS_MODS = {"PZTestKitClient": os.path.join(TESTING, "PZTestKit", "PZTestKitClient")}
+HARNESS_MODS = {"PZTestKit": os.path.join(TESTING, "PZTestKit", "PZTestKit")}
 
 ADMIN_USER = "admin"          # bootstrap account created by -adminpassword
 ADMIN_PW = "pzt-admin-pw"

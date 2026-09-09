@@ -1,35 +1,14 @@
-"""pzt command line: provision / boot / attach / run."""
+"""pzt command line: provision / boot / attach / run / spike."""
 import argparse
 import datetime
-import json
 import os
-import sys
 import time
 
 from . import fixture as fx
-from .client import Client
+from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
 from .server import Server
-
-
-def say(msg):
-    print(msg, flush=True)
-
-
-class Timeline:
-    def __init__(self):
-        self.t0 = time.time()
-        self.items = []
-
-    def mark(self, phase, **kw):
-        t = round(time.time() - self.t0, 1)
-        self.items.append({"t": t, "phase": phase, **kw})
-        say(f"[{t:7.1f}s] {phase} " + " ".join(f"{k}={v}" for k, v in kw.items()))
-        return t
-
-
-def client_password(user):
-    return ADMIN_PW if user == ADMIN_USER else f"{user}-pw"
+from .session import Timeline, hold, make_client, make_server, say, teardown, write_report
 
 
 def parse_kv(items):
@@ -40,76 +19,6 @@ def parse_kv(items):
     return out
 
 
-def write_report(run_dir, data):
-    with open(os.path.join(run_dir, "report.json"), "w") as fh:
-        json.dump(data, fh, indent=1)
-
-
-def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None):
-    if rec:
-        cache = fx.restore_server(rec["name"], run_dir)
-        srv = rec["server"]
-        name, mods = srv["name"], mods or srv["mods"]
-        port, rcon_port = port or srv["port"], rcon_port or srv["rcon_port"]
-    else:
-        cache = os.path.join(run_dir, "server")
-    s = Server(cache, name=name, port=port, rcon_port=rcon_port, mods=mods,
-               log_path=os.path.join(run_dir, "server-stdout.log"), echo=say)
-    s.seed(sandbox=sandbox)
-    return s
-
-
-def make_client(run_dir, user, server, rec=None, debug=None, safemode=False, launcher="java"):
-    """Restored from the fixture when it has a snapshot for this user (no creation
-    screens); seeded fresh otherwise."""
-    restored = False
-    info = {}
-    if rec:
-        cache, restored = fx.restore_client(rec["name"], user, run_dir)
-        info = rec["clients"].get(user, {})
-    else:
-        cache = os.path.join(run_dir, "clients", user)
-    if debug is None:
-        debug = info.get("debug", user == ADMIN_USER)
-    c = Client(cache, f"127.0.0.1:{server.port}", user, info.get("password") or client_password(user),
-               debug=debug, safemode=safemode, launcher=launcher, mods=server.mods, echo=say)
-    if restored:
-        c.prepare()
-    else:
-        c.seed()
-    return c, restored
-
-
-def hold(seconds, tl, server, clients):
-    """Keep the session alive (the slot where test suites will run). 0 = until Ctrl-C."""
-    end = time.time() + seconds if seconds > 0 else None
-    tl.mark("hold", seconds=seconds or "until-interrupt")
-    try:
-        while end is None or time.time() < end:
-            if not server.alive:
-                tl.mark("server_died", rc=server.proc.returncode)
-                return False
-            dead = [c.username for c in clients if not c.alive]
-            if dead:
-                tl.mark("client_died", users=",".join(dead))
-                return False
-            time.sleep(1)
-    except KeyboardInterrupt:
-        tl.mark("interrupted")
-    return True
-
-
-def teardown(tl, server, clients):
-    for c in clients:
-        if c.alive:
-            rc = c.quit()
-            tl.mark("client_quit", user=c.username, rc=rc)
-    if server.alive:
-        rc = server.stop()
-        tl.mark("server_stopped", rc=rc, errors=len(server.errors))
-
-
-# ---- commands ---------------------------------------------------------------
 def cmd_provision(a):
     run_id, run_dir = new_run_dir("prov")
     tl = Timeline()
@@ -202,7 +111,7 @@ def cmd_attach(a):
     finally:
         rc = c.quit()
         tl.mark("client_quit", rc=rc)
-    write_report(run_dir, {"run_id": run_id, "timeline": tl.items, "events": c.events})
+    write_report(run_dir, {"run_id": run_id, "timeline": tl.items, "events": c.events, "results": c.results()})
     return 0
 
 
@@ -227,8 +136,7 @@ def cmd_run(a):
             clients.append(c)
             tl.mark("client_launch", user=user, restored=restored)
             tl.mark("client_ready", user=user, t=c.wait_ready(timeout=a.client_timeout))
-        for c in clients:
-            tl.mark("ping", user=c.username, ack=c.send("ping"))
+        tl.mark("ping", server=server.send("ping"), **{c.username: c.send("ping") for c in clients})
         tl.mark("session_ready", clients=len(clients))
         if hold(a.hold, tl, server, clients):
             result = "PASS"
@@ -241,6 +149,9 @@ def cmd_run(a):
             for c in clients:
                 c.kill()
             server.kill()
+    not_found = sorted(set(server.mods_not_found + [m for c in clients for m in c.mods_not_found]))
+    if result == "PASS" and not_found:
+        result = f"FAIL: mods not found at load: {','.join(not_found)}"
     if result == "PASS" and server.errors:
         result = f"FAIL: {len(server.errors)} server error lines"
     lua_errors = [c.username for c in clients if "lua_error" in c.seen]
@@ -248,7 +159,9 @@ def cmd_run(a):
         result = f"FAIL: lua errors on {','.join(lua_errors)}"
     write_report(run_dir, {"run_id": run_id, "result": result, "timeline": tl.items,
                            "server_errors": server.errors[:40],
-                           "clients": {c.username: c.events for c in clients}})
+                           "clients": {c.username: c.events for c in clients},
+                           "results": {"server": server.results(),
+                                       **{c.username: c.results() for c in clients}}})
     say(f"\nRESULT: {result}   (report: {os.path.join(run_dir, 'report.json')})")
     return 0 if result == "PASS" else 1
 
@@ -270,7 +183,7 @@ def main(argv=None):
     p = sub.add_parser("provision", help="build a golden fixture from scratch")
     p.add_argument("--name", default="default")
     p.add_argument("--server-name", default="pzt")
-    p.add_argument("--mods", default="PZTestKitClient", help="semicolon-separated Mods= list")
+    p.add_argument("--mods", default="PZTestKit", help="semicolon-separated Mods= list")
     p.add_argument("--clients", default=[ADMIN_USER], type=lambda s: [u for u in s.split(",") if u],
                    help="comma-separated accounts to create characters for (admin gets -debug)")
     p.add_argument("--sandbox", action="append", metavar="KEY=VALUE",
@@ -300,6 +213,15 @@ def main(argv=None):
     common_server(p)
     common_client(p)
     p.set_defaults(fn=cmd_run)
+
+    p = sub.add_parser("spike", help="run design spikes (S3..S7) and write findings.json")
+    p.add_argument("ids", nargs="+", help="e.g. S3 S4 S5 S6 S7")
+    p.add_argument("--fixture", default="default")
+    p.add_argument("--s3-client-timeout", type=int, default=90)
+    p.add_argument("--reloadalllua", action="store_true", help="S7: also try the heavier reloadalllua")
+    common_server(p)
+    common_client(p)
+    p.set_defaults(fn=spikes.run)
 
     a = ap.parse_args(argv)
     return a.fn(a)

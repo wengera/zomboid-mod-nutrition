@@ -1,5 +1,0 @@
-name=PZTestKit Client Harness
-id=PZTestKitClient
-description=Test harness: auto-joins a server from a manifest, auto-creates a character, reports states to console. Never ship with a real mod.
-author=pzt
-versionMin=42.0
