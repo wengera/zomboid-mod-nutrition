@@ -59,6 +59,12 @@ def seed_client_cache(cache, args):
                  f"ip={ip}\nport={port}\nserverPassword={args.password}\n")
     # 4. pre-saved server + account so the join popup prefills credentials
     seed_serverlist(cache, ip, port, args.username, args.account_password, args.password)
+    # 5. debug-mode conveniences: GameWindow.initShared skips TISLogoState only when
+    #    Core.debug && DebugOptions UI.DisableLogoState (persisted in debug-options.ini).
+    #    Requires an admin account (servers refuse -debug for non-admins).
+    if args.debug:
+        with open(os.path.join(cache, "debug-options.ini"), "w") as fh:
+            fh.write("UI.DisableLogoState=true\nUI.DisableWelcomeMessage=true\n")
 
 SERVERLIST_SCHEMA = """
 CREATE TABLE IF NOT EXISTS server (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL,
@@ -94,15 +100,26 @@ def main():
     ap.add_argument("--extra", default="", help="extra game args")
     ap.add_argument("--debug", action="store_true", help="launch client in -debug mode (admin accounts only)")
     ap.add_argument("--exit-on-spawn", action="store_true", help="stop observing once the client is in-world")
+    ap.add_argument("--reuse-cache", default="", help="existing client cachedir (warm run: account/character persist)")
     ap.add_argument("--launcher", choices=["java", "exe"], default="java",
                     help="java: start the JVM directly (no UAC prompt); exe: use ProjectZomboid64.exe")
     args = ap.parse_args()
 
     run_id = datetime.datetime.now().strftime("s2-%Y%m%d-%H%M%S")
     run_dir = os.path.join(RUNS, run_id)
-    cache = os.path.join(run_dir, f"client{args.client_id}")
-    os.makedirs(cache, exist_ok=True)
-    seed_client_cache(cache, args)
+    os.makedirs(run_dir, exist_ok=True)
+    if args.reuse_cache:
+        cache = os.path.abspath(args.reuse_cache)   # warm run: existing account/character/assets
+        # keep the manifest current but don't disturb the game-written options/db
+        os.makedirs(os.path.join(cache, "Lua"), exist_ok=True)
+        ip, port = args.server.split(":")
+        with open(os.path.join(cache, "Lua", "pzt-join.txt"), "w") as fh:
+            fh.write(f"username={args.username}\npassword={args.account_password}\n"
+                     f"ip={ip}\nport={port}\nserverPassword={args.password}\n")
+    else:
+        cache = os.path.join(run_dir, f"client{args.client_id}")
+        os.makedirs(cache, exist_ok=True)
+        seed_client_cache(cache, args)
 
     game_args = ["-nosteam", f"-cachedir={cache}", "-safemode", "-nosound", "-novoip",
                  "-debuglog=Network", "+connect", args.server]

@@ -62,6 +62,7 @@ Facts established so far:
 | `-debug` clients are refused for non-admin accounts | `UI_OnConnectFailed_DebugNotAllowed` ("Debug connection is not allowed for non admin."). Join without `-debug` (driver default) or use an admin test account |
 | **MP character creation flow (not the Coop* screens)** | `MapSpawnSelect` → `CharacterCreationProfession` → `CharacterCreationMain` → `LoadingQueueState`. Each screen's NEXT is `onOptionMouseDown({internal="NEXT"})`: spawn `clickNext()` needs a valid `listbox.selected`; profession NEXT has no checks; appearance NEXT runs `initPlayer()`, saves the account's first/last name, and enters the world. Names are prefilled from `MainScreen.instance.desc` |
 | Account creation is implicit | Connecting with unknown credentials on an `Open=true` `-nosteam` server creates the account (`pzt_c1` appeared without any extra step) |
+| **Skipping the TIS logo** | `GameWindow.initShared`: `TISLogoState` is added unless `Core.debug && DebugOptions.uiDisableLogoState` — key `UI.DisableLogoState` in `<cachedir>/debug-options.ini` (`ConfigFile` key=value; `UI.DisableWelcomeMessage` lives alongside). So the ~20 s logo is skippable only for `-debug` clients, which servers accept only for **admin** accounts → drive the primary test client as the server's bootstrap admin (`-adminpassword`). No non-debug launch arg exists for it. |
 
 **Result (attempt #8, run `s2-20260909-132605` → server `s1-20260909-132530`): ✅ fully automated join.**
 Timeline: launch → harness loaded 10 s → T&C auto-skipped, main menu 40 s →
@@ -90,6 +91,22 @@ dropping locally-enabled mods; #8 harness server-listed → success.
   creation entirely (account + character persist server-side).
 - Budget for L3: ~45 s to connect, ~15 s creation, world load 100 s cold —
   a reused world/cachedir should cut the last figure sharply (measure in T3).
+
+**Admin-mode run** (`s2-20260909-133311`, `--username admin --debug
+--exit-on-spawn`, logo skip seeded): harness 10 s → main menu **16 s** (logo
+skipped; was ~40 s) → connect 18 s → Lua reload 24 s → spawn/profession/
+appearance NEXT by **33 s** → `game loading took 113 seconds` → in-world at
+**148 s**, early exit fired. `-debug` accepted for the admin account, so the
+primary driven client should always be the bootstrap admin. World load is now
+~75% of wall time — the T3 target.
+
+World-load phase breakdown (client `Logs/*DebugLog.txt` timestamps, gaps >4 s):
+**81 s inside `loadAnimalDefinitions`** (B42 animal definition loading on
+join), 21 s between `SafeMode is on` and `IsoMetaGrid.Create` (asset
+streaming), 4–5 s each for model loading and `bWaitForAssetLoadingToFinish2`.
+Everything else is sub-second. So the fix for L3 latency is whatever makes
+animal definitions load fast (warm cache? sandbox option to disable animals
+on the test world? — measure in T3), not the join flow, which is now ~33 s.
 ## S3 — Mods under -nosteam
 ## S4 — Result channel
 ## S5 — Time acceleration in MP
