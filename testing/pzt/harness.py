@@ -11,14 +11,20 @@ RESET_MARKER = "reset-mods-42_00.txt"
 RESET_TEXT = "If this file does not exist, default.txt will be reset to empty (no mods active)."
 
 
-def install(mods_dir, mod_ids, workshop=True):
+def install(mods_dir, mod_ids, workshop=True, sources=None, skip=()):
     """Harness mods are copied fresh from the repo; other ids are copied from the Steam
     workshop folder (the game does not look there under -nosteam, spike S3) unless
-    workshop=False. Returns the ids that were not placed."""
+    workshop=False. `sources` maps a mod id to a folder copied verbatim (a profile's workshop
+    or local mod) and wins over HARNESS_MODS and the workshop index; `skip` ids are named in
+    Mods= on purpose but NOT placed -- the game's missing-mod path (S3-A) -- and are not
+    reported missing. Returns the ids that were not placed."""
     os.makedirs(mods_dir, exist_ok=True)
+    sources = sources or {}
     missing = []
     for mod_id in mod_ids:
-        src = HARNESS_MODS.get(mod_id)
+        if mod_id in skip:
+            continue
+        src = sources.get(mod_id) or HARNESS_MODS.get(mod_id)
         if src:
             dst = os.path.join(mods_dir, mod_id)
             if os.path.isdir(dst):

@@ -70,18 +70,59 @@ def update_ini(path, values):
         fh.write("\n".join(out) + "\n")
 
 
+def lua_value(v):
+    """A profile's TOML value as a Lua literal. Only booleans need translating (Python's
+    True/False are not Lua's); numbers and strings already round-trip through str()."""
+    return "true" if v is True else "false" if v is False else str(v)
+
+
 def write_sandbox_vars(path, overrides):
     """Partial table: unlisted keys take server defaults; the server rewrites the full
-    file on boot (verified in T0)."""
-    body = "".join(f"    {k} = {v},\n" for k, v in overrides.items())
+    file on boot (verified in T0). For a cache that already HAS a SandboxVars file (a
+    restored fixture) this would drop every option the fixture was built with -- use
+    merge_sandbox_vars there."""
+    body = "".join(f"    {k} = {lua_value(v)},\n" for k, v in overrides.items())
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("SandboxVars = {\n    VERSION = 6,\n" + body + "}\n")
+
+
+# Top-level options sit at exactly four spaces; the five nested tables (Basement, Map,
+# ZombieLore, ZombieConfig, MultiplierConfig) open with `= {` at that same indent and hold
+# their options at eight, so the lookahead both protects a table opener and keeps `Map` out
+# of sandbox_keys() -- a profile naming it fails validation instead of no-op'ing.
+SANDBOX_KEY_RX = re.compile(r"^ {4}(\w+) = (?!\{)")
+
+
+def sandbox_keys(path):          # the settable options of an existing file, for validation
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        return [m.group(1) for m in map(SANDBOX_KEY_RX.match, fh) if m]
+
+
+def merge_sandbox_vars(path, overrides):
+    """Rewrite only the named top-level keys, keeping every other option (and the server's
+    comments) as the fixture had them. -> (applied, appended); CRLF preserved."""
+    with open(path, encoding="utf-8", errors="replace", newline="") as fh:
+        text = fh.read()
+    nl = "\r\n" if "\r\n" in text else "\n"
+    pending = {k: lua_value(v) for k, v in overrides.items()}
+    out = []
+    for line in text.splitlines():
+        m = SANDBOX_KEY_RX.match(line)
+        hit = m and m.group(1) in pending
+        out.append(f"    {m.group(1)} = {pending.pop(m.group(1))}," if hit else line)
+    applied, appended = [k for k in overrides if k not in pending], sorted(pending)
+    if appended:                       # before the file's own closing brace (col 0)
+        close = max(i for i, l in enumerate(out) if l.strip() == "}")
+        out[close:close] = [f"    {k} = {pending[k]}," for k in appended]
+    with open(path, "w", encoding="utf-8", newline="") as fh:
+        fh.write(nl.join(out) + nl)
+    return applied, appended
 
 
 class Server:
     def __init__(self, cache, name="pzt", port=27261, rcon_port=27015, mods=("PZTestKit",),
                  admin_pw=ADMIN_PW, rcon_pw=RCON_PW, log_path=None, echo=None,
-                 workshop=True, workshop_items=()):
+                 workshop=True, workshop_items=(), mod_sources=None, mod_skip=()):
         self.cache = os.path.abspath(cache)
         self.name = name
         self.port = int(port)
@@ -89,6 +130,8 @@ class Server:
         self.mods = list(mods)
         self.workshop = workshop                  # copy non-harness mods in from the workshop folder
         self.workshop_items = list(workshop_items)
+        self.mod_sources = dict(mod_sources or {})   # mod id -> folder to copy (a profile's)
+        self.mod_skip = tuple(mod_skip)              # named in Mods=, deliberately not placed
         self.missing_mods = []        # not placed in mods/ by us
         self.mods_not_found = []      # reported missing by the game at load
         self.admin_pw = admin_pw
@@ -120,7 +163,9 @@ class Server:
         """Fresh cache: write the ini (+ sandbox overrides). Restored cache: keep the world,
         refresh the mods, rewrite ports so a fixture can boot on any port."""
         os.makedirs(os.path.join(self.cache, "Server"), exist_ok=True)
-        self.missing_mods = harness.install(os.path.join(self.cache, "mods"), self.mods, workshop=self.workshop)
+        self.missing_mods = harness.install(os.path.join(self.cache, "mods"), self.mods,
+                                            workshop=self.workshop, sources=self.mod_sources,
+                                            skip=self.mod_skip)
         self.bus.reset()
         values = {} if os.path.exists(self.ini) else dict(FRESH_INI)
         values.update({"DefaultPort": self.port, "UDPPort": self.port + 1, "RCONPort": self.rcon_port,
@@ -128,7 +173,18 @@ class Server:
                        "WorkshopItems": ";".join(self.workshop_items)})
         update_ini(self.ini, values)
         if sandbox:
-            write_sandbox_vars(self.sandbox_path, sandbox)
+            # A restored fixture already has the server's own 1000-line file: rewrite the
+            # named options in place, because replacing it would silently reset every option
+            # the fixture was provisioned with (its Zombies = 6 among them).
+            if os.path.exists(self.sandbox_path):
+                applied, appended = merge_sandbox_vars(self.sandbox_path, sandbox)
+                if self.echo:
+                    self.echo(f"  [server] sandbox merged into the fixture's file: "
+                              f"applied {applied or 'none'}, appended {appended or 'none'}")
+            else:
+                write_sandbox_vars(self.sandbox_path, sandbox)
+                if self.echo:
+                    self.echo(f"  [server] sandbox written fresh: {sorted(sandbox)}")
 
     def start(self, timeout=420):
         cmd = [JAVA, *JVM, "zombie.network.GameServer", "-nosteam", "-servername", self.name,

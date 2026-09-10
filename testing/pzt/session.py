@@ -36,7 +36,9 @@ def write_report(run_dir, data):
 
 
 def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None,
-                workshop=True, workshop_items=()):
+                workshop=True, workshop_items=(), mod_sources=None, mod_skip=()):
+    """`mod_sources`/`mod_skip` come from a profile (see profile.py): a folder to copy in for
+    a given mod id, and the ids named in Mods= that are deliberately not placed."""
     if rec:
         cache = fx.restore_server(rec["name"], run_dir)
         srv = rec["server"]
@@ -46,16 +48,24 @@ def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="p
         cache = os.path.join(run_dir, "server")
     s = Server(cache, name=name, port=port, rcon_port=rcon_port, mods=mods,
                log_path=os.path.join(run_dir, "server-stdout.log"), echo=say,
-               workshop=workshop, workshop_items=workshop_items)
+               workshop=workshop, workshop_items=workshop_items,
+               mod_sources=mod_sources, mod_skip=mod_skip)
     s.seed(sandbox=sandbox)
     if s.missing_mods:
         say(f"  [server] mods not placed in mods/: {s.missing_mods}")
     return s
 
 
-def make_client(run_dir, user, server, rec=None, debug=None, safemode=False, launcher="java", workshop=True):
+def make_client(run_dir, user, server, rec=None, debug=None, safemode=False, launcher="java",
+                workshop=True, mod_sources=None, mod_skip=None):
     """Restored from the fixture when it has a snapshot for this user (no creation
-    screens); seeded fresh otherwise."""
+    screens); seeded fresh otherwise.
+
+    The client's mod list already comes from `server.mods`, so its placement follows the
+    server's too: both default to the server's own `mod_sources`/`mod_skip` (None = 'the
+    server's', not 'none') and the two sides cannot drift apart."""
+    mod_sources = server.mod_sources if mod_sources is None else mod_sources
+    mod_skip = server.mod_skip if mod_skip is None else mod_skip
     restored = False
     info = {}
     if rec:
@@ -66,7 +76,8 @@ def make_client(run_dir, user, server, rec=None, debug=None, safemode=False, lau
     if debug is None:
         debug = info.get("debug", user == ADMIN_USER)
     c = Client(cache, f"127.0.0.1:{server.port}", user, info.get("password") or client_password(user),
-               debug=debug, safemode=safemode, launcher=launcher, mods=server.mods, echo=say, workshop=workshop)
+               debug=debug, safemode=safemode, launcher=launcher, mods=server.mods, echo=say,
+               workshop=workshop, mod_sources=mod_sources, mod_skip=mod_skip)
     if restored:
         c.prepare()
     else:

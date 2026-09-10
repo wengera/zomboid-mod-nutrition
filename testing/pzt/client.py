@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS account (id INTEGER PRIMARY KEY AUTOINCREMENT, server
 
 class Client:
     def __init__(self, cache, server, username, password, server_password="", debug=False,
-                 safemode=False, launcher="java", mods=("PZTestKit",), echo=None, workshop=True):
+                 safemode=False, launcher="java", mods=("PZTestKit",), echo=None, workshop=True,
+                 mod_sources=None, mod_skip=()):
         self.cache = os.path.abspath(cache)
         self.server = server
         self.ip, self.port = server.split(":")
@@ -58,6 +59,8 @@ class Client:
         self.launcher = launcher
         self.mods = list(mods)
         self.workshop = workshop
+        self.mod_sources = dict(mod_sources or {})   # mod id -> folder to copy (a profile's)
+        self.mod_skip = tuple(mod_skip)              # named in Mods=, deliberately not placed
         self.missing_mods = []        # not placed in mods/ by us
         self.mods_not_found = []      # reported missing by the game at load
         self.echo = echo
@@ -88,7 +91,10 @@ class Client:
         """Fresh or restored cachedir: mods, join manifest, saved server/account row
         (prefills the connect popup), debug options; reset the command channel."""
         mods_dir = os.path.join(self.cache, "mods")
-        self.missing_mods = harness.install(mods_dir, self.mods, workshop=self.workshop)
+        self.missing_mods = harness.install(mods_dir, self.mods, workshop=self.workshop,
+                                            sources=self.mod_sources, skip=self.mod_skip)
+        # default.txt still names the skipped ids: only the placement is withheld, so the
+        # client walks the same missing-mod path as the server (S3-A).
         harness.enable_client_mods(mods_dir, self.mods)
         self.bus.reset()
         with open(os.path.join(self.bus.lua_dir, "pzt-join.txt"), "w") as fh:
