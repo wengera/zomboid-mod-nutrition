@@ -220,7 +220,7 @@ gets stats, pain, cold and sickness but no nutrient write (`Eat @235–@251 L577
 | **fluid path** | POISON | `p = fc.getPoison()`; tainted `×0.75`; Iron Gut → 0 if tainted else `/2` unless primary fluid is `FluidType.Bleach`; Weak Stomach `×1.2` if tainted else `×2` | `DrinkFluid @349–@451 L5906–L5924` | C |
 | sandbox `Nutrition = false` | macro drain, `updateCalories`, `updateWeight` | all three skipped by one early return; **`Eat`/`DrinkFluid` stores unaffected** | `Nutrition.update @0–@12 L65-L66` — the only runtime read of the option in the jar | C |
 | `SystemDisabler.doCharacterStats` | `Nutrition.update` | not called at all when false | `IsoPlayer.updateInternal2 @392–@402 L2306-L2307` | C |
-| MP client | macro drain + `updateCalories` | skipped when `GameClient.client`; `updateWeight()` still runs | `Nutrition.update @42 L75`, `@106 L81` | C |
+| MP client | macro drain + `updateCalories` | skipped when `GameClient.client`; `updateWeight()` is still *reached*, but it **computes the weight delta and discards it** — a `GameClient.client` skip sits before `setWeight` | `Nutrition.update @42 L75`, `@106 L81`; `updateWeight @317–@320 L198` before `@323 L199` | C+M `exp03-20260910-045523` |
 | passive drain | carbs / lipids / proteins | `−0.0035` / `−0.00113` / `−0.00086` per game-world second | `Nutrition.update @48/@66/@84 L76–L78`; control window −34.4194 g carbs over +2.7583 game-h = 0.00347/game-s (99.0 % of the coded rate) | C+M `exp01-20260910-003929` |
 | passive burn | calories | `−0.13×mod×weightRatio` running/sprinting (`mod` 1.0 / 1.3), `−0.13×0.6×…` walking, `−0.003×…` asleep, `−0.016×…` idle; `weightRatio = weight/80`; `mod` = 8.0 while swiping/climbing, else the action's `caloriesModifier` | `Nutrition.updateCalories @0–@318 L88–L118`; idle at `settimespeed 1` measured 0.259 kcal/s (0.256 in the earlier run) | C+M `exp01-20260910-003929` |
 | eating duration | `maxTime` | `232 × eatingLoop` (food) or `171 × eatingLoop` (drink); loop 1/2/3 at hungerConsumed ≥30/≥80 (food) or thirst ≥3/≥6 (drink) | `ISEatFoodAction.lua:214–243`; whole fresh apple measured `maxTime 232.24` | C+M `exp01-20260910-003929` |
@@ -410,7 +410,7 @@ Eat -> Food getters (getHungerChange/getThirstChange/getCalories/…)
 | `Food.getHungerChange/getThirstChange` | jar | the only state-modified intake getters | C+M `exp01-20260910-003929` |
 | `Food.getCalories/getCarbohydrates/getLipids/getProteins` | jar `@0 L2139/L2115/L2123/L2131` | bare `getfield`, no modifiers | C+M `exp01-20260910-003929` |
 | `Nutrition.setCalories/…` | jar `@1/@12` | the clamping store setters | C+M `exp01-20260910-003929` |
-| `Nutrition.update/updateCalories/updateWeight` | jar `L65–L138` | drain, burn, weight; sandbox-gated; `updateWeight` runs on both sides | C |
+| `Nutrition.update/updateCalories/updateWeight` | jar `L65–L138` | drain, burn, weight; sandbox-gated; `updateWeight` is *called* on both sides but only the server's call writes (`@317–@320 L198`) — the full burn model is [body-stats.md](body-stats.md) | C |
 | `ISEatFoodAction` | `media/lua/shared/TimedActions/ISEatFoodAction.lua` | `:174` complete → `Eat`; `:199` partial eat; `:168` the `perform` call is commented out; `:136` `not isClient() and not isServer()` makes SP call `serverStop` itself | C |
 | `ISDrinkFluidAction` | `media/lua/shared/TimedActions/ISDrinkFluidAction.lua` | incremental `DrinkFluid`; `:26–29` non-client, `:40–46` server | C |
 | `LuaTimedActionNew.complete()` | jar `@31 L162` | `if (GameClient.client) skip` — the gate that moves `Eat` to the server | C |
@@ -442,7 +442,8 @@ consistent with both readings, and the authority probes below settle it.
 | …and again every second, unconditionally | `NetworkPlayerManager.update @0 L19` (server-gated) with `statsUpdateLimit = new UpdateLimit(1000)` (`<clinit> @13–@23 L10`) → `NetworkPlayerAI.syncStats @32–@50 L711` → `PacketType.PlayerStats`, whose `write`/`parse` embed `Nutrition.save`/`load` | C |
 | `SyncPlayerStats` from `Eat` carries **no** nutrition bits | `Eat @658–@722 L5806` — THIRST, HUNGER, ENDURANCE, STRESS, FATIGUE, PAIN masks only, plus `GameServer.sendSyncPlayerFields(player, 8)` | C |
 | Receiving `EatFood` applies no numbers | `EatFoodPacket.processClient @0–@19 L80–L81` and `processServer @0–@13 L85–L86` both call `EatOnClient`, which fires `OnEat` and nothing else; the numbers arrive via the `Nutrition.load` inside `parse` | C |
-| The client does not simulate nutrition drain | `Nutrition.update @42 L75` skips the macro decay and `updateCalories()` when `GameClient.client`; `updateWeight()` at `@106 L81` still runs, from whatever calories were last received | C |
+| The client does not simulate nutrition drain | `Nutrition.update @42 L75` skips the macro decay and `updateCalories()` when `GameClient.client` | C |
+| **The client computes a weight and discards it** | `updateWeight()` at `@106 L81` is still called, but `updateWeight @317–@320 L198` (`getstatic GameClient.client; ifne`) sits **before** `setWeight` (`@323 L199`), before the trait counter and before `applyTraitFromWeight` (`@349 L202`). Client weight therefore comes only from `Nutrition.load` in the packets, and **weight band traits never apply client-side**. Measured: a client `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the server's 80 within 3 s with `Obese` still false | C+**M** `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)); see [body-stats.md](body-stats.md) § MP behaviour |
 | **A client-side `setCalories(3000)` never reached the server and was reverted within 3 s** | client read back 3000; server read 887.920 at that instant; client 3 s later 887.331 — the server's value | **M** `exp01-20260910-000351` |
 | **A server-side `setCalories(2500)` propagated to the client within 3 s** | server 2500 → client 2499.436 after 3 s | **M** `exp01-20260910-000351` |
 | **The real path lands on the client ~5.5 s after queuing, in one step equal to the direct-call delta** | `eat.action` on a server-spawned apple: +94.741 kcal at t = 5.5 s (95 less the 0.259 burned that second) vs +95 for a direct `Eat` call; reproduced in both runs | **M** `exp01-20260910-003929` |
@@ -511,11 +512,14 @@ by its effect — the 5.5 s landing and the witness convergence — not by a log
    `min(1, 2200/2500) = 0.88` and loss caps at `8.5e-6 × 0.88 × 86400 = 0.646 kg/game-day`. These
    are derived from the C formula and the M clamps; treat them as the scenario's ceilings, not as
    measured outcomes.
-6. **Weight is mirror-derived on the client.** `updateWeight()` has no client/server guard and runs
-   on **both** sides (`Nutrition.update @106 L81`, C) — but the client runs it from the calories it
-   last *received*, so client weight is a function of a mirrored input and can lag the server's by
-   up to one push. Both witness rows read `weight 80` on both sides (M, `exp01-20260910-003929`).
-   Assert weight server-side.
+6. **Weight is server-only; the client computes it and discards it.** `Nutrition.update @106 L81`
+   calls `updateWeight()` on both sides, but the method's own `GameClient.client` skip
+   (`@317–@320 L198`) sits before `setWeight` (`@323 L199`) and before `applyTraitFromWeight`
+   (`@349 L202`), so a client's computation is thrown away and its weight comes only from
+   `Nutrition.load` in the packets — up to one push behind (C; corrected 2026-09-10 by slice 03).
+   Both witness rows read `weight 80` on both sides (M, `exp01-20260910-003929`), and a client
+   `setWeight(105)` reverted to the server's 80 within 3 s with `Obese` never applied
+   (M, `exp03-20260910-045523`). Assert weight server-side.
 7. **`Eat` never writes weight** — its `Nutrition` block writes only the four nutrient setters (C)
    and `dWeight = 0.0000` on all 27 matrix rows (M) — so weight moves
    only through `Nutrition.update() → updateWeight()`, which the sandbox `Nutrition` option gates
@@ -584,7 +588,9 @@ the measured clamps exactly, despite the page being nine minors stale. The disag
 11. The fluid path (`DrinkFluid`) is C-only: no live measurement of a fluid container was taken in
     this slice.
 12. The passive calorie-burn model (`updateCalories`: exertion, temperature and trait terms) is
-    mapped but not measured beyond the idle rate — slice 03.
+    settled in [body-stats.md](body-stats.md) (slice 03): the model is decoded in full, the idle
+    rate and the `weight/80` term are measured (M, `exp03-20260910-045523`), and the moving and
+    asleep branches remain C with their own open questions there.
 
 ---
 
@@ -641,3 +647,9 @@ stay local under `testing/runs/<run id>/`, which is gitignored (`.gitignore:44`)
 document is built on), [nutrition-core.md](nutrition-core.md),
 [../testing/spikes.md](../testing/spikes.md) §S6 (whose nutrition-direction conclusion this slice
 corrects), [../modding/patterns.md](../modding/patterns.md).
+
+**Later work that corrects this document** [body-stats.md](body-stats.md) (slice 03) — the client
+runs `updateWeight()` and *discards* the result (`updateWeight @317–@320 L198`), so the rows and
+the scenario note above that read "the client still runs `updateWeight`" have been reworded;
+measured in run `exp03-20260910-045523`
+([`testing/artifacts/exp03-20260910-045523/body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)).

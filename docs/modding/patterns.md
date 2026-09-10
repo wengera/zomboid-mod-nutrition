@@ -82,7 +82,8 @@ they sharpen KEEP 1–2 and FILTER 1.
 | `setCondition` / `setConditionMax` / `getModData()` on an inventory item, then `sendItemStats(item)` | **never** — `sendItemStats` is `GameServer.sendItemStats` (server → owning client, packet `ItemStats`); on a client it is a silent no-op. There is no client→server "push my item fields" API, and waiting 60 s changes nothing | M (spike S6) |
 | `inventory:AddItem("Base.X")` client-side | **never** — the server's copy of the player's inventory (it does hold one: a server-side `additem` shows up on both sides with one id) never gains the item | M (spike S6) |
 | nutrition (`getNutrition()` calories/weight/macros) | **never** — and it is overwritten. `Nutrition` is **server-authoritative**: the eat itself completes on the server, which pushes the whole object at eat time (`EatFoodPacket`) and once a second (`PlayerStatsPacket`). A client `setCalories(3000)` never reached the server and was back to the server's value inside 3 s; a server-side write reached the client inside 3 s. The 0.2 kcal agreement S6 measured is mirror lag, not client authority | M (run `exp01-20260910-000351`) |
-| `getStats():set(CharacterStat.HUNGER / .THIRST, v)` client-side | **never** — same shape as nutrition: a client write to 0.9 was gone within 3 s while a server-side write to 0.4 reached the client | M (run `exp01-20260910-003929`) |
+| `getStats():set(CharacterStat.HUNGER / .THIRST, v)` client-side | **never** — same shape as nutrition: a client write to 0.9 was gone within 3 s while a server-side write to 0.4 reached the client. Re-measured with a tighter bound: a client write of 0.9 against a server pinned to 0.3 read back 0.9 at t = 0.51 s and **0.3004 at t = 1.42 s** — the revert lands inside 1.5 s, consistent with the 1 Hz push | M (runs `exp01-20260910-003929`, `exp03-20260910-045523`) |
+| `getNutrition():setWeight(v)` client-side | **never — and the client cannot derive weight either.** `Nutrition.updateWeight` runs on the client but a `GameClient.client` skip (`@317–@320 L198`) sits before `setWeight` and before `applyTraitFromWeight`, so the client computes a weight delta, discards it, and **never applies the weight band traits**. A client `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the server's 80 within 3 s with `Obese` still false. Consequence for a mod: anything keyed on Obese/Overweight/Underweight/Emaciated must be evaluated server-side or fed an explicitly transmitted value — the band traits are not in `PlayerStatsPacket` | M (run `exp03-20260910-045523`); mechanism and citations in [../vanilla/body-stats.md](../vanilla/body-stats.md) § MP behaviour |
 
 Consequences for the nutrition mod:
 - **Item mutations go through the command bus** (KEEP 2): client →
@@ -129,7 +130,9 @@ Consequences for the nutrition mod:
   and
   [`testing/artifacts/exp01-20260910-003929/eat-matrix.json`](../../testing/artifacts/exp01-20260910-003929/eat-matrix.json)
   (the full run directories with their logs stay local under `testing/runs/<run id>/`,
-  which is gitignored).
+  which is gitignored). Weight, the weight band traits and the tighter hunger revert
+  bound come from run `exp03-20260910-045523`, committed at
+  [`testing/artifacts/exp03-20260910-045523/body.json`](../../testing/artifacts/exp03-20260910-045523/body.json).
 - Engine side of the nutrition rows: [../vanilla/eating-pipeline.md](../vanilla/eating-pipeline.md)
   (jar and Lua citations for `IsoGameCharacter.Eat`, `EatFoodPacket`,
   `PlayerStatsPacket`, `Nutrition.update`).

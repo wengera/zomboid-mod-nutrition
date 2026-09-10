@@ -955,6 +955,15 @@ n:getCalories(); n:getCarbohydrates(); n:getProteins(); n:getLipids(); n:getWeig
 n:setCalories(2500); n:setWeight(105.0)  -- server-side only
 
 -- weight traits
+-- CORRECTION (M, exp03-20260910-045523): the two lines below are UNSAFE AS WRITTEN.
+--   1. In B42 `hasTrait` takes a CharacterTrait ENUM, not a String — all 71 call sites in
+--      media/lua pass the enum (e.g. ISBuildAction.lua:269). Passing a String risks an
+--      argument mismatch Kahlua does not let `pcall` catch. Use CharacterTrait.OBESE etc.
+--   2. Reading the trait LIST instead: `CharacterTrait:getName()` returns the name
+--      LOWERCASED — getKnownTraits() holds "obese" / "heartyappetite", not the registry's
+--      "Obese" / "HeartyAppetite". Fold case; a registry-spelling comparison reads false
+--      on a trait that is demonstrably applied. The harness reads the list and never
+--      calls hasTrait.
 local p = getPlayer()
 p:hasTrait("Obese"); p:hasTrait("Overweight"); p:hasTrait("Underweight")
 p:hasTrait("Very Underweight"); p:hasTrait("Emaciated")   -- note the SPACE in "Very Underweight"

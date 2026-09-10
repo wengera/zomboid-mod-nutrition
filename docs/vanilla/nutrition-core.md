@@ -26,9 +26,13 @@ elif calories < loseThreshold:
                                                         # clamps at −2200 → ≤0.65 kg/game-day
 ```
 
-Weight bands (`applyTraitFromWeight`, re-checked every ~2000 updates):
-Emaciated <50 · Very Underweight 50–65 · Underweight 65–75 · **normal 75–85** ·
-Overweight 85–100 · Obese >100.
+Weight bands (`applyTraitFromWeight`, re-checked every ~2000 updates) — the
+comparisons are **inclusive at both ends**: Emaciated ≤50 · Very Underweight
+50–65 (`>50`, `≤65`) · Underweight 65–75 (`>65`, `≤75`) · **normal the open
+interval (75, 85)** · Overweight 85–100 (`≥85`, `<100`) · Obese ≥100. Corrected
+2026-09-10 by slice 03, which read the comparisons and measured the 100 / 85 / 75
+edges on the server — full table, the trait effects outside `Nutrition`, and the
+`characterHaveWeightTrouble` bug in [body-stats.md](body-stats.md) § Weight bands.
 
 **Store clamps** (settled in slice 01): calories `[-2200, 3700]`, carbohydrates /
 proteins / lipids `[-500, 1000]` each — `Nutrition.setCalories @1 L321, @12 L324` and
@@ -45,12 +49,21 @@ so the plain gain rate never exceeds ≈1.039 kg/game-day and the loss rate neve
 
 - **Calories**: the only driver of weight (above).
 - **Carbs / lipids**: weight-gain *rate multipliers* only (thresholds above).
-- **Proteins**: never touch weight. Sole verified effect —
-  `IsoGameCharacter.getRecoveryMod` (endurance/muscle recovery): base 0.7→1.6
-  by Fitness, ×trait mods, then **lipids < −1000 → ×0.5, < −1500 → ×0.2;
-  proteins identically**. Deficit penalties only; surplus does nothing.
+- **Proteins**: never touch weight, and **have no reachable effect in vanilla at
+  all**. `IsoGameCharacter.getRecoveryMod` (endurance/muscle recovery) is base
+  0.7→1.6 by Fitness × trait mods, and then applies **lipids < −1000 → ×0.5,
+  < −1500 → ×0.2, proteins identically** (`getRecoveryMod @187–@236 L4663–L4667`,
+  C) — but those two branches are **dead code**: `Nutrition.setLipids` and
+  `setProteins` clamp the stores at **−500** (`@1/@12`, C, measured exactly in run
+  `exp01-20260910-003929`, M), so neither threshold can ever be crossed. Corrected
+  2026-09-10 by slice 03; the *trait* multipliers in the same method (Obese ×0.4,
+  Overweight ×0.7, Very Underweight ×0.7, Emaciated ×0.3, `@111–@186 L4649–L4659`)
+  are live — see [body-stats.md](body-stats.md) § Every effect of the weight
+  traits.
 - Fitness/Strength XP gating (`canAddFitnessXp`) is weight-trait based
-  (Emaciated/Obese/Very Underweight block at Fitness ≥6/≥9) — NOT protein.
+  (Emaciated/Obese/Very Underweight block at Fitness ≥6, Overweight at ≥9, and
+  plain Underweight **never** — `characterHaveWeightTrouble` tests
+  `VERY_UNDERWEIGHT` twice and `UNDERWEIGHT` never) — NOT protein.
 
 **Design-relevant emptiness:** protein surplus, carb store as energy, and any
 notion of diet *quality* are dead space in vanilla — prime territory for the
@@ -58,13 +71,6 @@ mod, and why parallel nutrient stats have no vanilla collision.
 
 ## Open questions
 
-- `updateCalories`: the passive burn model — exertion, temperature and trait
-  terms; how hunger maps to calorie intake per food. The formula's shape is
-  mapped (`Nutrition.updateCalories @0–@318 L88–L118`, C) and the idle rate is
-  measured (0.259 kcal/s at `settimespeed 1`, M, run `exp01-20260910-003929`),
-  but the exertion/temperature terms are unmeasured — **deferred to slice 03**.
-- `characterHaveWeightTrouble` exact composition — unread.
-- Nutritionist trait: display-only? unconfirmed.
 - `Nutrition.caloriesMax` / `caloriesMin` (`updateCalories @319–@358 L121–L125`)
   are maintained but no reader was found — possibly UI/debug only.
 
@@ -73,6 +79,21 @@ nutrition — exactly one, `Nutrition`, and it gates only `Nutrition.update()`
 (drain, calorie burn, weight), never intake
 ([eating-pipeline.md](eating-pipeline.md) § The sandbox `Nutrition` option).
 
+Resolved in slice 03, all in [body-stats.md](body-stats.md):
+
+- **`updateCalories` — the whole passive burn model.** Five branches with their
+  constants and per-game-day numbers; the thermoregulator `energyMultiplier` and
+  the swipe/climb/timed-action modifier reach the **asleep and idle branches
+  only**; the idle rate and the `weight/80` term are measured (M,
+  `exp03-20260910-045523`). Movement and sleep branches remain C.
+- **The sandbox picture for the body side.** `Nutrition` (above) plus exactly one
+  more, `StatsDecrease`, which multiplies hunger/thirst/fatigue and **never**
+  calories — its 1→2.0 … 5→0.65 mapping is now measured, not inferred.
+- **`characterHaveWeightTrouble` exact composition** — and it has a duplicated
+  test, so plain Underweight never counts as weight trouble.
+- **Nutritionist trait: display-only, confirmed** — `Food.DoTooltip` is the only
+  reader in the jar.
+
 ## MP behavior
 
 Corrected 2026-09-10 by slice 01; the previous text had the direction reversed.
@@ -80,8 +101,17 @@ Corrected 2026-09-10 by slice 01; the previous text had the direction reversed.
 - **The server computes; the client mirrors.** On a multiplayer client
   `Nutrition.update()` skips the macro drain and `updateCalories()` entirely
   (`Nutrition.update @42 L75`, C) — only the server runs them. The client does
-  still run `updateWeight()` (`@106 L81`, C), but from the calorie value it last
-  *received*, so client-side weight is a mirror-derived number.
+  reach `updateWeight()` (`@106 L81`, C), but **computes the weight delta and
+  discards it**: a `GameClient.client` early-out at `updateWeight @317–@320 L198`
+  sits *before* `setWeight` (`@323 L199`), before the trait counter and before
+  `applyTraitFromWeight` (`@349 L202`). So client-side weight comes only from
+  `Nutrition.load` in the packets, and **the weight band traits never apply
+  client-side**. Corrected 2026-09-10 by slice 03 and measured: a client
+  `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the
+  server's 80 within 3 s, `Obese` still false (M, `exp03-20260910-045523` —
+  [`testing/artifacts/exp03-20260910-045523/body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)).
+  Hunger, thirst, endurance and fatigue are server-only in the same way — see
+  [body-stats.md](body-stats.md) § MP behaviour.
 - The server pushes the whole `Nutrition` object (calories, proteins, lipids,
   carbohydrates, weight) at eat time via `EatFoodPacket` and again every second
   via `PlayerStatsPacket` on a 1000 ms `UpdateLimit` (C).
@@ -110,5 +140,10 @@ Corrected 2026-09-10 by slice 01; the previous text had the direction reversed.
   ([`testing/artifacts/exp01-20260910-003929/eat-matrix.json`](../../testing/artifacts/exp01-20260910-003929/eat-matrix.json)).
   The full run directories with their logs stay local under `testing/runs/<run id>/`, which
   is gitignored.
+- Measured (slice 03): run `exp03-20260910-045523`
+  ([`testing/artifacts/exp03-20260910-045523/body.json`](../../testing/artifacts/exp03-20260910-045523/body.json))
+  — the weight-band edges, the client weight write, and the burn/decay rates.
+- Body side (passive burn, hunger/thirst, moodles, weight-band effects):
+  [body-stats.md](body-stats.md).
 - Intake side and the full modifier table: [eating-pipeline.md](eating-pipeline.md).
 - Origin: pz-b42 `findings/nutrition-weight.md` (2026-09-04).
