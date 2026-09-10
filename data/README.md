@@ -56,7 +56,7 @@ print as `true` / `false`; list columns join their parts with `;`.
 | 7 | `food_type` | string | `FoodType` |
 | 8 | `item_type` | string | `ItemType` |
 | 9 | `tags` | list `;` | `Tags` |
-| 10 | `nutrition_source` | string | derived: `food_keys`, or `fluid:<id>` when the row's nutrition was joined from a fluid |
+| 10 | `nutrition_source` | string | derived: `food_keys`, or `fluid:<id>` when the row's nutrition was joined from a fluid; empty when the row carries no nutrition key at all (then `nutrition_basis` is empty too) |
 | 11 | `nutrition_basis` | string | derived: **which unit columns 12–17 and 31–38 are in** — `per_item` for a row that fills them from its own keys, `per_litre` for a fluid-sourced row, empty for the 280 rows that carry no nutrition value at all. See § Per litre, not per item |
 | 12 | `calories` | float | `Calories` |
 | 13 | `carbohydrates` | float | `Carbohydrates` |

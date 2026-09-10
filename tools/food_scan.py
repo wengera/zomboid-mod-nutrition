@@ -692,6 +692,10 @@ def build_item(kind, block, container, fluids_by_id, item_names, misses):
         record["nutrition_basis"] = "per_litre"
     elif any(record[column] is not None for column in NUTRITION_COLUMNS):
         record["nutrition_basis"] = "per_item"
+    else:
+        # No nutrition key on either side: there is no source to name either (78 foods, 141
+        # drainables and the 61 empty containers on 42.20.4).
+        record["nutrition_source"] = None
 
     record["props_raw"] = _raw_entries(block)
     return record

@@ -813,7 +813,7 @@
    "tags": [
     "base:farmingloot"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -894,7 +894,7 @@
    "tags": [
     "base:farmingloot"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -970,7 +970,7 @@
    "tags": [
     "base:animalbrain"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -1043,7 +1043,7 @@
    "tags": [
     "base:animalbrain"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -1114,7 +1114,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -1475,7 +1475,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -2738,7 +2738,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -3857,7 +3857,7 @@
     "base:cleanstains",
     "base:spawnfullunlesslaundry"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -3936,7 +3936,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -4567,7 +4567,7 @@
     "base:hasmetal",
     "base:emptycan"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -4649,7 +4649,7 @@
     "base:glass",
     "base:glassbottlesmall"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -6177,7 +6177,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -6445,7 +6445,7 @@
     "base:glass",
     "base:glassbottle"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -6613,7 +6613,7 @@
     "base:bowl",
     "base:dontinheritcondition"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7241,7 +7241,7 @@
     "base:hasmetal",
     "base:metalbucket"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7324,7 +7324,7 @@
     "base:bucket",
     "base:isfirefuel"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7406,7 +7406,7 @@
    "tags": [
     "base:concrete"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7485,7 +7485,7 @@
    "tags": [
     "base:concrete"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7565,7 +7565,7 @@
     "base:wallpaperpaste",
     "base:plasterbucket"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7643,7 +7643,7 @@
    "tags": [
     "base:wallpaperpaste"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7722,7 +7722,7 @@
     "base:hasmetal",
     "base:concrete"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7802,7 +7802,7 @@
     "base:hasmetal",
     "base:concrete"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7884,7 +7884,7 @@
     "base:hasmetal",
     "base:metalbucket"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -7969,7 +7969,7 @@
     "base:metalbucket",
     "base:cookable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8052,7 +8052,7 @@
     "base:bucket",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8312,7 +8312,7 @@
     "base:hasmetal",
     "base:plasterbucket"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8391,7 +8391,7 @@
     "base:wallpaperpaste",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8552,7 +8552,7 @@
     "base:bucket",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8633,7 +8633,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8708,7 +8708,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8783,7 +8783,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -8861,7 +8861,7 @@
     "base:hideremaining",
     "base:megaphone"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -10588,7 +10588,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -10663,7 +10663,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -10738,7 +10738,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -10979,7 +10979,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -11056,7 +11056,7 @@
    "tags": [
     "base:startfire"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -16489,7 +16489,7 @@
    "tags": [
     "base:lightwhenattached"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -16652,7 +16652,7 @@
     "base:hasmetal",
     "base:lightwhenattached"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -16903,7 +16903,7 @@
    "tags": [
     "base:carbattery"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -16985,7 +16985,7 @@
    "tags": [
     "base:carbattery"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -17067,7 +17067,7 @@
    "tags": [
     "base:carbattery"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -17780,7 +17780,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -17856,7 +17856,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -17934,7 +17934,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -18011,7 +18011,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -18086,7 +18086,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -18163,7 +18163,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -18240,7 +18240,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -18317,7 +18317,7 @@
    "tags": [
     "base:cookablemicrowave"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -19200,7 +19200,7 @@
    "tags": [
     "base:feather"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -19815,7 +19815,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -19890,7 +19890,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -19965,7 +19965,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -20040,7 +20040,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -20115,7 +20115,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -21948,7 +21948,7 @@
     "base:lessfull",
     "base:fitswallet"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -22644,7 +22644,7 @@
    "tags": [
     "base:bowl"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -22723,7 +22723,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -22798,7 +22798,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -22875,7 +22875,7 @@
    "tags": [
     "base:coffeemaker"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -22954,7 +22954,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -23530,7 +23530,7 @@
    "tags": [
     "base:comfrey"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -23607,7 +23607,7 @@
    "tags": [
     "base:comfrey"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -23862,7 +23862,7 @@
    "tags": [
     "base:compost"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -25199,7 +25199,7 @@
     "base:hasmetal",
     "base:scrapsmallcopper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -25891,7 +25891,7 @@
    "tags": [
     "base:animalcorpse"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -26044,7 +26044,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -26119,7 +26119,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -26194,7 +26194,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -28859,7 +28859,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -28935,7 +28935,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -29010,7 +29010,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -29161,7 +29161,7 @@
    "tags": [
     "base:thread"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -29237,7 +29237,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -29596,7 +29596,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -29675,7 +29675,7 @@
    "tags": [
     "base:cleanstains"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31146,7 +31146,7 @@
    "tags": [
     "base:glass"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31227,7 +31227,7 @@
     "base:inferiorbinding",
     "base:simpleweaponbinding"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31305,7 +31305,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31380,7 +31380,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31455,7 +31455,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31530,7 +31530,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31605,7 +31605,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31680,7 +31680,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31755,7 +31755,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31830,7 +31830,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31905,7 +31905,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -31980,7 +31980,7 @@
    "tags": [
     "base:iscompostable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -32327,7 +32327,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -32760,7 +32760,7 @@
     "base:glass",
     "base:jar"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -32841,7 +32841,7 @@
    "tags": [
     "base:epoxy"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -32918,7 +32918,7 @@
    "tags": [
     "base:smeltableironsmall"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -32994,7 +32994,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -33067,7 +33067,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -33139,7 +33139,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -33211,7 +33211,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -33285,7 +33285,7 @@
    "tags": [
     "base:farmingloot"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -33366,7 +33366,7 @@
    "tags": [
     "base:fertilizer"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -33444,7 +33444,7 @@
    "tags": [
     "base:fiberglasstape"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34062,7 +34062,7 @@
     "base:fishingline",
     "base:thread"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34140,7 +34140,7 @@
     "base:flashlight",
     "base:flashlightpillar"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34232,7 +34232,7 @@
     "base:flashlight",
     "base:flashlightpillar"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34326,7 +34326,7 @@
     "base:hasmetal",
     "base:ignorezombiedensity"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34595,7 +34595,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34668,7 +34668,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -34913,7 +34913,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -35692,7 +35692,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -35765,7 +35765,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -35838,7 +35838,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -35911,7 +35911,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -36319,7 +36319,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -36391,7 +36391,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -36465,7 +36465,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -36539,7 +36539,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -36722,7 +36722,7 @@
     "base:gasmaskfilter",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -36801,7 +36801,7 @@
     "base:gasmaskfilter",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37312,7 +37312,7 @@
    "tags": [
     "base:glass"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37394,7 +37394,7 @@
     "base:coffeemaker",
     "base:glass"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37474,7 +37474,7 @@
    "tags": [
     "base:glass"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37555,7 +37555,7 @@
    "tags": [
     "base:glue"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37634,7 +37634,7 @@
     "base:ismemento",
     "base:omitemptyfromname"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37715,7 +37715,7 @@
     "base:ignorezombiedensity",
     "base:goldscrap"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37799,7 +37799,7 @@
     "base:ignorezombiedensity",
     "base:silverscrap"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37878,7 +37878,7 @@
     "base:omitemptyfromname",
     "base:ignorezombiedensity"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -37957,7 +37957,7 @@
     "base:hasmetal",
     "base:goldscrap"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -38452,7 +38452,7 @@
    "tags": [
     "base:farmingloot"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -38699,7 +38699,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -38867,7 +38867,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -39813,7 +39813,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -40137,7 +40137,7 @@
    "tags": [
     "base:dohairdo"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -40214,7 +40214,7 @@
     "base:hasmetal",
     "base:aerosol"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -40564,7 +40564,7 @@
     "base:flashlight",
     "base:flashlightpillar"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -41231,7 +41231,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -41304,7 +41304,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -42442,7 +42442,7 @@
    "tags": [
     "base:cookablemicrowave"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -43391,7 +43391,7 @@
     "base:aerosol",
     "base:hideremaining"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -43644,7 +43644,7 @@
     "base:glass",
     "base:jar"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45012,7 +45012,7 @@
     "base:hasmetal",
     "base:smeltableironsmall"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45096,7 +45096,7 @@
     "base:hasmetal",
     "base:scraplargecopper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45180,7 +45180,7 @@
     "base:replaceprimary",
     "base:equippable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45266,7 +45266,7 @@
     "base:hasmetal",
     "base:equippable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45431,7 +45431,7 @@
     "base:hasmetal",
     "base:ignorezombiedensity"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45521,7 +45521,7 @@
     "base:unlitlantern",
     "base:smeltablesteellarge"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45604,7 +45604,7 @@
    "tags": [
     "base:litlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45692,7 +45692,7 @@
     "base:scraplargecopper",
     "base:unlitlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45775,7 +45775,7 @@
    "tags": [
     "base:litlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45863,7 +45863,7 @@
     "base:scraplargesteel",
     "base:unlitlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -45946,7 +45946,7 @@
    "tags": [
     "base:litlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -46034,7 +46034,7 @@
     "base:goldscrap",
     "base:unlitlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -46117,7 +46117,7 @@
    "tags": [
     "base:litlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -46205,7 +46205,7 @@
     "base:silverscrap",
     "base:unlitlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -46288,7 +46288,7 @@
    "tags": [
     "base:litlantern"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -46373,7 +46373,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -47528,7 +47528,7 @@
     "base:lessfull",
     "base:refillablelighter"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -47618,7 +47618,7 @@
     "base:startfire",
     "base:lessfull"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -47706,7 +47706,7 @@
     "base:startfire",
     "base:lessfull"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -47792,7 +47792,7 @@
     "base:hasmetal",
     "base:lighterfluid"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -47869,7 +47869,7 @@
     "base:lighter",
     "base:startfire"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -48042,7 +48042,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -48561,7 +48561,7 @@
     "base:startfire",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -48635,7 +48635,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -48708,7 +48708,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -49499,7 +49499,7 @@
     "base:lessfull",
     "base:ignorezombiedensity"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -49578,7 +49578,7 @@
     "base:lessfull",
     "base:fitswallet"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -49653,7 +49653,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -50086,7 +50086,7 @@
     "base:hasmetal",
     "base:smeltablesteelsmall"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -51511,7 +51511,7 @@
     "base:coffeemaker",
     "base:ismemento"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -51592,7 +51592,7 @@
     "base:cookablemicrowave",
     "base:coffeemaker"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -51674,7 +51674,7 @@
     "base:cookablemicrowave",
     "base:coffeemaker"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -52961,7 +52961,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -54431,7 +54431,7 @@
     "base:oxygentank",
     "base:smeltableironsmall"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -54872,7 +54872,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -54952,7 +54952,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55032,7 +55032,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55112,7 +55112,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55192,7 +55192,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55272,7 +55272,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55352,7 +55352,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55432,7 +55432,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55512,7 +55512,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55592,7 +55592,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55672,7 +55672,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55752,7 +55752,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55832,7 +55832,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55912,7 +55912,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -55992,7 +55992,7 @@
    "tags": [
     "base:paint"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -56074,7 +56074,7 @@
     "base:cookable",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -56408,7 +56408,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -56737,7 +56737,7 @@
     "base:isfirefuel",
     "base:isfiretinder"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -58104,7 +58104,7 @@
    "tags": [
     "base:flashlight"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -59906,7 +59906,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -59981,7 +59981,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60056,7 +60056,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60131,7 +60131,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60206,7 +60206,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60281,7 +60281,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60447,7 +60447,7 @@
    "tags": [
     "base:consumable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60525,7 +60525,7 @@
    "tags": [
     "base:consumable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60603,7 +60603,7 @@
    "tags": [
     "base:consumable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -60681,7 +60681,7 @@
    "tags": [
     "base:consumable"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -61176,7 +61176,7 @@
    "tags": [
     "base:plantain"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -61253,7 +61253,7 @@
    "tags": [
     "base:plantain"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -61326,7 +61326,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -61651,7 +61651,7 @@
     "base:hasmetal",
     "base:emptycan"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -61816,7 +61816,7 @@
     "base:hasmetal",
     "base:emptycan"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -62077,7 +62077,7 @@
     "base:hasmetal",
     "base:emptycan"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -62315,7 +62315,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -62388,7 +62388,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -63079,7 +63079,7 @@
     "base:hasmetal",
     "base:smeltablesteelmedium"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -63164,7 +63164,7 @@
     "base:hasmetal",
     "base:smeltablesteelmedium"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -64086,7 +64086,7 @@
     "base:thread",
     "base:heavythread"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -64335,7 +64335,7 @@
     "base:hasmetal",
     "base:smeltablesteellarge"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -64413,7 +64413,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -64935,7 +64935,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65010,7 +65010,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65085,7 +65085,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65160,7 +65160,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65235,7 +65235,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65310,7 +65310,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65484,7 +65484,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65559,7 +65559,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65634,7 +65634,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -65709,7 +65709,7 @@
    "tags": [
     "base:ragfilter"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -66407,7 +66407,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -66575,7 +66575,7 @@
    "tags": [
     "base:respiratorfilter"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -66652,7 +66652,7 @@
    "tags": [
     "base:respiratorfilter"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -69099,7 +69099,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -69265,7 +69265,7 @@
     "base:nomaintenancexp",
     "base:smeltablesteelsmall"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -69382,7 +69382,7 @@
     "base:nomaintenancexp",
     "base:scraplargecopper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71129,7 +71129,7 @@
     "base:farmingloot",
     "base:usesbattery"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71209,7 +71209,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71284,7 +71284,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71359,7 +71359,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71434,7 +71434,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71509,7 +71509,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -71584,7 +71584,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -72205,7 +72205,7 @@
     "base:hasmetal",
     "base:silverscrap"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -72541,7 +72541,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -73249,7 +73249,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -74219,7 +74219,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -74659,7 +74659,7 @@
     "base:hasmetal",
     "base:hideremaining"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -74835,7 +74835,7 @@
     "base:hasmetal",
     "base:isfiretinder"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -75989,7 +75989,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -76063,7 +76063,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -77158,7 +77158,7 @@
    "tags": [
     "base:cookablemicrowave"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -77568,7 +77568,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -77741,7 +77741,7 @@
    "tags": [
     "base:thread"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -77821,7 +77821,7 @@
     "base:thread",
     "base:heavythread"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -77899,7 +77899,7 @@
     "base:thread",
     "base:heavythread"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -78164,7 +78164,7 @@
     "base:tincan",
     "base:emptycan"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -78514,7 +78514,7 @@
     "base:isfirefuelsingleuse",
     "base:isfiretinder"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -78591,7 +78591,7 @@
    "tags": [
     "base:isfirefuel"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -78753,7 +78753,7 @@
    "food_type": null,
    "item_type": "base:food",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -78914,7 +78914,7 @@
     "base:tobacco",
     "base:lessfull"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -79183,7 +79183,7 @@
     "base:isfirefuelsingleuse",
     "base:isfiretinder"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -79463,7 +79463,7 @@
     "base:flashlight",
     "base:flashlightpillar"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -79800,7 +79800,7 @@
     "base:ismemento",
     "base:omitemptyfromname"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -79879,7 +79879,7 @@
     "base:ismemento",
     "base:omitemptyfromname"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -79958,7 +79958,7 @@
     "base:ismemento",
     "base:omitemptyfromname"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -80318,7 +80318,7 @@
    "tags": [
     "base:feather"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -80777,7 +80777,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -80852,7 +80852,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -80927,7 +80927,7 @@
    "tags": [
     "base:animalhead"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -81097,7 +81097,7 @@
     "base:twine",
     "base:simpleweaponbinding"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -81974,7 +81974,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -82051,7 +82051,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -82128,7 +82128,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -82205,7 +82205,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -82282,7 +82282,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -82359,7 +82359,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -82436,7 +82436,7 @@
    "tags": [
     "base:wallpaper"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -83234,7 +83234,7 @@
    "tags": [
     "base:purifywater"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -83310,7 +83310,7 @@
    "tags": [
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -83391,7 +83391,7 @@
     "base:tincan",
     "base:emptycan"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -83858,7 +83858,7 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -84192,7 +84192,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -85733,7 +85733,7 @@
     "base:wire",
     "base:hasmetal"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -85811,7 +85811,7 @@
    "tags": [
     "base:glue"
    ],
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
@@ -85978,7 +85978,7 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": null,
-   "nutrition_source": "food_keys",
+   "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
    "carbohydrates": null,
