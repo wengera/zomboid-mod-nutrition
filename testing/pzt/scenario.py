@@ -19,6 +19,12 @@ next PlayerStatsPacket overwrites. --side client is wired end to end for the con
 readings, where the point IS the mirror, but no client-side scenario is registered yet, so it
 currently has nothing to run. The client is attached either way -- the server resolves the
 test's subject by username out of getOnlinePlayers(), so it has to be online.
+
+--profile <name> (testing/profiles/<name>.toml) puts the scenario on a named mod set and
+sandbox: the profile's fixture wins over --fixture, its first client is the subject unless
+--user says otherwise, and a mod the server reports missing ends the run right after
+server_started -- a scenario run on a mod that did not load is not evidence, and the client
+and the test are ten minutes that need not be spent to find that out.
 """
 import json
 import os
@@ -26,10 +32,11 @@ import time
 import traceback
 
 from . import fixture as fx
+from . import profile
 from .bus import parse_ack
-from .paths import new_run_dir
-from .session import (Timeline, fault_reasons, make_client, make_server, say, teardown,
-                      write_report)
+from .paths import ADMIN_USER, new_run_dir
+from .session import (Timeline, check_mods_loaded, fault_reasons, make_client, make_server,
+                      mark_profile, opt, say, teardown, write_report)
 
 # name -> function(result_doc) -> (ok: bool, detail: dict). Filled by the scenario evaluator
 # modules (slice 04 T3), which are imported at the bottom of this file.
@@ -85,7 +92,7 @@ def write_artifact(run_dir, a, server, result, doc, ev, cad, faults=()):
     artifact). Everything else it needs is already on `a` or derivable from `run_dir`, which is
     named for the run id."""
     art = {"run_id": os.path.basename(os.path.normpath(run_dir)), "scenario": a.name,
-           "fixture": a.fixture, "build": server.build,
+           "fixture": a.fixture, "profile": a.profile, "build": server.build,
            "side": a.side, "user": a.user, "speed": a.speed, "result": result,
            "cadence": cad, "evaluation": ev, "faults": list(faults),
            "server_errors": server.errors[:20], "test": doc}
@@ -96,22 +103,37 @@ def write_artifact(run_dir, a, server, result, doc, ev, cad, faults=()):
 
 
 def run(a):
+    # A profile is resolved and validated before anything starts (profile.py); its fixture wins
+    # over --fixture (that is the fixture its sandbox keys were checked against) and its first
+    # client is the test's subject unless --user says otherwise.
+    prof = profile.load(a.profile) if a.profile else None
+    flag = a.fixture                    # None unless --fixture was typed
+    a.fixture = prof.fixture if prof else (flag or "default")
+    a.user = a.user or (prof.users[0] if prof else ADMIN_USER)
     rec = fx.load(a.fixture)
     run_id, run_dir = new_run_dir("scenario")
     tl = Timeline()
     say(f"run: {run_dir}")
-    server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port)
+    if prof:
+        mark_profile(tl, prof, flag)
+    server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port,
+                         mods=prof.mods if prof else None,
+                         mod_sources=prof.sources if prof else None,
+                         mod_skip=prof.skip if prof else (),
+                         sandbox=prof.sandbox if prof else None)
     clients, result, doc, ev = [], "FAIL", None, {}
     tb = None                   # traceback of whatever ended the run early; goes in the report
     try:
-        server.start(timeout=a.server_timeout)
+        server.start(timeout=opt(a, prof, "server_timeout"))
         tl.mark("server_started", t=server.t_started, build=server.build)
-        c, restored = make_client(run_dir, a.user, server, rec, safemode=a.safemode,
-                                  launcher=a.launcher)
+        check_mods_loaded(tl, server)   # raises: a scenario on a mod that did not load is not
+                                        # evidence, and the client is 35 s that need not be spent
+        c, restored = make_client(run_dir, a.user, server, rec, safemode=opt(a, prof, "safemode"),
+                                  launcher=opt(a, prof, "launcher"))
         c.start()
         clients.append(c)
         tl.mark("client_launch", user=a.user, restored=restored)
-        tl.mark("client_ready", user=a.user, t=c.wait_ready(timeout=a.client_timeout))
+        tl.mark("client_ready", user=a.user, t=c.wait_ready(timeout=opt(a, prof, "client_timeout")))
         node = server if a.side == "server" else c
         ok_list, names = parse_ack(node.send("test.list"))
         if isinstance(names, dict) and not names:
@@ -216,11 +238,14 @@ def run(a):
     # chokes on, a full or read-only disk) must not take it with it. The artifact is a second
     # copy of what the report already holds, so it is written after, and its failure is a warning
     # rather than a lost run.
-    write_report(run_dir, {"run_id": run_id, "result": result, "side": a.side, "user": a.user,
-                           "speed": a.speed, "timeline": tl.items, "cadence": cad, "test": doc,
-                           "evaluation": ev, "faults": faults, "traceback": tb,
-                           "server_errors": server.errors[:20],
-                           "client_events": {c.username: c.events for c in clients}})
+    report = {"run_id": run_id, "result": result, "side": a.side, "user": a.user,
+              "speed": a.speed, "timeline": tl.items, "cadence": cad, "test": doc,
+              "evaluation": ev, "faults": faults, "traceback": tb,
+              "server_errors": server.errors[:20],
+              "client_events": {c.username: c.events for c in clients}}
+    if prof:                    # what was asked for AND what it resolved to (Profile.report)
+        report["profile"] = prof.report()
+    write_report(run_dir, report)
     try:
         write_artifact(run_dir, a, server, result, doc, ev, cad, faults)
     except Exception as e:                     # noqa: BLE001 - the report already landed

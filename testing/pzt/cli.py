@@ -6,12 +6,18 @@ import time
 
 from . import doctor
 from . import fixture as fx
+from . import profile
 from . import scenario
 from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
 from .server import Server
-from .session import (Timeline, fault_reasons, hold, make_client, make_server, say, teardown,
-                      write_report)
+from .session import (Timeline, check_mods_loaded, fault_reasons, hold, make_client, make_server,
+                      mark_profile, opt, say, teardown, verify, write_report)
+
+
+# `run` and `scenario` take a profile; the other subparsers keep their plain --fixture default.
+PROFILE_HELP = "testing/profiles/<name>.toml: mods under test + sandbox overrides"
+FIXTURE_HELP = "golden fixture to restore (default: default; a --profile's own fixture wins)"
 
 
 def parse_kv(items):
@@ -119,29 +125,50 @@ def cmd_attach(a):
 
 
 def cmd_run(a):
+    # Everything a profile asks for is resolved and validated before a process starts (see
+    # profile.py), so a bad mod id or a misspelt sandbox key costs a second, not a boot.
+    prof = profile.load(a.profile) if a.profile else None
+    flag = a.fixture                    # None unless --fixture was typed
+    a.fixture = prof.fixture if prof else (flag or "default")
     rec = fx.load(a.fixture)
     run_id, run_dir = new_run_dir("run")
     tl = Timeline()
     say(f"run: {run_dir}")
-    users = a.clients or list(rec["clients"])
-    server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port)
+    if prof:
+        mark_profile(tl, prof, flag)    # first mark of the run: which combination is under test
+    users = a.clients or (prof.users if prof else None) or list(rec["clients"])
+    server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port,
+                         mods=prof.mods if prof else None,
+                         mod_sources=prof.sources if prof else None,
+                         mod_skip=prof.skip if prof else (),
+                         sandbox=prof.sandbox if prof else None)
     clients = []
-    result = "FAIL"
+    result, verified = "FAIL", []
     try:
         tl.mark("server_launch", port=server.port)
-        server.start(timeout=a.server_timeout)
+        server.start(timeout=opt(a, prof, "server_timeout"))
         tl.mark("server_started", t=server.t_started, build=server.build)
+        check_mods_loaded(tl, server)   # raises: no client is paid for on a broken mod set
         if rec.get("build") and server.build and server.build != rec["build"]:
             tl.mark("build_mismatch", fixture=rec["build"], installed=server.build)
         for user in users:
-            c, restored = make_client(run_dir, user, server, rec, safemode=a.safemode, launcher=a.launcher)
+            c, restored = make_client(run_dir, user, server, rec, safemode=opt(a, prof, "safemode"),
+                                      launcher=opt(a, prof, "launcher"))
             c.start()
             clients.append(c)
             tl.mark("client_launch", user=user, restored=restored)
-            tl.mark("client_ready", user=user, t=c.wait_ready(timeout=a.client_timeout))
+            tl.mark("client_ready", user=user, t=c.wait_ready(timeout=opt(a, prof, "client_timeout")))
         tl.mark("ping", server=server.send("ping"), **{c.username: c.send("ping") for c in clients})
         tl.mark("session_ready", clients=len(clients))
-        if hold(a.hold, tl, server, clients):
+        # The profile's own probes: proof the mods took effect, which no amount of clean boot
+        # output can give (S3-A). They run before the hold so the test slot never opens on a
+        # session that is not the session that was asked for.
+        verified = verify(prof, server, clients, tl) if prof else []
+        failed = [v["cmd"] for v in verified if not v["ok"]]
+        held = hold(opt(a, prof, "hold"), tl, server, clients)
+        if failed:
+            result = "FAIL: verify " + ", ".join(failed)
+        elif held:
             result = "PASS"
     except (RuntimeError, TimeoutError) as e:
         tl.mark("error", detail=str(e))
@@ -155,16 +182,24 @@ def cmd_run(a):
     # The environment checks, shared with `pzt scenario` (session.fault_reasons): missing mods,
     # non-baseline server errors, client lua errors. They carry their own counts into the RESULT
     # line; a hold that already failed keeps its own reason and records these in the timeline.
+    # The missing-mod fail-fast above names the same mod, so this is where the two meet: the run
+    # is already FAIL by then, the append below is skipped, and the reason reaches the RESULT
+    # line once (the timeline keeps both marks -- `error` is why the run stopped early,
+    # `faults` is the end-of-run verdict on the session).
     faults = fault_reasons(server, clients)
     if faults:
         tl.mark("faults", detail="; ".join(faults)[:200])
         if result == "PASS":
             result = "FAIL: " + "; ".join(faults)
-    write_report(run_dir, {"run_id": run_id, "result": result, "faults": faults,
-                           "timeline": tl.items, "server_errors": server.errors[:40],
-                           "clients": {c.username: c.events for c in clients},
-                           "results": {"server": server.results(),
-                                       **{c.username: c.results() for c in clients}}})
+    report = {"run_id": run_id, "result": result, "faults": faults,
+              "timeline": tl.items, "server_errors": server.errors[:40],
+              "clients": {c.username: c.events for c in clients},
+              "results": {"server": server.results(),
+                          **{c.username: c.results() for c in clients}}}
+    if prof:                            # only a profiled run grows these keys
+        report["profile"] = prof.report()
+        report["verify"] = verified
+    write_report(run_dir, report)
     say(f"\nRESULT: {result}   (report: {os.path.join(run_dir, 'report.json')})")
     return 0 if result == "PASS" else 1
 
@@ -210,7 +245,8 @@ def main(argv=None):
     p.set_defaults(fn=cmd_attach)
 
     p = sub.add_parser("run", help="boot + attach every fixture client + hold + teardown")
-    p.add_argument("--fixture", default="default")
+    p.add_argument("--fixture", default=None, help=FIXTURE_HELP)
+    p.add_argument("--profile", default=None, help=PROFILE_HELP)
     p.add_argument("--clients", default=None, type=lambda s: [u for u in s.split(",") if u])
     p.add_argument("--hold", type=int, default=5)
     common_server(p)
@@ -219,10 +255,13 @@ def main(argv=None):
 
     p = sub.add_parser("scenario", help="run one harness test on the fixture at accelerated time")
     p.add_argument("name", help="registered test name (see `test.list` on the chosen side)")
-    p.add_argument("--fixture", default="default")
+    p.add_argument("--fixture", default=None, help=FIXTURE_HELP)
+    p.add_argument("--profile", default=None, help=PROFILE_HELP)
     p.add_argument("--side", choices=["server", "client"], default="server",
                    help="whose bus runs the test (default server: nutrition is server-authoritative)")
-    p.add_argument("--user", default=ADMIN_USER, help="the test's subject; must be online")
+    p.add_argument("--user", default=None,
+                   help="the test's subject; must be online (default: a --profile's first "
+                        f"client, else {ADMIN_USER})")
     p.add_argument("--speed", type=int, default=30, help="settimespeed multiplier for the run")
     p.add_argument("--timeout", type=int, default=900, help="seconds to wait for the result doc")
     common_server(p)

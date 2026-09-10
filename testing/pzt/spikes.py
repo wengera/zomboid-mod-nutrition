@@ -12,24 +12,14 @@ import time
 from . import fixture as fx
 from .bus import parse_ack
 from .paths import new_run_dir
-from .session import Timeline, make_client, make_server, say, teardown, write_report
+from .session import (Timeline, grep_file, make_client, make_server, say, teardown,
+                      write_report)
 
 S3_MOD = "KeenPerception"      # 1 KB shared-lua workshop mod (item 3685392864), no dependencies
 S3_MOD_RX = re.compile(r"KeenPerception|mod .*not found|missing mod|required mod|workshop", re.I)
 
-
-def grep_file(path, rx, limit=10):
-    hits = []
-    try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
-            for line in fh:
-                if rx.search(line):
-                    hits.append(line.strip()[:200])
-                    if len(hits) >= limit:
-                        break
-    except OSError:
-        pass
-    return hits
+# grep_file lives in session.py (the run's missing-mod fail-fast greps the server log with it)
+# and is re-exported here for the spikes' own use: one definition, two callers.
 
 
 def ack(result):

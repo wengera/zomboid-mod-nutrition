@@ -5,9 +5,11 @@ import os
 import time
 
 from . import fixture as fx
+from .bus import parse_ack
 from .client import Client
 from .paths import ADMIN_PW, ADMIN_USER
-from .server import Server
+from .profile import DEFAULTS as PROFILE_DEFAULTS
+from .server import MOD_MISSING_RX, Server
 
 
 def say(msg):
@@ -33,6 +35,50 @@ def client_password(user):
 def write_report(run_dir, data):
     with open(os.path.join(run_dir, "report.json"), "w") as fh:
         json.dump(data, fh, indent=1)
+
+
+def grep_file(path, rx, limit=10):
+    """The matching lines of a log, stripped and capped -- evidence for a report. A log that
+    is not there yet (or is being written) is no matches, not an error."""
+    hits = []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                if rx.search(line):
+                    hits.append(line.strip()[:200])
+                    if len(hits) >= limit:
+                        break
+    except OSError:
+        pass
+    return hits
+
+
+def opt(a, prof, name):
+    """One run setting from three places: an explicit CLI flag wins, then the profile's own
+    value, then the default.
+
+    argparse cannot report whether a flag was typed, so "explicit" here means "differs from
+    the default" -- and `profile.DEFAULTS` holds exactly these CLI defaults, so typing the
+    default value is a no-op either way. Without a profile the flag is returned untouched.
+    """
+    given = getattr(a, name)
+    if prof is None or given != PROFILE_DEFAULTS[name]:
+        return given
+    return getattr(prof, name)
+
+
+def mark_profile(tl, prof, flag=None):
+    """The first line of a profiled run: exactly which combination is under test.
+
+    `flag` is the `--fixture` the caller typed (None when it did not). The profile's own
+    fixture wins -- it is the fixture its sandbox keys were validated against -- so a
+    conflicting flag is called out rather than silently dropped.
+    """
+    if flag and flag != prof.fixture:
+        say(f"  [profile] --fixture {flag} ignored: profile '{prof.name}' names "
+            f"fixture '{prof.fixture}'")
+    return tl.mark("profile", name=prof.name, fixture=prof.fixture, mods=";".join(prof.mods),
+                   sandbox=",".join(f"{k}={v}" for k, v in prof.sandbox.items()) or "none")
 
 
 def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None,
@@ -85,6 +131,52 @@ def make_client(run_dir, user, server, rec=None, debug=None, safemode=False, lau
     if c.missing_mods:
         say(f"  [{user}] mods not placed in mods/: {c.missing_mods}")
     return c, restored
+
+
+def check_mods_loaded(tl, server):
+    """Fail the run the moment the server says a mod is missing -- before a client is paid for.
+
+    The game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A):
+    the session comes up, every probe answers, and the run looks green while the thing under
+    test was never loaded. `fault_reasons` catches that at the end of the run; catching it
+    here as well is purely about cost -- a broken profile stops at ~20 s instead of a minute
+    of client boot plus the hold. The server's own line goes into the timeline verbatim,
+    because "which mod, in whose words" is the whole finding.
+
+    Raises RuntimeError, which every caller's except-path already turns into an `error` mark,
+    a teardown and RESULT: FAIL.
+    """
+    missing = sorted(set(server.mods_not_found))
+    if not missing:
+        return
+    tl.mark("mods_not_found", mods=",".join(missing))
+    for line in grep_file(server.log_path, MOD_MISSING_RX, limit=5):
+        tl.mark("mod_missing_line", detail=line)
+    raise RuntimeError("mods not found at load: " + ",".join(missing))
+
+
+def verify(prof, server, clients, tl):
+    """Bus probes proving the mods took EFFECT, not merely that the server did not complain:
+    a mod can be absent (S3-A) and the run still look clean. `expect` is matched as a
+    substring of json.dumps(parsed ack).
+
+    Returns the list of probes with their verdicts, for report.json; the caller owns the
+    RESULT. A probe whose side has no node (a `client` probe on a session with no client)
+    fails rather than raising -- the run has already paid for the session, so it reports.
+    """
+    out = []
+    for v in prof.verify:
+        side = v.get("side", "server")
+        node = server if side == "server" else (clients[0] if clients else None)
+        if node is None:
+            tl.mark("verify", side=side, cmd=v["cmd"], ok=False, got="no client attached")
+            out.append({**v, "ok": False, "got": None})
+            continue
+        ok, val = parse_ack(node.send(v["cmd"], v.get("args", "")))
+        passed = bool(ok) and v.get("expect", "") in json.dumps(val)
+        tl.mark("verify", side=side, cmd=v["cmd"], ok=passed, got=json.dumps(val)[:100])
+        out.append({**v, "ok": passed, "got": val})
+    return out
 
 
 def hold(seconds, tl, server, clients):
