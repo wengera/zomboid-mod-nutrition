@@ -73,7 +73,11 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   (`{running, name, clock, due, side, samples}`); server: `time.multiplier`,
   `players`, `nutrition.get <user>`, `nutrition.set <user> <field> <v>`,
   `stats.set <user> <stat> <v> …`; client: `quit`, `player.stats`,
-  `moddata.set/transmit`, `witness.moddata|nutrition|item`, `item.spawn`,
+  `moddata.set/transmit`, the S6 round-trip witnesses `witness.sync.moddata`
+  (called `witness.moddata` until slice 08 gave that name to the shared
+  reflective command below; the `kind` on the wire, the comparison and the
+  `witness_moddata_<key>.json` result file are unchanged), `witness.nutrition`
+  and `witness.item`, `item.spawn`,
   `item.tamper`, and the slice-01 experiment commands `nutrition.get`,
   `nutrition.set`, `stats.set`, `item.script <type>`, `item.state <type> <state>`,
   `eat <type> [fraction]` (direct `Eat`, intake arithmetic), `eat.action`
@@ -338,6 +342,90 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     part-spent item the real factor is a hair under it (the driver's
     `factor32` replays the game's own `1 − amount/hungChange`). Driven by
     `testing/experiments/s06b_use_probe.py`.
+
+  Slice-08 **reflective witness** — `witness.fields` and `witness.moddata`, both
+  registered in `shared/PZTestKit_Core.lua`, so **both sides answer them** and
+  every reply's `side` says which one did. One generic command instead of a
+  getter-specific one per mod, because slices 09–11 probe fields and modData keys
+  nobody has named yet: no new per-mod Lua should be written before these two have
+  been tried.
+  * **`witness.fields <player|item> <id> <getter,getter,...>`** →
+    `{side, subject, id, resolved, fields, missing, nils, count, worldAge
+    [, truncatedAt]}`. The `<id>` grammar is `username` | `-` (the first online
+    player) | `fullType` | `#<itemId>` | `<user>/<fullType>`; the item routes look
+    inside bags (`getFirstTypeRecurse`, then a flat `getItems()` walk, which is the
+    only route that matches by id). **Zero-argument getters only** — an arity
+    mismatch is as fatal as a nil call, so nothing here passes an argument to the
+    member it reads. Each name lands in exactly one of three buckets, and that
+    three-way sort is the point: **`missing`** = this build's object does not
+    expose the member at all (`TK.call` indexes before it calls, because Kahlua's
+    "tried to call nil" escapes `pcall` and would take the whole side off the bus);
+    **`nils`** = it *is* exposed and the call returned nil, which is a reading, not
+    an absence; **`fields`** = everything else, a **map** keyed by getter name, so
+    a name asked for twice is read twice, counted twice and appears once. "The mod
+    did not set it" and "this build never had it" are therefore different answers,
+    which is the whole question in 09–11.
+  * **`witness.moddata [player[:<user>] | item:<id> | global:<name>] <key ...>`** →
+    `{side, scope, arg, resolved, keys, keyCount, values, missing, count, worldAge
+    [, error] [, truncatedAt]}`. No scope prefix means `player`: the local player
+    on a client, the first online one on the server. **Every reply carries the
+    census** — `keys` is every top-level key as a sorted `<name>:<type>` list — so
+    `*` (or no key at all) is a valid call, and is how a mod's modData shape gets
+    discovered before anyone knows a key to ask for. A key may be a dotted path
+    (`a.b.c`), which walks nested tables; a path that does not resolve is
+    `missing`, exactly as an unset key is. `count` is keys **read**, `keyCount` is
+    the **census** size. The scope words are **reserved in the first argument**: a
+    bare `item` or `global` answers the usage string and a bare `player` is
+    consumed as the scope, so a modData key literally named `item`, `global` or
+    `player` has to be asked for behind an explicit prefix
+    (`witness.moddata player:- player`), where it is just a key.
+  * **`TK.WITNESS_MAX = 32`** names per call — both replies travel as one bus ack
+    line. The cap is counted **before** the read, so `count` is what was actually
+    read and `truncatedAt` is the only signal that more were asked for.
+  * **A table on every path but one.** A subject that does not resolve is a
+    *result*, not a usage error: both commands answer `{... resolved = false,
+    error}` with their usual envelope. Only the `argv[1]` gate answers a bare
+    **string** — an unknown `<player|item>` word, or a bare `item` / `global`
+    scope word. So a driver guards with `isinstance(reply, dict)` and reads
+    `resolved` / `error`, and never has to parse prose anywhere else.
+  * **`resolved` is the subject that answered, not the one you asked for.** For an
+    item it is `<user>/<fullType> #<id>`; on a **client** it always names the local
+    player whatever `<user>` was sent, because that side has no one else. The
+    `global:` branch sets no `resolved` at all — it has no subject to resolve.
+  * **`global:<name>` reaches global ModData, and proves less than it looks.** It
+    reads through `ModData.getOrCreate`, a **dot**-call static (hence
+    `TK.callStatic`, which indexes and calls with no `self`), and `getOrCreate`
+    **creates** the table when it is absent. A global census can therefore never
+    report "no such table": an empty `keys` says only that nothing stores anything
+    under that name — and the probe has just made it. A census of a table a *mod*
+    owns is meaningful only with that mod loaded and run.
+  * **An empty list arrives as `{}`, not `[]`** — `TK.json` encodes an empty Lua
+    table as an object, harness-wide. Test emptiness with `not x`, or with `count`
+    / `keyCount`, which are numbers whatever the shape does; never `== []`, never
+    index 0.
+
+  **Measured on 42.20.4**, both sides of one session, `M` with **n = 1**:
+  [`../../testing/artifacts/exp08-20260910-152944/witness-probe.json`](../../testing/artifacts/exp08-20260910-152944/witness-probe.json),
+  driven by `testing/experiments/s08_witness.py` — 17 probes, **15 graded rows:
+  14 as expected, 1 finding, 0 misses**, 0 server errors and 0 client Lua errors.
+  Both commands answered on both sides for a player **and** an item (`count` 5 / 7,
+  `truncatedAt` absent everywhere, so the cap never bit); the apple's five macro
+  getters agreed with `data/food-items.json` field for field on both sides, which
+  is what makes the row `M` rather than a self-report; `absent_getter` put both
+  `getCalories` (it lives on `Nutrition`, not on `IsoPlayer`) and `getNoSuchThing`
+  into `missing` with `nils` and `fields` empty; a client `moddata.set` +
+  `transmitModData()` moved the **whole** table (the server census went 4 → 6 keys,
+  an unrelated `hotbar` arriving beside `pzt_witness`); and the one finding is that
+  the same apple's `getModData()` differs across sides — server `{}`, client
+  `{"customName": "Apple"}` — because `InventoryItem.setCustomName` writes that key
+  into modData from `InventoryItem.load`, a deserialization side effect and not
+  mod data. Read that artifact's README block before quoting the file: its
+  *do not cite* table has **seven** rows, among them `moddata_global`'s empty
+  census (evidence of the binding and of nothing else), `moddata_item`'s (the
+  **server** side only — the matching client-side item census was not run this
+  session; it is slice 09's first pass) and everything here as a population
+  (one session, one item, one player).
+
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
@@ -349,10 +437,11 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
 
 `mod.info` + `42/mod.info` (B42 reads the one inside the version folder),
 `42/media/lua/shared/PZTestKit_Core.lua` (global `TK`: KV files, JSON, command
-bus, results, shared commands), `shared/PZTestKit_Test.lua` (slice 04: the test
-layer — game-time scheduler, test registry, the `test.*` bus commands; shared so
-either side can host a test, and named `_Test` so it loads after `_Core`, since
-Lua files in one folder load alphabetically), `server/PZTestKit_Server.lua` (bus
+bus, results, shared commands, slice 08's reflective witness),
+`shared/PZTestKit_Test.lua` (slice 04: the test layer — game-time scheduler,
+test registry, the `test.*` bus commands; shared so either side can host a test,
+and named `_Test` so it loads after `_Core`, since Lua files in one folder load
+alphabetically), `server/PZTestKit_Server.lua` (bus
 polling on `OnTick`, `OnClientCommand` witness replies),
 `server/scenarios/PZTestKit_Scenario_{Smoke,Nutrition}.lua` (the registered
 tests — the loader walks the folder recursively, as vanilla does for

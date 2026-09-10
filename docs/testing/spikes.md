@@ -273,7 +273,12 @@ RCON replies to `settimespeed` are sometimes empty; verify via the snapshot.
 Client `witness.*` → `sendClientCommand(player, "PZTestKit", "witness", …)`;
 server `OnClientCommand` answers with its own view via `sendServerCommand`;
 the client compares, logs `PZTK: witness <kind> match=…` and writes
-`witness_<kind>.json`. Round-trip ≈ 1 s.
+`witness_<kind>.json`. Round-trip ≈ 1 s. **Renamed in slice 08**: this
+round-trip's modData command is now `witness.sync.moddata`, because the shared
+*reflective* `witness.moddata` (`PZTestKit_Core.lua`, both sides) took that
+name; the `kind` on the wire, the comparison and the result file
+(`witness_moddata_<key>.json`) are unchanged, and `witness.nutrition` /
+`witness.item` are untouched.
 
 | Probe | Client view | Server view | Match |
 |---|---|---|---|

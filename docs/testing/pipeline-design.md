@@ -103,7 +103,23 @@ owning client), so a client-side edit of an inventory item's fields or
 modData is invisible to the server until something server-side replaces the
 item — the witness is exactly what surfaces that. Player modData needs
 `transmitModData()`. Witness kinds so far: player modData, nutrition values,
-one inventory item (condition, conditionMax, modData).
+one inventory item (condition, conditionMax, modData); the client commands are
+`witness.sync.moddata` (renamed from `witness.moddata` in slice 08, when the
+shared reflective command took that name — the `kind` on the wire and the
+`witness_moddata_<key>.json` result are unchanged), `witness.nutrition` and
+`witness.item`.
+
+**Slice 08 added a second, *reflective* witness at L4 — one that needs no
+per-mod command and no round trip**: `witness.fields` / `witness.moddata`, in
+`shared/PZTestKit_Core.lua`, read any zero-argument getter or modData key — a
+whole-table census included — on **either** side. So a teardown asks the two
+sides the same question and compares two independent replies, instead of
+shipping a new Lua comparator per mod; a `missing` name means the build does not
+expose the member, which a comparator would have died on. Both commands answered
+live on both sides on 42.20.4
+(`testing/artifacts/exp08-20260910-152944/witness-probe.json`, n = 1); the
+shapes, the `<id>` grammar and the reading rules are in
+[README.md](README.md) § Command bus.
 
 ## Fragility budget — where it bites and what we do
 

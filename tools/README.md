@@ -73,11 +73,20 @@ import patterns from there.
   because neither alone is the catalog: `signals.food_nutrition` greps `.lua`
   for the runtime API (11 mods) and `signals.script_nutrition` greps
   `<live>/media/**/scripts/*.txt` for the item-definition keys (9 mods, 1
-  overlap); `script_item_blocks` beside them is an **exact** count of item
+  overlap); `script_item_blocks` beside them counts item
   definitions, recipe `item 1 [Base.X]` lines excluded and hyphenated ids kept
   (17 for Long Term Preservation, where the first cut of the field read 47;
   492 for `KATTAJ1 Military Pack`, where the second cut read 1 because `-`
-  ended the name — 6648 over the corpus, 2026-09-10). Everything but
+  ended the name — 6648 over the corpus, 2026-09-10). Two caveats before that
+  field is read as food: it counts **every** item definition, clothing and
+  vehicles included (288 for `Horse`), so food is counted by hand off the
+  `Type = Food` blocks; and it does **not** strip `/* */` comment blocks, which
+  the engine and `tools/food_scan.parse_script` both do, so it over-counts the
+  two corpus mods that comment a definition out — Long Term Preservation 17
+  against **15** live, `ZVirusVaccine42BETA` 102 against **86** (881 rather than
+  899 across the nine script-signal mods, measured 2026-09-10;
+  [`../docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
+  § Discrepancies row 1 and § Open questions Q2). Everything but
   `bytes` describes the **newest version folder only** — the de-duplication a
   per-mod record needs, since a mod may ship the same scripts in three folders.
   `common/media`, which the build **also** loads, is not counted here and no
