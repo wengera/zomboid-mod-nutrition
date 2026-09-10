@@ -1,12 +1,18 @@
 [
  {
   "mod_id": "91range",
+  "mod_id_fallback": "91range",
   "name": "'91 RANGE ROVER Classic",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -19,6 +25,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 149,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -26,6 +37,8 @@
    ]
   ],
   "lua_kb": 22,
+  "bytes": 22633937,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2409333430",
   "folder": "91range",
@@ -33,14 +46,24 @@
  },
  {
   "mod_id": "FH",
+  "mod_id_fallback": "FluffyHair",
   "name": "Fluffy Hair",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 9447432,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2447729538",
   "folder": "FluffyHair",
@@ -48,18 +71,28 @@
  },
  {
   "mod_id": "SpnHair",
+  "mod_id_fallback": "Spongie Hair",
   "name": "Spongie's Hair",
-  "author": "?",
+  "author": "Spongie",
   "require": [
    "FH"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 2
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 3,
+  "bytes": 13969348,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2463184726",
   "folder": "Spongie Hair",
@@ -67,35 +100,55 @@
  },
  {
   "mod_id": "SkillRecoveryJournal",
+  "mod_id_fallback": "Skill Recovery Journal",
   "name": "Skill Recovery Journal",
-  "author": "?",
-  "require": [],
-  "layout": "42.19",
+  "author": "Chuckleberry Finn",
+  "require": [
+   "ChuckleberryFinnAlertSystem",
+   "errorMagnifier"
+  ],
+  "layout": "42.20.1",
+  "version_dirs": [
+   "42.20.1",
+   "42.19"
+  ],
+  "mod_info_at": "42.20.1/mod.info",
   "stats": {
-   "lua_client": 4,
-   "lua_shared": 8,
+   "lua_client": 5,
+   "lua_shared": 10,
    "script_files": 2
   },
   "signals": {
-   "events_add": 12,
-   "sandbox_vars": 26,
+   "events_add": 15,
+   "ui_panel": 1,
+   "require_line": 13,
+   "global_write_vanilla": 5,
+   "on_client_cmd": 9,
+   "sandbox_vars": 30,
    "send_client_cmd": 5,
-   "mod_data": 8,
-   "require_line": 4,
-   "global_write_vanilla": 2,
-   "send_server_cmd": 6,
+   "mod_data": 13,
+   "send_server_cmd": 9,
    "timed_action_new": 1,
-   "food_nutrition": 8,
-   "getfilewriter": 1,
-   "on_client_cmd": 3
+   "pcall": 2,
+   "getfilewriter": 2,
+   "food_nutrition": 8
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 6,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
-    "OnGameBoot",
+    "OnServerCommand",
+    3
+   ],
+   [
+    "OnClientCommand",
     2
    ],
    [
-    "OnGameStart",
+    "OnGameBoot",
     2
    ],
    [
@@ -107,7 +160,7 @@
     1
    ],
    [
-    "OnServerCommand",
+    "OnGameStart",
     1
    ],
    [
@@ -115,15 +168,13 @@
     1
    ],
    [
-    "OnCreatePlayer",
-    1
-   ],
-   [
-    "OnClientCommand",
+    "OnTick",
     1
    ]
   ],
-  "lua_kb": 93,
+  "lua_kb": 134,
+  "bytes": 4460232,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": true,
   "workshop_id": "2503622437",
   "folder": "Skill Recovery Journal",
@@ -131,12 +182,18 @@
  },
  {
   "mod_id": "86oshkoshP19A",
+  "mod_id_fallback": "86oshkoshP19A",
   "name": "'86 Oshkosh P19A + Military Trailers",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 4,
@@ -147,8 +204,15 @@
    "mod_data": 12,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 147,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 20,
+  "bytes": 22501937,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2566953935",
   "folder": "86oshkoshP19A",
@@ -156,10 +220,18 @@
  },
  {
   "mod_id": "82oshkoshM911",
+  "mod_id_fallback": "82oshkoshM911",
   "name": "'82 Oshkosh M911",
-  "author": "?",
-  "require": [],
+  "author": "KI5",
+  "require": [
+   "damnlib"
+  ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -170,8 +242,15 @@
    "mod_data": 12,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 157,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 23,
+  "bytes": 31212549,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": true,
   "workshop_id": "2618213077",
   "folder": "82oshkoshM911",
@@ -179,12 +258,18 @@
  },
  {
   "mod_id": "isoContainers",
+  "mod_id_fallback": "isoContainers",
   "name": "Containers!",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 1,
@@ -192,8 +277,15 @@
    "script_files": 12
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 34,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 3,
+  "bytes": 9617222,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2625625421",
   "folder": "isoContainers",
@@ -201,12 +293,18 @@
  },
  {
   "mod_id": "92amgeneralM998",
+  "mod_id_fallback": "92amgeneralM998",
   "name": "'92 AM General M998 + M101A3 Trailer",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -217,8 +315,15 @@
    "mod_data": 12,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 163,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 16,
+  "bytes": 22345386,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2642541073",
   "folder": "92amgeneralM998",
@@ -226,16 +331,26 @@
  },
  {
   "mod_id": "92amgeneralM998extra",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id_fallback": "92amgeneralM998extra",
+  "name": "'92 AM General M998 + M101A3 Trailer Extra Textures",
+  "author": "KI5",
+  "require": [
+   "92amgeneralM998"
+  ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {
    "events_add": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameBoot",
@@ -243,25 +358,42 @@
    ]
   ],
   "lua_kb": 1,
+  "bytes": 1430032,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2642541073",
   "folder": "92amgeneralM998extra",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "Spongie Clothing",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id": "SpnCloth",
+  "mod_id_fallback": "Spongie Clothing",
+  "name": "Spongie's Clothing",
+  "author": "Spongie",
+  "require": [
+   "SpnOpenClothBase"
+  ],
   "layout": "42.18",
+  "version_dirs": [
+   "42.18"
+  ],
+  "mod_info_at": "42.18/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 2,
    "script_files": 5
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 67,
+  "script_modules": [
+   "Base",
+   "Spongie"
+  ],
   "top_events": [],
   "lua_kb": 8,
+  "bytes": 3263623,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2684285534",
   "folder": "Spongie Clothing",
@@ -269,10 +401,18 @@
  },
  {
   "mod_id": "P4TidyUpMeister",
+  "mod_id_fallback": "P4TidyUpMeister",
   "name": "Tidy Up Meister",
-  "author": "?",
+  "author": "PePePePePeil",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.15",
+   "42.13",
+   "42"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_shared": 2
@@ -286,6 +426,9 @@
    "onplayerupdate": 1,
    "timed_action_new": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -305,6 +448,8 @@
    ]
   ],
   "lua_kb": 48,
+  "bytes": 1337267,
+  "workshop_item_mtime": "2026-08-17T13:37:12",
   "sandbox_options": false,
   "workshop_id": "2769706949",
   "folder": "P4TidyUpMeister",
@@ -312,12 +457,18 @@
  },
  {
   "mod_id": "59meteor",
+  "mod_id_fallback": "59 Cadillac Miller-Meteor",
   "name": "'59 Cadillac Miller-Meteor",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -328,8 +479,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 159,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 16,
+  "bytes": 15885486,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2772575623",
   "folder": "59 Cadillac Miller-Meteor",
@@ -337,12 +495,17 @@
  },
  {
   "mod_id": "ECTO1",
+  "mod_id_fallback": "59 Cadillac Miller-Meteor ECTO1",
   "name": "'59 Cadillac Miller-Meteor ECTO-1",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "59meteor"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1
@@ -350,8 +513,13 @@
   "signals": {
    "require_line": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 652829,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2772575623",
   "folder": "59 Cadillac Miller-Meteor ECTO1",
@@ -359,10 +527,15 @@
  },
  {
   "mod_id": "MorePlushies",
+  "mod_id_fallback": "MorePlushies",
   "name": "More Plushies!",
   "author": "RyanHayes",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 1,
@@ -379,6 +552,12 @@
    "ui_panel": 1,
    "sandbox_vars": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 92,
+  "script_modules": [
+   "Base",
+   "MorePlushies"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -398,6 +577,8 @@
    ]
   ],
   "lua_kb": 46,
+  "bytes": 47273196,
+  "workshop_item_mtime": "2026-08-23T18:44:19",
   "sandbox_options": true,
   "workshop_id": "2795036124",
   "folder": "MorePlushies",
@@ -405,10 +586,18 @@
  },
  {
   "mod_id": "78amgeneralM35A2",
+  "mod_id_fallback": "78amgeneralM35A2",
   "name": "'78 AM General M35 Series Trucks",
-  "author": "?",
-  "require": [],
+  "author": "KI5",
+  "require": [
+   "damnlib"
+  ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -419,8 +608,15 @@
    "mod_data": 11,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 121,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 12,
+  "bytes": 30008969,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2799152995",
   "folder": "78amgeneralM35A2",
@@ -428,16 +624,26 @@
  },
  {
   "mod_id": "78amgeneralM35A2extra",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id_fallback": "78amgeneralM35A2extra",
+  "name": "'78 AM General M35 Series Trucks Extra Textures",
+  "author": "KI5",
+  "require": [
+   "78amgeneralM35A2"
+  ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {
    "events_add": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameBoot",
@@ -445,6 +651,8 @@
    ]
   ],
   "lua_kb": 1,
+  "bytes": 2786009,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2799152995",
   "folder": "78amgeneralM35A2extra",
@@ -452,18 +660,28 @@
  },
  {
   "mod_id": "78amgeneralM49A2C",
+  "mod_id_fallback": "78amgeneralM49A2C",
   "name": "'78 AM General M49A2C",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "78amgeneralM35A2"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 646714,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2799152995",
   "folder": "78amgeneralM49A2C",
@@ -471,18 +689,28 @@
  },
  {
   "mod_id": "78amgeneralM50A3",
+  "mod_id_fallback": "78amgeneralM50A3",
   "name": "'78 AM General M50A3 Water Tanker",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "78amgeneralM35A2"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 707531,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2799152995",
   "folder": "78amgeneralM50A3",
@@ -490,18 +718,28 @@
  },
  {
   "mod_id": "78amgeneralM62",
+  "mod_id_fallback": "78amgeneralM62",
   "name": "'78 AM General M62 Wrecker",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "78amgeneralM35A2"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 699367,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2799152995",
   "folder": "78amgeneralM62",
@@ -509,12 +747,18 @@
  },
  {
   "mod_id": "84merc",
+  "mod_id_fallback": "84mercW460",
   "name": "'84 Mercedes Benz W460",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -525,37 +769,63 @@
    "mod_data": 18,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 203,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 21,
+  "bytes": 28081455,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2805630347",
   "folder": "84mercW460",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "SpongieOpenJackets",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id": "SpnOpenCloth",
+  "mod_id_fallback": "SpongieOpenJackets",
+  "name": "Spongie's Open Jackets [VANILLA CLOTHING]",
+  "author": "Spongie",
+  "require": [
+   "SpnOpenClothBase"
+  ],
   "layout": "42.18",
+  "version_dirs": [
+   "42.18"
+  ],
+  "mod_info_at": "42.18/mod.info",
   "stats": {
    "lua_shared": 1,
    "script_files": 11
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 254,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 4,
+  "bytes": 3164091,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2812326159",
   "folder": "SpongieOpenJackets",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "SpongieOpenJackets_Base",
-  "name": "?",
-  "author": "?",
+  "mod_id": "SpnOpenClothBase",
+  "mod_id_fallback": "SpongieOpenJackets_Base",
+  "name": "Spongie's Open Jackets [BASE]",
+  "author": "Spongie",
   "require": [],
   "layout": "42.18",
+  "version_dirs": [
+   "42.18"
+  ],
+  "mod_info_at": "42.18/mod.info",
   "stats": {
    "lua_shared": 4
   },
@@ -564,6 +834,9 @@
    "events_add": 1,
    "monkey_patch": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameBoot",
@@ -571,6 +844,8 @@
    ]
   ],
   "lua_kb": 13,
+  "bytes": 1868124,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2812326159",
   "folder": "SpongieOpenJackets_Base",
@@ -578,14 +853,24 @@
  },
  {
   "mod_id": "TryhonestyTiles",
+  "mod_id_fallback": "Tryhonesty's Tiles",
   "name": "Tryhonesty's Tiles",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 189624085,
+  "workshop_item_mtime": "2026-09-03T14:27:48",
   "sandbox_options": false,
   "workshop_id": "2844685624",
   "folder": "Tryhonesty's Tiles",
@@ -593,12 +878,18 @@
  },
  {
   "mod_id": "92nissanGTR",
+  "mod_id_fallback": "92nissanGTR",
   "name": "'92 NISSAN Skyline GT-R (R32)",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -611,6 +902,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 189,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -618,6 +914,8 @@
    ]
   ],
   "lua_kb": 20,
+  "bytes": 18649998,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2846036306",
   "folder": "92nissanGTR",
@@ -625,14 +923,24 @@
  },
  {
   "mod_id": "ProximityInventory",
-  "name": "Proximity Inventory",
+  "mod_id_fallback": "ProximityInventory",
+  "name": "Proximity Inventory B42",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 702341,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": true,
   "workshop_id": "2847184718",
   "folder": "ProximityInventory",
@@ -640,14 +948,24 @@
  },
  {
   "mod_id": "simonMDsTiles",
+  "mod_id_fallback": "Simon-MDs-Tiles",
   "name": "Simon MDs Tiles",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 807792404,
+  "workshop_item_mtime": "2026-09-03T14:27:41",
   "sandbox_options": false,
   "workshop_id": "2852704777",
   "folder": "Simon-MDs-Tiles",
@@ -655,10 +973,15 @@
  },
  {
   "mod_id": "MiniHealthPanel",
+  "mod_id_fallback": "MiniHealthPanel",
   "name": "Mini Health Panel",
-  "author": "?",
+  "author": "Speedy Von Gofast",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 4
   },
@@ -669,6 +992,9 @@
    "require_line": 1,
    "events_add": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnCreatePlayer",
@@ -692,6 +1018,8 @@
    ]
   ],
   "lua_kb": 57,
+  "bytes": 1455436,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2866258937",
   "folder": "MiniHealthPanel",
@@ -699,10 +1027,18 @@
  },
  {
   "mod_id": "simpleStatus",
+  "mod_id_fallback": "SimpleStatus",
   "name": "Simple Status",
   "author": "?",
   "require": [],
   "layout": "42.16",
+  "version_dirs": [
+   "42.16",
+   "42.15",
+   "42.14",
+   "42"
+  ],
+  "mod_info_at": "42.16/mod.info",
   "stats": {
    "lua_client": 7
   },
@@ -714,6 +1050,9 @@
    "require_line": 2,
    "food_nutrition": 12
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnCreatePlayer",
@@ -725,6 +1064,8 @@
    ]
   ],
   "lua_kb": 46,
+  "bytes": 1132005,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2867431511",
   "folder": "SimpleStatus",
@@ -732,12 +1073,19 @@
  },
  {
   "mod_id": "86fordE150",
+  "mod_id_fallback": "86fordE150",
   "name": "'86 Ford Econoline E150",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -749,8 +1097,15 @@
    "require_line": 9,
    "send_client_cmd": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 181,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 26,
+  "bytes": 28730711,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2870394916",
   "folder": "86fordE150",
@@ -758,12 +1113,17 @@
  },
  {
   "mod_id": "86fordE150dnd",
+  "mod_id_fallback": "86fordE150dnd",
   "name": "'86 Ford Econoline E150 Mutt Cutts van",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "86fordE150"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1
@@ -771,8 +1131,13 @@
   "signals": {
    "require_line": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 569711,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2870394916",
   "folder": "86fordE150dnd",
@@ -780,12 +1145,18 @@
  },
  {
   "mod_id": "86fordE150expanded",
+  "mod_id_fallback": "86fordE150expanded",
   "name": "'86 Ford Econoline E150 Expanded",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "86fordE150"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 2,
@@ -795,8 +1166,15 @@
   "signals": {
    "require_line": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 29,
+  "bytes": 25983675,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2870394916",
   "folder": "86fordE150expanded",
@@ -804,18 +1182,28 @@
  },
  {
   "mod_id": "86fordE150mm",
+  "mod_id_fallback": "86fordE150mm",
   "name": "'86 Ford Econoline E150 Mystery Machine",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "86fordE150"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 616501,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2870394916",
   "folder": "86fordE150mm",
@@ -823,18 +1211,28 @@
  },
  {
   "mod_id": "86fordE150pd",
+  "mod_id_fallback": "86fordE150pd",
   "name": "'86 Ford Econoline E150 Payday Escape Van",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "86fordE150"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 578807,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2870394916",
   "folder": "86fordE150pd",
@@ -842,12 +1240,18 @@
  },
  {
   "mod_id": "70dodge",
+  "mod_id_fallback": "70dodge",
   "name": "'70 Dodge Challenger",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -860,6 +1264,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 176,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -867,6 +1276,8 @@
    ]
   ],
   "lua_kb": 17,
+  "bytes": 19081050,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2873290424",
   "folder": "70dodge",
@@ -874,14 +1285,24 @@
  },
  {
   "mod_id": "melos_tiles_for_miles_pack",
+  "mod_id_fallback": "Melos Tiles for Miles",
   "name": "Melos Tiles For Miles",
-  "author": "?",
+  "author": "melos_tiles",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 1647235648,
+  "workshop_item_mtime": "2026-09-03T14:26:59",
   "sandbox_options": false,
   "workshop_id": "2879745353",
   "folder": "Melos Tiles for Miles",
@@ -889,10 +1310,15 @@
  },
  {
   "mod_id": "HayesCustoms",
+  "mod_id_fallback": "HayesCustoms",
   "name": "Hayes Customs",
   "author": "RyanHayes",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 6,
    "lua_client": 1,
@@ -905,6 +1331,12 @@
    "pcall": 2,
    "sandbox_vars": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 557,
+  "script_modules": [
+   "Base",
+   "HCustoms"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -920,6 +1352,8 @@
    ]
   ],
   "lua_kb": 123,
+  "bytes": 472103725,
+  "workshop_item_mtime": "2026-08-27T17:55:30",
   "sandbox_options": true,
   "workshop_id": "2884278892",
   "folder": "HayesCustoms",
@@ -927,14 +1361,24 @@
  },
  {
   "mod_id": "Petroville",
-  "name": "b42_petroville",
+  "mod_id_fallback": "Petroville",
+  "name": "Petroville",
   "author": "?",
   "require": [],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 39998133,
+  "workshop_item_mtime": "2026-08-31T15:16:20",
   "sandbox_options": false,
   "workshop_id": "2886261613",
   "folder": "Petroville",
@@ -942,12 +1386,18 @@
  },
  {
   "mod_id": "82jeepJ10",
+  "mod_id_fallback": "82jeepJ10",
   "name": "'82 Jeep J10",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -960,6 +1410,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 87,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -967,6 +1422,8 @@
    ]
   ],
   "lua_kb": 16,
+  "bytes": 12675973,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2886832257",
   "folder": "82jeepJ10",
@@ -974,12 +1431,17 @@
  },
  {
   "mod_id": "82jeepJ10t",
+  "mod_id_fallback": "82jeepJ10t",
   "name": "'82 Jeep J10 Mellow Yellow",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "82jeepJ10"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1
@@ -987,8 +1449,13 @@
   "signals": {
    "require_line": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 762319,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2886832257",
   "folder": "82jeepJ10t",
@@ -996,12 +1463,18 @@
  },
  {
   "mod_id": "88chevyS10",
+  "mod_id_fallback": "88chevyS10",
   "name": "'88 Chevrolet S10",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1012,8 +1485,15 @@
    "mod_data": 15,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 85,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 14,
+  "bytes": 9947196,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2886832936",
   "folder": "88chevyS10",
@@ -1021,12 +1501,18 @@
  },
  {
   "mod_id": "89fordBronco",
+  "mod_id_fallback": "89fordBronco",
   "name": "'89 Ford Bronco",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1037,8 +1523,15 @@
    "mod_data": 15,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 64,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 11390790,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2886833398",
   "folder": "89fordBronco",
@@ -1046,10 +1539,17 @@
  },
  {
   "mod_id": "errorMagnifier",
+  "mod_id_fallback": "errorMagnifier",
   "name": "errorMagnifier",
-  "author": "?",
-  "require": [],
+  "author": "Chuckleberry Finn",
+  "require": [
+   "ChuckleberryFinnAlertSystem"
+  ],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 3
   },
@@ -1059,6 +1559,9 @@
    "ui_panel": 1,
    "getfilewriter": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnPlayerMove",
@@ -1086,6 +1589,8 @@
    ]
   ],
   "lua_kb": 45,
+  "bytes": 394032,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": false,
   "workshop_id": "2896041179",
   "folder": "errorMagnifier",
@@ -1093,12 +1598,18 @@
  },
  {
   "mod_id": "97bushmaster",
+  "mod_id_fallback": "97bushmaster",
   "name": "'97 ADI Bushmaster",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -1109,8 +1620,15 @@
    "mod_data": 7,
    "require_line": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 139,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 22,
+  "bytes": 11790996,
+  "workshop_item_mtime": "2026-08-12T00:03:07",
   "sandbox_options": true,
   "workshop_id": "2897390033",
   "folder": "97bushmaster",
@@ -1118,12 +1636,18 @@
  },
  {
   "mod_id": "49powerWagon",
+  "mod_id_fallback": "49powerWagon",
   "name": "'49 Dodge Power Wagon Crew Cab",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1134,8 +1658,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 166,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 19,
+  "bytes": 13782095,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": true,
   "workshop_id": "2900580391",
   "folder": "49powerWagon",
@@ -1143,12 +1674,18 @@
  },
  {
   "mod_id": "70barracuda",
+  "mod_id_fallback": "70barracuda",
   "name": "'70 Plymouth Barracuda",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1161,6 +1698,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 152,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -1168,6 +1710,8 @@
    ]
   ],
   "lua_kb": 16,
+  "bytes": 13766472,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2913633066",
   "folder": "70barracuda",
@@ -1175,10 +1719,15 @@
  },
  {
   "mod_id": "biogas",
-  "name": "?",
+  "mod_id_fallback": "biogas",
+  "name": "Biogas",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "tile_packs": 2,
    "lua_client": 4,
@@ -1195,8 +1744,17 @@
    "global_write_vanilla": 17,
    "transmit_mod_data": 2,
    "events_add": 3,
-   "timed_action_new": 2
+   "timed_action_new": 2,
+   "script_nutrition": 1
   },
+  "script_nutrition_keys": {
+   "ThirstChange": 1
+  },
+  "script_item_blocks": 8,
+  "script_modules": [
+   "Base",
+   "Biofuel"
+  ],
   "top_events": [
    [
     "OnInitGlobalModData",
@@ -1208,6 +1766,8 @@
    ]
   ],
   "lua_kb": 32,
+  "bytes": 1410527,
+  "workshop_item_mtime": "2026-08-27T17:55:34",
   "sandbox_options": true,
   "workshop_id": "2925657627",
   "folder": "biogas",
@@ -1215,12 +1775,18 @@
  },
  {
   "mod_id": "93townCar",
+  "mod_id_fallback": "93townCar",
   "name": "'93 Lincoln Town Car",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1231,8 +1797,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 181,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 17,
+  "bytes": 14655212,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2932547723",
   "folder": "93townCar",
@@ -1240,12 +1813,18 @@
  },
  {
   "mod_id": "89trooper",
+  "mod_id_fallback": "89trooper",
   "name": "'89 Isuzu Trooper",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1257,8 +1836,15 @@
    "require_line": 6,
    "global_write_vanilla": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 146,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 19,
+  "bytes": 17266144,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2932549988",
   "folder": "89trooper",
@@ -1266,12 +1852,18 @@
  },
  {
   "mod_id": "69mini",
+  "mod_id_fallback": "69mini",
   "name": "'69 Mini Mk2",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1280,10 +1872,26 @@
   },
   "signals": {
    "mod_data": 14,
-   "require_line": 6
+   "require_line": 6,
+   "script_nutrition": 7
   },
+  "script_nutrition_keys": {
+   "Calories": 1,
+   "Carbohydrates": 1,
+   "DaysFresh": 1,
+   "DaysTotallyRotten": 1,
+   "HungerChange": 1,
+   "Lipids": 1,
+   "Proteins": 1
+  },
+  "script_item_blocks": 168,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 18,
+  "bytes": 11843588,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2937786633",
   "folder": "69mini",
@@ -1291,18 +1899,28 @@
  },
  {
   "mod_id": "69mini_ItalianJob",
+  "mod_id_fallback": "69mini_ItalianJob",
   "name": "'69 Mini Mk2 Italian Job",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "69mini"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 683409,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2937786633",
   "folder": "69mini_ItalianJob",
@@ -1310,18 +1928,28 @@
  },
  {
   "mod_id": "69mini_MrBean",
+  "mod_id_fallback": "69mini_MrBean",
   "name": "'69 Mini Mk2 Mr Bean",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "69mini"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 604723,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2937786633",
   "folder": "69mini_MrBean",
@@ -1329,18 +1957,28 @@
  },
  {
   "mod_id": "69mini_PitbullSpecial",
+  "mod_id_fallback": "69mini_PitbullSpecial",
   "name": "'69 Mini Mk2 Pitbull Special",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "69mini"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 701089,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2937786633",
   "folder": "69mini_PitbullSpecial",
@@ -1348,12 +1986,17 @@
  },
  {
   "mod_id": "90pierceArrow",
+  "mod_id_fallback": "90pierceArrow",
   "name": "'90 Pierce Arrow Pumper and Ladder Trucks",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1364,8 +2007,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 140,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 19,
+  "bytes": 14320704,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2942793445",
   "folder": "90pierceArrow",
@@ -1373,12 +2023,18 @@
  },
  {
   "mod_id": "90fordF350ambulance",
+  "mod_id_fallback": "90fordF350ambulance",
   "name": "'90 Ford F350 Ambulance Type 1",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1389,8 +2045,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 114,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 18,
+  "bytes": 10079679,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2952802178",
   "folder": "90fordF350ambulance",
@@ -1398,12 +2061,18 @@
  },
  {
   "mod_id": "92fordCVPI",
+  "mod_id_fallback": "92fordCVPI",
   "name": "'92 Ford Crown Victoria Police Interceptor",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1414,8 +2083,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 103,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 19,
+  "bytes": 20320227,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2962175696",
   "folder": "92fordCVPI",
@@ -1423,12 +2099,18 @@
  },
  {
   "mod_id": "99fordCVPI",
+  "mod_id_fallback": "99fordCVPI",
   "name": "'99 Ford Crown Victoria Police Interceptor",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1439,8 +2121,15 @@
    "mod_data": 18,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 87,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 9881697,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2971246021",
   "folder": "99fordCVPI",
@@ -1448,12 +2137,18 @@
  },
  {
   "mod_id": "69camaro",
+  "mod_id_fallback": "69camaro",
   "name": "'69 Chevrolet Camaro",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1466,6 +2161,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 152,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -1473,6 +2173,8 @@
    ]
   ],
   "lua_kb": 15,
+  "bytes": 19382006,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "2991201484",
   "folder": "69camaro",
@@ -1480,10 +2182,15 @@
  },
  {
   "mod_id": "CustomGamepadUI",
+  "mod_id_fallback": "CustomGamepadUI",
   "name": "Custom Gamepad UI",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 7,
    "lua_shared": 1
@@ -1497,6 +2204,9 @@
    "food_nutrition": 1,
    "mod_data": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -1512,6 +2222,8 @@
    ]
   ],
   "lua_kb": 35,
+  "bytes": 253402,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3001154607",
   "folder": "CustomGamepadUI",
@@ -1519,12 +2231,18 @@
  },
  {
   "mod_id": "93mustangSSP",
+  "mod_id_fallback": "93mustangSSP",
   "name": "'93 Ford Mustang",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1535,8 +2253,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 163,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 24,
+  "bytes": 25462756,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3001592312",
   "folder": "93mustangSSP",
@@ -1544,12 +2269,18 @@
  },
  {
   "mod_id": "63beetle",
+  "mod_id_fallback": "63beetle",
   "name": "'63 Volkswagen 1300 Beetle",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -1560,8 +2291,15 @@
    "mod_data": 15,
    "require_line": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 160,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 17,
+  "bytes": 21937974,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3005903549",
   "folder": "63beetle",
@@ -1569,12 +2307,18 @@
  },
  {
   "mod_id": "91geoMetro",
+  "mod_id_fallback": "91geoMetro",
   "name": "'91 Geo Metro",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1585,8 +2329,15 @@
    "mod_data": 18,
    "require_line": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 119,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 14,
+  "bytes": 12563160,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3008795514",
   "folder": "91geoMetro",
@@ -1594,12 +2345,18 @@
  },
  {
   "mod_id": "67gt500",
+  "mod_id_fallback": "67gt500",
   "name": "'67 Shelby GT500 + Eleanor",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1610,8 +2367,15 @@
    "mod_data": 15,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 141,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 18168337,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3026723485",
   "folder": "67gt500",
@@ -1619,12 +2383,18 @@
  },
  {
   "mod_id": "89dodgeCaravan",
+  "mod_id_fallback": "89dodgeCaravan",
   "name": "'89 Dodge Caravan",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1635,8 +2405,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 158,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 16,
+  "bytes": 26206232,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3034636011",
   "folder": "89dodgeCaravan",
@@ -1644,12 +2421,18 @@
  },
  {
   "mod_id": "63Type2Van",
+  "mod_id_fallback": "63Type2Van",
   "name": "'63 Volkswagen Type 2 Van",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1660,8 +2443,15 @@
    "mod_data": 14,
    "require_line": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 222,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 23,
+  "bytes": 26792604,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3041122351",
   "folder": "63Type2Van",
@@ -1669,12 +2459,18 @@
  },
  {
   "mod_id": "87toyotaMR2",
+  "mod_id_fallback": "87toyotaMR2",
   "name": "'87 Toyota MR2",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -1687,6 +2483,11 @@
    "events_add": 3,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 141,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -1702,6 +2503,8 @@
    ]
   ],
   "lua_kb": 18,
+  "bytes": 10103069,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3052360250",
   "folder": "87toyotaMR2",
@@ -1709,12 +2512,18 @@
  },
  {
   "mod_id": "93fordF350",
+  "mod_id_fallback": "93fordF350",
   "name": "'93 Ford F-Series",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1725,8 +2534,15 @@
    "mod_data": 20,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 230,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 33,
+  "bytes": 26806440,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3073430075",
   "folder": "93fordF350",
@@ -1734,10 +2550,15 @@
  },
  {
   "mod_id": "ChuckleberryFinnAlertSystem",
-  "name": "[Optional] Mod Update and Alert System",
-  "author": "?",
+  "mod_id_fallback": "chuckleberryModdingAlertSystem",
+  "name": "Mod Update and Alert System",
+  "author": "Chuckleberry Finn",
   "require": [],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_client": 4
   },
@@ -1747,6 +2568,9 @@
    "require_line": 2,
    "monkey_patch": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameBoot",
@@ -1766,6 +2590,8 @@
    ]
   ],
   "lua_kb": 34,
+  "bytes": 674130,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3077900375",
   "folder": "chuckleberryModdingAlertSystem",
@@ -1773,12 +2599,18 @@
  },
  {
   "mod_id": "93fordTaurus",
+  "mod_id_fallback": "93fordTaurus",
   "name": "'93 Ford Taurus",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1789,8 +2621,15 @@
    "mod_data": 16,
    "require_line": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 189,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 20,
+  "bytes": 27079027,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3088951320",
   "folder": "93fordTaurus",
@@ -1798,12 +2637,19 @@
  },
  {
   "mod_id": "87fordB700",
+  "mod_id_fallback": "87fordB700",
   "name": "'87 Ford B700/F700 Trucks",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1816,6 +2662,11 @@
    "events_add": 2,
    "onplayerupdate": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 325,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -1823,6 +2674,8 @@
    ]
   ],
   "lua_kb": 47,
+  "bytes": 31435172,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": true,
   "workshop_id": "3110911330",
   "folder": "87fordB700",
@@ -1830,12 +2683,18 @@
  },
  {
   "mod_id": "90bmwE30",
+  "mod_id_fallback": "90bmwE30",
   "name": "'90 BMW 3 Series (E30)",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1846,8 +2705,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 241,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 24,
+  "bytes": 37589795,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3110913021",
   "folder": "90bmwE30",
@@ -1855,12 +2721,18 @@
  },
  {
   "mod_id": "93chevySuburban",
+  "mod_id_fallback": "93chevySuburban",
   "name": "'93 Chevrolet Suburban / Silverado",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1871,8 +2743,15 @@
    "mod_data": 20,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 344,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 41,
+  "bytes": 44398819,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3152529790",
   "folder": "93chevySuburban",
@@ -1880,12 +2759,17 @@
  },
  {
   "mod_id": "93chevySuburbanExpanded",
+  "mod_id_fallback": "93chevySuburbanExpanded",
   "name": "'93 Chevrolet Suburban / Silverado Expanded",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "93chevySuburban"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 2,
@@ -1895,8 +2779,15 @@
   "signals": {
    "require_line": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 11,
+  "bytes": 10911408,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3152529790",
   "folder": "93chevySuburbanExpanded",
@@ -1904,12 +2795,19 @@
  },
  {
   "mod_id": "76chevyKseries",
+  "mod_id_fallback": "76chevyKseries",
   "name": "'76 Chevrolet K series",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -1920,8 +2818,15 @@
    "mod_data": 24,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 328,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 57,
+  "bytes": 47216278,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": true,
   "workshop_id": "3161951724",
   "folder": "76chevyKseries",
@@ -1929,12 +2834,17 @@
  },
  {
   "mod_id": "76chevyKserieseExpanded",
+  "mod_id_fallback": "76chevyKseriesExpanded",
   "name": "'76 Chevrolet K series Expanded",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "76chevyKseries"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 1,
@@ -1944,8 +2854,15 @@
   "signals": {
    "require_line": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 5,
+  "bytes": 5271157,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3161951724",
   "folder": "76chevyKseriesExpanded",
@@ -1953,10 +2870,18 @@
  },
  {
   "mod_id": "damnlib",
-  "name": "that DAMN Library 0.9872b",
-  "author": "?",
+  "mod_id_fallback": "damnlib",
+  "name": "that DAMN Library",
+  "author": "KI5/bikinihorst",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.17",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_shared": 10,
    "lua_client": 9,
@@ -1976,6 +2901,14 @@
    "monkey_patch": 7,
    "getfilewriter": 5
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 1059,
+  "script_modules": [
+   "Base",
+   "USMIL",
+   "damnCraft",
+   "runFlat"
+  ],
   "top_events": [
    [
     "OnGameBoot",
@@ -2011,6 +2944,8 @@
    ]
   ],
   "lua_kb": 185,
+  "bytes": 41436057,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": true,
   "workshop_id": "3171167894",
   "folder": "damnlib",
@@ -2018,12 +2953,19 @@
  },
  {
   "mod_id": "87chevySuburban",
+  "mod_id_fallback": "87chevySuburban",
   "name": "'87 Chevrolet Suburban",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.17",
+  "version_dirs": [
+   "42.17",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.17/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2034,8 +2976,15 @@
    "mod_data": 17,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 114,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 21,
+  "bytes": 15122561,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3196180339",
   "folder": "87chevySuburban",
@@ -2043,12 +2992,18 @@
  },
  {
   "mod_id": "75grandPrix",
+  "mod_id_fallback": "75grandPrix",
   "name": "'75 Pontiac Grand Prix",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2059,8 +3014,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 143,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 16,
+  "bytes": 14645817,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3213391371",
   "folder": "75grandPrix",
@@ -2068,12 +3030,18 @@
  },
  {
   "mod_id": "87buickRegal",
+  "mod_id_fallback": "87buickRegal",
   "name": "'87 Buick Regal",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2084,8 +3052,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 133,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 16,
+  "bytes": 15347064,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3226885926",
   "folder": "87buickRegal",
@@ -2093,12 +3068,19 @@
  },
  {
   "mod_id": "81deloreanDMC12",
+  "mod_id_fallback": "81deloreanDMC12",
   "name": "'81 DeLorean DMC-12",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2109,8 +3091,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 98,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 10679627,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": true,
   "workshop_id": "3253385114",
   "folder": "81deloreanDMC12",
@@ -2118,18 +3107,28 @@
  },
  {
   "mod_id": "81deloreanDMC12BTTF",
+  "mod_id_fallback": "81deloreanDMC12BTTF",
   "name": "'81 DeLorean DMC-12 Time Machine",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "81deloreanDMC12"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 645223,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3253385114",
   "folder": "81deloreanDMC12BTTF",
@@ -2137,12 +3136,18 @@
  },
  {
   "mod_id": "68firebird",
+  "mod_id_fallback": "68firebird",
   "name": "'68 Pontiac Firebird",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2155,6 +3160,11 @@
    "events_add": 2,
    "onplayerupdate": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 152,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -2162,6 +3172,8 @@
    ]
   ],
   "lua_kb": 18,
+  "bytes": 15800343,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3258343790",
   "folder": "68firebird",
@@ -2169,10 +3181,16 @@
  },
  {
   "mod_id": "FancyLanterns",
+  "mod_id_fallback": "FancyLanterns",
   "name": "Fancy Lanterns",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 5,
    "lua_server": 1,
@@ -2189,6 +3207,12 @@
    "require_line": 2,
    "timed_action_new": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 133,
+  "script_modules": [
+   "Base",
+   "SWFancyLanterns"
+  ],
   "top_events": [
    [
     "OnInitGlobalModData",
@@ -2208,6 +3232,8 @@
    ]
   ],
   "lua_kb": 13,
+  "bytes": 1092562,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": true,
   "workshop_id": "3267733558",
   "folder": "FancyLanterns",
@@ -2215,12 +3241,18 @@
  },
  {
   "mod_id": "92jeepYJ",
+  "mod_id_fallback": "92jeepYJ",
   "name": "'92 Jeep Wrangler YJ",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 4,
@@ -2231,8 +3263,15 @@
    "mod_data": 16,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 209,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 23,
+  "bytes": 20394921,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3287727378",
   "folder": "92jeepYJ",
@@ -2240,18 +3279,28 @@
  },
  {
   "mod_id": "92jeepYJJP18",
+  "mod_id_fallback": "92jeepYJJP18",
   "name": "'92 Jeep Wrangler YJ JP18",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "92jeepYJ"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 731441,
+  "workshop_item_mtime": "2026-08-12T00:03:06",
   "sandbox_options": false,
   "workshop_id": "3287727378",
   "folder": "92jeepYJJP18",
@@ -2259,12 +3308,18 @@
  },
  {
   "mod_id": "89volvo200",
+  "mod_id_fallback": "89volvo200",
   "name": "'89 Volvo 200 Series",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2275,8 +3330,15 @@
    "mod_data": 19,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 270,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 29,
+  "bytes": 32205807,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3292659291",
   "folder": "89volvo200",
@@ -2284,18 +3346,31 @@
  },
  {
   "mod_id": "GanydeBielovzki's Frockin Splendor!",
+  "mod_id_fallback": "Frockin Splendor!",
   "name": "Frockin Splendor!",
   "author": "GanydeBielovzki",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 2,
    "lua_shared": 1,
    "script_files": 5
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 37,
+  "script_modules": [
+   "Base",
+   "FrockinSplendor"
+  ],
   "top_events": [],
   "lua_kb": 18,
+  "bytes": 87694600,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3307376332",
   "folder": "Frockin Splendor!",
@@ -2303,12 +3378,18 @@
  },
  {
   "mod_id": "98stagea",
+  "mod_id_fallback": "98stagea",
   "name": "'98 Nissan Stagea 260RS Autech",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2319,8 +3400,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 154,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 13454787,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3315443103",
   "folder": "98stagea",
@@ -2328,12 +3416,18 @@
  },
  {
   "mod_id": "82firebird",
+  "mod_id_fallback": "82firebird",
   "name": "'82 Pontiac Firebird",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -2346,6 +3440,11 @@
    "events_add": 2,
    "onplayerupdate": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 113,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -2353,6 +3452,8 @@
    ]
   ],
   "lua_kb": 17,
+  "bytes": 13191167,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3320947974",
   "folder": "82firebird",
@@ -2360,69 +3461,109 @@
  },
  {
   "mod_id": "82firebirdKITT",
+  "mod_id_fallback": "82firebirdKITT",
   "name": "'82 Pontiac Firebird Trans Am KITT",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "82firebird"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 636231,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3320947974",
   "folder": "82firebirdKITT",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "MoreDifficultZonesB42",
-  "name": "More Difficult Zones",
-  "author": "?",
-  "require": [
-   "MoodleFramework"
-  ],
-  "layout": "42",
-  "stats": {},
-  "signals": {},
-  "top_events": [],
-  "lua_kb": 0,
-  "sandbox_options": true,
-  "workshop_id": "3325808670",
-  "folder": "MoreDifficultyB42",
-  "class": "other"
- },
- {
   "mod_id": "MoreDifficultZombiesB42",
+  "mod_id_fallback": "MoreDifficultZombiesB42",
   "name": "More Difficult Zombies",
   "author": "?",
   "require": [
    "MoreDifficultZonesB42"
   ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 302002,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3325808670",
   "folder": "MoreDifficultZombiesB42",
   "class": "other"
  },
  {
+  "mod_id": "MoreDifficultZonesB42",
+  "mod_id_fallback": "MoreDifficultyB42",
+  "name": "More Difficult Zones",
+  "author": "?",
+  "require": [
+   "MoodleFramework"
+  ],
+  "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
+  "stats": {},
+  "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
+  "top_events": [],
+  "lua_kb": 0,
+  "bytes": 2394875,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
+  "sandbox_options": true,
+  "workshop_id": "3325808670",
+  "folder": "MoreDifficultyB42",
+  "class": "other"
+ },
+ {
   "mod_id": "OZD-ZonesB42",
+  "mod_id_fallback": "OZD-ZonesB42",
   "name": "ZombieLootDropZones",
   "author": "?",
   "require": [
    "MoreDifficultZonesB42"
   ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 5141776,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": true,
   "workshop_id": "3325808670",
   "folder": "OZD-ZonesB42",
@@ -2430,12 +3571,18 @@
  },
  {
   "mod_id": "KI5trailers",
+  "mod_id_fallback": "KI5trailers",
   "name": "Trailers!",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 3,
@@ -2445,8 +3592,15 @@
   "signals": {
    "require_line": 4
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 87,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 11786296,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3330403100",
   "folder": "KI5trailers",
@@ -2454,14 +3608,24 @@
  },
  {
   "mod_id": "Erikas_Tiles",
+  "mod_id_fallback": "Erikas Tiles",
   "name": "Erika's Tiles",
-  "author": "?",
+  "author": "Erika",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 290687998,
+  "workshop_item_mtime": "2026-09-03T14:27:16",
   "sandbox_options": false,
   "workshop_id": "3346506593",
   "folder": "Erikas Tiles",
@@ -2469,12 +3633,18 @@
  },
  {
   "mod_id": "77firebird",
+  "mod_id_fallback": "77firebird",
   "name": "'77 Pontiac Firebird",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2485,8 +3655,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 133,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 15610406,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3346905070",
   "folder": "77firebird",
@@ -2494,10 +3671,16 @@
  },
  {
   "mod_id": "EssentialCarNotifications",
+  "mod_id_fallback": "EssentialCarNotifications",
   "name": "Essential Car Notifications",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 1
   },
@@ -2505,6 +3688,9 @@
    "events_add": 3,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -2520,6 +3706,8 @@
    ]
   ],
   "lua_kb": 3,
+  "bytes": 459534,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3350173580",
   "folder": "EssentialCarNotifications",
@@ -2527,12 +3715,18 @@
  },
  {
   "mod_id": "91fordLTD",
+  "mod_id_fallback": "91fordLTD",
   "name": "'91 Ford LTD Crown Victoria",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2543,8 +3737,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 182,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 22,
+  "bytes": 26393321,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3366300557",
   "folder": "91fordLTD",
@@ -2552,12 +3753,18 @@
  },
  {
   "mod_id": "82porsche911",
+  "mod_id_fallback": "82porsche911",
   "name": "'82 Porsche 911",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2568,8 +3775,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 179,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 24,
+  "bytes": 26748311,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3379334330",
   "folder": "82porsche911",
@@ -2577,10 +3791,15 @@
  },
  {
   "mod_id": "ElyonLib",
+  "mod_id_fallback": "ElyonLib",
   "name": "Elyon Lib",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 5,
    "lua_shared": 25
@@ -2597,6 +3816,9 @@
    "getfilewriter": 2,
    "sandbox_vars": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnTick",
@@ -2628,6 +3850,8 @@
    ]
   ],
   "lua_kb": 211,
+  "bytes": 1396995,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3384377738",
   "folder": "ElyonLib",
@@ -2635,10 +3859,16 @@
  },
  {
   "mod_id": "AutoCook",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "AutoCook",
+  "name": "Auto Cook",
+  "author": "Tchernobill",
   "require": [],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42"
+  ],
+  "mod_info_at": "common/mod.info",
   "stats": {
    "lua_client": 3
   },
@@ -2648,8 +3878,13 @@
    "food_nutrition": 4,
    "global_write_vanilla": 21
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 41,
+  "bytes": 129161,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3388721641",
   "folder": "AutoCook",
@@ -2657,10 +3892,17 @@
  },
  {
   "mod_id": "MoodleFramework",
-  "name": "?",
+  "mod_id_fallback": "MoodleFramework",
+  "name": "MoodleFramework",
   "author": "?",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_client": 1
   },
@@ -2669,6 +3911,9 @@
    "mod_data": 1,
    "food_nutrition": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnCreatePlayer",
@@ -2680,6 +3925,8 @@
    ]
   ],
   "lua_kb": 27,
+  "bytes": 180592,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3396446795",
   "folder": "MoodleFramework",
@@ -2687,14 +3934,24 @@
  },
  {
   "mod_id": "PainkillersRemoveMuscleStrain",
+  "mod_id_fallback": "PainkillersRemoveMuscleStrain",
   "name": "PainkillersRemoveMuscleStrain",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 138059,
+  "workshop_item_mtime": "2026-08-29T22:48:36",
   "sandbox_options": false,
   "workshop_id": "3398090604",
   "folder": "PainkillersRemoveMuscleStrain",
@@ -2702,10 +3959,15 @@
  },
  {
   "mod_id": "VanillaGearExpanded",
+  "mod_id_fallback": "Vanilla Gear Expanded",
   "name": "Vanilla Gear Expanded",
   "author": "Tango",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1,
@@ -2713,8 +3975,15 @@
    "script_files": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 51,
+  "script_modules": [
+   "VGE"
+  ],
   "top_events": [],
   "lua_kb": 11,
+  "bytes": 5981603,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3401134276",
   "folder": "Vanilla Gear Expanded",
@@ -2722,14 +3991,24 @@
  },
  {
   "mod_id": "ExerciseWithCorpses",
+  "mod_id_fallback": "ExerciseWithCorpses",
   "name": "ExerciseWithCorpses",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 196333,
+  "workshop_item_mtime": "2026-08-29T22:48:34",
   "sandbox_options": false,
   "workshop_id": "3404074048",
   "folder": "ExerciseWithCorpses",
@@ -2737,12 +4016,18 @@
  },
  {
   "mod_id": "84jeepXJ",
+  "mod_id_fallback": "84jeepXJ",
   "name": "'84 Jeep XJ Cherokee",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2753,8 +4038,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 154,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 20,
+  "bytes": 17745633,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3409287192",
   "folder": "84jeepXJ",
@@ -2762,18 +4054,31 @@
  },
  {
   "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.2",
+  "mod_id_fallback": "Frockin Splendor! Vol.2",
   "name": "Frockin Splendor! Vol.2",
   "author": "GanydeBielovzki",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 3,
    "lua_server": 2,
    "script_files": 7
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 71,
+  "script_modules": [
+   "Base",
+   "FrockinSplendorVol2"
+  ],
   "top_events": [],
   "lua_kb": 58,
+  "bytes": 68977577,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3411888105",
   "folder": "Frockin Splendor! Vol.2",
@@ -2781,10 +4086,16 @@
  },
  {
   "mod_id": "RemoveAllItems",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "RemoveAllItems",
+  "name": "RemoveAllItems",
+  "author": "Tchernobill",
   "require": [],
   "layout": "42.14",
+  "version_dirs": [
+   "42.14",
+   "42"
+  ],
+  "mod_info_at": "common/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 1
@@ -2795,6 +4106,9 @@
    "events_add": 1,
    "on_client_cmd": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnClientCommand",
@@ -2802,6 +4116,8 @@
    ]
   ],
   "lua_kb": 8,
+  "bytes": 62562,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3413255058",
   "folder": "RemoveAllItems",
@@ -2809,12 +4125,18 @@
  },
  {
   "mod_id": "85chevyCaprice",
+  "mod_id_fallback": "85chevyCaprice",
   "name": "'85 Chevrolet Caprice / Impala",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 4,
@@ -2825,8 +4147,15 @@
    "mod_data": 19,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 79,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 37,
+  "bytes": 29367597,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3413704851",
   "folder": "85chevyCaprice",
@@ -2834,12 +4163,17 @@
  },
  {
   "mod_id": "85pontiacParisienne",
+  "mod_id_fallback": "85pontiacParisienne",
   "name": "'85 Pontiac Parisienne",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2850,8 +4184,15 @@
    "mod_data": 19,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 58,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 24,
+  "bytes": 15175202,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3413706334",
   "folder": "85pontiacParisienne",
@@ -2859,12 +4200,18 @@
  },
  {
   "mod_id": "85buickLeSabre",
+  "mod_id_fallback": "85buickLeSabre",
   "name": "'85 Buick LeSabre",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2875,8 +4222,15 @@
    "mod_data": 19,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 60,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 28,
+  "bytes": 18941388,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3418252689",
   "folder": "85buickLeSabre",
@@ -2884,12 +4238,18 @@
  },
  {
   "mod_id": "85oldsmobileDelta88",
+  "mod_id_fallback": "85oldsmobileDelta88",
   "name": "'85 Oldsmobile Delta 88",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -2900,8 +4260,15 @@
    "mod_data": 19,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 60,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 28,
+  "bytes": 19210538,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3418253716",
   "folder": "85oldsmobileDelta88",
@@ -2909,16 +4276,28 @@
  },
  {
   "mod_id": "1VCESTANDARD",
-  "name": "Vanilla Clothing Expansion",
+  "mod_id_fallback": "Vanilla Clothing Expansion MP",
+  "name": "Vanilla Clothing Expansion [B42 MP]",
   "author": "Reconspiracy",
   "require": [],
   "layout": "42.19",
+  "version_dirs": [
+   "42.19"
+  ],
+  "mod_info_at": "42.19/mod.info",
   "stats": {
    "script_files": 3
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 72,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 17399942,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3421271152",
   "folder": "Vanilla Clothing Expansion MP",
@@ -2926,10 +4305,17 @@
  },
  {
   "mod_id": "VVR",
+  "mod_id_fallback": "VanillaVehiclesReplacerKI5",
   "name": "Vanilla Vehicles Replacer (KI5)",
-  "author": "?",
-  "require": [],
+  "author": "\u041f\u0443\u043f\u0441\u0438\u0447",
+  "require": [
+   "YAPZLib"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 2,
    "lua_shared": 6
@@ -2939,6 +4325,9 @@
    "sandbox_vars": 10,
    "require_line": 4
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnLoadMapZones",
@@ -2958,6 +4347,8 @@
    ]
   ],
   "lua_kb": 171,
+  "bytes": 330811,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": true,
   "workshop_id": "3423424077",
   "folder": "VanillaVehiclesReplacerKI5",
@@ -2965,19 +4356,33 @@
  },
  {
   "mod_id": "CombatTraits",
+  "mod_id_fallback": "CombatTraits",
   "name": "Combat Traits",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [
    "CombatTraitsCore"
   ],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_shared": 3,
    "script_files": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "SWCombatTraits"
+  ],
   "top_events": [],
   "lua_kb": 2,
+  "bytes": 257891,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3427091746",
   "folder": "CombatTraits",
@@ -2985,10 +4390,17 @@
  },
  {
   "mod_id": "CombatTraitsCore",
+  "mod_id_fallback": "CombatTraitsCore",
   "name": "Combat Traits Core",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 1
@@ -3000,6 +4412,9 @@
    "everyoneminute": 1,
    "on_client_cmd": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnWeaponSwing",
@@ -3031,6 +4446,8 @@
    ]
   ],
   "lua_kb": 6,
+  "bytes": 208346,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3427091746",
   "folder": "CombatTraitsCore",
@@ -3038,10 +4455,15 @@
  },
  {
   "mod_id": "NSOENMIOEACTDD",
+  "mod_id_fallback": "NSOENMIOEACTDD",
   "name": "No Stop On Exit No Move Items On Enter And Close That Damn Door",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 1
   },
@@ -3049,8 +4471,13 @@
    "monkey_patch": 6,
    "global_write_vanilla": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 7,
+  "bytes": 170739,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3427114019",
   "folder": "NSOENMIOEACTDD",
@@ -3058,12 +4485,19 @@
  },
  {
   "mod_id": "86chevyCUCV",
+  "mod_id_fallback": "86chevyCUCV",
   "name": "'86 Chevrolet CUCVs + M101A2 Trailer",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.17",
+  "version_dirs": [
+   "42.17",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.17/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -3074,8 +4508,15 @@
    "mod_data": 15,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 205,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 37,
+  "bytes": 41545430,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3428008364",
   "folder": "86chevyCUCV",
@@ -3083,18 +4524,33 @@
  },
  {
   "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.3",
+  "mod_id_fallback": "Frockin Splendor! Vol.3",
   "name": "Frockin Splendor! Vol.3",
   "author": "GanydeBielovzki",
-  "require": [],
+  "require": [
+   "GanydeBielovzki's Frockin Splendor! Vol.2"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 2,
    "lua_shared": 1,
    "script_files": 4
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 107,
+  "script_modules": [
+   "Base",
+   "FrockinSplendorVol3"
+  ],
   "top_events": [],
   "lua_kb": 20,
+  "bytes": 47257907,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3431256608",
   "folder": "Frockin Splendor! Vol.3",
@@ -3102,12 +4558,18 @@
  },
  {
   "mod_id": "88toyotaHilux",
+  "mod_id_fallback": "88toyotaHilux",
   "name": "'88 Toyota Hilux",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3118,8 +4580,15 @@
    "mod_data": 18,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 160,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 17,
+  "bytes": 11811514,
+  "workshop_item_mtime": "2026-08-12T00:03:05",
   "sandbox_options": false,
   "workshop_id": "3435796523",
   "folder": "88toyotaHilux",
@@ -3127,10 +4596,22 @@
  },
  {
   "mod_id": "CleanUI",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id_fallback": "CleanUI",
+  "name": "CleanUI",
+  "author": "Rocco, Afyrmo",
+  "require": [
+   "NeatUI_Framework"
+  ],
   "layout": "42.19",
+  "version_dirs": [
+   "42.19",
+   "42.16",
+   "42.15",
+   "42.14",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.19/mod.info",
   "stats": {
    "lua_client": 51,
    "lua_shared": 3
@@ -3149,6 +4630,9 @@
    "sandbox_vars": 2,
    "timed_action_new": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnTick",
@@ -3176,6 +4660,8 @@
    ]
   ],
   "lua_kb": 1064,
+  "bytes": 11300184,
+  "workshop_item_mtime": "2026-08-17T13:37:07",
   "sandbox_options": false,
   "workshop_id": "3437629766",
   "folder": "CleanUI",
@@ -3183,12 +4669,18 @@
  },
  {
   "mod_id": "66pontiacLeMans",
+  "mod_id_fallback": "66pontiacLeMans",
   "name": "'66 Pontiac LeMans / GTO",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3199,8 +4691,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 129,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 17683258,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3447272250",
   "folder": "66pontiacLeMans",
@@ -3208,18 +4707,31 @@
  },
  {
   "mod_id": "KWRR_Security",
+  "mod_id_fallback": "KWRR_Security",
   "name": "KWRR Security",
-  "author": "?",
+  "author": "Lu5ck",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.19",
+   "42.15",
+   "42"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 1
   },
   "signals": {
    "send_client_cmd": 20
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 12,
+  "bytes": 801605,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3455571945",
   "folder": "KWRR_Security",
@@ -3227,14 +4739,25 @@
  },
  {
   "mod_id": "CleanHotBar",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "CleanHotBar",
+  "name": "CleanHotBar",
+  "author": "Rocco, Afyrmo",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 737747,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3461263912",
   "folder": "CleanHotBar",
@@ -3242,10 +4765,17 @@
  },
  {
   "mod_id": "KATTAJ1_ClothesCore",
+  "mod_id_fallback": "KATTAJ1 Clothes Core",
   "name": "KATTAJ1 Clothes Core",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_shared": 4,
    "lua_client": 4,
@@ -3258,6 +4788,11 @@
    "global_write_vanilla": 1,
    "events_add": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 1,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnFillInventoryObjectContextMenu",
@@ -3265,6 +4800,8 @@
    ]
   ],
   "lua_kb": 27,
+  "bytes": 20882837,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3470422050",
   "folder": "KATTAJ1 Clothes Core",
@@ -3272,12 +4809,19 @@
  },
  {
   "mod_id": "KATTAJ1_Military",
+  "mod_id_fallback": "KATTAJ1 Military Pack",
   "name": "KATTAJ1 Military Pack",
   "author": "?",
   "require": [
    "KATTAJ1_ClothesCore"
   ],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 2,
@@ -3288,6 +4832,11 @@
    "require_line": 2,
    "sandbox_vars": 68
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 492,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnInitGlobalModData",
@@ -3299,6 +4848,8 @@
    ]
   ],
   "lua_kb": 35,
+  "bytes": 117912543,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3470426196",
   "folder": "KATTAJ1 Military Pack",
@@ -3306,10 +4857,17 @@
  },
  {
   "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.4",
+  "mod_id_fallback": "Frockin Splendor! Vol.4",
   "name": "Frockin Splendor! Vol.4",
   "author": "GanydeBielovzki",
-  "require": [],
+  "require": [
+   "GanydeBielovzki's Frockin Splendor! Vol.2"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 2,
    "lua_shared": 1,
@@ -3318,8 +4876,16 @@
   "signals": {
    "require_line": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 127,
+  "script_modules": [
+   "Base",
+   "FrockinSplendorVol4"
+  ],
   "top_events": [],
   "lua_kb": 10,
+  "bytes": 144870607,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3475347500",
   "folder": "Frockin Splendor! Vol.4",
@@ -3327,12 +4893,18 @@
  },
  {
   "mod_id": "04vwTouran",
+  "mod_id_fallback": "04vwTouran",
   "name": "'04 Volkswagen Touran",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3343,8 +4915,15 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 146,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 14,
+  "bytes": 11382473,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3478633453",
   "folder": "04vwTouran",
@@ -3352,14 +4931,21 @@
  },
  {
   "mod_id": "73fordFalcon",
+  "mod_id_fallback": "73fordFalcon",
   "name": "'73 Ford Falcon",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
-  "layout": "42.13",
+  "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
-   "lua_client": 4,
+   "lua_client": 3,
    "lua_server": 3,
    "lua_shared": 3,
    "script_files": 22
@@ -3370,6 +4956,11 @@
    "events_add": 3,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 179,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -3385,6 +4976,8 @@
    ]
   ],
   "lua_kb": 21,
+  "bytes": 14363020,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3490370700",
   "folder": "73fordFalcon",
@@ -3392,36 +4985,62 @@
  },
  {
   "mod_id": "73fordFalconPS",
+  "mod_id_fallback": "73fordFalconPS",
   "name": "'73 Ford Falcon XB GT Pursuit Special",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "73fordFalcon"
   ],
   "layout": "42.0",
-  "stats": {},
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
+  "stats": {
+   "lua_shared": 2
+  },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 662963,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3490370700",
   "folder": "73fordFalconPS",
-  "class": "other"
+  "class": "systems(light-lua)"
  },
  {
   "mod_id": "SomewhatTraits",
+  "mod_id_fallback": "SomewhatTraits",
   "name": "Somewhat Traits",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [
    "SomewhatTraitsCore"
   ],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_shared": 3,
    "script_files": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "SWTraits"
+  ],
   "top_events": [],
   "lua_kb": 7,
+  "bytes": 1058102,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3498347699",
   "folder": "SomewhatTraits",
@@ -3429,10 +5048,17 @@
  },
  {
   "mod_id": "SomewhatTraitsCore",
+  "mod_id_fallback": "SomewhatTraitsCore",
   "name": "Somewhat Traits Core",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 2,
    "lua_server": 1,
@@ -3447,6 +5073,9 @@
    "on_client_cmd": 1,
    "food_nutrition": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnTick",
@@ -3482,6 +5111,8 @@
    ]
   ],
   "lua_kb": 44,
+  "bytes": 277350,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3498347699",
   "folder": "SomewhatTraitsCore",
@@ -3489,17 +5120,31 @@
  },
  {
   "mod_id": "SomewhatTraitsSkills",
+  "mod_id_fallback": "SomewhatTraitsSkills",
   "name": "Somewhat Traits Skills",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42.12"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_shared": 2,
    "script_files": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "SWTraitsSkills"
+  ],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 402021,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3498347699",
   "folder": "SomewhatTraitsSkills",
@@ -3507,14 +5152,27 @@
  },
  {
   "mod_id": "Neat_Crafting",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id_fallback": "Neat_Crafting",
+  "name": "Neat Crafting",
+  "author": "Rocco, Afyrmo",
+  "require": [
+   "NeatUI_Framework"
+  ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 3674664,
+  "workshop_item_mtime": "2026-08-17T13:37:10",
   "sandbox_options": false,
   "workshop_id": "3502080466",
   "folder": "Neat_Crafting",
@@ -3522,12 +5180,18 @@
  },
  {
   "mod_id": "91nissan240sx",
+  "mod_id_fallback": "91nissan240sx",
   "name": "'91 Nissan 240SX",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -3540,6 +5204,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 168,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -3547,6 +5216,8 @@
    ]
   ],
   "lua_kb": 19,
+  "bytes": 13034421,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3504401781",
   "folder": "91nissan240sx",
@@ -3554,10 +5225,15 @@
  },
  {
   "mod_id": "NeatUI_Framework",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "NeatUI_Framework",
+  "name": "NeatUI_Framework",
+  "author": "Rocco, Afyrmo",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 11
   },
@@ -3566,23 +5242,38 @@
    "global_write_vanilla": 10,
    "monkey_patch": 9
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 72,
+  "bytes": 2300916,
+  "workshop_item_mtime": "2026-08-17T13:37:05",
   "sandbox_options": false,
   "workshop_id": "3508537032",
   "folder": "NeatUI_Framework",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "EN_Newburbs",
-  "name": "?",
+  "mod_id": "ThermoNewburbs",
+  "mod_id_fallback": "EN_Newburbs",
+  "name": "ExtraNoise's Newburbs Tiles Official Continuation",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "common/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 154151618,
+  "workshop_item_mtime": "2026-09-03T14:27:54",
   "sandbox_options": false,
   "workshop_id": "3520263838",
   "folder": "EN_Newburbs",
@@ -3590,12 +5281,18 @@
  },
  {
   "mod_id": "91fordRanger",
+  "mod_id_fallback": "91fordRanger",
   "name": "'91 Ford Ranger",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3606,8 +5303,15 @@
    "mod_data": 18,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 139,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 17,
+  "bytes": 14413373,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3539691958",
   "folder": "91fordRanger",
@@ -3615,12 +5319,18 @@
  },
  {
   "mod_id": "65banshee",
+  "mod_id_fallback": "65banshee",
   "name": "'65 Pontiac Banshee",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3633,6 +5343,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 153,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -3640,6 +5355,8 @@
    ]
   ],
   "lua_kb": 17,
+  "bytes": 10636625,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3566868353",
   "folder": "65banshee",
@@ -3647,12 +5364,18 @@
  },
  {
   "mod_id": "89defender",
+  "mod_id_fallback": "89defender",
   "name": "'89 LAND ROVER Defender",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -3665,6 +5388,11 @@
    "events_add": 3,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 280,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -3676,6 +5404,8 @@
    ]
   ],
   "lua_kb": 34,
+  "bytes": 29291707,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3570973322",
   "folder": "89defender",
@@ -3683,14 +5413,26 @@
  },
  {
   "mod_id": "STA_PryOpen",
+  "mod_id_fallback": "STA_PryOpen",
   "name": "StarkTruffle Additions - Pry Open",
   "author": "StarkTruffle",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.19",
+   "42.18"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 748124,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3579640010",
   "folder": "STA_PryOpen",
@@ -3698,10 +5440,15 @@
  },
  {
   "mod_id": "SomewhatCompanions",
+  "mod_id_fallback": "SomewhatCompanions",
   "name": "Somewhat Companions",
-  "author": "?",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 1,
@@ -3717,6 +5464,11 @@
    "global_write_vanilla": 3,
    "require_line": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 15,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnFillInventoryObjectContextMenu",
@@ -3728,6 +5480,8 @@
    ]
   ],
   "lua_kb": 12,
+  "bytes": 557428,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3582919946",
   "folder": "SomewhatCompanions",
@@ -3735,14 +5489,24 @@
  },
  {
   "mod_id": "SomewhatWater",
+  "mod_id_fallback": "SomewhatWater",
   "name": "Somewhat Water",
   "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 320219,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3582960654",
   "folder": "SomewhatWater",
@@ -3750,14 +5514,24 @@
  },
  {
   "mod_id": "SomewhatWaterBright",
+  "mod_id_fallback": "SomewhatWaterBright",
   "name": "Somewhat Water Bright",
   "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 320271,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3582960654",
   "folder": "SomewhatWaterBright",
@@ -3765,12 +5539,18 @@
  },
  {
   "mod_id": "84cadillacDeVille",
+  "mod_id_fallback": "84cadillacDeVille",
   "name": "'84 Cadillac DeVille",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3783,6 +5563,11 @@
    "events_add": 5,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 56,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -3802,6 +5587,8 @@
    ]
   ],
   "lua_kb": 25,
+  "bytes": 19185562,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3592777775",
   "folder": "84cadillacDeVille",
@@ -3809,12 +5596,18 @@
  },
  {
   "mod_id": "84buickElectra",
+  "mod_id_fallback": "84buickElectra",
   "name": "'84 Buick Electra",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -3827,6 +5620,11 @@
    "events_add": 5,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 56,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -3846,6 +5644,8 @@
    ]
   ],
   "lua_kb": 25,
+  "bytes": 15881379,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3596903773",
   "folder": "84buickElectra",
@@ -3853,12 +5653,18 @@
  },
  {
   "mod_id": "85chevyStepVan",
+  "mod_id_fallback": "85chevyStepVan",
   "name": "'85 Chevrolet Step-Van",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -3871,6 +5677,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 151,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -3878,6 +5689,8 @@
    ]
   ],
   "lua_kb": 17,
+  "bytes": 12092488,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3614034284",
   "folder": "85chevyStepVan",
@@ -3885,12 +5698,17 @@
  },
  {
   "mod_id": "85chevyStepVanexpanded",
+  "mod_id_fallback": "85chevyStepVanExpanded",
   "name": "'85 Chevrolet Step-Van Expanded",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "85chevyStepVan"
   ],
   "layout": "42.0",
+  "version_dirs": [
+   "42.0"
+  ],
+  "mod_info_at": "42.0/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 2,
@@ -3900,8 +5718,15 @@
   "signals": {
    "require_line": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 18,
+  "bytes": 15932560,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3614034284",
   "folder": "85chevyStepVanExpanded",
@@ -3909,10 +5734,18 @@
  },
  {
   "mod_id": "ResearchLabInternProfession",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id_fallback": "ResearchLabInternProfession",
+  "name": "Zombie Virus Vaccine: Research Lab Intern Profession [B42.20+ SP/MP]",
+  "author": "rEXX",
+  "require": [
+   "ZVirusVaccine42BETA"
+  ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.19"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_shared": 7,
    "script_files": 3
@@ -3922,6 +5755,12 @@
    "events_add": 4,
    "require_line": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 6,
+  "script_modules": [
+   "ProfessionItems",
+   "RLP"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -3937,6 +5776,8 @@
    ]
   ],
   "lua_kb": 18,
+  "bytes": 70119777,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3615135168",
   "folder": "ResearchLabInternProfession",
@@ -3944,10 +5785,16 @@
  },
  {
   "mod_id": "ZVirusVaccine42BETA",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "ZVirusVaccine42BETA",
+  "name": "Zombie Virus Vaccine [B42.20+ SP/MP]",
+  "author": "Demonius, Dr_Reapers, Ehue232v, HuaGreanDEV, rEXX",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.14"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_shared": 17,
    "lua_client": 10,
@@ -3966,8 +5813,25 @@
    "everyoneminute": 3,
    "send_client_cmd": 11,
    "timed_action_new": 14,
-   "global_write_vanilla": 18
+   "global_write_vanilla": 18,
+   "script_nutrition": 36
   },
+  "script_nutrition_keys": {
+   "Calories": 3,
+   "DaysFresh": 3,
+   "DaysTotallyRotten": 4,
+   "HungerChange": 5,
+   "Proteins": 3,
+   "ThirstChange": 18
+  },
+  "script_item_blocks": 536,
+  "script_modules": [
+   "Base",
+   "LabBooks",
+   "LabItems",
+   "LabItems{",
+   "LabSounds"
+  ],
   "top_events": [
    [
     "OnServerCommand",
@@ -4003,6 +5867,8 @@
    ]
   ],
   "lua_kb": 240,
+  "bytes": 13476962,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3615135168",
   "folder": "ZVirusVaccine42BETA",
@@ -4010,10 +5876,17 @@
  },
  {
   "mod_id": "HereGoesTheSun",
+  "mod_id_fallback": "HereGoesTheSun",
   "name": "?",
-  "author": "?",
+  "author": "Bass",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13",
+   "42"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 2,
@@ -4025,6 +5898,9 @@
    "pcall": 6,
    "everyoneminute": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameStart",
@@ -4060,6 +5936,8 @@
    ]
   ],
   "lua_kb": 22,
+  "bytes": 4464753,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3618557184",
   "folder": "HereGoesTheSun",
@@ -4067,10 +5945,15 @@
  },
  {
   "mod_id": "SWMisc_Fixes",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SWMisc_Fixes",
+  "name": "SWMisc_Fixes",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 1
   },
@@ -4078,8 +5961,13 @@
    "monkey_patch": 3,
    "global_write_vanilla": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 2,
+  "bytes": 10420,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3621968227",
   "folder": "SWMisc_Fixes",
@@ -4087,17 +5975,30 @@
  },
  {
   "mod_id": "SWMisc_Items",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SWMisc_Items",
+  "name": "SWMisc_Items",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "models": 10,
    "script_files": 3
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 16,
+  "script_modules": [
+   "Base",
+   "SWMisc"
+  ],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 1742360,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3621968227",
   "folder": "SWMisc_Items",
@@ -4105,10 +6006,15 @@
  },
  {
   "mod_id": "SWMisc_Patches",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SWMisc_Patches",
+  "name": "SWMisc_Patches",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 2,
    "lua_shared": 4,
@@ -4122,6 +6028,11 @@
    "sandbox_vars": 5,
    "global_write_vanilla": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 11,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnInitGlobalModData",
@@ -4141,6 +6052,8 @@
    ]
   ],
   "lua_kb": 11,
+  "bytes": 23490,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": true,
   "workshop_id": "3621968227",
   "folder": "SWMisc_Patches",
@@ -4148,10 +6061,15 @@
  },
  {
   "mod_id": "SWMisc_Resting",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SWMisc_Resting",
+  "name": "SWMisc_Resting",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 2
   },
@@ -4159,6 +6077,9 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -4166,6 +6087,8 @@
    ]
   ],
   "lua_kb": 1,
+  "bytes": 8891,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3621968227",
   "folder": "SWMisc_Resting",
@@ -4173,10 +6096,15 @@
  },
  {
   "mod_id": "SWMisc_Slots",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SWMisc_Slots",
+  "name": "SWMisc_Slots",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 2,
    "lua_client": 2,
@@ -4187,8 +6115,15 @@
    "global_write_vanilla": 2,
    "require_line": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 3,
+  "bytes": 13754,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3621968227",
   "folder": "SWMisc_Slots",
@@ -4196,17 +6131,29 @@
  },
  {
   "mod_id": "RikuFriends",
-  "name": "?",
+  "mod_id_fallback": "RikuFriends",
+  "name": "Riku Friends",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "models": 17,
    "script_files": 2
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 17,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 2980680,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3623584152",
   "folder": "RikuFriends",
@@ -4214,10 +6161,15 @@
  },
  {
   "mod_id": "RikuGoldPlating",
-  "name": "?",
+  "mod_id_fallback": "RikuGoldPlating",
+  "name": "Riku Gold Plating",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 2,
    "lua_shared": 1,
@@ -4225,42 +6177,66 @@
    "script_files": 3
   },
   "signals": {
-   "mod_data": 3,
-   "monkey_patch": 2,
+   "mod_data": 2,
+   "monkey_patch": 1,
    "pcall": 1,
    "require_line": 2,
-   "global_write_vanilla": 1,
-   "events_add": 1
+   "global_write_vanilla": 1
   },
-  "top_events": [
-   [
-    "OnWeaponSwing",
-    1
-   ]
+  "script_nutrition_keys": {},
+  "script_item_blocks": 58,
+  "script_modules": [
+   "Base",
+   "RMWeapons"
   ],
-  "lua_kb": 3,
+  "top_events": [],
+  "lua_kb": 2,
+  "bytes": 827673,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3623584152",
   "folder": "RikuGoldPlating",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "RikuMelee",
-  "name": "?",
+  "mod_id": "RikuMeleeB42",
+  "mod_id_fallback": "RikuMelee",
+  "name": "Riku Emporium",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
-   "lua_shared": 3,
+   "lua_shared": 2,
+   "lua_client": 1,
    "lua_server": 1,
-   "models": 94,
+   "models": 95,
    "script_files": 10
   },
   "signals": {
+   "events_add": 1,
+   "global_write_vanilla": 1,
+   "onplayerupdate": 1,
    "require_line": 1
   },
-  "top_events": [],
-  "lua_kb": 14,
+  "script_nutrition_keys": {},
+  "script_item_blocks": 1077,
+  "script_modules": [
+   "Base",
+   "RMWeapons"
+  ],
+  "top_events": [
+   [
+    "OnPlayerUpdate",
+    1
+   ]
+  ],
+  "lua_kb": 4,
+  "bytes": 31507053,
+  "workshop_item_mtime": "2026-08-12T00:03:04",
   "sandbox_options": false,
   "workshop_id": "3623584152",
   "folder": "RikuMelee",
@@ -4268,18 +6244,30 @@
  },
  {
   "mod_id": "BaseQuests",
-  "name": "?",
+  "mod_id_fallback": "BaseQuests",
+  "name": "Base Quests",
   "author": "?",
-  "require": [],
+  "require": [
+   "QuestSystem"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 46
   },
   "signals": {
    "require_line": 46
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 423,
+  "bytes": 836004,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3624538051",
   "folder": "BaseQuests",
@@ -4287,10 +6275,17 @@
  },
  {
   "mod_id": "Economy",
-  "name": "?",
+  "mod_id_fallback": "Economy",
+  "name": "Economy",
   "author": "?",
-  "require": [],
+  "require": [
+   "QuestSystem"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 21,
    "lua_client": 30,
@@ -4301,15 +6296,23 @@
   "signals": {
    "events_add": 18,
    "require_line": 352,
-   "send_client_cmd": 36,
    "sandbox_vars": 13,
+   "send_client_cmd": 34,
    "ui_panel": 12,
-   "pcall": 58,
+   "pcall": 63,
    "mod_data": 9,
    "on_client_cmd": 6,
    "send_server_cmd": 6,
-   "getfilewriter": 2
+   "getfilewriter": 2,
+   "food_nutrition": 4
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 4,
+  "script_modules": [
+   "Base",
+   "Economy",
+   "QuestSystem"
+  ],
   "top_events": [
    [
     "OnFillWorldObjectContextMenu",
@@ -4344,7 +6347,9 @@
     1
    ]
   ],
-  "lua_kb": 497,
+  "lua_kb": 503,
+  "bytes": 600070,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3624538051",
   "folder": "Economy",
@@ -4352,10 +6357,15 @@
  },
  {
   "mod_id": "ItemQuality",
-  "name": "?",
+  "mod_id_fallback": "ItemQuality",
+  "name": "Item Quality",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 8,
    "lua_server": 3,
@@ -4376,6 +6386,11 @@
    "onplayerupdate": 1,
    "mod_data": 13
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 4,
+  "script_modules": [
+   "ItemQuality"
+  ],
   "top_events": [
    [
     "OnFillInventoryObjectContextMenu",
@@ -4411,6 +6426,8 @@
    ]
   ],
   "lua_kb": 56,
+  "bytes": 82963,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3624538051",
   "folder": "ItemQuality",
@@ -4418,10 +6435,18 @@
  },
  {
   "mod_id": "QualityEnhancements",
-  "name": "?",
+  "mod_id_fallback": "QualityEnhancements",
+  "name": "Quality Enhancements",
   "author": "?",
-  "require": [],
+  "require": [
+   "ItemQuality",
+   "QuestSystem"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 5,
    "lua_server": 3,
@@ -4440,6 +6465,11 @@
    "sandbox_vars": 1,
    "mod_data": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 4,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnServerCommand",
@@ -4459,6 +6489,8 @@
    ]
   ],
   "lua_kb": 201,
+  "bytes": 227348,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3624538051",
   "folder": "QualityEnhancements",
@@ -4466,10 +6498,15 @@
  },
  {
   "mod_id": "QuestSystem",
-  "name": "?",
+  "mod_id_fallback": "QuestSystem",
+  "name": "Quest System",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "sounds": 1,
    "lua_client": 45,
@@ -4495,6 +6532,11 @@
    "sandbox_vars": 13,
    "food_nutrition": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 73,
+  "script_modules": [
+   "QuestSystem"
+  ],
   "top_events": [
    [
     "OnClientCommand",
@@ -4530,17 +6572,24 @@
    ]
   ],
   "lua_kb": 718,
+  "bytes": 1894823,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3624538051",
   "folder": "QuestSystem",
   "class": "systems(heavy-lua)"
  },
  {
-  "mod_id": "YetAnotherPZLib",
-  "name": "?",
-  "author": "?",
+  "mod_id": "YAPZLib",
+  "mod_id_fallback": "YetAnotherPZLib",
+  "name": "Yet Another PZ Library",
+  "author": "\u041f\u0443\u043f\u0441\u0438\u0447",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 3,
@@ -4553,6 +6602,9 @@
    "mod_data": 3,
    "require_line": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnSpawnVehicleEnd",
@@ -4588,6 +6640,8 @@
    ]
   ],
   "lua_kb": 70,
+  "bytes": 90824,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3624971238",
   "folder": "YetAnotherPZLib",
@@ -4595,10 +6649,15 @@
  },
  {
   "mod_id": "CHGRedux",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "CHGRedux",
+  "name": "Craftable Headgear Redux",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 3,
    "models": 138,
@@ -4608,6 +6667,13 @@
    "events_add": 4,
    "sandbox_vars": 4
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 327,
+  "script_modules": [
+   "Base",
+   "CHGRedux",
+   "SWMisc"
+  ],
   "top_events": [
    [
     "OnInitGlobalModData",
@@ -4619,6 +6685,8 @@
    ]
   ],
   "lua_kb": 4,
+  "bytes": 32296872,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3625590608",
   "folder": "CHGRedux",
@@ -4626,10 +6694,15 @@
  },
  {
   "mod_id": "PlumbingFixed",
-  "name": "PlumbingFixed (B41)",
+  "mod_id_fallback": "PlumbingFixed",
+  "name": "PlumbingFixed [B42.19.0 - B42.20.2]",
   "author": "DuongC",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 7,
    "lua_server": 2,
@@ -4646,6 +6719,9 @@
    "everyoneminute": 1,
    "transmit_mod_data": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnFillWorldObjectContextMenu",
@@ -4673,6 +6749,8 @@
    ]
   ],
   "lua_kb": 86,
+  "bytes": 343915,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3626008449",
   "folder": "PlumbingFixed",
@@ -4680,17 +6758,32 @@
  },
  {
   "mod_id": "OCsPacking",
-  "name": "?",
+  "mod_id_fallback": "OCsPacking",
+  "name": "Hoarder's Delight - Box & Carton Bulk Packing",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_shared": 2,
    "script_files": 6
   },
   "signals": {
-   "events_add": 1
+   "events_add": 1,
+   "script_nutrition": 76
   },
+  "script_nutrition_keys": {
+   "DaysFresh": 38,
+   "DaysTotallyRotten": 38
+  },
+  "script_item_blocks": 338,
+  "script_modules": [
+   "Base",
+   "OCP"
+  ],
   "top_events": [
    [
     "OnInitWorld",
@@ -4698,6 +6791,8 @@
    ]
   ],
   "lua_kb": 5,
+  "bytes": 230500,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3626823538",
   "folder": "OCsPacking",
@@ -4705,14 +6800,24 @@
  },
  {
   "mod_id": "STA_EngineRebuild",
+  "mod_id_fallback": "STA_EngineRebuild",
   "name": "StarkTruffle Additions - Engine Rebuild",
   "author": "StarkTruffle",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 70495,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3628452306",
   "folder": "STA_EngineRebuild",
@@ -4720,14 +6825,24 @@
  },
  {
   "mod_id": "UnofficialMappersCommunityTilePack",
+  "mod_id_fallback": "CommunityTilePack",
   "name": "CommunityTilePack",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 219636470,
+  "workshop_item_mtime": "2026-09-03T14:27:06",
   "sandbox_options": false,
   "workshop_id": "3628736763",
   "folder": "CommunityTilePack",
@@ -4735,12 +6850,19 @@
  },
  {
   "mod_id": "69charger",
+  "mod_id_fallback": "69charger",
   "name": "'69 Dodge Charger",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -4753,6 +6875,11 @@
    "events_add": 2,
    "onplayerupdate": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 190,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -4760,6 +6887,8 @@
    ]
   ],
   "lua_kb": 20,
+  "bytes": 21182272,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3631989559",
   "folder": "69charger",
@@ -4767,16 +6896,24 @@
  },
  {
   "mod_id": "FasterResting",
-  "name": "?",
+  "mod_id_fallback": "FasterResting",
+  "name": "Faster Resting",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 1
   },
   "signals": {
    "events_add": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnTick",
@@ -4784,6 +6921,8 @@
    ]
   ],
   "lua_kb": 2,
+  "bytes": 140307,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3634568288",
   "folder": "FasterResting",
@@ -4791,18 +6930,33 @@
  },
  {
   "mod_id": "GanydeBielovzki's Frockin Splendor! Vol.5",
+  "mod_id_fallback": "Frockin Splendor! Vol.5",
   "name": "Frockin Splendor! Vol.5",
   "author": "GanydeBielovzki",
-  "require": [],
+  "require": [
+   "GanydeBielovzki's Frockin Splendor! Vol.2"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 2,
    "lua_shared": 1,
    "script_files": 8
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 251,
+  "script_modules": [
+   "Base",
+   "FrockinSplendorX"
+  ],
   "top_events": [],
   "lua_kb": 100,
+  "bytes": 361673916,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3635394848",
   "folder": "Frockin Splendor! Vol.5",
@@ -4810,12 +6964,18 @@
  },
  {
   "mod_id": "70roadRunner",
+  "mod_id_fallback": "70roadRunner",
   "name": "'70 Plymouth Road Runner",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -4828,6 +6988,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 135,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -4835,6 +7000,8 @@
    ]
   ],
   "lua_kb": 15,
+  "bytes": 11383794,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3642935062",
   "folder": "70roadRunner",
@@ -4842,16 +7009,29 @@
  },
  {
   "mod_id": "ProjectArcade",
+  "mod_id_fallback": "ProjectArcade",
   "name": "?",
-  "author": "?",
+  "author": "Bass",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15",
+   "42.13"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "script_files": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 3,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 134305091,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3645980077",
   "folder": "ProjectArcade",
@@ -4859,12 +7039,18 @@
  },
  {
   "mod_id": "95impreza",
+  "mod_id_fallback": "95impreza",
   "name": "'95 Subaru Impreza WRX STI",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -4877,6 +7063,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 130,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -4884,6 +7075,8 @@
    ]
   ],
   "lua_kb": 16,
+  "bytes": 10569960,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3647735736",
   "folder": "95impreza",
@@ -4891,12 +7084,18 @@
  },
  {
   "mod_id": "96lancerEVO",
+  "mod_id_fallback": "96lancerEVO",
   "name": "'96 Mitsubishi Lancer EVO IV",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -4907,19 +7106,31 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 135,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 15,
+  "bytes": 11342232,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3647736504",
   "folder": "96lancerEVO",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "HorseMod",
-  "name": "?",
-  "author": "?",
+  "mod_id": "Horse",
+  "mod_id_fallback": "HorseMod",
+  "name": "Horse Mod",
+  "author": "Horse team",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 45,
    "lua_client": 34,
@@ -4938,8 +7149,25 @@
    "on_client_cmd": 1,
    "send_client_cmd": 2,
    "send_server_cmd": 2,
-   "timed_action_new": 5
+   "timed_action_new": 5,
+   "script_nutrition": 116
   },
+  "script_nutrition_keys": {
+   "Calories": 2,
+   "Carbohydrates": 2,
+   "DaysFresh": 50,
+   "DaysTotallyRotten": 50,
+   "EvolvedRecipe": 2,
+   "FoodType": 2,
+   "HungerChange": 4,
+   "Lipids": 2,
+   "Proteins": 2
+  },
+  "script_item_blocks": 329,
+  "script_modules": [
+   "Base",
+   "HorseMod"
+  ],
   "top_events": [
    [
     "OnTick",
@@ -4975,36 +7203,33 @@
    ]
   ],
   "lua_kb": 476,
+  "bytes": 58507343,
+  "workshop_item_mtime": "2026-08-29T22:48:29",
   "sandbox_options": true,
   "workshop_id": "3661336777",
   "folder": "HorseMod",
   "class": "systems(heavy-lua)"
  },
  {
-  "mod_id": "sd-bus",
-  "name": "?",
-  "author": "?",
-  "require": [],
-  "layout": "42",
-  "stats": {},
-  "signals": {},
-  "top_events": [],
-  "lua_kb": 0,
-  "sandbox_options": false,
-  "workshop_id": "3662913642",
-  "folder": "sd-bus",
-  "class": "other"
- },
- {
   "mod_id": "SDDistro",
+  "mod_id_fallback": "SD-distro",
   "name": "SDDistro",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 2147693,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3662913642",
   "folder": "SD-distro",
@@ -5012,14 +7237,24 @@
  },
  {
   "mod_id": "sd-teleporter",
+  "mod_id_fallback": "SD-teleporter",
   "name": "Sunday Drivers Teleporter",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 2292490,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3662913642",
   "folder": "SD-teleporter",
@@ -5027,27 +7262,68 @@
  },
  {
   "mod_id": "SDUtils",
-  "name": "?",
+  "mod_id_fallback": "SDUtils",
+  "name": "More Difficult Zones",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 856247,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3662913642",
   "folder": "SDUtils",
   "class": "other"
  },
  {
-  "mod_id": "70fordEscort",
-  "name": "'70 Ford Escort",
+  "mod_id": "SDBus",
+  "mod_id_fallback": "sd-bus",
+  "name": "Sunday Drivers Public Transportation",
   "author": "?",
+  "require": [],
+  "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
+  "stats": {},
+  "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
+  "top_events": [],
+  "lua_kb": 0,
+  "bytes": 325920,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
+  "sandbox_options": false,
+  "workshop_id": "3662913642",
+  "folder": "sd-bus",
+  "class": "other"
+ },
+ {
+  "mod_id": "70fordEscort",
+  "mod_id_fallback": "70fordEscort",
+  "name": "'70 Ford Escort",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5058,8 +7334,15 @@
    "mod_data": 16,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 183,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 22,
+  "bytes": 25148749,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3670063857",
   "folder": "70fordEscort",
@@ -5067,12 +7350,18 @@
  },
  {
   "mod_id": "KI5campers",
+  "mod_id_fallback": "KI5campers",
   "name": "Campers!",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 3,
@@ -5083,19 +7372,31 @@
    "mod_data": 5,
    "require_line": 8
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 168,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 23,
+  "bytes": 18514337,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3670064951",
   "folder": "KI5campers",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "storm",
-  "name": "?",
-  "author": "?",
+  "mod_id": "storm-core-b42",
+  "mod_id_fallback": "storm",
+  "name": "Storm - Core b42 by Gus Puffy",
+  "author": "SentientSimulations",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 6,
    "lua_server": 4,
@@ -5113,6 +7414,9 @@
    "mod_data": 2,
    "pcall": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnServerCommand",
@@ -5140,6 +7444,8 @@
    ]
   ],
   "lua_kb": 45,
+  "bytes": 20845575,
+  "workshop_item_mtime": "2026-08-12T00:22:39",
   "sandbox_options": true,
   "workshop_id": "3670772371",
   "folder": "storm",
@@ -5147,16 +7453,26 @@
  },
  {
   "mod_id": "dustinguished_bolt_cutters",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "dustinguished_bolt_cutters",
+  "name": "dustinguished bolt cutters",
+  "author": "dustinguished",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_client": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 423181,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3671176591",
   "folder": "dustinguished_bolt_cutters",
@@ -5164,10 +7480,15 @@
  },
  {
   "mod_id": "SaveServerModlist",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SaveServerModlist",
+  "name": "Save Server Modlist",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 1
   },
@@ -5175,8 +7496,13 @@
    "monkey_patch": 1,
    "getfilewriter": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 2,
+  "bytes": 18277,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3672021948",
   "folder": "SaveServerModlist",
@@ -5184,12 +7510,18 @@
  },
  {
   "mod_id": "96saturnSseries",
+  "mod_id_fallback": "96saturnSseries",
   "name": "'96 Saturn S Series",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5200,19 +7532,31 @@
    "mod_data": 14,
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 131,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 14,
+  "bytes": 11916962,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3679880253",
   "folder": "96saturnSseries",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "PALSJs Clothing",
-  "name": "?",
+  "mod_id": "PALShit",
+  "mod_id_fallback": "PALSJs Clothing",
+  "name": "PALSJ's Hit-or-Miss Clothing",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1,
@@ -5221,19 +7565,31 @@
   "signals": {
    "require_line": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 18,
+  "script_modules": [
+   "PALShit"
+  ],
   "top_events": [],
   "lua_kb": 4,
+  "bytes": 7700763,
+  "workshop_item_mtime": "2026-08-16T18:13:15",
   "sandbox_options": false,
   "workshop_id": "3683898699",
   "folder": "PALSJs Clothing",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "PALSJs Cosmetics",
-  "name": "?",
+  "mod_id": "PALPal",
+  "mod_id_fallback": "PALSJs Cosmetics",
+  "name": "PALSJ's Palettes",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 4,
@@ -5242,19 +7598,32 @@
   "signals": {
    "require_line": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 205,
+  "script_modules": [
+   "PALPalettes",
+   "PalPalettes"
+  ],
   "top_events": [],
   "lua_kb": 57,
+  "bytes": 771219,
+  "workshop_item_mtime": "2026-08-16T18:13:15",
   "sandbox_options": false,
   "workshop_id": "3683898699",
   "folder": "PALSJs Cosmetics",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "PALSJs Piercing Additions",
-  "name": "?",
+  "mod_id": "PALPeeAdds",
+  "mod_id_fallback": "PALSJs Piercing Additions",
+  "name": "PALSJ's Piercings & Jewelry (Additions)",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1,
@@ -5263,41 +7632,70 @@
   "signals": {
    "require_line": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 22,
+  "script_modules": [
+   "PalPee"
+  ],
   "top_events": [],
   "lua_kb": 8,
+  "bytes": 1241800,
+  "workshop_item_mtime": "2026-08-16T18:13:15",
   "sandbox_options": false,
   "workshop_id": "3683898699",
   "folder": "PALSJs Piercing Additions",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "PALSJs Piercing Replacements",
-  "name": "?",
+  "mod_id": "PALPeeDefs",
+  "mod_id_fallback": "PALSJs Piercing Replacements",
+  "name": "PALSJ's Piercings & Jewelry (Default Replacements)",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {
    "lua_shared": 1,
    "script_files": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 4,
+  "script_modules": [
+   "PalPee"
+  ],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 664827,
+  "workshop_item_mtime": "2026-08-16T18:13:15",
   "sandbox_options": false,
   "workshop_id": "3683898699",
   "folder": "PALSJs Piercing Replacements",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "PALSJs Poofs",
-  "name": "?",
+  "mod_id": "PALPoo",
+  "mod_id_fallback": "PALSJs Poofs",
+  "name": "PALSJ's Poofs",
   "author": "?",
   "require": [],
   "layout": "42.15",
+  "version_dirs": [
+   "42.15"
+  ],
+  "mod_info_at": "42.15/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 10329955,
+  "workshop_item_mtime": "2026-08-16T18:13:15",
   "sandbox_options": false,
   "workshop_id": "3683898699",
   "folder": "PALSJs Poofs",
@@ -5305,12 +7703,18 @@
  },
  {
   "mod_id": "84corvette",
+  "mod_id_fallback": "84corvette",
   "name": "'84 Chevrolet Corvette",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13",
+   "42.0"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5323,6 +7727,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 129,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -5330,6 +7739,8 @@
    ]
   ],
   "lua_kb": 18,
+  "bytes": 17546148,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3684254299",
   "folder": "84corvette",
@@ -5337,17 +7748,27 @@
  },
  {
   "mod_id": "KeenPerception",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "KeenPerception",
+  "name": "Keen Perception",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 1,
    "tile_packs": 1
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 1,
+  "bytes": 8781,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3685392864",
   "folder": "KeenPerception",
@@ -5355,16 +7776,28 @@
  },
  {
   "mod_id": "odz_gasmaskM40_replacer",
-  "name": "GasMaskReplacer",
-  "author": "?",
+  "mod_id_fallback": "gasmask",
+  "name": "GasMask",
+  "author": "",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "common/mod.info",
   "stats": {
    "script_files": 2
   },
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 2,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 1032358,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3701820916",
   "folder": "gasmask",
@@ -5372,41 +7805,62 @@
  },
  {
   "mod_id": "79camaro",
+  "mod_id_fallback": "79camaro",
   "name": "'79 Chevrolet Camaro",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
-  "layout": "42.13",
+  "layout": "42.20",
+  "version_dirs": [
+   "42.20",
+   "42.13"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
    "lua_shared": 2,
-   "script_files": 22
+   "script_files": 23
   },
   "signals": {
    "mod_data": 16,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 134,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 19,
-  "sandbox_options": false,
+  "bytes": 18472618,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
+  "sandbox_options": true,
   "workshop_id": "3703948448",
   "folder": "79camaro",
   "class": "systems(light-lua)"
  },
  {
   "mod_id": "RollinNTowin",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "RollinNTowin",
+  "name": "Rollin'n'Towin",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {
    "events_add": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnInitGlobalModData",
@@ -5414,6 +7868,8 @@
    ]
   ],
   "lua_kb": 1,
+  "bytes": 110228,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3713220544",
   "folder": "RollinNTowin",
@@ -5421,10 +7877,15 @@
  },
  {
   "mod_id": "BVF42",
+  "mod_id_fallback": "BetterVanillaFirearms42",
   "name": "Better Vanilla Firearms",
   "author": "Chris_Vector",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 2,
    "lua_server": 4,
@@ -5434,8 +7895,15 @@
   "signals": {
    "require_line": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 95,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 34,
+  "bytes": 2158320,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3715977706",
   "folder": "BetterVanillaFirearms42",
@@ -5443,10 +7911,15 @@
  },
  {
   "mod_id": "WorkingKnowledge",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "WorkingKnowledge",
+  "name": "Working Knowledge",
+  "author": "Ryan",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "common/mod.info",
   "stats": {
    "lua_client": 2,
    "lua_server": 3,
@@ -5463,6 +7936,11 @@
    "global_write_vanilla": 3,
    "on_client_cmd": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 430,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnFillInventoryObjectContextMenu",
@@ -5482,6 +7960,8 @@
    ]
   ],
   "lua_kb": 86,
+  "bytes": 6629569,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3717099183",
   "folder": "WorkingKnowledge",
@@ -5489,12 +7969,17 @@
  },
  {
   "mod_id": "78lamboCountach",
+  "mod_id_fallback": "78lamboCountach",
   "name": "'78 Lamborghini Countach",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5507,6 +7992,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 149,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -5514,17 +8004,24 @@
    ]
   ],
   "lua_kb": 20,
+  "bytes": 15038054,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3726526329",
   "folder": "78lamboCountach",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "Mailbox Stories",
-  "name": "?",
-  "author": "?",
+  "mod_id": "MailboxStories",
+  "mod_id_fallback": "Mailbox Stories",
+  "name": "Mailbox Stories",
+  "author": "DarylMasterGG",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 2,
    "lua_server": 1,
@@ -5541,6 +8038,9 @@
    "transmit_mod_data": 10,
    "sandbox_vars": 4
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameStart",
@@ -5560,6 +8060,8 @@
    ]
   ],
   "lua_kb": 55,
+  "bytes": 517111588,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3728301676",
   "folder": "Mailbox Stories",
@@ -5567,12 +8069,17 @@
  },
  {
   "mod_id": "76chryslerNewYorker",
+  "mod_id_fallback": "76chryslerNewYorker",
   "name": "'76 Chrysler New Yorker",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5585,6 +8092,11 @@
    "events_add": 2,
    "onplayerupdate": 2
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 131,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -5592,6 +8104,8 @@
    ]
   ],
   "lua_kb": 17,
+  "bytes": 12903805,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3730833846",
   "folder": "76chryslerNewYorker",
@@ -5599,10 +8113,15 @@
  },
  {
   "mod_id": "EmergencyVomitB42",
-  "name": "?",
+  "mod_id_fallback": "EmergencyVomitB42",
+  "name": "Emergency Vomit",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 1
@@ -5618,6 +8137,9 @@
    "mod_data": 3,
    "on_client_cmd": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -5633,17 +8155,24 @@
    ]
   ],
   "lua_kb": 24,
+  "bytes": 504628,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3731711925",
   "folder": "EmergencyVomitB42",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "Undead Survivor",
-  "name": "?",
+  "mod_id": "UndeadSurvivor42",
+  "mod_id_fallback": "Undead Survivor",
+  "name": "[B42] Undead Survivor",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 4,
    "lua_server": 2,
@@ -5660,6 +8189,12 @@
    "monkey_patch": 1,
    "sandbox_vars": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 96,
+  "script_modules": [
+   "Base",
+   "UndeadSurvivor"
+  ],
   "top_events": [
    [
     "OnServerCommand",
@@ -5675,6 +8210,8 @@
    ]
   ],
   "lua_kb": 21,
+  "bytes": 8251681,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3739427877",
   "folder": "Undead Survivor",
@@ -5682,12 +8219,17 @@
  },
  {
   "mod_id": "73nissanGTR",
+  "mod_id_fallback": "73nissanGTR",
   "name": "'73 NISSAN Skyline GT-R",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5700,6 +8242,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 113,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -5707,6 +8254,8 @@
    ]
   ],
   "lua_kb": 15,
+  "bytes": 9968734,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3743371090",
   "folder": "73nissanGTR",
@@ -5714,10 +8263,15 @@
  },
  {
   "mod_id": "SWServerUtils",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "SWServerUtils",
+  "name": "SWServerUtils",
+  "author": "somewhatfrog",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 6,
    "lua_server": 2,
@@ -5733,6 +8287,9 @@
    "on_client_cmd": 1,
    "global_write_vanilla": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "EveryOneMinute",
@@ -5768,6 +8325,8 @@
    ]
   ],
   "lua_kb": 21,
+  "bytes": 120439,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3744609615",
   "folder": "SWServerUtils",
@@ -5775,10 +8334,19 @@
  },
  {
   "mod_id": "DataLogger",
-  "name": "?",
+  "mod_id_fallback": "DataLogger",
+  "name": "Data Logger",
   "author": "?",
-  "require": [],
+  "require": [
+   "QuestSystem",
+   "Economy",
+   "GirthsTweaks"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "sounds": 1,
    "lua_client": 2,
@@ -5800,6 +8368,11 @@
    "pcall": 12,
    "getfilewriter": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [
+   "DataLogger"
+  ],
   "top_events": [
    [
     "OnClientCommand",
@@ -5835,6 +8408,8 @@
    ]
   ],
   "lua_kb": 83,
+  "bytes": 217533,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": false,
   "workshop_id": "3745960616",
   "folder": "DataLogger",
@@ -5842,36 +8417,63 @@
  },
  {
   "mod_id": "GirthsTweaks",
-  "name": "?",
+  "mod_id_fallback": "GirthsTweaks",
+  "name": "Girth's Tweaks",
   "author": "?",
-  "require": [],
+  "require": [
+   "MoreDifficultZonesB42"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 39,
-   "lua_server": 25,
+   "lua_server": 27,
    "lua_shared": 31,
    "models": 3,
    "script_files": 12,
    "tile_packs": 1
   },
   "signals": {
-   "events_add": 88,
-   "require_line": 68,
-   "global_write_vanilla": 28,
-   "sandbox_vars": 32,
+   "events_add": 89,
+   "require_line": 72,
+   "global_write_vanilla": 29,
+   "sandbox_vars": 34,
    "everyoneminute": 6,
-   "monkey_patch": 19,
+   "monkey_patch": 21,
    "send_client_cmd": 18,
    "ui_panel": 4,
    "mod_data": 32,
-   "pcall": 4,
+   "pcall": 5,
    "onplayerupdate": 3,
    "getfilewriter": 3,
    "on_client_cmd": 11,
    "send_server_cmd": 16,
    "transmit_mod_data": 1,
-   "timed_action_new": 1
+   "timed_action_new": 1,
+   "script_nutrition": 26
   },
+  "script_nutrition_keys": {
+   "Calories": 3,
+   "Carbohydrates": 3,
+   "DaysFresh": 4,
+   "DaysTotallyRotten": 4,
+   "HungerChange": 3,
+   "Lipids": 3,
+   "Proteins": 3,
+   "ThirstChange": 3
+  },
+  "script_item_blocks": 218,
+  "script_modules": [
+   "Base",
+   "GirthsTweaks",
+   "SDCaches",
+   "SDFoods",
+   "SDQuests",
+   "ST_Tweaks"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -5906,7 +8508,9 @@
     3
    ]
   ],
-  "lua_kb": 269,
+  "lua_kb": 280,
+  "bytes": 5042156,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3745960616",
   "folder": "GirthsTweaks",
@@ -5914,10 +8518,18 @@
  },
  {
   "mod_id": "SDQuests",
-  "name": "?",
+  "mod_id_fallback": "SDQuests",
+  "name": "SD Quests",
   "author": "?",
-  "require": [],
+  "require": [
+   "QuestSystem",
+   "Economy"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 11,
    "lua_server": 9,
@@ -5936,8 +8548,22 @@
    "on_client_cmd": 7,
    "send_server_cmd": 21,
    "everyoneminute": 3,
-   "timed_action_new": 1
+   "timed_action_new": 1,
+   "script_nutrition": 6
   },
+  "script_nutrition_keys": {
+   "Calories": 1,
+   "Carbohydrates": 1,
+   "HungerChange": 1,
+   "Lipids": 1,
+   "Proteins": 1,
+   "ThirstChange": 1
+  },
+  "script_item_blocks": 18,
+  "script_modules": [
+   "Base",
+   "SDQuests"
+  ],
   "top_events": [
    [
     "OnServerCommand",
@@ -5969,6 +8595,8 @@
    ]
   ],
   "lua_kb": 181,
+  "bytes": 305467,
+  "workshop_item_mtime": "2026-08-12T00:03:03",
   "sandbox_options": true,
   "workshop_id": "3745960616",
   "folder": "SDQuests",
@@ -5976,12 +8604,17 @@
  },
  {
   "mod_id": "69fordMustang",
+  "mod_id_fallback": "69fordMustang",
   "name": "'69 Ford Mustang",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -5994,6 +8627,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 229,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -6001,6 +8639,8 @@
    ]
   ],
   "lua_kb": 24,
+  "bytes": 22232956,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": true,
   "workshop_id": "3756938756",
   "folder": "69fordMustang",
@@ -6008,18 +8648,26 @@
  },
  {
   "mod_id": "69fordMustangExtra",
+  "mod_id_fallback": "69fordMustangExtra",
   "name": "'69 Ford Mustang Extra Textures",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "69fordMustang"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_shared": 1
   },
   "signals": {
    "events_add": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameBoot",
@@ -6027,17 +8675,24 @@
    ]
   ],
   "lua_kb": 2,
+  "bytes": 4662008,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3756938756",
   "folder": "69fordMustangExtra",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "Big Bottles",
-  "name": "?",
+  "mod_id": "BigBottles",
+  "mod_id_fallback": "Big Bottles",
+  "name": "Big Bottles",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 1,
    "script_files": 1
@@ -6045,8 +8700,15 @@
   "signals": {
    "require_line": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 4,
+  "script_modules": [
+   "BigBottles"
+  ],
   "top_events": [],
   "lua_kb": 3,
+  "bytes": 107238,
+  "workshop_item_mtime": "2026-08-20T20:49:22",
   "sandbox_options": false,
   "workshop_id": "3759421894",
   "folder": "Big Bottles",
@@ -6054,14 +8716,24 @@
  },
  {
   "mod_id": "SDVC",
+  "mod_id_fallback": "SDVC",
   "name": "Sunday Drivers Vehicle Claim",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 526266,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3763759011",
   "folder": "SDVC",
@@ -6069,10 +8741,15 @@
  },
  {
   "mod_id": "BeyondTen",
+  "mod_id_fallback": "BeyondTen",
   "name": "Beyond Ten - Level 15 Skills",
   "author": "Patryk",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 1,
@@ -6092,6 +8769,9 @@
    "food_nutrition": 4,
    "sandbox_vars": 6
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameStart",
@@ -6127,6 +8807,8 @@
    ]
   ],
   "lua_kb": 170,
+  "bytes": 348184,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3765241705",
   "folder": "BeyondTen",
@@ -6134,12 +8816,17 @@
  },
  {
   "mod_id": "70chevelle",
+  "mod_id_fallback": "70chevelle",
   "name": "'70 Chevrolet Chevelle / El Camino",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -6152,6 +8839,11 @@
    "events_add": 1,
    "onplayerupdate": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 260,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [
    [
     "OnPlayerUpdate",
@@ -6159,6 +8851,8 @@
    ]
   ],
   "lua_kb": 29,
+  "bytes": 40811491,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3766571591",
   "folder": "70chevelle",
@@ -6166,12 +8860,17 @@
  },
  {
   "mod_id": "91lexusLS400",
+  "mod_id_fallback": "91lexusLS400",
   "name": "'91 Lexus LS400",
-  "author": "?",
+  "author": "KI5",
   "require": [
    "damnlib"
   ],
   "layout": "42.13",
+  "version_dirs": [
+   "42.13"
+  ],
+  "mod_info_at": "42.13/mod.info",
   "stats": {
    "lua_client": 3,
    "lua_server": 3,
@@ -6182,8 +8881,15 @@
    "mod_data": 14,
    "require_line": 7
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 127,
+  "script_modules": [
+   "Base"
+  ],
   "top_events": [],
   "lua_kb": 14,
+  "bytes": 11404279,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3770890864",
   "folder": "91lexusLS400",
@@ -6191,10 +8897,17 @@
  },
  {
   "mod_id": "KnoxBuildworks",
-  "name": "?",
+  "mod_id_fallback": "KnoxBuildworks",
+  "name": "Knox Buildworks",
   "author": "?",
-  "require": [],
+  "require": [
+   "ElyonLib"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 41,
    "lua_server": 5,
@@ -6218,6 +8931,12 @@
    "everyoneminute": 2,
    "timed_action_new": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 17,
+  "script_modules": [
+   "Base",
+   "KnoxBuildworks"
+  ],
   "top_events": [
    [
     "OnGameStart",
@@ -6253,21 +8972,35 @@
    ]
   ],
   "lua_kb": 1389,
+  "bytes": 5583999,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": true,
   "workshop_id": "3772269882",
   "folder": "KnoxBuildworks",
   "class": "systems(heavy-lua)"
  },
  {
-  "mod_id": "KnoxBuildworks_Vanilla_Expanded",
-  "name": "?",
+  "mod_id": "KnoxBuildworksVanillaExpanded",
+  "mod_id_fallback": "KnoxBuildworks_Vanilla_Expanded",
+  "name": "Knox Buildworks - Vanilla Expanded",
   "author": "?",
-  "require": [],
+  "require": [
+   "KnoxBuildworks"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 15027531,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3772269882",
   "folder": "KnoxBuildworks_Vanilla_Expanded",
@@ -6275,14 +9008,24 @@
  },
  {
   "mod_id": "BookConsumerB42",
+  "mod_id_fallback": "BookConsumerB42",
   "name": "Book Consumer [B42]",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 1053817,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3772533498",
   "folder": "BookConsumerB42",
@@ -6290,25 +9033,40 @@
  },
  {
   "mod_id": "sd_cc_test",
-  "name": "SD CC TEST",
-  "author": "?",
+  "mod_id_fallback": "SD_CC_TEST",
+  "name": "sd_cc_test",
+  "author": "Petrovick",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 15916297,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3774052732",
   "folder": "SD_CC_TEST",
   "class": "other"
  },
  {
-  "mod_id": "LongTermPreservation4220",
-  "name": "?",
-  "author": "?",
+  "mod_id": "SKITTLE_LongTermPreservation4220",
+  "mod_id_fallback": "LongTermPreservation4220",
+  "name": "Long Term Preservation [42.20]",
+  "author": "Skittles",
   "require": [],
   "layout": "42.20",
+  "version_dirs": [
+   "42.20"
+  ],
+  "mod_info_at": "42.20/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 1,
@@ -6317,8 +9075,25 @@
   },
   "signals": {
    "food_nutrition": 4,
-   "events_add": 1
+   "events_add": 1,
+   "script_nutrition": 135
   },
+  "script_nutrition_keys": {
+   "Calories": 16,
+   "Carbohydrates": 16,
+   "DaysFresh": 14,
+   "DaysTotallyRotten": 18,
+   "EvolvedRecipe": 5,
+   "FoodType": 11,
+   "HungerChange": 16,
+   "Lipids": 16,
+   "Proteins": 16,
+   "ThirstChange": 7
+  },
+  "script_item_blocks": 47,
+  "script_modules": [
+   "Skittles"
+  ],
   "top_events": [
    [
     "onAddForageDefs",
@@ -6326,6 +9101,8 @@
    ]
   ],
   "lua_kb": 3,
+  "bytes": 239131,
+  "workshop_item_mtime": "2026-09-01T13:13:04",
   "sandbox_options": false,
   "workshop_id": "3774789651",
   "folder": "LongTermPreservation4220",
@@ -6333,10 +9110,15 @@
  },
  {
   "mod_id": "alicesWeaponSling",
-  "name": "?",
-  "author": "?",
+  "mod_id_fallback": "alicesWeaponSling",
+  "name": "Alice's Weapon Sling",
+  "author": "Akyet, Noir, Hx, Royadin, Alice",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_shared": 7,
    "lua_client": 5,
@@ -6351,6 +9133,12 @@
    "mod_data": 4,
    "require_line": 3
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 23,
+  "script_modules": [
+   "AliceSlings",
+   "Base"
+  ],
   "top_events": [
    [
     "OnTick",
@@ -6374,6 +9162,8 @@
    ]
   ],
   "lua_kb": 54,
+  "bytes": 1340390,
+  "workshop_item_mtime": "2026-08-20T20:49:25",
   "sandbox_options": false,
   "workshop_id": "3775549570",
   "folder": "alicesWeaponSling",
@@ -6381,16 +9171,26 @@
  },
  {
   "mod_id": "alicesWeaponSlingRadialMenu",
-  "name": "?",
-  "author": "?",
-  "require": [],
+  "mod_id_fallback": "alicesWeaponSlingRadialMenu",
+  "name": "Alice's Weapon Sling - Radial Menu [ADDON]",
+  "author": "Alice",
+  "require": [
+   "alicesWeaponSling"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 1
   },
   "signals": {
    "events_add": 4
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnKeyStartPressed",
@@ -6410,6 +9210,8 @@
    ]
   ],
   "lua_kb": 9,
+  "bytes": 62742,
+  "workshop_item_mtime": "2026-08-20T20:49:25",
   "sandbox_options": false,
   "workshop_id": "3775549570",
   "folder": "alicesWeaponSlingRadialMenu",
@@ -6417,10 +9219,15 @@
  },
  {
   "mod_id": "VolumeExtended",
-  "name": "?",
+  "mod_id_fallback": "VolumeExtended",
+  "name": "Volume Extended",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 2
   },
@@ -6429,6 +9236,9 @@
    "require_line": 3,
    "global_write_vanilla": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnGameBoot",
@@ -6436,6 +9246,8 @@
    ]
   ],
   "lua_kb": 12,
+  "bytes": 23803,
+  "workshop_item_mtime": "2026-09-01T18:02:51",
   "sandbox_options": false,
   "workshop_id": "3776009396",
   "folder": "VolumeExtended",
@@ -6443,14 +9255,24 @@
  },
  {
   "mod_id": "SundayDriversPatch",
+  "mod_id_fallback": "SundayDriversPatch",
   "name": "Sunday Drivers Patch - 42.20.1 percent escape",
   "author": "DOTD",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 53105,
+  "workshop_item_mtime": "2026-08-12T00:03:02",
   "sandbox_options": false,
   "workshop_id": "3778020957",
   "folder": "SundayDriversPatch",
@@ -6458,10 +9280,17 @@
  },
  {
   "mod_id": "JadePacking",
-  "name": "Jade Packing B41",
+  "mod_id_fallback": "JadePackingB42",
+  "name": "Jade Packing B42",
   "author": "?",
-  "require": [],
+  "require": [
+   "damnlib"
+  ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 1,
    "lua_shared": 2,
@@ -6472,6 +9301,11 @@
    "events_add": 1,
    "pcall": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 1138,
+  "script_modules": [
+   "Packing"
+  ],
   "top_events": [
    [
     "OnGameTimeLoaded",
@@ -6479,6 +9313,8 @@
    ]
   ],
   "lua_kb": 19,
+  "bytes": 3843338,
+  "workshop_item_mtime": "2026-08-20T20:49:20",
   "sandbox_options": false,
   "workshop_id": "3778300586",
   "folder": "JadePackingB42",
@@ -6486,6 +9322,7 @@
  },
  {
   "mod_id": "JadePackingSD",
+  "mod_id_fallback": "JadePackingSD",
   "name": "Jade Packing SD",
   "author": "?",
   "require": [
@@ -6493,6 +9330,10 @@
    "ZVirusVaccine42BETA"
   ],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_client": 1,
    "lua_server": 1,
@@ -6504,8 +9345,18 @@
    "global_write_vanilla": 3,
    "mod_data": 3,
    "events_add": 1,
-   "pcall": 2
+   "pcall": 2,
+   "script_nutrition": 18
   },
+  "script_nutrition_keys": {
+   "DaysFresh": 6,
+   "DaysTotallyRotten": 6,
+   "HungerChange": 6
+  },
+  "script_item_blocks": 923,
+  "script_modules": [
+   "Packing"
+  ],
   "top_events": [
    [
     "OnGameTimeLoaded",
@@ -6513,32 +9364,55 @@
    ]
   ],
   "lua_kb": 29,
+  "bytes": 2236903,
+  "workshop_item_mtime": "2026-08-13T18:16:39",
   "sandbox_options": false,
   "workshop_id": "3779653231",
   "folder": "JadePackingSD",
   "class": "systems(light-lua)"
  },
  {
-  "mod_id": "Skill Recovery Journal",
+  "mod_id": "",
+  "mod_id_fallback": "Skill Recovery Journal",
   "name": "?",
   "author": "?",
   "require": [],
-  "layout": "common",
-  "stats": {},
-  "signals": {},
+  "layout": "42.20.1",
+  "version_dirs": [
+   "42.20.1"
+  ],
+  "mod_info_at": null,
+  "stats": {
+   "lua_shared": 1
+  },
+  "signals": {
+   "mod_data": 2,
+   "pcall": 2,
+   "getfilewriter": 2
+  },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
-  "lua_kb": 0,
+  "lua_kb": 16,
+  "bytes": 33141,
+  "workshop_item_mtime": "2026-09-04T12:09:01",
   "sandbox_options": false,
   "workshop_id": "3782784855",
   "folder": "Skill Recovery Journal",
-  "class": "other"
+  "class": "systems(light-lua)"
  },
  {
   "mod_id": "ArcadiaAnimalFix_B42",
+  "mod_id_fallback": "ArcadiaAnimalFix_B42",
   "name": "Animal Fix [B42.20] - Beta 1.2 Standalone",
   "author": "?",
   "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {
    "lua_server": 3,
    "lua_shared": 2
@@ -6552,6 +9426,9 @@
    "global_write_vanilla": 9,
    "everyoneminute": 1
   },
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [
    [
     "OnServerStarted",
@@ -6567,6 +9444,8 @@
    ]
   ],
   "lua_kb": 17,
+  "bytes": 252439,
+  "workshop_item_mtime": "2026-09-04T10:46:50",
   "sandbox_options": false,
   "workshop_id": "3786854702",
   "folder": "ArcadiaAnimalFix_B42",
@@ -6574,16 +9453,24 @@
  },
  {
   "mod_id": "SDHC",
+  "mod_id_fallback": "SDHC",
   "name": "Sunday Drivers Horse Claim",
   "author": "?",
-  "require": [
-   "HorseMod"
-  ],
+  "require": [],
   "layout": "42",
+  "version_dirs": [
+   "42"
+  ],
+  "mod_info_at": "42/mod.info",
   "stats": {},
   "signals": {},
+  "script_nutrition_keys": {},
+  "script_item_blocks": 0,
+  "script_modules": [],
   "top_events": [],
   "lua_kb": 0,
+  "bytes": 891404,
+  "workshop_item_mtime": "2026-08-29T22:48:31",
   "sandbox_options": false,
   "workshop_id": "3789019583",
   "folder": "SDHC",

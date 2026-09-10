@@ -502,3 +502,104 @@ are the two evolved-recipe scripts), `cookingLevels` `[0, 10]`, and `counts` —
 `resolvedViaTemplate` 4748 / `resolvedViaBoth` 2133, `spiceIngredients` 2522,
 `ingredientsRefusedByBasis` 0, `hungerClampRows` 59, `driedFoodThirstRows` 27,
 `duplicateRecipeNames` 0.
+
+## mod-inventory
+
+`data/mod-inventory.json`, written by `python tools/mod_inventory.py` from the
+**installed workshop tree**
+(`D:\SteamLibrary\steamapps\workshop\content\108600`, read and never written) —
+one record per mod folder, a bare JSON array, `indent=1`. **230 records across
+179 workshop items, swept 2026-09-10 15:30.** Evidence grade **C** for
+everything read off a shipped file (`mod.info` values, file counts, regex hit
+counts); nothing here is measured in a running game, and a signal count is a
+count of regex hits, not of behaviour.
+
+**No `meta` block, and no build stamp** — unlike the four datasets above, this
+one describes a *live* tree that Steam rewrites under you (item `3490370700`
+was rewritten mid-slice on 2026-09-10 at 13:47, which is why 9 rows' `stats`
+moved between the 09-09 and 09-10 sweeps). The sweep date above is the stamp;
+quote a count from this dataset with it. Regenerating is cheap (~3 s) and
+byte-stable: the same tree in gives the same bytes out.
+
+**`mod_id` is the id the game resolves, and it may be `""`.** The record no
+longer falls back to the folder name. Resolution is not this tool's opinion:
+`resolve()` calls [`tools/mod_lint.py`](../tools/mod_lint.py)'s `version_dirs`
+/ `info_chain` / `read_info` / `media_root`, so `mod.info` is read from the
+**newest `42[.x[.y]]/` folder** first, then `common/`, then the mod root — the
+order documented in [`docs/testing/profiles.md`](../docs/testing/profiles.md)
+§ L0. The pre-slice-08 dataset had its own weaker rule (a `42[.N]` regex, and
+only `<mod>/mod.info` was read), so **20 of the 230 rows carried a folder name
+instead of the declared id** — including `LongTermPreservation4220`, which
+really declares `SKITTLE_LongTermPreservation4220`. A profile's `[[mods]] id`
+must be the resolved id, so read `mod_id`, never `folder`. One row's `mod_id`
+is `""`: `3782784855/Skill Recovery Journal` ships no `mod.info` anywhere and
+is invisible to `pzt.mods.workshop_index()` (229 ids for 230 folders). **52
+rows** have `mod_id != mod_id_fallback` — `mod_lint`'s `folder-id` INFO counts
+51 of them, because it cannot compare a folder against an id that does not
+exist.
+
+**Everything except `bytes` describes the live folder only** — the one
+`layout` names. A mod that also ships an older `42.x/`, a `common/` or a b41
+`media/` copy has that content ignored, because the running build ignores it:
+`3041122351/63Type2Van` writes nutrition keys **only** in its root `media/`
+copy, so its B42 script signal is 0 and its b41 one is 7.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `mod_id` | string | `id=` from the resolved `mod.info`; `""` when there is none |
+| `mod_id_fallback` | string | the folder name — for reporting, never for a profile |
+| `name` / `author` | string | `name=` / `author=` from the same file; `?` when absent (3 rows have no name, 55 no author) |
+| `require` | list | `require=` split on commas with the leading `\` stripped (`\Base,\OtherMod`) |
+| `layout` | string | the folder the running build reads: a version folder (`42.20.1`), `common`, or `flat(b41?)` |
+| `version_dirs` | list | every `42[.x[.y]]/` folder, newest first, tuple-sorted (`42.20.1 > 42.20 > 42.9 > 42`) |
+| `mod_info_at` | string/null | which `mod.info` the id came from, relative to the mod folder (224 rows a version folder, 5 `common/mod.info`, 1 `null`) |
+| `stats` | dict | file counts under `<live>/media`: `lua_client` / `lua_server` / `lua_shared` (by path), `script_files` (`.txt` under a `scripts` path), `models`, `tile_packs`, `map_files`, `sounds`. Absent keys are zero |
+| `signals` | dict | regex hit counts, absent when zero — 18 Lua signals (`events_add`, `send_client_cmd`, `on_client_cmd`, `send_server_cmd`, `mod_data`, `transmit_mod_data`, `monkey_patch`, `pcall`, `loadstring`, `getfilewriter`, `sandbox_vars`, `timed_action_new`, `ui_panel`, `require_line`, `global_write_vanilla`, `onplayerupdate`, `everyoneminute`, `food_nutrition`) plus `script_nutrition` |
+| `script_nutrition_keys` | dict | per-key counts behind `script_nutrition` |
+| `script_item_blocks` | int | `item ` lines in those `.txt` files — an **upper bound** on definitions |
+| `script_modules` | list | every `module <name>` declared in them, sorted |
+| `top_events` | list | the 8 most-used `Events.<X>.Add` names, `[name, count]` |
+| `lua_kb` | int | total `.lua` characters read, in KiB |
+| `bytes` | int | the **whole** mod folder on disk, every version folder included — what a subscriber downloads (7.01 GiB over the corpus) |
+| `workshop_item_mtime` | string | ISO-8601 mtime of the `<workshop-id>/` folder — see the caveat below |
+| `sandbox_options` | bool | a `media/sandbox-options.txt` in the live folder or at the mod root |
+| `workshop_id` / `folder` | string | the item id and the mod folder name; together they are the record's key |
+| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is 31 rows with nothing under `<live>/media`, nearly all of them tile packs that ship `common/media` while a version folder exists |
+
+**`workshop_item_mtime` is a download stamp, not an update stamp.** Steam
+rewrites the mod folder inside an item without touching the item folder:
+`3490370700` still reads `2026-08-12T00:03:04` while its
+`mods/73fordFalcon/` was rewritten at `2026-09-10 13:47`. Corpus range
+`2026-08-12` … `2026-09-04`. For a real "last updated" date, use the Workshop
+page.
+
+### The two nutrition signals
+
+Neither column alone is the catalog, and they are counted from different files:
+
+- `signals.food_nutrition` — `getNutrition()`, `setCalories` / `setProteins` /
+  `setLipids` / `setCarbohydrates`, or `HungerChange` in any `.lua` under the
+  live folder. **11 mods**, led by `simpleStatus` 12, `CleanUI` 11,
+  `SkillRecoveryJournal` 8.
+- `signals.script_nutrition` — `Calories`, `Carbohydrates`, `Lipids`,
+  `Proteins`, `HungerChange`, `ThirstChange`, `DaysFresh`,
+  `DaysTotallyRotten`, `FoodType` or `EvolvedRecipe` at the start of a line in
+  a `.txt` under `<live>/media/**/scripts`. **9 mods**:
+  `SKITTLE_LongTermPreservation4220` 135, `Horse` 116, `OCsPacking` 76,
+  `ZVirusVaccine42BETA` 36, `GirthsTweaks` 26, `JadePackingSD` 18, `69mini` 7,
+  `SDQuests` 6, `biogas` 1.
+- **One mod shows both**: `SKITTLE_LongTermPreservation4220` (135 script, 4
+  lua). 19 mods show at least one.
+
+`script_modules` is the override question: a mod writing **`module Base`
+overrides vanilla items**; `module <Own>` only adds new ones. Long Term
+Preservation declares `module Skittles` alone, so its 17 item blocks all add.
+The value is the raw token after `module`, so a `module LabItems{` written
+with the brace on the same line is recorded as `LabItems{`
+(`ZVirusVaccine42BETA`).
+
+`script_item_blocks` counts **every** `item ` line at the start of a line, and
+a `craftRecipe`'s inputs and outputs are written the same way (`item 1
+[Base.Bowl]`). Long Term Preservation's 47 is 17 real item blocks plus 30
+recipe lines; `JadePackingSD`'s 923 is nearly all recipe lines. Read it as an
+upper bound on how much item DSL a mod ships, never as "items added".

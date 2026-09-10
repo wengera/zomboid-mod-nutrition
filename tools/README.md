@@ -57,6 +57,27 @@ import patterns from there.
   live, so quote a sweep with its date — the rows and the drift since the first
   sweep are in [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0.
 
+- `mod_inventory.py` — `python tools/mod_inventory.py`
+  Sweeps the same workshop root as `mod_lint` and writes
+  `data/mod-inventory.json` — one record per mod folder, **230 across 179
+  workshop items at 2026-09-10 15:30**, ~3 s, byte-stable — then prints the
+  class histogram, the `loadstring` and b41-flat lists, the top 20 by lua size,
+  the two nutrition signals side by side, and a folder-name-≠-id block (**52
+  rows**; `mod_lint`'s `folder-id` INFO counts 51, having no id to compare on
+  the 52nd). **Identity is `mod_lint`'s answer, not a second opinion**:
+  `resolve()` imports `version_dirs` / `info_chain` / `read_info` /
+  `media_root`, so `mod_id` is the id the running build resolves and is **`""`**
+  when no `mod.info` exists anywhere (1 row) — never the folder name, which is
+  kept beside it as `mod_id_fallback`. Two independent nutrition signals,
+  because neither alone is the catalog: `signals.food_nutrition` greps `.lua`
+  for the runtime API (11 mods) and `signals.script_nutrition` greps
+  `<live>/media/**/scripts/*.txt` for the item-definition keys (9 mods, 1
+  overlap). Everything but `bytes` describes the **live** version folder only,
+  because that is what the build loads. Every field, the counts above and the
+  two upper-bound caveats (`script_item_blocks`, `workshop_item_mtime`) are
+  documented in [`data/README.md`](../data/README.md) § mod-inventory. Stdlib
+  only bar `mod_lint` beside it; the workshop tree is read, never written.
+
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes
   `data/food-items.json` + `data/food-items.csv` (1005 items, 61 columns, 61

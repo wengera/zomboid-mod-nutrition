@@ -1,14 +1,39 @@
 #!/usr/bin/env python3
 """Inventory + architecture-signal scan of all installed workshop mods.
 
-Per workshop item -> per mod: identity (mod.info), B42 layout quality, content
-footprint (lua/scripts/models/maps), and lua architecture signals (events,
-networking, modData, monkey-patching, error hygiene, red flags like
-loadstring). Output: data/mod-inventory.json + console summary.
+Per workshop item -> per mod: identity (the `mod.info` the *game* resolves), B42 layout
+quality, content footprint (lua/scripts/models/maps), lua architecture signals (events,
+networking, modData, monkey-patching, error hygiene, red flags like loadstring) and script
+signals (nutrition keys, item blocks, the module a mod writes into). Output:
+data/mod-inventory.json + console summary.
 
-Stdlib only. Ground truth: D:/SteamLibrary/steamapps/workshop/content/108600.
+**Identity is not this tool's question to answer.** `mod_lint` already resolves it -- newest
+`42[.x[.y]]/` folder first, then `common/`, then the mod root -- so `resolve()` below imports
+`version_dirs` / `info_chain` / `read_info` / `media_root` and adds nothing of its own. The
+local `pick_version_dir` this replaced matched only `42[.N]` (three-part `42.20.1` folders are
+real -- Skill Recovery Journal 2503622437 ships one) and read only `<mod_dir>/mod.info`, which
+is why 20 of the 230 installed rows used to carry a folder name as the id. `mod_id` is now the
+declared id or **`""`**: a mod the game cannot identify is a finding, and `""` is what
+`pzt.mods.workshop_index()` effectively sees (229 entries for 230 folders). The folder name is
+kept beside it as `mod_id_fallback`.
+
+Two independent nutrition signals, because neither alone is the catalog: `signals.food_nutrition`
+greps `.lua` for the runtime API, `signals.script_nutrition` greps `media/scripts/**/*.txt` for
+the item-definition keys. On the corpus at 2026-09-10 they overlap on exactly one mod
+(LongTermPreservation4220). A mod writing `module Base` **overrides vanilla items**; a mod
+writing `module <Own>` only adds new ones -- LongTermPreservation4220 declares `module Skittles`
+alone, so the 17 items in its item script all add and none override. (`script_item_blocks`
+reads 47 for it: the regex cannot tell a definition from a craftRecipe's 30 `item 1 [Base.X]`
+input lines, so the field is an upper bound -- see data/README.md.)
+
+Stdlib only, no import of `testing/pzt`. Ground truth:
+D:/SteamLibrary/steamapps/workshop/content/108600, read and never written. It is a live tree
+(Steam rewrote item 3490370700 mid-slice on 2026-09-10) -- quote a count with its date.
 """
-import os, re, json, collections
+import collections, datetime, json, os, re, sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import mod_lint  # version_dirs / info_chain / read_info / media_root
 
 ROOT = r"D:/SteamLibrary/steamapps/workshop/content/108600"
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "mod-inventory.json")
@@ -34,43 +59,67 @@ SIGNALS = {
     "food_nutrition":  re.compile(r"getNutrition\(\)|setCalories|setProteins|setLipids|setCarbohydrates|HungerChange"),
 }
 
-def parse_modinfo(path):
-    d = {}
-    try:
-        for ln in open(path, encoding="utf-8", errors="replace"):
-            if "=" in ln:
-                k, v = ln.split("=", 1)
-                k = k.strip().lower()
-                if k in ("name", "id", "author", "require", "versionmin", "versionmax"):
-                    if k == "require":
-                        d[k] = [x.strip().lstrip("\\") for x in v.strip().split(",") if x.strip()]
-                    else:
-                        d[k] = v.strip()
-    except OSError:
-        pass
-    return d
+# The script-DSL half of the nutrition question: what an item *definition* writes, which the
+# `.lua` regexes above can never see. Keyed line-start so a key named inside a comment or a
+# longer identifier (`ExtraCalories = `) does not count.
+SCRIPT_KEYS = re.compile(r"^\s*(Calories|Carbohydrates|Lipids|Proteins|HungerChange|ThirstChange"
+                         r"|DaysFresh|DaysTotallyRotten|FoodType|EvolvedRecipe)\s*=", re.M)
+# `item <name>` at line start. NOT only item *blocks*: a craftRecipe's input lines read
+# `item 1 [Base.Bowl]`, so this is an upper bound on definitions -- see data/README.md.
+SCRIPT_ITEM = re.compile(r"^\s*item\s+(\S+)", re.M)
+SCRIPT_MODULE = re.compile(r"^\s*module\s+(\S+)", re.M)
 
-def pick_version_dir(mod_dir):
-    """Live tree: highest 42.x <= build, else 42, else common, else flat."""
-    entries = [e for e in os.listdir(mod_dir) if os.path.isdir(os.path.join(mod_dir, e))]
-    versioned = []
-    for e in entries:
-        m = re.fullmatch(r"42(?:\.(\d+))?", e)
-        if m:
-            versioned.append((int(m.group(1) or 0), e))
-    if versioned:
-        return os.path.join(mod_dir, max(versioned)[1]), max(versioned)[1]
-    if "common" in entries:
-        return os.path.join(mod_dir, "common"), "common"
-    return mod_dir, "flat(b41?)"
 
-def scan_mod(mod_dir):
-    info = parse_modinfo(os.path.join(mod_dir, "mod.info"))
-    live, layout = pick_version_dir(mod_dir)
+def resolve(mod_dir):
+    """(info, version_dirs, chosen_rel, live_dir) exactly as B42 resolves them: the newest
+    version folder's mod.info first, then common/, then the root.
+
+    Every part of the answer comes from `mod_lint`; see this module's docstring for why an
+    inventory must not keep a second opinion about a mod's identity."""
+    vers = mod_lint.version_dirs(mod_dir)
+    chosen = next((c for c in mod_lint.info_chain(vers)
+                   if os.path.isfile(os.path.join(mod_dir, c))), None)
+    info = mod_lint.read_info(os.path.join(mod_dir, chosen)) if chosen else {}
+    root = mod_lint.media_root(mod_dir, vers)
+    return info, vers, chosen, os.path.join(mod_dir, root) if root else mod_dir
+
+
+def require_list(info):
+    r"""`require=` is a comma list of mod ids, each optionally `\`-prefixed (`\ModA,\ModB`).
+
+    `mod_lint.read_info` keeps every value as the raw string a lint needs; this is the one
+    mod.info key whose value is not a scalar, and the split+`lstrip("\\")` is what the old
+    local `parse_modinfo` whitelist did with it."""
+    return [x.strip().lstrip("\\") for x in str(info.get("require", "")).split(",") if x.strip()]
+
+
+def folder_bytes(mod_dir):
+    """Every byte the mod folder occupies on disk -- all version folders, not just the live
+    one, because that is what a subscriber downloads and what a teardown has to read."""
+    total = 0
+    for dirpath, _dirs, files in os.walk(mod_dir):
+        for fn in files:
+            try:
+                total += os.path.getsize(os.path.join(dirpath, fn))
+            except OSError:
+                pass
+    return total
+
+
+def scan_mod(mod_dir, item_dir=None):
+    """One mod folder -> one inventory record. `item_dir` is the workshop *item* folder the
+    mod ships in, whose mtime is Steam's last write (the offline half of "is this B42?");
+    with none given, the mod folder's own mtime stands in."""
+    info, vers, chosen, live = resolve(mod_dir)
+    # media_root returns "" only when there is neither a version folder nor common/.
+    layout = vers[0] if vers else ("common" if live != mod_dir else "flat(b41?)")
     media = os.path.join(live, "media")
     stats = collections.Counter()
     sig = collections.Counter()
     events = collections.Counter()
+    script_keys = collections.Counter()
+    script_modules = set()
+    script_items = 0
     lua_bytes = 0
     for dirpath, dirs, files in os.walk(media):
         p = dirpath.replace("\\", "/").lower()
@@ -96,6 +145,13 @@ def scan_mod(mod_dir):
                                 events[ev] += 1
             elif fl.endswith(".txt") and "/scripts" in p:
                 stats["script_files"] += 1
+                try:
+                    txt = open(full, encoding="utf-8", errors="replace").read()
+                except OSError:
+                    continue
+                script_keys.update(SCRIPT_KEYS.findall(txt))
+                script_items += len(SCRIPT_ITEM.findall(txt))
+                script_modules.update(SCRIPT_MODULE.findall(txt))
             elif fl.endswith((".fbx", ".x")):
                 stats["models"] += 1
             elif fl.endswith((".pack", ".tiles")):
@@ -104,18 +160,29 @@ def scan_mod(mod_dir):
                 stats["map_files"] += 1
             elif fl.endswith((".ogg", ".wav", ".bank")):
                 stats["sounds"] += 1
+    if script_keys:
+        sig["script_nutrition"] = sum(script_keys.values())
     has_sandbox = os.path.isfile(os.path.join(live, "media", "sandbox-options.txt")) or \
                   os.path.isfile(os.path.join(mod_dir, "media", "sandbox-options.txt"))
+    mtime = os.path.getmtime(item_dir or mod_dir)
     return {
-        "mod_id": info.get("id", os.path.basename(mod_dir)),
+        "mod_id": info.get("id") or "",
+        "mod_id_fallback": os.path.basename(os.path.normpath(mod_dir)),
         "name": info.get("name", "?"),
         "author": info.get("author", "?"),
-        "require": info.get("require", []),
+        "require": require_list(info),
         "layout": layout,
+        "version_dirs": vers,
+        "mod_info_at": chosen,
         "stats": dict(stats),
         "signals": dict(sig),
+        "script_nutrition_keys": dict(sorted(script_keys.items())),
+        "script_item_blocks": script_items,
+        "script_modules": sorted(script_modules),
         "top_events": events.most_common(8),
         "lua_kb": round(lua_bytes / 1024),
+        "bytes": folder_bytes(mod_dir),
+        "workshop_item_mtime": datetime.datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
         "sandbox_options": has_sandbox,
     }
 
@@ -140,11 +207,11 @@ def main():
         wdir = os.path.join(ROOT, wid, "mods")
         if not os.path.isdir(wdir):
             continue
-        for modname in os.listdir(wdir):
+        for modname in sorted(os.listdir(wdir)):
             mdir = os.path.join(wdir, modname)
             if not os.path.isdir(mdir):
                 continue
-            m = scan_mod(mdir)
+            m = scan_mod(mdir, os.path.join(ROOT, wid))
             m["workshop_id"] = wid
             m["folder"] = modname
             m["class"] = classify(m)
@@ -171,10 +238,39 @@ def main():
         print(f"  {m['lua_kb']:>5}KB {m['mod_id']:<32.32} net:{g.get('send_client_cmd',0)+g.get('on_client_cmd',0):>3} "
               f"modData:{g.get('mod_data',0):>3} patch:{g.get('monkey_patch',0):>3} pcall:{g.get('pcall',0):>3} "
               f"food:{g.get('food_nutrition',0):>3} [{m['class']}]")
-    print("\nMods touching nutrition/food APIs:")
-    for m in sorted(out, key=lambda x: -x["signals"].get("food_nutrition", 0)):
-        if m["signals"].get("food_nutrition"):
-            print(f"  {m['signals']['food_nutrition']:>4} {m['mod_id']} ({m['name']})")
+    # The two nutrition sweeps side by side: `.lua` runtime API vs `media/scripts` definitions.
+    # A row with a script signal and no lua one is a pure content mod; the reverse is a systems
+    # mod that never ships an item. Neither column alone is the catalog.
+    print("\nMods touching nutrition/food APIs (lua) or item nutrition keys (scripts):")
+    print("  lua = getNutrition/set*/HungerChange in .lua; script = nutrition keys in "
+          "media/scripts/*.txt;\n  items = `item ` lines there (recipe input lines included); "
+          "module Base overrides vanilla items.")
+    print(f"  {'lua':>4} {'script':>6} {'items':>5}  {'mod_id':<34} module(s) / name")
+    touching = [m for m in out if m["signals"].get("food_nutrition") or m["signals"].get("script_nutrition")]
+    for m in sorted(touching, key=lambda x: (-x["signals"].get("script_nutrition", 0),
+                                             -x["signals"].get("food_nutrition", 0))):
+        g = m["signals"]
+        mods = ",".join(m["script_modules"]) + " " if g.get("script_nutrition") else ""
+        print(f"  {g.get('food_nutrition', 0):>4} {g.get('script_nutrition', 0):>6} "
+              f"{m['script_item_blocks'] if g.get('script_nutrition') else '':>5}  "
+              f"{(m['mod_id'] or '(no id)'):<34} {mods}{m['name']}")
+    print(f"  {len(touching)} mod(s): "
+          f"{sum(1 for m in touching if m['signals'].get('food_nutrition'))} lua, "
+          f"{sum(1 for m in touching if m['signals'].get('script_nutrition'))} script, "
+          f"{sum(1 for m in touching if m['signals'].get('food_nutrition') and m['signals'].get('script_nutrition'))} both")
+    # The game keys on mod.info, not on the folder: a profile's `[[mods]] id` must be the
+    # resolved id. An empty one means no mod.info anywhere -- the game cannot load it by id.
+    drift = [m for m in out if m["mod_id"] != m["mod_id_fallback"]]
+    print(f"\nMods whose folder name != declared id ({len(drift)}):")
+    for m in sorted(drift, key=lambda x: x["mod_id_fallback"].lower()):
+        print(f"  {m['workshop_id']}/{m['mod_id_fallback']} -> "
+              f"{m['mod_id'] or '(no mod.info id -- invisible to the workshop index)'}")
 
 if __name__ == "__main__":
+    # Mod folder names and mod.info values are author-supplied; the default Windows console
+    # encoding (cp1252) cannot encode all of them and would abort the sweep. Same guard as mod_lint.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, OSError):
+        pass
     main()
