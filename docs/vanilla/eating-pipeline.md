@@ -515,8 +515,8 @@ by its effect — the 5.5 s landing and the witness convergence — not by a log
    measured outcomes. **Since measured on the server** (slice 04, `scenario-20260910-054012` and
    `-055029`): the loss ceiling landed exactly — a game-day spent on the −2200 floor lost
    **0.646 kg** — while the gain ceiling was, as expected, only approached from below, because a
-   store fed under the clamp sawtooths rather than sitting on it (0.842 kg/game-day over three
-   days). Both runs, with residuals and what they do not cover:
+   store fed under the clamp first ramps up from empty (day 1) and then sawtooths rather than sitting on it (0.842 kg/game-day over three days, 0.940 over days 2-3 alone; see the
+   ramp/sawtooth split there). Both runs, with residuals and what they do not cover:
    [nutrition-core.md](nutrition-core.md) § Verified on server.
 6. **Weight is server-only; the client computes it and discards it.** `Nutrition.update @106 L81`
    calls `updateWeight()` on both sides, but the method's own `GameClient.client` skip

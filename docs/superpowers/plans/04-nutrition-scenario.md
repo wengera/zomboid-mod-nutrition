@@ -385,3 +385,5 @@ roadmap example "3 game-days at 4000 cal gains ≥3 kg" in
 [`docs/testing/pipeline-design.md`](../../testing/pipeline-design.md) (corrected there) — was
 simply wrong in size: the model predicts **+2.55 kg** under the clamp and the server measured
 **+2.53**.
+
+- Post-fix-wave live check (`afac230`): `python testing/pzt scenario smoke_clock --speed 30` → PASS (`scenario-20260910-074456`), `faults: []`, result log `[10m] eventually ok: second sample` — the `t:eventually` path executed live for the first time; `settimespeed` ok both ways; cadence 1.0 tick per game-minute; 0 server errors.

@@ -28,7 +28,7 @@ elif calories < loseThreshold:
                                                         # clamps at −2200 → ≤0.646 kg/game-day
 ```
 
-Rounding convention: every kg/game-day figure in this file is quoted to **three decimals** — the
+Rounding convention: the ceilings and the measured rates in this file are quoted to **three decimals** — the
 clamped ceilings `1.039` · `3.117` · `0.646` here and in the table below, and the measured rates
 in § Verified on server.
 
