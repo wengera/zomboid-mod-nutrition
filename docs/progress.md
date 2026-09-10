@@ -6,7 +6,7 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 
 | # | Slice | Status | Date | Commit | Outcome |
 |---|---|---|---|---|---|
-| 01 | P1a · Intake pipeline | in progress | 2026-09-10 | (see resume note) | tools, doctor, harness commands, code map, mirrors done; matrix running; doc pending |
+| 01 | P1a · Intake pipeline | done | 2026-09-10 | cd0f936..419f16a | `docs/vanilla/eating-pipeline.md` (67 modifiers, 24 measured; server owns Nutrition in MP); tools wiki_mirror/doc_lint, `pzt doctor`, harness experiment commands, 7 mirrors, tracked artifacts; acceptance in the plan file |
 | 02 | P1c · Food item model & lifecycle | ready (needs 01) | | | |
 | 03 | P1b · Body side | ready (needs 01) | | | |
 | 04 | T2 · Accelerated nutrition scenario | ready (needs 01, 02) | | | |
@@ -23,11 +23,11 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 
 ## Resume notes (in-progress slices)
 
-- **01** (SDD ledger: `.superpowers/sdd/01-intake-pipeline/progress.md`, plan `docs/superpowers/plans/01-intake-pipeline.md`): done — T1 tools (`755d420`, `eee86bc`), T2 doctor (`82f9806`), T3 harness commands + smoke (`21af6d1`, `eb123fd`), T4 code map (`docs/superpowers/plans/01-notes.md`, `a24010c`), T6 mirrors (`f076920`, `ab501ba`). Running — T5 experiment matrix (`testing/experiments/s01_eat_matrix.py`, results → `testing/artifacts/exp01-20260910-003929/eat-matrix.json`). Next — review T5, then T7 writes `docs/vanilla/eating-pipeline.md` and applies the S6-direction corrections listed in `.superpowers/sdd/01-intake-pipeline/task-7-brief.md`; then acceptance checks, ledgers, push.
+_None._
 
 ## Ripples (findings that change a later slice's plan)
 
-- (from 01) The **server** owns `Nutrition` in MP (client-side `setCalories` is overwritten within ~1 s by the 1 Hz `PlayerStatsPacket`; the eat action completes server-side). Slice 04's scenario must set/feed calories on the server bus (`nutrition.set <user> …`) and read server values; slice 03's decay measurements likewise read the server. `docs/testing/spikes.md` S6, `pipeline-design.md` and `docs/modding/patterns.md` state the reverse and are corrected in slice 01's Task 7.
+- (from 01) The **server** owns `Nutrition` in MP (client-side `setCalories` is overwritten within ~1 s by the 1 Hz `PlayerStatsPacket`; the eat action completes server-side). Slice 04's scenario must set/feed calories on the server bus (`nutrition.set <user> …`) and read server values; slice 03's decay measurements likewise read the server. `docs/testing/spikes.md` S6, `pipeline-design.md` and `docs/modding/patterns.md` stated the reverse and were corrected in slice 01 (Task 7).
 - (from 01) Kahlua `pcall` does not catch "tried to call nil" — harness code must nil-check Java members before calling (`TK.call`); every later slice's Lua follows this.
 - (from 01) B42 hunger/thirst are read with `Stats:get(CharacterStat.HUNGER/THIRST)` — the route every live snapshot answered with (M). `Stats` carries no `getHunger`/`getThirst` in its 34-method list (C, `./pz.sh methods zombie/characters/Stats`); the harness's `getHunger()`/`.hunger` fallbacks short-circuit and were never exercised, so "gone" rests on the method list, not on the run (slice 03).
 - (from 01) Script-level Calories/Carbs/Lipids/Proteins have no Lua getter — slice 05's in-game cross-check must use item instances (`eat`'s `itemBefore`) or count-only checks.
