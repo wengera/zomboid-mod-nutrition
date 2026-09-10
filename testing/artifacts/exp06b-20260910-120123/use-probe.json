@@ -1,0 +1,1939 @@
+{
+ "run_id": "exp06b-20260910-120123",
+ "meta": {
+  "purpose": "live measurement of what consuming N USES of a food does to it -- the rule data/recipes.json's nutrition deltas rest on (06-recipes/q-itemcount-notes.md, Open #1)",
+  "rule": "every field multiplyFoodValues writes is scaled by (1 - used/currentUses), used = min(getCurrentUses(), requested); maxUses and baseHunger do not move",
+  "dataset": "data/recipes.json",
+  "dataset_commit": "c6ef7f2",
+  "dataset_sha256": "9493df4daa28d5b081eb35d494ffdf3da27315c116d099740e5fbb6f9be7c1fc",
+  "dataset_dirty": false,
+  "dataset_read_error": null,
+  "dataset_meta": {
+   "build": "42.20.4 (b0bbce05d5)",
+   "generated": "2026-09-10",
+   "tool": "tools/recipe_scan.py",
+   "sources": {
+    "scripts": "media/scripts",
+    "files": [
+     "entities/agricultural/craftRecipes/recipes_fiber.txt",
+     "entities/agricultural/craftRecipes/recipes_flax.txt",
+     "entities/agricultural/workstations/entity_Drying_Rack_craftRecipe.txt",
+     "entities/agricultural/workstations/entity_Herb_Drying_Rack_craftRecipe.txt",
+     "entities/agricultural/workstations/entity_simple_loom_craftRecipe.txt",
+     "entities/agricultural/workstations/entity_stone_mill_craftRecipe.txt",
+     "entities/agricultural/workstations/entity_stone_quern_craftRecipe.txt",
+     "entities/animals/craftRecipes/recipes_butter_churn.txt",
+     "entities/animals/craftRecipes/recipes_leather_prep.txt",
+     "entities/animals/craftRecipes/recipes_leather_prep_blair.txt",
+     "entities/animals/craftRecipes/recipes_spinning_wheel.txt",
+     "entities/appliances/workstations/entity_coffeemachine_craftRecipe.txt",
+     "entities/appliances/workstations/entity_toaster_craftRecipe.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_armor.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_bandsaw.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_blades.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_cookware.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_furnace_ii.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_furnaces_i.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_heads.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_ii.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_standingdrill.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_tools.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_welded_etc_weapons.txt",
+     "entities/blacksmith/craftRecipes/recipes_blacksmith_woodcharcoal.txt",
+     "entities/blacksmith/craftRecipes/recipes_stonemasonry_i.txt",
+     "entities/blacksmith/workstations/entity_dome_kiln_craftRecipe.txt",
+     "entities/pottery/cratRecipes/craftrecipe_handpress.txt",
+     "entities/pottery/cratRecipes/craftrecipe_kiln.txt",
+     "entities/pottery/cratRecipes/craftrecipe_potterywheel.txt",
+     "recipes/recipes.txt",
+     "recipes/recipes_ammunition.txt",
+     "recipes/recipes_assembly.txt",
+     "recipes/recipes_baking.txt",
+     "recipes/recipes_bone.txt",
+     "recipes/recipes_buckets.txt",
+     "recipes/recipes_camping.txt",
+     "recipes/recipes_cannedFood.txt",
+     "recipes/recipes_cardsAndDice.txt",
+     "recipes/recipes_carpentry.txt",
+     "recipes/recipes_carving.txt",
+     "recipes/recipes_cooking.txt",
+     "recipes/recipes_disassembly.txt",
+     "recipes/recipes_electrical.txt",
+     "recipes/recipes_farming.txt",
+     "recipes/recipes_fishing.txt",
+     "recipes/recipes_fixing.txt",
+     "recipes/recipes_fluids.txt",
+     "recipes/recipes_gasmasks.txt",
+     "recipes/recipes_glassmaking.txt",
+     "recipes/recipes_improvised_weapons.txt",
+     "recipes/recipes_jarring.txt",
+     "recipes/recipes_knapping.txt",
+     "recipes/recipes_lightsources.txt",
+     "recipes/recipes_medical.txt",
+     "recipes/recipes_metalWelding.txt",
+     "recipes/recipes_metalWelding_Armor.txt",
+     "recipes/recipes_packing.txt",
+     "recipes/recipes_pottery.txt",
+     "recipes/recipes_radio.txt",
+     "recipes/recipes_sacks.txt",
+     "recipes/recipes_sleepingbags_and_tents.txt",
+     "recipes/recipes_spears.txt",
+     "recipes/recipes_survivalist.txt",
+     "recipes/recipes_tailoring.txt",
+     "recipes/recipes_tailoring_armor.txt",
+     "recipes/recipes_tailoring_garbageTapeAndTarp.txt",
+     "recipes/recipes_tailoring_knitting.txt",
+     "recipes/recipes_tailoring_leatherAndHide.txt",
+     "recipes/recipes_tobacco.txt",
+     "recipes/recipes_trapping.txt",
+     "recipes/recipes_traps.txt"
+    ],
+    "food_items": {
+     "path": "data/food-items.json",
+     "build": "42.20.4",
+     "jar_hash": "b0bbce05d5",
+     "generated": "2026-09-10"
+    }
+   },
+   "counts": {
+    "craftRecipes": 969,
+    "files": 74,
+    "scriptFiles": 1004,
+    "legacyRecipeBlocks": 0,
+    "componentCraftRecipes": 202,
+    "itemMappers": 225,
+    "overlayMappers": 3,
+    "recipesWithoutOutputs": 11,
+    "recipesWithEmptyOutputs": 26,
+    "fluidRecipes": 53,
+    "outputItemTypes": 1693,
+    "outputItemTypesInDataset": 295,
+    "outputItemTypesInFoodDataset": 262,
+    "recipesTouchingFood": 375,
+    "recipesWithFoodOutput": 182,
+    "recipesWithDelta": 31,
+    "recipesWithNonZeroCalorieDelta": 20,
+    "recipesWithCaloriesAbsentOnEverySide": 3
+   },
+   "outputMapperIssues": [
+    {
+     "recipe": "ExtractIronFromIronOre",
+     "mapper": "SmeltMapper",
+     "why": "no-rows"
+    }
+   ]
+  },
+  "foods_dataset": "data/food-items.json",
+  "foods_commit": "1c4dfa5",
+  "foods_sha256": "c71202bdd27616730f243773126bbcbfd15161fb258f05b91514fecec993c5b0",
+  "foods_dirty": false,
+  "foods_read_error": null,
+  "foods_use": "the per-item script macros the spawn_guard block checks the spawned instance against; every scaling expectation is built from the LIVE before snapshot, not from this file",
+  "head_commit": "c6ef7f2",
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+   "ok   workshop index: 229 mods",
+   "ok   pytest available"
+  ],
+  "spawn_wait_s": 2.5,
+  "tolerance": {
+   "abs": 1e-05,
+   "rel": 0.0001,
+   "why": "Food is float32 and TK.json rounds to 6 decimals; the relative term is the brief's 1e-4"
+  },
+  "world_changes": "none -- no settimespeed, no sandbox write, no character write. The spawned items live in this run's COPY of the fixture."
+ },
+ "session": {
+  "players": [
+   "admin"
+  ],
+  "time_start": {
+   "worldAge": 2.31682,
+   "hour": 9,
+   "minutes": 19,
+   "mult": 4.331432,
+   "wall": 1789056137090
+  },
+  "time_end": {
+   "worldAge": 2.429551,
+   "hour": 9,
+   "minutes": 25,
+   "mult": 4.798754,
+   "wall": 1789056162693
+  }
+ },
+ "items": {
+  "icecream_third": {
+   "key": "icecream_third",
+   "type": "Base.Icecream",
+   "uses": 10,
+   "note": "10 of 30 uses -- a THIRD of a tub, ScoopIceCream's own `item 10 [Base.Icecream]` line. The only row whose factor is neither 0 nor 1, so it is the one that separates `1 - used/currentUses` from `one use = one item` and from `N is a count of items`. Predicted -0.30 -> -0.20 and 1680 -> 1120 kcal",
+   "pre_existing": "no item Base.Icecream in admin's inventory",
+   "rcon_additem": "",
+   "get_before": {
+    "fullType": "Base.Icecream",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.3,
+    "baseHunger": -0.3,
+    "calories": 1680,
+    "carbs": 180,
+    "lipids": 84,
+    "proteins": 26,
+    "id": 1013282068,
+    "uses": 0.3,
+    "fresh": true,
+    "offAge": 1,
+    "offAgeMax": 2,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.3,
+    "serverWorldAge": 2.340834
+   },
+   "use": {
+    "user": "admin",
+    "fullType": "Base.Icecream",
+    "requestedUses": 10,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "most currentUses, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 1013282068,
+      "hasFluidContainer": false,
+      "currentUses": 30,
+      "maxUses": 30,
+      "usesFloat": 0.3,
+      "hungChange": -0.3
+     }
+    ],
+    "selected": {
+     "index": 0,
+     "id": 1013282068,
+     "hasFluidContainer": false,
+     "currentUses": 30,
+     "maxUses": 30,
+     "usesFloat": 0.3,
+     "hungChange": -0.3
+    },
+    "selectedFullType": "Base.Icecream",
+    "disappearOnUse": true,
+    "keepOnDeplete": false,
+    "worldAgeBefore": 2.349674,
+    "before": {
+     "fullType": "Base.Icecream",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.3,
+     "baseHunger": -0.3,
+     "calories": 1680,
+     "carbs": 180,
+     "lipids": 84,
+     "proteins": 26,
+     "id": 1013282068,
+     "uses": 0.3,
+     "fresh": true,
+     "offAge": 1,
+     "offAgeMax": 2,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.3,
+     "currentUses": 30,
+     "maxUses": 30,
+     "inContainer": true
+    },
+    "targetUses": 20,
+    "usedUses": 10,
+    "predictedFactor": 0.666667,
+    "predictedFactorBasis": "multiplyFoodValues(1 - used/currentUses), via Food.setCurrentUses -> consumeHunger; equal to 1 - used/maxUses only while the item is whole",
+    "predicted": {
+     "hungChange": -0.2,
+     "calories": 1120.0,
+     "carbs": 120.0,
+     "lipids": 56.0,
+     "proteins": 17.333333,
+     "thirstChange": 0
+    },
+    "route": "item:setCurrentUses(20)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+    "routeAttempts": [
+     {
+      "route": "ItemUser.UseItem",
+      "memberAbsent": true,
+      "detail": "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+     }
+    ],
+    "after": {
+     "fullType": "Base.Icecream",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.2,
+     "baseHunger": -0.3,
+     "calories": 1120,
+     "carbs": 120,
+     "lipids": 56,
+     "proteins": 17.333334,
+     "id": 1013282068,
+     "uses": 0.2,
+     "fresh": true,
+     "offAge": 1,
+     "offAgeMax": 2,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.2,
+     "currentUses": 20,
+     "maxUses": 30,
+     "inContainer": true
+    },
+    "worldAgeAfter": 2.349674,
+    "candidatesAfter": [
+     {
+      "index": 0,
+      "id": 1013282068,
+      "hasFluidContainer": false,
+      "currentUses": 20,
+      "maxUses": 30,
+      "usesFloat": 0.2,
+      "hungChange": -0.2
+     }
+    ],
+    "delta": {
+     "currentUses": -10,
+     "maxUses": 0,
+     "uses": -0.1,
+     "hungChange": 0.1,
+     "hungerChange": 0.1,
+     "baseHunger": 0,
+     "calories": -560,
+     "carbs": -60,
+     "lipids": -28,
+     "proteins": -8.666666,
+     "thirstChange": 0,
+     "worldAgeHours": 0
+    }
+   },
+   "get_after": {
+    "fullType": "Base.Icecream",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.2,
+    "baseHunger": -0.3,
+    "calories": 1120,
+    "carbs": 120,
+    "lipids": 56,
+    "proteins": 17.333334,
+    "id": 1013282068,
+    "uses": 0.2,
+    "fresh": true,
+    "offAge": 1,
+    "offAgeMax": 2,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.2,
+    "serverWorldAge": 2.35012
+   }
+  },
+  "mincedmeat_whole": {
+   "key": "mincedmeat_whole",
+   "type": "Base.MincedMeat",
+   "uses": 40,
+   "note": "40 of 40 uses -- MakeMeatPatty's whole line. Factor 0: every macro and getCurrentUses() must land on 0, and the depletion branch fires",
+   "pre_existing": "no item Base.MincedMeat in admin's inventory",
+   "rcon_additem": "",
+   "get_before": {
+    "fullType": "Base.MincedMeat",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.4,
+    "baseHunger": -0.4,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 30,
+    "proteins": 46,
+    "id": 230848142,
+    "uses": 0.4,
+    "fresh": true,
+    "offAge": 2,
+    "offAgeMax": 4,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 50,
+    "minutesToBurn": 70,
+    "thirstChange": 0,
+    "hungerChange": -0.4,
+    "serverWorldAge": 2.376288
+   },
+   "use": {
+    "user": "admin",
+    "fullType": "Base.MincedMeat",
+    "requestedUses": 40,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "most currentUses, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 230848142,
+      "hasFluidContainer": false,
+      "currentUses": 40,
+      "maxUses": 40,
+      "usesFloat": 0.4,
+      "hungChange": -0.4
+     }
+    ],
+    "selected": {
+     "index": 0,
+     "id": 230848142,
+     "hasFluidContainer": false,
+     "currentUses": 40,
+     "maxUses": 40,
+     "usesFloat": 0.4,
+     "hungChange": -0.4
+    },
+    "selectedFullType": "Base.MincedMeat",
+    "disappearOnUse": true,
+    "keepOnDeplete": false,
+    "worldAgeBefore": 2.383392,
+    "before": {
+     "fullType": "Base.MincedMeat",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.4,
+     "baseHunger": -0.4,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 30,
+     "proteins": 46,
+     "id": 230848142,
+     "uses": 0.4,
+     "fresh": true,
+     "offAge": 2,
+     "offAgeMax": 4,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 50,
+     "minutesToBurn": 70,
+     "thirstChange": 0,
+     "hungerChange": -0.4,
+     "currentUses": 40,
+     "maxUses": 40,
+     "inContainer": true
+    },
+    "targetUses": 0,
+    "usedUses": 40,
+    "predictedFactor": 0,
+    "predictedFactorBasis": "multiplyFoodValues(1 - used/currentUses), via Food.setCurrentUses -> consumeHunger; equal to 1 - used/maxUses only while the item is whole",
+    "predicted": {
+     "hungChange": 0,
+     "calories": 0,
+     "carbs": 0,
+     "lipids": 0,
+     "proteins": 0,
+     "thirstChange": 0
+    },
+    "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+    "routeAttempts": [
+     {
+      "route": "ItemUser.UseItem",
+      "memberAbsent": true,
+      "detail": "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+     }
+    ],
+    "after": {
+     "fullType": "Base.MincedMeat",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": 0,
+     "baseHunger": -0.4,
+     "calories": 0,
+     "carbs": 0,
+     "lipids": 0,
+     "proteins": 0,
+     "id": 230848142,
+     "uses": 0,
+     "fresh": true,
+     "offAge": 2,
+     "offAgeMax": 4,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 50,
+     "minutesToBurn": 70,
+     "thirstChange": 0,
+     "hungerChange": 0,
+     "currentUses": 0,
+     "maxUses": 40,
+     "inContainer": true
+    },
+    "worldAgeAfter": 2.383392,
+    "candidatesAfter": [
+     {
+      "index": 0,
+      "id": 230848142,
+      "hasFluidContainer": false,
+      "currentUses": 0,
+      "maxUses": 40,
+      "usesFloat": 0,
+      "hungChange": 0
+     }
+    ],
+    "delta": {
+     "currentUses": -40,
+     "maxUses": 0,
+     "uses": -0.4,
+     "hungChange": 0.4,
+     "hungerChange": 0.4,
+     "baseHunger": 0,
+     "calories": -300,
+     "carbs": 0,
+     "lipids": -30,
+     "proteins": -46,
+     "thirstChange": 0,
+     "worldAgeHours": 0
+    }
+   },
+   "get_after": {
+    "fullType": "Base.MincedMeat",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": 0,
+    "baseHunger": -0.4,
+    "calories": 0,
+    "carbs": 0,
+    "lipids": 0,
+    "proteins": 0,
+    "id": 230848142,
+    "uses": 0,
+    "fresh": true,
+    "offAge": 2,
+    "offAgeMax": 4,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 50,
+    "minutesToBurn": 70,
+    "thirstChange": 0,
+    "hungerChange": 0,
+    "serverWorldAge": 2.385168
+   }
+  },
+  "cheese_whole": {
+   "key": "cheese_whole",
+   "type": "Base.Cheese",
+   "uses": 15,
+   "note": "15 of 15 uses -- MakePizza's line. The same boundary from a different magnitude, so a coincidence in the MincedMeat row cannot survive it",
+   "pre_existing": "no item Base.Cheese in admin's inventory",
+   "rcon_additem": "Item Base.Cheese Added in admin's inventory.",
+   "get_before": {
+    "fullType": "Base.Cheese",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.15,
+    "baseHunger": -0.15,
+    "calories": 113,
+    "carbs": 0.87,
+    "lipids": 9.33,
+    "proteins": 6.4,
+    "id": 445277795,
+    "uses": 0.15,
+    "fresh": true,
+    "offAge": 14,
+    "offAgeMax": 20,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.15,
+    "serverWorldAge": 2.4118
+   },
+   "use": {
+    "user": "admin",
+    "fullType": "Base.Cheese",
+    "requestedUses": 15,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "most currentUses, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 445277795,
+      "hasFluidContainer": false,
+      "currentUses": 15,
+      "maxUses": 15,
+      "usesFloat": 0.15,
+      "hungChange": -0.15
+     }
+    ],
+    "selected": {
+     "index": 0,
+     "id": 445277795,
+     "hasFluidContainer": false,
+     "currentUses": 15,
+     "maxUses": 15,
+     "usesFloat": 0.15,
+     "hungChange": -0.15
+    },
+    "selectedFullType": "Base.Cheese",
+    "disappearOnUse": true,
+    "keepOnDeplete": false,
+    "worldAgeBefore": 2.416682,
+    "before": {
+     "fullType": "Base.Cheese",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.15,
+     "baseHunger": -0.15,
+     "calories": 113,
+     "carbs": 0.87,
+     "lipids": 9.33,
+     "proteins": 6.4,
+     "id": 445277795,
+     "uses": 0.15,
+     "fresh": true,
+     "offAge": 14,
+     "offAgeMax": 20,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": -0.15,
+     "currentUses": 15,
+     "maxUses": 15,
+     "inContainer": true
+    },
+    "targetUses": 0,
+    "usedUses": 15,
+    "predictedFactor": 0,
+    "predictedFactorBasis": "multiplyFoodValues(1 - used/currentUses), via Food.setCurrentUses -> consumeHunger; equal to 1 - used/maxUses only while the item is whole",
+    "predicted": {
+     "hungChange": 0,
+     "calories": 0,
+     "carbs": 0,
+     "lipids": 0,
+     "proteins": 0,
+     "thirstChange": 0
+    },
+    "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+    "routeAttempts": [
+     {
+      "route": "ItemUser.UseItem",
+      "memberAbsent": true,
+      "detail": "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+     }
+    ],
+    "after": {
+     "fullType": "Base.Cheese",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": 0,
+     "baseHunger": -0.15,
+     "calories": 0,
+     "carbs": 0,
+     "lipids": 0,
+     "proteins": 0,
+     "id": 445277795,
+     "uses": 0,
+     "fresh": true,
+     "offAge": 14,
+     "offAgeMax": 20,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": 0,
+     "hungerChange": 0,
+     "currentUses": 0,
+     "maxUses": 15,
+     "inContainer": true
+    },
+    "worldAgeAfter": 2.416682,
+    "candidatesAfter": [
+     {
+      "index": 0,
+      "id": 445277795,
+      "hasFluidContainer": false,
+      "currentUses": 0,
+      "maxUses": 15,
+      "usesFloat": 0,
+      "hungChange": 0
+     }
+    ],
+    "delta": {
+     "currentUses": -15,
+     "maxUses": 0,
+     "uses": -0.15,
+     "hungChange": 0.15,
+     "hungerChange": 0.15,
+     "baseHunger": 0,
+     "calories": -113,
+     "carbs": -0.87,
+     "lipids": -9.33,
+     "proteins": -6.4,
+     "thirstChange": 0,
+     "worldAgeHours": 0
+    }
+   },
+   "get_after": {
+    "fullType": "Base.Cheese",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": 0,
+    "baseHunger": -0.15,
+    "calories": 0,
+    "carbs": 0,
+    "lipids": 0,
+    "proteins": 0,
+    "id": 445277795,
+    "uses": 0,
+    "fresh": true,
+    "offAge": 14,
+    "offAgeMax": 20,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": 0,
+    "serverWorldAge": 2.420675
+   }
+  }
+ },
+ "comparison": {
+  "icecream_third": {
+   "item": "Base.Icecream",
+   "requested_uses": 10,
+   "note": "10 of 30 uses -- a THIRD of a tub, ScoopIceCream's own `item 10 [Base.Icecream]` line. The only row whose factor is neither 0 nor 1, so it is the one that separates `1 - used/currentUses` from `one use = one item` and from `N is a count of items`. Predicted -0.30 -> -0.20 and 1680 -> 1120 kcal",
+   "food_record_found": true,
+   "route": "item:setCurrentUses(20)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+   "finder": "getAllTypeRecurse",
+   "selection": {
+    "index": 0,
+    "id": 1013282068,
+    "hasFluidContainer": false,
+    "currentUses": 30,
+    "maxUses": 30,
+    "usesFloat": 0.3,
+    "hungChange": -0.3
+   },
+   "candidates": [
+    {
+     "index": 0,
+     "id": 1013282068,
+     "hasFluidContainer": false,
+     "currentUses": 30,
+     "maxUses": 30,
+     "usesFloat": 0.3,
+     "hungChange": -0.3
+    }
+   ],
+   "candidates_after": [
+    {
+     "index": 0,
+     "id": 1013282068,
+     "hasFluidContainer": false,
+     "currentUses": 20,
+     "maxUses": 30,
+     "usesFloat": 0.2,
+     "hungChange": -0.2
+    }
+   ],
+   "route_attempts": [
+    {
+     "route": "ItemUser.UseItem",
+     "memberAbsent": true,
+     "detail": "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+    }
+   ],
+   "reply_error": null,
+   "keep_on_deplete": false,
+   "disappear_on_use": true,
+   "spawn_guard": {
+    "max_uses": {
+     "expected": 30,
+     "live": 30,
+     "tolerance": 0,
+     "basis": "Food.getMaxUses = (int)|baseHunger * 100| = |script HungerChange|",
+     "match": true
+    },
+    "current_uses_is_whole": {
+     "expected": 30,
+     "live": 30,
+     "tolerance": 0,
+     "basis": "a freshly spawned item must be whole, and only then is maxUses the scaling denominator",
+     "match": true
+    },
+    "hung_change": {
+     "expected": -0.30000001192092896,
+     "live": -0.3,
+     "tolerance": 4.0000001192092896e-05,
+     "basis": "Item.InstanceItem stores HungerChange/100 (food-item-model.md)",
+     "diff": 1.1920928966180355e-08,
+     "match": true
+    },
+    "calories": {
+     "expected": 1680.0,
+     "live": 1680,
+     "tolerance": 0.16801000000000002,
+     "dataset_column": "calories",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 180.0,
+     "live": 180,
+     "tolerance": 0.01801,
+     "dataset_column": "carbohydrates",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 84.0,
+     "live": 84,
+     "tolerance": 0.00841,
+     "dataset_column": "lipids",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 26.0,
+     "live": 26,
+     "tolerance": 0.0026100000000000003,
+     "dataset_column": "proteins",
+     "diff": 0.0,
+     "match": true
+    },
+    "in_container": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "the spawned item is in the player's inventory before the call",
+     "match": true
+    },
+    "instances_before": {
+     "expected": 1,
+     "live": 1,
+     "tolerance": 0,
+     "basis": "exactly one instance of this type in the inventory when the command ran",
+     "match": true
+    }
+   },
+   "scaling": {
+    "used_uses": {
+     "expected": 10,
+     "live": 10,
+     "tolerance": 0,
+     "basis": "Math.min(item.getCurrentUses(), count), UseItem @18 L34",
+     "match": true
+    },
+    "hungChange": {
+     "expected": -0.20000001788139343,
+     "live": -0.2,
+     "tolerance": 4e-05,
+     "before": -0.3,
+     "expected_from_exact": -0.2,
+     "harness_prediction": -0.2,
+     "dataset_column": null,
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 1.7881393421514957e-08,
+     "match": true
+    },
+    "calories": {
+     "expected": 1120.0,
+     "live": 1120,
+     "tolerance": 0.16801000000000002,
+     "before": 1680,
+     "expected_from_exact": 1120.0000000000002,
+     "harness_prediction": 1120.0,
+     "dataset_column": "calories",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 120.0,
+     "live": 120,
+     "tolerance": 0.01801,
+     "before": 180,
+     "expected_from_exact": 120.00000000000001,
+     "harness_prediction": 120.0,
+     "dataset_column": "carbohydrates",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 56.0,
+     "live": 56,
+     "tolerance": 0.00841,
+     "before": 84,
+     "expected_from_exact": 56.00000000000001,
+     "harness_prediction": 56.0,
+     "dataset_column": "lipids",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 17.33333396911621,
+     "live": 17.333334,
+     "tolerance": 0.0026100000000000003,
+     "before": 26,
+     "expected_from_exact": 17.333333333333336,
+     "harness_prediction": 17.333333,
+     "dataset_column": "proteins",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 3.088378974780426e-08,
+     "match": true
+    },
+    "currentUses": {
+     "expected": 20,
+     "live": 20,
+     "tolerance": 1.0,
+     "before": 30,
+     "expected_from_exact": 20,
+     "basis": "Food.getCurrentUses = (int)|hungChange * 100| @14-@26 L2219-L2223; band is one truncation unit",
+     "diff": 0,
+     "match": true
+    },
+    "usesFloat": {
+     "expected": 0.20000001788139343,
+     "live": 0.2,
+     "tolerance": 0.00011,
+     "basis": "Food.getCurrentUsesFloat = |hungChange| @14-@21 L2239-L2243",
+     "diff": -1.7881393421514957e-08,
+     "match": true
+    },
+    "max_uses_unmoved": {
+     "expected": 30,
+     "live": 30,
+     "tolerance": 0,
+     "basis": "multiplyFoodValues never touches baseHunger, so getMaxUses() must not move -- this is what makes currentUses, not maxUses, the denominator of any SECOND reduction",
+     "match": true
+    },
+    "base_hunger_unmoved": {
+     "expected": -0.3,
+     "live": -0.3,
+     "tolerance": 0.00011,
+     "basis": "the same claim read off the float rather than the int",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "depletion": {
+    "expected_emptied": false,
+    "route_removes_on_deplete": false,
+    "current_uses_after": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "a partial consumption must leave uses above 0",
+     "live_uses": 20,
+     "match": true
+    },
+    "removed_from_inventory": {
+     "expected": false,
+     "live": false,
+     "tolerance": 0,
+     "basis": "ItemUser.UseItem @272 L68-70 removes a depleted item; the setCurrentUses fallback is the reduction line only, so on that route a depleted item is expected to STAY -- expectation computed for the route that ran (item:setCurrentUses(20)  [= ItemUser.UseItem @28 L37-38, wit)",
+     "match": true
+    },
+    "still_in_container": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "InventoryItem.getContainer() != null, the same claim read off the item instead of the inventory",
+     "match": true
+    }
+   },
+   "independent_read": {
+    "item_get_before_found": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "the RCON spawn is keyed on item.get, not on the RCON reply (which is empty on success)",
+     "match": true
+    },
+    "same_instance_before": {
+     "expected": 1013282068,
+     "live": 1013282068,
+     "tolerance": 0,
+     "basis": "item.get's getFirstTypeRecurse vs item.use's fullest-then-newest pick -- with one instance in the inventory (spawn_guard.instances_before) the two cannot disagree",
+     "match": true
+    },
+    "item_get_after_found": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "a removed item is no longer findable; on the setCurrentUses route it still is",
+     "match": true
+    },
+    "raw_get_after": null,
+    "hungChange": {
+     "expected": -0.2,
+     "live": -0.2,
+     "tolerance": 3.0000000000000004e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0.0,
+     "match": true
+    },
+    "calories": {
+     "expected": 1120,
+     "live": 1120,
+     "tolerance": 0.11201,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 120,
+     "live": 120,
+     "tolerance": 0.01201,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 56,
+     "live": 56,
+     "tolerance": 0.0056099999999999995,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 17.333334,
+     "live": 17.333334,
+     "tolerance": 0.0017433334000000003,
+     "basis": "the same field read by a second server command",
+     "diff": 0.0,
+     "match": true
+    },
+    "currentUses": {
+     "expected": 20,
+     "live": 20,
+     "tolerance": 0,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "factor": {
+    "used_uses": 10,
+    "current_uses_before": 30,
+    "float32": 0.6666666865348816,
+    "exact": 0.6666666666666667,
+    "harness_prediction": 0.666667,
+    "min_rule": "used = min(getCurrentUses(), requested) -- UseItem @18 L34",
+    "basis": "multiplyFoodValues(1 - used/currentUses); the compared expectations use the float32 value"
+   },
+   "atomic_window_game_hours": {
+    "expected": 0.0,
+    "live": 0,
+    "tolerance": 1e-05,
+    "basis": "before/after are taken on either side of the single setter INSIDE one command handler. Band 1e-5 game-hours = 0.036 game-seconds, far below one tick; TK.json rounds to 6 decimals so anything under 5e-7 reads back as exactly 0",
+    "diff": 0.0,
+    "match": true
+   },
+   "recorded_uncompared": {
+    "thirstChange": {
+     "before": 0,
+     "after": 0,
+     "why": "multiplyFoodValues @42 L2292 scales getThirstChangeUnmodified() while TK.ITEM_STATE reads the MODIFIED getter -- not the same number, so comparing them would be a defect in this script, not a finding"
+    },
+    "hungerChange": {
+     "before": -0.3,
+     "after": -0.2,
+     "why": "the read-time getter that applies the cooked/burnt/stale ladder (02-notes Q3); recorded so `hungChange` moving while this does not (or vice versa) is visible"
+    },
+    "age": {
+     "before": 0,
+     "after": 0
+    }
+   },
+   "matched": true
+  },
+  "mincedmeat_whole": {
+   "item": "Base.MincedMeat",
+   "requested_uses": 40,
+   "note": "40 of 40 uses -- MakeMeatPatty's whole line. Factor 0: every macro and getCurrentUses() must land on 0, and the depletion branch fires",
+   "food_record_found": true,
+   "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+   "finder": "getAllTypeRecurse",
+   "selection": {
+    "index": 0,
+    "id": 230848142,
+    "hasFluidContainer": false,
+    "currentUses": 40,
+    "maxUses": 40,
+    "usesFloat": 0.4,
+    "hungChange": -0.4
+   },
+   "candidates": [
+    {
+     "index": 0,
+     "id": 230848142,
+     "hasFluidContainer": false,
+     "currentUses": 40,
+     "maxUses": 40,
+     "usesFloat": 0.4,
+     "hungChange": -0.4
+    }
+   ],
+   "candidates_after": [
+    {
+     "index": 0,
+     "id": 230848142,
+     "hasFluidContainer": false,
+     "currentUses": 0,
+     "maxUses": 40,
+     "usesFloat": 0,
+     "hungChange": 0
+    }
+   ],
+   "route_attempts": [
+    {
+     "route": "ItemUser.UseItem",
+     "memberAbsent": true,
+     "detail": "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+    }
+   ],
+   "reply_error": null,
+   "keep_on_deplete": false,
+   "disappear_on_use": true,
+   "spawn_guard": {
+    "max_uses": {
+     "expected": 40,
+     "live": 40,
+     "tolerance": 0,
+     "basis": "Food.getMaxUses = (int)|baseHunger * 100| = |script HungerChange|",
+     "match": true
+    },
+    "current_uses_is_whole": {
+     "expected": 40,
+     "live": 40,
+     "tolerance": 0,
+     "basis": "a freshly spawned item must be whole, and only then is maxUses the scaling denominator",
+     "match": true
+    },
+    "hung_change": {
+     "expected": -0.4000000059604645,
+     "live": -0.4,
+     "tolerance": 5.000000059604645e-05,
+     "basis": "Item.InstanceItem stores HungerChange/100 (food-item-model.md)",
+     "diff": 5.960464455334602e-09,
+     "match": true
+    },
+    "calories": {
+     "expected": 300.0,
+     "live": 300,
+     "tolerance": 0.030010000000000002,
+     "dataset_column": "calories",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "dataset_column": "carbohydrates",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 30.0,
+     "live": 30,
+     "tolerance": 0.00301,
+     "dataset_column": "lipids",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 46.0,
+     "live": 46,
+     "tolerance": 0.0046099999999999995,
+     "dataset_column": "proteins",
+     "diff": 0.0,
+     "match": true
+    },
+    "in_container": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "the spawned item is in the player's inventory before the call",
+     "match": true
+    },
+    "instances_before": {
+     "expected": 1,
+     "live": 1,
+     "tolerance": 0,
+     "basis": "exactly one instance of this type in the inventory when the command ran",
+     "match": true
+    }
+   },
+   "scaling": {
+    "used_uses": {
+     "expected": 40,
+     "live": 40,
+     "tolerance": 0,
+     "basis": "Math.min(item.getCurrentUses(), count), UseItem @18 L34",
+     "match": true
+    },
+    "hungChange": {
+     "expected": -0.0,
+     "live": 0,
+     "tolerance": 5e-05,
+     "before": -0.4,
+     "expected_from_exact": -0.0,
+     "harness_prediction": 0,
+     "dataset_column": null,
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "calories": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.030010000000000002,
+     "before": 300,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "calories",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "before": 0,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "carbohydrates",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.00301,
+     "before": 30,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "lipids",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0046099999999999995,
+     "before": 46,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "proteins",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "currentUses": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1.0,
+     "before": 40,
+     "expected_from_exact": 0,
+     "basis": "Food.getCurrentUses = (int)|hungChange * 100| @14-@26 L2219-L2223; band is one truncation unit",
+     "diff": 0,
+     "match": true
+    },
+    "usesFloat": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.00011,
+     "basis": "Food.getCurrentUsesFloat = |hungChange| @14-@21 L2239-L2243",
+     "diff": 0.0,
+     "match": true
+    },
+    "max_uses_unmoved": {
+     "expected": 40,
+     "live": 40,
+     "tolerance": 0,
+     "basis": "multiplyFoodValues never touches baseHunger, so getMaxUses() must not move -- this is what makes currentUses, not maxUses, the denominator of any SECOND reduction",
+     "match": true
+    },
+    "base_hunger_unmoved": {
+     "expected": -0.4,
+     "live": -0.4,
+     "tolerance": 0.00011,
+     "basis": "the same claim read off the float rather than the int",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "depletion": {
+    "expected_emptied": true,
+    "route_removes_on_deplete": false,
+    "current_uses_after": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 0,
+     "basis": "used >= currentUses, so the uses reach 0",
+     "match": true
+    },
+    "removed_from_inventory": {
+     "expected": false,
+     "live": false,
+     "tolerance": 0,
+     "basis": "ItemUser.UseItem @272 L68-70 removes a depleted item; the setCurrentUses fallback is the reduction line only, so on that route a depleted item is expected to STAY -- expectation computed for the route that ran (item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, with)",
+     "match": true
+    },
+    "still_in_container": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "InventoryItem.getContainer() != null, the same claim read off the item instead of the inventory",
+     "match": true
+    }
+   },
+   "independent_read": {
+    "item_get_before_found": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "the RCON spawn is keyed on item.get, not on the RCON reply (which is empty on success)",
+     "match": true
+    },
+    "same_instance_before": {
+     "expected": 230848142,
+     "live": 230848142,
+     "tolerance": 0,
+     "basis": "item.get's getFirstTypeRecurse vs item.use's fullest-then-newest pick -- with one instance in the inventory (spawn_guard.instances_before) the two cannot disagree",
+     "match": true
+    },
+    "item_get_after_found": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "a removed item is no longer findable; on the setCurrentUses route it still is",
+     "match": true
+    },
+    "raw_get_after": null,
+    "hungChange": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "calories": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "currentUses": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 0,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "factor": {
+    "used_uses": 40,
+    "current_uses_before": 40,
+    "float32": 0.0,
+    "exact": 0.0,
+    "harness_prediction": 0,
+    "min_rule": "used = min(getCurrentUses(), requested) -- UseItem @18 L34",
+    "basis": "multiplyFoodValues(1 - used/currentUses); the compared expectations use the float32 value"
+   },
+   "atomic_window_game_hours": {
+    "expected": 0.0,
+    "live": 0,
+    "tolerance": 1e-05,
+    "basis": "before/after are taken on either side of the single setter INSIDE one command handler. Band 1e-5 game-hours = 0.036 game-seconds, far below one tick; TK.json rounds to 6 decimals so anything under 5e-7 reads back as exactly 0",
+    "diff": 0.0,
+    "match": true
+   },
+   "recorded_uncompared": {
+    "thirstChange": {
+     "before": 0,
+     "after": 0,
+     "why": "multiplyFoodValues @42 L2292 scales getThirstChangeUnmodified() while TK.ITEM_STATE reads the MODIFIED getter -- not the same number, so comparing them would be a defect in this script, not a finding"
+    },
+    "hungerChange": {
+     "before": -0.4,
+     "after": 0,
+     "why": "the read-time getter that applies the cooked/burnt/stale ladder (02-notes Q3); recorded so `hungChange` moving while this does not (or vice versa) is visible"
+    },
+    "age": {
+     "before": 0,
+     "after": 0
+    }
+   },
+   "matched": true
+  },
+  "cheese_whole": {
+   "item": "Base.Cheese",
+   "requested_uses": 15,
+   "note": "15 of 15 uses -- MakePizza's line. The same boundary from a different magnitude, so a coincidence in the MincedMeat row cannot survive it",
+   "food_record_found": true,
+   "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+   "finder": "getAllTypeRecurse",
+   "selection": {
+    "index": 0,
+    "id": 445277795,
+    "hasFluidContainer": false,
+    "currentUses": 15,
+    "maxUses": 15,
+    "usesFloat": 0.15,
+    "hungChange": -0.15
+   },
+   "candidates": [
+    {
+     "index": 0,
+     "id": 445277795,
+     "hasFluidContainer": false,
+     "currentUses": 15,
+     "maxUses": 15,
+     "usesFloat": 0.15,
+     "hungChange": -0.15
+    }
+   ],
+   "candidates_after": [
+    {
+     "index": 0,
+     "id": 445277795,
+     "hasFluidContainer": false,
+     "currentUses": 0,
+     "maxUses": 15,
+     "usesFloat": 0,
+     "hungChange": 0
+    }
+   ],
+   "route_attempts": [
+    {
+     "route": "ItemUser.UseItem",
+     "memberAbsent": true,
+     "detail": "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+    }
+   ],
+   "reply_error": null,
+   "keep_on_deplete": false,
+   "disappear_on_use": true,
+   "spawn_guard": {
+    "max_uses": {
+     "expected": 15,
+     "live": 15,
+     "tolerance": 0,
+     "basis": "Food.getMaxUses = (int)|baseHunger * 100| = |script HungerChange|",
+     "match": true
+    },
+    "current_uses_is_whole": {
+     "expected": 15,
+     "live": 15,
+     "tolerance": 0,
+     "basis": "a freshly spawned item must be whole, and only then is maxUses the scaling denominator",
+     "match": true
+    },
+    "hung_change": {
+     "expected": -0.15000000596046448,
+     "live": -0.15,
+     "tolerance": 2.500000059604645e-05,
+     "basis": "Item.InstanceItem stores HungerChange/100 (food-item-model.md)",
+     "diff": 5.960464483090178e-09,
+     "match": true
+    },
+    "calories": {
+     "expected": 113.0,
+     "live": 113,
+     "tolerance": 0.01131,
+     "dataset_column": "calories",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 0.87,
+     "live": 0.87,
+     "tolerance": 9.7e-05,
+     "dataset_column": "carbohydrates",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 9.33,
+     "live": 9.33,
+     "tolerance": 0.000943,
+     "dataset_column": "lipids",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 6.4,
+     "live": 6.4,
+     "tolerance": 0.0006500000000000001,
+     "dataset_column": "proteins",
+     "diff": 0.0,
+     "match": true
+    },
+    "in_container": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "the spawned item is in the player's inventory before the call",
+     "match": true
+    },
+    "instances_before": {
+     "expected": 1,
+     "live": 1,
+     "tolerance": 0,
+     "basis": "exactly one instance of this type in the inventory when the command ran",
+     "match": true
+    }
+   },
+   "scaling": {
+    "used_uses": {
+     "expected": 15,
+     "live": 15,
+     "tolerance": 0,
+     "basis": "Math.min(item.getCurrentUses(), count), UseItem @18 L34",
+     "match": true
+    },
+    "hungChange": {
+     "expected": -0.0,
+     "live": 0,
+     "tolerance": 2.5e-05,
+     "before": -0.15,
+     "expected_from_exact": -0.0,
+     "harness_prediction": 0,
+     "dataset_column": null,
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "calories": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.01131,
+     "before": 113,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "calories",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 9.7e-05,
+     "before": 0.87,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "carbohydrates",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.000943,
+     "before": 9.33,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "lipids",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0006500000000000001,
+     "before": 6.4,
+     "expected_from_exact": 0.0,
+     "harness_prediction": 0,
+     "dataset_column": "proteins",
+     "basis": "multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues @20/@104/@114/@124 L2290/L2298/L2299/L2300",
+     "diff": 0.0,
+     "match": true
+    },
+    "currentUses": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1.0,
+     "before": 15,
+     "expected_from_exact": 0,
+     "basis": "Food.getCurrentUses = (int)|hungChange * 100| @14-@26 L2219-L2223; band is one truncation unit",
+     "diff": 0,
+     "match": true
+    },
+    "usesFloat": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.00011,
+     "basis": "Food.getCurrentUsesFloat = |hungChange| @14-@21 L2239-L2243",
+     "diff": 0.0,
+     "match": true
+    },
+    "max_uses_unmoved": {
+     "expected": 15,
+     "live": 15,
+     "tolerance": 0,
+     "basis": "multiplyFoodValues never touches baseHunger, so getMaxUses() must not move -- this is what makes currentUses, not maxUses, the denominator of any SECOND reduction",
+     "match": true
+    },
+    "base_hunger_unmoved": {
+     "expected": -0.15,
+     "live": -0.15,
+     "tolerance": 0.00011,
+     "basis": "the same claim read off the float rather than the int",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "depletion": {
+    "expected_emptied": true,
+    "route_removes_on_deplete": false,
+    "current_uses_after": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 0,
+     "basis": "used >= currentUses, so the uses reach 0",
+     "match": true
+    },
+    "removed_from_inventory": {
+     "expected": false,
+     "live": false,
+     "tolerance": 0,
+     "basis": "ItemUser.UseItem @272 L68-70 removes a depleted item; the setCurrentUses fallback is the reduction line only, so on that route a depleted item is expected to STAY -- expectation computed for the route that ran (item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, with)",
+     "match": true
+    },
+    "still_in_container": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "InventoryItem.getContainer() != null, the same claim read off the item instead of the inventory",
+     "match": true
+    }
+   },
+   "independent_read": {
+    "item_get_before_found": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "the RCON spawn is keyed on item.get, not on the RCON reply (which is empty on success)",
+     "match": true
+    },
+    "same_instance_before": {
+     "expected": 445277795,
+     "live": 445277795,
+     "tolerance": 0,
+     "basis": "item.get's getFirstTypeRecurse vs item.use's fullest-then-newest pick -- with one instance in the inventory (spawn_guard.instances_before) the two cannot disagree",
+     "match": true
+    },
+    "item_get_after_found": {
+     "expected": true,
+     "live": true,
+     "tolerance": 0,
+     "basis": "a removed item is no longer findable; on the setCurrentUses route it still is",
+     "match": true
+    },
+    "raw_get_after": null,
+    "hungChange": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "calories": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 1e-05,
+     "basis": "the same field read by a second server command",
+     "diff": 0,
+     "match": true
+    },
+    "currentUses": {
+     "expected": 0,
+     "live": 0,
+     "tolerance": 0,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "factor": {
+    "used_uses": 15,
+    "current_uses_before": 15,
+    "float32": 0.0,
+    "exact": 0.0,
+    "harness_prediction": 0,
+    "min_rule": "used = min(getCurrentUses(), requested) -- UseItem @18 L34",
+    "basis": "multiplyFoodValues(1 - used/currentUses); the compared expectations use the float32 value"
+   },
+   "atomic_window_game_hours": {
+    "expected": 0.0,
+    "live": 0,
+    "tolerance": 1e-05,
+    "basis": "before/after are taken on either side of the single setter INSIDE one command handler. Band 1e-5 game-hours = 0.036 game-seconds, far below one tick; TK.json rounds to 6 decimals so anything under 5e-7 reads back as exactly 0",
+    "diff": 0.0,
+    "match": true
+   },
+   "recorded_uncompared": {
+    "thirstChange": {
+     "before": 0,
+     "after": 0,
+     "why": "multiplyFoodValues @42 L2292 scales getThirstChangeUnmodified() while TK.ITEM_STATE reads the MODIFIED getter -- not the same number, so comparing them would be a defect in this script, not a finding"
+    },
+    "hungerChange": {
+     "before": -0.15,
+     "after": 0,
+     "why": "the read-time getter that applies the cooked/burnt/stale ladder (02-notes Q3); recorded so `hungChange` moving while this does not (or vice versa) is visible"
+    },
+    "age": {
+     "before": 0,
+     "after": 0
+    }
+   },
+   "matched": true
+  }
+ },
+ "summary": {
+  "items": 3,
+  "all_matched": true,
+  "fields_compared": 96,
+  "fields_matched": 96,
+  "fields_mismatched": 0,
+  "per_item": {
+   "icecream_third": {
+    "fields": 32,
+    "matched": 32,
+    "mismatched": 0,
+    "route": "item:setCurrentUses(20)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+    "factor": 0.6666666865348816,
+    "ok": true
+   },
+   "mincedmeat_whole": {
+    "fields": 32,
+    "matched": 32,
+    "mismatched": 0,
+    "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+    "factor": 0.0,
+    "ok": true
+   },
+   "cheese_whole": {
+    "fields": 32,
+    "matched": 32,
+    "mismatched": 0,
+    "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+    "factor": 0.0,
+    "ok": true
+   }
+  },
+  "mismatches": [],
+  "routes": {
+   "icecream_third": "item:setCurrentUses(20)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+   "mincedmeat_whole": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]",
+   "cheese_whole": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]"
+  },
+  "dataset_sha256": "9493df4daa28d5b081eb35d494ffdf3da27315c116d099740e5fbb6f9be7c1fc",
+  "dataset_commit": "c6ef7f2",
+  "dataset_dirty": false,
+  "foods_sha256": "c71202bdd27616730f243773126bbcbfd15161fb258f05b91514fecec993c5b0",
+  "doctor_clean": true
+ },
+ "fixture": "default",
+ "build": "42.20.4",
+ "timeline": [
+  {
+   "t": 52.5,
+   "phase": "session_ready"
+  },
+  {
+   "t": 54.0,
+   "phase": "item_start",
+   "item": "Base.Icecream",
+   "uses": 10
+  },
+  {
+   "t": 61.6,
+   "phase": "used",
+   "item": "Base.Icecream",
+   "route": "item:setCurrentUses(20)  [= ItemUser.UseItem @28 L37-38, without its R"
+  },
+  {
+   "t": 61.8,
+   "phase": "item_start",
+   "item": "Base.MincedMeat",
+   "uses": 40
+  },
+  {
+   "t": 69.4,
+   "phase": "used",
+   "item": "Base.MincedMeat",
+   "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its Re"
+  },
+  {
+   "t": 69.6,
+   "phase": "item_start",
+   "item": "Base.Cheese",
+   "uses": 15
+  },
+  {
+   "t": 76.8,
+   "phase": "used",
+   "item": "Base.Cheese",
+   "route": "item:setCurrentUses(0)  [= ItemUser.UseItem @28 L37-38, without its Re"
+  },
+  {
+   "t": 79.8,
+   "phase": "compared",
+   "item": "icecream_third",
+   "mismatches": 0
+  },
+  {
+   "t": 79.8,
+   "phase": "compared",
+   "item": "mincedmeat_whole",
+   "mismatches": 0
+  },
+  {
+   "t": 79.8,
+   "phase": "compared",
+   "item": "cheese_whole",
+   "mismatches": 0
+  },
+  {
+   "t": 82.3,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 90.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "wall_seconds": 89.6
+}

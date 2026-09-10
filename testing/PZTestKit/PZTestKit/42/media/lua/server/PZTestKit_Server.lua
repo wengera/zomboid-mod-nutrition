@@ -852,6 +852,282 @@ TK.register("drink", function(argv)
     return out
 end)
 
+-- `item.use <user> <fullType> <uses>` -- what a `craftRecipe` input line WITHOUT
+-- `flags[ItemCount]` does to the food it consumes, with the crafting action taken off
+-- (slice 06 task 4b; `.superpowers/sdd/06-recipes/q-itemcount-notes.md`, grade C throughout
+-- until this command ran). The dataset's whole nutrition ledger rests on the chain below and
+-- nothing had ever measured it.
+--
+--   CraftRecipeData.processDestroyAndUsedItems @453 L576
+--       ItemUser.UseItem(item, true, false, ceil(remaining), keep, destroy)
+--   ItemUser.UseItem @18 L34            used = Math.min(item.getCurrentUses(), count)
+--                    @28-@41 L37-38     if (!keep) item.setCurrentUses(getCurrentUses() - used)
+--                    @272 L68-70        uses <= 0 && !isKeepOnDeplete() -> RemoveItem(item)
+--   Food.setCurrentUses  @23-@35 L2228-L2233  n = max(0, n);
+--                                             consumeHunger((getCurrentUses() - n) / 100f)
+--   Food.consumeHunger   @0-@17  L2714-L2715  r = |a / hungChange|; multiplyFoodValues(1 - r)
+--   Food.getCurrentUses  @14-@26 L2219-L2223  (int)|hungChange  * 100|
+--   Food.getMaxUses      @11-@23 L2210-L2214  (int)|baseHunger * 100|
+--
+-- so `r = ((cur - n)/100) / |hungChange|` and, since `|hungChange| = cur/100`, that is
+-- exactly `used / cur`: every field `multiplyFoodValues` touches (hungChange, calories,
+-- carbohydrates, proteins, lipids, and the thirst/mood block) is scaled by
+-- **`1 - used/currentUses`**. The denominator is `currentUses`, NOT `maxUses` -- they are
+-- equal only while the item is whole, because `multiplyFoodValues` moves `hungChange` (and
+-- with it `getCurrentUses()`) but never `baseHunger` (and with it `getMaxUses()`). Both ints
+-- are in `before`, so a caller checks that rather than assuming it.
+--
+-- SERVER-side for the same reason `drink` is: the server owns the item, and slice 02
+-- measured that a client's copy is a stale mirror. No `sendItemStats` push is made here --
+-- every reading in the reply is taken on this side, on the object this side holds.
+
+-- `TK.itemState` plus the two INT accessors the reduction actually works in. itemState's own
+-- `uses` is `getCurrentUsesFloat()` (= |hungChange| on a `Food`); `currentUses` is the int
+-- `UseItem` subtracts from and `maxUses` the whole-item denominator, and once
+-- `multiplyFoodValues` has moved `hungChange` neither is recoverable from the float alone.
+-- Deliberately NOT added to `TK.ITEM_STATE`: slices 01/02/05 compare `item.get` replies field
+-- by field and this command is the only caller that needs the ints.
+local function useState(it)
+    local st = TK.itemState(it)
+    if st == nil then return nil end
+    local ok, v = TK.call(it, "getCurrentUses");   if ok then st.currentUses = v end
+    ok, v = TK.call(it, "getMaxUses");             if ok then st.maxUses = v end
+    -- Absent member -> absent key, never `false`: after route 1 a depleted item is
+    -- `RemoveItem`d, so "is it still in a container" is a measurement, not a formality.
+    local okC, cont = TK.call(it, "getContainer"); if okC then st.inContainer = cont ~= nil end
+    return st
+end
+
+-- The finder `drink` uses. `fluidCandidates` is the enumeration itself (`getAllTypeRecurse`,
+-- the game's own list route) and the `getFirstTypeRecurse` fallback below is `drink`'s own
+-- belt and braces, for the same reason: only the first-match route has been exercised against
+-- a full type by this harness (`item.get`), so an empty list falls back to it rather than
+-- reporting an absent item -- and the reply says which finder answered, because the fallback
+-- cannot see a second instance and its "most uses" guarantee is therefore void. The fluid
+-- column those rows carry (`hasFluidContainer`, false on every Food) is left in: it is the
+-- reading that says the uses below are the `Food` override's and not a drainable's.
+local function useRow(it, row)
+    local ok, v = TK.call(it, "getCurrentUses");   if ok then row.currentUses = v end
+    ok, v = TK.call(it, "getMaxUses");             if ok then row.maxUses = v end
+    ok, v = TK.call(it, "getCurrentUsesFloat");    if ok then row.usesFloat = v end
+    ok, v = TK.call(it, "getHungChange");          if ok then row.hungChange = v end
+    return row
+end
+
+local function useCandidates(p, fullType)
+    local cands, cerr = fluidCandidates(p, fullType)
+    if cands == nil then return nil, nil, cerr end
+    local finder = "getAllTypeRecurse"
+    if #cands == 0 then
+        local _, inv = TK.call(p, "getInventory")
+        local okF, it = TK.call(inv, "getFirstTypeRecurse", fullType)
+        if okF and it ~= nil then
+            local row = { index = 0 }
+            local okI, id = TK.call(it, "getID");  if okI then row.id = id end
+            local _, fc = TK.call(it, "getFluidContainer")
+            row.hasFluidContainer = fc ~= nil
+            cands = { { item = it, fc = fc, row = row } }
+            finder = "getFirstTypeRecurse (getAllTypeRecurse answered nothing)"
+        end
+    end
+    for i = 1, #cands do useRow(cands[i].item, cands[i].row) end
+    return cands, finder, nil
+end
+
+-- `pickFullest`'s rule with `getCurrentUses()` in place of the container's amount: most uses,
+-- then highest id (the newest). A scan rather than table.sort, so an instance whose uses could
+-- not be read is never handed to `<`.
+local function pickMostUses(cands)
+    local best = nil
+    for i = 1, #cands do
+        local c = cands[i]
+        if c.row.currentUses ~= nil then
+            if best == nil then
+                best = c
+            else
+                local u, id = c.row.currentUses, c.row.id or -1
+                local bu, bid = best.row.currentUses, best.row.id or -1
+                if u > bu or (u == bu and id > bid) then best = c end
+            end
+        end
+    end
+    return best
+end
+
+TK.register("item.use", function(argv)
+    local user, fullType = argv[1], argv[2]
+    if not user or not fullType or argv[3] == nil then
+        return "usage: item.use <user> <fullType> <uses>"
+    end
+    local uses = tonumber(argv[3])
+    if uses == nil then return "expected a number for <uses>, got " .. tostring(argv[3]) end
+    uses = math.floor(uses)                      -- UseItem's `count` is an int
+    if uses < 0 then return "expected <uses> >= 0, got " .. string.format("%.0f", uses) end
+    local p = findPlayer(user)
+    if not p then return "no online player " .. tostring(user) end
+
+    local cands, finder, cerr = useCandidates(p, fullType)
+    if cands == nil then return cerr end
+    local rows = {}
+    for i = 1, #cands do rows[#rows + 1] = cands[i].row end
+    if #cands == 0 then
+        return "no " .. tostring(fullType) .. " in " .. tostring(user) .. "'s inventory"
+    end
+    local pick = pickMostUses(cands)
+    if pick == nil then
+        return { error = "no getCurrentUses() on any of the " .. string.format("%.0f", #cands)
+                         .. " " .. tostring(fullType) .. " instances",
+                 finder = finder, candidates = rows }
+    end
+    local it = pick.item
+
+    local out = { user = user, fullType = fullType, requestedUses = uses, finder = finder,
+                  selectionRule = "most currentUses, then highest id",
+                  candidates = rows, selected = pick.row }
+    local okT, sft = TK.call(it, "getFullType");        if okT then out.selectedFullType = sft end
+    local okD, dis = TK.call(it, "isDisappearOnUse");   if okD then out.disappearOnUse = dis end
+    local okK, kod = TK.call(it, "isKeepOnDeplete");    if okK then out.keepOnDeplete = kod end
+
+    local gt = getGameTime()
+    out.worldAgeBefore = gt:getWorldAgeHours()
+    out.before = useState(it)
+    if out.before == nil then
+        out.error = "no item state for " .. tostring(fullType)
+        return out
+    end
+    local cur = out.before.currentUses
+    if cur == nil then
+        out.error = "no InventoryItem:getCurrentUses() on the selected instance"
+        return out
+    end
+    -- `used = Math.min(item.getCurrentUses(), count)` -- UseItem @18 L34.
+    local used = uses
+    if cur < used then used = cur end
+    out.usedUses, out.targetUses = used, cur - used
+
+    -- The rule's own prediction, next to the reading (`drink`'s `predictedNutrition` shape).
+    -- Computed in Lua doubles while the game computes it in float32, so it is the READABLE
+    -- version -- the experiment recomputes the same chain at float32 width for its compare.
+    local factor = 1.0
+    if cur > 0 then factor = 1.0 - (used / cur) end
+    out.predictedFactor = factor
+    out.predictedFactorBasis =
+        "multiplyFoodValues(1 - used/currentUses), via Food.setCurrentUses -> consumeHunger; "
+        .. "equal to 1 - used/maxUses only while the item is whole"
+    local pred, PRED = {}, { "hungChange", "calories", "carbs", "lipids", "proteins",
+                             "thirstChange" }
+    for i = 1, #PRED do
+        local b = out.before[PRED[i]]
+        if b ~= nil then pred[PRED[i]] = b * factor end
+    end
+    out.predicted = pred
+
+    -- Route 1 -- the crafting path's own entry: the static
+    -- `zombie/inventory/ItemUser.UseItem(InventoryItem,ZZIZZ)I` = (item, p1, p2, count, keep,
+    -- destroy), confirmed on the 42.20.4 jar. `p1 = true` is what
+    -- `processDestroyAndUsedItems @453 L576` passes and is what gets past the
+    -- `!isDisappearOnUse() && !p1 && !destroy -> return 0` guard at `@0 L30-31`; `keep = false`
+    -- is the consuming case (`mode:keep` skips the reduction entirely) and `destroy = false`
+    -- so the item goes only when its uses reach 0.
+    --
+    -- A STATIC, so it is called `ItemUser.UseItem(item, ...)` with no self and NOT through
+    -- TK.call, which would hand the class table in as a seventh argument. Presence is still
+    -- established by INDEXING first (`_G["ItemUser"]`, then `.UseItem`), because "tried to
+    -- call nil" escapes pcall -- see TK.call; the pcall then covers what is left, an
+    -- argument/type mismatch inside Kahlua's overload dispatch.
+    --
+    -- READ OFF THE JAR before this command was written: `LuaManager$Exposer.shouldExpose
+    -- @6-@14 L2833` is a strict `HashSet.contains` over the ~1000 classes `exposeAll()`
+    -- registers, and `zombie/inventory/ItemUser` is not one of them (`InventoryItem`,
+    -- `ItemContainer`, `ItemPickerJava` and `ItemSpawner` are). So this route is expected to
+    -- be ABSENT on 42.20.4 and route 2 is the real one. It is attempted anyway, and reported,
+    -- so a build that does expose it is taken automatically and the claim stays checkable.
+    local attempts, applied = {}, false
+    -- `_G and _G[...]` is `TK.setPerk`'s `Perks and Perks[name]` shape: an undefined global
+    -- reads as nil, and the guard means a build without `_G` costs this route rather than the
+    -- whole reply.
+    local cls = _G and _G["ItemUser"] or nil
+    local fn = nil
+    if cls ~= nil then fn = cls.UseItem end
+    if fn ~= nil then
+        local ran, ret = pcall(fn, it, true, false, used, false, false)
+        if ran then
+            out.route = "ItemUser.UseItem(item, true, false, " .. string.format("%.0f", used)
+                        .. ", false, false)"
+            out.useItemReturned = ret        -- UseItem returns `used` (@303 L77)
+            applied = true
+        else
+            -- Same rule as `drink`: never retry after a raise that already moved the item.
+            local okNow, curNow = TK.call(it, "getCurrentUses")
+            local moved = okNow and curNow ~= nil and curNow ~= cur
+            attempts[#attempts + 1] = { route = "ItemUser.UseItem", raised = tostring(ret),
+                                        appliedAnyway = moved }
+            if moved then
+                applied = true
+                out.route = "none (route 1 raised AFTER changing the item -- not retried)"
+                out.error = "ItemUser.UseItem raised but the uses moved: " .. tostring(ret)
+            end
+        end
+    else
+        attempts[#attempts + 1] = { route = "ItemUser.UseItem", memberAbsent = true,
+            detail = (cls == nil)
+                     and "no global ItemUser (not in LuaManager$Exposer.exposeAll)"
+                     or "the global ItemUser has no UseItem" }
+    end
+
+    -- Route 2 -- `item:setCurrentUses(currentUses - used)`: literally the line UseItem runs
+    -- (`@28-@41 L37-38`), and the notes' whole point is that crafting reaches hunger ONLY
+    -- through this polymorphic setter -- a jar-wide grep puts no `setHungChange` /
+    -- `consumeHunger` / `multiplyFoodValues` call anywhere in the crafting packages. What it
+    -- does not do is UseItem's bookkeeping AFTER the reduction: the replaceOnUse /
+    -- replaceOnDeplete spawn and `getCurrentUses() <= 0 && !isKeepOnDeplete() ->
+    -- RemoveItem(item)` (`@272 L68-70`). Neither moves a nutrition field, so the measurement
+    -- is unaffected -- but a fully consumed item stays in the inventory on this route where
+    -- the crafting code would have removed it, and `after.inContainer` / `candidatesAfter`
+    -- are what say which happened rather than leaving it to be inferred.
+    if not applied then
+        local ran, present = pcall(TK.call, it, "setCurrentUses", out.targetUses)
+        if ran and present then
+            out.route = "item:setCurrentUses(" .. string.format("%.0f", out.targetUses)
+                        .. ")  [= ItemUser.UseItem @28 L37-38, without its RemoveItem]"
+            applied = true
+        else
+            attempts[#attempts + 1] = { route = "InventoryItem:setCurrentUses(int)",
+                raised = (not ran) and tostring(present) or nil,
+                memberAbsent = (ran and not present) or nil }
+        end
+    end
+    if #attempts > 0 then out.routeAttempts = attempts end
+    if not applied then
+        out.route = "none"
+        out.error = "no route reduced the item's uses"
+    end
+
+    out.after = useState(it)
+    out.worldAgeAfter = gt:getWorldAgeHours()
+    -- The inventory re-enumerated after the call. A depleted item is `RemoveItem`d on route 1
+    -- and is not on route 2, so this is the direct reading of that, not an inference.
+    local cAfter = useCandidates(p, fullType)
+    local rowsAfter = {}
+    if cAfter ~= nil then
+        for i = 1, #cAfter do rowsAfter[#rowsAfter + 1] = cAfter[i].row end
+    end
+    out.candidatesAfter = rowsAfter
+
+    local function d(a, b) if a == nil or b == nil then return nil end return b - a end
+    local bs, as = out.before, out.after or {}
+    out.delta = { currentUses = d(bs.currentUses, as.currentUses),
+                  maxUses = d(bs.maxUses, as.maxUses), uses = d(bs.uses, as.uses),
+                  hungChange = d(bs.hungChange, as.hungChange),
+                  hungerChange = d(bs.hungerChange, as.hungerChange),
+                  baseHunger = d(bs.baseHunger, as.baseHunger),
+                  calories = d(bs.calories, as.calories), carbs = d(bs.carbs, as.carbs),
+                  lipids = d(bs.lipids, as.lipids), proteins = d(bs.proteins, as.proteins),
+                  thirstChange = d(bs.thirstChange, as.thirstChange),
+                  worldAgeHours = d(out.worldAgeBefore, out.worldAgeAfter) }
+    return out
+end)
+
 local function tick()
     TK.ticks = TK.ticks + 1
     if TK.ticks % 20 == 0 then TK.pollCommands() end

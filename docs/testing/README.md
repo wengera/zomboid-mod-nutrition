@@ -245,6 +245,54 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
     never to `inputs`; `getInputCount()` is `inputs.size()` (`@0–@7 L257`).
     So a recipe written with a fluid sub-line answers one less than its
     script has lines. Driven by `testing/experiments/s06_recipes.py`.
+  `item.use <user> <fullType> <uses>` — also slice 06, but in
+  `server/PZTestKit_Server.lua` beside `item.get` and `drink` rather than in
+  the recipe file, because it is an **item** command: it consumes N *uses* of a
+  food the way a `craftRecipe` input line **without** `flags[ItemCount]` does,
+  with the crafting action taken off, and it is what turned
+  `.superpowers/sdd/06-recipes/q-itemcount-notes.md`'s rule from a jar reading
+  into an `M` (`testing/artifacts/exp06b-20260910-120123/`). It picks the
+  instance with `drink`'s finder — `getAllTypeRecurse`, `getFirstTypeRecurse`
+  fallback, and **most `getCurrentUses()` then highest id** in place of
+  `drink`'s fullest-container rule — then returns `{route, before, after,
+  delta}` plus `candidates` / `candidatesAfter`, `usedUses` / `targetUses`,
+  `predictedFactor` / `predicted` and `routeAttempts`. Both snapshots are
+  `TK.itemState` **plus** `currentUses` / `maxUses` (the ints the reduction
+  actually works in — `TK.itemState`'s own `uses` is `getCurrentUsesFloat()`,
+  which on a `Food` is `|hungChange|`) and `inContainer`; they are taken on
+  either side of the one setter *inside* the single Lua call, so
+  `delta.worldAgeHours` is 0 rather than small.
+  * **Route.** `ItemUser.UseItem(item, true, false, uses, false, false)` — the
+    static the crafting code itself calls — is tried first and is **absent on
+    42.20.4**: `LuaManager$Exposer.shouldExpose @6–@14 L2833` is a strict
+    `HashSet.contains` over the ~1000 classes `exposeAll()` registers, and
+    `zombie/inventory/ItemUser` is not one of them (`InventoryItem`,
+    `ItemContainer`, `ItemPickerJava`, `ItemSpawner` are). Being a static it is
+    called as `ItemUser.UseItem(item, …)` with no self, so it is the one Java
+    member in the harness *not* reached through `TK.call` — presence is still
+    established by indexing (`_G["ItemUser"]`, then `.UseItem`) before the
+    `pcall`, because "tried to call nil" escapes `pcall`. The route that
+    actually runs is `item:setCurrentUses(currentUses − used)`, which is
+    literally the line `UseItem @28 L37-38` executes and the **only** way
+    crafting reaches hunger at all (no crafting class calls `setHungChange` /
+    `consumeHunger` / `multiplyFoodValues`). What it skips is UseItem's
+    bookkeeping *after* the reduction — the `replaceOnUse` spawn and
+    `RemoveItem` at `@272 L68-70` — so a fully consumed item **stays in the
+    inventory** here where the crafting code would have removed it. No
+    nutrition field moves either way; `after.inContainer` and
+    `candidatesAfter` say which happened rather than leaving it to be inferred.
+  * **What it measured.** Every field `Food.multiplyFoodValues` writes is
+    scaled by `1 − used/currentUses`, with
+    `used = min(getCurrentUses(), requested)`. **MEASURED** on 42.20.4:
+    `Base.Icecream` at 10 of 30 uses came back `hungChange −0.30 → −0.20`,
+    `calories 1680 → 1120`, `carbs 180 → 120`, `lipids 84 → 56`,
+    `proteins 26 → 17.333334`; `Base.MincedMeat` at 40/40 and `Base.Cheese` at
+    15/15 both went to 0 on every macro. `getMaxUses()` and `baseHunger` did
+    **not** move (30 / 40 / 15 throughout), which is why the denominator is
+    `currentUses` and not `maxUses` — the two are equal only while the item is
+    whole, and `spawn_guard.current_uses_is_whole` checks that per run. 96 of
+    96 compared fields matched. Driven by
+    `testing/experiments/s06b_use_probe.py`.
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects

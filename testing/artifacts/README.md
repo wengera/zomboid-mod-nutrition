@@ -36,6 +36,7 @@ correct it.
 | `exp05-20260910-084109` | `food-scan.json` | `testing/experiments/s05_food_scan.py` | [`docs/vanilla/food-dataset-notes.md`](../../docs/vanilla/food-dataset-notes.md) (and `.superpowers/sdd/05-food-scanner/task-5-report.md`) |
 | `exp05b-20260910-093307` | `drink-probe.json` | `testing/experiments/s05b_drink_probe.py` | [`docs/vanilla/food-dataset-notes.md`](../../docs/vanilla/food-dataset-notes.md), [`data/README.md`](../../data/README.md) § Per litre, not per item (and `.superpowers/sdd/05-food-scanner/task-5b-report.md`) |
 | `exp06-20260910-112726` | `recipes.json` | `testing/experiments/s06_recipes.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4-report.md`; its **evolved** half is the offline input for slice 06 tasks 3 and 5) |
+| `exp06b-20260910-120123` | `use-probe.json` | `testing/experiments/s06b_use_probe.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4b-report.md`; the `M` behind `q-itemcount-notes.md`'s per-use consumption rule, i.e. behind every non-`ItemCount` consumption figure in `data/recipes.json`) |
 
 ## Script/artifact skew
 
@@ -58,6 +59,12 @@ The tenth, **`exp06-20260910-112726`**, is **skew-free**: it is committed in the
 the script and the harness command that produced it. Its block is therefore not a skew note but
 a reading guide — two of its `summary` keys mislead when quoted alone, and one of the *plan*
 expectations it was run against turns out to be wrong.
+
+The eleventh, **`exp06b-20260910-120123`**, is **skew-free** for the same reason: script
+(`s06b_use_probe.py`), harness command (`item.use`) and artifact land in one commit. Its block
+is a reading guide too — it has **no** *do not cite* rows, but the one thing a reader must
+carry away from it is that the reduction ran through the `setCurrentUses` **fallback** rather
+than through `ItemUser.UseItem`, and what that does and does not change.
 
 A skew entry is about the *script*. Which **dataset** an artifact was measured against is a
 separate question, and `exp05-20260910-084109` is the run that shows why: its
@@ -345,3 +352,52 @@ Two further readings this file evidences, both of which a scanner has to match:
   value on `.` and returns the last part; `getFullResultItem @0–@4 L692` is the raw one, and
   this command does not read it. Compare against the stripped name, or against
   `getBaseItem`, which **is** full (`Base.Bowl`, `Base.Pot`, `Base.Chum`).
+
+**`exp06b-20260910-120123/use-probe.json`** — produced by
+`testing/experiments/s06b_use_probe.py`, the slice-06 per-use consumption probe, together
+with the harness command it drives (`item.use` in `server/PZTestKit_Server.lua`). Script,
+command and artifact land in one commit, so there is **no skew**.
+
+The run is clean — `server_errors []`, `client_quit rc=0`, `server_stopped rc=0`, doctor
+all-`ok` (recorded in `meta.doctor`), 89.6 s wall, `data/recipes.json` at `c6ef7f2` with
+`dataset_dirty false` and the sha256 of the bytes actually read. It makes **no world change**:
+no `settimespeed`, no sandbox write, no character write. The only thing it touches is the three
+items it spawns into this run's own copy of the fixture.
+
+It is a **single-verdict** file: `summary.all_matched true`, **96 of 96** compared fields
+matched across three items, `mismatches []`. There are no *do not cite* rows. What a reader
+does have to carry away is the **route**:
+
+- **`ItemUser.UseItem` was not reachable and was not used.**
+  `comparison.<item>.route_attempts[0]` records `memberAbsent: true` — `ItemUser` is not a Lua
+  global on 42.20.4, because `LuaManager$Exposer.shouldExpose @6–@14 L2833` is a strict
+  `HashSet.contains` over the ~1000 classes `exposeAll()` registers and
+  `zombie/inventory/ItemUser` is not one of them. Every row therefore ran through
+  `item:setCurrentUses(currentUses − used)`, which **is** the line `UseItem @28 L37-38`
+  executes and the only path by which crafting reaches hunger at all. What the fallback skips
+  is UseItem's bookkeeping *after* the reduction — the `replaceOnUse` / `replaceOnDeplete`
+  spawn and `RemoveItem` at `@272 L68-70`. No nutrition field moves in either, so the
+  measurement is untouched; but the two fully consumed items **stayed in the inventory**
+  (`candidates_after` length 1, `after.inContainer true`, `getCurrentUses() 0`) where the
+  crafting code would have removed them. `depletion.removed_from_inventory` is compared
+  against the expectation **for the route that ran**, which is why it reads
+  `expected: false`. Removal-on-deplete is therefore still a *jar reading*, not an `M`.
+- **Every scaled field is `before × (1 − used/currentUses)`, measured.**
+  `Base.Icecream` at 10 of 30 uses: `hungChange −0.30 → −0.20`, `calories 1680 → 1120`,
+  `carbs 180 → 120`, `lipids 84 → 56`, `proteins 26 → 17.333334`, `getCurrentUses() 30 → 20`.
+  `Base.MincedMeat` 40/40 and `Base.Cheese` 15/15 both landed on 0 for every macro and for
+  `getCurrentUses()`. `delta.worldAgeHours` is `0` on all three — both snapshots are taken
+  inside the one Lua call — so none of these numbers carries passive drift.
+- **`getMaxUses()` and `baseHunger` do not move.** 30 / 40 / 15 and −0.30 / −0.40 / −0.15
+  before *and* after, including on the two items consumed to nothing. This is what makes
+  `currentUses` — not `maxUses` — the denominator of any *second* reduction on a part-eaten
+  item; the two coincide only while the item is whole, and
+  `spawn_guard.current_uses_is_whole` checks that per row rather than assuming it. Do not read
+  the `1 − uses/maxUses` shorthand as general.
+- **`comparison.<item>.recorded_uncompared` is recorded on purpose and compared against
+  nothing.** `thirstChange` is there because `multiplyFoodValues @42 L2292` scales
+  `getThirstChangeUnmodified()` while `TK.ITEM_STATE.thirstChange` reads the **modified**
+  getter — comparing the two would be a defect in the script, not a finding. (All three items
+  read 0 before and after, so nothing is hidden by it here.) `hungerChange` moved in lockstep
+  with `hungChange` on all three rows only because each item was fresh and uncooked, so the
+  read-time ladder is the identity.
