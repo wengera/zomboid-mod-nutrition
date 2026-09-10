@@ -57,10 +57,15 @@ TK.register("stats.set", function(argv)
     return snap
 end)
 
--- <user> <PerkName> <level>. The authoritative half of the pair: the client's own perk.set is
--- overwritten by the server's copy within a second (TK.setPerk), so the evolved-recipe phases
--- pin the level HERE first and then on the client. setPerkLevelDebug's sendPerks branch is
--- client-only, so this write does not reach the client on its own -- both calls are needed.
+-- <user> <PerkName> <level>. The authoritative one: the client's own perk.set is overwritten
+-- by the server's copy within a second (TK.setPerk), so the evolved-recipe phases pin the
+-- level HERE.
+-- MEASURED (exp02-20260910-030433): this write also reaches the client by itself, inside one
+-- bus round-trip and with no wait in between -- the client read its own copy back already at
+-- the new level (route "already at level") both when phase (f) set Cooking 10 and when
+-- teardown put it back to 0. setPerkLevelDebug's own sendPerks branch is client-side, so the
+-- carrier is some other server->client character sync, not this call; which one was not
+-- established. The client-side perk.set is therefore a fallback, not a required second half.
 TK.register("perk.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -70,10 +75,13 @@ TK.register("perk.set", function(argv)
 end)
 
 -- ---- item lifecycle commands (slice 02) --------------------------------------
--- The SERVER owns item aging: Food.update gates updateAge on GameServer.server, and
--- age/offAge/offAgeMax/freezingTime travel in no packet at all -- only in the full item
--- serialization (02-notes Q2/Q8). So a client-side age probe measures the client's stale
--- copy, and every real aging/cooking reading has to be taken here.
+-- The SERVER owns item aging: Food.update gates updateAge on GameServer.server (02-notes
+-- Q2/Q8, code). MEASURED (exp02-20260910-030433): `age` does not travel to the client -- not
+-- on sendItemStats, not on updateAge(true), and not over a whole accelerated game day. That
+-- offAge/offAgeMax/freezingTime are likewise absent from ItemStatsPacket is a reading of the
+-- packet code, not a measurement: no run has yet made them differ between the two sides.
+-- Either way a client-side age probe measures the client's stale copy, and every real
+-- aging/cooking reading has to be taken here.
 local function findItem(username, fullType)
     local p = findPlayer(username)
     if not p then return nil, "no online player " .. tostring(username) end

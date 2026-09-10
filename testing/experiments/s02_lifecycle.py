@@ -7,8 +7,11 @@ later phase cannot cost the earlier numbers.
 Two facts from the code map (`docs/superpowers/plans/02-notes.md`) shape every phase:
 
   * **The SERVER owns item aging.** `Food.update @38-@46 L369-370` gates `updateAge` on
-    `GameServer.server`, and `age` / `offAge` / `offAgeMax` / `freezingTime` are in **no**
-    packet -- `ItemStatsPacket` carries the nutrition/cooking block and nothing else (Q8).
+    `GameServer.server`, and `ItemStatsPacket` is read (Q8, code) as carrying the
+    nutrition/cooking block and not `age` / `offAge` / `offAgeMax` / `freezingTime`. Of
+    those four only `age` is put to the test below: the other three are never made to differ
+    between the sides, and a field that never differs cannot tell a packet that carries it
+    from one that does not.
     So an age reading on the client measures the client's stale copy and nothing more; the
     real readings are taken on the server bus (`item.get` / `item.set` / `item.age.tick`).
     Phase (a) probes the client on purpose -- it isolates the *local getters'* arithmetic --
@@ -90,6 +93,11 @@ try:
     clients.append(c)
     c.wait_ready()
     tl.mark("session_ready")
+    # Provenance, so a later reader does not have to take the fixture and the build on trust
+    # from the report: `server.build` is parsed out of the startup log, so it is only set once
+    # the server is up.
+    out["fixture"] = rec.get("name")
+    out["build"] = server.build
 
     # ---- helpers -------------------------------------------------------------
     def spawn(*types):
@@ -230,9 +238,21 @@ try:
         rot = num(sub(out["sandbox"], "FoodRotSpeed"), "before")
         r["serverDAge"] = num(r["server_after"], "age")
         r["clientDAge"] = num(r["client_after"], "age")
+        # The window the ITEM aged over is not the window the wait measured: the item starts
+        # aging at the `setAge(0)` above and stops being read at `item.get` below, and the wait
+        # samples sit strictly inside that. Predict against the CONTAINING window -- both ends
+        # are captured as `serverWorldAge` on the two server replies -- or the prediction is
+        # short by the setup/readback overhead and the residual reads as a rate error.
+        w0 = num(r["server_reset_age_0"], "serverWorldAge")
+        w1 = num(r["server_after"], "serverWorldAge")
+        dh_contain = (w1 - w0) if (w0 is not None and w1 is not None) else None
+        r["dWorldHoursWait"] = dh
+        r["dWorldHoursContaining"] = dh_contain
         # Q2's formula: age += dHours * getFoodRotSpeed() / 24. The sandbox option is an ENUM
         # (3 = 1.0x), so the multiplier is only applied when the enum is the default 3.
-        r["expectedDAgeAtRotSpeed1"] = round(dh / 24.0, 4) if dh is not None else None
+        base = dh_contain if dh_contain is not None else dh          # wait window as a fallback
+        r["expectedDAgeAtRotSpeed1"] = round(base / 24.0, 4) if base is not None else None
+        r["expectedFrom"] = "containing" if dh_contain is not None else "wait"
         r["foodRotSpeedOption"] = rot
         return r
 
@@ -313,9 +333,14 @@ try:
     # lever in the game, so each round pins it first and records the route that answered.
     def salad_round(level):
         row = {"level": level, "spawn": spawn(BOWL, *[i["type"] for i in INGREDIENTS])}
-        # SERVER first, then the client: a client-only perk write is overwritten by the
+        # The SERVER call is the one that holds: a client-only perk write is overwritten by the
         # server's copy inside a second (measured in the shakedown run exp02-20260910-025434,
         # where round 2 asked for Cooking 10, read back 10, and then ran the summation at 0).
+        # The client call is a recorded FALLBACK, not a second half of the write: in
+        # exp02-20260910-030433 the server write had already reached the client by the time the
+        # next bus command got there (`perk_client.before` = the new level, route "already at
+        # level", with no sleep in between). It is kept because it costs one command and its
+        # `before` is the earliest read-back of what the client's copy did.
         row["perk_server"] = srv("perk.set", f"admin Cooking {level}")
         row["perk_client"] = ask(c, "perk.set", f"Cooking {level}")
         time.sleep(SYNC_WAIT)
@@ -389,10 +414,12 @@ try:
         "stateDiffAfterSet": sub(sub(pb.get("witness_after_set"), "result"), "stateDiff"),
         "stateDiffAfterTick": sub(sub(pb.get("witness_after_tick"), "result"), "stateDiff")}
     summary["c"] = {"dWorldHours": sub(pc, "wait").get("dWorldHours"),
+                    "dWorldHoursContaining": pc.get("dWorldHoursContaining"),
                     "reachedTarget": sub(pc, "wait").get("reachedTarget"),
                     "wallSeconds": sub(pc, "wait").get("wallSeconds"),
                     "serverAge": pc.get("serverDAge"), "clientAge": pc.get("clientDAge"),
-                    "expectedAtRotSpeed1": pc.get("expectedDAgeAtRotSpeed1")}
+                    "expectedAtRotSpeed1": pc.get("expectedDAgeAtRotSpeed1"),
+                    "expectedFrom": pc.get("expectedFrom")}
     summary["d"] = {k: pd.get(k) for k in ("dAge", "expectedDAge", "dFreezingTime",
                                            "expectedDFreezingTime")}
     summary["d"]["frozenAfter"] = pd.get("after", {}).get("frozen") if isinstance(pd.get("after"), dict) else None
@@ -483,8 +510,10 @@ finally:
     # standing rule is to put back what a probe moved, and phase (f) leaves it at 10.
     try:
         if clients and cooking_before is not None:
-            # Both sides, in the same order phase (f) sets them: restoring only the client
-            # would leave the server's copy at 10 and the two disagreeing.
+            # Both sides, in the same order phase (f) sets them. The server call is the one
+            # that restores it -- the client's copy had already followed it back down by the
+            # next command (`cooking_restored.client.before` = 0, route "already at level") --
+            # and the client call is the same recorded fallback as in the rounds above.
             out["cooking_restored"] = {
                 "server": ask(server, "perk.set", f"admin Cooking {cooking_before}", timeout=15),
                 "client": ask(clients[0], "perk.set", f"Cooking {cooking_before}", timeout=15)}

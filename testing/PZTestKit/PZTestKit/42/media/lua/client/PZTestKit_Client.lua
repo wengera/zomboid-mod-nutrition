@@ -308,8 +308,9 @@ TK.register("item.age", function(argv)
     return out
 end)
 
--- <PerkName> <level> on the local player. The server has the twin (`perk.set <user> …`); see
--- TK.setPerk for why a client-only write does not survive in MP.
+-- <PerkName> <level> on the local player. The server's twin (`perk.set <user> …`) is the
+-- authoritative one and, measured, reaches this side by itself; this command is the fallback
+-- and the read-back. See TK.setPerk for why a client-only write does not survive in MP.
 TK.register("perk.set", function(argv)
     local level = tonumber(argv[2])
     if not argv[1] or level == nil then return "usage: perk.set <PerkName> <level>" end

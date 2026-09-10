@@ -165,8 +165,10 @@ end
 --
 -- MEASURED: a client-only write does not survive in MP. The client pushes with sendPerks, but
 -- the SERVER's copy of the character is still at the old level and wins within a second -- the
--- same ownership shape as Nutrition and hunger/thirst in slice 01. Pin the SERVER first, then
--- the client, and read `before` back on a second call to confirm it held.
+-- same ownership shape as Nutrition and hunger/thirst in slice 01. Pin the SERVER: measured in
+-- exp02-20260910-030433, that write is on the client by the next bus command (its `before`
+-- already reads the new level), so a client call after it is a no-op fallback, not a required
+-- second half. Read `before` back on a further call to confirm the level held.
 function TK.setPerk(p, name, level)
     local perk = Perks and Perks[name]
     if not perk then return { error = "no Perks." .. tostring(name) } end

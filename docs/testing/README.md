@@ -66,11 +66,17 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   `item.set <user> <type> <field> <v>` (+`sendItemStats`),
   `item.age.tick <user> <type>` (`updateAge(true)`),
   `item.freeze <user> <type>`, `item.update <user> <type>` (the cooking
-  driver); client: `item.age <type> <days>`, `perk.set <perk> <level>`,
+  driver), `perk.set <user> <perk> <level>` (the authoritative one — a
+  client-only perk write is overwritten by the server's copy within a
+  second); client: `item.age <type> <days>`, `perk.set <perk> <level>`,
   `recipe.evolved <recipe> <base> <ingredient>…`. The server also owns item
-  **aging**, and `age`/`offAge`/`offAgeMax`/`freezingTime` are in no packet, so
-  those readings must be taken on the server bus (see
-  `docs/superpowers/plans/02-notes.md` Q8).
+  **aging**: `age` was **measured** not to reach the client — not on
+  `sendItemStats`, not on `updateAge(true)`, not over an accelerated game day
+  (`testing/artifacts/exp02-20260910-030433/`) — while
+  `offAge`/`offAgeMax`/`freezingTime` being absent from `ItemStatsPacket` is
+  so far only **read off the packet code** (no run has made them differ
+  between the two sides). Either way those readings are taken on the server
+  bus (see `docs/superpowers/plans/02-notes.md` Q8).
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
