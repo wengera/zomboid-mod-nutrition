@@ -667,6 +667,7 @@ The timer decays `−1 × GameTime.getMultiplier()` per tick
 | `BodyDamage.Update` | health **regeneration** tier: `n = 0`; `HUNGRY == 2 ∨ SICK == 2 ∨ THIRST == 2 → n = 1`; `== 3 → n = 2`; `HUNGRY == 4 ∨ THIRST == 4 → n = 3` (note SICK 4 is **not** in this one); `asleep → n = −1`. Then `health += standardHealthAddition (0.002)` / `reducedHealthAddition (0.0013)` / `severlyReducedHealthAddition (0.0008)` / `0.0` × `GameTime.getMultiplier()` | `@591–@838 L2274–L2312`; constants `BodyDamage.<init> @61–@81 L74–L77` | C, key mapping **I** |
 | `BodyDamage.Update` | asleep: if `HUNGRY == 4 ∨ THIRST == 4`, the sleeping health addition (`0.02`) is zeroed | `@839–@924 L2316–L2323` | C |
 | `BodyDamage.Update` | **health loss**: `HUNGRY == 4` → `healthReductionFromSevereBadMoodles / 50 × multiplier` = `0.0165/50 = 3.3e-4` per multiplier unit, added to the reduction total | `@1134–@1172 L2356–L2358`; constant `<init> @91–@93 L79` | C |
+| `BodyDamage.Update` | **health loss**: `THIRST == 4` → `healthReductionFromSevereBadMoodles / 10 × multiplier` = `0.0165/10 = 1.65e-3` per multiplier unit — **five times the hunger branch** — added to the same reduction total, which `ReduceGeneralHealth` applies whole (`@1514 L2395`); `OnPlayerGetDamage(char, 'THIRST', amount)` at `@1633 L2410`. No `getDeltaMinutesPerDay()`, so the game-time rate is `minutesPerDay/30 × 1.65e-3 × 3600` = **11.88 /game-hour on a 60-minute day, 17.82 on a 90-minute one** *(slice 03 originally recorded "THIRST has no such branch" — wrong; corrected by the slice-04 jar re-read + live run)* | `@1320–@1358 L2377–L2379`; constant `<init> @91–@93 L79` | C; **M** −17.820029 /game-hour measured, `scenario-20260910-052624` |
 | `BodyDamage.Update` | `FOOD_EATEN` level > 0 speeds poison decay by `1.5e-4 × level` on top of `poisonLevelDecrease` | `@1028–@1090 L2349–L2353` | C |
 | `IsoGameCharacter.updateStats_Awake` / `IsoPlayer.updateStats_Sleeping` | `FOOD_EATEN` level gates the **hunger rate** (Q2) | `@211/@328 L10268/L10275`, `@423 L3357` | C |
 | `ISEatFoodAction.lua:14`, `ISDrinkFluidAction.lua:7` | `isValidStart` false at `FOOD_EATEN >= 3` — "can't eat more" | Lua | C |
@@ -678,8 +679,11 @@ The timer decays `−1 × GameTime.getMultiplier()` per tick
 `MoodleType` registry and `MoodleTextureSet`/`MoodlesUI` (display); and
 `grep -rn "MoodleType.HUNGRY" media/lua` and `MoodleType.THIRST` return **nothing**.
 So **the Hungry and Thirsty moodles have no movement-speed, damage, or XP effect at all** —
-their entire mechanical footprint is the three `BodyDamage` rows above (carry capacity,
-health regen tier, health loss at level 4). Ev C.
+their entire mechanical footprint is the **four** `BodyDamage` effects above: carry
+capacity, the health-regen tier, the **zeroed sleeping health addition at HUNGRY 4 ∨
+THIRST 4** (the one this sentence used to omit), and the level-4 health loss — which is
+two rows, HUNGRY `/50` and THIRST `/10`. Ev C. Summarised the same way in
+`docs/vanilla/body-stats.md` § Summary point 4.
 
 ---
 
@@ -853,7 +857,8 @@ Ev **C** unless marked. 102 rows.
 | carry-capacity penalty | HUNGRY lvl 2/3/4 → −1/−2/−2 kg; THIRST identically | additive with SICK/BLEEDING/INJURED | `BodyDamage.UpdateStrength @2–@121 L2062–L2078`, `@302–@327 L2113` | C |
 | health regen additions | 0.002 / 0.0013 / 0.0008 / 0.0 (standard / reduced / severely / none) | tier from `max(HUNGRY, SICK, THIRST)` level | `BodyDamage.Update @752–@838 L2301–L2312`; `<init> @61–@75 L74–L76` | C, tier map I |
 | sleeping health addition | 0.02, **zeroed** if HUNGRY or THIRST is level 4 | | `BodyDamage.Update @875–@924 L2320–L2323`; `<init> @79–@81 L77` | C |
-| health loss at HUNGRY level 4 | `0.0165 / 50` = **3.3e-4** per multiplier unit | | `BodyDamage.Update @1151–@1172 L2357-L2358`; `<init> @91–@93 L79` | C |
+| health loss at HUNGRY level 4 | `0.0165 / 50` = **3.3e-4** per multiplier unit | 2.376 /game-hour at 60-min day, 3.564 at 90 | `BodyDamage.Update @1151–@1172 L2357-L2358`; `<init> @91–@93 L79` | C |
+| health loss at THIRST level 4 | `0.0165 / 10` = **1.65e-3** per multiplier unit, 5× the hunger branch, same reduction total | 11.88 /game-hour at 60-min day, **17.82** at 90 (measured −17.820029, `scenario-20260910-052624`); slice 03 wrongly said this branch did not exist | `BodyDamage.Update @1320–@1358 L2377–L2379`; apply `@1514 L2395`; event `@1633 L2410`; `<init> @91–@93 L79` | C+M |
 | `FOOD_EATEN` poison bonus | extra `1.5e-4 × level` poison decay | | `BodyDamage.Update @1044–@1090 L2350–L2353` | C |
 | moodle levels | 0 Min / 1 Low / 2 Moderate / 3 High / 4 Max | | `Moodle$MoodleLevel.<clinit>` | C |
 | `Nutritionist` / `Nutritionist2` | **display only** | sole reader | `Food.DoTooltip @1269–@1291 L1522` | C |

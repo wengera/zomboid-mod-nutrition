@@ -21,7 +21,12 @@ Every doc ends with an **MP behavior** section.
   >400/>700 multiply GAIN rate ×2/×3; protein never touches weight.
 - The protein/lipid `getRecoveryMod` deficit penalties (below −1000/−1500) are
   **dead code**: the stores clamp at −500, so neither threshold is reachable.
-  Protein has no live effect in vanilla at all (slice 03).
+  Protein has no live effect in vanilla at all (slice 03). The clamp has **no
+  bypass**: the packet write path `Nutrition.load @0–@41 L217–L221` calls the
+  same `setProteins` (`@13 L218`), which pins to `[−500, 1000]`
+  (`setProteins @0–@21 L305–L309`), so no route into the store is unclamped
+  (checked on the 42.20.4 jar, 2026-09-10; also
+  [eating-pipeline.md](eating-pipeline.md) § Code map).
 - `setCondition`-style java setters clamp hard — pattern repeats across
   systems; assume clamping until proven otherwise. Confirmed for nutrition in
   slice 01: calories `[-2200, 3700]`, macros `[-500, 1000]`, measured exactly.

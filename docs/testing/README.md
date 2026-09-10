@@ -77,6 +77,32 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   so far only **read off the packet code** (no run has made them differ
   between the two sides). Either way those readings are taken on the server
   bus (see `docs/superpowers/plans/02-notes.md` Q8).
+  Slice-03 body commands — server: `stats.get <user>` (one **atomic**
+  `TK.bodySnapshot`: stats, moodles, nutrition, weight, max weight, traits and
+  the world clock in a single reply, so a sample cannot straddle a tick),
+  `sandbox.set <key> <value>` — **the server twin of the client command of the
+  same name, and a different thing**: a client flip is local (the admin panel
+  guards `getSandboxOptions():set()` with `if not isClient()`,
+  `ISServerSandboxOptionsUI.lua:738`, and pushes a copy), while this one *is*
+  the live server config, which `getStatsDecreaseMultiplier` reads on the next
+  tick — `trait.set <user> <Trait> <add|remove>`
+  (`getCharacterTraits():add/remove(CharacterTrait.X)`, with a `held`
+  read-back), `player.sleep <user> <true|false>` (`setAsleep` + read-back — the
+  flag that picks `updateStats_Sleeping` and `updateCalories`' 0.003 branch),
+  `nutrition.applytraits <user>` (`applyTraitFromWeight()` on demand; vanilla
+  runs it only every 2000 `updateWeight` calls) and
+  `foodtimer.set <user> <v>` (`BodyDamage.healthFromFoodTimer`, the
+  `FOOD_EATEN` driver, before/after read-back); client: `stats.get` (the same
+  snapshot with no user argument — a client only ever has its own player — and
+  a mirror of the last 1 Hz `PlayerStatsPacket`, never a rate),
+  `player.walk <dx> <dy> [run]` (queues the game's own `ISWalkToTimedAction`
+  onto the square `dx,dy` away, `setRunning` first when `run`; **one attempt by
+  ruling**, since the server's copy of a remote player's movement comes from
+  this client) and `player.stop` (clears the timed-action queue and unsets
+  running, so a half-finished path cannot bleed into the next window). The
+  plan's `stats.sample` / `stats.sampler` were **dropped**: sampling is the
+  atomic `stats.get` plus Python-side polling, so the cadence lives in the
+  experiment script rather than in Lua.
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
@@ -90,7 +116,11 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
 `42/media/lua/shared/PZTestKit_Core.lua` (global `TK`: KV files, JSON, command
 bus, results, shared commands), `server/PZTestKit_Server.lua` (bus polling on
 `OnTick`, `OnClientCommand` witness replies), `client/PZTestKit_Client.lua`
-(auto-join, client commands, `OnServerCommand` witness comparison).
+(auto-join, client commands, `OnServerCommand` witness comparison) and
+`client/PZTestKit_Client_Body.lua` (slice 03: the client mirror — `stats.get`,
+`player.walk`, `player.stop`; a separate file loaded into the same client Lua
+state, registering into the same `TK` table, purely so two slices' edits do not
+collide).
 
 ### Server side
 

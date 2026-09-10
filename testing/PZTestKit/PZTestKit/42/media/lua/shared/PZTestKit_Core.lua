@@ -237,10 +237,11 @@ TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", l
 -- The OPTIONAL reads below go through TK.call, and each MoodleType / CharacterStat member is
 -- nil-checked BEFORE it is passed in: handing a nil enum to a present Java method is an
 -- argument mismatch, which Kahlua does not let pcall catch either (see TK.call). The reads
--- that are NOT wrapped are so on purpose -- `TK.nutritionSnapshot`'s `p:getNutrition()` block
--- and `getGameTime():getWorldAgeHours()` are called directly, because every rate in the slice
--- is fitted against them and a build that lost one should fail loudly here rather than return
--- a snapshot that quietly has no calories or no clock.
+-- that are NOT wrapped are so on purpose -- `TK.nutritionSnapshot`'s `p:getNutrition()` block,
+-- `TK.bodySnapshot`'s own `p:getStats()` (the handle every needs/endurance read below hangs
+-- off) and `getGameTime():getWorldAgeHours()` are called directly, because every rate in the
+-- slice is fitted against them and a build that lost one should fail loudly here rather than
+-- return a snapshot that quietly has no calories, no stats or no clock.
 TK.MOODLES = { hungry = "HUNGRY", thirst = "THIRST", foodEaten = "FOOD_EATEN",
                heavyLoad = "HEAVY_LOAD", endurance = "ENDURANCE" }
 -- The trait STRINGS as CharacterTrait.<clinit> registers them ("Very Underweight" carries a

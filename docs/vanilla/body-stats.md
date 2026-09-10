@@ -26,9 +26,11 @@ the stores between meals.
    hunger rises `1 − e^(−kt)` with a 28.9 game-hour time constant; thirst has no damping
    term and fills in 34.7 game-hours. The sandbox `StatsDecrease` option (1→×2.0 …
    5→×0.65) and four traits scale them; **nothing scales the calorie burn but weight**.
-4. **The moodles' entire mechanical footprint is four `BodyDamage` rows** — carry
+4. **The moodles' entire mechanical footprint is four `BodyDamage` effects** — carry
    capacity, the health-regeneration tier, the zeroing of the sleeping health addition at
-   HUNGRY 4 ∨ THIRST 4, and a health loss at HUNGRY level 4. There is
+   HUNGRY 4 ∨ THIRST 4, and a health loss at HUNGRY 4 **and at THIRST 4** (the thirst
+   branch is `/10`, five times the hunger branch's `/50`; 17.82 health per game-hour on
+   the 90-minute-day fixture, measured). There is
    no weight moodle, and `FOOD_EATEN` (fed from *hunger change*, never from calories)
    freezes the hunger rate outright while it is up.
 5. **In MP every one of these stats is server-owned.** Hunger, thirst, endurance and the
@@ -115,11 +117,15 @@ It is **≥ 1.0 always and raised only by cold**; heat instead raises `fluidsMul
 (which is `getThirstMultiplier()`, below) and `fatigueMultiplier`. Ev C.
 
 > **Tentative reading, n = 1.** Idle calorie burn came out **1.0045–1.0055 ×** the coded
-> 0.016 in **ten of the eleven** idle windows of the run, while the macro drains —
-> computed in the *same* method against the same `dt` — sat at ~1.000 in 9 of the 11
-> windows. In the eleventh (`rows.r9_traits.windows[2]`, High Thirst) every stat reads
-> ~0.995 *together* — calories 0.9999 against all six needs/macros at 0.9948 — i.e. that
-> whole window is offset, not the calorie term alone. The only term in
+> 0.016 in **ten of the eleven** idle windows of the run, while the five needs and macros
+> (hunger, thirst, carbs, lipids, proteins) — computed in the *same* method against the
+> same `dt` — sat at ~1.000 in **nine** of those eleven. Two windows are the exceptions,
+> and they are different exceptions. In the eleventh
+> (`rows.r9_traits.windows[2]`, High Thirst) calories read **0.9999** while the five
+> needs/macros read **0.9948–0.9949**: both numbers sit ~0.5 % below their counterparts in
+> the other ten, so that whole window is offset uniformly rather than the calorie term
+> alone. The other is the row-1 baseline, where the calorie ratio is the usual 1.0049 but
+> carbs / lipids / proteins read **0.9991 / 0.9972 / 0.9993** — near 1.000, not on it. The only term in
 > the code that separates those two numbers is `energy`, so this fixture's character
 > plausibly sat at `energyMultiplier ≈ 1.005` (very slightly cold). Nothing controlled the
 > temperature and the run has one fixture, so this is **not** a constant: a 0.5 %
@@ -147,8 +153,9 @@ There is **no `getHunger()` on `Stats` in B42**: the route is
 (`CharacterStat.<clinit> @91–@99`, `@231–@239`). Ev: the route every live snapshot
 answered with (M, run below); `Stats`' 34-method list is what rules the old getter out
 (C) — the harness tries the enum route first and short-circuits, so its `getHunger()` /
-`.hunger` fallbacks were never exercised
-([eating-pipeline.md](eating-pipeline.md) § Open questions, `docs/progress.md`).
+`.hunger` fallbacks were never exercised (the *hunger/thirst read* row of
+[eating-pipeline.md](eating-pipeline.md) § Code map, `:422`; carried forward at
+`docs/progress.md:39`).
 
 Dispatch: `IsoGameCharacter.updateInternal @1548–@1557 L9229-L9230` →
 `calculateStats() L10196–L10221` → `updateThirst()`, `updateStats_WakeState()` (which
@@ -303,7 +310,7 @@ retune every threshold at runtime with no Java patch. Ev C.
 | `BodyDamage.UpdateStrength` | **carry capacity**: `n = 0`; HUNGRY lvl 2 → `n += 1`, lvl 3 → `+2`, lvl 4 → `+2`; THIRST identically; SICK 2/3/4 → `+1/+2/+3`; BLEEDING/INJURED likewise. Then `setMaxWeight((int)(maxWeightBase × weightMod) − n)`, floored at 0 | `@2–@61 L2062–L2069` (hunger), `@62–@121 L2071–L2078` (thirst), `@302–@383 L2113–L2121` | C; **M** `getMaxWeight()` = 12 / 12 / 11 / 10 / 10 across levels 0–4, on both moodles independently — `exp03-20260910-045523`, [`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json) |
 | `BodyDamage.Update` | **health-regeneration tier**: `n = 0`; `HUNGRY == 2 ∨ SICK == 2 ∨ THIRST == 2 → n = 1`; `== 3 → n = 2`; `HUNGRY == 4 ∨ THIRST == 4 → n = 3` (SICK 4 is **not** in this one); `asleep → n = −1`. Additions `0.002 / 0.0013 / 0.0008 / 0.0` × `GameTime.getMultiplier()` | `@591–@838 L2274–L2312`; constants `<init> @61–@81 L74–L77` | C (the tier↔constant mapping is inferred from the branch order; the wiki's Thirsty page independently quotes −35 / −60 / −100 %, which is exactly this set — W corroboration, [thirsty.md](../../references/wiki-mirrors/thirsty.md)) |
 | `BodyDamage.Update` | asleep: if `HUNGRY == 4 ∨ THIRST == 4`, the sleeping health addition (0.02) is **zeroed** | `@839–@924 L2316–L2323` | C |
-| `BodyDamage.Update` | **health loss** at `HUNGRY == 4`: `healthReductionFromSevereBadMoodles / 50` = `0.0165/50` = **3.3e-4** per multiplier unit, added to the reduction total. THIRST has no such branch | `@1134–@1172 L2356–L2358`; `<init> @91–@93 L79` | C |
+| `BodyDamage.Update` | **health loss** at `HUNGRY == 4`: `healthReductionFromSevereBadMoodles / 50` = `0.0165/50` = **3.3e-4** per multiplier unit, added to the reduction total. **`THIRST == 4` has its own branch at `/10` = 1.65e-3 per multiplier unit — five times the hunger one** — and both are added into the same total, which `ReduceGeneralHealth` then applies whole to `overallBodyHealth` (the per-part `/MAX` and `/getDamageModifyer` cancel against `calculateOverallHealth`'s sum). Each term that comes out positive also fires `OnPlayerGetDamage(char, 'HUNGRY'/'THIRST', amount)`. Like every severe-moodle term these carry `getMultiplier()` **without** `getDeltaMinutesPerDay()`, so in game time they scale with `minutesPerDay/30`: at `THIRST == 4` that is **11.88 health/game-hour on the 60-minute default day and 17.82 on a 90-minute one** | hunger `@1134–@1172 L2356–L2358`, thirst `@1320–@1358 L2377–L2379`, event labels `@1533–@1658 L2398–L2413`, apply `@1514 L2395`; `ReduceGeneralHealth @25–@73 L1129–L1133`, `calculateOverallHealth @2–@44 L2528–L2530`; `<init> @91–@93 L79` | C; **M** the thirst branch measured at **−17.820029 health/game-hour** against a predicted −17.820000 (ratio 1.000002) with HUNGRY never above level 3 — `scenario-20260910-052624`, [`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-052624/scenario-nutrition_3day_gain.json) |
 | `BodyDamage.Update` | `FOOD_EATEN > 0` speeds **poison decay** by `1.5e-4 × level` on top of `poisonLevelDecrease` | `@1028–@1090 L2349–L2353` | C |
 | `updateStats_Awake` / `updateStats_Sleeping` | `FOOD_EATEN` level gates the **hunger rate** (above) | `@211/@328 L10268/L10275`, `@423 L3357` | C; **M** (the measured table below) `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
 | `ISEatFoodAction.lua:14`, `ISDrinkFluidAction.lua:7` | `isValidStart` false at `FOOD_EATEN >= 3` — "can't eat more" | Lua | C |
@@ -580,7 +587,7 @@ Code wins; the mirrors preserve each page's own version stamp.
 | 3 | Each Hungry level decreases "body heat generation"; every positive level heals 750 % faster ([hungry.md](../../references/wiki-mirrors/hungry.md), 42.12.3) | No thermoregulator read of `HUNGRY` exists and no healing multiplier: the whole footprint is carry capacity, the regen tier, the zeroed sleeping health addition at level 4, the level-4 health loss, and for `FOOD_EATEN` the hunger gate, `1.5e-4 × level` poison decay and the `>= 3` eat block | W vs C |
 | 4 | Thirsty thresholds "above 13 %" and "above 85 %" ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | `MoodleStat.<clinit>`'s THIRST row is **0.12 / 0.25 / 0.70 / 0.84**, strict `>` — off by a point at both ends | W vs C+M — all five levels read back on the server, `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
 | 5 | Sprinting carries the same ×1.2 thirst as running ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | `getRunningThirstReduction` returns 1.2 only for `IsoPlayer.getInstance().IsRunning()` — a different flag from `isSprinting()`, and gated on the local instance, so on a dedicated server it may never fire; the asleep branch applies neither it nor the heat term | W vs C |
-| 6 | Health drains `22 %` per in-game hour at Dying of Thirst ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | The severe-moodle health loss is on a **`HUNGRY == 4`** branch only (`0.0165/50` = 3.3e-4 per multiplier unit, per frame-normalised tick, not per game-hour); `THIRST == 4` appears only where the *sleeping* health addition is zeroed | W vs C |
+| 6 | Health drains `22 %` per in-game hour at Dying of Thirst ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | **The mechanism is real** — `BodyDamage.Update` has a `THIRST == 4` health-loss branch at `healthReductionFromSevereBadMoodles / 10` (`@1320–@1358 L2377–L2379`), 5× the `HUNGRY == 4` branch's `/50`, added to the same reduction total. **The flat percentage is not**: the branch carries `getMultiplier()` and not `getDeltaMinutesPerDay()`, so its game-time rate is `minutesPerDay/30 × 0.0165/10 × 3600` — **11.88 %/game-hour on the 60-minute default day, 17.82 % on a 90-minute one** — and matches 22 % at no standard day length. (Both branches are *game*-time rates: a `× getMultiplier()` per-tick term is fixed per unit of game time, not per frame — the derivation is the `healthFromFoodTimer` one at § *`FOOD_EATEN` — the gate, measured*. The hunger branch works out at **2.376 %/game-hour** on the default day and **3.564 %** on the 90-minute fixture.) *(This row previously said THIRST had no such branch, and called the hunger figure a per-tick quantity; both were wrong — corrected by slice 04 from a live measurement.)* | W vs C+**M** — 17.820029 %/game-hour measured on a 90-minute-day fixture, hunger never above level 3, `scenario-20260910-052624` ([`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-052624/scenario-nutrition_3day_gain.json)) |
 | 7 | The moodle index has no `FoodEaten` entry, folding the well-fed state into Hungry ([moodle.md](../../references/wiki-mirrors/moodle.md), 42.13.2) | `MoodleType.<clinit>` registers a distinct `FOOD_EATEN` that is not threshold-driven at all — it reads `healthFromFoodTimer` against 1600 — and it is `FOOD_EATEN`, not `HUNGRY`, that gates the hunger rate | W vs C+M — the moodle gate and the timer→level mapping measured, `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
 | 8 | The trait page's weight bands are 35–50 / 51–65 / 66–75 / 76–85 none / 86–100 / 101–130 ([trait.md](../../references/wiki-mirrors/trait.md), **42.20.4** — the same build, so this is a live contradiction) | `applyTraitFromWeight`'s comparisons are inclusive at both ends: `>= 100` Obese, `<= 50` Emaciated, 85 Overweight, 75 Underweight, normal the open interval (75, 85). The 35 and 130 endpoints are the weight-change floor and ceiling, not band edges | W vs C+M — 100 / 85 / 75 / 80 measured, `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
 | 9 | Display names: Fast / Slow Metabolism and Very Low / Low / High / Very High Weight ([trait.md](../../references/wiki-mirrors/trait.md), 42.20.4) | The API strings are `WeightLoss` / `WeightGain` and `Very Underweight` / `Underweight` / `Overweight` / `Obese` — and `getKnownTraits()` returns them **lowercased**. Never match on a display name | W vs C+M — the lowercased `getKnownTraits()` names observed in the run, `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
@@ -600,6 +607,13 @@ the `getRecoveryMod` 40 / 70 / 30 % figures and the Fitness recovery curve all m
 jar exactly. The Hungry and Moodle pages' headline — "nutrition and hunger are entirely
 separate mechanics; burning or gaining calories has no effect on this moodle" — is
 confirmed in both directions.
+
+Right in kind, wrong in number: the Thirsty page's health-drain claim (row 6). There **is**
+a `THIRST == 4` health-loss branch, and at `/10` it is the harshest severe-moodle term of
+the class — five times the hunger one. Only the flat `22 %`/game-hour misses, because the
+real rate is day-length dependent (11.88 % on the 60-minute default, 17.82 % on the
+90-minute fixture the run used). Read that row as a units error on a real mechanic, not as
+an invented one.
 
 ---
 

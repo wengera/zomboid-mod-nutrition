@@ -573,8 +573,21 @@ try:
                                # exactly on it; otherwise the comparison never saw it.
                                "heldExactly": (read_back is not None and abs(read_back - w) < 1e-6),
                                "applyRoute": applied.get("applied") if isinstance(applied, dict) else None})
-        r["allBandsMatch"] = all(x["match"] for x in r["bands"])
+        # The aggregate is only a reading of the BAND BOUNDARIES if every weight was still
+        # exactly on its set point when applyTraitFromWeight compared it. In
+        # exp03-20260910-045523 four of the eleven had drifted (updateWeight's gain branch
+        # fired between the write and the read) and `allBandsMatch: false` recorded that drift
+        # as a code disagreement. Drifted -> no answer, and `bands[].heldExactly` says which.
         r["allWeightsHeldExactly"] = all(x["heldExactly"] for x in r["bands"])
+        drifted = [x["weight"] for x in r["bands"] if not x["heldExactly"]]
+        if r["allWeightsHeldExactly"]:
+            r["allBandsMatch"] = all(x["match"] for x in r["bands"])
+        else:
+            r["allBandsMatch"] = None
+            r["allBandsMatchReason"] = (
+                "n/a: %d of %d weights did not hold exactly (%s), so those comparisons never "
+                "saw the boundary -- read `bands[].match` alongside `bands[].heldExactly` "
+                "instead" % (len(drifted), len(r["bands"]), drifted))
         # Put the band traits back to none before any later row reads them.
         srv("nutrition.set", f"{USER} weight 80")
         r["restore"] = srv("nutrition.applytraits", USER)
@@ -601,16 +614,27 @@ try:
         r["after_eat"] = snap()
         r["foodTimerAfterEat"] = num(r["after_eat"], "foodTimer")
         r["foodEatenLevelAfterEat"] = sub(r["after_eat"], "moodles").get("foodEaten")
-        # The timer decays by 1 x getMultiplier() per BodyDamage.Update tick (Q5), i.e. on a
-        # frame clock rather than a game-time one -- MEASURED at 1438 units per REAL second at
-        # settimespeed 30 (exp03-20260910-045523, this row's own window: 197 596.8 -> 186 096.2
-        # across its first 8 s), so >34 000 across a 24 s window. A real eat fills it with at
-        # most 11000 (`JustAteFood` cap), which would expire mid-window and take the gate with
-        # it. Topped up well past that so the window measures the GATE and not its expiry;
-        # `foodTimerAfterEat` above is the untouched reading of the real path.
-        r["foodTimerDecayNote"] = ("1438 units/real-s at settimespeed 30 (measured in this "
-                                   "row's own window, exp03-20260910-045523); 11000 from a "
-                                   "real eat lasts under 8 real seconds there")
+        # The timer decays by 1 x getMultiplier() per BodyDamage.Update tick (Q5). That is a
+        # GAME-time rate, not a frame-clock one: getMultiplier() here carries no
+        # getDeltaMinutesPerDay() factor, and gameWorldSeconds = getMultiplier() x
+        # getDeltaMinutesPerDay() = getMultiplier() x 30/minutesPerDay, so the decay is
+        # minutesPerDay/30 units per GAME-second -- MEASURED at 3.000/game-s, flat, on this
+        # fixture's 90-minute day (exp03-20260910-045523, this row's own samples 0-8), and 2.0
+        # on the 60-minute default. Frame-rate independent, and in game time independent of
+        # settimespeed (getMultiplier() scales with speed; getDeltaMinutesPerDay() cancels it).
+        # So the 11000 `JustAteFood` cap is ~1.02 game-hours and one moodle level (1600) is
+        # ~8.9 game-minutes. This 24 s window at settimespeed 30 spans ~11 500 game-s (~3.2
+        # game-hours, ~34 500 units of decay), so a real eat's 11000 would expire about a third
+        # of the way in and take the gate with it. Topped up well past that so the window
+        # measures the GATE and not its expiry; `foodTimerAfterEat` above is the untouched
+        # reading of the real path.
+        r["foodTimerDecayNote"] = ("decays minutesPerDay/30 units per GAME-second -- measured "
+                                   "3.000/game-s on this 90-minute-day fixture "
+                                   "(exp03-20260910-045523, samples 0-8), 2.0 on the 60-minute "
+                                   "default; frame-rate independent and, in game time, "
+                                   "independent of settimespeed. The 11000 cap from a real eat "
+                                   "is ~1.02 game-hours, one moodle level (1600) ~8.9 "
+                                   "game-minutes")
         r["foodtimer_topup"] = srv("foodtimer.set", f"{USER} 200000")
         srv("stats.set", f"{USER} hunger {PRIME['hunger']} thirst {PRIME['thirst']}")
         r["settimespeed_fast"] = timespeed(FAST)
@@ -895,7 +919,10 @@ try:
                       "thirstLevelsMatch": r11.get("thirstLevelsMatch")}
     r12 = out["rows"].get("r12_weight_bands", {})
     summary["r12"] = {"allBandsMatch": r12.get("allBandsMatch"),
-                      "bands": [{k: x.get(k) for k in ("weight", "traitsOn", "expected", "match", "maxWeight")}
+                      "allBandsMatchReason": r12.get("allBandsMatchReason"),
+                      "allWeightsHeldExactly": r12.get("allWeightsHeldExactly"),
+                      "bands": [{k: x.get(k) for k in ("weight", "traitsOn", "expected", "match",
+                                                       "heldExactly", "maxWeight")}
                                 for x in r12.get("bands", [])],
                       "refreshLatencySeconds": sub(r12, "refreshLatency").get("secondsToObese")}
     r8 = out["rows"].get("r8_food_eaten", {})

@@ -241,7 +241,11 @@ TK.register("nutrition.applytraits", function(argv)
     local okW, w = TK.call(n, "getWeight")
     if okW then out.weight = w else out.error = "no Nutrition:getWeight" end
     out.applied = TK.call(n, "applyTraitFromWeight")
-    if not out.applied then out.error = "no Nutrition:applyTraitFromWeight" end
+    -- Keep the FIRST error: a build missing getWeight is the more informative failure, and
+    -- overwriting it here would hide it behind the second one.
+    if not out.applied and out.error == nil then
+        out.error = "no Nutrition:applyTraitFromWeight"
+    end
     local set, list = TK.traitNames(p)
     local traits = {}
     for key, tname in pairs(TK.WEIGHT_TRAITS) do traits[key] = TK.hasTraitName(set, tname) end
