@@ -139,6 +139,52 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   **instance** instead. Fluid **containers** have no live route at all —
   `Item` exposes no component accessor — so only fluid **definitions** can be
   read back this way.
+  Slice-05 drink probe — server only, for the same reason every other intake
+  command is: an MP client never calls `DrinkFluid` at all
+  (`LuaTimedActionNew.complete @31 L162` skips the Lua `complete` when
+  `GameClient.client`, and `ISDrinkFluidAction`'s own hooks are
+  `if not isClient()` / `if isServer()`), so a client-side probe would read the
+  1 Hz mirror rather than the store. `drink <user> <fullType> [fraction]`
+  (default fraction `1.0`) is the shipped drink action's payload with the timed
+  action taken off: it finds the user, picks an instance, reads the container,
+  makes **one** `DrinkFluid` call and reports both stores on either side of it.
+  * **Route**: `IsoGameCharacter:DrinkFluid(InventoryItem, f, false)` — the
+    same overload and the same argument shape `ISDrinkFluidAction:updateEat`
+    (`:109–120`) ends in, followed by the same `syncItemFields()` (`:117`).
+    Measured on 42.20.4: Kahlua's overload dispatch takes it as written, so the
+    command's `(FluidContainer, f, false)` fallback was never exercised — it is
+    attempted only when the first route cannot have applied anything (the
+    member was absent, or it raised with the container's `getAmount()`
+    untouched), never after a partial application, and `route` names whichever
+    one answered. `useUtensil` is `false` because the action always passes
+    `false` and the jar never reads the argument.
+  * **Which instance**: the **fullest**, ties broken by the highest id — not
+    `item.get`'s `getFirstTypeRecurse`, which answers the *first* match and
+    would re-select an already-drained can on a second probe of the same type.
+    The candidate list (`id`, `amount`, `capacity` per instance) and the pick
+    travel in the reply, and `finder` says whether the list route
+    (`getAllTypeRecurse`, one argument, as `ISBuildUtil.lua:201` calls it) or
+    the `getFirstTypeRecurse` fallback answered.
+  * **Drift-free by construction**: both snapshots (`TK.nutritionSnapshot` +
+    `BodyDamage.getHealthFromFoodTimer` + the container's
+    amount/capacity/filledRatio) are taken **inside the one Lua call**, on
+    either side of the single Java line, so they are the same game tick;
+    `worldAgeBefore` / `worldAgeAfter` and `delta.worldAgeHours` are in the
+    reply so that is checked rather than asserted. A `stats.get` /
+    `nutrition.get` bracket *around* the command is the independent outer
+    reading and it does carry the passive drain.
+  * **Reply**: `{user, fullType, fraction, finder, selectionRule, candidates,
+    selected, primaryFluid, primaryFluidRoute, fluidDisplayName,
+    containerProperties, predictedNutrition, predictedStats,
+    predictedFoodTimer, before, after, delta, route, syncItemFields}` — plus
+    `routeAttempts` / `error` when a route failed. `containerProperties` is the
+    container's **litres-weighted** aggregate (`getProperties()`, all fifteen
+    `SealedFluidProperties` getters), read **before** the drink because an
+    emptied container recalculates to all zeroes.
+  The `fraction` is a share of the container's **current contents**, not of its
+  capacity (`removeFluid(getAmount() * f, true)`): on a full can `f = 1` empties
+  it and `f = 0.5` halves it, but a *second* `0.5` would take half of what is
+  left. Driven by `testing/experiments/s05b_drink_probe.py`.
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects

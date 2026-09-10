@@ -547,6 +547,287 @@ TK.register("fluid.script", function(argv)
            .. table.concat(seen, ",")
 end)
 
+-- ---- live drink probe (slice 05, task 5b) ------------------------------------
+-- `drink <user> <fullType> [fraction]` -- the drink action's payload with the timed action
+-- taken off, so the per-litre fluid arithmetic can be MEASURED rather than read off the jar
+-- (slice 01 open question #11; 05-notes q3 "Open" #1).
+--
+-- SERVER-side because the server owns the write. An MP client never calls `DrinkFluid` at
+-- all: `LuaTimedActionNew.complete @31 L162` skips the Lua `complete` when
+-- `GameClient.client`, and the action's own hooks are `if not isClient()` (`:26-:30`) and
+-- `if isServer()` (`:42-:48`). A client-side probe would measure the 1 Hz mirror, not the
+-- store.
+--
+-- The call is the SAME entry point the shipped action uses. `ISDrinkFluidAction:updateEat`
+-- (`:109-:120`) ends in `self.character:DrinkFluid(self.item, deltaToConsume,
+-- self.useUtensil)` -- the `(InventoryItem, F, Z)` overload, with `useUtensil` always false
+-- (`:new`) and never read (the third argument is dead in the jar, q3 notes Step 6). What the
+-- action varies across its ~160 ticks is only `deltaToConsume`, and `complete()` lands on
+-- exactly `f = 1`; so one call at `f = <fraction>` IS the finished action minus the
+-- animation. The `syncItemFields()` that follows it in `updateEat` is made here too, and
+-- reported, so the route is the shipped one end to end.
+--
+-- `f` is a share of the container's CURRENT contents, not of its capacity --
+-- `removeFluid(getAmount() * f, true)`. On a full can `amount == capacity`, so `f = 1`
+-- empties it and `f = 0.5` halves it; a SECOND `0.5` would take half of what is left, not
+-- the rest. `before.container.amount` / `after.container.amount` are in the reply so that
+-- reading never rests on the reasoning.
+--
+-- Both snapshots are taken INSIDE this call, on either side of the one Java line, so they
+-- are the same game tick: `Nutrition.update` and `updateStats_*` run on their own ticks and
+-- cannot interleave with a command handler, and the passive drain between them is therefore
+-- zero rather than small. `worldAgeBefore` / `worldAgeAfter` are in the reply so that is
+-- checkable rather than asserted -- the experiment's `stats.get` / `nutrition.get` bracket
+-- around the command is the independent outer reading, and that one DOES carry drift.
+--
+-- Which instance: `item.get`'s finder is `getFirstTypeRecurse`, which answers the FIRST
+-- match -- and after one full drink the first match is an EMPTY can, so a second probe on
+-- the same type would drink nothing and report it as a zero delta. This command picks the
+-- FULLEST instance instead, ties broken by the highest id (the newest), and puts every
+-- candidate's id and amount in the reply, so the choice is auditable rather than implicit.
+local FLUID_PROPS = { calories = "getCalories", carbs = "getCarbohydrates",
+                      lipids = "getLipids", proteins = "getProteins",
+                      hungerChange = "getHungerChange", thirstChange = "getThirstChange",
+                      unhappyChange = "getUnhappyChange", fatigueChange = "getFatigueChange",
+                      stressChange = "getStressChange", alcohol = "getAlcohol",
+                      poison = "getPoison", enduranceChange = "getEnduranceChange",
+                      fluReduction = "getFluReduction", painReduction = "getPainReduction",
+                      foodSicknessChange = "getFoodSicknessChange" }
+
+-- `FluidContainer.getProperties()` is ALREADY litres-weighted -- `recalculateCaches @234-@250
+-- L632` sums `perLitre x litres` -- so this block is what a FULL container delivers, and
+-- `DrinkFluid` multiplies it by `f`. Read BEFORE the call: an emptied container recalculates
+-- to all zeroes. A getter this build does not expose lands in `missingGetters` rather than
+-- being silently absent (the `fluid.script` rule).
+local function fluidProps(fc)
+    local ok, props = TK.call(fc, "getProperties")
+    if not ok or props == nil then return nil, "no FluidContainer:getProperties()" end
+    local out, missing = {}, {}
+    for k, m in pairs(FLUID_PROPS) do
+        local okg, v = TK.call(props, m)
+        if okg then out[k] = v else missing[#missing + 1] = m end
+    end
+    if #missing > 0 then out.missingGetters = missing end
+    return out, nil
+end
+
+local function containerState(fc)
+    local out = {}
+    local ok, v = TK.call(fc, "getAmount");    if ok then out.amount = v end
+    ok, v = TK.call(fc, "getCapacity");        if ok then out.capacity = v end
+    ok, v = TK.call(fc, "getFilledRatio");     if ok then out.filledRatio = v end
+    ok, v = TK.call(fc, "isEmpty");            if ok then out.empty = v end
+    return out
+end
+
+-- BodyDamage.healthFromFoodTimer, which `DrinkFluid @254-@286 L5896-L5897` raises by
+-- `(int)(timer + |consume.hungerChange| * 13000)`. A third, independent reading of the same
+-- per-litre arithmetic -- and the one that shows the truncation.
+local function foodTimerOf(p)
+    local _, bd = TK.call(p, "getBodyDamage")
+    if bd == nil then return nil end
+    local ok, v = TK.call(bd, "getHealthFromFoodTimer")
+    if ok then return v end
+    return nil
+end
+
+-- Every instance of <fullType> in the inventory, with the fluid each holds. The one-argument
+-- `getAllTypeRecurse` is the game's own route (`ISBuildUtil.lua:201`, on a full type).
+local function fluidCandidates(p, fullType)
+    local _, inv = TK.call(p, "getInventory")
+    if inv == nil then return nil, "no IsoGameCharacter:getInventory()" end
+    local ok, list = TK.call(inv, "getAllTypeRecurse", fullType)
+    if not ok then return nil, "no ItemContainer:getAllTypeRecurse(String)" end
+    if list == nil then return {}, nil end
+    local okS, n = TK.call(list, "size")
+    if not okS or type(n) ~= "number" then return nil, "no size() on the getAllTypeRecurse list" end
+    local out = {}
+    for i = 0, n - 1 do
+        local okG, it = TK.call(list, "get", i)
+        if okG and it ~= nil then
+            local row = { index = i }
+            local okI, id = TK.call(it, "getID");  if okI then row.id = id end
+            -- getFluidContainer() is GameEntity's, inherited by InventoryItem (checked on the
+            -- jar: it is NOT declared on InventoryItem itself), and is the accessor
+            -- `ISDrinkFluidAction:new` uses.
+            local _, fc = TK.call(it, "getFluidContainer")
+            row.hasFluidContainer = fc ~= nil
+            if fc ~= nil then
+                local st = containerState(fc)
+                row.amount, row.capacity, row.empty = st.amount, st.capacity, st.empty
+            end
+            out[#out + 1] = { item = it, fc = fc, row = row }
+        end
+    end
+    return out, nil
+end
+
+-- Fullest, then highest id. A scan rather than table.sort, so the comparison is explicit and
+-- an instance whose amount could not be read is never handed to `<`.
+local function pickFullest(cands)
+    local best = nil
+    for i = 1, #cands do
+        local c = cands[i]
+        if c.fc ~= nil then
+            if best == nil then
+                best = c
+            else
+                local a, id = c.row.amount or -1, c.row.id or -1
+                local ba, bid = best.row.amount or -1, best.row.id or -1
+                if a > ba or (a == ba and id > bid) then best = c end
+            end
+        end
+    end
+    return best
+end
+
+TK.register("drink", function(argv)
+    local user, fullType = argv[1], argv[2]
+    if not user or not fullType then return "usage: drink <user> <fullType> [fraction]" end
+    local f = 1.0
+    if argv[3] ~= nil then
+        f = tonumber(argv[3])
+        if f == nil then return "expected a number for <fraction>, got " .. tostring(argv[3]) end
+    end
+    local p = findPlayer(user)
+    if not p then return "no online player " .. tostring(user) end
+
+    local cands, cerr = fluidCandidates(p, fullType)
+    if cands == nil then return cerr end
+    local finder = "getAllTypeRecurse"
+    -- Belt and braces. `getAllTypeRecurse` is the game's own list route, but only
+    -- `getFirstTypeRecurse` has been exercised against a full type by this harness
+    -- (`item.get`, slice 02/05). If the list route answers nothing, fall back to the proven
+    -- one rather than reporting an absent item -- and say which finder answered, because the
+    -- fallback cannot see a second instance and its "fullest" guarantee is therefore void.
+    if #cands == 0 then
+        local _, inv = TK.call(p, "getInventory")
+        local okF, it = TK.call(inv, "getFirstTypeRecurse", fullType)
+        if okF and it ~= nil then
+            local _, fc = TK.call(it, "getFluidContainer")
+            local rowF = { index = 0, hasFluidContainer = fc ~= nil }
+            local okI, id = TK.call(it, "getID");  if okI then rowF.id = id end
+            if fc ~= nil then
+                local st = containerState(fc)
+                rowF.amount, rowF.capacity, rowF.empty = st.amount, st.capacity, st.empty
+            end
+            cands = { { item = it, fc = fc, row = rowF } }
+            finder = "getFirstTypeRecurse (getAllTypeRecurse answered nothing)"
+        end
+    end
+    local rows = {}
+    for i = 1, #cands do rows[#rows + 1] = cands[i].row end
+    if #cands == 0 then
+        return "no " .. tostring(fullType) .. " in " .. tostring(user) .. "'s inventory"
+    end
+    local pick = pickFullest(cands)
+    if pick == nil then
+        return { error = "no FluidContainer on any of the " .. string.format("%.0f", #cands)
+                         .. " " .. tostring(fullType) .. " instances", candidates = rows }
+    end
+
+    local out = { user = user, fullType = fullType, fraction = f, finder = finder,
+                  selectionRule = "fullest, then highest id",
+                  candidates = rows, selected = pick.row }
+    local _, sft = TK.call(pick.item, "getFullType");  out.selectedFullType = sft
+    local _, fluid = TK.call(pick.fc, "getPrimaryFluid")
+    -- `fluidId` is the `fluid.script` route pair: getFluidTypeString() answers for only 34 of
+    -- the 61 definitions, so it falls back to stringifying the FluidType enum and says which
+    -- one named the fluid.
+    local fid, froute = fluidId(fluid)
+    out.primaryFluid, out.primaryFluidRoute = fid, froute
+    local _, dn = TK.call(fluid, "getDisplayName");    out.fluidDisplayName = dn
+
+    local props, perr = fluidProps(pick.fc)
+    out.containerProperties = props
+    if perr then out.containerPropertiesError = perr end
+    if props then
+        -- Nutrition: `n.setX(n.getX() + fc.getProperties().getX() * f)` (@23-@100
+        -- L5878-L5881), i.e. the litres-weighted aggregate x f.
+        out.predictedNutrition = { calories = (props.calories or 0) * f,
+                                   carbs = (props.carbs or 0) * f,
+                                   lipids = (props.lipids or 0) * f,
+                                   proteins = (props.proteins or 0) * f }
+        -- Stats: from the FluidConsume, which `removeFluid` weights by `getAmount() * f` and
+        -- which DrinkFluid does NOT re-multiply by f (@129-@253 L5885-L5894). Since the
+        -- aggregate above is weighted by that same `getAmount()`, the consume equals
+        -- aggregate x f -- so the prediction is the same shape, and the whole claim is that
+        -- these two numbers come out of one `f`.
+        out.predictedStats = { hunger = (props.hungerChange or 0) * f,
+                               thirst = (props.thirstChange or 0) * f }
+    end
+
+    local gt = getGameTime()
+    out.worldAgeBefore = gt:getWorldAgeHours()
+    out.before = { container = containerState(pick.fc), nutrition = TK.nutritionSnapshot(p),
+                   foodTimer = foodTimerOf(p) }
+    if props and out.before.foodTimer ~= nil then
+        -- (int)(timer + |hungerChange * f| * 13000): the cast truncates the WHOLE sum, so the
+        -- prediction has to as well.
+        out.predictedFoodTimer =
+            math.floor(out.before.foodTimer + math.abs((props.hungerChange or 0) * f) * 13000.0)
+    end
+
+    -- The call. Route 1 is the shipped action's own overload; route 2 is the FluidContainer
+    -- one. `pcall` wraps the CALL, not the lookup -- TK.call has already ruled out "tried to
+    -- call nil", the one failure pcall cannot catch, so what is left is an argument/type
+    -- mismatch inside Kahlua's overload dispatch, which pcall does catch. The fallback is
+    -- taken ONLY when route 1 cannot have applied anything: the member was absent, or it
+    -- raised and left the container's amount untouched. Never after a partial application --
+    -- a second call there would drink twice and the artifact would be a fiction.
+    local amountBefore = out.before.container.amount
+    local function attempt(subject, label)
+        local ran, present, value = pcall(TK.call, p, "DrinkFluid", subject, f, false)
+        if ran and present then return true, label, value, nil end
+        local st = containerState(pick.fc)
+        local applied = (amountBefore ~= nil) and (st.amount ~= nil) and (st.amount ~= amountBefore)
+        return false, label, nil, { raised = (not ran) and tostring(present) or nil,
+                                    memberAbsent = (ran and not present) or nil,
+                                    appliedAnyway = applied }
+    end
+
+    local ok1, label1, ret1, err1 = attempt(pick.item, "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)")
+    if ok1 then
+        out.route, out.drinkFluidReturned = label1, ret1
+    else
+        out.routeAttempts = { { route = label1, failure = err1 } }
+        if err1.appliedAnyway then
+            out.route = "none (route 1 raised AFTER changing the container -- not retried)"
+            out.error = "DrinkFluid raised but the container moved: " .. tostring(err1.raised)
+        else
+            local ok2, label2, ret2, err2 =
+                attempt(pick.fc, "IsoGameCharacter:DrinkFluid(FluidContainer, f, false)")
+            if ok2 then
+                out.route, out.drinkFluidReturned = label2, ret2
+            else
+                out.routeAttempts[2] = { route = label2, failure = err2 }
+                out.route = "none"
+                out.error = "no DrinkFluid overload accepted the arguments"
+            end
+        end
+    end
+
+    out.after = { container = containerState(pick.fc), nutrition = TK.nutritionSnapshot(p),
+                  foodTimer = foodTimerOf(p) }
+    out.worldAgeAfter = gt:getWorldAgeHours()
+
+    -- The shipped action's own second half (`updateEat` :117). Not needed for the server-side
+    -- reading -- it pushes the item's new fill to the client -- but it is part of the route,
+    -- so it is made and reported rather than quietly skipped.
+    out.syncItemFields = TK.call(pick.item, "syncItemFields")
+
+    local function d(a, b) if a == nil or b == nil then return nil end return b - a end
+    local nb, na = out.before.nutrition, out.after.nutrition
+    out.delta = { amount = d(out.before.container.amount, out.after.container.amount),
+                  calories = d(nb.calories, na.calories), carbs = d(nb.carbs, na.carbs),
+                  lipids = d(nb.lipids, na.lipids), proteins = d(nb.proteins, na.proteins),
+                  hunger = d(nb.hunger, na.hunger), thirst = d(nb.thirst, na.thirst),
+                  weight = d(nb.weight, na.weight),
+                  foodTimer = d(out.before.foodTimer, out.after.foodTimer),
+                  worldAgeHours = d(out.worldAgeBefore, out.worldAgeAfter) }
+    return out
+end)
+
 local function tick()
     TK.ticks = TK.ticks + 1
     if TK.ticks % 20 == 0 then TK.pollCommands() end

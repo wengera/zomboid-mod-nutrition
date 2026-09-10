@@ -1,0 +1,2651 @@
+{
+ "run_id": "exp05b-20260910-093307",
+ "meta": {
+  "purpose": "live measurement of IsoGameCharacter.DrinkFluid against the dataset's per-container fluid columns (slice 01 open question 11)",
+  "dataset": "data/food-items.json",
+  "dataset_commit": "705a12f",
+  "dataset_sha256": "8e8c2cb053c80466fad418fc20a795ec31a7f1cb51c21d02e669567ded76b61d",
+  "dataset_dirty": false,
+  "dataset_read_error": null,
+  "dataset_meta": {
+   "build": "42.20.4",
+   "jar_hash": "b0bbce05d5",
+   "generated": "2026-09-10",
+   "tool": "tools/food_scan.py",
+   "sources": [
+    "fluids.txt",
+    "fluids_Alcoholic.txt",
+    "fluids_Beverages.txt",
+    "items/alarmclock.txt",
+    "items/alarmclockclothing.txt",
+    "items/animal.txt",
+    "items/clothing.txt",
+    "items/container.txt",
+    "items/drainable.txt",
+    "items/food.txt",
+    "items/key.txt",
+    "items/literature.txt",
+    "items/map.txt",
+    "items/moveable.txt",
+    "items/normal.txt",
+    "items/radio.txt",
+    "items/weapon.txt",
+    "items/weaponpart.txt"
+   ],
+   "counts": {
+    "food": 722,
+    "drainable": 150,
+    "fluid_container": 133,
+    "fluids": 61,
+    "multi_fluid_containers": 5,
+    "fluid_containers_filled": 72,
+    "fluid_containers_pick_random": 9,
+    "fluid_containers_empty": 61,
+    "unresolved_links": 37
+   },
+   "unknown_keys": [
+    "AttachmentReplacement",
+    "BaseSpeed",
+    "BloodLocation",
+    "BodyLocation",
+    "BreakSound",
+    "CanBeEquipped",
+    "CanHaveHoles",
+    "Capacity",
+    "Categories",
+    "CloseSound",
+    "ClothingExtraSubmenu",
+    "ClothingItem",
+    "ClothingItemExtra",
+    "ClothingItemExtraOption",
+    "ColorReference",
+    "ConditionLowerChanceOneIn",
+    "CritDmgMultiplier",
+    "CriticalChance",
+    "DiscomfortModifier",
+    "DisplayName",
+    "DoorDamage",
+    "DoorHitSound",
+    "DropSound",
+    "FillFromLakeSound",
+    "FillFromToiletSound",
+    "HitFloorSound",
+    "HitSound",
+    "IconFluidMask",
+    "KnockBackOnNoDeath",
+    "KnockdownMod",
+    "MaxDamage",
+    "MaxHitcount",
+    "MaxRange",
+    "MinAngle",
+    "MinDamage",
+    "MinRange",
+    "MinimumSwingtime",
+    "OpenSound",
+    "PickRandomFluid",
+    "PushBackMod",
+    "PutInSound",
+    "RunSpeedModifier",
+    "SoundParameter",
+    "SplatBloodOnNoDeath",
+    "SplatNumber",
+    "SubCategory",
+    "SwingAmountBeforeImpact",
+    "SwingAnim",
+    "SwingSound",
+    "Swingtime",
+    "TreeDamage",
+    "WaterResistance",
+    "WeaponLength",
+    "WeaponSprite",
+    "WeightReduction",
+    "alcohol",
+    "diluteRatio",
+    "fluid",
+    "maxEffect",
+    "minAmount"
+   ],
+   "unresolved_links": [
+    {
+     "item": "Base.AnimalFeedBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.BakingTray_Muffin",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.BakingTray_Muffin_Recipe",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.BathTowel",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.BathTowelWet"
+    },
+    {
+     "item": "Base.CakePrep",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.CakeRaw",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.CanPipe_Tobacco",
+     "key": "ReplaceOnUse",
+     "target": "Base.CanPipe"
+    },
+    {
+     "item": "Base.Claybag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.CompostBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.CookieChocolateChipDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesChocolateDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesOatmealDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesShortbreadDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesSugarDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.Dirtbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.DishCloth",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.DishClothWet"
+    },
+    {
+     "item": "Base.GardeningSprayAphids",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GardeningSprayCigarettes",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GardeningSprayMilk",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GrassBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.Gravelbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.GriddlePanFriedVegetables",
+     "key": "ReplaceOnUse",
+     "target": "Base.GridlePan"
+    },
+    {
+     "item": "Base.HotDrinkRed",
+     "key": "ReplaceOnUse",
+     "target": "Base.MugRed"
+    },
+    {
+     "item": "Base.Muffintray_Biscuit",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.OmeletteRecipe",
+     "key": "ReplaceOnUse",
+     "target": "Base.Pan"
+    },
+    {
+     "item": "Base.OmeletteRecipeForged",
+     "key": "ReplaceOnUse",
+     "target": "Base.PanForged"
+    },
+    {
+     "item": "Base.PanFriedVegetables",
+     "key": "ReplaceOnUse",
+     "target": "Base.Pan"
+    },
+    {
+     "item": "Base.PanFriedVegetables2",
+     "key": "ReplaceOnUse",
+     "target": "Base.RoastingPan"
+    },
+    {
+     "item": "Base.PanFriedVegetablesForged",
+     "key": "ReplaceOnUse",
+     "target": "Base.PanForged"
+    },
+    {
+     "item": "Base.PiePrep",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.PieWholeRaw",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.PieWholeRawSweet",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.RagFilter",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.RippedSheetsDirty"
+    },
+    {
+     "item": "Base.Sandbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.SmokingPipe_Tobacco",
+     "key": "ReplaceOnUse",
+     "target": "Base.SmokingPipe"
+    },
+    {
+     "item": "Base.TestHotDrink",
+     "key": "ReplaceOnUse",
+     "target": "Base.TestMug"
+    },
+    {
+     "item": "Base.TestWaterMug",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.TestMug"
+    }
+   ],
+   "missing_display_names": [
+    "Base.FruitSaladClay",
+    "Base.HotDrinkCopper",
+    "Base.HotDrinkGold",
+    "Base.HotDrinkMetal",
+    "Base.HotDrinkSilver",
+    "Base.HotDrinkTumbler"
+   ],
+   "unresolved_fluid_refs": []
+  },
+  "head_commit": "705a12f",
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+   "ok   workshop index: 229 mods",
+   "ok   pytest available"
+  ],
+  "spawn_wait_s": 2.5,
+  "drink_settle_s": 3.0,
+  "prime_hunger": 0.5,
+  "prime_thirst": 0.5,
+  "prime_nutrition": {
+   "calories": 500.0,
+   "carbs": 0.0,
+   "lipids": 0.0,
+   "proteins": 0.0
+  },
+  "atomic_tolerance": {
+   "abs": 0.0001,
+   "rel": 1e-06,
+   "why": "Nutrition and Stats are float32; the delta is a difference of two of them, so the band scales with the store, not with the delta"
+  },
+  "drift_rates": {
+   "calories": "0.016 * weight/80 per game-second (body-stats.md, M)",
+   "carbs": "0.0035 per game-second (nutrition-core.md, M)",
+   "lipids": "0.0035 per game-second (nutrition-core.md, M)",
+   "proteins": "0.0035 per game-second (nutrition-core.md, M)",
+   "hunger": "9.6e-6 * (1 - hunger) per game-second, 0 while FOOD_EATEN >= 1 (body-stats.md, M)",
+   "thirst": "8.0e-6 per game-second (body-stats.md, M)"
+  },
+  "drift_use": "the outer stats.get bracket's tolerance is widened by the maximum passive movement over its own measured worldAge window; no measured number is ever corrected by it",
+  "world_changes": "none -- no settimespeed, no sandbox write. The primings and the spawned cans live in this run's COPY of the fixture."
+ },
+ "session": {
+  "players": [
+   "admin"
+  ],
+  "time_start": {
+   "worldAge": 2.316988,
+   "hour": 9,
+   "minutes": 19,
+   "mult": 4.537961,
+   "wall": 1789047240794
+  },
+  "stats_at_start": {
+   "calories": 798.352234,
+   "carbs": -0.360463,
+   "lipids": -0.116378,
+   "proteins": -0.088571,
+   "weight": 80,
+   "hunger": 0.000881,
+   "thirst": 0.000735,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)",
+   "endurance": 1,
+   "fatigue": 1.6e-05,
+   "moodles": {
+    "hungry": 0,
+    "thirst": 0,
+    "foodEaten": 0,
+    "heavyLoad": 0,
+    "endurance": 0
+   },
+   "traits": {
+    "obese": false,
+    "overweight": false,
+    "underweight": false,
+    "veryUnderweight": false,
+    "emaciated": false,
+    "HeartyAppetite": false,
+    "LightEater": false,
+    "HighThirst": false,
+    "LowThirst": false
+   },
+   "traitRoute": "getKnownTraits",
+   "traitList": {},
+   "maxWeight": 12,
+   "foodTimer": 0,
+   "standardFoodTime": 1600,
+   "asleep": false,
+   "running": false,
+   "sprinting": false,
+   "moving": false,
+   "worldAge": 2.324705,
+   "mult": 4.691247,
+   "wall": 1789047242591
+  },
+  "prime_nutrition": {
+   "calories": {
+    "calories": 500,
+    "carbs": -0.682545,
+    "lipids": -0.220364,
+    "proteins": -0.167711,
+    "weight": 80,
+    "hunger": 0.001764,
+    "thirst": 0.001471,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "carbs": {
+    "calories": 499.948822,
+    "carbs": 0,
+    "lipids": -0.223977,
+    "proteins": -0.17046,
+    "weight": 80,
+    "hunger": 0.001794,
+    "thirst": 0.001497,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "lipids": {
+    "calories": 499.437744,
+    "carbs": -0.111747,
+    "lipids": 0,
+    "proteins": -0.197918,
+    "weight": 80,
+    "hunger": 0.0021,
+    "thirst": 0.001752,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "proteins": {
+    "calories": 499.054047,
+    "carbs": -0.195632,
+    "lipids": -0.027083,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.00233,
+    "thirst": 0.001944,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   }
+  },
+  "stats_at_end": {
+   "calories": 747.483154,
+   "carbs": 68.082443,
+   "lipids": -0.841305,
+   "proteins": -0.619674,
+   "weight": 80,
+   "hunger": 0.480395,
+   "thirst": 0.441355,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)",
+   "endurance": 1,
+   "fatigue": 1.7e-05,
+   "moodles": {
+    "hungry": 3,
+    "thirst": 2,
+    "foodEaten": 0,
+    "heavyLoad": 0,
+    "endurance": 0
+   },
+   "traits": {
+    "obese": false,
+    "overweight": false,
+    "underweight": false,
+    "veryUnderweight": false,
+    "emaciated": false,
+    "HeartyAppetite": false,
+    "LightEater": false,
+    "HighThirst": false,
+    "LowThirst": false
+   },
+   "traitRoute": "getKnownTraits",
+   "traitList": {},
+   "maxWeight": 9,
+   "foodTimer": -3.682404,
+   "standardFoodTime": 1600,
+   "asleep": false,
+   "running": false,
+   "sprinting": false,
+   "moving": false,
+   "worldAge": 2.566848,
+   "mult": 4.798717,
+   "wall": 1789047297193
+  },
+  "time_end": {
+   "worldAge": 2.573064,
+   "hour": 9,
+   "minutes": 34,
+   "mult": 4.800711,
+   "wall": 1789047298590
+  }
+ },
+ "fluid_script": {
+  "Cola": {
+   "fluidType": "Cola",
+   "fluidTypeRoute": "getFluidTypeString",
+   "displayName": "Cola",
+   "hasPropertiesSet": true,
+   "HungerChange": -0.12,
+   "ThirstChange": -0.3,
+   "Calories": 400,
+   "Carbohydrates": 104,
+   "Lipids": 0,
+   "Proteins": 0,
+   "FatigueChange": -0.02,
+   "StressChange": 0,
+   "UnhappyChange": -10,
+   "Alcohol": 0,
+   "FluReduction": 0,
+   "PainReduction": 0,
+   "EnduranceChange": 0,
+   "FoodSicknessChange": 0
+  },
+  "JuiceGrape": {
+   "fluidType": "JuiceGrape",
+   "fluidTypeRoute": "getFluidTypeString",
+   "displayName": "Grape Juice",
+   "hasPropertiesSet": true,
+   "HungerChange": -0.1,
+   "ThirstChange": -0.3,
+   "Calories": 400,
+   "Carbohydrates": 120,
+   "Lipids": 0,
+   "Proteins": 0,
+   "FatigueChange": 0,
+   "StressChange": -0.2,
+   "UnhappyChange": -50,
+   "Alcohol": 0,
+   "FluReduction": 0,
+   "PainReduction": 0,
+   "EnduranceChange": 0,
+   "FoodSicknessChange": 0
+  }
+ },
+ "drinks": {
+  "pop2_whole": {
+   "key": "pop2_whole",
+   "type": "Base.Pop2",
+   "fraction": 1.0,
+   "fluid": "Cola",
+   "note": "0.3 L of Cola drunk to the bottom: isolates the litres weighting -- 400 kcal/L x 0.3 L = 120, against the 400 a per-item reading of the column would give",
+   "pre_existing": "no item Base.Pop2 in admin's inventory",
+   "rcon_additem": "",
+   "foodtimer_set": {
+    "requested": 0,
+    "before": 0,
+    "set": true,
+    "after": 0
+   },
+   "stats_set": {
+    "calories": 497.903809,
+    "carbs": -0.447006,
+    "lipids": -0.108241,
+    "proteins": -0.061766,
+    "weight": 80,
+    "hunger": 0.5,
+    "thirst": 0.5,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)",
+     "thirst": "Stats:set(CharacterStat.THIRST)"
+    }
+   },
+   "outer_before_stats": {
+    "calories": 497.392181,
+    "carbs": -0.558786,
+    "lipids": -0.14433,
+    "proteins": -0.089232,
+    "weight": 80,
+    "hunger": 0.500153,
+    "thirst": 0.500255,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "endurance": 1,
+    "fatigue": 1.7e-05,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 2,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.395505,
+    "mult": 4.786408,
+    "wall": 1789047258592
+   },
+   "outer_before_nutrition": {
+    "calories": 497.110565,
+    "carbs": -0.620297,
+    "lipids": -0.164189,
+    "proteins": -0.104346,
+    "weight": 80,
+    "hunger": 0.500238,
+    "thirst": 0.500396,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "drink": {
+    "user": "admin",
+    "fullType": "Base.Pop2",
+    "fraction": 1,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "fullest, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 634976013,
+      "hasFluidContainer": true,
+      "empty": false,
+      "capacity": 0.3,
+      "amount": 0.3
+     }
+    ],
+    "selected": {
+     "index": 0,
+     "id": 634976013,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.3,
+     "amount": 0.3
+    },
+    "selectedFullType": "Base.Pop2",
+    "primaryFluidRoute": "getFluidTypeString",
+    "primaryFluid": "Cola",
+    "fluidDisplayName": "Cola",
+    "containerProperties": {
+     "calories": 120.000008,
+     "carbs": 31.200001,
+     "lipids": 0,
+     "proteins": 0,
+     "hungerChange": -0.036,
+     "thirstChange": -0.09,
+     "unhappyChange": -3,
+     "fatigueChange": -0.006,
+     "stressChange": 0,
+     "alcohol": 0,
+     "poison": 0,
+     "enduranceChange": 0,
+     "fluReduction": 0,
+     "painReduction": 0,
+     "foodSicknessChange": 0
+    },
+    "predictedNutrition": {
+     "calories": 120.000008,
+     "carbs": 31.200001,
+     "lipids": 0,
+     "proteins": 0
+    },
+    "predictedStats": {
+     "hunger": -0.036,
+     "thirst": -0.09
+    },
+    "worldAgeBefore": 2.40438,
+    "before": {
+     "container": {
+      "amount": 0.3,
+      "capacity": 0.3,
+      "filledRatio": 1,
+      "empty": false
+     },
+     "nutrition": {
+      "calories": 496.880096,
+      "carbs": -0.670626,
+      "lipids": -0.180438,
+      "proteins": -0.116713,
+      "weight": 80,
+      "hunger": 0.500307,
+      "thirst": 0.500511,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)"
+     },
+     "foodTimer": 0
+    },
+    "predictedFoodTimer": 468,
+    "drinkFluidReturned": true,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "after": {
+     "container": {
+      "amount": 0,
+      "capacity": 0.3,
+      "filledRatio": 0,
+      "empty": true
+     },
+     "nutrition": {
+      "calories": 616.880127,
+      "carbs": 30.529375,
+      "lipids": -0.180438,
+      "proteins": -0.116713,
+      "weight": 80,
+      "hunger": 0.464307,
+      "thirst": 0.410511,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)"
+     },
+     "foodTimer": 468
+    },
+    "worldAgeAfter": 2.40438,
+    "syncItemFields": true,
+    "delta": {
+     "amount": -0.3,
+     "calories": 120.000031,
+     "carbs": 31.200001,
+     "lipids": 0,
+     "proteins": 0,
+     "hunger": -0.036,
+     "thirst": -0.09,
+     "weight": 0,
+     "foodTimer": 468,
+     "worldAgeHours": 0
+    }
+   },
+   "outer_after_stats": {
+    "calories": 615.855408,
+    "carbs": 30.305647,
+    "lipids": -0.252669,
+    "proteins": -0.171686,
+    "weight": 80,
+    "hunger": 0.464307,
+    "thirst": 0.411022,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "endurance": 1,
+    "fatigue": 1.7e-05,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 2,
+     "foodEaten": 1,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 276.234924,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.422137,
+    "mult": 4.797016,
+    "wall": 1789047264587
+   },
+   "outer_after_nutrition": {
+    "calories": 615.342651,
+    "carbs": 30.19376,
+    "lipids": -0.288792,
+    "proteins": -0.199177,
+    "weight": 80,
+    "hunger": 0.464307,
+    "thirst": 0.411278,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   }
+  },
+  "pop2_half": {
+   "key": "pop2_half",
+   "type": "Base.Pop2",
+   "fraction": 0.5,
+   "fluid": "Cola",
+   "note": "a second, full can at f = 0.5: isolates f, and pins that f is a share of the CONTENTS (removeFluid(getAmount() * f)) -- a full can must be left at 0.15 L",
+   "pre_existing": {
+    "fullType": "Base.Pop2",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 634976013,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "serverWorldAge": 2.433682
+   },
+   "rcon_additem": "Item Base.Pop2 Added in admin's inventory.",
+   "foodtimer_set": {
+    "requested": 0,
+    "before": -1.936056,
+    "set": true,
+    "after": 0
+   },
+   "stats_set": {
+    "calories": 614.239563,
+    "carbs": 29.953127,
+    "lipids": -0.36648,
+    "proteins": -0.258302,
+    "weight": 80,
+    "hunger": 0.5,
+    "thirst": 0.5,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)",
+     "thirst": "Stats:set(CharacterStat.THIRST)"
+    }
+   },
+   "outer_before_stats": {
+    "calories": 613.804077,
+    "carbs": 29.858196,
+    "lipids": -0.397129,
+    "proteins": -0.281628,
+    "weight": 80,
+    "hunger": 0.50013,
+    "thirst": 0.500217,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "endurance": 1,
+    "fatigue": 1.7e-05,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 2,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.457652,
+    "mult": 4.787014,
+    "wall": 1789047272591
+   },
+   "outer_before_nutrition": {
+    "calories": 613.290894,
+    "carbs": 29.746361,
+    "lipids": -0.433237,
+    "proteins": -0.309109,
+    "weight": 80,
+    "hunger": 0.500284,
+    "thirst": 0.500472,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "drink": {
+    "user": "admin",
+    "fullType": "Base.Pop2",
+    "fraction": 0.5,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "fullest, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 634976013,
+      "hasFluidContainer": true,
+      "empty": true,
+      "capacity": 0.3,
+      "amount": 0
+     },
+     {
+      "index": 1,
+      "id": 1967234522,
+      "hasFluidContainer": true,
+      "empty": false,
+      "capacity": 0.3,
+      "amount": 0.3
+     }
+    ],
+    "selected": {
+     "index": 1,
+     "id": 1967234522,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.3,
+     "amount": 0.3
+    },
+    "selectedFullType": "Base.Pop2",
+    "primaryFluidRoute": "getFluidTypeString",
+    "primaryFluid": "Cola",
+    "fluidDisplayName": "Cola",
+    "containerProperties": {
+     "calories": 120.000008,
+     "carbs": 31.200001,
+     "lipids": 0,
+     "proteins": 0,
+     "hungerChange": -0.036,
+     "thirstChange": -0.09,
+     "unhappyChange": -3,
+     "fatigueChange": -0.006,
+     "stressChange": 0,
+     "alcohol": 0,
+     "poison": 0,
+     "enduranceChange": 0,
+     "fluReduction": 0,
+     "painReduction": 0,
+     "foodSicknessChange": 0
+    },
+    "predictedNutrition": {
+     "calories": 60.000004,
+     "carbs": 15.6,
+     "lipids": 0,
+     "proteins": 0
+    },
+    "predictedStats": {
+     "hunger": -0.018,
+     "thirst": -0.045
+    },
+    "worldAgeBefore": 2.475407,
+    "before": {
+     "container": {
+      "amount": 0.3,
+      "capacity": 0.3,
+      "filledRatio": 1,
+      "empty": false
+     },
+     "nutrition": {
+      "calories": 612.777466,
+      "carbs": 29.634489,
+      "lipids": -0.469355,
+      "proteins": -0.336597,
+      "weight": 80,
+      "hunger": 0.500437,
+      "thirst": 0.500728,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)"
+     },
+     "foodTimer": 0
+    },
+    "predictedFoodTimer": 234,
+    "drinkFluidReturned": true,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "after": {
+     "container": {
+      "amount": 0.15,
+      "capacity": 0.3,
+      "filledRatio": 0.5,
+      "empty": false
+     },
+     "nutrition": {
+      "calories": 672.777466,
+      "carbs": 45.234489,
+      "lipids": -0.469355,
+      "proteins": -0.336597,
+      "weight": 80,
+      "hunger": 0.482437,
+      "thirst": 0.455728,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)"
+     },
+     "foodTimer": 234
+    },
+    "worldAgeAfter": 2.475407,
+    "syncItemFields": true,
+    "delta": {
+     "amount": -0.15,
+     "calories": 60,
+     "carbs": 15.6,
+     "lipids": 0,
+     "proteins": 0,
+     "hunger": -0.018,
+     "thirst": -0.045,
+     "weight": 0,
+     "foodTimer": 234,
+     "worldAgeHours": 0
+    }
+   },
+   "outer_after_stats": {
+    "calories": 671.750122,
+    "carbs": 45.010761,
+    "lipids": -0.541589,
+    "proteins": -0.391571,
+    "weight": 80,
+    "hunger": 0.482437,
+    "thirst": 0.456239,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "endurance": 1,
+    "fatigue": 1.7e-05,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 2,
+     "foodEaten": 1,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 42.229275,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.493165,
+    "mult": 4.791395,
+    "wall": 1789047280592
+   },
+   "outer_after_nutrition": {
+    "calories": 671.338989,
+    "carbs": 44.92123,
+    "lipids": -0.570496,
+    "proteins": -0.413571,
+    "weight": 80,
+    "hunger": 0.482493,
+    "thirst": 0.456444,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   }
+  },
+  "juicebox_whole": {
+   "key": "juicebox_whole",
+   "type": "Base.JuiceBox",
+   "fraction": 1.0,
+   "fluid": "JuiceGrape",
+   "note": "0.2 L of JuiceGrape: a different fluid AND a different capacity, so a coincidence in the Cola rows cannot survive it -- 400 kcal/L x 0.2 L = 80",
+   "pre_existing": "no item Base.JuiceBox in admin's inventory",
+   "rcon_additem": "",
+   "foodtimer_set": {
+    "requested": 0,
+    "before": -0.957918,
+    "set": true,
+    "after": 0
+   },
+   "stats_set": {
+    "calories": 670.208862,
+    "carbs": 44.675255,
+    "lipids": -0.649908,
+    "proteins": -0.474008,
+    "weight": 80,
+    "hunger": 0.5,
+    "thirst": 0.5,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "applied": {
+     "hunger": "Stats:set(CharacterStat.HUNGER)",
+     "thirst": "Stats:set(CharacterStat.THIRST)"
+    }
+   },
+   "outer_before_stats": {
+    "calories": 669.694946,
+    "carbs": 44.563442,
+    "lipids": -0.686006,
+    "proteins": -0.501481,
+    "weight": 80,
+    "hunger": 0.500154,
+    "thirst": 0.500255,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "endurance": 1,
+    "fatigue": 1.7e-05,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 2,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.528669,
+    "mult": 4.798467,
+    "wall": 1789047288592
+   },
+   "outer_before_nutrition": {
+    "calories": 669.41217,
+    "carbs": 44.501938,
+    "lipids": -0.705862,
+    "proteins": -0.516593,
+    "weight": 80,
+    "hunger": 0.500238,
+    "thirst": 0.500396,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "drink": {
+    "user": "admin",
+    "fullType": "Base.JuiceBox",
+    "fraction": 1,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "fullest, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 114954796,
+      "hasFluidContainer": true,
+      "empty": false,
+      "capacity": 0.2,
+      "amount": 0.2
+     }
+    ],
+    "selected": {
+     "index": 0,
+     "id": 114954796,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.2,
+     "amount": 0.2
+    },
+    "selectedFullType": "Base.JuiceBox",
+    "primaryFluidRoute": "getFluidTypeString",
+    "primaryFluid": "JuiceGrape",
+    "fluidDisplayName": "Grape Juice",
+    "containerProperties": {
+     "calories": 80,
+     "carbs": 24,
+     "lipids": 0,
+     "proteins": 0,
+     "hungerChange": -0.02,
+     "thirstChange": -0.06,
+     "unhappyChange": -10,
+     "fatigueChange": 0,
+     "stressChange": -0.04,
+     "alcohol": 0,
+     "poison": 0,
+     "enduranceChange": 0,
+     "fluReduction": 0,
+     "painReduction": 0,
+     "foodSicknessChange": 0
+    },
+    "predictedNutrition": {
+     "calories": 80,
+     "carbs": 24,
+     "lipids": 0,
+     "proteins": 0
+    },
+    "predictedStats": {
+     "hunger": -0.02,
+     "thirst": -0.06
+    },
+    "worldAgeBefore": 2.537546,
+    "before": {
+     "container": {
+      "amount": 0.2,
+      "capacity": 0.2,
+      "filledRatio": 1,
+      "empty": false
+     },
+     "nutrition": {
+      "calories": 669.180786,
+      "carbs": 44.451618,
+      "lipids": -0.722108,
+      "proteins": -0.528957,
+      "weight": 80,
+      "hunger": 0.500307,
+      "thirst": 0.500511,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)"
+     },
+     "foodTimer": 0
+    },
+    "predictedFoodTimer": 260,
+    "drinkFluidReturned": true,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "after": {
+     "container": {
+      "amount": 0,
+      "capacity": 0.2,
+      "filledRatio": 0,
+      "empty": true
+     },
+     "nutrition": {
+      "calories": 749.180786,
+      "carbs": 68.451614,
+      "lipids": -0.722108,
+      "proteins": -0.528957,
+      "weight": 80,
+      "hunger": 0.480307,
+      "thirst": 0.440511,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)"
+     },
+     "foodTimer": 260
+    },
+    "worldAgeAfter": 2.537546,
+    "syncItemFields": true,
+    "delta": {
+     "amount": -0.2,
+     "calories": 80,
+     "carbs": 23.999996,
+     "lipids": 0,
+     "proteins": 0,
+     "hunger": -0.02,
+     "thirst": -0.06,
+     "weight": 0,
+     "foodTimer": 260,
+     "worldAgeHours": 0
+    }
+   },
+   "outer_after_stats": {
+    "calories": 748.1521,
+    "carbs": 68.22789,
+    "lipids": -0.794346,
+    "proteins": -0.583935,
+    "weight": 80,
+    "hunger": 0.480307,
+    "thirst": 0.441022,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "endurance": 1,
+    "fatigue": 1.7e-05,
+    "moodles": {
+     "hungry": 3,
+     "thirst": 2,
+     "foodEaten": 1,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 68.217781,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.555305,
+    "mult": 4.789464,
+    "wall": 1789047294588
+   },
+   "outer_after_nutrition": {
+    "calories": 747.637573,
+    "carbs": 68.116013,
+    "lipids": -0.830466,
+    "proteins": -0.611424,
+    "weight": 80,
+    "hunger": 0.480347,
+    "thirst": 0.441278,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   }
+  }
+ },
+ "comparison": {
+  "pop2_whole": {
+   "item": "Base.Pop2",
+   "fraction": 1.0,
+   "note": "0.3 L of Cola drunk to the bottom: isolates the litres weighting -- 400 kcal/L x 0.3 L = 120, against the 400 a per-item reading of the column would give",
+   "fluid_id": "Cola",
+   "dataset_record_found": true,
+   "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+   "finder": "getAllTypeRecurse",
+   "selection": {
+    "index": 0,
+    "id": 634976013,
+    "hasFluidContainer": true,
+    "empty": false,
+    "capacity": 0.3,
+    "amount": 0.3
+   },
+   "candidates": [
+    {
+     "index": 0,
+     "id": 634976013,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.3,
+     "amount": 0.3
+    }
+   ],
+   "primary_fluid": "Cola",
+   "primary_fluid_route": "getFluidTypeString",
+   "reply_error": null,
+   "container": {
+    "calories": {
+     "expected": 120.0,
+     "live": 120.000008,
+     "tolerance": 0.000220000008,
+     "dataset_column": "calories_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 7.999999994012796e-06,
+     "match": true
+    },
+    "carbs": {
+     "expected": 31.2,
+     "live": 31.200001,
+     "tolerance": 0.00013120000100000001,
+     "dataset_column": "carbohydrates_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 1.0000000010279564e-06,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "dataset_column": "lipids_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "dataset_column": "proteins_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "hungerChange": {
+     "expected": -0.036000000000000004,
+     "live": -0.036,
+     "tolerance": 0.000100036,
+     "dataset_column": "hunger_change_per_container",
+     "factor": 0.01,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 6.938893903907228e-18,
+     "match": true
+    },
+    "thirstChange": {
+     "expected": -0.09,
+     "live": -0.09,
+     "tolerance": 0.00010009,
+     "dataset_column": "thirst_change_per_container",
+     "factor": 0.01,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "atomic": {
+    "calories": {
+     "expected": 120.0,
+     "live": 120.000031,
+     "tolerance": 0.0007168801270000001,
+     "dataset_column": "calories_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": 496.880096,
+     "after": 616.880127,
+     "basis": "dataset[calories_per_container] x 1 x f",
+     "diff": 3.100000000699765e-05,
+     "match": true
+    },
+    "carbs": {
+     "expected": 31.2,
+     "live": 31.200001,
+     "tolerance": 0.0001312,
+     "dataset_column": "carbohydrates_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": -0.670626,
+     "after": 30.529375,
+     "basis": "dataset[carbohydrates_per_container] x 1 x f",
+     "diff": 1.0000000010279564e-06,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.000100180438,
+     "dataset_column": "lipids_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": -0.180438,
+     "after": -0.180438,
+     "basis": "dataset[lipids_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.000100116713,
+     "dataset_column": "proteins_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": -0.116713,
+     "after": -0.116713,
+     "basis": "dataset[proteins_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "hunger": {
+     "expected": -0.036000000000000004,
+     "live": -0.036,
+     "tolerance": 0.00010050030700000001,
+     "dataset_column": "hunger_change_per_container",
+     "factor": 0.01,
+     "fraction": 1.0,
+     "before": 0.500307,
+     "after": 0.464307,
+     "basis": "dataset[hunger_change_per_container] x 0.01 x f  (the /100 the fluid script loader applies: FluidDefinitionScript.getHungerChange @0-@10 L186)",
+     "diff": 6.938893903907228e-18,
+     "match": true
+    },
+    "thirst": {
+     "expected": -0.09,
+     "live": -0.09,
+     "tolerance": 0.00010050051100000001,
+     "dataset_column": "thirst_change_per_container",
+     "factor": 0.01,
+     "fraction": 1.0,
+     "before": 0.500511,
+     "after": 0.410511,
+     "basis": "dataset[thirst_change_per_container] x 0.01 x f  (the /100 the fluid script loader applies: FluidDefinitionScript.getHungerChange @0-@10 L186)",
+     "diff": 0.0,
+     "match": true
+    },
+    "amount": {
+     "expected": -0.3,
+     "live": -0.3,
+     "tolerance": 0.0001,
+     "basis": "removeFluid(getAmount() * f) on a full container",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "outer": {
+    "calories": {
+     "expected": 119.2329984,
+     "live": 118.46322700000002,
+     "tolerance": 0.7677174554080061,
+     "dataset_column": "calories_per_container",
+     "no_drift_expectation": 120.0,
+     "before": 497.392181,
+     "after": 615.855408,
+     "max_drift": -1.5340032000000121,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -0.769771399999982,
+     "match": false
+    },
+    "carbs": {
+     "expected": 31.032218399999998,
+     "live": 30.864433000000002,
+     "tolerance": 0.16791280000000133,
+     "dataset_column": "carbohydrates_per_container",
+     "no_drift_expectation": 31.2,
+     "before": -0.558786,
+     "after": 30.305647,
+     "max_drift": -0.33556320000000267,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -0.1677853999999961,
+     "match": true
+    },
+    "lipids": {
+     "expected": -0.16778160000000134,
+     "live": -0.10833899999999996,
+     "tolerance": 0.16788185266900132,
+     "dataset_column": "lipids_per_container",
+     "no_drift_expectation": 0.0,
+     "before": -0.14433,
+     "after": -0.252669,
+     "max_drift": -0.33556320000000267,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.05944260000000137,
+     "match": true
+    },
+    "proteins": {
+     "expected": -0.16778160000000134,
+     "live": -0.082454,
+     "tolerance": 0.16788177168600132,
+     "dataset_column": "proteins_per_container",
+     "no_drift_expectation": 0.0,
+     "before": -0.089232,
+     "after": -0.171686,
+     "max_drift": -0.33556320000000267,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.08532760000000134,
+     "match": true
+    },
+    "hunger": {
+     "expected": -0.03576996993074688,
+     "live": -0.035845999999999933,
+     "tolerance": 0.0003305302222531218,
+     "dataset_column": "hunger_change_per_container",
+     "no_drift_expectation": -0.036000000000000004,
+     "before": 0.500153,
+     "after": 0.464307,
+     "max_drift": 0.0004600601385062437,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -7.603006925305245e-05,
+     "match": true
+    },
+    "thirst": {
+     "expected": -0.08961649919999999,
+     "live": -0.089233,
+     "tolerance": 0.00048400105500000305,
+     "dataset_column": "thirst_change_per_container",
+     "no_drift_expectation": -0.09,
+     "before": 0.500255,
+     "after": 0.411022,
+     "max_drift": 0.0007670016000000061,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.0003834991999999843,
+     "match": true
+    }
+   },
+   "mismatches": [
+    {
+     "source": "outer bracket",
+     "field": "calories",
+     "expected": 119.2329984,
+     "live": 118.46322700000002,
+     "tolerance": 0.7677174554080061
+    }
+   ],
+   "container_fill": {
+    "capacity": {
+     "expected": 0.3,
+     "live": 0.3,
+     "tolerance": 0.0001,
+     "diff": 0.0,
+     "match": true
+    },
+    "amount_before": {
+     "expected": 0.3,
+     "live": 0.3,
+     "tolerance": 0.0001,
+     "diff": 0.0,
+     "match": true
+    },
+    "amount_after": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "basis": "removeFluid(getAmount() * f): f is a share of the CONTENTS, so a full container is left holding (1 - f) x fill",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "atomic_window_game_hours": {
+    "expected": 0.0,
+    "live": 0,
+    "tolerance": 1e-05,
+    "basis": "both snapshots are taken inside one Lua call, so the window must be 0. The band is 1e-5 game-hours = 0.036 game-seconds -- far below one tick (0.27 game-s at 60 fps on this fixture's 16.03 game-s/real-s clock), so a genuine tick advance fails it while float noise does not; at that width the calorie drift it could hide is 6e-4 kcal. TK.json rounds to 6 decimals, so anything under 5e-7 game-hours reads back as exactly 0",
+    "diff": 0.0,
+    "match": true
+   },
+   "food_timer": {
+    "expected": 468.0,
+    "live": 468,
+    "tolerance": 1.0,
+    "before": 0,
+    "after": 468,
+    "untruncated_float32": 468.0000305175781,
+    "untruncated_exact": 468.00000000000006,
+    "expected_from_exact": 468.0,
+    "harness_prediction": 468,
+    "basis": "(int)(timer + |hungerChange x f| * 13000), DrinkFluid @254-@286 L5896-L5897 -- the cast truncates the WHOLE sum. Band 1.0 = one truncation unit (see the comment)",
+    "diff": 0.0,
+    "match": true
+   },
+   "outer_window": {
+    "world_age_before": 2.395505,
+    "world_age_after": 2.422137,
+    "game_seconds": 95.87520000000076,
+    "spans": "the bus round trips around the command plus DRINK_SETTLE",
+    "max_drift": {
+     "calories": -1.5340032000000121,
+     "carbs": -0.33556320000000267,
+     "lipids": -0.33556320000000267,
+     "proteins": -0.33556320000000267,
+     "hunger": 0.0004600601385062437,
+     "thirst": 0.0007670016000000061
+    }
+   },
+   "outer_nutrition_get": {
+    "calories": {
+     "before": 497.110565,
+     "after": 615.342651,
+     "delta": 118.23208600000004
+    },
+    "carbs": {
+     "before": -0.620297,
+     "after": 30.19376,
+     "delta": 30.814057000000002
+    },
+    "lipids": {
+     "before": -0.164189,
+     "after": -0.288792,
+     "delta": -0.12460299999999999
+    },
+    "proteins": {
+     "before": -0.104346,
+     "after": -0.199177,
+     "delta": -0.094831
+    },
+    "hunger": {
+     "before": 0.500238,
+     "after": 0.464307,
+     "delta": -0.035930999999999935
+    },
+    "thirst": {
+     "before": 0.500396,
+     "after": 0.411278,
+     "delta": -0.08911799999999998
+    }
+   },
+   "clamp_guard": {
+    "calories": {
+     "before": 496.880096,
+     "expected_delta": 120.0,
+     "clamp": [
+      -2200.0,
+      3700.0
+     ],
+     "clear": true
+    },
+    "carbs": {
+     "before": -0.670626,
+     "expected_delta": 31.2,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    },
+    "lipids": {
+     "before": -0.180438,
+     "expected_delta": 0.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    },
+    "proteins": {
+     "before": -0.116713,
+     "expected_delta": 0.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    }
+   },
+   "matched": false
+  },
+  "pop2_half": {
+   "item": "Base.Pop2",
+   "fraction": 0.5,
+   "note": "a second, full can at f = 0.5: isolates f, and pins that f is a share of the CONTENTS (removeFluid(getAmount() * f)) -- a full can must be left at 0.15 L",
+   "fluid_id": "Cola",
+   "dataset_record_found": true,
+   "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+   "finder": "getAllTypeRecurse",
+   "selection": {
+    "index": 1,
+    "id": 1967234522,
+    "hasFluidContainer": true,
+    "empty": false,
+    "capacity": 0.3,
+    "amount": 0.3
+   },
+   "candidates": [
+    {
+     "index": 0,
+     "id": 634976013,
+     "hasFluidContainer": true,
+     "empty": true,
+     "capacity": 0.3,
+     "amount": 0
+    },
+    {
+     "index": 1,
+     "id": 1967234522,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.3,
+     "amount": 0.3
+    }
+   ],
+   "primary_fluid": "Cola",
+   "primary_fluid_route": "getFluidTypeString",
+   "reply_error": null,
+   "container": {
+    "calories": {
+     "expected": 120.0,
+     "live": 120.000008,
+     "tolerance": 0.000220000008,
+     "dataset_column": "calories_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 7.999999994012796e-06,
+     "match": true
+    },
+    "carbs": {
+     "expected": 31.2,
+     "live": 31.200001,
+     "tolerance": 0.00013120000100000001,
+     "dataset_column": "carbohydrates_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 1.0000000010279564e-06,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "dataset_column": "lipids_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "dataset_column": "proteins_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "hungerChange": {
+     "expected": -0.036000000000000004,
+     "live": -0.036,
+     "tolerance": 0.000100036,
+     "dataset_column": "hunger_change_per_container",
+     "factor": 0.01,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 6.938893903907228e-18,
+     "match": true
+    },
+    "thirstChange": {
+     "expected": -0.09,
+     "live": -0.09,
+     "tolerance": 0.00010009,
+     "dataset_column": "thirst_change_per_container",
+     "factor": 0.01,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "atomic": {
+    "calories": {
+     "expected": 60.0,
+     "live": 60,
+     "tolerance": 0.000772777466,
+     "dataset_column": "calories_per_container",
+     "factor": 1.0,
+     "fraction": 0.5,
+     "before": 612.777466,
+     "after": 672.777466,
+     "basis": "dataset[calories_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 15.6,
+     "live": 15.6,
+     "tolerance": 0.000145234489,
+     "dataset_column": "carbohydrates_per_container",
+     "factor": 1.0,
+     "fraction": 0.5,
+     "before": 29.634489,
+     "after": 45.234489,
+     "basis": "dataset[carbohydrates_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.00010046935500000001,
+     "dataset_column": "lipids_per_container",
+     "factor": 1.0,
+     "fraction": 0.5,
+     "before": -0.469355,
+     "after": -0.469355,
+     "basis": "dataset[lipids_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.00010033659700000001,
+     "dataset_column": "proteins_per_container",
+     "factor": 1.0,
+     "fraction": 0.5,
+     "before": -0.336597,
+     "after": -0.336597,
+     "basis": "dataset[proteins_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "hunger": {
+     "expected": -0.018000000000000002,
+     "live": -0.018,
+     "tolerance": 0.000100500437,
+     "dataset_column": "hunger_change_per_container",
+     "factor": 0.01,
+     "fraction": 0.5,
+     "before": 0.500437,
+     "after": 0.482437,
+     "basis": "dataset[hunger_change_per_container] x 0.01 x f  (the /100 the fluid script loader applies: FluidDefinitionScript.getHungerChange @0-@10 L186)",
+     "diff": 3.469446951953614e-18,
+     "match": true
+    },
+    "thirst": {
+     "expected": -0.045,
+     "live": -0.045,
+     "tolerance": 0.00010050072800000001,
+     "dataset_column": "thirst_change_per_container",
+     "factor": 0.01,
+     "fraction": 0.5,
+     "before": 0.500728,
+     "after": 0.455728,
+     "basis": "dataset[thirst_change_per_container] x 0.01 x f  (the /100 the fluid script loader applies: FluidDefinitionScript.getHungerChange @0-@10 L186)",
+     "diff": 0.0,
+     "match": true
+    },
+    "amount": {
+     "expected": -0.15,
+     "live": -0.15,
+     "tolerance": 0.0001,
+     "basis": "removeFluid(getAmount() * f) on a full container",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "outer": {
+    "calories": {
+     "expected": 58.977225600000004,
+     "live": 57.94604500000003,
+     "tolerance": 1.0235461501219971,
+     "dataset_column": "calories_per_container",
+     "no_drift_expectation": 60.0,
+     "before": 613.804077,
+     "after": 671.750122,
+     "max_drift": -2.0455487999999944,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -1.0311805999999777,
+     "match": false
+    },
+    "carbs": {
+     "expected": 15.3762681,
+     "live": 15.152565000000003,
+     "tolerance": 0.2238769107609994,
+     "dataset_column": "carbohydrates_per_container",
+     "no_drift_expectation": 15.6,
+     "before": 29.858196,
+     "after": 45.010761,
+     "max_drift": -0.4474637999999988,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -0.22370309999999805,
+     "match": true
+    },
+    "lipids": {
+     "expected": -0.2237318999999994,
+     "live": -0.14445999999999998,
+     "tolerance": 0.2238324415889994,
+     "dataset_column": "lipids_per_container",
+     "no_drift_expectation": 0.0,
+     "before": -0.397129,
+     "after": -0.541589,
+     "max_drift": -0.4474637999999988,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.07927189999999942,
+     "match": true
+    },
+    "proteins": {
+     "expected": -0.2237318999999994,
+     "live": -0.10994300000000001,
+     "tolerance": 0.2238322915709994,
+     "dataset_column": "proteins_per_container",
+     "no_drift_expectation": 0.0,
+     "before": -0.281628,
+     "after": -0.391571,
+     "max_drift": -0.4474637999999988,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.11378889999999939,
+     "match": true
+    },
+    "hunger": {
+     "expected": -0.017693247456403202,
+     "live": -0.01769299999999996,
+     "tolerance": 0.0004072526735967992,
+     "dataset_column": "hunger_change_per_container",
+     "no_drift_expectation": -0.018000000000000002,
+     "before": 0.50013,
+     "after": 0.482437,
+     "max_drift": 0.0006135050871935983,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 2.474564032434179e-07,
+     "match": true
+    },
+    "thirst": {
+     "expected": -0.0444886128,
+     "live": -0.04397800000000002,
+     "tolerance": 0.0006118874169999986,
+     "dataset_column": "thirst_change_per_container",
+     "no_drift_expectation": -0.045,
+     "before": 0.500217,
+     "after": 0.456239,
+     "max_drift": 0.0010227743999999973,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.0005106127999999835,
+     "match": true
+    }
+   },
+   "mismatches": [
+    {
+     "source": "outer bracket",
+     "field": "calories",
+     "expected": 58.977225600000004,
+     "live": 57.94604500000003,
+     "tolerance": 1.0235461501219971
+    }
+   ],
+   "container_fill": {
+    "capacity": {
+     "expected": 0.3,
+     "live": 0.3,
+     "tolerance": 0.0001,
+     "diff": 0.0,
+     "match": true
+    },
+    "amount_before": {
+     "expected": 0.3,
+     "live": 0.3,
+     "tolerance": 0.0001,
+     "diff": 0.0,
+     "match": true
+    },
+    "amount_after": {
+     "expected": 0.15,
+     "live": 0.15,
+     "tolerance": 0.0001,
+     "basis": "removeFluid(getAmount() * f): f is a share of the CONTENTS, so a full container is left holding (1 - f) x fill",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "atomic_window_game_hours": {
+    "expected": 0.0,
+    "live": 0,
+    "tolerance": 1e-05,
+    "basis": "both snapshots are taken inside one Lua call, so the window must be 0. The band is 1e-5 game-hours = 0.036 game-seconds -- far below one tick (0.27 game-s at 60 fps on this fixture's 16.03 game-s/real-s clock), so a genuine tick advance fails it while float noise does not; at that width the calorie drift it could hide is 6e-4 kcal. TK.json rounds to 6 decimals, so anything under 5e-7 game-hours reads back as exactly 0",
+    "diff": 0.0,
+    "match": true
+   },
+   "food_timer": {
+    "expected": 234.0,
+    "live": 234,
+    "tolerance": 1.0,
+    "before": 0,
+    "after": 234,
+    "untruncated_float32": 234.00001525878906,
+    "untruncated_exact": 234.00000000000003,
+    "expected_from_exact": 234.0,
+    "harness_prediction": 234,
+    "basis": "(int)(timer + |hungerChange x f| * 13000), DrinkFluid @254-@286 L5896-L5897 -- the cast truncates the WHOLE sum. Band 1.0 = one truncation unit (see the comment)",
+    "diff": 0.0,
+    "match": true
+   },
+   "outer_window": {
+    "world_age_before": 2.457652,
+    "world_age_after": 2.493165,
+    "game_seconds": 127.84679999999966,
+    "spans": "the bus round trips around the command plus DRINK_SETTLE",
+    "max_drift": {
+     "calories": -2.0455487999999944,
+     "carbs": -0.4474637999999988,
+     "lipids": -0.4474637999999988,
+     "proteins": -0.4474637999999988,
+     "hunger": 0.0006135050871935983,
+     "thirst": 0.0010227743999999973
+    }
+   },
+   "outer_nutrition_get": {
+    "calories": {
+     "before": 613.290894,
+     "after": 671.338989,
+     "delta": 58.04809499999999
+    },
+    "carbs": {
+     "before": 29.746361,
+     "after": 44.92123,
+     "delta": 15.174869000000001
+    },
+    "lipids": {
+     "before": -0.433237,
+     "after": -0.570496,
+     "delta": -0.13725900000000002
+    },
+    "proteins": {
+     "before": -0.309109,
+     "after": -0.413571,
+     "delta": -0.104462
+    },
+    "hunger": {
+     "before": 0.500284,
+     "after": 0.482493,
+     "delta": -0.017790999999999946
+    },
+    "thirst": {
+     "before": 0.500472,
+     "after": 0.456444,
+     "delta": -0.04402800000000001
+    }
+   },
+   "clamp_guard": {
+    "calories": {
+     "before": 612.777466,
+     "expected_delta": 60.0,
+     "clamp": [
+      -2200.0,
+      3700.0
+     ],
+     "clear": true
+    },
+    "carbs": {
+     "before": 29.634489,
+     "expected_delta": 15.6,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    },
+    "lipids": {
+     "before": -0.469355,
+     "expected_delta": 0.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    },
+    "proteins": {
+     "before": -0.336597,
+     "expected_delta": 0.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    }
+   },
+   "matched": false
+  },
+  "juicebox_whole": {
+   "item": "Base.JuiceBox",
+   "fraction": 1.0,
+   "note": "0.2 L of JuiceGrape: a different fluid AND a different capacity, so a coincidence in the Cola rows cannot survive it -- 400 kcal/L x 0.2 L = 80",
+   "fluid_id": "JuiceGrape",
+   "dataset_record_found": true,
+   "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+   "finder": "getAllTypeRecurse",
+   "selection": {
+    "index": 0,
+    "id": 114954796,
+    "hasFluidContainer": true,
+    "empty": false,
+    "capacity": 0.2,
+    "amount": 0.2
+   },
+   "candidates": [
+    {
+     "index": 0,
+     "id": 114954796,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.2,
+     "amount": 0.2
+    }
+   ],
+   "primary_fluid": "JuiceGrape",
+   "primary_fluid_route": "getFluidTypeString",
+   "reply_error": null,
+   "container": {
+    "calories": {
+     "expected": 80.0,
+     "live": 80,
+     "tolerance": 0.00017999999999999998,
+     "dataset_column": "calories_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 24.0,
+     "live": 24,
+     "tolerance": 0.000124,
+     "dataset_column": "carbohydrates_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "dataset_column": "lipids_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "dataset_column": "proteins_per_container",
+     "factor": 1.0,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "hungerChange": {
+     "expected": -0.02,
+     "live": -0.02,
+     "tolerance": 0.00010002000000000001,
+     "dataset_column": "hunger_change_per_container",
+     "factor": 0.01,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    },
+    "thirstChange": {
+     "expected": -0.06,
+     "live": -0.06,
+     "tolerance": 0.00010006,
+     "dataset_column": "thirst_change_per_container",
+     "factor": 0.01,
+     "basis": "FluidContainer.getProperties() = per-litre x fluid_fill_litres (recalculateCaches @234-@250 L632), read live before the drink",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "atomic": {
+    "calories": {
+     "expected": 80.0,
+     "live": 80,
+     "tolerance": 0.0008491807860000001,
+     "dataset_column": "calories_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": 669.180786,
+     "after": 749.180786,
+     "basis": "dataset[calories_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "carbs": {
+     "expected": 24.0,
+     "live": 23.999996,
+     "tolerance": 0.000168451614,
+     "dataset_column": "carbohydrates_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": 44.451618,
+     "after": 68.451614,
+     "basis": "dataset[carbohydrates_per_container] x 1 x f",
+     "diff": -4.000000000559112e-06,
+     "match": true
+    },
+    "lipids": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.000100722108,
+     "dataset_column": "lipids_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": -0.722108,
+     "after": -0.722108,
+     "basis": "dataset[lipids_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.00010052895700000001,
+     "dataset_column": "proteins_per_container",
+     "factor": 1.0,
+     "fraction": 1.0,
+     "before": -0.528957,
+     "after": -0.528957,
+     "basis": "dataset[proteins_per_container] x 1 x f",
+     "diff": 0.0,
+     "match": true
+    },
+    "hunger": {
+     "expected": -0.02,
+     "live": -0.02,
+     "tolerance": 0.00010050030700000001,
+     "dataset_column": "hunger_change_per_container",
+     "factor": 0.01,
+     "fraction": 1.0,
+     "before": 0.500307,
+     "after": 0.480307,
+     "basis": "dataset[hunger_change_per_container] x 0.01 x f  (the /100 the fluid script loader applies: FluidDefinitionScript.getHungerChange @0-@10 L186)",
+     "diff": 0.0,
+     "match": true
+    },
+    "thirst": {
+     "expected": -0.06,
+     "live": -0.06,
+     "tolerance": 0.00010050051100000001,
+     "dataset_column": "thirst_change_per_container",
+     "factor": 0.01,
+     "fraction": 1.0,
+     "before": 0.500511,
+     "after": 0.440511,
+     "basis": "dataset[thirst_change_per_container] x 0.01 x f  (the /100 the fluid script loader applies: FluidDefinitionScript.getHungerChange @0-@10 L186)",
+     "diff": 0.0,
+     "match": true
+    },
+    "amount": {
+     "expected": -0.2,
+     "live": -0.2,
+     "tolerance": 0.0001,
+     "basis": "removeFluid(getAmount() * f) on a full container",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "outer": {
+    "calories": {
+     "expected": 79.23288319999999,
+     "live": 78.45715400000006,
+     "tolerance": 0.7679649521000094,
+     "dataset_column": "calories_per_container",
+     "no_drift_expectation": 80.0,
+     "before": 669.694946,
+     "after": 748.1521,
+     "max_drift": -1.5342336000000187,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -0.7757291999999296,
+     "match": false
+    },
+    "carbs": {
+     "expected": 23.8321932,
+     "live": 23.664448,
+     "tolerance": 0.16797502789000204,
+     "dataset_column": "carbohydrates_per_container",
+     "no_drift_expectation": 24.0,
+     "before": 44.563442,
+     "after": 68.22789,
+     "max_drift": -0.33561360000000406,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -0.16774519999999882,
+     "match": true
+    },
+    "lipids": {
+     "expected": -0.16780680000000203,
+     "live": -0.10833999999999999,
+     "tolerance": 0.16790759434600203,
+     "dataset_column": "lipids_per_container",
+     "no_drift_expectation": 0.0,
+     "before": -0.686006,
+     "after": -0.794346,
+     "max_drift": -0.33561360000000406,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.05946680000000204,
+     "match": true
+    },
+    "proteins": {
+     "expected": -0.16780680000000203,
+     "live": -0.08245400000000003,
+     "tolerance": 0.16790738393500204,
+     "dataset_column": "proteins_per_container",
+     "no_drift_expectation": 0.0,
+     "before": -0.501481,
+     "after": -0.583935,
+     "max_drift": -0.33561360000000406,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.085352800000002,
+     "match": true
+    },
+    "hunger": {
+     "expected": -0.01976993584159232,
+     "live": -0.019847000000000004,
+     "tolerance": 0.00033056431240768283,
+     "dataset_column": "hunger_change_per_container",
+     "no_drift_expectation": -0.02,
+     "before": 0.500154,
+     "after": 0.480307,
+     "max_drift": 0.00046012831681536563,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": -7.706415840768449e-05,
+     "match": true
+    },
+    "thirst": {
+     "expected": -0.05961644159999999,
+     "live": -0.05923299999999998,
+     "tolerance": 0.00048405865500000464,
+     "dataset_column": "thirst_change_per_container",
+     "no_drift_expectation": -0.06,
+     "before": 0.500255,
+     "after": 0.441022,
+     "max_drift": 0.0007671168000000093,
+     "basis": "the no-drift expectation, banded by the maximum passive movement over the measured window",
+     "diff": 0.0003834416000000132,
+     "match": true
+    }
+   },
+   "mismatches": [
+    {
+     "source": "outer bracket",
+     "field": "calories",
+     "expected": 79.23288319999999,
+     "live": 78.45715400000006,
+     "tolerance": 0.7679649521000094
+    }
+   ],
+   "container_fill": {
+    "capacity": {
+     "expected": 0.2,
+     "live": 0.2,
+     "tolerance": 0.0001,
+     "diff": 0.0,
+     "match": true
+    },
+    "amount_before": {
+     "expected": 0.2,
+     "live": 0.2,
+     "tolerance": 0.0001,
+     "diff": 0.0,
+     "match": true
+    },
+    "amount_after": {
+     "expected": 0.0,
+     "live": 0,
+     "tolerance": 0.0001,
+     "basis": "removeFluid(getAmount() * f): f is a share of the CONTENTS, so a full container is left holding (1 - f) x fill",
+     "diff": 0.0,
+     "match": true
+    }
+   },
+   "atomic_window_game_hours": {
+    "expected": 0.0,
+    "live": 0,
+    "tolerance": 1e-05,
+    "basis": "both snapshots are taken inside one Lua call, so the window must be 0. The band is 1e-5 game-hours = 0.036 game-seconds -- far below one tick (0.27 game-s at 60 fps on this fixture's 16.03 game-s/real-s clock), so a genuine tick advance fails it while float noise does not; at that width the calorie drift it could hide is 6e-4 kcal. TK.json rounds to 6 decimals, so anything under 5e-7 game-hours reads back as exactly 0",
+    "diff": 0.0,
+    "match": true
+   },
+   "food_timer": {
+    "expected": 260.0,
+    "live": 260,
+    "tolerance": 1.0,
+    "before": 0,
+    "after": 260,
+    "untruncated_float32": 260.0000305175781,
+    "untruncated_exact": 260.0,
+    "expected_from_exact": 260.0,
+    "harness_prediction": 260,
+    "basis": "(int)(timer + |hungerChange x f| * 13000), DrinkFluid @254-@286 L5896-L5897 -- the cast truncates the WHOLE sum. Band 1.0 = one truncation unit (see the comment)",
+    "diff": 0.0,
+    "match": true
+   },
+   "outer_window": {
+    "world_age_before": 2.528669,
+    "world_age_after": 2.555305,
+    "game_seconds": 95.88960000000117,
+    "spans": "the bus round trips around the command plus DRINK_SETTLE",
+    "max_drift": {
+     "calories": -1.5342336000000187,
+     "carbs": -0.33561360000000406,
+     "lipids": -0.33561360000000406,
+     "proteins": -0.33561360000000406,
+     "hunger": 0.00046012831681536563,
+     "thirst": 0.0007671168000000093
+    }
+   },
+   "outer_nutrition_get": {
+    "calories": {
+     "before": 669.41217,
+     "after": 747.637573,
+     "delta": 78.22540300000003
+    },
+    "carbs": {
+     "before": 44.501938,
+     "after": 68.116013,
+     "delta": 23.614074999999993
+    },
+    "lipids": {
+     "before": -0.705862,
+     "after": -0.830466,
+     "delta": -0.12460400000000005
+    },
+    "proteins": {
+     "before": -0.516593,
+     "after": -0.611424,
+     "delta": -0.094831
+    },
+    "hunger": {
+     "before": 0.500238,
+     "after": 0.480347,
+     "delta": -0.019890999999999937
+    },
+    "thirst": {
+     "before": 0.500396,
+     "after": 0.441278,
+     "delta": -0.05911799999999995
+    }
+   },
+   "clamp_guard": {
+    "calories": {
+     "before": 669.180786,
+     "expected_delta": 80.0,
+     "clamp": [
+      -2200.0,
+      3700.0
+     ],
+     "clear": true
+    },
+    "carbs": {
+     "before": 44.451618,
+     "expected_delta": 24.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    },
+    "lipids": {
+     "before": -0.722108,
+     "expected_delta": 0.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    },
+    "proteins": {
+     "before": -0.528957,
+     "expected_delta": 0.0,
+     "clamp": [
+      -500.0,
+      1000.0
+     ],
+     "clear": true
+    }
+   },
+   "matched": false
+  }
+ },
+ "summary": {
+  "drinks": 3,
+  "all_matched": false,
+  "fields_compared": 72,
+  "fields_matched": 69,
+  "fields_mismatched": 3,
+  "per_drink": {
+   "pop2_whole": {
+    "fields": 24,
+    "matched": 23,
+    "mismatched": 1,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "ok": false
+   },
+   "pop2_half": {
+    "fields": 24,
+    "matched": 23,
+    "mismatched": 1,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "ok": false
+   },
+   "juicebox_whole": {
+    "fields": 24,
+    "matched": 23,
+    "mismatched": 1,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "ok": false
+   }
+  },
+  "mismatches": [
+   {
+    "source": "outer bracket",
+    "field": "calories",
+    "expected": 119.2329984,
+    "live": 118.46322700000002,
+    "tolerance": 0.7677174554080061,
+    "drink": "pop2_whole"
+   },
+   {
+    "source": "outer bracket",
+    "field": "calories",
+    "expected": 58.977225600000004,
+    "live": 57.94604500000003,
+    "tolerance": 1.0235461501219971,
+    "drink": "pop2_half"
+   },
+   {
+    "source": "outer bracket",
+    "field": "calories",
+    "expected": 79.23288319999999,
+    "live": 78.45715400000006,
+    "tolerance": 0.7679649521000094,
+    "drink": "juicebox_whole"
+   }
+  ],
+  "routes": {
+   "pop2_whole": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+   "pop2_half": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+   "juicebox_whole": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)"
+  },
+  "dataset_sha256": "8e8c2cb053c80466fad418fc20a795ec31a7f1cb51c21d02e669567ded76b61d",
+  "dataset_commit": "705a12f",
+  "dataset_dirty": false,
+  "doctor_clean": true
+ },
+ "fixture": "default",
+ "build": "42.20.4",
+ "timeline": [
+  {
+   "t": 51.7,
+   "phase": "session_ready"
+  },
+  {
+   "t": 59.5,
+   "phase": "session_probes",
+   "got": [
+    "Cola",
+    "JuiceGrape"
+   ]
+  },
+  {
+   "t": 65.0,
+   "phase": "nutrition_primed"
+  },
+  {
+   "t": 65.0,
+   "phase": "drink_start",
+   "drink": "pop2_whole",
+   "item": "Base.Pop2",
+   "f": 1.0
+  },
+  {
+   "t": 73.6,
+   "phase": "drank",
+   "drink": "pop2_whole",
+   "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)"
+  },
+  {
+   "t": 79.4,
+   "phase": "drink_start",
+   "drink": "pop2_half",
+   "item": "Base.Pop2",
+   "f": 0.5
+  },
+  {
+   "t": 89.5,
+   "phase": "drank",
+   "drink": "pop2_half",
+   "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)"
+  },
+  {
+   "t": 95.0,
+   "phase": "drink_start",
+   "drink": "juicebox_whole",
+   "item": "Base.JuiceBox",
+   "f": 1.0
+  },
+  {
+   "t": 103.6,
+   "phase": "drank",
+   "drink": "juicebox_whole",
+   "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)"
+  },
+  {
+   "t": 111.4,
+   "phase": "compared",
+   "drink": "pop2_whole",
+   "mismatches": 1
+  },
+  {
+   "t": 111.4,
+   "phase": "compared",
+   "drink": "pop2_half",
+   "mismatches": 1
+  },
+  {
+   "t": 111.4,
+   "phase": "compared",
+   "drink": "juicebox_whole",
+   "mismatches": 1
+  },
+  {
+   "t": 113.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 121.4,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "wall_seconds": 120.9
+}
