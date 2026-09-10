@@ -44,3 +44,6 @@ luac.out
 testing/runs/
 testing/fixtures/*/cache/
 __pycache__/
+
+# subagent-driven-development scratch (ledgers, briefs, review packages)
+.superpowers/
