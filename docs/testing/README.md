@@ -18,6 +18,7 @@ from `testing/`). Requires the local game install (path in `pzt/paths.py`).
 | `attach --fixture default --server 127.0.0.1:27261 --user admin` | Restore that user's client cache, launch the client, wait until it is in-world (no creation screens), ping it | ~35 s |
 | `run --fixture default [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors | ~1 min + hold |
 | `spike S3 S4 S5 S6 S7 [--reloadalllua]` | the design spikes as scripted experiments; S3 boots its own sessions, the rest share one; findings → `runs/spike-*/findings.json` | 2–5 min |
+| `doctor` | cold-start checks before booting anything: stray PZ `java.exe` (reported, never killed), ports 27261/27262/27015 free, fixture present and build-matched, workshop index reachable, pytest available; exit 1 on a FAIL | seconds |
 
 Measured evidence that a doc cites as an **M** row is copied at slice close to
 `testing/artifacts/<run-id>/` (tracked, JSON only, `.gitattributes` keeps the
@@ -52,8 +53,15 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   reset) and answers in `pzt-ack.txt` (`ok:`/`err:` + a string or one-line
   JSON). Shared commands: `ping`, `version`, `state`, `result <name>`,
   `time.snapshot`, `trait.check`, `lua.reload <file>`; server: `time.multiplier`,
-  `players`; client: `quit`, `player.stats`, `moddata.set/transmit`,
-  `witness.moddata|nutrition|item`, `item.spawn`, `item.tamper`.
+  `players`, `nutrition.get <user>`, `nutrition.set <user> <field> <v>`,
+  `stats.set <user> <stat> <v> …`; client: `quit`, `player.stats`,
+  `moddata.set/transmit`, `witness.moddata|nutrition|item`, `item.spawn`,
+  `item.tamper`, and the slice-01 experiment commands `nutrition.get`,
+  `nutrition.set`, `stats.set`, `item.script <type>`, `item.state <type> <state>`,
+  `eat <type> [fraction]` (direct `Eat`, intake arithmetic), `eat.action`
+  (queues the real timed action — completes on the server), `sandbox.set`.
+  The server owns `Nutrition` and hunger/thirst in MP: client-side writes are
+  overwritten within ~1 s (see `docs/vanilla/eating-pipeline.md`).
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
