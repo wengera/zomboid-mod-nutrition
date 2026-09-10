@@ -32,7 +32,7 @@
 - Game files: `D:\SteamLibrary\steamapps\common\ProjectZomboid\media\{lua,scripts}`. B42 item scripts are generated files: `scripts/generated/items/food.txt` (722 items, `ItemType = base:food`), `drainable.txt`.
 - Live server: `python testing/pzt run --hold N` boots the golden fixture (server ≈ 14 s, admin client in-world ≈ 33 s, zero-zombie world). Harness command bus: `Server.send(cmd, args)` / `Client.send(cmd, args)` in `testing/pzt/bus.py`; commands live in `testing/PZTestKit/PZTestKit/42/media/lua/{shared,client,server}/`. Harness Lua edits need **no** re-provision.
 - For ad-hoc experiments write a short Python script that imports `testing/pzt` (`sys.path.insert(0, "testing"); from pzt.session import make_server, make_client, teardown; from pzt import fixture as fx`) — `testing/pzt/spikes.py` shows the pattern (boot → attach → `send` → `bus.wait_result`).
-- Prior findings to reuse: `docs/vanilla/nutrition-core.md` (weight model), `docs/testing/spikes.md` (S5 time acceleration, S6 sync facts: nutrition is client-computed and mirrored by the server; no client→server item-field API).
+- Prior findings to reuse: `docs/vanilla/nutrition-core.md` (weight model), `docs/testing/spikes.md` (S5 time acceleration, S6 sync facts — note: S6's original wording had the nutrition direction backwards; this slice established that the **server** computes `Nutrition` and pushes it at 1 Hz, see `docs/vanilla/eating-pipeline.md` § MP behaviour; no client→server item-field API).
 - Wiki: `curl -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/128.0" "https://pzwiki.net/w/index.php?title=<Page>&action=raw"` (plain fetchers get 403).
 
 ## Questions (done when each has a cited answer)
