@@ -7,8 +7,8 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | # | Slice | Status | Date | Commit | Outcome |
 |---|---|---|---|---|---|
 | 01 | P1a · Intake pipeline | done | 2026-09-10 | cd0f936..419f16a | `docs/vanilla/eating-pipeline.md` (67 modifiers, 24 measured; server owns Nutrition in MP); tools wiki_mirror/doc_lint, `pzt doctor`, harness experiment commands, 7 mirrors, tracked artifacts; acceptance in the plan file |
-| 02 | P1c · Food item model & lifecycle | ready (needs 01) | | | |
-| 03 | P1b · Body side | ready (needs 01) | | | |
+| 02 | P1c · Food item model & lifecycle | in progress | 2026-09-10 | (see resume note) | code map + mirrors + lifecycle experiments done; doc in progress |
+| 03 | P1b · Body side | in progress | 2026-09-10 | (see resume note) | code map research running |
 | 04 | T2 · Accelerated nutrition scenario | ready (needs 01, 02) | | | |
 | 05 | P4a · Food scanner + dataset | ready (needs 02; plan in wave 2) | | | |
 | 06 | P4b · Recipes & cooking dataset | ready (needs 05; plan in wave 2) | | | |
@@ -23,7 +23,8 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 
 ## Resume notes (in-progress slices)
 
-_None._
+- **02** (SDD ledger `.superpowers/sdd/02-food-item-model/progress.md`, plan `docs/superpowers/plans/02-food-item-model.md`): done — research notes `docs/superpowers/plans/02-notes.md` (`7611d76`), mirrors (`930e9aa`), lifecycle harness commands + experiment `testing/experiments/s02_lifecycle.py` with artifact `testing/artifacts/exp02-20260910-030433/lifecycle.json` (`5714117`, claim fixes `d9ff9a7`). Running — Task 6 doc `docs/vanilla/food-item-model.md`. Next — doc review, final whole-branch review, close.
+- **03** (SDD ledger `.superpowers/sdd/03-body-side/progress.md`, plan `docs/superpowers/plans/03-body-side.md`): running — Tasks 1+2 code map → `docs/superpowers/plans/03-notes.md`. Next — Task 3 live sampling on the server (one session), Task 4 doc.
 
 ## Ripples (findings that change a later slice's plan)
 
