@@ -202,7 +202,7 @@ offline, reproducing every stored key.
 | `evaluation.measured_delta_kg`, `measured_kg_per_game_day`, `weight_end_kg`, `calories_end`, `carbs_end`, `lipids_end`, `hunger_end`, `health_end` | `1.073`, `0.358`, `81.073`, `3700`, `−437.9`, `−141.4`, `0.7`, `0` | Corpse readings taken 37 game-hours after the stores stopped moving. The live model check on this run is the **alive window**: measured **+1.045 kg** vs predicted **+1.057** over 34 game-hours. |
 
 **`exp05-20260910-084109/food-scan.json`** — produced by `testing/experiments/s05_food_scan.py`
-at commit `5290bfb`. Slice 05's **fix round 1** changed the script in five ways this file
+at commit `5290bfb`. Slice 05's **fix round 1** changed the script in five ways (and the final fix wave `1c4dfa5` in a sixth: `git_dirty()` now returns `(dirty, note)` with `None` for unknown, the note landing in `meta.dataset_dirty_note`) this file
 therefore predates. **No measured number in it moves**: the comparator at HEAD was re-run
 offline against this file's own verbatim `item.script` / `item.get` / `fluid.script` replies
 and the dataset behind them, reproducing every stored count — 182 fields compared, 170

@@ -427,4 +427,6 @@ per-litre arithmetic from C to **C + M**: `+120.000031` kcal and `+31.200001` g 
 
 **What is not in this task's commit.** Step 4's `git push` and Step 3's `docs/progress.md`
 half — the board row, its commit range and the slice-06 ripples — are the controller's
-close-out. Step 3's `docs/decisions.md` half landed here: fourteen slice-05 rows.
+close-out. Step 3's `docs/decisions.md` half landed here: fourteen slice-05 rows (seventeen after the final fix wave).
+
+- Post-fix-wave live check (`1c4dfa5`, the harness carrying `drink` and the reworked `fluid.script`): `python testing/pzt run --hold 5` → PASS (`run-20260910-104514`, server up 14.6 s, session ready 53.0 s, 0 server errors); probe `accept05-20260910-104622` (68.7 s): `items.count` total 5092 / food 722 / fluidDefs 61; `fluid.script Water` answered via the `getFluidType` route and `fluid.script Cola` via `getFluidTypeString`, both with `hasPropertiesSet true` and no `missingGetters`; `drink` answered its usage string; 0 server errors, 0 client Lua errors. Acceptance check 6 is therefore met on the tree as shipped.
