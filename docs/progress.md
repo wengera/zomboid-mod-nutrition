@@ -12,7 +12,7 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | 04 | T2 · Accelerated nutrition scenario | done | 2026-09-10 | 3b1ac80..afac230 (interleaved with slice 03) | harness test layer (`TK.test`, `t:at/every/eventually`, `test.run` on the server bus) + `pzt scenario --side server`; three 3-day runs at 30x (`scenario-20260910-05{2624,4012,5029}`): weight model verified to sub-gram accuracy (+2.526 vs +2.551 kg gain, -1.426 vs -1.412 kg fast); run 1 died of thirst at game-hour 35 (`setCalories` is not food; THIRST level-4 health drain found and confirmed on the jar); `nutrition-core.md` § Verified on server; `pzt doctor` port states; scenario verdicts now fail on server/client errors |
 | 05 | P4a · Food scanner + dataset | done | 2026-09-10 | 31478dd..1c4dfa5 | `tools/food_scan.py` (shared nesting-aware script parser + dataset builder), `data/food-items.{json,csv}` (722 foods, 150 drainables, 133 fluid containers, 61 fluids; 61 curated CSV columns; per-litre fluid nutrition with per-container columns), `docs/vanilla/food-dataset-notes.md`; harness `items.count` / `fluid.script` / `drink`; live count cross-check + ten-item spot check (`exp05-20260910-084109`, 10/10) and a drink probe (`exp05b-20260910-093307`: 0.3 L Cola = +120.0 kcal, per-litre confirmed); findings: vanilla `HotDrinkRed` → undefined `Base.MugRed`, enum-backed fluids answer an empty `getFluidTypeString()` |
 | 06 | P4b · Recipes & cooking dataset | in progress | 2026-09-10 | (see resume note) | craftRecipe scanner being built (Tasks 1+2) |
-| 07 | T1 · Profile builder | ready (plan `superpowers/plans/07-profile-builder.md`) | | | |
+| 07 | T1 · Profile builder | in progress | 2026-09-10 | (see resume note) | mod layout lint being built (Task 1); profiles next |
 | 08 | P3a · Nutrition-mod catalog | ready (needs 07; plan in wave 3) | | | |
 | 09 | P3b · Teardown 1 | ready (needs 07, 08; plan in wave 3) | | | |
 | 10 | P3c · Teardown 2 | ready (needs 07, 08; plan in wave 3) | | | |
@@ -22,6 +22,8 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | 14 | P5 · Feasibility notes | ready (needs all; plan in wave 4) | | | |
 
 ## Resume notes (in-progress slices)
+
+- **07** (SDD ledger `.superpowers/sdd/07-profile-builder/progress.md`, plan `docs/superpowers/plans/07-profile-builder.md`): running — Task 1 (`tools/mod_lint.py` L0 layout lint + tests). Next — Task 2 `testing/pzt/profile.py` + placement plumbing + sandbox merge, Task 3 `pzt run/scenario --profile`, Task 4 the two profiles + live acceptance (needs the live slot), Task 5 docs.
 
 - **06** (SDD ledger `.superpowers/sdd/06-recipes/progress.md`, plan `docs/superpowers/plans/06-recipes.md`): running — Tasks 1+2 (`tools/recipe_scan.py` on slice 05's `parse_script`; `data/recipes.{json,csv}`). Next — Task 3 evolved recipes + `ReplaceOn*` links, Task 4 harness `recipes.count/.evolved/.craft` (needs the live slot), Task 5 doc.
 
