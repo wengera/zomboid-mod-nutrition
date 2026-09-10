@@ -6,6 +6,7 @@ import time
 
 from . import doctor
 from . import fixture as fx
+from . import scenario
 from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
 from .server import Server
@@ -214,6 +215,18 @@ def main(argv=None):
     common_server(p)
     common_client(p)
     p.set_defaults(fn=cmd_run)
+
+    p = sub.add_parser("scenario", help="run one harness test on the fixture at accelerated time")
+    p.add_argument("name", help="registered test name (see `test.list` on the chosen side)")
+    p.add_argument("--fixture", default="default")
+    p.add_argument("--side", choices=["server", "client"], default="server",
+                   help="whose bus runs the test (default server: nutrition is server-authoritative)")
+    p.add_argument("--user", default=ADMIN_USER, help="the test's subject; must be online")
+    p.add_argument("--speed", type=int, default=30, help="settimespeed multiplier for the run")
+    p.add_argument("--timeout", type=int, default=900, help="seconds to wait for the result doc")
+    common_server(p)
+    common_client(p)
+    p.set_defaults(fn=scenario.run)
 
     p = sub.add_parser("spike", help="run design spikes (S3..S7) and write findings.json")
     p.add_argument("ids", nargs="+", help="e.g. S3 S4 S5 S6 S7")
