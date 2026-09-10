@@ -430,6 +430,123 @@ Events.OnClientCommand.Add(function(module, command, player, args)
     end
 end)
 
+-- ---- script-item census (slice 05) -------------------------------------------
+-- ScriptManager.getAllItems() is the game's own loaded-item list: the live cross-check for
+-- tools/food_scan.py, which reads the same definitions off media/scripts/ instead. The game's
+-- own Lua reads an entry's type as `itemScript:getItemType():toString()` -- a ResourceLocation
+-- string, "base:food" (ISFluidItemsViewPanel.lua:141) -- so match on the "food" SUBSTRING
+-- rather than the whole string: a registry rename cannot then silently zero the bucket, and
+-- the raw string is counted in `byType` either way, so a rename is visible rather than
+-- guessed at. `Item` (the script object) exposes no component accessor, so fluid CONTAINERS
+-- have no live route here -- only fluid DEFINITIONS do, through the list below.
+local FLUID_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrates", "Lipids",
+                        "Proteins", "FatigueChange", "StressChange", "UnhappyChange", "Alcohol",
+                        "FluReduction", "PainReduction", "EnduranceChange", "FoodSicknessChange" }
+
+-- `getScriptManager` is checked for nil BEFORE it is called. A nil global raises Kahlua's
+-- "tried to call nil", which pcall does not catch here (see TK.call in the core) -- it would
+-- take the whole poll handler with it instead of answering the bus with an error.
+local function scriptManager()
+    if getScriptManager == nil then return nil end
+    return getScriptManager()
+end
+
+-- (list, size) for a ScriptManager accessor; (nil, 0) when this build does not expose it.
+-- `size` is type-checked because `n - 1` on a nil would be an arithmetic error in the loop.
+local function listOf(sm, method)
+    local ok, all = TK.call(sm, method)
+    if not ok or all == nil then return nil, 0 end
+    local _, n = TK.call(all, "size")
+    return all, (type(n) == "number") and n or 0
+end
+
+TK.register("items.count", function()
+    local sm = scriptManager()
+    local all, n = listOf(sm, "getAllItems")
+    if all == nil then return "no ScriptManager:getAllItems()" end
+    local out = { total = 0, food = 0, byType = {}, foodByModule = {} }
+    for i = 0, n - 1 do
+        local _, sc = TK.call(all, "get", i)
+        if sc ~= nil then
+            local _, itemType = TK.call(sc, "getItemType")
+            -- tostring() is the fallback route: TK.json already relies on Kahlua handing back
+            -- a Java object's own toString(), so a build that does not expose the method by
+            -- name still yields the ResourceLocation rather than a "?" bucket.
+            local okS, s = TK.call(itemType, "toString")
+            local t = "?"
+            if okS and s ~= nil then t = tostring(s)
+            elseif itemType ~= nil then t = tostring(itemType) end
+            out.byType[t] = (out.byType[t] or 0) + 1
+            out.total = out.total + 1
+            if string.find(string.lower(t), "food") then
+                out.food = out.food + 1
+                local _, m = TK.call(sc, "getModuleName")
+                local mod = tostring(m or "?")
+                out.foodByModule[mod] = (out.foodByModule[mod] or 0) + 1
+            end
+        end
+    end
+    local fl, fn = listOf(sm, "getAllFluidDefinitionScripts")
+    out.fluidDefs = fn
+    -- 0 fluids and "no such accessor" both read as fluidDefs=0, and they are different
+    -- findings (the second one is what makes the 61-fluid count scanner-only): say which.
+    if fl == nil then out.fluidDefsError = "no ScriptManager:getAllFluidDefinitionScripts()" end
+    return out
+end)
+
+-- The id a fluid definition answers to, and the accessor that produced it.
+-- `getFluidTypeString()` is the game's own route (ISFluidOverviewPanel.lua:113), but on
+-- 42.20.4 it answers for only 34 of the 61 definitions -- MEASURED, t4probe-20260910-080930:
+-- it returns nothing for every fluid that also has a built-in FluidType enum constant (Water,
+-- TaintedWater, Petrol, Beer, Wine, Whiskey, Coffee, Tea, Honey, SodaPop, Blood, the milks...)
+-- and carries the string only for the script-only ones (Cola, the juices, the sodas, the
+-- spirits). Reading it alone therefore made `fluid.script Water` miss a fluid that
+-- media/scripts/generated/fluids.txt plainly defines. So fall back to the enum and stringify
+-- it, and report which route answered so the reply is never ambiguous about where its id
+-- came from.
+local function fluidId(f)
+    local ok, s = TK.call(f, "getFluidTypeString")
+    if ok and s ~= nil and tostring(s) ~= "" then return tostring(s), "getFluidTypeString" end
+    local okT, ft = TK.call(f, "getFluidType")
+    if okT and ft ~= nil and tostring(ft) ~= "" then return tostring(ft), "getFluidType" end
+    return "", "none"
+end
+
+-- One fluid definition's LIVE property getters, for the same cross-check on the drink side.
+-- A getter this build does not expose is reported in `missingGetters` rather than left
+-- silently absent from the reply -- an absent key would otherwise be indistinguishable from a
+-- fluid that genuinely carries no such property.
+TK.register("fluid.script", function(argv)
+    local want = tostring(argv[1] or "")
+    if want == "" then return "usage: fluid.script <fluidId>" end
+    local all, n = listOf(scriptManager(), "getAllFluidDefinitionScripts")
+    if all == nil then return "no ScriptManager:getAllFluidDefinitionScripts()" end
+    local seen = {}
+    for i = 0, n - 1 do
+        local _, f = TK.call(all, "get", i)
+        local id, route = fluidId(f)
+        -- Every id the list yielded, so a miss reports which ids DO exist instead of only
+        -- that this one does not; a definition neither route could name keeps its position
+        -- as "?", which separates "the definition is absent" from "it is there but unnamed".
+        seen[#seen + 1] = (id ~= "") and id or "?"
+        if id ~= "" and (id == want or id == "Base." .. want or "Base." .. id == want) then
+            local out = { fluidType = id, fluidTypeRoute = route }
+            local _, dn = TK.call(f, "getDisplayName");    out.displayName = dn
+            local _, hp = TK.call(f, "hasPropertiesSet");  out.hasPropertiesSet = hp
+            local missing = {}
+            for gi = 1, #FLUID_GETTERS do
+                local g = FLUID_GETTERS[gi]
+                local okg, v = TK.call(f, "get" .. g)
+                if okg then out[g] = v else missing[#missing + 1] = "get" .. g end
+            end
+            if #missing > 0 then out.missingGetters = missing end
+            return out
+        end
+    end
+    return "no fluid '" .. want .. "' among " .. string.format("%.0f", n) .. " definitions: "
+           .. table.concat(seen, ",")
+end)
+
 local function tick()
     TK.ticks = TK.ticks + 1
     if TK.ticks % 20 == 0 then TK.pollCommands() end

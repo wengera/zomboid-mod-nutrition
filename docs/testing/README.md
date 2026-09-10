@@ -108,6 +108,37 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   plan's `stats.sample` / `stats.sampler` were **dropped**: sampling is the
   atomic `stats.get` plus Python-side polling, so the cadence lives in the
   experiment script rather than in Lua.
+  Slice-05 script-census commands — server only, both reading `ScriptManager`
+  (script data is loaded identically on both sides and never synced, so the
+  server's copy is the whole answer): `items.count` (no args) →
+  `{total, food, byType, foodByModule, fluidDefs}`, the game's own loaded-item
+  list bucketed by `getItemType():toString()` (the `base:food` /
+  `base:drainable` ResourceLocation strings, counted raw in `byType` so a
+  registry rename is visible rather than silently zeroed) — this is the live
+  cross-check for `tools/food_scan.py`, which reads the same definitions off
+  `media/scripts/`; and `fluid.script <fluidId>` →
+  `{fluidType, fluidTypeRoute, displayName, hasPropertiesSet}` plus the 14 live
+  property getters (`HungerChange`, `ThirstChange`, `Calories`,
+  `Carbohydrates`, `Lipids`, `Proteins`, `FatigueChange`, `StressChange`,
+  `UnhappyChange`, `Alcohol`, `FluReduction`, `PainReduction`,
+  `EnduranceChange`, `FoodSicknessChange`) off one
+  `FluidDefinitionScript`; a getter this build does not expose is listed in
+  `missingGetters` rather than left silently absent, and a miss reports every
+  id the list did yield. `fluidTypeRoute` is there because
+  `getFluidTypeString()` answers for only 34 of the 61 definitions — it is
+  empty for every fluid that also has a built-in `FluidType` enum constant
+  (`Water`, `Beer`, `Coffee`, `Blood`, `Petrol`, …), so the command falls back
+  to stringifying `getFluidType()` and says which route named the fluid.
+  Neither command returns per-item macros, and no third one can: the food
+  script `Item` exposes **no** macro getter to Kahlua — `item.script` already
+  measured that `getCalories` / `isCalories` / the public field `calories` all
+  fail on the script object (same for carbohydrates/lipids/proteins) even
+  though the jar keeps them as public fields that `Item.InstanceItem` reads
+  directly. That is why `item.script` cannot answer the four macros and the
+  live macro read-back goes through the server's `item.get` on an RCON-spawned
+  **instance** instead. Fluid **containers** have no live route at all —
+  `Item` exposes no component accessor — so only fluid **definitions** can be
+  read back this way.
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
