@@ -103,18 +103,34 @@ ATOMIC_ABS, ATOMIC_REL = 1e-4, 1e-6
 # MEASURED, not assumed, and the citation travels into the artifact:
 #   calories  0.016 x weight/80        -- docs/vanilla/body-stats.md § Passive burn, ratio
 #                                         1.0049 r^2 1.000000 (exp03-20260910-045523)
-#   carbs / lipids / proteins  0.0035  -- docs/vanilla/nutrition-core.md, -302.4/game-day
+#   carbs     0.0035                   -- docs/vanilla/nutrition-core.md, -302.4/game-day
 #                                         against 0.0035 x 86400, exact (scenario runs 2, 3)
+#   lipids    0.00113                  -- the macro drains are THREE DIFFERENT rates, not one:
+#   proteins  0.00086                     `Nutrition.update @48/@66/@84 L76-L78`
+#                                         (eating-pipeline.md:225), the constants slice 03 fitted
+#                                         at s03_body.py:103 -- exp03-20260910-045523 ratios
+#                                         0.9991 / 0.9972 / 0.9993 (body-stats.md § Passive burn).
+#                                         The run committed as exp05b-20260910-093307 labelled
+#                                         both of these 0.0035 and banded them with it; the label
+#                                         is a *do not cite* row in testing/artifacts/README.md
+#                                         and the band it widened was ~3x too wide, which cannot
+#                                         turn a mismatch into a match. Its own three windows
+#                                         reproduce the rates above to four figures.
 #   hunger    9.6e-6 x (1 - hunger)    -- body-stats.md § constants, ratio 1.0000 -- and it is
 #                                         ZERO while FOOD_EATEN >= 1, which every drink here
 #                                         switches on, so the band's low end is the real one
 #   thirst    8.0e-6                   -- same table, ratio 1.0000, linear, no damping
-# They are used only to WIDEN the outer bracket's tolerance, never to correct a number.
+# They are used only to WIDEN the outer bracket's tolerance, never to correct a number. The
+# numbers `drift()` bands with and the labels the artifact carries come from one place, so a
+# future fix cannot correct one and leave the other.
+MACRO_DRIFT = {"carbs": 0.0035, "lipids": 0.00113, "proteins": 0.00086}
 DRIFT_RATES = {
-    "calories": "0.016 * weight/80 per game-second (body-stats.md, M)",
-    "carbs": "0.0035 per game-second (nutrition-core.md, M)",
-    "lipids": "0.0035 per game-second (nutrition-core.md, M)",
-    "proteins": "0.0035 per game-second (nutrition-core.md, M)",
+    "calories": "0.016 * weight/80 per game-second (body-stats.md § Passive burn, M exp03)",
+    "carbs": "0.0035 per game-second (nutrition-core.md; s03_body.py:103, M exp03 ratio 0.9991)",
+    "lipids": "0.00113 per game-second (eating-pipeline.md:225 / Nutrition.update @66 L77; "
+              "s03_body.py:103, M exp03 ratio 0.9972)",
+    "proteins": "0.00086 per game-second (eating-pipeline.md:225 / Nutrition.update @84 L78; "
+                "s03_body.py:103, M exp03 ratio 0.9993)",
     "hunger": "9.6e-6 * (1 - hunger) per game-second, 0 while FOOD_EATEN >= 1 (body-stats.md, M)",
     "thirst": "8.0e-6 per game-second (body-stats.md, M)",
 }
@@ -153,10 +169,9 @@ PROPERTY_FIELDS = (("calories", "calories_per_container", 1.0),
                    ("proteins", "proteins_per_container", 1.0),
                    ("hungerChange", "hunger_change_per_container", 0.01),
                    ("thirstChange", "thirst_change_per_container", 0.01))
-# The `stats.get` key for each `drink`-reply delta key: the outer bracket reads the same six
-# stores through TK.bodySnapshot, which spells them the Nutrition way.
-OUTER_KEYS = {"calories": "calories", "carbs": "carbs", "lipids": "lipids",
-              "proteins": "proteins", "hunger": "hunger", "thirst": "thirst"}
+# The outer bracket reads the same six stores through `stats.get` (TK.bodySnapshot), which spells
+# them exactly the way the `drink` reply's `delta` does -- so its rows are looked up under the
+# same key, with no mapping in between.
 
 
 def load_dataset(path):
@@ -243,11 +258,11 @@ def drift(dt_game_s, weight, hunger):
         return None
     w = weight if isinstance(weight, (int, float)) else 80.0
     h = hunger if isinstance(hunger, (int, float)) else 0.0
-    return {"calories": -0.016 * (w / 80.0) * dt_game_s,
-            "carbs": -0.0035 * dt_game_s, "lipids": -0.0035 * dt_game_s,
-            "proteins": -0.0035 * dt_game_s,
-            "hunger": 9.6e-6 * max(0.0, 1.0 - h) * dt_game_s,
-            "thirst": 8.0e-6 * dt_game_s}
+    out = {"calories": -0.016 * (w / 80.0) * dt_game_s,
+           "hunger": 9.6e-6 * max(0.0, 1.0 - h) * dt_game_s,
+           "thirst": 8.0e-6 * dt_game_s}
+    out.update({k: -rate * dt_game_s for k, rate in MACRO_DRIFT.items()})
+    return out
 
 
 def compare_drink(d, r, record):
@@ -297,6 +312,12 @@ def compare_drink(d, r, record):
                 basis="FluidContainer.getProperties() = per-litre x fluid_fill_litres "
                       "(recalculateCaches @234-@250 L632), read live before the drink"))
     fill = record.get("fluid_fill_litres")
+    # `amount_before` is the guard on the assumption every other row here rests on: that the
+    # spawned container is FULL. `fluid_fill_litres` is the full-container figure (capacity x
+    # share), and 14 vanilla containers write `InitialPercentMin` / `InitialPercentMax` and spawn
+    # part-filled at a random draw instead -- neither of these two does, and this row is what says
+    # so per run rather than per reading of the scripts. A part-filled spawn fails it, and with it
+    # every `x fill` expectation below, instead of quietly re-scaling them.
     block["container_fill"] = {
         "capacity": row(record.get("fluid_capacity"),
                         num(dig(rep, "before", "container", "capacity")), 1e-4),
@@ -386,7 +407,7 @@ def compare_drink(d, r, record):
     for live_key, column, factor in NUTRITION_FIELDS:
         base = record.get(column)
         exp = None if base is None else base * factor * frac
-        b, a = num(dig(ob, OUTER_KEYS[live_key])), num(dig(oa, OUTER_KEYS[live_key]))
+        b, a = num(dig(ob, live_key)), num(dig(oa, live_key))
         live = None if (b is None or a is None) else a - b
         # The band is exactly [expected, expected + max drift], widened by the float band:
         # centring on the midpoint with a half-width of |drift|/2 + float band IS that

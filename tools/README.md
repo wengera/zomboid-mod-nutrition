@@ -51,7 +51,13 @@ import patterns from there.
   rule and `meta` are documented in `data/README.md`.
   It also holds the **shared script-DSL parser** — nesting-aware, so a
   component's keys never flatten onto the item that owns it:
-  `parse_script(text, path)`, `iter_blocks`, `coerce` / `coerce_props`,
+  `parse_script(text, path)`, `iter_blocks`, `walk` (the same walk, yielding
+  `(parent, block)` where real parenthood matters), `named(block, name)` (the
+  first child block with that name — `Fluids`, `Properties`, `Poison`),
+  `values(block, key)` (every raw value the block writes to a key, in file
+  order, matched the loader's case-insensitive way — a `Block` carries
+  `entries`, every `Key = Value` line, beside `props`, which is
+  last-write-wins, so a repeated key survives), `coerce` / `coerce_props`,
   `canonical_key`, `is_known_key`, `KEY_TYPES` (the 114 keys of
   `docs/vanilla/food-item-model.md`), `load_translations`. `recipe_scan.py`
   will import it; read the module docstring before changing it.

@@ -854,6 +854,29 @@ def test_capacity_and_pick_random_are_matched_case_insensitively():
     assert items["Base.HairDyeCommon"]["fluid_pick_random"] is True
 
 
+def test_pick_random_takes_its_last_line_and_initial_percent_is_censused():
+    """The loader's last-write-wins on a repeated `PickRandomFluid`, and the part-fill census.
+
+    Synthetic, like its case-insensitivity twin above: 42.20.4 writes `PickRandomFluid` once per
+    container and always `true`, and none of the 14 `InitialPercentMin` / `InitialPercentMax`
+    containers repeats a key -- so this is the guard for a mod that does, and the only exercise
+    of the `false` value vanilla never writes.
+    """
+    text = POP2.replace("Capacity = 0.3,",
+                        "Capacity = 0.3,\n            PickRandomFluid = true,\n"
+                        "            PickRandomFluid = false,\n"
+                        "            InitialPercentMin = 0.05,\n"
+                        "            InitialPercentMax = 0.85,")
+    items, fluids, misses = _dataset({"items/normal.txt": text, "fluids_Beverages.txt": COLA})
+    pop2 = items["Base.Pop2"]
+    assert pop2["fluid_pick_random"] is False          # the LAST line, the way `Item.DoParam` reads
+    # the fill columns stay the FULL container's: `InitialPercent*` is censused, never modelled
+    assert pop2["fluid_fill_litres"] == 0.3 and pop2["calories_per_container"] == 120.0
+    assert misses["initial_percent_containers"] == ["Base.Pop2"]
+    # injected on presence, not on the value: the key reached the dataset though the flag is False
+    assert "PickRandomFluid" in food_scan.unknown_keys([pop2], list(fluids.values()))
+
+
 def test_display_name_join_and_its_misses():
     items, fluids, misses = _dataset(SAMPLE, item_names={"Base.Apple": "Apple"},
                                      fluid_names={"Fluid_Name_Cola": "Cola"})
@@ -1092,7 +1115,8 @@ def test_real_dataset_counts():
     assert meta["counts"] == {"food": 722, "drainable": 150, "fluid_container": 133,
                               "fluids": 61, "multi_fluid_containers": 5,
                               "fluid_containers_filled": 72, "fluid_containers_pick_random": 9,
-                              "fluid_containers_empty": 61, "unresolved_links": 37}
+                              "fluid_containers_empty": 61,
+                              "fluid_containers_initial_percent": 14, "unresolved_links": 37}
     assert (meta["counts"]["fluid_containers_filled"]
             + meta["counts"]["fluid_containers_empty"]) == meta["counts"]["fluid_container"]
     assert len(items) == 1005 and len(fluids) == 61

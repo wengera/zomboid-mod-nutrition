@@ -1,4 +1,4 @@
-"""Helpers shared by the slice-01 experiment scripts.
+"""Helpers shared by every experiment script under this directory (slices 01-05 and on).
 
 An experiment is not a test: a wedged command or an unwritable path must degrade the
 evidence, never abort the run or -- worse -- leave a PZ process alive. All three helpers

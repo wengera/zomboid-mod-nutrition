@@ -33,6 +33,7 @@
    "fluid_containers_filled": 72,
    "fluid_containers_pick_random": 9,
    "fluid_containers_empty": 61,
+   "fluid_containers_initial_percent": 14,
    "unresolved_links": 37
   },
   "unknown_keys": [

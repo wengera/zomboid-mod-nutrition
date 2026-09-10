@@ -4,6 +4,9 @@
 Evidence grades: **C** read from bytecode/Lua/shipped scripts (`file:line`, or
 `Class.method @addr Lline` for the jar), **M** measured on the live dedicated server (run id +
 artifact link), **W** wiki mirror (secondary — none is used here).
+`C (arith.)` = arithmetic on C constants, shown inline — the dataset's eleven derived columns
+(`nutrition_basis`, `fluid_share`, `fluid_fill_litres`, `fluid_pick_random`, `drinkable` and the
+six `*_per_container`) are that grade, not the plain C of a value copied off a script line.
 This document is about the **dataset**: what `data/food-items.json` / `.csv` contain, how the
 scanner decides, and how far the numbers were checked against the running game. The **column
 authority is [`data/README.md`](../../data/README.md)** § food-items — every column, type and
@@ -33,7 +36,8 @@ re-derived**. Intake arithmetic is [eating-pipeline.md](eating-pipeline.md); the
    — `Base.RatKing` (`DaysFresh = DaysTotallyRotten = 0`) reads back `offAge 0 / offAgeMax 0`
    while `Base.CannedCorn` (both keys absent) reads back the `1000000000` sentinel.
 5. **Everything in the dataset is grade C** — every value is a line in a shipped file and every
-   record names its `source_file:source_line`. The measured layer is two live runs: a census plus
+   record names its `source_file:source_line`; the eleven derived columns are `C (arith.)`, the
+   arithmetic shown beside each. The measured layer is two live runs: a census plus
    ten field-for-field spot checks (182 fields, 170 matched, 12 not applicable, **0 mismatched**)
    and a three-drink probe that closed slice 01's open question 11.
 
@@ -87,14 +91,29 @@ and are both `""` in the CSV. Ev C.
 |---|---|---:|---|
 | `nutrition_source = food_keys`, `nutrition_basis = per_item` | the row fills the nutrition columns from its own script keys | 653 | C |
 | `nutrition_source = fluid:<id>`, `nutrition_basis = per_litre` | the row is a container and the columns are the **first** listed fluid's `Properties`, which are per litre | 72 | C; **M** the join checked live against `fluid.script Cola` / `fluid.script JuiceGrape` on all six nutrition fields — `exp05-20260910-084109` ([`food-scan.json`](../../testing/artifacts/exp05-20260910-084109/food-scan.json)) |
-| both empty | the row carries no nutrition value from either side — 78 food, 141 drainable, 61 empty containers | 280 | C |
+| both empty | the row **names no nutrition source** — no nutrition key on either side: 78 food, 141 drainable, 61 empty containers | 280 | C |
 
+Carrying no nutrition *value* is a wider set than naming no *source*: **290** rows carry none,
+the extra 10 being `per_litre` rows joined to a fluid whose `Properties` block is absent or holds
+only `alcohol`. Those 10 keep `fluid:<id>` and `per_litre`, because
 `nutrition_source` is `fluid:<id>` whenever a first fluid exists, **even when that fluid has no
 `Properties` block** (10 of the 61): the nutrition genuinely comes from the fluid, and the fluid
 genuinely has none. In 42.20.4 no fluid-container item writes a nutrition key of its own, so the
 join never overwrites anything. Ev C.
 
+**The container split.** The 133 containers are 63 single-fluid + 9 pick-random + 61 empty, and
+`fluid_fill_litres` equals `fluid_capacity` on all 72 filled rows in 42.20.4 — every share in the
+files is `1.0` bar `Base.BucketWaterDebug`'s `Water:10.0`, which the capacity clamp takes back to
+its 10 L capacity. That
+figure is the **full** container's: 14 of the 133 also write `InitialPercentMin` /
+`InitialPercentMax` and spawn part-filled (§ Discrepancies row 7). Ev C —
+`meta.counts.fluid_containers_filled` / `..._pick_random` / `..._empty` /
+`..._initial_percent`.
+
 ### Per litre, not per item
+
+*See also [`data/README.md`](../../data/README.md) § Per litre, not per item, which carries the
+same chain against the column numbers, the worked `Base.Pop2` row and the part-fill caveat.*
 
 A `fluid`'s `Properties` are the effect of **one litre**. The chain, and where each step lives:
 
@@ -103,7 +122,7 @@ A `fluid`'s `Properties` are the effect of **one litre**. The chain, and where e
 | The loader stores the script value as written | `FluidDefinitionScript.LoadProperties @0–@453 L367–L410` — fifteen `equalsIgnoreCase` keys, each `Float.parseFloat`, no arithmetic | C |
 | Four getters divide by 100, the nutrition ones do not | `FluidDefinitionScript.getHungerChange @0–@10 L186` and its `getThirstChange` / `getStressChange` / `getFatigueChange` siblings divide; `.getCalories @0–@7 L202` and the three macro getters do not | C |
 | The container multiplies by its litres | `FluidContainer.recalculateCaches @222–@250 L631–L632` calls `addFromMultiplied(fluid.getProperties(), litres)`, so `getProperties()` is already litres-weighted | C; **M** a full `Base.Pop2` reported `calories 120.000008`, not 400 — `comparison.pop2_whole.container` in [`drink-probe.json`](../../testing/artifacts/exp05b-20260910-093307/drink-probe.json) |
-| The litres are the fill | `FluidContainerScript.getInitialAmount @0–@11 L387-L388` defaults to `Capacity` (no vanilla script writes `InitialAmount`), `FluidContainer.addInitialFluid @11–@17 L132` multiplies by the `:share` suffix parsed at `FluidContainerScript.readFluid @16–@29 L348-L349`, and `FluidContainer.addFluid @30–@45 L1003-L1004` clamps to the capacity — which is the `fluid_fill_litres` column | C |
+| The litres are a **full** container's | `FluidContainerScript.getInitialAmount @0–@11 L387-L388` defaults to `Capacity` when the script writes no initial amount, `FluidContainer.addInitialFluid @11–@17 L132` multiplies by the `:share` suffix parsed at `FluidContainerScript.readFluid @16–@29 L348-L349`, and `FluidContainer.addFluid @30–@45 L1003-L1004` clamps to the capacity — which is the `fluid_fill_litres` column. 14 containers **do** write an initial amount and spawn part-filled: § Discrepancies row 7 | C |
 | Drinking spends that aggregate, times the fraction drunk | `IsoGameCharacter.DrinkFluid @23–@100 L5878–L5881` writes `setX(getX() + fc.getProperties().getX() * f)` | C; **M** below |
 
 **Measured, three drinks, two fluids, two capacities, two fractions** — server-side
@@ -131,14 +150,19 @@ are in § Open questions. Ev C.
 
 - **CSV — curated.** 1 006 lines (header + 1 005), **61 columns**: 59 declared plus the trailing
   `source_file`, `source_line`. One row per item; fluids are joined, never rows. Zero quoted
-  cells, LF line endings.
+  cells, LF line endings, and **no build stamp** — the header is line 1 so `csv.reader` and a
+  spreadsheet import both work, and the pair's build is in the JSON's `meta`
+  ([`docs/decisions.md`](../decisions.md), 2026-09-10, 05). The JSON is **2.35 MB** against the
+  CSV's 237 KB: 41 126 of its lines are a `"column": null` (≈1.1 MB — the shape invariant, every
+  column on every record) and `props_raw` is another ≈474 KB.
 - **JSON — complete.** `{"meta", "items" (1005), "fluids" (61)}`. Every item record carries every
   declared column (absent as `null`) **plus** `props_raw`, the block's own lines verbatim,
   untyped and unsplit, with a repeated key becoming a list. Nested blocks are **not** flattened
   into `props_raw` — a container's `Capacity` reaches the record only as `fluid_capacity`. A
   fluid record additionally keeps `properties_raw`, `categories`, `poison` and its own source
   anchor.
-- `meta` records the build, the jar hash, the 18 source paths, the nine counts, and every join
+- `meta` records the build, the jar hash, the 18 source paths, the ten counts (the tenth,
+  `fluid_containers_initial_percent`, is § Discrepancies row 7's 14), and every join
   miss: `unresolved_links` (37), `missing_display_names` (6), `unresolved_fluid_refs` (0),
   `unknown_keys` (60). Nothing is swallowed.
 
@@ -151,7 +175,7 @@ Column-by-column definitions, the `meta` key table and the pick-random caveat:
 
 | Path | Where | What it does | Ev |
 |---|---|---|---|
-| `tools/food_scan.py` — parser half | `parse_script`, `values`, `canonical_key`, `coerce`, `KEY_TYPES`, `walk` / `named` / `iter_blocks` | the shared nesting-aware block reader: a `Block` is `kind` / `name` / `module` / `file` / `line` / `props` (last write wins, as the loader does) / `entries` (every `Key = Value` in file order, so a repeated key survives) / `lines` / `blocks`. Slice 06 imports it rather than writing a second walker | C |
+| `tools/food_scan.py` — parser half | `parse_script`, `values`, `canonical_key`, `coerce`, `KEY_TYPES`, `walk` / `named` / `iter_blocks` | the shared nesting-aware block reader: a `Block` is `kind` / `name` / `module` / `file` / `line` / `props` (last write wins, as the loader does) / `entries` (every `Key = Value` in file order, so a repeated key survives) / `lines` / `blocks`. `entries` earns its keep on **3 512** repeated prop lines `props` cannot see — 145 `fluid =` lines over 68 `Fluids` blocks and 34 `SoundMap` lines in `drainable.txt` are the two shapes in the scanned files — and `values(block, key)` is the reader for them. A header is decided by **lookahead** (a non-`Key = Value` line whose next logical line is `{`, `kind` the first token and `name` the rest), which is what parses the **156** shipped blocks with a multi-word or numeric name (`evolvedrecipe Stir fry`, the vehicle templates' `1` / `2`); all 34 683 blocks then parse with 0 anonymous opens. Slice 06 imports it rather than writing a second walker | C |
 | `tools/food_scan.py` — build half | `select`, `build_item`, `build_fluid`, `build`, `write_csv`, `write_json`, `main` | the selection rule, the three joins and both output files | C |
 | `media/scripts/generated/items/food.txt` | 15 525 lines | 722 `ItemType = base:food` blocks — the only file in the install holding one | C |
 | `media/scripts/generated/items/drainable.txt` | 2 420 lines | 150 `base:drainable` blocks; only `Vinegar2` and `Vinegar_Jug` carry `Calories`, both `0.0` | C |
@@ -177,7 +201,7 @@ different statements and the dataset sits entirely on the first side of the line
 
 | Fact | Mechanism | Ev |
 |---|---|---|
-| Both sides load the same script definitions from the same files, and no packet ever carries them | `ScriptManager` reads `media/scripts/` on each process at load; there is no script-sync packet. This is why `items.count` and `fluid.script` are **server-only commands and still the whole answer** — a client census would count the same objects | C — [`../testing/README.md`](../testing/README.md) § Command bus, slice-05 paragraph |
+| Both sides load the same script definitions from the same files, and no packet ever carries them | `ScriptManager` reads `media/scripts/` on each process at load. **The no-packet half is an inference, not a grep of the whole protocol:** the item packet slice 02 read field by field, `ItemStatsPacket`, carries *instance* state only — condition, cooked/burnt, `cookingTime`, heat, and the rest of its 39 applied fields — with no script key among them, and no other packet in that analysis carries one either. This is why `items.count` and `fluid.script` are **server-only commands and still the whole answer**: a client census counts the same objects | C — the packet field list in [food-item-model.md](food-item-model.md) § MP behaviour (slice 02); the harness consequence is in [`../testing/README.md`](../testing/README.md) § Command bus |
 | A mod that changes a script key changes it on whichever side loaded the mod, with no runtime reconciliation | same mechanism: definitions are load-time state | C |
 | The *instance* is server-owned for its entire lifecycle | a client never runs `Food.updateAge` or `updateRotting`; `age` / `offAge` / `offAgeMax` / `freezingTime` are not in `ItemStatsPacket` — [food-item-model.md](food-item-model.md) § MP behaviour | C; **M** (slice 02) `exp02-20260910-030433` ([`lifecycle.json`](../../testing/artifacts/exp02-20260910-030433/lifecycle.json)) |
 | **A zero-valued instance field on a client can be carrying another item's value** | `ItemStatsPacket.write` skips twenty conditionally-written fields when they are zero, `parse` mirrors the guard, `applyItemStats` applies unconditionally, and the receiver reuses one cached packet object per type with no reset — [food-item-model.md](food-item-model.md) § A zero-valued packet field can arrive carrying another item's value | C; **M** for `cookingTime` (slice 02, same artifact) |
@@ -207,9 +231,9 @@ in this library has been superseded.
 | 4 | A `fluid_container` row's nutrition is that item's nutrition | For **five** containers it is one draw from a pool: `Base.Flask`, `Base.PopBottle`, `Base.PopBottleRare`, `Base.SodaCan`, `Base.WaterBottle` list several *different* fluids and the row carries only the first's — `Base.Flask` reports Gin's 2 630 kcal though the same flask can hold Rum, Scotch, Vodka or Whiskey. `fluid_ids` keeps the whole set and `meta.counts.multi_fluid_containers` counts them; nine containers in all set `PickRandomFluid` | C |
 | 5 | Int-typed keys hold integers | The fluid files write float literals on them — 141 values such as `UnhappyChange = -10.0`, `StressChange = 0.0`, `fluReduction`, `painReduction`. The fluid loader parses floats; the scanner's `coerce` returns `int` for an integral literal, so one `KEY_TYPES` entry stays one Python type | C |
 | 6 | Ten spot checks, one per axis the dataset must get right | **0 mismatches.** 182 fields compared, 170 matched, 12 not applicable — and the 12 are a finding, not a gap: an instance of a `base:normal` fluid container answers only the four `InventoryItem` ageing/cooking fields (`1000000000 / 1000000000 / 60 / 120`) and none of the six `Food` nutrition getters. No substitution was needed; the sealed, uneatable `Base.CannedCorn` spawned fine | **M** `exp05-20260910-084109` ([`food-scan.json`](../../testing/artifacts/exp05-20260910-084109/food-scan.json)) |
-| 7 | `fluid_fill_litres` is what a container spawns holding | It is `capacity × share`, i.e. the **full**-container figure, and the per-container columns are "the nutrition of a full container". **14** `component FluidContainer` blocks additionally write `InitialPercentMin` / `InitialPercentMax` and the scanner does not model them — `Base.Flask` `0.0`–`1.0` (`items/normal.txt:14314`), `WineOpen` / `Wine2Open` `0.05`–`0.85` (`:6630`, `:6658`), `WaterDish` `0.05`–`0.95` (`:9510`), `Cologne` / `Perfume` `0.1`–`1.0` (`:2634`, `:2765`), the canteens, hydration packs, leather water bag, sports bottle and the two sprayers. Twelve of the fourteen list a fluid | C |
+| 7 | `fluid_fill_litres` is what a container spawns holding | It is `capacity × share`, i.e. the **full**-container figure, and the per-container columns are "the nutrition of a full container". **14** `component FluidContainer` blocks additionally write `InitialPercentMin` / `InitialPercentMax` and the scanner does not model them — `Base.Flask` `0.0`–`1.0` (`items/normal.txt:14314`), `WineOpen` / `Wine2Open` `0.05`–`0.85` (`:6630`, `:6658`), `WaterDish` `0.05`–`0.95` (`:9510`), `Cologne` / `Perfume` `0.1`–`1.0` (`:2634`, `:2765`), the canteens, hydration packs, leather water bag, sports bottle and the two sprayers. Twelve of the fourteen list a fluid, and all fourteen are `meta.counts.fluid_containers_initial_percent`. **The mechanism, read since:** both keys land in `initialAmountMin` / `initialAmountMax` (`FluidContainerScript.load @207–@261 L202–L207`), and `getInitialAmount @12–@40 L390–L393` returns `min` when they are equal and `Rand.Next(min, max)` — a uniform draw, rolled once per container at `readFromScript @93–@106 L108` — otherwise. **The value is litres, not a percentage**, despite the key name: nothing multiplies it by `Capacity`, which is why `Base.WaterDish`'s `0.05`–`0.95` draw is clamped back to its 0.3 L capacity and `Base.CanteenCowboy` never spawns above 1 L of its 1.8. Same rows, in column terms, in [`data/README.md`](../../data/README.md) § Per litre, not per item | C |
 | 8 | `summary.all_matched` in the drink probe reads `false` | **Do not cite it as evidence about the fluid arithmetic.** All 54 fields of the primary, drift-free reading matched; the three flagged rows are the *outer corroboration bracket*'s calorie row on each drink, short of its band by 0.002–0.008 kcal because the band assumes the idle burn is exactly `0.016 × weight/80` while this repo's own measurements put it above that — ratio 1.0049 in slice 03's `exp03-20260910-045523` and +0.4 / +0.4 / +0.7 % across slice 04's three scenario runs, against 1.0018 / 1.0041 / 1.0056 here. Cite the `atomic` and `container` blocks | **M** `exp05b-20260910-093307` ([`drink-probe.json`](../../testing/artifacts/exp05b-20260910-093307/drink-probe.json)); the *do not cite* rows are in [`testing/artifacts/README.md`](../../testing/artifacts/README.md) |
-| 9 | [`data/README.md`](../../data/README.md) § Per litre, not per item says the fluid path has never been measured live | That sentence predates the drink probe and is superseded by § Per litre, not per item above: the path is now **C + M** | **M** `exp05b-20260910-093307` ([`drink-probe.json`](../../testing/artifacts/exp05b-20260910-093307/drink-probe.json)) |
+| 9 | [`data/README.md`](../../data/README.md) § Per litre, not per item said the fluid path had never been measured live (slice 01 open question 11) and proposed the probe | That sentence predated the drink probe, which then ran. **Corrected at the close of slice 05**: the section now cites `exp05b-20260910-093307` with the three drinks' numbers, and carries the row-7 part-fill caveat as well. Anything still quoting "never measured live" from this pair is a stale copy | **M** `exp05b-20260910-093307` ([`drink-probe.json`](../../testing/artifacts/exp05b-20260910-093307/drink-probe.json)) |
 
 ---
 
@@ -259,6 +283,16 @@ in this library has been superseded.
    declared columns, so they never reach a `props_raw` and are listed because the *key* is
    outside the item table), `DisplayName`, `ColorReference`, `Categories`, and the four in open
    question 2. Ev C.
+8. **How the game picks the spawn fill inside `InitialPercentMin` / `InitialPercentMax` is read
+   but not measured.** The jar says a uniform `Rand.Next(min, max)` in litres, rolled once per
+   container (§ Discrepancies row 7), and no run has watched one spawn: both drinks measured here
+   are full containers, which is what `comparison.<drink>.container_fill.amount_before` checks per
+   run. The recipe is cheap — RCON `additem "admin" "Base.WineOpen" 5`, then one
+   `drink admin Base.WineOpen 0`, whose `candidates[]` rows carry each instance's `amount`: five
+   draws from `0.05`–`0.85` against a `Capacity` of `1.0` separate a uniform draw from a fixed
+   fraction and settle the litres-versus-percent reading from the outside. Whether the dataset
+   should then carry the two bounds as columns, rather than only the
+   `meta.counts.fluid_containers_initial_percent` count it has now, is open with it. Ev C.
 
 **Closed by this slice.** Slice 01's open question 11 — *"the fluid path is C-only; no live
 measurement of a fluid container was taken"* — and the q3 notes' Open #1 are both **closed** by

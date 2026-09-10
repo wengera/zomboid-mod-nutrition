@@ -317,7 +317,8 @@ Follow `testing/experiments/s02_lifecycle.py`: `new_run_dir("exp05")`, `make_ser
 - [x] **Step 1: Write the doc** in the house skeleton, header `**Verified against: 42.20.4 (`b0bbce05d5`)**` + date + slice, five-line summary, then: **Model** — what the dataset *is* (the four `kind` buckets with counts, the selection rule, empty-vs-zero, the `nutrition_source` rule, the CSV/JSON split), `Ev` column on every table; **Code map** — the source files with line counts plus the `ScriptManager`/`FluidDefinitionScript` methods the live check used; **MP behavior** — script data loads identically on both sides and is never synced, while the *instance* fields are server-owned (cite `food-item-model.md` § MP behaviour and the `ItemStatsPacket` zero-field leak), so a mod reading these numbers off a client instance may be reading another item's value: read the dataset, not the instance; **Discrepancies** — the Q3 answer (fluid nutrition per unit vs absolute) and any spot-check mismatch; **Open questions** — what Q2/Q3 left unresolved, e.g. unresolved `ReplaceOn*` targets; **Sources** — the four script paths with counts, the two translation JSONs, the jar methods, the run id and artifact path. Every claim row carries **C**, **M** (run id + `testing/artifacts/<run-id>/food-scan.json`) or **W**. Do **not** re-derive the 114-key table — link it.
 - [x] **Step 2: Index and lint** — add the `food-dataset-notes.md` row to `docs/vanilla/README.md`'s Documents table (status **done** — slice 05). Run `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` → Expected `0 finding(s)`; `python -m pytest tools/tests -q` → Expected `28 passed`.
 - [x] **Step 3: Ledgers** — `docs/decisions.md` gets one row per default taken (at minimum: the new parser rather than reusing/importing `pz-b42`; the four-bucket selection rule including drainables; CSV curated / JSON complete; `fluid.script` added beside the spec's `items.count`; empty string for an absent key). `docs/progress.md`: 05 → `done` with date, commit range and a one-line outcome, and add the ripples for slice 06 (below).
-- [ ] **Step 4: Commit and push** — `git commit -m "Slice 05: food dataset notes"` then `git push`.
+- [x] **Step 4a: Commit** — `git commit -m "Slice 05: food dataset notes"` → `44d08b7`.
+- [ ] **Step 4b: Push** — `git push`. The controller's, at slice close, together with `docs/progress.md`; see § Acceptance results.
 
 ## Deliverables
 
@@ -367,9 +368,14 @@ produced committed evidence: `exp05-20260910-084109` and `exp05b-20260910-093307
 1. `python tools/food_scan.py` → **`food 722 · drainable 150 · fluid_container 133 ·
    fluids 61`**, verbatim, and both data files rewritten — `1005 items, 61 columns` to the CSV,
    `1005 items + 61 fluids` to the JSON, with `37 unresolved links, 6 missing display names,
-   0 undefined fluid refs, 60 unknown keys`. Two consecutive runs are byte-identical (md5
-   `e614ef18…` JSON, `c74d487e…` CSV); items and fluids are sorted by `id` and the only field
-   that moves between days is the `meta.generated` build stamp. The column count grew twice
+   0 undefined fluid refs, 60 unknown keys`. Two consecutive runs are byte-identical, re-checked
+   at every dataset change since. **The digests below are the committed files at the final fix
+   wave** (the last commit that touches `data/`): JSON md5 `d0dc576d…` / sha256 `c71202bd…`, CSV
+   md5 `1470c85c…` / sha256 `a5887934…`. Items and fluids are sorted by `id` and the only field
+   that moves between days is the `meta.generated` build stamp. (The `e614ef18…` / `c74d487e…`
+   pair first quoted here was `b786881`'s. The CSV moved once after it, at `705a12f`, and is
+   unchanged since; the JSON moved at `705a12f` — `b3833cd3…` — and again in the fix wave, which
+   added the one line `meta.counts.fluid_containers_initial_percent`.) The column count grew twice
    after the plan was written — 47 + 2 → 48 + 2 (`replace_on_deplete`) → 59 + 2 (the eleven
    per-litre columns) — and `data/README.md` is renumbered 1–61 to match.
 2. **Q4: yes.** Live `items.count` reported `total 5092`, `food 722`,
@@ -393,8 +399,9 @@ produced committed evidence: `exp05-20260910-084109` and `exp05b-20260910-093307
    finding(s)`**, run on the tree with `docs/vanilla/food-dataset-notes.md` in place. The 4
    pre-existing findings under `docs/mods-survey/teardowns/` stay deferred by the standing
    ruling in [`docs/decisions.md`](../../decisions.md).
-5. `python -m pytest tools/tests -q` → **`59 passed in 0.70s`** — 14 pre-existing (untouched)
-   plus 45 in `tools/tests/test_food_scan.py`, well above the plan's `≥ 24` floor. The step
+5. `python -m pytest tools/tests -q` → **`59 passed in 0.70s`**, and **`60 passed`** after the
+   final fix wave's added test — 14 pre-existing (untouched) plus 46 in
+   `tools/tests/test_food_scan.py`, well above the plan's `≥ 24` floor. The step
    texts' `29 passed` / `28 passed` were written before the three fix rounds; nothing was
    deleted or weakened in any of them.
 6. `python testing/pzt run --hold 5` → **met** by `run-20260910-081230`, a `--hold 20` run (a

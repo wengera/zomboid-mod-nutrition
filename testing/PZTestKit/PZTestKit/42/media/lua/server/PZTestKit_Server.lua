@@ -531,9 +531,18 @@ TK.register("fluid.script", function(argv)
         seen[#seen + 1] = (id ~= "") and id or "?"
         if id ~= "" and (id == want or id == "Base." .. want or "Base." .. id == want) then
             local out = { fluidType = id, fluidTypeRoute = route }
-            local _, dn = TK.call(f, "getDisplayName");    out.displayName = dn
-            local _, hp = TK.call(f, "hasPropertiesSet");  out.hasPropertiesSet = hp
+            -- These two go through the same rule as the 14 property getters below: the TK.call
+            -- ok flag is kept, so a member this build does not expose lands in `missingGetters`
+            -- instead of silently dropping the key. It matters most for `hasPropertiesSet`,
+            -- which legitimately answers `false` on 10 of the 61 fluids (the ones with no
+            -- `Properties` block at all) -- discarding the flag would make "not exposed"
+            -- indistinguishable from "exposed and false".
             local missing = {}
+            local okDn, dn = TK.call(f, "getDisplayName")
+            if okDn then out.displayName = dn else missing[#missing + 1] = "getDisplayName" end
+            local okHp, hp = TK.call(f, "hasPropertiesSet")
+            if okHp then out.hasPropertiesSet = hp
+            else missing[#missing + 1] = "hasPropertiesSet" end
             for gi = 1, #FLUID_GETTERS do
                 local g = FLUID_GETTERS[gi]
                 local okg, v = TK.call(f, "get" .. g)
@@ -770,8 +779,12 @@ TK.register("drink", function(argv)
 
     -- The call. Route 1 is the shipped action's own overload; route 2 is the FluidContainer
     -- one. `pcall` wraps the CALL, not the lookup -- TK.call has already ruled out "tried to
-    -- call nil", the one failure pcall cannot catch, so what is left is an argument/type
-    -- mismatch inside Kahlua's overload dispatch, which pcall does catch. The fallback is
+    -- call nil", which pcall cannot catch -- so what is left is an argument/type mismatch
+    -- inside Kahlua's overload dispatch. pcall catches that in the shape it takes here: a
+    -- WRONG-TYPE but non-nil argument raises a catchable error. A NIL argument is the case it
+    -- cannot catch, the same failure mode as the nil member above; `subject` is `pick.item` /
+    -- `pick.fc`, both checked non-nil before either attempt, and `f` is a number by here, so
+    -- the wrap covers what it can be asked to. The fallback is
     -- taken ONLY when route 1 cannot have applied anything: the member was absent, or it
     -- raised and left the container's amount untouched. Never after a partial application --
     -- a second call there would drink twice and the artifact would be a fiction.
@@ -814,7 +827,18 @@ TK.register("drink", function(argv)
     -- The shipped action's own second half (`updateEat` :117). Not needed for the server-side
     -- reading -- it pushes the item's new fill to the client -- but it is part of the route,
     -- so it is made and reported rather than quietly skipped.
-    out.syncItemFields = TK.call(pick.item, "syncItemFields")
+    -- Two keys: `TK.call` answers `(ok, value)`, and a single assignment kept only the ok flag,
+    -- so the return value was reported as if it were the presence flag. `syncItemFields` stays
+    -- the presence/ran flag it always was and `syncItemFieldsReturned` is the value (nil in
+    -- 42.20.4 -- the member is void). Wrapped, because every measurement above is already
+    -- complete: a raise here must cost this one key, not the reply that carries them.
+    local okSync, ranSync, retSync = pcall(TK.call, pick.item, "syncItemFields")
+    if okSync then
+        out.syncItemFields, out.syncItemFieldsReturned = ranSync, retSync
+    else
+        out.syncItemFields = false
+        out.syncItemFieldsError = tostring(ranSync)
+    end
 
     local function d(a, b) if a == nil or b == nil then return nil end return b - a end
     local nb, na = out.before.nutrition, out.after.nutrition

@@ -399,6 +399,12 @@ PER_CONTAINER_COLUMNS = tuple((name, name + "_per_container") for name in (
 # `drinkable` is the fill's "can a player drink this at all" flag. 16 of the 133 fail it.
 DRINKABLE_MAX_CAPACITY = 3.0
 
+# The three component keys that set `FluidContainerScript.initialAmountMin` / `initialAmountMax`
+# (`load @172-@261 L198-L207`), i.e. the keys that make a container spawn part-filled instead of
+# full. 42.20.4 writes only the two `...Min` / `...Max` spellings, 14 times each; the bare
+# `InitialPercent` is here because the loader reads it into the same field.
+INITIAL_PERCENT_KEYS = ("InitialPercent", "InitialPercentMin", "InitialPercentMax")
+
 # Resolved against the dataset's own id set; a target outside it is a `meta.unresolved_links`
 # row. `ReplaceOnCooked` is list-typed in KEY_TYPES, the other three are strings. All four have a
 # column of their own, so a row shows the link as well as the miss.
@@ -475,15 +481,21 @@ def _round(value):
 
 
 def _fill_litres(capacity, share):
-    """`min(Capacity x share, Capacity)` -- the litres a container spawns holding.
+    """`min(Capacity x share, Capacity)` -- the litres of a FULL container at the listed share.
 
-    `FluidContainer.readFromScript @93-@106 L108` reads `FluidContainerScript.getInitialAmount()`,
-    which defaults to `Capacity` when no `InitialAmount` key was written (`@0-@11 L387-L388`, and no
-    vanilla script writes one); `addInitialFluid @11-@17 L132` multiplies it by the share, and
-    `addFluid @30-@45 L1003-L1004` clamps the result to what is left of the capacity -- which is
-    what `Base.BucketWaterDebug`'s `Water:10.0` into a `Capacity = 10.0` runs into, the only share
-    in 42.20.4 that is not `1.0`. `None` unless both terms are numbers: without a parsable capacity
-    and share there is no auditable fill.
+    **Not always the spawn fill.** `FluidContainer.readFromScript @93-@106 L108` reads
+    `FluidContainerScript.getInitialAmount()`, which defaults to `Capacity` only when no initial
+    amount was written (`@0-@11 L387-L388`); `addInitialFluid @11-@17 L132` multiplies it by the
+    share, and `addFluid @30-@45 L1003-L1004` clamps the result to what is left of the capacity --
+    which is what `Base.BucketWaterDebug`'s `Water:10.0` into a `Capacity = 10.0` runs into, the
+    only share in 42.20.4 that is not `1.0`. 14 containers **do** write an initial amount, as
+    `InitialPercentMin` / `InitialPercentMax` (`load @207-@261 L202-L207` puts both into
+    `initialAmountMin` / `initialAmountMax` and sets `initialAmountSet`), and then
+    `getInitialAmount @12-@40 L390-L393` returns `min` when the two are equal and
+    `Rand.Next(min, max)` otherwise -- so those 14 spawn part-filled, at a random draw this column
+    does not model. See data/README.md's `fluid_fill_litres` row and
+    `meta.counts.fluid_containers_initial_percent`. `None` unless both terms are numbers: without a
+    parsable capacity and share there is no auditable fill.
     """
     if not isinstance(capacity, (int, float)) or not isinstance(share, (int, float)):
         return None
@@ -657,8 +669,14 @@ def build_item(kind, block, container, fluids_by_id, item_names, misses):
         capacity = values(container, "Capacity")
         if capacity:
             record["fluid_capacity"] = _capacity(capacity[-1])
-        record["fluid_pick_random"] = any(_flag(raw)
-                                          for raw in values(container, "PickRandomFluid"))
+        pick_random = values(container, "PickRandomFluid")
+        record["fluid_pick_random"] = _flag(pick_random[-1]) if pick_random else False
+        # A container that writes `InitialPercentMin` / `InitialPercentMax` spawns part-filled at
+        # a random draw (`_fill_litres`), so `fluid_fill_litres` is its FULL figure and not its
+        # spawn fill. Counted rather than columned: 14 rows in 42.20.4, and the two values stay
+        # readable at the row's `source_file:source_line`.
+        if any(values(container, key) for key in INITIAL_PERCENT_KEYS):
+            misses["initial_percent_containers"].append(item_id)
         if isinstance(record["fluid_capacity"], (int, float)):
             record["drinkable"] = record["fluid_capacity"] <= DRINKABLE_MAX_CAPACITY
         # `[]` (an empty jar: a container listing no fluid) is not `None` (no container at all)
@@ -719,11 +737,17 @@ def build(trees, item_names=None, fluid_names=None):
     a cooking pan, an empty sandbag, or `Base.MugRed`, which 42.20.4 names but never defines --
     is a `misses["unresolved_links"]` row naming the item, the key and the target; the target's
     own value stays in the record either way.
+
+    `misses` also carries one census list that is not a miss at all --
+    `initial_percent_containers`, the ids whose `component FluidContainer` writes an
+    `InitialPercent*` key and therefore spawns part-filled (`_fill_litres`). It rides here because
+    only `build_item` sees the component block; `build_dataset` counts it into `meta.counts`.
     """
     item_names = item_names or {}
     fluid_names = fluid_names or {}
     selected, fluid_blocks = select(trees)
-    misses = {"unresolved_links": [], "missing_display_names": [], "unresolved_fluid_refs": []}
+    misses = {"unresolved_links": [], "missing_display_names": [], "unresolved_fluid_refs": [],
+              "initial_percent_containers": []}
 
     fluids = sorted((build_fluid(b, fluid_names) for b in fluid_blocks), key=lambda r: r["id"])
     for record in fluids:
@@ -746,6 +770,7 @@ def build(trees, item_names=None, fluid_names=None):
     misses["unresolved_links"].sort(key=lambda m: (m["item"], m["key"], m["target"]))
     misses["missing_display_names"].sort()
     misses["unresolved_fluid_refs"].sort(key=lambda m: (m["item"], m["fluid_id"]))
+    misses["initial_percent_containers"].sort()
     return items, fluids, misses
 
 
@@ -772,7 +797,11 @@ def unknown_keys(items, fluids):
             seen.add("Capacity")
         if record["fluid_ids"]:
             seen.add("fluid")
-        if record["fluid_pick_random"]:
+        # on presence, the way `Capacity` above is -- not on the value. `fluid_pick_random` is
+        # `False` both for a container that writes `PickRandomFluid = false` and for one that
+        # writes no such line, so the row itself is the presence test; keying on the flag would
+        # drop the key from this list on a tree whose only `PickRandomFluid` lines say `false`.
+        if record["fluid_pick_random"] is not None:
             seen.add("PickRandomFluid")
     for record in fluids:
         seen.update(record["props_raw"])
@@ -794,12 +823,17 @@ def build_dataset(media_root=MEDIA):
     # possible fills. 5 in 42.20.4; a container repeating a single id is not one of them.
     counts["multi_fluid_containers"] = sum(
         1 for r in items if r["fluid_ids"] and len(set(r["fluid_ids"])) > 1)
-    # The fill split, over the same 133 rows: a container spawns holding its listed fluid
-    # (`fluid_fill_litres`) or nothing at all. 72 + 61 in 42.20.4, and 9 of the 72 fill from a pool
-    # rather than from one named fluid, which is what makes their nutrition one draw of several.
+    # The fill split, over the same 133 rows: a container either lists a fluid to spawn holding
+    # (`fluid_fill_litres`, the litres of a FULL container at the listed share) or lists none at
+    # all. 72 + 61 in 42.20.4, and 9 of the 72 fill from a pool rather than from one named fluid,
+    # which is what makes their nutrition one draw of several. `..._initial_percent` is the
+    # subset that additionally writes `InitialPercentMin` / `InitialPercentMax` and so spawns
+    # PART-filled, at a random draw no column of this dataset models (14 in 42.20.4, 12 of them
+    # listing a fluid -- see `_fill_litres` and data/README.md).
     counts["fluid_containers_filled"] = sum(1 for r in items if r["fluid_ids"])
     counts["fluid_containers_pick_random"] = sum(1 for r in items if r["fluid_pick_random"])
     counts["fluid_containers_empty"] = sum(1 for r in items if r["fluid_ids"] == [])
+    counts["fluid_containers_initial_percent"] = len(misses["initial_percent_containers"])
     counts["unresolved_links"] = len(misses["unresolved_links"])
     meta = {
         "build": BUILD,

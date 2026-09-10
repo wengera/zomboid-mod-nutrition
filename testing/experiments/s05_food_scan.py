@@ -224,16 +224,21 @@ def git_short(rel_path):
 
 def git_dirty(rel_path):
     """`git status --porcelain -- <path>` non-empty: the working tree differs from the index or
-    HEAD, so `git_short`'s commit is NOT where the bytes came from. `True`/`False`, or the
-    error string if git could not be asked -- provenance, never fatal."""
+    HEAD, so `git_short`'s commit is NOT where the bytes came from.
+
+    Returns `(dirty, note)`. `dirty` is `True` / `False` when git answered and **`None`** when it
+    could not be asked -- unknown is a third state, and it must not be a truthy error string in
+    the flag's own slot, where `if dirty:` would read it as "dirty" and a JSON consumer would
+    have to type-check before believing it. The reason travels beside it as
+    `meta.dataset_dirty_note`. Provenance, never fatal."""
     try:
         p = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "--", rel_path],
                            capture_output=True, text=True, timeout=30)
         if p.returncode != 0:
-            return f"git status rc={p.returncode}"
-        return bool((p.stdout or "").strip())
+            return None, f"git status rc={p.returncode}"
+        return bool((p.stdout or "").strip()), None
     except Exception as e:                       # noqa: BLE001 - provenance, never fatal
-        return f"{type(e).__name__}: {e}"
+        return None, f"{type(e).__name__}: {e}"
 
 
 def same(expected, live):
@@ -317,6 +322,7 @@ server = make_server(run_dir, rec)
 clients = []
 t_start = time.time()
 data, data_err, data_sha = load_dataset(DATASET)
+dataset_dirty, dataset_dirty_note = git_dirty("data/food-items.json")
 items_by_id = {r["id"]: r for r in (data or {}).get("items", [])}
 fluids_by_id = {r["id"]: r for r in (data or {}).get("fluids", [])}
 out = {"run_id": run_id,
@@ -326,7 +332,8 @@ out = {"run_id": run_id,
                 # to be the second (see `git_short`).
                 "dataset_commit": git_short("data/food-items.json"),
                 "dataset_sha256": data_sha,
-                "dataset_dirty": git_dirty("data/food-items.json"),
+                "dataset_dirty": dataset_dirty,
+                "dataset_dirty_note": dataset_dirty_note,
                 "dataset_read_error": data_err,
                 "dataset_meta": (data or {}).get("meta"),
                 "dataset_items": len(items_by_id), "dataset_fluids": len(fluids_by_id),
@@ -336,9 +343,12 @@ out = {"run_id": run_id,
                 "script_defaults": SCRIPT_DEFAULTS, "instance_defaults": INSTANCE_DEFAULTS},
        "items_count": None, "fluid_script": {}, "spot_checks": {}, "comparison": {},
        "summary": {}}
-dirty = out["meta"]["dataset_dirty"]
-print(f"dataset {out['meta']['dataset_commit']}"
-      f"{' [DIRTY: the bytes are NOT that commit]' if dirty else ''}"
+dirty_note = ""
+if dataset_dirty:
+    dirty_note = " [DIRTY: the bytes are NOT that commit]"
+elif dataset_dirty is None:
+    dirty_note = f" [dirty unknown: {dataset_dirty_note}]"
+print(f"dataset {out['meta']['dataset_commit']}{dirty_note}"
       f" sha256 {str(data_sha)[:16]}: {len(items_by_id)} items, {len(fluids_by_id)} fluids")
 try:
     server.start()
@@ -493,6 +503,7 @@ try:
         "dataset_commit": out["meta"]["dataset_commit"],
         "dataset_sha256": out["meta"]["dataset_sha256"],
         "dataset_dirty": out["meta"]["dataset_dirty"],
+        "dataset_dirty_note": out["meta"]["dataset_dirty_note"],
     }
 except Exception as e:                   # noqa: BLE001 - keep the rows already collected
     out["error"] = f"{type(e).__name__}: {e}"

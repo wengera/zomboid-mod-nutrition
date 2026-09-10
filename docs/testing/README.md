@@ -111,7 +111,11 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   Slice-05 script-census commands — server only, both reading `ScriptManager`
   (script data is loaded identically on both sides and never synced, so the
   server's copy is the whole answer): `items.count` (no args) →
-  `{total, food, byType, foodByModule, fluidDefs}`, the game's own loaded-item
+  `{total, food, byType, foodByModule, fluidDefs}`, plus a conditional
+  `fluidDefsError` when `ScriptManager:getAllFluidDefinitionScripts()` is not
+  exposed — `fluidDefs` reads `0` in that case and in the "no fluids loaded"
+  one, and they are different findings, so the reply says which. It is
+  the game's own loaded-item
   list bucketed by `getItemType():toString()` (the `base:food` /
   `base:drainable` ResourceLocation strings, counted raw in `byType` so a
   registry rename is visible rather than silently zeroed) — this is the live
@@ -122,9 +126,11 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   `Carbohydrates`, `Lipids`, `Proteins`, `FatigueChange`, `StressChange`,
   `UnhappyChange`, `Alcohol`, `FluReduction`, `PainReduction`,
   `EnduranceChange`, `FoodSicknessChange`) off one
-  `FluidDefinitionScript`; a getter this build does not expose is listed in
-  `missingGetters` rather than left silently absent, and a miss reports every
-  id the list did yield. `fluidTypeRoute` is there because
+  `FluidDefinitionScript`; any of the **16** members this build does not expose
+  — the 14 properties and `getDisplayName` / `hasPropertiesSet` — is listed in
+  `missingGetters` rather than left silently absent, which is what keeps
+  `hasPropertiesSet: false` (true of 10 of the 61 fluids) distinguishable from
+  "not exposed"; and a miss reports every id the list did yield. `fluidTypeRoute` is there because
   `getFluidTypeString()` answers for only 34 of the 61 definitions — it is
   empty for every fluid that also has a built-in `FluidType` enum constant
   (`Water`, `Beer`, `Coffee`, `Blood`, `Petrol`, …), so the command falls back
@@ -176,10 +182,16 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
     `nutrition.get` bracket *around* the command is the independent outer
     reading and it does carry the passive drain.
   * **Reply**: `{user, fullType, fraction, finder, selectionRule, candidates,
-    selected, primaryFluid, primaryFluidRoute, fluidDisplayName,
-    containerProperties, predictedNutrition, predictedStats,
-    predictedFoodTimer, before, after, delta, route, syncItemFields}` — plus
-    `routeAttempts` / `error` when a route failed. `containerProperties` is the
+    selected, selectedFullType, primaryFluid, primaryFluidRoute,
+    fluidDisplayName, containerProperties, predictedNutrition, predictedStats,
+    predictedFoodTimer, worldAgeBefore, before, after, worldAgeAfter, delta,
+    route, drinkFluidReturned, syncItemFields, syncItemFieldsReturned}` — plus
+    `routeAttempts` / `error` when a route failed, `containerPropertiesError`
+    when the container would not answer `getProperties()`, and
+    `syncItemFieldsError` if that last call raised. `syncItemFields` is the
+    **presence/ran flag** for `InventoryItem:syncItemFields()` (it is void, so
+    `syncItemFieldsReturned` is `nil` on 42.20.4) and `drinkFluidReturned` is
+    what the `DrinkFluid` overload itself returned. `containerProperties` is the
     container's **litres-weighted** aggregate (`getProperties()`, all fifteen
     `SealedFluidProperties` getters), read **before** the drink because an
     emptied container recalculates to all zeroes.
