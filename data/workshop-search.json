@@ -1,0 +1,2828 @@
+{
+ "meta": {
+  "build": "42.20.4 (b0bbce05d5)",
+  "generated": "2026-09-10",
+  "fetched": "2026-09-10 16:26",
+  "tool": "tools/workshop_search.py",
+  "terms": [
+   "nutrition",
+   "vitamin",
+   "malnutrition",
+   "diet",
+   "hydration",
+   "food overhaul",
+   "cooking overhaul",
+   "spoilage"
+  ],
+  "source_url_pattern": {
+   "browse": "https://steamcommunity.com/workshop/browse/?appid=108600&searchtext={term}&browsesort=trend&section=readytouseitems&requiredtags%5B%5D=Build+42",
+   "item": "https://steamcommunity.com/sharedfiles/filedetails/?id={id}"
+  },
+  "details_ids": [
+   "installed",
+   "3690404044",
+   "3785515388",
+   "3782835400",
+   "3078272807",
+   "3736275816",
+   "3796644824"
+  ],
+  "corpus": {
+   "path": "data/mod-inventory.json",
+   "records": 230,
+   "workshop_items": 179
+  },
+  "per_term": {
+   "nutrition": {
+    "results": 30,
+    "error": null
+   },
+   "vitamin": {
+    "results": 30,
+    "error": null
+   },
+   "malnutrition": {
+    "results": 2,
+    "error": null
+   },
+   "diet": {
+    "results": 30,
+    "error": null
+   },
+   "hydration": {
+    "results": 30,
+    "error": null
+   },
+   "food overhaul": {
+    "results": 30,
+    "error": null
+   },
+   "cooking overhaul": {
+    "results": 30,
+    "error": null
+   },
+   "spoilage": {
+    "results": 30,
+    "error": null
+   }
+  },
+  "counts": {
+   "terms": 8,
+   "results_total": 212,
+   "term_failures": 0,
+   "distinct_ids": 180,
+   "installed": 3,
+   "not_installed": 177,
+   "details_requested": 9,
+   "details_fetched": 9,
+   "detail_failures": 0,
+   "details_not_fetched": 171,
+   "details_incomplete": 0
+  },
+  "notes": [
+   "Steam is live and browsesort=trend reorders hourly: quote any count here with meta.fetched.",
+   "Item pages are rationed, not rate-limited: measured 2026-09-10 16:20-16:26, about 13 filedetails reads succeed per window and every later one returns the generic Workshop landing page at HTTP 200, at 4 s spacing and at 8 s alike. size/posted/updated therefore exist only for the meta.details_ids subset; every other row says so in its error column.",
+   "A not-installed row cannot be linted, profiled, booted or measured from this repo: it is graded W and carries the subscribe-and-rescan action that would change that."
+  ]
+ },
+ "results": [
+  {
+   "workshop_id": "2881519066",
+   "title": "Jarred Food Spoilage Adjuster",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 2881519066 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "2907834593",
+   "title": "Calorie Fix",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 2907834593 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "2932547723",
+   "title": "'93 Lincoln Town Car + Limo",
+   "terms": [
+    "diet"
+   ],
+   "installed": true,
+   "mod_ids": [
+    "93townCar"
+   ],
+   "size": "14.655 MB",
+   "posted": "Feb 12, 2023 @ 10:35am",
+   "updated": "Jul 2 @ 11:40am",
+   "error": null,
+   "grade": "C",
+   "unblock": null
+  },
+  {
+   "workshop_id": "3078272807",
+   "title": "Nutrition Tweaker Enhanced",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": "503.836 KB",
+   "posted": "Nov 10, 2023 @ 2:19am",
+   "updated": "Jul 22, 2025 @ 1:35pm",
+   "error": null,
+   "grade": "W",
+   "unblock": "subscribe to 3078272807 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3173649443",
+   "title": "Medical Meister",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3173649443 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3297793087",
+   "title": "[B41/B42] Temperature Affects Food Spoilage Rate",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3297793087 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3354834585",
+   "title": "Comidas Tipicas Venezolanas [WIP]",
+   "terms": [
+    "nutrition",
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3354834585 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3369211813",
+   "title": "PZFateMagicTraits 圣杯魔术",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3369211813 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3386729204",
+   "title": "[B42]Betterbags",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3386729204 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3386941366",
+   "title": "Mega Vitamins [b42]",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3386941366 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3388844542",
+   "title": "Minimal Display Bars + Nutritions + Discomfort [B41/B42.20]",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3388844542 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3390531323",
+   "title": "Smoking & Pill Taking Made Easy",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3390531323 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3391683076",
+   "title": "B42维生素改",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3391683076 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3391690547",
+   "title": "b42 BonzBetterCombat",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3391690547 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3393080905",
+   "title": "Canteen Slot (wear canteen & satchel at  same time)",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3393080905 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3393409283",
+   "title": "Arizona Iced Tea",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3393409283 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3396010813",
+   "title": "BZQuickSlots",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3396010813 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3396429342",
+   "title": "[B41 & B42] Immunity",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3396429342 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3413341320",
+   "title": "[B42] ExtraSauce Quality of Life",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3413341320 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3422233570",
+   "title": "CamelPak",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3422233570 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3425213160",
+   "title": "Lunchly [B42]",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3425213160 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3426165280",
+   "title": "Fix NaN Nutrition Stats",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3426165280 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3430945294",
+   "title": "Eliaz Nutritionist Magazine B42",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3430945294 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3435755168",
+   "title": "[B42.20] Mate ARG",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3435755168 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3436665621",
+   "title": "Soda Unnerfed",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3436665621 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3441138219",
+   "title": "Protein Shake [B42]",
+   "terms": [
+    "malnutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3441138219 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3446372375",
+   "title": "Make HydrationBackpack+",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3446372375 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3476660348",
+   "title": "Make Sauerkraut",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3476660348 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3492090092",
+   "title": "TwisTonFire - Calories & Nutrition",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3492090092 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3494803855",
+   "title": "[B41/B42] Hephas Vitamins",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3494803855 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3509498392",
+   "title": "Boilable Water Jug [B42.12]",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3509498392 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3516166810",
+   "title": "Red Days",
+   "terms": [
+    "malnutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3516166810 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3527093221",
+   "title": "Mutie's Tooltips",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3527093221 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3528669221",
+   "title": "ssj_basic_mods",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3528669221 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3548639002",
+   "title": "[B42] Clothing Protection: Rebalanced",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3548639002 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3549290115",
+   "title": "[B42.20] Ogrim Mod's - My Own Well",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3549290115 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3554570236",
+   "title": "Filibuster Rhymes' Acceptable Guns DEMO!",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3554570236 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3568029240",
+   "title": "Pocket Kittens (B42) [42.13]",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3568029240 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3571998958",
+   "title": "Gulp down vitamins",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3571998958 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3597673472",
+   "title": "Long Term Preservation Extended [42.20+]",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3597673472 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3602215188",
+   "title": "Food Expires Eventually",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3602215188 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3623275770",
+   "title": "Simulated Antibodies (42.13.1 MP) Alpha 1.6.1",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3623275770 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3628786816",
+   "title": "维生素改进版",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3628786816 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3650016308",
+   "title": "[42] ClothingBased On Occupation42",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3650016308 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3653719735",
+   "title": "BloodNutrition",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3653719735 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3656044799",
+   "title": "Oh My Hotkeys",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3656044799 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3669286020",
+   "title": "[B42.20] Bag Upgrade Plus Realistic",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3669286020 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3674399753",
+   "title": "AHS - Advanced Health System",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3674399753 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3676251425",
+   "title": "PhunCure 2",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3676251425 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3676431328",
+   "title": "[B42] I Regret Nothing Trait",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3676431328 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3683292934",
+   "title": "让维生素再次伟大！",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3683292934 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3690404044",
+   "title": "Nutrition Makes Sense",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": "1.042 MB",
+   "posted": "Mar 22 @ 4:57pm",
+   "updated": "Aug 18 @ 5:01pm",
+   "error": null,
+   "grade": "W",
+   "unblock": "subscribe to 3690404044 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3694158509",
+   "title": "Sauce Tooltips - Enhanced Tooltip Mod",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3694158509 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3695045219",
+   "title": "Hydration Alice Belt",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3695045219 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3697369580",
+   "title": "Better Vanilla Military Misc",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3697369580 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3699095087",
+   "title": "Mega Mod Collection",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3699095087 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3699299123",
+   "title": "Ice Guy[B42.16+] LEGACY",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3699299123 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3700831155",
+   "title": "Yumi's Advanced Trapping Overhaul",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3700831155 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3703684537",
+   "title": "QWE- Dadge Steals RT Twin Turbo v.2.01 [b42.16]",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3703684537 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3709126801",
+   "title": "Nature's Call [B42.16+ MP]",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3709126801 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3712569610",
+   "title": "Upgrade Hydration Backpack[SP/MP][42.20]",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3712569610 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3714720114",
+   "title": "[B42] Immersive Diets Mod",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3714720114 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3714772035",
+   "title": "Yumi's Eat Anything For Animals <3",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3714772035 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3720785274",
+   "title": "Chronic Migraines",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3720785274 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3721170507",
+   "title": "Food Expiration Date",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3721170507 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3731451178",
+   "title": "FARP: Tactical Survival Relaxation",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3731451178 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3736275816",
+   "title": "ApocalipseBR - Nutrition Sync Fix",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": "453.434 KB",
+   "posted": "May 31 @ 7:55am",
+   "updated": "May 31 @ 11:18am",
+   "error": null,
+   "grade": "W",
+   "unblock": "subscribe to 3736275816 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3741967116",
+   "title": "Furry Traits for Furry Lovers ;)",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3741967116 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3742599937",
+   "title": "Plysken Survival Concept",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3742599937 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3746632343",
+   "title": "Bundle Up! - A Packing Mod",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3746632343 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3750296207",
+   "title": "Drink Fatigue Reduction",
+   "terms": [
+    "vitamin",
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3750296207 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3752565300",
+   "title": "Shiba Bridge",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3752565300 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3755764791",
+   "title": "New Music - Emo and Post-Hardcore",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3755764791 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3757293516",
+   "title": "AnadoluRockB42",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3757293516 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3758857794",
+   "title": "Bottles Backpack Bottom",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3758857794 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3758971325",
+   "title": "Better Item Info",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3758971325 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3759421894",
+   "title": "Big Bottles",
+   "terms": [
+    "hydration"
+   ],
+   "installed": true,
+   "mod_ids": [
+    "BigBottles"
+   ],
+   "size": "107.238 KB",
+   "posted": "Jul 6 @ 5:31pm",
+   "updated": "Aug 1 @ 6:44am",
+   "error": null,
+   "grade": "C",
+   "unblock": null
+  },
+  {
+   "workshop_id": "3759822002",
+   "title": "New Music - The Sugarcubes (1988-1992)",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3759822002 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3760019748",
+   "title": "Master Chef: Nutritionist Trait",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3760019748 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3763835105",
+   "title": "Natural Irrigation",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3763835105 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3765241705",
+   "title": "Beyond Ten - Level 15 Skills [B41/B42]",
+   "terms": [
+    "hydration"
+   ],
+   "installed": true,
+   "mod_ids": [
+    "BeyondTen"
+   ],
+   "size": "348.184 KB",
+   "posted": "Jul 15 @ 6:22am",
+   "updated": "Sep 4 @ 1:25pm",
+   "error": null,
+   "grade": "C",
+   "unblock": null
+  },
+  {
+   "workshop_id": "3766473615",
+   "title": "Owl City 9 Album + Extras",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3766473615 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3766527305",
+   "title": "Brick Trade - ATM Economy (Brickman server)",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3766527305 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3774293771",
+   "title": "Dietary Stats",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3774293771 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3774464873",
+   "title": "No Food Expiration",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3774464873 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3774994273",
+   "title": "Sapph's Cooking_CN [B42.20+]",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3774994273 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3776028325",
+   "title": "Advanced Medicine [v42.20.2] - v10.39.78",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3776028325 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3776138029",
+   "title": "New music - Incubus(S.C.I.E.N.C.E)",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3776138029 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3776151982",
+   "title": "No Food Expiration - Vanilla Foods Expanded Patch",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3776151982 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3777260215",
+   "title": "Advanced Veterinary [v42.20.2] - v10.19.23",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3777260215 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3777678835",
+   "title": "Mila's Hits",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3777678835 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3777870125",
+   "title": "Tactical Radar",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3777870125 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3779613392",
+   "title": "[B42] KR FriOS Redux - Refrigerated Bags - Add-On (Cooler Backpacks)",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3779613392 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3779800672",
+   "title": "Nutrition Panel for PZ Pulse",
+   "terms": [
+    "nutrition",
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3779800672 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3779907776",
+   "title": "Cats Mod [B42 Stable] SP only",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3779907776 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3780091539",
+   "title": "Toxic Diet",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3780091539 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3780183517",
+   "title": "Z’Ware Permafrost: Time Stops at the Door",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3780183517 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3780539123",
+   "title": "Beyond The Infection",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3780539123 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3780697745",
+   "title": "SINGLE DOSE VITAMINS/CAFFEINE [B42]",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3780697745 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3781129962",
+   "title": "AllTheInfo",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3781129962 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3782593732",
+   "title": "LT Blood System [42.20.4]",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3782593732 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3782745074",
+   "title": "Homemade Cheesecake",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3782745074 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3782835400",
+   "title": "Realistic Nutrition",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": "636.708 KB",
+   "posted": "Aug 13 @ 10:59am",
+   "updated": null,
+   "error": null,
+   "grade": "W",
+   "unblock": "subscribe to 3782835400 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3783349231",
+   "title": "Completionist Runners - Custom Traits and Stuff",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3783349231 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3784773191",
+   "title": "[42.20, SP+MP] Woody's Item Weights - Carry What You Packed",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3784773191 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3785422123",
+   "title": "Amarga Banger Mixes to Die to",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3785422123 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3785483068",
+   "title": "Kentucky Cellar",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3785483068 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3785515388",
+   "title": "Reasonable Nutrition",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": "145.008 KB",
+   "posted": "Aug 17 @ 7:44pm",
+   "updated": "Aug 26 @ 3:49pm",
+   "error": null,
+   "grade": "W",
+   "unblock": "subscribe to 3785515388 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3785654430",
+   "title": "真男人:强效肾上腺素 / Real Man: High-Potency Adrenaline",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3785654430 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3786296123",
+   "title": "Realistic Food Spoilage",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3786296123 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3786362941",
+   "title": "Second Chance: Infection Overhaul",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3786362941 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3786842301",
+   "title": "Enshrouded Sleep - Release Candidate",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3786842301 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3786978530",
+   "title": "Food Freshness Tooltip",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3786978530 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3787795983",
+   "title": "Z'Ware Pills Taken [B42] - v0.2.0 EXPERIMENTAL",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3787795983 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3788533156",
+   "title": "Big Size Spice : Bigger Salt & Pepper [42.20+]",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3788533156 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3789021176",
+   "title": "SR:ST 空间戒指:简单交易",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3789021176 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3789544907",
+   "title": "Mark XI Suit - Powered Armor [B42]",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3789544907 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3789663987",
+   "title": "Hydration Satchel",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3789663987 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3789832800",
+   "title": "Monster Energy",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3789832800 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791152383",
+   "title": "Dynamic Outposts",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791152383 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791169924",
+   "title": "Realistic Blood & Transfusion System [B42]",
+   "terms": [
+    "nutrition",
+    "hydration",
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791169924 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791380523",
+   "title": "Animal Blood Nutrition",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791380523 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791429975",
+   "title": "肯德基美食扩展(KFCFoodExpansion)",
+   "terms": [
+    "nutrition",
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791429975 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791781209",
+   "title": "Ungodly Auto-Medic - Automatic Health Management [B42] [MP]",
+   "terms": [
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791781209 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791897755",
+   "title": "Immersive Weighing [B42+]",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791897755 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3791948588",
+   "title": "Cool Sit: Immersive Leaning/Sitting [B42]",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3791948588 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3792142238",
+   "title": "Airdrop Manager [42.20+]",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3792142238 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3792431903",
+   "title": "SideWinder's Put it back!",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3792431903 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3792523205",
+   "title": "Mattnetic's [E]Z Drink [B42] - Release 1.0",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3792523205 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3792713459",
+   "title": "Explosion overhaul",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3792713459 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3792733238",
+   "title": "ZED+ - A Zombie Evolution Overhaul [W.I.P]",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3792733238 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3793067931",
+   "title": "Funny Traits",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3793067931 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3793601188",
+   "title": "Field Medicine Expansion [B42]",
+   "terms": [
+    "vitamin",
+    "hydration",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3793601188 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3793812290",
+   "title": "Coffee Fluid!",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3793812290 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3793857644",
+   "title": "Seasonal Cicadas [B42.20+]",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3793857644 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3793908682",
+   "title": "Rip All Clothing Plus 2.5 Tailoring XP",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3793908682 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3793950420",
+   "title": "Pet Birds",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3793950420 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3794069240",
+   "title": "Escape From Kentucky",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3794069240 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3794096472",
+   "title": "Real Room Heat 2.0 + Realistic Food Spoilage Compat",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3794096472 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3794107354",
+   "title": "PZ Resource Recovery: Circular Survival",
+   "terms": [
+    "nutrition",
+    "vitamin"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3794107354 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3794209234",
+   "title": "Gun Repair Kit",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3794209234 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3794442282",
+   "title": "[B42] Stardew Fishing",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3794442282 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3794455791",
+   "title": "Tien's Coolers",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3794455791 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3795435563",
+   "title": "[B42] Auto-Eat [SP/MP]",
+   "terms": [
+    "nutrition",
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3795435563 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3795521454",
+   "title": "Realistic Recipes",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3795521454 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3795593080",
+   "title": "More Simple Context Menu Icons",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3795593080 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3795665996",
+   "title": "Abyss's 10 Year Later",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3795665996 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3795713728",
+   "title": "Tarp Sack Overhaul",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3795713728 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3795759271",
+   "title": "A Whole Lot of Keyrings",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3795759271 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796080595",
+   "title": "Car Physics Improved",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796080595 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796123931",
+   "title": "Companion Dogs: DogPack",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796123931 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796139100",
+   "title": "This Is Your Life - Character Creator Overhaul [B42.20]",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796139100 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796279322",
+   "title": "Russian MRE [B42]",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796279322 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796340874",
+   "title": "Coolers and Ice - Build 42.20",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796340874 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796408146",
+   "title": "SideWinder's Easy Cooking",
+   "terms": [
+    "nutrition",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796408146 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796483217",
+   "title": "NPC Bases (Bandits Settlements)",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796483217 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796577609",
+   "title": "Monster Energy Fridge [B42]",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796577609 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796621488",
+   "title": "No Spoiling in Freezers (B42)",
+   "terms": [
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796621488 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796644824",
+   "title": "[NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": "471.224 KB",
+   "posted": "Sep 6 @ 12:58am",
+   "updated": null,
+   "error": null,
+   "grade": "W",
+   "unblock": "subscribe to 3796644824 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796753621",
+   "title": "Nutrition Makes Sense Immersive Addon",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796753621 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3796798161",
+   "title": "true medical B42:20 SP/MP",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3796798161 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797098473",
+   "title": "PZ Computer - KnoxOS 93",
+   "terms": [
+    "nutrition"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797098473 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797221807",
+   "title": "Character HUD",
+   "terms": [
+    "nutrition",
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797221807 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797240313",
+   "title": "BSW's Achievement Title and Leaderboard system",
+   "terms": [
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797240313 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797252512",
+   "title": "Z'Ware Mr. Fusion: Waste In. Power Out. [B42]",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797252512 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797252771",
+   "title": "Companion Dogs: Squad (up to 8 dogs at once)",
+   "terms": [
+    "hydration"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797252771 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797267975",
+   "title": "Banana Overhaul",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797267975 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797272348",
+   "title": "Working Popcorn Machines",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797272348 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797356103",
+   "title": "Knox Aquarium - Live Fish Tanks + Pet Rats [B42] (Beta)",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797356103 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797403022",
+   "title": "HARMONIE - From Garden to Plate",
+   "terms": [
+    "vitamin",
+    "diet"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797403022 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797623361",
+   "title": "Convenient Cooking",
+   "terms": [
+    "nutrition",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797623361 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797743494",
+   "title": "Who Are You? - Vanilla Character Creator Overhaul [B42.20]",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797743494 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3797769047",
+   "title": "GP-5 Civilian Gas Mask [B42]",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3797769047 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798075422",
+   "title": "Cockroach Ambient [B42]",
+   "terms": [
+    "food overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798075422 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798169224",
+   "title": "Hardcore Food Preservation",
+   "terms": [
+    "nutrition",
+    "spoilage"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798169224 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798238110",
+   "title": "Cook With Frozen Ingredients",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798238110 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798304291",
+   "title": "Extra Fishing Rods [B42]",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798304291 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798472659",
+   "title": "Eat Plagues B42.20+",
+   "terms": [
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798472659 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798628324",
+   "title": "New Tooltip",
+   "terms": [
+    "nutrition",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798628324 in Steam, let it download, re-run tools/mod_inventory.py"
+  },
+  {
+   "workshop_id": "3798934454",
+   "title": "KZ - KI5 Crafting Overhaul & Fixes (B42)",
+   "terms": [
+    "food overhaul",
+    "cooking overhaul"
+   ],
+   "installed": false,
+   "mod_ids": [],
+   "size": null,
+   "posted": null,
+   "updated": null,
+   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "grade": "W",
+   "unblock": "subscribe to 3798934454 in Steam, let it download, re-run tools/mod_inventory.py"
+  }
+ ]
+}

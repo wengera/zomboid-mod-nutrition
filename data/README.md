@@ -672,3 +672,151 @@ The nine `script_nutrition` mods read 17 · 288 · 308 · 102 · 14 · 125 · 32
 them uses a hyphenated id). Quote it as "items defined"; it counts definitions
 in every script file, so for a mod that also ships clothing or vehicles it is
 not "food items defined".
+
+## workshop-search
+
+`data/workshop-search.json` + `data/workshop-search.csv`, written by
+[`tools/workshop_search.py`](../tools/README.md) from the **public Steam
+Workshop browse pages** — eight search terms against the `Build 42`-tagged,
+ready-to-use section, one page per term (Steam serves 30 results a page and the
+tool does not paginate), then a second pass over a declared subset of item
+pages for size/posted/updated, joined to [§ mod-inventory](#mod-inventory) on
+`workshop_id`. **212 results over 8 terms → 180 distinct items, 3 of them
+installed, fetched 2026-09-10 16:26** (the run itself ran 16:25:31–16:26:22).
+A `meta` block and a `results` array, `indent=1`; the CSV is the same 180 rows
+flat, 9 columns, minus `grade` and `unblock`.
+
+**Steam is live and `browsesort=trend` reorders hourly, so every count below
+carries the fetch stamp and none of them is quotable without it.** Two browse
+passes 34 minutes apart on 2026-09-10 — 15:52 and 16:26 — returned the same
+212 / 180 / 3 and the same three installed ids, which says the answer held for
+half an hour, not that it is stable. Nothing here was subscribed, downloaded
+or written under the workshop root: pages were read once and never faster than
+one request a second (browse pages 1 s apart, item pages 4 s), and only the
+extracted facts (id, title, size, posted, updated) are recorded — no page is
+mirrored.
+
+### The hard constraint: a Workshop row is not a measurable mod
+
+**A result that is not installed cannot be linted, profiled, booted or measured
+from this repo.** The workshop tree is read-only here and subscribing needs
+Steam and a human, so **177 of the 180 rows (2026-09-10 16:26) are graded W**
+— a page title, a size and a date, nothing read off a shipped file — and
+every one of them carries the exact `unblock` action that would change that:
+*subscribe to `<id>` in Steam, let it download, re-run
+`python tools/mod_inventory.py`*. The **3 installed rows** are graded **C**
+only because they join to a record in `mod-inventory`, which *is* read off
+shipped files; the grade belongs to the inventory, never to the Workshop page.
+**Teardown picks come only from the installed corpus** — a W row cannot be
+one, however relevant it looks.
+
+### Per term (2026-09-10 16:26)
+
+| Term | Results | Installed | Note |
+|---|---|---|---|
+| `nutrition` | 30 | 0 | the whole page is third-party nutrition work and **not one item of it is installed here** |
+| `vitamin` | 30 | 0 | |
+| `malnutrition` | 2 | 0 | the only term that does not fill a page — `3441138219` Protein Shake [B42] and `3516166810` Red Days |
+| `diet` | 30 | 1 | the hit is a car mod (see below) |
+| `hydration` | 30 | 2 | |
+| `food overhaul` | 30 | 0 | |
+| `cooking overhaul` | 30 | 0 | |
+| `spoilage` | 30 | 0 | |
+
+212 result rows collapse to **180 distinct ids** because **29 ids appear under
+more than one term** (`3791169924` Realistic Blood & Transfusion System [B42]
+under `nutrition`, `hydration` and `spoilage`); `terms` on the row keeps all
+of them, in the order the terms were swept. **0 term failures** — every one
+of the eight browse pages parsed.
+
+### The three installed hits (2026-09-10 16:26)
+
+| `workshop_id` | `mod_ids` | Title | Term | Ev |
+|---|---|---|---|---|
+| `2932547723` | `93townCar` | '93 Lincoln Town Car + Limo | `diet` | C |
+| `3759421894` | `BigBottles` | Big Bottles | `hydration` | C |
+| `3765241705` | `BeyondTen` | Beyond Ten - Level 15 Skills [B41/B42] | `hydration` | C |
+
+**None of the three is a nutrition mod.** A car, a bottle-capacity tweak and a
+skill-cap mod matched the search text, and that is the whole overlap between
+what the Workshop surfaces for these terms and what is installed here.
+
+Two facts about coverage follow from that, and both bound what this dataset
+may be used for:
+
+- **176 of the 179 installed workshop items are not returned by any of the
+  eight terms** — this is a trend-sorted top-30-per-term slice of the
+  Workshop, not a census of it and not a second inventory.
+- **`3774789651` Long Term Preservation — the installed mod that writes both
+  nutrition signals — is in none of the eight pages**, while `3796644824`, a
+  third-party patch *to* it, is. Absence from this dataset is not evidence
+  about a mod; do not read a missing id as "no such mod".
+
+### The load-bearing not-installed items (2026-09-10 16:26)
+
+Titles and ids verbatim from `data/workshop-search.json`. Every row is **W**,
+and the unblock action is the same sentence on each: *subscribe to `<id>` in
+Steam, let it download, re-run `python tools/mod_inventory.py`* — which is
+what would move it into `mod-inventory` and make it lintable, profilable and
+measurable. Until then nothing below is a teardown candidate.
+
+| `workshop_id` | Title | Size | Posted | Updated | Why it is load-bearing | Ev |
+|---|---|---|---|---|---|---|
+| `3736275816` | ApocalipseBR - Nutrition Sync Fix | 453.434 KB | May 31 @ 7:55am | May 31 @ 11:18am | **someone else hit the MP nutrition-sync problem this library exists to characterise** and shipped a fix for it. Subscribing is the only way to read how; until then we know a title, a size and two dates | W |
+| `3796644824` | [NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation | 471.224 KB | Sep 6 @ 12:58am | *never* | **a third-party patch to our own top teardown pick** (`3774789651`, installed, 135 `script_nutrition` hits) — its title claims the preservation mod launders nutrition, which is a claim about a mod we *can* read. Subscribe to compare the two script sets; the patch is 4 days old and has never been updated | W |
+| `3690404044` | Nutrition Makes Sense | 1.042 MB | Mar 22 @ 4:57pm | Aug 18 @ 5:01pm | the largest of the nutrition-overhaul group, and the one with an add-on ecosystem (`3796753621` Nutrition Makes Sense Immersive Addon is in the same page) | W |
+| `3785515388` | Reasonable Nutrition | 145.008 KB | Aug 17 @ 7:44pm | Aug 26 @ 3:49pm | a small, recent take on the same problem — the cheapest comparison read if only one of these is ever subscribed | W |
+| `3782835400` | Realistic Nutrition | 636.708 KB | Aug 13 @ 10:59am | *never* | third of the three same-month "nutrition" overhauls; never updated since posting | W |
+| `3078272807` | Nutrition Tweaker Enhanced | 503.836 KB | Nov 10, 2023 @ 2:19am | Jul 22, 2025 @ 1:35pm | the B41-era ancestor still carrying the `Build 42` tag — the only one of the six older than this year | W |
+
+Named but not detail-fetched (the item-page budget below): `3796753621`
+Nutrition Makes Sense Immersive Addon, `3492090092` TwisTonFire - Calories &
+Nutrition, `3426165280` Fix NaN Nutrition Stats, `3388844542` Minimal Display
+Bars + Nutritions + Discomfort [B41/B42.20]. All **W**, all with the same
+unblock action.
+
+### Why 171 rows have no size, posted or updated
+
+**Steam rations item pages; it does not rate-limit them.** A `filedetails/?id=N`
+read past the allowance answers **HTTP 200 with the generic Workshop landing
+page** — no `workshopItemTitle`, no `detailsStatRight` — so curl reports
+success and a naive parser records an item that ships no stats. The first run
+of this tool did that: **177 rows of silent nulls at 15:52, which is why that
+output was discarded and never committed.** The tool now checks every body for
+the marker its parser needs and records a template miss as an `error` after one
+retry, and the details pass spends its budget on a **declared subset** named in
+`meta.details_ids`.
+
+At 16:26 that subset was the 3 installed rows plus the 6 nutrition items in the
+table above: **9 of 180 requested, 9 read, 0 failures, 0 rows with a null size
+and no error.** The other **171 rows carry `error: "details not fetched:
+outside --details-ids…"`** — they were never asked for. That is a statement
+about this run's budget, not about those items.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `workshop_id` | string | the Steam item id, all digits — **the join key**, and the row's identity. Unique across the 180 rows |
+| `title` | string | the `alt` text of the item thumbnail on the browse page, HTML-unescaped. The item page's own `workshopItemTitle` is read too but not stored: the browse title is present on every row |
+| `terms` | list | every swept term whose page returned this id, in sweep order. **Never empty** — a row exists because some term returned it. `;`-joined in the CSV |
+| `installed` | bool | does `workshop_id` match a record in `data/mod-inventory.json`? **3 true / 177 false** (2026-09-10 16:26) |
+| `mod_ids` | list | the resolved `mod_id`s of every corpus record under that item, sorted; `[]` when not installed. A list because one workshop item may hold several mods (230 records across 179 items). `;`-joined in the CSV |
+| `size` | string/null | `File Size` from the item page, verbatim (`453.434 KB`) — `null` on every row outside `meta.details_ids` |
+| `posted` | string/null | `Posted` from the item page, verbatim (`May 31 @ 7:55am`; a year appears only when it is not the current one) |
+| `updated` | string/null | `Updated` from the item page — **`null` means the item has never been updated since posting**, because the page then renders only two stats. On a row with no `size` it means nothing at all: read `error` first. Two of the 9 detailed rows are genuinely never-updated (`3782835400`, `3796644824`) |
+| `error` | string/null | why this row has no stats: a `curl rc=…` transport failure, an unrecognised item-page template (Steam's landing page at 200), or — on **171 rows** here — "details not fetched", meaning it was outside the declared subset |
+| `grade` | string | `C` for an installed row (it joins to a file-read inventory record), `W` for every other. **JSON only** — derive it from `installed` in the CSV |
+| `unblock` | string/null | the exact action that would make a W row measurable: *subscribe to `<id>` in Steam, let it download, re-run `tools/mod_inventory.py`*. `null` on installed rows. **JSON only** |
+
+`meta` carries `build` (`42.20.4 (b0bbce05d5)`), `generated`, **`fetched`** (the
+stamp every count needs), `tool`, `terms`, `source_url_pattern` (the browse and
+item URL templates, so a row can be re-checked by hand), `details_ids` (which
+rows were allowed to spend the item-page budget: `"none"`, `"all"`, or the list
+actually passed), `corpus` (the inventory path and its 230 records / 179 items
+at join time), `per_term` (results and error per term), `counts` (the census
+above, including `details_incomplete` — **which must stay 0**: a details pass
+that reports no error owes the row a file size, and it read 177 on the first
+run) and `notes` (the three reader caveats: the trend stamp, the item-page
+ration, and the W constraint). A `details_filled` stamp appears beside
+`fetched` only after a `--fill` repair pass, which re-reads the rows that
+failed without re-sweeping: **the file committed on 2026-09-10 has none**, so
+every column in it was read in the one 16:25:31–16:26:22 window.

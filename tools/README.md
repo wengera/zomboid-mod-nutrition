@@ -92,6 +92,49 @@ import patterns from there.
   [`data/README.md`](../data/README.md) § mod-inventory. Stdlib only bar
   `mod_lint` beside it; the workshop tree is read, never written.
 
+- `workshop_search.py` — `python tools/workshop_search.py [--details]
+  [--details-ids IDS] [--details-pause S] [--fill] [--out-dir D] [--corpus F]`
+  The **outward** half of the catalog: what nutrition-relevant B42 mods exist on
+  the public Workshop, and which of them are installed here. Eight terms
+  (`nutrition`, `vitamin`, `malnutrition`, `diet`, `hydration`, `food overhaul`,
+  `cooking overhaul`, `spoilage`) against the `Build 42`-tagged ready-to-use
+  browse section, one page each (Steam serves 30 a page; the tool does not
+  paginate), then a join to `data/mod-inventory.json` and
+  `data/workshop-search.json` + `.csv`. **212 results → 180 distinct items, 3
+  installed, fetched 2026-09-10 16:26** (`meta.fetched`; the run itself
+  16:25:31–16:26:22). Stdlib + `subprocess` curl in
+  `wiki_mirror.py`'s shape; nothing is subscribed and nothing is written under
+  the workshop root.
+  **`--compressed` is mandatory** — without it curl hands back gzip bytes and
+  every regex misses (5 876 unreadable bytes against ~686 000 readable). The
+  browse page is React-rendered with per-deploy obfuscated class names, so the
+  only things read off it are the `filedetails/?id=N` href and the thumbnail's
+  `alt` title; the item page is the older server-rendered template
+  (`workshopItemTitle`, two or three `detailsStatRight` divs — two means the item
+  has never been updated, so `updated` is `null` as a fact, not as a gap).
+  **The join key is `workshop_id`, never `mod_id`**: a Workshop page has no idea
+  what id a mod declares, and 20 corpus ids moved in this slice.
+  **Item pages are rationed.** Steam answers a throttled `filedetails` read with
+  the generic Workshop landing page at **HTTP 200**, so a naive run records rows
+  of silent `null`s — the first run of this tool recorded 177. Every fetch is now
+  checked for the marker its parser needs and a body without it is an `error`,
+  retried once, then recorded; `counts.details_incomplete` must stay 0. Measured
+  2026-09-10 16:20–16:26, roughly **13 item pages** succeed per window and
+  spacing does not buy more (4 s and 8 s behave alike); the size of the
+  allowance is not fixed and the tool models none — the 15:58 run was already
+  throttled before it began, while the 16:25 sweep read its 8 browse pages and
+  then all **9** item pages it asked for. So `--details-ids` spends that budget
+  on a **declared subset** — a list in which `installed` expands to every row
+  that joined to the corpus — and every other row records that it was never
+  asked for. `--fill` re-fetches only the rows carrying a real failure and
+  rewrites the pair, leaving the row set and `meta.fetched` alone.
+  **A not-installed row is graded `W`** and carries the exact unblocking action
+  (`subscribe to <id> in Steam, let it download, re-run tools/mod_inventory.py`):
+  it cannot be linted, profiled, booted or measured from this repo, so teardown
+  picks come only from the installed corpus. Columns, `meta` and the
+  load-bearing rows are documented in [`data/README.md`](../data/README.md)
+  § workshop-search.
+
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes
   `data/food-items.json` + `data/food-items.csv` (1005 items, 61 columns, 61
