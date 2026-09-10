@@ -138,7 +138,9 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   live macro read-back goes through the server's `item.get` on an RCON-spawned
   **instance** instead. Fluid **containers** have no live route at all —
   `Item` exposes no component accessor — so only fluid **definitions** can be
-  read back this way.
+  read back this way. Driven by `testing/experiments/s05_food_scan.py`, which
+  pairs the census with ten field-for-field spot checks against RCON-spawned
+  instances (`docs/vanilla/food-dataset-notes.md`).
   Slice-05 drink probe — server only, for the same reason every other intake
   command is: an MP client never calls `DrinkFluid` at all
   (`LuaTimedActionNew.complete @31 L162` skips the Lua `complete` when

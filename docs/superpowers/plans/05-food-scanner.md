@@ -46,9 +46,9 @@
 
 **Files:** none written except `docs/decisions.md` (at Task 6) and the Task-1 finding quoted into `docs/vanilla/food-dataset-notes.md`.
 
-- [ ] **Step 1: Look at the exact candidates.** `cd C:\Users\Angus\pz-b42 && ls tools/ basegen/`, read `tools/{insulation_scan,vehicle_scan,packread,cp}.py` and `basegen/{catalog,spriteindex,entity_sprites}.py`; then `cd C:\Users\Angus\repos\project_zomboid && ls tools/` (`doc_lint.py`, `mod_inventory.py`, `wiki_mirror.py` — none parses scripts). Confirm with `grep -rln "media/scripts\|parse_block\|parse_script" --include=*.py C:/Users/Angus/pz-b42` → expect exactly `tools/insulation_scan.py` and `tools/vehicle_scan.py`.
-- [ ] **Step 2: Record what they are.** `insulation_scan.py:parse_file` (lines 15–48) is a line loop — `MODULE_RE`/`ITEM_RE`/`PROP_RE` plus a `{`/`}` depth counter — that **flattens every `Key = Value` into one dict regardless of nesting depth**, keeping the last write, so a `component FluidContainer`'s `Capacity`/`RainFactor` silently merges into the item's own keys. It is a script, not an importable module (module-level `VANILLA`/`WORKSHOP`, prints at import), it lives outside the repo, and it reads display names from `ItemName_*.txt`, a layout B42 no longer ships. `vehicle_scan.py` is a coarser regex-chunk reader with the same properties.
-- [ ] **Step 3: Take the default.** **Write a new nesting-aware parser inside `tools/food_scan.py`**, borrowing `insulation_scan.py`'s line-loop shape (`tools/README.md` already names it the house convention) and adding a block stack. Do **not** import from `pz-b42` — outside the repo, would not survive a clone. Carry the sentence into Task 6's decisions row.
+- [x] **Step 1: Look at the exact candidates.** `cd C:\Users\Angus\pz-b42 && ls tools/ basegen/`, read `tools/{insulation_scan,vehicle_scan,packread,cp}.py` and `basegen/{catalog,spriteindex,entity_sprites}.py`; then `cd C:\Users\Angus\repos\project_zomboid && ls tools/` (`doc_lint.py`, `mod_inventory.py`, `wiki_mirror.py` — none parses scripts). Confirm with `grep -rln "media/scripts\|parse_block\|parse_script" --include=*.py C:/Users/Angus/pz-b42` → expect exactly `tools/insulation_scan.py` and `tools/vehicle_scan.py`.
+- [x] **Step 2: Record what they are.** `insulation_scan.py:parse_file` (lines 15–48) is a line loop — `MODULE_RE`/`ITEM_RE`/`PROP_RE` plus a `{`/`}` depth counter — that **flattens every `Key = Value` into one dict regardless of nesting depth**, keeping the last write, so a `component FluidContainer`'s `Capacity`/`RainFactor` silently merges into the item's own keys. It is a script, not an importable module (module-level `VANILLA`/`WORKSHOP`, prints at import), it lives outside the repo, and it reads display names from `ItemName_*.txt`, a layout B42 no longer ships. `vehicle_scan.py` is a coarser regex-chunk reader with the same properties.
+- [x] **Step 3: Take the default.** **Write a new nesting-aware parser inside `tools/food_scan.py`**, borrowing `insulation_scan.py`'s line-loop shape (`tools/README.md` already names it the house convention) and adding a block stack. Do **not** import from `pz-b42` — outside the repo, would not survive a clone. Carry the sentence into Task 6's decisions row.
 
 ### Task 2: `tools/food_scan.py` — parser + tests (TDD)
 
@@ -56,7 +56,7 @@
 
 **Interfaces (produces):** `parse_script(text, path="") -> list[Block]`; `Block = {"kind","name","module","file","line","props": {k: raw_str}, "lines": [str], "blocks": [Block]}` — `lines` holds every in-block entry that is not `Key = Value` (trailing comma stripped): a fluid's `Categories` entries (`Beverage`) and, for slice 06, recipe IO lines such as `item 1 [Base.BreadSlices] flags[ItemCount]`. `coerce(key, raw) -> int|float|bool|list|str` using `KEY_TYPES`. `load_translations(media_root) -> (items: dict, fluids: dict)`.
 
-- [ ] **Step 1: Write the tests first**, with fixtures quoted verbatim from the install (line numbers are the executor's re-check anchors):
+- [x] **Step 1: Write the tests first**, with fixtures quoted verbatim from the install (line numbers are the executor's re-check anchors):
 
 Three fixtures, quoted verbatim from the install (elisions marked `# …` are whole omitted `Key = Value,` lines of the same block; keep the rest byte-exact):
 
@@ -142,7 +142,7 @@ Required cases (mirror `tools/tests/test_doc_lint.py`'s style — plain `assert`
 `test_recipe_io_lines_kept` (see the controller amendment below the parser sketch);
 `test_real_install_counts` — skipped with `unittest.skipUnless(os.path.isdir(SCRIPTS_ROOT), …)` when the install is absent — asserts 722 `base:food` in `items/food.txt`, 150 `base:drainable`, 61 `fluid` blocks over the three fluid files, 133 `component FluidContainer` over `items/*.txt`.
 
-- [ ] **Step 2: Write the parser** to make them pass. Shape:
+- [x] **Step 2: Write the parser** to make them pass. Shape:
 
 ```python
 #!/usr/bin/env python3
@@ -199,25 +199,25 @@ def parse_script(text, path=""):
 
 `KEY_TYPES` is a dict over the 114 keys transcribed from `food-item-model.md`'s table (`int`: `DaysFresh, DaysTotallyRotten, MinutesToCook, MinutesToBurn, UnhappyChange, BoredomChange, StressChange, FoodSicknessChange, PoisonPower, fluReduction, painReduction, InverseCoughProbability, InverseCoughProbabilitySmoker, ConditionMax, Eattime, …`; `float`: `Calories, Carbohydrates, Lipids, Proteins, HungerChange, ThirstChange, Weight, WeightEmpty, enduranceChange, fatigueChange, ReduceInfectionPower, AlcoholPower, UseDelta, …`; `bool`: `IsCookable, CantEat, CannedFood, Packaged, Spice, GoodHot, BadCold, BadInMicrowave, DangerousUncooked, CantBeFrozen, FishingLure, RemoveNegativeEffectOnCooked, RemoveUnhappinessWhenCooked, IsDung, Medical, SurvivalGear, …`; `list(";")`: `Tags, EvolvedRecipe, ReplaceOnCooked, Researchablerecipes, RequireInHandOrInventory, SoundMap, IconsForTexture, StaticModelsByIndex, WorldStaticModelsByIndex`; everything else `str`). Bool follows the loader: only the literal `true` (any case) is true. An unlisted key stays a string and is flagged in the JSON's `meta.unknown_keys` — that is the mod-facing `defaultModData` path, not an error.
 
-- [ ] **Step 3: Run** — `cd C:\Users\Angus\repos\project_zomboid && python -m pytest tools/tests -q` → Expected: `29 passed` (14 existing + 15 new; if a case above collapses, never fewer than 24).
-- [ ] **Step 4: Commit** — `git commit -m "Slice 05: script block parser and tests"`
+- [x] **Step 3: Run** — `cd C:\Users\Angus\repos\project_zomboid && python -m pytest tools/tests -q` → Expected: `29 passed` (14 existing + 15 new; if a case above collapses, never fewer than 24).
+- [x] **Step 4: Commit** — `git commit -m "Slice 05: script block parser and tests"`
 
 ### Task 3: Build the dataset
 
 **Files:** Modify `tools/food_scan.py` (the build half + `main`), Create `data/food-items.json`, `data/food-items.csv`, Modify `data/README.md`, `tools/README.md`.
 
-- [ ] **Step 1: Selection rule** (write it as a docstring, it is the dataset's definition):
+- [x] **Step 1: Selection rule** (write it as a docstring, it is the dataset's definition):
   **(a)** every `base:food` block in `items/food.txt` (722) — `kind="food"`;
   **(b)** every `base:drainable` block in `items/drainable.txt` (150) — `kind="drainable"`, included because it is the other half of the 114-key union;
   **(c)** every item in any `generated/items/*.txt` carrying a `component FluidContainer` (133) — `kind="fluid_container"`;
   **(d)** every `fluid` definition from `fluids.txt`, `fluids_Alcoholic.txt`, `fluids_Beverages.txt` (61) as its own record set under the JSON's `fluids` key.
-- [ ] **Step 2: Joins.** Display name from `ItemName.json[f"{module}.{name}"]` (fluids from `Fluids.json[<DisplayName>]`, e.g. `Fluid_Name_Cola`), `None` when absent. `component FluidContainer` → `fluid_capacity` (`Capacity`), `fluid_ids` (each `Fluids.fluid` value split on `:`, first field), and the joined nutrition of the **first** listed fluid. `ReplaceOnCooked` / `ReplaceOnRotten` / `ReplaceOnUse` / `ReplaceOnDeplete` values are resolved against the scanned id set; unresolved targets go to `meta.unresolved_links` with the item and key that named them.
-- [ ] **Step 3: Write both files.** JSON: `{"meta": {...}, "items": [...], "fluids": [...]}` with `meta = {build: "42.20.4", jar_hash: "b0bbce05d5", generated: <UTC date>, tool: "tools/food_scan.py", sources: [<relative script paths>], counts: {food, drainable, fluid_container, fluids, unresolved_links}, unknown_keys: [...]}`; each item record carries `props_raw` (every key verbatim) **and** the typed fields, plus `source_file` + `source_line`. CSV: one row per item (fluids are joined, not rows) with these 47 columns — `id, module, name, kind, display_name, display_category, food_type, item_type, tags, nutrition_source, calories, carbohydrates, lipids, proteins, hunger_change, thirst_change, days_fresh, days_totally_rotten, cant_be_frozen, is_cookable, minutes_to_cook, minutes_to_burn, dangerous_uncooked, packaged, canned_food, cant_eat, spice, good_hot, bad_cold, unhappy_change, boredom_change, stress_change, fatigue_change, endurance_change, food_sickness_change, poison_power, alcohol_power, evolved_recipe, evolved_recipe_name, replace_on_cooked, replace_on_rotten, replace_on_use, on_cooked, on_eat, fluid_capacity, fluid_ids, weight` — plus a trailing `source_file, source_line`. An absent key is the **empty string**, never `0`; `nutrition_source` is `food_keys` or `fluid:<id>`. Write with `csv.writer(…, lineterminator="\n")` and `newline=""`.
-- [ ] **Step 4: Run and eyeball** — `python tools/food_scan.py` → Expected on stdout: `food 722 · drainable 150 · fluid_container 133 · fluids 61`. Then
+- [x] **Step 2: Joins.** Display name from `ItemName.json[f"{module}.{name}"]` (fluids from `Fluids.json[<DisplayName>]`, e.g. `Fluid_Name_Cola`), `None` when absent. `component FluidContainer` → `fluid_capacity` (`Capacity`), `fluid_ids` (each `Fluids.fluid` value split on `:`, first field), and the joined nutrition of the **first** listed fluid. `ReplaceOnCooked` / `ReplaceOnRotten` / `ReplaceOnUse` / `ReplaceOnDeplete` values are resolved against the scanned id set; unresolved targets go to `meta.unresolved_links` with the item and key that named them.
+- [x] **Step 3: Write both files.** JSON: `{"meta": {...}, "items": [...], "fluids": [...]}` with `meta = {build: "42.20.4", jar_hash: "b0bbce05d5", generated: <UTC date>, tool: "tools/food_scan.py", sources: [<relative script paths>], counts: {food, drainable, fluid_container, fluids, unresolved_links}, unknown_keys: [...]}`; each item record carries `props_raw` (every key verbatim) **and** the typed fields, plus `source_file` + `source_line`. CSV: one row per item (fluids are joined, not rows) with these 47 columns — `id, module, name, kind, display_name, display_category, food_type, item_type, tags, nutrition_source, calories, carbohydrates, lipids, proteins, hunger_change, thirst_change, days_fresh, days_totally_rotten, cant_be_frozen, is_cookable, minutes_to_cook, minutes_to_burn, dangerous_uncooked, packaged, canned_food, cant_eat, spice, good_hot, bad_cold, unhappy_change, boredom_change, stress_change, fatigue_change, endurance_change, food_sickness_change, poison_power, alcohol_power, evolved_recipe, evolved_recipe_name, replace_on_cooked, replace_on_rotten, replace_on_use, on_cooked, on_eat, fluid_capacity, fluid_ids, weight` — plus a trailing `source_file, source_line`. An absent key is the **empty string**, never `0`; `nutrition_source` is `food_keys` or `fluid:<id>`. Write with `csv.writer(…, lineterminator="\n")` and `newline=""`.
+- [x] **Step 4: Run and eyeball** — `python tools/food_scan.py` → Expected on stdout: `food 722 · drainable 150 · fluid_container 133 · fluids 61`. Then
   `python -c "import json;d=json.load(open('data/food-items.json'));i={x['id']:x for x in d['items']};a=i['Base.Apple'];print(a['calories'],a['carbohydrates'],a['days_fresh'],a['display_name']);print(i['Base.Salt']['calories'],i['Base.Salt']['thirst_change']);print(i['Base.Pop2']['nutrition_source'],i['Base.Pop2']['calories'])"`
   → Expected: `95.0 25.13 5 Apple` / `None 20.0` / `fluid:Cola 400.0`.
-- [ ] **Step 5: Document the columns** — add a `## food-items` section to `data/README.md` with one line per CSV column (name, type, the script key it comes from, empty-vs-zero rule) and the `meta` block's keys; move `food_scan.py` out of `tools/README.md`'s "Planned (P4)" list into a documented entry naming the four source files and the four `kind` values.
-- [ ] **Step 6: Commit** — `git commit -m "Slice 05: food/drink dataset"`
+- [x] **Step 5: Document the columns** — add a `## food-items` section to `data/README.md` with one line per CSV column (name, type, the script key it comes from, empty-vs-zero rule) and the `meta` block's keys; move `food_scan.py` out of `tools/README.md`'s "Planned (P4)" list into a documented entry naming the four source files and the four `kind` values.
+- [x] **Step 6: Commit** — `git commit -m "Slice 05: food/drink dataset"`
 
 ### Task 4: Harness `items.count` and `fluid.script` (server side)
 
@@ -225,7 +225,7 @@ def parse_script(text, path=""):
 
 The fixture excludes `mods/`, so harness Lua changes need **no** re-provisioning.
 
-- [ ] **Step 1: Add both commands.**
+- [x] **Step 1: Add both commands.**
 
 ```lua
 -- ---- script-item census (slice 05) -------------------------------------------
@@ -294,9 +294,9 @@ end)
 
 `select(2, TK.call(sc, "getItemType"))` yields the value (or `nil`), which `TK.call` then guards — the nil-safety rule is preserved without a second helper.
 
-- [ ] **Step 2: Smoke it** — `python testing/pzt doctor`, then `python testing/pzt run --hold 20`; while it holds, the run's report shows the harness loaded. Expected: PASS, 0 server errors. (The values are collected properly in Task 5; this step only proves the file still parses under Kahlua.)
-- [ ] **Step 3: Inventory the commands** — extend the server list in `docs/testing/README.md`'s command-bus bullet (the block that already names `item.get` / `item.set` / `item.age.tick`) with `items.count` (no args → `{total, food, byType, foodByModule, fluidDefs}`) and `fluid.script <fluidId>` (14 live property getters), and note that the food script `Item` exposes no macro getter to Kahlua, which is why `item.script` cannot answer them.
-- [ ] **Step 4: Commit** — `git commit -m "Slice 05: items.count and fluid.script harness commands"`
+- [x] **Step 2: Smoke it** — `python testing/pzt doctor`, then `python testing/pzt run --hold 20`; while it holds, the run's report shows the harness loaded. Expected: PASS, 0 server errors. (The values are collected properly in Task 5; this step only proves the file still parses under Kahlua.)
+- [x] **Step 3: Inventory the commands** — extend the server list in `docs/testing/README.md`'s command-bus bullet (the block that already names `item.get` / `item.set` / `item.age.tick`) with `items.count` (no args → `{total, food, byType, foodByModule, fluidDefs}`) and `fluid.script <fluidId>` (14 live property getters), and note that the food script `Item` exposes no macro getter to Kahlua, which is why `item.script` cannot answer them.
+- [x] **Step 4: Commit** — `git commit -m "Slice 05: items.count and fluid.script harness commands"`
 
 ### Task 5: Live cross-check and the ten spot checks (M)
 
@@ -304,19 +304,19 @@ end)
 
 Follow `testing/experiments/s02_lifecycle.py`: `new_run_dir("exp05")`, `make_server`/`make_client`, `ask(side, cmd, args)` from `_common.py`, `save()` before **and** after teardown, `hard_kill` in `finally`. One live session; nothing else running.
 
-- [ ] **Step 1: The ten items** — eight foods and two drinks, one per axis the dataset must get right: `Base.Apple` (plain, 7 evolved-recipe entries) · `Base.Steak` (cookable 50/70, `Stir fry:20`, `Sandwich:5|Cooked`) · `Base.CannedCorn` (`CannedFood`+`CantEat`+`Packaged`, **no** `DaysFresh` → `offAgeMax` stays `1000000000`) · `Base.CannedBologneseOpen` (opened can: thresholds + `ReplaceOnUse`) · `Base.BreadSlices` (`ReplaceOnCooked = Base.Toast`) · `Base.ConeIcecream` (`ReplaceOnRotten = Base.ConeIcecreamMelted`) · `Base.RatKing` (`DaysFresh == DaysTotallyRotten == 0`) · `Base.Salt` (spice, **no** macro key, `ThirstChange = +20.0`) · `Base.Pop2` (fluid container, `Capacity 0.3`, `Cola:1.0`) · `Base.JuiceBox` (`Capacity 0.2`, `JuiceGrape:1.0`, `Eattime 160`).
-- [ ] **Step 2: Collect.** Server `items.count`; then per item `server.rcon(f'additem "admin" "{t}" 1')`, wait `SPAWN_WAIT = 2.5`, `ask(server, "item.get", f"admin {t}")`; client `ask(client, "item.script", t)`; server `ask(server, "fluid.script", "Cola")` and `"JuiceGrape"`. Write all of it plus the scanner's records for the same ten ids into `<run_dir>/food-scan.json`.
-- [ ] **Step 3: Compare inside the experiment**, verdict in the artifact as `comparison`: per item, per field, `{script, live, source, match}` over `HungerChange/ThirstChange/DaysFresh/DaysTotallyRotten/IsCookable/MinutesToCook/MinutesToBurn` (client `item.script`) and `calories/carbs/lipids/proteins/hungChange/thirstChange/offAge/offAgeMax/minutesToCook/minutesToBurn` (server `item.get`). The instance transforms the script value: `HungerChange`/`ThirstChange` are **÷100** (`Item.InstanceItem`), `DaysFresh`→`offAge`, `DaysTotallyRotten`→`offAgeMax`, and an absent threshold reads back `1000000000`. Floats compare with `abs(a-b) <= 1e-4`; a mismatch is a **finding to document**, never a reason to hand-edit the dataset.
-- [ ] **Step 4: Run** — `python testing/experiments/s05_food_scan.py` → Expected: `items.count.food == 722`, `fluidDefs == 61`, all ten items matching on every compared field, `server_errors []`, well under 5 min wall. Copy the JSON byte-for-byte to `testing/artifacts/<run-id>/food-scan.json` (`sha256sum` it) and add the row to `testing/artifacts/README.md`'s Contents table. No time-speed change is made, so nothing needs restoring.
-- [ ] **Step 5: Commit** — `git commit -m "Slice 05: live count cross-check and ten-item spot check"`
+- [x] **Step 1: The ten items** — eight foods and two drinks, one per axis the dataset must get right: `Base.Apple` (plain, 7 evolved-recipe entries) · `Base.Steak` (cookable 50/70, `Stir fry:20`, `Sandwich:5|Cooked`) · `Base.CannedCorn` (`CannedFood`+`CantEat`+`Packaged`, **no** `DaysFresh` → `offAgeMax` stays `1000000000`) · `Base.CannedBologneseOpen` (opened can: thresholds + `ReplaceOnUse`) · `Base.BreadSlices` (`ReplaceOnCooked = Base.Toast`) · `Base.ConeIcecream` (`ReplaceOnRotten = Base.ConeIcecreamMelted`) · `Base.RatKing` (`DaysFresh == DaysTotallyRotten == 0`) · `Base.Salt` (spice, **no** macro key, `ThirstChange = +20.0`) · `Base.Pop2` (fluid container, `Capacity 0.3`, `Cola:1.0`) · `Base.JuiceBox` (`Capacity 0.2`, `JuiceGrape:1.0`, `Eattime 160`).
+- [x] **Step 2: Collect.** Server `items.count`; then per item `server.rcon(f'additem "admin" "{t}" 1')`, wait `SPAWN_WAIT = 2.5`, `ask(server, "item.get", f"admin {t}")`; client `ask(client, "item.script", t)`; server `ask(server, "fluid.script", "Cola")` and `"JuiceGrape"`. Write all of it plus the scanner's records for the same ten ids into `<run_dir>/food-scan.json`.
+- [x] **Step 3: Compare inside the experiment**, verdict in the artifact as `comparison`: per item, per field, `{script, live, source, match}` over `HungerChange/ThirstChange/DaysFresh/DaysTotallyRotten/IsCookable/MinutesToCook/MinutesToBurn` (client `item.script`) and `calories/carbs/lipids/proteins/hungChange/thirstChange/offAge/offAgeMax/minutesToCook/minutesToBurn` (server `item.get`). The instance transforms the script value: `HungerChange`/`ThirstChange` are **÷100** (`Item.InstanceItem`), `DaysFresh`→`offAge`, `DaysTotallyRotten`→`offAgeMax`, and an absent threshold reads back `1000000000`. Floats compare with `abs(a-b) <= 1e-4`; a mismatch is a **finding to document**, never a reason to hand-edit the dataset.
+- [x] **Step 4: Run** — `python testing/experiments/s05_food_scan.py` → Expected: `items.count.food == 722`, `fluidDefs == 61`, all ten items matching on every compared field, `server_errors []`, well under 5 min wall. Copy the JSON byte-for-byte to `testing/artifacts/<run-id>/food-scan.json` (`sha256sum` it) and add the row to `testing/artifacts/README.md`'s Contents table. No time-speed change is made, so nothing needs restoring.
+- [x] **Step 5: Commit** — `git commit -m "Slice 05: live count cross-check and ten-item spot check"`
 
 ### Task 6: `docs/vanilla/food-dataset-notes.md`, lint, ledgers
 
 **Files:** Create `docs/vanilla/food-dataset-notes.md`, Modify `docs/vanilla/README.md`, `docs/progress.md`, `docs/decisions.md`.
 
-- [ ] **Step 1: Write the doc** in the house skeleton, header `**Verified against: 42.20.4 (`b0bbce05d5`)**` + date + slice, five-line summary, then: **Model** — what the dataset *is* (the four `kind` buckets with counts, the selection rule, empty-vs-zero, the `nutrition_source` rule, the CSV/JSON split), `Ev` column on every table; **Code map** — the source files with line counts plus the `ScriptManager`/`FluidDefinitionScript` methods the live check used; **MP behavior** — script data loads identically on both sides and is never synced, while the *instance* fields are server-owned (cite `food-item-model.md` § MP behaviour and the `ItemStatsPacket` zero-field leak), so a mod reading these numbers off a client instance may be reading another item's value: read the dataset, not the instance; **Discrepancies** — the Q3 answer (fluid nutrition per unit vs absolute) and any spot-check mismatch; **Open questions** — what Q2/Q3 left unresolved, e.g. unresolved `ReplaceOn*` targets; **Sources** — the four script paths with counts, the two translation JSONs, the jar methods, the run id and artifact path. Every claim row carries **C**, **M** (run id + `testing/artifacts/<run-id>/food-scan.json`) or **W**. Do **not** re-derive the 114-key table — link it.
-- [ ] **Step 2: Index and lint** — add the `food-dataset-notes.md` row to `docs/vanilla/README.md`'s Documents table (status **done** — slice 05). Run `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` → Expected `0 finding(s)`; `python -m pytest tools/tests -q` → Expected `28 passed`.
-- [ ] **Step 3: Ledgers** — `docs/decisions.md` gets one row per default taken (at minimum: the new parser rather than reusing/importing `pz-b42`; the four-bucket selection rule including drainables; CSV curated / JSON complete; `fluid.script` added beside the spec's `items.count`; empty string for an absent key). `docs/progress.md`: 05 → `done` with date, commit range and a one-line outcome, and add the ripples for slice 06 (below).
+- [x] **Step 1: Write the doc** in the house skeleton, header `**Verified against: 42.20.4 (`b0bbce05d5`)**` + date + slice, five-line summary, then: **Model** — what the dataset *is* (the four `kind` buckets with counts, the selection rule, empty-vs-zero, the `nutrition_source` rule, the CSV/JSON split), `Ev` column on every table; **Code map** — the source files with line counts plus the `ScriptManager`/`FluidDefinitionScript` methods the live check used; **MP behavior** — script data loads identically on both sides and is never synced, while the *instance* fields are server-owned (cite `food-item-model.md` § MP behaviour and the `ItemStatsPacket` zero-field leak), so a mod reading these numbers off a client instance may be reading another item's value: read the dataset, not the instance; **Discrepancies** — the Q3 answer (fluid nutrition per unit vs absolute) and any spot-check mismatch; **Open questions** — what Q2/Q3 left unresolved, e.g. unresolved `ReplaceOn*` targets; **Sources** — the four script paths with counts, the two translation JSONs, the jar methods, the run id and artifact path. Every claim row carries **C**, **M** (run id + `testing/artifacts/<run-id>/food-scan.json`) or **W**. Do **not** re-derive the 114-key table — link it.
+- [x] **Step 2: Index and lint** — add the `food-dataset-notes.md` row to `docs/vanilla/README.md`'s Documents table (status **done** — slice 05). Run `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` → Expected `0 finding(s)`; `python -m pytest tools/tests -q` → Expected `28 passed`.
+- [x] **Step 3: Ledgers** — `docs/decisions.md` gets one row per default taken (at minimum: the new parser rather than reusing/importing `pz-b42`; the four-bucket selection rule including drainables; CSV curated / JSON complete; `fluid.script` added beside the spec's `items.count`; empty string for an absent key). `docs/progress.md`: 05 → `done` with date, commit range and a one-line outcome, and add the ripples for slice 06 (below).
 - [ ] **Step 4: Commit and push** — `git commit -m "Slice 05: food dataset notes"` then `git push`.
 
 ## Deliverables
@@ -351,3 +351,73 @@ Follow `testing/experiments/s02_lifecycle.py`: `new_run_dir("exp05")`, `make_ser
 
 - `docs/progress.md` 05 → **done** (date, commit range, outcome) with **ripples for slice 06**: (a) the join key is `data/food-items.json` → `items[].id` (`Base.<name>`), with `kind`, `calories/carbohydrates/lipids/proteins`, `hunger_change`, `is_cookable`, `replace_on_cooked`, `replace_on_rotten` and `evolved_recipe` the fields a recipe result resolves against; (b) B42 drinks are `base:normal` + `component FluidContainer` joined to `generated/fluids*.txt`, **not** `Food` items, and `media/scripts/fluids/` does not exist; (c) `parse_script` in `tools/food_scan.py` is the shared block reader — slice 06 imports it rather than writing a second one; (d) the live macro readback route is server `item.get` on an RCON-spawned instance, because `item.script` cannot answer the four macros.
 - `docs/decisions.md` rows for every default taken; `testing/artifacts/README.md` row for the run; push.
+
+## Acceptance results (2026-09-10)
+
+Every step above ran and is ticked, with one exception noted at the end. Six tasks, ten
+commits: `31478dd` (parser + tests), `0728c8e` (parser fixes: typed fluids, repeated keys,
+multi-word headers), `948baa2` (`items.count` / `fluid.script`), `72ed836` (dataset),
+`25870ad` (dataset fixes: the `values` helper, `replace_on_deplete` as column 48),
+`5290bfb` (live count cross-check and ten spot checks), `b786881` (per-container fluid
+columns — the plan's per-unit decision point firing), `6a30471` (driver provenance and the
+artifact README disclosure), `705a12f` (`nutrition_source` empty where no nutrition key
+exists), `abeb35e` (the live drink probe), plus this task's doc commit. Two live sessions
+produced committed evidence: `exp05-20260910-084109` and `exp05b-20260910-093307`.
+
+1. `python tools/food_scan.py` → **`food 722 · drainable 150 · fluid_container 133 ·
+   fluids 61`**, verbatim, and both data files rewritten — `1005 items, 61 columns` to the CSV,
+   `1005 items + 61 fluids` to the JSON, with `37 unresolved links, 6 missing display names,
+   0 undefined fluid refs, 60 unknown keys`. Two consecutive runs are byte-identical (md5
+   `e614ef18…` JSON, `c74d487e…` CSV); items and fluids are sorted by `id` and the only field
+   that moves between days is the `meta.generated` build stamp. The column count grew twice
+   after the plan was written — 47 + 2 → 48 + 2 (`replace_on_deplete`) → 59 + 2 (the eleven
+   per-litre columns) — and `data/README.md` is renumbered 1–61 to match.
+2. **Q4: yes.** Live `items.count` reported `total 5092`, `food 722`,
+   `byType["base:food"] 722`, `byType["base:drainable"] 150`, `foodByModule {Base: 722}` and
+   `fluidDefs 61` — equal to the scanner and to the plan's expectations, on **two independent
+   boots** (`t4probe-20260910-081129` and `exp05-20260910-084109`, byte-for-byte the same
+   reply). The live fluid id set is *exactly equal* to the 61 script blocks in both directions,
+   so the cross-check covers fluid identity and not just the count. `ItemType.toString()`
+   returns the `base:food` ResourceLocation form, so that decision point never fired. The 133
+   `fluid_container` count has **no** live route — the script `Item` exposes no component
+   accessor — and stays grade C, recorded as an open question.
+3. **Q5: yes, 0 mismatches.** Ten items, one per axis, spawned server-side and read on both
+   sides: **182 fields compared, 170 matched, 12 `n/a`, 0 mismatched**, `summary.mismatches`
+   `[]`, no substitution needed (the sealed, uneatable `Base.CannedCorn` spawned fine, so the
+   ruled `Base.TinnedBeans` stand-in was never used). The 12 `n/a` are themselves the finding,
+   not a gap: a `base:normal` fluid container's instance answers the four `InventoryItem`
+   ageing/cooking fields and none of the six `Food` nutrition getters. Artifact
+   `testing/artifacts/exp05-20260910-084109/food-scan.json` (`comparison`), 107.6 s,
+   `server_errors []`.
+4. `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` → **`0
+   finding(s)`**, run on the tree with `docs/vanilla/food-dataset-notes.md` in place. The 4
+   pre-existing findings under `docs/mods-survey/teardowns/` stay deferred by the standing
+   ruling in [`docs/decisions.md`](../../decisions.md).
+5. `python -m pytest tools/tests -q` → **`59 passed in 0.70s`** — 14 pre-existing (untouched)
+   plus 45 in `tools/tests/test_food_scan.py`, well above the plan's `≥ 24` floor. The step
+   texts' `29 passed` / `28 passed` were written before the three fix rounds; nothing was
+   deleted or weakened in any of them.
+6. `python testing/pzt run --hold 5` → **met** by `run-20260910-081230`, a `--hold 20` run (a
+   superset) on the harness file carrying both census commands: **PASS**, `server_stopped rc=0
+   errors=0`, `faults []`, `server_errors []`; an earlier identical PASS is
+   `run-20260910-080558`. The tick poller is registered at the *bottom* of
+   `PZTestKit_Server.lua`, after the inserted block, so `ping server=ok:pong` is itself proof
+   the whole file parsed under Kahlua. Task 5b later appended the `drink` command to the same
+   file; that version has not been through `pzt run`, but it booted clean in
+   `exp05b-20260910-093307` (`server_errors []`, `server_stopped rc=0`, doctor all-`ok`), which
+   exercises the same load path.
+7. **Q1–Q5 each have a cited answer** in [`docs/vanilla/food-dataset-notes.md`](../../vanilla/food-dataset-notes.md)
+   § The five questions, one row per question with its evidence grade.
+
+**Two plan expectations moved.** (a) The per-unit decision point fired: a fluid's `Properties`
+are per **litre**, so the dataset gained `nutrition_basis`, `fluid_share`, `fluid_fill_litres`,
+`fluid_pick_random`, `drinkable` and six `*_per_container` columns rather than the single
+`calories_per_container` the plan sketched — and the multiplier is `fluid_fill_litres`, which
+*is* the plan's `Capacity × share`. (b) The plan had no live drink measurement; one was added
+as Task 5b (`exp05b-20260910-093307`), which closes slice 01's open question 11 and takes the
+per-litre arithmetic from C to **C + M**: `+120.000031` kcal and `+31.200001` g carbs from one
+0.3 L Cola can, `+60 / +15.6` at `f = 0.5`, `+80 / +23.999996` from a 0.2 L JuiceBox.
+
+**What is not in this task's commit.** Step 4's `git push` and Step 3's `docs/progress.md`
+half — the board row, its commit range and the slice-06 ripples — are the controller's
+close-out. Step 3's `docs/decisions.md` half landed here: fourteen slice-05 rows.
