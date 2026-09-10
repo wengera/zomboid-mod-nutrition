@@ -309,6 +309,7 @@ COLUMNS = (
     ("item_type", "ItemType"),
     ("tags", "Tags"),
     ("nutrition_source", None),
+    ("nutrition_basis", None),
     ("calories", "Calories"),
     ("carbohydrates", "Carbohydrates"),
     ("lipids", "Lipids"),
@@ -345,9 +346,22 @@ COLUMNS = (
     ("on_eat", "OnEat"),
     ("fluid_capacity", None),
     ("fluid_ids", None),
+    # The fill, and the per-litre nutrition multiplied through it. All ten are derived, and all ten
+    # are null on a row that owns no `component FluidContainer` -- see `build_item` for the
+    # arithmetic and its cites.
+    ("fluid_share", None),
+    ("fluid_fill_litres", None),
+    ("fluid_pick_random", None),
+    ("drinkable", None),
+    ("calories_per_container", None),
+    ("carbohydrates_per_container", None),
+    ("lipids_per_container", None),
+    ("proteins_per_container", None),
+    ("hunger_change_per_container", None),
+    ("thirst_change_per_container", None),
     ("weight", "Weight"),
-    # Column 48, appended rather than slotted beside the other `ReplaceOn*` columns so the 47 that
-    # shipped keep the positions data/README.md gave them.
+    # The last declared column, appended rather than slotted beside the other `ReplaceOn*` columns
+    # when it was added (fix round 1) and left there since.
     ("replace_on_deplete", "ReplaceOnDeplete"),
 )
 TRAILING = ("source_file", "source_line")
@@ -369,6 +383,21 @@ NUTRITION_COLUMNS = tuple(name for name, key in COLUMNS if name in {
     "calories", "carbohydrates", "lipids", "proteins", "hunger_change", "thirst_change",
     "unhappy_change", "boredom_change", "stress_change", "fatigue_change", "endurance_change",
     "food_sickness_change", "poison_power", "alcohol_power"})
+
+# `(per-litre column, its x litres twin)`. A fluid's `Properties` are per **one litre**, so on a
+# `fluid_container` row the six columns on the left are not what the item delivers -- the right-hand
+# column is. The engine does this multiply itself, in `FluidContainer.recalculateCaches @222-@250
+# L631-L632` (`propertiesCache.addFromMultiplied(fluid.getProperties(), litres)`), before
+# `IsoGameCharacter.DrinkFluid @23-@100 L5878-L5881` reads the aggregate. Only these six of the 14
+# NUTRITION_COLUMNS get a twin: they are the six the drink path actually spends
+# (`DrinkFluid` -> `Nutrition` for the four macros, -> `Stats` for hunger and thirst).
+# See .superpowers/sdd/05-food-scanner/q3-fluid-nutrition-notes.md.
+PER_CONTAINER_COLUMNS = tuple((name, name + "_per_container") for name in (
+    "calories", "carbohydrates", "lipids", "proteins", "hunger_change", "thirst_change"))
+
+# `ISInventoryPaneContextMenu.lua:2318` refuses the Drink menu outright for a bigger container, so
+# `drinkable` is the fill's "can a player drink this at all" flag. 16 of the 133 fail it.
+DRINKABLE_MAX_CAPACITY = 3.0
 
 # Resolved against the dataset's own id set; a target outside it is a `meta.unresolved_links`
 # row. `ReplaceOnCooked` is list-typed in KEY_TYPES, the other three are strings. All four have a
@@ -407,6 +436,58 @@ def _capacity(raw):
         return float(raw)
     except ValueError:
         return raw
+
+
+def _flag(raw):
+    """A component key's bool. `Boolean.parseBoolean`: only the literal `true` is true.
+
+    The component keys are outside KEY_TYPES for the same reason `Capacity` is, so `coerce` would
+    leave `PickRandomFluid = true` the string `"true"`; `fluid_pick_random` is a declared column.
+    """
+    return raw.strip().lower() == "true"
+
+
+def _share(raw):
+    """The share of a `fluid = <id>[:share[:r:g:b]]` line, defaulting to 1.0.
+
+    `FluidContainerScript.readFluid @16-@29 L348-L349` splits the value on `:` and reads the second
+    field as the fluid's percentage (a five-field form adds an RGB colour, `@32-@76 L351-L355`); a
+    line that writes only an id leaves the script's own default of 1.0. A share that will not parse
+    comes back as the raw string, the way `_capacity` does.
+    """
+    parts = raw.split(":")
+    if len(parts) < 2 or not parts[1].strip():
+        return 1.0
+    try:
+        return float(parts[1].strip())
+    except ValueError:
+        return parts[1].strip()
+
+
+def _round(value):
+    """6 decimals: the product of two script decimals, minus the binary-float dust.
+
+    `-12.0 * 0.3` is `-3.5999999999999996` in IEEE 754 and `104.0 * 0.3` is `31.200000000000003`;
+    both are an artefact of the multiply, not of the files, which write at most two decimals for a
+    `Capacity` and two for a property. 7 of the 72 filled rows carry such a product.
+    """
+    return round(value, 6)
+
+
+def _fill_litres(capacity, share):
+    """`min(Capacity x share, Capacity)` -- the litres a container spawns holding.
+
+    `FluidContainer.readFromScript @93-@106 L108` reads `FluidContainerScript.getInitialAmount()`,
+    which defaults to `Capacity` when no `InitialAmount` key was written (`@0-@11 L387-L388`, and no
+    vanilla script writes one); `addInitialFluid @11-@17 L132` multiplies it by the share, and
+    `addFluid @30-@45 L1003-L1004` clamps the result to what is left of the capacity -- which is
+    what `Base.BucketWaterDebug`'s `Water:10.0` into a `Capacity = 10.0` runs into, the only share
+    in 42.20.4 that is not `1.0`. `None` unless both terms are numbers: without a parsable capacity
+    and share there is no auditable fill.
+    """
+    if not isinstance(capacity, (int, float)) or not isinstance(share, (int, float)):
+        return None
+    return _round(min(capacity * share, capacity))
 
 
 def load_trees(media_root=MEDIA):
@@ -540,6 +621,20 @@ def build_item(kind, block, container, fluids_by_id, item_names, misses):
     no fluid-container item writes a nutrition key of its own, so the replacement never actually
     loses a value; 10 of the 61 fluids carry no `Properties` block at all, so `fluid:Dye` with
     empty nutrition is a real and correct row.
+
+    **The joined values are per litre, and the item's own are per item**, which is what
+    `nutrition_basis` says on every row and what the six `_per_container` columns resolve: a
+    fluid's `Properties` are the effect of one litre of it (`FluidDefinitionScript.LoadProperties
+    @0-@453 L367-L410` parses them literally; `FluidContainer.recalculateCaches @222-@250
+    L631-L632` is what multiplies them by the litres in the container), so `Base.Pop2` is 400 kcal
+    of Cola per litre but `400 x 0.3 = 120` kcal of can. The fill facts make that arithmetic
+    auditable from the row: `fluid_share` off the first `fluid =` line, `fluid_fill_litres` =
+    `min(capacity x share, capacity)`, `fluid_pick_random` off the component's `PickRandomFluid`
+    (the row then carries **one draw** of the pool, not the item's value) and `drinkable` =
+    `fluid_capacity <= 3.0`. The `/100` that turns `hunger_change` / `thirst_change` into stat
+    units is *not* applied on either side (`getHungerChange @7 L186` vs `getCalories @0 L202`), so
+    a can's `-3.6` stays comparable to an apple's `-16`. See
+    .superpowers/sdd/05-food-scanner/q3-fluid-nutrition-notes.md for the whole read.
     """
     record = dict.fromkeys(CSV_HEADER)
     item_id = "%s.%s" % (block["module"], block["name"])
@@ -557,20 +652,46 @@ def build_item(kind, block, container, fluids_by_id, item_names, misses):
             record[column] = coerce(key, raw)
 
     if container is not None:
-        if "Capacity" in container["props"]:
-            record["fluid_capacity"] = _capacity(container["props"]["Capacity"])
+        # the three component keys are read through `values`, i.e. the loader's equalsIgnoreCase
+        # way, and take their last line -- exactly as the item keys above do
+        capacity = values(container, "Capacity")
+        if capacity:
+            record["fluid_capacity"] = _capacity(capacity[-1])
+        record["fluid_pick_random"] = any(_flag(raw)
+                                          for raw in values(container, "PickRandomFluid"))
+        if isinstance(record["fluid_capacity"], (int, float)):
+            record["drinkable"] = record["fluid_capacity"] <= DRINKABLE_MAX_CAPACITY
         # `[]` (an empty jar: a container listing no fluid) is not `None` (no container at all)
         pool = named(container, "Fluids")
-        ids = [raw.split(":")[0].strip() for raw in (values(pool, "fluid") if pool else ())]
+        raws = values(pool, "fluid") if pool else []
+        ids = [raw.split(":")[0].strip() for raw in raws]
         record["fluid_ids"] = ids
         if ids:
             record["nutrition_source"] = "fluid:" + ids[0]
+            record["fluid_share"] = _share(raws[0])
+            record["fluid_fill_litres"] = _fill_litres(record["fluid_capacity"],
+                                                       record["fluid_share"])
             fluid = fluids_by_id.get(ids[0])
             if fluid is None:
                 misses["unresolved_fluid_refs"].append({"item": item_id, "fluid_id": ids[0]})
             else:
                 for column in NUTRITION_COLUMNS:
                     record[column] = fluid[column]
+            litres = record["fluid_fill_litres"]
+            if litres is not None:
+                for column, derived in PER_CONTAINER_COLUMNS:
+                    # a key the fluid never writes stays absent here too: `x 0.3` of nothing is
+                    # nothing, not `0.0` (`fluid Water` writes only `ThirstChange`)
+                    if isinstance(record[column], (int, float)):
+                        record[derived] = _round(record[column] * litres)
+
+    # Which unit the nutrition columns are in -- after the join, so a container reads `per_litre`
+    # even when the fluid it names carries no `Properties` at all. A row that carries no nutrition
+    # value from either side has no basis to report, and says so with `None` rather than a guess.
+    if record["nutrition_source"].startswith("fluid:"):
+        record["nutrition_basis"] = "per_litre"
+    elif any(record[column] is not None for column in NUTRITION_COLUMNS):
+        record["nutrition_basis"] = "per_item"
 
     record["props_raw"] = _raw_entries(block)
     return record
@@ -633,11 +754,12 @@ def unknown_keys(items, fluids):
     fluid records' own keys (`DisplayName`, `ColorReference`, `alcohol`, the `Poison` block).
     KEY_TYPES is the food + drainable union by design, so this list is expected to be non-empty.
 
-    Two of the keys listed are not kept raw, and neither reaches a `props_raw` at all: they
+    Three of the keys listed are not kept raw, and none of them reaches a `props_raw` at all: they
     belong to the `component FluidContainer`, and the dataset types them itself into declared
-    columns -- `Capacity` floated into `fluid_capacity`, `fluid` split into `fluid_ids`. They are
-    *injected* into the list below because the **key** is outside the item key table, which is
-    what this list reports; it is not a claim that their values stayed strings.
+    columns -- `Capacity` floated into `fluid_capacity`, `fluid` split into `fluid_ids` and
+    `fluid_share`, `PickRandomFluid` flagged into `fluid_pick_random`. They are *injected* into the
+    list below because the **key** is outside the item key table, which is what this list reports;
+    it is not a claim that their values stayed strings.
     """
     seen = set()
     for record in items:
@@ -646,6 +768,8 @@ def unknown_keys(items, fluids):
             seen.add("Capacity")
         if record["fluid_ids"]:
             seen.add("fluid")
+        if record["fluid_pick_random"]:
+            seen.add("PickRandomFluid")
     for record in fluids:
         seen.update(record["props_raw"])
         seen.update(record["properties_raw"])
@@ -666,6 +790,12 @@ def build_dataset(media_root=MEDIA):
     # possible fills. 5 in 42.20.4; a container repeating a single id is not one of them.
     counts["multi_fluid_containers"] = sum(
         1 for r in items if r["fluid_ids"] and len(set(r["fluid_ids"])) > 1)
+    # The fill split, over the same 133 rows: a container spawns holding its listed fluid
+    # (`fluid_fill_litres`) or nothing at all. 72 + 61 in 42.20.4, and 9 of the 72 fill from a pool
+    # rather than from one named fluid, which is what makes their nutrition one draw of several.
+    counts["fluid_containers_filled"] = sum(1 for r in items if r["fluid_ids"])
+    counts["fluid_containers_pick_random"] = sum(1 for r in items if r["fluid_pick_random"])
+    counts["fluid_containers_empty"] = sum(1 for r in items if r["fluid_ids"] == [])
     counts["unresolved_links"] = len(misses["unresolved_links"])
     meta = {
         "build": BUILD,

@@ -14,6 +14,16 @@ came from. Nothing is measured, inferred or defaulted here — the live checks
 are `testing/`, and a key a script does not write has no value in this
 dataset.
 
+**Read `nutrition_basis` before you read a nutrition column.** An item's food
+keys are per item; a fluid's `Properties` are per **litre**, and a drink row's
+nutrition is joined from a fluid. `Base.Apple` really is 95 kcal, but
+`Base.Pop2` is not 400 kcal — Cola is 400 kcal per litre and the can holds
+0.3 L, so the can is 120. Every row says which unit it is in, and a
+fluid-sourced row also carries the multiplied-out
+`*_per_container` columns; summing `calories` across kinds without looking at
+`nutrition_basis` is wrong by the capacity factor. See § Per litre, not per
+item.
+
 **The selection rule** (`food_scan.select`, four rules, first match wins):
 
 | kind | rule | count |
@@ -29,7 +39,7 @@ Fluids are joined into those rows and also kept whole under the JSON's
 
 ### CSV columns
 
-50 columns: the 48 below plus the trailing `source_file`, `source_line`.
+61 columns: the 59 below plus the trailing `source_file`, `source_line`.
 **An absent key is the empty string, never `0`** — `Base.Salt` has no
 `Calories` line, so its `calories` cell is empty, and a script that really
 writes `0` still prints `0`. In the JSON the same absence is `null`. Booleans
@@ -47,62 +57,145 @@ print as `true` / `false`; list columns join their parts with `;`.
 | 8 | `item_type` | string | `ItemType` |
 | 9 | `tags` | list `;` | `Tags` |
 | 10 | `nutrition_source` | string | derived: `food_keys`, or `fluid:<id>` when the row's nutrition was joined from a fluid |
-| 11 | `calories` | float | `Calories` |
-| 12 | `carbohydrates` | float | `Carbohydrates` |
-| 13 | `lipids` | float | `Lipids` |
-| 14 | `proteins` | float | `Proteins` |
-| 15 | `hunger_change` | float | `HungerChange` |
-| 16 | `thirst_change` | float | `ThirstChange` |
-| 17 | `days_fresh` | int | `DaysFresh` |
-| 18 | `days_totally_rotten` | int | `DaysTotallyRotten` |
-| 19 | `cant_be_frozen` | bool | `CantBeFrozen` |
-| 20 | `is_cookable` | bool | `IsCookable` |
-| 21 | `minutes_to_cook` | int | `MinutesToCook` |
-| 22 | `minutes_to_burn` | int | `MinutesToBurn` |
-| 23 | `dangerous_uncooked` | bool | `DangerousUncooked` |
-| 24 | `packaged` | bool | `Packaged` |
-| 25 | `canned_food` | bool | `CannedFood` |
-| 26 | `cant_eat` | bool | `CantEat` |
-| 27 | `spice` | bool | `Spice` |
-| 28 | `good_hot` | bool | `GoodHot` |
-| 29 | `bad_cold` | bool | `BadCold` |
-| 30 | `unhappy_change` | int | `UnhappyChange` |
-| 31 | `boredom_change` | int | `BoredomChange` |
-| 32 | `stress_change` | int | `StressChange` |
-| 33 | `fatigue_change` | float | `fatigueChange` |
-| 34 | `endurance_change` | float | `enduranceChange` |
-| 35 | `food_sickness_change` | int | `FoodSicknessChange` (the fluid files spell it `foodSicknessChange`; both land here) |
-| 36 | `poison_power` | int | `PoisonPower` |
-| 37 | `alcohol_power` | float | `AlcoholPower` — the item key, never the fluid's `alcohol` |
-| 38 | `evolved_recipe` | list `;` | `EvolvedRecipe` (`Cake:16` parts, `\|Cooked` suffix intact) |
-| 39 | `evolved_recipe_name` | string | `EvolvedRecipeName` |
-| 40 | `replace_on_cooked` | list `;` | `ReplaceOnCooked` (list-typed in the key table, so a single target is a one-item list) |
-| 41 | `replace_on_rotten` | string | `ReplaceOnRotten` |
-| 42 | `replace_on_use` | string | `ReplaceOnUse` |
-| 43 | `on_cooked` | string | `OnCooked` |
-| 44 | `on_eat` | string | `OnEat` |
-| 45 | `fluid_capacity` | float | `component FluidContainer`'s `Capacity`, in litres |
-| 46 | `fluid_ids` | list `;` | each `Fluids.fluid` value's first `:` field, in file order — a pick-random container either repeats one id (`HairDyeCommon` lists `HairDye` 8 times) or lists several different ones, and then only the first fills the nutrition columns: see the fluid join below. In the JSON, `[]` is a container that lists no fluid (an empty jar, 59 of them) and `null` is a row that is not a container |
-| 47 | `weight` | float | `Weight` |
-| 48 | `replace_on_deplete` | string | `ReplaceOnDeplete` — what a drainable becomes when it runs out (42 rows carry one). Appended as the last column, so columns 1–47 keep the positions they were published with |
-| 49 | `source_file` | string | path under `media/scripts/generated/`, e.g. `items/food.txt` |
-| 50 | `source_line` | int | 1-based line of the block's header |
+| 11 | `nutrition_basis` | string | derived: **which unit columns 12–17 and 31–38 are in** — `per_item` for a row that fills them from its own keys, `per_litre` for a fluid-sourced row, empty for the 280 rows that carry no nutrition value at all. See § Per litre, not per item |
+| 12 | `calories` | float | `Calories` |
+| 13 | `carbohydrates` | float | `Carbohydrates` |
+| 14 | `lipids` | float | `Lipids` |
+| 15 | `proteins` | float | `Proteins` |
+| 16 | `hunger_change` | float | `HungerChange` |
+| 17 | `thirst_change` | float | `ThirstChange` |
+| 18 | `days_fresh` | int | `DaysFresh` |
+| 19 | `days_totally_rotten` | int | `DaysTotallyRotten` |
+| 20 | `cant_be_frozen` | bool | `CantBeFrozen` |
+| 21 | `is_cookable` | bool | `IsCookable` |
+| 22 | `minutes_to_cook` | int | `MinutesToCook` |
+| 23 | `minutes_to_burn` | int | `MinutesToBurn` |
+| 24 | `dangerous_uncooked` | bool | `DangerousUncooked` |
+| 25 | `packaged` | bool | `Packaged` |
+| 26 | `canned_food` | bool | `CannedFood` |
+| 27 | `cant_eat` | bool | `CantEat` |
+| 28 | `spice` | bool | `Spice` |
+| 29 | `good_hot` | bool | `GoodHot` |
+| 30 | `bad_cold` | bool | `BadCold` |
+| 31 | `unhappy_change` | int | `UnhappyChange` |
+| 32 | `boredom_change` | int | `BoredomChange` |
+| 33 | `stress_change` | int | `StressChange` |
+| 34 | `fatigue_change` | float | `fatigueChange` |
+| 35 | `endurance_change` | float | `enduranceChange` |
+| 36 | `food_sickness_change` | int | `FoodSicknessChange` (the fluid files spell it `foodSicknessChange`; both land here) |
+| 37 | `poison_power` | int | `PoisonPower` |
+| 38 | `alcohol_power` | float | `AlcoholPower` — the item key, never the fluid's `alcohol` |
+| 39 | `evolved_recipe` | list `;` | `EvolvedRecipe` (`Cake:16` parts, `\|Cooked` suffix intact) |
+| 40 | `evolved_recipe_name` | string | `EvolvedRecipeName` |
+| 41 | `replace_on_cooked` | list `;` | `ReplaceOnCooked` (list-typed in the key table, so a single target is a one-item list) |
+| 42 | `replace_on_rotten` | string | `ReplaceOnRotten` |
+| 43 | `replace_on_use` | string | `ReplaceOnUse` |
+| 44 | `on_cooked` | string | `OnCooked` |
+| 45 | `on_eat` | string | `OnEat` |
+| 46 | `fluid_capacity` | float | `component FluidContainer`'s `Capacity`, in litres |
+| 47 | `fluid_ids` | list `;` | each `Fluids.fluid` value's first `:` field, in file order — a pick-random container either repeats one id (`HairDyeCommon` lists `HairDye` 8 times) or lists several different ones, and then only the first fills the nutrition columns: see the fluid join below. In the JSON, `[]` is a container that lists no fluid (an empty vessel, 61 of them) and `null` is a row that is not a container |
+| 48 | `fluid_share` | float | derived: the **first** `fluid =` value's second `:` field (`Cola:1.0` → `1.0`), or `1.0` when the line writes only an id. Empty on a container that lists no fluid. Every 42.20.4 share is `1.0` except `Base.BucketWaterDebug`'s `Water:10.0` |
+| 49 | `fluid_fill_litres` | float | derived: `min(fluid_capacity × fluid_share, fluid_capacity)` — the litres a container spawns holding, and the multiplier of columns 52–57. Equals `fluid_capacity` on all 72 filled rows in 42.20.4 |
+| 50 | `fluid_pick_random` | bool | the component's `PickRandomFluid` — the container fills from a pool, so its nutrition is **one draw**, not the item's value. `false` on a container that does not write the key (124 of the 133); empty on a row that is not a container |
+| 51 | `drinkable` | bool | derived: `fluid_capacity <= 3.0`, the gate `ISInventoryPaneContextMenu.lua:2318` puts on the Drink menu. 16 of the 133 containers fail it and can only be poured or emptied |
+| 52 | `calories_per_container` | float | derived: `calories × fluid_fill_litres` |
+| 53 | `carbohydrates_per_container` | float | derived: `carbohydrates × fluid_fill_litres` |
+| 54 | `lipids_per_container` | float | derived: `lipids × fluid_fill_litres` |
+| 55 | `proteins_per_container` | float | derived: `proteins × fluid_fill_litres` |
+| 56 | `hunger_change_per_container` | float | derived: `hunger_change × fluid_fill_litres` |
+| 57 | `thirst_change_per_container` | float | derived: `thirst_change × fluid_fill_litres` |
+| 58 | `weight` | float | `Weight` |
+| 59 | `replace_on_deplete` | string | `ReplaceOnDeplete` — what a drainable becomes when it runs out (42 rows carry one) |
+| 60 | `source_file` | string | path under `media/scripts/generated/`, e.g. `items/food.txt` |
+| 61 | `source_line` | int | 1-based line of the block's header |
+
+Columns 48–57 are empty on every row that is not a `fluid_container`, and
+52–57 are empty on a container that lists no fluid or whose fluid writes no
+such key — `× 10 L` of a key `fluid Water` never writes is still nothing, not
+`0.0`.
 
 Types follow the loader (`Item.DoParam`), via `food_scan.KEY_TYPES`: only the
 literal `true` is true, and an int-typed key holding an integral float literal
 comes back as an int (`UnhappyChange = -10.0` → `-10`).
 
 **The fluid join.** A `fluid_container` row takes the **first** fluid its
-`Fluids` block lists: `nutrition_source` becomes `fluid:<id>`, and columns
-11–16 and 30–37 come from that fluid's `Properties` block instead of the
-item's own keys. In 42.20.4 no fluid-container item writes a nutrition key of
-its own, so nothing is overwritten; 10 of the 61 fluids have no `Properties`
-block at all, so `fluid:HairDye` with empty nutrition is a correct row, not a
-gap. `alcohol`, `fluReduction` and `painReduction` have no column and stay in
-the fluid record's `properties_raw`.
+`Fluids` block lists: `nutrition_source` becomes `fluid:<id>`,
+`nutrition_basis` becomes `per_litre`, and columns 12–17 and 31–38 come from
+that fluid's `Properties` block instead of the item's own keys. In 42.20.4 no
+fluid-container item writes a nutrition key of its own, so nothing is
+overwritten; 10 of the 61 fluids have no `Properties` block at all, so
+`fluid:HairDye` with empty nutrition is a correct row, not a gap. `alcohol`,
+`fluReduction` and `painReduction` have no column and stay in the fluid
+record's `properties_raw`.
+
+### Per litre, not per item
+
+A `fluid`'s `Properties` are the effect of **one litre** of that fluid, so the
+joined columns on a `fluid_container` row are in a different unit from the same
+columns on a `food` row. `nutrition_basis` records which, and columns 52–57
+resolve it. Evidence grade **C**, from the 42.20.4 jar; the whole read, with
+every address, is
+[`.superpowers/sdd/05-food-scanner/q3-fluid-nutrition-notes.md`](../.superpowers/sdd/05-food-scanner/q3-fluid-nutrition-notes.md).
+
+- **The loader stores the script value as written.**
+  `FluidDefinitionScript.LoadProperties @0–@453 L367–L410` parses each of the
+  fifteen keys with `Float.parseFloat` and no arithmetic.
+- **The container multiplies by its litres.**
+  `FluidContainer.recalculateCaches @222–@250 L631–L632` does
+  `propertiesCache.addFromMultiplied(fluid.getProperties(), litres)`, so
+  `FluidContainer.getProperties()` is already litres-weighted.
+- **Drinking spends that aggregate.**
+  `IsoGameCharacter.DrinkFluid @23–@100 L5878–L5881` writes
+  `nutrition.setX(getX() + fc.getProperties().getX() * f)`, with `f` the share
+  of the contents drunk — so a full container drunk to the bottom delivers
+  exactly columns 52–57.
+- **The litres are the fill.** `getInitialAmount()` defaults to `Capacity`
+  (`FluidContainerScript @0–@11 L387-L388`; no vanilla script writes an
+  `InitialAmount`), `addInitialFluid @11–@17 L132` multiplies it by the share
+  and `addFluid @30–@45 L1003-L1004` clamps it to the capacity — which is
+  `fluid_fill_litres`.
+
+`Base.Pop2`, worked through: Cola is `Calories = 400`, `Carbohydrates = 104`,
+`HungerChange = -12`, `ThirstChange = -30` per litre
+(`fluids_Beverages.txt:14`–`:19`); the can's `Capacity` is `0.3` and its share
+`1.0`, so `fluid_fill_litres = 0.3` and the can delivers `120.0` kcal, `31.2` g
+carbs, `-3.6` hunger and `-9.0` thirst. The raw per-litre values stay in
+columns 12–17 unchanged.
+
+**Units are script units on both sides, so the two are comparable.** The
+`/100` that turns `hunger_change` / `thirst_change` / `stress_change` /
+`fatigue_change` into stat-bar units is **not** applied here, for a fluid or
+for an item: `FluidDefinitionScript.getHungerChange @0–@10 L186` divides,
+`getCalories @0–@7 L202` does not, and `Item.InstanceItem` does the same on the
+item side. So a can's `hunger_change_per_container` of `-3.6` is directly
+comparable to an apple's `hunger_change` of `-16`, and both become stat units
+by dividing by 100. Three traps that follow from the same asymmetry:
+
+- `endurance_change` is `/100` for an **item** (`Item.InstanceItem`) but **not**
+  for a fluid (`FluidDefinitionScript.getEnduranceChange @0–@7 L230`). No
+  shipped fluid writes a non-zero one, so this is latent — but a modded fluid
+  would be off by 100×.
+- `unhappy_change` on a fluid row is applied **twice** when drunk:
+  `DrinkFluid @222–@237 L5893` adds it to BOREDOM and `@238–@253 L5894` adds it
+  again to UNHAPPINESS. A mood delta off this dataset is
+  `2 × unhappy_change × fluid_fill_litres`.
+- `unhappy_change`, `food_sickness_change` and the uncolumned `alcohol` /
+  `fluReduction` / `painReduction` are unscaled on both sides.
+
+An absent `Properties` key means the engine uses `0`, not "unknown"
+(`FluidDefinitionScript.<init> @80–@229 L101–L116` registers all fifteen with
+`addProperty(name, 0.0f)`) — but the dataset still reports it empty, because no
+line in the file wrote it. A fluid with no `Properties` block at all
+(`Fluid.setScript @45–@49 L281`) gets `properties = null` and contributes
+nothing to anything.
+
+Everything on this page is grade C: the fluid path has never been measured live
+(slice 01 open question #11). A one-row probe — spawn `Base.Pop2`, read
+`Nutrition` around `DrinkFluid(item, 1)` — would settle the 120 kcal figure.
 
 **A pick-random container's nutrition is one of several fills, not the whole
-truth.** Five containers list several *different* fluids — `Base.Flask`,
+truth.** Nine containers set `PickRandomFluid` and so carry
+`fluid_pick_random = true`; five of those list several *different* fluids — `Base.Flask`,
 `Base.PopBottle`, `Base.PopBottleRare`, `Base.SodaCan`, `Base.WaterBottle`,
 counted as `meta.counts.multi_fluid_containers` — and the row carries only the
 **first** one's nutrition: `Base.Flask` reports Gin's 2 630 kcal though the
@@ -125,8 +218,10 @@ it — a container's `Capacity` reaches the record only as `fluid_capacity`.
 
 A fluid record carries `id`, `module`, `name`, `kind`, `display_name`,
 `display_name_key`, `color_reference`, `categories`, the 14 nutrition columns
-above, `properties_raw` (the `Properties` block verbatim), `poison` (the
-`Poison` block, or `null`), `props_raw`, `source_file` and `source_line`.
+above — always **per litre**, which is why a fluid record has no
+`nutrition_basis` and no `*_per_container` field: it has no capacity of its own
+to multiply by — `properties_raw` (the `Properties` block verbatim), `poison`
+(the `Poison` block, or `null`), `props_raw`, `source_file` and `source_line`.
 
 `meta` keys:
 
@@ -137,8 +232,8 @@ above, `properties_raw` (the `Properties` block verbatim), `poison` (the
 | `generated` | UTC date of the run |
 | `tool` | `tools/food_scan.py` |
 | `sources` | the 18 script paths read, relative to `media/scripts/generated/` |
-| `counts` | `food`, `drainable`, `fluid_container`, `fluids`, `multi_fluid_containers` (containers whose `fluid_ids` holds more than one distinct id — see the fluid join), `unresolved_links` |
-| `unknown_keys` | every script key the dataset carries that the item key table does not cover, so it is kept as a raw string — weapon and clothing keys ride along on fluid-container items, and `DisplayName`, `ColorReference`, `alcohol` and the `Poison` block are the fluid files' own. Two entries are listed without being raw: the component's `Capacity` and `fluid`, which never reach a `props_raw` because the dataset types them itself into `fluid_capacity` and `fluid_ids`; they are listed because the **key** is outside the item table, not because the value stayed a string |
+| `counts` | `food`, `drainable`, `fluid_container`, `fluids`, `multi_fluid_containers` (containers whose `fluid_ids` holds more than one distinct id — see the fluid join), `fluid_containers_filled` / `fluid_containers_pick_random` / `fluid_containers_empty` (the fill split over the same 133 rows: 72 spawn holding a fluid, 9 of those from a pool, and 61 spawn empty), `unresolved_links` |
+| `unknown_keys` | every script key the dataset carries that the item key table does not cover, so it is kept as a raw string — weapon and clothing keys ride along on fluid-container items, and `DisplayName`, `ColorReference`, `alcohol` and the `Poison` block are the fluid files' own. Three entries are listed without being raw: the component's `Capacity`, `fluid` and `PickRandomFluid`, which never reach a `props_raw` because the dataset types them itself into `fluid_capacity`, `fluid_ids` / `fluid_share` and `fluid_pick_random`; they are listed because the **key** is outside the item table, not because the value stayed a string |
 | `unresolved_links` | `{item, key, target}` for every `ReplaceOnCooked` / `ReplaceOnRotten` / `ReplaceOnUse` / `ReplaceOnDeplete` target that is not a record of this dataset — mostly pans and empty containers, plus `Base.HotDrinkRed` → `Base.MugRed`, which 42.20.4 names but never defines |
 | `missing_display_names` | ids with no EN name; a fluid appears as `fluid:<id>` |
 | `unresolved_fluid_refs` | `{item, fluid_id}` for a `Fluids.fluid` naming a fluid no file defines (empty in 42.20.4) |

@@ -35,7 +35,7 @@ import patterns from there.
 
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes
-  `data/food-items.json` + `data/food-items.csv` (1005 items, 49 columns, 61
+  `data/food-items.json` + `data/food-items.csv` (1005 items, 61 columns, 61
   fluids), printing
   `food 722 · drainable 150 · fluid_container 133 · fluids 61`.
   Four source groups, one per `kind`: `items/food.txt` → `food` (every

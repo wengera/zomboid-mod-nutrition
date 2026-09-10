@@ -597,6 +597,76 @@ HAIRDYE_FLUID = """module Base
 """                                     # fluids.txt:274-298 (the whole BlendWhiteList block
                                         # elided); it has no `Properties` -- 10 of the 61 do not
 
+WATER = """module Base
+{
+    fluid Water
+    {
+        ColorReference = LightSkyBlue,
+        DisplayName = Fluid_Name_Water,
+        Categories
+        {
+            Beverage,
+            Water,
+        }
+        Properties
+        {
+            ThirstChange = -50.0,
+        }
+    }
+}
+"""                                     # fluids.txt:3-17 (whole block, nothing elided) -- one
+                                        # `Properties` key, so 5 of the 6 per-container columns
+                                        # have nothing to multiply
+
+BUCKETWATERDEBUG = """module Base
+{
+    item BucketWaterDebug
+    {
+        DisplayCategory = WaterContainer,
+        Weight = 1.0,
+        ItemType = base:normal,
+        EatType = Bucket,
+        PourType = Bucket,
+        Tags = base:bucket;base:cookable;base:metalbucket;base:hasmetal,
+        Researchablerecipes = MakeBucketMaul,
+        component FluidContainer
+        {
+            ContainerName = Bucket,
+            Capacity = 10.0,
+            RainFactor = 1.0,
+            TransferRate = 5.0,
+            Fluids
+            {
+                fluid = Water:10.0,
+            }
+        }
+    }
+}
+"""                                     # items/normal.txt:13294-13318 (Icon/*Model elided) -- the
+                                        # only container in 42.20.4 whose share is not 1.0, and one
+                                        # of the 16 too big for the drink menu
+
+HOTWATERBOTTLE = """module Base
+{
+    item HotWaterBottle
+    {
+        DisplayCategory = WaterContainer,
+        Weight = 0.4,
+        ItemType = base:normal,
+        IsCookable = true,
+        CookingSound = BoilingFood,
+        Tags = base:cookablemicrowave,
+        component FluidContainer
+        {
+            ContainerName = HotWaterBottle,
+            Capacity = 1.0,
+            CustomDrinkSound = DrinkingFromBottlePlastic,
+        }
+    }
+}
+"""                                     # items/normal.txt:14208-14224 (Icon/*Model elided) -- one
+                                        # of the 61 containers that list no fluid at all
+
 # The next four are SYNTHETIC, not quoted from the install: 42.20.4 ships no such item. They
 # pin rules the shipped files never exercise -- see test_selection_rule_is_first_match_wins,
 # test_replace_links_resolve_against_the_dataset and
@@ -702,9 +772,9 @@ def _csv_rows(items):
 SAMPLE = {
     "items/food.txt": _file(APPLE, SALT, NOT_FOOD),
     "items/drainable.txt": _file(HANDTORCH, DANGLING),
-    "items/normal.txt": _file(POP2, HAIRDYE),
+    "items/normal.txt": _file(POP2, HAIRDYE, BUCKETWATERDEBUG, HOTWATERBOTTLE),
     "fluids_Beverages.txt": COLA,
-    "fluids.txt": HAIRDYE_FLUID,
+    "fluids.txt": _file(HAIRDYE_FLUID, WATER),
 }
 
 
@@ -715,9 +785,10 @@ def test_selection_rule_assigns_one_kind_per_record():
         "Base.Apple": "food", "Base.Salt": "food",
         "Base.HandTorch": "drainable", "Base.TestCanteen": "drainable",
         "Base.Pop2": "fluid_container", "Base.HairDyeCommon": "fluid_container",
+        "Base.BucketWaterDebug": "fluid_container", "Base.HotWaterBottle": "fluid_container",
     }
     assert "Base.TestPlate" not in items          # in food.txt, but its ItemType is base:normal
-    assert sorted(fluids) == ["Cola", "HairDye"]  # fluids are records, never CSV rows
+    assert sorted(fluids) == ["Cola", "HairDye", "Water"]   # fluids are records, never CSV rows
     assert items["Base.Apple"]["source_file"] == "items/food.txt"
     assert items["Base.Apple"]["source_line"] == 3
 
@@ -766,6 +837,23 @@ def test_item_type_and_fluid_are_matched_case_insensitively():
     assert pop2["nutrition_source"] == "fluid:Cola" and pop2["calories"] == 400.0
 
 
+def test_capacity_and_pick_random_are_matched_case_insensitively():
+    """The other two component keys, read the loader's way rather than by exact spelling.
+
+    Synthetic like its `ItemType` / `fluid` twin above: 42.20.4 writes `Capacity` 441 times and
+    `PickRandomFluid` 9 times and never another case, so this is the guard for a mod that does.
+    Both feed declared columns, so a missed spelling would silently null the whole fill.
+    """
+    items, _fluids, _misses = _dataset({
+        "items/normal.txt": _file(POP2.replace("Capacity =", "CAPACITY ="),
+                                  HAIRDYE.replace("PickRandomFluid =", "pickrandomfluid =")),
+        "fluids_Beverages.txt": COLA, "fluids.txt": HAIRDYE_FLUID})
+    pop2 = items["Base.Pop2"]
+    assert pop2["fluid_capacity"] == 0.3 and pop2["fluid_fill_litres"] == 0.3
+    assert pop2["calories_per_container"] == 120.0 and pop2["drinkable"] is True
+    assert items["Base.HairDyeCommon"]["fluid_pick_random"] is True
+
+
 def test_display_name_join_and_its_misses():
     items, fluids, misses = _dataset(SAMPLE, item_names={"Base.Apple": "Apple"},
                                      fluid_names={"Fluid_Name_Cola": "Cola"})
@@ -775,8 +863,8 @@ def test_display_name_join_and_its_misses():
     assert fluids["Cola"]["display_name_key"] == "Fluid_Name_Cola"
     assert fluids["HairDye"]["display_name"] is None
     assert misses["missing_display_names"] == [
-        "Base.HairDyeCommon", "Base.HandTorch", "Base.Pop2", "Base.Salt", "Base.TestCanteen",
-        "fluid:HairDye"]
+        "Base.BucketWaterDebug", "Base.HairDyeCommon", "Base.HandTorch", "Base.HotWaterBottle",
+        "Base.Pop2", "Base.Salt", "Base.TestCanteen", "fluid:HairDye", "fluid:Water"]
 
 
 def test_fluid_container_joins_the_first_listed_fluid():
@@ -797,6 +885,90 @@ def test_fluid_container_joins_the_first_listed_fluid():
     # HairDye is defined but carries no `Properties` block, so the joined nutrition is empty
     assert hairdye["calories"] is None and hairdye["thirst_change"] is None
     assert misses["unresolved_fluid_refs"] == []
+
+
+def test_nutrition_basis_names_the_unit_the_columns_are_in():
+    """A fluid's `Properties` are per litre, an item's own keys are per item -- one column says so.
+
+    Without it the same `calories` column silently mixes an apple's 95 kcal with Cola's 400 kcal
+    *per litre*, of which a 0.3 L can delivers 120.
+    """
+    items, _fluids, _misses = _dataset(SAMPLE)
+    assert items["Base.Apple"]["nutrition_basis"] == "per_item"
+    assert items["Base.Pop2"]["nutrition_basis"] == "per_litre"
+    # Salt writes no `Calories` line but does write hunger/thirst: still per item
+    assert items["Base.Salt"]["calories"] is None
+    assert items["Base.Salt"]["nutrition_basis"] == "per_item"
+    # a fluid with no `Properties` is still the row's basis: the nutrition comes from the fluid,
+    # and that fluid genuinely has none
+    assert items["Base.HairDyeCommon"]["nutrition_basis"] == "per_litre"
+    assert items["Base.HairDyeCommon"]["calories"] is None
+    # nothing from either side -> no basis to report, rather than a guess
+    assert items["Base.HotWaterBottle"]["nutrition_basis"] is None
+    assert items["Base.HandTorch"]["nutrition_basis"] is None
+
+
+def test_fill_facts_come_off_the_container():
+    """`fluid_share`, `fluid_fill_litres`, `fluid_pick_random`, `drinkable` -- what is in the item."""
+    items, _fluids, _misses = _dataset(SAMPLE)
+    pop2 = items["Base.Pop2"]
+    assert (pop2["fluid_share"], pop2["fluid_fill_litres"]) == (1.0, 0.3)
+    assert pop2["fluid_pick_random"] is False and pop2["drinkable"] is True
+    hairdye = items["Base.HairDyeCommon"]
+    assert hairdye["fluid_pick_random"] is True            # the component writes PickRandomFluid
+    assert hairdye["fluid_fill_litres"] == 1.0 == hairdye["fluid_capacity"]
+    # the one 42.20.4 share that is not 1.0: `Water:10.0` into a 10 L bucket, clamped by
+    # `addFluid @30-@45 L1003-L1004` back to the capacity rather than filling it ten times
+    bucket = items["Base.BucketWaterDebug"]
+    assert bucket["fluid_share"] == 10.0
+    assert bucket["fluid_fill_litres"] == 10.0 == bucket["fluid_capacity"]
+    assert bucket["drinkable"] is False                    # Capacity > 3.0: the drink menu refuses
+    # an empty container has a capacity and no fill at all
+    jar = items["Base.HotWaterBottle"]
+    assert jar["fluid_ids"] == [] and jar["fluid_capacity"] == 1.0
+    assert jar["fluid_share"] is None and jar["fluid_fill_litres"] is None
+    assert jar["fluid_pick_random"] is False and jar["drinkable"] is True
+    # not a container at all: every fill fact is null, never false and never 0
+    apple = items["Base.Apple"]
+    assert apple["fluid_share"] is None and apple["fluid_fill_litres"] is None
+    assert apple["fluid_pick_random"] is None and apple["drinkable"] is None
+
+
+def test_per_container_columns_are_the_raw_value_times_the_fill():
+    """`recalculateCaches @222-@250 L631-L632` sums `fluidProps x litres`; the raw column stays."""
+    items, _fluids, _misses = _dataset(SAMPLE)
+    pop2 = items["Base.Pop2"]
+    assert pop2["calories"] == 400.0 and pop2["carbohydrates"] == 104.0    # raw, still per litre
+    assert pop2["calories_per_container"] == 120.0                        # x 0.3 L
+    assert pop2["carbohydrates_per_container"] == 31.2                    # not 31.200000000000003
+    assert pop2["hunger_change_per_container"] == -3.6                    # the /100 is NOT applied
+    assert pop2["thirst_change_per_container"] == -9.0
+    assert pop2["lipids_per_container"] == 0.0 and pop2["proteins_per_container"] == 0.0
+    # half a can of the same fluid: the raw columns do not move, the derived ones halve
+    half_files = dict(SAMPLE)
+    half_files["items/normal.txt"] = _file(POP2.replace("Cola:1.0", "Cola:0.5"))
+    half = _dataset(half_files)[0]["Base.Pop2"]
+    assert half["fluid_share"] == 0.5 and half["fluid_fill_litres"] == 0.15
+    assert half["calories"] == 400.0 and half["calories_per_container"] == 60.0
+    # `fluid Water` writes only `ThirstChange`, so only that column has a twin: x 10 L of an
+    # absent key is absent, never 0.0
+    bucket = items["Base.BucketWaterDebug"]
+    assert bucket["thirst_change"] == -50.0 and bucket["thirst_change_per_container"] == -500.0
+    assert bucket["calories"] is None and bucket["calories_per_container"] is None
+    # nothing to multiply: an empty container, a fluid with no `Properties`, a food row
+    derived = [name for _raw, name in food_scan.PER_CONTAINER_COLUMNS]
+    for item_id in ("Base.HotWaterBottle", "Base.HairDyeCommon", "Base.Apple", "Base.Salt"):
+        assert all(items[item_id][name] is None for name in derived), item_id
+    header = food_scan.CSV_HEADER
+    rows = _csv_rows([items["Base.Apple"], items["Base.Pop2"]])
+    assert rows[1][header.index("nutrition_basis")] == "per_item"
+    assert rows[1][header.index("calories_per_container")] == ""       # not a container: empty
+    assert rows[1][header.index("drinkable")] == ""                    # a bool absence, not `false`
+    assert rows[2][header.index("nutrition_basis")] == "per_litre"
+    assert rows[2][header.index("calories")] == "400.0"
+    assert rows[2][header.index("calories_per_container")] == "120.0"
+    assert rows[2][header.index("drinkable")] == "true"
+    assert rows[2][header.index("fluid_pick_random")] == "false"
 
 
 def test_fluid_record_keeps_what_no_column_takes():
@@ -834,27 +1006,37 @@ def test_absent_key_is_null_in_json_and_empty_in_csv():
 def test_csv_header_is_the_documented_schema():
     assert food_scan.CSV_HEADER == [
         "id", "module", "name", "kind", "display_name", "display_category", "food_type",
-        "item_type", "tags", "nutrition_source", "calories", "carbohydrates", "lipids",
-        "proteins", "hunger_change", "thirst_change", "days_fresh", "days_totally_rotten",
-        "cant_be_frozen", "is_cookable", "minutes_to_cook", "minutes_to_burn",
-        "dangerous_uncooked", "packaged", "canned_food", "cant_eat", "spice", "good_hot",
-        "bad_cold", "unhappy_change", "boredom_change", "stress_change", "fatigue_change",
-        "endurance_change", "food_sickness_change", "poison_power", "alcohol_power",
-        "evolved_recipe", "evolved_recipe_name", "replace_on_cooked", "replace_on_rotten",
-        "replace_on_use", "on_cooked", "on_eat", "fluid_capacity", "fluid_ids", "weight",
-        "replace_on_deplete", "source_file", "source_line"]
-    assert len(food_scan.COLUMNS) == 48 and len(food_scan.CSV_HEADER) == 50
-    assert len(set(food_scan.CSV_HEADER)) == 50
-    # every `ReplaceOn*` key REPLACE_KEYS resolves has a column; `replace_on_deplete` is 48,
-    # the last of the declared columns and still ahead of the trailing source pair
-    assert food_scan.CSV_HEADER[47] == "replace_on_deplete"
+        "item_type", "tags", "nutrition_source", "nutrition_basis", "calories", "carbohydrates",
+        "lipids", "proteins", "hunger_change", "thirst_change", "days_fresh",
+        "days_totally_rotten", "cant_be_frozen", "is_cookable", "minutes_to_cook",
+        "minutes_to_burn", "dangerous_uncooked", "packaged", "canned_food", "cant_eat", "spice",
+        "good_hot", "bad_cold", "unhappy_change", "boredom_change", "stress_change",
+        "fatigue_change", "endurance_change", "food_sickness_change", "poison_power",
+        "alcohol_power", "evolved_recipe", "evolved_recipe_name", "replace_on_cooked",
+        "replace_on_rotten", "replace_on_use", "on_cooked", "on_eat", "fluid_capacity",
+        "fluid_ids", "fluid_share", "fluid_fill_litres", "fluid_pick_random", "drinkable",
+        "calories_per_container", "carbohydrates_per_container", "lipids_per_container",
+        "proteins_per_container", "hunger_change_per_container", "thirst_change_per_container",
+        "weight", "replace_on_deplete", "source_file", "source_line"]
+    assert len(food_scan.COLUMNS) == 59 and len(food_scan.CSV_HEADER) == 61
+    assert len(set(food_scan.CSV_HEADER)) == 61
+    # `nutrition_basis` sits beside the `nutrition_source` it qualifies, and the eleven fluid
+    # columns sit together after `fluid_ids`; `replace_on_deplete` stays the last declared column
+    assert food_scan.CSV_HEADER[10] == "nutrition_basis"
+    assert food_scan.CSV_HEADER[46:51] == ["fluid_ids", "fluid_share", "fluid_fill_litres",
+                                           "fluid_pick_random", "drinkable"]
+    assert food_scan.CSV_HEADER[58] == "replace_on_deplete"
+    # each derived column names the raw one it multiplies, and both are declared columns
+    assert [pair[1] for pair in food_scan.PER_CONTAINER_COLUMNS] == food_scan.CSV_HEADER[51:57]
+    assert all(raw in food_scan.NUTRITION_COLUMNS for raw, _d in food_scan.PER_CONTAINER_COLUMNS)
+    # every `ReplaceOn*` key REPLACE_KEYS resolves has a column
     assert all(key in food_scan._KEY_TO_COLUMN for key in food_scan.REPLACE_KEYS)
     # every column that names a script key names one the loader actually reads
     assert all(food_scan.is_known_key(key) for _name, key in food_scan.COLUMNS if key)
     items, _fluids, _misses = _dataset(SAMPLE)
     rows = _csv_rows([items[i] for i in sorted(items)])
     assert rows[0] == food_scan.CSV_HEADER and len(rows) == 1 + len(items)
-    assert all(len(row) == 50 for row in rows)
+    assert all(len(row) == 61 for row in rows)
 
 
 def test_replace_links_resolve_against_the_dataset():
@@ -908,7 +1090,11 @@ def _real_dataset():
 def test_real_dataset_counts():
     meta, items, fluids = _real_dataset()
     assert meta["counts"] == {"food": 722, "drainable": 150, "fluid_container": 133,
-                              "fluids": 61, "multi_fluid_containers": 5, "unresolved_links": 37}
+                              "fluids": 61, "multi_fluid_containers": 5,
+                              "fluid_containers_filled": 72, "fluid_containers_pick_random": 9,
+                              "fluid_containers_empty": 61, "unresolved_links": 37}
+    assert (meta["counts"]["fluid_containers_filled"]
+            + meta["counts"]["fluid_containers_empty"]) == meta["counts"]["fluid_container"]
     assert len(items) == 1005 and len(fluids) == 61
     assert len({r["id"] for r in items}) == 1005          # the three item rules really are disjoint
     assert sum(meta["counts"][k] for k in ("food", "drainable", "fluid_container")) == len(items)
@@ -947,6 +1133,46 @@ def test_real_dataset_spot_values():
 
 
 @unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)
+def test_real_dataset_fluid_fill():
+    """The fill split the jar read predicts, and the per-container arithmetic it implies.
+
+    q3-fluid-nutrition-notes.md § Drink path step 2: `getInitialAmount()` defaults to `Capacity`
+    (`@0-@11 L387-L388`) and no vanilla script writes an `InitialAmount`, so every filled
+    container spawns full and `fluid_fill_litres == fluid_capacity` on all 72.
+    """
+    _meta, items, _fluids = _real_dataset()
+    by_id = {r["id"]: r for r in items}
+    containers = [r for r in items if r["fluid_ids"] is not None]
+    filled = [r for r in containers if r["fluid_ids"]]
+    assert len(containers) == 133
+    assert len(filled) == 72 and len(containers) - len(filled) == 61
+    assert sum(1 for r in filled if r["fluid_pick_random"]) == 9         # 63 single + 9 from a pool
+    assert sum(1 for r in filled if not r["fluid_pick_random"]) == 63
+    assert all(r["fluid_fill_litres"] == r["fluid_capacity"] for r in filled)
+    assert {r["fluid_share"] for r in filled} == {1.0, 10.0}             # the 10.0 clamps back
+    assert all(r["fluid_share"] is None and r["fluid_fill_litres"] is None
+               for r in containers if not r["fluid_ids"])
+    assert sum(1 for r in containers if r["drinkable"]) == 117           # 16 fail Capacity <= 3.0
+    pop2 = by_id["Base.Pop2"]
+    assert (pop2["nutrition_basis"], pop2["fluid_fill_litres"]) == ("per_litre", 0.3)
+    assert (pop2["calories"], pop2["calories_per_container"]) == (400.0, 120.0)
+    assert pop2["carbohydrates_per_container"] == 31.2                   # 104 x 0.3, not the dust
+    assert pop2["hunger_change_per_container"] == -3.6                   # script units, no /100
+    assert pop2["thirst_change_per_container"] == -9.0
+    debug = by_id["Base.BucketWaterDebug"]                               # the one share not 1.0
+    assert debug["fluid_share"] == 10.0 and debug["fluid_fill_litres"] == 10.0
+    assert debug["drinkable"] is False and debug["thirst_change_per_container"] == -500.0
+    assert debug["calories"] is None and debug["calories_per_container"] is None
+    apple = by_id["Base.Apple"]
+    assert apple["nutrition_basis"] == "per_item" and apple["drinkable"] is None
+    assert all(apple[name] is None for _raw, name in food_scan.PER_CONTAINER_COLUMNS)
+    # every row says which unit its nutrition is in, or carries no nutrition at all to qualify
+    basis = {b: sum(1 for r in items if r["nutrition_basis"] == b)
+             for b in ("per_item", "per_litre", None)}
+    assert basis == {"per_item": 653, "per_litre": 72, None: 280}
+
+
+@unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)
 def test_real_dataset_join_misses():
     """Every miss is recorded, including one link 42.20.4 names but never defines."""
     meta, _items, _fluids = _real_dataset()
@@ -959,4 +1185,8 @@ def test_real_dataset_join_misses():
     assert {"item": "Base.HotDrinkRed", "key": "ReplaceOnUse",
             "target": "Base.MugRed"} in meta["unresolved_links"]
     assert "alcohol" in meta["unknown_keys"]               # the one fluid property with no table
+    # the three component keys the dataset types itself, listed because the key is outside the
+    # item key table -- not because the value stayed a string
+    for key in ("Capacity", "fluid", "PickRandomFluid"):
+        assert key in meta["unknown_keys"], key
     assert not any(food_scan.is_known_key(k) for k in meta["unknown_keys"])
