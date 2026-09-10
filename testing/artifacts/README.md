@@ -753,7 +753,7 @@ wall**: server boot `took 13.1`, client `took 32.8` (in-world at `t 47.3`), 17 p
 error` regex in `clients/admin/console.txt`), doctor all-`ok` in `meta.doctor`. Dataset
 `data/food-items.json` at sha256 `c71202bd…`, read and never written.
 
-**Skew note.** This file was produced by the driver at **`ba19649`**. Review round 1 then
+**Skew (slice 08 review round 1).** This file was produced by the driver at **`ba19649`**. Review round 1 then
 edited `s08_witness.py` without re-running it: it added the `isinstance` guards that four
 grading blocks (rows 10–13) were missing, so a reply that survived the bus guard as a *string*
 records its shape instead of raising inside `grade()` and silently truncating the table; it
@@ -761,7 +761,8 @@ checked `WITNESS_MAX` against the getter lists instead of asserting it in prose;
 amendment 3's `getOrCreate` finding be recognised in a bare-string reply as well as in a table's
 `error`; it tightened rows 1–2's `expected` text to what their `ok` condition actually checks;
 and it deleted two dead names (`ITEM_GET_KEYS`, `grades_by_name`). **Every one of those paths
-was inert on this run** — all 17 replies arrived as tables, `summary.reasked_probes` is empty,
+was inert on this run** — all six `moddata_*` replies, the ones rows 10–13 read, arrived as
+tables (the two `gate_*` string replies are the documented exception, row 14), `summary.reasked_probes` is empty,
 and no getter list is near the cap — so **no number in this file moves**, and none of the
 corrections below came from re-running anything. The three corrections that follow (the
 `getSlicesOfBreadEaten` framing, the mechanism of the finding, and the reach of `moddata_item`)
@@ -777,7 +778,7 @@ plan named is absent from this build entirely (below). `summary.not_as_expected`
 and cannot be read as the count of what this run found.
 
 - **Both commands work on both sides, and `resolved` says whose subject answered.**
-  `player_server` / `player_client` return the same four values for the same five getters, each
+  `player_server` / `player_client` return the same four fields for the same five getters, each
   `resolved: "admin"`; the item probes return the same seven fields on both sides, each
   `resolved: "admin/Base.Apple #199691187"`. `count` is 5 / 7 and `truncatedAt` is absent
   everywhere — the `TK.WITNESS_MAX = 32` cap never bit.
@@ -875,7 +876,9 @@ mod data. Three rules follow for slices 09–11:
 3. **When item modData does move, it moves wholesale.**
    `SyncItemFieldsPacket.processModData()` calls `getModData().wipe()` on the receiver (when it
    `hasModData`) and then `rawset`s every key of the sender's table into it. A teardown that
-   writes item modData on one side loses it to the next field sync from the other.
+   writes item modData on one side loses it to the next field sync from the other that carries
+   modData (`setData` sends `moddata` only when the sender item `hasModData()`, and `processModData`
+   returns before the wipe when it is null).
 
 **Do not cite from this file:**
 
