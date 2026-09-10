@@ -151,10 +151,10 @@ def s6(a, server, client, tl):
     condition/conditionMax/modData after the game's own item sync."""
     out = {}
     client.send("moddata.set", "pzt_probe v1")
-    out["moddata_before_transmit"] = _witness(client, "witness.moddata", "pzt_probe", "witness_moddata_pzt_probe")
+    out["moddata_before_transmit"] = _witness(client, "witness.sync.moddata", "pzt_probe", "witness_moddata_pzt_probe")
     out["transmit_ack"] = client.send("moddata.transmit")
     time.sleep(2)
-    out["moddata_after_transmit"] = _witness(client, "witness.moddata", "pzt_probe", "witness_moddata_pzt_probe")
+    out["moddata_after_transmit"] = _witness(client, "witness.sync.moddata", "pzt_probe", "witness_moddata_pzt_probe")
     out["nutrition"] = _witness(client, "witness.nutrition", "", "witness_nutrition")
     ok, rep = server.rcon('additem "admin" "Base.Apple" 1')
     out["rcon_additem"] = (ok, rep[:200])

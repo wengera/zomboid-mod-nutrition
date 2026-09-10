@@ -91,7 +91,12 @@ TK.register("moddata.transmit", function()
     getPlayer():transmitModData()
     return "transmitted"
 end)
-TK.register("witness.moddata", function(argv)
+-- Renamed from `witness.moddata` in slice 08. That name now belongs to the SHARED reflective
+-- command in PZTestKit_Core.lua, and shared/ loads before client/, so a client registration of
+-- the same name would silently shadow it on this side only. Nothing else about this command
+-- changed: `args.kind` is still "moddata", so the OnServerCommand handler below and the result
+-- file (witness_moddata_<key>.json) are untouched.
+TK.register("witness.sync.moddata", function(argv)
     sendClientCommand(getPlayer(), "PZTestKit", "witness", { kind = "moddata", key = argv[1] })
     return "sent"
 end)

@@ -5,6 +5,9 @@
 --    and answered in pzt-ack.txt {seq, cmd, result}. Same protocol on both sides.
 --  * Results: TK.result(name, table) writes <cachedir>/Lua/pzt-results/<name>.json as one
 --    complete JSON object; a parseable file IS the ready marker (S4).
+--  * Reflective witness (slice 08): `witness.fields` and `witness.moddata` read any getter or
+--    any modData key BY NAME on either side, so a new mod needs no new command. Registered
+--    here, at the end of this file, and documented there.
 TK = TK or {}
 TK.version = 1
 TK.commands = TK.commands or {}
@@ -436,6 +439,175 @@ TK.register("trait.check", function()
     return { keenHearingExcludesDeaf = ex:contains(CharacterTrait.DEAF),
              keenHearingExcludesHardOfHearing = ex:contains(CharacterTrait.HARD_OF_HEARING),
              keenPerceptionLoaded = not ex:contains(CharacterTrait.DEAF) }
+end)
+
+-- ---- generic reflective witness (both sides, slice 08) -----------------------
+-- One command instead of a getter-specific one per mod: slices 09-11 probe fields nobody has
+-- named yet. Every read goes through TK.call, so a member this build does not expose lands in
+-- `missing` instead of raising Kahlua's uncatchable "tried to call nil".
+--
+-- witness.fields <player|item> <id> <getter,getter,...>
+--   <id> = username | "-" (the first online player) | fullType | "#<itemId>" | "<user>/<fullType>"
+--   ZERO-ARGUMENT getters only: an arity mismatch is as fatal as a nil call (see TK.call), so
+--   nothing here passes arguments to the member it reads.
+--   -> { side, subject, id, resolved, fields = {<getter> = value}, missing = {...},
+--        nils = {...}, count, worldAge [, truncatedAt] }
+--   Each name lands in EXACTLY one of the three lists and the three partition `count`:
+--     missing = this build's object does not expose the member at all (TK.call said absent);
+--     nils    = it DOES expose it and the call returned nil -- a reading, not an absence;
+--     fields  = anything else, encoded by TK.json (a Java object as its toString()).
+--   Splitting `nils` out of "simply not in fields" is what makes "the mod did not set it"
+--   distinguishable from "this build never had it", which is the whole question in 09-11.
+--
+-- witness.moddata [player[:<user>] | item:<id> | global:<name>] <key ...>
+--   No scope prefix => player: the LOCAL player on a client, the first online one on the
+--   server. Every reply carries the CENSUS -- `keys` is every top-level key as a sorted
+--   "<name>:<type>" list -- so "*" or no key at all is a valid call, and is how a mod's
+--   modData shape gets discovered before anyone knows a key to ask for. A key may be a
+--   dotted path (`a.b.c`), which walks nested tables; a path that does not resolve is
+--   `missing`, exactly as an unset key is.
+--   -> { side, scope, arg, resolved, keys, keyCount, values = {<key> = value},
+--        missing = {...}, worldAge [, error] [, truncatedAt] }
+--
+-- Both replies travel as one bus ack line, hence the TK.WITNESS_MAX cap on names per call.
+-- getGameTime():getWorldAgeHours() and getOnlinePlayers() are reached DIRECTLY, on purpose and
+-- for the same reason TK.bodySnapshot's block is (see the note at :240-247): a build that lost
+-- either must fail loudly here rather than answer with no clock or no subject.
+TK.WITNESS_MAX = 32                -- keeps one ack line inside the bus's key=value shape
+
+-- ModData's Lua binding is a DOT call (`ModData.getOrCreate("t")`), so TK.call's colon
+-- semantics would pass ModData itself as the first argument. Index first, then call, no self.
+function TK.callStatic(tbl, name, ...)
+    if tbl == nil then return false, nil end
+    local f = tbl[name]
+    if f == nil then return false, nil end
+    return true, f(...)
+end
+
+-- kind = "player"|"item"; id = username | "-" | fullType | "#<itemId>" | "<user>/<fullType>".
+-- Returns (subject, label) or (nil, nil, why).
+local function subjectOf(kind, id)
+    local user, what = string.match(tostring(id or ""), "^([^/]+)/(.+)$")
+    if kind == "player" then
+        if TK.side ~= "server" then                        -- a client only ever has its own
+            if getPlayer == nil then return nil, nil, "no getPlayer() on side " .. tostring(TK.side) end
+            local p = getPlayer()
+            if p == nil then return nil, nil, "no local player" end
+            return p, tostring(p:getUsername())
+        end
+        local list, want = getOnlinePlayers(), (user or id)
+        if list == nil then return nil, nil, "getOnlinePlayers() returned nil" end
+        for i = 0, list:size() - 1 do
+            local p = list:get(i)
+            if want == nil or want == "-" or p:getUsername() == want then return p, tostring(p:getUsername()) end
+        end
+        return nil, nil, "no online player " .. tostring(want)
+    end
+    local owner, label, err = subjectOf("player", user or "-")   -- `local function` recurses
+    if owner == nil then return nil, nil, err end
+    local _, inv = TK.call(owner, "getInventory")
+    if inv == nil then return nil, nil, "no getInventory() on " .. tostring(label) end
+    local target = what or id
+    local wantId = string.match(tostring(target), "^#(%d+)$")
+    if wantId == nil then
+        -- the harness's own idiom everywhere else, and the only route that looks inside bags
+        local okR, it = TK.call(inv, "getFirstTypeRecurse", target)
+        if okR and it ~= nil then
+            local _, full = TK.call(it, "getFullType")
+            local _, iid = TK.call(it, "getID")
+            return it, tostring(full) .. " #" .. tostring(iid)
+        end
+    end
+    local _, items = TK.call(inv, "getItems")   -- flat, but the only route that matches by id
+    if items == nil then return nil, nil, "no inventory list on " .. tostring(label) end
+    for i = 0, items:size() - 1 do
+        local it = items:get(i)
+        local _, full = TK.call(it, "getFullType")
+        local _, iid = TK.call(it, "getID")
+        if (wantId ~= nil and tostring(iid) == wantId) or (wantId == nil and full == target) then
+            return it, tostring(full) .. " #" .. tostring(iid)
+        end
+    end
+    return nil, nil, "no item " .. tostring(target) .. " on " .. tostring(label)
+end
+
+TK.register("witness.fields", function(argv)
+    if argv[1] ~= "player" and argv[1] ~= "item" then
+        return "usage: witness.fields <player|item> <id> <getter,...>"
+    end
+    local subject, label, err = subjectOf(argv[1], argv[2])
+    if subject == nil then return err or "no subject" end
+    local out = { side = TK.side, subject = argv[1], id = argv[2], resolved = label,
+                  fields = {}, missing = {}, nils = {},
+                  worldAge = getGameTime():getWorldAgeHours() }
+    local n = 0
+    for name in string.gmatch(tostring(argv[3] or ""), "[^,]+") do
+        -- counted BEFORE the read, so `count` is the number actually read and `truncatedAt`
+        -- is the only signal that more were asked for.
+        if n >= TK.WITNESS_MAX then out.truncatedAt = TK.WITNESS_MAX; break end
+        n = n + 1
+        local ok, v = TK.call(subject, name)
+        if not ok then out.missing[#out.missing + 1] = name
+        elseif v == nil then out.nils[#out.nils + 1] = name
+        else out.fields[name] = v end
+    end
+    out.count = n
+    return out
+end)
+
+TK.register("witness.moddata", function(argv)
+    local first = tostring(argv[1] or "")
+    local scope, arg = string.match(first, "^(player):(.+)$")
+    if not scope then scope, arg = string.match(first, "^(item):(.+)$") end
+    if not scope then scope, arg = string.match(first, "^(global):(.+)$") end
+    -- a bare "item"/"global" would otherwise be read as a KEY on the default player scope,
+    -- and answer a plausible-looking census for the wrong subject
+    if not scope and (first == "item" or first == "global") then
+        return "usage: witness.moddata [player[:<user>]|item:<id>|global:<name>] <key...>"
+    end
+    local from = (scope or first == "player") and 2 or 1
+    scope = scope or "player"
+    local out = { side = TK.side, scope = scope, arg = arg, values = {}, missing = {},
+                  worldAge = getGameTime():getWorldAgeHours() }
+    local tbl
+    if scope == "global" then
+        -- getOrCreate CREATES the table when it is absent, so a global census can never report
+        -- "no such table": an empty `keys` is the answer for "nothing stores anything here".
+        local ok, t = TK.callStatic(ModData, "getOrCreate", arg)
+        if not ok then out.error = "no ModData.getOrCreate on this build"; return out end
+        tbl = t
+    else
+        local subject, label, err = subjectOf(scope, arg or "-")
+        if subject == nil then out.error = err; return out end
+        out.resolved = label
+        local ok, t = TK.call(subject, "getModData")
+        if not ok then out.error = "no getModData() on " .. tostring(label); return out end
+        tbl = t
+    end
+    -- pairs() on a Java object is an error rather than an empty census, and a nil table walks
+    -- every key into `missing` as if the mod had simply not set them: say which it was.
+    if type(tbl) ~= "table" then
+        out.error = "modData is a " .. type(tbl) .. ", not a table"
+        return out
+    end
+    local keys = {}                                -- the census: what a mod actually stores
+    for k, v in pairs(tbl) do keys[#keys + 1] = tostring(k) .. ":" .. type(v) end
+    table.sort(keys)
+    out.keys, out.keyCount = keys, #keys
+    local wanted = 0
+    for i = from, #argv do
+        if argv[i] ~= "*" then
+            if wanted >= TK.WITNESS_MAX then out.truncatedAt = TK.WITNESS_MAX; break end
+            wanted = wanted + 1
+            local node = tbl
+            for part in string.gmatch(argv[i], "[^%.]+") do    -- dotted paths walk nested tables
+                node = (type(node) == "table") and node[part] or nil
+            end
+            if node == nil then out.missing[#out.missing + 1] = argv[i]
+            else out.values[argv[i]] = (type(node) == "table") and node or tostring(node) end
+        end
+    end
+    return out
 end)
 
 TK.log("core loaded (" .. TK.side .. ")")
