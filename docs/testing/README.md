@@ -199,6 +199,52 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   capacity (`removeFluid(getAmount() * f, true)`): on a full can `f = 1` empties
   it and `f = 0.5` halves it, but a *second* `0.5` would take half of what is
   left. Driven by `testing/experiments/s05b_drink_probe.py`.
+  Slice-06 recipe commands — server only, and in their own file
+  (`server/PZTestKit_Server_Recipes.lua`, which sorts *after*
+  `PZTestKit_Server.lua` because `.` < `_`, so `TK` is loaded when it runs);
+  same `ScriptManager` reasoning as the slice-05 census, and the live
+  cross-check for `tools/recipe_scan.py`. `recipes.count` (no args) →
+  `{craft, evolved, legacy, unique}` — the sizes of `getAllCraftRecipes()`,
+  `getAllEvolvedRecipesList()`, `getAllRecipes()` (the pre-B42 `recipe`
+  blocks) and `getAllUniqueRecipes()`, with `missingAccessors` naming any the
+  build does not expose, because "0" and "no such accessor" are different
+  findings (the `fluidDefsError` rule). Measured on 42.20.4:
+  **969 / 63 / 0 / 0**. `recipes.evolved <name>` → one `EvolvedRecipe`'s
+  `getBaseItem` / `getResultItem` / `getMaxItems` / `isCookable` /
+  `getMinimumWater`, plus `items` (the labels
+  `getPossibleItems()` yields), `itemFullTypes` and `ingredientCount` —
+  `getPossibleItems()` is the values of the recipe's own `itemsList`, which
+  the *item* scripts fill (`EvolvedRecipe = Salad:10` on a food item registers
+  it against the `Salad` recipe), so its size is the ingredient count.
+  `recipes.craft <name>` → `getCategory` / `getTime` / `getInputCount` /
+  `getOutputCount` plus one row per output line with `amount`
+  (`getIntAmount()`), `resourceType`, `originalLine` and the items it resolves
+  to (`items`, `itemFullTypes`, `itemCount`). `originalLine` is the recipe
+  file's own trimmed text for the line, so it can be compared against the
+  scanner's `outputs[].raw` without either side having to parse the other's
+  model. Three details worth knowing before reading a reply:
+  * **Both name spellings work.** Every lookup asks the accessor for both
+    `<Name>` and `Base.<Name>` and reports the pair as `lookup`
+    (`askedAnswered` / `alternateAnswered` / `route`). Measured: both answer,
+    for craft and evolved alike — `ScriptBucketCollection.getScript` resolves
+    a bare name against module `Base` and a dotted one against its prefix
+    (`@45–@99 L78–L96`), the same tolerance slice 05 measured on
+    `getFluidDefinitionScript`.
+  * **A getter has three outcomes, not two.** `missingGetters` (the build does
+    not expose it), `getterErrors` (it is there and the *call* raised) and
+    `nullGetters` (it answered with nothing) are separate lists. The middle
+    one exists for `CraftRecipe.getTime`, which is overloaded (`()I` and
+    `(IsoGameCharacter)I`): each getter runs under its own `pcall`, so a
+    dispatch to the arity we did not ask for costs that one key rather than
+    the whole reply. On 42.20.4 Kahlua takes the no-argument overload and all
+    three lists came back empty on all fifteen probes.
+  * **`getInputCount()` is not the number of input *lines*.**
+    `CraftRecipe.LoadIO @218–@317` attaches a `-` (or `+`) prefixed line
+    inside an `inputs` block to the *preceding* input as
+    `consumeFromItemScript` / `createToItemScript` and adds it to `ioLines`,
+    never to `inputs`; `getInputCount()` is `inputs.size()` (`@0–@7 L257`).
+    So a recipe written with a fluid sub-line answers one less than its
+    script has lines. Driven by `testing/experiments/s06_recipes.py`.
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
@@ -217,7 +263,11 @@ Lua files in one folder load alphabetically), `server/PZTestKit_Server.lua` (bus
 polling on `OnTick`, `OnClientCommand` witness replies),
 `server/scenarios/PZTestKit_Scenario_{Smoke,Nutrition}.lua` (the registered
 tests — the loader walks the folder recursively, as vanilla does for
-`media/lua/server/Farming`), `client/PZTestKit_Client.lua` (auto-join, client
+`media/lua/server/Farming`), `server/PZTestKit_Server_Recipes.lua` (slice 06:
+`recipes.count` / `recipes.evolved` / `recipes.craft`; a separate file for the
+same reason `PZTestKit_Client_Body.lua` is one, and it sorts after
+`PZTestKit_Server.lua` — `.` < `_` — so `TK` exists when it loads),
+`client/PZTestKit_Client.lua` (auto-join, client
 commands, `OnServerCommand` witness comparison) and
 `client/PZTestKit_Client_Body.lua` (slice 03: the client mirror — `stats.get`,
 `player.walk`, `player.stop`; a separate file loaded into the same client Lua

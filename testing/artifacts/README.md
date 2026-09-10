@@ -35,6 +35,7 @@ correct it.
 | `scenario-20260910-055029` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast` | same |
 | `exp05-20260910-084109` | `food-scan.json` | `testing/experiments/s05_food_scan.py` | [`docs/vanilla/food-dataset-notes.md`](../../docs/vanilla/food-dataset-notes.md) (and `.superpowers/sdd/05-food-scanner/task-5-report.md`) |
 | `exp05b-20260910-093307` | `drink-probe.json` | `testing/experiments/s05b_drink_probe.py` | [`docs/vanilla/food-dataset-notes.md`](../../docs/vanilla/food-dataset-notes.md), [`data/README.md`](../../data/README.md) § Per litre, not per item (and `.superpowers/sdd/05-food-scanner/task-5b-report.md`) |
+| `exp06-20260910-112726` | `recipes.json` | `testing/experiments/s06_recipes.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4-report.md`; its **evolved** half is the offline input for slice 06 tasks 3 and 5) |
 
 ## Script/artifact skew
 
@@ -52,6 +53,11 @@ wedged reply a mismatch on every field. The ninth, `exp05b-20260910-093307`, was
 until slice 05's **final fix wave** corrected two of its drift labels and the band they set;
 it is listed with the rest, at the end, where it also carries a *do not cite* block of its
 own. So all nine are below.
+
+The tenth, **`exp06-20260910-112726`**, is **skew-free**: it is committed in the same commit as
+the script and the harness command that produced it. Its block is therefore not a skew note but
+a reading guide — two of its `summary` keys mislead when quoted alone, and one of the *plan*
+expectations it was run against turns out to be wrong.
 
 A skew entry is about the *script*. Which **dataset** an artifact was measured against is a
 separate question, and `exp05-20260910-084109` is the run that shows why: its
@@ -294,3 +300,48 @@ The file carries two readings of each drink, and only one of them is the measure
 | `summary.all_matched` and `summary.fields_mismatched` | `false` and `3` | True as defined, and **misleading as evidence about the fluid arithmetic**. All three are the same field — the **outer** bracket's `calories` row — on the three drinks, and each misses the band's lower edge by **0.002 / 0.008 / 0.008 kcal**. The band's lower edge is `expected − 0.016 × weight/80 × Δgame-s`, i.e. it assumes the idle burn is *exactly* the model rate; subtracting the drift-free atomic delta from the outer one gives the burn that actually occurred, at ratios **1.00183 / 1.00411 / 1.00561** — inside the residual this repo has already measured twice (**1.0049**, `exp03-20260910-045523`; **+0.4 / +0.4 / +0.7 %**, the three slice-04 scenario runs). So the three rows are the idle-burn model's known excess seen a third time, not a disagreement about the drink. Cite `summary.per_drink.<drink>.matched` alongside the `atomic` / `container` blocks, or the report's § 4 tables. The tolerance was deliberately **not** widened after the fact — see `.superpowers/sdd/05-food-scanner/task-5b-report.md` § 5 — so a re-run flags the same three rows for the same reason. |
 | `comparison.<drink>.outer.calories.expected` | `119.233` / `58.977` / `79.233` | Not a prediction of anything the game does: it is the **midpoint of a band**, `no_drift_expectation + max_drift/2`, chosen so `diff` reads as a signed distance from the middle. The physical prediction is the sibling key `no_drift_expectation` (`120` / `60` / `80`), and the same row's `max_drift` is the other edge. |
 | `meta.drift_rates.lipids` and `.proteins` (and the `max_drift` / `tolerance` of the six `comparison.<drink>.outer.lipids` / `.proteins` rows they set) | `"0.0035 per game-second (nutrition-core.md, M)"` | **Wrong rate, wrong citation.** The macro drains are three different constants, not one: `Nutrition.update @48/@66/@84 L76–L78` writes carbs `−0.0035`, lipids **`−0.00113`** and proteins **`−0.00086`** per game-second ([`docs/vanilla/eating-pipeline.md`](../../docs/vanilla/eating-pipeline.md) § the drain table, C+M `exp01-20260910-003929`; the same constants slice 03 fitted at `testing/experiments/s03_body.py:103`, measured ratios 0.9991 / 0.9972 / 0.9993 in `exp03-20260910-045523`). The `nutrition-core.md` citation quoted here measures **carbohydrates only**. The labels are used for one thing — widening the outer bracket's band — so the error made those six bands ≈3× too wide, which can excuse a row but never fail one, and the file's own numbers reproduce the correct rates to four figures: subtracting each drink's expected gain from its outer delta and dividing by that window's own `worldAge` span gives lipids 0.00113000 / 0.00112995 / 0.00112984 and proteins 0.00086001 / 0.00085996 / 0.00085988. Cite the rates above and the run's own `outer.lipids` / `outer.proteins` deltas; the script at HEAD carries the corrected labels and bands. |
+
+**`exp06-20260910-112726/recipes.json`** — produced by `testing/experiments/s06_recipes.py`,
+the slice-06 recipe cross-check, together with the harness commands it drives
+(`server/PZTestKit_Server_Recipes.lua`: `recipes.count` / `recipes.evolved` /
+`recipes.craft`). Script and artifact land in one commit, so there is **no skew**.
+
+The run is clean — `server_errors []`, `client_quit rc=0`, `server_stopped rc=0`, doctor
+all-`ok` (recorded in `meta.doctor`), 89.1 s wall, dataset `ab26d41` with
+`dataset_dirty false` and the sha256 of the bytes actually read. It makes **no world change**
+at all: it reads `ScriptManager` and nothing else — no `settimespeed`, no sandbox write, no
+character write, no spawn.
+
+It carries **two readings, and only one of them is a verdict**:
+
+- **`counts` and `comparison`** — the measurement. `recipes.count` answered
+  **craft 969 / evolved 63 / legacy 0 / unique 0**, matching the plan's expectations and
+  `data/recipes.json`'s own `meta.counts` on all three of the compared rows; ten craft recipes
+  were compared field for field against their dataset rows, **77 fields, 75 matched**.
+- **`evolved`** — five `EvolvedRecipe` replies **recorded verbatim and compared against
+  nothing**, by controller ruling (`meta.sequencing`): this run happened *before* slice 06
+  task 3, so `data/evolved-recipes.json` did not exist. `summary.evolved_observations` is
+  labelled as observations for exactly that reason. The evidence is the full `items` /
+  `itemFullTypes` lists under `evolved.<name>.reply`; tasks 3 and 5 own the verdict.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `summary.craft_all_matched` and `summary.fields_mismatched` | `false` and `2` | True as defined, and **misleading as evidence about the scanner**. Both mismatches are the same field — `inputCount`, on `MakePizza` (10 vs 9) and `MakeMilkFromPowderBucket` (3 vs 2) — and neither side lost an input. `CraftRecipe.LoadIO @218–@317` attaches a `-` (or `+`) prefixed line inside an `inputs` block to the **preceding** input as `consumeFromItemScript` / `createToItemScript` and adds it to `ioLines`, never to `inputs`, and `getInputCount()` is `inputs.size()` (`@0–@7 L257`). The dataset's `inputs` array is flat and keeps those sub-lines as rows of their own, so it carries *more* than the game's counter. Both rows record `top_level: 9` / `top_level: 2` with `top_level_matches: true` — the dataset's line list with the sub-lines removed equals the game's count exactly. Cite `summary.fields_mismatched_other` (**0**) beside them, or `summary.per_recipe`. |
+| `summary.evolved_observations.salad_matches_plan` / `.salad_clay_matches_plan` | `false` (against `plan_expected_187`) | **The plan's 187 is the wrong number, not the measurement.** `getPossibleItems()` answered **189** for both `Salad` and `SaladClay` (identical sets — `Salad`'s and `SaladClay`'s 189 names differ in nothing). Of those 189, **187 are `kind == "food"` and 2 are `kind == "drainable"`** — `Base.Vinegar2` and `Base.Vinegar_Jug`, the two drainables the slice-06 plan itself counts (`374 items carry EvolvedRecipe (372 food, 2 drainable)`) but which its Salad expectation left out. Verified independently offline: a scan of `media/scripts/**/*.txt` for items whose `EvolvedRecipe` key matches `Salad` (case-insensitively, aliases applied) returns exactly the same 189 names, 0 extra and 0 missing. An expansion that reproduces the game must include drainables. |
+
+Two further readings this file evidences, both of which a scanner has to match:
+
+- **`isCookable()` is set by the presence of the `Cookable` key, not by its value.**
+  `evolved.AddBaitToChum.reply.isCookable` is **`true`** while
+  `media/scripts/generated/recipes/recipes_fishing_evolvedrecipe.txt:9` writes
+  `Cookable = false`. `EvolvedRecipe.Load @142–@157 L102–L104` matches the key and stores
+  `iconst_1` — the parsed value is never read. `AddBaitToChum` is the only one of the 63 that
+  writes `Cookable = false`, so it is the only recipe where the two disagree.
+- **`getResultItem()` strips the module.** The reply's `getResultItem` reads `Salad`,
+  `SaladClay`, `ConeIcecreamToppings`, `PotOfSoupRecipe`, `Chum` — not the `Base.`-prefixed
+  strings the scripts write. `EvolvedRecipe.getResultItem @0–@22 L685–L688` splits the stored
+  value on `.` and returns the last part; `getFullResultItem @0–@4 L692` is the raw one, and
+  this command does not read it. Compare against the stripped name, or against
+  `getBaseItem`, which **is** full (`Base.Bowl`, `Base.Pot`, `Base.Chum`).
