@@ -509,17 +509,25 @@ are the two evolved-recipe scripts), `cookingLevels` `[0, 10]`, and `counts` —
 **installed workshop tree**
 (`D:\SteamLibrary\steamapps\workshop\content\108600`, read and never written) —
 one record per mod folder, a bare JSON array, `indent=1`. **230 records across
-179 workshop items, swept 2026-09-10 15:30.** Evidence grade **C** for
+179 workshop items, swept 2026-09-10 17:20.** Evidence grade **C** for
 everything read off a shipped file (`mod.info` values, file counts, regex hit
 counts); nothing here is measured in a running game, and a signal count is a
 count of regex hits, not of behaviour.
 
 **No `meta` block, and no build stamp** — unlike the four datasets above, this
 one describes a *live* tree that Steam rewrites under you (item `3490370700`
-was rewritten mid-slice on 2026-09-10 at 13:47, which is why 9 rows' `stats`
-moved between the 09-09 and 09-10 sweeps). The sweep date above is the stamp;
-quote a count from this dataset with it. Regenerating is cheap (~3 s) and
-byte-stable: the same tree in gives the same bytes out.
+was rewritten mid-slice on 2026-09-10 at 13:47). **7 rows' `stats` moved
+between the 09-09 and 09-10 sweeps, for two different reasons**: the two
+`Skill Recovery Journal` rows (`2503622437`, `3782784855`) moved because the
+resolution fix reads their `42.20.1/` folder where the old rule fell back to an
+older one, and the other five (`3490370700` ×2, `3623584152`, `3703948448`,
+`3745960616`) because Steam rewrote those items' files between the sweeps. Only
+2 of the 7 are item `3490370700`. The sweep date above is the stamp; quote a
+count from this dataset with it. Regenerating is cheap (~2 s) and byte-stable:
+the same tree in gives the same bytes out, LF-terminated on every platform
+(the writer pins `encoding="utf-8", newline="\n"`, so the file no longer picks
+up CRLF when it is generated on Windows — the committed blob was already LF,
+`core.autocrlf` having normalised it, so this changed no committed byte).
 
 **`mod_id` is the id the game resolves, and it may be `""`.** The record no
 longer falls back to the folder name. Resolution is not this tool's opinion:
@@ -538,33 +546,60 @@ rows** have `mod_id != mod_id_fallback` — `mod_lint`'s `folder-id` INFO counts
 51 of them, because it cannot compare a folder against an id that does not
 exist.
 
-**Everything except `bytes` describes the live folder only** — the one
-`layout` names. A mod that also ships an older `42.x/`, a `common/` or a b41
-`media/` copy has that content ignored, because the running build ignores it:
-`3041122351/63Type2Van` writes nutrition keys **only** in its root `media/`
-copy, so its B42 script signal is 0 and its b41 one is 7.
+**Everything except `bytes` describes the newest version folder only** — the
+one `layout` names — and that is a de-duplication rule, not a claim about what
+the game loads. A mod that ships the same scripts in `42.14/`, `42.20/` and
+`common/` (`ZVirusVaccine42BETA` does) must not have them counted three times,
+so one folder is chosen and it is the one the build runs.
+
+Two different kinds of content fall outside it, and only one of them is dead:
+
+- An **older `42.x/`** or a **b41 root `media/`** is genuinely ignored by the
+  running build. `3041122351/63Type2Van` writes nutrition keys **only** in its
+  root `media/` copy, so its B42 script signal is 0 and its b41 one is 7 — it
+  does not touch nutrition on 42.20.4.
+- **`common/media` is not.** It is a shipped layout the build *also* loads
+  ([`docs/modding/README.md`](../docs/modding/README.md) "picks the highest
+  `42.x` ≤ game build; `common/` shared",
+  [`docs/modding/patterns.md`](../docs/modding/patterns.md) § 10,
+  `mod_lint.media_root`). Its content is simply **not counted here**, and this
+  dataset asserts no rule for how the two folders combine — the resolution
+  order is still open question 1 in
+  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0. **24 rows
+  read as zero for this reason**: every file they ship is in `common/media`
+  while a version folder decides the layout. `live_media` is `false` on exactly
+  those 24 and `media_at` says where the content is, so a zero is never
+  ambiguous.
+
+**Measured impact of that gap on the nutrition question: none.** Every
+`common/media` in the corpus was swept for the ten `script_nutrition` keys on
+2026-09-10 and **not one carries a single key**, so no nutrition candidate is
+hidden by the scope. Any other question asked of `stats` or `signals` must
+check `live_media` before believing a zero.
 
 | Field | Type | Meaning |
 |---|---|---|
 | `mod_id` | string | `id=` from the resolved `mod.info`; `""` when there is none |
 | `mod_id_fallback` | string | the folder name — for reporting, never for a profile |
-| `name` / `author` | string | `name=` / `author=` from the same file; `?` when absent (3 rows have no name, 55 no author) |
+| `name` / `author` | string | `name=` / `author=` from the same file; `?` when absent **or declared empty** — `name=` with nothing after it says no more than a missing line (3 rows have no name, 56 no author; `3701820916/gasmask` is the one empty `author=`) |
 | `require` | list | `require=` split on commas with the leading `\` stripped (`\Base,\OtherMod`) |
 | `layout` | string | the folder the running build reads: a version folder (`42.20.1`), `common`, or `flat(b41?)` |
 | `version_dirs` | list | every `42[.x[.y]]/` folder, newest first, tuple-sorted (`42.20.1 > 42.20 > 42.9 > 42`) |
 | `mod_info_at` | string/null | which `mod.info` the id came from, relative to the mod folder (224 rows a version folder, 5 `common/mod.info`, 1 `null`) |
+| `live_media` | bool | is there a `media/` inside the `layout` folder at all? **`false` on 24 rows** — everything below this line is counted under `<live>/media`, so on those 24 every count is zero because nothing was scanned, not because nothing is shipped |
+| `media_at` | list | every `media/` folder in the mod, one level deep, sorted (`["42.20/media", "common/media"]`). What a `live_media: false` row ships instead — all 24 have `common/media`. No row in the corpus has none |
 | `stats` | dict | file counts under `<live>/media`: `lua_client` / `lua_server` / `lua_shared` (by path), `script_files` (`.txt` under a `scripts` path), `models`, `tile_packs`, `map_files`, `sounds`. Absent keys are zero |
 | `signals` | dict | regex hit counts, absent when zero — 18 Lua signals (`events_add`, `send_client_cmd`, `on_client_cmd`, `send_server_cmd`, `mod_data`, `transmit_mod_data`, `monkey_patch`, `pcall`, `loadstring`, `getfilewriter`, `sandbox_vars`, `timed_action_new`, `ui_panel`, `require_line`, `global_write_vanilla`, `onplayerupdate`, `everyoneminute`, `food_nutrition`) plus `script_nutrition` |
 | `script_nutrition_keys` | dict | per-key counts behind `script_nutrition` |
-| `script_item_blocks` | int | `item ` lines in those `.txt` files — an **upper bound** on definitions |
-| `script_modules` | list | every `module <name>` declared in them, sorted |
+| `script_item_blocks` | int | item **definitions** — `item <Name>` alone on its line, brace optional — counted over **every** `.txt` under `<live>/media/**/scripts`, not only the ones carrying a nutrition key. An exact count, not a bound |
+| `script_modules` | list | every `module <name>` declared in those same `.txt` files, sorted |
 | `top_events` | list | the 8 most-used `Events.<X>.Add` names, `[name, count]` |
 | `lua_kb` | int | total `.lua` characters read, in KiB |
 | `bytes` | int | the **whole** mod folder on disk, every version folder included — what a subscriber downloads (7.01 GiB over the corpus) |
-| `workshop_item_mtime` | string | ISO-8601 mtime of the `<workshop-id>/` folder — see the caveat below |
+| `workshop_item_mtime` | string/null | ISO-8601 mtime of the `<workshop-id>/` folder — see the caveat below. Non-null on all 230 rows here; `null` when `scan_mod` is called on a mod folder with no workshop item above it, since the mod folder's own mtime is a different fact |
 | `sandbox_options` | bool | a `media/sandbox-options.txt` in the live folder or at the mod root |
 | `workshop_id` / `folder` | string | the item id and the mod folder name; together they are the record's key |
-| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is 31 rows with nothing under `<live>/media`, nearly all of them tile packs that ship `common/media` while a version folder exists |
+| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is the 31 rows whose `stats` came back empty, and they split two ways: **24** have no `<live>/media` at all (`live_media` false — every file is in `common/media`, mostly tile packs) and **7** have one holding only file kinds `stats` has no bucket for (textures, ui). Check `live_media` before reading `other` as "ships nothing" |
 
 **`workshop_item_mtime` is a download stamp, not an update stamp.** Steam
 rewrites the mod folder inside an item without touching the item folder:
@@ -593,13 +628,23 @@ Neither column alone is the catalog, and they are counted from different files:
 
 `script_modules` is the override question: a mod writing **`module Base`
 overrides vanilla items**; `module <Own>` only adds new ones. Long Term
-Preservation declares `module Skittles` alone, so its 17 item blocks all add.
+Preservation declares `module Skittles` alone, so its 17 item definitions all
+add.
 The value is the raw token after `module`, so a `module LabItems{` written
 with the brace on the same line is recorded as `LabItems{`
 (`ZVirusVaccine42BETA`).
 
-`script_item_blocks` counts **every** `item ` line at the start of a line, and
-a `craftRecipe`'s inputs and outputs are written the same way (`item 1
-[Base.Bowl]`). Long Term Preservation's 47 is 17 real item blocks plus 30
-recipe lines; `JadePackingSD`'s 923 is nearly all recipe lines. Read it as an
-upper bound on how much item DSL a mod ships, never as "items added".
+`script_item_blocks` is an **exact** count of item definitions: `item <Name>`
+alone on its line, with or without the opening brace. Anchoring the name to
+the end of the line is what separates a definition from a `craftRecipe`'s
+inputs and outputs, which are written `item 1 [Base.Bowl]` / `item 1
+Base.DriedApple` at the same indentation. The first version of this field used
+`^\s*item\s+(\S+)` and could not tell them apart, which inflated it on **113
+of the 230 rows** (22231 lines down to 6157 definitions): Long Term
+Preservation read 47 for 17 real items, `JadePackingSD` 923 for 125, and three
+rows that only ever write recipe inputs — `3621968227/SWMisc_Patches`,
+`3624538051/QualityEnhancements`, `3645980077/ProjectArcade` — now read 0,
+correctly. The nine `script_nutrition` mods read 17 · 288 · 308 · 102 · 14 ·
+125 · 32 · 12 · 1 in the order listed above. Quote it as "items defined";
+it counts definitions in every script file, so for a mod that also ships
+clothing or vehicles it is not "food items defined".

@@ -60,8 +60,9 @@ import patterns from there.
 - `mod_inventory.py` — `python tools/mod_inventory.py`
   Sweeps the same workshop root as `mod_lint` and writes
   `data/mod-inventory.json` — one record per mod folder, **230 across 179
-  workshop items at 2026-09-10 15:30**, ~3 s, byte-stable — then prints the
-  class histogram, the `loadstring` and b41-flat lists, the top 20 by lua size,
+  workshop items at 2026-09-10 17:20**, ~2 s, byte-stable (LF, utf-8, on every
+  platform) — then prints the class histogram, the `loadstring` and b41-flat
+  lists, the top 20 by lua size,
   the two nutrition signals side by side, and a folder-name-≠-id block (**52
   rows**; `mod_lint`'s `folder-id` INFO counts 51, having no id to compare on
   the 52nd). **Identity is `mod_lint`'s answer, not a second opinion**:
@@ -72,11 +73,19 @@ import patterns from there.
   because neither alone is the catalog: `signals.food_nutrition` greps `.lua`
   for the runtime API (11 mods) and `signals.script_nutrition` greps
   `<live>/media/**/scripts/*.txt` for the item-definition keys (9 mods, 1
-  overlap). Everything but `bytes` describes the **live** version folder only,
-  because that is what the build loads. Every field, the counts above and the
-  two upper-bound caveats (`script_item_blocks`, `workshop_item_mtime`) are
-  documented in [`data/README.md`](../data/README.md) § mod-inventory. Stdlib
-  only bar `mod_lint` beside it; the workshop tree is read, never written.
+  overlap); `script_item_blocks` beside them is an **exact** count of item
+  definitions, recipe `item 1 [Base.X]` lines excluded (17 for Long Term
+  Preservation, where the first cut of the field read 47). Everything but
+  `bytes` describes the **newest version folder only** — the de-duplication a
+  per-mod record needs, since a mod may ship the same scripts in three folders.
+  `common/media`, which the build **also** loads, is not counted here and no
+  merge rule is asserted: `live_media` is `false` on the **24 rows** whose
+  whole content sits there and `media_at` says where it is, so a zero is
+  legible. (Measured: no `common/media` in the corpus carries a nutrition key,
+  so nothing is hidden from the catalog.) Every field, the counts above and the
+  `workshop_item_mtime` caveat are documented in
+  [`data/README.md`](../data/README.md) § mod-inventory. Stdlib only bar
+  `mod_lint` beside it; the workshop tree is read, never written.
 
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes

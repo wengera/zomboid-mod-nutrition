@@ -18,13 +18,23 @@ declared id or **`""`**: a mod the game cannot identify is a finding, and `""` i
 kept beside it as `mod_id_fallback`.
 
 Two independent nutrition signals, because neither alone is the catalog: `signals.food_nutrition`
-greps `.lua` for the runtime API, `signals.script_nutrition` greps `media/scripts/**/*.txt` for
-the item-definition keys. On the corpus at 2026-09-10 they overlap on exactly one mod
+greps `.lua` for the runtime API, `signals.script_nutrition` greps `<live>/media/scripts/**/*.txt`
+for the item-definition keys. On the corpus at 2026-09-10 they overlap on exactly one mod
 (LongTermPreservation4220). A mod writing `module Base` **overrides vanilla items**; a mod
 writing `module <Own>` only adds new ones -- LongTermPreservation4220 declares `module Skittles`
-alone, so the 17 items in its item script all add and none override. (`script_item_blocks`
-reads 47 for it: the regex cannot tell a definition from a craftRecipe's 30 `item 1 [Base.X]`
-input lines, so the field is an upper bound -- see data/README.md.)
+alone, so the 17 items its item script defines all add and none override. `script_item_blocks`
+reads exactly those 17: `SCRIPT_ITEM` anchors the name to the end of its line, so a
+craftRecipe's 30 `item 1 [Base.X]` input lines drop out. The field is a count, not a bound.
+
+**Scope: the newest version folder only** -- the `layout` folder, which is the de-duplication
+the record needs (ZVirusVaccine42BETA ships the same scripts in `42.14/`, `42.20/` and
+`common/`; counting all three would treble it). `common/media` is a shipped layout the running
+build ALSO loads (`docs/modding/README.md:22`, `mod_lint.media_root`) and its content is simply
+not counted here; this module asserts no merge rule between the two folders. `live_media` and
+`media_at` are what tell a zero apart: 24 of the 230 rows have no `<live>/media` at all and keep
+every file in `common/media` (2026-09-10), so their whole record reads as empty. Measured impact
+on the nutrition question specifically: none -- no `common/media` in the corpus carries a single
+nutrition key (swept 2026-09-10).
 
 Stdlib only, no import of `testing/pzt`. Ground truth:
 D:/SteamLibrary/steamapps/workshop/content/108600, read and never written. It is a live tree
@@ -64,24 +74,47 @@ SIGNALS = {
 # longer identifier (`ExtraCalories = `) does not count.
 SCRIPT_KEYS = re.compile(r"^\s*(Calories|Carbohydrates|Lipids|Proteins|HungerChange|ThirstChange"
                          r"|DaysFresh|DaysTotallyRotten|FoodType|EvolvedRecipe)\s*=", re.M)
-# `item <name>` at line start. NOT only item *blocks*: a craftRecipe's input lines read
-# `item 1 [Base.Bowl]`, so this is an upper bound on definitions -- see data/README.md.
-SCRIPT_ITEM = re.compile(r"^\s*item\s+(\S+)", re.M)
+# An item DEFINITION header: `item <name>` alone on its line, brace optional (`item Foo` with
+# the `{` on the next line, or `item Foo {`). The name is anchored to end-of-line, which is what
+# makes the count exact rather than an upper bound: a craftRecipe's input/output lines read
+# `item 1 [Base.Bowl]` / `item 1 Base.DriedApple` and carry a count and a bracketed/dotted
+# reference after `item`, so they never match. `\w` leads because ids may start with a digit.
+SCRIPT_ITEM = re.compile(r"^[ \t]*item[ \t]+(\w[\w.]*)[ \t]*\{?[ \t]*$", re.M)
 SCRIPT_MODULE = re.compile(r"^\s*module\s+(\S+)", re.M)
 
 
 def resolve(mod_dir):
-    """(info, version_dirs, chosen_rel, live_dir) exactly as B42 resolves them: the newest
-    version folder's mod.info first, then common/, then the root.
+    """(info, version_dirs, chosen_rel, media_root, live_dir) exactly as B42 resolves them: the
+    newest version folder's mod.info first, then common/, then the root.
 
-    Every part of the answer comes from `mod_lint`; see this module's docstring for why an
-    inventory must not keep a second opinion about a mod's identity."""
+    `media_root` is the branch the live folder IS -- `"42.20.1"`, `"common"`, or `""` for a
+    b41-flat mod -- and it is returned rather than thrown away so `layout` can be derived from
+    it once instead of a caller re-deriving the same branch a second way. Every part of the
+    answer comes from `mod_lint`; see this module's docstring for why an inventory must not keep
+    a second opinion about a mod's identity."""
     vers = mod_lint.version_dirs(mod_dir)
     chosen = next((c for c in mod_lint.info_chain(vers)
                    if os.path.isfile(os.path.join(mod_dir, c))), None)
     info = mod_lint.read_info(os.path.join(mod_dir, chosen)) if chosen else {}
     root = mod_lint.media_root(mod_dir, vers)
-    return info, vers, chosen, os.path.join(mod_dir, root) if root else mod_dir
+    return info, vers, chosen, root, os.path.join(mod_dir, root) if root else mod_dir
+
+
+def media_locations(mod_dir):
+    """Every `media/` a resolver could pick, relative to the mod folder and sorted: `media`,
+    `<version>/media`, `common/media`.
+
+    The same depth-<2 list `mod_lint._scan` builds, without its whole-tree walk (that walk also
+    reads every `.lua` for `loadstring`; this is one `listdir`). Checked identical to `_scan`'s
+    on all 230 installed mods, 2026-09-10 -- nothing in the corpus hides a `media/` deeper than
+    one level, which is also the only depth either tool treats as a layout root."""
+    out = ["media"] if os.path.isdir(os.path.join(mod_dir, "media")) else []
+    try:
+        entries = sorted(os.listdir(mod_dir))
+    except OSError:
+        entries = []
+    out += [e + "/media" for e in entries if os.path.isdir(os.path.join(mod_dir, e, "media"))]
+    return sorted(out)
 
 
 def require_list(info):
@@ -108,11 +141,12 @@ def folder_bytes(mod_dir):
 
 def scan_mod(mod_dir, item_dir=None):
     """One mod folder -> one inventory record. `item_dir` is the workshop *item* folder the
-    mod ships in, whose mtime is Steam's last write (the offline half of "is this B42?");
-    with none given, the mod folder's own mtime stands in."""
-    info, vers, chosen, live = resolve(mod_dir)
-    # media_root returns "" only when there is neither a version folder nor common/.
-    layout = vers[0] if vers else ("common" if live != mod_dir else "flat(b41?)")
+    mod ships in, whose mtime is Steam's last write (the offline half of "is this B42?"); with
+    none given `workshop_item_mtime` is `None`, because the mod folder's own mtime answers a
+    different question and must not stand in for a Steam stamp."""
+    info, vers, chosen, root, live = resolve(mod_dir)
+    # `media_root` returns "" only when there is neither a version folder nor common/.
+    layout = root or "flat(b41?)"
     media = os.path.join(live, "media")
     stats = collections.Counter()
     sig = collections.Counter()
@@ -121,9 +155,13 @@ def scan_mod(mod_dir, item_dir=None):
     script_modules = set()
     script_items = 0
     lua_bytes = 0
+    # Sorted like `mod_lint._scan`'s walk: `stats` is a total either way, but `top_events` ties
+    # and `script_modules` insertion order would otherwise depend on how the filesystem
+    # enumerates a folder, and the committed dataset has to be byte-reproducible.
     for dirpath, dirs, files in os.walk(media):
+        dirs.sort()
         p = dirpath.replace("\\", "/").lower()
-        for fn in files:
+        for fn in sorted(files):
             fl = fn.lower()
             full = os.path.join(dirpath, fn)
             if fl.endswith(".lua"):
@@ -164,16 +202,22 @@ def scan_mod(mod_dir, item_dir=None):
         sig["script_nutrition"] = sum(script_keys.values())
     has_sandbox = os.path.isfile(os.path.join(live, "media", "sandbox-options.txt")) or \
                   os.path.isfile(os.path.join(mod_dir, "media", "sandbox-options.txt"))
-    mtime = os.path.getmtime(item_dir or mod_dir)
+    mtime = os.path.getmtime(item_dir) if item_dir else None
     return {
         "mod_id": info.get("id") or "",
         "mod_id_fallback": os.path.basename(os.path.normpath(mod_dir)),
-        "name": info.get("name", "?"),
-        "author": info.get("author", "?"),
+        # `name=` / `author=` present but empty is the same fact as absent -- nothing is
+        # declared -- and `mod_id` already collapses the two. `.get(k, "?")` did not.
+        "name": info.get("name") or "?",
+        "author": info.get("author") or "?",
         "require": require_list(info),
         "layout": layout,
         "version_dirs": vers,
         "mod_info_at": chosen,
+        # Everything below `live_media` is counted under `<live>/media` alone. False with a
+        # `common/media` in `media_at` means "not scanned here", not "ships nothing".
+        "live_media": os.path.isdir(media),
+        "media_at": media_locations(mod_dir),
         "stats": dict(stats),
         "signals": dict(sig),
         "script_nutrition_keys": dict(sorted(script_keys.items())),
@@ -182,7 +226,8 @@ def scan_mod(mod_dir, item_dir=None):
         "top_events": events.most_common(8),
         "lua_kb": round(lua_bytes / 1024),
         "bytes": folder_bytes(mod_dir),
-        "workshop_item_mtime": datetime.datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
+        "workshop_item_mtime": None if mtime is None else
+            datetime.datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
         "sandbox_options": has_sandbox,
     }
 
@@ -217,7 +262,10 @@ def main():
             m["class"] = classify(m)
             out.append(m)
 
-    with open(OUT, "w") as fh:
+    # Explicit encoding and newline: text mode would write the platform's line ending, so the
+    # same tree over the same corpus produced different bytes on Windows than anywhere else.
+    # LF and utf-8 make "regenerate and diff" mean the same thing on every machine.
+    with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
         json.dump(out, fh, indent=1)
 
     print(f"{len(out)} mods across {len({m['workshop_id'] for m in out})} workshop items -> {OUT}\n")
@@ -243,8 +291,8 @@ def main():
     # mod that never ships an item. Neither column alone is the catalog.
     print("\nMods touching nutrition/food APIs (lua) or item nutrition keys (scripts):")
     print("  lua = getNutrition/set*/HungerChange in .lua; script = nutrition keys in "
-          "media/scripts/*.txt;\n  items = `item ` lines there (recipe input lines included); "
-          "module Base overrides vanilla items.")
+          "media/scripts/*.txt;\n  items = item definitions there (exact -- a recipe's `item 1 "
+          "[Base.X]` lines are not); module Base overrides vanilla items.")
     print(f"  {'lua':>4} {'script':>6} {'items':>5}  {'mod_id':<34} module(s) / name")
     touching = [m for m in out if m["signals"].get("food_nutrition") or m["signals"].get("script_nutrition")]
     for m in sorted(touching, key=lambda x: (-x["signals"].get("script_nutrition", 0),
