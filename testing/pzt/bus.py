@@ -11,6 +11,9 @@ import os
 import shutil
 import time
 
+RENAME_RETRIES = 8          # ~1.2 s of retrying the command-file swap; see CommandBus.send
+RENAME_RETRY_WAIT = 0.15
+
 
 def read_kv(path):
     out = {}
@@ -72,7 +75,21 @@ class CommandBus:
         tmp = self.cmd_path + ".tmp"
         with open(tmp, "w", encoding="utf-8") as fh:
             fh.write(f"seq={self.seq}\ncmd={cmd}\nargs={args}\n")
-        os.replace(tmp, self.cmd_path)
+        # os.replace onto a file the game currently has open raises PermissionError
+        # (WinError 5) on Windows -- there is no atomic-replace-over-an-open-handle there.
+        # The harness polls this file ~3x a second on each side, so the collision window is
+        # real: it cost one row of exp03-20260910-045523 (r2_asleep aborted on the FIRST
+        # command it sent). Retrying is the whole fix -- the handle is released within a
+        # frame -- and a raise on the last attempt keeps the old behaviour for a path that is
+        # genuinely unwritable.
+        for attempt in range(RENAME_RETRIES):
+            try:
+                os.replace(tmp, self.cmd_path)
+                break
+            except PermissionError:
+                if attempt == RENAME_RETRIES - 1:
+                    raise
+                time.sleep(RENAME_RETRY_WAIT)
         if not wait:
             return None
         end = time.time() + timeout

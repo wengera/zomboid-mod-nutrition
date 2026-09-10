@@ -218,6 +218,113 @@ end
 TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", lipids = "setLipids",
                          proteins = "setProteins", weight = "setWeight" }
 
+-- ---- body snapshot (both sides) ---------------------------------------------
+-- Slice 03. One ATOMIC read of everything the body-side rates are fitted against: the
+-- nutrition block, the four stats, the five moodle levels, the five weight-band traits,
+-- carry capacity, the food timer and the world clock -- all in the same Lua call, i.e. the
+-- same game tick.
+--
+-- Why one command instead of the three the brief named (`time.snapshot` + `nutrition.get` +
+-- `stats.get`): every rate in slice 03 is fitted as d<value>/d<worldAge>, and three separate
+-- bus round-trips put up to ~1 s of wall time between the clock read and the calorie read.
+-- At `settimespeed 30` on this fixture that is ~500 game-seconds of skew on a window that
+-- only spans ~10 000 -- a 2-5 % rate error injected by the harness itself. Sampling all of
+-- it in one tick removes that term entirely. `time.snapshot` and `nutrition.get` are still
+-- used at condition boundaries as independent cross-checks.
+--
+-- Every read goes through TK.call, and each MoodleType / CharacterStat member is nil-checked
+-- BEFORE it is passed in: handing a nil enum to a present Java method is an argument
+-- mismatch, which Kahlua does not let pcall catch either (see TK.call).
+TK.MOODLES = { hungry = "HUNGRY", thirst = "THIRST", foodEaten = "FOOD_EATEN",
+               heavyLoad = "HEAVY_LOAD", endurance = "ENDURANCE" }
+-- The trait STRINGS as CharacterTrait.<clinit> registers them ("Very Underweight" carries a
+-- space, 03-notes Q4). They are used as SET KEYS against the character's own trait list, never
+-- passed into a Java method: B42's `hasTrait` is called with a CharacterTrait everywhere in
+-- the game's own Lua (ISBuildAction.lua:269 and 70 more), so handing it a String would risk
+-- exactly the argument mismatch Kahlua will not let pcall catch. `TK.traitNames` reads the
+-- list instead -- `getCharacterTraits():getKnownTraits()` plus `trait:getName()`, the same
+-- pair LastStandSetup.lua:126-128 uses to write a trait back out by name.
+TK.WEIGHT_TRAITS = { obese = "Obese", overweight = "Overweight", underweight = "Underweight",
+                     veryUnderweight = "Very Underweight", emaciated = "Emaciated" }
+-- The four appetite/thirst traits row 9 flips: registered string -> CharacterTrait field.
+TK.APPETITE_TRAITS = { HeartyAppetite = "HEARTY_APPETITE", LightEater = "LIGHT_EATER",
+                       HighThirst = "HIGH_THIRST", LowThirst = "LOW_THIRST" }
+
+-- The character's own traits, as a { [lowercased name] = true } set plus the raw ordered list.
+-- Read-only and argument-safe: nothing here passes a value into a Java method.
+-- MEASURED (smoke03-20260910-045044): `CharacterTrait:getName()` comes back LOWERCASED --
+-- adding CharacterTrait.HEARTY_APPETITE puts "heartyappetite" in the list, and a weight of 105
+-- puts "obese" there -- so the set is keyed lowercase and every lookup goes through
+-- TK.hasTraitName. Matching the registry's own spelling ("HeartyAppetite", "Very Underweight")
+-- would have read false on a trait that was demonstrably applied.
+function TK.traitNames(p)
+    local set, list = {}, {}
+    local _, coll = TK.call(p, "getCharacterTraits")
+    if coll == nil then return set, list, "no getCharacterTraits" end
+    local ok, known = TK.call(coll, "getKnownTraits")
+    if not ok or known == nil then return set, list, "no getKnownTraits" end
+    local okS, n = TK.call(known, "size")
+    if not okS or type(n) ~= "number" then return set, list, "no getKnownTraits():size()" end
+    for i = 0, n - 1 do
+        local okG, t = TK.call(known, "get", i)
+        if okG and t ~= nil then
+            local okN, name = TK.call(t, "getName")
+            if okN and name ~= nil then
+                set[string.lower(tostring(name))] = true
+                list[#list + 1] = tostring(name)
+            end
+        end
+    end
+    return set, list, "getKnownTraits"
+end
+
+-- `set` from TK.traitNames, `name` in the registry's own spelling.
+function TK.hasTraitName(set, name)
+    return set[string.lower(tostring(name))] == true
+end
+
+function TK.bodySnapshot(p)
+    if p == nil then return { error = "no player" } end
+    local out = TK.nutritionSnapshot(p)          -- calories/carbs/lipids/proteins/weight/hunger/thirst
+    local s = p:getStats()
+    out.endurance = statValue(s, "ENDURANCE", "getEndurance", "endurance")
+    out.fatigue = statValue(s, "FATIGUE", "getFatigue", "fatigue")
+    local _, moodles = TK.call(p, "getMoodles")
+    out.moodles = {}
+    for key, name in pairs(TK.MOODLES) do
+        local mt = MoodleType and MoodleType[name]
+        if moodles ~= nil and mt ~= nil then
+            local ok, lvl = TK.call(moodles, "getMoodleLevel", mt)
+            if ok then out.moodles[key] = lvl end
+        end
+    end
+    local set, list, route = TK.traitNames(p)
+    out.traits = {}
+    for key, name in pairs(TK.WEIGHT_TRAITS) do out.traits[key] = TK.hasTraitName(set, name) end
+    for name in pairs(TK.APPETITE_TRAITS) do out.traits[name] = TK.hasTraitName(set, name) end
+    out.traitList, out.traitRoute = list, route
+    local okMW, mw = TK.call(p, "getMaxWeight")
+    if okMW then out.maxWeight = mw end
+    -- healthFromFoodTimer is what drives the FOOD_EATEN moodle (03-notes Q5); it has to be 0
+    -- before any hunger-rate window or the rate is silently zeroed.
+    local _, bd = TK.call(p, "getBodyDamage")
+    if bd ~= nil then
+        local okT, ft = TK.call(bd, "getHealthFromFoodTimer")
+        if okT then out.foodTimer = ft end
+        local okS, st = TK.call(bd, "getStandardHealthFromFoodTime")
+        if okS then out.standardFoodTime = st end
+    end
+    local _, asleep = TK.call(p, "isAsleep");        out.asleep = asleep
+    local _, running = TK.call(p, "IsRunning");      out.running = running
+    local _, sprint = TK.call(p, "isSprinting");     out.sprinting = sprint
+    local _, moving = TK.call(p, "isPlayerMoving");  out.moving = moving
+    local gt = getGameTime()
+    out.worldAge = gt:getWorldAgeHours()
+    out.mult = gt:getMultiplier()
+    out.wall = TK.now()
+    return out
+end
+
 -- ---- writing stats (hunger/thirst) ------------------------------------------
 -- Needed because CharacterStat.HUNGER/THIRST clamp to [0,1]: on a satiated character every
 -- eat's hunger/thirst relief is silently discarded and dHunger/dThirst measure nothing.

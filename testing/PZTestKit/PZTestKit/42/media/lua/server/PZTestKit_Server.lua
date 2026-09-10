@@ -74,6 +74,195 @@ TK.register("perk.set", function(argv)
     return TK.setPerk(p, argv[2], level)
 end)
 
+-- ---- body-side commands (slice 03) -------------------------------------------
+-- Everything below is SERVER-side on purpose. Hunger, thirst, endurance and the whole
+-- Nutrition block tick only here in MP: `updateStats_WakeState @8-@26 L10227` and the twin
+-- guard in `updateThirst @38-@73 L10377` are `GameServer.server || (!GameClient.client &&
+-- IsoPlayer.getInstance() == this)`, `IsoPlayer.updateEndurance @0-@13 L3427` returns early
+-- on a client, and `Nutrition.update @42 L75` is `!GameClient.client` (03-notes Q7). A client
+-- read is a mirror of the last 1 Hz PlayerStatsPacket and nothing more.
+
+-- <user>. The atomic sample the rate fits are built from -- see TK.bodySnapshot for why it is
+-- one command rather than three.
+TK.register("stats.get", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    return TK.bodySnapshot(p)
+end)
+
+-- <option> <value>. The SERVER half of the client's `sandbox.set`, and a different thing:
+-- the client's admin panel never calls getSandboxOptions():set() (ISServerSandboxOptionsUI
+-- .lua:738 guards it with `if not isClient()`) and pushes a copy instead, so a client flip is
+-- local. Here the write IS the live server config -- SandboxOptions.getStatsDecreaseMultiplier
+-- reads it on the next tick, no push needed.
+-- `value` is a number for enum/integer options (StatsDecrease is newEnumOption(...,5,3)) and
+-- true|false for booleans; both routes are tried, and the resulting multiplier is read back
+-- when the getter is exposed -- that read alone settles the inferred key->value mapping
+-- (1 -> 2.0 ... 5 -> 0.65, 03-notes "Open / uncertain" #1) without needing a rate measurement.
+TK.register("sandbox.set", function(argv)
+    local name = argv[1]
+    if not name then return "usage: sandbox.set <option> [<value>]" end
+    if not getSandboxOptions then return "no getSandboxOptions()" end
+    local opts = getSandboxOptions()
+    if not opts then return "getSandboxOptions() returned nil" end
+    local out = { option = name, side = TK.side }
+    local hasByName, opt = TK.call(opts, "getOptionByName", name)
+    if hasByName and opt then
+        local ok, v = TK.call(opt, "getValue")
+        if ok then out.before = v end
+        ok, v = TK.call(opt, "getType")
+        if ok then out.type = v end
+    else
+        out.before = "no SandboxOptions:getOptionByName"
+    end
+    out.sandboxVarsBefore = SandboxVars and SandboxVars[name]
+    local _, multBefore = TK.call(opts, "getStatsDecreaseMultiplier")
+    out.statsDecreaseMultiplierBefore = multBefore
+    if argv[2] ~= nil then
+        local value
+        if argv[2] == "true" or argv[2] == "false" then value = (argv[2] == "true")
+        else value = tonumber(argv[2]) end
+        if value == nil then return "expected a number or true|false, got " .. tostring(argv[2]) end
+        out.requested = value
+        -- pcall wraps the CALL, not the lookup: TK.call has already ruled out "call nil" (the
+        -- one failure pcall cannot catch), so what is left is an argument/type mismatch inside
+        -- SandboxOptions:set, which pcall does catch and which must fall through to the
+        -- per-option setter rather than kill the ack.
+        local ran, present = pcall(TK.call, opts, "set", name, value)
+        if ran and present then
+            out.route = "SandboxOptions:set(name,value)"
+        else
+            if not ran then out.setError = tostring(present) end
+            local ran2, present2 = false, false
+            if opt then ran2, present2 = pcall(TK.call, opt, "setValue", value) end
+            if ran2 and present2 then out.route = "getOptionByName():setValue()"
+            else
+                out.route = "none"
+                out.error = "not settable at runtime: no SandboxOptions:set and no option:setValue"
+                if not ran2 and opt then out.setValueError = tostring(present2) end
+            end
+        end
+    end
+    if hasByName and opt then
+        local ok, v = TK.call(opt, "getValue")
+        if ok then out.after = v end
+    end
+    out.sandboxVarsAfter = SandboxVars and SandboxVars[name]
+    local _, multAfter = TK.call(opts, "getStatsDecreaseMultiplier")
+    out.statsDecreaseMultiplierAfter = multAfter
+    return out
+end)
+
+-- <user> <TraitName> <add|remove>. The game's own route is
+-- `char:getCharacterTraits():add(CharacterTrait.X)` (ISPlayerStatsUI.lua:594, XpUpdate.lua:216),
+-- i.e. the ENUM, not the string -- so the field is resolved first and the call skipped when it
+-- is nil (a nil argument into a live Java method is the mismatch pcall cannot catch).
+-- Accepts either spelling: "HeartyAppetite" (the registered string) or "HEARTY_APPETITE" (the
+-- static field). The read-back is TK.traitNames, not hasTrait: `hasTrait` is called with a
+-- CharacterTrait throughout the game's own Lua, so the string it would need here is exactly
+-- the argument mismatch that cannot be caught. Note the arg parser splits on whitespace, so
+-- "Very Underweight" is not addressable through this command -- it is not needed either, the
+-- band traits are driven by weight and read back through the same trait list.
+local TRAIT_FIELDS = { HeartyAppetite = "HEARTY_APPETITE", LightEater = "LIGHT_EATER",
+                       HighThirst = "HIGH_THIRST", LowThirst = "LOW_THIRST",
+                       Obese = "OBESE", Overweight = "OVERWEIGHT", Underweight = "UNDERWEIGHT",
+                       Emaciated = "EMACIATED" }
+
+TK.register("trait.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local name, op = argv[2], argv[3]
+    if not name or (op ~= "add" and op ~= "remove") then
+        return "usage: trait.set <user> <TraitName> <add|remove>"
+    end
+    local field = TRAIT_FIELDS[name] or name
+    local out = { trait = name, field = field, op = op }
+    local before = TK.traitNames(p)
+    out.before = TK.hasTraitName(before, name)
+    local enum = CharacterTrait and CharacterTrait[field]
+    out.enumFound = enum ~= nil
+    local _, coll = TK.call(p, "getCharacterTraits")
+    out.collection = coll ~= nil and "getCharacterTraits()" or "none"
+    if coll ~= nil and enum ~= nil then
+        local ran, present = pcall(TK.call, coll, op, enum)
+        if ran and present then out.route = "getCharacterTraits():" .. op .. "(CharacterTrait." .. field .. ")"
+        else
+            out.route = "none"
+            if not ran then out.callError = tostring(present) end
+        end
+    else
+        out.route = "none"
+        out.error = (coll == nil and "no IsoGameCharacter:getCharacterTraits" or
+                     "no CharacterTrait." .. tostring(field))
+    end
+    local after, list = TK.traitNames(p)
+    out.after = TK.hasTraitName(after, name)
+    out.traitList = list
+    out.held = (op == "add") == (out.after == true)
+    return out
+end)
+
+-- <user> <true|false>. IsoGameCharacter.setAsleep -- the same call the game's own sleep dialog
+-- makes (ISSleepDialog.lua:75) and the one the server applies for a remote player
+-- (ClientCommands.lua:608). The asleep flag is what picks updateStats_Sleeping /
+-- updateCalories' 0.003 branch (03-notes Q1/Q2); whether it HOLDS on a dedicated server with
+-- a live client attached is a measurement, hence the read-back.
+TK.register("player.sleep", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    if argv[2] ~= "true" and argv[2] ~= "false" then
+        return "usage: player.sleep <user> <true|false>"
+    end
+    local value = argv[2] == "true"
+    local out = { requested = value }
+    local _, before = TK.call(p, "isAsleep")
+    out.before = before
+    out.setAsleep = TK.call(p, "setAsleep", value)
+    if not out.setAsleep then out.error = "no IsoGameCharacter:setAsleep" end
+    local _, after = TK.call(p, "isAsleep")
+    out.after = after
+    out.held = (after == value)
+    return out
+end)
+
+-- <user>. Nutrition.applyTraitFromWeight() on demand. Vanilla runs it only every 2000
+-- updateWeight calls (`updateWeight @329-@357 L200-L203`), so a fresh setWeight does not show
+-- up in hasTrait for a while; the band sweep measures that latency once and then forces the
+-- refresh here for the remaining rows.
+TK.register("nutrition.applytraits", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local n = p:getNutrition()
+    local out = { weight = n:getWeight() }
+    out.applied = TK.call(n, "applyTraitFromWeight")
+    if not out.applied then out.error = "no Nutrition:applyTraitFromWeight" end
+    local set, list = TK.traitNames(p)
+    local traits = {}
+    for key, tname in pairs(TK.WEIGHT_TRAITS) do traits[key] = TK.hasTraitName(set, tname) end
+    out.traits, out.traitList = traits, list
+    return out
+end)
+
+-- <user> <value>. BodyDamage.healthFromFoodTimer, the FOOD_EATEN driver (03-notes Q5). Needed
+-- in both directions: primed to 0 before every hunger-rate window (the moodle silently zeroes
+-- the hunger rate) and read back during the FOOD_EATEN row.
+TK.register("foodtimer.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local v = tonumber(argv[2])
+    if v == nil then return "usage: foodtimer.set <user> <value>" end
+    local _, bd = TK.call(p, "getBodyDamage")
+    if bd == nil then return "no IsoGameCharacter:getBodyDamage" end
+    local out = { requested = v }
+    local _, before = TK.call(bd, "getHealthFromFoodTimer")
+    out.before = before
+    out.set = TK.call(bd, "setHealthFromFoodTimer", v)
+    if not out.set then out.error = "no BodyDamage:setHealthFromFoodTimer" end
+    local _, after = TK.call(bd, "getHealthFromFoodTimer")
+    out.after = after
+    return out
+end)
+
 -- ---- item lifecycle commands (slice 02) --------------------------------------
 -- The SERVER owns item aging: Food.update gates updateAge on GameServer.server (02-notes
 -- Q2/Q8, code). MEASURED (exp02-20260910-030433): `age` does not travel to the client -- not

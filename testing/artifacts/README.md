@@ -24,6 +24,7 @@ these paths rather than a path that only exists on the machine that ran the expe
 | `exp01-20260910-000351` | `eat-smoke.json` | `testing/experiments/s01_eat_smoke.py` | [`docs/vanilla/eating-pipeline.md`](../../docs/vanilla/eating-pipeline.md), [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) |
 | `exp01-20260910-003929` | `eat-matrix.json` | `testing/experiments/s01_eat_matrix.py` | same three docs |
 | `exp02-20260910-030433` | `lifecycle.json` | `testing/experiments/s02_lifecycle.py` | [`docs/vanilla/food-item-model.md`](../../docs/vanilla/food-item-model.md) |
+| `exp03-20260910-045523` | `body.json` | `testing/experiments/s03_body.py` | slice 03 (`.superpowers/sdd/03-body-side/task-3-report.md`; docs to follow) |
 
 ## Script/artifact skew
 
