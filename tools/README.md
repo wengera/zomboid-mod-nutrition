@@ -94,7 +94,8 @@ import patterns from there.
   `mod_lint` beside it; the workshop tree is read, never written.
 
 - `workshop_search.py` — `python tools/workshop_search.py [--details]
-  [--details-ids IDS] [--details-pause S] [--fill] [--out-dir D] [--corpus F]`
+  [--details-ids IDS] [--details-pause S] [--fill [--include-not-requested]
+  [--fill-ids IDS|N]] [--out-dir D] [--corpus F]`
   The **outward** half of the catalog: what nutrition-relevant B42 mods exist on
   the public Workshop, and which of them are installed here. Eight terms
   (`nutrition`, `vitamin`, `malnutrition`, `diet`, `hydration`, `food overhaul`,
@@ -103,7 +104,9 @@ import patterns from there.
   paginate), then a join to `data/mod-inventory.json` and
   `data/workshop-search.json` + `.csv`. **212 results → 180 distinct items, 3
   installed, fetched 2026-09-10 16:26** (`meta.fetched`; the run itself
-  16:25:31–16:26:22). Stdlib + `subprocess` curl in
+  16:25:31–16:26:22), of which **15 rows carry item-page stats and 165 were
+  never asked for, 0 failed** (2026-09-10 16:56, after one `--fill` pass).
+  Stdlib + `subprocess` curl in
   `wiki_mirror.py`'s shape; nothing is subscribed and nothing is written under
   the workshop root.
   **`--compressed` is mandatory** — without it curl hands back gzip bytes and
@@ -115,20 +118,39 @@ import patterns from there.
   has never been updated, so `updated` is `null` as a fact, not as a gap).
   **The join key is `workshop_id`, never `mod_id`**: a Workshop page has no idea
   what id a mod declares, and 20 corpus ids moved in this slice.
-  **Item pages are rationed.** Steam answers a throttled `filedetails` read with
-  the generic Workshop landing page at **HTTP 200**, so a naive run records rows
-  of silent `null`s — the first run of this tool recorded 177. Every fetch is now
-  checked for the marker its parser needs and a body without it is an `error`,
-  retried once, then recorded; `counts.details_incomplete` must stay 0. Measured
-  2026-09-10 16:20–16:26, roughly **13 item pages** succeed per window and
-  spacing does not buy more (4 s and 8 s behave alike); the size of the
-  allowance is not fixed and the tool models none — the 15:58 run was already
-  throttled before it began, while the 16:25 sweep read its 8 browse pages and
-  then all **9** item pages it asked for. So `--details-ids` spends that budget
-  on a **declared subset** — a list in which `installed` expands to every row
-  that joined to the corpus — and every other row records that it was never
-  asked for. `--fill` re-fetches only the rows carrying a real failure and
-  rewrites the pair, leaving the row set and `meta.fetched` alone.
+  **An item page can answer 200 with a page the parser cannot read** — the
+  generic Workshop landing page, no `workshopItemTitle` and no
+  `detailsStatRight` — so a naive run records rows of silent `null`s: the first
+  run of this tool recorded **177 (2026-09-10 15:52, output discarded)**. Every
+  fetch is now checked for the markers its parser needs (**both** item markers,
+  and `browsesort` or a result anchor on a browse page); a body without them is
+  a failure, retried once, then recorded; `counts.details_incomplete` must stay
+  0. **How many item pages a session may read is not modelled and no figure is
+  quoted for it** — the record is four dated observations from 2026-09-10 with
+  no rule fitted to them: 15:45, 8 browse pages then 3 item pages then the
+  alternate template; 15:58, the alternate template from the first request;
+  16:25 (the committed sweep), 8 browse pages then all **9** item pages it asked
+  for, none throttled; 16:55, a fill pass 30 minutes later reading **6** more in
+  24 s, none throttled. Because a read may not land, `--details-ids` asks only
+  for a **declared subset** — a list in which `installed` expands to every row
+  that joined to the corpus, and an id this sweep did not return is rejected by
+  name rather than counted as requested.
+  **Three row states, one field.** `details_status` is `fetched`,
+  `not_requested` (nobody asked for it — `error` is `null` and nothing about the
+  item is claimed) or `failed` (asked for, unreadable — `error` says why), so
+  `error` is a fetch failure and never a decision. `--fill` re-fetches every
+  `failed` row; `--fill --include-not-requested [--fill-ids <ids|N>]` also tops
+  up `not_requested` rows, named or the first N in dataset order (a bare number
+  under 7 digits is a count, since a workshop id is 9–10). Either way the row
+  set, the terms and `meta.fetched` are left alone — a re-sweep would change the
+  trend-sorted row set — and each pass appends `{at, ids, fetched, failed}` to
+  `meta.fill`.
+  **The retry budget is per failure mode, not per URL**: `fetch_once_retried`
+  spends the one allowed retry after 5 s on a transport error or an empty body,
+  and `fetch_usable` retries once more after 5 s when the body came back as a
+  template the parser cannot read — so a URL that fails both ways costs **up to
+  3 curls and 10 s** of sleeping, where the brief costed one retry. Nothing
+  retries a third time and no failure raises: it is recorded on the row.
   **A not-installed row is graded `W`** and carries the exact unblocking action
   (`subscribe to <id> in Steam, let it download, re-run tools/mod_inventory.py`):
   it cannot be linted, profiled, booted or measured from this repo, so teardown

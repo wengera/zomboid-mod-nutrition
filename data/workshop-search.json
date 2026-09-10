@@ -73,16 +73,33 @@
    "distinct_ids": 180,
    "installed": 3,
    "not_installed": 177,
-   "details_requested": 9,
-   "details_fetched": 9,
+   "details_requested": 15,
+   "details_fetched": 15,
    "detail_failures": 0,
-   "details_not_fetched": 171,
+   "details_not_fetched": 165,
    "details_incomplete": 0
   },
   "notes": [
    "Steam is live and browsesort=trend reorders hourly: quote any count here with meta.fetched.",
-   "Item pages are rationed, not rate-limited: measured 2026-09-10 16:20-16:26, about 13 filedetails reads succeed per window and every later one returns the generic Workshop landing page at HTTP 200, at 4 s spacing and at 8 s alike. size/posted/updated therefore exist only for the meta.details_ids subset; every other row says so in its error column.",
-   "A not-installed row cannot be linted, profiled, booted or measured from this repo: it is graded W and carries the subscribe-and-rescan action that would change that."
+   "An item page can answer HTTP 200 with an alternate template that carries no workshopItemTitle and no detailsStatRight -- the generic Workshop landing page. That is measured and the parser rejects it (details_status=failed), but how many item pages a session may read is NOT modelled here: the observations on 2026-09-10 are 15:45 (8 browse pages, then 3 item pages, then the alternate template), 15:58 (the alternate template from the first request), 16:25 (8 browse pages then all 9 item pages asked for, none throttled) and 16:55 (a --fill --include-not-requested pass, 6 more item pages read in 24 s, none throttled). No rate, window or budget is claimed from them.",
+   "details_status is the row's own answer: fetched (an item page was read), failed (asked for and unreadable -- error says why), not_requested (never asked for; error is null and nothing about the item is claimed). size/posted/updated exist only on fetched rows.",
+   "A not-installed row cannot be linted, profiled, booted or measured from this repo: it is graded W and carries the subscribe-and-rescan action that would change that.",
+   "Schema re-encoded 2026-09-10 (slice 08 task 2, fix round 1): details_status was added to every row and the not-requested note was moved out of `error`, which is now a fetch failure and nothing else. The re-encode refetched nothing -- same 180 rows, same order, same meta.fetched as the 16:26 sweep. The six rows read after it are the fill pass in meta.fill."
+  ],
+  "fill": [
+   {
+    "at": "2026-09-10 16:56",
+    "ids": [
+     "3354834585",
+     "3388844542",
+     "3426165280",
+     "3430945294",
+     "3492090092",
+     "3653719735"
+    ],
+    "fetched": 6,
+    "failed": 0
+   }
   ]
  },
  "results": [
@@ -97,7 +114,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 2881519066 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -112,7 +130,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 2907834593 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -129,6 +148,7 @@
    "size": "14.655 MB",
    "posted": "Feb 12, 2023 @ 10:35am",
    "updated": "Jul 2 @ 11:40am",
+   "details_status": "fetched",
    "error": null,
    "grade": "C",
    "unblock": null
@@ -144,6 +164,7 @@
    "size": "503.836 KB",
    "posted": "Nov 10, 2023 @ 2:19am",
    "updated": "Jul 22, 2025 @ 1:35pm",
+   "details_status": "fetched",
    "error": null,
    "grade": "W",
    "unblock": "subscribe to 3078272807 in Steam, let it download, re-run tools/mod_inventory.py"
@@ -159,7 +180,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3173649443 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -174,7 +196,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3297793087 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -188,10 +211,11 @@
    ],
    "installed": false,
    "mod_ids": [],
-   "size": null,
-   "posted": null,
-   "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "size": "2.653 MB",
+   "posted": "Oct 25, 2024 @ 10:40pm",
+   "updated": "Sep 6 @ 8:29pm",
+   "details_status": "fetched",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3354834585 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -206,7 +230,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3369211813 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -221,7 +246,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3386729204 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -236,7 +262,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3386941366 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -248,10 +275,11 @@
    ],
    "installed": false,
    "mod_ids": [],
-   "size": null,
-   "posted": null,
-   "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "size": "6.523 MB",
+   "posted": "Dec 21, 2024 @ 11:44am",
+   "updated": "Sep 6 @ 2:05am",
+   "details_status": "fetched",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3388844542 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -266,7 +294,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3390531323 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -281,7 +310,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3391683076 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -296,7 +326,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3391690547 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -311,7 +342,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3393080905 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -326,7 +358,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3393409283 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -341,7 +374,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3396010813 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -356,7 +390,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3396429342 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -371,7 +406,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3413341320 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -386,7 +422,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3422233570 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -401,7 +438,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3425213160 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -413,10 +451,11 @@
    ],
    "installed": false,
    "mod_ids": [],
-   "size": null,
-   "posted": null,
-   "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "size": "240.428 KB",
+   "posted": "Feb 12, 2025 @ 10:29am",
+   "updated": "Feb 13, 2025 @ 2:00am",
+   "details_status": "fetched",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3426165280 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -428,10 +467,11 @@
    ],
    "installed": false,
    "mod_ids": [],
-   "size": null,
-   "posted": null,
+   "size": "609.386 KB",
+   "posted": "Feb 20, 2025 @ 6:21am",
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "fetched",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3430945294 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -446,7 +486,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3435755168 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -461,7 +502,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3436665621 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -476,7 +518,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3441138219 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -491,7 +534,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3446372375 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -506,7 +550,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3476660348 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -518,10 +563,11 @@
    ],
    "installed": false,
    "mod_ids": [],
-   "size": null,
-   "posted": null,
-   "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "size": "1.794 MB",
+   "posted": "Jun 2, 2025 @ 6:18am",
+   "updated": "Mar 21 @ 11:45pm",
+   "details_status": "fetched",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3492090092 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -536,7 +582,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3494803855 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -551,7 +598,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3509498392 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -566,7 +614,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3516166810 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -581,7 +630,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3527093221 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -596,7 +646,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3528669221 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -611,7 +662,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3548639002 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -626,7 +678,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3549290115 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -641,7 +694,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3554570236 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -656,7 +710,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3568029240 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -671,7 +726,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3571998958 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -686,7 +742,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3597673472 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -701,7 +758,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3602215188 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -716,7 +774,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3623275770 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -731,7 +790,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3628786816 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -746,7 +806,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3650016308 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -758,10 +819,11 @@
    ],
    "installed": false,
    "mod_ids": [],
-   "size": null,
-   "posted": null,
-   "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "size": "96.658 KB",
+   "posted": "Jan 25 @ 7:07am",
+   "updated": "Jan 25 @ 7:18am",
+   "details_status": "fetched",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3653719735 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -776,7 +838,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3656044799 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -791,7 +854,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3669286020 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -806,7 +870,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3674399753 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -821,7 +886,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3676251425 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -836,7 +902,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3676431328 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -851,7 +918,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3683292934 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -866,6 +934,7 @@
    "size": "1.042 MB",
    "posted": "Mar 22 @ 4:57pm",
    "updated": "Aug 18 @ 5:01pm",
+   "details_status": "fetched",
    "error": null,
    "grade": "W",
    "unblock": "subscribe to 3690404044 in Steam, let it download, re-run tools/mod_inventory.py"
@@ -881,7 +950,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3694158509 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -896,7 +966,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3695045219 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -911,7 +982,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3697369580 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -926,7 +998,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3699095087 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -941,7 +1014,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3699299123 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -956,7 +1030,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3700831155 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -971,7 +1046,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3703684537 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -986,7 +1062,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3709126801 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1001,7 +1078,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3712569610 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1016,7 +1094,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3714720114 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1031,7 +1110,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3714772035 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1046,7 +1126,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3720785274 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1061,7 +1142,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3721170507 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1076,7 +1158,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3731451178 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1091,6 +1174,7 @@
    "size": "453.434 KB",
    "posted": "May 31 @ 7:55am",
    "updated": "May 31 @ 11:18am",
+   "details_status": "fetched",
    "error": null,
    "grade": "W",
    "unblock": "subscribe to 3736275816 in Steam, let it download, re-run tools/mod_inventory.py"
@@ -1106,7 +1190,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3741967116 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1121,7 +1206,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3742599937 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1136,7 +1222,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3746632343 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1152,7 +1239,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3750296207 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1167,7 +1255,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3752565300 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1182,7 +1271,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3755764791 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1197,7 +1287,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3757293516 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1212,7 +1303,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3758857794 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1227,7 +1319,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3758971325 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1244,6 +1337,7 @@
    "size": "107.238 KB",
    "posted": "Jul 6 @ 5:31pm",
    "updated": "Aug 1 @ 6:44am",
+   "details_status": "fetched",
    "error": null,
    "grade": "C",
    "unblock": null
@@ -1259,7 +1353,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3759822002 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1274,7 +1369,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3760019748 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1289,7 +1385,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3763835105 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1306,6 +1403,7 @@
    "size": "348.184 KB",
    "posted": "Jul 15 @ 6:22am",
    "updated": "Sep 4 @ 1:25pm",
+   "details_status": "fetched",
    "error": null,
    "grade": "C",
    "unblock": null
@@ -1321,7 +1419,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3766473615 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1336,7 +1435,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3766527305 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1351,7 +1451,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3774293771 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1366,7 +1467,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3774464873 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1381,7 +1483,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3774994273 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1396,7 +1499,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3776028325 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1411,7 +1515,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3776138029 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1426,7 +1531,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3776151982 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1441,7 +1547,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3777260215 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1456,7 +1563,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3777678835 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1471,7 +1579,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3777870125 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1486,7 +1595,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3779613392 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1502,7 +1612,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3779800672 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1517,7 +1628,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3779907776 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1532,7 +1644,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3780091539 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1547,7 +1660,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3780183517 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1562,7 +1676,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3780539123 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1577,7 +1692,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3780697745 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1592,7 +1708,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3781129962 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1607,7 +1724,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3782593732 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1622,7 +1740,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3782745074 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1637,6 +1756,7 @@
    "size": "636.708 KB",
    "posted": "Aug 13 @ 10:59am",
    "updated": null,
+   "details_status": "fetched",
    "error": null,
    "grade": "W",
    "unblock": "subscribe to 3782835400 in Steam, let it download, re-run tools/mod_inventory.py"
@@ -1652,7 +1772,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3783349231 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1667,7 +1788,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3784773191 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1682,7 +1804,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3785422123 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1697,7 +1820,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3785483068 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1712,6 +1836,7 @@
    "size": "145.008 KB",
    "posted": "Aug 17 @ 7:44pm",
    "updated": "Aug 26 @ 3:49pm",
+   "details_status": "fetched",
    "error": null,
    "grade": "W",
    "unblock": "subscribe to 3785515388 in Steam, let it download, re-run tools/mod_inventory.py"
@@ -1727,7 +1852,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3785654430 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1742,7 +1868,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3786296123 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1757,7 +1884,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3786362941 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1772,7 +1900,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3786842301 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1787,7 +1916,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3786978530 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1802,7 +1932,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3787795983 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1817,7 +1948,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3788533156 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1832,7 +1964,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3789021176 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1847,7 +1980,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3789544907 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1862,7 +1996,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3789663987 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1877,7 +2012,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3789832800 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1893,7 +2029,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791152383 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1910,7 +2047,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791169924 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1925,7 +2063,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791380523 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1941,7 +2080,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791429975 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1956,7 +2096,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791781209 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1971,7 +2112,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791897755 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -1986,7 +2128,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3791948588 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2001,7 +2144,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3792142238 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2016,7 +2160,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3792431903 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2031,7 +2176,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3792523205 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2047,7 +2193,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3792713459 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2063,7 +2210,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3792733238 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2078,7 +2226,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3793067931 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2095,7 +2244,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3793601188 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2110,7 +2260,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3793812290 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2125,7 +2276,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3793857644 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2140,7 +2292,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3793908682 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2155,7 +2308,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3793950420 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2170,7 +2324,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3794069240 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2185,7 +2340,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3794096472 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2201,7 +2357,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3794107354 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2216,7 +2373,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3794209234 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2231,7 +2389,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3794442282 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2246,7 +2405,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3794455791 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2262,7 +2422,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3795435563 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2278,7 +2439,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3795521454 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2294,7 +2456,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3795593080 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2310,7 +2473,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3795665996 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2326,7 +2490,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3795713728 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2341,7 +2506,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3795759271 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2357,7 +2523,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796080595 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2372,7 +2539,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796123931 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2388,7 +2556,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796139100 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2403,7 +2572,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796279322 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2418,7 +2588,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796340874 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2434,7 +2605,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796408146 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2449,7 +2621,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796483217 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2464,7 +2637,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796577609 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2479,7 +2653,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796621488 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2494,6 +2669,7 @@
    "size": "471.224 KB",
    "posted": "Sep 6 @ 12:58am",
    "updated": null,
+   "details_status": "fetched",
    "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796644824 in Steam, let it download, re-run tools/mod_inventory.py"
@@ -2509,7 +2685,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796753621 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2524,7 +2701,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3796798161 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2539,7 +2717,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797098473 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2555,7 +2734,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797221807 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2570,7 +2750,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797240313 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2585,7 +2766,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797252512 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2600,7 +2782,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797252771 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2616,7 +2799,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797267975 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2631,7 +2815,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797272348 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2647,7 +2832,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797356103 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2663,7 +2849,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797403022 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2679,7 +2866,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797623361 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2695,7 +2883,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797743494 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2711,7 +2900,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3797769047 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2726,7 +2916,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798075422 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2742,7 +2933,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798169224 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2757,7 +2949,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798238110 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2773,7 +2966,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798304291 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2788,7 +2982,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798472659 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2804,7 +2999,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798628324 in Steam, let it download, re-run tools/mod_inventory.py"
   },
@@ -2820,7 +3016,8 @@
    "size": null,
    "posted": null,
    "updated": null,
-   "error": "details not fetched: outside --details-ids, and Steam rations item pages (~13 per window) -- see meta.notes",
+   "details_status": "not_requested",
+   "error": null,
    "grade": "W",
    "unblock": "subscribe to 3798934454 in Steam, let it download, re-run tools/mod_inventory.py"
   }

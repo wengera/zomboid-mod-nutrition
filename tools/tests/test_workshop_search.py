@@ -216,6 +216,27 @@ def test_an_unreadable_item_template_is_an_error_not_a_row_of_nulls():
     assert d["error"] == ws.ITEM_TEMPLATE_ERR
     assert d["size"] is None and d["title"] is None
     assert len(calls) == 2 and slept == [ws.RETRY_PAUSE], "one retry, then recorded"
+    row = ws.apply_details(ws.join({"3690404044": {"title": "x", "terms": ["nutrition"]}}, {})[0],
+                           d)
+    assert row["details_status"] == "failed" and row["error"] == ws.ITEM_TEMPLATE_ERR, (
+        "a page that was asked for and could not be read is `failed`, never `not_requested`")
+
+
+def test_half_an_item_template_is_not_a_page():
+    """Both markers are required. A title block with no stats block would otherwise pass the
+    check and hand back the three nulls the check exists to catch."""
+    title_only = '<div class="workshopItemTitle">Long Term Preservation</div>'
+    assert ws.usable_item_page(TWO_STAT_ITEM) is True
+    assert ws.usable_item_page(title_only) is False
+    assert ws.usable_item_page(SSR_ITEM_PAGE) is False
+
+
+def test_a_browse_page_is_readable_from_its_results_when_the_sort_control_moves():
+    """The sort control is the marker, but the anchor/img pair is what the parser actually reads:
+    a deploy that renames the control must not turn 30 results into a template error."""
+    assert ws.usable_browse_page(BROWSE_PAGE) is True
+    assert ws.usable_browse_page(BROWSE_FRAGMENT) is True, "results are a page too"
+    assert ws.usable_browse_page(SSR_ITEM_PAGE) is False
 
 
 def test_an_unreadable_browse_template_is_an_error_not_zero_results():
@@ -233,7 +254,9 @@ def test_a_recovered_retry_is_used():
 
 def test_sweep_counts_terms_results_and_the_join_without_network(tmp_path):
     """The whole run with stub fetchers: two terms sharing one id, one term failing, one
-    installed hit. Counts are what the doc quotes, so they are asserted exactly."""
+    installed hit. Counts are what the doc quotes, so they are asserted exactly. With no details
+    pass every row is `not_requested` -- no item page was asked for, which is exactly what
+    `details_not_fetched` counts."""
     pages = {"nutrition": ([("3774789651", "Long Term Preservation [42.20]"),
                             ("3690404044", "Nutrition Makes Sense")], None),
              "diet": ([("3690404044", "Nutrition Makes Sense")], None),
@@ -247,12 +270,13 @@ def test_sweep_counts_terms_results_and_the_join_without_network(tmp_path):
                                       searcher=lambda t: pages[t])
     assert counts == {"terms": 3, "results_total": 3, "term_failures": 1, "distinct_ids": 2,
                       "installed": 1, "not_installed": 1, "details_requested": 0,
-                      "details_fetched": 0, "detail_failures": 0, "details_not_fetched": 0,
+                      "details_fetched": 0, "detail_failures": 0, "details_not_fetched": 2,
                       "details_incomplete": 0}
     assert per_term["spoilage"] == {"results": 0, "error": "curl rc=28: timeout"}
     by_id = {r["workshop_id"]: r for r in rows}
     assert by_id["3690404044"]["terms"] == ["nutrition", "diet"]
     assert by_id["3774789651"]["mod_ids"] == ["SKITTLE_LongTermPreservation4220"]
+    assert all(r["details_status"] == "not_requested" and r["error"] is None for r in rows)
 
 
 def test_sweep_details_pass_fills_rows_and_counts_a_failure(tmp_path):
@@ -274,12 +298,16 @@ def test_sweep_details_pass_fills_rows_and_counts_a_failure(tmp_path):
     assert counts["details_incomplete"] == 0
     by_id = {r["workshop_id"]: r for r in rows}
     assert by_id["3690404044"]["updated"] == "Aug 18 @ 5:01pm"
+    assert by_id["3690404044"]["details_status"] == "fetched"
     assert by_id["3736275816"]["error"] == ws.ITEM_TEMPLATE_ERR
+    assert by_id["3736275816"]["details_status"] == "failed", (
+        "an item page that was asked for and could not be read is a fault, not a decision")
 
 
-def test_details_ids_spends_the_budget_only_on_the_declared_subset(tmp_path):
-    """Steam grants ~13 item pages per window, so the details pass is a declared subset and every
-    row outside it records that it was never asked for -- not an empty value."""
+def test_details_ids_asks_only_for_the_declared_subset(tmp_path):
+    """An item page can answer 200 with a template the parser cannot read, so the details pass is
+    a declared subset; every row outside it says `not_requested` -- not an empty value, and not
+    an `error`, which is reserved for a fetch that was tried and failed."""
     corpus = tmp_path / "mod-inventory.json"
     corpus.write_text(json.dumps([{"workshop_id": "3774789651",
                                    "mod_id": "SKITTLE_LongTermPreservation4220"}]), "utf-8")
@@ -299,8 +327,23 @@ def test_details_ids_spends_the_budget_only_on_the_declared_subset(tmp_path):
     assert counts["details_not_fetched"] == 1 and counts["details_incomplete"] == 0
     by_id = {r["workshop_id"]: r for r in rows}
     assert by_id["3690404044"]["size"] is None
-    assert by_id["3690404044"]["error"] == ws.NOT_FETCHED
+    assert by_id["3690404044"]["details_status"] == "not_requested"
+    assert by_id["3690404044"]["error"] is None, "a row nobody asked for did not fail"
+    assert by_id["3774789651"]["details_status"] == "fetched"
     assert by_id["3774789651"]["error"] is None and by_id["3774789651"]["size"] == "1.0 MB"
+
+
+def test_details_ids_rejects_an_id_this_sweep_never_returned(tmp_path):
+    """A typo would otherwise be counted in `details_requested`, fetched for nobody, and break
+    `requested == fetched + failures` with no row recording it."""
+    rows = ws.join({"3690404044": {"title": "Nutrition Makes Sense", "terms": ["nutrition"]}}, {})
+    assert ws.select_detail_ids(rows, ["3690404044"]) == {"3690404044"}
+    try:
+        ws.select_detail_ids(rows, ["3690404044", "369040404"])
+    except ValueError as exc:
+        assert "'369040404'" in str(exc), "the rejected token is named"
+    else:
+        raise AssertionError("an unknown --details-ids token must raise")
 
 
 def test_meta_records_which_rows_were_asked_for():
@@ -320,28 +363,37 @@ def test_details_incomplete_counts_a_silent_null_row(tmp_path):
         detailer=lambda wid: {"title": None, "size": None, "posted": None, "updated": None,
                               "error": None})
     assert counts["details_incomplete"] == 1
+    assert counts["details_fetched"] == 1, (
+        "one definition: the row reported no error, so it is `fetched` -- and `details_incomplete`"
+        " is the guard that says the read was empty anyway")
 
 
-def test_csv_has_the_nine_columns_and_semicolon_lists(tmp_path):
+def test_csv_has_the_ten_columns_and_semicolon_lists(tmp_path):
+    """`details_status` sits after `updated`, so the CSV says why a row has no stats without the
+    JSON-only `grade`/`unblock` columns and without an `error` string on every quiet row."""
     rows = ws.join({"3690404044": {"title": "Nutrition Makes Sense",
                                    "terms": ["nutrition", "diet"]}}, {})
-    rows[0]["size"], rows[0]["posted"] = "1.234 MB", "Apr 1 @ 1:00pm"
     path = tmp_path / "workshop-search.csv"
     ws.write_csv(str(path), rows)
     lines = path.read_text("utf-8").splitlines()
-    assert lines[0] == "workshop_id,title,terms,installed,mod_ids,size,posted,updated,error"
-    assert lines[1] == '3690404044,Nutrition Makes Sense,nutrition;diet,false,,1.234 MB,Apr 1 @ 1:00pm,,'
+    assert lines[0] == ("workshop_id,title,terms,installed,mod_ids,size,posted,updated,"
+                        "details_status,error")
+    assert lines[1] == '3690404044,Nutrition Makes Sense,nutrition;diet,false,,,,,not_requested,'
+
+    ws.apply_details(rows[0], {"title": "x", "size": "1.234 MB", "posted": "Apr 1 @ 1:00pm",
+                               "updated": None, "error": None})
+    ws.write_csv(str(path), rows)
+    assert path.read_text("utf-8").splitlines()[1] == (
+        '3690404044,Nutrition Makes Sense,nutrition;diet,false,,1.234 MB,Apr 1 @ 1:00pm,,'
+        'fetched,')
 
 
 def test_meta_carries_the_build_terms_url_patterns_and_a_fetch_stamp(tmp_path):
     """A count off this dataset is meaningless without the minute it was fetched: Steam is live
     and `browsesort=trend` reorders hourly."""
     import datetime
-    corpus = tmp_path / "mod-inventory.json"
-    corpus.write_text(json.dumps([{"workshop_id": "1", "mod_id": "A"},
-                                  {"workshop_id": "1", "mod_id": "B"}]), "utf-8")
     meta = ws.build_meta({"nutrition": {"results": 30, "error": None}}, {"terms": 1},
-                         corpus_path=str(corpus),
+                         {"1": ["A", "B"]},        # the index the join used, not a second read
                          now=datetime.datetime(2026, 9, 10, 15, 41))
     assert meta["build"] == "42.20.4 (b0bbce05d5)"
     assert meta["tool"] == "tools/workshop_search.py"
@@ -351,43 +403,101 @@ def test_meta_carries_the_build_terms_url_patterns_and_a_fetch_stamp(tmp_path):
     assert meta["corpus"] == {"path": "data/mod-inventory.json", "records": 2,
                               "workshop_items": 1}
     assert meta["details_ids"] == "none"
-    assert any("rationed" in n for n in meta["notes"]), "the item-page budget is a reader caveat"
+    assert any("details_status" in n for n in meta["notes"]), "the three row states are a caveat"
+    allowance = " ".join(meta["notes"] + [ws.__doc__, ws.NOT_FETCHED])
+    assert "about 13" not in allowance and "~13" not in allowance and "13 item" not in allowance, (
+        "the per-window figure was never measured: the record is dated observations, not a rule")
+    assert "15:45" in allowance and "15:58" in allowance and "16:25" in allowance
 
 
-def test_fill_retries_only_real_failures_and_leaves_the_sweep_stamp_alone():
-    """A rationed window loses rows; `--fill` recovers them without re-sweeping, so the row set
-    and `meta.fetched` still describe the moment the browse pages were read. A row that was
-    never asked for is a decision, not a fault, and is left as it is."""
-    import datetime
-    payload = {"meta": {"fetched": "2026-09-10 16:25",
-                        "counts": {"details_fetched": 0, "detail_failures": 2,
-                                   "details_not_fetched": 1, "details_incomplete": 0}},
-               "results": [
-                   {"workshop_id": "3078272807", "size": None, "posted": None, "updated": None,
-                    "error": ws.ITEM_TEMPLATE_ERR},
-                   {"workshop_id": "2932547723", "size": None, "posted": None, "updated": None,
-                    "error": "curl rc=28: timeout"},
-                   {"workshop_id": "3690404044", "size": None, "posted": None, "updated": None,
-                    "error": ws.NOT_FETCHED}]}
-    asked = []
+def fill_payload():
+    """Three rows of a captured sweep: two that were asked for and failed, one never asked for."""
+    return {"meta": {"fetched": "2026-09-10 16:25",
+                     "counts": {"details_requested": 2, "details_fetched": 0,
+                                "detail_failures": 2, "details_not_fetched": 1,
+                                "details_incomplete": 0}},
+            "results": [
+                {"workshop_id": "3078272807", "size": None, "posted": None, "updated": None,
+                 "details_status": "failed", "error": ws.ITEM_TEMPLATE_ERR},
+                {"workshop_id": "2932547723", "size": None, "posted": None, "updated": None,
+                 "details_status": "failed", "error": "curl rc=28: timeout"},
+                {"workshop_id": "3690404044", "size": None, "posted": None, "updated": None,
+                 "details_status": "not_requested", "error": None}]}
+
+
+def stub_detailer(asked, fails=("2932547723",)):
     def detailer(wid):
         asked.append(wid)
-        if wid == "2932547723":
+        if wid in fails:
             return {"title": None, "size": None, "posted": None, "updated": None,
                     "error": ws.ITEM_TEMPLATE_ERR}
         return {"title": "Nutrition Tweaker Enhanced", "size": "503.836 KB",
                 "posted": "Nov 10, 2023 @ 2:19am", "updated": "Jul 22, 2025 @ 1:35pm",
                 "error": None}
+    return detailer
 
-    out = ws.fill(payload, detailer=detailer, sleep=lambda s: None,
+
+def test_fill_retries_only_real_failures_and_leaves_the_sweep_stamp_alone():
+    """A lost window costs rows; `--fill` recovers them without re-sweeping, so the row set and
+    `meta.fetched` still describe the moment the browse pages were read. A row that was never
+    asked for is a decision, not a fault, and a bare `--fill` leaves it alone."""
+    import datetime
+    asked = []
+    out = ws.fill(fill_payload(), detailer=stub_detailer(asked), sleep=lambda s: None,
                   now=datetime.datetime(2026, 9, 10, 16, 40))
-    assert asked == ["3078272807", "2932547723"], "the not-attempted row is not re-asked"
+    assert asked == ["3078272807", "2932547723"], "the not-requested row is not re-asked"
     assert out["meta"]["fetched"] == "2026-09-10 16:25", "the sweep stamp is not overwritten"
-    assert out["meta"]["details_filled"] == "2026-09-10 16:40"
-    assert out["meta"]["counts"] == {"details_fetched": 1, "detail_failures": 1,
-                                     "details_not_fetched": 1, "details_incomplete": 0}
+    assert out["meta"]["fill"] == [{"at": "2026-09-10 16:40",
+                                    "ids": ["3078272807", "2932547723"],
+                                    "fetched": 1, "failed": 1}]
+    assert out["meta"]["counts"] == {"details_requested": 2, "details_fetched": 1,
+                                     "detail_failures": 1, "details_not_fetched": 1,
+                                     "details_incomplete": 0}
     assert out["results"][0]["size"] == "503.836 KB"
-    assert out["results"][2]["error"] == ws.NOT_FETCHED
+    assert out["results"][0]["details_status"] == "fetched"
+    assert out["results"][2]["details_status"] == "not_requested"
+
+
+def test_fill_tops_up_named_not_requested_rows_only_when_asked():
+    """The capture is extensible: a details pass that named nine ids can be topped up later
+    without a re-sweep, which would change the trend-sorted row set. The top-up is opt-in and
+    joins `details_requested`, so `requested == fetched + failures` still holds."""
+    import datetime
+    asked = []
+    out = ws.fill(fill_payload(), detailer=stub_detailer(asked), sleep=lambda s: None,
+                  include_not_requested=True, fill_ids=["3690404044"],
+                  now=datetime.datetime(2026, 9, 10, 16, 45))
+    assert asked == ["3078272807", "2932547723", "3690404044"], "dataset order, failures included"
+    c = out["meta"]["counts"]
+    assert c["details_requested"] == 3 and c["details_fetched"] == 2 and c["detail_failures"] == 1
+    assert c["details_not_fetched"] == 0
+    assert out["results"][2]["details_status"] == "fetched"
+    assert out["results"][2]["size"] == "503.836 KB"
+    assert out["meta"]["fill"][-1] == {"at": "2026-09-10 16:45",
+                                       "ids": ["3078272807", "2932547723", "3690404044"],
+                                       "fetched": 2, "failed": 1}
+
+
+def test_fill_ids_takes_a_count_or_a_list_and_rejects_an_unknown_id():
+    """`--fill-ids 6` is the first six not_requested rows in dataset order; `--fill-ids <id>,<id>`
+    names them. A workshop id is 9-10 digits, so a bare number under seven is a count."""
+    assert ws.parse_fill_ids(None) is None
+    assert ws.parse_fill_ids("6") == 6
+    assert ws.parse_fill_ids("3690404044") == ["3690404044"]
+    assert ws.parse_fill_ids("3690404044, 3078272807") == ["3690404044", "3078272807"]
+
+    rows = fill_payload()["results"]
+    rows[0]["details_status"] = rows[1]["details_status"] = "not_requested"
+    rows[0]["error"] = rows[1]["error"] = None
+    assert [r["workshop_id"] for r in ws.select_fill_rows(rows, True, 2)] == ["3078272807",
+                                                                              "2932547723"]
+    assert ws.select_fill_rows(rows, False) == [], "without the flag a fill repairs faults only"
+    try:
+        ws.select_fill_rows(rows, True, ["9999999999"])
+    except ValueError as exc:
+        assert "9999999999" in str(exc)
+    else:
+        raise AssertionError("an id naming no not_requested row must raise")
 
 
 def test_terms_are_the_eight_the_slice_is_written_against():

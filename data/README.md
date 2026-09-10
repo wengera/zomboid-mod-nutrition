@@ -685,7 +685,10 @@ pages for size/posted/updated, joined to [§ mod-inventory](#mod-inventory) on
 `workshop_id`. **212 results over 8 terms → 180 distinct items, 3 of them
 installed, fetched 2026-09-10 16:26** (the run itself ran 16:25:31–16:26:22).
 A `meta` block and a `results` array, `indent=1`; the CSV is the same 180 rows
-flat, 9 columns, minus `grade` and `unblock`.
+flat, **10 columns** (`details_status` after `updated`), minus `grade` and
+`unblock` — **14 500 bytes at 2026-09-10 16:56**, half the 30 427 of the first
+encoding, which spent a 107-character sentence on each of 171 rows to say that
+the row had not been asked for.
 
 **Steam is live and `browsesort=trend` reorders hourly, so every count below
 carries the fetch stamp and none of them is quotable without it.** Two browse
@@ -746,8 +749,10 @@ Two facts about coverage follow from that, and both bound what this dataset
 may be used for:
 
 - **176 of the 179 installed workshop items are not returned by any of the
-  eight terms** — this is a trend-sorted top-30-per-term slice of the
-  Workshop, not a census of it and not a second inventory.
+  eight terms** (the 16:26 sweep against the inventory as it stood at
+  2026-09-10 16:20, 230 records / 179 items) — this is a trend-sorted
+  top-30-per-term slice of the Workshop, not a census of it and not a second
+  inventory.
 - **`3774789651` Long Term Preservation — the installed mod that writes both
   nutrition signals — is in none of the eight pages**, while `3796644824`, a
   third-party patch *to* it, is. Absence from this dataset is not evidence
@@ -770,29 +775,75 @@ measurable. Until then nothing below is a teardown candidate.
 | `3782835400` | Realistic Nutrition | 636.708 KB | Aug 13 @ 10:59am | *never* | third of the three same-month "nutrition" overhauls; never updated since posting | W |
 | `3078272807` | Nutrition Tweaker Enhanced | 503.836 KB | Nov 10, 2023 @ 2:19am | Jul 22, 2025 @ 1:35pm | the B41-era ancestor still carrying the `Build 42` tag — the only one of the six older than this year | W |
 
-Named but not detail-fetched (the item-page budget below): `3796753621`
-Nutrition Makes Sense Immersive Addon, `3492090092` TwisTonFire - Calories &
-Nutrition, `3426165280` Fix NaN Nutrition Stats, `3388844542` Minimal Display
-Bars + Nutritions + Discomfort [B41/B42.20]. All **W**, all with the same
-unblock action.
+### The six rows topped up at 16:56 (`meta.fill`)
 
-### Why 171 rows have no size, posted or updated
+The first six `not_requested` rows carrying the `nutrition` term, in dataset
+order, re-read half an hour after the sweep by
+`--fill --include-not-requested`. Same W grade, same unblock action, same
+`meta.fetched`: only the three stat columns and `details_status` moved.
 
-**Steam rations item pages; it does not rate-limit them.** A `filedetails/?id=N`
-read past the allowance answers **HTTP 200 with the generic Workshop landing
+| `workshop_id` | Title | Size | Posted | Updated | Ev |
+|---|---|---|---|---|---|
+| `3354834585` | Comidas Tipicas Venezolanas [WIP] | 2.653 MB | Oct 25, 2024 @ 10:40pm | Sep 6 @ 8:29pm | W |
+| `3388844542` | Minimal Display Bars + Nutritions + Discomfort [B41/B42.20] | 6.523 MB | Dec 21, 2024 @ 11:44am | Sep 6 @ 2:05am | W |
+| `3426165280` | Fix NaN Nutrition Stats | 240.428 KB | Feb 12, 2025 @ 10:29am | Feb 13, 2025 @ 2:00am | W |
+| `3430945294` | Eliaz Nutritionist Magazine B42 | 609.386 KB | Feb 20, 2025 @ 6:21am | *never* | W |
+| `3492090092` | TwisTonFire - Calories & Nutrition | 1.794 MB | Jun 2, 2025 @ 6:18am | Mar 21 @ 11:45pm | W |
+| `3653719735` | BloodNutrition | 96.658 KB | Jan 25 @ 7:07am | Jan 25 @ 7:18am | W |
+
+`3796753621` Nutrition Makes Sense Immersive Addon is named in the docs and is
+still `not_requested` — **W**, same unblock action, and nothing about it is
+claimed here beyond its title and the terms that returned it.
+
+### Why 165 rows have no size, posted or updated — and the three row states
+
+Every row says which of three things happened to it in **`details_status`**,
+and it is the only field to read before the three stat columns:
+
+- **`fetched` (15 rows, 2026-09-10 16:56)** — an item page was read. `size` and
+  `posted` are real; `updated` is real or genuinely absent (see the field
+  table). `error` is `null`.
+- **`not_requested` (165 rows)** — no item page was asked for: the row was
+  outside `meta.details_ids` and outside the fill pass. `error` is `null`, the
+  three stat columns are `null`, and **nothing about the item is claimed**.
+  This is a statement about what this repo asked for, never about the mod.
+- **`failed` (0 rows)** — an item page was asked for and could not be read.
+  `error` says why: a `curl rc=…` transport failure, or Steam's alternate
+  item-page template. **No row in the committed file is `failed`.**
+
+`error` is therefore a fetch failure and nothing else. It said something else
+in the first encoding of this dataset — 171 rows carried a 107-character
+sentence explaining that they had not been asked for, which read in the CSV
+(where `grade` and `unblock` do not exist) as "171 of 180 failed". The rows
+were re-encoded onto `details_status` on 2026-09-10 without refetching a page;
+`meta.notes` records that, and `meta.fetched` is still the sweep's.
+
+**The failure mode `failed` exists for is real, and it answers 200.** A
+`filedetails/?id=N` read can come back as the **generic Workshop landing
 page** — no `workshopItemTitle`, no `detailsStatRight` — so curl reports
 success and a naive parser records an item that ships no stats. The first run
-of this tool did that: **177 rows of silent nulls at 15:52, which is why that
-output was discarded and never committed.** The tool now checks every body for
-the marker its parser needs and records a template miss as an `error` after one
-retry, and the details pass spends its budget on a **declared subset** named in
-`meta.details_ids`.
+of this tool did exactly that: **177 rows of silent nulls at 15:52, which is
+why that output was discarded and never committed.** The tool now requires both
+item markers in a body, retries once, and records a miss as `failed`;
+`counts.details_incomplete` (**0** here) is the guard that would have caught the
+first run.
 
-At 16:26 that subset was the 3 installed rows plus the 6 nutrition items in the
-table above: **9 of 180 requested, 9 read, 0 failures, 0 rows with a null size
-and no error.** The other **171 rows carry `error: "details not fetched:
-outside --details-ids…"`** — they were never asked for. That is a statement
-about this run's budget, not about those items.
+**How many item pages a session may read is not modelled here, and no figure
+should be quoted for it.** What is recorded is four dated observations from
+2026-09-10 and no rule fitted to them: **15:45** — 8 browse pages, then 3 item
+pages, then the alternate template; **15:58** — the alternate template from the
+first request; **16:25** (the committed sweep) — 8 browse pages, then all 9 item
+pages it asked for, none throttled; **16:55** — a `--fill` pass 30 minutes
+later read 6 more item pages 4 s apart in 24 s, none throttled, for 15 item
+pages read in that half hour. Because a read may not land, the details pass
+asks only for a **declared subset** (`meta.details_ids`) and a later
+`--fill --include-not-requested [--fill-ids <ids|N>]` tops up
+`not_requested` rows without re-sweeping — a re-sweep would change the
+trend-sorted row set and the `meta.fetched` stamp with it.
+
+At 16:26 the subset was the 3 installed rows plus the 6 nutrition items named
+above (7 tokens → 9 ids); at 16:56 the fill added 6 more. **15 of 180
+requested, 15 read, 0 failed, 0 rows with a null size and no error.**
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -801,23 +852,33 @@ about this run's budget, not about those items.
 | `terms` | list | every swept term whose page returned this id, in sweep order. **Never empty** — a row exists because some term returned it. `;`-joined in the CSV |
 | `installed` | bool | does `workshop_id` match a record in `data/mod-inventory.json`? **3 true / 177 false** (2026-09-10 16:26) |
 | `mod_ids` | list | the resolved `mod_id`s of every corpus record under that item, sorted; `[]` when not installed. A list because one workshop item may hold several mods (230 records across 179 items). `;`-joined in the CSV |
-| `size` | string/null | `File Size` from the item page, verbatim (`453.434 KB`) — `null` on every row outside `meta.details_ids` |
+| `size` | string/null | `File Size` from the item page, verbatim (`453.434 KB`) — `null` on every row that is not `details_status: fetched` |
 | `posted` | string/null | `Posted` from the item page, verbatim (`May 31 @ 7:55am`; a year appears only when it is not the current one) |
-| `updated` | string/null | `Updated` from the item page — **`null` means the item has never been updated since posting**, because the page then renders only two stats. On a row with no `size` it means nothing at all: read `error` first. Two of the 9 detailed rows are genuinely never-updated (`3782835400`, `3796644824`) |
-| `error` | string/null | why this row has no stats: a `curl rc=…` transport failure, an unrecognised item-page template (Steam's landing page at 200), or — on **171 rows** here — "details not fetched", meaning it was outside the declared subset |
+| `updated` | string/null | `Updated` from the item page — **on a `fetched` row `null` means the item has never been updated since posting**, because the page then renders only two stats. On any other row it means nothing at all: read `details_status` first. Three of the 15 fetched rows are genuinely never-updated (`3430945294`, `3782835400`, `3796644824`) |
+| `details_status` | string | `fetched` / `not_requested` / `failed` — what happened to this row's item page, and the field that says whether `size`/`posted`/`updated` mean anything. **15 / 165 / 0** (2026-09-10 16:56). Also a CSV column, after `updated` |
+| `error` | string/null | **a fetch failure and nothing else**: a `curl rc=…` transport failure, or an unrecognised item-page template (Steam's landing page at 200). `null` on every `fetched` and every `not_requested` row — a row nobody asked for did not fail. **`null` on all 180 rows here** |
 | `grade` | string | `C` for an installed row (it joins to a file-read inventory record), `W` for every other. **JSON only** — derive it from `installed` in the CSV |
 | `unblock` | string/null | the exact action that would make a W row measurable: *subscribe to `<id>` in Steam, let it download, re-run `tools/mod_inventory.py`*. `null` on installed rows. **JSON only** |
 
 `meta` carries `build` (`42.20.4 (b0bbce05d5)`), `generated`, **`fetched`** (the
 stamp every count needs), `tool`, `terms`, `source_url_pattern` (the browse and
 item URL templates, so a row can be re-checked by hand), `details_ids` (which
-rows were allowed to spend the item-page budget: `"none"`, `"all"`, or the list
-actually passed), `corpus` (the inventory path and its 230 records / 179 items
-at join time), `per_term` (results and error per term), `counts` (the census
-above, including `details_incomplete` — **which must stay 0**: a details pass
-that reports no error owes the row a file size, and it read 177 on the first
-run) and `notes` (the three reader caveats: the trend stamp, the item-page
-ration, and the W constraint). A `details_filled` stamp appears beside
-`fetched` only after a `--fill` repair pass, which re-reads the rows that
-failed without re-sweeping: **the file committed on 2026-09-10 has none**, so
-every column in it was read in the one 16:25:31–16:26:22 window.
+rows the details pass was allowed to ask for: `"none"`, `"all"`, or the list of
+tokens actually passed — **kept as passed, so it is shorter than the count of
+ids: the `installed` token expands at run time, and the 7 tokens here became 9
+ids**), `corpus` (the inventory path and its 230 records / 179 items as the
+join read them), `per_term` (results and error per term), `counts` (the census
+above, including `details_incomplete` — **which must stay 0**: a read that
+reports no error owes the row a file size, and it read 177 on the first run)
+and `notes` (the reader caveats: the trend stamp, the alternate item-page
+template and the four dated observations, the three `details_status` states,
+the W constraint, and the schema re-encode).
+
+**`meta.fill`** is a list, one entry per `--fill` pass, each
+`{at, ids, fetched, failed}`: a fill re-reads rows without re-sweeping, so the
+row set, the terms and `meta.fetched` stay as the browse pass left them and the
+file still says when each column was read. The committed file has **one** entry
+— `at 2026-09-10 16:56`, the six `nutrition` rows in the table above, 6 fetched
+/ 0 failed — so 9 of its 15 fetched rows were read at 16:25:31–16:26:22 and 6
+at 16:55:37–16:56:01. `counts.details_requested` counts both passes (15), which
+is why `details_requested == details_fetched + detail_failures` still holds.
