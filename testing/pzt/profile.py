@@ -76,6 +76,11 @@ class Profile:
         self.hold, self.safemode, self.launcher = hold, safemode, launcher
         self.server_timeout, self.client_timeout = server_timeout, client_timeout
 
+    def __repr__(self):
+        """The one-line summary the plans quote from `print(profile.load(name))`."""
+        return (f"<Profile {self.name} fixture={self.fixture} mods={';'.join(self.mods)} "
+                f"sandbox={dict(self.sandbox)}>")
+
     def report(self):
         """The block a run puts in report.json: what was asked for AND what it resolved to,
         so the artifact says which folders actually reached <cachedir>/mods."""
