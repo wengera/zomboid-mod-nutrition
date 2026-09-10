@@ -578,7 +578,7 @@ for `Base.Bleach` (`ISInventoryPaneContextMenu.lua:4270`, `:4288`). Ev C.
 | `zombie/scripting/objects/RecipeCodeOnCooked.cannedFood` | home canning: rewrites `offAge`/`offAgeMax` to 730/1560 days | C |
 | `zombie/inventory/ItemPickerJava.doRollItemInternal` / `rotItem` | loot-time aging and the 75 % spawn-rot roll with its sealed-can exemption | C |
 | `zombie/iso/IsoCell.ProcessItems`, `IsoGameCharacter.recursiveItemUpdater` | what actually calls `InventoryItem.update()` — world/container items and every non-zombie character's inventory, per tick, with no side guard | C |
-| `zombie/network/packets/ItemStatsPacket` (`setData` / `write` / `applyItemStats`) | the item stats packet: 43 packet fields, of which 2 are addressing and 3 presence flags, so **38 item-state values** — see § MP behaviour for the count and for what is *not* in it | C+M |
+| `zombie/network/packets/ItemStatsPacket` (`setData` / `write` / `applyItemStats`) | the item stats packet: 43 packet fields, of which 2 are addressing and 2 presence flags, so **39 item-state values** — see § MP behaviour for the count and for what is *not* in it | C+M |
 | `media/lua/shared/TimedActions/ISAddItemInRecipe.lua:70` | `recipe:addItem(base, used, character)` — the only Lua→Java bridge into the summation | C+M |
 | `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua:332`, `:4238–4297`, `:2372–2390` | the evolved-recipe menu: probe, submenu build, and the action queue | C |
 
@@ -603,17 +603,33 @@ bit-flag scheme, and the MP carriers of that blob are `GameClient.receiveSendIte
 (re)transmitted whole, never when its stats change. A reverse-reference scan for callers of
 `setAge` returns **no packet class at all**. Ev C.
 
-**How many fields the packet actually carries: 38.** `ItemStatsPacket.setData(Object[]) @0–@566
+**How many fields the packet actually carries: 39.** `ItemStatsPacket.setData(Object[]) @0–@566
 L153–L229` populates **43 distinct packet fields** and `write(ByteBufferWriter) @0–@875 L233–L363`
-puts exactly those 43 on the wire. Two of them are addressing (`containerId`, `id`) and three are
-presence flags (`isFluidContainer`, `isFood`, `isCustomName`), which leaves **38 item-state values**.
+puts exactly those 43 on the wire. Two of them are addressing (`containerId`, `id`) and two are
+presence flags: `isFluidContainer` (`@31–@34 L524`) and `isFood` (`@71–@74 L529`), each a pure
+`getfield … ifeq` gate in `applyItemStats` that is never itself applied to the item. That leaves
+**39 item-state values**.
+
+`isCustomName` is *not* a presence flag, despite sitting beside those two in `setData`. It is read
+off the item (`@478–@484 L214`, `Food.isCustomName`); `write` uses it only to decide whether the
+`16777216` bit-header flag is added (`@813–@816 L351`, `@819–@823 L352`) — `name` itself goes on
+the wire unconditionally (`@828–@833 L354`) — and the receiver *applies* it, via
+`Food.setCustomName` (`applyItemStats @337–@340 L563`). It gates nothing, so it is ordinary item
+state and is counted as such.
+
 The receiver applies 40 of the 43 (`applyItemStats @0–@427 L520–L577`): besides the two addressing
-fields, `uses` is written but never applied — the receiving side rebuilds it as
-`usedDelta × getMaxUses()` (`@8–@27 L521-522`). The enumeration in
-`docs/superpowers/plans/02-notes.md` Q8 lists **39** entries for the same packet because it counts
-`itemHeat` and `heat` as two; `setData` writes both into the single `heat` field — `@153–@158 L176`
-from `InventoryItem.getItemHeat`, then `@197–@203 L181` from `Food.getHeat`, which overwrites it for
-any food — and `write` emits it once (`@75 L245`). Ev C.
+fields, `uses` is written but never applied. The receiving side rebuilds it as
+`usedDelta × getMaxUses()` (`@15–@27 L522`), but **only inside
+`if (item instanceof DrainableComboItem)`** (`@8–@12 L521`); for any other item the wire value is
+simply dropped.
+
+The enumeration in `docs/superpowers/plans/02-notes.md` Q8 lists **39** entries for the same packet
+and reaches the same total through two offsetting differences in how the notes group fields. They
+*split* `itemHeat` and `heat`, which are one packet field: `setData` writes it twice (`@153–@158
+L176` from `InventoryItem.getItemHeat`, then `@197–@203 L181` from `Food.getHeat`, which overwrites
+it for any food), `write` emits it once (`@75 L245`), and the receiver applies it into two *item*
+fields (`setItemHeat @64–@67 L528`, then `Food.setHeat @100–@103 L533` for food). And they
+*collapse* `customName` and `name`, which are two packet fields, into one entry. Ev C.
 
 **Per field.** The fields that matter here, graded by what was actually put to the test — a field
 only carries information when the two sides were first made to *differ* on it:
@@ -796,13 +812,13 @@ visibility, one accelerated game day, frozen, cooking transitions, the evolved-r
 ownership), 329 s wall, **0 server errors**. It ran on fixture `default` — that is **not** recorded
 in the artifact, which carries no fixture or build key; the name and its contents come from
 `testing/fixtures/default/fixture.json` (build 42.20.4, server `pzt`, mod `PZTestKit`, one admin
-client, `boot_errors []`). Script: `testing/experiments/s02_lifecycle.py`. Sandbox as measured: `FoodRotSpeed 3`, `FridgeFactor 3`,
-`DaysForRottenFoodRemoval −1`, `ElecShutModifier 14`. The harness commands this run added are listed
-in [`../testing/README.md`](../testing/README.md). An earlier shakedown run of the same script
-(`exp02-20260910-025434`) is **not** committed and is cited here only where it is named as
-non-evidence, in three places: the thaw-rate disagreement (open question 2), the perk-overwrite
-rationale (§ MP behaviour) and the corroborating reproduction of the cross-item `cookingTime` leak
-(open question 3).
+client, `boot_errors []`). Script: `testing/experiments/s02_lifecycle.py`. Sandbox as measured:
+`FoodRotSpeed 3`, `FridgeFactor 3`, `DaysForRottenFoodRemoval −1`, `ElecShutModifier 14`. The
+harness commands this run added are listed in [`../testing/README.md`](../testing/README.md). An
+earlier shakedown run of the same script (`exp02-20260910-025434`) is **not** committed and is cited
+here only where it is named as non-evidence, in three places: the thaw-rate disagreement (open
+question 2), the perk-overwrite rationale (§ MP behaviour) and the corroborating reproduction of the
+cross-item `cookingTime` leak (open question 3).
 
 **Wiki mirrors** [fridge.md](../../references/wiki-mirrors/fridge.md) (page version 41.78.19),
 [evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md) (41.78.19),
