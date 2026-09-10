@@ -25,7 +25,7 @@
    "incomplete": 0
   },
   "notes": [
-   "Item pages only -- no browse pass, so there is no term, no result set and no meta.fetched: each row carries the fetch_at stamp of its own read.",
+   "Item pages only -- no browse pass, so there are no terms and no result set; meta.fetched is the stamp of this pass and each row carries the fetched_at of its own read.",
    "These ids are named by docs/mods-survey/nutrition-mods.md, not found by a search. Eight of the nine are returned by none of the eight sweep terms, which is why they cannot be reached with --details-ids or --fill.",
    "details_status is the row's own answer: fetched (an item page was read: size and posted are real, updated is real or genuinely absent) or failed (asked for and unreadable -- error says why). Nothing here is not_requested: every row was asked for.",
    "A Workshop page is graded W wherever it is quoted. It says when the author last uploaded, which is the one thing workshop_item_mtime (a download stamp) cannot answer; it says nothing about what the mod does."

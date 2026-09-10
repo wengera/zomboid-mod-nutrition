@@ -514,8 +514,8 @@ def catalog_details(ids, detailer=details, sleep=time.sleep, detail_pause=DETAIL
 
 
 CATALOG_NOTES = [
-    "Item pages only -- no browse pass, so there is no term, no result set and no meta.fetched: "
-    "each row carries the fetch_at stamp of its own read.",
+    "Item pages only -- no browse pass, so there are no terms and no result set; meta.fetched is "
+    "the stamp of this pass and each row carries the fetched_at of its own read.",
     "These ids are named by docs/mods-survey/nutrition-mods.md, not found by a search. Eight of "
     "the nine are returned by none of the eight sweep terms, which is why they cannot be "
     "reached with --details-ids or --fill.",
