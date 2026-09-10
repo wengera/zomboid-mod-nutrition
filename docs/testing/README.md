@@ -18,8 +18,8 @@ from `testing/`). Requires the local game install (path in `pzt/paths.py`).
 | `provision --name default` | Fresh server (fixed sandbox: `Zombies=6` = none, override with `--sandbox K=V`), the `admin` client joins, creates the world and its character, quits cleanly; server stops; snapshot → `testing/fixtures/default/` | ~2.5 min, once per game/mod-set version |
 | `boot --fixture default [--hold N]` | Restore the fixture's server world into a fresh run dir and start it | ~14 s |
 | `attach --fixture default --server 127.0.0.1:27261 --user admin` | Restore that user's client cache, launch the client, wait until it is in-world (no creation screens), ping it | ~35 s |
-| `run --fixture default [--profile <name>] [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors. `--profile` puts a named mod set + sandbox overrides on the fixture, fails fast if a mod did not load, and runs the profile's `[[verify]]` probes ([profiles.md](profiles.md)) | ~1 min + hold |
-| `scenario <name> [--side server\|client] [--speed N] [--timeout S] [--fixture F] [--profile <name>]` | run one registered harness test at accelerated time: boot + attach the subject client, `test.list` on the chosen side, RCON `settimespeed <N>`, `test.run <name> <user>`, wait for the result doc, **then the Python evaluator for that name, and only then** `settimespeed 1` + teardown from the `finally` — that order because the evaluator is scenario code that can raise, and a raise must not skip the speed restore (`scenario.py:148-194`); report and artifact are written last (details below). `--profile` runs it on a named mod set (the profile's fixture wins over `--fixture` and its first client over `--user`; its `[[verify]]` probes are **not** run on this path, and `DayLength` × `--speed` has a cadence ceiling — [profiles.md](profiles.md)) | ~1 min + the test (3 game-days at `--speed 30` ≈ 10 min) |
+| `run --fixture default [--profile <name>] [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors. `--profile` puts a named mod set + sandbox overrides on the fixture and runs the profile's `[[verify]]` probes; a failed probe skips the hold. The **missing-mod fail-fast is not `--profile`'s**: it runs on the plain path too, right after `server_started` and before any client is launched, because a fixture's own recorded `Mods=` can stop resolving just as a profile's can — and it makes the RESULT line name the mod ([profiles.md](profiles.md)) | ~1 min + hold |
+| `scenario <name> [--side server\|client] [--speed N] [--timeout S] [--fixture F] [--profile <name>]` | run one registered harness test at accelerated time: boot + attach the subject client, `test.list` on the chosen side, RCON `settimespeed <N>`, `test.run <name> <user>`, wait for the result doc, **then the Python evaluator for that name, and only then** `settimespeed 1` + teardown from the `finally` — that order because the evaluator is scenario code that can raise, and a raise must not skip the speed restore (`scenario.run`); report and artifact are written last (details below). `--profile` runs it on a named mod set (the profile's fixture wins over `--fixture` and its first client over `--user`; its `[[verify]]` probes **are** run on this path, once the client is ready, and a failed one folds into the result as `FAIL: verify <cmd>` after the test — plus the cadence ceiling on `DayLength` × `--speed`, [profiles.md](profiles.md)). The scenario artifact carries `profile` and `verify` on **every** run, `null` and `[]` when there is no profile | ~1 min + the test (3 game-days at `--speed 30` ≈ 10 min) |
 | `spike S3 S4 S5 S6 S7 [--reloadalllua]` | the design spikes as scripted experiments; S3 boots its own sessions, the rest share one; findings → `runs/spike-*/findings.json` | 2–5 min |
 | `doctor` | cold-start checks before booting anything: stray PZ `java.exe` (reported, never killed), ports 27261/27262/27015 free, fixture present and build-matched, workshop index reachable, pytest available; exit 1 on a FAIL | seconds |
 
@@ -31,7 +31,13 @@ blobs byte-identical); the full run directories with logs stay local under
 
 Every invocation gets its own `testing/runs/<cmd>-<timestamp>/` with
 `server-stdout.log`, `server/` (cachedir), `clients/<user>/` (cachedirs incl.
-the game's `console.txt`) and `report.json` (timeline + events). Fixture
+the game's `console.txt`) and `report.json` (timeline + events). A timeline
+mark is `{"t": <seconds since the run started>, "phase": …, <detail>}`; a step
+that also measured its own cost adds **`"took"`** (`server_started`,
+`client_ready`). Artifacts committed before slice 07's final fix wave carry that
+duration in `t` on those two marks instead
+([`../../testing/artifacts/README.md`](../../testing/artifacts/README.md)
+§ Script/artifact skew). Fixture
 blobs (`fixtures/*/cache/`) and runs are gitignored; `fixtures/*/fixture.json`
 records how a fixture was built (build, mods, sandbox, accounts, timings).
 `testing/profiles/<name>.toml` is one *named combination under test* — fixture +
@@ -386,7 +392,11 @@ layer the tests are written against.
   re-runs the file, and a second `Add()` would advance the clock twice a game
   minute and halve every rate fitted against it. Measured at **1.000 ticks per
   game-minute** on the dedicated server at `settimespeed 30` (all three slice-04
-  runs).
+  runs) — **at the fixture's `DayLength = 4`**, which is what makes that
+  `24 × 30 / 90 = 8` game-minutes of world clock per wall second. The ratio is
+  not a property of `--speed` alone: `scenario-20260910-134012` recorded
+  **0.22** at the same `settimespeed 30` on `DayLength = 1`
+  ([profiles.md](profiles.md) § The cadence ceiling).
 - **The context `t`**: `t:at(minutes, fn)` schedules once; `t:every(minutes, fn)`
   repeats (re-armed *before* `fn` runs, so one raising callback cannot silently
   stop a three-day sampler); `t:eventually(pred, budgetMinutes, label)` polls
@@ -416,7 +426,7 @@ layer the tests are written against.
   own name, `test_<name>`), `side`, `t` (wall-clock ms at write) and
   `complete: true`. `t` is load-bearing, not a timestamp for the reader: with
   `startedWall` it is the pair `scenario.cadence()` fits the harness clock against
-  (`scenario.py:56`), so a side without `getTimestampMs()` produces no `cadence`
+  (`scenario.cadence`), so a side without `getTimestampMs()` produces no `cadence`
   block at all. `bus.wait_result` blocks on the file.
 - **Same Java rules as the rest of the harness**: every Java member goes through
   `TK.call` (Kahlua's "tried to call nil" escapes `pcall` and would kill
@@ -473,7 +483,10 @@ layer the tests are written against.
   `ticks_per_wall_s`). `ticks_per_world_min` outside 0.95–1.05 sets
   `cadence_suspect` and prints a warning: the run still reports, but everything it
   scheduled in game minutes and every rate it fitted per game-hour was read off a
-  clock that was not keeping time.
+  clock that was not keeping time. The usual cause is the **combination** of the
+  fixture's `DayLength` and `--speed`, not `--speed` on its own: keep
+  `24 × speed / day_minutes ≲ 8` ([profiles.md](profiles.md) § The cadence
+  ceiling — `DayLength = 1` × `--speed 30` demands 48 and delivered 0.22).
 
 ### Server side
 

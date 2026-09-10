@@ -5,6 +5,7 @@ import os
 import time
 
 from . import fixture as fx
+from . import profile
 from .bus import parse_ack
 from .client import Client
 from .paths import ADMIN_PW, ADMIN_USER
@@ -21,10 +22,20 @@ class Timeline:
         self.t0 = time.time()
         self.items = []
 
-    def mark(self, phase, **kw):
+    def mark(self, phase, took=None, **kw):
+        """One timeline entry. `t` is ALWAYS seconds since the timeline started -- it is the
+        thing that makes a list of marks readable as a run.
+
+        A step that also measured its own duration passes it as `took=`, which is stored beside
+        `t` rather than over it. Before slice 07's final fix wave `server_started` and
+        `client_ready` passed `t=<duration>` instead, so `t` on those two marks -- and only
+        those two -- was the step's cost, not elapsed time: every artifact committed before that
+        wave has to be read that way (`testing/artifacts/README.md`).
+        """
         t = round(time.time() - self.t0, 1)
-        self.items.append({"t": t, "phase": phase, **kw})
-        say(f"[{t:7.1f}s] {phase} " + " ".join(f"{k}={v}" for k, v in kw.items()))
+        detail = {**({} if took is None else {"took": took}), **kw}
+        self.items.append({"t": t, "phase": phase, **detail})
+        say(f"[{t:7.1f}s] {phase} " + " ".join(f"{k}={v}" for k, v in detail.items()))
         return t
 
 
@@ -55,16 +66,45 @@ def grep_file(path, rx, limit=10):
 
 def opt(a, prof, name):
     """One run setting from three places: an explicit CLI flag wins, then the profile's own
-    value, then the default.
+    value, then `profile.DEFAULTS`.
 
-    argparse cannot report whether a flag was typed, so "explicit" here means "differs from
-    the default" -- and `profile.DEFAULTS` holds exactly these CLI defaults, so typing the
-    default value is a no-op either way. Without a profile the flag is returned untouched.
+    `run` and `scenario` clear these flags' argparse defaults to None (`cli.profile_defaults`),
+    so None here means "not typed" -- which is the only way to tell a typed `--hold 5` from an
+    untyped one. It used to mean "differs from the default", and a flag typed AT the default
+    silently lost to the profile.
+
+    The last fallback is `PROFILE_DEFAULTS`, not None: without it a plain `pzt run` would hand
+    `hold=None` to `session.hold` and die on a TypeError inside the session it just paid a
+    minute of boot for.
     """
-    given = getattr(a, name)
-    if prof is None or given != PROFILE_DEFAULTS[name]:
+    given = getattr(a, name, None)
+    if given is not None:
         return given
-    return getattr(prof, name)
+    if prof is not None:
+        return getattr(prof, name)
+    return PROFILE_DEFAULTS[name]
+
+
+def profile_args(a):
+    """`--profile` and `--fixture`, settled once for both entry points.
+
+    Loads the profile -- everything it names is resolved and validated before a process starts
+    (profile.py) -- settles the fixture (the profile's own wins: it is the fixture its
+    `[sandbox]` keys were checked against) and writes it back onto `a`, where the report and the
+    scenario artifact read it. Returns `(profile|None, the --fixture the caller typed or None,
+    the four make_server kwargs a profile supplies)`.
+
+    `cli.cmd_run` and `scenario.run` held this block verbatim; one definition is what stops the
+    two paths placing a different mod set (Task 3 review).
+    """
+    prof = profile.load(a.profile) if a.profile else None
+    flag = a.fixture                    # None unless --fixture was typed
+    a.fixture = prof.fixture if prof else (flag or "default")
+    mods = {"mods": prof.mods if prof else None,
+            "mod_sources": prof.sources if prof else None,
+            "mod_skip": prof.skip if prof else (),
+            "sandbox": prof.sandbox if prof else None}
+    return prof, flag, mods
 
 
 def mark_profile(tl, prof, flag=None):
@@ -82,7 +122,7 @@ def mark_profile(tl, prof, flag=None):
     # `mods_not_found` was intended (Task 2 review).
     return tl.mark("profile", name=prof.name, fixture=prof.fixture, mods=";".join(prof.mods),
                    sandbox=",".join(f"{k}={v}" for k, v in prof.sandbox.items()) or "none",
-                   skip=",".join(getattr(prof, "skip", ()) or ()) or "none")
+                   skip=",".join(prof.skip) or "none")
 
 
 def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None,
@@ -166,7 +206,12 @@ def verify(prof, server, clients, tl):
 
     Returns the list of probes with their verdicts, for report.json; the caller owns the
     RESULT. A probe whose side has no node (a `client` probe on a session with no client)
-    fails rather than raising -- the run has already paid for the session, so it reports.
+    fails rather than raising -- the run has already paid for the session, so it reports, and
+    the mark and the report carry the same `got` so a reader comparing them finds no gap.
+
+    `expect` is coerced with str(): TOML happily types it as an int or a bool, and `x in
+    json.dumps(val)` on a non-string is a TypeError raised *after* the session was paid for,
+    with no probe verdict in the report to explain it.
     """
     out = []
     for v in prof.verify:
@@ -174,10 +219,10 @@ def verify(prof, server, clients, tl):
         node = server if side == "server" else (clients[0] if clients else None)
         if node is None:
             tl.mark("verify", side=side, cmd=v["cmd"], ok=False, got="no client attached")
-            out.append({**v, "ok": False, "got": None})
+            out.append({**v, "ok": False, "got": "no client attached"})
             continue
         ok, val = parse_ack(node.send(v["cmd"], v.get("args", "")))
-        passed = bool(ok) and v.get("expect", "") in json.dumps(val)
+        passed = bool(ok) and str(v.get("expect", "")) in json.dumps(val)
         tl.mark("verify", side=side, cmd=v["cmd"], ok=passed, got=json.dumps(val)[:100])
         out.append({**v, "ok": passed, "got": val})
     return out

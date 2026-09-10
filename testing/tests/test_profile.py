@@ -68,13 +68,21 @@ def test_resolve_by_workshop_id():
 
 
 def test_resolve_by_harness_id():
-    assert profile.resolve_mod({"id": "PZTestKit"}, {}) == ("PZTestKit", KIT, None)
+    """The source is a real folder on disk with a real mod.info in it -- asserting against
+    HARNESS_MODS alone would pass on a lookup table that points nowhere."""
+    mod_id, src, item = profile.resolve_mod({"id": "PZTestKit"}, {})
+    assert (mod_id, item) == ("PZTestKit", None)
+    assert os.path.normpath(src) == os.path.normpath(KIT)
+    assert os.path.isdir(src) and os.path.isfile(os.path.join(src, "42", "mod.info"))
 
 
 def test_resolve_by_path():
     """Relative paths are from the repo root, and the id comes from the folder's mod.info."""
-    got = profile.resolve_mod({"path": os.path.join("testing", "PZTestKit", "PZTestKit")}, {})
-    assert got == ("PZTestKit", os.path.normpath(KIT), None)
+    mod_id, src, item = profile.resolve_mod({"path": os.path.join("testing", "PZTestKit",
+                                                                  "PZTestKit")}, {})
+    assert (mod_id, item) == ("PZTestKit", None)
+    assert os.path.normpath(src) == os.path.normpath(KIT)
+    assert os.path.isdir(src) and os.path.isfile(os.path.join(src, "42", "mod.info"))
 
 
 def test_resolve_by_index():
@@ -261,7 +269,7 @@ def test_merge_rewrites_only_the_named_keys():
     assert "        ZombiesDragDown = true,\r\n" in out      # nested option untouched
     assert "    -- 6 = None\r\n" in out                      # the server's comments survive
     assert out.endswith("    DayLength = 1,\r\n}\r\n")       # appended before the final brace
-    assert out.replace("\r\n", "") .count("\n") == 0         # CRLF everywhere, still
+    assert out.replace("\r\n", "").count("\n") == 0          # CRLF everywhere, still
 
 
 def test_merge_writes_lua_booleans_and_keeps_lf_files_lf():
@@ -295,7 +303,7 @@ def _read(path):
 
 
 def test_merge_on_a_copy_of_the_real_fixture_file():
-    """The read-only check the plan asks for, on the golden fixture's own 1020-line file:
+    """The read-only check the plan asks for, on the golden fixture's own 1 020-line file:
     one line changes, nothing else -- key set, line count and CRLF all identical.
 
     184 settable options, not the plan's 189: that count includes the five nested-table
@@ -316,3 +324,184 @@ def test_merge_on_a_copy_of_the_real_fixture_file():
     assert before.count("\r\n") == after.count("\r\n") == 1020
     changed = [(a, b) for a, b in zip(before.split("\r\n"), after.split("\r\n")) if a != b]
     assert changed == [("    DayLength = 4,", "    DayLength = 1,")]
+
+
+# ---- the placement plumbing (harness.install / make_client), on temp dirs -----------------
+
+class StubServer:
+    """Just enough Server for `session.make_client`: the mod list and the two placement maps
+    the client is supposed to inherit."""
+
+    def __init__(self, mods=("PZTestKit",), mod_sources=None, mod_skip=()):
+        self.mods, self.port = list(mods), 27261
+        self.mod_sources, self.mod_skip = dict(mod_sources or {}), tuple(mod_skip)
+
+
+def _fake_mod(root, name, mod_id=None):
+    """A folder shaped enough like a mod to be copied and read back."""
+    p = os.path.join(root, name, "42.20")
+    os.makedirs(p, exist_ok=True)
+    _write(os.path.join(p, "mod.info"), "name=%s\nid=%s\n" % (name, mod_id or name), newline=None)
+    return os.path.join(root, name)
+
+
+def test_install_places_harness_mods_and_reports_the_rest_missing():
+    """The pre-profile behaviour, unchanged: a harness id is copied from the repo, anything
+    else is the workshop's problem, and what was not placed comes back."""
+    with tempfile.TemporaryDirectory() as d:
+        mods_dir = os.path.join(d, "mods")
+        from pzt import harness
+        missing = harness.install(mods_dir, ["PZTestKit", "NotAMod"], workshop=False)
+        assert missing == ["NotAMod"]
+        assert os.path.isdir(os.path.join(mods_dir, "PZTestKit"))
+        assert sorted(os.listdir(mods_dir)) == ["PZTestKit"]
+
+
+def test_install_skips_without_reporting_missing():
+    """`copy = false`: named in Mods= on purpose, placed nowhere, and NOT in `missing` -- the
+    run log says so once, in the `profile` mark's `skip=`."""
+    with tempfile.TemporaryDirectory() as d:
+        mods_dir = os.path.join(d, "mods")
+        from pzt import harness
+        missing = harness.install(mods_dir, ["PZTestKit", "Ghost"], workshop=False,
+                                  skip=("Ghost",))
+        assert missing == []
+        assert os.listdir(mods_dir) == ["PZTestKit"]
+
+
+def test_sources_win_over_the_harness_map():
+    """A profile's `path =` on a harness id copies THAT folder -- otherwise a mod under test
+    could never shadow a repo mod of the same name."""
+    with tempfile.TemporaryDirectory() as d:
+        src = _fake_mod(d, "elsewhere", mod_id="PZTestKit")
+        mods_dir = os.path.join(d, "mods")
+        from pzt import harness
+        assert harness.install(mods_dir, ["PZTestKit"], workshop=False,
+                               sources={"PZTestKit": src}) == []
+        # placed under the ID, from the source folder: the marker file proves which one
+        assert os.path.exists(os.path.join(mods_dir, "PZTestKit", "42.20", "mod.info"))
+        assert not os.path.exists(os.path.join(mods_dir, "PZTestKit", "42", "media"))
+
+
+def test_make_client_inherits_the_servers_placement_unless_told_otherwise():
+    """`None` means 'the server's', not 'none', so the two sides cannot drift; an explicit `()`
+    is still honoured."""
+    from pzt import session
+    with tempfile.TemporaryDirectory() as d:
+        src = _fake_mod(d, "KeenSrc", mod_id="Keen")
+        srv = StubServer(mods=["PZTestKit", "Keen", "Ghost"],
+                         mod_sources={"Keen": src}, mod_skip=("Ghost",))
+        c, restored = session.make_client(os.path.join(d, "run"), "admin", srv, workshop=False)
+        assert restored is False
+        assert c.mod_sources == {"Keen": src} and c.mod_skip == ("Ghost",)
+        placed = sorted(os.listdir(os.path.join(c.cache, "mods")))
+        assert "PZTestKit" in placed and "Keen" in placed and "Ghost" not in placed
+        assert c.missing_mods == []                      # Ghost was skipped, not missed
+        # default.txt still names the skipped id: both sides walk the same road (S3-A)
+        with open(os.path.join(c.cache, "mods", "default.txt")) as fh:
+            assert "mod = Ghost," in fh.read()
+        c2, _ = session.make_client(os.path.join(d, "run2"), "admin", srv, workshop=False,
+                                    mod_sources={}, mod_skip=())
+        assert c2.mod_sources == {} and c2.mod_skip == ()
+        assert c2.missing_mods == ["Keen", "Ghost"]      # nothing to copy them from now
+
+
+# ---- pre-boot validation: everything that is wrong costs a second, not a boot -------------
+
+def test_a_non_bool_copy_is_an_error_rather_than_a_placed_mod():
+    """`copy = 0` would sail past `is False` and be COPIED -- the one misread that produces
+    the wrong session instead of an error."""
+    for bad in (0, "false", "no"):
+        with pytest.raises(profile.ProfileError) as e:
+            profile.resolve_mod({"id": "X", "copy": bad}, {})
+        assert "copy must be a bool" in str(e.value)
+
+
+def test_the_harness_cannot_be_copy_false():
+    """No harness = no command bus = no ready marker: the run would hang waiting for a marker
+    nothing will ever write."""
+    with pytest.raises(profile.ProfileError) as e:
+        profile.resolve_mod({"id": "PZTestKit", "copy": False}, {})
+    assert "cannot be copy = false" in str(e.value)
+
+
+def test_path_and_workshop_id_together_are_an_error():
+    """The branch order would take `path` and silently drop the workshop id, so the profile
+    would record a provenance the run did not use."""
+    with pytest.raises(profile.ProfileError) as e:
+        profile.resolve_mod({"path": "testing/PZTestKit/PZTestKit", "workshop_id": "1"}, {})
+    assert "both path and workshop_id" in str(e.value)
+
+
+def test_bad_scalar_types_are_profile_errors_not_tracebacks():
+    for toml, needle in [('run = { hold = "soon" }\n', "[run] hold must be a whole number"),
+                         ('server = { timeout = "later" }\n', "[server] timeout must be"),
+                         ('client = { timeout = [1] }\n', "[client] timeout must be"),
+                         ('client = { safemode = 1 }\n', "[client] safemode must be true or false"),
+                         ('run = { hold = true }\n', "[run] hold must be a whole number")]:
+        with workspace(toml + '[[mods]]\nid = "PZTestKit"\n'):
+            with pytest.raises(profile.ProfileError) as e:
+                profile.load("p")
+        assert needle in str(e.value), toml
+
+
+def test_a_float_hold_is_accepted_and_truncated():
+    """`int()` still does its job where the value IS a number -- only the crash is removed."""
+    with workspace('run = { hold = 2.9 }\n[[mods]]\nid = "PZTestKit"\n'):
+        assert profile.load("p").hold == 2
+
+
+def test_an_empty_users_list_is_rejected_rather_than_silently_meaning_the_fixtures():
+    """It reads as 'server only' and is not: `pzt run` would fall back to the FIXTURE's client
+    list and `pzt scenario` would raise IndexError on `users[0]`."""
+    with workspace('client = { users = [] }\n[[mods]]\nid = "PZTestKit"\n'):
+        with pytest.raises(profile.ProfileError) as e:
+            profile.load("p")
+    assert "users = [] is not a server-only run" in str(e.value)
+
+
+def test_a_boolean_expect_is_rejected_and_a_number_is_coerced():
+    """`expect` is matched inside the dumped JSON: a TOML `true` would stringify to "True" and
+    could never match, and a bare non-string would raise a TypeError mid-run."""
+    with workspace('verify = [ { cmd = "c", expect = true } ]\n[[mods]]\nid = "PZTestKit"\n'):
+        with pytest.raises(profile.ProfileError) as e:
+            profile.load("p")
+    assert "expect must be a string" in str(e.value) and "true" in str(e.value)
+    with workspace('verify = [ { cmd = "c", expect = 12 } ]\n[[mods]]\nid = "PZTestKit"\n'):
+        assert profile.load("p").verify[0]["expect"] == "12"
+
+
+def test_check_sandbox_is_a_no_op_when_the_fixture_blob_is_not_on_this_machine():
+    """The caveat the doc carries: fixture caches are gitignored, so on a fresh clone a
+    misspelt key is not caught here (the run cannot start either way)."""
+    assert profile.check_sandbox("p", {"Nonsense": 1}, os.path.join("nowhere", "x.lua")) is None
+
+
+# ---- the merge's edge cases --------------------------------------------------------------
+
+def test_merge_keeps_a_trailing_comment_on_a_rewritten_line():
+    with tempfile.TemporaryDirectory() as d:
+        p = _write(os.path.join(d, "s.lua"),
+                   SANDBOX.replace("    Zombies = 6,\r\n", "    Zombies = 6,   -- none\r\n"))
+        server.merge_sandbox_vars(p, {"Zombies": 4})
+        with open(p, encoding="utf-8", newline="") as fh:
+            assert "    Zombies = 4,   -- none\r\n" in fh.read()
+
+
+def test_merge_appends_before_the_column_zero_brace_not_a_nested_one():
+    """`l.strip() == "}"` would put an appended option inside the last nested table."""
+    text = ("SandboxVars = {\r\n    Map = {\r\n        A = 1,\r\n"
+            "        }\r\n    Zombies = 6,\r\n}\r\n")
+    with tempfile.TemporaryDirectory() as d:
+        p = _write(os.path.join(d, "s.lua"), text)
+        assert server.merge_sandbox_vars(p, {"DayLength": 1}) == ([], ["DayLength"])
+        with open(p, encoding="utf-8", newline="") as fh:
+            assert fh.read().endswith("    Zombies = 6,\r\n    DayLength = 1,\r\n}\r\n")
+
+
+def test_merge_on_a_file_with_no_closing_brace_says_so_instead_of_crashing():
+    with tempfile.TemporaryDirectory() as d:
+        p = _write(os.path.join(d, "s.lua"), "SandboxVars = {\r\n    Zombies = 6,\r\n")
+        with pytest.raises(SystemExit) as e:
+            server.merge_sandbox_vars(p, {"DayLength": 1})
+    assert "no closing '}' at column 0" in str(e.value) and "DayLength" in str(e.value)

@@ -162,8 +162,10 @@ one inventory item (condition, conditionMax, modData).
   with T1.
 - **T1** ✅ 2026-09-10 — L0+L1: lint + boot validation against the *current*
   modlist, on other people's mods before ours exists. Shipped: `tools/mod_lint.py`
-  (eight static layout rules; the 230-folder installed corpus scores **84
-  findings — 3 ERROR, 30 WARN, 51 INFO** in ~13 s, exit 1) and the **profile
+  (nine static layout rules; the 230-folder installed corpus scores **84
+  findings — 3 ERROR, 30 WARN, 51 INFO at 2026-09-10 13:47** in ~13 s, exit 1 —
+  a live tree, so quote a sweep with its date and see
+  [profiles.md](profiles.md) § L0 for what moved) and the **profile
   builder** — `testing/profiles/<name>.toml` + `pzt run --profile` /
   `pzt scenario --profile`, which overlay a named mod set and `[sandbox]`
   overrides onto a restored fixture, fail fast when a mod did not load, and prove
@@ -181,8 +183,12 @@ one inventory item (condition, conditionMax, modData).
   mod-under-test --speed 30`) **PASS**, 63 s, artifact `profile` field set — and
   `cadence_suspect` at 0.22 ticks per game-minute, the finding that
   `DayLength = 1` × `--speed 30` overruns the game-minute scheduler (keep
-  `24 × speed / day_minutes ≲ 8`). Boot cost: 36.6 s on the session's first, cold
-  start; 13.7 s / 14.0 s warm — S1's cold-start effect, not a cost of the profile.
+  `24 × speed / day_minutes ≲ 8`). Boot cost: 36.6 s on the session's first boot,
+  13.7 s / 14.0 s on the two after it. The **gap is measured; its cause is not** —
+  the first boot of the session is the suspected reason, and no spike measured it.
+  T0's own warm figure for a restored fixture is 13.4 s, which the two later boots
+  reproduce; S1's 57.2 s is a first-*ever* cold start that includes world and db
+  creation, so neither number is a profile cost.
 - **T2** ✅ 2026-09-10 — L2: server scenarios + result channel + RCON. Shipped:
   the harness **test layer** (`shared/PZTestKit_Test.lua` — `TK.test`, a
   game-minute scheduler on `EveryOneMinute`, `test.list` / `test.run` /

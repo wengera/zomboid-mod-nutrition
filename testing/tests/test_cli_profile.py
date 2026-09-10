@@ -122,24 +122,53 @@ def test_verify_client_side_uses_the_first_client():
 
 
 def test_verify_client_side_without_a_client_fails_rather_than_raising():
+    """The mark and the report say the same thing: a reader comparing the two finds no gap."""
     prof = prof_with([{"side": "client", "cmd": "trait.check"}])
     tl = session.Timeline()
     out = session.verify(prof, Node(), [], tl)
-    assert out[0]["ok"] is False and out[0]["got"] is None
-    assert tl.items[0]["got"] == "no client attached"
+    assert out[0]["ok"] is False
+    assert out[0]["got"] == tl.items[0]["got"] == "no client attached"
+
+
+def test_verify_coerces_a_non_string_expect_instead_of_raising():
+    """`x in json.dumps(val)` on a non-string is a TypeError raised after the session was paid
+    for, with no verdict in the report to explain it. A number round-trips; the loader rejects
+    the one shape that cannot (a TOML boolean)."""
+    server = Node({"num": 'ok:{"n": 12}', "flag": 'ok:{"on": true}'})
+    out = session.verify(prof_with([{"cmd": "num", "expect": 12},
+                                    {"cmd": "flag", "expect": True}]), server, [], session.Timeline())
+    assert [v["ok"] for v in out] == [True, False]      # "12" matches; "True" is not "true"
 
 
 # ---- check_mods_loaded(): the fail-fast right after server_started ------------------------
 
+class FakeBus:
+    """`node.bus.wait_result` for the scenario path: one canned result doc."""
+
+    def __init__(self, doc=None):
+        self.doc = doc if doc is not None else {"pass": True, "detail": "ok", "gameMinutes": 20}
+
+    def wait_result(self, name, timeout=None, after=None):
+        return self.doc
+
+
 class FakeServer:
     """The parts of Server the run path touches, with no process behind them."""
 
-    def __init__(self, log_path, mods_not_found=(), acks=None):
+    def __init__(self, log_path, mods_not_found=(), acks=None, doc=None):
         self.log_path, self.mods_not_found = log_path, list(mods_not_found)
-        self.acks = acks or {"ping": "ok:pong", "trait.check": 'ok:{"loaded": true}'}
+        self.acks = dict({"ping": "ok:pong", "trait.check": 'ok:{"loaded": true}',
+                          "test.list": 'ok:["smoke_clock"]', "test.run": "ok:started"},
+                         **(acks or {}))
         self.errors, self.build, self.port = [], "42.20.4", 27261
         self.t_started, self.alive, self.mods = 1.0, True, ["PZTestKit"]
+        self.bus = FakeBus(doc)
+        self.rcons = []
         self.sent = []
+
+    def rcon(self, cmd):
+        self.rcons.append(cmd)
+        return True, "ok"
 
     def start(self, timeout=None):
         return self.t_started
@@ -227,35 +256,60 @@ def test_grep_file_has_one_definition(tmp_path):
     assert len(session.grep_file(log, re.compile(r"not found"), limit=5)) == 5
 
 
-# ---- opt(): CLI flag > profile > default ---------------------------------------------------
+# ---- opt(): typed flag > profile > profile.DEFAULTS -----------------------------------------
 
-def test_opt_prefers_an_explicit_flag_then_the_profile_then_the_default():
+KEYS = ("hold", "launcher", "safemode", "server_timeout", "client_timeout")
+
+
+def test_opt_prefers_a_typed_flag_then_the_profile_then_the_default():
     prof = argparse.Namespace(hold=33, launcher="exe", safemode=True, server_timeout=99,
                               client_timeout=88)
-    a = argparse.Namespace(hold=5, launcher="java", safemode=False, server_timeout=420,
-                           client_timeout=300)
-    assert [session.opt(a, prof, k) for k in ("hold", "launcher", "safemode")] == [33, "exe", True]
-    assert session.opt(a, prof, "server_timeout") == 99
-    a.hold, a.launcher = 7, "exe"                      # typed: the flag wins
-    assert session.opt(a, prof, "hold") == 7 and session.opt(a, prof, "launcher") == "exe"
-    assert session.opt(a, None, "hold") == 7           # no profile: the flag, untouched
-    a.hold = 5
-    assert session.opt(a, None, "hold") == 5
+    untyped = argparse.Namespace(**{k: None for k in KEYS})
+    assert [session.opt(untyped, prof, k) for k in KEYS] == [33, "exe", True, 99, 88]
+    assert [session.opt(untyped, None, k) for k in KEYS] == [profile.DEFAULTS[k] for k in KEYS]
+    typed = argparse.Namespace(hold=7, launcher="java", safemode=False, server_timeout=1,
+                               client_timeout=2)
+    assert [session.opt(typed, prof, k) for k in KEYS] == [7, "java", False, 1, 2]
+    assert [session.opt(typed, None, k) for k in KEYS] == [7, "java", False, 1, 2]
 
 
-def test_opt_defaults_match_the_cli_defaults(monkeypatch):
-    """opt() reads "was this flag typed?" off profile.DEFAULTS, so the two must agree: a CLI
-    default that drifts would make a profile's own value unreachable (or always win)."""
+def test_a_flag_typed_at_its_own_default_still_beats_the_profile():
+    """The bug the None defaults fix: `--hold 5` is 5 because it was asked for, and argparse
+    cannot say so -- so `run`/`scenario` clear the default and None means 'not given'."""
+    prof = argparse.Namespace(hold=33, launcher="exe", safemode=True, server_timeout=99,
+                              client_timeout=88)
+    assert session.opt(argparse.Namespace(hold=5), prof, "hold") == 5
+    assert session.opt(argparse.Namespace(hold=None), prof, "hold") == 33
+
+
+def test_run_and_scenario_clear_these_defaults_so_none_means_not_given(monkeypatch):
+    """`profile_defaults` runs after the common_* helpers, so it rewrites their defaults; every
+    other subparser keeps its concrete ones (they never consult a profile)."""
     seen = {}
     monkeypatch.setattr(cli, "cmd_run", lambda a: seen.update(vars(a)))
     cli.main(["run"])                                  # set_defaults(fn=...) reads the global
-    for k, v in profile.DEFAULTS.items():
-        assert seen[k] == v, f"--{k.replace('_', '-')} default drifted from profile.DEFAULTS"
+    assert {k: seen[k] for k in profile.DEFAULTS} == {k: None for k in profile.DEFAULTS}
     seen.clear()
     monkeypatch.setattr(scenario, "run", lambda a: seen.update(vars(a)))
     cli.main(["scenario", "smoke_clock"])
-    for k in ("server_timeout", "client_timeout", "safemode", "launcher"):   # scenario has no hold
-        assert seen[k] == profile.DEFAULTS[k]
+    assert {k: seen[k] for k in profile.DEFAULTS} == {k: None for k in profile.DEFAULTS}
+    seen.clear()
+    monkeypatch.setattr(cli, "cmd_attach", lambda a: seen.update(vars(a)))
+    cli.main(["attach"])
+    assert (seen["client_timeout"], seen["launcher"], seen["safemode"]) == (300, "java", False)
+
+
+def test_a_plain_run_falls_back_to_profile_defaults_not_none(monkeypatch, tmp_path):
+    """B4(b): with no flag and no profile, `opt` must reach profile.DEFAULTS -- `hold=None`
+    would reach `session.hold` and raise a TypeError inside a session already paid for."""
+    server = FakeServer(str(tmp_path / "server-stdout.log"))
+    with workspace(), stub_run(monkeypatch, tmp_path, server) as made:
+        a = argparse.Namespace(profile=None, fixture=None, clients=None, port=None,
+                               rcon_port=None, **{k: None for k in profile.DEFAULTS})
+        assert cli.cmd_run(a) == 0
+    assert made["hold"] == profile.DEFAULTS["hold"] == 5
+    assert made["clients"][0][1] == {"safemode": False, "launcher": "java"}
+    assert isinstance(made["hold"], int)
 
 
 # ---- the CLI surface ------------------------------------------------------------------------
@@ -317,24 +371,25 @@ def test_scenario_user_defaults_to_the_profiles_first_client(monkeypatch):
 
 def test_mark_profile_prints_the_combination_and_flags_a_conflicting_fixture(capsys):
     prof = argparse.Namespace(name="mod-under-test", fixture="default", mods=["PZTestKit", "Keen"],
-                              sandbox={"DayLength": 1})
+                              sandbox={"DayLength": 1}, skip=("Ghost",))
     session.mark_profile(session.Timeline(), prof, "other")
     out = capsys.readouterr().out
     assert "--fixture other ignored" in out
     assert ("profile name=mod-under-test fixture=default mods=PZTestKit;Keen "
-            "sandbox=DayLength=1") in out
-    session.mark_profile(session.Timeline(), argparse.Namespace(**dict(vars(prof), sandbox={})),
-                         "default")
+            "sandbox=DayLength=1 skip=Ghost") in out
+    session.mark_profile(session.Timeline(),
+                         argparse.Namespace(**dict(vars(prof), sandbox={}, skip=())), "default")
     out = capsys.readouterr().out
-    assert "sandbox=none" in out and "ignored" not in out
+    assert "sandbox=none" in out and "skip=none" in out and "ignored" not in out
 
 
 # ---- one whole cmd_run, on stub processes ---------------------------------------------------
 
 def run_args(**kw):
-    a = argparse.Namespace(profile="p", fixture=None, clients=None, hold=5, port=None,
-                           rcon_port=None, server_timeout=420, client_timeout=300,
-                           safemode=False, launcher="java")
+    """A parsed `pzt run` Namespace with nothing typed: the five profile-backed flags default
+    to None (`cli.profile_defaults`), which is what lets the profile's own values through."""
+    a = argparse.Namespace(profile="p", fixture=None, clients=None, port=None, rcon_port=None,
+                           **{k: None for k in profile.DEFAULTS})
     return argparse.Namespace(**dict(vars(a), **kw))
 
 
@@ -402,15 +457,34 @@ def test_cmd_run_without_a_profile_is_unchanged(monkeypatch, tmp_path, capsys):
     assert [m["phase"] for m in rep["timeline"]][0] == "server_launch"
 
 
-def test_cmd_run_fails_the_verify_probe_and_still_holds(monkeypatch, tmp_path, capsys):
+def test_cmd_run_fails_the_verify_probe_and_skips_the_hold(monkeypatch, tmp_path, capsys):
+    """The probes run before the hold so the test slot never opens on the wrong session --
+    which only holds if a failed probe actually skips it."""
     server = FakeServer(str(tmp_path / "server-stdout.log"),
                         acks={"ping": "ok:pong", "trait.check": 'ok:{"loaded": false}'})
     with workspace(), stub_run(monkeypatch, tmp_path, server) as made:
         assert cli.cmd_run(run_args()) == 1
-    assert made["hold"] == 33
+    assert made["hold"] is None                              # the 33 s slot never opened
     rep = report_of(tmp_path)
     assert rep["result"] == "FAIL: verify trait.check" and rep["verify"][0]["ok"] is False
+    phases = [m["phase"] for m in rep["timeline"]]
+    assert "verify" in phases and "hold" not in phases
     assert "RESULT: FAIL: verify trait.check" in capsys.readouterr().out
+
+
+def test_the_timeline_keeps_step_durations_under_took_and_t_stays_elapsed(monkeypatch, tmp_path):
+    """`server_started` / `client_ready` carry their own cost in `took`; `t` is elapsed on
+    every mark, as it always was on all the others. Artifacts written before slice 07's final
+    fix wave have the duration in `t` on exactly those two marks."""
+    server = FakeServer(str(tmp_path / "server-stdout.log"))
+    with workspace(), stub_run(monkeypatch, tmp_path, server):
+        assert cli.cmd_run(run_args()) == 0
+    marks = {m["phase"]: m for m in report_of(tmp_path)["timeline"]}
+    assert marks["server_started"]["took"] == 1.0        # FakeServer.t_started
+    assert marks["client_ready"]["took"] == 2.0          # FakeClient.wait_ready
+    assert all(m["t"] <= marks["server_stopped"]["t"] for m in marks.values())
+    assert not any("took" in m for p, m in marks.items()
+                   if p not in ("server_started", "client_ready"))
 
 
 def test_cmd_run_fails_fast_on_a_mod_the_server_did_not_load(monkeypatch, tmp_path, capsys):
@@ -425,7 +499,121 @@ def test_cmd_run_fails_fast_on_a_mod_the_server_did_not_load(monkeypatch, tmp_pa
                       "mod_missing_line", "error", "server_stopped", "faults"]
     assert rep["faults"] == ["mods not found at load: NoSuchModHere"]
     out = capsys.readouterr().out
-    # The fail-fast and fault_reasons name the same mod; the RESULT line carries it once.
-    assert "RESULT: FAIL   (report:" in out
+    # The fail-fast and fault_reasons name the same mod; the RESULT line carries it ONCE, and
+    # names it -- a bare `FAIL` would make the console say only that something went wrong.
+    assert rep["result"] == "FAIL: mods not found at load: NoSuchModHere"
+    assert "RESULT: FAIL: mods not found at load: NoSuchModHere   (report:" in out
     assert out.count("RESULT:") == 1
-    assert rep["result"] == "FAIL"
+    # mods_not_found, the server's WARN line, error, faults, and the RESULT line itself
+    assert out.count("NoSuchModHere") == 5
+    error = next(m for m in rep["timeline"] if m["phase"] == "error")
+    assert error["detail"] == "RuntimeError: mods not found at load: NoSuchModHere"
+
+
+# ---- one whole scenario.run, on stub processes ----------------------------------------------
+
+def scenario_args(**kw):
+    """A parsed `pzt scenario` Namespace: the same five flags default to None."""
+    a = argparse.Namespace(name="smoke_clock", profile="p", fixture=None, user=None, side="server",
+                           speed=30, timeout=900, port=None, rcon_port=None,
+                           **{k: None for k in profile.DEFAULTS})
+    return argparse.Namespace(**dict(vars(a), **kw))
+
+
+@contextlib.contextmanager
+def stub_scenario(monkeypatch, tmp_path, server):
+    """scenario.run with make_server/make_client replaced: everything but the processes."""
+    made = {"server_kw": None, "clients": []}
+
+    def fake_make_server(run_dir, rec=None, **kw):
+        made["server_kw"] = kw
+        return server
+
+    def fake_make_client(run_dir, user, srv, rec=None, **kw):
+        made["clients"].append((user, kw))
+        return FakeClient(user), True
+    monkeypatch.setattr(scenario, "new_run_dir", lambda p: ("unit", str(tmp_path)))
+    monkeypatch.setattr(scenario, "make_server", fake_make_server)
+    monkeypatch.setattr(scenario, "make_client", fake_make_client)
+    yield made
+
+
+def artifact_of(tmp_path, name="smoke_clock"):
+    with open(os.path.join(str(tmp_path), f"scenario-{name}.json")) as fh:
+        return json.load(fh)
+
+
+def test_scenario_run_with_a_profile_threads_it_everywhere(monkeypatch, tmp_path, capsys):
+    """The four make_server kwargs, the profile block in the report, and the RESOLVED profile
+    name in the artifact -- `session.profile_args` is the single definition both paths use."""
+    server = FakeServer(str(tmp_path / "server-stdout.log"))
+    with workspace(), stub_scenario(monkeypatch, tmp_path, server) as made:
+        assert scenario.run(scenario_args()) == 0
+    kw = made["server_kw"]
+    assert kw["mods"] == ["PZTestKit"] and kw["sandbox"] == {"Zombies": 4}
+    assert kw["mod_sources"] == {"PZTestKit": HARNESS_MODS["PZTestKit"]} and kw["mod_skip"] == ()
+    rep, art = report_of(tmp_path), artifact_of(tmp_path)
+    assert rep["result"] == "PASS" and rep["profile"]["name"] == "p"
+    assert art["profile"] == rep["profile"]["name"] == "p"   # resolved, not the raw token
+    assert art["fixture"] == "default" and art["result"] == "PASS"
+    assert server.rcons == ["settimespeed 30", "settimespeed 1"]
+    assert "RESULT: PASS" in capsys.readouterr().out
+
+
+def test_scenario_run_runs_the_profiles_verify_probes_after_client_ready(monkeypatch, tmp_path):
+    """The gap slice 07 shipped with: a scenario artifact evidenced that the mods LOADED, never
+    that they took effect. The probes run between `client_ready` and `test_list`."""
+    server = FakeServer(str(tmp_path / "server-stdout.log"))
+    with workspace(), stub_scenario(monkeypatch, tmp_path, server):
+        assert scenario.run(scenario_args()) == 0
+    rep, art = report_of(tmp_path), artifact_of(tmp_path)
+    assert rep["verify"] == art["verify"] == [
+        {"side": "server", "cmd": "trait.check", "expect": '"loaded": true',
+         "ok": True, "got": {"loaded": True}}]
+    phases = [m["phase"] for m in rep["timeline"]]
+    assert phases.index("client_ready") < phases.index("verify") < phases.index("test_list")
+
+
+def test_scenario_run_folds_a_failed_probe_in_after_the_test_has_run(monkeypatch, tmp_path, capsys):
+    """A failed probe does NOT stop the run -- the ten minutes are already spent and the
+    evidence is worth writing -- but the verdict says the numbers may not be cited."""
+    server = FakeServer(str(tmp_path / "server-stdout.log"),
+                        acks={"trait.check": 'ok:{"loaded": false}'})
+    with workspace(), stub_scenario(monkeypatch, tmp_path, server):
+        assert scenario.run(scenario_args()) == 1
+    rep, art = report_of(tmp_path), artifact_of(tmp_path)
+    assert rep["result"] == art["result"] == "FAIL: verify trait.check"
+    assert art["test"]["pass"] is True            # the scenario itself still ran and passed
+    assert [m["phase"] for m in rep["timeline"]].count("test_result") == 1
+    assert "RESULT: FAIL: verify trait.check" in capsys.readouterr().out
+
+
+def test_scenario_run_fails_fast_before_the_client_on_a_missing_mod(monkeypatch, tmp_path):
+    """Same placement as `pzt run`: right after `server_started`, before the client is paid
+    for -- and the RESULT names the mod."""
+    log = _write(str(tmp_path / "server-stdout.log"), WARN)
+    server = FakeServer(log, ["NoSuchModHere"])
+    with workspace(), stub_scenario(monkeypatch, tmp_path, server) as made:
+        assert scenario.run(scenario_args()) == 1
+    # No client and the world was never accelerated; the `finally` still puts the clock back,
+    # because "is it at 1x?" is not a question a failed run gets to leave open.
+    assert made["clients"] == [] and server.rcons == ["settimespeed 1"]
+    rep = report_of(tmp_path)
+    assert [m["phase"] for m in rep["timeline"]] == [
+        "profile", "server_started", "mods_not_found", "mod_missing_line", "error",
+        "settimespeed", "server_stopped", "faults"]
+    assert rep["result"] == "FAIL: mods not found at load: NoSuchModHere"
+    assert rep["verify"] == [] and rep["profile"]["name"] == "p"
+
+
+def test_scenario_run_without_a_profile_still_writes_the_new_keys(monkeypatch, tmp_path):
+    """B5: the fail-fast and the artifact's `profile` key are on the plain path too. `profile`
+    is null and `verify` empty there -- both new in slice 07."""
+    server = FakeServer(str(tmp_path / "server-stdout.log"))
+    with workspace(), stub_scenario(monkeypatch, tmp_path, server) as made:
+        assert scenario.run(scenario_args(profile=None, user="admin")) == 0
+    assert made["server_kw"] == {"port": None, "rcon_port": None, "mods": None,
+                                 "mod_sources": None, "mod_skip": (), "sandbox": None}
+    rep, art = report_of(tmp_path), artifact_of(tmp_path)
+    assert art["profile"] is None and art["verify"] == []
+    assert "profile" not in rep and "verify" not in rep

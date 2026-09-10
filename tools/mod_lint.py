@@ -6,7 +6,8 @@
     python tools/mod_lint.py path/to/MyMod      # one mod folder
 
 Prints `mod: LEVEL: rule: detail` per finding, then a count line, and exits 1 if any ERROR
-fired. WARN and INFO never fail a run: a third of the installed corpus warns and still loads.
+fired. WARN and INFO never fail a run, and most of the corpus that carries one loads fine: of
+the 230 installed folders, 29 (13 %) carry a WARN and 67 (29 %) a WARN or an INFO.
 
 | rule | level | check |
 |---|---|---|
@@ -14,18 +15,27 @@ fired. WARN and INFO never fail a run: a third of the installed corpus warns and
 | `mod-info`       | ERROR | a `mod.info` in some version folder, in `common/`, or at the mod root |
 | `mod-info-place` | WARN  | that `mod.info` is in the *newest* version folder, the one B42 runs |
 | `id`             | ERROR | the resolved `mod.info` declares a non-empty `id=` |
-| `id-agree`       | ERROR | every `mod.info` in the folder declares the same `id` |
+| `id-agree`       | ERROR | every `mod.info` a resolver can reach declares the same `id` (`info_chain`, plus any `42*/mod.info`) |
+| `id-drift`       | WARN  | a `mod.info` OUTSIDE that chain (`LEGACY/42.12/mod.info`, a vendored copy) declares a different `id` |
 | `media`          | WARN  | `media/` exists inside the chosen version folder |
 | `loadstring`     | ERROR | no `loadstring(` in any `.lua` (engine removed it in 42.20.x -- `docs/modding/patterns.md:69`) |
 | `folder-id`      | INFO  | folder name == `id` (informational only: the game keys on mod.info, not the folder) |
 
-Sweep of the 230 installed mod folders (42.20.4, 2026-09-10): 85 findings -- 3 ERROR, 31 WARN,
-51 INFO. Every folder has a version dir. The 3 errors sit on 2 mods: `3782784855/Skill Recovery
-Journal` ships only `42.20.1/media`, so `mod-info` and `id` both fail (and `workshop_index()`
-cannot see it -- 229 entries for 230 folders), and `3774052732/SD_CC_TEST` fails `id-agree`
-(`sd_cc_test` in `42/mod.info` and the root, `SD_CC_TEST_42` in `common/mod.info`). 6 warn on
-`mod-info-place`, 25 on `media` (all of them ship `common/media` instead), 0 use `loadstring`,
-51 folder names differ from the id.
+Sweep of the 230 installed mod folders (42.20.4): **84 findings -- 3 ERROR, 30 WARN, 51 INFO**
+at 2026-09-10 13:47, reproduced at 14:40 and 15:09 the same day. Quote a sweep with its date -- the
+workshop tree is live and moved once mid-slice (85: 3/31/51 that morning, one `media` WARN more
+before Steam rewrote item `3490370700`). Every folder has a version dir. The 3 errors sit on 2
+mods: `3782784855/Skill Recovery Journal` ships only `42.20.1/media`, so `mod-info` and `id`
+both fail (and `workshop_index()` cannot see it -- 229 entries for 230 folders), and
+`3774052732/SD_CC_TEST` fails `id-agree` (`sd_cc_test` in `42/mod.info` and the root,
+`SD_CC_TEST_42` in `common/mod.info` -- all three are in the chain). 6 warn on
+`mod-info-place`, 24 on `media` (all of them ship `common/media` instead), 0 use `loadstring`,
+0 drift (the only out-of-chain files in the corpus are the five Frockin Splendor mods'
+`LEGACY/42.1x/mod.info`, and they agree), 51 folder names differ from the id.
+
+"Skill Recovery Journal" is **two** workshop items and only one of them is broken:
+`2503622437` ships `42.20.1/mod.info` and lints clean; `3782784855` carries no `mod.info`
+anywhere. A finding names the item id first for exactly this reason.
 
 Stdlib only. The workshop tree is read, never written.
 """
@@ -71,14 +81,41 @@ def read_info(path):
 
 
 def info_chain(vers):
-    """Where a mod.info may live, in the order the game and `pzt.mods.mod_id_of` resolve it:
-    version folders newest first, then `common/`, then the mod root."""
+    """Where a mod.info may live, in the order this lint BELIEVES the game resolves it:
+    version folders newest first, then `common/`, then the mod root.
+
+    "Believes" is the honest word. `getModVersionDirName` picking the best `42[.x]/` for the
+    running build is read off the engine (`docs/testing/spikes.md:64`), but that the *older*
+    folders are then tried in order is the lint's own model, recorded as open question 1 in
+    `docs/testing/profiles.md` and settled by slice 12's mod-anatomy doc. `mod-info-place` is a
+    WARN, never an ERROR, precisely because of that.
+
+    `pzt.mods.mod_id_of` resolves in this same order. It has not always: until slice 07's final
+    fix wave it string-sorted its `42*/mod.info` glob, which puts `42/mod.info` above
+    `42.20/mod.info` (the path separator sorts above `.`) and `42.9` above `42.20`, so it read a
+    different FILE from the one named here on 6 installed mods -- `2769706949/P4TidyUpMeister`,
+    `2867431511/SimpleStatus`, `3455571945/KWRR_Security`, `3461263912/CleanHotBar`,
+    `3502080466/Neat_Crafting`, `3618557184/HereGoesTheSun`. All 6 declare the same id in both
+    files, so no id ever moved; `id-agree` is the net that keeps that a fact rather than luck.
+    """
     return [v + "/mod.info" for v in vers] + ["common/mod.info", "mod.info"]
 
 
 def media_root(mod_dir, vers):
-    """The folder whose `media/` the running build reads: newest version folder, else
-    `common/`, else the mod root (the flat b41 layout). Mirrors `mod_inventory.pick_version_dir`."""
+    """The folder whose `media/` the running build reads: newest version folder present, else
+    `common/`, else the mod root (the flat b41 layout).
+
+    "Newest present" and the engine's "best `42[.x]/` that is <= the running build"
+    (`docs/testing/spikes.md:64`) are the same folder on today's corpus, because nothing
+    installed ships a version folder above `42.20[.1]` and the build is 42.20.4. On a mod that
+    ships ahead of the running build they would differ, and this rule would name a folder the
+    game does not read.
+
+    It deliberately does NOT mirror `tools/mod_inventory.py:pick_version_dir`, whose
+    `42(?:\\.(\\d+))?` regex misses three-part names: `42.20.1` (Skill Recovery Journal
+    `2503622437`) is invisible to it, so it falls back to an older folder. `version_dirs` here
+    is the correct reading of the two.
+    """
     if vers:
         return vers[0]
     return "common" if os.path.isdir(os.path.join(mod_dir, "common")) else ""
@@ -87,6 +124,12 @@ def media_root(mod_dir, vers):
 def _scan(mod_dir):
     """One walk of the mod tree: every `mod.info` parsed, every `media/` folder noted, every
     `.lua` checked for loadstring.
+
+    The `loadstring` scan is deliberately the WIDEST of the three -- every `.lua` anywhere under
+    the folder, including files outside the version folder the running build actually loads
+    (an older `42.x/`, `LEGACY/`, a vendored library, an author's scratch copy). A hit in one of
+    those is dead code today and still worth an ERROR: it is a file the author will move into a
+    live folder sooner than they will remember the engine dropped `loadstring` in 42.20.x.
 
     Returns ({rel mod.info path: info dict}, [rel media path], [(rel lua path, line, hits)])."""
     infos, medias, hits = {}, [], []
@@ -114,7 +157,11 @@ def _scan(mod_dir):
 
 
 def lint_mod(mod_dir, name=None):
-    """Every L0 rule against one mod folder. `name` is what findings are reported as."""
+    """Every L0 rule against one mod folder. `name` is what findings are reported as.
+
+    Two rules rest on a model of the engine rather than a reading of it -- `mod-info-place`'s
+    resolution order (`info_chain`) and `media_root`'s "newest present" -- which is why both
+    are WARNs. Their docstrings say what is read and what is assumed."""
     name = name or display_name(mod_dir)
     out = []
     vers = version_dirs(mod_dir)
@@ -139,17 +186,34 @@ def lint_mod(mod_dir, name=None):
     if not mod_id:
         out.append(Finding(name, ERROR, "id", "no non-empty id= in %s" % (chosen or "any mod.info")))
 
-    declared = sorted({info.get("id", "") for info in infos.values() if info.get("id")})
-    if len(declared) > 1:
-        out.append(Finding(name, ERROR, "id-agree", "%d mod.info files, %d ids: %s"
-                           % (len(infos), len(declared),
-                              ", ".join("%s (%s)" % (rel, infos[rel]["id"])
-                                        for rel in sorted(infos) if infos[rel].get("id")))))
+    # Scope: a resolver only ever OPENS the chain above, plus anything `pzt.mods.mod_id_of`'s
+    # wider `42*` glob catches that VERSION_RX does not (`42-old/`). A disagreement in there
+    # decides the mod's id by which file was opened first, so it is an ERROR. A copy filed away
+    # somewhere no resolver can reach (`LEGACY/42.12/mod.info`, a vendored dependency) cannot
+    # change anyone's answer, so a disagreement there is drift worth reporting, not a defect.
+    reach = set(chain) | {rel for rel in infos
+                          if rel.count("/") == 1 and rel.lower().startswith("42")}
+    resolvable = [rel for rel in sorted(infos) if rel in reach and infos[rel].get("id")]
+    ids = {infos[rel]["id"] for rel in resolvable}
+    if len(ids) > 1:
+        out.append(Finding(name, ERROR, "id-agree", "%d resolvable mod.info file(s), %d ids: %s"
+                           % (len(resolvable), len(ids),
+                              ", ".join("%s (%s)" % (rel, infos[rel]["id"]) for rel in resolvable))))
+    # Only meaningful against a resolved id; with none, the `id` ERROR above is the finding.
+    drifted = [rel for rel in sorted(infos)
+               if rel not in reach and infos[rel].get("id") and mod_id
+               and infos[rel]["id"] != mod_id]
+    if drifted:
+        out.append(Finding(name, WARN, "id-drift", "out of the resolution chain and disagreeing "
+                           "with %s (%s): %s" % (chosen, mod_id,
+                                                 ", ".join("%s (%s)" % (rel, infos[rel]["id"])
+                                                           for rel in drifted))))
 
     root = media_root(mod_dir, vers)
     want = root + "/media" if root else "media"
     if want not in medias:
-        # Not fatal: `common/media` is a shipped layout (25 of the installed 230 use it, and the
+        # Not fatal: `common/media` is a shipped layout (24 of the installed 230 at the sweep
+        # dated in the module docstring, and the
         # game reads it), but a copy or a Mods= entry that only carries the version folder loses
         # the content, so the finding names where the media really is.
         out.append(Finding(name, WARN, "media", "no %s (media/ at: %s)"
@@ -182,7 +246,12 @@ def display_name(mod_dir, workshop_dir=None):
 def mod_dirs(targets, workshop_dir=None):
     """Expand CLI targets to mod folders. A target is an existing folder (one mod), or a
     workshop item id (all-digits: every mod folder the item ships). No targets = the whole
-    installed corpus."""
+    installed corpus.
+
+    The folder branch is tried FIRST, so a directory in the working tree whose name is all
+    digits shadows the workshop item with that id -- `cd` next to a folder called `3685392864`
+    and the tool lints that folder instead of the subscribed item. Pass an explicit path
+    (`./3685392864`) or run from elsewhere; the `--help` text says so."""
     workshop_dir = workshop_dir or WORKSHOP_DIR
     if not targets:
         return sorted(d for d in glob.glob(os.path.join(workshop_dir, "*", "mods", "*"))
@@ -212,12 +281,18 @@ def lint(targets, workshop_dir=None):
 def main(argv):
     ap = argparse.ArgumentParser(description="Static layout lint (L0) for B42 mod folders.")
     ap.add_argument("targets", nargs="*", metavar="target",
-                    help="mod folders and/or workshop item ids (default: every installed mod)")
+                    help="mod folders and/or workshop item ids (default: every installed mod). "
+                         "An existing folder wins over an id, so a local directory named like a "
+                         "workshop id shadows that item")
     ap.add_argument("--workshop-dir", default=WORKSHOP_DIR, metavar="DIR",
                     help="Steam workshop root that ids expand under (default: %(default)s)")
     ns = ap.parse_args(argv)
-    count = len(mod_dirs(ns.targets, ns.workshop_dir))
-    findings = lint(ns.targets, ns.workshop_dir)
+    # One expansion, one walk: `mod_dirs` globs the whole corpus, and calling it again for the
+    # count would re-stat 230 folders (and could disagree with the linted set if the tree moved
+    # under us mid-run, which this one demonstrably does).
+    dirs = mod_dirs(ns.targets, ns.workshop_dir)
+    count = len(dirs)
+    findings = [f for d in dirs for f in lint_mod(d, display_name(d, ns.workshop_dir))]
     for f in findings:
         print("%s: %s: %s: %s" % (f.path, f.level, f.rule, f.detail))
     by_level = collections.Counter(f.level for f in findings)

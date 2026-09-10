@@ -40,24 +40,22 @@ import patterns from there.
   workshop root (`D:\SteamLibrary\steamapps\workshop\content\108600`,
   `--workshop-dir` to point elsewhere). Prints `mod: LEVEL: rule: detail`, then
   `N finding(s): a ERROR, b WARN, c INFO across M mod(s)`; **exit 1 iff an ERROR
-  fired** (WARN and INFO exit 0). Rules: `version-dir` ERROR (a `42[.x[.y]]`
-  child folder exists — b41-flat and unversioned mods fail here), `mod-info`
-  ERROR (a `mod.info` in some version folder, `common/` or the root), `id` ERROR
-  (the resolved `mod.info` declares a non-empty `id=`), `id-agree` ERROR (every
-  `mod.info` in the tree declares the *same* id — otherwise whichever file a
-  reader opens first decides), `loadstring` ERROR (removed from the engine in
-  42.20.x), `mod-info-place` WARN (the `mod.info` is in the **newest** version
-  folder), `media` WARN (`media/` is inside that folder), `folder-id` INFO
-  (folder name == id). Version folders sort by parsed tuple, not by string, so
-  `42.20.1 > 42.20 > 42.9 > 42`. Module API mirrors `doc_lint.py`:
+  fired** (WARN and INFO exit 0). **Nine rules** — five ERROR (`version-dir`,
+  `mod-info`, `id`, `id-agree`, `loadstring`), three WARN (`mod-info-place`,
+  `id-drift`, `media`) and one INFO (`folder-id`). The table, with what each one
+  checks as coded, lives in [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0
+  and in the module docstring; it is not restated here. Version folders sort by
+  parsed tuple, not by string, so `42.20.1 > 42.20 > 42.9 > 42`, and
+  `pzt.mods.mod_id_of` resolves the same way (`testing/tests/test_mods_resolution.py`
+  holds the two together). Module API mirrors `doc_lint.py`:
   `Finding(path, level, rule, detail)`, `lint_mod(mod_dir, name=None)`,
   `lint(targets, workshop_dir=None)`, plus `version_dirs` / `read_info` /
   `info_chain` / `media_root` / `mod_dirs` / `display_name`. Deliberately
   **standalone** — stdlib only, no import of `testing/pzt` — so `tools/` stays
-  runnable without the game. The installed 230-folder corpus scored 84 findings
-  (3 ERROR, 30 WARN, 51 INFO) on 2026-09-10, ~13 s; the rows and the drift since
-  the first sweep are in
-  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0.
+  runnable without the game. The installed 230-folder corpus scored **84 findings
+  (3 ERROR, 30 WARN, 51 INFO) at 2026-09-10 13:47**, ~13 s cold; the tree is
+  live, so quote a sweep with its date — the rows and the drift since the first
+  sweep are in [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0.
 
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes

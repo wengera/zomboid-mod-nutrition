@@ -45,7 +45,7 @@ def s3(a):
         v["server_mods_dir"] = sorted(os.listdir(os.path.join(server.cache, "mods")))
         try:
             server.start(timeout=a.server_timeout)
-            tl.mark("server_started", t=server.t_started)
+            tl.mark("server_started", took=server.t_started)
             v["server_trait_check"] = ack(server.send("trait.check"))
             c, _ = make_client(run_dir, "admin", server, rec, workshop=workshop)
             c.start()
@@ -237,11 +237,11 @@ def run(a):
         clients = []
         try:
             server.start(timeout=a.server_timeout)
-            tl.mark("server_started", t=server.t_started)
+            tl.mark("server_started", took=server.t_started)
             c, _ = make_client(run_dir, "admin", server, rec)
             c.start()
             clients.append(c)
-            tl.mark("client_ready", t=c.wait_ready(timeout=a.client_timeout))
+            tl.mark("client_ready", took=c.wait_ready(timeout=a.client_timeout))
             for sid in session_ids:
                 tl.mark(f"{sid}_start")
                 try:

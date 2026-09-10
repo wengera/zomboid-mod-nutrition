@@ -76,10 +76,6 @@ class Profile:
         self.hold, self.safemode, self.launcher = hold, safemode, launcher
         self.server_timeout, self.client_timeout = server_timeout, client_timeout
 
-    def __repr__(self):
-        return (f"<Profile {self.name} fixture={self.fixture} "
-                f"mods={';'.join(self.mods)} sandbox={self.sandbox}>")
-
     def report(self):
         """The block a run puts in report.json: what was asked for AND what it resolved to,
         so the artifact says which folders actually reached <cachedir>/mods."""
@@ -94,6 +90,26 @@ def _check_keys(what, table, known):
     unknown = sorted(set(table) - known)
     if unknown:
         raise ProfileError(f"{what}: unknown key(s) {', '.join(unknown)}; known: {', '.join(sorted(known))}")
+
+
+def _int(name, what, value):
+    """A profile's number, or a ProfileError. Bare `int(v)` turns `timeout = "soon"` into a
+    ValueError traceback out of the loader -- the one place in this module that would report a
+    bad profile as a crash instead of a sentence."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise ProfileError(f"profile '{name}': {what} must be a whole number, got {value!r}")
+    try:
+        return int(value)
+    except ValueError:
+        raise ProfileError(f"profile '{name}': {what} must be a whole number, got {value!r}") from None
+
+
+def _bool(name, what, value):
+    """Same, for a flag: TOML has real booleans, so anything else here is a mistake worth
+    naming rather than a truthiness test to fall through."""
+    if not isinstance(value, bool):
+        raise ProfileError(f"profile '{name}': {what} must be true or false, got {value!r}")
+    return value
 
 
 def _mod_id_of(src, declared):
@@ -118,10 +134,26 @@ def resolve_mod(entry, index):   # index = modindex.workshop_index()
     """
     _check_keys(f"[[mods]] entry {entry}", entry, MOD_KEYS)
     mod_id = entry.get("id")
+    if "copy" in entry and not isinstance(entry["copy"], bool):
+        # `copy = 0` / `copy = "false"` would sail past the `is False` test below and be placed
+        # after all -- the one branch where a silent misread produces the WRONG session rather
+        # than an error.
+        raise ProfileError(f"[[mods]] copy must be a bool (true/false), got {entry['copy']!r}")
+    if entry.get("path") and entry.get("workshop_id"):
+        # Two sources for one mod: the branch order below would pick `path` and ignore the
+        # workshop id, so the profile would name a provenance the run did not use.
+        raise ProfileError(f"[[mods]] entry {entry} names both path and workshop_id; "
+                           "they are alternative sources -- keep one")
     if entry.get("copy") is False:
         if not mod_id:
             raise ProfileError("[[mods]] copy = false needs an explicit id: nothing is placed, "
                                "so there is no mod.info to read the Mods= name from")
+        if mod_id in HARNESS_MODS:
+            # Without the harness there is no command bus, no ready marker and no probes; the
+            # loader prepends it for exactly that reason, so letting a profile un-place it would
+            # produce a run that hangs on a ready marker nothing will ever write.
+            raise ProfileError(f"[[mods]] '{mod_id}' is the harness and cannot be copy = false: "
+                               "no harness means no command bus, no ready marker and no probes")
         return mod_id, None, None
     if entry.get("path"):
         src = entry["path"]
@@ -181,9 +213,16 @@ def sandbox_file(fixture, rec):
 def check_sandbox(name, sandbox, path):
     """Every key must be a settable top-level option of the fixture's file. A typo here is
     otherwise invisible: the merge would append it, the server would drop it on the boot
-    rewrite, and the run would report the option as applied."""
+    rewrite, and the run would report the option as applied.
+
+    It checks nothing when the fixture's `SandboxVars.lua` is not on this machine -- the
+    fixture caches are gitignored per-machine blobs, so on a fresh clone this validation is
+    simply absent and a misspelt key survives to the run (documented in
+    `docs/testing/profiles.md` § The TOML schema). The fixture is unprovisioned at that point,
+    so the run would not start either way.
+    """
     if not sandbox or not os.path.exists(path):
-        return []                    # nothing to check, or no file to check against
+        return                       # nothing to check, or no file to check against
     known = sandbox_keys(path)
     for key in sandbox:
         if key not in known:
@@ -192,7 +231,6 @@ def check_sandbox(name, sandbox, path):
                                f"{path}" + (f" -- did you mean {', '.join(near)}?" if near else
                                             f" ({len(known)} options there; nested tables such as "
                                             "Map/ZombieLore are not settable from a profile)"))
-    return known
 
 
 def load(name):
@@ -208,9 +246,9 @@ def load(name):
         except tomllib.TOMLDecodeError as e:
             raise ProfileError(f"profile '{name}' is not valid TOML ({path}): {e}") from None
     _check_keys(f"profile '{name}' ({path})", doc, TOP_KEYS)
-    srv, cli, run = doc.get("server") or {}, doc.get("client") or {}, doc.get("run") or {}
+    srv, clt, run = doc.get("server") or {}, doc.get("client") or {}, doc.get("run") or {}
     _check_keys(f"profile '{name}' [server]", srv, SERVER_KEYS)
-    _check_keys(f"profile '{name}' [client]", cli, CLIENT_KEYS)
+    _check_keys(f"profile '{name}' [client]", clt, CLIENT_KEYS)
     _check_keys(f"profile '{name}' [run]", run, RUN_KEYS)
 
     fixture = doc.get("fixture", "default")
@@ -246,16 +284,39 @@ def load(name):
         if v.get("side", "server") not in ("server", "client"):
             raise ProfileError(f"profile '{name}': verify {v['cmd']} side must be "
                                f"server or client, got '{v['side']}'")
+        if "expect" in v:
+            # Matched as a substring of json.dumps(ack), so it has to BE a string, and an
+            # un-stringed one is a TypeError raised mid-run with no verdict in the report.
+            # A number round-trips (`str(12)` is what json.dumps writes), so it is coerced
+            # here rather than at the probe -- `report["verify"][n]["expect"]` is then the
+            # string that was actually compared. A TOML boolean does NOT round-trip: it would
+            # become "True" and could never match JSON's `true`, so it is a pre-boot error
+            # instead of a run that fails for a reason nobody would guess.
+            if isinstance(v["expect"], bool):
+                raise ProfileError(f"profile '{name}': verify {v['cmd']} expect must be a string "
+                                   f"(it is matched inside the dumped JSON, where a boolean is "
+                                   f"`true`/`false`): write expect = '\"key\": "
+                                   f"{str(v['expect']).lower()}', not a TOML boolean")
+            v["expect"] = str(v["expect"])
 
-    launcher = cli.get("launcher", DEFAULTS["launcher"])
+    launcher = clt.get("launcher", DEFAULTS["launcher"])
     if launcher not in ("java", "exe"):
         raise ProfileError(f"profile '{name}': [client] launcher must be java or exe, got '{launcher}'")
+    if "users" in clt and not clt["users"]:
+        # `pzt run` reads `a.clients or prof.users or rec["clients"]`, so an empty list would
+        # silently fall through to the FIXTURE's client list -- the opposite of what writing it
+        # means -- and `pzt scenario` would take `prof.users[0]` and raise IndexError. A
+        # client-less run is not wired; say so instead of picking one of the two surprises.
+        raise ProfileError(f"profile '{name}': [client] users = [] is not a server-only run -- "
+                           "it would fall back to the fixture's own clients. Name the accounts "
+                           "to attach, or leave `users` out for the default ('" + ADMIN_USER + "')")
     return Profile(
         name=os.path.splitext(os.path.basename(path))[0], path=path, fixture=fixture,
         mods=mods, sources=sources, skip=tuple(skip), items=items, sandbox=sandbox,
-        users=list(cli.get("users") or [ADMIN_USER]), verify=verify,
-        hold=int(run.get("hold", DEFAULTS["hold"])),
-        safemode=bool(cli.get("safemode", DEFAULTS["safemode"])), launcher=launcher,
-        server_timeout=int(srv.get("timeout", DEFAULTS["server_timeout"])),
-        client_timeout=int(cli.get("timeout", DEFAULTS["client_timeout"])),
+        users=list(clt.get("users") or [ADMIN_USER]), verify=verify,
+        hold=_int(name, "[run] hold", run.get("hold", DEFAULTS["hold"])),
+        safemode=_bool(name, "[client] safemode", clt.get("safemode", DEFAULTS["safemode"])),
+        launcher=launcher,
+        server_timeout=_int(name, "[server] timeout", srv.get("timeout", DEFAULTS["server_timeout"])),
+        client_timeout=_int(name, "[client] timeout", clt.get("timeout", DEFAULTS["client_timeout"])),
         description=doc.get("description", ""))

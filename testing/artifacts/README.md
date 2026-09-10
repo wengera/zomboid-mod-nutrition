@@ -3,7 +3,9 @@
 Tracked, immutable copies of the **measured evidence** that the docs cite as `M` rows.
 
 - One folder per run id (`<experiment>-<UTC timestamp>`), holding the result JSON that
-  experiment wrote — nothing else.
+  experiment wrote — and nothing else, unless a doc's `M` claim rests on a file that JSON does
+  not contain. Then that file is committed beside it, byte-for-byte, and the Contents row names
+  it: `run-20260910-133657/pzt_SandboxVars.lua` is the only one so far.
 - Copied here byte-for-byte at slice close, from the run directory that produced them.
   Verify with `sha256sum`; never hand-edit a file under this directory. The local
   `.gitattributes` sets `* -text` so the committed blob is byte-identical to what the
@@ -37,7 +39,7 @@ correct it.
 | `exp05b-20260910-093307` | `drink-probe.json` | `testing/experiments/s05b_drink_probe.py` | [`docs/vanilla/food-dataset-notes.md`](../../docs/vanilla/food-dataset-notes.md), [`data/README.md`](../../data/README.md) § Per litre, not per item (and `.superpowers/sdd/05-food-scanner/task-5b-report.md`) |
 | `exp06-20260910-112726` | `recipes.json` | `testing/experiments/s06_recipes.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4-report.md`; its **evolved** half is the offline input for slice 06 tasks 3 and 5) |
 | `exp06b-20260910-120123` | `use-probe.json` | `testing/experiments/s06b_use_probe.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4b-report.md`; the `M` behind `q-itemcount-notes.md`'s per-use consumption rule, i.e. behind every non-`ItemCount` consumption figure in `data/recipes.json`) |
-| `run-20260910-133657` | `report.json` | `pzt run --profile mod-under-test --hold 5` | slice 07 (`.superpowers/sdd/07-profile-builder/task-4-report.md`; the `M` behind the profile builder's "a named mod set loads and takes effect" claim, and behind the sandbox-merge survival numbers) |
+| `run-20260910-133657` | `report.json`, `pzt_SandboxVars.lua` | `pzt run --profile mod-under-test --hold 5` | slice 07 (`.superpowers/sdd/07-profile-builder/task-4-report.md`; the `M` behind the profile builder's "a named mod set loads and takes effect" claim). **The sandbox-survival numbers are read off `pzt_SandboxVars.lua`, not `report.json`** — the report holds only what the run was asked for, so the run's own post-rewrite copy of the file is committed here as the second artifact: [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § What a profile changes and the `[sandbox]` merge row of [`docs/decisions.md`](../../docs/decisions.md) both cite it |
 | `run-20260910-133916` | `report.json` | `pzt run --profile missing-mod` | slice 07 (same report; the `M` behind "a mod that never reaches `<cachedir>/mods` fails the run before a client is launched") |
 | `scenario-20260910-134012` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 30` | slice 07 (same report; the `M` behind the profile path through `scenario.run`, and behind the `DayLength × --speed` cadence ceiling) |
 
@@ -72,16 +74,43 @@ block records; `exp06b`'s carries two *do not cite* keys and the reminder that t
 through the `setCurrentUses` **fallback** rather than through `ItemUser.UseItem`.
 
 The twelfth, thirteenth and fourteenth — **`run-20260910-133657`**, **`run-20260910-133916`** and
-**`scenario-20260910-134012`** — are **skew-free** for that same reason: the profiles that produced
-them and the artifacts land in one commit, and the CLI they ran on (`testing/pzt/`) was already at
-HEAD. One disclosure on the harness mod: a concurrent slice-06 fix round had
+**`scenario-20260910-134012`** — were **skew-free** for that same reason (the profiles that produced
+them and the artifacts landed in one commit, and the CLI they ran on was already at HEAD) **until
+slice 07's final fix wave**, which edited five modules under `testing/pzt/` — `mods.py`,
+`profile.py`, `session.py`, `cli.py`, `scenario.py`. **No measured number in any of the three
+moves**; every difference is a shape a *future* run would write, and they are listed here rather
+than re-run:
+
+- **`took=`.** `server_started` and `client_ready` used to pass the step's own duration as `t=`,
+  overwriting the elapsed timestamp every other mark carries. They now pass it as `took=`, beside
+  an elapsed `t`. In these three artifacts — and every artifact committed before this wave — `t`
+  on exactly those two marks is the STEP's duration, not elapsed time. Read run 1's
+  `server_started t=36.6` as "the boot took 36.6 s", never as "36.6 s into the run".
+- **`[[verify]]` on the scenario path.** `scenario.run` now runs the profile's probes after
+  `client_ready` and records them in `report["verify"]` and the artifact's new `verify` key. The
+  scenario artifact below has neither, and its block says so.
+- **The artifact's `profile` is the resolved name** (`Profile.name`) rather than the raw
+  `--profile` token, so it cannot disagree with `report["profile"]["name"]`. Identical here: the
+  run was `--profile mod-under-test` and the name resolves to `mod-under-test`.
+- **A RESULT that had no reason of its own now takes the faults.** Run 2's committed
+  `result` is the bare `"FAIL"`; the same run today would write
+  `"FAIL: mods not found at load: NoSuchModHere"`. The reason is unchanged and is already in
+  `faults` in this file — only the RESULT string is shorter here.
+- **The `error` mark's `detail` gains its exception type** (`RuntimeError: mods not found at
+  load: …`), because `cmd_run`'s `except` widened to `Exception` so that a bus `PermissionError`
+  cannot lose `report.json`.
+- **A failed probe now skips the hold** on `pzt run` (it used to hold anyway), and `mods.py`
+  resolves a mod folder's `mod.info` by parsed version tuple. Neither changes these runs: every
+  probe passed, and `KeenPerception` ships one version folder.
+
+One further disclosure, unchanged by the wave and about the harness mod rather than the CLI: a concurrent slice-06 fix round had
 `PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
 three ran, so the copies in their run caches are that in-flight text rather than either commit's.
 Nothing on the paths these runs exercised is in those two files — `trait.check` is in
 `PZTestKit_Core.lua`, `smoke_clock` in `server/scenarios/PZTestKit_Scenario_Smoke.lua`, the bus and
 the game-minute scheduler in `PZTestKit_Core.lua` / `PZTestKit_Test.lua`, and all four were at HEAD
-— and all three runs recorded `server_errors: 0`. What these blocks carry instead of a skew note is
-the **provenance a profiled run needs and a plain experiment does not**: the two inputs are the
+— and all three runs recorded `server_errors: 0`. Beside the skew list, these blocks carry the
+**provenance a profiled run needs and a plain experiment does not**: the two inputs are the
 profile file and the mod folder, so each block records the profile's bytes (they are also in the
 artifact's own `profile` block) and which workshop item, `mod.info` id and version folder the mod
 was copied from.
@@ -537,9 +566,17 @@ matched across three items, `mismatches []`. What a reader does have to carry aw
 | `comparison.<key>.scaling.*.tolerance` | e.g. `0.16801` on `icecream_third.calories` | True as computed and **wider than the rule the script now applies**. The band was `ABS_FLOOR + REL × max(expected, live, before)`, so it was sized by the `before` value — the nutrition that is supposed to have *gone*. At HEAD the band is anchored on the two values being compared and a 0 expectation is compared exactly. Every row here matched under both rules (re-scored offline: 96/96), so the numbers stand; do not quote a tolerance from this file as the band the harness uses. |
 
 **`run-20260910-133657/report.json`** — written by `pzt run --profile mod-under-test --hold 5`
-(93 s wall; server started at 36.6 s, client ready at 37.3 s; `RESULT: PASS`, exit 0). The
-slice-07 acceptance run: a named mod set on the golden fixture, proven to have taken **effect**
-and not merely to have booted quietly.
+(93 s wall; the server BOOT took 36.6 s and the client took a further 37.3 s to reach in-world;
+`RESULT: PASS`, exit 0). The slice-07 acceptance run: a named mod set on the golden fixture,
+proven to have taken **effect** and not merely to have booted quietly.
+
+- **Read it this way — two traps in the file's own shape.** (a) `t` on the `server_started` and
+  `client_ready` marks is the STEP's duration, not elapsed time: 37.3 is how long the client took,
+  and the run reached in-world at about 74 s. Every other mark's `t` is elapsed, and a run at HEAD
+  writes the duration under `took` instead (see the skew list above). (b) `timeline[].got` is
+  truncated at 100 characters (`session.py:181`) — on both `verify` marks here it ends at
+  `"keenPerceptionLoaded"`, immediately before the value the claim rests on. The full parsed value
+  is `report.json["verify"][n]["got"]`; quote that, never the mark.
 
 - **Provenance — the profile.** `testing/profiles/mod-under-test.toml` at this commit:
   `fixture = "default"`, `run = { hold = 5 }`, `[[mods]] id = "PZTestKit"` then
@@ -562,18 +599,26 @@ and not merely to have booted quietly.
   CharacterTrait.KEEN_HEARING):getMutuallyExclusiveTraits()`. A boot log alone could not say
   this: under `-nosteam` a mod the game cannot find is a WARN and a clean boot (S3-A), so
   "0 errors" is compatible with the mod never having loaded. Server log line 94 also has the
-  positive form, `LOG : Mod … loading KeenPerception`.
+  positive form, `LOG : Mod … loading KeenPerception`. Three keys, **two** independent readings:
+  `keenPerceptionLoaded` is defined as `not ex:contains(CharacterTrait.DEAF)`
+  (the harness's own `trait.check` in `PZTestKit_Core.lua`), the negation of
+  `keenHearingExcludesDeaf` — not a third witness.
 - **The sandbox merge, measured.** `[sandbox] DayLength = 1` was merged into the restored
   fixture's `Server/pzt_SandboxVars.lua` (`applied ['DayLength'], appended none`), and the
-  server then rewrote that file during boot as it always does (spike S1). After the rewrite the
+  server then rewrote that file during boot as it always does (spike **T0**: a *partial*
+  SandboxVars file is filled in with defaults and rewritten whole; `server.py:80-81`). After the rewrite the
   run's copy still reads `DayLength = 1` **and** the fixture's own `Zombies = 6`, at **189**
   four-space assignments / **184** `sandbox_keys()` settable options — the fixture's counts
   exactly. `diff` against the fixture file is **one line**, the seeded one; every comment, the
   five nested tables and their 86 eight-space options and all 1 020 CRLF endings survive. The
-  merge composes, it does not replace. (These numbers are in the run report's timeline and in
-  the report of `.superpowers/sdd/07-profile-builder/task-4-report.md`, not in this JSON: the
-  file they were read off is `testing/runs/<id>/server/Server/pzt_SandboxVars.lua`, which lives
-  under the gitignored run directory.)
+  merge composes, it does not replace. (**Where those numbers live.** Not in `report.json`, and
+  not in its timeline either — the merge line is a `[server]` console `echo`, not a timeline
+  mark. They are read off the file itself, and this block is what records them. The file is
+  `pzt_SandboxVars.lua`, committed beside `report.json` in this folder: a byte-for-byte copy of
+  `testing/runs/run-20260910-133657/server/Server/pzt_SandboxVars.lua`, which lives under the
+  gitignored run directory. 45 533 bytes, sha256
+  `6f0109c687a9d2b588f319924b0190f8ca06d73e67f7204e2bb9bd621914cffa`; `.gitattributes` here sets
+  `* -text`, so the 1 020 CRLF endings are the committed blob's own.)
 - `server_errors` is **0** and `faults` is empty, so the `RESULT: PASS` is a pass on a clean
   session, not merely a green probe.
 
@@ -605,18 +650,30 @@ the scenario path: `profile: "mod-under-test"`, `fixture: "default"`, `build: 42
 The server log again carries `loading KeenPerception`, and the run's `pzt_SandboxVars.lua` again
 reads `DayLength = 1` / `Zombies = 6` at 189/184 after the boot-time rewrite.
 
+- **This run ran no `[[verify]]` probes, and the file has no `verify` key.** That is historical,
+  not a property of the scenario path: `scenario.run` did not run a profile's probes until slice
+  07's final fix wave (see the skew list above), so this artifact evidences that the profile's
+  mods **loaded** — the `loading KeenPerception` line and the `profile` field — and not that they
+  took effect. `run-20260910-133657` is the took-effect evidence for this mod set.
+
 - **Read `cadence` as a finding about the profile, not about the harness.** This run is flagged
-  `cadence_suspect: true` at `ticks_per_world_min: 0.22` — `Events.EveryOneMinute` fired 20 times
-  while the world advanced ~92 game-minutes (`world_min_per_wall_s: 45.89` × `wall_s: 2.0`). The cause is the *combination* in this profile:
-  `DayLength = 1` is a 15-minute day, so `--speed 30` demands `24 × 30 / 15 = 48` game-minutes of
-  world clock per wall second, and the event fired at **10.08/s** (`ticks_per_wall_s`). The
-  ceiling is the harness's game-minute event, and it is ~8–10 Hz: the three slice-04 scenario
-  artifacts ran the same `--speed 30` on the same fixture at its **default** `DayLength = 4`
-  (a 90-minute day → `24 × 30 / 90 = 8` game-min/wall-s) and recorded `ticks_per_world_min: 1.0`
-  with `ticks_per_wall_s` 7.99–8.00. So keep `24 × speed / day_minutes ≲ 8`; on `DayLength = 1`
-  that is `--speed 5`, not 30.
+  `cadence_suspect: true` at `ticks_per_world_min: 0.22` — the tick counter advanced 20 times
+  while the world advanced **91.05** game-minutes (`(endedWorldAge − startedWorldAge) × 60`;
+  `world_min_per_wall_s: 45.89` × `wall_s: 2.0` is the same number rounded). The counter is
+  advanced by the **game's** `Events.EveryOneMinute`, which the harness subscribes to — so what
+  fell behind is the event, not the harness's arithmetic. The cause is the *combination* in this
+  profile: `DayLength = 1` is a 15-minute day, so `--speed 30` demands `24 × 30 / 15 = 48`
+  game-minutes of world clock per wall second, and the event delivered **10.08/s**
+  (`ticks_per_wall_s`) — the only measurement of its ceiling anyone has. **8/s is the highest
+  demand known to be sustainable**, not a measured ceiling: the three slice-04 scenario artifacts
+  ran the same `--speed 30` on the same fixture at its **default** `DayLength = 4` (a 90-minute
+  day → `24 × 30 / 90 = 8` game-min/wall-s) and recorded `ticks_per_world_min: 1.0` with
+  `ticks_per_wall_s` 7.99–8.00. Where the real ceiling sits between 8 and 10.08 is unmeasured. So
+  keep `24 × speed / day_minutes ≲ 8`; on `DayLength = 1` that is `--speed 5`, not 30.
 - **`smoke_clock`'s own verdict is unaffected** and this is why it still reads PASS: every
   assertion it makes is counted in *ticks* (`t:every(5, …)`, `t:eventually`, `t:at(20, …)`), so
-  the test measures the scheduler against itself. **Nothing fitted against the game clock on this
-  run may be cited** — no rate, no per-game-hour figure, no `worldAge` span. Do not carry
-  `DayLength = 1` into a nutrition scenario at speed without re-reading `cadence` first.
+  the test measures the scheduler against itself. Its PASS here is **tick-relative and is not a
+  clock proof at this cadence** — it says the scheduler dispatched in the right order, not that a
+  game minute lasted a game minute. **Nothing fitted against the game clock on this run may be
+  cited** — no rate, no per-game-hour figure, no `worldAge` span. Do not carry `DayLength = 1`
+  into a nutrition scenario at speed without re-reading `cadence` first.

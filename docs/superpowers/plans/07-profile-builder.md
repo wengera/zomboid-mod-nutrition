@@ -314,7 +314,7 @@ copy = false
 - A `[sandbox]` key is not a top-level key of the fixture's file (e.g. a nested `ZombiesDragDown`) → **hard error before boot**, not a silent no-op. Nested overrides are out of scope for slice 07; a profile needing one re-provisions a fixture with `pzt provision --sandbox`.
 - The two-mod run FAILs on non-baseline server errors caused by the mod itself → that is a finding about the mod, not the profile builder: keep the profile, record the errors in the doc, and swap the subject to `FasterResting` (item `3634568288`, 141 KB, `42/mod.info`, one server-side Lua file, no deps) whose probe is `player.stats` endurance rather than `trait.check`.
 - `pzt attach --profile` is **not** implemented (attach builds a `Server` stub and never installs mods); say so in the doc rather than half-wiring it.
-- `docs/testing` is not in `doc_lint.STAMPED_DIRS`, so `profiles.md`'s stamp and grades are not machine-enforced. Default: write them anyway, do not widen `STAMPED_DIRS` in this slice (it would flag `README.md`/`pipeline-design.md`/`spikes.md` at once — that is its own slice-sized cleanup).
+- `docs/testing` is not in `doc_lint.STAMPED_DIRS`, so `profiles.md`'s stamp and grades are not machine-enforced. Default: write them anyway, do not widen `STAMPED_DIRS` in this slice (it would flag `pipeline-design.md` and `spikes.md` — 4 findings; `README.md` is in `SKIP_FILES` — that is its own slice-sized cleanup).
 
 ## Done protocol
 
@@ -344,8 +344,11 @@ their artifacts), plus this task's doc commit. Three live runs produced committe
    Two expectations in the step text were met differently and neither is a failure: there is **no
    `[server] loading KeenPerception` console line** (`Server` echoes only the sandbox merge,
    missing-mod WARNs and error lines — the game's own line is `server-stdout.log:94`), and
-   `server_started` came at **36.6 s**, not ~15 s, because this was the session's first, cold boot
-   (the two later boots took 13.7 s and 14.0 s — S1's cold-start effect).
+   `server_started` came at **36.6 s**, not ~15 s. The two later boots took 13.7 s and 14.0 s,
+   which is T0's warm figure for a restored fixture (13.4 s); the 36.6 s gap is **measured, its
+   cause is not** — the first boot of the session is the suspected reason and no spike measured
+   it. (S1's 57.2 s is a first-*ever* cold start including world/db creation, so it is not the
+   comparison either.)
 2. `python testing/pzt run --profile missing-mod` → **exit 1, `RESULT: FAIL`, 23 s**
    (`run-20260910-133916`), and it stopped **before any client**: the `timeline` phase list is
    exactly `profile → server_launch → server_started → mods_not_found → mod_missing_line → error →
@@ -393,8 +396,10 @@ their artifacts), plus this task's doc commit. Three live runs produced committe
    place; the 4 pre-existing findings under `docs/mods-survey/teardowns/` stay deferred by the
    standing ruling in [`docs/decisions.md`](../../decisions.md). `docs/testing` is **not** in
    `doc_lint.STAMPED_DIRS`, so the new doc's stamp and its C/M/W grades are written by hand and
-   are not machine-enforced — the plan's decision point, taken as defaulted; widening
-   `STAMPED_DIRS` would flag `README.md` / `pipeline-design.md` / `spikes.md` at once and is its
+   are not machine-enforced — the plan's decision point, taken as defaulted. Widening
+   `STAMPED_DIRS` to `docs/testing` would flag **2 files / 4 findings** — `pipeline-design.md`
+   and `spikes.md`, each missing a `Verified against:` stamp and a `## Sources` section; the
+   `README.md` the decision point named is skipped by `doc_lint.SKIP_FILES` — and is still its
    own cleanup.
 
 **Two plan expectations moved.** (a) The corpus figures above. (b) A finding that belongs to the
@@ -414,3 +419,16 @@ collision).
 **What is not in this task's commit.** Step 4b's `git push` and the `docs/progress.md` half of the
 Done protocol — the board row, its commit range and the four ripples — are the controller's
 close-out. The `docs/decisions.md` half landed here: eleven slice-07 rows.
+
+**A seventh commit: the final fix wave.** The five task reviews and the whole-branch review closed
+in one consolidated commit after the five above. It changed no measured number and re-ran nothing
+live; what it did change is disclosed as script skew in
+[`testing/artifacts/README.md`](../../../testing/artifacts/README.md) § Script/artifact skew and
+as eight further rows in [`docs/decisions.md`](../../decisions.md). Two acceptance checks read
+slightly differently at HEAD, neither in its verdict: **check 2**'s console line now names the mod
+(`RESULT: FAIL: mods not found at load: NoSuchModHere`, where the committed artifact records the
+bare `FAIL`), and the `[[verify]]` probes the wave added to `scenario.run` are evidenced by
+`<run id pending B10>` — `scenario-20260910-134012` predates them. The wave's own acceptance is
+`pzt run --profile mod-under-test --hold 5` and
+`pzt scenario smoke_clock --profile mod-under-test --speed 5` (note the speed: `--speed 30` on
+this profile's `DayLength = 1` is the cadence finding above).

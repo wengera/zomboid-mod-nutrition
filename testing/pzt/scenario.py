@@ -24,7 +24,11 @@ test's subject by username out of getOnlinePlayers(), so it has to be online.
 sandbox: the profile's fixture wins over --fixture, its first client is the subject unless
 --user says otherwise, and a mod the server reports missing ends the run right after
 server_started -- a scenario run on a mod that did not load is not evidence, and the client
-and the test are ten minutes that need not be spent to find that out.
+and the test are ten minutes that need not be spent to find that out. Its `[[verify]]` probes
+run once the client is ready, the same call `pzt run` makes; a failed probe does NOT stop the
+run (the test is what the ten minutes were for and its evidence is still written) but folds
+into the result as `FAIL: verify <cmd>`, so the artifact says the mods were present and did
+not take effect.
 """
 import json
 import os
@@ -32,11 +36,10 @@ import time
 import traceback
 
 from . import fixture as fx
-from . import profile
 from .bus import parse_ack
 from .paths import ADMIN_USER, new_run_dir
 from .session import (Timeline, check_mods_loaded, fault_reasons, make_client, make_server,
-                      mark_profile, opt, say, teardown, write_report)
+                      mark_profile, opt, profile_args, say, teardown, verify, write_report)
 
 # name -> function(result_doc) -> (ok: bool, detail: dict). Filled by the scenario evaluator
 # modules (slice 04 T3), which are imported at the bottom of this file.
@@ -83,18 +86,28 @@ def cadence(doc):
     return out
 
 
-def write_artifact(run_dir, a, server, result, doc, ev, cad, faults=()):
+def write_artifact(run_dir, a, server, result, doc, ev, cad, faults=(), verified=(), profile=None):
     """The evidence file, written by the run itself: the result doc, the evaluation, and the
     fixture/build that produced them, in one JSON. testing/artifacts/ takes byte-for-byte copies
     of what a run wrote (its README), so composing this here rather than by hand afterwards is
     what keeps the committed evidence machine-written -- and carrying `fixture`/`build` inside it
     is what keeps it readable without the run report beside it (the gap flagged for the slice-02
     artifact). Everything else it needs is already on `a` or derivable from `run_dir`, which is
-    named for the run id."""
+    named for the run id.
+
+    `profile` is the RESOLVED name (`Profile.name`), not `a.profile`: the two differ whenever
+    the caller passed a path (`--profile testing/profiles/x.toml`), and the run report's
+    `profile.name` records the resolved one -- an artifact and a report disagreeing about which
+    profile ran is the kind of gap this directory exists to close. `None` on a run without one,
+    which is a key the plain path gained in slice 07.
+
+    `verified` is the `[[verify]]` probe list -- empty on a run with no profile, and on every
+    scenario artifact committed before slice 07's final fix wave, which did not run them."""
     art = {"run_id": os.path.basename(os.path.normpath(run_dir)), "scenario": a.name,
-           "fixture": a.fixture, "profile": a.profile, "build": server.build,
+           "fixture": a.fixture, "profile": profile, "build": server.build,
            "side": a.side, "user": a.user, "speed": a.speed, "result": result,
            "cadence": cad, "evaluation": ev, "faults": list(faults),
+           "verify": list(verified),
            "server_errors": server.errors[:20], "test": doc}
     path = os.path.join(run_dir, f"scenario-{a.name}.json")
     with open(path, "w") as fh:
@@ -106,9 +119,7 @@ def run(a):
     # A profile is resolved and validated before anything starts (profile.py); its fixture wins
     # over --fixture (that is the fixture its sandbox keys were checked against) and its first
     # client is the test's subject unless --user says otherwise.
-    prof = profile.load(a.profile) if a.profile else None
-    flag = a.fixture                    # None unless --fixture was typed
-    a.fixture = prof.fixture if prof else (flag or "default")
+    prof, flag, mod_kw = profile_args(a)
     a.user = a.user or (prof.users[0] if prof else ADMIN_USER)
     rec = fx.load(a.fixture)
     run_id, run_dir = new_run_dir("scenario")
@@ -116,16 +127,13 @@ def run(a):
     say(f"run: {run_dir}")
     if prof:
         mark_profile(tl, prof, flag)
-    server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port,
-                         mods=prof.mods if prof else None,
-                         mod_sources=prof.sources if prof else None,
-                         mod_skip=prof.skip if prof else (),
-                         sandbox=prof.sandbox if prof else None)
+    server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port, **mod_kw)
     clients, result, doc, ev = [], "FAIL", None, {}
+    verified = []               # the profile's [[verify]] probes; folded into the result below
     tb = None                   # traceback of whatever ended the run early; goes in the report
     try:
         server.start(timeout=opt(a, prof, "server_timeout"))
-        tl.mark("server_started", t=server.t_started, build=server.build)
+        tl.mark("server_started", took=server.t_started, build=server.build)
         check_mods_loaded(tl, server)   # raises: a scenario on a mod that did not load is not
                                         # evidence, and the client is 35 s that need not be spent
         c, restored = make_client(run_dir, a.user, server, rec, safemode=opt(a, prof, "safemode"),
@@ -133,7 +141,15 @@ def run(a):
         c.start()
         clients.append(c)
         tl.mark("client_launch", user=a.user, restored=restored)
-        tl.mark("client_ready", user=a.user, t=c.wait_ready(timeout=opt(a, prof, "client_timeout")))
+        tl.mark("client_ready", user=a.user,
+                took=c.wait_ready(timeout=opt(a, prof, "client_timeout")))
+        # The profile's own probes, the same call `pzt run` makes, as soon as both sides are up.
+        # A scenario writes a COMMITTED artifact, and until this ran the artifact could only
+        # evidence that the profile's mods LOADED, never that they took effect -- which is the
+        # one thing a clean boot cannot tell you (S3-A). Unlike `pzt run`, a failure here does
+        # not stop the run: the expensive part (the test itself) is still ahead, its evidence is
+        # worth having either way, and the verdict is folded in after teardown.
+        verified = verify(prof, server, clients, tl) if prof else []
         node = server if a.side == "server" else c
         ok_list, names = parse_ack(node.send("test.list"))
         if isinstance(names, dict) and not names:
@@ -192,7 +208,7 @@ def run(a):
     # evidence: the finally below restores the clock and tears the session down either way, but
     # the report and artifact are written AFTER it, and an escaping KeyboardInterrupt would take
     # both with it -- ten wall minutes of live server with nothing to read. `session.hold` marks
-    # an interrupt the same way (session.py:93). The run is FAIL: it is a partial run, whatever
+    # an interrupt the same way (`session.hold`). The run is FAIL: it is a partial run, whatever
     # the test had done by then. (An interrupt during teardown itself still escapes; the world
     # change is already undone by that point.)
     except KeyboardInterrupt:
@@ -220,10 +236,19 @@ def run(a):
     # run was not the run that was asked for -- and a scenario writes a COMMITTED artifact, so a
     # PASS on a session that was throwing errors would be evidence for a claim nobody checked.
     # Taken after teardown: the server's last log lines arrive while it is stopping.
+    # The profile's probes, folded in now rather than where they ran: a mod that did not take
+    # effect makes the run's own PASS meaningless, but the test had already been paid for, so
+    # the evidence is written and the verdict says why it may not be cited.
+    failed = [v["cmd"] for v in verified if not v["ok"]]
+    if failed and result == "PASS":
+        result = "FAIL: verify " + ", ".join(failed)
     faults = fault_reasons(server, clients)
     if faults:
         tl.mark("faults", detail="; ".join(faults)[:200])
-        if result == "PASS":
+        # A result that already names its own reason keeps it (same rule as `cli.cmd_run`); a
+        # bare FAIL -- the missing-mod fail-fast, which never reached a verdict of its own --
+        # takes the faults, so the RESULT line names the mod.
+        if result in ("PASS", "FAIL"):
             result = "FAIL: " + "; ".join(faults)
     cad = cadence(doc or {})
     if cad:
@@ -245,9 +270,11 @@ def run(a):
               "client_events": {c.username: c.events for c in clients}}
     if prof:                    # what was asked for AND what it resolved to (Profile.report)
         report["profile"] = prof.report()
+        report["verify"] = verified
     write_report(run_dir, report)
     try:
-        write_artifact(run_dir, a, server, result, doc, ev, cad, faults)
+        write_artifact(run_dir, a, server, result, doc, ev, cad, faults, verified,
+                       prof.name if prof else None)
     except Exception as e:                     # noqa: BLE001 - the report already landed
         say(f"  WARNING: artifact not written ({type(e).__name__}: {e}) -- "
             f"the run report in {run_dir} still has the result doc and the evaluation")

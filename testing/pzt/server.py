@@ -98,9 +98,17 @@ def sandbox_keys(path):          # the settable options of an existing file, for
         return [m.group(1) for m in map(SANDBOX_KEY_RX.match, fh) if m]
 
 
+# A rewritten line keeps whatever followed the value, so a hand-annotated
+# `    DayLength = 4,   -- 1 h 30 m` survives the merge. Best effort by design: it looks for a
+# `--` after whitespace, which a Lua string value could itself contain. No option the server
+# writes carries one today.
+TRAILING_COMMENT_RX = re.compile(r"\s+--.*$")
+
+
 def merge_sandbox_vars(path, overrides):
     """Rewrite only the named top-level keys, keeping every other option (and the server's
-    comments) as the fixture had them. -> (applied, appended); CRLF preserved."""
+    comments, including a trailing one on a rewritten line) as the fixture had them.
+    -> (applied, appended); CRLF preserved."""
     with open(path, encoding="utf-8", errors="replace", newline="") as fh:
         text = fh.read()
     nl = "\r\n" if "\r\n" in text else "\n"
@@ -108,12 +116,23 @@ def merge_sandbox_vars(path, overrides):
     out = []
     for line in text.splitlines():
         m = SANDBOX_KEY_RX.match(line)
-        hit = m and m.group(1) in pending
-        out.append(f"    {m.group(1)} = {pending.pop(m.group(1))}," if hit else line)
+        if not (m and m.group(1) in pending):
+            out.append(line)
+            continue
+        note = TRAILING_COMMENT_RX.search(line)
+        out.append(f"    {m.group(1)} = {pending.pop(m.group(1))},{note.group(0) if note else ''}")
     applied, appended = [k for k in overrides if k not in pending], sorted(pending)
-    if appended:                       # before the file's own closing brace (col 0)
-        close = max(i for i, l in enumerate(out) if l.strip() == "}")
-        out[close:close] = [f"    {k} = {pending[k]}," for k in appended]
+    if appended:                       # before the file's own closing brace, which is at col 0
+        # Column 0 only: the five nested tables close at four spaces, and `l.strip() == "}"`
+        # would put an appended option inside the last of them. A file with no col-0 `}` is not
+        # a SandboxVars table at all -- SystemExit (profile.ProfileError's own base) so the CLI
+        # says so and stops, instead of a ValueError out of max() on an empty sequence.
+        closes = [i for i, l in enumerate(out) if l == "}"]
+        if not closes:
+            raise SystemExit(f"sandbox merge: {path} has no closing '}}' at column 0, so "
+                             f"{', '.join(appended)} cannot be appended -- is this a "
+                             "SandboxVars.lua the server wrote?")
+        out[closes[-1]:closes[-1]] = [f"    {k} = {pending[k]}," for k in appended]
     with open(path, "w", encoding="utf-8", newline="") as fh:
         fh.write(nl.join(out) + nl)
     return applied, appended
