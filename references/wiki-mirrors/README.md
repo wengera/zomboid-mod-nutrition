@@ -36,6 +36,10 @@ the page claims that our docs use or contradict, and what to verify in code firs
 | `moodle.md` | [Moodle](https://pzwiki.net/wiki/Moodle) | 42.13.2 | 2026-09-10 | Index of every moodle with a one-paragraph cause/effect summary; no thresholds or rates |
 | `trait.md` | [Trait](https://pzwiki.net/wiki/Trait) | 42.20.4 | 2026-09-10 | Full trait roster with point costs and effects, plus the adaptive strength/fitness/weight band tables |
 | `fitness.md` | [Fitness](https://pzwiki.net/wiki/Fitness) | 42.18.0 | 2026-09-10 | The Fitness skill: per-level endurance loss/recovery and combat multipliers, and the trait/occupation offsets |
+| `mod-data.md` | [Mod data](https://pzwiki.net/wiki/Mod_data) | 42.13.1 | 2026-09-10 | Object vs global modData, and the page's claim that neither syncs automatically; `ModData.transmit` + `OnReceiveGlobalModData` is the only native sync it names |
+| `networking.md` | [Networking](https://pzwiki.net/wiki/Networking) | 42.13.1 | 2026-09-10 | The command bus (`sendClientCommand`/`OnClientCommand`, `sendServerCommand`/`OnServerCommand`), the `isClient()`/`isServer()` gates, and the "server side handles most of the logic" statement |
+| `lua-event.md` | [Lua event](https://pzwiki.net/wiki/Lua_event) | 42.20.4 | 2026-09-10 | `Events.<X>.Add/Remove`, and the boot-order list marking `OnCreatePlayer`/`OnGameStart`/`OnLoad` client-only and `OnServerStarted` server-only |
+| `mod-structure.md` | [Mod structure](https://pzwiki.net/wiki/Mod_structure) | 42.20.0 | 2026-09-10 | The B42 `common/` + `42[.x[.y]]/` layout, the media subfolder taxonomy, and the page's stated load order (common first, then the closest version folder, which overwrites) |
 
 **Absent pages:** "Food spoilage", "Canned food" and "Character stats" (all 404,
 2026-09-10). Every other page requested up to 2026-09-10 fetched successfully; add a row

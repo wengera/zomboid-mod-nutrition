@@ -3,17 +3,17 @@
 Status legend: ☐ not yet reviewed · ◐ skimmed · ● digested into docs (linked).
 Every source gets a one-line "why we care" — delete rows that turn out empty.
 
-## PZwiki — priority pages (hub mirrored: [modding-hub](../references/wiki-mirrors/modding-hub.md))
+## PZwiki — priority pages (hub mirrored: [modding](../references/wiki-mirrors/modding.md), with the pre-2026-09-09 excerpt kept as [modding-hub-archived](../references/wiki-mirrors/modding-hub-archived.md))
 
 | Page | Why | Status |
 |---|---|---|
-| /wiki/Mod_structure | Mod anatomy → docs/modding | ☐ |
+| /wiki/Mod_structure | Mod anatomy → docs/modding; the `common/` + `42.x/` load order the corpus keeps raising | ● [mirrored](../references/wiki-mirrors/mod-structure.md) (42.20.0) → [mods-survey/nutrition-mods](mods-survey/nutrition-mods.md) |
 | /wiki/Game_files | Where everything lives on disk | ☐ (we know much of this empirically) |
 | /wiki/File_formats | Script/tiles/bin formats | ☐ |
-| /wiki/Lua_event | Full event list → hook inventory for nutrient ticks | ☐ |
+| /wiki/Lua_event | Full event list → hook inventory for nutrient ticks; the client-only/server-only boot split | ● [mirrored](../references/wiki-mirrors/lua-event.md) (42.20.4) → [mods-survey/nutrition-mods](mods-survey/nutrition-mods.md) |
 | /wiki/Lua_object · /wiki/Java_object | API surface | ☐ |
-| /wiki/Mod_data | modData = our parallel-stat store; sync semantics | ☐ HIGH |
-| /wiki/Networking | MP model → every doc's "MP behavior" section | ☐ HIGH |
+| /wiki/Mod_data | modData = our parallel-stat store; sync semantics | ● [mirrored](../references/wiki-mirrors/mod-data.md) (42.13.1) → [mods-survey/nutrition-mods](mods-survey/nutrition-mods.md) |
+| /wiki/Networking | MP model → every doc's "MP behavior" section; the command-bus vocabulary | ● [mirrored](../references/wiki-mirrors/networking.md) (42.13.1) → [mods-survey/nutrition-mods](mods-survey/nutrition-mods.md) |
 | /wiki/Item_(scripts) | Item script fields incl. food | ☐ |
 | /wiki/Evolvedrecipe | Evolved recipe scripts (soups/salads pipeline) | ☐ HIGH |
 | /wiki/Food_types | FoodType taxonomy | ☐ |
