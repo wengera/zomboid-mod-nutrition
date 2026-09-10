@@ -23,8 +23,9 @@ def _version_key(info_path):
 
     A plain string sort gets this wrong twice: `42.9` outranks `42.20`, and because the glob
     yields full paths, `42\\mod.info` outranks `42.20\\mod.info` (the separator sorts above
-    `.`). It picked an older folder's file on 6 of the 230 installed mods -- exactly the 6
-    `tools/mod_lint.py`'s `mod-info-place` WARNs about -- and all 6 happen to declare the same
+    `.`). It picked an older folder's file on 6 of the 230 installed mods (the six that
+    `tools/mod_lint.info_chain` documents; a set disjoint from the `mod-info-place` WARNs, which
+    fire only when the newest folder has no `mod.info` at all) -- and all 6 happen to declare the same
     id in both files, which is what `id-agree` is there to stop being luck.
     """
     name = os.path.basename(os.path.dirname(info_path))

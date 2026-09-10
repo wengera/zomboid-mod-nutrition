@@ -78,8 +78,12 @@ through the `setCurrentUses` **fallback** rather than through `ItemUser.UseItem`
 The twelfth, thirteenth and fourteenth — **`run-20260910-133657`**, **`run-20260910-133916`** and
 **`scenario-20260910-134012`** — were **skew-free** for that same reason (the profiles that produced
 them and the artifacts landed in one commit, and the CLI they ran on was already at HEAD) **until
-slice 07's final fix wave**, which edited five modules under `testing/pzt/` — `mods.py`,
-`profile.py`, `session.py`, `cli.py`, `scenario.py`. **No measured number in any of the three
+slice 07's final fix wave**, which edited seven modules under `testing/pzt/` — `mods.py`,
+`profile.py`, `session.py`, `cli.py`, `scenario.py`, `server.py` and `spikes.py`. `server.py` is the
+one that matters here: `merge_sandbox_vars`, the path behind the sandbox `M` of run 1, now keeps a
+trailing comment on a rebuilt line and finds the closing `}` at column 0 only; run 1 appended
+nothing and its seeded line carries no comment, so nothing it wrote would differ. `spikes.py` only
+moved three `took=` sites. **No measured number in any of the three
 moves**; every difference is a shape a *future* run would write, and they are listed here rather
 than re-run:
 
@@ -583,7 +587,7 @@ proven to have taken **effect** and not merely to have booted quietly.
   `client_ready` marks is the STEP's duration, not elapsed time: 37.3 is how long the client took,
   and the run reached in-world at about 74 s. Every other mark's `t` is elapsed, and a run at HEAD
   writes the duration under `took` instead (see the skew list above). (b) `timeline[].got` is
-  truncated at 100 characters (`session.py:181`) — on both `verify` marks here it ends at
+  truncated at 100 characters (`session.verify`) — on both `verify` marks here it ends at
   `"keenPerceptionLoaded"`, immediately before the value the claim rests on. The full parsed value
   is `report.json["verify"][n]["got"]`; quote that, never the mark.
 

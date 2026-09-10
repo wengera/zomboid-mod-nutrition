@@ -422,7 +422,7 @@ layer the tests are written against.
   `<cachedir>/Lua/pzt-results/test_<name>.json` with `test`, `pass`, `detail`,
   `failures`, `samples`, `log`, `gameMinutes`, `player`, `side`, `startedWall`,
   `startedWorldAge`, `endedWorldAge` — **plus the envelope `TK.result` stamps on
-  every result doc in the harness** (`PZTestKit_Core.lua:85-87`): `name` (the doc's
+  every result doc in the harness** (`PZTestKit_Core.lua`, `TK.result`): `name` (the doc's
   own name, `test_<name>`), `side`, `t` (wall-clock ms at write) and
   `complete: true`. `t` is load-bearing, not a timestamp for the reader: with
   `startedWall` it is the pair `scenario.cadence()` fits the harness clock against

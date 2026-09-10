@@ -53,7 +53,7 @@ def test_version_folders_sort_by_parsed_tuple_not_by_string():
 
 
 def test_the_shape_the_six_corpus_mods_ship():
-    """`42/` beside `42.20/`, which is exactly P4TidyUpMeister / SimpleStatus / KWRR_Security /
+    """`42/` beside `42.N/` (`42.20/` here; the corpus six ship 42.13 to 42.20): P4TidyUpMeister / SimpleStatus / KWRR_Security /
     CleanHotBar / Neat_Crafting / HereGoesTheSun. The old string sort read `42/mod.info`."""
     with tempfile.TemporaryDirectory() as d:
         m = _mod(d, "SimpleStatus", {"42/mod.info": "stale", "42.20/mod.info": "simpleStatus"})

@@ -186,8 +186,7 @@ def cmd_run(a):
             server.kill()
     # The environment checks, shared with `pzt scenario` (session.fault_reasons): missing mods,
     # non-baseline server errors, client lua errors. They carry their own counts into the RESULT
-    # line. A result that already names its own reason (`FAIL: verify trait.check`, an
-    # interrupt) keeps it and records these in the timeline; a bare `FAIL` -- which is what the
+    # line. A result that already names its own reason (`FAIL: verify trait.check`) keeps it and records these in the timeline; a bare `FAIL` -- which is what the
     # missing-mod fail-fast leaves, because the run never reached a verdict of its own -- takes
     # the faults, so the RESULT line names the mod instead of saying only that something went
     # wrong. Either way the reason is printed once and the timeline keeps both marks: `error` is

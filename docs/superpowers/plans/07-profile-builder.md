@@ -32,7 +32,7 @@
   - `cli.cmd_run(a)` builds server → clients → `ping` → `session_ready` → `hold` → teardown, then fails on `mods_not_found`, non-baseline `server.errors` or client `lua_error`. `scenario.run(a)` (slice 04) takes `--fixture/--side/--user/--speed/--timeout`.
   - `bus.parse_ack(result)` → `(ok, value)`, JSON bodies decoded; `fx.load(name)`, `fx.fixture_dir(name)`; `paths.new_run_dir(prefix)`, `paths.WORKSHOP_DIR = D:\SteamLibrary\steamapps\workshop\content\108600`, `paths.TESTING`, `paths.ADMIN_USER = "admin"`.
 - Spike **S3** (`docs/testing/spikes.md`): under `-nosteam` `ZomboidFileSystem.getAllModFolders`' `workshop`/`steam` roots are both gated on `SteamUtils.isSteamModeEnabled`, so only `<cachedir>/mods` is searched; there is no server `-modfolders`; **a mod the game cannot find is a WARN, not a failure** — the server boots and clients join without it. The S3 subject is the mod this slice reuses.
-- The fixture excludes `mods/` (`fixture.SERVER_SKIP`/`CLIENT_SKIP`), so a profile overlays mods on a restored copy **per run and never re-provisions**; the fixture record's own mod list is untouched. Harness `trait.check` (shared, `PZTestKit_Core.lua:426`) returns `{keenHearingExcludesDeaf, keenHearingExcludesHardOfHearing, keenPerceptionLoaded}` — the ready-made probe that a mod took effect.
+- The fixture excludes `mods/` (`fixture.SERVER_SKIP`/`CLIENT_SKIP`), so a profile overlays mods on a restored copy **per run and never re-provisions**; the fixture record's own mod list is untouched. Harness `trait.check` (shared, `PZTestKit_Core.lua`, registered as `trait.check`) returns `{keenHearingExcludesDeaf, keenHearingExcludesHardOfHearing, keenPerceptionLoaded}` — the ready-made probe that a mod took effect.
 - `data/mod-inventory.json` (230 mod folders, `tools/mod_inventory.py`) is the corpus for the lint sweep and for slice 08's catalog.
 
 ## Questions
@@ -435,4 +435,8 @@ this profile's `DayLength = 1` is the cadence finding above). Both ran after the
 `run-20260910-151642` **PASS** (70.7 s; both probes true; `took` beside an elapsed `t`) and
 `scenario-20260910-151753` **PASS** (66.4 s; both probes ran and passed on the scenario path;
 `cadence` 1.018 ticks per game-minute at `24 × 5 / 15 = 8`, the ceiling's own edge). Both are
-committed under `testing/artifacts/` with README blocks.
+committed under `testing/artifacts/` with README blocks. The scoped re-review of the wave (2026-09-10)
+approved it — every item verified, 225 tests, lint 0, sweep reproduced — with seven residual
+doc/comment fixes (a false corpus sentence in a docstring, a stale line cite, the skew list naming
+five modules where the wave edited seven, an undated count, two stale Lua line cites, a comment
+example) applied in the close-out commit.
