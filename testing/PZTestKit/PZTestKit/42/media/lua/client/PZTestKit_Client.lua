@@ -222,41 +222,12 @@ TK.register("sandbox.set", function(argv)
     return out
 end)
 
-local SCRIPT_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrates", "Lipids", "Proteins",
-                         "DaysFresh", "DaysTotallyRotten", "IsCookable", "MinutesToCook", "MinutesToBurn" }
-local function scriptItem(fullType)
-    local sm = getScriptManager()
-    local ok, s = TK.call(sm, "getItem", fullType)
-    if ok and s then return s, "getItem" end
-    ok, s = TK.call(sm, "FindItem", fullType)      -- the form the game's own Lua uses
-    if ok and s then return s, "FindItem" end
-    return nil, nil
-end
--- Tries get<X>(), then is<X>(), then the public field <x>; `access` records which answered.
--- Measured on 42.20.4: for Calories/Carbohydrates/Lipids/Proteins NONE of the three routes
--- answered -- all four keys came back absent from `item.script` -- even though the jar keeps
--- them as public fields on the script Item (Item.InstanceItem reads them directly). Kahlua
--- does not expose them, so those per-item numbers have to come from an instantiated item
--- (`eat`'s itemBefore) or from parsing media/scripts.
-local function scriptValues(fullType)
-    local s, via = scriptItem(fullType)
-    if not s then return nil end
-    local field = { Calories = "calories", Carbohydrates = "carbohydrates", Lipids = "lipids",
-                    Proteins = "proteins" }
-    local out = { fullType = fullType, via = via, access = {} }
-    for _, g in ipairs(SCRIPT_GETTERS) do
-        local route, ok, v = "get", TK.call(s, "get" .. g)
-        if not ok then
-            route, ok, v = "is", TK.call(s, "is" .. g)
-        end
-        if not ok then
-            route = "field"
-            ok, v = TK.field(s, field[g] or (string.lower(string.sub(g, 1, 1)) .. string.sub(g, 2)))
-        end
-        if ok and v ~= nil then out[g], out.access[g] = v, route end
-    end
-    return out
-end
+-- Slice 09 moved the implementation into the core (TK.scriptValues) so the SERVER can answer
+-- `item.script` with the same code: script data is loaded per side and never synced, so the
+-- two sides are two readings and a teardown wants both. This side is unchanged apart from the
+-- reply gaining `side` -- see the block above TK.scriptValues for the getter list and for why
+-- Calories / Carbohydrates / Lipids / Proteins come back absent on 42.20.4.
+local function scriptValues(fullType) return TK.scriptValues(fullType) end
 TK.register("item.script", function(argv) return scriptValues(argv[1]) or ("no script item " .. tostring(argv[1])) end)
 
 -- Slice 02 moved the table into Core so the server half can return the same shape; the

@@ -99,6 +99,35 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   so far only **read off the packet code** (no run has made them differ
   between the two sides). Either way those readings are taken on the server
   bus (see `docs/superpowers/plans/02-notes.md` Q8).
+  Slice-09 additions to that lifecycle set (landed with the first teardown, so
+  its artifact carries no script/harness skew) — **`TK.ITEM_STATE` gained four
+  read-only keys**, `isCookable`, `actualWeight` (`getActualWeight`), `weight`
+  (`getWeight`) and `customWeight` (`isCustomWeight`), all jar-confirmed on
+  `zombie/inventory/InventoryItem`; they therefore appear in every
+  `item.get` / `item.state` reply and in `item.set`'s and `item.update`'s
+  `before`+`after` pair, which is what makes "which side ran the cook
+  transition, and by which arm of `Food.getActualWeight`" readable off a
+  single ack. There is deliberately **no setter** for any of the four
+  (`customWeight` is a side effect of `setActualWeight`'s *caller*, not a field
+  a probe should force). `item.set` gained one new field, **`chef <username>`**
+  — the harness's only string setter, and the only route to `Food.update`'s
+  Cooking-XP branch (`@755–@779` gates on `chef` non-null and non-empty, then
+  `@789 GameServer.server` → `addXp(player, Perks.Cooking, 10)`): an RCON
+  `additem` spawn leaves `chef` null, so without it that branch is unreachable
+  from the bus. An empty value is refused rather than written, because
+  `chef.isEmpty()` reads as "no chef". Server: **`perk.xp <user> <PerkName>`**
+  → `{perk, user, side, xp, level, serverWorldAge [, error]}` — the XP read
+  `perk.set` never had. `getPerkLevel` is the only perk number the shipped bus
+  carried and a 10-XP grant does not move a level, so an XP-sized effect was
+  unmeasurable; the chain is two calls, `IsoGameCharacter.getXp()` (zero-arg,
+  answers the inner `IsoGameCharacter$XP`) then `XP.getXP(Perk)` on *that*
+  object, which is exactly why `witness.fields` — zero-argument getters only —
+  cannot read it. Server: **`item.script <fullType>`** now exists too (it was
+  client-only through slice 08, and the 09–11 plan's cold-start inventory
+  listing it under *server* was simply wrong). Script data loads per side and
+  is never synced, so one side answering is not evidence about the other; both
+  sides run the same implementation (`TK.scriptValues` in the core) and the
+  reply now carries `side` beside `fullType` / `via` / `access`.
   Slice-03 body commands — server: `stats.get <user>` (one **atomic**
   `TK.bodySnapshot`: stats, moodles, nutrition, weight, max weight, traits and
   the world clock in a single reply, so a sample cannot straddle a tick),
@@ -159,7 +188,9 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   though the jar keeps them as public fields that `Item.InstanceItem` reads
   directly. That is why `item.script` cannot answer the four macros and the
   live macro read-back goes through the server's `item.get` on an RCON-spawned
-  **instance** instead. Fluid **containers** have no live route at all —
+  **instance** instead. (`item.script` runs on **both** sides from slice 09 on
+  — see the slice-09 additions above; the measurement in this paragraph is the
+  client's and holds on the server, which shares the implementation.) Fluid **containers** have no live route at all —
   `Item` exposes no component accessor — so only fluid **definitions** can be
   read back this way. Driven by `testing/experiments/s05_food_scan.py`, which
   pairs the census with ten field-for-field spot checks against RCON-spawned
@@ -250,13 +281,27 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   file's own trimmed text for the line, so it can be compared against the
   scanner's `outputs[].raw` without either side having to parse the other's
   model. Three details worth knowing before reading a reply:
-  * **Both name spellings work.** Every lookup asks the accessor for both
-    `<Name>` and `Base.<Name>` and reports the pair as `lookup`
-    (`askedAnswered` / `alternateAnswered` / `route`). Measured: both answer,
-    for craft and evolved alike — `ScriptBucketCollection.getScript` resolves
-    a bare name against module `Base` and a dotted one against its prefix
-    (`@45–@99 L78–L96`), the same tolerance slice 05 measured on
-    `getFluidDefinitionScript`.
+  * **Both name spellings work — for a `Base` recipe, and only for one.**
+    Every lookup asks the accessor for both `<Name>` and `Base.<Name>` and
+    reports the pair as `lookup` (`askedAnswered` / `alternateAnswered` /
+    `route`). Measured on the slice-06 probes: both answer, craft and evolved
+    alike — `ScriptBucketCollection.getScript` resolves a bare name against
+    module **`Base`** and a dotted one against its own prefix (`@45–@99
+    L78–L96`), the same tolerance slice 05 measured on
+    `getFluidDefinitionScript`. That every one of those probes was a `Base`
+    recipe is the whole caveat: a recipe declared in another `module` answers
+    to **neither** spelling, because both of them still land in `Base`. Slice
+    09 therefore gave `recipes.craft` (and only `recipes.craft` — the evolved
+    half is untouched) a **third** route, tried only after both misses: a walk
+    over `ScriptManager.getAllCraftRecipes()` matching on the last dotted
+    segment of `getScriptObjectFullType()` (`BaseScriptObject`'s cached
+    `<module>.<name>`), falling back to `getName()`. `lookup` then carries
+    `route: "module-scan"` with `scanAccessor` / `scanned` /
+    `resolvedFullType` / `resolvedName`, so a bare non-`Base` name answers
+    **and** the resolution rule stays measured rather than papered over. A
+    caller who wants the rule exercised should still ask module-qualified: a
+    `route` of `as given` on `Skittles.MakeCuredMeat` with
+    `alternateAnswered: false` is the direct reading.
   * **A getter has three outcomes, not two.** `missingGetters` (the build does
     not expose it), `getterErrors` (it is there and the *call* raised) and
     `nullGetters` (it answered with nothing) are separate lists. The middle
@@ -384,16 +429,17 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     consumed as the scope, so a modData key literally named `item`, `global` or
     `player` has to be asked for behind an explicit prefix
     (`witness.moddata player:- player`), where it is just a key.
-    **Parked defect (fixed in slice 09 pass 1, while the harness is live):** the
-    gate matches `^(item):(.+)$` and the bare words, so a *trailing colon with no
-    name* — `witness.moddata item:` or `global:` — falls through both and is read
-    as a modData **key** on the default `player` scope. The reply is a plausible
-    census of the wrong subject; `scope` and `resolved` disclose it, and reading
-    them is the workaround. The one-line fix is to gate on
-    `^(player|item|global):?$` as well, and it is deliberately **not** applied
-    here: this file's measured artifact was driven by the shipped Lua, and a
-    docs-and-tools wave must not put it into script/artifact skew for a path no
-    probe in it exercised.
+    **Slice-08 parked defect — CLOSED in slice 09 pass 1:** the gate matched
+    `^(item):(.+)$` and the bare words only, so a *trailing colon with no name*
+    — `witness.moddata item:` or `global:` — fell through both (all three
+    patterns require at least one character after the colon) and was read as a
+    modData **key** on the default `player` scope, answering a plausible census
+    of the wrong subject. `item:`, `global:` and `player:` now join the bare
+    `item` / `global` in the usage gate; a bare `player` stays legal, since it
+    is consumed as the scope word. Lua patterns have no alternation, so the
+    `^(player|item|global):?$` gate is spelled as a lookup table rather than as
+    that regex. Artifacts written before this fix (`exp08-*`) were driven by
+    the shipped Lua and exercised no such path.
   * **`TK.WITNESS_MAX = 32`** names per call — both replies travel as one bus ack
     line. The cap is counted **before** the read, so `count` is what was actually
     read and `truncatedAt` is the only signal that more were asked for.

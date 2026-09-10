@@ -143,7 +143,17 @@ end
 -- rather than being inferred from which call the command happened to make first. The recipe
 -- used is the plain one when it answers, so a build where both work behaves exactly as the
 -- brief's sketch does.
-local function lookupRecipe(sm, method, want)
+-- MEASURED off the 42.20.4 jar (slice 09): both spellings are asked of `ScriptBucketCollection
+-- .getScript`, and that method resolves a name WITHOUT a dot against `getModule("Base")` and a
+-- dotted one against its own prefix (`@45-@99 L78-L96`). So the two spellings only ever reach
+-- Base, and a recipe in `module Skittles` answers to NEITHER `MakeCuredMeat` nor
+-- `Base.MakeCuredMeat` -- the README's "both spellings work" was measured on Base-only
+-- recipes. `allMethod` is the optional third route: when both misses are in, walk every loaded
+-- script of that kind and match on the name's last dotted segment. It is opt-in per command so
+-- a caller that does not want a whole-list scan does not pay for one, and the resolution stays
+-- MEASURED rather than assumed -- `route` says which of the three answered, and
+-- `resolvedFullType` names the module a scan had to reach for.
+local function lookupRecipe(sm, method, want, allMethod)
     local alternate
     if string.find(want, "%.") then
         alternate = string.gsub(want, "^[^%.]*%.", "")      -- Base.Salad -> Salad
@@ -161,6 +171,36 @@ local function lookupRecipe(sm, method, want)
     if other ~= nil then
         info.route = "module prefix toggled"
         return other, info
+    end
+    if allMethod ~= nil then
+        info.scanAccessor = allMethod
+        local all, n = listOf(sm, allMethod)
+        if all == nil then
+            info.scanError = "no ScriptManager:" .. allMethod .. "()"
+        else
+            info.scanned = n
+            local tail = string.match(want, "([^%.]+)$") or want
+            for i = 0, n - 1 do
+                local r = get(all, "get", i)
+                if r ~= nil then
+                    -- getScriptObjectFullType() is BaseScriptObject's cached
+                    -- "<module>.<name>" (jar @0-@60 L111-L116); getName() is the bare block
+                    -- name. Ask for the first and fall back to the second, then compare the
+                    -- last dotted segment either way, so the match does not depend on which
+                    -- member this build exposes.
+                    local full = get(r, "getScriptObjectFullType")
+                    local nm = get(r, "getName")
+                    local have = (full ~= nil) and tostring(full) or
+                                 ((nm ~= nil) and tostring(nm) or nil)
+                    if have ~= nil and (string.match(have, "([^%.]+)$") or have) == tail then
+                        info.route = "module-scan"
+                        info.resolvedFullType = (full ~= nil) and tostring(full) or nil
+                        info.resolvedName = (nm ~= nil) and tostring(nm) or nil
+                        return r, info
+                    end
+                end
+            end
+        end
     end
     info.route = "none"
     return nil, info
@@ -253,7 +293,10 @@ TK.register("recipes.craft", function(argv)
     if want == "" then return "usage: recipes.craft <name>" end
     local sm = scriptManager()
     if sm == nil then return "no getScriptManager()" end
-    local r, lookup = lookupRecipe(sm, "getCraftRecipe", want)
+    -- The module scan is armed here and NOT on `recipes.evolved`: this is the command the
+    -- teardown slices use on mod recipes, and leaving the evolved half alone keeps its
+    -- measured slice-06 behaviour byte-identical.
+    local r, lookup = lookupRecipe(sm, "getCraftRecipe", want, "getAllCraftRecipes")
     if r == nil then return "no craft recipe " .. want end
     local out = fields(r, CRAFT_GETTERS)
     out.name, out.lookup, out.outputs = want, lookup, {}

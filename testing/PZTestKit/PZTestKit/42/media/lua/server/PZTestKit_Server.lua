@@ -74,6 +74,43 @@ TK.register("perk.set", function(argv)
     return TK.setPerk(p, argv[2], level)
 end)
 
+-- <user> <PerkName>. The XP READ perk.set has never had: `getPerkLevel` is the only perk
+-- number on the shipped bus and a 10-XP grant does not move a level, so every XP-sized effect
+-- in the game has so far been unmeasurable. Slice 09 needs it as a client/server
+-- discriminator -- Food.update grants the cook 10 Cooking XP and only ever on the server
+-- (@789 GameServer.server; an MP client that runs the same transition skips the block
+-- entirely) -- so an XP delta across the action says WHICH side ran it, independently of any
+-- field reading.
+--
+-- Two calls, never one: jar-confirmed on 42.20.4, IsoGameCharacter.getXp() is zero-argument
+-- and answers the inner IsoGameCharacter$XP object, and the number comes from
+-- XP.getXP(PerkFactory$Perk)F on THAT object. There is no single getter for it, which is
+-- exactly why `witness.fields` (zero-argument getters only) cannot read it.
+TK.register("perk.xp", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local name = argv[2]
+    if not name then return "usage: perk.xp <user> <PerkName>" end
+    local perk = Perks and Perks[name]
+    if not perk then return { error = "no Perks." .. tostring(name), perk = name } end
+    local out = { perk = name, user = tostring(argv[1]), side = TK.side }
+    local okXp, xp = TK.call(p, "getXp")
+    if not okXp or xp == nil then
+        out.error = "no IsoGameCharacter:getXp()"
+        return out
+    end
+    local okV, v = TK.call(xp, "getXP", perk)
+    if not okV then
+        out.error = "no XP:getXP(Perk)"
+    else
+        out.xp = v
+    end
+    local _, lvl = TK.call(p, "getPerkLevel", perk)
+    out.level = lvl
+    out.serverWorldAge = getGameTime():getWorldAgeHours()
+    return out
+end)
+
 -- ---- body-side commands (slice 03) -------------------------------------------
 -- Everything below is SERVER-side on purpose. Hunger, thirst, endurance and the whole
 -- Nutrition block tick only here in MP: `updateStats_WakeState @8-@26 L10227` and the twin
@@ -312,6 +349,15 @@ local ITEM_SETTERS = {
     calories = { "setCalories", "number" }, hungChange = { "setHungChange", "number" },
     lastCookMinute = { "setLastCookMinute", "number" },
     cooked = { "setCooked", "boolean" }, burnt = { "setBurnt", "boolean" },
+    -- slice 09: `chef` is the only STRING setter, and it is here for one reason -- the
+    -- Cooking-XP grant inside Food.update (@755-@779 on 42.20.4) is gated on chef != null and
+    -- non-empty, and then @789 GameServer.server -> getPlayerByUserNameForCommand(chef) ->
+    -- addXp(player, Perks.Cooking, 10). An RCON `additem` spawn leaves chef null, so without
+    -- this setter that whole branch is unreachable from the bus and the "only the server
+    -- grants XP" asymmetry can never be measured. Jar-confirmed: Food.setChef(Ljava/lang/
+    -- String;)V. The value is a username, so it cannot contain a space (splitArgs splits on
+    -- %S+) -- that is a limitation of the bus, not of the setter.
+    chef = { "setChef", "string" },
 }
 
 TK.register("item.set", function(argv)
@@ -328,6 +374,12 @@ TK.register("item.set", function(argv)
     if spec[2] == "boolean" then
         if argv[4] ~= "true" and argv[4] ~= "false" then return "expected true|false, got " .. tostring(argv[4]) end
         value = argv[4] == "true"
+    elseif spec[2] == "string" then
+        -- An empty string is refused rather than passed through: Food.update's XP gate reads
+        -- chef.isEmpty() as "no chef", so `item.set ... chef ""` would look like a write and
+        -- behave like a clear. Nothing on the bus needs to clear it.
+        if argv[4] == nil or argv[4] == "" then return "expected a string, got " .. tostring(argv[4]) end
+        value = tostring(argv[4])
     else
         value = tonumber(argv[4])
         if value == nil then return "expected a number, got " .. tostring(argv[4]) end
@@ -492,6 +544,19 @@ TK.register("items.count", function()
     -- findings (the second one is what makes the 61-fluid count scanner-only): say which.
     if fl == nil then out.fluidDefsError = "no ScriptManager:getAllFluidDefinitionScripts()" end
     return out
+end)
+
+-- <fullType>. The SERVER half of the client's `item.script`, added by slice 09: script data
+-- is loaded per side and never synced, so one side answering is not evidence about the other
+-- and a mod teardown wants both. Same implementation (TK.scriptValues in the core), so the
+-- two replies differ only where the two sides genuinely differ; `side` in the reply says
+-- which is talking. The 09-11 plan's cold-start command inventory already listed
+-- `item.script <type>` under *server* -- until now that line was simply wrong.
+TK.register("item.script", function(argv)
+    if getScriptManager == nil then return "no getScriptManager()" end
+    local want = tostring(argv[1] or "")
+    if want == "" then return "usage: item.script <fullType>" end
+    return TK.scriptValues(want) or ("no script item " .. want)
 end)
 
 -- The id a fluid definition answers to, and the accessor that produced it.

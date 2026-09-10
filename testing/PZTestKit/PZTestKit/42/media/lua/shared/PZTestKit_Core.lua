@@ -141,6 +141,15 @@ TK.ITEM_STATE = {
     -- it looks like rot has no effect on hunger, when in fact the effect is entirely at read
     -- time. `thirstChange` above is already the modified getter, so this makes the pair honest.
     hungerChange = "getHungerChange",
+    -- slice 09: the cookable flag and the three weight readings, all READ-ONLY here (item.set
+    -- deliberately offers no setter for any of them -- `customWeight` is a side effect of
+    -- setActualWeight's caller, not a field a probe should force). They live here rather than
+    -- only in `witness.fields` so item.get / item.set's before+after / item.update's `before`
+    -- carry them too, which is what makes "who ran the cook transition" readable off one ack.
+    -- Confirmed on the 42.20.4 jar, zombie/inventory/InventoryItem: isCookable()Z,
+    -- getActualWeight()F, getWeight()F, isCustomWeight()Z (and Food overrides the first two).
+    isCookable = "isCookable", actualWeight = "getActualWeight",
+    weight = "getWeight", customWeight = "isCustomWeight",
 }
 
 function TK.itemState(it)
@@ -149,6 +158,59 @@ function TK.itemState(it)
     for k, m in pairs(TK.ITEM_STATE) do
         local ok, v = TK.call(it, m)
         if ok then out[k] = v end
+    end
+    return out
+end
+
+-- ---- script-item values (both sides) ----------------------------------------
+-- Moved here from the client file by slice 09 so the SERVER can answer `item.script` too.
+-- Script data is loaded per side and never synced, so "the definition the client has" and
+-- "the definition the server has" are two different readings and a teardown wants both --
+-- the 09-11 plan's cold-start inventory already listed `item.script` under *server*, and
+-- until this move that line was simply wrong (slice 09 Task 1, I3). One implementation, so
+-- the two sides cannot drift and a cross-side diff means something.
+--
+-- MEASURED on 42.20.4 (slice 01): for Calories / Carbohydrates / Lipids / Proteins NONE of
+-- the three routes below answers -- all four keys come back absent -- even though the jar
+-- keeps them as public fields on the script Item (Item.InstanceItem reads them directly).
+-- Kahlua does not expose them, so those per-item numbers have to come from an instantiated
+-- item (`eat`'s itemBefore, or the server's `item.get`) or from parsing media/scripts.
+TK.SCRIPT_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrates", "Lipids",
+                      "Proteins", "DaysFresh", "DaysTotallyRotten", "IsCookable",
+                      "MinutesToCook", "MinutesToBurn" }
+local SCRIPT_FIELD = { Calories = "calories", Carbohydrates = "carbohydrates",
+                       Lipids = "lipids", Proteins = "proteins" }
+
+-- `getScriptManager` is checked for nil BEFORE it is called: a nil global raises Kahlua's
+-- uncatchable "tried to call nil" (see TK.call above) and would take the poll handler with
+-- it rather than answer the bus. Both server files carry the same guard.
+local function scriptItem(fullType)
+    if getScriptManager == nil then return nil, nil end
+    local sm = getScriptManager()
+    local ok, s = TK.call(sm, "getItem", fullType)
+    if ok and s then return s, "getItem" end
+    ok, s = TK.call(sm, "FindItem", fullType)      -- the form the game's own Lua uses
+    if ok and s then return s, "FindItem" end
+    return nil, nil
+end
+
+-- Tries get<X>(), then is<X>(), then the public field <x>; `access` records which answered,
+-- `via` which accessor found the script, and `side` which side is talking.
+function TK.scriptValues(fullType)
+    local s, via = scriptItem(fullType)
+    if not s then return nil end
+    local out = { fullType = fullType, via = via, side = TK.side, access = {} }
+    for _, g in ipairs(TK.SCRIPT_GETTERS) do
+        local route, ok, v = "get", TK.call(s, "get" .. g)
+        if not ok then
+            route, ok, v = "is", TK.call(s, "is" .. g)
+        end
+        if not ok then
+            route = "field"
+            ok, v = TK.field(s, SCRIPT_FIELD[g] or
+                                (string.lower(string.sub(g, 1, 1)) .. string.sub(g, 2)))
+        end
+        if ok and v ~= nil then out[g], out.access[g] = v, route end
     end
     return out
 end
@@ -584,14 +646,24 @@ TK.register("witness.fields", function(argv)
     return out
 end)
 
+-- The scope words that are NOT a subject: a bare `item`/`global`, and all three with a
+-- trailing colon and nothing after it. See the gate inside the command below.
+local BARE_SCOPE = { item = true, global = true,
+                     ["player:"] = true, ["item:"] = true, ["global:"] = true }
+
 TK.register("witness.moddata", function(argv)
     local first = tostring(argv[1] or "")
     local scope, arg = string.match(first, "^(player):(.+)$")
     if not scope then scope, arg = string.match(first, "^(item):(.+)$") end
     if not scope then scope, arg = string.match(first, "^(global):(.+)$") end
-    -- a bare "item"/"global" would otherwise be read as a KEY on the default player scope,
-    -- and answer a plausible-looking census for the wrong subject
-    if not scope and (first == "item" or first == "global") then
+    -- A bare "item"/"global" -- or ANY of the three scope words with a trailing colon and no
+    -- name, since all three patterns above require at least one character after the colon --
+    -- would otherwise be read as a KEY on the default player scope and answer a
+    -- plausible-looking census for the wrong subject. The trailing-colon half was slice 08's
+    -- parked defect (docs/testing/README.md, witness block); slice 09 closes it while the
+    -- harness is live. A bare "player" stays legal: it is consumed as the scope word.
+    -- Lua patterns have no alternation, so the `^(player|item|global):?$` gate is a table.
+    if not scope and BARE_SCOPE[first] then
         return "usage: witness.moddata [player[:<user>]|item:<id>|global:<name>] <key...>"
     end
     local from = (scope or first == "player") and 2 or 1
