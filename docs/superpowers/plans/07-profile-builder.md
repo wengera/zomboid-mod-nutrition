@@ -428,7 +428,11 @@ as eight further rows in [`docs/decisions.md`](../../decisions.md). Two acceptan
 slightly differently at HEAD, neither in its verdict: **check 2**'s console line now names the mod
 (`RESULT: FAIL: mods not found at load: NoSuchModHere`, where the committed artifact records the
 bare `FAIL`), and the `[[verify]]` probes the wave added to `scenario.run` are evidenced by
-`<run id pending B10>` — `scenario-20260910-134012` predates them. The wave's own acceptance is
+`scenario-20260910-151753` — `scenario-20260910-134012` predates them. The wave's own acceptance is
 `pzt run --profile mod-under-test --hold 5` and
 `pzt scenario smoke_clock --profile mod-under-test --speed 5` (note the speed: `--speed 30` on
-this profile's `DayLength = 1` is the cadence finding above).
+this profile's `DayLength = 1` is the cadence finding above). Both ran after the wave committed, on `a6b0b54`:
+`run-20260910-151642` **PASS** (70.7 s; both probes true; `took` beside an elapsed `t`) and
+`scenario-20260910-151753` **PASS** (66.4 s; both probes ran and passed on the scenario path;
+`cadence` 1.018 ticks per game-minute at `24 × 5 / 15 = 8`, the ceiling's own edge). Both are
+committed under `testing/artifacts/` with README blocks.

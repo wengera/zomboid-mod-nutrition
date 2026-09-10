@@ -246,6 +246,11 @@ unmeasured. The rule of thumb is
 **`24 × speed / day_minutes ≲ 8`** game-minutes per wall-second — on `DayLength = 1` that is
 `--speed 5`, not 30 (**M**,
 [`scenario-20260910-134012`](../../testing/artifacts/scenario-20260910-134012/scenario-smoke_clock.json)).
+Measured at that speed after the wave:
+[`scenario-20260910-151753`](../../testing/artifacts/scenario-20260910-151753/scenario-smoke_clock.json)
+(`--speed 5` on `DayLength = 1`, `24 × 5 / 15 = 8`) recorded 7.57 world-minutes per wall-second
+and 1.018 ticks per game-minute with no `cadence_suspect` — the ceiling holds on the 15-minute
+day as it did on the 90-minute one (**M**).
 `smoke_clock` still PASSed, because every assertion it makes is counted in *ticks* and it
 therefore measures the scheduler against itself — but nothing fitted against the **game clock** on
 that run may be cited, and slices 09–11 must not template a timed scenario off
@@ -435,7 +440,8 @@ A profile is a **server-side** decision that the client inherits.
    `FAIL: verify <cmd>` — after the test has run, because the ten minutes are already spent and
    the evidence is worth writing either way. **C**: `scenario.py:run`, with a stubbed test in
    `testing/tests/test_cli_profile.py`. The first live scenario evidencing it is
-   `<run id pending B10>`; `scenario-20260910-134012` predates the change and has no `verify`
+   `scenario-20260910-151753` (`--speed 5`; both probes ran once the client was ready and
+   passed; `RESULT: PASS`); `scenario-20260910-134012` predates the change and has no `verify`
    key.
 3. **Which sandbox options survive a restore.** Only `DayLength` has been set by a profile on a
    restored world and measured to apply; the other four keys the mod work cares about

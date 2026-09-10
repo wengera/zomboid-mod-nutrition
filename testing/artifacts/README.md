@@ -42,6 +42,8 @@ correct it.
 | `run-20260910-133657` | `report.json`, `pzt_SandboxVars.lua` | `pzt run --profile mod-under-test --hold 5` | slice 07 (`.superpowers/sdd/07-profile-builder/task-4-report.md`; the `M` behind the profile builder's "a named mod set loads and takes effect" claim). **The sandbox-survival numbers are read off `pzt_SandboxVars.lua`, not `report.json`** — the report holds only what the run was asked for, so the run's own post-rewrite copy of the file is committed here as the second artifact: [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § What a profile changes and the `[sandbox]` merge row of [`docs/decisions.md`](../../docs/decisions.md) both cite it |
 | `run-20260910-133916` | `report.json` | `pzt run --profile missing-mod` | slice 07 (same report; the `M` behind "a mod that never reaches `<cachedir>/mods` fails the run before a client is launched") |
 | `scenario-20260910-134012` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 30` | slice 07 (same report; the `M` behind the profile path through `scenario.run`, and behind the `DayLength × --speed` cadence ceiling) |
+| `run-20260910-151642` | `report.json` | `pzt run --profile mod-under-test --hold 5` | slice 07 (the final-wave acceptance run, made on the CLI at `a6b0b54`; the first artifact carrying `took` beside an elapsed `t`; both `trait.check` probes true) |
+| `scenario-20260910-151753` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 5` | slice 07 (the final-wave acceptance scenario, same commit; the first scenario artifact with a `verify` key — the `M` behind `[[verify]]` on the scenario path — at a speed sitting exactly on the cadence ceiling for this profile) |
 
 ## Script/artifact skew
 
@@ -102,6 +104,13 @@ than re-run:
 - **A failed probe now skips the hold** on `pzt run` (it used to hold anyway), and `mods.py`
   resolves a mod folder's `mod.info` by parsed version tuple. Neither changes these runs: every
   probe passed, and `KeenPerception` ships one version folder.
+
+The fifteenth and sixteenth — **`run-20260910-151642`** and **`scenario-20260910-151753`** — are
+the wave's own acceptance runs, made by the controller on the CLI at `a6b0b54` after the wave
+committed and before anything else touched `testing/pzt/`, so they are **skew-free** and are the
+first artifacts written in the shapes the list above describes: `client_ready` carries
+`took: 37.3` beside an elapsed `t: 54.2`, and the scenario artifact has a `verify` key. Their
+blocks are at the end of this file.
 
 One further disclosure, unchanged by the wave and about the harness mod rather than the CLI: a concurrent slice-06 fix round had
 `PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
@@ -677,3 +686,43 @@ reads `DayLength = 1` / `Zombies = 6` at 189/184 after the boot-time rewrite.
   game minute lasted a game minute. **Nothing fitted against the game clock on this run may be
   cited** — no rate, no per-game-hour figure, no `worldAge` span. Do not carry `DayLength = 1`
   into a nutrition scenario at speed without re-reading `cadence` first.
+
+**`run-20260910-151642/report.json`** — written by `pzt run --profile mod-under-test --hold 5`
+(70.7 s wall; `RESULT: PASS`, exit 0) on the CLI at `a6b0b54`, the commit of slice 07's final fix
+wave. The same profile as `run-20260910-133657`, re-run as the wave's acceptance: nothing here is
+new evidence about the mod, and everything about the file's shape is.
+
+- **Read `t` as elapsed on every mark.** `server_started` is at `t: 16.3` with `took: 15.8` (a
+  warm boot — the fixture's world already existed), `client_ready` at `t: 54.2` with `took: 37.3`;
+  then `session_ready` 54.9, the two `verify` marks 55.2 and 55.4, `hold` 55.4, `client_quit`
+  62.7, `server_stopped` 70.7. The `took` values are what the pre-wave artifacts carried under `t`.
+- **What `verify` proves, again.** Both probes returned the same three keys as
+  `run-20260910-133657` with `keenPerceptionLoaded: true` on the server and on the client;
+  `report.json["verify"][n]["got"]` holds the parsed value (the marks' `got` is still the
+  100-character string).
+- `server_errors` and `faults` are both empty. The hold ran because both probes passed; at HEAD a
+  failed probe skips it, which a passing run cannot show.
+- **Provenance** is the same profile file and workshop item as `run-20260910-133657`
+  (`3685392864`, `42/`, `id=KeenPerception`), resolved to the same two source folders in the
+  artifact's `profile` block.
+
+**`scenario-20260910-151753/scenario-smoke_clock.json`** — written by `pzt scenario smoke_clock
+--profile mod-under-test --speed 5` (66.4 s wall; `RESULT: PASS`, exit 0) on the CLI at `a6b0b54`.
+The same profile down the scenario path as `scenario-20260910-134012`, at a speed on the cadence
+ceiling rather than six times over it.
+
+- **The first scenario artifact with a `verify` key.** `scenario.run` ran the profile's two
+  `trait.check` probes once the client was ready — `verify: [{side: "server", ok: true},
+  {side: "client", ok: true}]` — before `settimespeed 5` and the test. This is the live evidence
+  for `[[verify]]` on the scenario path that [`docs/testing/profiles.md`](../../docs/testing/profiles.md)
+  § Open questions #2 cites; `profile: "mod-under-test"` is the resolved name.
+- **`cadence` on the ceiling's edge.** `ticks_per_world_min: 1.018` over `game_minutes: 20`
+  (`world_min_per_wall_s: 7.57`, `ticks_per_wall_s: 7.7`, `wall_s: 2.6`), no `cadence_suspect`.
+  `DayLength = 1` is a 15-minute day, so `--speed 5` demands `24 × 5 / 15 = 8` game-minutes per
+  wall-second — exactly the `≲ 8` rule's limit — and the game's `EveryOneMinute` kept up (7.57
+  delivered, one tick per game-minute). With the slice-04 anchors (7.99–8.00 on the 90-minute day
+  at `--speed 30`) that is two profiles reaching the ceiling and holding; `scenario-20260910-134012`
+  at `48` demanded is the one that fell to 0.22.
+- `test.pass: true` (`"clock ok"`, 3 samples, `startedWorldAge 3.128 → endedWorldAge 3.455`,
+  about 19.7 game-minutes by world age), `evaluation: {}` (no evaluator for `smoke_clock`),
+  `faults: []`, `server_errors` empty, `build: 42.20.4`, `fixture: default`.

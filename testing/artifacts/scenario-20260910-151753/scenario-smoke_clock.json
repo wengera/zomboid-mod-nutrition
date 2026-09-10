@@ -1,0 +1,85 @@
+{
+ "run_id": "scenario-20260910-151753",
+ "scenario": "smoke_clock",
+ "fixture": "default",
+ "profile": "mod-under-test",
+ "build": "42.20.4",
+ "side": "server",
+ "user": "admin",
+ "speed": 5,
+ "result": "PASS",
+ "cadence": {
+  "wall_s": 2.6,
+  "game_minutes": 20.0,
+  "ticks_per_wall_s": 7.7,
+  "world_min_per_wall_s": 7.57,
+  "ticks_per_world_min": 1.018
+ },
+ "evaluation": {},
+ "faults": [],
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "trait.check",
+   "expect": "\"keenPerceptionLoaded\": true",
+   "ok": true,
+   "got": {
+    "keenHearingExcludesDeaf": false,
+    "keenHearingExcludesHardOfHearing": false,
+    "keenPerceptionLoaded": true
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "trait.check",
+   "expect": "\"keenPerceptionLoaded\": true",
+   "ok": true,
+   "got": {
+    "keenHearingExcludesDeaf": false,
+    "keenHearingExcludesHardOfHearing": false,
+    "keenPerceptionLoaded": true
+   }
+  }
+ ],
+ "server_errors": [],
+ "test": {
+  "test": "smoke_clock",
+  "pass": true,
+  "detail": "clock ok",
+  "failures": {},
+  "samples": [
+   {
+    "calories": 790.404541,
+    "gameMinute": 5,
+    "worldAge": 3.201642,
+    "wall": 1789067927444
+   },
+   {
+    "calories": 785.360962,
+    "gameMinute": 10,
+    "worldAge": 3.289193,
+    "wall": 1789067928130
+   },
+   {
+    "calories": 780.231812,
+    "gameMinute": 15,
+    "worldAge": 3.378222,
+    "wall": 1789067928841
+   }
+  ],
+  "log": [
+   "[0m] start smoke_clock on server player=admin",
+   "[0m] smoke_clock: sampling calories every 5 game minutes",
+   "[10m] eventually ok: second sample"
+  ],
+  "gameMinutes": 20,
+  "player": "admin",
+  "side": "server",
+  "startedWall": 1789067926837,
+  "startedWorldAge": 3.127945,
+  "endedWorldAge": 3.455453,
+  "complete": true,
+  "t": 1789067929434,
+  "name": "test_smoke_clock"
+ }
+}

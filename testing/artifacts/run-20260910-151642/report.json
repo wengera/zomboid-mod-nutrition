@@ -1,0 +1,245 @@
+{
+ "run_id": "run-20260910-151642",
+ "result": "PASS",
+ "faults": [],
+ "timeline": [
+  {
+   "t": 0.0,
+   "phase": "profile",
+   "name": "mod-under-test",
+   "fixture": "default",
+   "mods": "PZTestKit;KeenPerception",
+   "sandbox": "DayLength=1",
+   "skip": "none"
+  },
+  {
+   "t": 0.5,
+   "phase": "server_launch",
+   "port": 27261
+  },
+  {
+   "t": 16.3,
+   "phase": "server_started",
+   "took": 15.8,
+   "build": "42.20.4"
+  },
+  {
+   "t": 16.4,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 54.2,
+   "phase": "client_ready",
+   "took": 37.3,
+   "user": "admin"
+  },
+  {
+   "t": 54.9,
+   "phase": "ping",
+   "server": "ok:pong",
+   "admin": "ok:pong"
+  },
+  {
+   "t": 54.9,
+   "phase": "session_ready",
+   "clients": 1
+  },
+  {
+   "t": 55.2,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "trait.check",
+   "ok": true,
+   "got": "{\"keenHearingExcludesDeaf\": false, \"keenHearingExcludesHardOfHearing\": false, \"keenPerceptionLoaded\""
+  },
+  {
+   "t": 55.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "trait.check",
+   "ok": true,
+   "got": "{\"keenHearingExcludesDeaf\": false, \"keenHearingExcludesHardOfHearing\": false, \"keenPerceptionLoaded\""
+  },
+  {
+   "t": 55.4,
+   "phase": "hold",
+   "seconds": 5
+  },
+  {
+   "t": 62.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 70.7,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "clients": {
+  "admin": [
+   {
+    "t": 8.6,
+    "kind": "harness",
+    "msg": "core loaded (sp)"
+   },
+   {
+    "t": 8.6,
+    "kind": "harness",
+    "msg": "test layer loaded (sp)"
+   },
+   {
+    "t": 9.1,
+    "kind": "harness",
+    "msg": "client harness loaded"
+   },
+   {
+    "t": 9.1,
+    "kind": "harness",
+    "msg": "client body harness loaded"
+   },
+   {
+    "t": 10.6,
+    "kind": "harness",
+    "msg": "main menu entered"
+   },
+   {
+    "t": 11.1,
+    "kind": "harness",
+    "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+   },
+   {
+    "t": 11.1,
+    "kind": "harness",
+    "msg": "popup visible; connecting as admin to 127.0.0.1:27261"
+   },
+   {
+    "t": 15.6,
+    "kind": "harness",
+    "msg": "core loaded (client)"
+   },
+   {
+    "t": 15.6,
+    "kind": "harness",
+    "msg": "test layer loaded (client)"
+   },
+   {
+    "t": 16.1,
+    "kind": "harness",
+    "msg": "client harness loaded"
+   },
+   {
+    "t": 16.1,
+    "kind": "harness",
+    "msg": "client body harness loaded"
+   },
+   {
+    "t": 16.1,
+    "kind": "harness",
+    "msg": "main menu entered"
+   },
+   {
+    "t": 34.7,
+    "kind": "in_game",
+    "line": "LOG  : General      f:0 st:0> game loading took 18 seconds"
+   },
+   {
+    "t": 35.2,
+    "kind": "click_to_start",
+    "msg": "1 window(s)"
+   },
+   {
+    "t": 36.3,
+    "kind": "harness",
+    "msg": "OnGameStart - in world"
+   },
+   {
+    "t": 37.3,
+    "kind": "harness",
+    "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+   },
+   {
+    "t": 37.3,
+    "kind": "harness",
+    "msg": "player admin at 10722,10630,0"
+   },
+   {
+    "t": 37.3,
+    "kind": "ready",
+    "line": "LOG  : Lua          f:19 st:785,189,432> PZTK: player admin at 10722,10630,0"
+   },
+   {
+    "t": 38.8,
+    "kind": "harness",
+    "msg": "cmd #1 ping -> pong"
+   },
+   {
+    "t": 39.3,
+    "kind": "harness",
+    "msg": "cmd #2 trait.check -> {\"keenHearingExcludesDeaf\":false,\"keenHearingExcludesHardOfHearing\":false,\"keenPerceptionLoaded\":true}"
+   },
+   {
+    "t": 44.8,
+    "kind": "harness",
+    "msg": "cmd #3 quit -> quitting"
+   }
+  ]
+ },
+ "results": {
+  "server": {},
+  "admin": {}
+ },
+ "profile": {
+  "name": "mod-under-test",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\mod-under-test.toml",
+  "fixture": "default",
+  "description": "PZTestKit + KeenPerception (spike S3's subject), DayLength forced to 15 min.",
+  "mods": [
+   "PZTestKit",
+   "KeenPerception"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "KeenPerception": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3685392864\\mods\\KeenPerception"
+  },
+  "skip": [],
+  "workshop_items": {
+   "KeenPerception": "3685392864"
+  },
+  "sandbox": {
+   "DayLength": 1
+  },
+  "users": [
+   "admin"
+  ]
+ },
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "trait.check",
+   "expect": "\"keenPerceptionLoaded\": true",
+   "ok": true,
+   "got": {
+    "keenHearingExcludesDeaf": false,
+    "keenHearingExcludesHardOfHearing": false,
+    "keenPerceptionLoaded": true
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "trait.check",
+   "expect": "\"keenPerceptionLoaded\": true",
+   "ok": true,
+   "got": {
+    "keenHearingExcludesDeaf": false,
+    "keenHearingExcludesHardOfHearing": false,
+    "keenPerceptionLoaded": true
+   }
+  }
+ ]
+}
