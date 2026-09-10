@@ -1,0 +1,1791 @@
+{
+ "run_id": "exp08-20260910-152944",
+ "meta": {
+  "purpose": "first live exercise of witness.fields / witness.moddata (slice 08 task 4): both commands, both sides, against a dataset-checkable item and the S6 modData triple",
+  "commands_under_test": [
+   "witness.fields",
+   "witness.moddata"
+  ],
+  "harness_lua": "testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua",
+  "harness_lua_commit": "d260671",
+  "harness_lua_dirty": false,
+  "harness_lua_dirty_note": null,
+  "head_commit": "f1554b2",
+  "dataset": "data/food-items.json",
+  "dataset_commit": "1c4dfa5",
+  "dataset_sha256": "c71202bdd27616730f243773126bbcbfd15161fb258f05b91514fecec993c5b0",
+  "dataset_read_error": null,
+  "dataset_meta": {
+   "build": "42.20.4",
+   "jar_hash": "b0bbce05d5",
+   "generated": "2026-09-10",
+   "tool": "tools/food_scan.py",
+   "sources": [
+    "fluids.txt",
+    "fluids_Alcoholic.txt",
+    "fluids_Beverages.txt",
+    "items/alarmclock.txt",
+    "items/alarmclockclothing.txt",
+    "items/animal.txt",
+    "items/clothing.txt",
+    "items/container.txt",
+    "items/drainable.txt",
+    "items/food.txt",
+    "items/key.txt",
+    "items/literature.txt",
+    "items/map.txt",
+    "items/moveable.txt",
+    "items/normal.txt",
+    "items/radio.txt",
+    "items/weapon.txt",
+    "items/weaponpart.txt"
+   ],
+   "counts": {
+    "food": 722,
+    "drainable": 150,
+    "fluid_container": 133,
+    "fluids": 61,
+    "multi_fluid_containers": 5,
+    "fluid_containers_filled": 72,
+    "fluid_containers_pick_random": 9,
+    "fluid_containers_empty": 61,
+    "fluid_containers_initial_percent": 14,
+    "unresolved_links": 37
+   },
+   "unknown_keys": [
+    "AttachmentReplacement",
+    "BaseSpeed",
+    "BloodLocation",
+    "BodyLocation",
+    "BreakSound",
+    "CanBeEquipped",
+    "CanHaveHoles",
+    "Capacity",
+    "Categories",
+    "CloseSound",
+    "ClothingExtraSubmenu",
+    "ClothingItem",
+    "ClothingItemExtra",
+    "ClothingItemExtraOption",
+    "ColorReference",
+    "ConditionLowerChanceOneIn",
+    "CritDmgMultiplier",
+    "CriticalChance",
+    "DiscomfortModifier",
+    "DisplayName",
+    "DoorDamage",
+    "DoorHitSound",
+    "DropSound",
+    "FillFromLakeSound",
+    "FillFromToiletSound",
+    "HitFloorSound",
+    "HitSound",
+    "IconFluidMask",
+    "KnockBackOnNoDeath",
+    "KnockdownMod",
+    "MaxDamage",
+    "MaxHitcount",
+    "MaxRange",
+    "MinAngle",
+    "MinDamage",
+    "MinRange",
+    "MinimumSwingtime",
+    "OpenSound",
+    "PickRandomFluid",
+    "PushBackMod",
+    "PutInSound",
+    "RunSpeedModifier",
+    "SoundParameter",
+    "SplatBloodOnNoDeath",
+    "SplatNumber",
+    "SubCategory",
+    "SwingAmountBeforeImpact",
+    "SwingAnim",
+    "SwingSound",
+    "Swingtime",
+    "TreeDamage",
+    "WaterResistance",
+    "WeaponLength",
+    "WeaponSprite",
+    "WeightReduction",
+    "alcohol",
+    "diluteRatio",
+    "fluid",
+    "maxEffect",
+    "minAmount"
+   ],
+   "unresolved_links": [
+    {
+     "item": "Base.AnimalFeedBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.BakingTray_Muffin",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.BakingTray_Muffin_Recipe",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.BathTowel",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.BathTowelWet"
+    },
+    {
+     "item": "Base.CakePrep",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.CakeRaw",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.CanPipe_Tobacco",
+     "key": "ReplaceOnUse",
+     "target": "Base.CanPipe"
+    },
+    {
+     "item": "Base.Claybag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.CompostBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.CookieChocolateChipDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesChocolateDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesOatmealDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesShortbreadDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesSugarDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.Dirtbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.DishCloth",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.DishClothWet"
+    },
+    {
+     "item": "Base.GardeningSprayAphids",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GardeningSprayCigarettes",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GardeningSprayMilk",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GrassBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.Gravelbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.GriddlePanFriedVegetables",
+     "key": "ReplaceOnUse",
+     "target": "Base.GridlePan"
+    },
+    {
+     "item": "Base.HotDrinkRed",
+     "key": "ReplaceOnUse",
+     "target": "Base.MugRed"
+    },
+    {
+     "item": "Base.Muffintray_Biscuit",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.OmeletteRecipe",
+     "key": "ReplaceOnUse",
+     "target": "Base.Pan"
+    },
+    {
+     "item": "Base.OmeletteRecipeForged",
+     "key": "ReplaceOnUse",
+     "target": "Base.PanForged"
+    },
+    {
+     "item": "Base.PanFriedVegetables",
+     "key": "ReplaceOnUse",
+     "target": "Base.Pan"
+    },
+    {
+     "item": "Base.PanFriedVegetables2",
+     "key": "ReplaceOnUse",
+     "target": "Base.RoastingPan"
+    },
+    {
+     "item": "Base.PanFriedVegetablesForged",
+     "key": "ReplaceOnUse",
+     "target": "Base.PanForged"
+    },
+    {
+     "item": "Base.PiePrep",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.PieWholeRaw",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.PieWholeRawSweet",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.RagFilter",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.RippedSheetsDirty"
+    },
+    {
+     "item": "Base.Sandbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.SmokingPipe_Tobacco",
+     "key": "ReplaceOnUse",
+     "target": "Base.SmokingPipe"
+    },
+    {
+     "item": "Base.TestHotDrink",
+     "key": "ReplaceOnUse",
+     "target": "Base.TestMug"
+    },
+    {
+     "item": "Base.TestWaterMug",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.TestMug"
+    }
+   ],
+   "missing_display_names": [
+    "Base.FruitSaladClay",
+    "Base.HotDrinkCopper",
+    "Base.HotDrinkGold",
+    "Base.HotDrinkMetal",
+    "Base.HotDrinkSilver",
+    "Base.HotDrinkTumbler"
+   ],
+   "unresolved_fluid_refs": []
+  },
+  "doctor_clean": true,
+  "doctor": [
+   "ok   PZ java processes: none",
+   "ok   ports 27261/27262/27015: free",
+   "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+   "ok   workshop index: 229 mods",
+   "ok   pytest available"
+  ],
+  "user": "admin",
+  "item_type": "Base.Apple",
+  "player_getters": "getUsername,getNutrition,getHoursSurvived,getMaxWeight,getSlicesOfBreadEaten",
+  "item_getters": "getCalories,getCarbohydrates,getLipids,getProteins,getHungChange,getAge,getModData",
+  "spawn_wait_s": 3.0,
+  "spawn_retry_wait_s": 3.0,
+  "transmit_settle_s": 2.0,
+  "witness_max": 32,
+  "empty_list_shape": "TK.json encodes an empty Lua table as {}, so an empty missing / nils / keys arrives as an empty DICT, not []. Test emptiness with `not x`; assert on the numeric `count` / `keyCount` instead.",
+  "bus_hazard": "TK.writeKV writes the ack file non-atomically and the poller reads it every 0.25 s; parse_ack degrades unparseable JSON to a raw string. A table reply that arrives as a string is re-asked once and BOTH readings are kept (probes.<key>.first_reply).",
+  "world_changes": "none -- no settimespeed, no sandbox write. The one write is the client's moddata.set, and it lives in this run's COPY of the fixture."
+ },
+ "session": {
+  "players": [
+   "admin"
+  ],
+  "version_server": "v1 server",
+  "version_client": "v1 client",
+  "time_start": {
+   "worldAge": 2.307273,
+   "hour": 9,
+   "minutes": 18,
+   "mult": 4.595737,
+   "wall": 1789068633862
+  },
+  "rcon_additem": "",
+  "item_id": "199691187",
+  "item_id_source": "item_server.resolved (#<id> suffix)",
+  "moddata_set": "set pzt_witness",
+  "moddata_transmit": "transmitted",
+  "time_end": {
+   "worldAge": 2.43115,
+   "hour": 9,
+   "minutes": 25,
+   "mult": 4.788894,
+   "wall": 1789068661867
+  }
+ },
+ "probes": {
+  "player_server": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "player admin getUsername,getNutrition,getHoursSurvived,getMaxWeight,getSlicesOfBreadEaten",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "player",
+   "id": "admin",
+   "resolved": "admin",
+   "count": 5,
+   "worldAge": 2.315918,
+   "missing": [
+    "getSlicesOfBreadEaten"
+   ],
+   "nils": [],
+   "field_names": [
+    "getHoursSurvived",
+    "getMaxWeight",
+    "getNutrition",
+    "getUsername"
+   ]
+  },
+  "player_client": {
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "player admin getUsername,getNutrition,getHoursSurvived,getMaxWeight,getSlicesOfBreadEaten",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "player",
+   "id": "admin",
+   "resolved": "admin",
+   "count": 5,
+   "worldAge": 2.31749,
+   "missing": [
+    "getSlicesOfBreadEaten"
+   ],
+   "nils": [],
+   "field_names": [
+    "getHoursSurvived",
+    "getMaxWeight",
+    "getNutrition",
+    "getUsername"
+   ]
+  },
+  "player_client_wrong_user": {
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "player nosuchuser getUsername",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "player",
+   "id": "nosuchuser",
+   "resolved": "admin",
+   "count": 1,
+   "worldAge": 2.319721,
+   "missing": [],
+   "nils": [],
+   "field_names": [
+    "getUsername"
+   ]
+  },
+  "player_server_bad_user": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "player nosuchuser getUsername",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "player",
+   "id": "nosuchuser",
+   "resolved": false,
+   "error": "no online player nosuchuser",
+   "worldAge": 2.324708
+  },
+  "item_server": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item Base.Apple getCalories,getCarbohydrates,getLipids,getProteins,getHungChange,getAge,getModData",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "item",
+   "id": "Base.Apple",
+   "resolved": "admin/Base.Apple #199691187",
+   "count": 7,
+   "worldAge": 2.342412,
+   "missing": [],
+   "nils": [],
+   "field_names": [
+    "getAge",
+    "getCalories",
+    "getCarbohydrates",
+    "getHungChange",
+    "getLipids",
+    "getModData",
+    "getProteins"
+   ]
+  },
+  "item_client": {
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item Base.Apple getCalories,getCarbohydrates,getLipids,getProteins,getHungChange,getAge,getModData",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "item",
+   "id": "Base.Apple",
+   "resolved": "admin/Base.Apple #199691187",
+   "count": 7,
+   "worldAge": 2.344692,
+   "missing": [],
+   "nils": [],
+   "field_names": [
+    "getAge",
+    "getCalories",
+    "getCarbohydrates",
+    "getHungChange",
+    "getLipids",
+    "getModData",
+    "getProteins"
+   ]
+  },
+  "item_byid": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item #199691187 getCalories,getCarbohydrates,getLipids,getProteins,getHungChange,getAge,getModData",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "item",
+   "id": "#199691187",
+   "resolved": "admin/Base.Apple #199691187",
+   "count": 7,
+   "worldAge": 2.360139,
+   "missing": [],
+   "nils": [],
+   "field_names": [
+    "getAge",
+    "getCalories",
+    "getCarbohydrates",
+    "getHungChange",
+    "getLipids",
+    "getModData",
+    "getProteins"
+   ]
+  },
+  "absent_getter": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "player admin getCalories,getNoSuchThing",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "player",
+   "id": "admin",
+   "resolved": "admin",
+   "count": 2,
+   "worldAge": 2.366795,
+   "missing": [
+    "getCalories",
+    "getNoSuchThing"
+   ],
+   "nils": [],
+   "field_names": []
+  },
+  "moddata_census_server": {
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "player:admin *",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "scope": "player",
+   "arg": "admin",
+   "resolved": "admin",
+   "count": 0,
+   "keyCount": 4,
+   "worldAge": 2.369013,
+   "missing": [],
+   "keys": [
+    "fitnessMod:number",
+    "fitnessUpTimer:number",
+    "strengthMod:number",
+    "strengthUpTimer:number"
+   ],
+   "value_names": []
+  },
+  "moddata_client": {
+   "side": "client",
+   "cmd": "witness.moddata",
+   "args": "pzt_witness",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "scope": "player",
+   "resolved": "admin",
+   "count": 1,
+   "keyCount": 6,
+   "worldAge": 2.373702,
+   "missing": [],
+   "keys": [
+    "fitnessMod:number",
+    "fitnessUpTimer:number",
+    "hotbar:table",
+    "pzt_witness:string",
+    "strengthMod:number",
+    "strengthUpTimer:number"
+   ],
+   "value_names": [
+    "pzt_witness"
+   ]
+  },
+  "moddata_server_before": {
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "player:admin pzt_witness",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "scope": "player",
+   "arg": "admin",
+   "resolved": "admin",
+   "count": 1,
+   "keyCount": 4,
+   "worldAge": 2.377887,
+   "missing": [
+    "pzt_witness"
+   ],
+   "keys": [
+    "fitnessMod:number",
+    "fitnessUpTimer:number",
+    "strengthMod:number",
+    "strengthUpTimer:number"
+   ],
+   "value_names": []
+  },
+  "moddata_server_after": {
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "player:admin pzt_witness",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "scope": "player",
+   "arg": "admin",
+   "resolved": "admin",
+   "count": 1,
+   "keyCount": 6,
+   "worldAge": 2.395653,
+   "missing": [],
+   "keys": [
+    "fitnessMod:number",
+    "fitnessUpTimer:number",
+    "hotbar:table",
+    "pzt_witness:string",
+    "strengthMod:number",
+    "strengthUpTimer:number"
+   ],
+   "value_names": [
+    "pzt_witness"
+   ]
+  },
+  "moddata_global": {
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "global:pzt_probe_table *",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "scope": "global",
+   "arg": "pzt_probe_table",
+   "count": 0,
+   "keyCount": 0,
+   "worldAge": 2.400092,
+   "missing": [],
+   "keys": [],
+   "value_names": []
+  },
+  "moddata_item": {
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/Base.Apple *",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "scope": "item",
+   "arg": "admin/Base.Apple",
+   "resolved": "admin/Base.Apple #199691187",
+   "count": 0,
+   "keyCount": 0,
+   "worldAge": 2.404531,
+   "missing": [],
+   "keys": [],
+   "value_names": []
+  },
+  "gate_bad_subject_word": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "bogus x y",
+   "expect": "string",
+   "reply_shape": "str",
+   "reasked": false
+  },
+  "gate_bare_scope_word": {
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item",
+   "expect": "string",
+   "reply_shape": "str",
+   "reasked": false
+  },
+  "gate_item_no_id": {
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item",
+   "expect": "table",
+   "reply_shape": "dict",
+   "reasked": false,
+   "subject": "item",
+   "id": "-",
+   "resolved": false,
+   "error": "usage: <id> required for an item subject",
+   "worldAge": 2.422274
+  }
+ },
+ "grading": [
+  {
+   "row": "witness.fields player, server side",
+   "verdict": "as expected",
+   "expected": "a non-empty `fields` map for the 5 requested getters, `truncatedAt` absent",
+   "observed": {
+    "resolved": "admin",
+    "count": 5,
+    "truncatedAt": null,
+    "fields": [
+     "getHoursSurvived",
+     "getMaxWeight",
+     "getNutrition",
+     "getUsername"
+    ],
+    "missing": [
+     "getSlicesOfBreadEaten"
+    ],
+    "nils": []
+   },
+   "ok": true,
+   "values": {
+    "getUsername": "admin",
+    "getNutrition": "zombie.characters.BodyDamage.Nutrition@63dee1b7",
+    "getHoursSurvived": 0.031719,
+    "getMaxWeight": 12
+   }
+  },
+  {
+   "row": "witness.fields player, client side",
+   "verdict": "as expected",
+   "expected": "a non-empty `fields` map for the 5 requested getters, `truncatedAt` absent",
+   "observed": {
+    "resolved": "admin",
+    "count": 5,
+    "truncatedAt": null,
+    "fields": [
+     "getHoursSurvived",
+     "getMaxWeight",
+     "getNutrition",
+     "getUsername"
+    ],
+    "missing": [
+     "getSlicesOfBreadEaten"
+    ],
+    "nils": []
+   },
+   "ok": true,
+   "values": {
+    "getUsername": "admin",
+    "getNutrition": "zombie.characters.BodyDamage.Nutrition@afa6c51",
+    "getHoursSurvived": 0.033204,
+    "getMaxWeight": 12
+   }
+  },
+  {
+   "row": "client ignores <user> (subjectOf resolves the LOCAL player)",
+   "verdict": "as expected",
+   "expected": "`witness.fields player nosuchuser ...` on the CLIENT answers for 'admin' anyway -- `resolved` is the disclosure",
+   "observed": {
+    "resolved": "admin",
+    "fields": {
+     "getUsername": "admin"
+    }
+   },
+   "ok": true
+  },
+  {
+   "row": "unresolved subject answers a TABLE (resolved=false + error), not a string",
+   "verdict": "as expected",
+   "expected": "a dict with `resolved: false` and an `error` naming the missing subject",
+   "observed": {
+    "shape": "dict",
+    "resolved": false,
+    "error": "no online player nosuchuser"
+   },
+   "ok": true
+  },
+  {
+   "row": "witness.fields item Base.Apple, server side, vs data/food-items.json",
+   "verdict": "as expected",
+   "expected": "the four macros and getHungChange match the dataset within the float32 band",
+   "observed": {
+    "resolved": "admin/Base.Apple #199691187",
+    "count": 7,
+    "truncatedAt": null,
+    "mismatched": [],
+    "missing": [],
+    "nils": []
+   },
+   "ok": true,
+   "comparison": {
+    "getCalories": {
+     "dataset_column": "calories",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 95.0,
+     "live": 95,
+     "tolerance": 0.000195,
+     "diff": 0.0,
+     "match": true
+    },
+    "getCarbohydrates": {
+     "dataset_column": "carbohydrates",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 25.13,
+     "live": 25.129999,
+     "tolerance": 0.00012513,
+     "diff": -9.999999974752427e-07,
+     "match": true
+    },
+    "getLipids": {
+     "dataset_column": "lipids",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 0.31,
+     "live": 0.31,
+     "tolerance": 0.00010031000000000001,
+     "diff": 0.0,
+     "match": true
+    },
+    "getProteins": {
+     "dataset_column": "proteins",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 0.47,
+     "live": 0.47,
+     "tolerance": 0.00010047,
+     "diff": 0.0,
+     "match": true
+    },
+    "getHungChange": {
+     "dataset_column": "hunger_change",
+     "factor": 0.01,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "expected": -0.16,
+     "live": -0.16,
+     "tolerance": 0.00010016,
+     "diff": 0.0,
+     "match": true
+    }
+   }
+  },
+  {
+   "row": "witness.fields item Base.Apple, client side, vs data/food-items.json",
+   "verdict": "as expected",
+   "expected": "the four macros and getHungChange match the dataset within the float32 band",
+   "observed": {
+    "resolved": "admin/Base.Apple #199691187",
+    "count": 7,
+    "truncatedAt": null,
+    "mismatched": [],
+    "missing": [],
+    "nils": []
+   },
+   "ok": true,
+   "comparison": {
+    "getCalories": {
+     "dataset_column": "calories",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 95.0,
+     "live": 95,
+     "tolerance": 0.000195,
+     "diff": 0.0,
+     "match": true
+    },
+    "getCarbohydrates": {
+     "dataset_column": "carbohydrates",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 25.13,
+     "live": 25.129999,
+     "tolerance": 0.00012513,
+     "diff": -9.999999974752427e-07,
+     "match": true
+    },
+    "getLipids": {
+     "dataset_column": "lipids",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 0.31,
+     "live": 0.31,
+     "tolerance": 0.00010031000000000001,
+     "diff": 0.0,
+     "match": true
+    },
+    "getProteins": {
+     "dataset_column": "proteins",
+     "factor": 1.0,
+     "transform": "identity",
+     "expected": 0.47,
+     "live": 0.47,
+     "tolerance": 0.00010047,
+     "diff": 0.0,
+     "match": true
+    },
+    "getHungChange": {
+     "dataset_column": "hunger_change",
+     "factor": 0.01,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "expected": -0.16,
+     "live": -0.16,
+     "tolerance": 0.00010016,
+     "diff": 0.0,
+     "match": true
+    }
+   }
+  },
+  {
+   "row": "item fields: server side vs client side",
+   "verdict": "finding",
+   "expected": "both sides read the same instance, so the same values (a difference is a RESULT, not a failure -- record which)",
+   "observed": {
+    "compared": [
+     "getAge",
+     "getCalories",
+     "getCarbohydrates",
+     "getHungChange",
+     "getLipids",
+     "getModData",
+     "getProteins"
+    ],
+    "differ": [
+     "getModData"
+    ],
+    "server_resolved": "admin/Base.Apple #199691187",
+    "client_resolved": "admin/Base.Apple #199691187"
+   },
+   "ok": false
+  },
+  {
+   "row": "witness.fields item #<id> resolves the same instance",
+   "verdict": "as expected",
+   "expected": "the `#<id>` route answers the same `resolved` label as the fullType route",
+   "observed": {
+    "id": "199691187",
+    "id_source": "item_server.resolved (#<id> suffix)",
+    "resolved": "admin/Base.Apple #199691187",
+    "resolved_by_fulltype": "admin/Base.Apple #199691187",
+    "fields": [
+     "getAge",
+     "getCalories",
+     "getCarbohydrates",
+     "getHungChange",
+     "getLipids",
+     "getModData",
+     "getProteins"
+    ]
+   },
+   "ok": true
+  },
+  {
+   "row": "absent getters land in `missing`, not in `fields`",
+   "verdict": "as expected",
+   "expected": "`getNoSuchThing` in `missing`; `getCalories` too if IsoPlayer does not expose it (it lives on Nutrition) -- so `missing` may hold BOTH names",
+   "observed": {
+    "missing": [
+     "getCalories",
+     "getNoSuchThing"
+    ],
+    "nils": [],
+    "count": 2,
+    "fields": {},
+    "getCalories_in_missing": true,
+    "getNoSuchThing_in_missing": true
+   },
+   "ok": true
+  },
+  {
+   "row": "modData triple: client writes, server sees it only after transmitModData",
+   "verdict": "as expected",
+   "expected": "client `pzt_witness` = 'v08'; server absent BEFORE transmitModData, present AFTER (slice 06's S6 shape, through the generic command)",
+   "observed": {
+    "client": {
+     "resolved": "admin",
+     "value": "v08",
+     "keyCount": 6,
+     "count": 1
+    },
+    "server_before": {
+     "resolved": "admin",
+     "value": null,
+     "key_in_missing": true,
+     "keyCount": 4
+    },
+    "server_after": {
+     "resolved": "admin",
+     "value": "v08",
+     "key_in_missing": false,
+     "keyCount": 6
+    }
+   },
+   "ok": true
+  },
+  {
+   "row": "witness.moddata census of a player's modData",
+   "verdict": "as expected",
+   "expected": "`keys` is every top-level key as sorted `<name>:<type>`, `keyCount` its size, and `count` is 0 because `*` reads no named key",
+   "observed": {
+    "resolved": "admin",
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyCount": 4,
+    "count": 0,
+    "error": null
+   },
+   "ok": true
+  },
+  {
+   "row": "witness.moddata global:<name> (ModData.getOrCreate)",
+   "verdict": "as expected",
+   "expected": "either an empty census (the binding exists AND the probe created the table) or the documented 'no ModData.getOrCreate on this build' finding",
+   "observed": {
+    "scope": "global",
+    "arg": "pzt_probe_table",
+    "resolved_present": false,
+    "keys": [],
+    "keyCount": 0,
+    "error": null,
+    "note": "global ModData is reachable through ModData.getOrCreate; an EMPTY census is the expected result and it is evidence of the binding, not of any mod -- getOrCreate CREATED this table, the probe did"
+   },
+   "ok": true
+  },
+  {
+   "row": "witness.moddata item:<user>/<fullType> census",
+   "verdict": "as expected",
+   "expected": "the item resolves with the owner-prefixed label and its modData is censused",
+   "observed": {
+    "resolved": "admin/Base.Apple #199691187",
+    "keys": [],
+    "keyCount": 0,
+    "error": null
+   },
+   "ok": true
+  },
+  {
+   "row": "shape gates: where a bare STRING is the documented answer",
+   "verdict": "as expected",
+   "expected": "a bad <player|item> word and a bare `item`/`global` scope word answer the usage STRING; `witness.fields item` with no id answers a TABLE whose error starts 'usage:'",
+   "observed": {
+    "bad_subject_word": {
+     "shape": "str",
+     "reply": "usage: witness.fields <player|item> <id> <getter,...>",
+     "ok": true
+    },
+    "bare_scope_word": {
+     "shape": "str",
+     "reply": "usage: witness.moddata [player[:<user>]|item:<id>|global:<name>] <key...>",
+     "ok": true
+    },
+    "item_no_id": {
+     "shape": "dict",
+     "error": "usage: <id> required for an item subject",
+     "resolved": false,
+     "ok": true
+    }
+   },
+   "ok": true
+  },
+  {
+   "row": "an empty missing / nils / keys arrives as `{}`, not `[]`",
+   "verdict": "as expected",
+   "expected": "TK.json encodes an empty Lua table as an object, so every later driver must test emptiness with `not x` and assert on `count` / `keyCount`",
+   "observed": {
+    "empty_fields_seen": [
+     "absent_getter.nils",
+     "item_byid.missing",
+     "item_byid.nils",
+     "item_client.missing",
+     "item_client.nils",
+     "item_server.missing",
+     "item_server.nils",
+     "moddata_census_server.missing",
+     "moddata_client.missing",
+     "moddata_global.keys",
+     "moddata_global.missing",
+     "moddata_item.keys",
+     "moddata_item.missing",
+     "moddata_server_after.missing",
+     "player_client.nils",
+     "player_client_wrong_user.missing",
+     "player_client_wrong_user.nils",
+     "player_server.nils"
+    ],
+    "types": [
+     "dict"
+    ]
+   },
+   "ok": true
+  }
+ ],
+ "summary": {
+  "rows": 15,
+  "as_expected": 14,
+  "findings": 1,
+  "misses": 0,
+  "not_as_expected": [
+   "item fields: server side vs client side"
+  ],
+  "probes": 17,
+  "reasked_probes": [],
+  "bus_errors": [],
+  "server_error_count": 0,
+  "client_lua_errors": {
+   "admin": false
+  },
+  "faults": [],
+  "doctor_clean": true,
+  "dataset_sha256": "c71202bdd27616730f243773126bbcbfd15161fb258f05b91514fecec993c5b0",
+  "harness_lua_commit": "d260671",
+  "head_commit": "f1554b2",
+  "wall_seconds": 87.1,
+  "error": null
+ },
+ "fixture": "default",
+ "build": "42.20.4",
+ "timeline": [
+  {
+   "t": 1.0,
+   "phase": "server_launch",
+   "port": 27261
+  },
+  {
+   "t": 14.1,
+   "phase": "server_started",
+   "took": 13.1,
+   "build": "42.20.4"
+  },
+  {
+   "t": 14.2,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 47.3,
+   "phase": "client_ready",
+   "took": 32.8
+  },
+  {
+   "t": 47.3,
+   "phase": "session_ready"
+  },
+  {
+   "t": 51.6,
+   "phase": "probe",
+   "key": "player_server",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 52.1,
+   "phase": "probe",
+   "key": "player_client",
+   "on": "client",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 52.6,
+   "phase": "probe",
+   "key": "player_client_wrong_user",
+   "on": "client",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 53.6,
+   "phase": "probe",
+   "key": "player_server_bad_user",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "False"
+  },
+  {
+   "t": 53.6,
+   "phase": "additem",
+   "item": "Base.Apple",
+   "ok": true
+  },
+  {
+   "t": 57.4,
+   "phase": "probe",
+   "key": "item_server",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin/Base.Apple #199691187"
+  },
+  {
+   "t": 57.9,
+   "phase": "probe",
+   "key": "item_client",
+   "on": "client",
+   "shape": "dict",
+   "resolved": "admin/Base.Apple #199691187"
+  },
+  {
+   "t": 61.4,
+   "phase": "probe",
+   "key": "item_byid",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin/Base.Apple #199691187"
+  },
+  {
+   "t": 62.9,
+   "phase": "probe",
+   "key": "absent_getter",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 63.5,
+   "phase": "probe",
+   "key": "moddata_census_server",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 64.0,
+   "phase": "moddata_set",
+   "key": "pzt_witness",
+   "value": "v08"
+  },
+  {
+   "t": 64.5,
+   "phase": "probe",
+   "key": "moddata_client",
+   "on": "client",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 65.5,
+   "phase": "probe",
+   "key": "moddata_server_before",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 66.0,
+   "phase": "moddata_transmit"
+  },
+  {
+   "t": 69.5,
+   "phase": "probe",
+   "key": "moddata_server_after",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin"
+  },
+  {
+   "t": 70.5,
+   "phase": "probe",
+   "key": "moddata_global",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "None"
+  },
+  {
+   "t": 71.5,
+   "phase": "probe",
+   "key": "moddata_item",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "admin/Base.Apple #199691187"
+  },
+  {
+   "t": 73.5,
+   "phase": "probe",
+   "key": "gate_bad_subject_word",
+   "on": "server",
+   "shape": "str",
+   "resolved": "None"
+  },
+  {
+   "t": 74.3,
+   "phase": "probe",
+   "key": "gate_bare_scope_word",
+   "on": "server",
+   "shape": "str",
+   "resolved": "None"
+  },
+  {
+   "t": 75.6,
+   "phase": "probe",
+   "key": "gate_item_no_id",
+   "on": "server",
+   "shape": "dict",
+   "resolved": "False"
+  },
+  {
+   "t": 79.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 87.5,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "player_server": {
+  "side": "server",
+  "subject": "player",
+  "id": "admin",
+  "resolved": "admin",
+  "fields": {
+   "getUsername": "admin",
+   "getNutrition": "zombie.characters.BodyDamage.Nutrition@63dee1b7",
+   "getHoursSurvived": 0.031719,
+   "getMaxWeight": 12
+  },
+  "missing": [
+   "getSlicesOfBreadEaten"
+  ],
+  "nils": {},
+  "worldAge": 2.315918,
+  "count": 5
+ },
+ "player_client": {
+  "side": "client",
+  "subject": "player",
+  "id": "admin",
+  "resolved": "admin",
+  "fields": {
+   "getUsername": "admin",
+   "getNutrition": "zombie.characters.BodyDamage.Nutrition@afa6c51",
+   "getHoursSurvived": 0.033204,
+   "getMaxWeight": 12
+  },
+  "missing": [
+   "getSlicesOfBreadEaten"
+  ],
+  "nils": {},
+  "worldAge": 2.31749,
+  "count": 5
+ },
+ "player_client_wrong_user": {
+  "side": "client",
+  "subject": "player",
+  "id": "nosuchuser",
+  "resolved": "admin",
+  "fields": {
+   "getUsername": "admin"
+  },
+  "missing": {},
+  "nils": {},
+  "worldAge": 2.319721,
+  "count": 1
+ },
+ "player_server_bad_user": {
+  "side": "server",
+  "subject": "player",
+  "id": "nosuchuser",
+  "resolved": false,
+  "worldAge": 2.324708,
+  "error": "no online player nosuchuser"
+ },
+ "item_server": {
+  "side": "server",
+  "subject": "item",
+  "id": "Base.Apple",
+  "resolved": "admin/Base.Apple #199691187",
+  "fields": {
+   "getCalories": 95,
+   "getCarbohydrates": 25.129999,
+   "getLipids": 0.31,
+   "getProteins": 0.47,
+   "getHungChange": -0.16,
+   "getAge": 0,
+   "getModData": {}
+  },
+  "missing": {},
+  "nils": {},
+  "worldAge": 2.342412,
+  "count": 7
+ },
+ "item_client": {
+  "side": "client",
+  "subject": "item",
+  "id": "Base.Apple",
+  "resolved": "admin/Base.Apple #199691187",
+  "fields": {
+   "getCalories": 95,
+   "getCarbohydrates": 25.129999,
+   "getLipids": 0.31,
+   "getProteins": 0.47,
+   "getHungChange": -0.16,
+   "getAge": 0,
+   "getModData": {
+    "customName": "Apple"
+   }
+  },
+  "missing": {},
+  "nils": {},
+  "worldAge": 2.344692,
+  "count": 7
+ },
+ "item_get_server": {
+  "fullType": "Base.Apple",
+  "cooked": false,
+  "burnt": false,
+  "rotten": false,
+  "frozen": false,
+  "age": 0,
+  "hungChange": -0.16,
+  "baseHunger": -0.16,
+  "calories": 95,
+  "carbs": 25.129999,
+  "lipids": 0.31,
+  "proteins": 0.47,
+  "id": 199691187,
+  "uses": 0.16,
+  "fresh": true,
+  "offAge": 5,
+  "offAgeMax": 8,
+  "freezingTime": 0,
+  "cookingTime": 0,
+  "heat": 1,
+  "minutesToCook": 60,
+  "minutesToBurn": 120,
+  "thirstChange": -0.07,
+  "hungerChange": -0.16,
+  "serverWorldAge": 2.350386
+ },
+ "item_byid": {
+  "side": "server",
+  "subject": "item",
+  "id": "#199691187",
+  "resolved": "admin/Base.Apple #199691187",
+  "fields": {
+   "getCalories": 95,
+   "getCarbohydrates": 25.129999,
+   "getLipids": 0.31,
+   "getProteins": 0.47,
+   "getHungChange": -0.16,
+   "getAge": 0,
+   "getModData": {}
+  },
+  "missing": {},
+  "nils": {},
+  "worldAge": 2.360139,
+  "count": 7
+ },
+ "absent_getter": {
+  "side": "server",
+  "subject": "player",
+  "id": "admin",
+  "resolved": "admin",
+  "fields": {},
+  "missing": [
+   "getCalories",
+   "getNoSuchThing"
+  ],
+  "nils": {},
+  "worldAge": 2.366795,
+  "count": 2
+ },
+ "moddata_census_server": {
+  "side": "server",
+  "scope": "player",
+  "arg": "admin",
+  "values": {},
+  "missing": {},
+  "worldAge": 2.369013,
+  "resolved": "admin",
+  "keyCount": 4,
+  "keys": [
+   "fitnessMod:number",
+   "fitnessUpTimer:number",
+   "strengthMod:number",
+   "strengthUpTimer:number"
+  ],
+  "count": 0
+ },
+ "moddata_client": {
+  "side": "client",
+  "scope": "player",
+  "values": {
+   "pzt_witness": "v08"
+  },
+  "missing": {},
+  "worldAge": 2.373702,
+  "resolved": "admin",
+  "keyCount": 6,
+  "keys": [
+   "fitnessMod:number",
+   "fitnessUpTimer:number",
+   "hotbar:table",
+   "pzt_witness:string",
+   "strengthMod:number",
+   "strengthUpTimer:number"
+  ],
+  "count": 1
+ },
+ "moddata_server_before": {
+  "side": "server",
+  "scope": "player",
+  "arg": "admin",
+  "values": {},
+  "missing": [
+   "pzt_witness"
+  ],
+  "worldAge": 2.377887,
+  "resolved": "admin",
+  "keyCount": 4,
+  "keys": [
+   "fitnessMod:number",
+   "fitnessUpTimer:number",
+   "strengthMod:number",
+   "strengthUpTimer:number"
+  ],
+  "count": 1
+ },
+ "moddata_server_after": {
+  "side": "server",
+  "scope": "player",
+  "arg": "admin",
+  "values": {
+   "pzt_witness": "v08"
+  },
+  "missing": {},
+  "worldAge": 2.395653,
+  "resolved": "admin",
+  "keyCount": 6,
+  "keys": [
+   "fitnessMod:number",
+   "fitnessUpTimer:number",
+   "hotbar:table",
+   "pzt_witness:string",
+   "strengthMod:number",
+   "strengthUpTimer:number"
+  ],
+  "count": 1
+ },
+ "moddata_global": {
+  "side": "server",
+  "scope": "global",
+  "arg": "pzt_probe_table",
+  "values": {},
+  "missing": {},
+  "worldAge": 2.400092,
+  "keyCount": 0,
+  "keys": {},
+  "count": 0
+ },
+ "moddata_item": {
+  "side": "server",
+  "scope": "item",
+  "arg": "admin/Base.Apple",
+  "values": {},
+  "missing": {},
+  "worldAge": 2.404531,
+  "resolved": "admin/Base.Apple #199691187",
+  "keyCount": 0,
+  "keys": {},
+  "count": 0
+ },
+ "gate_bad_subject_word": "usage: witness.fields <player|item> <id> <getter,...>",
+ "gate_bare_scope_word": "usage: witness.moddata [player[:<user>]|item:<id>|global:<name>] <key...>",
+ "gate_item_no_id": {
+  "side": "server",
+  "subject": "item",
+  "id": "-",
+  "resolved": false,
+  "worldAge": 2.422274,
+  "error": "usage: <id> required for an item subject"
+ },
+ "item_comparison": {
+  "server": {
+   "getCalories": {
+    "dataset_column": "calories",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 95.0,
+    "live": 95,
+    "tolerance": 0.000195,
+    "diff": 0.0,
+    "match": true
+   },
+   "getCarbohydrates": {
+    "dataset_column": "carbohydrates",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 25.13,
+    "live": 25.129999,
+    "tolerance": 0.00012513,
+    "diff": -9.999999974752427e-07,
+    "match": true
+   },
+   "getLipids": {
+    "dataset_column": "lipids",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 0.31,
+    "live": 0.31,
+    "tolerance": 0.00010031000000000001,
+    "diff": 0.0,
+    "match": true
+   },
+   "getProteins": {
+    "dataset_column": "proteins",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 0.47,
+    "live": 0.47,
+    "tolerance": 0.00010047,
+    "diff": 0.0,
+    "match": true
+   },
+   "getHungChange": {
+    "dataset_column": "hunger_change",
+    "factor": 0.01,
+    "transform": "x0.01 (Item.InstanceItem)",
+    "expected": -0.16,
+    "live": -0.16,
+    "tolerance": 0.00010016,
+    "diff": 0.0,
+    "match": true
+   }
+  },
+  "client": {
+   "getCalories": {
+    "dataset_column": "calories",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 95.0,
+    "live": 95,
+    "tolerance": 0.000195,
+    "diff": 0.0,
+    "match": true
+   },
+   "getCarbohydrates": {
+    "dataset_column": "carbohydrates",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 25.13,
+    "live": 25.129999,
+    "tolerance": 0.00012513,
+    "diff": -9.999999974752427e-07,
+    "match": true
+   },
+   "getLipids": {
+    "dataset_column": "lipids",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 0.31,
+    "live": 0.31,
+    "tolerance": 0.00010031000000000001,
+    "diff": 0.0,
+    "match": true
+   },
+   "getProteins": {
+    "dataset_column": "proteins",
+    "factor": 1.0,
+    "transform": "identity",
+    "expected": 0.47,
+    "live": 0.47,
+    "tolerance": 0.00010047,
+    "diff": 0.0,
+    "match": true
+   },
+   "getHungChange": {
+    "dataset_column": "hunger_change",
+    "factor": 0.01,
+    "transform": "x0.01 (Item.InstanceItem)",
+    "expected": -0.16,
+    "live": -0.16,
+    "tolerance": 0.00010016,
+    "diff": 0.0,
+    "match": true
+   }
+  }
+ },
+ "item_sides_cross_check": {
+  "getAge": {
+   "server": 0,
+   "client": 0,
+   "same": true
+  },
+  "getCalories": {
+   "server": 95,
+   "client": 95,
+   "same": true
+  },
+  "getCarbohydrates": {
+   "server": 25.129999,
+   "client": 25.129999,
+   "same": true
+  },
+  "getHungChange": {
+   "server": -0.16,
+   "client": -0.16,
+   "same": true
+  },
+  "getLipids": {
+   "server": 0.31,
+   "client": 0.31,
+   "same": true
+  },
+  "getModData": {
+   "server": {},
+   "client": {
+    "customName": "Apple"
+   },
+   "same": false
+  },
+  "getProteins": {
+   "server": 0.47,
+   "client": 0.47,
+   "same": true
+  }
+ },
+ "empty_list_shapes": {
+  "absent_getter.nils": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "item_byid.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "item_byid.nils": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "item_client.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "item_client.nils": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "item_server.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "item_server.nils": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_census_server.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_client.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_global.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_global.keys": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_item.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_item.keys": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "moddata_server_after.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "player_client.nils": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "player_client_wrong_user.missing": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "player_client_wrong_user.nils": {
+   "json_type": "dict",
+   "value": {}
+  },
+  "player_server.nils": {
+   "json_type": "dict",
+   "value": {}
+  }
+ },
+ "wall_seconds": 87.1
+}

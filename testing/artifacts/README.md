@@ -44,6 +44,7 @@ correct it.
 | `scenario-20260910-134012` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 30` | slice 07 (same report; the `M` behind the profile path through `scenario.run`, and behind the `DayLength × --speed` cadence ceiling) |
 | `run-20260910-151642` | `report.json` | `pzt run --profile mod-under-test --hold 5` | slice 07 (the final-wave acceptance run, made on the CLI at `a6b0b54`; the first artifact carrying `took` beside an elapsed `t`; both `trait.check` probes true) |
 | `scenario-20260910-151753` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 5` | slice 07 (the final-wave acceptance scenario, same commit; the first scenario artifact with a `verify` key — the `M` behind `[[verify]]` on the scenario path — at a speed sitting exactly on the cadence ceiling for this profile) |
+| `exp08-20260910-152944` | `witness-probe.json` | `testing/experiments/s08_witness.py` | slice 08 (`.superpowers/sdd/08-nutrition-mod-catalog/task-4-report.md`; the `M` behind `witness.fields` / `witness.moddata` — every claim slices 09–11 make about reading an unnamed getter or modData key on either side, and the harness-wide `{}`-for-an-empty-list shape. `docs/mods-survey/nutrition-mods.md` and [`docs/testing/README.md`](../../docs/testing/README.md) to follow) |
 
 ## Script/artifact skew
 
@@ -115,6 +116,13 @@ committed and before anything else touched `testing/pzt/`, so they are **skew-fr
 first artifacts written in the shapes the list above describes: `client_ready` carries
 `took: 37.3` beside an elapsed `t: 54.2`, and the scenario artifact has a `verify` key. Their
 blocks are at the end of this file.
+
+The seventeenth, **`exp08-20260910-152944`**, is **skew-free** and is the first artifact of a
+different wave: its driver (`testing/experiments/s08_witness.py`) lands in the same commit as the
+file, and the harness Lua it exercises — the `witness.*` block of `PZTestKit_Core.lua` — was at
+`d260671` and clean in the working tree when the run booted, which the artifact records for
+itself (`meta.harness_lua_commit`, `meta.harness_lua_dirty`). It writes the `took` shape as well.
+Its block is at the end of this file.
 
 One further disclosure, unchanged by the wave and about the harness mod rather than the CLI: a concurrent slice-06 fix round had
 `PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
@@ -730,3 +738,95 @@ ceiling rather than six times over it.
 - `test.pass: true` (`"clock ok"`, 3 samples, `startedWorldAge 3.128 → endedWorldAge 3.455`,
   about 19.7 game-minutes by world age), `evaluation: {}` (no evaluator for `smoke_clock`),
   `faults: []`, `server_errors` empty, `build: 42.20.4`, `fixture: default`.
+
+**`exp08-20260910-152944/witness-probe.json`** — produced by
+`testing/experiments/s08_witness.py`, the live witness probe (slice 08, task 4), together with
+the `witness.fields` / `witness.moddata` block of `PZTestKit_Core.lua` that it drives. **87.1 s
+wall**: server boot `took 13.1`, client `took 32.8` (in-world at `t 47.3`), 17 probes between
+`t 51.6` and `t 75.6`, `client_quit rc=0`, `server_stopped rc=0`. `server_errors` **empty**,
+`faults []`, no client Lua error (0 lines matching the harness's own `LuaError|STACK TRACE|lua
+error` regex in `clients/admin/console.txt`), doctor all-`ok` in `meta.doctor`. Dataset
+`data/food-items.json` at sha256 `c71202bd…`, read and never written.
+
+The two commands had been reviewed and committed but **never executed** — there is no Lua
+interpreter on this host, so every claim about them was a reading of the source. This file is
+the first time either answered a live game, and it is what slices 09–11 cite instead of that
+reading. **15 graded rows: 14 as expected, 1 finding, 0 misses** (`summary`), across both sides
+of one session.
+
+- **Both commands work on both sides, and `resolved` says whose subject answered.**
+  `player_server` / `player_client` return the same four values for the same five getters, each
+  `resolved: "admin"`; the item probes return the same seven fields on both sides, each
+  `resolved: "admin/Base.Apple #199691187"`. `count` is 5 / 7 and `truncatedAt` is absent
+  everywhere — the `TK.WITNESS_MAX = 32` cap never bit.
+- **The item's macros are checkable against something other than the witness**, which is what
+  makes this an `M` row: `getCalories 95`, `getCarbohydrates 25.129999`, `getLipids 0.31`,
+  `getProteins 0.47` against the dataset's `95.0 / 25.13 / 0.31 / 0.47`, and `getHungChange
+  −0.16` against `hunger_change −16.0 × 0.01` (the instance constructor's ÷100, slice 05). All
+  ten comparisons (five getters × two sides) match inside the float32 band; `item_get_server` is
+  the independent second reading down slice 01's `item.get`, agreeing field for field.
+- **`missing` and `nils` are a real three-way sort, and `missing` is not rare.**
+  `absent_getter` puts **both** `getCalories` (it lives on `Nutrition`, not on `IsoPlayer`) and
+  `getNoSuchThing` in `missing`, with `nils` empty and `fields` empty. And the plan's own player
+  getter list has a member Kahlua does not expose: **`getSlicesOfBreadEaten` lands in `missing`
+  on the server AND on the client**. Whether the jar has it was not checked here — what is
+  measured is that this build's Lua surface does not, on either side. Read it as slice 05 read
+  the script `Item`'s macro fields: the visible surface is narrower than the jar's, and the
+  witness reports that as an absence rather than dying on it (`TK.call` indexes before it calls).
+- **The S6 modData shape reproduces through the generic command** — and shows more than the key
+  it was asked about. Client after `moddata.set`: `pzt_witness = "v08"`, `keyCount 6`. Server
+  **before** `transmitModData`: `keyCount 4`, `values {}`, `pzt_witness` in `missing`. Server
+  **after**: `keyCount 6`, `values {"pzt_witness": "v08"}`. The two keys that arrive are
+  `pzt_witness:string` **and `hotbar:table`** — so `transmitModData()` pushes the client's whole
+  modData table, not the one key that changed. The census (`keys` as sorted `<name>:<type>`) is
+  what makes that visible; a probe for the single key would have missed it.
+- **`ModData.getOrCreate` exists on 42.20.4** — `moddata_global` answers with no `error`,
+  `keyCount 0`, `keys {}`. That is the EXPECTED result and it is evidence of the binding only:
+  `getOrCreate` **created** `pzt_probe_table`, the probe did. See *do not cite*. Note also that
+  the `global:` branch never sets `resolved` at all — it has no subject to resolve — so a driver
+  that reads `resolved` on every reply must treat its absence on this scope as normal.
+- **The failure and usage shapes are as documented**, which is what lets every later driver know
+  when it may meet a bare string. A subject that does not resolve answers a TABLE
+  (`player_server_bad_user`: `resolved: false`, `error: "no online player nosuchuser"`); a bad
+  `<player|item>` word and a bare `item` scope word answer the usage STRING; `witness.fields
+  item` with no id answers a TABLE whose `error` starts `usage:`. All three gates are in the
+  file as `gate_*`.
+- **A client ignores the `<user>` it is given.** `player_client_wrong_user` asks the client for
+  `player nosuchuser` and gets `resolved: "admin"` with `getUsername: "admin"` — `subjectOf`
+  resolves the LOCAL player on that side. Always read `resolved`; never assume the name you sent
+  is the subject that answered.
+- **An empty `missing` / `nils` / `keys` arrives as `{}`, not `[]`** — a harness-wide property
+  every later driver inherits, and measured here rather than argued from `TK.json`: 18 empty
+  fields across 12 probes, **all of them JSON objects** (`empty_list_shapes` lists every one).
+  Test emptiness with `not x`; never `== []`, never index position 0. `count` (names read) and
+  `keyCount` (census size) are numbers whatever the shape does, and are the safe assertions.
+- **How the `#<id>` route got its id.** `ITEM_GETTERS` does not ask for `getID`, so `item_byid`
+  read the id out of `item_server`'s `resolved` label, whose item form ends `#<id>`
+  (`session.item_id_source`). It is a reading, not a guess, and `item.get`'s independent
+  `id: 199691187` agrees. `item_byid` resolves the same label as the fullType route.
+
+**The one finding.** `item_sides_cross_check.getModData.same` is **`false`**: the SERVER's copy
+of the apple has `getModData() == {}` and the CLIENT's has `{"customName": "Apple"}` — same
+instance, same `#199691187`, six of seven fields identical. `moddata_item` corroborates it
+independently from the other command (`item:admin/Base.Apple` on the server: `keyCount 0`,
+`keys {}`). So it is a finding about **MP item-modData ownership**, not about the witness: an
+item's modData is not the same object on the two sides, and a slice 09–11 teardown that reads a
+mod's item modData has to say which side it read. The value is vanilla's own display name, not
+anything this run wrote. What *pushes* an item's modData across, and whether `customName` is
+simply client-authored, is unmeasured here.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `moddata_global.keyCount` / `.keys` | `0` / `{}` | **Not evidence that nothing stores anything under `pzt_probe_table`** — evidence that `ModData.getOrCreate` exists and creates. The Lua reads global scope through `getOrCreate`, which CREATES an absent table, so a global census can never report "no such table" and this one is reporting a table the probe itself had just made. Cite it for the binding (`witness.moddata global:<name>` reaches global ModData on 42.20.4) and for nothing else. A census of a table a *mod* owns is only meaningful when that mod is loaded and has run. |
+| `player_server.fields.getMaxWeight`, `player_client.fields.getMaxWeight` | `12` | Right value, wrong noun if quoted as nutrition. `IsoGameCharacter.getMaxWeight()` is the character's **carry capacity**, not body weight: this fixture's body weight is ~80 kg, and every weight figure this repo has measured (`exp03-20260910-045523`, the slice-04 scenarios, `exp05b`'s `0.016 × weight/80`) is `Nutrition.getWeight()`. The getter was in the probe list to exercise the witness, not to measure a body. |
+| `player_server.fields.getHoursSurvived` vs `player_client.fields.getHoursSurvived` | `0.031719` vs `0.033204` | **Not a desync.** The two probes are 0.5 real seconds apart on a clock running at `mult ≈ 4.6` (`session.time_start`), and each reply carries its own `worldAge` (`2.315918` / `2.317490`) which accounts for the gap. Nothing in this file compares a *moving* store across sides; the item macros, which do not move, are the cross-side comparison. |
+| `session.rcon_additem` | `""` | The RCON call succeeded (`timeline` `additem ok=true`) and the server answered with an empty body. It says nothing about the spawn; `item_server` resolving `#199691187` 3.8 s later is what says the apple arrived. |
+
+**What this file contains beyond the task brief's skeleton**, all of it read-only and recorded as
+its own probe: `player_client_wrong_user` and `player_server_bad_user` (the client's `<user>`
+disclosure and the server's failure shape), `item_get_server` (the independent `item.get`
+reading), and the three `gate_*` shape probes. The brief's own `item_byid` route is exercised via
+`resolved` rather than skipped — see the bullet above. Everything else is the brief's probe list
+in the brief's order.
