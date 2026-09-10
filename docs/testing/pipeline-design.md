@@ -162,9 +162,27 @@ one inventory item (condition, conditionMax, modData).
   with T1.
 - **T1** L0+L1: lint + boot validation against the *current* modlist subset
   (proves the pipeline on other people's mods before ours exists).
-- **T2** L2: server scenarios + result channel + RCON; accelerated-time
-  nutrition scenario on vanilla (e.g. "3 game-days at 4000 cal gains ≥3 kg")
-  — a real test of a real system before any mod code.
+- **T2** ✅ 2026-09-10 — L2: server scenarios + result channel + RCON. Shipped:
+  the harness **test layer** (`shared/PZTestKit_Test.lua` — `TK.test`, a
+  game-minute scheduler on `EveryOneMinute`, `test.list` / `test.run` /
+  `test.status` on the bus), scenarios under `server/scenarios/`, and
+  `pzt scenario <name> [--side server|client] [--speed N]` with Python
+  evaluators. API and runner: [README.md](README.md) § Scenarios and the test
+  layer — it supersedes the `TK.test(name, {tags, timeoutMin, fn})` sketch under
+  *Components* above (and the `.ready` marker there, which S4 ruled out).
+  **Three live runs**, ~10 min wall each (593 s to the result doc, 603 s
+  including teardown), 73 hourly samples over 72.0 game-hours,
+  `EveryOneMinute` at 1.000 ticks per game-minute, 0 server errors:
+  `scenario-20260910-054012` (gain) **+2.526 kg measured vs +2.551 predicted**,
+  tolerance 0.383 — **PASS**; `scenario-20260910-055029` (fast) **−1.426 vs
+  −1.412**, tolerance 0.212 — **PASS**; `scenario-20260910-052624`, the first,
+  unwatered attempt — **FAIL**, subject dead of thirst at game-hour 35
+  (`setCalories` is not food). Full numbers and findings:
+  [../vanilla/nutrition-core.md](../vanilla/nutrition-core.md) § Verified on
+  server. **The prior this roadmap carried — "3 game-days at 4000 cal gains
+  ≥3 kg" — does not survive the clamps**: `setCalories` tops out at 3 700, which
+  swallowed 4 790 of the 12 000 kcal fed, so the model predicts **+2.55 kg** over
+  three game-days and the server measured **+2.53**.
 - **T3** L3/L4: one driven client, witness suite, relog round-trip.
 - **T4** two clients (multi-player interactions), nightly full run, CI job for
   L0–L2 on a Linux dedicated server image.

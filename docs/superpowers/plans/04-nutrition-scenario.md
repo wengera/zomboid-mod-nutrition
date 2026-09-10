@@ -37,6 +37,29 @@
 
 ## Method
 
+> **Superseded by the slice's rulings** (`docs/decisions.md`, 2026-09-10, and the SDD ledger
+> `.superpowers/sdd/04-nutrition-scenario/progress.md`). The design below was written before
+> slices 01 and 03 established that the **server** owns `Nutrition`, and two of its decisions
+> did not survive that:
+>
+> 1. **Scenarios run server-side, not client-side.** The test layer stays in
+>    `shared/PZTestKit_Test.lua`, but the scenario files live under
+>    `server/scenarios/PZTestKit_Scenario_{Smoke,Nutrition}.lua`, `test.run` goes on the
+>    **server** bus, and `pzt scenario` gained `--side server|client` (default **server**).
+>    `t.player` is resolved by username out of `getOnlinePlayers()` — there is no `getPlayer()`
+>    on a dedicated server — so the admin client is still attached, as the live player. Every
+>    "Cold-start context" and Task 1/2/3 line below that says *client* is obsolete, including
+>    "Nutrition is computed on the **client** (S6)", whose direction slice 01 reversed.
+> 2. **Daily intake is two +2 000 doses 12 game-hours apart**, not one +4 000: `setCalories`
+>    clamps at 3 700, so a single dose would measure the clamp rather than the intake (the
+>    plan's own decision point, taken). Even split, the ceiling still swallowed 4 790 of the
+>    12 000 kcal — accounted for in the doc.
+>
+> The code sketches below are what was proposed, not what shipped; the shipped API is
+> documented in [`docs/testing/README.md`](../../testing/README.md) § Scenarios and the test
+> layer, and the results in
+> [`docs/vanilla/nutrition-core.md`](../../vanilla/nutrition-core.md) § Verified on server.
+
 ### Task 1: Test layer (`PZTestKit_Test.lua`, shared)
 
 **Files:** Create `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Test.lua`; Modify `PZTestKit_Core.lua` (nothing required — the test file uses `TK.*`; it must load after Core: name it `PZTestKit_Test.lua`, Lua files in a folder load alphabetically and `Core` < `Test`).
@@ -46,7 +69,7 @@
 - Scheduler: `Events.EveryOneMinute` advances `TK.tests.clock` (game minutes since the test started) and runs due callbacks; on completion or timeout writes `TK.result("test_" .. name, { pass = bool, detail = str, samples = t.samples, log = t.log, startedWorldAge = …, endedWorldAge = …, gameMinutes = … })`.
 - Bus commands: `test.list` → registered names; `test.run <name>` → starts it (ack `started` / `unknown` / `already running`); `test.status` → `{running, clock, name}`.
 
-- [ ] **Step 1: Write the module**
+- [x] **Step 1: Write the module**
 
 ```lua
 -- PZTestKit test layer: game-time scheduled tests, one JSON result per test.
@@ -122,7 +145,7 @@ TK.register("test.status", function() return { running = T.running and T.running
 TK.log("test layer loaded")
 ```
 
-- [ ] **Step 2: Add a trivial scenario to prove the scheduler** — `client/scenarios/PZTestKit_Scenario_Smoke.lua`:
+- [x] **Step 2: Add a trivial scenario to prove the scheduler** — `client/scenarios/PZTestKit_Scenario_Smoke.lua`:
 
 ```lua
 TK.test("smoke_clock", { timeoutMin = 30, run = function(t)
@@ -133,7 +156,7 @@ end })
 
 (Confirm the client loads `client/scenarios/*.lua` — the loader is recursive; if not, move the file up a level.)
 
-- [ ] **Step 3: Commit** — `git commit -m "Slice 04: harness test layer"`
+- [x] **Step 3: Commit** — `git commit -m "Slice 04: harness test layer"`
 
 ### Task 2: `pzt scenario`
 
@@ -141,7 +164,7 @@ end })
 
 **Interfaces (produces):** `python testing/pzt scenario <name>` → exit 0 iff the test result has `pass == true` and the Python-side evaluation (if any, `EVALUATORS[name]`) passes; prints the timeline; writes `runs/scenario-*/report.json` with the result doc and evaluation.
 
-- [ ] **Step 1: Write it**
+- [x] **Step 1: Write it**
 
 ```python
 """pzt scenario <name>: run one harness test on the fixture session at accelerated time."""
@@ -193,14 +216,14 @@ def run(a):
 
 Register in `cli.py`: `p = sub.add_parser("scenario"); p.add_argument("name"); p.add_argument("--fixture", default="default"); p.add_argument("--speed", type=int, default=30); p.add_argument("--timeout", type=int, default=900); common_server(p); common_client(p); p.set_defaults(fn=scenario.run)` and import `from . import scenario`; import the evaluator module(s) at the bottom of `scenario.py` (`from . import scenarios_nutrition  # noqa: registers evaluators`) after Task 3 creates it.
 
-- [ ] **Step 2: Run the smoke scenario** — `python testing/pzt scenario smoke_clock --speed 30` → Expected: PASS, `game_minutes` ≈ 20 within ~1 min wall (Q2: ≥ 3 samples ⇒ `EveryOneMinute` fires at game-time cadence).
-- [ ] **Step 3: Commit** — `git commit -m "Slice 04: pzt scenario runner"`
+- [x] **Step 2: Run the smoke scenario** — `python testing/pzt scenario smoke_clock --speed 30` → Expected: PASS, `game_minutes` ≈ 20 within ~1 min wall (Q2: ≥ 3 samples ⇒ `EveryOneMinute` fires at game-time cadence).
+- [x] **Step 3: Commit** — `git commit -m "Slice 04: pzt scenario runner"`
 
 ### Task 3: The 3-day nutrition scenario + evaluator
 
 **Files:** Create `testing/PZTestKit/PZTestKit/42/media/lua/client/scenarios/PZTestKit_Scenario_Nutrition.lua`, `testing/pzt/scenarios_nutrition.py`.
 
-- [ ] **Step 1: Lua scenario**
+- [x] **Step 1: Lua scenario**
 
 ```lua
 -- 3 accelerated game-days at a fixed daily intake; hourly samples; the model check runs in python.
@@ -225,7 +248,7 @@ register("nutrition_3day_gain", 4000)
 register("nutrition_3day_fast", 0)
 ```
 
-- [ ] **Step 2: Python evaluator** (`scenarios_nutrition.py`): integrate the model over the samples.
+- [x] **Step 2: Python evaluator** (`scenarios_nutrition.py`): integrate the model over the samples.
 
 ```python
 """Model check for the nutrition_3day_* scenarios (weight model: docs/vanilla/nutrition-core.md)."""
@@ -267,13 +290,13 @@ EVALUATORS["nutrition_3day_fast"] = evaluate
 
 Note: the model integrates with the *predicted* weight (thresholds depend on it), sample-to-sample; hourly sampling is the resolution — state it in the doc.
 
-- [ ] **Step 3: Run both** — `python testing/pzt scenario nutrition_3day_gain` and `... nutrition_3day_fast`. Expected: each ≈ 10–11 min wall, `pass=true`; evaluation within tolerance. If the evaluation fails, that is the finding: record measured vs predicted, check the samples for clamping (`setCalories` clamp from slice 01/02), re-read `updateWeight` for a term the doc missed, and document.
-- [ ] **Step 4: Commit** — `git commit -m "Slice 04: 3-day nutrition scenario and model check"`
+- [x] **Step 3: Run both** — `python testing/pzt scenario nutrition_3day_gain` and `... nutrition_3day_fast`. Expected: each ≈ 10–11 min wall, `pass=true`; evaluation within tolerance. If the evaluation fails, that is the finding: record measured vs predicted, check the samples for clamping (`setCalories` clamp from slice 01/02), re-read `updateWeight` for a term the doc missed, and document.
+- [x] **Step 4: Commit** — `git commit -m "Slice 04: 3-day nutrition scenario and model check"`
 
 ### Task 4: Doc
 
-- [ ] **Step 1:** add a **"Verified on server"** section to `docs/vanilla/nutrition-core.md`: the two runs (ids, wall time, game-hours, measured vs predicted, tolerance), what the check does and does not cover (no burn-rate assertion; hourly resolution), and an `Ev` M row in the model table. Update `docs/testing/README.md` (scenario command, test layer API) and `docs/testing/pipeline-design.md` roadmap (T2 ✅ with the numbers).
-- [ ] **Step 2:** lint → 0; commit `Slice 04: T2 verified on server`.
+- [x] **Step 1:** add a **"Verified on server"** section to `docs/vanilla/nutrition-core.md`: the two runs (ids, wall time, game-hours, measured vs predicted, tolerance), what the check does and does not cover (no burn-rate assertion; hourly resolution), and an `Ev` M row in the model table. Update `docs/testing/README.md` (scenario command, test layer API) and `docs/testing/pipeline-design.md` roadmap (T2 ✅ with the numbers).
+- [x] **Step 2:** lint → 0; commit `Slice 04: T2 verified on server`.
 
 ## Deliverables
 
@@ -296,3 +319,56 @@ Note: the model integrates with the *predicted* weight (thresholds depend on it)
 ## Done protocol
 
 - `docs/progress.md` 04 → done (+ ripple: the test-layer API is now the L2/L3 base for all later slices); wave 1 complete → write wave-2 plans (05, 06, 07) before continuing; `docs/decisions.md`; push.
+
+## Acceptance results (2026-09-10)
+
+Every step above ran (the ticks are the record); this section is the outcome of the three
+acceptance checks. Live runs: Task 2's `smoke_clock` (twice — at ship and again after the
+T1+T2 fix round) and Task 3's three 3-day scenarios, all on the golden fixture `default`,
+build 42.20.4, side **server**, subject `admin`, `settimespeed 30`. Commits: `3b1ac80` (test
+layer), `4b964d3` (`pzt scenario`), `707c878` (scenario + evaluator), `dd84a37` (T1+T2 fix
+round), `ef64241` (T3 fix round), plus this task's doc commit.
+
+1. `python testing/pzt scenario smoke_clock` → **PASS in 64.7 s**, and **PASS in 63.1 s** on
+   the re-run after the fix round — both well inside the 2-minute budget. This is also **Q2's
+   answer: yes.** `EveryOneMinute` drives the game-minute clock on the *dedicated server* at
+   30×, measured at 1.015 ticks per game-minute in the first smoke run, 0.983 in the second
+   and **1.000 in all three 3-day runs** (7.99–8.00 game-minutes per wall second). The
+   `OnTick` fallback in the decision points below was never needed.
+2. `python testing/pzt scenario nutrition_3day_gain` / `nutrition_3day_fast` → three
+   unattended runs, no human input, **≈593 s wall to the result doc** (603 s including
+   teardown) each — inside the 15-minute budget — **73 hourly samples over 72.0 game-hours**
+   and **0 server error lines** in every one:
+
+   | Run id | Scenario | Measured Δ | Predicted Δ | Tol | Verdict |
+   |---|---|---|---|---|---|
+   | `scenario-20260910-052624` | gain, hunger/thirst not pinned | +1.073 kg (+1.045 over the 34 alive hours) | +2.688 (+1.057 alive) | 0.403 | **FAIL** — subject died at game-hour 35 |
+   | `scenario-20260910-054012` | gain, hunger/thirst pinned | **+2.526 kg** | +2.551 | 0.383 | **PASS** |
+   | `scenario-20260910-055029` | fast, no intake | **−1.426 kg** | −1.412 | 0.212 | **PASS** |
+
+   **Q1: yes** — both passing runs sit inside 1 % of the model integrated over their own
+   calorie traces, and the residuals are the check's own hourly-quadrature bias (a midpoint
+   re-integration collapses them to −0.0003 / −0.0002 kg), not model error. **Q3:** ≈10 min
+   wall per run, green with no human — click-through, `settimespeed` restore and teardown all
+   automatic. The FAIL is the documented finding, not a loosened tolerance (the decision point
+   below was honoured): `setCalories` is not food, the unwatered subject died of thirst at
+   game-hour 35, and `Nutrition.update` stops on a corpse. Full write-up:
+   [`docs/vanilla/nutrition-core.md`](../../vanilla/nutrition-core.md) § Verified on server;
+   the three result JSONs are committed under `testing/artifacts/<run id>/`.
+3. `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` → **0
+   findings** across the trees this slice touched; the 4 pre-existing findings in
+   `docs/mods-survey/teardowns/` remain deferred by the standing ruling in
+   [`docs/decisions.md`](../../decisions.md). `python testing/pzt run --hold 5` was **not**
+   run by this slice: by the 2026-09-10 ruling in the same ledger it is folded into the next
+   live run after the slice-04 harness edits, together with the one `nutrition.applytraits`
+   call that has never executed live. (The most recent local full-stack run,
+   `run-20260910-065745` at 06:58 — after every slice-04 harness edit had landed — reports
+   PASS with 0 server errors, but it was not this slice's acceptance run.)
+
+Two plan assumptions did not survive, both recorded above under § Method: client-side
+scenarios (the server owns `Nutrition`) and the one-dose-a-day feed (the 3 700 clamp). A
+third — the Task 3 dispatch's prior that the gain run would put on 0.5–1 kg, and the T2
+roadmap example "3 game-days at 4000 cal gains ≥3 kg" in
+[`docs/testing/pipeline-design.md`](../../testing/pipeline-design.md) (corrected there) — was
+simply wrong in size: the model predicts **+2.55 kg** under the clamp and the server measured
+**+2.53**.

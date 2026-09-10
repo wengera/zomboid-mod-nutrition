@@ -30,8 +30,8 @@ correct it.
 | `exp01-20260910-003929` | `eat-matrix.json` | `testing/experiments/s01_eat_matrix.py` | same three docs |
 | `exp02-20260910-030433` | `lifecycle.json` | `testing/experiments/s02_lifecycle.py` | [`docs/vanilla/food-item-model.md`](../../docs/vanilla/food-item-model.md) |
 | `exp03-20260910-045523` | `body.json` | `testing/experiments/s03_body.py` | slice 03 (`.superpowers/sdd/03-body-side/task-3-report.md`; docs to follow) |
-| `scenario-20260910-052624` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` (unwatered first attempt: the subject dies of thirst at game-hour 35) | slice 04 (`.superpowers/sdd/04-nutrition-scenario/task-3-report.md`; docs to follow) |
-| `scenario-20260910-054012` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` | same |
+| `scenario-20260910-052624` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` (unwatered first attempt: the subject dies of thirst at game-hour 35) | [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md) § Verified on server, [`docs/vanilla/body-stats.md`](../../docs/vanilla/body-stats.md) (the `THIRST == 4` health loss) |
+| `scenario-20260910-054012` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` | [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md) § Verified on server |
 | `scenario-20260910-055029` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast` | same |
 
 ## Script/artifact skew
@@ -164,8 +164,12 @@ offline, reproducing every stored key.
   measured the drain's *rate* (−17.820 health per game-hour of world time, four consecutive
   full hours) but never sampled the stat it was keyed on.
 - **A dead subject now fails the run** (`evaluation.dead_any` is no longer diagnosis only), and
-  the evaluation carries `within_tolerance`, `thirst_end` and, on a death, `reason`. These
-  files have none of those keys. **Re-evaluated offline with the evaluator at HEAD: run 1
+  the evaluation carries `within_tolerance`, on a death `reason`, and — only when the last
+  sample actually has a `thirst` value (`scenarios_nutrition.py:148-149`) — `thirst_end`. These
+  files have none of those keys, and because none of them carries a `thirst` column at all (the
+  bullet above), **re-evaluating these three can only ever add `within_tolerance`, plus `reason`
+  on run 1**; `thirst_end` waits for a run made after the column landed.
+  **Re-evaluated offline with the evaluator at HEAD: run 1
   `FAIL` (dead, and its residual was already outside tolerance either way), runs 2 and 3
   `PASS`, with every numeric key in the stored `evaluation` block reproduced unchanged** —
   `measured_delta_kg` / `predicted_delta_kg` / `residual_kg` / `tolerance_kg` of
