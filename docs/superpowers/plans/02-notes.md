@@ -836,6 +836,12 @@ transfer up, and because the same amount of hunger is bought for less of the ing
 `1.667 ×` the macros per unit of hunger a level-0 cook does. **This is the single largest
 nutrition-side lever in the vanilla game and the nutrition mod must decide whether to keep it.**
 
+> **Correction (measured, `exp02-20260910-030433`):** the `1.667 ×` in the sentence above is wrong —
+> it is the **dish-gain / ingredient-loss** ratio (calorie creation), not the dish-size factor.
+> Macros per unit of *dish* hunger rise only **`1.1667 ×`** at Cooking 10 (Salad: 25.0 → 29.1667 kcal
+> for the same −0.11 hunger), because `skillBonus` is cancelled by the `(1 − 0.03·lvl)` shrink inside
+> `share`. See `docs/vanilla/food-item-model.md` § Evolved recipes.
+
 The `*_UNMODIFIED` getters are used for thirst and unhappiness (`getThirstChangeUnmodified`,
 `getUnhappyChangeUnmodified`) so cooked/rotten multipliers are not baked into the dish — but the
 rotten *discount* is applied explicitly through `hunger`, and the four macro getters are already
