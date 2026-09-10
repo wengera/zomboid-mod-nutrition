@@ -33,7 +33,7 @@ build ALSO loads (`docs/modding/README.md:22`, `mod_lint.media_root`) and its co
 not counted here; this module asserts no merge rule between the two folders. **`media_at` is
 the guard, not `live_media`**: a zero in `stats`/`signals` is only trustworthy when `media_at`
 does not include `common/media`, and 177 of the 230 rows do include it (2026-09-10) -- on 111
-of them a bucket already reads 0 while `common/media` holds that kind of file (HayesCustoms
+of the 153 that also have a live media/ a bucket already reads 0 while `common/media` holds that kind of file (HayesCustoms
 1268 models, MorePlushies 154). `live_media: false` marks only the total-blackout subset, the
 24 rows with no live `media/` at all. Measured impact on the nutrition question specifically:
 none -- no `common/media` in the corpus carries a single nutrition key (swept 2026-09-10).

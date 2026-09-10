@@ -312,6 +312,8 @@ def test_committed_dataset_carries_resolved_ids_and_the_new_fields():
     # row recorded 1 of its 492 definitions (2026-09-10).
     assert [r["script_item_blocks"] for r in rows
             if r["folder"] == "KATTAJ1 Military Pack"] == [492]
+    # Corpus total pinned so a Steam rewrite cannot rot the sum silently (2026-09-10).
+    assert sum(r["script_item_blocks"] for r in rows) == 6648
 
 
 @unittest.skipUnless(os.path.isfile(DATASET), "data/mod-inventory.json not generated")

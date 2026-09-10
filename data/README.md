@@ -578,7 +578,8 @@ reads 0 while `common/media` holds exactly that kind of file (2026-09-10):
 `HayesCustoms` records `models: 0` over 1268 `.fbx` there, `MorePlushies` over
 154, and `ZVirusVaccine42BETA` — a `live_media: true` row — hides 12 models, 5
 tile packs and 18 sounds the same way. On those 111 rows alone that is 2527
-models, 120 sounds and 15 tile packs the dataset reports as zero; the true
+models, 120 sounds, 15 tile packs, 67 client / 13 shared / 12 server Lua files and 3
+script files the dataset reports as zero; the true
 uncounted total is larger, since a row whose bucket is non-zero can have more
 of the same kind in `common/media` as well.
 
@@ -610,7 +611,7 @@ counts, lua architecture, sounds — check `media_at` before believing a zero.
 | `workshop_item_mtime` | string/null | ISO-8601 mtime of the `<workshop-id>/` folder — see the caveat below. Non-null on all 230 rows here; `null` when `scan_mod` is called on a mod folder with no workshop item above it, since the mod folder's own mtime is a different fact |
 | `sandbox_options` | bool | a `media/sandbox-options.txt` in the live folder or at the mod root |
 | `workshop_id` / `folder` | string | the item id and the mod folder name; together they are the record's key |
-| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is the 31 rows whose `stats` came back empty, and they split two ways: **24** have no `<live>/media` at all (`live_media` false — every file is in `common/media`, mostly tile packs) and **7** have one holding only file kinds `stats` has no bucket for — measured 2026-09-10: **182 `.json`** (149 of them `KnoxBuildworks_Vanilla_Expanded`'s map definitions, the rest `lua/shared/Translate/**` strings), **21 `.txt`** (more translations, plus `AnimSets/` and `actiongroups/` folder placeholders), **4 `.frag`** shaders (`SomewhatWater`) and **1 `.xml`** (`PALSJs Poofs`' hair styles) — and **no `.png`/`.dds`/`.tga` between them**, so they are not "textures". Never read `other` as "ships nothing" |
+| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is the 31 rows whose `stats` came back empty, and they split two ways: **24** have no `<live>/media` at all (`live_media` false — every file is in `common/media`: over the 24, 1 004 `.png`, 191 `.json`, 163 `.fbx`, 119 `.xml`, 105 `.lua`, 65 `.txt`, 13 `.tiles`, 12 `.pack`, and only 6 of the 24 ship any pack or tiles) and **7** have one holding only file kinds `stats` has no bucket for — measured 2026-09-10: **182 `.json`** (133 of them `KnoxBuildworks_Vanilla_Expanded` map definitions and manifests, 49 `lua/shared/Translate/**` strings, 16 of those from the same Knox item), **21 `.txt`** (more translations, plus `AnimSets/` and `actiongroups/` folder placeholders), **4 `.frag`** shaders (`SomewhatWater`) and **1 `.xml`** (`PALSJs Poofs`' hair styles) — and **no `.png`/`.dds`/`.tga` between them**, so they are not "textures". Never read `other` as "ships nothing" |
 
 **`workshop_item_mtime` is a download stamp, not an update stamp.** Steam
 rewrites the mod folder inside an item without touching the item folder:
