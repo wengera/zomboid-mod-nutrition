@@ -9,7 +9,7 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | 01 | P1a · Intake pipeline | done | 2026-09-10 | cd0f936..419f16a | `docs/vanilla/eating-pipeline.md` (67 modifiers, 24 measured; server owns Nutrition in MP); tools wiki_mirror/doc_lint, `pzt doctor`, harness experiment commands, 7 mirrors, tracked artifacts; acceptance in the plan file |
 | 02 | P1c · Food item model & lifecycle | done | 2026-09-10 | 0c3d6b7..e44610c | `docs/vanilla/food-item-model.md` (114 keys, aging/cooking/evolved models, 36 measured rows); lifecycle harness commands + `s02_lifecycle.py`; artifact `exp02-20260910-030433`; 3 mirrors; ItemStats packet analysis incl. the zero-field leak |
 | 03 | P1b · Body side | done | 2026-09-10 | 22ce6c2..5b9b959 (interleaved with slice 04) | `docs/vanilla/body-stats.md` (passive burn, hunger/thirst rates and multipliers, moodle thresholds, weight bands, appetite traits; 57 measured rows, `exp03-20260910-045523`); body-side harness commands (server `stats.get`, `trait.set`, `player.sleep`, ...; client `player.walk`) + `s03_body.py`; 5 mirrors; corrections across nutrition-core/eating-pipeline/patterns (client computes and discards weight; recovery-mod deficit penalties are dead code; FOOD_EATEN timer is game-time; THIRST level-4 health loss at 5x the hunger rate, found through the slice-04 death run) |
-| 04 | T2 · Accelerated nutrition scenario | in progress | 2026-09-10 | (see resume note) | test layer + scenario runner being built (server-side per the slice-01/03 ripples) |
+| 04 | T2 · Accelerated nutrition scenario | done | 2026-09-10 | 3b1ac80..afac230 (interleaved with slice 03) | harness test layer (`TK.test`, `t:at/every/eventually`, `test.run` on the server bus) + `pzt scenario --side server`; three 3-day runs at 30x (`scenario-20260910-05{2624,4012,5029}`): weight model verified to sub-gram accuracy (+2.526 vs +2.551 kg gain, -1.426 vs -1.412 kg fast); run 1 died of thirst at game-hour 35 (`setCalories` is not food; THIRST level-4 health drain found and confirmed on the jar); `nutrition-core.md` § Verified on server; `pzt doctor` port states; scenario verdicts now fail on server/client errors |
 | 05 | P4a · Food scanner + dataset | in progress | 2026-09-10 | (see resume note) | shared script parser being built (Tasks 1+2) |
 | 06 | P4b · Recipes & cooking dataset | ready (needs 05; plan `superpowers/plans/06-recipes.md`) | | | |
 | 07 | T1 · Profile builder | ready (plan `superpowers/plans/07-profile-builder.md`) | | | |
@@ -24,8 +24,6 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 ## Resume notes (in-progress slices)
 
 - **05** (SDD ledger `.superpowers/sdd/05-food-scanner/progress.md`, plan `docs/superpowers/plans/05-food-scanner.md`): running — Tasks 1+2 (`tools/food_scan.py` parser + tests). Next — Task 3 dataset, Task 4 harness `items.count`/`fluid.script`, Task 5 live cross-check (needs the live slot), Task 6 doc.
-
-- **04** (SDD ledger `.superpowers/sdd/04-nutrition-scenario/progress.md`, plan `docs/superpowers/plans/04-nutrition-scenario.md`): running — Tasks 1+2 (`shared/PZTestKit_Test.lua`, server-side scenarios, `pzt scenario --side`); the plan's client-side scenario design is superseded by the ledger's rulings (server owns Nutrition; feed +2000 twice per game-day under the 3700 clamp). Next — Task 3 scenarios + evaluator, Task 4 doc.
 
 ## Ripples (findings that change a later slice's plan)
 
