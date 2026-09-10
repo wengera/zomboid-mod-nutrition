@@ -1,6 +1,7 @@
 # Eating pipeline — food item → Stats and Nutrition
 
-**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-10 · slice 01 (P1a).
+**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-10 · slice 01 (P1a); slice-03
+corrections 2026-09-10.
 Evidence grades: **C** read from bytecode/Lua/scripts, **M** measured on the live
 dedicated server (run id given), **W** wiki mirror (secondary).
 

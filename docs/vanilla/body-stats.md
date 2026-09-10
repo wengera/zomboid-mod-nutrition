@@ -26,8 +26,9 @@ the stores between meals.
    hunger rises `1 − e^(−kt)` with a 28.9 game-hour time constant; thirst has no damping
    term and fills in 34.7 game-hours. The sandbox `StatsDecrease` option (1→×2.0 …
    5→×0.65) and four traits scale them; **nothing scales the calorie burn but weight**.
-4. **The moodles' entire mechanical footprint is three `BodyDamage` rows** — carry
-   capacity, the health-regeneration tier and a health loss at HUNGRY level 4. There is
+4. **The moodles' entire mechanical footprint is four `BodyDamage` rows** — carry
+   capacity, the health-regeneration tier, the zeroing of the sleeping health addition at
+   HUNGRY 4 ∨ THIRST 4, and a health loss at HUNGRY level 4. There is
    no weight moodle, and `FOOD_EATEN` (fed from *hunger change*, never from calories)
    freezes the hunger rate outright while it is up.
 5. **In MP every one of these stats is server-owned.** Hunger, thirst, endurance and the
@@ -75,7 +76,7 @@ else if (isAsleep())                        {            cal -= 0.003f * mod * e
 else                                        {            cal -= 0.016f * mod * energy * w * dt; } // @295 L118
 ```
 
-| Branch | Rate /game-s at w = 80 | kcal / game-day | `mod` reaches it? | `energy` reaches it? | Ev |
+| Branch | Rate /game-s at w = 80 | kcal / game-day | external `mod` reaches it? | `energy` reaches it? | Ev |
 |---|---|---|---|---|---|
 | asleep | 0.003 | 259.2 | yes | yes | C `updateCalories @268–@289 L116`; per-day C (arith.) `× 86 400` |
 | **idle (at rest)** | **0.016** | **1 382.4** | yes | yes | C `@295–@316 L118`; **M** ratio 1.0049, r² 1.000000, n = 233 over 1.420 game-h — `exp03-20260910-045523`, [`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json) |
@@ -114,8 +115,11 @@ It is **≥ 1.0 always and raised only by cold**; heat instead raises `fluidsMul
 (which is `getThirstMultiplier()`, below) and `fatigueMultiplier`. Ev C.
 
 > **Tentative reading, n = 1.** Idle calorie burn came out **1.0045–1.0055 ×** the coded
-> 0.016 in every idle window of the run, while the macro drains — computed in the *same*
-> method against the same `dt` — sat at ~1.000 in 9 of the 11 windows. The only term in
+> 0.016 in **ten of the eleven** idle windows of the run, while the macro drains —
+> computed in the *same* method against the same `dt` — sat at ~1.000 in 9 of the 11
+> windows. In the eleventh (`rows.r9_traits.windows[2]`, High Thirst) every stat reads
+> ~0.995 *together* — calories 0.9999 against all six needs/macros at 0.9948 — i.e. that
+> whole window is offset, not the calorie term alone. The only term in
 > the code that separates those two numbers is `energy`, so this fixture's character
 > plausibly sat at `energyMultiplier ≈ 1.005` (very slightly cold). Nothing controlled the
 > temperature and the run has one fixture, so this is **not** a constant: a 0.5 %
@@ -140,8 +144,11 @@ god-mode; `@42 L75` `!GameClient.client` gates the macro drain **and** `updateCa
 
 There is **no `getHunger()` on `Stats` in B42**: the route is
 `getStats():get(CharacterStat.HUNGER / .THIRST)`, both `[0,1]` with default 0
-(`CharacterStat.<clinit> @91–@99`, `@231–@239`). Ev C, and the only route that worked on
-the live server (M, run below).
+(`CharacterStat.<clinit> @91–@99`, `@231–@239`). Ev: the route every live snapshot
+answered with (M, run below); `Stats`' 34-method list is what rules the old getter out
+(C) — the harness tries the enum route first and short-circuits, so its `getHunger()` /
+`.hunger` fallbacks were never exercised
+([eating-pipeline.md](eating-pipeline.md) § Open questions, `docs/progress.md`).
 
 Dispatch: `IsoGameCharacter.updateInternal @1548–@1557 L9229-L9230` →
 `calculateStats() L10196–L10221` → `updateThirst()`, `updateStats_WakeState()` (which
@@ -226,9 +233,9 @@ on the C constants, at `StatsDecrease = 3`, awake, idle, `FOOD_EATEN` 0:
 | moodle level 1 | 4.70 game-h (H 0.15) | 3.13 | 6.27 | 4.17 game-h (T 0.12) | 2.08 | 8.33 | C (arith.) |
 | moodle level 2 | 8.32 game-h (0.25) | 5.55 | 11.10 | 8.68 game-h (0.25) | 4.34 | 17.36 | C (arith.) |
 | moodle level 3 | 17.30 game-h (0.45) | 11.53 | 23.06 | 24.31 game-h (0.70) | 12.15 | 48.61 | C (arith.) |
-| moodle level 4 | 34.84 game-h (0.70) | 23.23 | 46.45 | 29.17 game-h (0.84) | 14.58 | 58.33 | C (arith.) |
+| moodle level 4 | 34.84 game-h (0.70) | 23.22 | 46.45 | 29.17 game-h (0.84) | 14.58 | 58.33 | C (arith.) |
 | maximum (1.0) | asymptotic | asymptotic | asymptotic | 34.72 game-h | 17.36 | 69.44 | C (arith.) |
-| after 1 game-day | 0.5637 | 0.7118 | 0.4633 | 0.6912 | 1.0 (clamped) | 0.3456 | C (arith.) |
+| after 1 game-day | 0.5637 | 0.7118 | 0.4632 | 0.6912 | 1.0 (clamped) | 0.3456 | C (arith.) |
 
 Other regimes, per game-second: asleep hunger 1.0e-6 (0.0864 · (1−H) per game-day),
 asleep thirst 1.0e-6 (0.0864/game-day); exercising with no `FOOD_EATEN` **6.4e-6**;
@@ -317,8 +324,9 @@ their entire mechanical footprint is the rows above. Ev C.
 | The gate is on **hunger alone** | in the same 9 samples thirst ran at 7.99989e-6 (ratio 1.0000) and calories at −0.0160771 (ratio 1.0048) | **M** same run/artifact |
 | With the gate down the coded rate resumes exactly | next 15 samples over 1.863 game-h: hunger 9.2564e-6 vs predicted 9.2551e-6 (`9.6e-6·(1−H̄)`, H̄ = 0.0359) → ratio **1.0001** | **M** same run/artifact |
 | A real eat **resets** the timer rather than adding to a primed one | the queued `ISEatFoodAction` on a `Base.Steak` completed 9 samples into the window and took `healthFromFoodTimer` from **186 096 → 0**, hunger 0.200 → 0.0046, calories +212 | **M** same run/artifact (samples 8→9) |
-| The timer decays far faster than game time suggests | **1 437 units per real second** at `settimespeed 30` (≈48/real-s at speed 1). The `JustAteFood` cap is 11 000, so a real eat's moodle lasts **under 8 real seconds** at speed 30 | **M** same run/artifact |
-| Consequence | `FOOD_EATEN` duration scales with framerate and `settimespeed`, **not** with game time, unlike every other rate in this document — it decays `−1 × GameTime.getMultiplier()` per `BodyDamage.Update` tick (`@575–@590 L2273`, C) | C+M same run/artifact |
+| The timer decays at a fixed **game-time** rate | **3.000 units per game-world second**, flat across samples 0–8 (per-interval 2.99998 / 2.99999 / 3.00001 / 3.00001 / 3.00002 / 3.00000 / 3.00001 / 2.99998; 11 500.6 units over 3 833.5 game-s). The `1 437 units per real second` in that window is just `3.000 × S` at `settimespeed 30` — the wall-clock figure, not the mechanism | **M** same run/artifact (`rows.r8_food_eaten.raw`, samples 0–8, fitted against `worldAge` from the same snapshot) |
+| So the `JustAteFood` cap is about an hour of **game** time | 11 000 / 3.0 ≈ 3 667 game-s = **1.02 game-hours**; one moodle level (1 600) ≈ **8.9 game-minutes**. In wall-clock terms that is ≈7.7 real seconds at `settimespeed 30` and ≈3.8 real minutes at speed 1 on this fixture — the "under 8 real seconds" reading is a property of speed 30, not of the timer | C (arith.) on the row above + **M** same run/artifact |
+| Why 3.000 — and what it does *not* depend on | The timer decays `−1 × GameTime.getMultiplier()` per `BodyDamage.Update` tick (`@575–@590 L2273`), i.e. with `getMultiplier()` **but without** the `getDeltaMinutesPerDay()` factor every stat rate in this document carries. Since `gameWorldSeconds = getMultiplier() × getDeltaMinutesPerDay()` and `getDeltaMinutesPerDay() = 30 / minutesPerDay`, the decay is **`minutesPerDay / 30` per game-second**: 3.0 on this fixture's 90-minute day (its clock, `S = 16.0` game-s/real-s = `86 400/(90 · 60)`, agrees), **2.0** on the 60-minute default. It is therefore frame-rate independent, and in *game* time independent of `settimespeed` — `getMultiplier()` itself scales with speed (4.78–4.80 at ×1, 143.5–144.0 at ×30, artifact `mult`), which is exactly what cancels | C ([03-notes.md](../superpowers/plans/03-notes.md) Q0 and the `healthFromFoodTimer` row) + **M** same run/artifact |
 
 The `JustAteFood` fill path itself (`|hungerChange| × f × 13000`, ×2 if cooked, capped at
 11 000 — `@454–@538 L650–L660`, C) is **unmeasured**: the real eat above had not raised
@@ -446,11 +454,13 @@ measured.
 `Food.DoTooltip` accepts either. **There is no trait called "Thirsty"** — the plan's name
 maps to `HighThirst`. Ev C.
 
-> **Two `hasTrait` traps, both live** (M, from the run's harness). (a)
-> `CharacterTrait:getName()` returns the name **lowercased**: adding
+> **Two `hasTrait` traps, both live — but graded differently.** (a) **M**, from the run's
+> harness (the artifact's `traitList` values): `CharacterTrait:getName()` returns the name
+> **lowercased**: adding
 > `CharacterTrait.HEARTY_APPETITE` puts `"heartyappetite"` in `getKnownTraits()` and
 > weight 105 puts `"obese"` there — a name comparison against the registry spelling reads
-> false on a trait that is demonstrably applied. (b) In B42 `hasTrait` takes a
+> false on a trait that is demonstrably applied. (b) **C** (grep + inference; the String
+> form was never called on the live server): in B42 `hasTrait` takes a
 > **`CharacterTrait` enum, not a String** — all 71 call sites in `media/lua` pass the enum
 > (e.g. `ISBuildAction.lua:269`); passing a String risks an argument mismatch Kahlua does
 > not let `pcall` catch. Also note the registry strings for `Very Underweight` and
@@ -544,8 +554,10 @@ either**, which is why the client-discard finding below matters. Ev C.
 | — | client mirror generally | the client witness was read only at session start, at the row-1 boundaries and in rows 13/14; every rate in this document is a **server-side** fit | **M** same run/artifact |
 
 **What a mod must do.** Hunger, thirst, endurance, fatigue, calories, macros and weight all
-have exactly one owner: the server. A client-side write to any of them is erased within
-~1.5 s by the next `PlayerStatsPacket`. The three viable shapes — server-side mutation via
+have exactly one owner: the server. A client-side write to any of them is erased by the
+next `PlayerStatsPacket` — measured within **1.5 s** for hunger (row 13, sampled at
+~0.5 s) and within **3 s** for weight (row 14, whose read-back was only taken at 3 s);
+the 1 Hz push is the bound behind both. The three viable shapes — server-side mutation via
 the command bus, player modData with an explicit `transmitModData()`, or accepting
 client-only semantics — are the same ones the intake side reaches
 ([eating-pipeline.md](eating-pipeline.md) § MP behaviour;
@@ -565,7 +577,7 @@ Code wins; the mirrors preserve each page's own version stamp.
 |---|---|---|---|
 | 1 | Hungry ticks a flat `4.32 %` per in-game hour ([hungry.md](../../references/wiki-mirrors/hungry.md), 42.12.3) | `9.6e-6 × 3600` = **3.456 %/game-hour at H = 0**, and falling as hunger rises — a first-order approach, not a linear fill. The page's `0.00032 %`/tick is `defines.lua:14`'s literal `0.0000032` *before* its `* 3` | W vs C+M `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
 | 2 | Health regeneration is cut ~25 % at Peckish, then 25 / 55 / 100 % ([hungry.md](../../references/wiki-mirrors/hungry.md), 42.12.3) | The tier fires only from `HUNGRY == 2` and runs `0.002 → 0.0013 → 0.0008 → 0.0`, i.e. **−35 / −60 / −100 %**, with level 1 having no effect at all. The sister Thirsty page quotes exactly −35 / −60 / −100, corroborating the code | W vs C (+W [thirsty.md](../../references/wiki-mirrors/thirsty.md)) |
-| 3 | Each Hungry level decreases "body heat generation"; every positive level heals 750 % faster ([hungry.md](../../references/wiki-mirrors/hungry.md), 42.12.3) | No thermoregulator read of `HUNGRY` exists and no healing multiplier: the whole footprint is carry capacity, the regen tier, the level-4 health loss, and for `FOOD_EATEN` the hunger gate, `1.5e-4 × level` poison decay and the `>= 3` eat block | W vs C |
+| 3 | Each Hungry level decreases "body heat generation"; every positive level heals 750 % faster ([hungry.md](../../references/wiki-mirrors/hungry.md), 42.12.3) | No thermoregulator read of `HUNGRY` exists and no healing multiplier: the whole footprint is carry capacity, the regen tier, the zeroed sleeping health addition at level 4, the level-4 health loss, and for `FOOD_EATEN` the hunger gate, `1.5e-4 × level` poison decay and the `>= 3` eat block | W vs C |
 | 4 | Thirsty thresholds "above 13 %" and "above 85 %" ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | `MoodleStat.<clinit>`'s THIRST row is **0.12 / 0.25 / 0.70 / 0.84**, strict `>` — off by a point at both ends | W vs C+M — all five levels read back on the server, `exp03-20260910-045523` ([`body.json`](../../testing/artifacts/exp03-20260910-045523/body.json)) |
 | 5 | Sprinting carries the same ×1.2 thirst as running ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | `getRunningThirstReduction` returns 1.2 only for `IsoPlayer.getInstance().IsRunning()` — a different flag from `isSprinting()`, and gated on the local instance, so on a dedicated server it may never fire; the asleep branch applies neither it nor the heat term | W vs C |
 | 6 | Health drains `22 %` per in-game hour at Dying of Thirst ([thirsty.md](../../references/wiki-mirrors/thirsty.md), 42.12.3) | The severe-moodle health loss is on a **`HUNGRY == 4`** branch only (`0.0165/50` = 3.3e-4 per multiplier unit, per frame-normalised tick, not per game-hour); `THIRST == 4` appears only where the *sleeping* health addition is zeroed | W vs C |
@@ -602,7 +614,8 @@ confirmed in both directions.
    `Δcalories(walk)/Δcalories(idle) = 4.875`, `×8.125` and `×10.5625` ratio tests remain
    the cheapest way to close this. (M, `exp03-20260910-045523`: the sample counts.)
 2. **The asleep branch is unmeasured.** `setAsleep(true)` was written and held on the
-   immediate read-back (M, and independently in the harness smoke check), but sleep did
+   immediate read-back (M — read-back recorded in the T3 review and the smoke run, **not**
+   in the committed artifact, whose `rows.r2_asleep` holds only the abort error), but sleep did
    **not** persist: the next row's 52 server samples all read `asleep: false` with
    idle-rate burn ~27 s later. Whether the sleep was walked off or never persisted at all
    is undetermined. The asleep rates (0.003 kcal, 1.0e-6 hunger, 1.0e-6 thirst) stay
@@ -692,7 +705,8 @@ against `worldAge` from the *same* snapshot, so `settimespeed` cancels; the idle
 ran 319 s at `settimespeed 1` (233 samples), every other condition 23 s at
 `settimespeed 30` (24 samples, ≈3.06 game-hours each). All rate samples are server-side.
 The fixture's clock was `S = 16.027` game-s per real-s (idle 0.2577 kcal/real-s at 80 kg),
-reproducing slice 01's 0.259.
+reproducing slice 01's 0.259 — i.e. a **90-minute in-game day**, `86 400/(90 · 60) = 16.0`,
+which is what fixes the `FOOD_EATEN` timer's 3.0 units/game-s above.
 *Three keys in that artifact must not be cited*: `summary.r3_6.row3_walking.ratio`
 (a whole-window fit over 5 sparse moving samples), `summary.r8.hungerExactlyFlat: false`
 (a whole-window fit straddling the eat — the split-window analysis above is the valid one)

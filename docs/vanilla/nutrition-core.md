@@ -1,7 +1,8 @@
 # Nutrition core — weight, calories, macros
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** — `zombie.characters.BodyDamage.Nutrition`
-(pzdis), 2026-09-04; re-read unchanged and partly measured 2026-09-10 (slice 01).
+(pzdis), 2026-09-04; re-read unchanged and partly measured 2026-09-10 (slice 01);
+slice-03 corrections 2026-09-10.
 Migrated from pz-b42 `findings/nutrition-weight.md`. Intake — how food fills these
 stores — is [eating-pipeline.md](eating-pipeline.md).
 

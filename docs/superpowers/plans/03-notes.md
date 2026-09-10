@@ -1037,3 +1037,12 @@ getSandboxOptions():getOptionByName("StatsDecrease"):getValue()
     `BodyDamage.Update`, i.e. per *frame-normalised* tick, not per game-second — so the
     `FOOD_EATEN` moodle's real duration depends on framerate and time speed differently
     from every other rate in this document. Unmeasured; it matters for row 8's timing.
+    **Closed (slice 03, measured).** The per-tick unit is right, the conclusion was not.
+    `getMultiplier()` carries no `getDeltaMinutesPerDay()` factor here, and
+    `gameWorldSeconds = getMultiplier() × getDeltaMinutesPerDay() = getMultiplier() × 30/minutesPerDay`,
+    so the decay is `minutesPerDay/30` **per game-second** — frame-rate independent and,
+    in game time, independent of `settimespeed`. Measured **3.000 units/game-s** flat
+    (per-interval 2.99998–3.00002) on the fixture's 90-minute day; 2.0 on the 60-minute
+    default. Cap 11 000 ≈ 1.02 game-hours. `exp03-20260910-045523`
+    `rows.r8_food_eaten.raw` samples 0–8; stated in `docs/vanilla/body-stats.md`
+    § `FOOD_EATEN` — the gate, measured.

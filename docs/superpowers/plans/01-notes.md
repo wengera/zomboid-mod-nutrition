@@ -405,6 +405,10 @@ sandbox option:
   calorie burn never run locally. `updateWeight()` does still run client-side.
   (This corrects the note in `docs/vanilla/nutrition-core.md` §MP behavior, which has it
   the other way round.)
+  **Correction (slice 03):** the client *computes* a weight and **discards** it — a
+  `GameClient.client` skip at `updateWeight @317–@320 L198` sits before `setWeight` and
+  before `applyTraitFromWeight`, so no weight and no band trait is ever written
+  client-side. See `docs/vanilla/body-stats.md` § MP behaviour (row 14, measured).
 
 `updateWeight()` itself has no client/server guard (`Nutrition.updateWeight()V @0 L138`
 onward) and matches the model already recorded in `docs/vanilla/nutrition-core.md`
@@ -638,6 +642,10 @@ For the later measured-MP row. All Ev = C.
 5. **The client does not simulate nutrition drain**: `Nutrition.update @42 L75` skips the
    macro decay and `updateCalories()` when `GameClient.client`. It *does* still run
    `updateWeight()` from whatever calories it last received.
+   **Correction (slice 03):** it runs the *computation* only — the `GameClient.client`
+   skip at `updateWeight @317–@320 L198` precedes `setWeight` and `applyTraitFromWeight`,
+   so the client discards the result and never applies a band trait
+   (`docs/vanilla/body-stats.md` § MP behaviour, row 14, measured).
 6. **`EatOnClient` is stat-free** (`@0–@57 L5725–L5736`) — receiving the `EatFood` packet
    fires `OnEat` only; the numbers arrive via the `Nutrition.load` in `parse`.
 7. **`SyncPlayerStats` from `Eat`** covers THIRST, HUNGER, ENDURANCE, STRESS, FATIGUE,
