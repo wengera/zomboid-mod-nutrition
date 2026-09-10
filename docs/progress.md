@@ -23,7 +23,7 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 
 ## Resume notes (in-progress slices)
 
-- **01** (SDD ledger: `.superpowers/sdd/01-intake-pipeline/progress.md`, plan `docs/superpowers/plans/01-intake-pipeline.md`): done — T1 tools (`755d420`, `eee86bc`), T2 doctor (`82f9806`), T3 harness commands + smoke (`21af6d1`, `eb123fd`), T4 code map (`docs/superpowers/plans/01-notes.md`, `a24010c`), T6 mirrors (`f076920`, `ab501ba`). Running — T5 experiment matrix (`testing/experiments/s01_eat_matrix.py`, results → `.superpowers/sdd/01-intake-pipeline/eat-matrix.json`). Next — review T5, then T7 writes `docs/vanilla/eating-pipeline.md` and applies the S6-direction corrections listed in `.superpowers/sdd/01-intake-pipeline/task-7-brief.md`; then acceptance checks, ledgers, push.
+- **01** (SDD ledger: `.superpowers/sdd/01-intake-pipeline/progress.md`, plan `docs/superpowers/plans/01-intake-pipeline.md`): done — T1 tools (`755d420`, `eee86bc`), T2 doctor (`82f9806`), T3 harness commands + smoke (`21af6d1`, `eb123fd`), T4 code map (`docs/superpowers/plans/01-notes.md`, `a24010c`), T6 mirrors (`f076920`, `ab501ba`). Running — T5 experiment matrix (`testing/experiments/s01_eat_matrix.py`, results → `testing/artifacts/exp01-20260910-003929/eat-matrix.json`). Next — review T5, then T7 writes `docs/vanilla/eating-pipeline.md` and applies the S6-direction corrections listed in `.superpowers/sdd/01-intake-pipeline/task-7-brief.md`; then acceptance checks, ledgers, push.
 
 ## Ripples (findings that change a later slice's plan)
 

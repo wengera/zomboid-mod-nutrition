@@ -19,6 +19,12 @@ from `testing/`). Requires the local game install (path in `pzt/paths.py`).
 | `run --fixture default [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors | ~1 min + hold |
 | `spike S3 S4 S5 S6 S7 [--reloadalllua]` | the design spikes as scripted experiments; S3 boots its own sessions, the rest share one; findings → `runs/spike-*/findings.json` | 2–5 min |
 
+Measured evidence that a doc cites as an **M** row is copied at slice close to
+`testing/artifacts/<run-id>/` (tracked, JSON only, `.gitattributes` keeps the
+blobs byte-identical); the full run directories with logs stay local under
+`testing/runs/` (gitignored). Experiment scripts live in `testing/experiments/`
+(`_common.py` = the shared boot/ask/save/teardown pattern).
+
 Every invocation gets its own `testing/runs/<cmd>-<timestamp>/` with
 `server-stdout.log`, `server/` (cachedir), `clients/<user>/` (cachedirs incl.
 the game's `console.txt`) and `report.json` (timeline + events). Fixture
