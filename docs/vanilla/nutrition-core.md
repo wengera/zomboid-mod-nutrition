@@ -104,8 +104,11 @@ Corrected 2026-09-10 by slice 01; the previous text had the direction reversed.
   `canAddFitnessXp`.
 - Code map: `docs/superpowers/plans/01-notes.md` Q5 (re-read of `Nutrition.update`
   and `updateWeight` on this jar).
-- Measured: run `exp01-20260910-000351` and run `exp01-20260910-003929`
-  (`testing/runs/<run id>/`, gitignored; committed copies under
-  `.superpowers/sdd/01-intake-pipeline/`).
+- Measured: run `exp01-20260910-000351`
+  ([`testing/artifacts/exp01-20260910-000351/eat-smoke.json`](../../testing/artifacts/exp01-20260910-000351/eat-smoke.json))
+  and run `exp01-20260910-003929`
+  ([`testing/artifacts/exp01-20260910-003929/eat-matrix.json`](../../testing/artifacts/exp01-20260910-003929/eat-matrix.json)).
+  The full run directories with their logs stay local under `testing/runs/<run id>/`, which
+  is gitignored.
 - Intake side and the full modifier table: [eating-pipeline.md](eating-pipeline.md).
 - Origin: pz-b42 `findings/nutrition-weight.md` (2026-09-04).

@@ -152,6 +152,13 @@ Consequence worth flagging for the mod: **rotten food gives full calories and fu
 macros.** Only its hunger relief (÷2.2), stress (÷2), endurance (÷2), boredom (+20)
 and unhappiness (+20) degrade — plus the sickness roll.
 
+> **Correction (slice 01, task 7 fix round 1): the "endurance (÷2)" in the prose above is
+> wrong; the table below is right.** `Food.getEnduranceChange` (`@0–@67 L1605–L1615`) has
+> branches for burnt (`/3`), stale (`/2`) and cooked (`×2`) only — rot has no branch, and a
+> rotten item is past the stale window (`age ≥ offAgeMax`), so it falls through to the raw
+> value. The ÷2 belongs to *stale*, not rotten. `docs/vanilla/eating-pipeline.md` states the
+> table's version.
+
 ### Other item state, for completeness
 
 | Getter | burnt | stale (`offAge ≤ age < offAgeMax`) | rotten (`age ≥ offAgeMax`) | cooked | frozen |

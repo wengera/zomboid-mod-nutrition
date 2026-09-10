@@ -1,0 +1,3 @@
+# Measured evidence is committed verbatim: no line-ending translation, so the
+# committed blob stays byte-identical to the file the experiment wrote (sha256).
+* -text

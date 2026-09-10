@@ -1,0 +1,901 @@
+{
+ "run_id": "exp01-20260910-000351",
+ "nutrition.get": {
+  "calories": 799.173462,
+  "carbs": -0.18082,
+  "lipids": -0.058379,
+  "proteins": -0.04443,
+  "weight": 80,
+  "hunger": 0.000391,
+  "thirst": 0.000326,
+  "statsApi": "Stats:get(CharacterStat.HUNGER)"
+ },
+ "item.script Base.Apple": {
+  "fullType": "Base.Apple",
+  "via": "getItem",
+  "access": {
+   "HungerChange": "get",
+   "ThirstChange": "get",
+   "DaysFresh": "get",
+   "DaysTotallyRotten": "get",
+   "IsCookable": "is",
+   "MinutesToCook": "get",
+   "MinutesToBurn": "get"
+  },
+  "HungerChange": -16,
+  "ThirstChange": -7,
+  "DaysFresh": 5,
+  "DaysTotallyRotten": 8,
+  "IsCookable": false,
+  "MinutesToCook": 60,
+  "MinutesToBurn": 120
+ },
+ "eat Base.Apple 1.0": {
+  "fraction": 1,
+  "signature": "Eat(item,fraction,useUtensil)",
+  "before": {
+   "calories": 798.944397,
+   "carbs": -0.23093,
+   "lipids": -0.074558,
+   "proteins": -0.056743,
+   "weight": 80,
+   "hunger": 0.000528,
+   "thirst": 0.00044,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "after": {
+   "calories": 893.944397,
+   "carbs": 24.899069,
+   "lipids": 0.235442,
+   "proteins": 0.413257,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "delta": {
+   "calories": 95,
+   "carbs": 25.129999,
+   "lipids": 0.31,
+   "proteins": 0.47,
+   "weight": 0,
+   "hunger": -0.000528,
+   "thirst": -0.00044
+  },
+  "script": {
+   "fullType": "Base.Apple",
+   "via": "getItem",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -16,
+   "ThirstChange": -7,
+   "DaysFresh": 5,
+   "DaysTotallyRotten": 8,
+   "IsCookable": false,
+   "MinutesToCook": 60,
+   "MinutesToBurn": 120
+  },
+  "itemBefore": {
+   "fullType": "Base.Apple",
+   "cooked": false,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0,
+   "hungChange": -0.16,
+   "baseHunger": -0.16,
+   "calories": 95,
+   "carbs": 25.129999,
+   "lipids": 0.31,
+   "proteins": 0.47,
+   "id": 16527123,
+   "uses": 0.16
+  },
+  "itemAfter": "consumed"
+ },
+ "eat Base.Apple 0.5": {
+  "fraction": 0.5,
+  "signature": "Eat(item,fraction,useUtensil)",
+  "before": {
+   "calories": 893.944397,
+   "carbs": 24.899069,
+   "lipids": 0.235442,
+   "proteins": 0.413257,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "after": {
+   "calories": 941.444397,
+   "carbs": 37.464069,
+   "lipids": 0.390442,
+   "proteins": 0.648257,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "delta": {
+   "calories": 47.5,
+   "carbs": 12.565001,
+   "lipids": 0.155,
+   "proteins": 0.235,
+   "weight": 0,
+   "hunger": 0,
+   "thirst": 0
+  },
+  "script": {
+   "fullType": "Base.Apple",
+   "via": "getItem",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -16,
+   "ThirstChange": -7,
+   "DaysFresh": 5,
+   "DaysTotallyRotten": 8,
+   "IsCookable": false,
+   "MinutesToCook": 60,
+   "MinutesToBurn": 120
+  },
+  "itemBefore": {
+   "fullType": "Base.Apple",
+   "cooked": false,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0,
+   "hungChange": -0.16,
+   "baseHunger": -0.16,
+   "calories": 95,
+   "carbs": 25.129999,
+   "lipids": 0.31,
+   "proteins": 0.47,
+   "id": 1475252593,
+   "uses": 0.16
+  },
+  "itemAfter": {
+   "fullType": "Base.Apple",
+   "cooked": false,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0,
+   "hungChange": -0.08,
+   "baseHunger": -0.16,
+   "calories": 47.5,
+   "carbs": 12.565,
+   "lipids": 0.155,
+   "proteins": 0.235,
+   "id": 1475252593,
+   "uses": 0.08
+  }
+ },
+ "item.state Base.Steak cooked": {
+  "fullType": "Base.Steak",
+  "cooked": true,
+  "burnt": false,
+  "rotten": false,
+  "frozen": false,
+  "age": 0,
+  "hungChange": -0.4,
+  "baseHunger": -0.4,
+  "calories": 220,
+  "carbs": 0,
+  "lipids": 9.35,
+  "proteins": 31.620001,
+  "id": 1793966357,
+  "uses": 0.4
+ },
+ "eat Base.Steak 1.0": {
+  "fraction": 1,
+  "signature": "Eat(item,fraction,useUtensil)",
+  "before": {
+   "calories": 798.7052,
+   "carbs": -0.283241,
+   "lipids": -0.091446,
+   "proteins": -0.069596,
+   "weight": 80,
+   "hunger": 0.000672,
+   "thirst": 0.00056,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "after": {
+   "calories": 1018.7052,
+   "carbs": -0.283241,
+   "lipids": 9.258554,
+   "proteins": 31.550404,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.00056,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "delta": {
+   "calories": 220,
+   "carbs": 0,
+   "lipids": 9.350001,
+   "proteins": 31.62,
+   "weight": 0,
+   "hunger": -0.000672,
+   "thirst": 0
+  },
+  "script": {
+   "fullType": "Base.Steak",
+   "via": "getItem",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -40,
+   "ThirstChange": 0,
+   "DaysFresh": 2,
+   "DaysTotallyRotten": 4,
+   "IsCookable": true,
+   "MinutesToCook": 50,
+   "MinutesToBurn": 70
+  },
+  "itemBefore": {
+   "fullType": "Base.Steak",
+   "cooked": true,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0,
+   "hungChange": -0.4,
+   "baseHunger": -0.4,
+   "calories": 220,
+   "carbs": 0,
+   "lipids": 9.35,
+   "proteins": 31.620001,
+   "id": 1793966357,
+   "uses": 0.4
+  },
+  "itemAfter": "consumed"
+ },
+ "item.state Base.Bread rotten": {
+  "fullType": "Base.Bread",
+  "cooked": false,
+  "burnt": false,
+  "rotten": true,
+  "frozen": false,
+  "age": 7,
+  "hungChange": -0.3,
+  "baseHunger": -0.3,
+  "calories": 532,
+  "carbs": 99,
+  "lipids": 6.66,
+  "proteins": 17.700001,
+  "id": 1651483806,
+  "uses": 0.3
+ },
+ "eat Base.Bread 1.0": {
+  "fraction": 1,
+  "signature": "Eat(item,fraction,useUtensil)",
+  "before": {
+   "calories": 798.459656,
+   "carbs": -0.33694,
+   "lipids": -0.108783,
+   "proteins": -0.082791,
+   "weight": 80,
+   "hunger": 0.000819,
+   "thirst": 0.000683,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "after": {
+   "calories": 1330.459717,
+   "carbs": 98.663063,
+   "lipids": 6.551217,
+   "proteins": 17.61721,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.000683,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "delta": {
+   "calories": 532.000061,
+   "carbs": 99.000003,
+   "lipids": 6.66,
+   "proteins": 17.700001,
+   "weight": 0,
+   "hunger": -0.000819,
+   "thirst": 0
+  },
+  "script": {
+   "fullType": "Base.Bread",
+   "via": "getItem",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -30,
+   "ThirstChange": 0,
+   "DaysFresh": 3,
+   "DaysTotallyRotten": 6,
+   "IsCookable": false,
+   "MinutesToCook": 60,
+   "MinutesToBurn": 120
+  },
+  "itemBefore": {
+   "fullType": "Base.Bread",
+   "cooked": false,
+   "burnt": false,
+   "rotten": true,
+   "frozen": false,
+   "age": 7,
+   "hungChange": -0.3,
+   "baseHunger": -0.3,
+   "calories": 532,
+   "carbs": 99,
+   "lipids": 6.66,
+   "proteins": 17.700001,
+   "id": 1651483806,
+   "uses": 0.3
+  },
+  "itemAfter": "consumed"
+ },
+ "direct_eat_visibility": {
+  "client": {
+   "calories": 798.210083,
+   "carbs": -0.391521,
+   "lipids": -0.126405,
+   "proteins": -0.096202,
+   "weight": 80,
+   "hunger": 0.000969,
+   "thirst": 0.000808,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "server": {
+   "calories": 797.755188,
+   "carbs": -0.491025,
+   "lipids": -0.158531,
+   "proteins": -0.120652,
+   "weight": 80,
+   "hunger": 0.001241,
+   "thirst": 0.001035,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  }
+ },
+ "eat Base.Apple 1.0 (leftover half)": {
+  "fraction": 1,
+  "signature": "Eat(item,fraction,useUtensil)",
+  "before": {
+   "calories": 797.704224,
+   "carbs": -0.502166,
+   "lipids": -0.162128,
+   "proteins": -0.123389,
+   "weight": 80,
+   "hunger": 0.001272,
+   "thirst": 0.00106,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "after": {
+   "calories": 845.204224,
+   "carbs": 12.062834,
+   "lipids": -0.007128,
+   "proteins": 0.111611,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "delta": {
+   "calories": 47.5,
+   "carbs": 12.565,
+   "lipids": 0.155,
+   "proteins": 0.235,
+   "weight": 0,
+   "hunger": -0.001272,
+   "thirst": -0.00106
+  },
+  "script": {
+   "fullType": "Base.Apple",
+   "via": "getItem",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -16,
+   "ThirstChange": -7,
+   "DaysFresh": 5,
+   "DaysTotallyRotten": 8,
+   "IsCookable": false,
+   "MinutesToCook": 60,
+   "MinutesToBurn": 120
+  },
+  "itemBefore": {
+   "fullType": "Base.Apple",
+   "cooked": false,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0,
+   "hungChange": -0.08,
+   "baseHunger": -0.16,
+   "calories": 47.5,
+   "carbs": 12.565,
+   "lipids": 0.155,
+   "proteins": 0.235,
+   "id": 1475252593,
+   "uses": 0.08
+  },
+  "itemAfter": "consumed"
+ },
+ "probe_a_eat_action": {
+  "rcon_additem": "Item Base.Apple Added in admin's inventory.",
+  "queued": {
+   "queued": true,
+   "fraction": 1,
+   "itemId": 1706900085,
+   "itemBefore": {
+    "fullType": "Base.Apple",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.16,
+    "baseHunger": -0.16,
+    "calories": 95,
+    "carbs": 25.129999,
+    "lipids": 0.31,
+    "proteins": 0.47,
+    "id": 1706900085,
+    "uses": 0.16
+   },
+   "validStart": true,
+   "maxTime": 232.000111,
+   "moodleFoodEaten": 0,
+   "before": {
+    "calories": 796.940491,
+    "carbs": -0.669202,
+    "lipids": -0.216057,
+    "proteins": -0.164433,
+    "weight": 80,
+    "hunger": 0.001729,
+    "thirst": 0.001442,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   }
+  },
+  "poll": [
+   {
+    "t": 0.5,
+    "snap": {
+     "calories": 796.684998,
+     "carbs": -0.725082,
+     "lipids": -0.234098,
+     "proteins": -0.178163,
+     "weight": 80,
+     "hunger": 0.001882,
+     "thirst": 0.00157,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": -0.255,
+    "stepCalories": -0.255
+   },
+   {
+    "t": 1.5,
+    "snap": {
+     "calories": 796.429382,
+     "carbs": -0.780967,
+     "lipids": -0.252141,
+     "proteins": -0.191895,
+     "weight": 80,
+     "hunger": 0.002035,
+     "thirst": 0.001698,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": -0.511,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 2.5,
+    "snap": {
+     "calories": 796.173584,
+     "carbs": -0.836902,
+     "lipids": -0.2702,
+     "proteins": -0.205639,
+     "weight": 80,
+     "hunger": 0.002188,
+     "thirst": 0.001826,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": -0.767,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 3.5,
+    "snap": {
+     "calories": 795.917725,
+     "carbs": -0.892843,
+     "lipids": -0.288261,
+     "proteins": -0.219384,
+     "weight": 80,
+     "hunger": 0.002341,
+     "thirst": 0.001953,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": -1.023,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 4.5,
+    "snap": {
+     "calories": 795.661621,
+     "carbs": -0.948788,
+     "lipids": -0.306323,
+     "proteins": -0.233131,
+     "weight": 80,
+     "hunger": 0.002494,
+     "thirst": 0.002081,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": -1.279,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 5.5,
+    "snap": {
+     "calories": 890.405518,
+     "carbs": 24.125237,
+     "lipids": -0.014394,
+     "proteins": 0.223116,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 3.8e-05,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 93.465,
+    "stepCalories": 94.744
+   },
+   {
+    "t": 6.5,
+    "snap": {
+     "calories": 890.149414,
+     "carbs": 24.069269,
+     "lipids": -0.032463,
+     "proteins": 0.209364,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.000166,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 93.209,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 7.5,
+    "snap": {
+     "calories": 889.893311,
+     "carbs": 24.013302,
+     "lipids": -0.050532,
+     "proteins": 0.195613,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.000294,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 92.953,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 8.5,
+    "snap": {
+     "calories": 889.637085,
+     "carbs": 23.957327,
+     "lipids": -0.068604,
+     "proteins": 0.181859,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.000422,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 92.697,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 9.5,
+    "snap": {
+     "calories": 889.38092,
+     "carbs": 23.901358,
+     "lipids": -0.086674,
+     "proteins": 0.168107,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.00055,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 92.44,
+    "stepCalories": -0.257
+   },
+   {
+    "t": 10.5,
+    "snap": {
+     "calories": 889.124573,
+     "carbs": 23.845375,
+     "lipids": -0.104749,
+     "proteins": 0.15435,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.000678,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 92.184,
+    "stepCalories": -0.256
+   },
+   {
+    "t": 11.5,
+    "snap": {
+     "calories": 888.868469,
+     "carbs": 23.789413,
+     "lipids": -0.122816,
+     "proteins": 0.1406,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.000806,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)"
+    },
+    "dCalories": 91.928,
+    "stepCalories": -0.256
+   }
+  ],
+  "first_change": {
+   "t": 1.5,
+   "snap": {
+    "calories": 796.429382,
+    "carbs": -0.780967,
+    "lipids": -0.252141,
+    "proteins": -0.191895,
+    "weight": 80,
+    "hunger": 0.002035,
+    "thirst": 0.001698,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "dCalories": -0.511,
+   "stepCalories": -0.256
+  },
+  "first_meal_change": {
+   "t": 5.5,
+   "snap": {
+    "calories": 890.405518,
+    "carbs": 24.125237,
+    "lipids": -0.014394,
+    "proteins": 0.223116,
+    "weight": 80,
+    "hunger": 0,
+    "thirst": 3.8e-05,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)"
+   },
+   "dCalories": 93.465,
+   "stepCalories": 94.744
+  },
+  "server_after": {
+   "calories": 888.151001,
+   "carbs": 23.632671,
+   "lipids": -0.173422,
+   "proteins": 0.102086,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001164,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  }
+ },
+ "probe_b_client_set": {
+  "before": {
+   "calories": 888.356018,
+   "carbs": 23.677448,
+   "lipids": -0.158965,
+   "proteins": 0.113089,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001062,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "client_set_3000": {
+   "calories": 3000,
+   "carbs": 23.621471,
+   "lipids": -0.177038,
+   "proteins": 0.099334,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.00119,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "server_immediately": {
+   "calories": 887.920349,
+   "carbs": 23.582302,
+   "lipids": -0.189684,
+   "proteins": 0.08971,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001279,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "client_after_3s": {
+   "calories": 887.330872,
+   "carbs": 23.453596,
+   "lipids": -0.231238,
+   "proteins": 0.058084,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001574,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "server_after_3s": {
+   "calories": 886.946289,
+   "carbs": 23.369625,
+   "lipids": -0.258349,
+   "proteins": 0.037451,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001765,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  }
+ },
+ "probe_c_server_set": {
+  "client_before": {
+   "calories": 887.074463,
+   "carbs": 23.397629,
+   "lipids": -0.249308,
+   "proteins": 0.044332,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001701,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "server_before": {
+   "calories": 886.613159,
+   "carbs": 23.296906,
+   "lipids": -0.281827,
+   "proteins": 0.019583,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.001932,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "server_set_2500": {
+   "calories": 2500,
+   "carbs": 23.185005,
+   "lipids": -0.317955,
+   "proteins": -0.007913,
+   "weight": 80,
+   "hunger": 0,
+   "thirst": 0.002187,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "client_after_3s": {
+   "calories": 2499.436035,
+   "carbs": 23.061909,
+   "lipids": -0.357697,
+   "proteins": -0.038159,
+   "weight": 80.000282,
+   "hunger": 0,
+   "thirst": 0.002469,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  },
+  "server_after_3s": {
+   "calories": 2498.974609,
+   "carbs": 22.961164,
+   "lipids": -0.390222,
+   "proteins": -0.062912,
+   "weight": 80.00052,
+   "hunger": 0,
+   "thirst": 0.002699,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)"
+  }
+ },
+ "timeline": [
+  {
+   "t": 50.4,
+   "phase": "session_ready"
+  },
+  {
+   "t": 50.7,
+   "phase": "cmd",
+   "cmd": "nutrition.get",
+   "args": ""
+  },
+  {
+   "t": 51.2,
+   "phase": "cmd",
+   "cmd": "item.script",
+   "args": "Base.Apple"
+  },
+  {
+   "t": 51.7,
+   "phase": "cmd",
+   "cmd": "eat",
+   "args": "Base.Apple 1.0"
+  },
+  {
+   "t": 52.2,
+   "phase": "cmd",
+   "cmd": "eat",
+   "args": "Base.Apple 0.5"
+  },
+  {
+   "t": 52.7,
+   "phase": "cmd",
+   "cmd": "item.state",
+   "args": "Base.Steak cooked"
+  },
+  {
+   "t": 53.2,
+   "phase": "cmd",
+   "cmd": "eat",
+   "args": "Base.Steak 1.0"
+  },
+  {
+   "t": 53.7,
+   "phase": "cmd",
+   "cmd": "item.state",
+   "args": "Base.Bread rotten"
+  },
+  {
+   "t": 54.2,
+   "phase": "cmd",
+   "cmd": "eat",
+   "args": "Base.Bread 1.0"
+  },
+  {
+   "t": 56.0,
+   "phase": "direct_eat_visibility"
+  },
+  {
+   "t": 56.6,
+   "phase": "rcon_additem",
+   "ok": true,
+   "reply": "Item Base.Apple Added in admin's inventory."
+  },
+  {
+   "t": 60.1,
+   "phase": "eat_action_queued"
+  },
+  {
+   "t": 73.9,
+   "phase": "probe_a_done",
+   "first_change_t": 1.5,
+   "first_meal_t": 5.5
+  },
+  {
+   "t": 78.7,
+   "phase": "probe_b_done"
+  },
+  {
+   "t": 85.9,
+   "phase": "probe_c_done"
+  }
+ ],
+ "server_errors": [
+  "ERROR: General      f:361 st:730,417,175 at GameServer.mainLoopDealWithNetData  > Error with packet of type: SyncItemFields for 54043925911891744",
+  "ERROR: General      f:361 st:730,417,175> GameServer.mainLoopDealWithNetData> Exception thrown\n\tjava.lang.NullPointerException: Cannot invoke \"zombie.inventory.InventoryItem.hasSharpness()\" because \"item\" is null at SyncItemFieldsPacket.parse(SyncItemFieldsPacket.java:383). Message:\n\tStack trace:\n\t\tzombie.network.packets.SyncItemFieldsPacket.parse(SyncItemFieldsPacket.java:383)\n\t\tzombie.network.packets.INetworkPacket.parseServer(INetworkPacket.java:55)\n\t\tzombie.network.PacketTypes$PacketType.onServerPacket(PacketTypes.java:967)\n\t\tzombie.network.GameServer.mainLoopDealWithNetData(GameServer.java:1612)"
+ ]
+}

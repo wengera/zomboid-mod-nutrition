@@ -206,7 +206,7 @@ gets stats, pain, cold and sickness but no nutrient write (`Eat @235–@251 L577
 | `EatType == "popcan"` | `maxTime` | `160` | `ISEatFoodAction.lua:250–252` | C |
 | moodles / pain / temperature | `maxTime` | `× (1 + UNHAPPY/4) × (1 + DRUNK/4) × (1 + handPain/300) × getTimedActionTimeModifier()`; hand pain skipped because `ignoreHandsWounds = true` | `media/lua/shared/TimedActions/ISBaseTimedAction.lua:99–122`; `ISEatFoodAction.lua:325` | C |
 | instant-action cheat | `maxTime` | `return 1` | `ISEatFoodAction.lua:204–206` | C |
-| FOOD_EATEN moodle | the whole action | `isValidStart` false at moodle level ≥ 3; the menu shows "can't eat more" | `ISEatFoodAction.lua:14`; `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua:499–504` | C |
+| FOOD_EATEN moodle | the whole action | `isValidStart` false at moodle level ≥ 3; the menu shows "can't eat more" | `ISEatFoodAction.lua:14`; `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua:500–504` | C |
 
 ### Partial eating
 
@@ -260,9 +260,9 @@ Two paths that share no code (C):
   crumb rules, no `OnEat` hook, no `JustAteFood` and no `EatFood` packet; its `boolean` third
   argument is never read (no utensil effect on drinking). Its Lua driver
   `media/lua/shared/TimedActions/ISDrinkFluidAction.lua` calls it **incrementally** during the
-  action (`updateEat`, `:107–118`), consuming only the difference between the target ratio and what
+  action (`updateEat`, `:109–120`), consuming only the difference between the target ratio and what
   is already gone, so the call is idempotent; `update()` calls it when `not isClient()` (`:26–29`)
-  and `animEvent` when `isServer()` (`:40–46`). Ev C — the fluid path was **not** exercised on the
+  and `animEvent` when `isServer()` (`:42–48`). Ev C — the fluid path was **not** exercised on the
   live server in this slice.
 
 ### The sandbox `Nutrition` option
@@ -305,7 +305,7 @@ table, stays stale after such a flip (M, same run).
 |---|---|---|---|
 | `OnEat` | `Eat @762–@802 L5811–L5814` | `fn(item, character, fraction)` via `LuaCaller.pcallvoid`, fired **after** every stat/nutrition/mood write and **before** the item is consumed; `fraction` is the **rescaled** `f`, not the menu percentage; the return value is ignored. A hook can still mutate `hungChange`/`calories` and have `multiplyFoodValues` operate on the mutated values | C |
 | `OnEat` (packet twin) | `IsoGameCharacter.EatOnClient @0–@57 L5725–L5736` | type-check → the identical `OnEat` call → `return true`. **No stats, no nutrition** — it exists so the packet receiver can run mod hooks without double-applying effects | C |
-| `EatType` | no Java consumer (jar-wide scan finds only script generators) | presentational plus one timing rule: picks the animation `FoodType` and the second-hand utensil model (`ISEatFoodAction.lua:73–110`), `"Pot"`/`"PotForged"` hand overrides (`:112–114`), the canned-scrape sound (`:42–48`), which types auto-pick a utensil at all — `Can`, `Candrink`, `2hand`, `Plate`, `2handbowl` (`:264`, feeding `useUtensil` at `:313–315`), and `"popcan"` → `maxTime = 160` (`:250–252`). It never touches hunger, thirst or nutrition | C |
+| `EatType` | no Java consumer (jar-wide scan finds only script generators) | presentational plus one timing rule: picks the animation `FoodType` and the second-hand utensil model (`ISEatFoodAction.lua:73–110`), `"Pot"`/`"PotForged"` hand overrides (`:112–114`), the canned-scrape sound (`:42–48`), which types auto-pick a utensil at all — `2handbowl` returns the spoon on its own early-return branch (`:259–261`), while `Can`, `Candrink`, `2hand` and `Plate` take the fork-or-spoon branch (`:264–265`); both feed `useUtensil` at `:313–315` — and `"popcan"` → `maxTime = 160` (`:250–252`). It never touches hunger, thirst or nutrition | C |
 | `Eattime` (script) / `getEatTime()` | no Java consumer | one Lua use, `ISEatFoodAction.lua:247`: a hard override of the computed duration. Duration only; no effect on what is absorbed. The script-parser spelling is `Eattime` | C |
 
 ### Eating time — and why slice 04 must not depend on it
@@ -414,7 +414,7 @@ consistent with both readings, and the authority probes below settle it.
 |---|---|---|
 | An MP client never runs `ISEatFoodAction:complete()`, so it never calls `Eat` | `LuaTimedActionNew.complete @31 L162` — `getstatic GameClient.client; ifne` skips the Lua call; `ISEatFoodAction:perform` has its `Eat` line commented out (`:168`) | C |
 | The eat completes on the **server** | client `LuaTimedActionNew.start @60–@96 L127–L129` → `ActionManager.createNetTimedAction` → `NetTimedActionPacket`; server `ActionManager.update @0 L66` (server-gated) → `NetTimedAction.perform @0–@27 L140` → `ISEatFoodAction:complete()` → `IsoGameCharacter.Eat` | C |
-| Cancels also resolve on the server | `NetTimedAction.stop @0–@53 L114` → `ISEatFoodAction:serverStop()` (`:141–153`), fraction from `self.netAction:getProgress()` (`:151`); `netAction` is injected by `NetTimedAction.parse @225` and exists **only** server-side | C |
+| Cancels also resolve on the server | `NetTimedAction.stop @0–@53 L114` → `ISEatFoodAction:serverStop()` (`:141–153`), fraction from `self.netAction:getProgress()` (`:151`); `netAction` is injected by `NetTimedAction.parse @225` and exists **only** server-side. `serverStop` applies that partial eat only if neither of its two guards clears `applyEat`: the item is `Base.Cigarettes` (`:143–145`), or `abs(getHungerChange()*100) <= 1` (`:146–149`). So a cancelled eat of a cigarette — or of **any** item whose (state-modified) hunger change is ≤ 1 — applies nothing at all: no stats, no nutrition, no `multiplyFoodValues`, no consumption | C |
 | The server pushes the whole `Nutrition` at eat time | `Eat @732–@759 L5808` sends `PacketType.EatFood`; `EatFoodPacket.write @19–@33 L71` embeds `Nutrition.save`; `parse @17–@31 L56` calls `Nutrition.load` on the receiver | C |
 | …and again every second, unconditionally | `NetworkPlayerManager.update @0 L19` (server-gated) with `statsUpdateLimit = new UpdateLimit(1000)` (`<clinit> @13–@23 L10`) → `NetworkPlayerAI.syncStats @32–@50 L711` → `PacketType.PlayerStats`, whose `write`/`parse` embed `Nutrition.save`/`load` | C |
 | `SyncPlayerStats` from `Eat` carries **no** nutrition bits | `Eat @658–@722 L5806` — THIRST, HUNGER, ENDURANCE, STRESS, FATIGUE, PAIN masks only, plus `GameServer.sendSyncPlayerFields(player, 8)` | C |
@@ -440,8 +440,9 @@ fires **on the server** inside `Eat` (and separately on any receiver of `EatFood
 
 **No packet-level log evidence exists.** `EatFood` / `EatFoodPacket` produce zero lines in
 `server-stdout.log`, the client `console.txt` and the client debug log even with
-`-debuglog=Network` on 42.20.4 (M, both runs); the packet path is evidenced by its effect — the
-5.5 s landing and the witness convergence — not by a log line.
+`-debuglog=Network` on 42.20.4 (M, `exp01-20260910-003929` — only that run grepped the server
+log; the smoke run recorded errors but never grepped for `EatFood`); the packet path is evidenced
+by its effect — the 5.5 s landing and the witness convergence — not by a log line.
 
 ---
 
@@ -512,7 +513,7 @@ the measured clamps exactly, despite the page being nine minors stale. The disag
 
 | # | Wiki claim (mirror, page version) | Code / measurement | Ev |
 |---|---|---|---|
-| 1 | "As food begins to rot, its effects will become more negative" — read as blanket ([food.md](../../references/wiki-mirrors/food.md), 42.20.0) | Rot leaves **all four nutrients untouched**: rotten bread delivered its full 532 kcal / 99 g carbs. Only hunger (÷2.2), stress (÷2), endurance (÷2), boredom/unhappiness (+20) and the sickness roll degrade; thirst is not touched either | W vs C+M `exp01-20260910-003929` |
+| 1 | "As food begins to rot, its effects will become more negative" — read as blanket ([food.md](../../references/wiki-mirrors/food.md), 42.20.0) | Rot leaves **all four nutrients untouched**: rotten bread delivered its full 532 kcal / 99 g carbs. Only hunger (÷2.2), stress (÷2), boredom/unhappiness (+20) and the sickness roll degrade; thirst is not touched either, and neither is endurance — `Food.getEnduranceChange` branches on burnt / stale / cooked only (see the modifier table above), so a rotten item (`age ≥ offAgeMax`, i.e. past the stale window `offAge ≤ age < offAgeMax`) falls through to its raw value | W vs C+M `exp01-20260910-003929` |
 | 2 | Burnt "loses most of its positive effects" — never quantified ([food.md](../../references/wiki-mirrors/food.md), 42.20.0) | The one real nutrition modifier in the game: `Eat` divides all four nutrients by **5** for `isBurnt()` items, and `getThirstChange` divides by 5 while `getHungerChange` divides by 3. Measured on four items | W vs C+M `exp01-20260910-003929` |
 | 3 | Nutritional-values rows are state-free ([nutritional-values.md](../../references/wiki-mirrors/nutritional-values.md), 42.20.0) | Correct for the macros (bare getfields) but **wrong for hunger**, which `Food.getHungerChange` scales ×1.3 cooked / ÷3 burnt / ÷1.3 stale / ÷2.2 rotten. The page's hunger column is also the raw script value (÷100 at instantiation), so it is an identity column, not an arithmetic one; and its "Fat" column is the script/Java `Lipids` | W vs C+M `exp01-20260910-003929` |
 | 4 | The weight sim is always on; the sandbox `Nutrition` option is never mentioned ([nutrition.md](../../references/wiki-mirrors/nutrition.md), 42.11.0) | The option gates `Nutrition.update()` — drain, burn **and** weight — while intake continues unguarded | W vs C |
@@ -588,16 +589,25 @@ the measured clamps exactly, despite the page being nine minors stale. The disag
 **Scripts** `media/scripts/generated/items/food.txt` (`Base.Apple` at `:8658`; `Base.Steak`,
 `Base.Bread`, `Base.Carrots`, `Base.HotDrink`).
 
-**Measured runs** (results live in `testing/runs/<run id>/`, which is gitignored; byte-identical
-copies are committed under `.superpowers/sdd/01-intake-pipeline/`)
-- `exp01-20260910-000351` — `testing/runs/exp01-20260910-000351/eat-smoke.json`: direct `Eat`
-  deltas, the `eat.action` real path, and the client/server authority probes.
-- `exp01-20260910-003929` — `testing/runs/exp01-20260910-003929/eat-matrix.json`: the 5 items ×
-  5 states matrix plus fractions, the real path on a server-spawned item, the setter clamps, the
-  hunger/thirst authority probe and the sandbox windows. Items were spawned by the server over
-  RCON `additem`; the run's server log contains **no** `SyncItemFields` lines
+**Measured runs.** The result JSON each run wrote is committed byte-for-byte under
+[`testing/artifacts/<run id>/`](../../testing/artifacts/README.md) — those are the files every
+**M** row here cites. The full run directories (server and client logs, stdout, per-client dumps)
+stay local under `testing/runs/<run id>/`, which is gitignored (`.gitignore:44`).
+- `exp01-20260910-000351` — [`testing/artifacts/exp01-20260910-000351/eat-smoke.json`](../../testing/artifacts/exp01-20260910-000351/eat-smoke.json):
+  direct `Eat` deltas, the `eat.action` real path, and the client/server authority probes.
+- `exp01-20260910-003929` — [`testing/artifacts/exp01-20260910-003929/eat-matrix.json`](../../testing/artifacts/exp01-20260910-003929/eat-matrix.json):
+  the 5 items × 5 states matrix plus fractions, the real path on a server-spawned item, the setter
+  clamps, the hunger/thirst authority probe and the sandbox windows. Items were spawned by the
+  server over RCON `additem`; the run's server log contains **no** `SyncItemFields` lines
   (`log_grep.SyncItemFields: []`) and no error lines at all, which is what shows the eaten items
   were server-side objects rather than client-local ones.
+  *Caveat on that `log_grep` block:* the committed one was produced by a **case-sensitive**
+  matcher, so a zero in it is only trustworthy for strings the log actually spells in that case.
+  The `SyncItemFields` zero was re-verified case-insensitively against
+  `testing/runs/exp01-20260910-003929/server-stdout.log` (`grep -ic syncitemfields` → 0, and
+  `eatfood` → 0), so it stands. Its sibling **`Nutrition: []` does not** — the harness logs its
+  own commands lowercase (`nutrition.get`), and a case-insensitive grep of the same log returns 27
+  hits. `s01_eat_matrix.py:346–364` now matches case-insensitively; the artifact predates that fix.
 
 **Wiki mirrors** [nutrition.md](../../references/wiki-mirrors/nutrition.md) (page version 42.11.0),
 [food.md](../../references/wiki-mirrors/food.md) (42.20.0),

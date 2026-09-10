@@ -123,9 +123,13 @@ Consequences for the nutrition mod:
 - Measured MP behaviour: spike **S6** (runs `spike-20260909-143930`,
   `spike-20260909-144417`) and spike **S5**, both in
   [../testing/spikes.md](../testing/spikes.md); nutrition and hunger/thirst
-  authority from runs `exp01-20260910-000351` and `exp01-20260910-003929`
-  (`testing/runs/<run id>/`, gitignored; committed copies under
-  `.superpowers/sdd/01-intake-pipeline/`).
+  authority from runs `exp01-20260910-000351` and `exp01-20260910-003929`, whose result
+  JSON is committed at
+  [`testing/artifacts/exp01-20260910-000351/eat-smoke.json`](../../testing/artifacts/exp01-20260910-000351/eat-smoke.json)
+  and
+  [`testing/artifacts/exp01-20260910-003929/eat-matrix.json`](../../testing/artifacts/exp01-20260910-003929/eat-matrix.json)
+  (the full run directories with their logs stay local under `testing/runs/<run id>/`,
+  which is gitignored).
 - Engine side of the nutrition rows: [../vanilla/eating-pipeline.md](../vanilla/eating-pipeline.md)
   (jar and Lua citations for `IsoGameCharacter.Eat`, `EatFoodPacket`,
   `PlayerStatsPacket`, `Nutrition.update`).
