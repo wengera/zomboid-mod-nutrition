@@ -1,5 +1,8 @@
 # Patterns & anti-patterns — evidence from the approved corpus
 
+**Verified against: 42.20.4 (`b0bbce05d5`)** — corpus read 2026-09-09; the measured
+MP sync facts re-checked and the nutrition row corrected 2026-09-10 (slice 01).
+
 Derived from the 230-mod inventory
 ([survey](../mods-survey/approved-modlist.md)) + line-level reads of
 ItemQuality, BeyondTen, damnlib, KBW/ElyonLib, ChuckleberryFinn mods.
@@ -73,12 +76,13 @@ on; treat divergence as a decision point, not a free choice.**
 Established with the sync witness on a real dedicated server + real client;
 they sharpen KEEP 1–2 and FILTER 1.
 
-| Change made on the client | Reaches the server? |
-|---|---|
-| `player:getModData().k = v` | **no** — until `player:transmitModData()`, then yes |
-| `setCondition` / `setConditionMax` / `getModData()` on an inventory item, then `sendItemStats(item)` | **never** — `sendItemStats` is `GameServer.sendItemStats` (server → owning client, packet `ItemStats`); on a client it is a silent no-op. There is no client→server "push my item fields" API, and waiting 60 s changes nothing |
-| `inventory:AddItem("Base.X")` client-side | **never** — the server's copy of the player's inventory (it does hold one: a server-side `additem` shows up on both sides with one id) never gains the item |
-| nutrition (`getNutrition()` calories/weight/macros) | the client computes; the server keeps a live mirror (within 0.2 kcal). Nutrition is client-authoritative in MP; server-side code reads a lagging copy |
+| Change made on the client | Reaches the server? | Ev |
+|---|---|---|
+| `player:getModData().k = v` | **no** — until `player:transmitModData()`, then yes | M (spike S6) |
+| `setCondition` / `setConditionMax` / `getModData()` on an inventory item, then `sendItemStats(item)` | **never** — `sendItemStats` is `GameServer.sendItemStats` (server → owning client, packet `ItemStats`); on a client it is a silent no-op. There is no client→server "push my item fields" API, and waiting 60 s changes nothing | M (spike S6) |
+| `inventory:AddItem("Base.X")` client-side | **never** — the server's copy of the player's inventory (it does hold one: a server-side `additem` shows up on both sides with one id) never gains the item | M (spike S6) |
+| nutrition (`getNutrition()` calories/weight/macros) | **never** — and it is overwritten. `Nutrition` is **server-authoritative**: the eat itself completes on the server, which pushes the whole object at eat time (`EatFoodPacket`) and once a second (`PlayerStatsPacket`). A client `setCalories(3000)` never reached the server and was back to the server's value inside 3 s; a server-side write reached the client inside 3 s. The 0.2 kcal agreement S6 measured is mirror lag, not client authority | M (run `exp01-20260910-000351`) |
+| `getStats():set(CharacterStat.HUNGER / .THIRST, v)` client-side | **never** — same shape as nutrition: a client write to 0.9 was gone within 3 s while a server-side write to 0.4 reached the client | M (run `exp01-20260910-003929`) |
 
 Consequences for the nutrition mod:
 - **Item mutations go through the command bus** (KEEP 2): client →
@@ -88,6 +92,14 @@ Consequences for the nutrition mod:
 - **Per-player nutrient state lives in player modData and is
   `transmitModData()`-ed on change**, or lives server-side and is pushed with
   `sendServerCommand`. One owner per value; the witness suite checks it.
+- **Any parallel nutrient store must be computed server-side and pushed, or
+  live in modData with an explicit transmit.** Vanilla `Nutrition` is recomputed
+  on the server and pushed at 1 Hz, so a client-side write to it is erased
+  within a second; a client-side write to *custom* fields is not erased (they
+  are not in the packet) but drifts away from the vanilla numbers, which keep
+  moving server-side. Whatever the mod does about nutrient math has to run where
+  `Eat` runs — the server. Full chain, packets and citations:
+  [../vanilla/eating-pipeline.md](../vanilla/eating-pipeline.md) § MP behaviour.
 - Accelerated tests: RCON `settimespeed <x>` broadcasts to every client and
   nutrition ticks scale with it (spike S5); always restore through the same
   command.
@@ -101,3 +113,19 @@ Consequences for the nutrition mod:
 - MoodleFramework API surface + MP behavior — adoption decision.
 - How the Girth stack namespaces its 110+ command sites (collision risk for
   our module names on the same bus).
+
+## Sources
+
+- Corpus: the 230-mod inventory ([survey](../mods-survey/approved-modlist.md),
+  `tools/mod_inventory.py`) plus line-level reads of ItemQuality, BeyondTen,
+  damnlib, KBW/ElyonLib and the ChuckleberryFinn mods — see the teardowns under
+  [../mods-survey/teardowns/](../mods-survey/teardowns/).
+- Measured MP behaviour: spike **S6** (runs `spike-20260909-143930`,
+  `spike-20260909-144417`) and spike **S5**, both in
+  [../testing/spikes.md](../testing/spikes.md); nutrition and hunger/thirst
+  authority from runs `exp01-20260910-000351` and `exp01-20260910-003929`
+  (`testing/runs/<run id>/`, gitignored; committed copies under
+  `.superpowers/sdd/01-intake-pipeline/`).
+- Engine side of the nutrition rows: [../vanilla/eating-pipeline.md](../vanilla/eating-pipeline.md)
+  (jar and Lua citations for `IsoGameCharacter.Eat`, `EatFoodPacket`,
+  `PlayerStatsPacket`, `Nutrition.update`).

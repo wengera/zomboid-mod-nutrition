@@ -144,7 +144,9 @@ one inventory item (condition, conditionMax, modData).
   player modData (fixed by `transmitModData()`), client-side item field/
   modData edits (never reach the server — no client→server API) and
   client-created items (absent server-side, still after 60 s); nutrition is
-  computed on the client and mirrored live by the server.
+  computed on the **server** and mirrored to the client at 1 Hz (direction
+  corrected in slice 01 — run `exp01-20260910-000351`, see
+  [../vanilla/eating-pipeline.md](../vanilla/eating-pipeline.md) § MP behaviour).
 - **S7 reloadlua iteration** ✅ 2026-09-09: server `reloadlua <file>` (RCON)
   re-runs one file with globals intact; clients reload their own copy via
   `reloadLuaFile(<absolute path>)` (bare names do nothing); `reloadalllua`

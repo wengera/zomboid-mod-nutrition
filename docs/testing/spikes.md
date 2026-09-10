@@ -279,7 +279,7 @@ the client compares, logs `PZTK: witness <kind> match=…` and writes
 |---|---|---|---|
 | player modData `pzt_probe` set client-side | `v1` | **nil** | ✗ caught |
 | … after `player:transmitModData()` | `v1` | `v1` | ✓ |
-| nutrition (calories / weight / carbs / lipids / proteins) | 498.64 / 80 / −65.65 / −21.20 / −16.13 | 498.43 / 80 / −65.70 / −21.21 / −16.14 | ✓ within 0.2 kcal — **the client computes nutrition; the server keeps a live mirror** |
+| nutrition (calories / weight / carbs / lipids / proteins) | 498.64 / 80 / −65.65 / −21.20 / −16.13 | 498.43 / 80 / −65.70 / −21.21 / −16.14 | ✓ within 0.2 kcal — the 0.2 kcal is **mirror lag, not client authority**: the *server* computes and pushes at 1 Hz (direction corrected 2026-09-10, see the Facts below) |
 | item spawned by the server (`additem`) | id 2130049510, 10/10 | **same id**, found, 10/10; player inventory = 8 items server-side | ✓ the server holds the player's inventory |
 | … after client-side `setConditionMax(5)`, `setCondition(3)`, modData `pzt_tag`, `sendItemStats(item)` | 3/5, `tag1` | **10/10, nil** | ✗ caught — nothing reached the server |
 | item created client-side (`inventory:AddItem("Base.Carrots")`) | id 592978320 | **not found**, inventory still 8 | ✗ caught |
@@ -299,6 +299,18 @@ Facts:
   it (works in 42.20.4 MP).
 - `additem` over RCON: `additem "user" "Module.Item" [n]` → "Item … Added in
   admin's inventory." — items reach the client with server-assigned ids.
+- **Nutrition direction, corrected 2026-09-10 (slice 01).** This spike read the
+  0.2 kcal agreement as "the client computes, the server mirrors". It is the
+  other way round: the **server** computes nutrition (an MP client skips the
+  macro drain and `updateCalories` entirely, and never runs
+  `ISEatFoodAction:complete()`) and pushes the whole `Nutrition` object at eat
+  time and once a second; the 0.2 kcal is the sampling skew of that 1 Hz mirror
+  against a ~0.26 kcal/s drain. Measured in run `exp01-20260910-000351`: a
+  client-side `setCalories(3000)` never reached the server and reverted within
+  3 s, while a server-side write reached the client within 3 s; hunger and
+  thirst behave identically (run `exp01-20260910-003929`). The measurement in
+  the table stands — only its interpretation changed. Full chain and citations:
+  [../vanilla/eating-pipeline.md](../vanilla/eating-pipeline.md) § MP behaviour.
 ## S7 — reloadlua iteration ✅ 2026-09-09
 
 `pzt spike S7 --reloadalllua` (run `spike-20260909-143930`). The harness's
