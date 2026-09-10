@@ -13,10 +13,10 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | 05 | P4a · Food scanner + dataset | done | 2026-09-10 | 31478dd..1c4dfa5 | `tools/food_scan.py` (shared nesting-aware script parser + dataset builder), `data/food-items.{json,csv}` (722 foods, 150 drainables, 133 fluid containers, 61 fluids; 61 curated CSV columns; per-litre fluid nutrition with per-container columns), `docs/vanilla/food-dataset-notes.md`; harness `items.count` / `fluid.script` / `drink`; live count cross-check + ten-item spot check (`exp05-20260910-084109`, 10/10) and a drink probe (`exp05b-20260910-093307`: 0.3 L Cola = +120.0 kcal, per-litre confirmed); findings: vanilla `HotDrinkRed` → undefined `Base.MugRed`, enum-backed fluids answer an empty `getFluidTypeString()` |
 | 06 | P4b · Recipes & cooking dataset | done | 2026-09-10 | ab26d41..405ea79 (interleaved with slice 07; the wave's artifacts-README edits landed in 10581d0) | `tools/recipe_scan.py` (imports slice 05's parser), `data/recipes.{json,csv}` (969 craftRecipe blocks, 0 legacy; nutrition deltas under the loader's use semantics — an unflagged food input amount is hunger units, measured live: `exp06b-20260910-120123`), `data/evolved-recipes.{json,csv}` (63 recipes, 6 881 ingredient rows incl. the two drainables the plan missed; hunger clamp and dried-food thirst skip applied), `replacements` links; harness `recipes.count/.evolved/.craft` + `item.use`; live cross-check `exp06-20260910-112726` (969/63/0; five ingredient lists name-for-name); `docs/vanilla/recipes-dataset-notes.md` |
 | 07 | T1 · Profile builder | in progress | 2026-09-10 | (see resume note) | mod layout lint being built (Task 1); profiles next |
-| 08 | P3a · Nutrition-mod catalog | ready (needs 07; plan in wave 3) | | | |
-| 09 | P3b · Teardown 1 | ready (needs 07, 08; plan in wave 3) | | | |
-| 10 | P3c · Teardown 2 | ready (needs 07, 08; plan in wave 3) | | | |
-| 11 | P3d · Teardown 3 | ready (needs 07, 08; plan in wave 3) | | | |
+| 08 | P3a · Nutrition-mod catalog | ready (needs 07; plan `superpowers/plans/08-nutrition-mod-catalog.md`) | | | |
+| 09 | P3b · Teardown 1 | ready (needs 07, 08; template plan `superpowers/plans/09-11-teardowns.md`, pass 1) | | | |
+| 10 | P3c · Teardown 2 | ready (needs 07, 08; template plan `superpowers/plans/09-11-teardowns.md`, pass 2) | | | |
+| 11 | P3d · Teardown 3 | ready (needs 07, 08; template plan `superpowers/plans/09-11-teardowns.md`, pass 3) | | | |
 | 12 | P2a · Platform reference | ready (needs 07; plan in wave 4) | | | |
 | 13 | P2b · Moddability wall map | ready (needs 12; plan in wave 4) | | | |
 | 14 | P5 · Feasibility notes | ready (needs all; plan in wave 4) | | | |
