@@ -742,8 +742,15 @@ CONTRIBUTION_MACROS = (("Calories", "calories"), ("Carbohydrates", "carbohydrate
                        ("ThirstChange", "thirstChange"))
 
 CONTRIBUTION_FIELDS = (("use", "hunger", "hungerAfterSkill", "share", "skillBonus",
-                        "hungerClamped", "spice", "reason", "note")
+                        "hungerClamped", "thirstSkipped", "spice", "reason", "note")
                        + tuple(field for _key, field in CONTRIBUTION_MACROS))
+
+# The one `Tags` entry the summation reads: `addItem @1316 L416` skips the thirst line entirely
+# for a `DRIED_FOOD` item (food-item-model.md:472, and the `Tags` row of § Key reference). All 28
+# vanilla rows write it as `base:driedfood`, but the loader stores an `ItemTag` resolved through
+# `ResourceLocation.of(v)` (`Item @4243 L2362`), so the match here is on the location's own
+# segment: the `<namespace>:` prefix, the case and a `_` do not decide it.
+DRIED_FOOD_TAG = "driedfood"
 
 # The two levels the dataset tabulates: an unskilled cook and a maxed one.
 COOKING_LEVELS = (0, 10)
@@ -757,6 +764,31 @@ _EVOLVED_INT_RE = re.compile(r"^[-+]?[0-9]+$")
 def alias(key):
     """An `EvolvedRecipe` key as `Item.DoParam` stores it -- five names are rewritten in place."""
     return EVOLVED_ALIASES.get(key, key)
+
+
+def tag_names(row):
+    """A food row's `Tags` as the loader's tag names: no `<namespace>:`, lowercase, no `_`.
+
+    `data/food-items.json` ships the list already split (README row 9) and a raw script value is
+    a `;`-string; both shapes are accepted, the way `parse_evolved_key` accepts both.
+    """
+    raw = food_value(row, "Tags")
+    if not raw:
+        return []
+    parts = raw if isinstance(raw, (list, tuple)) else _split(raw)
+    return [str(part).rpartition(":")[2].strip().lower().replace("_", "") for part in parts]
+
+
+def is_dried_food(row):
+    """True when the row carries the tag `addItem` skips the thirst line for. See `contribution`.
+
+    28 rows of `data/food-items.json` do (`base:driedfood`); 27 ingredient rows -- `Base.Ramen`,
+    `Base.Macaroni` and `Base.Pasta`, nine recipes each -- are the ones where that skip removes a
+    thirst the item really carries (`meta.counts.driedFoodThirstRows`). On the other 550 tagged
+    rows the term was already 0: the item writes no `ThirstChange` at all (its `absentMacros`
+    says so), or it is a spice and its `share` is 0.
+    """
+    return DRIED_FOOD_TAG in tag_names(row)
 
 
 def _use_amount(raw):
@@ -830,15 +862,22 @@ def resolve_recipes(key, recipes):
 
 def contribution(item, use, level):
     """One ingredient's contribution to a dish. Formula: docs/vanilla/food-item-model.md
-    § Evolved recipes (EvolvedRecipe.addItem @518-@1294 L333-L415) -- applied here, never
-    re-derived, plus the one line that doc omits (`addItem`'s hunger clamp, `@934 L374-376`;
-    see `hungerClamped`). Ignores the rotten branch (Cooking >= 7) and the spice branch (a Spice
-    ingredient transfers no hunger and no macros); both are flagged on the row instead.
+    § Evolved recipes (EvolvedRecipe.addItem @518-@1294 L333-L415), applied here and never
+    re-derived -- **the whole of it**, including the two lines the doc's code block states in
+    prose rather than in the arithmetic: the thirst line's `DRIED_FOOD` skip (`@1316 L416`,
+    `:472`, see `thirstSkipped`) and the spice branch's own return (`:489`, see `spice`). One
+    line more is applied than the doc block shows at all -- `addItem`'s hunger clamp
+    (`@934 L374-376`, see `hungerClamped`). The rotten branch (Cooking >= 7) is the one branch
+    still not modelled: it is level-gated, and no row of the dataset is rotten.
 
-    Three flags carry what the verbatim formula leaves out, so nothing is silently wrong:
+    Four flags carry what the bare arithmetic leaves out, so nothing is silently wrong:
 
     * `spice` -- `Spice = true` sends the ingredient down `addItem @582–@775 L336–L359`, which
-      moves no hunger and no macros at all, so the row's `share` is forced to 0.
+      returns before the hunger lines: no hunger leaves the ingredient, none reaches the dish and
+      no macro is shared. So `share` is 0 **and so are `hunger` and `hungerAfterSkill`** -- a
+      measured 0, not the `use/100` the key asks for, which the dish never spends. 2522 rows.
+      `hungerClamped` is still reported on such a row: it is the record that the *key* over-asks
+      against the item's own hunger, not a claim that the dish moved any.
     * `reason` -- `"no hunger"` for an ingredient whose `HungerChange` is 0 (no denominator, so
       no share), or Ruling R3's refusal for a row whose `nutrition_basis` is not `per_item`
       (a per-litre drink's macros may not be shared out by an item's hunger): the macros are
@@ -851,6 +890,11 @@ def contribution(item, use, level):
       the 17 vanilla keys that over-ask -- 59 ingredient rows, `meta.counts.hungerClampRows` --
       are the whole difference. `Base.Cherry`'s `Oatmeal:5` against a hunger of 3 is one:
       `share` is 0.7 at Cooking 10, where the unclamped formula said 1.0.
+    * `thirstSkipped` -- the thirst line alone is skipped for an item tagged `DRIED_FOOD`
+      (`is_dried_food`), so a dry noodle block adds no water to the pot. The flag marks the rows
+      whose committed `thirstChange` of 0.0 is that skip rather than an absent or measured 0:
+      27 of the 6881 (`meta.counts.driedFoodThirstRows`), `Base.Ramen` / `Base.Macaroni` /
+      `Base.Pasta` over nine recipes each. The other four macros are untouched by the tag.
     """
     hung = abs((food_value(item, "HungerChange") or 0.0) / 100.0)
     asked = use / 100.0
@@ -861,10 +905,12 @@ def contribution(item, use, level):
     bonus = 1.0 + level / 15.0
     out = {"use": use, "hunger": hunger, "hungerAfterSkill": after,
            "share": share, "skillBonus": bonus, "hungerClamped": clamped,
-           "spice": bool(food_value(item, "Spice")), "reason": None, "note": None}
+           "thirstSkipped": False, "spice": bool(food_value(item, "Spice")),
+           "reason": None, "note": None}
     if not hung:
         out["reason"] = "no hunger"
-    if out["spice"]:
+    if out["spice"]:                           # the spice branch spends no hunger at all
+        out["hunger"] = out["hungerAfterSkill"] = 0.0
         out["share"] = share = 0.0
         out["note"] = "spice branch: no hunger, no macros (addItem @582-@775 L336-L359)"
     refusal = _refusal(item)
@@ -872,6 +918,8 @@ def contribution(item, use, level):
         out["reason"] = refusal
     for src, dst in CONTRIBUTION_MACROS:
         out[dst] = None if refusal else (food_value(item, src) or 0.0) * bonus * share
+    if out["thirstChange"] and is_dried_food(item):        # addItem @1316 L416 skips the line
+        out["thirstChange"], out["thirstSkipped"] = 0.0, True
     return out
 
 
@@ -949,8 +997,8 @@ def evolved_ingredients(recipes, food):
         "carriers": 0, "carriersFood": 0, "carriersDrainable": 0, "keyParts": 0, "pairs": 0,
         "pairsFromFoodTxt": 0, "ingredients": 0, "duplicateJoins": 0, "unmatchedKeys": 0,
         "aliasedKeyParts": 0, "cookedSuffixes": 0, "spiceIngredients": 0,
-        "ingredientsRefusedByBasis": 0, "hungerClampRows": 0, "resolvedViaName": 0,
-        "resolvedViaTemplate": 0, "resolvedViaBoth": 0, "distinctKeys": 0,
+        "ingredientsRefusedByBasis": 0, "hungerClampRows": 0, "driedFoodThirstRows": 0,
+        "resolvedViaName": 0, "resolvedViaTemplate": 0, "resolvedViaBoth": 0, "distinctKeys": 0,
     }
     unmatched, distinct = [], set()
     for item_id in sorted(food):
@@ -1000,6 +1048,9 @@ def evolved_ingredients(recipes, food):
         census["ingredients"] += 1
         census["spiceIngredients"] += 1 if record["spice"] else 0
         census["hungerClampRows"] += 1 if record["at10"]["hungerClamped"] else 0
+        # the `DRIED_FOOD` thirst skip is level-independent -- it removes a term that is non-zero
+        # at both levels or at neither -- so counting `at0` counts each row once
+        census["driedFoodThirstRows"] += 1 if record["at0"]["thirstSkipped"] else 0
         census["resolvedVia" + record["resolvedVia"].capitalize()] += 1
         # Ruling R3, applied to a contribution: only `food` and `drainable` rows carry
         # `EvolvedRecipe` and every one of the 374 is `per_item`, so this stays 0 on vanilla
@@ -1033,19 +1084,27 @@ def scan_evolved(root=MEDIA):
     return recipes, sorted(files)
 
 
-def build_evolved_dataset(root=MEDIA, food_path=FOOD_JSON):
-    """Parse, join and stamp the evolved recipes: `(meta, recipes, unmatched)` ready to write."""
-    food, food_meta = load_food(food_path)
+def build_evolved_dataset(root=MEDIA, food_path=FOOD_JSON, loaded=None):
+    """Parse, join and stamp the evolved recipes: `(meta, recipes, unmatched)` ready to write.
+
+    `loaded` is `load_food`'s own `(rows, meta)` pair: a caller that has already read
+    `data/food-items.json` -- `main` reads it once, for the `ReplaceOn*` links -- hands it over
+    instead of parsing the same 2.4 MB file again. `food_path` still names the provenance
+    `meta.sources.food_items.path` records, whichever way the rows arrived.
+    """
+    food, food_meta = load_food(food_path) if loaded is None else loaded
     parsed, files = scan_evolved(root)
     recipes = sorted(parsed, key=lambda r: r["name"])
     by_name = {}
     for record in recipes:
-        by_name.setdefault(record["name"], record)
+        # `ScriptManager.getEvolvedRecipe` reads one map keyed by name, so a name written twice
+        # keeps the block loaded LAST and the earlier one is unreachable in game. `sorted` is
+        # stable, so this is still the last block in scan order. None in 42.20.4, and the count
+        # says so rather than the dataset silently dropping a recipe.
+        by_name[record["name"]] = record
     unmatched, census = evolved_ingredients(by_name, food)
     counts = dict(census)
     counts["evolvedRecipes"] = len(recipes)
-    # a name written twice would shadow the first block the way the loader's map does; none in
-    # 42.20.4, and the count says so rather than the dataset silently dropping a recipe
     counts["duplicateRecipeNames"] = len(recipes) - len(by_name)
     meta = {
         "build": BUILD,
@@ -1230,9 +1289,13 @@ def scan(root=MEDIA):
     return recipes, census
 
 
-def build_dataset(root=MEDIA, food_path=FOOD_JSON):
-    """Parse, join and stamp: `(meta, recipes)` ready to write."""
-    food, food_meta = load_food(food_path)
+def build_dataset(root=MEDIA, food_path=FOOD_JSON, loaded=None):
+    """Parse, join and stamp: `(meta, recipes)` ready to write.
+
+    `loaded` is `load_food`'s `(rows, meta)` pair, passed in by a caller that already holds it --
+    see `build_evolved_dataset`.
+    """
+    food, food_meta = load_food(food_path) if loaded is None else loaded
     parsed, census = scan(root)
     recipes = build(parsed, food)
 
@@ -1435,15 +1498,17 @@ def main(argv):
     # the four writers below all assume the directory is there; a `--out-dir` that names a fresh
     # path is a normal thing to ask for, not an error to raise after the whole scan has run
     os.makedirs(ns.out_dir, exist_ok=True)
-    food, _food_meta = load_food(ns.food)
-    links = replacements(food)
-    meta, recipes = build_dataset(ns.root, ns.food)
+    # read once and threaded through both builders: the same rows, and two fewer parses of a
+    # 2.4 MB file than reading it per dataset
+    loaded = load_food(ns.food)
+    links = replacements(loaded[0])
+    meta, recipes = build_dataset(ns.root, ns.food, loaded)
     out_json = os.path.join(ns.out_dir, "recipes.json")
     out_csv = os.path.join(ns.out_dir, "recipes.csv")
     write_json(out_json, meta, recipes, links)
     write_csv(out_csv, recipes)
 
-    evo_meta, evolved, unmatched = build_evolved_dataset(ns.root, ns.food)
+    evo_meta, evolved, unmatched = build_evolved_dataset(ns.root, ns.food, loaded)
     evo_json = os.path.join(ns.out_dir, "evolved-recipes.json")
     evo_csv = os.path.join(ns.out_dir, "evolved-recipes.csv")
     write_evolved_json(evo_json, evo_meta, evolved, unmatched)
@@ -1467,6 +1532,8 @@ def main(argv):
           % (evo["evolvedRecipes"], evo["carriers"], evo["pairs"], evo["unmatchedKeys"]))
     print("%d ingredient rows (%d duplicate joins collapsed), %d spices -> %s"
           % (evo["ingredients"], evo["duplicateJoins"], evo["spiceIngredients"], evo_csv))
+    print("%d rows hunger-clamped, %d dried-food rows with their thirst line skipped"
+          % (evo["hungerClampRows"], evo["driedFoodThirstRows"]))
     print("%d ReplaceOn* links (%s) -> %s"
           % (len(links), ", ".join("%d %s" % (sum(1 for l in links if l["trigger"] == t), t)
                                    for _key, t in REPLACEMENT_TRIGGERS), out_json))

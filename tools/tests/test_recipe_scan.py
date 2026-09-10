@@ -833,8 +833,19 @@ EVOLVED = """module Base
         Template = Oatmeal,
         Cookable = true,
     }
+
+    evolvedrecipe Soup
+    {
+        BaseItem = Base.Pot,
+        MaxItems = 6,
+        ResultItem = Base.PotOfSoupRecipe,
+        Cookable = true,
+        Name = Prepare Soup,
+        Template = Soup,
+        MinimumWater = 0.9,
+    }
 }"""   # evolvedrecipes.txt:220-235 (Salad, SaladClay), :268-278 (RicePan), :603-611 (ConeIcecream),
-       # :635-645 (Oatmeal) -- five of the 63 blocks, each byte-exact, nothing else elided
+       # :635-645 (Oatmeal), :3-12 (Soup) -- six of the 63 blocks, each byte-exact, nothing elided
 
 # The two ingredients of the measured Salad run, in the plan's own script-key shape.
 LETTUCE = {"HungerChange": -15.0, "Calories": 54.0, "Carbohydrates": 10.33,
@@ -864,12 +875,20 @@ EVO_FOOD = {
                              "evolved_recipe_name": "Basil",
                              "evolved_recipe": ["RicePan:1", "Rice:1"],   # of 12 keys, in order
                              "source_file": "items/food.txt", "source_line": 11647},
-    # `use` 5 against a hunger of 3: the game clamps `hunger` here and this formula does not
+    # `use` 5 against a hunger of 3: the key over-asks, so `addItem` clamps `hunger`
     "Base.Cherry": {"nutrition_basis": "per_item", "calories": 5.0, "carbohydrates": 1.31,
                     "lipids": 0.0, "proteins": 0.09, "hunger_change": -3.0,
                     "thirst_change": -1.0, "spice": None, "evolved_recipe_name": None,
                     "evolved_recipe": ["Oatmeal:5"],           # of 7 keys
                     "source_file": "items/food.txt", "source_line": 8700},
+    # tagged `base:driedfood`, and one of the only three such items that carries a thirst at all:
+    # `addItem` skips the thirst line for it, so none of its 40.0 reaches the pot
+    "Base.Ramen": {"nutrition_basis": "per_item", "calories": 52.0, "carbohydrates": 0.0,
+                   "lipids": 14.0, "proteins": 10.0, "hunger_change": -10.0,
+                   "thirst_change": 40.0, "spice": None, "evolved_recipe_name": "Ramen",
+                   "tags": ["base:driedfood"],
+                   "evolved_recipe": ["Soup:10"],              # of 2 keys
+                   "source_file": "items/food.txt", "source_line": 4982},
 }
 
 
@@ -957,7 +976,38 @@ def test_ingredients_join_through_the_alias_and_carry_their_key():
     assert (rice["item"], rice["key"]) == ("Base.Seasoning_Basil", "Rice:1")
     assert rice["duplicateKeys"] == ["RicePan:1"] and rice["resolvedVia"] == "template"
     assert rice["evolvedRecipeName"] == "Basil" and rice["spice"] is True
-    assert census["pairs"] == 6 and census["ingredients"] == 5 and census["duplicateJoins"] == 1
+    assert census["pairs"] == 7 and census["ingredients"] == 6 and census["duplicateJoins"] == 1
+    # the census counts the two rows the fix rounds are about: the clamp (`Base.Cherry` in
+    # `Oatmeal`) and the dried-food thirst skip (`Base.Ramen` in `Soup`), one row each
+    assert census["hungerClampRows"] == 1 and census["driedFoodThirstRows"] == 1
+    assert census["spiceIngredients"] == 2                    # Cinnamon and Seasoning_Basil
+    ramen = by_name["Soup"]["ingredients"][0]
+    assert ramen["item"] == "Base.Ramen" and ramen["absentMacros"] == []
+    assert ramen["at0"]["thirstSkipped"] is True and ramen["at0"]["thirstChange"] == 0.0
+    assert ramen["at0"]["calories"] == 52.0                   # only the thirst line is skipped
+
+
+def test_a_recipe_name_written_twice_keeps_the_block_the_loader_would_keep():
+    """One map keyed by name, so the block loaded LAST is the one an ingredient can reach.
+
+    None in 42.20.4 (`meta.counts.duplicateRecipeNames` is 0), so this is a fixture: the second
+    `Salad` block shadows the first, the join lands on it, and the shadowed record is still
+    emitted -- with no ingredients -- rather than silently dropped.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        os.makedirs(os.path.join(tmp, "scripts"))
+        with open(os.path.join(tmp, "scripts", "evolvedrecipes.txt"), "w",
+                  encoding="utf-8") as handle:
+            handle.write(EVOLVED.replace("evolvedrecipe SaladClay", "evolvedrecipe Salad"))
+        # `loaded` hands the food rows straight in -- no `data/food-items.json` read at all
+        meta, recipes, unmatched = recipe_scan.build_evolved_dataset(
+            tmp, recipe_scan.FOOD_JSON, loaded=(EVO_FOOD, {}))
+    assert meta["counts"]["duplicateRecipeNames"] == 1 and unmatched == []
+    assert len(recipes) == 6 and meta["counts"]["evolvedRecipes"] == 6
+    salad = [r for r in recipes if r["name"] == "Salad"]
+    assert [r["resultItem"] for r in salad] == ["Base.Salad", "Base.SaladClay"]   # file order
+    assert [len(r["ingredients"]) for r in salad] == [0, 1]                       # last wins
+    assert salad[1]["ingredients"][0]["item"] == "Base.Lettuce"
 
 
 def test_an_unmatched_key_is_recorded_and_never_guessed_at():
@@ -969,12 +1019,49 @@ def test_an_unmatched_key_is_recorded_and_never_guessed_at():
 
 
 def test_a_spice_transfers_no_hunger_and_no_macros():
-    """`Spice = true` takes the ingredient down the spice branch: no hunger, no macro transfer."""
+    """`Spice = true` takes the ingredient down the spice branch: no hunger, no macro transfer.
+
+    The branch returns before `addItem`'s hunger lines (`@582-@775 L336-L359`,
+    food-item-model.md:489), so the three hunger terms are 0 as well -- not the `use/100` the key
+    asks for, which the dish never spends. `use` still records what the key wrote.
+    """
     c = recipe_scan.contribution(EVO_FOOD["Base.Cinnamon"], 1, 10)
     assert c["spice"] is True and c["share"] == 0.0
     assert (c["calories"], c["carbohydrates"], c["lipids"], c["proteins"]) == (0.0, 0.0, 0.0, 0.0)
+    assert (c["use"], c["hunger"], c["hungerAfterSkill"]) == (1, 0.0, 0.0)
     assert "spice branch" in c["note"]
     assert c["skillBonus"] == recipe_scan.contribution(LETTUCE, 1, 10)["skillBonus"]
+    # the same row read as a non-spice does spend `use/100` -- the zeroes above are the branch
+    plain = recipe_scan.contribution(dict(EVO_FOOD["Base.Cinnamon"], spice=None), 1, 10)
+    assert plain["hunger"] == 0.01 and round(plain["hungerAfterSkill"], 6) == 0.007
+
+
+def test_the_dried_food_tag_skips_the_thirst_line_and_nothing_else():
+    """`addItem @1316 L416` skips thirst for a `DRIED_FOOD` item (food-item-model.md:472).
+
+    `Base.Ramen` is one of the three tagged items that carry a thirst at all: `Soup:10` against
+    its own hunger of 10 is a whole block of noodles, so every other macro transfers in full and
+    only the 40.0 of thirst is dropped. The flag says the committed 0.0 is that skip.
+    """
+    ramen = EVO_FOOD["Base.Ramen"]
+    c = recipe_scan.contribution(ramen, 10, 0)
+    assert c["thirstSkipped"] is True and c["thirstChange"] == 0.0
+    assert c["share"] == 1.0 and (c["calories"], c["lipids"], c["proteins"]) == (52.0, 14.0, 10.0)
+    assert recipe_scan.contribution(ramen, 10, 10)["thirstSkipped"] is True
+    # untagged, the same row keeps its thirst: the tag is the whole of the difference
+    wet = recipe_scan.contribution(dict(ramen, tags=["base:pasta"]), 10, 0)
+    assert wet["thirstSkipped"] is False and wet["thirstChange"] == 40.0
+    # an untagged item is never flagged, and a tagged one with no thirst term is not either:
+    # its 0.0 is `absentMacros`' absent value (`Base.Cinnamon`) or a spice's zero share
+    assert recipe_scan.contribution(LETTUCE, 5, 0)["thirstSkipped"] is False
+    dried_spice = dict(EVO_FOOD["Base.Cinnamon"], tags=["base:driedfood"], thirst_change=20.0)
+    assert recipe_scan.contribution(dried_spice, 1, 0)["thirstSkipped"] is False
+    # the tag is matched as the loader resolves it: namespace, case and `_` do not decide it
+    for written in ("base:driedfood", "DriedFood", "Base:DRIED_FOOD", "base:isseed;base:driedfood",
+                    ["base:pasta", "base:driedfood"]):
+        assert recipe_scan.is_dried_food({"Tags": written}) is True, written
+    assert recipe_scan.is_dried_food({"Tags": ["base:pasta"]}) is False
+    assert recipe_scan.is_dried_food({}) is False and recipe_scan.is_dried_food(LETTUCE) is False
 
 
 def test_an_ingredient_with_no_hunger_has_no_share():
@@ -1015,6 +1102,20 @@ def test_the_games_hunger_clamp_is_applied_and_flagged():
 
 
 def test_evolved_record_carries_every_field_and_its_source_anchor():
+    # The plan's Step 3 field lists, written out here rather than read from the module: comparing
+    # a record against the constant it was built from cannot catch a renamed or dropped field.
+    # The records are a superset of the plan's shape (report § E4) and the extras are named too.
+    assert set(recipe_scan.EVOLVED_RECORD_FIELDS) == {
+        "name", "sourceFile", "sourceLine", "baseItem", "resultItem", "template", "maxItems",
+        "cookable", "canAddSpicesEmpty", "addIngredientIfCooked", "minimumWater", "ingredients",
+        "module", "displayName", "addIngredientSound", "isHidden", "allowFrozenItem", "props"}
+    assert set(recipe_scan.EVOLVED_INGREDIENT_FIELDS) == {
+        "item", "use", "requiresCooked", "spice", "resolvedVia", "at0", "at10",
+        "key", "duplicateKeys", "evolvedRecipeName", "absentMacros", "sourceFile", "sourceLine"}
+    assert set(recipe_scan.CONTRIBUTION_FIELDS) == {
+        "use", "hunger", "hungerAfterSkill", "share", "skillBonus", "spice", "reason", "note",
+        "calories", "carbohydrates", "lipids", "proteins", "thirstChange",
+        "hungerClamped", "thirstSkipped"}          # the two flags the fix rounds added
     by_name, _unmatched, _census = _evolved()
     salad = by_name["Salad"]
     assert set(salad) == set(recipe_scan.EVOLVED_RECORD_FIELDS)
@@ -1026,6 +1127,7 @@ def test_evolved_record_carries_every_field_and_its_source_anchor():
     assert salad["minimumWater"] is None and salad["props"] == {}
     rice = by_name["RicePan"]
     assert (rice["cookable"], rice["canAddSpicesEmpty"], rice["addIngredientIfCooked"]) == (True, True, True)
+    assert by_name["Soup"]["minimumWater"] == 0.9             # the one float key, typed as one
     ing = salad["ingredients"][0]
     assert set(ing) == set(recipe_scan.EVOLVED_INGREDIENT_FIELDS)
     assert set(ing["at0"]) == set(ing["at10"]) == set(recipe_scan.CONTRIBUTION_FIELDS)
@@ -1046,7 +1148,11 @@ def test_evolved_csv_is_one_row_per_recipe_ingredient_pair():
     assert "\r" not in raw
     rows = list(csv.reader(raw.splitlines()))
     header = recipe_scan.EVOLVED_CSV_HEADER
-    assert rows[0] == header and len(rows) == 6            # 5 pairs + the header
+    # the plan's Step 3 columns, literal -- the header is checked against the brief, not against
+    # the constant the writer builds it from
+    assert header == ["recipe", "resultItem", "item", "use", "requiresCooked", "spice", "share0",
+                      "kcal0", "carbs0", "lipids0", "proteins0", "share10", "kcal10"]
+    assert rows[0] == header and len(rows) == 7            # 6 pairs + the header
     assert all(len(row) == len(header) for row in rows)
     lettuce = [r for r in rows[1:] if r[header.index("recipe")] == "Salad"
                and r[header.index("item")] == "Base.Lettuce"][0]
@@ -1318,6 +1424,60 @@ def test_real_install_evolved_counts():
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
     assert meta["build"] == "42.20.4 (b0bbce05d5)"
     assert meta["sources"]["food_items"]["build"] == "42.20.4"
+    assert counts["duplicateRecipeNames"] == 0 and counts["hungerClampRows"] == 59
+
+
+@unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
+def test_real_install_dried_food_rows_carry_no_thirst():
+    """`addItem @1316 L416` skips the thirst line for a `DRIED_FOOD` item, on the real dataset.
+
+    28 food rows carry `base:driedfood`. On 27 ingredient rows the skip removes a thirst the item
+    really writes -- `Base.Ramen`, `Base.Macaroni` and `Base.Pasta`, nine recipes each. On the
+    other 550 tagged rows there was nothing to remove: no `ThirstChange` at all (`absentMacros`
+    says so) or a spice's zero share.
+    """
+    meta, recipes, _unmatched = _real_evolved()
+    assert meta["counts"]["driedFoodThirstRows"] == 27
+    skipped, tagged = {}, 0
+    food, _food_meta = recipe_scan.load_food()
+    for record in recipes:
+        for ing in record["ingredients"]:
+            tagged += 1 if recipe_scan.is_dried_food(food[ing["item"]]) else 0
+            assert ing["at0"]["thirstSkipped"] == ing["at10"]["thirstSkipped"]
+            if ing["at0"]["thirstSkipped"]:
+                assert ing["at0"]["thirstChange"] == ing["at10"]["thirstChange"] == 0.0
+                skipped.setdefault(ing["item"], []).append(record["name"])
+    assert sum(1 for row in food.values() if recipe_scan.is_dried_food(row)) == 28
+    assert tagged == 577 and sum(len(v) for v in skipped.values()) == 27
+    assert sorted(skipped) == ["Base.Macaroni", "Base.Pasta", "Base.Ramen"]
+    assert all(len(v) == 9 for v in skipped.values())
+    assert skipped["Base.Ramen"] == ["Roasted Vegetables", "Soup", "Soup2", "SoupBucket",
+                                     "SoupBucket2", "SoupForged", "Stir fry", "Stir fry Forged",
+                                     "Stir fry Griddle Pan"]
+    by_name = {r["name"]: r for r in recipes}
+    ramen = [i for i in by_name["Soup"]["ingredients"] if i["item"] == "Base.Ramen"][0]
+    # `ThirstChange = 40.0` is written and measured, so this 0.0 is neither absent nor measured:
+    # only the flag says which. The other four macros transfer in full (`Soup:10` vs hunger 10)
+    assert ramen["absentMacros"] == [] and ramen["at0"]["share"] == 1.0
+    assert (ramen["at0"]["calories"], ramen["at0"]["thirstChange"]) == (52.0, 0.0)
+
+
+@unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
+def test_real_install_spice_rows_move_no_hunger():
+    """The spice branch spends no hunger, so all 2522 rows carry 0.0, not the key's `use/100`."""
+    meta, recipes, _unmatched = _real_evolved()
+    spices = [i for r in recipes for i in r["ingredients"] if i["spice"]]
+    assert len(spices) == meta["counts"]["spiceIngredients"] == 2522
+    assert all(i["at0"]["hunger"] == i["at0"]["hungerAfterSkill"] == 0.0 for i in spices)
+    assert all(i["at10"]["hunger"] == i["at10"]["hungerAfterSkill"] == 0.0 for i in spices)
+    assert all(i["at0"]["share"] == i["at10"]["share"] == 0.0 for i in spices)
+    by_name = {r["name"]: r for r in recipes}
+    salt = [i for i in by_name["Soup"]["ingredients"] if i["item"] == "Base.SeasoningSalt"][0]
+    assert salt["use"] == 1 and salt["at10"]["hunger"] == 0.0     # the key still says what it asks
+    assert salt["at10"]["calories"] == 0.0 and "spice branch" in salt["at10"]["note"]
+    # a non-spice row is untouched by this: `Base.Lettuce` still spends `Salad:5`
+    lettuce = [i for i in by_name["Salad"]["ingredients"] if i["item"] == "Base.Lettuce"][0]
+    assert lettuce["at0"]["hunger"] == 0.05 and lettuce["at10"]["hungerAfterSkill"] == 0.035
 
 
 @unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
