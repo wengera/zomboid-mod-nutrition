@@ -1,0 +1,2886 @@
+{
+ "run_id": "exp05-20260910-084109",
+ "meta": {
+  "dataset": "data/food-items.json",
+  "dataset_commit": "72ed836",
+  "dataset_read_error": null,
+  "dataset_meta": {
+   "build": "42.20.4",
+   "jar_hash": "b0bbce05d5",
+   "generated": "2026-09-10",
+   "tool": "tools/food_scan.py",
+   "sources": [
+    "fluids.txt",
+    "fluids_Alcoholic.txt",
+    "fluids_Beverages.txt",
+    "items/alarmclock.txt",
+    "items/alarmclockclothing.txt",
+    "items/animal.txt",
+    "items/clothing.txt",
+    "items/container.txt",
+    "items/drainable.txt",
+    "items/food.txt",
+    "items/key.txt",
+    "items/literature.txt",
+    "items/map.txt",
+    "items/moveable.txt",
+    "items/normal.txt",
+    "items/radio.txt",
+    "items/weapon.txt",
+    "items/weaponpart.txt"
+   ],
+   "counts": {
+    "food": 722,
+    "drainable": 150,
+    "fluid_container": 133,
+    "fluids": 61,
+    "multi_fluid_containers": 5,
+    "unresolved_links": 37
+   },
+   "unknown_keys": [
+    "AttachmentReplacement",
+    "BaseSpeed",
+    "BloodLocation",
+    "BodyLocation",
+    "BreakSound",
+    "CanBeEquipped",
+    "CanHaveHoles",
+    "Capacity",
+    "Categories",
+    "CloseSound",
+    "ClothingExtraSubmenu",
+    "ClothingItem",
+    "ClothingItemExtra",
+    "ClothingItemExtraOption",
+    "ColorReference",
+    "ConditionLowerChanceOneIn",
+    "CritDmgMultiplier",
+    "CriticalChance",
+    "DiscomfortModifier",
+    "DisplayName",
+    "DoorDamage",
+    "DoorHitSound",
+    "DropSound",
+    "FillFromLakeSound",
+    "FillFromToiletSound",
+    "HitFloorSound",
+    "HitSound",
+    "IconFluidMask",
+    "KnockBackOnNoDeath",
+    "KnockdownMod",
+    "MaxDamage",
+    "MaxHitcount",
+    "MaxRange",
+    "MinAngle",
+    "MinDamage",
+    "MinRange",
+    "MinimumSwingtime",
+    "OpenSound",
+    "PushBackMod",
+    "PutInSound",
+    "RunSpeedModifier",
+    "SoundParameter",
+    "SplatBloodOnNoDeath",
+    "SplatNumber",
+    "SubCategory",
+    "SwingAmountBeforeImpact",
+    "SwingAnim",
+    "SwingSound",
+    "Swingtime",
+    "TreeDamage",
+    "WaterResistance",
+    "WeaponLength",
+    "WeaponSprite",
+    "WeightReduction",
+    "alcohol",
+    "diluteRatio",
+    "fluid",
+    "maxEffect",
+    "minAmount"
+   ],
+   "unresolved_links": [
+    {
+     "item": "Base.AnimalFeedBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.BakingTray_Muffin",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.BakingTray_Muffin_Recipe",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.BathTowel",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.BathTowelWet"
+    },
+    {
+     "item": "Base.CakePrep",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.CakeRaw",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.CanPipe_Tobacco",
+     "key": "ReplaceOnUse",
+     "target": "Base.CanPipe"
+    },
+    {
+     "item": "Base.Claybag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.CompostBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.CookieChocolateChipDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesChocolateDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesOatmealDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesShortbreadDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.CookiesSugarDough",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingTray"
+    },
+    {
+     "item": "Base.Dirtbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.DishCloth",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.DishClothWet"
+    },
+    {
+     "item": "Base.GardeningSprayAphids",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GardeningSprayCigarettes",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GardeningSprayMilk",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.GardeningSprayEmpty"
+    },
+    {
+     "item": "Base.GrassBag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.Gravelbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.GriddlePanFriedVegetables",
+     "key": "ReplaceOnUse",
+     "target": "Base.GridlePan"
+    },
+    {
+     "item": "Base.HotDrinkRed",
+     "key": "ReplaceOnUse",
+     "target": "Base.MugRed"
+    },
+    {
+     "item": "Base.Muffintray_Biscuit",
+     "key": "ReplaceOnUse",
+     "target": "Base.MuffinTray"
+    },
+    {
+     "item": "Base.OmeletteRecipe",
+     "key": "ReplaceOnUse",
+     "target": "Base.Pan"
+    },
+    {
+     "item": "Base.OmeletteRecipeForged",
+     "key": "ReplaceOnUse",
+     "target": "Base.PanForged"
+    },
+    {
+     "item": "Base.PanFriedVegetables",
+     "key": "ReplaceOnUse",
+     "target": "Base.Pan"
+    },
+    {
+     "item": "Base.PanFriedVegetables2",
+     "key": "ReplaceOnUse",
+     "target": "Base.RoastingPan"
+    },
+    {
+     "item": "Base.PanFriedVegetablesForged",
+     "key": "ReplaceOnUse",
+     "target": "Base.PanForged"
+    },
+    {
+     "item": "Base.PiePrep",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.PieWholeRaw",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.PieWholeRawSweet",
+     "key": "ReplaceOnUse",
+     "target": "Base.BakingPan"
+    },
+    {
+     "item": "Base.RagFilter",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.RippedSheetsDirty"
+    },
+    {
+     "item": "Base.Sandbag",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.EmptySandbag"
+    },
+    {
+     "item": "Base.SmokingPipe_Tobacco",
+     "key": "ReplaceOnUse",
+     "target": "Base.SmokingPipe"
+    },
+    {
+     "item": "Base.TestHotDrink",
+     "key": "ReplaceOnUse",
+     "target": "Base.TestMug"
+    },
+    {
+     "item": "Base.TestWaterMug",
+     "key": "ReplaceOnDeplete",
+     "target": "Base.TestMug"
+    }
+   ],
+   "missing_display_names": [
+    "Base.FruitSaladClay",
+    "Base.HotDrinkCopper",
+    "Base.HotDrinkGold",
+    "Base.HotDrinkMetal",
+    "Base.HotDrinkSilver",
+    "Base.HotDrinkTumbler"
+   ],
+   "unresolved_fluid_refs": []
+  },
+  "dataset_items": 1005,
+  "dataset_fluids": 61,
+  "expected": {
+   "food": 722,
+   "fluidDefs": 61,
+   "drainable": 150
+  },
+  "tolerance": 0.0001,
+  "spawn_wait_s": 2.5,
+  "script_defaults": {
+   "HungerChange": 0.0,
+   "ThirstChange": 0.0,
+   "DaysFresh": 1000000000,
+   "DaysTotallyRotten": 1000000000,
+   "IsCookable": false,
+   "MinutesToCook": 60,
+   "MinutesToBurn": 120
+  },
+  "instance_defaults": {
+   "calories": 0.0,
+   "carbs": 0.0,
+   "lipids": 0.0,
+   "proteins": 0.0,
+   "hungChange": 0.0,
+   "thirstChange": 0.0,
+   "offAge": 1000000000,
+   "offAgeMax": 1000000000,
+   "minutesToCook": 60,
+   "minutesToBurn": 120
+  }
+ },
+ "items_count": {
+  "total": 5092,
+  "food": 722,
+  "byType": {
+   "base:normal": 1098,
+   "base:weapon": 409,
+   "base:drainable": 150,
+   "base:clothing": 1395,
+   "base:literature": 559,
+   "base:food": 722,
+   "base:container": 308,
+   "base:moveable": 383,
+   "base:key": 6,
+   "base:radio": 17,
+   "base:alarmclockclothing": 16,
+   "base:weaponpart": 11,
+   "base:alarmclock": 2,
+   "base:map": 15,
+   "base:animal": 1
+  },
+  "foodByModule": {
+   "Base": 722
+  },
+  "fluidDefs": 61
+ },
+ "fluid_script": {
+  "Cola": {
+   "fluidType": "Cola",
+   "fluidTypeRoute": "getFluidTypeString",
+   "displayName": "Cola",
+   "hasPropertiesSet": true,
+   "HungerChange": -0.12,
+   "ThirstChange": -0.3,
+   "Calories": 400,
+   "Carbohydrates": 104,
+   "Lipids": 0,
+   "Proteins": 0,
+   "FatigueChange": -0.02,
+   "StressChange": 0,
+   "UnhappyChange": -10,
+   "Alcohol": 0,
+   "FluReduction": 0,
+   "PainReduction": 0,
+   "EnduranceChange": 0,
+   "FoodSicknessChange": 0
+  },
+  "JuiceGrape": {
+   "fluidType": "JuiceGrape",
+   "fluidTypeRoute": "getFluidTypeString",
+   "displayName": "Grape Juice",
+   "hasPropertiesSet": true,
+   "HungerChange": -0.1,
+   "ThirstChange": -0.3,
+   "Calories": 400,
+   "Carbohydrates": 120,
+   "Lipids": 0,
+   "Proteins": 0,
+   "FatigueChange": 0,
+   "StressChange": -0.2,
+   "UnhappyChange": -50,
+   "Alcohol": 0,
+   "FluReduction": 0,
+   "PainReduction": 0,
+   "EnduranceChange": 0,
+   "FoodSicknessChange": 0
+  }
+ },
+ "spot_checks": {
+  "Base.Apple": {
+   "axis": "plain food: 7 evolved-recipe entries, both thresholds, no cooking keys (so MinutesToCook/MinutesToBurn must read back as the 60/120 defaults)",
+   "requested": "Base.Apple",
+   "pre_existing": "no item Base.Apple in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.Apple Added in admin's inventory.",
+   "spawned": "Base.Apple",
+   "item_get": {
+    "fullType": "Base.Apple",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.16,
+    "baseHunger": -0.16,
+    "calories": 95,
+    "carbs": 25.129999,
+    "lipids": 0.31,
+    "proteins": 0.47,
+    "id": 803209479,
+    "uses": 0.16,
+    "fresh": true,
+    "offAge": 5,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -0.07,
+    "hungerChange": -0.16,
+    "serverWorldAge": 2.329813
+   },
+   "item_script": {
+    "fullType": "Base.Apple",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -16,
+    "ThirstChange": -7,
+    "DaysFresh": 5,
+    "DaysTotallyRotten": 8,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  "Base.Steak": {
+   "axis": "cookable 50/70, EvolvedRecipe carries a space (Stir fry:20) and a |Cooked qualifier (Sandwich:5|Cooked); no ThirstChange",
+   "requested": "Base.Steak",
+   "pre_existing": "no item Base.Steak in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.Steak Added in admin's inventory.",
+   "spawned": "Base.Steak",
+   "item_get": {
+    "fullType": "Base.Steak",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.4,
+    "baseHunger": -0.4,
+    "calories": 220,
+    "carbs": 0,
+    "lipids": 9.35,
+    "proteins": 31.620001,
+    "id": 390055667,
+    "uses": 0.4,
+    "fresh": true,
+    "offAge": 2,
+    "offAgeMax": 4,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 50,
+    "minutesToBurn": 70,
+    "thirstChange": 0,
+    "hungerChange": -0.4,
+    "serverWorldAge": 2.347404
+   },
+   "item_script": {
+    "fullType": "Base.Steak",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -40,
+    "ThirstChange": 0,
+    "DaysFresh": 2,
+    "DaysTotallyRotten": 4,
+    "IsCookable": true,
+    "MinutesToCook": 50,
+    "MinutesToBurn": 70
+   }
+  },
+  "Base.CannedCorn": {
+   "axis": "CannedFood+CantEat+Packaged sealed can with NO DaysFresh/DaysTotallyRotten -> offAge/offAgeMax must stay 1000000000",
+   "requested": "Base.CannedCorn",
+   "pre_existing": "no item Base.CannedCorn in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.CannedCorn Added in admin's inventory.",
+   "spawned": "Base.CannedCorn",
+   "item_get": {
+    "fullType": "Base.CannedCorn",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": 0,
+    "baseHunger": 0,
+    "calories": 315,
+    "carbs": 70,
+    "lipids": 1.75,
+    "proteins": 7,
+    "id": 725203288,
+    "uses": 1,
+    "fresh": true,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": 0,
+    "hungerChange": 0,
+    "serverWorldAge": 2.36506
+   },
+   "item_script": {
+    "fullType": "Base.CannedCorn",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": 0,
+    "ThirstChange": 0,
+    "DaysFresh": 1000000000,
+    "DaysTotallyRotten": 1000000000,
+    "IsCookable": true,
+    "MinutesToCook": 10,
+    "MinutesToBurn": 30
+   }
+  },
+  "Base.CannedBologneseOpen": {
+   "axis": "opened can: both thresholds AND ReplaceOnUse",
+   "requested": "Base.CannedBologneseOpen",
+   "pre_existing": "no item Base.CannedBologneseOpen in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "",
+   "spawned": "Base.CannedBologneseOpen",
+   "item_get": {
+    "fullType": "Base.CannedBologneseOpen",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.24,
+    "baseHunger": -0.24,
+    "calories": 540,
+    "carbs": 68,
+    "lipids": 22,
+    "proteins": 18,
+    "id": 1747554283,
+    "uses": 0.24,
+    "fresh": true,
+    "offAge": 3,
+    "offAgeMax": 5,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 10,
+    "minutesToBurn": 30,
+    "thirstChange": 0,
+    "hungerChange": -0.24,
+    "serverWorldAge": 2.382723
+   },
+   "item_script": {
+    "fullType": "Base.CannedBologneseOpen",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -24,
+    "ThirstChange": 0,
+    "DaysFresh": 3,
+    "DaysTotallyRotten": 5,
+    "IsCookable": true,
+    "MinutesToCook": 10,
+    "MinutesToBurn": 30
+   }
+  },
+  "Base.BreadSlices": {
+   "axis": "ReplaceOnCooked = Base.Toast; MinutesToCook 4 with no MinutesToBurn",
+   "requested": "Base.BreadSlices",
+   "pre_existing": "no item Base.BreadSlices in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.BreadSlices Added in admin's inventory.",
+   "spawned": "Base.BreadSlices",
+   "item_get": {
+    "fullType": "Base.BreadSlices",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.1,
+    "baseHunger": -0.1,
+    "calories": 177,
+    "carbs": 33,
+    "lipids": 2.22,
+    "proteins": 5.9,
+    "id": 1556188408,
+    "uses": 0.1,
+    "fresh": true,
+    "offAge": 3,
+    "offAgeMax": 6,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 4,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.1,
+    "serverWorldAge": 2.409214
+   },
+   "item_script": {
+    "fullType": "Base.BreadSlices",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -10,
+    "ThirstChange": 0,
+    "DaysFresh": 3,
+    "DaysTotallyRotten": 6,
+    "IsCookable": true,
+    "MinutesToCook": 4,
+    "MinutesToBurn": 120
+   }
+  },
+  "Base.ConeIcecream": {
+   "axis": "ReplaceOnRotten = Base.ConeIcecreamMelted; Packaged = false (the false-vs-absent case)",
+   "requested": "Base.ConeIcecream",
+   "pre_existing": "no item Base.ConeIcecream in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.ConeIcecream Added in admin's inventory.",
+   "spawned": "Base.ConeIcecream",
+   "item_get": {
+    "fullType": "Base.ConeIcecream",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.15,
+    "baseHunger": -0.15,
+    "calories": 470,
+    "carbs": 120,
+    "lipids": 44,
+    "proteins": 20,
+    "id": 734170498,
+    "uses": 0.15,
+    "fresh": true,
+    "offAge": 1,
+    "offAgeMax": 2,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0,
+    "hungerChange": -0.15,
+    "serverWorldAge": 2.433514
+   },
+   "item_script": {
+    "fullType": "Base.ConeIcecream",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -15,
+    "ThirstChange": 0,
+    "DaysFresh": 1,
+    "DaysTotallyRotten": 2,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  "Base.RatKing": {
+   "axis": "DaysFresh == DaysTotallyRotten == 0 -- a present-but-zero threshold, which is not the same input as an absent one",
+   "requested": "Base.RatKing",
+   "pre_existing": "no item Base.RatKing in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.RatKing Added in admin's inventory.",
+   "spawned": "Base.RatKing",
+   "item_get": {
+    "fullType": "Base.RatKing",
+    "cooked": false,
+    "burnt": false,
+    "rotten": true,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -1.1,
+    "baseHunger": -1.1,
+    "calories": 1620,
+    "carbs": 0,
+    "lipids": 96,
+    "proteins": 240,
+    "id": 1799227446,
+    "uses": 1.1,
+    "fresh": false,
+    "offAge": 0,
+    "offAgeMax": 0,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 20,
+    "minutesToBurn": 60,
+    "thirstChange": 0,
+    "hungerChange": -0.5,
+    "serverWorldAge": 2.45028
+   },
+   "item_script": {
+    "fullType": "Base.RatKing",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -110,
+    "ThirstChange": 0,
+    "DaysFresh": 0,
+    "DaysTotallyRotten": 0,
+    "IsCookable": true,
+    "MinutesToCook": 20,
+    "MinutesToBurn": 60
+   }
+  },
+  "Base.Salt": {
+   "axis": "spice: no macro key at all (calories/carbs/lipids/proteins all null) and a POSITIVE ThirstChange (+20)",
+   "requested": "Base.Salt",
+   "pre_existing": "no item Base.Salt in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.Salt Added in admin's inventory.",
+   "spawned": "Base.Salt",
+   "item_get": {
+    "fullType": "Base.Salt",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.1,
+    "baseHunger": -0.1,
+    "calories": 0,
+    "carbs": 0,
+    "lipids": 0,
+    "proteins": 0,
+    "id": 641683393,
+    "uses": 0.1,
+    "fresh": true,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": 0.2,
+    "hungerChange": -0.1,
+    "serverWorldAge": 2.467057
+   },
+   "item_script": {
+    "fullType": "Base.Salt",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -10,
+    "ThirstChange": 20,
+    "DaysFresh": 1000000000,
+    "DaysTotallyRotten": 1000000000,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  "Base.Pop2": {
+   "axis": "fluid container: Capacity 0.3, Fluids = Cola:1.0, nutrition_source fluid:Cola",
+   "requested": "Base.Pop2",
+   "pre_existing": "no item Base.Pop2 in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.Pop2 Added in admin's inventory.",
+   "spawned": "Base.Pop2",
+   "item_get": {
+    "fullType": "Base.Pop2",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 2004859129,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "serverWorldAge": 2.4834
+   },
+   "item_script": {
+    "fullType": "Base.Pop2",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": 0,
+    "ThirstChange": 0,
+    "DaysFresh": 1000000000,
+    "DaysTotallyRotten": 1000000000,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  "Base.JuiceBox": {
+   "axis": "fluid container: Capacity 0.2, Fluids = JuiceGrape:1.0, Eattime 160",
+   "requested": "Base.JuiceBox",
+   "pre_existing": "no item Base.JuiceBox in admin's inventory",
+   "had_one_before_spawn": false,
+   "rcon_additem": "Item Base.JuiceBox Added in admin's inventory.",
+   "spawned": "Base.JuiceBox",
+   "item_get": {
+    "fullType": "Base.JuiceBox",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 1395771626,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "serverWorldAge": 2.506389
+   },
+   "item_script": {
+    "fullType": "Base.JuiceBox",
+    "via": "getItem",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": 0,
+    "ThirstChange": 0,
+    "DaysFresh": 1000000000,
+    "DaysTotallyRotten": 1000000000,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  }
+ },
+ "comparison": {
+  "Base.Apple": {
+   "axis": "plain food: 7 evolved-recipe entries, both thresholds, no cooking keys (so MinutesToCook/MinutesToBurn must read back as the 60/120 defaults)",
+   "spawned": "Base.Apple",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -16.0,
+     "script": -16.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -16,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": -7.0,
+     "script": -7.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -7,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": 5,
+     "script": 5,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 5,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": 8,
+     "script": 8,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 8,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": null,
+     "script": false,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": false,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 60,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 120,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 95.0,
+     "script": 95.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 95,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 25.13,
+     "script": 25.13,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 25.129999,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 0.31,
+     "script": 0.31,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 0.31,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 0.47,
+     "script": 0.47,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 0.47,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -16.0,
+     "script": -0.16,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.16,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": -7.0,
+     "script": -0.07,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.07,
+     "match": true
+    },
+    "offAge": {
+     "dataset": 5,
+     "script": 5,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 5,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": 8,
+     "script": 8,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 8,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 60,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.Steak": {
+   "axis": "cookable 50/70, EvolvedRecipe carries a space (Stir fry:20) and a |Cooked qualifier (Sandwich:5|Cooked); no ThirstChange",
+   "spawned": "Base.Steak",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -40.0,
+     "script": -40.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -40,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": 2,
+     "script": 2,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 2,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": 4,
+     "script": 4,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 4,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": true,
+     "script": true,
+     "transform": "identity",
+     "source": "item.script",
+     "live": true,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": 50,
+     "script": 50,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 50,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": 70,
+     "script": 70,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 70,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 220.0,
+     "script": 220.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 220,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 0.0,
+     "script": 0.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 9.35,
+     "script": 9.35,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 9.35,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 31.62,
+     "script": 31.62,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 31.620001,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -40.0,
+     "script": -0.4,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.4,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAge": {
+     "dataset": 2,
+     "script": 2,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 2,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": 4,
+     "script": 4,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 4,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": 50,
+     "script": 50,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 50,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": 70,
+     "script": 70,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 70,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.CannedCorn": {
+   "axis": "CannedFood+CantEat+Packaged sealed can with NO DaysFresh/DaysTotallyRotten -> offAge/offAgeMax must stay 1000000000",
+   "spawned": "Base.CannedCorn",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": true,
+     "script": true,
+     "transform": "identity",
+     "source": "item.script",
+     "live": true,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": 10,
+     "script": 10,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 10,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": 30,
+     "script": 30,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 30,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 315.0,
+     "script": 315.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 315,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 70.0,
+     "script": 70.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 70,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 1.75,
+     "script": 1.75,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 1.75,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 7.0,
+     "script": 7.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 7,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAge": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": 10,
+     "script": 10,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 10,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": 30,
+     "script": 30,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 30,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.CannedBologneseOpen": {
+   "axis": "opened can: both thresholds AND ReplaceOnUse",
+   "spawned": "Base.CannedBologneseOpen",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -24.0,
+     "script": -24.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -24,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": 3,
+     "script": 3,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 3,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": 5,
+     "script": 5,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 5,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": true,
+     "script": true,
+     "transform": "identity",
+     "source": "item.script",
+     "live": true,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": 10,
+     "script": 10,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 10,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": 30,
+     "script": 30,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 30,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 540.0,
+     "script": 540.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 540,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 68.0,
+     "script": 68.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 68,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 22.0,
+     "script": 22.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 22,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 18.0,
+     "script": 18.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 18,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -24.0,
+     "script": -0.24,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.24,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAge": {
+     "dataset": 3,
+     "script": 3,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 3,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": 5,
+     "script": 5,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 5,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": 10,
+     "script": 10,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 10,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": 30,
+     "script": 30,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 30,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.BreadSlices": {
+   "axis": "ReplaceOnCooked = Base.Toast; MinutesToCook 4 with no MinutesToBurn",
+   "spawned": "Base.BreadSlices",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -10.0,
+     "script": -10.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -10,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": 3,
+     "script": 3,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 3,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": 6,
+     "script": 6,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 6,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": true,
+     "script": true,
+     "transform": "identity",
+     "source": "item.script",
+     "live": true,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": 4,
+     "script": 4,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 4,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 120,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 177.0,
+     "script": 177.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 177,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 33.0,
+     "script": 33.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 33,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 2.22,
+     "script": 2.22,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 2.22,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 5.9,
+     "script": 5.9,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 5.9,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -10.0,
+     "script": -0.1,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.1,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAge": {
+     "dataset": 3,
+     "script": 3,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 3,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": 6,
+     "script": 6,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 6,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": 4,
+     "script": 4,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 4,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.ConeIcecream": {
+   "axis": "ReplaceOnRotten = Base.ConeIcecreamMelted; Packaged = false (the false-vs-absent case)",
+   "spawned": "Base.ConeIcecream",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -15.0,
+     "script": -15.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -15,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": 1,
+     "script": 1,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 1,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": 2,
+     "script": 2,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 2,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": null,
+     "script": false,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": false,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 60,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 120,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 470.0,
+     "script": 470.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 470,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 120.0,
+     "script": 120.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 44.0,
+     "script": 44.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 44,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 20.0,
+     "script": 20.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 20,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -15.0,
+     "script": -0.15,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.15,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAge": {
+     "dataset": 1,
+     "script": 1,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 1,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": 2,
+     "script": 2,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 2,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 60,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.RatKing": {
+   "axis": "DaysFresh == DaysTotallyRotten == 0 -- a present-but-zero threshold, which is not the same input as an absent one",
+   "spawned": "Base.RatKing",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -110.0,
+     "script": -110.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -110,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": 0,
+     "script": 0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": 0,
+     "script": 0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": true,
+     "script": true,
+     "transform": "identity",
+     "source": "item.script",
+     "live": true,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": 20,
+     "script": 20,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 20,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": 60,
+     "script": 60,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 60,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": 1620.0,
+     "script": 1620.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 1620,
+     "match": true
+    },
+    "carbs": {
+     "dataset": 0.0,
+     "script": 0.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "lipids": {
+     "dataset": 96.0,
+     "script": 96.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 96,
+     "match": true
+    },
+    "proteins": {
+     "dataset": 240.0,
+     "script": 240.0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 240,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -110.0,
+     "script": -1.1,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -1.1,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAge": {
+     "dataset": 0,
+     "script": 0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": 0,
+     "script": 0,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": 20,
+     "script": 20,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 20,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": 60,
+     "script": 60,
+     "transform": "identity",
+     "source": "item.get",
+     "live": 60,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.Salt": {
+   "axis": "spice: no macro key at all (calories/carbs/lipids/proteins all null) and a POSITIVE ThirstChange (+20)",
+   "spawned": "Base.Salt",
+   "kind": "food",
+   "nutrition_source": "food_keys",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": -10.0,
+     "script": -10.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": -10,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": 20.0,
+     "script": 20.0,
+     "transform": "identity",
+     "source": "item.script",
+     "live": 20,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": null,
+     "script": false,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": false,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 60,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 120,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "carbs": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "lipids": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "proteins": {
+     "dataset": null,
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 0,
+     "match": true
+    },
+    "hungChange": {
+     "dataset": -10.0,
+     "script": -0.1,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": -0.1,
+     "match": true
+    },
+    "thirstChange": {
+     "dataset": 20.0,
+     "script": 0.2,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "item.get",
+     "live": 0.2,
+     "match": true
+    },
+    "offAge": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 60,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.Pop2": {
+   "axis": "fluid container: Capacity 0.3, Fluids = Cola:1.0, nutrition_source fluid:Cola",
+   "spawned": "Base.Pop2",
+   "kind": "fluid_container",
+   "nutrition_source": "fluid:Cola",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": null,
+     "script": false,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": false,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 60,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 120,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "carbs": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "lipids": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "proteins": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "hungChange": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "thirstChange": {
+     "dataset": null,
+     "routed_to": "fluid:Cola",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "offAge": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 60,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    }
+   },
+   "fluid_id": "Cola",
+   "fluid": {
+    "Calories": {
+     "dataset": 400.0,
+     "script": 400.0,
+     "transform": "identity",
+     "source": "fluid.script Cola",
+     "live": 400,
+     "match": true
+    },
+    "Carbohydrates": {
+     "dataset": 104.0,
+     "script": 104.0,
+     "transform": "identity",
+     "source": "fluid.script Cola",
+     "live": 104,
+     "match": true
+    },
+    "Lipids": {
+     "dataset": 0.0,
+     "script": 0.0,
+     "transform": "identity",
+     "source": "fluid.script Cola",
+     "live": 0,
+     "match": true
+    },
+    "Proteins": {
+     "dataset": 0.0,
+     "script": 0.0,
+     "transform": "identity",
+     "source": "fluid.script Cola",
+     "live": 0,
+     "match": true
+    },
+    "HungerChange": {
+     "dataset": -12.0,
+     "script": -0.12,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "fluid.script Cola",
+     "live": -0.12,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": -30.0,
+     "script": -0.3,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "fluid.script Cola",
+     "live": -0.3,
+     "match": true
+    }
+   },
+   "fluid_join": {
+    "calories": {
+     "item": 400.0,
+     "fluid": 400.0,
+     "match": true
+    },
+    "carbohydrates": {
+     "item": 104.0,
+     "fluid": 104.0,
+     "match": true
+    },
+    "hunger_change": {
+     "item": -12.0,
+     "fluid": -12.0,
+     "match": true
+    },
+    "lipids": {
+     "item": 0.0,
+     "fluid": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "item": 0.0,
+     "fluid": 0.0,
+     "match": true
+    },
+    "thirst_change": {
+     "item": -30.0,
+     "fluid": -30.0,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  },
+  "Base.JuiceBox": {
+   "axis": "fluid container: Capacity 0.2, Fluids = JuiceGrape:1.0, Eattime 160",
+   "spawned": "Base.JuiceBox",
+   "kind": "fluid_container",
+   "nutrition_source": "fluid:JuiceGrape",
+   "dataset_record_found": true,
+   "script": {
+    "HungerChange": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 0,
+     "match": true
+    },
+    "DaysFresh": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "DaysTotallyRotten": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 1000000000,
+     "match": true
+    },
+    "IsCookable": {
+     "dataset": null,
+     "script": false,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": false,
+     "match": true
+    },
+    "MinutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 60,
+     "match": true
+    },
+    "MinutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.script",
+     "live": 120,
+     "match": true
+    }
+   },
+   "instance": {
+    "calories": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "carbs": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "lipids": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "proteins": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "hungChange": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "thirstChange": {
+     "dataset": null,
+     "routed_to": "fluid:JuiceGrape",
+     "script": 0.0,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": null,
+     "live_absent": true,
+     "match": "n/a",
+     "note": "fluid container: the instance is not a Food, so TK.itemState's Food getters do not answer"
+    },
+    "offAge": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "offAgeMax": {
+     "dataset": null,
+     "script": 1000000000,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 1000000000,
+     "match": true
+    },
+    "minutesToCook": {
+     "dataset": null,
+     "script": 60,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 60,
+     "match": true
+    },
+    "minutesToBurn": {
+     "dataset": null,
+     "script": 120,
+     "transform": "default (the item script sets no such key)",
+     "source": "item.get",
+     "live": 120,
+     "match": true
+    }
+   },
+   "fluid_id": "JuiceGrape",
+   "fluid": {
+    "Calories": {
+     "dataset": 400.0,
+     "script": 400.0,
+     "transform": "identity",
+     "source": "fluid.script JuiceGrape",
+     "live": 400,
+     "match": true
+    },
+    "Carbohydrates": {
+     "dataset": 120.0,
+     "script": 120.0,
+     "transform": "identity",
+     "source": "fluid.script JuiceGrape",
+     "live": 120,
+     "match": true
+    },
+    "Lipids": {
+     "dataset": 0.0,
+     "script": 0.0,
+     "transform": "identity",
+     "source": "fluid.script JuiceGrape",
+     "live": 0,
+     "match": true
+    },
+    "Proteins": {
+     "dataset": 0.0,
+     "script": 0.0,
+     "transform": "identity",
+     "source": "fluid.script JuiceGrape",
+     "live": 0,
+     "match": true
+    },
+    "HungerChange": {
+     "dataset": -10.0,
+     "script": -0.1,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "fluid.script JuiceGrape",
+     "live": -0.1,
+     "match": true
+    },
+    "ThirstChange": {
+     "dataset": -30.0,
+     "script": -0.3,
+     "transform": "x0.01 (Item.InstanceItem)",
+     "source": "fluid.script JuiceGrape",
+     "live": -0.3,
+     "match": true
+    }
+   },
+   "fluid_join": {
+    "calories": {
+     "item": 400.0,
+     "fluid": 400.0,
+     "match": true
+    },
+    "carbohydrates": {
+     "item": 120.0,
+     "fluid": 120.0,
+     "match": true
+    },
+    "hunger_change": {
+     "item": -10.0,
+     "fluid": -10.0,
+     "match": true
+    },
+    "lipids": {
+     "item": 0.0,
+     "fluid": 0.0,
+     "match": true
+    },
+    "proteins": {
+     "item": 0.0,
+     "fluid": 0.0,
+     "match": true
+    },
+    "thirst_change": {
+     "item": -30.0,
+     "fluid": -30.0,
+     "match": true
+    }
+   },
+   "mismatches": [],
+   "matched": true
+  }
+ },
+ "summary": {
+  "counts": {
+   "food": {
+    "live": 722,
+    "dataset": 722,
+    "expected": 722,
+    "match": true
+   },
+   "fluidDefs": {
+    "live": 61,
+    "dataset": 61,
+    "expected": 61,
+    "match": true
+   },
+   "drainable": {
+    "live": 150,
+    "dataset": 150,
+    "expected": 150,
+    "match": true
+   },
+   "base_food_bucket": {
+    "live": 722,
+    "dataset": 722,
+    "expected": 722,
+    "match": true
+   }
+  },
+  "counts_all_match": true,
+  "items_checked": 10,
+  "items_all_matched": true,
+  "fields_compared": 182,
+  "fields_matched": 170,
+  "fields_na": 12,
+  "fields_mismatched": 0,
+  "per_item": {
+   "Base.Apple": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.Apple",
+    "ok": true
+   },
+   "Base.Steak": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.Steak",
+    "ok": true
+   },
+   "Base.CannedCorn": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.CannedCorn",
+    "ok": true
+   },
+   "Base.CannedBologneseOpen": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.CannedBologneseOpen",
+    "ok": true
+   },
+   "Base.BreadSlices": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.BreadSlices",
+    "ok": true
+   },
+   "Base.ConeIcecream": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.ConeIcecream",
+    "ok": true
+   },
+   "Base.RatKing": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.RatKing",
+    "ok": true
+   },
+   "Base.Salt": {
+    "fields": 17,
+    "matched": 17,
+    "na": 0,
+    "mismatched": 0,
+    "spawned": "Base.Salt",
+    "ok": true
+   },
+   "Base.Pop2": {
+    "fields": 23,
+    "matched": 17,
+    "na": 6,
+    "mismatched": 0,
+    "spawned": "Base.Pop2",
+    "ok": true
+   },
+   "Base.JuiceBox": {
+    "fields": 23,
+    "matched": 17,
+    "na": 6,
+    "mismatched": 0,
+    "spawned": "Base.JuiceBox",
+    "ok": true
+   }
+  },
+  "mismatches": [],
+  "substitutions": {},
+  "pre_existing_instances": [],
+  "dataset_commit": "72ed836"
+ },
+ "fixture": "default",
+ "build": "42.20.4",
+ "timeline": [
+  {
+   "t": 47.9,
+   "phase": "session_ready"
+  },
+  {
+   "t": 48.9,
+   "phase": "items_count",
+   "ok": true
+  },
+  {
+   "t": 50.9,
+   "phase": "fluid_script",
+   "got": [
+    "Cola",
+    "JuiceGrape"
+   ]
+  },
+  {
+   "t": 50.9,
+   "phase": "item_start",
+   "item": "Base.Apple"
+  },
+  {
+   "t": 57.1,
+   "phase": "item_done",
+   "item": "Base.Apple",
+   "mismatches": 0
+  },
+  {
+   "t": 57.1,
+   "phase": "item_start",
+   "item": "Base.Steak"
+  },
+  {
+   "t": 61.2,
+   "phase": "item_done",
+   "item": "Base.Steak",
+   "mismatches": 0
+  },
+  {
+   "t": 61.2,
+   "phase": "item_start",
+   "item": "Base.CannedCorn"
+  },
+  {
+   "t": 65.1,
+   "phase": "item_done",
+   "item": "Base.CannedCorn",
+   "mismatches": 0
+  },
+  {
+   "t": 65.1,
+   "phase": "item_start",
+   "item": "Base.CannedBologneseOpen"
+  },
+  {
+   "t": 69.1,
+   "phase": "item_done",
+   "item": "Base.CannedBologneseOpen",
+   "mismatches": 0
+  },
+  {
+   "t": 69.1,
+   "phase": "item_start",
+   "item": "Base.BreadSlices"
+  },
+  {
+   "t": 75.5,
+   "phase": "item_done",
+   "item": "Base.BreadSlices",
+   "mismatches": 0
+  },
+  {
+   "t": 75.5,
+   "phase": "item_start",
+   "item": "Base.ConeIcecream"
+  },
+  {
+   "t": 80.7,
+   "phase": "item_done",
+   "item": "Base.ConeIcecream",
+   "mismatches": 0
+  },
+  {
+   "t": 80.7,
+   "phase": "item_start",
+   "item": "Base.RatKing"
+  },
+  {
+   "t": 84.6,
+   "phase": "item_done",
+   "item": "Base.RatKing",
+   "mismatches": 0
+  },
+  {
+   "t": 84.6,
+   "phase": "item_start",
+   "item": "Base.Salt"
+  },
+  {
+   "t": 88.5,
+   "phase": "item_done",
+   "item": "Base.Salt",
+   "mismatches": 0
+  },
+  {
+   "t": 88.5,
+   "phase": "item_start",
+   "item": "Base.Pop2"
+  },
+  {
+   "t": 92.1,
+   "phase": "item_done",
+   "item": "Base.Pop2",
+   "mismatches": 0
+  },
+  {
+   "t": 92.1,
+   "phase": "item_start",
+   "item": "Base.JuiceBox"
+  },
+  {
+   "t": 97.7,
+   "phase": "item_done",
+   "item": "Base.JuiceBox",
+   "mismatches": 0
+  },
+  {
+   "t": 100.0,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 108.0,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "wall_seconds": 107.6
+}

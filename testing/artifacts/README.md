@@ -33,6 +33,7 @@ correct it.
 | `scenario-20260910-052624` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` (unwatered first attempt: the subject dies of thirst at game-hour 35) | [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md) § Verified on server, [`docs/vanilla/body-stats.md`](../../docs/vanilla/body-stats.md) (the `THIRST == 4` health loss) |
 | `scenario-20260910-054012` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` | [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md) § Verified on server |
 | `scenario-20260910-055029` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast` | same |
+| `exp05-20260910-084109` | `food-scan.json` | `testing/experiments/s05_food_scan.py` | slice 05 (`.superpowers/sdd/05-food-scanner/task-5-report.md`; docs to follow) |
 
 ## Script/artifact skew
 
@@ -42,7 +43,10 @@ what the current script adds — instead of assuming a later run erases it.** Re
 experiment for a teardown-only change is poor value; disclosure is what keeps the evidence
 honest. Both slice-01 artifacts predate that slice's last fix round, the slice-02 artifact
 predates slice 02's, the slice-03 artifact predates slice 03's fix round 1, and all three
-slice-04 scenario artifacts predate slice 04's, so all seven are listed.
+slice-04 scenario artifacts predate slice 04's, so all seven are listed. The slice-05
+artifact (`exp05-20260910-084109`) is the one that is not: it was produced by
+`s05_food_scan.py` exactly as committed, with no fix round after it, so it has no entry
+below.
 
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
