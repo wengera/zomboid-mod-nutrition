@@ -113,6 +113,80 @@ function TK.field(obj, name)
     return true, v
 end
 
+-- ---- item state (both sides) ------------------------------------------------
+-- Slice 02 moved this out of the client file: the SERVER owns item aging (Food.update gates
+-- updateAge on GameServer.server, 02-notes Q8), so every real age/cooking reading has to be
+-- taken on the server and compared against the client's copy. One table, read through
+-- TK.call, so a key a build does not expose is simply absent rather than fatal.
+-- Slice-01 keys are unchanged; the slice-02 additions are the aging/cooking block below.
+TK.ITEM_STATE = {
+    -- slice 01
+    cooked = "isCooked", burnt = "isBurnt", rotten = "isRotten", frozen = "isFrozen",
+    age = "getAge", hungChange = "getHungChange", baseHunger = "getBaseHunger",
+    calories = "getCalories", carbs = "getCarbohydrates", lipids = "getLipids",
+    proteins = "getProteins", id = "getID", uses = "getCurrentUsesFloat",
+    -- slice 02: the aging/cooking/freezing fields, none of which travel in ItemStatsPacket
+    -- except cooked/burnt/cookingTime/heat (02-notes Q8) -- which is exactly what the
+    -- MP-ownership phase measures.
+    fresh = "isFresh", offAge = "getOffAge", offAgeMax = "getOffAgeMax",
+    freezingTime = "getFreezingTime", cookingTime = "getCookingTime", heat = "getHeat",
+    minutesToCook = "getMinutesToCook", minutesToBurn = "getMinutesToBurn",
+    thirstChange = "getThirstChange",
+    -- getHungerChange() is NOT getHungChange(): the first is the read-time getter that applies
+    -- the cooked/burnt/stale/rotten ladder, the second is the raw stored field that aging never
+    -- touches (02-notes Q3). Recording only one of the pair makes "nothing moved" unreadable --
+    -- it looks like rot has no effect on hunger, when in fact the effect is entirely at read
+    -- time. `thirstChange` above is already the modified getter, so this makes the pair honest.
+    hungerChange = "getHungerChange",
+}
+
+function TK.itemState(it)
+    if it == nil then return nil end
+    local out = { fullType = it:getFullType() }
+    for k, m in pairs(TK.ITEM_STATE) do
+        local ok, v = TK.call(it, m)
+        if ok then out[k] = v end
+    end
+    return out
+end
+
+-- ---- perk levels (both sides) -----------------------------------------------
+-- EvolvedRecipe.addItem reads chef:getPerkLevel(Perks.Cooking) and scales the dish's macros by
+-- (1 + lvl/15) and its hunger by (1 - 0.03*lvl), so the level has to be pinned before any
+-- recipe measurement (02-notes Q5, precondition 7).
+--
+-- Two calls, in the order the game's own debug UI uses (ISStatsAndBody.lua:229-230), because
+-- they write different things and only the pair is consistent:
+--   setPerkLevelDebug(perk, lvl) -> PerkInfo.level = lvl        (and, on a CLIENT only,
+--                                   GameClient.sendPerks(player))
+--   getXp():setXPToLevel(perk, lvl) -> xpMap[perk] = perk:getTotalXpForLevel(lvl)
+-- setXPToLevel alone does NOT move getPerkLevel (measured: exp02-20260910-025434 read back 0
+-- after it), and setPerkLevelDebug alone leaves the XP behind the level.
+--
+-- MEASURED: a client-only write does not survive in MP. The client pushes with sendPerks, but
+-- the SERVER's copy of the character is still at the old level and wins within a second -- the
+-- same ownership shape as Nutrition and hunger/thirst in slice 01. Pin the SERVER first, then
+-- the client, and read `before` back on a second call to confirm it held.
+function TK.setPerk(p, name, level)
+    local perk = Perks and Perks[name]
+    if not perk then return { error = "no Perks." .. tostring(name) } end
+    local out = { perk = name, requested = level, side = TK.side }
+    local _, before = TK.call(p, "getPerkLevel", perk)
+    out.before = before
+    out.setPerkLevelDebug = TK.call(p, "setPerkLevelDebug", perk, level)
+    local _, mid = TK.call(p, "getPerkLevel", perk)
+    out.afterSetPerkLevelDebug = mid
+    local _, xp = TK.call(p, "getXp")
+    out.setXPToLevel = xp ~= nil and TK.call(xp, "setXPToLevel", perk, level) or false
+    local _, after = TK.call(p, "getPerkLevel", perk)
+    out.after = after
+    if after ~= level then out.route = "none"
+    elseif before == level then out.route = "already at level"
+    elseif mid == level then out.route = "setPerkLevelDebug"
+    else out.route = "getXp():setXPToLevel" end
+    return out
+end
+
 -- ---- nutrition snapshot (both sides: client commands and the server's per-user ones) ----
 -- Stats accessors moved with B42: the pre-B42 getHunger()/`.hunger` pair is gone and the
 -- game's own Lua reads Stats:get(CharacterStat.HUNGER). Try that first, then the two older

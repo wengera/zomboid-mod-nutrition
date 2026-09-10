@@ -62,6 +62,15 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   (queues the real timed action — completes on the server), `sandbox.set`.
   The server owns `Nutrition` and hunger/thirst in MP: client-side writes are
   overwritten within ~1 s (see `docs/vanilla/eating-pipeline.md`).
+  Slice-02 lifecycle commands — server: `item.get <user> <type>`,
+  `item.set <user> <type> <field> <v>` (+`sendItemStats`),
+  `item.age.tick <user> <type>` (`updateAge(true)`),
+  `item.freeze <user> <type>`, `item.update <user> <type>` (the cooking
+  driver); client: `item.age <type> <days>`, `perk.set <perk> <level>`,
+  `recipe.evolved <recipe> <base> <ingredient>…`. The server also owns item
+  **aging**, and `age`/`offAge`/`offAgeMax`/`freezingTime` are in no packet, so
+  those readings must be taken on the server bus (see
+  `docs/superpowers/plans/02-notes.md` Q8).
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects

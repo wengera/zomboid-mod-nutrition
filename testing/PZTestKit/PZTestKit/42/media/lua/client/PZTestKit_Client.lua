@@ -254,18 +254,9 @@ local function scriptValues(fullType)
 end
 TK.register("item.script", function(argv) return scriptValues(argv[1]) or ("no script item " .. tostring(argv[1])) end)
 
-local ITEM_STATE = { cooked = "isCooked", burnt = "isBurnt", rotten = "isRotten", frozen = "isFrozen",
-                     age = "getAge", hungChange = "getHungChange", baseHunger = "getBaseHunger",
-                     calories = "getCalories", carbs = "getCarbohydrates", lipids = "getLipids",
-                     proteins = "getProteins", id = "getID", uses = "getCurrentUsesFloat" }
-local function itemState(it)
-    local out = { fullType = it:getFullType() }
-    for k, m in pairs(ITEM_STATE) do
-        local ok, v = TK.call(it, m)
-        if ok then out[k] = v end
-    end
-    return out
-end
+-- Slice 02 moved the table into Core so the server half can return the same shape; the
+-- slice-01 keys are unchanged (see TK.ITEM_STATE).
+local function itemState(it) return TK.itemState(it) end
 -- Returns (item, "found"|"client"). The AddItem fallback is EXPERIMENT-ONLY: a client-spawned
 -- item is invisible to the server (S6), so eating one makes the server log a SyncItemFields
 -- NPE (IsoGameCharacter.Eat -> syncItemFields on an item the server never heard of) and
@@ -298,6 +289,126 @@ TK.register("item.state", function(argv)
     elseif s == "fresh" then TK.call(it, "setAge", 0) end
     local out = itemState(it)
     out.spawned = spawned
+    return out
+end)
+
+-- ---- lifecycle commands (slice 02) -------------------------------------------
+-- <fullType> <days>: setAge on the CLIENT's copy. This measures nothing about aging -- the
+-- server owns that (02-notes Q8) -- it measures the five local Food getters as a pure
+-- function of age: isFresh/isRotten/getHungChange and the four macros.
+TK.register("item.age", function(argv)
+    local it, spawned = findOrSpawn(argv[1])
+    if not it then return "no item " .. tostring(argv[1]) end
+    local days = tonumber(argv[2])
+    if days == nil then return "usage: item.age <fullType> <days>" end
+    local before = itemState(it)
+    if not TK.call(it, "setAge", days) then return "no InventoryItem:setAge" end
+    local out = itemState(it)
+    out.spawned, out.requestedAge, out.before = spawned, days, before
+    return out
+end)
+
+-- <PerkName> <level> on the local player. The server has the twin (`perk.set <user> …`); see
+-- TK.setPerk for why a client-only write does not survive in MP.
+TK.register("perk.set", function(argv)
+    local level = tonumber(argv[2])
+    if not argv[1] or level == nil then return "usage: perk.set <PerkName> <level>" end
+    return TK.setPerk(getPlayer(), argv[1], level)
+end)
+
+-- <recipeName> <BaseType> <ingredientType>...  The game's own path, minus the UI: the
+-- context menu queues ISAddItemInRecipe, whose :complete() is
+-- `recipe:addItem(baseItem, usedItem, character)` (ISAddItemInRecipe.lua:70) followed by
+-- checkName/checkTemperature. addItem is a plain Java call, so it runs headlessly; the menu
+-- is only what *chooses* the pair. getItemsCanBeUse/isItemUsableInRecipe are recorded per
+-- ingredient so a refusal the menu would have made silently (water, MaxItems, frozen, burnt,
+-- rotten under Cooking 7) is visible instead of showing up as a flat result.
+-- checkName is deliberately skipped: it only generates a display name.
+local function findEvolvedRecipe(name)
+    if not getEvolvedRecipes then return nil, "no getEvolvedRecipes()" end
+    local list = getEvolvedRecipes()
+    if not list then return nil, "getEvolvedRecipes() returned nil" end
+    local seen = {}
+    for i = 0, list:size() - 1 do
+        local r = list:get(i)
+        local _, untranslated = TK.call(r, "getUntranslatedName")   -- the script block name
+        local _, original = TK.call(r, "getOriginalname")
+        local _, display = TK.call(r, "getName")
+        if untranslated == name or original == name or display == name then return r, nil end
+        if #seen < 12 then seen[#seen + 1] = tostring(untranslated) end
+    end
+    return nil, "no evolved recipe '" .. tostring(name) .. "' among " .. tostring(list:size())
+        .. " (first: " .. table.concat(seen, ",") .. ")"
+end
+
+TK.register("recipe.evolved", function(argv)
+    local recipeName, baseType = argv[1], argv[2]
+    if not recipeName or not baseType or not argv[3] then
+        return "usage: recipe.evolved <recipeName> <BaseType> <ingredientType>..."
+    end
+    local recipe, err = findEvolvedRecipe(recipeName)
+    if not recipe then return err end
+    local p = getPlayer()
+    local inv = p:getInventory()
+    local base = inv:getFirstTypeRecurse(baseType)
+    if not base then return "no base item " .. tostring(baseType) .. " in inventory" end
+    -- Perks.Cooking is read BEFORE the call and the read skipped when it is nil: handing a
+    -- nil enum to a present Java method is an argument mismatch, and Kahlua does not let
+    -- pcall catch that either (Core, TK.call).
+    local cooking = Perks and Perks.Cooking
+    local cookLvl = nil
+    if cooking then local _, lvl = TK.call(p, "getPerkLevel", cooking); cookLvl = lvl end
+    local out = { recipe = recipeName, baseType = baseType, cookingLevel = cookLvl,
+                  baseBefore = itemState(base), ingredients = {} }
+    local _, rItem = TK.call(recipe, "getResultItem")
+    local _, maxItems = TK.call(recipe, "getMaxItems")
+    local _, minWater = TK.call(recipe, "getMinimumWater")
+    local _, cookable = TK.call(recipe, "isCookable")
+    out.recipeInfo = { resultItem = rItem, maxItems = maxItems, minimumWater = minWater, cookable = cookable }
+    for i = 3, #argv do
+        local ingType = argv[i]
+        local row = { type = ingType }
+        local ing = inv:getFirstTypeRecurse(ingType)
+        if not ing then
+            row.error = "not in inventory"
+        else
+            row.before = itemState(ing)
+            -- Diagnostics first: what the menu would have offered for THIS base. Called with
+            -- method syntax and a literal nil (exactly ISAddItemInRecipe.lua:17) rather than
+            -- through TK.call, because a trailing nil in a Kahlua vararg forward is not worth
+            -- trusting; the nil-check on the member is what TK.call would have done anyway.
+            if recipe.getItemsCanBeUse then
+                local ran, list = pcall(function() return recipe:getItemsCanBeUse(p, base, nil) end)
+                if ran and list then
+                    row.canBeUseCount, row.canBeUseContains = list:size(), list:contains(ing)
+                else
+                    row.canBeUseCount = "getItemsCanBeUse raised: " .. tostring(list)
+                end
+            else
+                row.canBeUseCount = "no EvolvedRecipe:getItemsCanBeUse"
+            end
+            local okUsable, usable = TK.call(recipe, "isItemUsableInRecipe", p, base, ing:getID())
+            row.usable = okUsable and usable or "no EvolvedRecipe:isItemUsableInRecipe"
+            local okAdd, newBase = TK.call(recipe, "addItem", base, ing, p)
+            if not okAdd then
+                row.error = "no EvolvedRecipe:addItem"
+            else
+                row.baseReplaced = (newBase ~= base)
+                if newBase then base = newBase end
+                -- the game's own post-step (ISAddItemInRecipe.lua:78); averages the heats
+                if ISAddItemInRecipe and type(ISAddItemInRecipe.checkTemperature) == "function" then
+                    local ran, e = pcall(ISAddItemInRecipe.checkTemperature, base, ing, recipe)
+                    row.checkTemperature = ran and "ran" or ("raised: " .. tostring(e))
+                end
+                local still = inv:getFirstTypeRecurse(ingType)
+                row.consumed = (still == nil) or (still:getID() ~= row.before.id)
+                row.after = (still ~= nil and still:getID() == row.before.id) and itemState(still) or "consumed"
+                row.baseAfter = itemState(base)
+            end
+        end
+        out.ingredients[#out.ingredients + 1] = row
+    end
+    out.result = itemState(base)
     return out
 end)
 
@@ -378,6 +489,24 @@ Events.OnServerCommand.Add(function(module, command, args)
         end
         rep.match = args.found == true and it ~= nil and args.condition == rep.client.condition
             and args.conditionMax == rep.client.conditionMax and tostring(args.modTag) == tostring(rep.client.modTag)
+        -- Slice 02: the same item's full state on both sides. `match` above stays the slice-01
+        -- condition/modTag comparison (S6) so nothing that reads it changes meaning; the state
+        -- pair below is what answers "which fields does ItemStatsPacket actually carry" --
+        -- age/offAge/offAgeMax/freezingTime are not in it, cooked/burnt/cookingTime/heat and
+        -- the nutrition block are (02-notes Q8).
+        rep.serverState, rep.clientState = args.state, TK.itemState(it)
+        if type(rep.serverState) == "table" and type(rep.clientState) == "table" then
+            local diff = {}
+            for k, sv in pairs(rep.serverState) do
+                local cv = rep.clientState[k]
+                if type(sv) == "number" and type(cv) == "number" then
+                    if math.abs(sv - cv) > 0.0001 then diff[k] = { server = sv, client = cv } end
+                elseif sv ~= cv then
+                    diff[k] = { server = sv, client = cv }
+                end
+            end
+            rep.stateDiff = diff
+        end
     end
     TK.log("witness " .. tostring(args.kind) .. " match=" .. tostring(rep.match)
         .. " server=" .. TK.json(rep.server) .. " client=" .. TK.json(rep.client))
