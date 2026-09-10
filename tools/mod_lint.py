@@ -111,10 +111,10 @@ def media_root(mod_dir, vers):
     ships ahead of the running build they would differ, and this rule would name a folder the
     game does not read.
 
-    It deliberately does NOT mirror `tools/mod_inventory.py:pick_version_dir`, whose
-    `42(?:\\.(\\d+))?` regex misses three-part names: `42.20.1` (Skill Recovery Journal
-    `2503622437`) is invisible to it, so it falls back to an older folder. `version_dirs` here
-    is the correct reading of the two.
+    `tools/mod_inventory.py:resolve()` calls this rather than keeping a second opinion: its old
+    local `pick_version_dir` used a `42(?:\\.(\\d+))?` regex that missed three-part names, so
+    `42.20.1` (Skill Recovery Journal `2503622437`) was invisible to it and it fell back to an
+    older folder. `version_dirs` here is the correct reading, and now the only one.
     """
     if vers:
         return vers[0]

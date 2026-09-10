@@ -30,11 +30,13 @@ craftRecipe's 30 `item 1 [Base.X]` input lines drop out. The field is a count, n
 the record needs (ZVirusVaccine42BETA ships the same scripts in `42.14/`, `42.20/` and
 `common/`; counting all three would treble it). `common/media` is a shipped layout the running
 build ALSO loads (`docs/modding/README.md:22`, `mod_lint.media_root`) and its content is simply
-not counted here; this module asserts no merge rule between the two folders. `live_media` and
-`media_at` are what tell a zero apart: 24 of the 230 rows have no `<live>/media` at all and keep
-every file in `common/media` (2026-09-10), so their whole record reads as empty. Measured impact
-on the nutrition question specifically: none -- no `common/media` in the corpus carries a single
-nutrition key (swept 2026-09-10).
+not counted here; this module asserts no merge rule between the two folders. **`media_at` is
+the guard, not `live_media`**: a zero in `stats`/`signals` is only trustworthy when `media_at`
+does not include `common/media`, and 177 of the 230 rows do include it (2026-09-10) -- on 111
+of them a bucket already reads 0 while `common/media` holds that kind of file (HayesCustoms
+1268 models, MorePlushies 154). `live_media: false` marks only the total-blackout subset, the
+24 rows with no live `media/` at all. Measured impact on the nutrition question specifically:
+none -- no `common/media` in the corpus carries a single nutrition key (swept 2026-09-10).
 
 Stdlib only, no import of `testing/pzt`. Ground truth:
 D:/SteamLibrary/steamapps/workshop/content/108600, read and never written. It is a live tree
@@ -78,8 +80,13 @@ SCRIPT_KEYS = re.compile(r"^\s*(Calories|Carbohydrates|Lipids|Proteins|HungerCha
 # the `{` on the next line, or `item Foo {`). The name is anchored to end-of-line, which is what
 # makes the count exact rather than an upper bound: a craftRecipe's input/output lines read
 # `item 1 [Base.Bowl]` / `item 1 Base.DriedApple` and carry a count and a bracketed/dotted
-# reference after `item`, so they never match. `\w` leads because ids may start with a digit.
-SCRIPT_ITEM = re.compile(r"^[ \t]*item[ \t]+(\w[\w.]*)[ \t]*\{?[ \t]*$", re.M)
+# reference after `item`, so they never match. `\w` leads because ids may start with a digit,
+# and the class holds `-` because item ids may contain one: `\w[\w.]*` dropped all 492 of
+# KATTAJ1 Military Pack's `item Military_ArmsProtectionLower_Patriot_Light-Black` but the first
+# (3470426196, 2026-09-10). A wider `\S+` finds no name shape beyond `[\w.-]` in either corpus,
+# and vanilla 42.20.4 ships no hyphenated id at all -- 5105 definitions before and after -- so
+# the widening recovers 491 real items and adds no false positive anywhere.
+SCRIPT_ITEM = re.compile(r"^[ \t]*item[ \t]+(\w[\w.-]*)[ \t]*\{?[ \t]*$", re.M)
 SCRIPT_MODULE = re.compile(r"^\s*module\s+(\S+)", re.M)
 
 
@@ -214,8 +221,9 @@ def scan_mod(mod_dir, item_dir=None):
         "layout": layout,
         "version_dirs": vers,
         "mod_info_at": chosen,
-        # Everything below `live_media` is counted under `<live>/media` alone. False with a
-        # `common/media` in `media_at` means "not scanned here", not "ships nothing".
+        # Everything below is counted under `<live>/media` alone, so `media_at` is what makes a
+        # zero legible: a `common/media` in it means "content the build loads that this scan did
+        # not count", whether or not `live_media` (the whole-record blackout) is false.
         "live_media": os.path.isdir(media),
         "media_at": media_locations(mod_dir),
         "stats": dict(stats),

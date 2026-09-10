@@ -509,7 +509,7 @@ are the two evolved-recipe scripts), `cookingLevels` `[0, 10]`, and `counts` —
 **installed workshop tree**
 (`D:\SteamLibrary\steamapps\workshop\content\108600`, read and never written) —
 one record per mod folder, a bare JSON array, `indent=1`. **230 records across
-179 workshop items, swept 2026-09-10 17:20.** Evidence grade **C** for
+179 workshop items, swept 2026-09-10 16:20.** Evidence grade **C** for
 everything read off a shipped file (`mod.info` values, file counts, regex hit
 counts); nothing here is measured in a running game, and a signal count is a
 count of regex hits, not of behaviour.
@@ -565,17 +565,28 @@ Two different kinds of content fall outside it, and only one of them is dead:
   `mod_lint.media_root`). Its content is simply **not counted here**, and this
   dataset asserts no rule for how the two folders combine — the resolution
   order is still open question 1 in
-  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0. **24 rows
-  read as zero for this reason**: every file they ship is in `common/media`
-  while a version folder decides the layout. `live_media` is `false` on exactly
-  those 24 and `media_at` says where the content is, so a zero is never
-  ambiguous.
+  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0. **177 of the
+  230 rows have a `common/media` this scan did not read** (2026-09-10), so a
+  zero in `stats` or `signals` is only trustworthy when `media_at` does *not*
+  include `common/media` — that list is the guard. `live_media: false` marks
+  something narrower: the **24** rows with no live `media/` at all, whose whole
+  record is therefore blank.
+
+Do not read `live_media: true` as "the record is complete". On **111** of the
+153 rows that have both a live `media/` and a `common/media`, a `stats` bucket
+reads 0 while `common/media` holds exactly that kind of file (2026-09-10):
+`HayesCustoms` records `models: 0` over 1268 `.fbx` there, `MorePlushies` over
+154, and `ZVirusVaccine42BETA` — a `live_media: true` row — hides 12 models, 5
+tile packs and 18 sounds the same way. On those 111 rows alone that is 2527
+models, 120 sounds and 15 tile packs the dataset reports as zero; the true
+uncounted total is larger, since a row whose bucket is non-zero can have more
+of the same kind in `common/media` as well.
 
 **Measured impact of that gap on the nutrition question: none.** Every
 `common/media` in the corpus was swept for the ten `script_nutrition` keys on
-2026-09-10 and **not one carries a single key**, so no nutrition candidate is
-hidden by the scope. Any other question asked of `stats` or `signals` must
-check `live_media` before believing a zero.
+2026-09-10 (twice: rounds 1 and 2) and **not one carries a single key**, so no
+nutrition candidate is hidden by the scope. For any other question — model
+counts, lua architecture, sounds — check `media_at` before believing a zero.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -586,12 +597,12 @@ check `live_media` before believing a zero.
 | `layout` | string | the folder the running build reads: a version folder (`42.20.1`), `common`, or `flat(b41?)` |
 | `version_dirs` | list | every `42[.x[.y]]/` folder, newest first, tuple-sorted (`42.20.1 > 42.20 > 42.9 > 42`) |
 | `mod_info_at` | string/null | which `mod.info` the id came from, relative to the mod folder (224 rows a version folder, 5 `common/mod.info`, 1 `null`) |
-| `live_media` | bool | is there a `media/` inside the `layout` folder at all? **`false` on 24 rows** — everything below this line is counted under `<live>/media`, so on those 24 every count is zero because nothing was scanned, not because nothing is shipped |
-| `media_at` | list | every `media/` folder in the mod, one level deep, sorted (`["42.20/media", "common/media"]`). What a `live_media: false` row ships instead — all 24 have `common/media`. No row in the corpus has none |
+| `live_media` | bool | is there a `media/` inside the `layout` folder at all? **`false` on 24 rows** — everything below this line is counted under `<live>/media`, so on those 24 every count is zero because nothing was scanned, not because nothing is shipped. `true` does **not** mean the record is complete: read `media_at` for that |
+| `media_at` | list | every `media/` folder in the mod, one level deep, sorted (`["42.20/media", "common/media"]`). Present on every row, and **the guard on a zero**: a `common/media` in it (**177 rows**) is content the build loads and this scan did not count, whether the row is one of the 24 blank ones or one of the 153 that also have a live `media/`. No row in the corpus has an empty list |
 | `stats` | dict | file counts under `<live>/media`: `lua_client` / `lua_server` / `lua_shared` (by path), `script_files` (`.txt` under a `scripts` path), `models`, `tile_packs`, `map_files`, `sounds`. Absent keys are zero |
 | `signals` | dict | regex hit counts, absent when zero — 18 Lua signals (`events_add`, `send_client_cmd`, `on_client_cmd`, `send_server_cmd`, `mod_data`, `transmit_mod_data`, `monkey_patch`, `pcall`, `loadstring`, `getfilewriter`, `sandbox_vars`, `timed_action_new`, `ui_panel`, `require_line`, `global_write_vanilla`, `onplayerupdate`, `everyoneminute`, `food_nutrition`) plus `script_nutrition` |
 | `script_nutrition_keys` | dict | per-key counts behind `script_nutrition` |
-| `script_item_blocks` | int | item **definitions** — `item <Name>` alone on its line, brace optional — counted over **every** `.txt` under `<live>/media/**/scripts`, not only the ones carrying a nutrition key. An exact count, not a bound |
+| `script_item_blocks` | int | item **definitions** — `item <Name>` alone on its line, brace optional, the name matched as `\w[\w.-]*` so hyphenated ids count — over **every** `.txt` under `<live>/media/**/scripts`, not only the ones carrying a nutrition key. An exact count, not a bound (6648 over the corpus, 2026-09-10) |
 | `script_modules` | list | every `module <name>` declared in those same `.txt` files, sorted |
 | `top_events` | list | the 8 most-used `Events.<X>.Add` names, `[name, count]` |
 | `lua_kb` | int | total `.lua` characters read, in KiB |
@@ -599,7 +610,7 @@ check `live_media` before believing a zero.
 | `workshop_item_mtime` | string/null | ISO-8601 mtime of the `<workshop-id>/` folder — see the caveat below. Non-null on all 230 rows here; `null` when `scan_mod` is called on a mod folder with no workshop item above it, since the mod folder's own mtime is a different fact |
 | `sandbox_options` | bool | a `media/sandbox-options.txt` in the live folder or at the mod root |
 | `workshop_id` / `folder` | string | the item id and the mod folder name; together they are the record's key |
-| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is the 31 rows whose `stats` came back empty, and they split two ways: **24** have no `<live>/media` at all (`live_media` false — every file is in `common/media`, mostly tile packs) and **7** have one holding only file kinds `stats` has no bucket for (textures, ui). Check `live_media` before reading `other` as "ships nothing" |
+| `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is the 31 rows whose `stats` came back empty, and they split two ways: **24** have no `<live>/media` at all (`live_media` false — every file is in `common/media`, mostly tile packs) and **7** have one holding only file kinds `stats` has no bucket for — measured 2026-09-10: **182 `.json`** (149 of them `KnoxBuildworks_Vanilla_Expanded`'s map definitions, the rest `lua/shared/Translate/**` strings), **21 `.txt`** (more translations, plus `AnimSets/` and `actiongroups/` folder placeholders), **4 `.frag`** shaders (`SomewhatWater`) and **1 `.xml`** (`PALSJs Poofs`' hair styles) — and **no `.png`/`.dds`/`.tga` between them**, so they are not "textures". Never read `other` as "ships nothing" |
 
 **`workshop_item_mtime` is a download stamp, not an update stamp.** Steam
 rewrites the mod folder inside an item without touching the item folder:
@@ -644,7 +655,20 @@ of the 230 rows** (22231 lines down to 6157 definitions): Long Term
 Preservation read 47 for 17 real items, `JadePackingSD` 923 for 125, and three
 rows that only ever write recipe inputs — `3621968227/SWMisc_Patches`,
 `3624538051/QualityEnhancements`, `3645980077/ProjectArcade` — now read 0,
-correctly. The nine `script_nutrition` mods read 17 · 288 · 308 · 102 · 14 ·
-125 · 32 · 12 · 1 in the order listed above. Quote it as "items defined";
-it counts definitions in every script file, so for a mod that also ships
-clothing or vehicles it is not "food items defined".
+correctly.
+
+The second cut fixed the opposite error. The name class was `\w[\w.]*`, which
+stops at a **hyphen**, and an item id may contain one: `3470426196/KATTAJ1
+Military Pack` writes `item Military_ArmsProtectionLower_Patriot_Light-Black`
+with the brace on the next line, so 491 of its 492 definitions matched nothing
+and the row read **1**. `\w[\w.-]*` recovers exactly those 491 and changes no
+other row (corpus total 6157 → **6648**, 2026-09-10); `-` is the only character
+outside `[\w.]` any id in the corpus uses, and on vanilla 42.20.4's
+`media/scripts` both regexes read the same **5105** definitions, so the widening
+adds no false positive on either corpus.
+
+The nine `script_nutrition` mods read 17 · 288 · 308 · 102 · 14 · 125 · 32 · 12
+· 1 in the order listed above (2026-09-10, unchanged by the hyphen fix — none of
+them uses a hyphenated id). Quote it as "items defined"; it counts definitions
+in every script file, so for a mod that also ships clothing or vehicles it is
+not "food items defined".

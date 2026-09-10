@@ -60,7 +60,7 @@ import patterns from there.
 - `mod_inventory.py` — `python tools/mod_inventory.py`
   Sweeps the same workshop root as `mod_lint` and writes
   `data/mod-inventory.json` — one record per mod folder, **230 across 179
-  workshop items at 2026-09-10 17:20**, ~2 s, byte-stable (LF, utf-8, on every
+  workshop items at 2026-09-10 16:20**, ~2 s, byte-stable (LF, utf-8, on every
   platform) — then prints the class histogram, the `loadstring` and b41-flat
   lists, the top 20 by lua size,
   the two nutrition signals side by side, and a folder-name-≠-id block (**52
@@ -74,15 +74,20 @@ import patterns from there.
   for the runtime API (11 mods) and `signals.script_nutrition` greps
   `<live>/media/**/scripts/*.txt` for the item-definition keys (9 mods, 1
   overlap); `script_item_blocks` beside them is an **exact** count of item
-  definitions, recipe `item 1 [Base.X]` lines excluded (17 for Long Term
-  Preservation, where the first cut of the field read 47). Everything but
+  definitions, recipe `item 1 [Base.X]` lines excluded and hyphenated ids kept
+  (17 for Long Term Preservation, where the first cut of the field read 47;
+  492 for `KATTAJ1 Military Pack`, where the second cut read 1 because `-`
+  ended the name — 6648 over the corpus, 2026-09-10). Everything but
   `bytes` describes the **newest version folder only** — the de-duplication a
   per-mod record needs, since a mod may ship the same scripts in three folders.
   `common/media`, which the build **also** loads, is not counted here and no
-  merge rule is asserted: `live_media` is `false` on the **24 rows** whose
-  whole content sits there and `media_at` says where it is, so a zero is
-  legible. (Measured: no `common/media` in the corpus carries a nutrition key,
-  so nothing is hidden from the catalog.) Every field, the counts above and the
+  merge rule is asserted, so **`media_at` is the guard on a zero**: **177 rows**
+  list a `common/media` this scan did not read, and on 111 of them a `stats`
+  bucket reads 0 while that folder holds the file kind (2026-09-10).
+  `live_media: false` is the narrower fact — the **24 rows** whose whole content
+  sits in `common/media`, so the entire record is blank. (Measured 2026-09-10:
+  no `common/media` in the corpus carries a nutrition key, so nothing is hidden
+  from the catalog.) Every field, the counts above and the
   `workshop_item_mtime` caveat are documented in
   [`data/README.md`](../data/README.md) § mod-inventory. Stdlib only bar
   `mod_lint` beside it; the workshop tree is read, never written.

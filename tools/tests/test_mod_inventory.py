@@ -144,21 +144,36 @@ def test_item_definitions_are_counted_exactly_and_recipe_lines_are_not():
     A craftRecipe writes its inputs and outputs as `item 1 [Base.Bowl]` at line start, which the
     first regex (`^\\s*item\\s+(\\S+)`) could not tell from a definition: LongTermPreservation4220
     read 47 there (17 real items + 30 recipe lines) and reads 17 now. Anchoring the name to the
-    end of the line is what separates them, and it must not cost the `item Name {` style."""
+    end of the line is what separates them, and it must not cost the `item Name {` style.
+
+    The name class must also hold a **hyphen**. `3470426196/KATTAJ1 Military Pack` writes
+    `item Military_ArmsProtectionLower_Patriot_Light-Black` with the brace on the next line;
+    `\\w[\\w.]*` stopped at the `-`, leaving `Black` on the line and the whole definition
+    unmatched, so the row read 1 for 492 items (2026-09-10). `-` is the only character beyond
+    `[\\w.]` any id in the corpus uses."""
     with tempfile.TemporaryDirectory() as d:
         mod = _mod(d, "R", {"42/mod.info": "id=R\n",
                             "42/media/scripts/items/x.txt": ITEM_SCRIPT,
                             "42/media/scripts/items/brace.txt":
                                 "module Base\n{\n\titem OnTheSameLine {\n"
                                 "\t\tDisplayName = On The Same Line,\n\t}\n}\n",
+                            # KATTAJ1's shape, both brace styles.
+                            "42/media/scripts/items/hyphen.txt":
+                                "module KATTAJ1\n{\n"
+                                "\titem Military_ArmsProtectionLower_Patriot_Light-Black\n"
+                                "\t{\n\t\tDisplayName = Patriot Light Black,\n\t}\n"
+                                "\titem Military_Vest_Ranger-Desert {\n"
+                                "\t\tDisplayName = Ranger Desert,\n\t}\n}\n",
                             "42/media/scripts/recipes/r.txt":
                                 "craftRecipe Dry\n{\n  inputs\n  {\n    item 1 [Base.Apple]\n"
                                 "    item 1 [Base.Bowl]\n  }\n  outputs\n  {\n"
                                 "    item 1 Base.DriedApple\n  }\n}\n"})
         m = mod_inventory.scan_mod(mod)
-        assert m["script_item_blocks"] == 3, \
-            "DriedApple + DriedPear + OnTheSameLine; not one of the 3 recipe `item` lines"
+        assert m["script_item_blocks"] == 5, \
+            ("DriedApple + DriedPear + OnTheSameLine + both hyphenated ids; "
+             "not one of the 3 recipe `item` lines")
         assert m["signals"]["script_nutrition"] == 6, "no nutrition key in the recipe file"
+        assert m["script_modules"] == ["Base", "KATTAJ1"]
 
 
 def test_size_and_mtime_cover_the_whole_folder_and_the_workshop_item():
@@ -280,7 +295,7 @@ def test_committed_dataset_carries_resolved_ids_and_the_new_fields():
     """The dataset slices 09-11 pick teardown targets from. Every row a profile could name
     must carry the id the game resolves, or an explicit empty one."""
     rows = json.load(open(DATASET, encoding="utf-8"))
-    assert len(rows) == 230, "230 mod folders at 2026-09-10 17:20"
+    assert len(rows) == 230, "230 mod folders at 2026-09-10 16:20"
     assert len({r["workshop_id"] for r in rows}) == 179
     assert sum(1 for r in rows if not r["mod_id"]) == 1
     assert all(set(r) >= {"mod_id", "mod_id_fallback", "version_dirs", "mod_info_at",
@@ -293,6 +308,10 @@ def test_committed_dataset_carries_resolved_ids_and_the_new_fields():
     assert sum(1 for r in rows if r["signals"].get("food_nutrition")) == 11
     assert [r["script_item_blocks"] for r in rows
             if r["folder"] == "LongTermPreservation4220"] == [17]
+    # The hyphen fix on the one row it moved: `-` in an item id used to end the match, so this
+    # row recorded 1 of its 492 definitions (2026-09-10).
+    assert [r["script_item_blocks"] for r in rows
+            if r["folder"] == "KATTAJ1 Military Pack"] == [492]
 
 
 @unittest.skipUnless(os.path.isfile(DATASET), "data/mod-inventory.json not generated")
@@ -300,9 +319,15 @@ def test_committed_dataset_pins_the_rows_whose_content_is_not_under_the_live_fol
     """A zero in this dataset has two causes and they must not be confused. 24 rows have no
     `<live>/media` at all (`live_media` false) -- every one of them keeps its files in
     `common/media`, which the running build loads and this scan does not count. 7 more DO have
-    a live `media/` holding only file kinds `stats` has no bucket for (textures, ui): together
-    that is the 31 empty-`stats` rows, all of which classify as `other`. Measured 2026-09-10;
-    re-measure with the dataset, the workshop tree is live."""
+    a live `media/`, holding only file kinds `stats` has no bucket for: 182 `.json` (map
+    definitions and `lua/shared/Translate/**` strings), 21 `.txt` (more translations, plus
+    empty-folder placeholders), 4 `.frag` shaders and 1 `.xml` -- and **no** `.png`/`.dds`/
+    `.tga` at all, so "textures" is the wrong word for them. Together that is the 31
+    empty-`stats` rows, all of which classify as `other`.
+
+    `live_media` is not the general guard, though: 177 rows have a `common/media` this scan did
+    not read and only 24 of them are blank, so `media_at` is what says whether a zero is
+    trustworthy. Measured 2026-09-10; re-measure with the dataset, the workshop tree is live."""
     rows = json.load(open(DATASET, encoding="utf-8"))
     dark = [r for r in rows if not r["live_media"]]
     assert len(dark) == 24
@@ -312,6 +337,8 @@ def test_committed_dataset_pins_the_rows_whose_content_is_not_under_the_live_fol
     empty = [r for r in rows if not r["stats"]]
     assert len(empty) == 31 and all(r["class"] == "other" for r in empty)
     assert sum(1 for r in empty if r["live_media"]) == 7
+    assert sum(1 for r in rows if "common/media" in r["media_at"]) == 177, \
+        "the uncounted-content set is 177 rows, not the 24 with no live media/ at all"
 
 
 @unittest.skipUnless(os.path.isdir(LTP), "LongTermPreservation4220 not installed at %s" % LTP)
