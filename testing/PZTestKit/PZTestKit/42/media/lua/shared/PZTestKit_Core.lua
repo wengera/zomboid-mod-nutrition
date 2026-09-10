@@ -93,6 +93,55 @@ function TK.result(name, tbl)
     return true
 end
 
+-- ---- probing Java objects safely --------------------------------------------
+-- Calling a method a Java object does not have raises Kahlua's "Tried to call nil", and in
+-- PZ that is NOT recoverable with pcall: it escapes and kills the calling event handler
+-- (measured, run exp01-20260909-235420 - the client stopped answering the bus entirely).
+-- So probe by indexing first, exactly like the game's own ISItemEditPanel.lua:442.
+-- Returns (present, value).
+function TK.call(obj, name, ...)
+    if obj == nil then return false, nil end
+    local m = obj[name]
+    if m == nil then return false, nil end
+    return true, m(obj, ...)
+end
+
+function TK.field(obj, name)
+    if obj == nil then return false, nil end
+    local v = obj[name]
+    if v == nil or type(v) == "function" then return false, nil end
+    return true, v
+end
+
+-- ---- nutrition snapshot (both sides: client commands and the server's per-user ones) ----
+-- Stats accessors moved with B42: the pre-B42 getHunger()/`.hunger` pair is gone and the
+-- game's own Lua reads Stats:get(CharacterStat.HUNGER). Try that first, then the two older
+-- forms; `statsApi` in the snapshot records which one answered (decision ledger evidence).
+local function statValue(s, enumName, getter, field)
+    local enum = CharacterStat and CharacterStat[enumName]
+    if enum then
+        local ok, v = TK.call(s, "get", enum)
+        if ok and v ~= nil then return v, "Stats:get(CharacterStat." .. enumName .. ")" end
+    end
+    local ok, v = TK.call(s, getter)
+    if ok and v ~= nil then return v, "Stats:" .. getter .. "()" end
+    ok, v = TK.field(s, field)
+    if ok then return v, "Stats." .. field end
+    return nil, "none"
+end
+
+function TK.nutritionSnapshot(p)
+    local n, s = p:getNutrition(), p:getStats()
+    local hunger, api = statValue(s, "HUNGER", "getHunger", "hunger")
+    local thirst = statValue(s, "THIRST", "getThirst", "thirst")
+    return { calories = n:getCalories(), carbs = n:getCarbohydrates(), lipids = n:getLipids(),
+             proteins = n:getProteins(), weight = n:getWeight(), hunger = hunger, thirst = thirst,
+             statsApi = api }
+end
+
+TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", lipids = "setLipids",
+                         proteins = "setProteins", weight = "setWeight" }
+
 -- ---- command bus -----------------------------------------------------------
 function TK.register(name, fn) TK.commands[name] = fn end
 

@@ -13,6 +13,35 @@ TK.register("players", function()
     return names
 end)
 
+-- ---- intake-pipeline commands (slice 01) -------------------------------------
+-- Same snapshot/setters as the client's, addressed by username: the pair is what tells us
+-- which side owns Nutrition in MP.
+local function findPlayer(username)
+    local list = getOnlinePlayers()
+    for i = 0, list:size() - 1 do
+        local p = list:get(i)
+        if p:getUsername() == username then return p end
+    end
+    return nil
+end
+
+TK.register("nutrition.get", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    return TK.nutritionSnapshot(p)
+end)
+
+TK.register("nutrition.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local m, v = TK.NUTRITION_SETTERS[argv[2]], tonumber(argv[3])
+    if not m or v == nil then
+        return "usage: nutrition.set <username> <calories|carbs|lipids|proteins|weight> <value>"
+    end
+    if not TK.call(p:getNutrition(), m, v) then return "no Nutrition:" .. m end
+    return TK.nutritionSnapshot(p)
+end)
+
 -- The server's view of what a client asked about; sent back on the same channel.
 local function witness(player, args)
     local reply = { kind = args.kind, key = args.key }

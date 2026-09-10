@@ -122,6 +122,127 @@ TK.register("item.tamper", function(argv)
     return string.format("cond=%d/%d tag=%s", item:getCondition(), item:getConditionMax(), tostring(item:getModData().pzt_tag))
 end)
 
+-- ---- intake-pipeline commands (slice 01) -------------------------------------
+local function nutritionSnapshot(p) return TK.nutritionSnapshot(p) end
+
+TK.register("nutrition.get", function() return nutritionSnapshot(getPlayer()) end)
+TK.register("nutrition.set", function(argv)
+    local n, v = getPlayer():getNutrition(), tonumber(argv[2])
+    local m = TK.NUTRITION_SETTERS[argv[1]]
+    if not m or v == nil then return "usage: nutrition.set <calories|carbs|lipids|proteins|weight> <value>" end
+    if not TK.call(n, m, v) then return "no Nutrition:" .. m end
+    return nutritionSnapshot(getPlayer())
+end)
+
+local SCRIPT_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrates", "Lipids", "Proteins",
+                         "DaysFresh", "DaysTotallyRotten", "IsCookable", "MinutesToCook", "MinutesToBurn" }
+local function scriptItem(fullType)
+    local sm = getScriptManager()
+    local ok, s = TK.call(sm, "getItem", fullType)
+    if ok and s then return s, "getItem" end
+    ok, s = TK.call(sm, "FindItem", fullType)      -- the form the game's own Lua uses
+    if ok and s then return s, "FindItem" end
+    return nil, nil
+end
+-- get<X>() / is<X>() / the public field <x>: the script Item keeps calories, carbohydrates,
+-- lipids and proteins as public fields with no getter at all (Item.InstanceItem reads them
+-- directly), so the field route is not optional. `access` records which one answered.
+local function scriptValues(fullType)
+    local s, via = scriptItem(fullType)
+    if not s then return nil end
+    local field = { Calories = "calories", Carbohydrates = "carbohydrates", Lipids = "lipids",
+                    Proteins = "proteins" }
+    local out = { fullType = fullType, via = via, access = {} }
+    for _, g in ipairs(SCRIPT_GETTERS) do
+        local route, ok, v = "get", TK.call(s, "get" .. g)
+        if not ok then
+            route, ok, v = "is", TK.call(s, "is" .. g)
+        end
+        if not ok then
+            route = "field"
+            ok, v = TK.field(s, field[g] or (string.lower(string.sub(g, 1, 1)) .. string.sub(g, 2)))
+        end
+        if ok and v ~= nil then out[g], out.access[g] = v, route end
+    end
+    return out
+end
+TK.register("item.script", function(argv) return scriptValues(argv[1]) or ("no script item " .. tostring(argv[1])) end)
+
+local ITEM_STATE = { cooked = "isCooked", burnt = "isBurnt", rotten = "isRotten", frozen = "isFrozen",
+                     age = "getAge", hungChange = "getHungChange", baseHunger = "getBaseHunger",
+                     calories = "getCalories", carbs = "getCarbohydrates", lipids = "getLipids",
+                     proteins = "getProteins", id = "getID", uses = "getCurrentUsesFloat" }
+local function itemState(it)
+    local out = { fullType = it:getFullType() }
+    for k, m in pairs(ITEM_STATE) do
+        local ok, v = TK.call(it, m)
+        if ok then out[k] = v end
+    end
+    return out
+end
+local function findOrSpawn(fullType)
+    local inv = getPlayer():getInventory()
+    return inv:getFirstTypeRecurse(fullType) or inv:AddItem(fullType)
+end
+TK.register("item.state", function(argv)
+    local it = findOrSpawn(argv[1])
+    if not it then return "no item " .. tostring(argv[1]) end
+    local s = argv[2]
+    if s == "cooked" then TK.call(it, "setCooked", true)
+    elseif s == "burnt" then TK.call(it, "setBurnt", true)
+    elseif s == "rotten" then
+        TK.call(it, "setRotten", true)
+        local ok, rotten = TK.call(it, "isRotten")
+        if not ok or not rotten then                      -- setRotten alone may not stick
+            local hasMax, max = TK.call(it, "getOffAgeMax")
+            TK.call(it, "setAge", (hasMax and max or 0) + 1)
+        end
+    elseif s == "frozen" then TK.call(it, "setFrozen", true)
+    elseif s == "fresh" then TK.call(it, "setAge", 0) end
+    return itemState(it)
+end)
+
+-- Direct application: measures the intake arithmetic of IsoGameCharacter.Eat. In MP this is
+-- NOT the path a real eat takes (the server runs it) - see `eat.action` for that.
+TK.register("eat", function(argv)
+    local p = getPlayer()
+    local it = findOrSpawn(argv[1])
+    if not it then return "no item " .. tostring(argv[1]) end
+    local fraction = tonumber(argv[2]) or 1.0
+    local before, script, stateBefore = nutritionSnapshot(p), scriptValues(argv[1]), itemState(it)
+    -- IsoGameCharacter.Eat(InventoryItem,float,boolean) - the 3-arg overload the game's own
+    -- ISEatFoodAction:complete() calls; Eat(item,float) and Eat(item) exist as trampolines.
+    local ok = TK.call(p, "Eat", it, fraction, false)
+    if not ok then return "no Eat method on the player object" end
+    local after = nutritionSnapshot(p)
+    local delta = {}
+    for k, v in pairs(after) do
+        if type(v) == "number" and type(before[k]) == "number" then delta[k] = v - before[k] end
+    end
+    local remaining = p:getInventory():getFirstTypeRecurse(argv[1])
+    return { fraction = fraction, signature = "Eat(item,fraction,useUtensil)", before = before,
+             after = after, delta = delta, script = script, itemBefore = stateBefore,
+             itemAfter = remaining and itemState(remaining) or "consumed" }
+end)
+
+-- The real MP path: queue ISEatFoodAction, which the client mirrors to the server
+-- (NetTimedAction) and the SERVER completes. Result is asynchronous: poll nutrition.get.
+TK.register("eat.action", function(argv)
+    local p = getPlayer()
+    local it = findOrSpawn(argv[1])
+    if not it then return "no item " .. tostring(argv[1]) end
+    local fraction = tonumber(argv[2]) or 1.0
+    local before, stateBefore = nutritionSnapshot(p), itemState(it)
+    if not ISEatFoodAction or not ISTimedActionQueue then return "no ISEatFoodAction/ISTimedActionQueue" end
+    local act = ISEatFoodAction:new(p, it, fraction)
+    local _, validStart = TK.call(act, "isValidStart")   -- false when FOOD_EATEN moodle >= 3
+    local _, moodles = TK.call(p, "getMoodles")
+    local _, level = TK.call(moodles, "getMoodleLevel", MoodleType and MoodleType.FOOD_EATEN)
+    ISTimedActionQueue.add(act)
+    return { queued = true, fraction = fraction, itemId = stateBefore.id, itemBefore = stateBefore,
+             validStart = validStart, maxTime = act.maxTime, moodleFoodEaten = level, before = before }
+end)
+
 -- Server's authoritative view arrives here; compare with ours and record.
 Events.OnServerCommand.Add(function(module, command, args)
     if module ~= "PZTestKit" or command ~= "witness" then return end
