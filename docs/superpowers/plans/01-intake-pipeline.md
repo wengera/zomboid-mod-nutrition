@@ -56,9 +56,9 @@
 
 **Interfaces:**
 - Produces: `python tools/wiki_mirror.py <Page> [<Page> ...]` → writes `references/wiki-mirrors/<slug>.md` (slug = page name lower-cased, spaces→`-`), returns exit 0; module function `mirror(page: str, out_dir: str) -> str` (path written). Mirror header (exact keys the lint checks): `**Source:** <url>`, `**Fetched:** YYYY-MM-DD`, `**Wiki page version:** <from {{Page version|X}} or "unstamped">`, `**License:** CC BY-NC-SA 3.0 — attribution: PZwiki contributors`. Then `## Digest` (3–8 lines written by the agent afterwards; the tool writes `_digest pending_`) and `## Wikitext` with the raw text in a ```` ```wikitext ```` fence.
-- Produces: `python tools/doc_lint.py [paths...]` (default: `docs/ references/`) → prints one line per finding `path:line: rule: detail`, exit 1 if any. Rules: `stamp` (docs under `docs/vanilla`, `docs/modding`, `docs/feasibility`, `docs/mods-survey/teardowns` must contain `Verified against: 42.20.4`), `placeholder` (`TODO`, `TBD`, `_digest pending_` anywhere under `docs/` and `references/`, except `docs/superpowers/` and `docs/progress.md`), `sources` (a `## Sources` heading followed by at least one non-blank line), `grades` (every markdown table in the stamped docs has a column header named `Ev` or a cell matching `\b[CMW]\b` in each row — implement as: if a table's header row contains `Ev`, every body row must have `C`, `M` or `W` in that column), `mirror-header` (every file in `references/wiki-mirrors/` except `README.md` has the four header keys above).
+- Produces: `python tools/doc_lint.py [target ...] [--root DIR]` → prints one line per finding `path:line: rule: detail`, exit 1 if any. Targets are files or directories (directories are walked); the default is the repo root. Rule scoping and reported paths always resolve against the **repo root**, so narrowing the target cannot switch a rule off (`--root DIR` moves that root, for the tests' temp trees). *(As shipped — the brief's original `[paths...]` / `docs/ references/` root-relative design gave false greens on file arguments; see `docs/decisions.md` and `tools/README.md`.)* Rules: `stamp` (docs under `docs/vanilla`, `docs/modding`, `docs/feasibility`, `docs/mods-survey/teardowns` must contain `Verified against: 42.20.4`), `placeholder` (`TODO`, `TBD`, `_digest pending_` anywhere under `docs/` and `references/`, except `docs/superpowers/` and `docs/progress.md`), `sources` (a `## Sources` heading followed by at least one non-blank line), `grades` (every markdown table in the stamped docs has a column header named `Ev` or a cell matching `\b[CMW]\b` in each row — implement as: if a table's header row contains `Ev`, every body row must have `C`, `M` or `W` in that column), `mirror-header` (every file in `references/wiki-mirrors/` except `README.md` has the four header keys above).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 ```python
 # tools/tests/test_wiki_mirror.py
@@ -111,12 +111,12 @@ def test_grade_missing_flagged():
         assert any(f.rule == "grades" for f in doc_lint.lint([d]))
 ```
 
-- [ ] **Step 2: Run them to verify they fail**
+- [x] **Step 2: Run them to verify they fail**
 
 Run: `cd C:\Users\Angus\repos\project_zomboid && python -m pytest tools/tests -q`
 Expected: import errors / failures (modules do not exist yet). If pytest is missing: `pip install pytest`.
 
-- [ ] **Step 3: Implement `tools/wiki_mirror.py`**
+- [x] **Step 3: Implement `tools/wiki_mirror.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -162,7 +162,7 @@ if __name__ == "__main__":
         print(mirror(p))
 ```
 
-- [ ] **Step 4: Implement `tools/doc_lint.py`**
+- [x] **Step 4: Implement `tools/doc_lint.py`**
 
 ```python
 #!/usr/bin/env python3
@@ -244,17 +244,17 @@ if __name__ == "__main__":
     sys.exit(1 if findings else 0)
 ```
 
-Note: `lint([repo])` walks the whole repo; `_rel` paths are relative to the root passed, so run it as `python tools/doc_lint.py` (repo root default) or with the repo path.
+Note (superseded by what shipped): the sketch above resolves `_rel` against whichever root was passed, so a file or sub-directory argument would re-scope every rule and report false greens. The shipped CLI is `python tools/doc_lint.py [target ...] [--root DIR]`: targets are files or directories, they default to the repo root, and paths — and therefore rule scoping — always resolve against the repo root (`--root` moves that root for the tests). Module API: `lint(targets, repo_root=None)`. See `tools/README.md` and the `doc_lint` row in `docs/decisions.md`.
 
-- [ ] **Step 5: Run the tests; fix until green**
+- [x] **Step 5: Run the tests; fix until green**
 
 Run: `python -m pytest tools/tests -q` — Expected: 6 passed.
 
-- [ ] **Step 6: Run the lint on the real library and record the baseline**
+- [x] **Step 6: Run the lint on the real library and record the baseline**
 
 Run: `python tools/doc_lint.py`. Expected: findings in the existing docs (nutrition-core.md has `TODO`s and no `Ev` column yet; the two existing mirrors lack the new header keys). Fix the mirrors by re-mirroring them in Task 6 (`Modding hub`? check `references/wiki-mirrors/README.md` for their page names) and fix `nutrition-core.md` in Task 7. Do not silence rules.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add tools/wiki_mirror.py tools/doc_lint.py tools/tests tools/README.md
@@ -270,7 +270,7 @@ git commit -m "Slice 01: wiki mirror and doc lint tools"
 **Interfaces:**
 - Produces: `python testing/pzt doctor` → prints one line per check with `ok` / `WARN` / `FAIL`, exit 1 on any FAIL. Checks: (1) PZ processes: any `java.exe` whose command line contains `ProjectZomboid` (`tasklist /V` is not enough; use `wmic process where "name='java.exe'" get ProcessId,CommandLine` or `powershell -Command "Get-CimInstance Win32_Process -Filter \"name='java.exe'\" | Select ProcessId,CommandLine"`) → WARN listing pids (never kill); (2) ports 27261, 27262, 27015 free (`netstat -ano`) → FAIL if bound; (3) fixture `default` present (`fixture.load`) and its `build` equals the installed build (read `version=` from the newest `testing/runs/*/server-stdout.log` if any, else "unknown" → WARN); (4) workshop index reachable (`pzt.mods.workshop_index()` non-empty) → WARN if empty; (5) `pytest` importable → WARN.
 
-- [ ] **Step 1: Write `testing/pzt/doctor.py`**
+- [x] **Step 1: Write `testing/pzt/doctor.py`**
 
 ```python
 """Cold-start hygiene: what a fresh session must know before booting anything. Reports only."""
@@ -326,15 +326,15 @@ def run(a):
     return status
 ```
 
-- [ ] **Step 2: Register it in `cli.py`**
+- [x] **Step 2: Register it in `cli.py`**
 
 In `main()`, after the `spike` parser: `p = sub.add_parser("doctor", help="cold-start checks; reports, never kills"); p.set_defaults(fn=doctor.run)` and `from . import doctor` at the top.
 
-- [ ] **Step 3: Run it**
+- [x] **Step 3: Run it**
 
 Run: `python testing/pzt doctor` — Expected: all `ok` on an idle machine (WARN for pytest if not installed).
 
-- [ ] **Step 4: Commit** — `git add testing/pzt/doctor.py testing/pzt/cli.py && git commit -m "Slice 01: pzt doctor"`
+- [x] **Step 4: Commit** — `git add testing/pzt/doctor.py testing/pzt/cli.py && git commit -m "Slice 01: pzt doctor"`
 
 ### Task 3: Harness experiment commands (client)
 
@@ -349,7 +349,7 @@ Run: `python testing/pzt doctor` — Expected: all `ok` on an idle machine (WARN
   - `item.state <FullType> <cooked|burnt|rotten|frozen|fresh> ` → applies to the first inventory item of that type: `item:setCooked(true)`, `item:setBurnt(true)`, `item:setRotten(true)` / `item:setAge(item:getOffAgeMax()+1)` if `setRotten` has no effect, `item:setFrozen(true)`, `fresh` = `setAge(0)`; returns `{cooked, burnt, rotten, frozen, age, hungChange, calories}`.
   - `eat <FullType> [fraction=1.0]` → finds the item (spawning it with `AddItem` if absent — note S6: client-spawned items are invisible to the server, fine for a client-side pipeline test), snapshots `nutrition.get`, calls `p:Eat(item, fraction, false)`, snapshots again, returns `{before, after, delta, item: item.script values, itemAfter: {hungChange, calories, carbs, lipids, proteins}}`.
 
-- [ ] **Step 1: Add the commands**
+- [x] **Step 1: Add the commands**
 
 ```lua
 local function nutritionSnapshot(p)
@@ -422,7 +422,7 @@ end)
 
 If `Eat` is not exposed to Lua with three arguments, try `p:Eat(it, fraction)` and record which signature works (decision ledger).
 
-- [ ] **Step 2: Smoke-test on the live session**
+- [x] **Step 2: Smoke-test on the live session**
 
 Write `testing/experiments/s01_eat_smoke.py` (keep it; later slices reuse the pattern):
 
@@ -451,13 +451,13 @@ finally:
 
 Run: `python testing/experiments/s01_eat_smoke.py` — Expected: `eat Base.Apple 1.0` shows `delta.hunger` ≈ the script `HungerChange` (sign per the game's convention) and `delta.calories` ≈ `Calories`; the `0.5` call shows half. Anything else is a finding for the doc, not a reason to stop.
 
-- [ ] **Step 3: Commit** — `git add testing/PZTestKit testing/experiments/s01_eat_smoke.py && git commit -m "Slice 01: harness eat/nutrition/item.script commands"`
+- [x] **Step 3: Commit** — `git add testing/PZTestKit testing/experiments/s01_eat_smoke.py && git commit -m "Slice 01: harness eat/nutrition/item.script commands"`
 
 ### Task 4: Code map — the jar
 
 **Files:** notes only (`docs/superpowers/plans/01-notes.md`, scratch, deleted at the end or kept as an appendix).
 
-- [ ] **Step 1: Dump and read, in this order** (`cd C:\Users\Angus\pz-b42`):
+- [x] **Step 1: Dump and read, in this order** (`cd C:\Users\Angus\pz-b42`):
 
 ```
 ./pz.sh dump zombie/characters/IsoGameCharacter Eat --desc "(Lzombie/inventory/InventoryItem;FZ)"
@@ -476,29 +476,29 @@ Run: `python testing/experiments/s01_eat_smoke.py` — Expected: `eat Base.Apple
 
 For each `Eat` branch record: the getter used, the multiplier constant (pzdis resolves numeric literals inline), the setter it feeds, and the guard (cooked/rotten/frozen/poison/`RemoveNegativeEffectOnCooked`/utensil).
 
-- [ ] **Step 2: Read the Lua**
+- [x] **Step 2: Read the Lua**
 
 `media/lua/shared/TimedActions/ISEatFoodAction.lua` (lines 14, 24–60, 136–200, 205–253), `ISDrinkFluidAction.lua`, and `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua` (search `ISEatFoodAction:new` for the fraction menu: eat all / half / quarter). Note the `isClient()` / `isServer()` branches — who calls `Eat`.
 
-- [ ] **Step 3: Answer Q1–Q6 and Q8 in the notes file** with citations in the house form (`zombie/characters/IsoGameCharacter.Eat(InventoryItem,float,boolean)` @ offset, `ISEatFoodAction.lua:174`).
+- [x] **Step 3: Answer Q1–Q6 and Q8 in the notes file** with citations in the house form (`zombie/characters/IsoGameCharacter.Eat(InventoryItem,float,boolean)` @ offset, `ISEatFoodAction.lua:174`).
 
 ### Task 5: Measured rows (live experiments)
 
-- [ ] **Step 1: Run the experiment matrix** — extend `s01_eat_smoke.py` into `testing/experiments/s01_eat_matrix.py` covering: fresh / cooked / burnt / rotten / frozen × one representative item each (`Base.Apple`, `Base.Steak`, `Base.Bread`, `Base.Carrots`), fractions 1.0 and 0.25, one drink item with `ThirstChange` (`Base.WaterBottleFull` is drainable — use `Base.OrangeSoda` or the `TestHotDrink`-style food drinks: pick one from `food.txt` with `ThirstChange` and no `HungerChange`), plus the sandbox toggle if it can be flipped at runtime (`getSandboxOptions():set("Nutrition", false)` — try; else document as untested).
-- [ ] **Step 2: MP row** — after one `eat`, immediately `witness.nutrition` (existing command) and again after 5 s: does the server mirror move by the same delta? Also grep the server log of the run for `EatFood` / `EatFoodPacket` lines (`-debuglog=Network` is on for clients; the server log is `runs/<id>/server-stdout.log`).
-- [ ] **Step 3: Save results** to `testing/runs/<run>/eat-matrix.json` and copy the table into the notes; each row becomes an **M** row in the doc with the run id.
+- [x] **Step 1: Run the experiment matrix** — extend `s01_eat_smoke.py` into `testing/experiments/s01_eat_matrix.py` covering: fresh / cooked / burnt / rotten / frozen × one representative item each (`Base.Apple`, `Base.Steak`, `Base.Bread`, `Base.Carrots`), fractions 1.0 and 0.25, one drink item with `ThirstChange` (`Base.WaterBottleFull` is drainable — use `Base.OrangeSoda` or the `TestHotDrink`-style food drinks: pick one from `food.txt` with `ThirstChange` and no `HungerChange`), plus the sandbox toggle if it can be flipped at runtime (`getSandboxOptions():set("Nutrition", false)` — try; else document as untested).
+- [x] **Step 2: MP row** — after one `eat`, immediately `witness.nutrition` (existing command) and again after 5 s: does the server mirror move by the same delta? Also grep the server log of the run for `EatFood` / `EatFoodPacket` lines (`-debuglog=Network` is on for clients; the server log is `runs/<id>/server-stdout.log`).
+- [x] **Step 3: Save results** to `testing/runs/<run>/eat-matrix.json` and copy the table into the notes; each row becomes an **M** row in the doc with the run id.
 
 ### Task 6: Wiki mirrors
 
-- [ ] **Step 1:** `python tools/wiki_mirror.py Nutrition "Nutritional values" Food Cooking` — then open each mirror and replace `_digest pending_` with a 3–8 line digest (what the page claims that the doc uses or contradicts). Also re-mirror the two existing mirrors so they carry the new header (page names are in `references/wiki-mirrors/README.md`; keep their old digests).
-- [ ] **Step 2:** `python tools/doc_lint.py` → the mirror findings must be gone.
-- [ ] **Step 3: Commit** — `git add references && git commit -m "Slice 01: wiki mirrors (nutrition, food, cooking)"`
+- [x] **Step 1:** `python tools/wiki_mirror.py Nutrition "Nutritional values" Food Cooking` — then open each mirror and replace `_digest pending_` with a 3–8 line digest (what the page claims that the doc uses or contradicts). Also re-mirror the two existing mirrors so they carry the new header (page names are in `references/wiki-mirrors/README.md`; keep their old digests).
+- [x] **Step 2:** `python tools/doc_lint.py` → the mirror findings must be gone.
+- [x] **Step 3: Commit** — `git add references && git commit -m "Slice 01: wiki mirrors (nutrition, food, cooking)"`
 
 ### Task 7: Write `docs/vanilla/eating-pipeline.md`
 
 **Files:** Create `docs/vanilla/eating-pipeline.md`; Modify `docs/vanilla/README.md` (row: eating-pipeline.md — done; `eating-cooking.md` row → point at it), `docs/vanilla/nutrition-core.md` (remove the `TODO`s that slice 01 resolves, add an `Ev` column to its tables or an evidence line per section; leave the `updateCalories` open question for slice 03).
 
-- [ ] **Step 1: Write the doc** in the skeleton. Required content:
+- [x] **Step 1: Write the doc** in the skeleton. Required content:
   - Summary (5 lines).
   - Model: the full `Eat` algorithm as pseudo-code with constants; **one table of every modifier** (columns: Modifier · Applies to · Effect · Source · Ev); partial-eating rule; drinks; sandbox toggle; `OnEat`/`EatType`/`Eattime`; eating-time formula (`ISEatFoodAction:getDuration`, lines 205–253) and its irrelevance to accelerated tests (timed actions run on real frames).
   - Code map: classes/methods and who calls whom (`ISEatFoodAction:perform` → `IsoGameCharacter.Eat` → `Food` getters → `Nutrition` setters / `Stats`), packets.
@@ -506,8 +506,8 @@ For each `Eat` branch record: the getter used, the multiplier constant (pzdis re
   - Discrepancies vs the wiki mirrors (page version 42.11.0 vs 42.20.4).
   - **Predictions for slice 04**: a short section "Inputs for the 3-day scenario": how many calories `setCalories(+X)` per game-day adds (trivially X — but state the clamps found in `setCalories`), and the weight-model summary from nutrition-core.md restated with the clamp bounds, so slice 04 can compute expected weight from calorie samples.
   - Open questions; Sources.
-- [ ] **Step 2: Lint** — `python tools/doc_lint.py` → 0 findings (fix the docs, not the lint).
-- [ ] **Step 3: Commit** — `git add docs/vanilla && git commit -m "Slice 01: eating pipeline map"`
+- [x] **Step 2: Lint** — `python tools/doc_lint.py` → 0 findings (fix the docs, not the lint).
+- [x] **Step 3: Commit** — `git add docs/vanilla && git commit -m "Slice 01: eating pipeline map"`
 
 ## Deliverables
 
@@ -536,3 +536,30 @@ For each `Eat` branch record: the getter used, the multiplier constant (pzdis re
 - `docs/progress.md`: slice 01 → `done`, date, commit hash, one-line outcome; add ripples (e.g. "Eat runs on the client only → slice 04 scenario must be client-side"; "setCalories clamps at N").
 - `docs/decisions.md`: one row per default taken.
 - Push: `git push origin HEAD`.
+
+## Acceptance results (2026-09-10)
+
+Every step above ran (the ticks are the record); this section is the outcome of the five
+acceptance checks. Live runs: Task 3's smoke and Task 5's matrix on the golden fixture,
+Task 6 mirrored 4 new pages + 2 re-headed + 1 archived, Task 7 wrote the doc.
+
+1. `python -m pytest tools/tests -q` -> **14 passed**. (The plan sketched 6; the shipped
+   suite also covers file targets, `--root`, and the repo-root path scoping.)
+2. `python tools/doc_lint.py` -> **0 findings** across `docs/vanilla docs/modding
+   docs/testing references` -- the trees slice 01 owns or touched. **4 pre-existing
+   findings remain**, all outside this slice:
+   `docs/mods-survey/teardowns/beyondten.md` and `docs/mods-survey/teardowns/itemquality.md`
+   (`stamp` + `sources` each). Deferred to slices 09-11 by the standing ruling in
+   `docs/decisions.md` ("`doc_lint` acceptance per slice = 0 findings in the dirs the slice
+   owns/touches; pre-existing findings elsewhere are deferred to the slice that owns those
+   docs").
+3. **Q1-Q8 all answered** in `docs/vanilla/eating-pipeline.md`. The modifier table has
+   **67 body rows, 24 of them carrying an M grade**; the **MP behaviour** section has
+   **6 M rows**. Measured rows cite runs `exp01-20260910-000351` (smoke + authority probes)
+   and `exp01-20260910-003929` (state x fraction matrix, real-path/sandbox/clamp probes);
+   both result JSONs are committed under `testing/artifacts/<run-id>/`.
+4. `python testing/pzt doctor` -> **all ok** (no stray PZ java processes; ports 27261/27262/
+   27015 free; fixture `default` present and matching the installed build; workshop index
+   non-empty; pytest available), exit 0.
+5. `python testing/pzt run --hold 5` -> **PASS**, run `run-20260910-011803`, **0 server
+   errors** -- the harness edits did not break the join.

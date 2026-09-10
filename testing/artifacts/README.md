@@ -23,3 +23,41 @@ these paths rather than a path that only exists on the machine that ran the expe
 |---|---|---|---|
 | `exp01-20260910-000351` | `eat-smoke.json` | `testing/experiments/s01_eat_smoke.py` | [`docs/vanilla/eating-pipeline.md`](../../docs/vanilla/eating-pipeline.md), [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) |
 | `exp01-20260910-003929` | `eat-matrix.json` | `testing/experiments/s01_eat_matrix.py` | same three docs |
+
+## Script/artifact skew
+
+Standing rule (`docs/decisions.md`, 2026-09-10, program): **when a fix round follows a
+slice's last live run, this README notes the skew — the commit that produced the artifact and
+what the current script adds — instead of assuming a later run erases it.** Re-running an
+experiment for a teardown-only change is poor value; disclosure is what keeps the evidence
+honest. Both slice-01 artifacts predate that slice's last fix round, so both are listed.
+
+**`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
+at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
+things this file therefore lacks:
+
+- A **second, post-teardown save**. The current script saves once before teardown and again
+  after it, so the committed JSON carries the `client_quit` / `server_stopped` timeline marks
+  and any shutdown-phase server errors. Here the `timeline` stops at the last probe and
+  `server_errors` is the pre-teardown list — the shutdown of this run is simply not evidenced
+  either way.
+- The **`spawned`** provenance field ("found" vs "client") on every `eat` / `item.state` /
+  `eat.action` result (`PZTestKit_Client.lua`). Absent here. This run spawned client-side
+  throughout, which is what its `server_errors[0..1]` `SyncItemFields` NPE demonstrates.
+
+**`exp01-20260910-003929/eat-matrix.json`** — produced by `testing/experiments/s01_eat_matrix.py`
+at commit `1d32909`. Since `39fceca` the script additionally:
+
+- Records **`state_spawned`** per row (surfaced as `stateSpawned` in `summary`) — the item's
+  provenance at `item.state` time, which is the reading that matters, because `item.state` does
+  the find-or-spawn and a later `eat` would report "found" either way. This file has neither key.
+- Matches **`log_grep` case-insensitively**. The committed **`log_grep.Nutrition: []` is a
+  case-sensitive false negative**: the harness logs its own commands lowercase
+  (`nutrition.get`), and a case-insensitive grep of the same server log returns 27 hits. The
+  `SyncItemFields` and `EatFood` zeros in that block **were** re-verified case-insensitively
+  against `testing/runs/exp01-20260910-003929/server-stdout.log` (`grep -ic` → 0 for both) and
+  stand.
+- Runs an **unconditional `sandbox.set Nutrition true` in teardown** (recorded as
+  `sandbox_nutrition_restored`). This run has no such key: the belt-and-braces restore did not
+  exist yet. Its in-band restore did run and read back `true`
+  (`probe_sandbox.restore_true.after`), so the fixture was left as found regardless.

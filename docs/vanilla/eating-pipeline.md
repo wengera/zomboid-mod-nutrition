@@ -26,6 +26,29 @@ dedicated server (run id given), **W** wiki mirror (secondary).
 
 ## Model
 
+### Glossary — the five near-identical `Food` getters
+
+`Food` exposes several names one letter apart and the pipeline uses each for a different job.
+Ev **C** throughout (jar dumps).
+
+- **`getBaseHunger()`** (`Food.getBaseHunger()F @0 L1891`) — bare read of `Food.baseHunger`, the
+  item's script/base hunger value (`HungerChange/100` at instantiation, never touched by
+  `multiplyFoodValues`). Used **only** for the fraction rescale, so a fraction means "x% of the
+  whole item", not "x% of what is left".
+- **`getHungChange()`** (`Food.getHungChange()F @0 L1816`; `getBaseHungChange` is an alias, `@0
+  L1812`) — bare read of `Food.hungChange`, the **raw remaining** hunger on this instance, no state
+  modifiers. Drives the fraction rescale and both crumb rules; it is what `multiplyFoodValues`
+  shrinks and what `Eat` zeroes when the item is finished.
+- **`getHungerChange()`** (`Food.getHungerChange()F @L1682–L1708`) — the **state-modified** value
+  (cooked ×1.3, else burnt /3.0, stale /1.3, rotten /2.2, each floored at 0.01 with the sign kept).
+  This is the one that drives the `HUNGER` stat.
+- **`getThirstChange()`** (`Food.getThirstChange()F @L1866–L1875`) — state-modified thirst: burnt
+  /5.0 takes precedence over cooked /2.0, and rot does not touch thirst at all. Drives the `THIRST`
+  stat, and its raw value also gates the second crumb rule.
+- **`getThirstChangeUnmodified()`** (`Food.getThirstChangeUnmodified()F @0 L1746`) — the bare
+  `thirstChange` field. It is what `multiplyFoodValues` reads (`@44`) so cooked/burnt multipliers
+  are never baked into the leftover.
+
 ### The `Eat` algorithm
 
 `zombie/characters/IsoGameCharacter.Eat(InventoryItem,float,boolean)Z`, 968 bytes. The other two
@@ -395,7 +418,7 @@ Eat -> Food getters (getHungerChange/getThirstChange/getCalories/…)
 | `EatFoodPacket` | `zombie/network/packets/actions/EatFoodPacket` | `write` embeds `Nutrition.save`; `parse` calls `Nutrition.load` (overwrites the receiver's whole Nutrition); `processClient`/`processServer` both only call `EatOnClient` | C |
 | `PlayerStatsPacket` | jar `write @19–@33 L34`, `parse @31–@45 L48` | embeds `Nutrition.save`/`load`; sent by `NetworkPlayerAI.syncStats` on a 1000 ms `UpdateLimit` | C |
 | `GameClient.eatFood(IsoPlayer,Food,float)` | jar `@0–@49 L2041–L2047` | builds and sends `EatFoodPacket` client→server — **no callers anywhere in the jar or `media/lua`** | C |
-| hunger/thirst read | `getStats():get(CharacterStat.HUNGER / .THIRST)` | the **only** working route in B42 — `getStats():getHunger()` and `.hunger` do not exist; every live snapshot answered `Stats:get(CharacterStat.HUNGER)` | M `exp01-20260910-000351` |
+| hunger/thirst read | `getStats():get(CharacterStat.HUNGER / .THIRST)` | **C** — `zombie/characters/Stats` has no `getHunger`/`getThirst` at all: its complete method list is 34 entries and the only stat accessors in it are `get/set/add/remove/reset/isAtMinimum/isAtMaximum/isAboveMinimum(CharacterStat)` (`./pz.sh methods zombie/characters/Stats`, read 2026-09-10). **M** — the enum route is the one every live snapshot answered with (`statsApi: "Stats:get(CharacterStat.HUNGER)"` on every row). Note the measurement's reach: `TK.nutritionSnapshot` tries the enum first and short-circuits (`testing/PZTestKit/.../PZTestKit_Core.lua:120–131`), so the `getHunger()` and `.hunger` fallbacks never ran — the run proves the enum route works; the method list is what rules the old getter out | C+M `exp01-20260910-000351` |
 | script-level `Calories`/`Carbohydrates`/`Lipids`/`Proteins` | `getScriptManager():getItem(type)` | **not reachable from Lua** — public fields on `Item` with no getter; all four keys came back absent through `get<X>()`, `is<X>()` and the field route. Read them from an instantiated item or from `media/scripts` | M `exp01-20260910-000351` |
 
 `Nutrition.save`/`load` order is calories, proteins, lipids, carbohydrates, weight (float)
@@ -425,7 +448,7 @@ consistent with both readings, and the authority probes below settle it.
 | **The real path lands on the client ~5.5 s after queuing, in one step equal to the direct-call delta** | `eat.action` on a server-spawned apple: +94.741 kcal at t = 5.5 s (95 less the 0.259 burned that second) vs +95 for a direct `Eat` call; reproduced in both runs | **M** `exp01-20260910-003929` |
 | **Server and client `Nutrition` converge to bit-identical values** | witness rows: 746.838 / 746.967 before, 838.475 / 838.605 immediately after, 837.055 / 837.055 five seconds later — the ~0.13 kcal offset is sub-second sampling skew on a 0.259 kcal/s drain, not divergence | **M** `exp01-20260910-003929` |
 | **Hunger and thirst behave identically** — `CharacterStat.HUNGER`/`THIRST` are server-owned too | a client `stats.set hunger 0.9` read back 0.9 while the server stayed at 0.0005 and the client fell back to 0.00098 within 3 s; a server-side `0.4` reached the client (0.400293) | **M** `exp01-20260910-003929` |
-| Client-spawned food makes the server log a `SyncItemFields` NPE | `Eat`'s final `syncItemFields()` (`@961 L5841`) runs against an item the server never heard of; spawning over RCON `additem` eliminates it — the matrix run logged **0** `SyncItemFields` lines and **0** server errors | C+M `exp01-20260910-003929` |
+| Client-spawned food makes the server log a `SyncItemFields` NPE | `Eat`'s final `syncItemFields()` (`@961 L5841`) runs against an item the server never heard of. **Positive evidence** — the smoke run, whose harness `eat` spawned the item client-side, left two lines in `server_errors[0..1]` of [`eat-smoke.json`](../../testing/artifacts/exp01-20260910-000351/eat-smoke.json): `Error with packet of type: SyncItemFields` and `NullPointerException: Cannot invoke "zombie.inventory.InventoryItem.hasSharpness()" because "item" is null at SyncItemFieldsPacket.parse(SyncItemFieldsPacket.java:383)`. **Negative control** — the matrix run spawned every item server-side over RCON `additem` and logged **0** `SyncItemFields` lines and **0** server errors | C+M `exp01-20260910-000351` (positive), `exp01-20260910-003929` (control) |
 
 **What a mod must do to change intake for MP players.** Anything that alters what eating delivers
 has to run where `Eat` runs — the server. A client-side Lua mod that writes vanilla nutrient numbers
