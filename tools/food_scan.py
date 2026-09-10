@@ -7,12 +7,22 @@ so keys are kept **per block** and never flattened -- a `component FluidContaine
 must not land on the item that owns it. See docs/vanilla/food-item-model.md for what each key
 means and `Item.DoParam` for the loader that reads them in-game.
 
-`parse_script` is shared with tools/recipe_scan.py (slice 06), so it stays generic: any in-block
-entry that is not `Key = Value` is kept verbatim in the block's `lines` -- a fluid's `Categories`
-entries (`Beverage`) and a recipe's IO lines (`item 1 [Base.BreadSlices] flags[ItemCount]`).
-`itemMapper`'s dotted pairs (`Base.Cow_Skull = Base.Cow_Head_Angus`) land there too, on purpose:
-PROP_RE only accepts identifier keys, and a mapper repeats the same left-hand side, which a dict
-would silently collapse.
+`parse_script` is shared with tools/recipe_scan.py (slice 06), so it stays generic. Two shapes in
+the shipped files do not fit "one block is a dict of keys", and each has its own field:
+
+* **A key may repeat inside one block.** `props` is the last-write-wins dict the loader builds for
+  a scalar key; `entries` is `[(key, raw), ...]` for *every* `Key = Value` line, in file order.
+  Read a multi-valued key from `entries`: `item HairDyeCommon`'s `Fluids` block has 8 `fluid =`
+  lines (77 across `items/normal.txt`) and `item HandTorch` has 2 `SoundMap` lines -- `props`
+  keeps only the last of each.
+* **A block name may contain spaces** (`evolvedrecipe Stir fry`, `fixing Fix Hunting Rifle`). A line
+  is a header iff the next logical line is `{`; `kind` is its first token and `name` the rest.
+  `item 1 Base.Toast`, which no `{` follows, therefore stays a `lines` entry.
+
+Anything else in a block is kept verbatim in `lines`: a fluid's `Categories` entries (`Beverage`)
+and a recipe's IO lines (`item 1 [Base.BreadSlices] flags[ItemCount]`). `itemMapper`'s dotted
+pairs (`Base.Cow_Skull = Base.Cow_Head_Angus`) land there too, on purpose: PROP_RE only accepts
+identifier keys, and a mapper repeats the same left-hand side.
 
 The dataset writer (data/food-items.{csv,json}) is slice 05 Task 3 and is not here yet.
 """
@@ -20,8 +30,7 @@ import json, os, re
 
 MEDIA = r"D:/SteamLibrary/steamapps/common/ProjectZomboid/media"
 
-HEAD_RE = re.compile(r"^([A-Za-z]\w*)\s+(\S+)$")        # `item Apple`, `component FluidContainer`
-BARE_RE = re.compile(r"^([A-Za-z]\w*)$")                # `Properties` / `Categories` / `Fluids`
+HEAD_RE = re.compile(r"^([A-Za-z]\w*)\s+(.+)$")         # `item Apple`, `evolvedrecipe Stir fry`
 PROP_RE = re.compile(r"^([A-Za-z_]\w*)\s*=\s*(.*?)\s*,?$")
 
 _BLOCK_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
@@ -31,7 +40,9 @@ _LINE_COMMENT_RE = re.compile(r"//[^\n]*")
 def _strip_comments(text):
     """Drop `//` and `/* */`, keeping the line count so recorded line numbers stay true.
 
-    No file under media/scripts/generated/ carries either form in 42.20.4; mods do.
+    Nothing under media/scripts/generated/ carries either form in 42.20.4, but 28 files under
+    media/scripts/xui/ do use `/* */` (25 of them in xui/defaultskin/), full-line and inline --
+    `/*backgroundColor = SandyBrown,*/` in xs_ISButton.txt. No shipped file uses `//`; mods do.
     """
     text = _BLOCK_COMMENT_RE.sub(lambda m: "\n" * m.group(0).count("\n"), text)
     return _LINE_COMMENT_RE.sub("", text)
@@ -41,6 +52,8 @@ def _logical_lines(text):
     """Yield (line_number, stripped_text), splitting `craftRecipe MakeToast {` into two entries.
 
     Every shipped file puts the brace on its own line; the same-line form is a mod convention.
+    Splitting it here is what lets `parse_script` recognise a header by a single rule -- the next
+    logical line is `{`.
     """
     for n, raw in enumerate(_strip_comments(text).splitlines(), 1):
         s = raw.strip()
@@ -51,20 +64,38 @@ def _logical_lines(text):
             yield n, s
 
 
+def _innermost(stack):
+    """The block a line belongs to, or None at file level.
+
+    Entries are Blocks except for a `{` that no header preceded -- mod junk, never shipped. Those
+    push None so the matching `}` cannot pop a real parent, and their contents fall through to the
+    enclosing block rather than into an invented anonymous one.
+    """
+    for block in reversed(stack):
+        if block is not None:
+            return block
+    return None
+
+
 def parse_script(text, path=""):
     """Parse one script file into a list of top-level (usually `module`) Blocks.
 
     Block = {"kind", "name", "module", "file", "line", "props": {k: raw_str},
-             "lines": [str], "blocks": [Block]}
-    `line` is the 1-based line of the block's header, `props` values stay raw (see `coerce`).
+             "entries": [(k, raw_str)], "lines": [str], "blocks": [Block]}
+    `line` is the 1-based line of the block's header; `props`/`entries` values stay raw (`coerce`
+    types them). See the module docstring for `entries` vs `props` and for header detection.
     """
+    logical = list(_logical_lines(text))
     roots, stack, module, pending = [], [], "Base", None
-    for n, s in _logical_lines(text):
+    for i, (n, s) in enumerate(logical):
         if s == "{":
-            head = pending or {"kind": "?", "name": "?", "line": n}
-            block = {"kind": head["kind"], "name": head["name"], "module": module,
-                     "file": path, "line": head["line"], "props": {}, "lines": [], "blocks": []}
-            (stack[-1]["blocks"] if stack else roots).append(block)
+            if pending is None:                 # a brace no header opened: keep the depth honest
+                stack.append(None)
+                continue
+            parent = _innermost(stack)
+            block = {"kind": pending[0], "name": pending[1], "module": module, "file": path,
+                     "line": pending[2], "props": {}, "entries": [], "lines": [], "blocks": []}
+            (parent["blocks"] if parent else roots).append(block)
             stack.append(block)
             pending = None
             continue
@@ -72,23 +103,26 @@ def parse_script(text, path=""):
             if stack:
                 stack.pop()
             continue
-        m = PROP_RE.match(s)                    # before HEAD_RE: `Weight =0.2` is a prop, not a header
+        m = PROP_RE.match(s)                    # before the header test: `Weight =0.2` is a prop
         if m:
-            if stack:
-                stack[-1]["props"][m.group(1)] = m.group(2)
+            block = _innermost(stack)
+            if block is not None:
+                block["props"][m.group(1)] = m.group(2)
+                block["entries"].append((m.group(1), m.group(2)))
             continue
-        m = HEAD_RE.match(s)
-        if m:
-            if m.group(1) == "module":
-                module = m.group(2)
-            pending = {"kind": m.group(1), "name": m.group(2), "line": n}
+        if i + 1 < len(logical) and logical[i + 1][1] == "{":
+            m = HEAD_RE.match(s)
+            if m:                               # `item Apple`, `evolvedrecipe Stir fry`
+                kind, name = m.group(1), m.group(2)
+                if kind == "module":
+                    module = name
+            else:                               # `Properties` / `Categories` / `Fluids`
+                kind, name = "block", s
+            pending = (kind, name, n)
             continue
-        m = BARE_RE.match(s)
-        if m:
-            pending = {"kind": "block", "name": m.group(1), "line": n}
-            continue
-        if stack:
-            stack[-1]["lines"].append(s[:-1].rstrip() if s.endswith(",") else s)
+        block = _innermost(stack)
+        if block is not None:
+            block["lines"].append(s[:-1].rstrip() if s.endswith(",") else s)
     return roots
 
 
@@ -135,6 +169,7 @@ KEY_TYPES = _key_types()
 # Item.DoParam is a chain of equalsIgnoreCase comparisons, so key case does not matter to the
 # loader: the fluid files' `foodSicknessChange` is the item files' `FoodSicknessChange`.
 _KEY_TYPES_CI = {k.lower(): v for k, v in KEY_TYPES.items()}
+_CANONICAL_KEYS = {k.lower(): k for k in KEY_TYPES}
 
 
 def is_known_key(key):
@@ -142,23 +177,48 @@ def is_known_key(key):
     return key.lower() in _KEY_TYPES_CI
 
 
+def canonical_key(key):
+    """The `KEY_TYPES` spelling of `key`; an unknown key comes back unchanged.
+
+    The fluid files write `foodSicknessChange` where the item files (and the doc table) write
+    `FoodSicknessChange`, and the loader's equalsIgnoreCase does not care. Canonicalise before
+    merging a fluid's `Properties` into an item record, or the record grows both spellings.
+    """
+    return _CANONICAL_KEYS.get(key.lower(), key)
+
+
 def coerce(key, raw):
     """Type a raw script value the way the loader does; an unknown key stays a string.
 
     Bool is `Boolean.parseBoolean` / `equalsIgnoreCase("true")`: only the literal `true` is true.
-    A value the loader would reject (`InvalidParameterException`) is returned unchanged rather
-    than raised, so one malformed mod item cannot abort a whole-tree scan.
+
+    An int-typed key may carry a float literal -- the fluid files write `UnhappyChange = -10.0`
+    and `fluReduction = 0.0` into keys the item table types int (141 such values in 42.20.4, all
+    of them integral). Those parse through float and come back as an int (`-10.0` -> `-10`); a
+    genuinely fractional literal on an int key would keep its float value. Only a value neither
+    parse accepts (a mod's `Calories = n/a`) is returned unchanged rather than raised, so one
+    malformed item cannot abort a whole-tree scan.
     """
     value_type = _KEY_TYPES_CI.get(key.lower(), str)
     if value_type is bool:
         return raw.strip().lower() == "true"
     if value_type is list:
         return [part for part in (p.strip() for p in raw.split(";")) if part]
-    if value_type in (int, float):
+    if value_type is float:
         try:
-            return value_type(raw.strip())
+            return float(raw.strip())
         except ValueError:
             return raw
+    if value_type is int:
+        try:
+            return int(raw.strip())
+        except ValueError:
+            pass
+        try:
+            number = float(raw.strip())
+        except ValueError:
+            return raw
+        return int(number) if number.is_integer() else number
     return raw
 
 
