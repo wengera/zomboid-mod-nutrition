@@ -46,6 +46,7 @@ Everything lands in `<run_dir>/food-scan.json`, copied at the end to
 `testing/artifacts/<run-id>/food-scan.json`. No world change is made (no `settimespeed`), so
 nothing needs restoring; run it with `python testing/pzt doctor` clean and nothing else live.
 """
+import hashlib
 import json
 import os
 import shutil
@@ -133,10 +134,21 @@ INSTANCE_FIELDS = (("calories", "calories", 1.0),
                    ("offAgeMax", "days_totally_rotten", 1.0),
                    ("minutesToCook", "minutes_to_cook", 1.0),
                    ("minutesToBurn", "minutes_to_burn", 1.0))
+# Of those ten, only these six are `Food` getters; `offAge`/`offAgeMax`/`minutesToCook`/
+# `minutesToBurn` are `InventoryItem`'s and every item carries them. So only these six may be
+# absent from a `base:normal` fluid container's `item.get` -- measured in
+# exp05-20260910-084109, where Pop2's instance answered 1000000000/1000000000/60/120 for the
+# other four. An absence outside this set is a FINDING, not an "n/a" (see `compare`).
+FOOD_ONLY_INSTANCE_FIELDS = ("calories", "carbs", "lipids", "proteins", "hungChange",
+                             "thirstChange")
+NOT_A_FOOD = ("fluid container: the instance is not a Food, so this Food-only getter does not "
+              "answer; the four InventoryItem fields (offAge/offAgeMax/minutesToCook/"
+              "minutesToBurn) must answer and do")
 # The fluid definition's own getters against the dataset's fluid record. The /100 pair is the
-# same transform the item side uses: `fluids_Beverages.txt` writes `HungerChange = -12.0` for
-# Cola and `fluid.script Cola` answers -0.12, while Calories/Carbohydrates/Lipids/Proteins are
-# carried 1:1 (400 / 104 / 0 / 0).
+# same ARITHMETIC as the item side's, applied somewhere else -- by the fluid script loader, with
+# no item and no `Item.InstanceItem` involved (see FLUID_TRANSFORM): `fluids_Beverages.txt`
+# writes `HungerChange = -12.0` for Cola and `fluid.script Cola` answers -0.12, while
+# Calories/Carbohydrates/Lipids/Proteins are carried 1:1 (400 / 104 / 0 / 0).
 FLUID_FIELDS = (("Calories", "calories", 1.0),
                 ("Carbohydrates", "carbohydrates", 1.0),
                 ("Lipids", "lipids", 1.0),
@@ -151,31 +163,75 @@ FLUID_DEFAULTS = {k: 0.0 for k, _, _ in FLUID_FIELDS}
 FLUID_SOURCED = {"calories", "carbohydrates", "lipids", "proteins", "hunger_change",
                  "thirst_change"}
 
+# How each route's rows are LABELLED in the artifact: `(scale, absent key)`. The arithmetic is
+# the same /100 on both, but it is applied in two different places and the artifact must not
+# attribute one to the other: on an item it is the instance constructor (`Item.InstanceItem`
+# reading the script `Item`), on a fluid it is the fluid script loader
+# (`FluidDefinitionScript.getHungerChange @0-@10 L186` -- `fluids_Beverages.txt` writes Cola's
+# `HungerChange = -12.0` and `fluid.script Cola` answers -0.12, with no item involved). Same
+# for a null column: on the item route it means the ITEM script sets no such key, on the fluid
+# route it means the FLUID definition does not (10 of the 61 fluids carry no `Properties`
+# block at all).
+ITEM_TRANSFORM = ("x%g (Item.InstanceItem)",
+                  "default (the item script sets no such key)")
+FLUID_TRANSFORM = ("x%g (FluidDefinitionScript.getHungerChange @0-@10 L186, the fluid script "
+                   "loader)",
+                   "default (the fluid definition sets no such key)")
+
 
 def load_dataset(path):
-    """The dataset, read ONCE at the start of the run.
+    """The dataset, read ONCE at the start of the run: `(data, error, sha256)`.
 
     A concurrent fix round may be regenerating this file (it is rewritten whole, so a read can
-    land mid-write and raise `ValueError`); the retry is for that and only that. The commit the
-    bytes came from is recorded separately, in `meta.dataset_commit`."""
+    land mid-write and raise `ValueError`); the retry is for that and only that, and it sleeps
+    BETWEEN attempts, never after the last one.
+
+    The digest is taken of the SAME bytes that were parsed -- one read, hashed and decoded --
+    rather than of a second read that a concurrent regeneration could have changed underneath.
+    It is what makes the artifact self-identifying: `meta.dataset_commit` can only name a
+    commit, and a working tree that has moved on makes that name wrong (see `git_short`)."""
     last = None
     for attempt in range(DATASET_RETRIES):
         try:
-            with open(path, encoding="utf-8") as fh:
-                return json.load(fh), None
-        except (ValueError, OSError) as e:
+            with open(path, "rb") as fh:
+                raw = fh.read()
+            return json.loads(raw.decode("utf-8")), None, hashlib.sha256(raw).hexdigest()
+        except (ValueError, OSError, UnicodeDecodeError) as e:
             last = f"{type(e).__name__}: {e}"
             print(f"dataset unreadable (attempt {attempt + 1}/{DATASET_RETRIES}): {last}")
-            time.sleep(DATASET_RETRY_WAIT)
-    return None, last
+            if attempt + 1 < DATASET_RETRIES:
+                time.sleep(DATASET_RETRY_WAIT)
+    return None, last, None
 
 
 def git_short(rel_path):
-    """`git log -1 --format=%h -- <path>`: which commit produced the bytes just read."""
+    """`git log -1 --format=%h -- <path>`: the newest commit that TOUCHED the path.
+
+    That equals the provenance of the bytes just read only when the working tree is clean
+    there. It is not the same question, and in exp05-20260910-084109 the two answers differed:
+    the file had been regenerated by a concurrent fix round a minute before the run, so this
+    returned `72ed836` -- the commit before that regeneration -- for bytes that were committed
+    afterwards as `25870ad`. So the answer is recorded next to `dataset_sha256` (the bytes
+    actually read) and `dataset_dirty` (below), which together identify the file without
+    needing the index to agree with it."""
     try:
         p = subprocess.run(["git", "-C", REPO, "log", "-1", "--format=%h", "--", rel_path],
                            capture_output=True, text=True, timeout=30)
         return (p.stdout or "").strip() or f"git said nothing (rc={p.returncode})"
+    except Exception as e:                       # noqa: BLE001 - provenance, never fatal
+        return f"{type(e).__name__}: {e}"
+
+
+def git_dirty(rel_path):
+    """`git status --porcelain -- <path>` non-empty: the working tree differs from the index or
+    HEAD, so `git_short`'s commit is NOT where the bytes came from. `True`/`False`, or the
+    error string if git could not be asked -- provenance, never fatal."""
+    try:
+        p = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "--", rel_path],
+                           capture_output=True, text=True, timeout=30)
+        if p.returncode != 0:
+            return f"git status rc={p.returncode}"
+        return bool((p.stdout or "").strip())
     except Exception as e:                       # noqa: BLE001 - provenance, never fatal
         return f"{type(e).__name__}: {e}"
 
@@ -190,36 +246,49 @@ def same(expected, live):
     return expected == live
 
 
-def compare(record, live, fields, defaults, source, absent_ok=None, route_nutrition=False):
+def compare(record, live, fields, defaults, source, absent_ok=None, route_nutrition=False,
+            transform=ITEM_TRANSFORM):
     """One route's `{script, live, source, match}` rows, plus the provenance of each expectation.
 
-    `script` is what the dataset says the live field must be AFTER the instance transform;
-    `dataset` is the raw record value it came from (null where the script has no such key, in
-    which case `script` is the measured default). `match` is `"n/a"` only where the live reply
-    legitimately cannot carry the key -- `absent_ok` says why -- and that is counted apart from
-    both matches and mismatches."""
+    `script` is what the dataset says the live field must be AFTER the transform; `dataset` is
+    the raw record value it came from (null where the script has no such key, in which case
+    `script` is the measured default). `transform` is that route's `(scale, absent)` label pair
+    -- the /100 belongs to `Item.InstanceItem` on an item route and to the fluid script loader
+    on a fluid one, and the artifact says which.
+
+    `absent_ok` is a per-FIELD `{live_key: why}` map, not a blanket permission: `match` is
+    `"n/a"` only for a key that route legitimately cannot carry, and every other absence is a
+    mismatch. That is counted apart from both matches and mismatches."""
     rows, bad = {}, []
-    live_ok = isinstance(live, dict)
+    # `_common.ask` reports a wedged side as `{"error": ...}` -- a dict, so without the second
+    # clause every field of it would take the "key absent" branch and a container's six
+    # Food-only rows would be excused as "n/a". A failed read is a mismatch on every field, not
+    # a legitimate absence. None of the three replies compared here carries an `error` key when
+    # it succeeds (`TK.itemState`, `scriptValues`, `fluid.script` build their keys from fixed
+    # lists), so the test is safe.
+    live_ok = isinstance(live, dict) and "error" not in live
+    scale_label, absent_label = transform
     for live_key, column, factor in fields:
         raw = record.get(column) if record else None
         row = {"dataset": raw}
         if route_nutrition and record and column in FLUID_SOURCED:
-            # See the module docstring: the record's number here is the FLUID's, not the item's.
+            # See the module docstring: the record's number here is the FLUID's, not the item's,
+            # so the expectation is the default. The number is kept as `dataset_routed` rather
+            # than dropped, so the artifact still shows WHICH value was routed past and a reader
+            # can check it against the `fluid` route's rows.
+            row["dataset_routed"] = raw
             row["dataset"] = None
             row["routed_to"] = record.get("nutrition_source")
             raw = None
         if raw is None:
             row["script"] = defaults.get(live_key)
-            row["transform"] = "default (the item script sets no such key)"
-        elif factor is None:
-            row["script"] = raw
-            row["transform"] = "identity"
-        elif factor == 1.0:
+            row["transform"] = absent_label
+        elif factor in (None, 1.0):              # None = boolean, no arithmetic
             row["script"] = raw
             row["transform"] = "identity"
         else:
             row["script"] = raw * factor
-            row["transform"] = "x%g (Item.InstanceItem)" % factor
+            row["transform"] = scale_label % factor
         row["source"] = source
         if not live_ok:
             row["live"], row["match"] = None, False
@@ -228,10 +297,11 @@ def compare(record, live, fields, defaults, source, absent_ok=None, route_nutrit
             row["live"] = live[live_key]
             row["match"] = same(row["script"], live[live_key])
         else:
+            why = (absent_ok or {}).get(live_key)
             row["live"], row["live_absent"] = None, True
-            row["match"] = "n/a" if absent_ok else False
-            if absent_ok:
-                row["note"] = absent_ok
+            row["match"] = "n/a" if why else False
+            if why:
+                row["note"] = why
         if row["match"] is False:
             bad.append({"field": live_key, "source": source, "script": row["script"],
                         "live": row["live"], "dataset_column": column})
@@ -246,12 +316,17 @@ tl = Timeline()
 server = make_server(run_dir, rec)
 clients = []
 t_start = time.time()
-data, data_err = load_dataset(DATASET)
+data, data_err, data_sha = load_dataset(DATASET)
 items_by_id = {r["id"]: r for r in (data or {}).get("items", [])}
 fluids_by_id = {r["id"]: r for r in (data or {}).get("fluids", [])}
 out = {"run_id": run_id,
        "meta": {"dataset": os.path.relpath(DATASET, REPO).replace("\\", "/"),
+                # The three together are the provenance: the commit NAMES a version, the sha256
+                # IS the bytes read, and `dataset_dirty` says whether the first can be trusted
+                # to be the second (see `git_short`).
                 "dataset_commit": git_short("data/food-items.json"),
+                "dataset_sha256": data_sha,
+                "dataset_dirty": git_dirty("data/food-items.json"),
                 "dataset_read_error": data_err,
                 "dataset_meta": (data or {}).get("meta"),
                 "dataset_items": len(items_by_id), "dataset_fluids": len(fluids_by_id),
@@ -261,8 +336,10 @@ out = {"run_id": run_id,
                 "script_defaults": SCRIPT_DEFAULTS, "instance_defaults": INSTANCE_DEFAULTS},
        "items_count": None, "fluid_script": {}, "spot_checks": {}, "comparison": {},
        "summary": {}}
-print(f"dataset {out['meta']['dataset_commit']}: {len(items_by_id)} items, "
-      f"{len(fluids_by_id)} fluids")
+dirty = out["meta"]["dataset_dirty"]
+print(f"dataset {out['meta']['dataset_commit']}"
+      f"{' [DIRTY: the bytes are NOT that commit]' if dirty else ''}"
+      f" sha256 {str(data_sha)[:16]}: {len(items_by_id)} items, {len(fluids_by_id)} fluids")
 try:
     server.start()
     c, _ = make_client(run_dir, USER, server, rec)
@@ -330,10 +407,11 @@ try:
             continue
         is_container = str(record.get("nutrition_source", "")).startswith("fluid:")
         # A fluid container is a `base:normal` item with a FluidContainer component, not a
-        # `Food`, so the Food getters `TK.itemState` reads simply do not exist on the instance
-        # and every instance key comes back absent. That is the expected reading, not a miss.
-        absent_ok = ("fluid container: the instance is not a Food, so TK.itemState's Food "
-                     "getters do not answer") if is_container else None
+        # `Food`, so the six Food-only getters `TK.itemState` reads do not exist on the
+        # instance. That is the expected reading, not a miss -- but only for those six: the
+        # other four are `InventoryItem`'s and their absence would be a finding, so the
+        # permission is per field.
+        absent_ok = {k: NOT_A_FOOD for k in FOOD_ONLY_INSTANCE_FIELDS} if is_container else None
         block["script"], bad_s = compare(record, row["item_script"], SCRIPT_FIELDS,
                                          SCRIPT_DEFAULTS, "item.script",
                                          route_nutrition=is_container)
@@ -346,7 +424,8 @@ try:
             frec = fluids_by_id.get(fid)
             block["fluid_id"] = fid
             block["fluid"], bad_f = compare(frec, out["fluid_script"].get(fid), FLUID_FIELDS,
-                                            FLUID_DEFAULTS, f"fluid.script {fid}")
+                                            FLUID_DEFAULTS, f"fluid.script {fid}",
+                                            transform=FLUID_TRANSFORM)
             bad += bad_f
             # The scanner's own join, checked inside the dataset: the item's nutrition columns
             # must BE the fluid's, which is what `nutrition_source` claims and what makes the
@@ -412,6 +491,8 @@ try:
         "pre_existing_instances": sorted(k for k, v in out["spot_checks"].items()
                                          if v.get("had_one_before_spawn")),
         "dataset_commit": out["meta"]["dataset_commit"],
+        "dataset_sha256": out["meta"]["dataset_sha256"],
+        "dataset_dirty": out["meta"]["dataset_dirty"],
     }
 except Exception as e:                   # noqa: BLE001 - keep the rows already collected
     out["error"] = f"{type(e).__name__}: {e}"

@@ -42,11 +42,17 @@ slice's last live run, this README notes the skew — the commit that produced t
 what the current script adds — instead of assuming a later run erases it.** Re-running an
 experiment for a teardown-only change is poor value; disclosure is what keeps the evidence
 honest. Both slice-01 artifacts predate that slice's last fix round, the slice-02 artifact
-predates slice 02's, the slice-03 artifact predates slice 03's fix round 1, and all three
-slice-04 scenario artifacts predate slice 04's, so all seven are listed. The slice-05
-artifact (`exp05-20260910-084109`) is the one that is not: it was produced by
-`s05_food_scan.py` exactly as committed, with no fix round after it, so it has no entry
-below.
+predates slice 02's, the slice-03 artifact predates slice 03's fix round 1, all three
+slice-04 scenario artifacts predate slice 04's, and the slice-05 artifact predates slice 05's
+fix round 1 — which added the dataset's `sha256` and dirty flag to `meta`, kept the routed
+dataset number as `dataset_routed`, gave the `fluid.script` rows their own transform labels,
+narrowed a fluid container's `"n/a"` permission to the six `Food`-only getters and made a
+wedged reply a mismatch on every field. So all eight are listed below.
+
+A skew entry is about the *script*. Which **dataset** an artifact was measured against is a
+separate question, and `exp05-20260910-084109` is the run that shows why: its
+`meta.dataset_commit` names a commit the bytes it read were not in. That is a *do not cite*
+row in its block, not a skew bullet.
 
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
@@ -190,3 +196,44 @@ offline, reproducing every stored key.
 | `evaluation.carb_drain_per_game_day` | `−300.3` | Whole-run fit. The subject died at game-hour 35 and `Nutrition.update` stops on a corpse, so the partial pre-death hour (h34→h35, a −9.57 carb step against a −12.59 full hour) is inside the window and the 37 dead hours contribute nothing. Over the alive window the same fit gives **−302.4 /game-day**, which is the figure that matches `0.0035 × 86 400` and the one runs 2 and 3 return over their whole traces. |
 | `evaluation.calorie_burn_per_game_day` | `−1389.9` | Same contamination, same cause: **−1399.7 /game-day** over the alive window. |
 | `evaluation.measured_delta_kg`, `measured_kg_per_game_day`, `weight_end_kg`, `calories_end`, `carbs_end`, `lipids_end`, `hunger_end`, `health_end` | `1.073`, `0.358`, `81.073`, `3700`, `−437.9`, `−141.4`, `0.7`, `0` | Corpse readings taken 37 game-hours after the stores stopped moving. The live model check on this run is the **alive window**: measured **+1.045 kg** vs predicted **+1.057** over 34 game-hours. |
+
+**`exp05-20260910-084109/food-scan.json`** — produced by `testing/experiments/s05_food_scan.py`
+at commit `5290bfb`. Slice 05's **fix round 1** changed the script in five ways this file
+therefore predates. **No measured number in it moves**: the comparator at HEAD was re-run
+offline against this file's own verbatim `item.script` / `item.get` / `fluid.script` replies
+and the dataset behind them, reproducing every stored count — 182 fields compared, 170
+matched, 12 `n/a`, 0 mismatched, and all ten `summary.per_item` blocks unchanged. Two of its
+keys are nonetheless wrong, and are listed as *do not cite* below.
+
+- **`meta.dataset_sha256`, `meta.dataset_dirty`** (and their `summary` twins) — the sha256 of
+  the bytes actually read, and whether the working tree differed from the index at that path.
+  Absent here, which is exactly why this file's dataset provenance had to be *reconstructed*
+  rather than read off it. See *do not cite*.
+- **The routed dataset number is kept**, as `dataset_routed`. A drink's six fluid-sourced
+  columns are the *fluid's* numbers, so the item routes expect the default and the row's
+  `dataset` is nulled; the current script keeps the nulled number alongside. Here it is simply
+  gone — for `Base.Pop2` and `Base.JuiceBox` those rows carry `dataset: null` and
+  `routed_to` only. The numbers themselves are not lost: they are the same block's `fluid`
+  rows (`−12.0` / `−30.0` for Cola, `−10.0` / `−30.0` for JuiceGrape) and the dataset's own
+  records.
+- **The `fluid.script` rows carry the fluid route's own transform labels.** In this file they
+  carry the item route's. See *do not cite*.
+- **The `"n/a"` permission is per field** — only the six `Food`-only getters
+  (`calories` / `carbs` / `lipids` / `proteins` / `hungChange` / `thirstChange`) may be absent
+  from a fluid container's `item.get`. In this file it is a blanket permission covering all
+  ten instance fields, so an absent `offAge` / `offAgeMax` / `minutesToCook` / `minutesToBurn`
+  — `InventoryItem` fields that every item carries — would have been excused as `"n/a"`
+  instead of flagged. It did not happen: all four answered on both drinks
+  (`1000000000 / 1000000000 / 60 / 120`), and all 12 `n/a` rows in this file are the six
+  Food-only getters on the two drinks. The guard was untested here, not wrong.
+- **A wedged reply is a mismatch on every field.** `_common.ask` reports a dead side as
+  `{"error": …}`, which *is* a `dict`, so the old code fell through to the "key absent" branch
+  per field — and on a container the blanket permission above would have excused six of them
+  as `"n/a"`. Immaterial to this file: `server_errors` is `[]` and every probe answered.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `meta.dataset_commit` and `summary.dataset_commit` | `72ed836` | The answer to `git log -1 --format=%h -- data/food-items.json` at run time, which names the newest commit that *touched* the path — **not** the commit the bytes came from. The dataset had been regenerated by the concurrent fix round a minute before the run and was still uncommitted, so the bytes read are the ones committed **afterwards** as `25870ad`. The file says so itself: its `meta.dataset_meta` equals `25870ad`'s `meta` exactly — including `counts.multi_fluid_containers: 5`, a key `72ed836`'s meta does not have. **The verdict is unaffected, and that is checked rather than assumed**: across all 1 005 items and all 61 fluids, every one of the 13 columns this experiment compares is identical in the two commits (**0 differences**); the only record-level change is the added `replace_on_deplete` field (50 → 51 keys), which this experiment does not compare. Cite `25870ad` as the dataset behind these numbers. A run made after fix round 1 answers this off `meta.dataset_sha256` / `meta.dataset_dirty` instead. |
+| `comparison.Base.Pop2.fluid.HungerChange.transform`, `…ThirstChange.transform`, and the same two under `comparison.Base.JuiceBox.fluid` | `"x0.01 (Item.InstanceItem)"` | Right arithmetic, wrong attribution — the label was hardcoded to the item route's wording and all 12 `fluid.script` rows were written with it. Nothing on these rows passes through `Item.InstanceItem`: they compare a *fluid definition*'s getters against the dataset's `fluids` record, with no item instance anywhere in them, and a fluid's ÷100 is the fluid script loader's (`FluidDefinitionScript.getHungerChange @0–@10 L186` — `fluids_Beverages.txt` writes Cola's `HungerChange = −12.0` and `fluid.script Cola` answers `−0.12`). **The numbers and the `match` verdicts stand**; only the `transform` string is wrong. The other eight fluid rows read `identity`, which is correct — though had any of those columns been null they would have read `"default (the item script sets no such key)"`, wrong the same way; none was. The current script labels this route `"x%g (FluidDefinitionScript.getHungerChange @0-@10 L186, the fluid script loader)"` / `"default (the fluid definition sets no such key)"`. |
