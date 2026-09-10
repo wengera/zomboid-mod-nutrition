@@ -505,3 +505,5 @@ controller's close-out. Step 4's `docs/decisions.md` half landed here (eleven sl
 `docs/testing/README.md`'s inventory, which Tasks 4 and 4b had already written in full (the three
 recipe commands, `item.use`, both experiment drivers) and which this task therefore left
 unchanged.
+
+- Post-fix-wave live check (`405ea79`, the harness carrying `recipes.*`, `item.use` and the wave's Lua guards): `python testing/pzt run --hold 5` → PASS (`run-20260910-135726`, session ready 53.4 s, 0 server errors, `faults []`). Acceptance check 6 is therefore met on the tree as shipped.
