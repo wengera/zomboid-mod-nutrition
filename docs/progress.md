@@ -9,7 +9,7 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | 01 | P1a · Intake pipeline | done | 2026-09-10 | cd0f936..419f16a | `docs/vanilla/eating-pipeline.md` (67 modifiers, 24 measured; server owns Nutrition in MP); tools wiki_mirror/doc_lint, `pzt doctor`, harness experiment commands, 7 mirrors, tracked artifacts; acceptance in the plan file |
 | 02 | P1c · Food item model & lifecycle | done | 2026-09-10 | 0c3d6b7..e44610c | `docs/vanilla/food-item-model.md` (114 keys, aging/cooking/evolved models, 36 measured rows); lifecycle harness commands + `s02_lifecycle.py`; artifact `exp02-20260910-030433`; 3 mirrors; ItemStats packet analysis incl. the zero-field leak |
 | 03 | P1b · Body side | in progress | 2026-09-10 | (see resume note) | code map research running |
-| 04 | T2 · Accelerated nutrition scenario | ready (needs 01, 02) | | | |
+| 04 | T2 · Accelerated nutrition scenario | in progress | 2026-09-10 | (see resume note) | test layer + scenario runner being built (server-side per the slice-01/03 ripples) |
 | 05 | P4a · Food scanner + dataset | ready (needs 02; plan in wave 2) | | | |
 | 06 | P4b · Recipes & cooking dataset | ready (needs 05; plan in wave 2) | | | |
 | 07 | T1 · Profile builder | ready (plan in wave 2) | | | |
@@ -24,6 +24,8 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 ## Resume notes (in-progress slices)
 
 - **03** (SDD ledger `.superpowers/sdd/03-body-side/progress.md`, plan `docs/superpowers/plans/03-body-side.md`): running — Tasks 1+2 code map → `docs/superpowers/plans/03-notes.md`. Next — Task 3 live sampling on the server (one session), Task 4 doc.
+
+- **04** (SDD ledger `.superpowers/sdd/04-nutrition-scenario/progress.md`, plan `docs/superpowers/plans/04-nutrition-scenario.md`): running — Tasks 1+2 (`shared/PZTestKit_Test.lua`, server-side scenarios, `pzt scenario --side`); the plan's client-side scenario design is superseded by the ledger's rulings (server owns Nutrition; feed +2000 twice per game-day under the 3700 clamp). Next — Task 3 scenarios + evaluator, Task 4 doc.
 
 ## Ripples (findings that change a later slice's plan)
 
