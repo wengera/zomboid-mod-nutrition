@@ -340,13 +340,18 @@ end
 -- The enum is read BEFORE the call and the route skipped when it is nil: handing a nil enum to
 -- a present Java method is an argument mismatch, and Kahlua does not let pcall catch that
 -- either. Returns (ok, how): `how` names the route that answered, or why none did.
+-- getStats() itself goes through TK.call: it was the one unguarded Java member on this path,
+-- and on a subject without it (an entity the caller resolved wrongly, a build that moved the
+-- accessor) "tried to call nil" would escape pcall and take the whole side's EveryOneMinute
+-- with it, instead of returning a failed route the caller can log.
 TK.STAT_FIELDS = { hunger = { "HUNGER", "setHunger" }, thirst = { "THIRST", "setThirst" },
                    fatigue = { "FATIGUE", "setFatigue" }, endurance = { "ENDURANCE", "setEndurance" } }
 
 function TK.setStat(p, field, value)
     local spec = TK.STAT_FIELDS[field]
     if not spec then return false, "unknown stat '" .. tostring(field) .. "'" end
-    local s = p:getStats()
+    local _, s = TK.call(p, "getStats")
+    if s == nil then return false, "no getStats()" end
     local enum = CharacterStat and CharacterStat[spec[1]]
     if enum and TK.call(s, "set", enum, value) then
         return true, "Stats:set(CharacterStat." .. spec[1] .. ")"

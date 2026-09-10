@@ -65,14 +65,16 @@ def cadence(doc):
     return out
 
 
-def write_artifact(run_dir, a, run_id, server, result, doc, ev, cad):
+def write_artifact(run_dir, a, server, result, doc, ev, cad):
     """The evidence file, written by the run itself: the result doc, the evaluation, and the
     fixture/build that produced them, in one JSON. testing/artifacts/ takes byte-for-byte copies
     of what a run wrote (its README), so composing this here rather than by hand afterwards is
     what keeps the committed evidence machine-written -- and carrying `fixture`/`build` inside it
     is what keeps it readable without the run report beside it (the gap flagged for the slice-02
-    artifact)."""
-    art = {"run_id": run_id, "scenario": a.name, "fixture": a.fixture, "build": server.build,
+    artifact). Everything else it needs is already on `a` or derivable from `run_dir`, which is
+    named for the run id."""
+    art = {"run_id": os.path.basename(os.path.normpath(run_dir)), "scenario": a.name,
+           "fixture": a.fixture, "build": server.build,
            "side": a.side, "user": a.user, "speed": a.speed, "result": result,
            "cadence": cad, "evaluation": ev, "server_errors": server.errors[:20], "test": doc}
     path = os.path.join(run_dir, f"scenario-{a.name}.json")
@@ -165,11 +167,21 @@ def run(a):
             say("  WARNING: EveryOneMinute did not fire once per game minute "
                 f"({cad['ticks_per_world_min']} ticks/game-min) -- anything this run fitted "
                 "against the game clock is suspect")
-    write_artifact(run_dir, a, run_id, server, result, doc, ev, cad)
+    # The report goes FIRST and unconditionally. It is the only record of the timeline -- and of
+    # an `error` mark from the except above -- and the run behind it is ten wall minutes of live
+    # server that cannot be re-run cheaply, so an artifact write that raises (a doc the encoder
+    # chokes on, a full or read-only disk) must not take it with it. The artifact is a second
+    # copy of what the report already holds, so it is written after, and its failure is a warning
+    # rather than a lost run.
     write_report(run_dir, {"run_id": run_id, "result": result, "side": a.side, "user": a.user,
                            "speed": a.speed, "timeline": tl.items, "cadence": cad, "test": doc,
                            "evaluation": ev, "server_errors": server.errors[:20],
                            "client_events": {c.username: c.events for c in clients}})
+    try:
+        write_artifact(run_dir, a, server, result, doc, ev, cad)
+    except Exception as e:                     # noqa: BLE001 - the report already landed
+        say(f"  WARNING: artifact not written ({type(e).__name__}: {e}) -- "
+            f"the run report in {run_dir} still has the result doc and the evaluation")
     say(f"\nRESULT: {result}   (report: {os.path.join(run_dir, 'report.json')})")
     return 0 if result == "PASS" else 1
 

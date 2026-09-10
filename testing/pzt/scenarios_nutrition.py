@@ -10,9 +10,13 @@ trace and compares the weight it predicts against the weight the game reported.
 Two details decide whether the comparison means anything:
 
 * **The prediction is integrated against its own predicted weight**, not against the measured
-  one. Both thresholds and nothing else depend on weight, so feeding the measured weight back in
-  would quietly turn the check into a one-step-ahead derivative test that passes even if the
-  weight is stuck -- the residual has to be free to accumulate over the whole run.
+  one. Weight enters `rate()` only through the two thresholds, so the substitution would move
+  *which branch fires*, never the accumulator -- the residual accumulates from `s[0]["weight"]`
+  either way, and on all three committed runs the two integrations agree bit for bit (neither
+  run's weight ever moves a threshold across its calorie trace). The reason to keep it is
+  independence, not resolution: the prediction must be a forward simulation that reads the
+  measured trace for calories and macros only, so that the one channel by which the measurement
+  could steer its own prediction stays closed no matter what a later scenario does to weight.
 * **Hourly samples with the left-endpoint calorie value are the resolution.** Calories move by
   ~58 kcal per idle game-hour, so treating the hour's opening value as constant across it biases
   the integral by ~0.025 kg over three game-days -- an order below the tolerance, and in the
@@ -141,8 +145,21 @@ def evaluate(doc, tolerance=0.15):
         detail["predicted_kg_per_game_day"] = round(predicted_delta / (hours / 24.0), 3)
     if _num(s[-1].get("hunger")):
         detail["hunger_end"] = round(s[-1]["hunger"], 3)
+    if _num(s[-1].get("thirst")):
+        detail["thirst_end"] = round(s[-1]["thirst"], 3)
     if _num(s[-1].get("health")):
         detail["health_end"] = round(s[-1]["health"], 2)
+    # A dead subject fails the run outright, however small the residual. Nutrition.update stops
+    # on a corpse (run 1, scenario-20260910-052624: weight and the macros bit-flat for 37 game-
+    # hours), so from the first dead sample on the trace carries no information about the model
+    # -- and a death late enough in a run leaves a residual that is inside tolerance by
+    # arithmetic rather than by the model holding. `within_tolerance` keeps the two verdicts
+    # separable in the detail.
+    detail["within_tolerance"] = ok
+    if detail["dead_any"]:
+        ok = False
+        detail["reason"] = ("subject died: Nutrition.update stops on a corpse, so the samples "
+                            "from the first dead one on measure nothing")
     return ok, detail
 
 

@@ -41,8 +41,8 @@ slice's last live run, this README notes the skew — the commit that produced t
 what the current script adds — instead of assuming a later run erases it.** Re-running an
 experiment for a teardown-only change is poor value; disclosure is what keeps the evidence
 honest. Both slice-01 artifacts predate that slice's last fix round, the slice-02 artifact
-predates slice 02's, and the slice-03 artifact predates slice 03's fix round 1, so all four
-are listed.
+predates slice 02's, the slice-03 artifact predates slice 03's fix round 1, and all three
+slice-04 scenario artifacts predate slice 04's, so all seven are listed.
 
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
@@ -133,3 +133,39 @@ below.
 | `rows.r3_6_movement.row3_walking.caloriesRatioVsIdle` and `summary.r3_6.row3_walking.ratio` | `measured: 1.2399` (vs `predicted: 4.875`) | The branch has 5 moving samples at indices 0, 1, 13, 27, 39 — one adjacent pair and three isolated ones. A least-squares line through them charges ~35 s of idle time to the walking branch, so the number measures the sampling gaps. The current guard writes `null` here. **Rows 3–6 are not measured.** |
 | `summary.r8.hungerExactlyFlat` | `false` | The queued `ISEatFoodAction` completed 9 samples into the window, so the whole-window fit straddles the gate. The gated segment (samples 0–8) is in fact bit-exactly flat at hunger `0.2`; read `rows.r8_food_eaten.raw` split at sample 9. The current script writes `null` plus a reason when the gate is not up for every sample. |
 | `summary.r12.allBandsMatch` | `false` | The two `false` bands are the 50 kg / 65 kg weight drift above, not a band-boundary mismatch. The nine weights whose calorie threshold sat above the primed 500 held exactly and all nine match. |
+
+**`scenario-20260910-052624/scenario-nutrition_3day_gain.json`** (run 1, the unwatered
+attempt), **`scenario-20260910-054012/scenario-nutrition_3day_gain.json`** (run 2) and
+**`scenario-20260910-055029/scenario-nutrition_3day_fast.json`** (run 3) — produced by
+`pzt scenario` with the scenario file that landed at commit `707c878`, running on slice 03's
+`752d748` harness (`harness.install` copies the mod from the working tree at boot; see
+`.superpowers/sdd/04-nutrition-scenario/task-3-report.md`, concern 5). Slice 04's **fix round
+1** and the test-layer hardening at `dd84a37` changed three things these files therefore
+predate. **No measured number in them moves** — every rate is a fit against `worldAge` and
+nothing in the changes touches sampling — and the evaluator was re-run against all three
+offline, reproducing every stored key.
+
+- **Every sample now carries `thirst`**, read the same way `hunger` is
+  (`Stats:get(CharacterStat.THIRST)`). Absent from all three files. That absence is why run 1's
+  health-drain attribution had to be settled on the jar rather than read off the trace: the run
+  measured the drain's *rate* (−17.820 health per game-hour of world time, four consecutive
+  full hours) but never sampled the stat it was keyed on.
+- **A dead subject now fails the run** (`evaluation.dead_any` is no longer diagnosis only), and
+  the evaluation carries `within_tolerance`, `thirst_end` and, on a death, `reason`. These
+  files have none of those keys. **Re-evaluated offline with the evaluator at HEAD: run 1
+  `FAIL` (dead, and its residual was already outside tolerance either way), runs 2 and 3
+  `PASS`, with every numeric key in the stored `evaluation` block reproduced unchanged** —
+  `measured_delta_kg` / `predicted_delta_kg` / `residual_kg` / `tolerance_kg` of
+  `1.073 / 2.688 / −1.615 / 0.403`, `2.526 / 2.551 / −0.025 / 0.383` and
+  `−1.426 / −1.412 / −0.014 / 0.212`. So the stored `result` fields still stand as written.
+- **The run report is now written before the artifact** and the artifact write is guarded, so a
+  failure there costs the evidence file rather than the whole run. Immaterial to these three:
+  all six files landed.
+
+**Do not cite from `scenario-20260910-052624` (run 1):**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `evaluation.carb_drain_per_game_day` | `−300.3` | Whole-run fit. The subject died at game-hour 35 and `Nutrition.update` stops on a corpse, so the partial pre-death hour (h34→h35, a −9.57 carb step against a −12.59 full hour) is inside the window and the 37 dead hours contribute nothing. Over the alive window the same fit gives **−302.4 /game-day**, which is the figure that matches `0.0035 × 86 400` and the one runs 2 and 3 return over their whole traces. |
+| `evaluation.calorie_burn_per_game_day` | `−1389.9` | Same contamination, same cause: **−1399.7 /game-day** over the alive window. |
+| `evaluation.measured_delta_kg`, `measured_kg_per_game_day`, `weight_end_kg`, `calories_end`, `carbs_end`, `lipids_end`, `hunger_end`, `health_end` | `1.073`, `0.358`, `81.073`, `3700`, `−437.9`, `−141.4`, `0.7`, `0` | Corpse readings taken 37 game-hours after the stores stopped moving. The live model check on this run is the **alive window**: measured **+1.045 kg** vs predicted **+1.057** over 34 game-hours. |

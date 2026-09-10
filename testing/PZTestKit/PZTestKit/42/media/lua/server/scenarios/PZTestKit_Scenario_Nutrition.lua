@@ -24,15 +24,20 @@
 --
 -- WHY HUNGER AND THIRST ARE PINNED. Calories are not food: setCalories fills the nutrition
 -- store and leaves CharacterStat.HUNGER/THIRST untouched, so the first attempt at this run
--- (scenario-20260910-052624) watered nobody -- thirst crossed its level-4 threshold at 29.17
--- game-h, health fell 17.81 per game-hour, and the subject DIED at game-hour 35. Nutrition
--- .update stops on a corpse: calories, carbs (frozen at -437.9, nowhere near their -500 floor)
--- and weight were flat for the remaining 37 hours, and the run measured a dead man for half of
--- it. Both stats are therefore reset after every sample. Neither is an input to the weight
--- model -- updateWeight reads calories, carbs and lipids only, and updateCalories' branches are
--- posture and weight, not hunger -- so pinning them removes a lethal confounder without
--- touching what is under test. The sampler also ENDS the run the moment it sees a corpse, so a
--- future death costs one sample rather than six wall minutes of flat lines.
+-- (scenario-20260910-052624) watered nobody -- health drain started at 29.13 game-h (the
+-- predicted THIRST level-4 crossing is 29.17), fell 17.820 per game-hour of world time, and the
+-- subject DIED at game-hour 35. That rate is `BodyDamage.Update`'s THIRST == 4 branch to five
+-- figures: `healthReductionFromSevereBadMoodles / 10 x GameTime.getMultiplier()`
+-- (`@1320-@1358 L2377-L2379`) = 1.65e-3 per multiplier unit x 3.0 units/game-s on this
+-- fixture's 90-minute day = 17.820 health/game-h. The HUNGRY == 4 branch is a fifth of that
+-- (/50, 3.564) and hunger never reached level 4 anyway. Nutrition.update stops on a corpse:
+-- carbs froze at -437.9, nowhere near their -500 floor, and weight and the macros did not move
+-- again for 37 game-hours, so the run measured a dead man for half of it. Both stats are
+-- therefore reset after every sample. Neither is an input to the weight model -- updateWeight
+-- reads calories, carbs and lipids only, and updateCalories' branches are posture and weight,
+-- not hunger -- so pinning them removes a lethal confounder without touching what is under
+-- test. The sampler also ENDS the run the moment it sees a corpse, so a future death costs one
+-- sample rather than six wall minutes of flat lines.
 --
 -- Harness rules (slice 01/02/03): every Java member goes through TK.call -- Kahlua's "tried to
 -- call nil" escapes pcall and would kill Events.EveryOneMinute for the whole side -- no `goto`,
@@ -52,19 +57,25 @@ local function get(obj, getter)
     return v
 end
 
--- Hunger is diagnostic only (it is not in the weight model). B42 moved the accessor to
--- Stats:get(CharacterStat.HUNGER); the enum is resolved BEFORE the call because handing a nil
--- enum to a live Java method is an argument mismatch, which pcall does not catch either.
-local function hungerOf(p)
+-- Hunger and thirst are diagnostic only (neither is in the weight model), and both are the
+-- read-back on the pin below. B42 moved the accessors to Stats:get(CharacterStat.X) -- on this
+-- jar `Stats` exposes only get(CharacterStat)F / set(CharacterStat,F)Z, so the legacy
+-- get<Name>() fallback is dead here and kept only for older builds. The enum is resolved BEFORE
+-- the call because handing a nil enum to a live Java method is an argument mismatch, which pcall
+-- does not catch either; `getStats` goes through TK.call for the same reason.
+local function statOf(p, enumName, getter)
     local _, s = TK.call(p, "getStats")
     if s == nil then return nil end
-    local enum = CharacterStat and CharacterStat.HUNGER
+    local enum = CharacterStat and CharacterStat[enumName]
     if enum ~= nil then
         local ok, v = TK.call(s, "get", enum)
         if ok then return v end
     end
-    return get(s, "getHunger")
+    return get(s, getter)
 end
+
+local function hungerOf(p) return statOf(p, "HUNGER", "getHunger") end
+local function thirstOf(p) return statOf(p, "THIRST", "getThirst") end
 
 -- The sandbox `Nutrition` option gates Nutrition.update() -- drain, calorie burn AND weight
 -- (slice 01). If it were off, every sample would be flat and the run would look like a model
@@ -82,10 +93,13 @@ local function sandboxNutrition()
     return "unknown"
 end
 
--- calories/weight/carbs/lipids/proteins are the model's own variables; hunger, health, asleep
--- and dead are the diagnostics that make a flat trace readable -- "the weight stopped moving"
--- means something entirely different once the health column shows why. They are what caught the
--- thirst death in the first run, and `hunger` is now also the read-back proving the pin holds.
+-- calories/weight/carbs/lipids/proteins are the model's own variables; hunger, thirst, health,
+-- asleep and dead are the diagnostics that make a flat trace readable -- "the weight stopped
+-- moving" means something entirely different once the health column shows why. They are what
+-- caught the thirst death in the first run, and hunger/thirst are also the read-back proving
+-- both halves of the pin hold. THIRST is sampled because it is the stat that killed run 1 and
+-- the one the health drain is keyed on (BodyDamage.Update @1320-@1358 L2377-L2379): without the
+-- column the attribution rests on timing alone, which is what the run-1 report had to do.
 local function sample(t, n)
     local p = t.player
     local bd = get(p, "getBodyDamage")
@@ -93,7 +107,8 @@ local function sample(t, n)
         calories = get(n, "getCalories"), weight = get(n, "getWeight"),
         carbs = get(n, "getCarbohydrates"), lipids = get(n, "getLipids"),
         proteins = get(n, "getProteins"),
-        hunger = hungerOf(p), health = bd ~= nil and get(bd, "getHealth") or nil,
+        hunger = hungerOf(p), thirst = thirstOf(p),
+        health = bd ~= nil and get(bd, "getHealth") or nil,
         asleep = get(p, "isAsleep"), dead = get(p, "isDead"),
     })
 end
@@ -179,9 +194,10 @@ local function register(name, dose)
             t:assert(#t.samples >= DAYS * 24,
                      string.format("expected >= %.0f samples, got %.0f", DAYS * 24, #t.samples))
             local last = t.samples[#t.samples] or {}
-            t:log(string.format("end: calories=%s weight=%s carbs=%s hunger=%s dead=%s",
+            t:log(string.format("end: calories=%s weight=%s carbs=%s hunger=%s thirst=%s dead=%s",
                                 tostring(last.calories), tostring(last.weight),
-                                tostring(last.carbs), tostring(last.hunger), tostring(last.dead)))
+                                tostring(last.carbs), tostring(last.hunger),
+                                tostring(last.thirst), tostring(last.dead)))
             t:done(true, string.format("%.0f game-days, %.0f samples", DAYS, #t.samples))
         end)
     end })
