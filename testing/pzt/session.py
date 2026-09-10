@@ -77,8 +77,12 @@ def mark_profile(tl, prof, flag=None):
     if flag and flag != prof.fixture:
         say(f"  [profile] --fixture {flag} ignored: profile '{prof.name}' names "
             f"fixture '{prof.fixture}'")
+    # `skip` names the mods deliberately NOT placed (`copy = false`): harness.install drops them
+    # from `missing_mods` on purpose, so this mark is the only place the run log says the later
+    # `mods_not_found` was intended (Task 2 review).
     return tl.mark("profile", name=prof.name, fixture=prof.fixture, mods=";".join(prof.mods),
-                   sandbox=",".join(f"{k}={v}" for k, v in prof.sandbox.items()) or "none")
+                   sandbox=",".join(f"{k}={v}" for k, v in prof.sandbox.items()) or "none",
+                   skip=",".join(getattr(prof, "skip", ()) or ()) or "none")
 
 
 def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None,
