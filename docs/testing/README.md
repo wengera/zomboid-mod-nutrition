@@ -17,7 +17,7 @@ from `testing/`). Requires the local game install (path in `pzt/paths.py`).
 | `boot --fixture default [--hold N]` | Restore the fixture's server world into a fresh run dir and start it | ~14 s |
 | `attach --fixture default --server 127.0.0.1:27261 --user admin` | Restore that user's client cache, launch the client, wait until it is in-world (no creation screens), ping it | ~35 s |
 | `run --fixture default [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors | ~1 min + hold |
-| `scenario <name> [--side server\|client] [--speed N] [--timeout S] [--fixture F]` | run one registered harness test at accelerated time: boot + attach the subject client, `test.list` on the chosen side, RCON `settimespeed <N>`, `test.run <name> <user>`, wait for the result doc, `settimespeed 1`, teardown, then the Python evaluator for that name (details below) | ~1 min + the test (3 game-days at `--speed 30` ≈ 10 min) |
+| `scenario <name> [--side server\|client] [--speed N] [--timeout S] [--fixture F]` | run one registered harness test at accelerated time: boot + attach the subject client, `test.list` on the chosen side, RCON `settimespeed <N>`, `test.run <name> <user>`, wait for the result doc, **then the Python evaluator for that name, and only then** `settimespeed 1` + teardown from the `finally` — that order because the evaluator is scenario code that can raise, and a raise must not skip the speed restore (`scenario.py:148-194`); report and artifact are written last (details below) | ~1 min + the test (3 game-days at `--speed 30` ≈ 10 min) |
 | `spike S3 S4 S5 S6 S7 [--reloadalllua]` | the design spikes as scripted experiments; S3 boots its own sessions, the rest share one; findings → `runs/spike-*/findings.json` | 2–5 min |
 | `doctor` | cold-start checks before booting anything: stray PZ `java.exe` (reported, never killed), ports 27261/27262/27015 free, fixture present and build-matched, workshop index reachable, pytest available; exit 1 on a FAIL | seconds |
 
@@ -145,6 +145,12 @@ layer the tests are written against.
   run = function(t) … end }`. `timeoutMin` is the layer's own backstop (a
   `t:done(false, "test timeout")` armed at start); `needsPlayer = false` is the
   only way to register a test that runs without a subject.
+  **Leave the backstop a clear margin above the finisher.** It is armed *first*, so it
+  holds the lowest `seq` and **wins a same-minute tie**: a test that finishes at exactly
+  `timeoutMin` is timed out instead, and reports the anonymous `detail: "test timeout"`.
+  The nutrition scenarios finish at `RUN_MIN + 1` and set `timeoutMin = RUN_MIN + 30`
+  (`PZTestKit_Scenario_Nutrition.lua:160-162`); `smoke_clock` finishes at 20 with a
+  backstop of 30.
 - **The clock is game minutes, not wall seconds.** `Events.EveryOneMinute`
   advances `TK.tests.clock` and dispatches every callback whose minute has come,
   sorted by scheduled minute and then by insertion order (`table.sort` is not
@@ -157,10 +163,15 @@ layer the tests are written against.
   repeats (re-armed *before* `fn` runs, so one raising callback cannot silently
   stop a three-day sampler); `t:eventually(pred, budgetMinutes, label)` polls
   `pred` once a game minute under its own `pcall` and ends the test with a
-  labelled timeout when the budget runs out; `t:assert(cond, msg)` and
+  labelled timeout when the budget runs out (that `pcall` catches ordinary Lua
+  errors in the predicate, **not** a call to a Java member the build lacks — see
+  the Java rules below; `smoke_clock` runs one `t:eventually` on every smoke run,
+  so the re-arm path is exercised rather than assumed); `t:assert(cond, msg)` and
   `t:near(a, b, tol, msg)` record failures; `t:sample(tbl)` appends `tbl` to
   `t.samples` after stamping `gameMinute`, `worldAge`
-  (`getGameTime():getWorldAgeHours()`) and `wall` — the `(worldAge, wall)` pair is
+  (`getGameTime():getWorldAgeHours()`, itself read through `TK.call`, so on a build
+  that does not expose it the key is simply absent from the sample instead of the
+  scheduler dying) and `wall` — the `(worldAge, wall)` pair is
   what the Python side fits rates against, and what makes the harness's own
   cadence measurable without a second bus round-trip; `t:log(msg)` prefixes the
   game minute; `t:done(pass, detail)` finishes now (`pass` is ANDed with "no
@@ -172,13 +183,20 @@ layer the tests are written against.
 - **Result doc**: `t:done` writes `TK.result("test_" .. name, …)` →
   `<cachedir>/Lua/pzt-results/test_<name>.json` with `test`, `pass`, `detail`,
   `failures`, `samples`, `log`, `gameMinutes`, `player`, `side`, `startedWall`,
-  `startedWorldAge`, `endedWorldAge`. `bus.wait_result` blocks on it.
+  `startedWorldAge`, `endedWorldAge` — **plus the envelope `TK.result` stamps on
+  every result doc in the harness** (`PZTestKit_Core.lua:85-87`): `name` (the doc's
+  own name, `test_<name>`), `side`, `t` (wall-clock ms at write) and
+  `complete: true`. `t` is load-bearing, not a timestamp for the reader: with
+  `startedWall` it is the pair `scenario.cadence()` fits the harness clock against
+  (`scenario.py:56`), so a side without `getTimestampMs()` produces no `cadence`
+  block at all. `bus.wait_result` blocks on the file.
 - **Same Java rules as the rest of the harness**: every Java member goes through
   `TK.call` (Kahlua's "tried to call nil" escapes `pcall` and would kill
   `EveryOneMinute` for the whole side), no `goto`, and never `%d` on a Lua number.
 - **Shipped scenarios** (all under `server/scenarios/`, all server-side because
   the server owns `Nutrition`): `smoke_clock` — the scheduler's own test, ~20 game
-  minutes, asserts only that the clock ran and samples landed; `nutrition_3day_gain`
+  minutes, asserts only that the clock ran, that samples landed and that one
+  `t:eventually` polled to a hit; `nutrition_3day_gain`
   and `nutrition_3day_fast` — three game-days at 4 000 kcal/game-day (two +2 000
   doses 12 game-hours apart, under the 3 700 `setCalories` clamp) and at no intake,
   sampled hourly, hunger and thirst pinned to 0 after every sample. Results:
@@ -187,17 +205,35 @@ layer the tests are written against.
   `--speed N` (default 30), `--timeout S` (seconds to wait for the result doc,
   default 900), `--fixture F`, `--user U` (default `admin`). It refuses a name that
   `test.list` does not report on that side, and any `test.run` ack other than
-  `started`, rather than paying the full result timeout for it. `settimespeed` is
-  restored in a `finally` — a world change must not outlive the run — and always
-  through the broadcast admin command (spike S5).
+  `started`, rather than paying the full result timeout for it. A **refused
+  `settimespeed`** ends the run there too, with that reason: the world would still be
+  at 1×, so a three-game-day test could not finish inside any timeout worth waiting
+  for. `settimespeed` is restored in a `finally` — a world change must not outlive the
+  run — and always through the broadcast admin command (spike S5). Ctrl-C is caught,
+  not propagated: it tears down as usual and still writes the report and artifact,
+  as `RESULT: FAIL: interrupted`.
+  **`--side client` is wired end to end but has nothing to run yet** — the test layer
+  is in `shared/`, `test.list` / `test.run` answer on the client bus, and the runner
+  will drive it; there is simply no client-side scenario registered (all three live
+  under `server/scenarios/`, because the server owns `Nutrition`). It exists for the
+  convergence readings, where the mirror IS the subject.
 - **What a run writes**: `runs/scenario-<ts>/report.json` (timeline, cadence, the
-  result doc, the evaluation, server errors, client events) and
-  `runs/scenario-<ts>/scenario-<name>.json` — the result doc plus
-  `fixture`/`build`/`side`/`user`/`speed`/`result`/`cadence`/`evaluation`/`server_errors`,
+  result doc, the evaluation, `faults`, the `traceback` of anything that ended the run
+  early, server errors, client events) and `runs/scenario-<ts>/scenario-<name>.json` —
+  the result doc plus
+  `fixture`/`build`/`side`/`user`/`speed`/`result`/`cadence`/`evaluation`/`faults`/`server_errors`,
   self-contained, and the file copied byte-for-byte into `testing/artifacts/`. The
   report is written first and unconditionally; a failing artifact write is a warning,
-  not a lost run. Last line is `RESULT: PASS|FAIL   (report: …)`; the exit code is 0
-  only when the harness test's own `pass` is true **and** the evaluator returned ok.
+  not a lost run. Last line is `RESULT: PASS|FAIL[: reason]   (report: …)`.
+- **The verdict is the test AND the evaluator AND a clean session.** Exit code 0 needs
+  the harness test's own `pass`, the evaluator's ok, **and** no environment fault:
+  missing mods, non-baseline server error lines, or a client Lua error each turn the
+  RESULT into `FAIL: <reason with its count>`, mark the timeline, and land in `faults`
+  in both the report and the committed artifact. That is the same check `pzt run`
+  applies, from the same place (`session.fault_reasons`, called after teardown so the
+  server's closing log lines count). It matters more here than there: a scenario
+  writes committed evidence, and a test whose Lua died somewhere the scheduler
+  swallowed can still write `pass = true`.
 - **Evaluators** are Python: `EVALUATORS[name] = fn(doc) -> (ok, detail)`, registered
   by importing the module at the bottom of `scenario.py`
   (`scenarios_nutrition.py` for the two nutrition scenarios — it integrates the

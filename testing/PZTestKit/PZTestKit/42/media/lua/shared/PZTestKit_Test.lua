@@ -24,6 +24,27 @@ TK.tests = TK.tests or { registry = {}, running = nil, clock = 0, due = {}, hook
                          seq = 0 }
 local T = TK.tests
 
+-- The one world read this layer takes -- at test start, on every sample and in the result doc.
+-- It goes through TK.call for the harness's own reason (a Java member this build does not expose
+-- is Kahlua's "tried to call nil", which escapes pcall, Core:97-100), and here the blast radius
+-- is the worst in the mod: two of the three call sites run inside the EveryOneMinute handler, so
+-- a bare failure would kill the scheduler for the WHOLE SIDE and the only symptom would be the
+-- runner's result timeout -- ten wall minutes later, with no result doc and no line to read. On
+-- a nil it logs once and returns nil instead: the sample keeps its other columns, the clock keeps
+-- ticking, and the Python side sees a missing worldAge (`scenario.cadence()` returns {}) rather
+-- than a dead run.
+local warnedWorldAge = false
+local function worldAgeHours()
+    local gt = getGameTime ~= nil and getGameTime() or nil
+    local ok, v = TK.call(gt, "getWorldAgeHours")
+    if ok then return v end
+    if not warnedWorldAge then
+        warnedWorldAge = true
+        TK.log("no getGameTime():getWorldAgeHours() on this build -- worldAge omitted")
+    end
+    return nil
+end
+
 -- The server has no getPlayer(); the client has no other player. Returns (player, err).
 function TK.resolvePlayer(username)
     if TK.side == "server" then
@@ -58,7 +79,7 @@ end
 function Ctx:sample(tbl)
     tbl = tbl or {}
     tbl.gameMinute = T.clock
-    tbl.worldAge = getGameTime():getWorldAgeHours()
+    tbl.worldAge = worldAgeHours()
     tbl.wall = TK.now()
     self.samples[#self.samples + 1] = tbl
     return tbl
@@ -102,14 +123,20 @@ end
 -- failure mode that matters in an accelerated run: a condition that never arrives must end the
 -- test with a named timeout, not hang until the outer timeoutMin and lose the label.
 --
--- Like `every`, the re-arm happens BEFORE `pred` runs, and `pred` runs under its own pcall: a
--- predicate that reaches through a nil (a player who logged out, a Java member that is only
--- there while awake) used to be swallowed by onMinute's pcall with the poll un-armed, so the
--- test ran on to the outer `timeoutMin` and reported "test timeout" instead of this label. A
--- raise is now a recorded failure and polling continues -- the condition may still arrive, and
--- if it does not, the labelled timeout below is what ends the test. Only the first raise is
--- asserted; the rest are logged, so a permanently broken predicate cannot flood `failures`
--- with one line per game minute of the budget.
+-- Like `every`, the re-arm happens BEFORE `pred` runs, and `pred` runs under its own pcall: an
+-- ordinary Lua error in the predicate (indexing through a nil player who logged out, arithmetic
+-- on a missing sample field, a nil `pred`) used to be swallowed by onMinute's pcall with the poll
+-- un-armed, so the test ran on to the outer `timeoutMin` and reported "test timeout" instead of
+-- this label. Such a raise is now a recorded failure and polling continues -- the condition may
+-- still arrive, and if it does not, the labelled timeout below is what ends the test. Only the
+-- first raise is asserted; the rest are logged, so a permanently broken predicate cannot flood
+-- `failures` with one line per game minute of the budget.
+--
+-- What this pcall does NOT make safe: CALLING a Java member the build does not expose. That is
+-- Kahlua's "tried to call nil", which escapes pcall entirely (Core:97-100, measured) and kills
+-- EveryOneMinute for the whole side -- there is no clean failure to record. Predicates must
+-- therefore reach Java through TK.call like everything else in the harness; the pcall is a net
+-- for Lua-level mistakes only.
 function Ctx:eventually(pred, budgetMinutes, label)
     local deadline = T.clock + (budgetMinutes or 60)
     local finished, raised = false, 0
@@ -153,7 +180,7 @@ function Ctx:done(pass, detail)
         samples = self.samples, log = self.logLines, gameMinutes = T.clock,
         player = self.username, side = TK.side,
         startedWall = self.startedWall,
-        startedWorldAge = self.startedWorldAge, endedWorldAge = getGameTime():getWorldAgeHours(),
+        startedWorldAge = self.startedWorldAge, endedWorldAge = worldAgeHours(),
     })
     TK.log(string.format("test %s %s (%.0f game-min, %.0f failures)", self.name,
                          ok and "PASS" or "FAIL", T.clock, #self.failures))
@@ -180,7 +207,7 @@ local function start(name, username)
     end
     local ctx = setmetatable({ name = name, username = user, player = p, samples = {},
                                logLines = {}, failures = {}, startedWall = TK.now(),
-                               startedWorldAge = getGameTime():getWorldAgeHours() }, Ctx)
+                               startedWorldAge = worldAgeHours() }, Ctx)
     T.running, T.clock, T.due = ctx, 0, {}
     ctx:log("start " .. name .. " on " .. TK.side .. " player=" .. tostring(user))
     ctx:at(spec.timeoutMin or 600, function() ctx:done(false, "test timeout") end)

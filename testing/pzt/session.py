@@ -95,6 +95,35 @@ def hold(seconds, tl, server, clients):
     return True
 
 
+def fault_reasons(server, clients):
+    """Environment faults that must fail a run whatever the run's own verdict said.
+
+    Three of them, in the order a run hits them: a mod the game did not load (the session is
+    not the session that was asked for), a server error line the vanilla-noise baseline did
+    not account for (`server.py` classifies them: `self.errors` is already the non-baseline
+    set), and a client that logged a Lua error (the harness on that side may have stopped
+    answering the bus at any point after it).
+
+    Shared by `pzt run` (`cli.cmd_run`) and `pzt scenario` (`scenario.run`) so the two
+    verdicts cannot drift. It matters most for `scenario`: a test whose Lua raised somewhere
+    the scheduler swallowed can still write `pass = true`, and that run's committed artifact
+    must not say PASS. Call it AFTER teardown -- the last log lines land while the server is
+    stopping.
+
+    Returns a list of short reasons with their counts, most specific first; empty is clean.
+    """
+    out = []
+    not_found = sorted(set(server.mods_not_found + [m for c in clients for m in c.mods_not_found]))
+    if not_found:
+        out.append("mods not found at load: " + ",".join(not_found))
+    if server.errors:
+        out.append(f"{len(server.errors)} server error lines")
+    lua_errors = [c.username for c in clients if "lua_error" in c.seen]
+    if lua_errors:
+        out.append("lua errors on " + ",".join(lua_errors))
+    return out
+
+
 def teardown(tl, server, clients):
     for c in clients:
         if c.alive:

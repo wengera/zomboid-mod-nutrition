@@ -10,6 +10,12 @@
 -- The assertion is ">= 3 samples at minute 20" rather than "== 4": within one game minute the
 -- due callbacks run in the order they were scheduled, and the minute-20 finisher was armed
 -- before the minute-20 sample, so the fourth sample is still pending when it reads #t.samples.
+--
+-- This is also the only live exercise of t:eventually in the shipped scenarios, deliberately:
+-- the helper's whole point is the re-arm path (poll once a game minute until the predicate holds
+-- or the budget runs out), and a path that never runs is a path that is not known to work. It is
+-- cheap here -- this test is ~65 s of wall clock -- and it fails loudly if the re-arm ever breaks
+-- again, instead of that breakage surfacing as an anonymous timeout in a ten-minute nutrition run.
 
 TK.test("smoke_clock", { timeoutMin = 30, run = function(t)
     t:log("smoke_clock: sampling calories every 5 game minutes")
@@ -21,6 +27,12 @@ TK.test("smoke_clock", { timeoutMin = 30, run = function(t)
         local _, cal = TK.call(n, "getCalories")
         t:sample({ calories = cal })
     end)
+    -- Must hold on any healthy server, with room to spare: the sampler above lands its second
+    -- sample at game-minute 10, so the poll is false at minutes 1-9 (that is the re-arm being
+    -- exercised) and true by minute 10 or 11 depending on which of the two callbacks that minute
+    -- sorts first -- either way well inside the 15-minute budget, and inside this test's own
+    -- 20-minute finisher. Pure Lua on t.samples, so no Java member is touched from the predicate.
+    t:eventually(function() return #t.samples >= 2 end, 15, "second sample")
     t:at(20, function()
         t:assert(#t.samples >= 3, "expected >= 3 samples, got " .. tostring(#t.samples))
         t:done(true, "clock ok")

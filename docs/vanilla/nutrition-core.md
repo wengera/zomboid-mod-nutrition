@@ -20,25 +20,32 @@ loseThreshold = min(0, (weight - 70) × 30)       # ≥70: any negative calories
                                                  # w60: needs < −300 to keep losing
 if calories > gainThreshold:
     rate = 1.3e-5 /game-sec × min(1, calories/4000)     # 1.12 kg/game-day at 4000, but the
-                                                        # store clamps at 3700 → ≤1.04 kg/day
-    if carbs > 700 OR lipids > 700:   rate ×3           # ≤3.12 kg/game-day after that clamp
+                                                        # store clamps at 3700 → ≤1.039 kg/day
+    if carbs > 700 OR lipids > 700:   rate ×3           # ≤3.117 kg/game-day after that clamp
     elif carbs > 400 OR lipids > 400: rate ×2
 elif calories < loseThreshold:
     rate = 8.5e-6 × min(1, |calories|/2500)             # 0.73 kg/day at −2500, but the store
-                                                        # clamps at −2200 → ≤0.65 kg/game-day
+                                                        # clamps at −2200 → ≤0.646 kg/game-day
 ```
+
+Rounding convention: every kg/game-day figure in this file is quoted to **three decimals** — the
+clamped ceilings `1.039` · `3.117` · `0.646` here and in the table below, and the measured rates
+in § Verified on server.
 
 Every branch above except the macro multipliers was run against the live server over
 three game-days; the runs, the residuals and what they do *not* cover are below in
 § [Verified on server](#verified-on-server-slice-04).
 
-| Term | Value | Ev |
+The five terms of that block, with what each is worth and how it is graded (the formulas are
+**not** repeated here — read them off the block above):
+
+| Term (block above) | Value | Ev |
 |---|---|---|
-| `gainThreshold = 1000 + (weight − 80) × 40` | w70 600 · w80 1000 · w90 1400 | C `updateWeight()V @0 L138` onward; **M** run 2 stayed in the gain branch for all 72 game-hours (calorie min 1362.8 against a threshold of 1000…1101 over the run) — `scenario-20260910-054012`, [`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-054012/scenario-nutrition_3day_gain.json) |
-| gain rate `1.3e-5 × min(1, calories/4000)` per game-second | 1.12 kg/game-day at a 4000 kcal store; ≤1.039 under the 3700 clamp | C; **M** **+2.526 kg** measured over 72.0 game-hours against **+2.551** integrated from that run's own calorie trace (0.842 vs 0.850 kg/game-day) — same run/artifact |
-| `×2` at carbs or lipids > 400, `×3` above 700 | ≤3.12 kg/game-day after the calorie clamp | C (the two multiplier branches of the same method) — **not exercised** by either scenario: both macro stores only ever drain (see § Verified on server, *what it does not cover*) |
-| `loseThreshold = min(0, (weight − 70) × 30)` | 0 at w ≥ 70 — any negative calorie total loses | C; **M** run 3 crossed it inside the first game-hour (first sample after the reset: −57.3 kcal) — `scenario-20260910-055029`, [`scenario-nutrition_3day_fast.json`](../../testing/artifacts/scenario-20260910-055029/scenario-nutrition_3day_fast.json) |
-| loss rate `8.5e-6 × min(1, abs(calories)/2500)` per game-second | 0.73 kg/game-day at −2500; ≤0.646 under the −2200 floor | C; **M** **−1.426 kg** measured against **−1.412** predicted, and day 3 — spent entirely on the floor — lost **0.646 kg** against `8.5e-6 × 2200/2500 × 86 400` = 0.6462 — same run/artifact |
+| `gainThreshold` | w70 600 · w80 1000 · w90 1400 | C `updateWeight()V @0 L138` onward; **M (bounded, not measured)** — run 2 stayed in the gain branch for all 72 game-hours, so the threshold was never crossed downward: its calorie minimum, 1362.8, only bounds the threshold from above over w 80–82.5 (1000…1101) — `scenario-20260910-054012`, [`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-054012/scenario-nutrition_3day_gain.json) |
+| gain `rate` | 1.12 kg/game-day at a 4000 kcal store; ≤1.039 under the 3700 clamp | C; **M** **+2.526 kg** measured over 72.0 game-hours against **+2.551** integrated from that run's own calorie trace (0.842 vs 0.850 kg/game-day) — same run/artifact |
+| the `×2` / `×3` carb and lipid multipliers | ≤3.117 kg/game-day after the calorie clamp | C (the two multiplier branches of the same method) — **not exercised** by either scenario: both macro stores only ever drain (see § Verified on server, *what it does not cover*) |
+| `loseThreshold` | 0 at w ≥ 70 — any negative calorie total loses | C; **M** run 3 crossed it inside the first game-hour (first sample after the reset: −57.3 kcal) — `scenario-20260910-055029`, [`scenario-nutrition_3day_fast.json`](../../testing/artifacts/scenario-20260910-055029/scenario-nutrition_3day_fast.json) |
+| loss `rate` | 0.73 kg/game-day at −2500; ≤0.646 under the −2200 floor | C; **M** **−1.426 kg** measured against **−1.412** predicted, and day 3 — spent entirely on the floor — lost **0.646 kg** against `8.5e-6 × 2200/2500 × 86 400` = 0.646 — same run/artifact |
 
 Weight bands (`applyTraitFromWeight`, re-checked every ~2000 updates) — the
 comparisons are **inclusive at both ends**: Emaciated ≤50 · Very Underweight
@@ -54,15 +61,27 @@ the three macro setters `@1/@12` (C), measured exactly on the server bus in run
 `exp01-20260910-003929` (M). The calorie ceiling caps `min(1, calories/4000)` at 0.925,
 so the plain gain rate never exceeds ≈1.039 kg/game-day and the loss rate never exceeds
 ≈0.646 kg/game-day — see [eating-pipeline.md](eating-pipeline.md) § Inputs for the
-3-day scenario. Both ceilings are now measured, not just derived (below).
+3-day scenario. Both branches have now been run on the server (below); the **loss**
+ceiling was reached and matched exactly, while the **gain** ceiling stays a bound the
+runs stayed under, because a fed store sawtooths beneath the clamp instead of sitting
+on it.
 
 ## Verified on server (slice 04)
 
 Three unattended `pzt scenario` runs on the live dedicated server, 2026-09-10: fixture
 `default`, build 42.20.4, side **server**, subject `admin`, `settimespeed 30`, **73 hourly
-samples over 72.0 game-hours** each, ≈**593 s** wall to the result doc (603 s including
-teardown), **0 server error lines** in all three, and `EveryOneMinute` measured at **1.000
-ticks per game-minute** (7.99–8.00 game-minutes per wall second). The scenario
+samples over 72.0 game-hours** each, **0 server error lines** in all three, and `EveryOneMinute`
+measured at **1.000 ticks per game-minute** (7.99–8.00 game-minutes per wall second).
+
+*Three wall-clock marks, from a fresh clone.* The committed artifacts carry
+`cadence.wall_s` = **540.4–540.6 s**: the test window itself, `test.run` to the result doc, timed
+inside the game (`startedWall` → `t`). ≈**593 s** is that same instant on the *runner's* clock,
+which starts at server launch and therefore includes the ~53 s of boot and client attach; **603 s**
+adds teardown. Only the first is in `testing/artifacts/`; the other two are timeline marks in the
+run report under `testing/runs/<run id>/` (gitignored), which is why a clone can reconcile them
+but not re-derive them.
+
+The scenario
 (`server/scenarios/PZTestKit_Scenario_Nutrition.lua`) only drives the world and records the
 server's `Nutrition` object once a game-hour; the check is Python
 (`testing/pzt/scenarios_nutrition.py`): it integrates the model above sample-to-sample over
@@ -73,7 +92,7 @@ test-layer API and result-doc shape: [`docs/testing/README.md`](../testing/READM
 
 | # | Run id | Scenario | Measured Δ | Predicted Δ | Residual | Tol | Verdict | Ev |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `scenario-20260910-052624` | `nutrition_3day_gain`, hunger/thirst **not** pinned | +1.073 kg whole trace · **+1.045** over the 34 alive game-hours | +2.688 · **+1.057** alive | −1.615 · **−0.012** alive | 0.403 · 0.159 | **FAIL** — the subject died at game-hour 35 | **M** [`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-052624/scenario-nutrition_3day_gain.json) |
+| 1 | `scenario-20260910-052624` | `nutrition_3day_gain`, hunger/thirst **not** pinned | **+1.045** over the 34 alive game-hours (the file's whole-trace `+1.073` is a corpse reading — **do not cite**) | **+1.057** alive · 2.688 whole trace | **−0.012** alive · −1.615 | 0.159 · 0.403 | **FAIL** — the subject died at game-hour 35 | **M** [`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-052624/scenario-nutrition_3day_gain.json); the whole-trace keys of this run are listed under *do not cite* in [`testing/artifacts/README.md`](../../testing/artifacts/README.md) |
 | 2 | `scenario-20260910-054012` | `nutrition_3day_gain`, hunger/thirst pinned after every sample | **+2.526 kg** | +2.551 | **−0.025** | 0.383 | **PASS** | **M** [`scenario-nutrition_3day_gain.json`](../../testing/artifacts/scenario-20260910-054012/scenario-nutrition_3day_gain.json) |
 | 3 | `scenario-20260910-055029` | `nutrition_3day_fast`, no intake | **−1.426 kg** | −1.412 | **−0.014** | 0.212 | **PASS** | **M** [`scenario-nutrition_3day_fast.json`](../../testing/artifacts/scenario-20260910-055029/scenario-nutrition_3day_fast.json) |
 
@@ -90,16 +109,27 @@ game-days is the floor of what this check can resolve.
 - **The 3700 ceiling is what bounds a fed character, not the rate constant.** Run 2 asked for
   12 000 kcal in six +2 000 doses (hours 0, 12, 24, 36, 48, 60 — one dose of 4 000 would be
   truncated on contact) and the store kept **7 210: 4 790 kcal lost to the clamp**, every loss
-  logged before/after/asked and parsed back out by the evaluator. That is why it gains
-  **0.842 kg/game-day** rather than the **1.039** ceiling above (`1.3e-5 × 3700/4000 × 86 400`,
-  what a store *pinned* at the clamp would give) or the **1.12** an unclamped 4 000 kcal store
-  implies: from day 2 the trace oscillates between the 3700 ceiling and ~2 990, so
-  `min(1, calories/4000)` averages ~0.84 rather than 0.925. **M**, run 2.
+  logged before/after/asked and parsed back out by the evaluator. Its whole-run **0.842
+  kg/game-day** is short of the **1.039** ceiling above (`1.3e-5 × 3700/4000 × 86 400`, what a
+  store *pinned* at the clamp would give) and further short of the **1.12** an unclamped 4 000
+  kcal store implies — but the two shortfalls have different causes, and the run separates them:
+  - **Day 1 is a ramp, and it is what drags the three-day mean down.** The store starts at 0 and
+    the first dose only reaches 2 000, so day 1 averages `min(1, calories/4000)` = **0.583** and
+    gains **0.647 kg**. Over all 72 hours the time-averaged factor is **0.757**, and that is the
+    figure the whole-run rate answers to: `1.3e-5 × 0.757 × 86 400` = **0.850 kg/game-day**,
+    against 0.842 measured — the ~1 % gap being the check's own left-endpoint quadrature (below),
+    not a second effect.
+  - **Days 2–3 alone gain 0.940 kg/game-day, at a factor of ≈0.84** — the trace oscillates
+    between the 3700 ceiling and ~2 990 there, so the factor sits near 0.84 rather than the
+    0.925 a pinned store would give (only **4 of the 73 samples** are actually at the ceiling).
+  So neither figure measures the ceiling: 0.842 is a three-day mean containing an empty store,
+  and 0.940 is what a *sawtoothing* store at this dose does. **M**, run 2.
 - **The −2200 floor bounds starvation the same way.** Run 3 reached the floor at game-hour 39
   (38.2 h predicted at a flat 80 kg; it arrives later because the burn falls with the weight)
   and spent day 3 entirely on it, losing **0.646 kg** — the derived clamped-fast ceiling
-  `8.5e-6 × 2200/2500 × 86 400` = 0.6462, confirmed to three decimals. Day 1 loses only
-  0.204 kg and day 2 0.576 kg: the rate scales with the deficit, so a fast ramps. **M**, run 3.
+  `8.5e-6 × 2200/2500 × 86 400` = **0.646** (0.646272 exactly), confirmed to three decimals.
+  Day 1 loses only 0.204 kg and day 2 0.576 kg: the rate scales with the deficit, so a fast
+  ramps. **M**, run 3.
 - **Cross-checks read off the same samples** (diagnosis, not assertions — see below). Idle
   calorie burn **−1 408.1 / −1 385.0 / −1 399.7 kcal per game-day** (run 2, run 3, run 1's alive
   window) against −1 402.5 / −1 379.5 / −1 390.2 predicted by `0.016 × weight/80 × 86 400` at
@@ -132,8 +162,10 @@ game-days is the floor of what this check can resolve.
 **Finding — `setCalories` is not food** (run 1, `scenario-20260910-052624`, Ev **M**). The
 first attempt fed the calorie store and nothing else. `setCalories` fills `Nutrition` and never
 touches `CharacterStat.HUNGER` / `THIRST`, so the fed character dehydrated on the vanilla
-clock: health fell 100 → 0 from **≈29.13 game-hours** at **−17.820029 health per game-hour**
-and the subject **died at game-hour 35**, with HUNGRY never above level 3 (hunger peaked at
+clock: health fell 100 → 0 from **≈29.13 game-hours** at **−17.820029 health per game-hour on
+this fixture's 90-minute day** (the rate is per *multiplier* unit, so it is 11.88/game-hour on
+the 60-minute default — [body-stats.md](body-stats.md) § Discrepancies row 6) and the subject
+**died at game-hour 35**, with HUNGRY never above level 3 (hunger peaked at
 0.699892 against a strict `> 0.70`). That rate is `BodyDamage.Update`'s **`THIRST == 4`**
 branch — five times the `HUNGRY == 4` one — whose constants, day-length dependence and jar
 citations are in [body-stats.md](body-stats.md) § What each level does (the health-loss row)
@@ -147,8 +179,12 @@ and § Discrepancies row 6. Two consequences:
   corpse while the update that would drain it does not run. Half that run measured a dead man.
 - **Anything that fills the calorie store must manage hunger and thirst too** — a mod granting
   nutrition, a debug command, a test scenario. Unattended, the level-4 thirst drain kills in
-  ~35 game-hours. Run 2 therefore resets both stats to 0 after every sample, and the sampler
-  ends the run on the first dead sample.
+  ~35 game-hours **on this fixture's 90-minute day**. On the 60-minute default it is ~38: the
+  level-4 crossing at ≈29.13 game-hours is day-length independent (thirst accumulation carries
+  `getDeltaMinutesPerDay()`), but the health term does not, so 100 health takes 8.4 game-hours to
+  drain at 11.88/game-hour instead of 5.6 at 17.82 ([body-stats.md](body-stats.md)
+  § Discrepancies row 6). Run 2 therefore resets both stats to 0 after every sample, and the
+  sampler ends the run on the first dead sample.
 
 **The pin is a control, not a thumb on the scale.** `updateWeight` reads calories,
 carbohydrates and lipids only, and `updateCalories`' branches are posture, weight and the

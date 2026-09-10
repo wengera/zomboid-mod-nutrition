@@ -170,8 +170,10 @@ one inventory item (condition, conditionMax, modData).
   evaluators. API and runner: [README.md](README.md) § Scenarios and the test
   layer — it supersedes the `TK.test(name, {tags, timeoutMin, fn})` sketch under
   *Components* above (and the `.ready` marker there, which S4 ruled out).
-  **Three live runs**, ~10 min wall each (593 s to the result doc, 603 s
-  including teardown), 73 hourly samples over 72.0 game-hours,
+  **Three live runs**, ~10 min wall each (593 s from server launch to the result
+  doc, 603 s including teardown — both runner-clock marks from the gitignored run
+  reports; the committed artifacts carry the test window alone,
+  `cadence.wall_s` 540.4–540.6 s), 73 hourly samples over 72.0 game-hours,
   `EveryOneMinute` at 1.000 ticks per game-minute, 0 server errors:
   `scenario-20260910-054012` (gain) **+2.526 kg measured vs +2.551 predicted**,
   tolerance 0.383 — **PASS**; `scenario-20260910-055029` (fast) **−1.426 vs

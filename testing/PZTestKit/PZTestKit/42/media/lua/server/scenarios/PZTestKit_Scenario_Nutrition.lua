@@ -178,6 +178,17 @@ local function register(name, dose)
             end
             water(t.player)                 -- after the sample, so each row is the pre-pin value
         end)
+        -- WHY EVERY DOSE IS ALREADY IN THAT HOUR'S SAMPLE. The sampler above and this dose timer
+        -- come due together every 12th game-hour (minutes 720, 1440, ...), and a shared minute is
+        -- dispatched in `seq` order -- the order the callbacks were SCHEDULED, not registered.
+        -- t:every re-arms with a fresh seq on every tick, so the sample due at minute 720 took its
+        -- seq at minute 660, while the dose due at minute 720 took its seq here, at minute 0. The
+        -- dose therefore lands BEFORE that hour's sample (and the same holds at 1440, 2160, ...:
+        -- the dose's seq always comes from one dose-interval back, the sample's from one hour
+        -- back). So each dose is credited at the END of the interval it fell in -- exactly the
+        -- assumption behind the midpoint re-integration in nutrition-core.md § Verified on server,
+        -- and the reason the evaluator's left-endpoint integral, which cannot credit it there,
+        -- carries a ~0.025 kg bias over three game-days rather than a model error.
         if dose > 0 then
             local left = DOSES - 1          -- the hour-0 dose is already in
             t:every(DOSE_MIN, function()

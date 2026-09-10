@@ -3,22 +3,33 @@
 The test itself lives in the harness mod (shared/PZTestKit_Test.lua plus the scenario files
 under server/scenarios/); this drives it end to end: boot the fixture's server, attach the
 admin client, accelerate the world, start the test on the chosen side's bus, wait for its
-result doc, put the clock back, tear down, evaluate, report.
+result doc, evaluate it -- and only then, from a `finally`, put the clock back and tear the
+session down, so an evaluator that raises cannot leave a 30x world behind. The report and the
+artifact are written last, after teardown, because the environment verdict below needs the log
+lines the server writes while it is stopping.
+
+The RESULT is the harness test's own `pass`, AND the evaluator's ok, AND a clean session
+(`session.fault_reasons`, shared with `pzt run`: no missing mods, no non-baseline server error
+lines, no client Lua errors). A scenario writes committed evidence, so a green test on a
+session that was throwing errors must not be reported as a pass.
 
 --side defaults to SERVER because nutrition is server-authoritative (`Nutrition.update @42 L75`
 is `!GameClient.client`, 03-notes Q7): a client-side scenario would drive a mirror that the
-next PlayerStatsPacket overwrites. --side client is kept for the convergence readings, where
-the point IS the mirror. The client is attached either way -- the server resolves the test's
-subject by username out of getOnlinePlayers(), so it has to be online.
+next PlayerStatsPacket overwrites. --side client is wired end to end for the convergence
+readings, where the point IS the mirror, but no client-side scenario is registered yet, so it
+currently has nothing to run. The client is attached either way -- the server resolves the
+test's subject by username out of getOnlinePlayers(), so it has to be online.
 """
 import json
 import os
 import time
+import traceback
 
 from . import fixture as fx
 from .bus import parse_ack
 from .paths import new_run_dir
-from .session import Timeline, make_client, make_server, say, teardown, write_report
+from .session import (Timeline, fault_reasons, make_client, make_server, say, teardown,
+                      write_report)
 
 # name -> function(result_doc) -> (ok: bool, detail: dict). Filled by the scenario evaluator
 # modules (slice 04 T3), which are imported at the bottom of this file.
@@ -65,7 +76,7 @@ def cadence(doc):
     return out
 
 
-def write_artifact(run_dir, a, server, result, doc, ev, cad):
+def write_artifact(run_dir, a, server, result, doc, ev, cad, faults=()):
     """The evidence file, written by the run itself: the result doc, the evaluation, and the
     fixture/build that produced them, in one JSON. testing/artifacts/ takes byte-for-byte copies
     of what a run wrote (its README), so composing this here rather than by hand afterwards is
@@ -76,7 +87,8 @@ def write_artifact(run_dir, a, server, result, doc, ev, cad):
     art = {"run_id": os.path.basename(os.path.normpath(run_dir)), "scenario": a.name,
            "fixture": a.fixture, "build": server.build,
            "side": a.side, "user": a.user, "speed": a.speed, "result": result,
-           "cadence": cad, "evaluation": ev, "server_errors": server.errors[:20], "test": doc}
+           "cadence": cad, "evaluation": ev, "faults": list(faults),
+           "server_errors": server.errors[:20], "test": doc}
     path = os.path.join(run_dir, f"scenario-{a.name}.json")
     with open(path, "w") as fh:
         json.dump(art, fh, indent=1)
@@ -90,6 +102,7 @@ def run(a):
     say(f"run: {run_dir}")
     server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port)
     clients, result, doc, ev = [], "FAIL", None, {}
+    tb = None                   # traceback of whatever ended the run early; goes in the report
     try:
         server.start(timeout=a.server_timeout)
         tl.mark("server_started", t=server.t_started, build=server.build)
@@ -113,6 +126,13 @@ def run(a):
             raise RuntimeError(f"unknown test '{a.name}' on the {a.side} side; registered: {names}")
         ok, rep = server.rcon(f"settimespeed {a.speed}")
         tl.mark("settimespeed", x=a.speed, ok=ok, reply=str(rep)[:40])
+        # A refused RCON (port shut, wrong password, server not listening yet) means the world
+        # is still at 1x: a three-game-day test would then need three real days and the only
+        # symptom would be the result timeout, ten wall minutes later with nothing to read. End
+        # the run here, with the reason.
+        if not ok:
+            raise RuntimeError(f"settimespeed {a.speed} refused: {str(rep)[:120]} -- the world "
+                               "is still at 1x, so the test cannot finish inside its timeout")
         t0 = time.time()
         ok_ack, ack = parse_ack(node.send("test.run", f"{a.name} {a.user}"))
         tl.mark("test_run", side=a.side, user=a.user, ack=ack)
@@ -140,10 +160,22 @@ def run(a):
     # raise on a truncated JSON doc, and an evaluator is scenario code that can raise anything.
     # None of that may skip the finally below -- settimespeed is a world change and the clients
     # are real processes -- and all of it must still land in the report as an `error` mark with
-    # result FAIL (exit 1). KeyboardInterrupt/SystemExit are deliberately still let through:
-    # the finally restores and tears down either way.
+    # result FAIL (exit 1). The one-line mark is for the console; the full traceback goes into
+    # the report, because for an evaluator raise the line number IS the finding and the run
+    # behind it cannot be re-run cheaply.
     except Exception as e:                     # noqa: BLE001 - see above
         tl.mark("error", detail=f"{type(e).__name__}: {e}"[:200])
+        tb = traceback.format_exc()
+    # Ctrl-C is caught rather than let through so that a run abandoned half way still leaves its
+    # evidence: the finally below restores the clock and tears the session down either way, but
+    # the report and artifact are written AFTER it, and an escaping KeyboardInterrupt would take
+    # both with it -- ten wall minutes of live server with nothing to read. `session.hold` marks
+    # an interrupt the same way (session.py:93). The run is FAIL: it is a partial run, whatever
+    # the test had done by then. (An interrupt during teardown itself still escapes; the world
+    # change is already undone by that point.)
+    except KeyboardInterrupt:
+        tl.mark("interrupted")
+        result = "FAIL: interrupted"
     finally:
         # settimespeed is a WORLD change and must not outlive the run, whatever went wrong
         # above; and a failure to restore it must not skip the teardown that follows.
@@ -160,6 +192,17 @@ def run(a):
                 for c in clients:
                     c.kill()
                 server.kill()
+    # The same environment checks `pzt run` applies (session.fault_reasons), and for the same
+    # reason: the harness `pass` flag and the evaluator only see what the test itself measured.
+    # A mod that did not load, a non-baseline server error line or a client Lua error means the
+    # run was not the run that was asked for -- and a scenario writes a COMMITTED artifact, so a
+    # PASS on a session that was throwing errors would be evidence for a claim nobody checked.
+    # Taken after teardown: the server's last log lines arrive while it is stopping.
+    faults = fault_reasons(server, clients)
+    if faults:
+        tl.mark("faults", detail="; ".join(faults)[:200])
+        if result == "PASS":
+            result = "FAIL: " + "; ".join(faults)
     cad = cadence(doc or {})
     if cad:
         tl.mark("cadence", **cad)
@@ -175,10 +218,11 @@ def run(a):
     # rather than a lost run.
     write_report(run_dir, {"run_id": run_id, "result": result, "side": a.side, "user": a.user,
                            "speed": a.speed, "timeline": tl.items, "cadence": cad, "test": doc,
-                           "evaluation": ev, "server_errors": server.errors[:20],
+                           "evaluation": ev, "faults": faults, "traceback": tb,
+                           "server_errors": server.errors[:20],
                            "client_events": {c.username: c.events for c in clients}})
     try:
-        write_artifact(run_dir, a, server, result, doc, ev, cad)
+        write_artifact(run_dir, a, server, result, doc, ev, cad, faults)
     except Exception as e:                     # noqa: BLE001 - the report already landed
         say(f"  WARNING: artifact not written ({type(e).__name__}: {e}) -- "
             f"the run report in {run_dir} still has the result doc and the evaluation")

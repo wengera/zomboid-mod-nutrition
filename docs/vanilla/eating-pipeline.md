@@ -512,7 +512,12 @@ by its effect — the 5.5 s landing and the witness convergence — not by a log
    ×3 branch gives **≤ 3.117 kg/game-day**. On the loss side calories floor at −2200, so
    `min(1, 2200/2500) = 0.88` and loss caps at `8.5e-6 × 0.88 × 86400 = 0.646 kg/game-day`. These
    are derived from the C formula and the M clamps; treat them as the scenario's ceilings, not as
-   measured outcomes.
+   measured outcomes. **Since measured on the server** (slice 04, `scenario-20260910-054012` and
+   `-055029`): the loss ceiling landed exactly — a game-day spent on the −2200 floor lost
+   **0.646 kg** — while the gain ceiling was, as expected, only approached from below, because a
+   store fed under the clamp sawtooths rather than sitting on it (0.842 kg/game-day over three
+   days). Both runs, with residuals and what they do not cover:
+   [nutrition-core.md](nutrition-core.md) § Verified on server.
 6. **Weight is server-only; the client computes it and discards it.** `Nutrition.update @106 L81`
    calls `updateWeight()` on both sides, but the method's own `GameClient.client` skip
    (`@317–@320 L198`) sits before `setWeight` (`@323 L199`) and before `applyTraitFromWeight`

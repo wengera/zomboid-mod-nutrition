@@ -47,9 +47,14 @@
 >    `server/scenarios/PZTestKit_Scenario_{Smoke,Nutrition}.lua`, `test.run` goes on the
 >    **server** bus, and `pzt scenario` gained `--side server|client` (default **server**).
 >    `t.player` is resolved by username out of `getOnlinePlayers()` — there is no `getPlayer()`
->    on a dedicated server — so the admin client is still attached, as the live player. Every
->    "Cold-start context" and Task 1/2/3 line below that says *client* is obsolete, including
->    "Nutrition is computed on the **client** (S6)", whose direction slice 01 reversed.
+>    on a dedicated server — so the admin client is still attached, as the live player.
+>    **Every line in this plan that says *client* is obsolete, above this note as well as
+>    below it**, specifically: the **Architecture** paragraph at the top (`:7`), which puts the
+>    scenario files under `client/scenarios/` — and which also names the polling helper
+>    `TK.eventually`, where the shipped one is the context method `t:eventually(pred,
+>    budgetMinutes, label)`; the Cold-start context line "Nutrition is computed on the
+>    **client** (S6)" (`:27`), whose direction slice 01 reversed; and the corresponding lines
+>    in Tasks 1/2/3 below.
 > 2. **Daily intake is two +2 000 doses 12 game-hours apart**, not one +4 000: `setCalories`
 >    clamps at 3 700, so a single dose would measure the clamp rather than the intake (the
 >    plan's own decision point, taken). Even split, the ceiling still swallowed 4 790 of the
@@ -336,9 +341,12 @@ round), `ef64241` (T3 fix round), plus this task's doc commit.
    and **1.000 in all three 3-day runs** (7.99–8.00 game-minutes per wall second). The
    `OnTick` fallback in the decision points below was never needed.
 2. `python testing/pzt scenario nutrition_3day_gain` / `nutrition_3day_fast` → three
-   unattended runs, no human input, **≈593 s wall to the result doc** (603 s including
-   teardown) each — inside the 15-minute budget — **73 hourly samples over 72.0 game-hours**
-   and **0 server error lines** in every one:
+   unattended runs, no human input, **≈593 s wall from server launch to the result doc** (603 s
+   including teardown) each — inside the 15-minute budget — **73 hourly samples over 72.0
+   game-hours** and **0 server error lines** in every one. (Those two are runner-clock marks
+   from the run reports under `testing/runs/`, which are gitignored; the committed artifacts
+   carry the test window alone — `cadence.wall_s` 540.4–540.6 s, `test.run` to the result doc —
+   and the ~53 s difference is boot and client attach.)
 
    | Run id | Scenario | Measured Δ | Predicted Δ | Tol | Verdict |
    |---|---|---|---|---|---|
@@ -358,12 +366,17 @@ round), `ef64241` (T3 fix round), plus this task's doc commit.
 3. `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` → **0
    findings** across the trees this slice touched; the 4 pre-existing findings in
    `docs/mods-survey/teardowns/` remain deferred by the standing ruling in
-   [`docs/decisions.md`](../../decisions.md). `python testing/pzt run --hold 5` was **not**
-   run by this slice: by the 2026-09-10 ruling in the same ledger it is folded into the next
-   live run after the slice-04 harness edits, together with the one `nutrition.applytraits`
-   call that has never executed live. (The most recent local full-stack run,
-   `run-20260910-065745` at 06:58 — after every slice-04 harness edit had landed — reports
-   PASS with 0 server errors, but it was not this slice's acceptance run.)
+   [`docs/decisions.md`](../../decisions.md). `python testing/pzt run --hold 5` → **MET**:
+   `run-20260910-065745` (06:57, on a tree carrying both slice-04 harness commits `dd84a37`
+   and `ef64241`) reports **PASS with 0 server error lines**. By the 2026-09-10 ruling in the
+   same ledger, that run *is* this check — it is the "next live run after the slice-04 harness
+   edits" the ruling folded it into. The one exercise deferred alongside it,
+   `nutrition.applytraits`, has since run as well: `accept03-20260910-065854` called it and the
+   server answered `applied: true` at weight 80, no band trait held (as expected in the
+   75–85 open interval). Both run directories are local under `testing/runs/` (gitignored).
+   Caveat: the slice's final fix wave touched the harness again after those runs, so they cover
+   the tree at `ef64241`; the `pzt scenario smoke_clock` run taken after that commit is what
+   re-covers the test layer.
 
 Two plan assumptions did not survive, both recorded above under § Method: client-side
 scenarios (the server owns `Nutrition`) and the one-dose-a-day feed (the 3 700 clamp). A

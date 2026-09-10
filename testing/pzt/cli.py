@@ -10,7 +10,8 @@ from . import scenario
 from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
 from .server import Server
-from .session import Timeline, hold, make_client, make_server, say, teardown, write_report
+from .session import (Timeline, fault_reasons, hold, make_client, make_server, say, teardown,
+                      write_report)
 
 
 def parse_kv(items):
@@ -151,16 +152,16 @@ def cmd_run(a):
             for c in clients:
                 c.kill()
             server.kill()
-    not_found = sorted(set(server.mods_not_found + [m for c in clients for m in c.mods_not_found]))
-    if result == "PASS" and not_found:
-        result = f"FAIL: mods not found at load: {','.join(not_found)}"
-    if result == "PASS" and server.errors:
-        result = f"FAIL: {len(server.errors)} server error lines"
-    lua_errors = [c.username for c in clients if "lua_error" in c.seen]
-    if result == "PASS" and lua_errors:
-        result = f"FAIL: lua errors on {','.join(lua_errors)}"
-    write_report(run_dir, {"run_id": run_id, "result": result, "timeline": tl.items,
-                           "server_errors": server.errors[:40],
+    # The environment checks, shared with `pzt scenario` (session.fault_reasons): missing mods,
+    # non-baseline server errors, client lua errors. They carry their own counts into the RESULT
+    # line; a hold that already failed keeps its own reason and records these in the timeline.
+    faults = fault_reasons(server, clients)
+    if faults:
+        tl.mark("faults", detail="; ".join(faults)[:200])
+        if result == "PASS":
+            result = "FAIL: " + "; ".join(faults)
+    write_report(run_dir, {"run_id": run_id, "result": result, "faults": faults,
+                           "timeline": tl.items, "server_errors": server.errors[:40],
                            "clients": {c.username: c.events for c in clients},
                            "results": {"server": server.results(),
                                        **{c.username: c.results() for c in clients}}})
