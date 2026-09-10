@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Shared reader for the vanilla script DSL (items, fluids, recipes, entities).
+"""Vanilla food/drink dataset builder, on a shared reader for the script DSL.
+
+`python tools/food_scan.py` parses the 42.20.4 scripts and writes
+`data/food-items.json` + `data/food-items.csv`. See `select` for the selection rule (what is
+and is not in the dataset), `build` for the joins, and data/README.md for the columns.
 
 Stdlib only. The DSL is `module <M> { <kind> <Name> { Key = Value, ... <kind> <Name> { ... } } }`;
 blocks nest (a drink is `item X { component FluidContainer { Fluids { fluid = Cola:1.0 } } }`),
@@ -24,9 +28,10 @@ and a recipe's IO lines (`item 1 [Base.BreadSlices] flags[ItemCount]`). `itemMap
 pairs (`Base.Cow_Skull = Base.Cow_Head_Angus`) land there too, on purpose: PROP_RE only accepts
 identifier keys, and a mapper repeats the same left-hand side.
 
-The dataset writer (data/food-items.{csv,json}) is slice 05 Task 3 and is not here yet.
+The parser half (parse_script .. load_translations) is shared with tools/recipe_scan.py; the
+dataset half (COLUMNS .. main) is this tool's own.
 """
-import json, os, re
+import csv, datetime, json, os, re
 
 MEDIA = r"D:/SteamLibrary/steamapps/common/ProjectZomboid/media"
 
@@ -244,3 +249,438 @@ def _load_json(path):
         return {}
     with handle:
         return json.load(handle)
+
+
+# --------------------------------------------------------------------------------------------
+# The dataset: data/food-items.json + data/food-items.csv
+# --------------------------------------------------------------------------------------------
+
+BUILD = "42.20.4"
+JAR_HASH = "b0bbce05d5"
+SCRIPTS = "scripts/generated"                  # under MEDIA; every source path is relative to it
+FOOD_FILE = "items/food.txt"
+DRAINABLE_FILE = "items/drainable.txt"
+FLUID_FILES = ("fluids.txt", "fluids_Alcoholic.txt", "fluids_Beverages.txt")
+
+_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+OUT_JSON = os.path.join(_REPO, "data", "food-items.json")
+OUT_CSV = os.path.join(_REPO, "data", "food-items.csv")
+
+# The dataset's row schema: (column, script key it is read from). A None key is derived -- see
+# `build`. The order is the CSV's column order and the JSON record's field order, and
+# data/README.md documents one line per column; `source_file` / `source_line` trail every row.
+COLUMNS = (
+    ("id", None), ("module", None), ("name", None), ("kind", None), ("display_name", None),
+    ("display_category", "DisplayCategory"),
+    ("food_type", "FoodType"),
+    ("item_type", "ItemType"),
+    ("tags", "Tags"),
+    ("nutrition_source", None),
+    ("calories", "Calories"),
+    ("carbohydrates", "Carbohydrates"),
+    ("lipids", "Lipids"),
+    ("proteins", "Proteins"),
+    ("hunger_change", "HungerChange"),
+    ("thirst_change", "ThirstChange"),
+    ("days_fresh", "DaysFresh"),
+    ("days_totally_rotten", "DaysTotallyRotten"),
+    ("cant_be_frozen", "CantBeFrozen"),
+    ("is_cookable", "IsCookable"),
+    ("minutes_to_cook", "MinutesToCook"),
+    ("minutes_to_burn", "MinutesToBurn"),
+    ("dangerous_uncooked", "DangerousUncooked"),
+    ("packaged", "Packaged"),
+    ("canned_food", "CannedFood"),
+    ("cant_eat", "CantEat"),
+    ("spice", "Spice"),
+    ("good_hot", "GoodHot"),
+    ("bad_cold", "BadCold"),
+    ("unhappy_change", "UnhappyChange"),
+    ("boredom_change", "BoredomChange"),
+    ("stress_change", "StressChange"),
+    ("fatigue_change", "fatigueChange"),
+    ("endurance_change", "enduranceChange"),
+    ("food_sickness_change", "FoodSicknessChange"),
+    ("poison_power", "PoisonPower"),
+    ("alcohol_power", "AlcoholPower"),
+    ("evolved_recipe", "EvolvedRecipe"),
+    ("evolved_recipe_name", "EvolvedRecipeName"),
+    ("replace_on_cooked", "ReplaceOnCooked"),
+    ("replace_on_rotten", "ReplaceOnRotten"),
+    ("replace_on_use", "ReplaceOnUse"),
+    ("on_cooked", "OnCooked"),
+    ("on_eat", "OnEat"),
+    ("fluid_capacity", None),
+    ("fluid_ids", None),
+    ("weight", "Weight"),
+)
+TRAILING = ("source_file", "source_line")
+CSV_HEADER = [name for name, _key in COLUMNS] + list(TRAILING)
+
+# Which column a fluid's `Properties` key feeds when a container's nutrition is joined. Derived
+# from COLUMNS so the two can never drift; the fluid files' `foodSicknessChange` reaches
+# `food_sickness_change` through `canonical_key`. In 42.20.4 that covers 11 of the 14 keys a
+# `Properties` block writes -- `alcohol`, `fluReduction` and `painReduction` have no column and
+# stay in the fluid record's `properties_raw` (the item-side `alcohol_power` is `AlcoholPower`,
+# a different key on a different scale, so it is never filled from `alcohol`).
+_KEY_TO_COLUMN = {key: name for name, key in COLUMNS if key}
+
+# The columns a fluid may fill -- what a `Properties` block can say about a consumable's effect
+# on the body. Identity, packaging, cooking, weight and the links stay the item's own. Three of
+# them (`boredom_change`, `poison_power`, `alcohol_power`) no shipped fluid writes; they are here
+# because a fluid *may* write the key, and a fluid record keeps the column as null either way.
+NUTRITION_COLUMNS = tuple(name for name, key in COLUMNS if name in {
+    "calories", "carbohydrates", "lipids", "proteins", "hunger_change", "thirst_change",
+    "unhappy_change", "boredom_change", "stress_change", "fatigue_change", "endurance_change",
+    "food_sickness_change", "poison_power", "alcohol_power"})
+
+# Resolved against the dataset's own id set; a target outside it is a `meta.unresolved_links`
+# row. `ReplaceOnCooked` is list-typed in KEY_TYPES, the other three are strings.
+REPLACE_KEYS = ("ReplaceOnCooked", "ReplaceOnRotten", "ReplaceOnUse", "ReplaceOnDeplete")
+
+
+def _walk(blocks, parent=None):
+    """Yield (parent_block_or_None, block) depth-first, so a caller can see real parenthood."""
+    for block in blocks:
+        yield parent, block
+        yield from _walk(block["blocks"], block)
+
+
+def _raw_entries(block):
+    """`{key: raw}` for every `Key = Value` line, verbatim; a key written twice becomes a list.
+
+    This is a record's `props_raw`. It is built from `entries`, not `props`, so the 7 repeated
+    `SoundMap` lines in the selection survive; keys are sorted because their file order is not
+    semantic to the loader, but a repeated key keeps its file order inside its list.
+    """
+    out = {}
+    for key, raw in block["entries"]:
+        if key not in out:
+            out[key] = raw
+        elif isinstance(out[key], list):
+            out[key].append(raw)
+        else:
+            out[key] = [out[key], raw]
+    return dict(sorted(out.items()))
+
+
+def _named(block, name):
+    """The first child block called `name`, or None."""
+    for child in block["blocks"]:
+        if child["name"] == name:
+            return child
+    return None
+
+
+def _capacity(raw):
+    """A FluidContainer's `Capacity`, in litres.
+
+    KEY_TYPES is the *item* key table (docs/vanilla/food-item-model.md), and `Capacity` is a
+    component key, so `coerce` would leave it a string. `fluid_capacity` is a declared column of
+    this dataset, so the dataset types it: float, or the raw string if it will not parse.
+    """
+    try:
+        return float(raw)
+    except ValueError:
+        return raw
+
+
+def load_trees(media_root=MEDIA):
+    """Parse every source script into `{relative path: [top-level Block]}`.
+
+    The 15 `items/*.txt` (every one, because a FluidContainer may sit in any of them) plus the
+    three fluid files. Paths are relative to `<media_root>/scripts/generated` and are what a
+    record's `source_file` and `meta.sources` report.
+    """
+    root = os.path.join(media_root, *SCRIPTS.split("/"))
+    names = sorted(f for f in os.listdir(os.path.join(root, "items")) if f.endswith(".txt"))
+    trees = {}
+    for rel in ["items/" + f for f in names] + list(FLUID_FILES):
+        path = os.path.join(root, *rel.split("/"))
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            trees[rel] = parse_script(handle.read(), rel)
+    return trees
+
+
+def select(trees):
+    """The dataset's definition: which script blocks are records, and what `kind` each gets.
+
+    Four rules, applied in this order over `trees` ({relative path: [Block]}); the first rule
+    that claims a block wins, so a record is never emitted twice:
+
+    a. every `item` in `items/food.txt` whose `ItemType` is `base:food`  ->  kind `food` (722);
+    b. every `item` in `items/drainable.txt` whose `ItemType` is `base:drainable`  ->  kind
+       `drainable` (150) -- in because it is the other half of the 114-key union, so the dataset
+       covers every key the doc's table describes, not just the eaten ones;
+    c. every `item` in any `items/*.txt` that owns a `component FluidContainer`  ->  kind
+       `fluid_container` (133) -- a drink's nutrition lives in the fluid, not on the item;
+    d. every `fluid` in `fluids.txt` / `fluids_Alcoholic.txt` / `fluids_Beverages.txt` (61), as
+       its own record set under the JSON's `fluids` key, never as a CSV row.
+
+    In 42.20.4 the three item rules are disjoint (no `base:food` or `base:drainable` item owns a
+    FluidContainer, and none of the three sets repeats an id), so the counts sum to the 1005
+    records; the ordering only matters for a mod that breaks that.
+
+    Deliberately out: `base:food` items that a mod puts in another file (the rule is per file,
+    the way the game's own split is), every non-food `item` (weapons, clothing) unless it owns a
+    FluidContainer, and recipes -- `evolvedrecipes.txt` and `recipes/` are slice 06.
+
+    Returns `([(kind, item_block, fluid_container_block_or_None), ...], [fluid_block, ...])`.
+    """
+    claimed, items = set(), []
+
+    def claim(kind, block, container=None):
+        if id(block) in claimed:
+            return
+        claimed.add(id(block))
+        items.append((kind, block, container))
+
+    def items_of(rel):
+        return [b for b in iter_blocks(trees.get(rel, [])) if b["kind"] == "item"]
+
+    for block in items_of(FOOD_FILE):
+        if block["props"].get("ItemType") == "base:food":
+            claim("food", block)
+    for block in items_of(DRAINABLE_FILE):
+        if block["props"].get("ItemType") == "base:drainable":
+            claim("drainable", block)
+    for rel in sorted(r for r in trees if r.startswith("items/")):
+        for parent, block in _walk(trees[rel]):
+            if block["kind"] == "component" and block["name"] == "FluidContainer" and parent:
+                claim("fluid_container", parent, block)
+
+    fluids = [b for rel in FLUID_FILES for b in iter_blocks(trees.get(rel, []))
+              if b["kind"] == "fluid"]
+    return items, fluids
+
+
+def build_fluid(block, fluid_names):
+    """One `fluid` record: identity, display name, categories, typed nutrition, raws.
+
+    The typed fields are the same lowercase names the item columns use, so joining a fluid into
+    a container is a straight copy of whichever of them the fluid writes. `properties_raw` keeps
+    every `Properties` key verbatim (including the three with no column), `poison` the `Poison`
+    block a hazardous fluid carries, `props_raw` the fluid block's own keys.
+    """
+    properties = _named(block, "Properties")
+    categories = _named(block, "Categories")
+    poison = _named(block, "Poison")
+    display_key = block["props"].get("DisplayName")
+    record = {
+        "id": block["name"],
+        "module": block["module"],
+        "name": block["name"],
+        "kind": "fluid",
+        "display_name": fluid_names.get(display_key) if display_key else None,
+        "display_name_key": display_key,
+        "color_reference": block["props"].get("ColorReference"),
+        "categories": list(categories["lines"]) if categories else [],
+    }
+    record.update(dict.fromkeys(NUTRITION_COLUMNS))
+    for key, raw in (properties["props"].items() if properties else ()):
+        column = _KEY_TO_COLUMN.get(canonical_key(key))
+        if column in NUTRITION_COLUMNS:
+            record[column] = coerce(key, raw)
+    record["properties_raw"] = _raw_entries(properties) if properties else {}
+    record["poison"] = _raw_entries(poison) if poison else None
+    record["props_raw"] = _raw_entries(block)
+    record["source_file"] = block["file"]
+    record["source_line"] = block["line"]
+    return record
+
+
+def build_item(kind, block, container, fluids_by_id, item_names, misses):
+    """One item record: the typed columns, the fluid join, `props_raw`, and the source anchor.
+
+    Every column is present on every record. An absent script key is `None` -- never `0`, and
+    never a guess: the dataset only ever carries what a line in the file says.
+
+    A `fluid_container` is joined to the **first** fluid its `Fluids` block lists: `fluid_ids`
+    is every `fluid =` value's first `:`-field in file order (`HairDye:1.0:0.1:...` -> `HairDye`,
+    and the 9 pick-random containers really do list one id several times), `fluid_capacity` is
+    the component's `Capacity`, and whatever nutrition columns that first fluid writes replace
+    the item's own, with `nutrition_source` = `fluid:<id>`. Every other record reads
+    `food_keys`. In 42.20.4 no fluid-container item writes a nutrition key of its own, so the
+    replacement never actually loses a value; 10 of the 61 fluids carry no `Properties` block at
+    all, so `fluid:Dye` with empty nutrition is a real and correct row.
+    """
+    record = dict.fromkeys(CSV_HEADER)
+    item_id = "%s.%s" % (block["module"], block["name"])
+    record.update({"id": item_id, "module": block["module"], "name": block["name"], "kind": kind,
+                   "display_name": item_names.get(item_id), "nutrition_source": "food_keys",
+                   "source_file": block["file"], "source_line": block["line"]})
+    if item_id not in item_names:
+        misses["missing_display_names"].append(item_id)
+    # `props`, not `entries`: a column is a scalar, so a key written twice takes its last value,
+    # the way the loader does. No column key repeats in 42.20.4 (only `SoundMap` does, and it
+    # has no column); `props_raw` keeps every line either way.
+    for key, raw in block["props"].items():
+        column = _KEY_TO_COLUMN.get(canonical_key(key))
+        if column:
+            record[column] = coerce(key, raw)
+
+    if container is not None:
+        if "Capacity" in container["props"]:
+            record["fluid_capacity"] = _capacity(container["props"]["Capacity"])
+        # `[]` (an empty jar: a container listing no fluid) is not `None` (no container at all)
+        pool = _named(container, "Fluids")
+        ids = [raw.split(":")[0].strip() for key, raw in (pool["entries"] if pool else ())
+               if key == "fluid"]
+        record["fluid_ids"] = ids
+        if ids:
+            record["nutrition_source"] = "fluid:" + ids[0]
+            fluid = fluids_by_id.get(ids[0])
+            if fluid is None:
+                misses["unresolved_fluid_refs"].append({"item": item_id, "fluid_id": ids[0]})
+            else:
+                for column in NUTRITION_COLUMNS:
+                    record[column] = fluid[column]
+
+    record["props_raw"] = _raw_entries(block)
+    return record
+
+
+def _link_targets(block, key):
+    """Every id `key` names on this block, in file order (`ReplaceOnCooked` is list-typed)."""
+    out = []
+    for written, raw in block["entries"]:
+        if canonical_key(written) != key:
+            continue
+        value = coerce(written, raw)
+        out.extend(value if isinstance(value, list) else [value])
+    return [t for t in out if t]
+
+
+def build(trees, item_names=None, fluid_names=None):
+    """Join the selected blocks into `(items, fluids, misses)`, sorted by id.
+
+    Joins, in order: display names off `ItemName.json` / `Fluids.json`; a container's fluids off
+    the fluid records; then `ReplaceOnCooked` / `ReplaceOnRotten` / `ReplaceOnUse` /
+    `ReplaceOnDeplete` against the dataset's own id set. A link whose target is not a record --
+    a cooking pan, an empty sandbag, or `Base.MugRed`, which 42.20.4 names but never defines --
+    is a `misses["unresolved_links"]` row naming the item, the key and the target; the target's
+    own value stays in the record either way.
+    """
+    item_names = item_names or {}
+    fluid_names = fluid_names or {}
+    selected, fluid_blocks = select(trees)
+    misses = {"unresolved_links": [], "missing_display_names": [], "unresolved_fluid_refs": []}
+
+    fluids = sorted((build_fluid(b, fluid_names) for b in fluid_blocks), key=lambda r: r["id"])
+    for record in fluids:
+        if record["display_name"] is None:
+            misses["missing_display_names"].append("fluid:" + record["id"])
+    fluids_by_id = {r["id"]: r for r in fluids}
+
+    built = [(build_item(kind, block, container, fluids_by_id, item_names, misses), block)
+             for kind, block, container in selected]
+    built.sort(key=lambda pair: pair[0]["id"])
+    items = [record for record, _block in built]
+
+    known = {r["id"] for r in items}
+    for record, block in built:
+        for key in REPLACE_KEYS:
+            for target in _link_targets(block, key):
+                if target not in known:
+                    misses["unresolved_links"].append(
+                        {"item": record["id"], "key": key, "target": target})
+    misses["unresolved_links"].sort(key=lambda m: (m["item"], m["key"], m["target"]))
+    misses["missing_display_names"].sort()
+    misses["unresolved_fluid_refs"].sort(key=lambda m: (m["item"], m["fluid_id"]))
+    return items, fluids, misses
+
+
+def unknown_keys(items, fluids):
+    """Sorted script keys the dataset carries that `is_known_key` rejects -- typed as strings.
+
+    Scoped to keys whose value actually reaches a record, not to every key in the files scanned:
+    the item records' `props_raw` (a fluid-container item in `weapon.txt` or `clothing.txt`
+    brings weapon and clothing keys with it), the component's `Capacity` and `fluid`, and the
+    fluid records' own keys (`DisplayName`, `ColorReference`, `alcohol`, the `Poison` block).
+    KEY_TYPES is the food + drainable union by design, so this list is expected to be non-empty.
+    """
+    seen = set()
+    for record in items:
+        seen.update(record["props_raw"])
+        if record["fluid_capacity"] is not None:
+            seen.add("Capacity")
+        if record["fluid_ids"]:
+            seen.add("fluid")
+    for record in fluids:
+        seen.update(record["props_raw"])
+        seen.update(record["properties_raw"])
+        seen.update(record["poison"] or ())
+    return sorted(k for k in seen if not is_known_key(k))
+
+
+def build_dataset(media_root=MEDIA):
+    """Parse, select, join and stamp: `(meta, items, fluids)` ready to write."""
+    trees = load_trees(media_root)
+    item_names, fluid_names = load_translations(media_root)
+    items, fluids, misses = build(trees, item_names, fluid_names)
+    counts = {kind: sum(1 for r in items if r["kind"] == kind)
+              for kind in ("food", "drainable", "fluid_container")}
+    counts["fluids"] = len(fluids)
+    counts["unresolved_links"] = len(misses["unresolved_links"])
+    meta = {
+        "build": BUILD,
+        "jar_hash": JAR_HASH,
+        "generated": datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
+        "tool": "tools/food_scan.py",
+        "sources": sorted(trees),
+        "counts": counts,
+        "unknown_keys": unknown_keys(items, fluids),
+        "unresolved_links": misses["unresolved_links"],
+        "missing_display_names": misses["missing_display_names"],
+        "unresolved_fluid_refs": misses["unresolved_fluid_refs"],
+    }
+    return meta, items, fluids
+
+
+def _cell(value):
+    """A CSV cell. An absent value is the empty string -- never `0`, never `False`, never `None`."""
+    if value is None:
+        return ""
+    if value is True:
+        return "true"
+    if value is False:
+        return "false"
+    if isinstance(value, list):
+        return ";".join(str(v) for v in value)
+    return str(value)
+
+
+def write_csv(path, items):
+    """One row per item, CSV_HEADER order. Fluids are joined into those rows, never rows of their own."""
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, lineterminator="\n")
+        writer.writerow(CSV_HEADER)
+        for record in items:
+            writer.writerow([_cell(record[name]) for name in CSV_HEADER])
+
+
+def write_json(path, meta, items, fluids):
+    """`{"meta", "items", "fluids"}`; LF endings and a trailing newline, so the file is diffable."""
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump({"meta": meta, "items": items, "fluids": fluids}, handle,
+                  indent=1, ensure_ascii=False)
+        handle.write("\n")
+
+
+def main():
+    meta, items, fluids = build_dataset()
+    write_json(OUT_JSON, meta, items, fluids)
+    write_csv(OUT_CSV, items)
+    counts = meta["counts"]
+    print("food %d · drainable %d · fluid_container %d · fluids %d"
+          % (counts["food"], counts["drainable"], counts["fluid_container"], counts["fluids"]))
+    print("%d items, %d columns -> %s" % (len(items), len(CSV_HEADER), OUT_CSV))
+    print("%d items + %d fluids -> %s" % (len(items), len(fluids), OUT_JSON))
+    print("joins: %d unresolved links, %d missing display names, %d undefined fluid refs, "
+          "%d unknown keys"
+          % (len(meta["unresolved_links"]), len(meta["missing_display_names"]),
+             len(meta["unresolved_fluid_refs"]), len(meta["unknown_keys"])))
+
+
+if __name__ == "__main__":
+    main()

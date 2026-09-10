@@ -33,13 +33,31 @@ import patterns from there.
   somewhere else (the tests lint a temp tree that way); module API:
   `lint(targets, repo_root=None) -> [Finding(path, line, rule, detail)]`.
 
+- `food_scan.py` — `python tools/food_scan.py`
+  Parses the 42.20.4 scripts under `media/scripts/generated/` and writes
+  `data/food-items.json` + `data/food-items.csv` (1005 items, 49 columns, 61
+  fluids), printing
+  `food 722 · drainable 150 · fluid_container 133 · fluids 61`.
+  Four source groups, one per `kind`: `items/food.txt` → `food` (every
+  `base:food` item, 722), `items/drainable.txt` → `drainable` (every
+  `base:drainable` item, 150), every `items/*.txt` scanned for
+  `component FluidContainer` → `fluid_container` (133), and `fluids.txt` +
+  `fluids_Alcoholic.txt` + `fluids_Beverages.txt` → `fluid` (61 — joined into
+  the container rows and kept whole under the JSON's `fluids` key, never CSV
+  rows of their own). Display names come from
+  `lua/shared/Translate/EN/{ItemName,Fluids}.json`; every join miss is
+  recorded in `meta` rather than papered over, and an absent script key is
+  empty in the CSV and `null` in the JSON — never `0`. Columns, the selection
+  rule and `meta` are documented in `data/README.md`.
+  It also holds the **shared script-DSL parser** — nesting-aware, so a
+  component's keys never flatten onto the item that owns it:
+  `parse_script(text, path)`, `iter_blocks`, `coerce` / `coerce_props`,
+  `canonical_key`, `is_known_key`, `KEY_TYPES` (the 114 keys of
+  `docs/vanilla/food-item-model.md`), `load_translations`. `recipe_scan.py`
+  will import it; read the module docstring before changing it.
+
 ## Planned (P4)
 
-- `food_scan.py` — every item with Food type across vanilla + workshop:
-  HungerChange, Calories, Carbohydrates, Lipids, Proteins, ThirstChange,
-  Unhappy/Boredom/Stress changes, DaysFresh/DaysTotallyRotten, Cooked/
-  DangerousUncooked/Poison, FoodType, EvolvedRecipe roles, tags →
-  `data/food-items.{json,csv}`. This dataset drives the full item pass.
 - `evolved_recipes.py` — evolvedrecipe graph (base items, ingredients,
   nutrition math) → `data/evolved-recipes.json`.
 - `mod_food_diff.py` — which installed mods add/override Food items (compat

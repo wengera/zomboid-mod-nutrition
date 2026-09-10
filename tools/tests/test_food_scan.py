@@ -4,7 +4,7 @@ Fixtures are quoted verbatim from the 42.20.4 install; every kept line is byte-e
 fixture's `# path:first-last` comment is the re-check anchor, naming whatever it elides (whole
 `Key = Value,` lines, and for COLA a whole nested block).
 """
-import os, sys, unittest
+import csv, os, sys, tempfile, unittest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import food_scan
 
@@ -560,3 +560,330 @@ def test_load_translations_reads_both_files():
     assert items["Base.Apple"] == "Apple"
     assert fluids["Fluid_Name_Cola"] == "Cola"
     assert len(items) > 4000 and len(fluids) > 100
+
+
+# ---------------------------------------------------------------------------------------------
+# The dataset half: the selection rule, the joins, and the two writers
+# ---------------------------------------------------------------------------------------------
+
+HAIRDYE_FLUID = """module Base
+{
+    fluid HairDye
+    {
+        ColorReference = White,
+        DisplayName = Fluid_Name_HairDye,
+        Categories
+        {
+            Colors,
+            HairDyes,
+            Industrial,
+            Hazardous,
+        }
+        Poison
+        {
+            maxEffect = Medium,
+            minAmount = 0.2,
+            diluteRatio = 0.1,
+        }
+    }
+}
+"""                                     # fluids.txt:274-298 (the whole BlendWhiteList block
+                                        # elided); it has no `Properties` -- 10 of the 61 do not
+
+# The next three are SYNTHETIC, not quoted from the install: 42.20.4 ships no such item. They
+# pin rules the shipped files never exercise -- see test_selection_rule_is_first_match_wins and
+# test_replace_links_resolve_against_the_dataset.
+FOOD_WITH_CONTAINER = """module Base
+{
+    item TestFoodFlask
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.4,
+        Calories = 11.0,
+        component FluidContainer
+        {
+            Capacity = 2.0,
+            Fluids
+            {
+                fluid = Cola:1.0,
+            }
+        }
+    }
+}
+"""
+
+NOT_FOOD = """module Base
+{
+    item TestPlate
+    {
+        DisplayCategory = Food,
+        ItemType = base:normal,
+        Weight = 0.4,
+    }
+}
+"""
+
+DANGLING = """module Base
+{
+    item TestCanteen
+    {
+        DisplayCategory = Food,
+        ItemType = base:drainable,
+        Weight = 0.4,
+        ReplaceOnUse = Base.Nowhere,
+        ReplaceOnCooked = Base.Salt,
+    }
+}
+"""
+
+
+def _file(*fixtures):
+    """One `module Base { ... }` text holding every fixture's blocks, so `select` sees one file."""
+    body = []
+    for text in fixtures:
+        body.extend(text.strip().splitlines()[2:-1])   # drop `module Base` / `{` and the final `}`
+    return "module Base\n{\n" + "\n".join(body) + "\n}\n"
+
+
+def _trees(files):
+    """{relative path: text} -> the {relative path: [Block]} shape `select` and `build` take."""
+    return {rel: food_scan.parse_script(text, rel) for rel, text in files.items()}
+
+
+def _dataset(files, item_names=None, fluid_names=None):
+    """(items_by_id, fluids_by_id, misses) for a synthetic tree."""
+    items, fluids, misses = food_scan.build(_trees(files), item_names, fluid_names)
+    return {r["id"]: r for r in items}, {r["id"]: r for r in fluids}, misses
+
+
+def _csv_rows(items):
+    """Round-trip `items` through write_csv and read the file back."""
+    with tempfile.TemporaryDirectory() as tmp:
+        path = os.path.join(tmp, "food-items.csv")
+        food_scan.write_csv(path, items)
+        with open(path, encoding="utf-8", newline="") as handle:
+            raw = handle.read()
+        assert "\r" not in raw                             # lineterminator="\n" with newline=""
+        return list(csv.reader(raw.splitlines()))
+
+
+SAMPLE = {
+    "items/food.txt": _file(APPLE, SALT, NOT_FOOD),
+    "items/drainable.txt": _file(HANDTORCH, DANGLING),
+    "items/normal.txt": _file(POP2, HAIRDYE),
+    "fluids_Beverages.txt": COLA,
+    "fluids.txt": HAIRDYE_FLUID,
+}
+
+
+def test_selection_rule_assigns_one_kind_per_record():
+    """(a) base:food in food.txt, (b) base:drainable in drainable.txt, (c) any FluidContainer."""
+    items, fluids, _misses = _dataset(SAMPLE)
+    assert {i: r["kind"] for i, r in items.items()} == {
+        "Base.Apple": "food", "Base.Salt": "food",
+        "Base.HandTorch": "drainable", "Base.TestCanteen": "drainable",
+        "Base.Pop2": "fluid_container", "Base.HairDyeCommon": "fluid_container",
+    }
+    assert "Base.TestPlate" not in items          # in food.txt, but its ItemType is base:normal
+    assert sorted(fluids) == ["Cola", "HairDye"]  # fluids are records, never CSV rows
+    assert items["Base.Apple"]["source_file"] == "items/food.txt"
+    assert items["Base.Apple"]["source_line"] == 3
+
+
+def test_selection_rule_is_first_match_wins():
+    """A base:food item that also owns a FluidContainer is one record, kind `food`, not two.
+
+    No 42.20.4 item does this -- the three item rules are disjoint on the real install (see
+    test_real_dataset_counts) -- so the fixture is synthetic and the rule is the guard.
+    """
+    items, _fluids, _misses = _dataset({"items/food.txt": FOOD_WITH_CONTAINER,
+                                        "fluids_Beverages.txt": COLA})
+    assert list(items) == ["Base.TestFoodFlask"]
+    record = items["Base.TestFoodFlask"]
+    assert record["kind"] == "food"
+    # claimed by rule (a), so its own Calories stand and no fluid is joined
+    assert record["nutrition_source"] == "food_keys" and record["calories"] == 11.0
+    assert record["fluid_capacity"] is None and record["fluid_ids"] is None
+
+
+def test_display_name_join_and_its_misses():
+    items, fluids, misses = _dataset(SAMPLE, item_names={"Base.Apple": "Apple"},
+                                     fluid_names={"Fluid_Name_Cola": "Cola"})
+    assert items["Base.Apple"]["display_name"] == "Apple"
+    assert items["Base.Salt"]["display_name"] is None         # absent, not the raw id
+    assert fluids["Cola"]["display_name"] == "Cola"
+    assert fluids["Cola"]["display_name_key"] == "Fluid_Name_Cola"
+    assert fluids["HairDye"]["display_name"] is None
+    assert misses["missing_display_names"] == [
+        "Base.HairDyeCommon", "Base.HandTorch", "Base.Pop2", "Base.Salt", "Base.TestCanteen",
+        "fluid:HairDye"]
+
+
+def test_fluid_container_joins_the_first_listed_fluid():
+    items, _fluids, misses = _dataset(SAMPLE)
+    pop2 = items["Base.Pop2"]
+    assert pop2["fluid_capacity"] == 0.3                       # the component's Capacity, typed
+    assert pop2["fluid_ids"] == ["Cola"]
+    assert pop2["nutrition_source"] == "fluid:Cola"
+    assert pop2["calories"] == 400.0 and pop2["carbohydrates"] == 104.0
+    assert pop2["unhappy_change"] == -10 and isinstance(pop2["unhappy_change"], int)
+    assert pop2["item_type"] == "base:normal"                  # the item's own keys still stand
+    assert pop2["days_fresh"] is None                          # a drink has none: absent, not 0
+
+    # every `fluid =` value's first `:` field, in file order -- HairDyeCommon really lists 8
+    hairdye = items["Base.HairDyeCommon"]
+    assert hairdye["fluid_ids"] == ["HairDye"] * 8
+    assert hairdye["nutrition_source"] == "fluid:HairDye"
+    # HairDye is defined but carries no `Properties` block, so the joined nutrition is empty
+    assert hairdye["calories"] is None and hairdye["thirst_change"] is None
+    assert misses["unresolved_fluid_refs"] == []
+
+
+def test_fluid_record_keeps_what_no_column_takes():
+    _items, fluids, _misses = _dataset(SAMPLE)
+    cola = fluids["Cola"]
+    assert cola["categories"] == ["Beverage"]
+    assert cola["fatigue_change"] == -2.0 and cola["boredom_change"] is None
+    assert cola["poison"] is None
+    assert cola["props_raw"] == {"ColorReference": "Cola", "DisplayName": "Fluid_Name_Cola"}
+    assert cola["source_file"] == "fluids_Beverages.txt" and cola["source_line"] == 3
+    hairdye = fluids["HairDye"]
+    assert hairdye["categories"] == ["Colors", "HairDyes", "Industrial", "Hazardous"]
+    assert hairdye["poison"] == {"diluteRatio": "0.1", "maxEffect": "Medium", "minAmount": "0.2"}
+    assert hairdye["properties_raw"] == {}
+
+
+def test_absent_key_is_null_in_json_and_empty_in_csv():
+    """The dataset never invents a 0: Salt has no Calories line, so it has no calories."""
+    items, _fluids, _misses = _dataset(SAMPLE)
+    salt = items["Base.Salt"]
+    assert salt["calories"] is None and salt["carbohydrates"] is None
+    assert salt["thirst_change"] == 20.0                       # positive, not sign-flipped
+    assert set(salt) == set(food_scan.CSV_HEADER) | {"props_raw"}   # every column, on every row
+    row = _csv_rows([salt])[1]
+    assert row[food_scan.CSV_HEADER.index("calories")] == ""
+    assert row[food_scan.CSV_HEADER.index("thirst_change")] == "20.0"
+    assert row[food_scan.CSV_HEADER.index("spice")] == "true"
+    assert row[food_scan.CSV_HEADER.index("tags")] == "base:minoringredient;base:salt"
+    # a real zero still prints as a zero -- only an absent key is blank
+    assert food_scan._cell(0) == "0" and food_scan._cell(0.0) == "0.0"
+    assert food_scan._cell(False) == "false" and food_scan._cell(None) == ""
+    assert food_scan._cell([]) == ""
+
+
+def test_csv_header_is_the_documented_schema():
+    assert food_scan.CSV_HEADER == [
+        "id", "module", "name", "kind", "display_name", "display_category", "food_type",
+        "item_type", "tags", "nutrition_source", "calories", "carbohydrates", "lipids",
+        "proteins", "hunger_change", "thirst_change", "days_fresh", "days_totally_rotten",
+        "cant_be_frozen", "is_cookable", "minutes_to_cook", "minutes_to_burn",
+        "dangerous_uncooked", "packaged", "canned_food", "cant_eat", "spice", "good_hot",
+        "bad_cold", "unhappy_change", "boredom_change", "stress_change", "fatigue_change",
+        "endurance_change", "food_sickness_change", "poison_power", "alcohol_power",
+        "evolved_recipe", "evolved_recipe_name", "replace_on_cooked", "replace_on_rotten",
+        "replace_on_use", "on_cooked", "on_eat", "fluid_capacity", "fluid_ids", "weight",
+        "source_file", "source_line"]
+    assert len(food_scan.COLUMNS) == 47 and len(food_scan.CSV_HEADER) == 49
+    assert len(set(food_scan.CSV_HEADER)) == 49
+    # every column that names a script key names one the loader actually reads
+    assert all(food_scan.is_known_key(key) for _name, key in food_scan.COLUMNS if key)
+    items, _fluids, _misses = _dataset(SAMPLE)
+    rows = _csv_rows([items[i] for i in sorted(items)])
+    assert rows[0] == food_scan.CSV_HEADER and len(rows) == 1 + len(items)
+    assert all(len(row) == 49 for row in rows)
+
+
+def test_replace_links_resolve_against_the_dataset():
+    items, _fluids, misses = _dataset(SAMPLE)
+    assert misses["unresolved_links"] == [
+        {"item": "Base.TestCanteen", "key": "ReplaceOnUse", "target": "Base.Nowhere"}]
+    # ReplaceOnCooked = Base.Salt resolves, because Salt is a record of this dataset
+    assert not any(m["key"] == "ReplaceOnCooked" for m in misses["unresolved_links"])
+    canteen = items["Base.TestCanteen"]
+    assert canteen["replace_on_use"] == "Base.Nowhere"          # the value is kept either way
+    assert canteen["replace_on_cooked"] == ["Base.Salt"]        # list-typed in KEY_TYPES
+
+
+def test_props_raw_is_verbatim_and_keeps_repeats():
+    items, _fluids, _misses = _dataset(SAMPLE)
+    raw = items["Base.HandTorch"]["props_raw"]
+    assert raw["SoundMap"] == ["Activate FlashlightOn", "Deactivate FlashlightOff"]
+    assert raw["Weight"] == "0.5" and raw["LightDistance"] == "15"   # raw strings, not typed
+    assert raw["Tags"] == "base:flashlight;base:flashlightpillar"    # unsplit
+    assert "Capacity" not in items["Base.Pop2"]["props_raw"]         # the component is not flattened
+    assert items["Base.HandTorch"]["weight"] == 0.5                  # the typed column is typed
+
+
+def test_unknown_keys_uses_is_known_key():
+    """`foodSicknessChange` differs from the table only in case, so it must not be flagged."""
+    items, fluids, _misses = _dataset(SAMPLE)
+    unknown = food_scan.unknown_keys([items[i] for i in sorted(items)],
+                                     [fluids[i] for i in sorted(fluids)])
+    assert "foodSicknessChange" not in unknown and "fatigueChange" not in unknown
+    for key in ("ColorReference", "DisplayName", "IconFluidMask", "Capacity", "fluid",
+                "maxEffect", "minAmount", "diluteRatio"):
+        assert key in unknown, key
+    assert unknown == sorted(unknown)
+    assert not any(food_scan.is_known_key(k) for k in unknown)
+
+
+_REAL = []
+
+
+def _real_dataset():
+    """build_dataset() once, shared by the install-gated dataset tests."""
+    if not _REAL:
+        _REAL.append(food_scan.build_dataset())
+    return _REAL[0]
+
+
+@unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)
+def test_real_dataset_counts():
+    meta, items, fluids = _real_dataset()
+    assert meta["counts"] == {"food": 722, "drainable": 150, "fluid_container": 133,
+                              "fluids": 61, "unresolved_links": 37}
+    assert len(items) == 1005 and len(fluids) == 61
+    assert len({r["id"] for r in items}) == 1005          # the three item rules really are disjoint
+    assert sum(meta["counts"][k] for k in ("food", "drainable", "fluid_container")) == len(items)
+    assert [r["id"] for r in items] == sorted(r["id"] for r in items)     # stable ordering
+    assert [r["id"] for r in fluids] == sorted(r["id"] for r in fluids)
+    assert len(meta["sources"]) == 18                     # 15 items/*.txt + 3 fluid files
+    assert meta["build"] == "42.20.4" and meta["jar_hash"] == "b0bbce05d5"
+
+
+@unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)
+def test_real_dataset_spot_values():
+    """The three records the plan's eyeball command prints, straight off the install."""
+    _meta, items, fluids = _real_dataset()
+    by_id = {r["id"]: r for r in items}
+    apple = by_id["Base.Apple"]
+    assert (apple["calories"], apple["carbohydrates"], apple["days_fresh"],
+            apple["display_name"]) == (95.0, 25.13, 5, "Apple")
+    assert apple["source_file"] == "items/food.txt" and apple["source_line"] == 8658
+    salt = by_id["Base.Salt"]
+    assert salt["calories"] is None and salt["thirst_change"] == 20.0
+    pop2 = by_id["Base.Pop2"]
+    assert pop2["nutrition_source"] == "fluid:Cola" and pop2["calories"] == 400.0
+    cola = {r["id"]: r for r in fluids}["Cola"]
+    assert cola["calories"] == 400.0
+    # the fluid files write `foodSicknessChange`; canonical_key lands it in the item column
+    assert cola["food_sickness_change"] == 0 and pop2["food_sickness_change"] == 0
+    assert cola["properties_raw"]["alcohol"] == "0.0"       # no column: kept raw, flagged unknown
+    assert all(r["display_name"] for r in fluids)           # all 61 fluid names translate
+
+
+@unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)
+def test_real_dataset_join_misses():
+    """Every miss is recorded, including one link 42.20.4 names but never defines."""
+    meta, _items, _fluids = _real_dataset()
+    assert meta["missing_display_names"] == [
+        "Base.FruitSaladClay", "Base.HotDrinkCopper", "Base.HotDrinkGold", "Base.HotDrinkMetal",
+        "Base.HotDrinkSilver", "Base.HotDrinkTumbler"]
+    assert meta["unresolved_fluid_refs"] == []             # every referenced fluid is defined
+    assert len(meta["unresolved_links"]) == 37
+    assert {m["key"] for m in meta["unresolved_links"]} == {"ReplaceOnUse", "ReplaceOnDeplete"}
+    assert {"item": "Base.HotDrinkRed", "key": "ReplaceOnUse",
+            "target": "Base.MugRed"} in meta["unresolved_links"]
+    assert "alcohol" in meta["unknown_keys"]               # the one fluid property with no table
+    assert not any(food_scan.is_known_key(k) for k in meta["unknown_keys"])
