@@ -29,7 +29,7 @@ Fluids are joined into those rows and also kept whole under the JSON's
 
 ### CSV columns
 
-49 columns: the 47 below plus the trailing `source_file`, `source_line`.
+50 columns: the 48 below plus the trailing `source_file`, `source_line`.
 **An absent key is the empty string, never `0`** — `Base.Salt` has no
 `Calories` line, so its `calories` cell is empty, and a script that really
 writes `0` still prints `0`. In the JSON the same absence is `null`. Booleans
@@ -82,10 +82,11 @@ print as `true` / `false`; list columns join their parts with `;`.
 | 43 | `on_cooked` | string | `OnCooked` |
 | 44 | `on_eat` | string | `OnEat` |
 | 45 | `fluid_capacity` | float | `component FluidContainer`'s `Capacity`, in litres |
-| 46 | `fluid_ids` | list `;` | each `Fluids.fluid` value's first `:` field, in file order — a pick-random container repeats one id (`HairDyeCommon` lists `HairDye` 8 times). In the JSON, `[]` is a container that lists no fluid (an empty jar, 59 of them) and `null` is a row that is not a container |
+| 46 | `fluid_ids` | list `;` | each `Fluids.fluid` value's first `:` field, in file order — a pick-random container either repeats one id (`HairDyeCommon` lists `HairDye` 8 times) or lists several different ones, and then only the first fills the nutrition columns: see the fluid join below. In the JSON, `[]` is a container that lists no fluid (an empty jar, 59 of them) and `null` is a row that is not a container |
 | 47 | `weight` | float | `Weight` |
-| 48 | `source_file` | string | path under `media/scripts/generated/`, e.g. `items/food.txt` |
-| 49 | `source_line` | int | 1-based line of the block's header |
+| 48 | `replace_on_deplete` | string | `ReplaceOnDeplete` — what a drainable becomes when it runs out (42 rows carry one). Appended as the last column, so columns 1–47 keep the positions they were published with |
+| 49 | `source_file` | string | path under `media/scripts/generated/`, e.g. `items/food.txt` |
+| 50 | `source_line` | int | 1-based line of the block's header |
 
 Types follow the loader (`Item.DoParam`), via `food_scan.KEY_TYPES`: only the
 literal `true` is true, and an int-typed key holding an integral float literal
@@ -99,6 +100,19 @@ its own, so nothing is overwritten; 10 of the 61 fluids have no `Properties`
 block at all, so `fluid:HairDye` with empty nutrition is a correct row, not a
 gap. `alcohol`, `fluReduction` and `painReduction` have no column and stay in
 the fluid record's `properties_raw`.
+
+**A pick-random container's nutrition is one of several fills, not the whole
+truth.** Five containers list several *different* fluids — `Base.Flask`,
+`Base.PopBottle`, `Base.PopBottleRare`, `Base.SodaCan`, `Base.WaterBottle`,
+counted as `meta.counts.multi_fluid_containers` — and the row carries only the
+**first** one's nutrition: `Base.Flask` reports Gin's 2 630 kcal though the
+same flask can hold Rum, Scotch, Vodka or Whiskey, and `Base.PopBottle`
+reports Cola's 400 though the `ColaDiet` it may hold instead is `0.0`.
+`fluid_ids` keeps the whole set, so the alternatives are one lookup into
+`fluids` away; anything that averages or worst-cases a spawn must do it from
+there, not from the row. The other four multi-line containers repeat a single
+id (`HairDyeCommon` lists `HairDye` 8 times) and so have nothing to pick
+between.
 
 ### JSON
 
@@ -123,11 +137,13 @@ above, `properties_raw` (the `Properties` block verbatim), `poison` (the
 | `generated` | UTC date of the run |
 | `tool` | `tools/food_scan.py` |
 | `sources` | the 18 script paths read, relative to `media/scripts/generated/` |
-| `counts` | `food`, `drainable`, `fluid_container`, `fluids`, `unresolved_links` |
-| `unknown_keys` | every script key the dataset carries that the item key table does not cover, so it is kept as a raw string — weapon and clothing keys ride along on fluid-container items, and `DisplayName`, `ColorReference`, `alcohol` and the `Poison` block are the fluid files' own |
+| `counts` | `food`, `drainable`, `fluid_container`, `fluids`, `multi_fluid_containers` (containers whose `fluid_ids` holds more than one distinct id — see the fluid join), `unresolved_links` |
+| `unknown_keys` | every script key the dataset carries that the item key table does not cover, so it is kept as a raw string — weapon and clothing keys ride along on fluid-container items, and `DisplayName`, `ColorReference`, `alcohol` and the `Poison` block are the fluid files' own. Two entries are listed without being raw: the component's `Capacity` and `fluid`, which never reach a `props_raw` because the dataset types them itself into `fluid_capacity` and `fluid_ids`; they are listed because the **key** is outside the item table, not because the value stayed a string |
 | `unresolved_links` | `{item, key, target}` for every `ReplaceOnCooked` / `ReplaceOnRotten` / `ReplaceOnUse` / `ReplaceOnDeplete` target that is not a record of this dataset — mostly pans and empty containers, plus `Base.HotDrinkRed` → `Base.MugRed`, which 42.20.4 names but never defines |
 | `missing_display_names` | ids with no EN name; a fluid appears as `fluid:<id>` |
 | `unresolved_fluid_refs` | `{item, fluid_id}` for a `Fluids.fluid` naming a fluid no file defines (empty in 42.20.4) |
 
-`ReplaceOnDeplete` has no column of its own — it is read for
-`unresolved_links` and kept verbatim in `props_raw`.
+All four `ReplaceOn*` keys — `ReplaceOnCooked`, `ReplaceOnRotten`,
+`ReplaceOnUse`, `ReplaceOnDeplete` — have a column of their own and are
+resolved against the dataset's own ids, so a row shows the link and `meta`
+shows the miss. Each is kept verbatim in `props_raw` as well.

@@ -236,20 +236,9 @@ def _one(text, kind, path=""):
     return hits[0]
 
 
-def _named(block, name):
-    return [b for b in block["blocks"] if b["name"] == name][0]
-
-
-def _values(block, key):
-    """Every value written to `key` in this block, in file order (see F2 / `entries`)."""
-    return [raw for k, raw in block["entries"] if k == key]
-
-
-def _pairs(blocks, parent=None):
-    """Yield (parent_block_or_None, block) depth-first, so a test can assert real parenthood."""
-    for block in blocks:
-        yield parent, block
-        yield from _pairs(block["blocks"], block)
+# The block readers are the module's own, under their own names: a test that kept private copies
+# would be asserting against the copies rather than against the API the tool and slice 06 use.
+named, values, walk = food_scan.named, food_scan.values, food_scan.walk
 
 
 def test_flat_item_block_parses():
@@ -283,7 +272,7 @@ def test_bool_is_only_the_literal_true():
 
 def test_int_typed_key_with_a_float_literal():
     """The fluid files write `-10.0` into keys the item table types int - 141 such values."""
-    properties = _named(_one(COLA, "fluid"), "Properties")
+    properties = named(_one(COLA, "fluid"), "Properties")
     assert properties["props"]["UnhappyChange"] == "-10.0"          # raw, straight off the line
     unhappy = food_scan.coerce("UnhappyChange", properties["props"]["UnhappyChange"])
     assert unhappy == -10 and isinstance(unhappy, int)              # not the string "-10.0"
@@ -328,17 +317,17 @@ def test_fluid_block_properties():
     cola = _one(COLA, "fluid")
     assert cola["name"] == "Cola"
     assert [b["name"] for b in cola["blocks"]] == ["Categories", "Properties"]
-    assert _named(cola, "Properties")["props"]["Calories"] == "400.0"
-    assert _named(cola, "Categories")["lines"] == ["Beverage"]
-    assert _named(cola, "Categories")["props"] == {}
-    assert _named(cola, "Categories")["entries"] == []
+    assert named(cola, "Properties")["props"]["Calories"] == "400.0"
+    assert named(cola, "Categories")["lines"] == ["Beverage"]
+    assert named(cola, "Categories")["props"] == {}
+    assert named(cola, "Categories")["entries"] == []
 
 
 def test_repeated_key_kept_in_entries():
     """`item HairDyeCommon` writes 8 `fluid =` lines into one `Fluids` block; props keeps 1."""
     hairdye = _one(HAIRDYE, "item")
-    fluids = _named(hairdye["blocks"][0], "Fluids")
-    fluid_values = _values(fluids, "fluid")
+    fluids = named(hairdye["blocks"][0], "Fluids")
+    fluid_values = values(fluids, "fluid")
     assert len(fluid_values) == 8
     assert fluid_values[0] == "HairDye:1.0:0.1:0.09:0.08"          # file order is preserved
     assert fluid_values[3] == "HairDye:1.0:0.62:0.42:0.17"
@@ -348,13 +337,31 @@ def test_repeated_key_kept_in_entries():
     assert fluids["lines"] == []                                   # they are props, not junk lines
 
 
+def test_values_matches_keys_the_way_the_loader_does():
+    """`values` is `entries` filtered by an equalsIgnoreCase key match, in file order."""
+    pool = named(_one(HAIRDYE, "item")["blocks"][0], "Fluids")
+    eight = ["HairDye:1.0:0.1:0.09:0.08", "HairDye:1.0:0.83:0.67:0.27",
+             "HairDye:1.0:0.74:0.35:0.13", "HairDye:1.0:0.62:0.42:0.17",
+             "HairDye:1.0:0.4:0.26:0.09", "HairDye:1.0:1.0:0.84:0.45",
+             "HairDye:1.0:0.59:0.23:0.03", "HairDye:1.0:1.0:0.18:0.4"]
+    assert values(pool, "fluid") == eight                  # all 8, in file order
+    assert values(pool, "FLUID") == eight                  # the key is matched case-insensitively
+    assert values(pool, "fluids") == []                    # a key this block never writes
+    # …including a case-variant *in the file*: one `Fluid =` line joins the other seven
+    variant = HAIRDYE.replace("fluid = HairDye:1.0:0.4", "Fluid = HairDye:1.0:0.4")
+    assert values(named(_one(variant, "item")["blocks"][0], "Fluids"), "fluid") == eight
+    # a known key matches through canonical_key, so either spelling of it finds the other's line
+    properties = named(_one(COLA, "fluid"), "Properties")
+    assert values(properties, "FatigueChange") == ["-2.0"] == values(properties, "fatigueChange")
+
+
 def test_repeated_soundmap_kept():
     """`item HandTorch` maps two sounds; the doc's table counts both."""
     torch = _one(HANDTORCH, "item")
-    assert _values(torch, "SoundMap") == ["Activate FlashlightOn", "Deactivate FlashlightOff"]
+    assert values(torch, "SoundMap") == ["Activate FlashlightOn", "Deactivate FlashlightOff"]
     assert torch["props"]["SoundMap"] == "Deactivate FlashlightOff"
     assert len(torch["entries"]) == len(torch["props"]) + 1        # exactly one collapsed repeat
-    assert food_scan.coerce("SoundMap", _values(torch, "SoundMap")[0]) == ["Activate FlashlightOn"]
+    assert food_scan.coerce("SoundMap", values(torch, "SoundMap")[0]) == ["Activate FlashlightOn"]
 
 
 def test_multi_word_block_name():
@@ -368,7 +375,7 @@ def test_multi_word_block_name():
     assert module["lines"] == []               # the header is not mis-filed as a line of the module
     assert [b["name"] for b in module["blocks"]] == ["Stir fry"]
     # the converse: a line no `{` follows stays a line even though it looks like `kind name`
-    assert _named(_one(MAKETOAST, "craftRecipe"), "outputs")["lines"] == ["item 1 Base.Toast"]
+    assert named(_one(MAKETOAST, "craftRecipe"), "outputs")["lines"] == ["item 1 Base.Toast"]
 
 
 def test_absent_key_is_absent_not_zero():
@@ -393,8 +400,8 @@ def test_recipe_io_lines_kept():
     recipe = _one(MAKETOAST, "craftRecipe")
     assert recipe["name"] == "MakeToast"
     assert recipe["props"]["time"] == "20"
-    assert _named(recipe, "inputs")["lines"] == ["item 1 [Base.BreadSlices] flags[ItemCount]"]
-    assert _named(recipe, "outputs")["lines"] == ["item 1 Base.Toast"]
+    assert named(recipe, "inputs")["lines"] == ["item 1 [Base.BreadSlices] flags[ItemCount]"]
+    assert named(recipe, "outputs")["lines"] == ["item 1 Base.Toast"]
 
 
 def test_same_line_brace_header():
@@ -403,7 +410,7 @@ def test_same_line_brace_header():
     recipe = _one(same_line, "craftRecipe")
     assert recipe["line"] == 3
     assert recipe["props"]["time"] == "20"
-    assert _named(recipe, "inputs")["lines"] == ["item 1 [Base.BreadSlices] flags[ItemCount]"]
+    assert named(recipe, "inputs")["lines"] == ["item 1 [Base.BreadSlices] flags[ItemCount]"]
 
 
 def test_comments_stripped_without_shifting_line_numbers():
@@ -477,7 +484,7 @@ def test_real_install_counts():
     items_dir = os.path.join(SCRIPTS_ROOT, "items")
     names = sorted(f for f in os.listdir(items_dir) if f.endswith(".txt"))
     every = _roots_of(*["items/" + f for f in names])
-    containers = [(p, b) for p, b in _pairs(every)
+    containers = [(p, b) for p, b in walk(every)
                   if b["kind"] == "component" and b["name"] == "FluidContainer"]
     assert len(containers) == 133
     # nesting is real: every one of them sits inside an `item`, never at module level
@@ -491,14 +498,14 @@ def test_real_install_repeated_keys():
     normal = list(food_scan.iter_blocks(_roots_of("items/normal.txt")))
     pools = [b for b in normal if b["name"] == "Fluids"]
     assert len(pools) == 68
-    assert sum(len(_values(b, "fluid")) for b in pools) == 145      # props alone would keep 68 …
-    assert sum(1 for b in pools if len(_values(b, "fluid")) > 1) == 9   # … losing 77 lines, from 9
+    assert sum(len(values(b, "fluid")) for b in pools) == 145      # props alone would keep 68 …
+    assert sum(1 for b in pools if len(values(b, "fluid")) > 1) == 9   # … losing 77 lines, from 9
     hairdye = [b for b in normal if b["kind"] == "item" and b["name"] == "HairDyeCommon"][0]
     assert hairdye["line"] == 2653
-    assert len(_values(_named(hairdye["blocks"][0], "Fluids"), "fluid")) == 8
+    assert len(values(named(hairdye["blocks"][0], "Fluids"), "fluid")) == 8
 
     drainable = list(food_scan.iter_blocks(_roots_of("items/drainable.txt")))
-    assert sum(len(_values(b, "SoundMap")) for b in drainable) == 34   # the doc's table
+    assert sum(len(values(b, "SoundMap")) for b in drainable) == 34   # the doc's table
     assert sum(1 for b in drainable if "SoundMap" in b["props"]) == 27  # what props alone sees
 
 
@@ -590,9 +597,10 @@ HAIRDYE_FLUID = """module Base
 """                                     # fluids.txt:274-298 (the whole BlendWhiteList block
                                         # elided); it has no `Properties` -- 10 of the 61 do not
 
-# The next three are SYNTHETIC, not quoted from the install: 42.20.4 ships no such item. They
-# pin rules the shipped files never exercise -- see test_selection_rule_is_first_match_wins and
-# test_replace_links_resolve_against_the_dataset.
+# The next four are SYNTHETIC, not quoted from the install: 42.20.4 ships no such item. They
+# pin rules the shipped files never exercise -- see test_selection_rule_is_first_match_wins,
+# test_replace_links_resolve_against_the_dataset and
+# test_a_fluid_container_below_the_item_claims_nothing.
 FOOD_WITH_CONTAINER = """module Base
 {
     item TestFoodFlask
@@ -632,7 +640,30 @@ DANGLING = """module Base
         ItemType = base:drainable,
         Weight = 0.4,
         ReplaceOnUse = Base.Nowhere,
+        ReplaceOnDeplete = Base.Nowhere,
         ReplaceOnCooked = Base.Salt,
+    }
+}
+"""
+
+NESTED_CONTAINER = """module Base
+{
+    item TestRack
+    {
+        DisplayCategory = Food,
+        ItemType = base:normal,
+        Weight = 0.4,
+        component Rack
+        {
+            component FluidContainer
+            {
+                Capacity = 3.0,
+                Fluids
+                {
+                    fluid = Cola:1.0,
+                }
+            }
+        }
     }
 }
 """
@@ -705,6 +736,34 @@ def test_selection_rule_is_first_match_wins():
     # claimed by rule (a), so its own Calories stand and no fluid is joined
     assert record["nutrition_source"] == "food_keys" and record["calories"] == 11.0
     assert record["fluid_capacity"] is None and record["fluid_ids"] is None
+
+
+def test_a_fluid_container_below_the_item_claims_nothing():
+    """Rule (c) claims the component's own parent, and only when that parent is an `item`.
+
+    Synthetic: all 133 FluidContainers in 42.20.4 sit straight inside an `item`. Without the
+    `kind` guard the record minted here would be `Base.Rack` -- a component, not an item.
+    """
+    items, _fluids, _misses = _dataset({"items/normal.txt": NESTED_CONTAINER,
+                                        "fluids_Beverages.txt": COLA})
+    assert items == {}
+
+
+def test_item_type_and_fluid_are_matched_case_insensitively():
+    """`Item.DoParam` compares keys with equalsIgnoreCase; the install writes one spelling each.
+
+    Synthetic on both counts: 42.20.4 writes `ItemType` 5105 times and `fluid` 149 times and
+    never another case, so this is the guard for a mod (or a later build) that does.
+    """
+    items, _fluids, _misses = _dataset({"items/food.txt": APPLE.replace("ItemType =", "itemtype ="),
+                                        "items/normal.txt": POP2.replace("fluid =", "Fluid ="),
+                                        "fluids_Beverages.txt": COLA})
+    apple = items["Base.Apple"]
+    assert apple["kind"] == "food"                   # rule (a) claims it on the variant spelling
+    assert apple["item_type"] == "base:food"         # and the column fills through canonical_key
+    pop2 = items["Base.Pop2"]
+    assert pop2["fluid_ids"] == ["Cola"]             # rule (c) reads the pool the same way
+    assert pop2["nutrition_source"] == "fluid:Cola" and pop2["calories"] == 400.0
 
 
 def test_display_name_join_and_its_misses():
@@ -783,26 +842,33 @@ def test_csv_header_is_the_documented_schema():
         "endurance_change", "food_sickness_change", "poison_power", "alcohol_power",
         "evolved_recipe", "evolved_recipe_name", "replace_on_cooked", "replace_on_rotten",
         "replace_on_use", "on_cooked", "on_eat", "fluid_capacity", "fluid_ids", "weight",
-        "source_file", "source_line"]
-    assert len(food_scan.COLUMNS) == 47 and len(food_scan.CSV_HEADER) == 49
-    assert len(set(food_scan.CSV_HEADER)) == 49
+        "replace_on_deplete", "source_file", "source_line"]
+    assert len(food_scan.COLUMNS) == 48 and len(food_scan.CSV_HEADER) == 50
+    assert len(set(food_scan.CSV_HEADER)) == 50
+    # every `ReplaceOn*` key REPLACE_KEYS resolves has a column; `replace_on_deplete` is 48,
+    # the last of the declared columns and still ahead of the trailing source pair
+    assert food_scan.CSV_HEADER[47] == "replace_on_deplete"
+    assert all(key in food_scan._KEY_TO_COLUMN for key in food_scan.REPLACE_KEYS)
     # every column that names a script key names one the loader actually reads
     assert all(food_scan.is_known_key(key) for _name, key in food_scan.COLUMNS if key)
     items, _fluids, _misses = _dataset(SAMPLE)
     rows = _csv_rows([items[i] for i in sorted(items)])
     assert rows[0] == food_scan.CSV_HEADER and len(rows) == 1 + len(items)
-    assert all(len(row) == 49 for row in rows)
+    assert all(len(row) == 50 for row in rows)
 
 
 def test_replace_links_resolve_against_the_dataset():
     items, _fluids, misses = _dataset(SAMPLE)
     assert misses["unresolved_links"] == [
+        {"item": "Base.TestCanteen", "key": "ReplaceOnDeplete", "target": "Base.Nowhere"},
         {"item": "Base.TestCanteen", "key": "ReplaceOnUse", "target": "Base.Nowhere"}]
     # ReplaceOnCooked = Base.Salt resolves, because Salt is a record of this dataset
     assert not any(m["key"] == "ReplaceOnCooked" for m in misses["unresolved_links"])
     canteen = items["Base.TestCanteen"]
     assert canteen["replace_on_use"] == "Base.Nowhere"          # the value is kept either way
+    assert canteen["replace_on_deplete"] == "Base.Nowhere"      # column 48, resolved like the rest
     assert canteen["replace_on_cooked"] == ["Base.Salt"]        # list-typed in KEY_TYPES
+    assert items["Base.Apple"]["replace_on_deplete"] is None    # absent, never an empty string
 
 
 def test_props_raw_is_verbatim_and_keeps_repeats():
@@ -842,7 +908,7 @@ def _real_dataset():
 def test_real_dataset_counts():
     meta, items, fluids = _real_dataset()
     assert meta["counts"] == {"food": 722, "drainable": 150, "fluid_container": 133,
-                              "fluids": 61, "unresolved_links": 37}
+                              "fluids": 61, "multi_fluid_containers": 5, "unresolved_links": 37}
     assert len(items) == 1005 and len(fluids) == 61
     assert len({r["id"] for r in items}) == 1005          # the three item rules really are disjoint
     assert sum(meta["counts"][k] for k in ("food", "drainable", "fluid_container")) == len(items)
@@ -867,6 +933,13 @@ def test_real_dataset_spot_values():
     assert pop2["nutrition_source"] == "fluid:Cola" and pop2["calories"] == 400.0
     cola = {r["id"]: r for r in fluids}["Cola"]
     assert cola["calories"] == 400.0
+    # a pick-random container that lists *different* fluids reports the first one's nutrition
+    flask = by_id["Base.Flask"]
+    assert flask["fluid_ids"] == ["Gin", "Rum", "Scotch", "Vodka", "Whiskey"]
+    assert flask["nutrition_source"] == "fluid:Gin" and flask["calories"] == 2630.0
+    # column 48: a `ReplaceOnDeplete` that resolves inside the dataset is on the row as well
+    assert by_id["Base.BucketCarvedClayCement"]["replace_on_deplete"] == "Base.BucketCarved"
+    assert apple["replace_on_deplete"] is None
     # the fluid files write `foodSicknessChange`; canonical_key lands it in the item column
     assert cola["food_sickness_change"] == 0 and pop2["food_sickness_change"] == 0
     assert cola["properties_raw"]["alcohol"] == "0.0"       # no column: kept raw, flagged unknown
