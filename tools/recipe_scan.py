@@ -7,7 +7,8 @@ and writes four files:
 * **`data/recipes.{json,csv}`** -- one row per `craftRecipe` block, its inputs and outputs parsed
   line by line, and -- where every consumed item input and every output resolves to a single row
   of `data/food-items.json` -- the nutrition delta the craft moves. See `parse_io` for the
-  IO-line grammar and `nutrition_delta` for the arithmetic and its refusals.
+  IO-line grammar, `input_charge` for what one input line really takes out of the world, and
+  `nutrition_delta` for the arithmetic and its refusals.
 * **`data/recipes.json`'s `replacements`** -- every `ReplaceOn{Cooked,Rotten,Use,Deplete}` link a
   food row declares, with the delta the swap moves. See `replacements`.
 * **`data/evolved-recipes.{json,csv}`** -- the 63 `evolvedrecipe` blocks resolved to their
@@ -15,7 +16,10 @@ and writes four files:
   contributes to the dish at Cooking 0 and Cooking 10. See `resolve_arms` for the two join arms
   and `contribution` for the summation.
 
-data/README.md has the columns.
+`CSV_HEADER` / `EVOLVED_CSV_HEADER` name the flattened columns of the two CSVs; `RECORD_FIELDS`
+and `EVOLVED_RECORD_FIELDS` name the JSON records' own fields. (Slice 06's Task 5 writes the
+`data/README.md` section that documents them for a reader; until it lands those five constants
+are the reference, not a forward pointer to prose that does not exist yet.)
 
 Stdlib only. The block reader is `food_scan.parse_script` and nothing else: this tool never
 walks the DSL itself. What that parser hands over for a recipe is
@@ -43,6 +47,25 @@ Three shapes in the shipped files are worth knowing before reading the code:
   null becomes a number is a resolvable row that writes no line for one macro
   (`Base.Cornflour2` has a `HungerChange` and no `Calories`): the sum takes 0 there and the
   delta names the row and field in `absentMacros`, so the substitution is never silent.
+* **A `-` / `+` line is a SUB-LINE of the input above it**, not an input of its own.
+  `CraftRecipe.LoadIO @218-@317` attaches it to the preceding entry as its
+  `consumeFromItemScript` / `createToItemScript` and never adds it to `inputs`, and
+  `getInputCount()` is `inputs.size()` (`@0-@7 L257`). So a parsed line carries its attached
+  lines in `subLines`, `inputCount` is the loader's own count (`MakePizza` 9, not 10;
+  `MakeMilkFromPowderBucket` 2, not 3), and the CSV's `inputFluids` / `inputsRaw` still flatten
+  them so nothing is hidden from a consumer.
+* **An input line's `N` is a count of USES unless `flags[ItemCount]` says items** -- and for a
+  `Food` one use is one raw `HungerChange` point, so `item 40 [Base.MincedMeat]` is one whole
+  tub and `item 10 [Base.Icecream]` is a third of one. `input_charge` is the whole rule and
+  `.superpowers/sdd/06-recipes/q-itemcount-notes.md` is the jar read behind it.
+
+Two type universes, deliberately kept apart, because a `fluid_container` row is a vessel whose
+nutrition is its fluid's, per litre:
+
+* **`datasetTypes`** (and `meta.counts.recipesTouchingDatasetRow`, 413) -- every IO type of the
+  recipe that is a row of `data/food-items.json` **at all**, vessels included.
+* **`foodItemTypes`** (and `meta.counts.recipesTouchingFood`, 375) -- the `food` / `drainable`
+  subset of the same list, i.e. the rows a delta may actually weigh (`food_item_ids`).
 
 Counts, verified on 42.20.4 (2026-09-10): 969 `craftRecipe` blocks in 74 files, 0 legacy
 `recipe` blocks. The 202 `inputs` blocks owned by a `component CraftRecipe` (an entity's own
@@ -52,7 +75,7 @@ scripts for `mode:` or `flags[...]` sees them too. Also 63 `evolvedrecipe` block
 `EvolvedRecipe` carriers over 6902 (key, recipe) joins into 6881 ingredient rows, and 163
 `ReplaceOn*` links (3 cooked, 8 rotten, 110 use, 42 deplete).
 """
-import argparse, csv, datetime, json, os, re, sys
+import argparse, csv, datetime, json, math, os, re, sys
 
 import food_scan
 
@@ -62,6 +85,7 @@ MEDIA = food_scan.MEDIA
 BUILD = "%s (%s)" % (food_scan.BUILD, food_scan.JAR_HASH)
 SCRIPTS = "scripts"                            # under MEDIA; the whole tree is walked
 GENERATED = "scripts/generated"                # source paths are relative to here when under it
+FOOD_TXT = "items/food.txt"                    # rel path of the file `meta.foodJoinMisses` joins
 
 _REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FOOD_JSON = os.path.join(_REPO, "data", "food-items.json")
@@ -113,10 +137,20 @@ BASIS_REFUSALS = {"per_litre": "fluid-sourced", None: "no-nutrition", "": "no-nu
 # and the drainable rows, never a `fluid_container` (see `food_item_ids`).
 FOOD_KINDS = ("food", "drainable")
 
+# The one input flag that moves nutrition rather than gating or decorating: with it, each output
+# takes `1/outputCount` of the *consumed instance's* macros instead of its own script's
+# (`createOutputItems @1096-@1143 L1542-L1544` -> `Food.copyFoodFromSplit @0-@3 L2704` ->
+# `copyNutritionFromRatio @0-@86 L2677-L2685`), so the craft is a split and conserves. The
+# similarly named `InheritFoodAge` copies **age only** (`@1192-@1311 L1550-L1562`,
+# `Food.copyAgeFrom`) and is NOT this flag -- `ScoopIceCream` carries it and really does move
+# -105 kcal.
+INHERIT_FOOD_FLAG = "InheritFood"
+
 # Every field of a parsed IO line, in record order. A line that writes none of a token still
 # carries the field: null for a scalar, `[]` for a list, `false` for the `overlayMapper` flag.
 IO_FIELDS = ("kind", "amount", "variable", "types", "tags", "categories", "mode", "flags",
-             "mappers", "mapper", "overlayMapper", "extras", "consumed", "raw")
+             "mappers", "mapper", "overlayMapper", "extras", "consumed", "amountIsItemCount",
+             "amountUses", "subLines", "raw")
 
 # `(record field, script key, typer)` for the keys a field claims. Everything else a recipe
 # writes stays raw in `props` -- in 42.20.4 that is `overlayStyle`, `OnTest`, `recipeGroup`,
@@ -137,24 +171,29 @@ FIELD_KEYS = (
     ("tooltip", "Tooltip", "text"),
 )
 
-# The JSON record's field order. `foodTypes` / `delta` / `deltaReason` are the join `build` adds;
-# they are present (as null) on a record `parse_text` alone produced, so every record has every
-# field whatever built it.
+# The JSON record's field order. `datasetTypes` / `foodItemTypes` / `delta` / `deltaReason` are
+# the join `build` adds; they are present (as null) on a record `parse_text` alone produced, so
+# every record has every field whatever built it. `inputCount` and `split` are not -- they are
+# readings of the block itself, so `build_recipe` fills them and no food table is needed.
 RECORD_FIELDS = (("name", "module", "sourceFile", "sourceLine")
                  + tuple(field for field, _key, _typer in FIELD_KEYS)
-                 + ("inputs", "outputs", "itemMappers", "itemMapperPairs", "itemMapperDefaults",
-                    "overlayMapper", "props", "fluidIO", "foodTypes", "delta", "deltaReason"))
+                 + ("inputs", "inputCount", "outputs", "itemMappers", "itemMapperPairs",
+                    "itemMapperDefaults", "overlayMapper", "props", "fluidIO", "split",
+                    "datasetTypes", "foodItemTypes", "delta", "deltaReason"))
 
 # The CSV's columns: the record's own names, with the structured fields flattened. `inputsRaw` /
-# `outputsRaw` join the IO lines with ` | ` (no vanilla IO line contains a pipe), every other
-# list column joins with `;`, and the six `delta*` columns are empty when `deltaReason` says why.
+# `outputsRaw` join the IO lines with ` | ` (a parent's `subLines` follow it, so the flat file
+# still shows every line the block writes; no vanilla IO line contains a pipe), every other list
+# column joins with `;`, and the six `delta*` columns are empty when `deltaReason` says why.
+# `deltaAbsentMacros` is the delta's own `absentMacros`, so the null-for-0 substitution is
+# visible here too; the delta's `notes` and `destroyWaste` are JSON-only (a dict and a sentence).
 CSV_HEADER = ["name", "module", "category", "time", "timedAction", "tags", "skillRequired",
               "xpAward", "needToBeLearn", "autoLearnAll", "autoLearnAny", "allowBatchCraft",
               "metaRecipe", "onCreate", "tooltip", "inputTypes", "inputTags", "inputFluids",
-              "outputTypes", "itemMappers", "fluidIO", "foodTypes", "deltaCalories",
-              "deltaCarbohydrates", "deltaLipids", "deltaProteins", "deltaHungerChange",
-              "deltaThirstChange", "deltaReason", "inputsRaw", "outputsRaw", "sourceFile",
-              "sourceLine"]
+              "inputCount", "outputTypes", "itemMappers", "fluidIO", "split", "datasetTypes",
+              "foodItemTypes", "deltaCalories", "deltaCarbohydrates", "deltaLipids",
+              "deltaProteins", "deltaHungerChange", "deltaThirstChange", "deltaAbsentMacros",
+              "deltaReason", "inputsRaw", "outputsRaw", "sourceFile", "sourceLine"]
 
 _BRACKET_RE = re.compile(r"^([A-Za-z]\w*)\[(.*)\]$")     # tags[…], flags[…], variable[…]
 _TYPES_RE = re.compile(r"^\[(.*)\]$")                    # [Base.Thread;Base.Twine]
@@ -190,21 +229,31 @@ def parse_io(line):
     with the tokens after the amount in any order -- 34 distinct token shapes occur. `types` is
     the bracketed list, or an output's bare trailing token for one type (`item 1 Base.Toast`);
     `mapper` is the output form, which `parse_text` resolves to that mapper's results. A leading
-    `-` marks a fluid the craft draws off -- every one of the 55 fluid lines writes it -- but the
-    **consumption rule is the mode**: `consumed = mode != "keep"`, so a line with no mode at all
-    (an ingredient) and a `mode:destroy` line both consume, and only `mode:keep` (a tool, 1366 of
-    the 1634 modes) does not. `energy` lines, and a `fluid` line without the `-`, do not occur in
-    vanilla; a leading token that is neither `item` nor `fluid` is kept verbatim as `kind` rather
-    than guessed at. An unrecognised token lands in `extras`, so nothing is dropped in silence.
+    `-` marks a fluid the craft draws off -- every one of the 55 fluid lines writes it -- and the
+    loader reads it as a SUB-LINE of the entry above (`attach_sub_lines`), not as an input of its
+    own; the sign is stripped from `kind` and survives in `raw`. The **consumption rule is the
+    mode**: `consumed = mode != "keep"`, so a line with no mode at all (an ingredient) and a
+    `mode:destroy` line both consume, and only `mode:keep` (a tool, 1366 of the 1634 modes) does
+    not. `energy` lines, and a `fluid` line without the `-`, do not occur in vanilla; a leading
+    token that is neither `item` nor `fluid` is kept verbatim as `kind` rather than guessed at.
+    An unrecognised token lands in `extras`, so nothing is dropped in silence.
+
+    `amountIsItemCount` / `amountUses` split the amount's two readings, so the delta arithmetic
+    is auditable from the row alone: with `flags[ItemCount]` `N` counts whole items and
+    `amountUses` is null, without it `N` counts **uses** and `amountUses` is that number
+    (`consumeInputFromItems @372 L1089`: `taken = isItemCount() ? 1f : item.getCurrentUses()`).
+    Both describe the line as written -- an OUTPUT amount is always an item count whatever the
+    line's flags say (`createOutputItems @39-@116 L1408-L1418`), which is `nutrition_delta`'s
+    business and not the grammar's.
     """
     raw = line.strip()
     raw = raw[:-1].rstrip() if raw.endswith(",") else raw     # `lines` are stripped already; mods
     record = dict.fromkeys(IO_FIELDS)
     record.update({"types": [], "tags": [], "categories": [], "flags": [], "mappers": [],
-                   "extras": [], "overlayMapper": False, "raw": raw})
+                   "extras": [], "overlayMapper": False, "subLines": [], "raw": raw})
     parts = raw.split()
     head = parts[0] if parts else ""
-    record["kind"] = {"item": "item", "fluid": "fluid"}.get(head.lstrip("-"), head.lstrip("-"))
+    record["kind"] = head.lstrip("-+")
     rest = parts[1:]
     if rest and _NUMBER_RE.match(rest[0]):
         record["amount"] = float(rest[0])
@@ -229,7 +278,62 @@ def parse_io(line):
         else:
             record["extras"].append(token)
     record["consumed"] = record["mode"] != "keep"
+    record["amountIsItemCount"] = "ItemCount" in record["flags"]
+    record["amountUses"] = None if record["amountIsItemCount"] else record["amount"]
     return record
+
+
+def is_sub_line(raw):
+    """True for a `-`/`+` prefixed IO line -- one the loader hangs off the entry above it.
+
+    `CraftRecipe.LoadIO @218-@317`: a `-` line becomes the preceding entry's
+    `consumeFromItemScript` and a `+` line its `createToItemScript`; either way it is appended to
+    `ioLines` and **not** to `inputs`, so `getInputCount()` (`inputs.size()`, `@0-@7 L257`) never
+    counts it. 42.20.4 writes 55 such lines, all of them `-fluid` inside an `inputs` block.
+    """
+    return raw.lstrip().startswith(("-", "+"))
+
+
+def attach_sub_lines(lines):
+    """One side's parsed lines with every sub-line moved into the `subLines` of the line above.
+
+    A leading sub-line has nothing to attach to (none in 42.20.4) and is kept as an entry of its
+    own rather than dropped -- the loader would hang it off `inputs.get(-1)` and throw, so there
+    is no behaviour to copy and losing the line would be worse than showing it.
+    """
+    out = []
+    for line in lines:
+        if is_sub_line(line["raw"]) and out:
+            out[-1]["subLines"].append(line)
+        else:
+            out.append(line)
+    return out
+
+
+def io_lines(recipe, side):
+    """Every parsed line of one side, sub-lines included, in file order -- the flat reading.
+
+    The record nests sub-lines under their parent because that is what the loader does; a
+    consumer that just wants "every line this block writes" (the CSV's `inputsRaw`, the fluid
+    list, the type census) walks this instead of re-implementing the nesting.
+    """
+    for line in recipe[side] or ():
+        yield line
+        for sub in line["subLines"]:
+            yield sub
+
+
+def split_lines(recipe):
+    """The input lines flagged `InheritFood` -- the ones whose macros pass into the outputs.
+
+    A recipe with any of them is a **split**: each output is built from the result script and
+    then overwritten with `1/outputCount` of the consumed instance's own nutrition
+    (`createOutputItems @1096-@1143 L1542-L1544` -> `Food.copyFoodFromSplit`), so the outputs
+    add back up to exactly what the flagged input gave and the craft conserves by construction.
+    17 shipped lines carry the flag; 8 of them are on a recipe whose delta resolves.
+    """
+    return [line for line in io_lines(recipe, "inputs")
+            if INHERIT_FOOD_FLAG in line["flags"]]
 
 
 def _last(block, key):
@@ -303,7 +407,11 @@ def build_recipe(block):
         child = food_scan.named(block, side)
         # `null` is no such block (11 recipes ship none), `[]` is a block that is really empty
         # (`MakeMilkFromPowderBucket`) -- the same distinction `food_scan`'s `fluid_ids` draws.
-        record[side] = None if child is None else [parse_io(line) for line in child["lines"]]
+        record[side] = (None if child is None
+                        else attach_sub_lines([parse_io(line) for line in child["lines"]]))
+    # `getInputCount()` is `inputs.size()`, which is this list AFTER the sub-lines moved into
+    # their parents -- the number the live harness reads back (Task 4, exp06-20260910-112726).
+    record["inputCount"] = None if record["inputs"] is None else len(record["inputs"])
 
     for line in record["outputs"] or ():
         if line["mapper"] and not line["types"]:
@@ -315,7 +423,9 @@ def build_recipe(block):
                     resolved.append(result)
             line["types"] = resolved
     record["fluidIO"] = any(line["kind"] == "fluid"
-                            for line in (record["inputs"] or []) + (record["outputs"] or []))
+                            for side in ("inputs", "outputs")
+                            for line in io_lines(record, side))
+    record["split"] = bool(split_lines(record))
     return record
 
 
@@ -369,11 +479,13 @@ def delta_terms(recipe, food):
 
     A fluid line carries no macros (a fluid's nutrition is per litre of *fluid*) and a tool
     (`mode:keep`) is not consumed, so neither is a term. Everything else must resolve to one
-    food row, or it is a blocker and there is no delta at all.
+    food row, or it is a blocker and there is no delta at all. Sub-lines are walked too (they
+    are the fluid lines, so they never become terms) -- a blocker must not go unseen because the
+    loader hung it off the entry above.
     """
     terms, blockers = [], []
     for side, sign in (("inputs", -1.0), ("outputs", 1.0)):
-        for line in recipe[side] or ():
+        for line in io_lines(recipe, side):
             if line["kind"] != "item" or (sign < 0 and not line["consumed"]):
                 continue
             row, why = _line_row(line, food)
@@ -384,19 +496,112 @@ def delta_terms(recipe, food):
     return terms, blockers
 
 
+def _row_kind(row):
+    """`data/food-items.json`'s `kind` for the row, or the reading a bare macro table gets.
+
+    A caller's own table (a test fixture, the plan's contract dict) has no `kind` column. Only a
+    `Food` carries a `HungerChange` at all, so a row that writes one is read as a food and
+    anything else as a plain one-use item -- never as a drainable, which no bare table can claim.
+    """
+    kind = row.get("kind")
+    if kind is not None:
+        return kind
+    return "food" if food_value(row, "HungerChange") is not None else None
+
+
+def uses_per_item(row):
+    """`|HungerChange|` when the row's uses really are hunger points, else None.
+
+    `Food.getMaxUses @11-@23 L2210-L2214` is `baseHunger == 0 ? 1 : (int)|baseHunger * 100|` and
+    `baseHunger` is the script's `HungerChange / 100`, so one use is one raw `HungerChange` point
+    -- but a food that writes **no** `HungerChange` (or a 0 one) holds exactly one use, and its
+    uses are whole items. `|HungerChange| <= 1` lands in the same place, which is what the game's
+    own `InputScript.isUsesPartialItem @0-@85 L182-L191` says when it demands `> 1f`.
+    """
+    hunger = food_value(row, "HungerChange")
+    if hunger is None:
+        return None
+    return abs(hunger) if abs(hunger) > 1 else None
+
+
+def input_charge(line, row):
+    """What one consumed input line takes out of the world, as `(charged, wasted, notes)`.
+
+    Both numbers are multiples of the row's own per-item macros, so `charged * macros(T)` is what
+    the delta subtracts. The rule is `q-itemcount-notes.md` § What the dataset should compute,
+    which is a read of `consumeInputFromItems @372 L1089` (`taken = isItemCount() ? 1f :
+    item.getCurrentUses()`) and `processDestroyAndUsedItems @337-@490 L563-L577` ->
+    `ItemUser.UseItem @28 L37-38` -> `Food.setCurrentUses @23-@35 L2228-L2233` ->
+    `consumeHunger` -> `multiplyFoodValues(1 - consumed/|hungChange|)`:
+
+    * `flags[ItemCount]` -- `N` whole items.
+    * a `food` row whose `|HungerChange| > 1` -- `N` hunger points, so `N / |HungerChange|` of
+      one item (`item 40 [Base.MincedMeat]` is one whole tub, `item 10 [Base.Icecream]` a third).
+    * a `food` row that writes no usable `HungerChange` -- `getMaxUses` is 1, so `N` items, and
+      the note says the uses scale was unreadable rather than leaving that silent.
+    * a `drainable` row -- `N` is `N x UseDelta` of a bar and the dataset carries no `UseDelta`
+      column, so the line charges **no macros at all** and says so.
+    * anything else -- one use is the whole item, so `N` items.
+
+    `mode:destroy` then annihilates whatever is left of the items it touched
+    (`UseItem @260 L66-67` -> `RemoveItem`), so a line that charged a fraction is rounded up to
+    the whole items it destroyed and the rounding is returned as `wasted`. The `ItemCount` branch
+    already charges whole items and never wastes.
+    """
+    amount, item_id, notes = line["amount"], line["types"][0], []
+    kind = _row_kind(row)
+    if line["amountIsItemCount"]:
+        items = amount
+    elif kind == "drainable":
+        items = 0.0
+        notes.append("drainable input: %s uses are UseDelta steps of a bar, not nutrition "
+                     "(consumeInputItemUsesInternal @0-@125 L960-L988), so the line charges "
+                     "no macros" % item_id)
+    elif kind == "food" and uses_per_item(row) is not None:
+        items = amount / uses_per_item(row)
+    elif kind == "food":
+        items = amount
+        notes.append("no-hunger-scale: %s writes no usable HungerChange, so Food.getMaxUses "
+                     "(@11-@23 L2210-L2214, baseHunger == 0 ? 1) makes one use the whole item"
+                     % item_id)
+    else:
+        items = amount
+    wasted = 0.0
+    if line["mode"] == "destroy" and not line["amountIsItemCount"]:
+        # `RemoveItem` deletes the item whatever fraction of it the line paid for, so the honest
+        # figure is the whole items destroyed; at least one, since a destroy line that selected
+        # nothing could not have run. `q-itemcount-notes.md` § Open 3 is the same recommendation.
+        whole = max(float(math.ceil(round(items, 9))), 1.0)
+        if whole > items:
+            notes.append("mode:destroy on %s: the line pays for %.6g item(s) and RemoveItem "
+                         "(UseItem @260 L66-67) deletes %.6g, so the whole item is charged and "
+                         "the difference is in destroyWaste" % (item_id, items, whole))
+            wasted, items = whole - items, whole
+    return items, wasted, notes
+
+
 def nutrition_delta(recipe, food):
-    """What this craft moves: Σ(outputs × amount) − Σ(**consumed** item inputs × amount).
+    """What this craft moves: Σ(outputs × item count) − Σ(what the consumed inputs really cost).
 
     `food` is `{id: row}` -- `data/food-items.json`'s items, or any table `food_value` can read.
+    An OUTPUT's `N` is always a number of item instances (`createOutputItems @39-@116
+    L1408-L1418` loops `N` times) and each instance carries the result script's own macros; an
+    INPUT's `N` is a count of uses unless `flags[ItemCount]` says items, which is `input_charge`.
     Fluid lines carry no macros (a fluid's nutrition is per litre of *fluid*, not of the craft),
     so they are skipped; the row still says `fluidIO`. Tools (`mode:keep`) are not consumed and
     so are not weighed either.
 
-    Returns the six-macro dict plus `absentMacros`, or `{"reason", "blockers"}` when the sum
-    would have to guess: a recipe with no outputs to weigh against, a variable amount, a
-    wildcard or multi-type or tag-only line, a type no food row carries, or a row Ruling R3
-    refuses (a drink, or an item with no nutrition key at all). The reason names the offending
-    lines verbatim, so a refusal can be checked against the file without re-deriving it.
+    A **split** (an input flagged `InheritFood`) is zero by construction: the outputs are
+    overwritten with `1/outputCount` of that input's consumed macros, so the flagged input and
+    every output drop out of the sum and only any *other* consumed input can move the total.
+    Vanilla's 8 resolvable splits have no other input, so all eight are exactly 0.
+
+    Returns the six-macro dict plus `absentMacros`, `destroyWaste` and `notes`, or
+    `{"reason", "blockers"}` when the sum would have to guess: a recipe with no outputs to weigh
+    against, a variable amount, a wildcard or multi-type or tag-only line, a type no food row
+    carries, or a row Ruling R3 refuses (a drink, or an item with no nutrition key at all). The
+    reason names the offending lines verbatim, so a refusal can be checked against the file
+    without re-deriving it.
     """
     if not recipe["outputs"]:
         return {"reason": "no-outputs", "blockers": []}
@@ -405,10 +610,29 @@ def nutrition_delta(recipe, food):
         return {"reason": " ; ".join("%s: %s" % (b["why"], b["raw"]) for b in blockers),
                 "blockers": blockers}
 
-    delta, absent = {}, set()
+    split = bool(split_lines(recipe))
+    weighed, notes, wasted_any = [], set(), False
+    if split:
+        notes.add("split: an input carries %s, so each output is overwritten with 1/outputCount "
+                  "of the consumed instance's own macros (createOutputItems @1096-@1143 "
+                  "L1542-L1544 -> Food.copyFoodFromSplit @0-@3 L2704) -- that input and the "
+                  "outputs cancel and the delta is 0 by construction" % INHERIT_FOOD_FLAG)
+    for sign, line, row in terms:
+        if sign > 0:                                   # an output N is ALWAYS an item count
+            weighed.append((sign, line, row, 0.0 if split else line["amount"], 0.0))
+            continue
+        if split and INHERIT_FOOD_FLAG in line["flags"]:
+            weighed.append((sign, line, row, 0.0, 0.0))
+            continue
+        charged, wasted, line_notes = input_charge(line, row)
+        notes.update(line_notes)
+        wasted_any = wasted_any or bool(wasted)
+        weighed.append((sign, line, row, charged, wasted))
+
+    delta, absent, waste = {}, set(), {}
     for key, field in MACROS:
-        total = 0.0
-        for sign, line, row in terms:
+        total, lost = 0.0, 0.0
+        for sign, line, row, weight, wasted in weighed:
             value = food_value(row, key)
             if value is None:
                 # The row is in the dataset and carries nutrition, but writes no line for THIS
@@ -416,9 +640,15 @@ def nutrition_delta(recipe, food):
                 # the loader's own default of 0 -- and says so, per row and field.
                 absent.add("%s:%s" % (line["types"][0], field))
                 value = 0.0
-            total += sign * value * line["amount"]
+            total += sign * value * weight
+            lost += value * wasted
         delta[field] = round(total, 6)
+        waste[field] = round(lost, 6)
     delta["absentMacros"] = sorted(absent)
+    # the macros of the part `mode:destroy` threw away without spending a use on it -- null when
+    # no line wasted anything, so the field is never a row of meaningless zeroes
+    delta["destroyWaste"] = waste if wasted_any else None
+    delta["notes"] = sorted(notes)
     return delta
 
 
@@ -429,15 +659,27 @@ def load_food(path=FOOD_JSON):
     return {row["id"]: row for row in payload["items"]}, payload["meta"]
 
 
-def food_types(recipe, food):
-    """Every IO type of this recipe that is a row of the food dataset, sorted and deduplicated."""
+def dataset_types(recipe, food):
+    """Every IO type of this recipe that is a row of `data/food-items.json` **at all**.
+
+    Sorted and deduplicated, tools and multi-type alternatives included. This is the wider of
+    the module docstring's two universes: it counts a `fluid_container` row (`Base.WaterBottle`)
+    as much as an apple, so `foodItemTypes` -- not this -- is the list a nutrition question
+    wants. Was called `foodTypes` through Task 3; renamed so the two cannot be confused.
+    """
     hits = set()
     for side in ("inputs", "outputs"):
-        for line in recipe[side] or ():
+        for line in io_lines(recipe, side):
             if line["kind"] != "item":
                 continue
             hits.update(t for t in line["types"] if t in food)
     return sorted(hits)
+
+
+def food_item_types(recipe, food):
+    """`dataset_types` narrowed to the `food` / `drainable` rows -- see `food_item_ids`."""
+    items = food_item_ids(food)
+    return [t for t in dataset_types(recipe, food) if t in items]
 
 
 def food_item_ids(food):
@@ -589,7 +831,8 @@ def resolve_recipes(key, recipes):
 def contribution(item, use, level):
     """One ingredient's contribution to a dish. Formula: docs/vanilla/food-item-model.md
     § Evolved recipes (EvolvedRecipe.addItem @518-@1294 L333-L415) -- applied here, never
-    re-derived. Ignores the rotten branch (Cooking >= 7) and the spice branch (a Spice
+    re-derived, plus the one line that doc omits (`addItem`'s hunger clamp, `@934 L374-376`;
+    see `hungerClamped`). Ignores the rotten branch (Cooking >= 7) and the spice branch (a Spice
     ingredient transfers no hunger and no macros); both are flagged on the row instead.
 
     Three flags carry what the verbatim formula leaves out, so nothing is silently wrong:
@@ -600,21 +843,24 @@ def contribution(item, use, level):
       no share), or Ruling R3's refusal for a row whose `nutrition_basis` is not `per_item`
       (a per-litre drink's macros may not be shared out by an item's hunger): the macros are
       then **null**, never 0, and the hunger arithmetic still stands.
-    * `hungerClamped` -- the game clamps `hunger` down to `|HungerChange|` when the key asks for
-      more than the ingredient has (`@934 L374–376`); this formula, applied verbatim, does not.
-      At Cooking 0 the two agree (`share` caps at 1 either way); at Cooking 10 they do not, so
+    * `hungerClamped` -- `addItem @934 L374-376` clamps `hunger` down to `|HungerChange|` when
+      the key asks for more hunger than the ingredient has, **before** the skill reduction. The
+      brief's verbatim formula omits that line; fidelity to the loader wins, so the clamp is
+      applied here and the flag is kept as the record of which rows it touched. At Cooking 0 the
+      two readings agree anyway (`share` caps at 1 either way); at Cooking 10 they do not, and
       the 17 vanilla keys that over-ask -- 59 ingredient rows, `meta.counts.hungerClampRows` --
-      are marked rather than quietly re-derived. `Base.Cherry`'s `Oatmeal:5` against a hunger of
-      3 is one: `share` here is 1.0 where the game's clamp would give 0.7.
+      are the whole difference. `Base.Cherry`'s `Oatmeal:5` against a hunger of 3 is one:
+      `share` is 0.7 at Cooking 10, where the unclamped formula said 1.0.
     """
-    hunger = use / 100.0
-    after = hunger * (1.0 - 0.03 * level)
     hung = abs((food_value(item, "HungerChange") or 0.0) / 100.0)
+    asked = use / 100.0
+    clamped = bool(hung) and asked > hung
+    hunger = hung if clamped else asked        # addItem @934 L374-376, before the skill cut
+    after = hunger * (1.0 - 0.03 * level)
     share = min(abs(after / hung), 1.0) if hung else 0.0
     bonus = 1.0 + level / 15.0
     out = {"use": use, "hunger": hunger, "hungerAfterSkill": after,
-           "share": share, "skillBonus": bonus,
-           "hungerClamped": bool(hung) and hunger > hung,
+           "share": share, "skillBonus": bonus, "hungerClamped": clamped,
            "spice": bool(food_value(item, "Spice")), "reason": None, "note": None}
     if not hung:
         out["reason"] = "no hunger"
@@ -917,10 +1163,12 @@ def _calories_absent_on_every_side(recipe, food):
 def build(recipes, food):
     """Join the food dataset onto parsed recipes and sort by name -- the committed row order."""
     out = sorted(recipes, key=lambda r: r["name"])
+    items = food_item_ids(food)
     for record in out:
-        record["foodTypes"] = food_types(record, food)
+        record["datasetTypes"] = dataset_types(record, food)
+        record["foodItemTypes"] = [t for t in record["datasetTypes"] if t in items]
         delta = nutrition_delta(record, food)
-        if delta is not None and "reason" in delta:
+        if "reason" in delta:                         # `nutrition_delta` always returns a dict
             record["delta"], record["deltaReason"] = None, delta["reason"]
         else:
             record["delta"], record["deltaReason"] = delta, None
@@ -938,7 +1186,7 @@ def scan(root=MEDIA):
     generated_root = os.path.join(root, *GENERATED.split("/"))
     recipes, files = [], set()
     census = {"scriptFiles": 0, "legacyRecipeBlocks": 0, "itemMappers": 0, "overlayMappers": 0,
-              "componentCraftRecipes": 0, "outputMapperIssues": []}
+              "componentCraftRecipes": 0, "outputMapperIssues": [], "foodTxtItemIds": set()}
     for dirpath, _dirs, names in os.walk(scripts_root):
         for name in sorted(names):
             if not name.endswith(".txt"):
@@ -950,6 +1198,10 @@ def scan(root=MEDIA):
             with open(path, encoding="utf-8", errors="replace") as handle:
                 blocks = food_scan.parse_script(handle.read(), rel)
             for block in food_scan.iter_blocks(blocks):
+                if rel == FOOD_TXT and block["kind"] == "item":
+                    # the join universe of `foodJoinMisses`: every id `items/food.txt` defines,
+                    # whether or not `tools/food_scan.py` kept a row for it
+                    census["foodTxtItemIds"].add("%s.%s" % (block["module"], block["name"]))
                 if block["kind"] == "recipe":            # the B41 form; the loader still reads it
                     census["legacyRecipeBlocks"] += 1
                 elif block["kind"] == "component" and block["name"] == "CraftRecipe":
@@ -974,6 +1226,7 @@ def scan(root=MEDIA):
     census["fileList"] = sorted(files)
     census["files"] = len(files)
     census["outputMapperIssues"].sort(key=lambda m: (m["recipe"], m["mapper"]))
+    census["foodTxtItemIds"] = sorted(census["foodTxtItemIds"])
     return recipes, census
 
 
@@ -983,10 +1236,16 @@ def build_dataset(root=MEDIA, food_path=FOOD_JSON):
     parsed, census = scan(root)
     recipes = build(parsed, food)
 
-    output_types = sorted({t for r in recipes for line in (r["outputs"] or [])
+    output_types = sorted({t for r in recipes for line in io_lines(r, "outputs")
                            if line["kind"] == "item" for t in line["types"]})
     food_items = food_item_ids(food)
     with_delta = [r for r in recipes if r["delta"] is not None]
+    # Acceptance 3: an output type that `items/food.txt` really defines but `data/food-items.json`
+    # carries no row for -- the join between the two datasets, checked rather than assumed. A
+    # miss would mean the food scan dropped an item this scan can name, so the expected list is
+    # empty; it is emitted whether or not it is, beside `outputMapperIssues`.
+    food_txt_ids = set(census["foodTxtItemIds"])
+    food_join_misses = [t for t in output_types if t in food_txt_ids and t not in food]
     counts = {
         "craftRecipes": len(recipes),
         "files": census["files"],
@@ -1004,13 +1263,17 @@ def build_dataset(root=MEDIA, food_path=FOOD_JSON):
         "outputItemTypes": len(output_types),
         "outputItemTypesInDataset": sum(1 for t in output_types if t in food),
         "outputItemTypesInFoodDataset": sum(1 for t in output_types if t in food_items),
-        # a recipe "touches" a food item when any item line on either side names one, tools and
-        # multi-type alternatives included; `recipesWithFoodOutput` is the outputs-only subset
-        "recipesTouchingFood": sum(1 for r in recipes
-                                   if any(t in food_items for t in r["foodTypes"])),
+        # a recipe "touches" a row when any item line on either side names one, tools and
+        # multi-type alternatives included. The two universes of the module docstring:
+        # `recipesTouchingDatasetRow` counts `datasetTypes` (vessels included),
+        # `recipesTouchingFood` the `food`/`drainable` subset `foodItemTypes`;
+        # `recipesWithFoodOutput` is the outputs-only slice of the latter
+        "recipesTouchingDatasetRow": sum(1 for r in recipes if r["datasetTypes"]),
+        "recipesTouchingFood": sum(1 for r in recipes if r["foodItemTypes"]),
         "recipesWithFoodOutput": sum(1 for r in recipes if any(
-            t in food_items for line in (r["outputs"] or []) if line["kind"] == "item"
+            t in food_items for line in io_lines(r, "outputs") if line["kind"] == "item"
             for t in line["types"])),
+        "foodJoinMisses": len(food_join_misses),
         "recipesWithDelta": len(with_delta),
         "recipesWithNonZeroCalorieDelta": sum(1 for r in with_delta if r["delta"]["calories"]),
         # of the zero-calorie deltas, those whose zero is `absentMacros`' substitution rather
@@ -1018,6 +1281,14 @@ def build_dataset(root=MEDIA, food_path=FOOD_JSON):
         "recipesWithCaloriesAbsentOnEverySide": sum(
             1 for r in with_delta if not r["delta"]["calories"]
             and _calories_absent_on_every_side(r, food)),
+        # a craft whose output is `1/outputCount` of the input it consumed (`InheritFood`), so
+        # its delta is 0 by construction -- see `split_lines`
+        "splitRecipes": sum(1 for r in recipes if r["split"]),
+        "splitRecipesWithDelta": sum(1 for r in with_delta if r["split"]),
+        "recipesWithDestroyWaste": sum(1 for r in with_delta
+                                       if r["delta"]["destroyWaste"] is not None),
+        "inputSubLines": sum(len(line["subLines"]) for r in recipes
+                             for line in (r["inputs"] or [])),
     }
     meta = {
         "build": BUILD,
@@ -1036,6 +1307,7 @@ def build_dataset(root=MEDIA, food_path=FOOD_JSON):
         },
         "counts": counts,
         "outputMapperIssues": census["outputMapperIssues"],
+        "foodJoinMisses": food_join_misses,
     }
     return meta, recipes
 
@@ -1054,21 +1326,26 @@ def _cell(value):
 
 
 def _side_values(recipe, side, field):
-    """Sorted distinct `field` values over one side's item lines."""
+    """Sorted distinct `field` values over one side's item lines, sub-lines included."""
     out = set()
-    for line in recipe[side] or ():
+    for line in io_lines(recipe, side):
         if line["kind"] == "item":
             out.update(line[field])
     return sorted(out)
 
 
 def _fluids(recipe):
-    """A fluid line's ids, plus `category:<Name>` for a line that names categories instead."""
+    """A fluid line's ids, plus `category:<Name>` for a line that names categories instead.
+
+    Every vanilla fluid line is a `-fluid` sub-line of the input above it, so this walks the
+    flat reading -- the CSV's `inputFluids` column is unchanged by the nesting.
+    """
     out = set()
-    for line in (recipe["inputs"] or []) + (recipe["outputs"] or []):
-        if line["kind"] == "fluid":
-            out.update(line["types"])
-            out.update("category:" + c for c in line["categories"])
+    for side in ("inputs", "outputs"):
+        for line in io_lines(recipe, side):
+            if line["kind"] == "fluid":
+                out.update(line["types"])
+                out.update("category:" + c for c in line["categories"])
     return sorted(out)
 
 
@@ -1082,8 +1359,10 @@ def csv_row(recipe):
         "inputFluids": _fluids(recipe),
         "outputTypes": _side_values(recipe, "outputs", "types"),
         "itemMappers": sorted(recipe["itemMappers"]),
-        "inputsRaw": " | ".join(line["raw"] for line in recipe["inputs"] or ()),
-        "outputsRaw": " | ".join(line["raw"] for line in recipe["outputs"] or ()),
+        # the flat reading, so a sub-line follows the input it hangs off and no line is hidden
+        "inputsRaw": " | ".join(line["raw"] for line in io_lines(recipe, "inputs")),
+        "outputsRaw": " | ".join(line["raw"] for line in io_lines(recipe, "outputs")),
+        "deltaAbsentMacros": delta.get("absentMacros"),
     })
     for _key, field in MACROS:
         row["delta" + field[0].upper() + field[1:]] = delta.get(field)
@@ -1153,6 +1432,9 @@ def main(argv):
     ap.add_argument("--out-dir", default=OUT_DIR, metavar="DIR",
                     help="directory the recipes / evolved-recipes datasets are written to")
     ns = ap.parse_args(argv)
+    # the four writers below all assume the directory is there; a `--out-dir` that names a fresh
+    # path is a normal thing to ask for, not an error to raise after the whole scan has run
+    os.makedirs(ns.out_dir, exist_ok=True)
     food, _food_meta = load_food(ns.food)
     links = replacements(food)
     meta, recipes = build_dataset(ns.root, ns.food)
@@ -1176,6 +1458,8 @@ def main(argv):
              counts["recipesTouchingFood"]))
     print("%d recipes carry a nutrition delta, %d of them non-zero in calories"
           % (counts["recipesWithDelta"], counts["recipesWithNonZeroCalorieDelta"]))
+    print("%d splits (delta 0 by construction), %d input sub-lines attached, %d food join misses"
+          % (counts["splitRecipes"], counts["inputSubLines"], counts["foodJoinMisses"]))
     print("%d recipes, %d columns -> %s" % (len(recipes), len(CSV_HEADER), out_csv))
     print("%d recipes -> %s" % (len(recipes), out_json))
     evo = evo_meta["counts"]

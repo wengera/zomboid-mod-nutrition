@@ -2,7 +2,7 @@ recipe,resultItem,item,use,requiresCooked,spice,share0,kcal0,carbs0,lipids0,prot
 AddBaitToChum,Base.Chum,Base.AmericanLadyCaterpillar,1,false,false,1.0,27.0,3.0,20.24,27.55,0.7,31.5
 AddBaitToChum,Base.Chum,Base.Baguette,10,false,false,0.434783,231.304348,43.043478,2.895652,7.695652,0.304348,269.855072
 AddBaitToChum,Base.Chum,Base.BaguetteDough,10,false,false,0.666667,354.666667,66.0,4.44,11.8,0.466667,413.777778
-AddBaitToChum,Base.Chum,Base.BaitFish,5,false,false,1.0,30.0,0.0,1.5,8.52,1.0,50.0
+AddBaitToChum,Base.Chum,Base.BaitFish,5,false,false,1.0,30.0,0.0,1.5,8.52,0.7,35.0
 AddBaitToChum,Base.Chum,Base.BandedWoolyBearCaterpillar,1,false,false,1.0,27.0,3.0,20.24,27.55,0.7,31.5
 AddBaitToChum,Base.Chum,Base.Beef,20,false,false,0.25,110.0,0.0,4.675,15.655,0.175,128.333333
 AddBaitToChum,Base.Chum,Base.Bread,10,false,false,0.333333,177.333333,33.0,2.22,5.9,0.233333,206.888889
@@ -20,7 +20,7 @@ AddBaitToChum,Base.Chum,Base.FishFillet,25,false,false,1.0,205.0,1.0,12.0,28.52,
 AddBaitToChum,Base.Chum,Base.FishGuts,5,false,false,1.0,0.0,0.0,0.0,0.0,0.7,0.0
 AddBaitToChum,Base.Chum,Base.FrogMeat,8,false,false,0.8,52.8,0.0,0.224,11.68,0.56,61.6
 AddBaitToChum,Base.Chum,Base.Grasshopper,1,false,false,1.0,25.0,3.0,0.24,5.55,0.7,29.166667
-AddBaitToChum,Base.Chum,Base.Leech,2,false,false,1.0,90.0,2.11,1.9,17.41,1.0,150.0
+AddBaitToChum,Base.Chum,Base.Leech,2,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 AddBaitToChum,Base.Chum,Base.Maggots,1,false,false,1.0,1.5,0.0,0.05,0.25,0.7,1.75
 AddBaitToChum,Base.Chum,Base.MeatPatty,30,false,false,0.75,459.0,0.0,22.5,34.5,0.525,535.5
 AddBaitToChum,Base.Chum,Base.Millipede,1,false,false,1.0,60.0,3.5,6.5,15.21,0.7,70.0
@@ -37,7 +37,7 @@ AddBaitToChum,Base.Chum,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.
 AddBaitToChum,Base.Chum,Base.Snail,1,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 AddBaitToChum,Base.Chum,Base.Steak,20,false,false,0.5,110.0,0.0,4.675,15.81,0.35,128.333333
 AddBaitToChum,Base.Chum,Base.SwallowtailCaterpillar,1,false,false,1.0,27.0,3.0,20.24,27.55,0.7,31.5
-AddBaitToChum,Base.Chum,Base.Tadpole,2,false,false,1.0,90.0,2.11,1.9,17.41,1.0,150.0
+AddBaitToChum,Base.Chum,Base.Tadpole,2,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 AddBaitToChum,Base.Chum,Base.Termites,1,false,false,1.0,2.5,0.0,0.5,0.5,0.7,2.916667
 AddBaitToChum,Base.Chum,Base.Venison,20,false,false,0.25,110.0,0.0,4.675,15.655,0.175,128.333333
 AddBaitToChum,Base.Chum,Base.Worm,1,false,false,1.0,3.0,0.0,0.1,0.5,0.7,3.5
@@ -1554,7 +1554,7 @@ Oatmeal,Base.Oatmeal,Base.CannedFruitCocktailOpen,5,false,false,0.333333,83.3333
 Oatmeal,Base.Oatmeal,Base.CannedMilkOpen,2,false,false,0.2,94.4,4.72,4.72,4.72,0.14,110.133333
 Oatmeal,Base.Oatmeal,Base.CannedPeachesOpen,5,false,false,0.333333,83.333333,0.0,8.0,3.333333,0.233333,97.222222
 Oatmeal,Base.Oatmeal,Base.CannedPineappleOpen,5,false,false,0.333333,83.333333,0.0,8.0,3.333333,0.233333,97.222222
-Oatmeal,Base.Oatmeal,Base.Cherry,5,false,false,1.0,5.0,1.31,0.0,0.09,1.0,8.333333
+Oatmeal,Base.Oatmeal,Base.Cherry,5,false,false,1.0,5.0,1.31,0.0,0.09,0.7,5.833333
 Oatmeal,Base.Oatmeal,Base.Cinnamon,1,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Oatmeal,Base.Oatmeal,Base.DriedApricots,8,false,false,0.5,120.5,31.3,0.25,1.7,0.35,140.583333
 Oatmeal,Base.Oatmeal,Base.HollyBerry,5,false,false,0.5,11.5,2.5,0.0,2.0,0.35,13.416667
@@ -2876,7 +2876,7 @@ RicePan,Base.RicePan,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0
 RicePan,Base.RicePan,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 RicePan,Base.RicePan,Base.SourCream,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePan,Base.RicePan,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-RicePan,Base.RicePan,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+RicePan,Base.RicePan,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 RicePan,Base.RicePan,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePan,Base.RicePan,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 RicePan,Base.RicePan,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -3028,7 +3028,7 @@ RicePanCopper,Base.RicePanCopper,Base.Smallanimalmeat,15,false,false,1.0,201.0,5
 RicePanCopper,Base.RicePanCopper,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 RicePanCopper,Base.RicePanCopper,Base.SourCream,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePanCopper,Base.RicePanCopper,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-RicePanCopper,Base.RicePanCopper,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+RicePanCopper,Base.RicePanCopper,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 RicePanCopper,Base.RicePanCopper,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePanCopper,Base.RicePanCopper,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 RicePanCopper,Base.RicePanCopper,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -3180,7 +3180,7 @@ RicePot,Base.RicePot,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0
 RicePot,Base.RicePot,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 RicePot,Base.RicePot,Base.SourCream,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePot,Base.RicePot,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-RicePot,Base.RicePot,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+RicePot,Base.RicePot,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 RicePot,Base.RicePot,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePot,Base.RicePot,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 RicePot,Base.RicePot,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -3332,7 +3332,7 @@ RicePotForged,Base.RicePotForged,Base.Smallanimalmeat,15,false,false,1.0,201.0,5
 RicePotForged,Base.RicePotForged,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 RicePotForged,Base.RicePotForged,Base.SourCream,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePotForged,Base.RicePotForged,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-RicePotForged,Base.RicePotForged,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+RicePotForged,Base.RicePotForged,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 RicePotForged,Base.RicePotForged,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 RicePotForged,Base.RicePotForged,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 RicePotForged,Base.RicePotForged,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -3507,7 +3507,7 @@ Roasted Vegetables,Base.PanFriedVegetables2,Base.Smallanimalmeat,15,false,false,
 Roasted Vegetables,Base.PanFriedVegetables2,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Roasted Vegetables,Base.PanFriedVegetables2,Base.Snail,1,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 Roasted Vegetables,Base.PanFriedVegetables2,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Roasted Vegetables,Base.PanFriedVegetables2,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+Roasted Vegetables,Base.PanFriedVegetables2,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 Roasted Vegetables,Base.PanFriedVegetables2,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Roasted Vegetables,Base.PanFriedVegetables2,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Roasted Vegetables,Base.PanFriedVegetables2,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
@@ -4368,7 +4368,7 @@ Soup,Base.PotOfSoupRecipe,Base.Lime,10,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Soup,Base.PotOfSoupRecipe,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 Soup,Base.PotOfSoupRecipe,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 Soup,Base.PotOfSoupRecipe,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-Soup,Base.PotOfSoupRecipe,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+Soup,Base.PotOfSoupRecipe,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 Soup,Base.PotOfSoupRecipe,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
 Soup,Base.PotOfSoupRecipe,Base.MushroomGeneric1,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 Soup,Base.PotOfSoupRecipe,Base.MushroomGeneric2,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
@@ -4432,8 +4432,8 @@ Soup,Base.PotOfSoupRecipe,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7.0,1
 Soup,Base.PotOfSoupRecipe,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 Soup,Base.PotOfSoupRecipe,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Soup,Base.PotOfSoupRecipe,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Soup,Base.PotOfSoupRecipe,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-Soup,Base.PotOfSoupRecipe,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+Soup,Base.PotOfSoupRecipe,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+Soup,Base.PotOfSoupRecipe,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 Soup,Base.PotOfSoupRecipe,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Soup,Base.PotOfSoupRecipe,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 Soup,Base.PotOfSoupRecipe,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -4561,7 +4561,7 @@ Soup2,Base.PotOfSoup,Base.Lime,10,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Soup2,Base.PotOfSoup,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 Soup2,Base.PotOfSoup,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 Soup2,Base.PotOfSoup,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-Soup2,Base.PotOfSoup,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+Soup2,Base.PotOfSoup,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 Soup2,Base.PotOfSoup,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
 Soup2,Base.PotOfSoup,Base.MushroomGeneric1,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 Soup2,Base.PotOfSoup,Base.MushroomGeneric2,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
@@ -4625,8 +4625,8 @@ Soup2,Base.PotOfSoup,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7.0,15.0,0
 Soup2,Base.PotOfSoup,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 Soup2,Base.PotOfSoup,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Soup2,Base.PotOfSoup,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Soup2,Base.PotOfSoup,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-Soup2,Base.PotOfSoup,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+Soup2,Base.PotOfSoup,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+Soup2,Base.PotOfSoup,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 Soup2,Base.PotOfSoup,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Soup2,Base.PotOfSoup,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 Soup2,Base.PotOfSoup,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -4754,7 +4754,7 @@ SoupBucket,Base.BucketOfSoup,Base.Lime,10,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 SoupBucket,Base.BucketOfSoup,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 SoupBucket,Base.BucketOfSoup,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 SoupBucket,Base.BucketOfSoup,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-SoupBucket,Base.BucketOfSoup,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+SoupBucket,Base.BucketOfSoup,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 SoupBucket,Base.BucketOfSoup,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
 SoupBucket,Base.BucketOfSoup,Base.MushroomGeneric1,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 SoupBucket,Base.BucketOfSoup,Base.MushroomGeneric2,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
@@ -4818,8 +4818,8 @@ SoupBucket,Base.BucketOfSoup,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7.
 SoupBucket,Base.BucketOfSoup,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 SoupBucket,Base.BucketOfSoup,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 SoupBucket,Base.BucketOfSoup,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-SoupBucket,Base.BucketOfSoup,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-SoupBucket,Base.BucketOfSoup,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+SoupBucket,Base.BucketOfSoup,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+SoupBucket,Base.BucketOfSoup,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 SoupBucket,Base.BucketOfSoup,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 SoupBucket,Base.BucketOfSoup,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 SoupBucket,Base.BucketOfSoup,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -4947,7 +4947,7 @@ SoupBucket2,Base.BucketOfSoup,Base.Lime,10,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.
 SoupBucket2,Base.BucketOfSoup,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 SoupBucket2,Base.BucketOfSoup,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 SoupBucket2,Base.BucketOfSoup,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-SoupBucket2,Base.BucketOfSoup,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+SoupBucket2,Base.BucketOfSoup,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 SoupBucket2,Base.BucketOfSoup,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
 SoupBucket2,Base.BucketOfSoup,Base.MushroomGeneric1,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 SoupBucket2,Base.BucketOfSoup,Base.MushroomGeneric2,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
@@ -5011,8 +5011,8 @@ SoupBucket2,Base.BucketOfSoup,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7
 SoupBucket2,Base.BucketOfSoup,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 SoupBucket2,Base.BucketOfSoup,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 SoupBucket2,Base.BucketOfSoup,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-SoupBucket2,Base.BucketOfSoup,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-SoupBucket2,Base.BucketOfSoup,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+SoupBucket2,Base.BucketOfSoup,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+SoupBucket2,Base.BucketOfSoup,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 SoupBucket2,Base.BucketOfSoup,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 SoupBucket2,Base.BucketOfSoup,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 SoupBucket2,Base.BucketOfSoup,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -5140,7 +5140,7 @@ SoupForged,Base.PotForgedSoupRecipe,Base.Lime,10,false,true,0.0,0.0,0.0,0.0,0.0,
 SoupForged,Base.PotForgedSoupRecipe,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 SoupForged,Base.PotForgedSoupRecipe,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 SoupForged,Base.PotForgedSoupRecipe,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-SoupForged,Base.PotForgedSoupRecipe,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+SoupForged,Base.PotForgedSoupRecipe,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 SoupForged,Base.PotForgedSoupRecipe,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
 SoupForged,Base.PotForgedSoupRecipe,Base.MushroomGeneric1,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 SoupForged,Base.PotForgedSoupRecipe,Base.MushroomGeneric2,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
@@ -5204,8 +5204,8 @@ SoupForged,Base.PotForgedSoupRecipe,Base.ShrimpDumpling,15,false,false,1.0,120.0
 SoupForged,Base.PotForgedSoupRecipe,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 SoupForged,Base.PotForgedSoupRecipe,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 SoupForged,Base.PotForgedSoupRecipe,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-SoupForged,Base.PotForgedSoupRecipe,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-SoupForged,Base.PotForgedSoupRecipe,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+SoupForged,Base.PotForgedSoupRecipe,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+SoupForged,Base.PotForgedSoupRecipe,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 SoupForged,Base.PotForgedSoupRecipe,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 SoupForged,Base.PotForgedSoupRecipe,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 SoupForged,Base.PotForgedSoupRecipe,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -5340,7 +5340,7 @@ Stew,Base.PotOfStew,Base.LemonGrass,1,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Stew,Base.PotOfStew,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 Stew,Base.PotOfStew,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 Stew,Base.PotOfStew,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-Stew,Base.PotOfStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+Stew,Base.PotOfStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 Stew,Base.PotOfStew,Base.MeatPatty,20,false,false,0.5,306.0,0.0,15.0,23.0,0.35,357.0
 Stew,Base.PotOfStew,Base.MincedMeat,20,false,false,0.5,150.0,0.0,15.0,23.0,0.35,175.0
 Stew,Base.PotOfStew,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
@@ -5351,7 +5351,7 @@ Stew,Base.PotOfStew,Base.MushroomGeneric4,13,false,false,1.0,30.0,2.12,0.24,2.04
 Stew,Base.PotOfStew,Base.MushroomGeneric5,15,false,false,1.0,32.0,2.56,0.32,2.36,0.7,37.333333
 Stew,Base.PotOfStew,Base.MushroomGeneric6,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 Stew,Base.PotOfStew,Base.MushroomGeneric7,13,false,false,1.0,32.0,2.12,0.24,2.04,0.7,37.333333
-Stew,Base.PotOfStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,1.0,25.0
+Stew,Base.PotOfStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,0.7,17.5
 Stew,Base.PotOfStew,Base.MuttonChop,15,false,false,0.5,117.0,0.04,5.5,16.5,0.35,136.5
 Stew,Base.PotOfStew,Base.OilOlive,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Stew,Base.PotOfStew,Base.OilVegetable,5,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -5403,8 +5403,8 @@ Stew,Base.PotOfStew,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7.0,15.0,0.
 Stew,Base.PotOfStew,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 Stew,Base.PotOfStew,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Stew,Base.PotOfStew,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Stew,Base.PotOfStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-Stew,Base.PotOfStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+Stew,Base.PotOfStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+Stew,Base.PotOfStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 Stew,Base.PotOfStew,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Stew,Base.PotOfStew,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 Stew,Base.PotOfStew,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -5541,7 +5541,7 @@ StewBucket,Base.BucketOfStew,Base.LemonGrass,1,false,true,0.0,0.0,0.0,0.0,0.0,0.
 StewBucket,Base.BucketOfStew,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 StewBucket,Base.BucketOfStew,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 StewBucket,Base.BucketOfStew,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-StewBucket,Base.BucketOfStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+StewBucket,Base.BucketOfStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 StewBucket,Base.BucketOfStew,Base.MeatPatty,20,false,false,0.5,306.0,0.0,15.0,23.0,0.35,357.0
 StewBucket,Base.BucketOfStew,Base.MincedMeat,20,false,false,0.5,150.0,0.0,15.0,23.0,0.35,175.0
 StewBucket,Base.BucketOfStew,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
@@ -5552,7 +5552,7 @@ StewBucket,Base.BucketOfStew,Base.MushroomGeneric4,13,false,false,1.0,30.0,2.12,
 StewBucket,Base.BucketOfStew,Base.MushroomGeneric5,15,false,false,1.0,32.0,2.56,0.32,2.36,0.7,37.333333
 StewBucket,Base.BucketOfStew,Base.MushroomGeneric6,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 StewBucket,Base.BucketOfStew,Base.MushroomGeneric7,13,false,false,1.0,32.0,2.12,0.24,2.04,0.7,37.333333
-StewBucket,Base.BucketOfStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,1.0,25.0
+StewBucket,Base.BucketOfStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,0.7,17.5
 StewBucket,Base.BucketOfStew,Base.MuttonChop,15,false,false,0.5,117.0,0.04,5.5,16.5,0.35,136.5
 StewBucket,Base.BucketOfStew,Base.OilOlive,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 StewBucket,Base.BucketOfStew,Base.OilVegetable,5,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -5604,8 +5604,8 @@ StewBucket,Base.BucketOfStew,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7.
 StewBucket,Base.BucketOfStew,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 StewBucket,Base.BucketOfStew,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 StewBucket,Base.BucketOfStew,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-StewBucket,Base.BucketOfStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-StewBucket,Base.BucketOfStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+StewBucket,Base.BucketOfStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+StewBucket,Base.BucketOfStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 StewBucket,Base.BucketOfStew,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 StewBucket,Base.BucketOfStew,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 StewBucket,Base.BucketOfStew,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -5742,7 +5742,7 @@ StewBucket2,Base.BucketOfStew,Base.LemonGrass,1,false,true,0.0,0.0,0.0,0.0,0.0,0
 StewBucket2,Base.BucketOfStew,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 StewBucket2,Base.BucketOfStew,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 StewBucket2,Base.BucketOfStew,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-StewBucket2,Base.BucketOfStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+StewBucket2,Base.BucketOfStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 StewBucket2,Base.BucketOfStew,Base.MeatPatty,20,false,false,0.5,306.0,0.0,15.0,23.0,0.35,357.0
 StewBucket2,Base.BucketOfStew,Base.MincedMeat,20,false,false,0.5,150.0,0.0,15.0,23.0,0.35,175.0
 StewBucket2,Base.BucketOfStew,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
@@ -5753,7 +5753,7 @@ StewBucket2,Base.BucketOfStew,Base.MushroomGeneric4,13,false,false,1.0,30.0,2.12
 StewBucket2,Base.BucketOfStew,Base.MushroomGeneric5,15,false,false,1.0,32.0,2.56,0.32,2.36,0.7,37.333333
 StewBucket2,Base.BucketOfStew,Base.MushroomGeneric6,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 StewBucket2,Base.BucketOfStew,Base.MushroomGeneric7,13,false,false,1.0,32.0,2.12,0.24,2.04,0.7,37.333333
-StewBucket2,Base.BucketOfStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,1.0,25.0
+StewBucket2,Base.BucketOfStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,0.7,17.5
 StewBucket2,Base.BucketOfStew,Base.MuttonChop,15,false,false,0.5,117.0,0.04,5.5,16.5,0.35,136.5
 StewBucket2,Base.BucketOfStew,Base.OilOlive,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 StewBucket2,Base.BucketOfStew,Base.OilVegetable,5,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -5805,8 +5805,8 @@ StewBucket2,Base.BucketOfStew,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7
 StewBucket2,Base.BucketOfStew,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 StewBucket2,Base.BucketOfStew,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 StewBucket2,Base.BucketOfStew,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-StewBucket2,Base.BucketOfStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-StewBucket2,Base.BucketOfStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+StewBucket2,Base.BucketOfStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+StewBucket2,Base.BucketOfStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 StewBucket2,Base.BucketOfStew,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 StewBucket2,Base.BucketOfStew,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 StewBucket2,Base.BucketOfStew,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -5943,7 +5943,7 @@ StewForged,Base.PotForgedStew,Base.LemonGrass,1,false,true,0.0,0.0,0.0,0.0,0.0,0
 StewForged,Base.PotForgedStew,Base.Lobster,20,false,false,0.5,60.0,0.0,3.5,14.0,0.35,70.0
 StewForged,Base.PotForgedStew,Base.Macaroni,10,false,false,0.166667,560.0,109.333333,2.666667,18.666667,0.116667,653.333333
 StewForged,Base.PotForgedStew,Base.Margarine,4,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
-StewForged,Base.PotForgedStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,1.0,46.666667
+StewForged,Base.PotForgedStew,Base.MeatDumpling,15,false,false,1.0,28.0,8.0,3.0,15.0,0.7,32.666667
 StewForged,Base.PotForgedStew,Base.MeatPatty,20,false,false,0.5,306.0,0.0,15.0,23.0,0.35,357.0
 StewForged,Base.PotForgedStew,Base.MincedMeat,20,false,false,0.5,150.0,0.0,15.0,23.0,0.35,175.0
 StewForged,Base.PotForgedStew,Base.MixedVegetables,10,false,false,0.5,135.5,18.5,0.0,4.5,0.35,158.083333
@@ -5954,7 +5954,7 @@ StewForged,Base.PotForgedStew,Base.MushroomGeneric4,13,false,false,1.0,30.0,2.12
 StewForged,Base.PotForgedStew,Base.MushroomGeneric5,15,false,false,1.0,32.0,2.56,0.32,2.36,0.7,37.333333
 StewForged,Base.PotForgedStew,Base.MushroomGeneric6,13,false,false,1.0,30.0,2.12,0.24,2.04,0.7,35.0
 StewForged,Base.PotForgedStew,Base.MushroomGeneric7,13,false,false,1.0,32.0,2.12,0.24,2.04,0.7,37.333333
-StewForged,Base.PotForgedStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,1.0,25.0
+StewForged,Base.PotForgedStew,Base.MushroomsButton,13,false,false,1.0,15.0,1.06,0.12,1.02,0.7,17.5
 StewForged,Base.PotForgedStew,Base.MuttonChop,15,false,false,0.5,117.0,0.04,5.5,16.5,0.35,136.5
 StewForged,Base.PotForgedStew,Base.OilOlive,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 StewForged,Base.PotForgedStew,Base.OilVegetable,5,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
@@ -6006,8 +6006,8 @@ StewForged,Base.PotForgedStew,Base.ShrimpDumpling,15,false,false,1.0,120.0,5.0,7
 StewForged,Base.PotForgedStew,Base.Smallanimalmeat,15,false,false,1.0,201.0,5.0,7.25,45.0,0.7,234.5
 StewForged,Base.PotForgedStew,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 StewForged,Base.PotForgedStew,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-StewForged,Base.PotForgedStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
-StewForged,Base.PotForgedStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,1.0,40.0
+StewForged,Base.PotForgedStew,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
+StewForged,Base.PotForgedStew,Base.Spinach,10,false,false,1.0,24.0,3.0,0.0,4.0,0.7,28.0
 StewForged,Base.PotForgedStew,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 StewForged,Base.PotForgedStew,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
 StewForged,Base.PotForgedStew,Base.SquidCalamari,10,false,false,1.0,105.0,3.0,0.0,18.0,0.7,122.5
@@ -6189,7 +6189,7 @@ Stir fry,Base.PanFriedVegetables,Base.Smallanimalmeat,15,false,false,1.0,201.0,5
 Stir fry,Base.PanFriedVegetables,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Stir fry,Base.PanFriedVegetables,Base.Snail,1,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 Stir fry,Base.PanFriedVegetables,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Stir fry,Base.PanFriedVegetables,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+Stir fry,Base.PanFriedVegetables,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 Stir fry,Base.PanFriedVegetables,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Stir fry,Base.PanFriedVegetables,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Stir fry,Base.PanFriedVegetables,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
@@ -6368,7 +6368,7 @@ Stir fry Forged,Base.PanFriedVegetablesForged,Base.Smallanimalmeat,15,false,fals
 Stir fry Forged,Base.PanFriedVegetablesForged,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Stir fry Forged,Base.PanFriedVegetablesForged,Base.Snail,1,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 Stir fry Forged,Base.PanFriedVegetablesForged,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Stir fry Forged,Base.PanFriedVegetablesForged,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+Stir fry Forged,Base.PanFriedVegetablesForged,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 Stir fry Forged,Base.PanFriedVegetablesForged,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Stir fry Forged,Base.PanFriedVegetablesForged,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Stir fry Forged,Base.PanFriedVegetablesForged,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333
@@ -6547,7 +6547,7 @@ Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Smallanimalmeat,15,fals
 Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Smallbirdmeat,15,false,false,1.0,261.0,5.0,8.25,90.0,0.7,304.5
 Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Snail,1,false,false,1.0,90.0,2.11,1.9,17.41,0.7,105.0
 Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Soybeans,5,false,false,1.0,25.0,10.45,0.45,3.95,0.7,29.166667
-Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,1.0,8.333333
+Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.SoybeansSeed,5,false,false,1.0,5.0,2.0,0.1,0.8,0.7,5.833333
 Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Soysauce,2,false,true,0.0,0.0,0.0,0.0,0.0,0.0,0.0
 Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Squash,20,false,false,1.0,202.0,10.22,10.3,17.26,0.7,235.666667
 Stir fry Griddle Pan,Base.GriddlePanFriedVegetables,Base.Squid,15,false,false,0.5,102.5,0.5,6.5,16.26,0.35,119.583333

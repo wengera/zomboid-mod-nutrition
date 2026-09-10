@@ -132,9 +132,9 @@ FORGE = """module Base
             default = Base.IronBarHalf,
         }
     }
-}"""   # entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt:56-82, the block's name and one
-       # `mode:keep` tool line elided (`base:crudetongs`); 56 of the 225 mappers repeat a result
-       # this way, and 134 write a `default`
+}"""   # entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt:57 (`craftRecipe Forge_Bar_Half`,
+       # :57-83), the block's name and one `mode:keep` tool line elided (`base:crudetongs`);
+       # 56 of the 225 mappers repeat a result this way, and 134 write a `default`
 
 MILK = """module Base
 {
@@ -158,6 +158,64 @@ MILK = """module Base
     }
 }"""   # recipes/recipes_cooking.txt:1-20 (whole block) -- an `outputs` block that is really empty
 
+AMOUNTS = """module Base
+{
+    craftRecipe MakeMeatPatty
+    {
+        timedAction = SliceMeat_Surface,
+        time = 30,
+        Tags = AnySurfaceCraft;Cooking,
+        category = Cooking,
+        xpAward = Cooking:3,
+        inputs
+        {
+            item 40 [Base.MincedMeat] flags[InheritFoodAge;InheritCooked],
+        }
+        outputs
+        {
+            item 1 Base.MeatPatty,
+        }
+    }
+
+    craftRecipe ScoopIceCream
+    {
+        timedAction = MixingBowl,
+        time = 30,
+        Tags = InHandCraft;Cooking,
+        category = Cooking,
+        xpAward = Cooking:3,
+        inputs
+        {
+            item 1 tags[base:spoon] mode:keep,
+            item 1 [Base.Cone] flags[AllowFrozenItem;ItemCount],
+            item 10 [Base.Icecream] flags[AllowFrozenItem;InheritFoodAge],
+        }
+        outputs
+        {
+            item 1 Base.ConeIcecream,
+        }
+    }
+
+    craftRecipe HalveFillet
+    {
+        timedAction = SliceFish,
+        time = 50,
+        OnTest = RecipeCodeOnTest.cutFillet,
+        Tags = InHandCraft;CanBeDoneFromFloor;Cooking,
+        category = Cooking,
+        inputs
+        {
+            item 1 tags[base:sharpknife;base:meatcleaver] mode:keep flags[IsNotDull;SharpnessCheck],
+            item 1 [Base.FishFillet] flags[InheritCooked;InheritFood;ItemCount;InheritWeight],
+        }
+        outputs
+        {
+            item 2 Base.FishFillet,
+        }
+    }
+}"""   # recipes/recipes_cooking.txt:1074-1089 (MakeMeatPatty), :1091-1108 (ScoopIceCream) and
+       # :666-682 (HalveFillet) -- three whole blocks, byte-exact, nothing elided
+
 # `data/food-items.json` rows, trimmed to the columns a delta reads. Values are verbatim from the
 # shipped dataset (`items/food.txt` lines in the comments); `Base.Cornflour2` writes no `Calories`
 # line at all, which is why its four macro columns are null rather than 0.
@@ -180,6 +238,47 @@ DATASET = {
                               "lipids": None, "proteins": None, "hunger_change": None,
                               "thirst_change": None},
 }
+
+# The rows the input-amount rule is worked out on, verbatim from the shipped dataset. `kind` is
+# what tells `input_charge` a row's uses are hunger points (`food`) or bar steps (`drainable`).
+AMOUNT_FOOD = {
+    "Base.MincedMeat": {"kind": "food", "nutrition_basis": "per_item", "calories": 300.0,
+                        "carbohydrates": 0.0, "lipids": 30.0, "proteins": 46.0,
+                        "hunger_change": -40.0, "thirst_change": None},        # food.txt:9449
+    "Base.MeatPatty": {"kind": "food", "nutrition_basis": "per_item", "calories": 612.0,
+                       "carbohydrates": 0.0, "lipids": 30.0, "proteins": 46.0,
+                       "hunger_change": -40.0, "thirst_change": None},         # food.txt:9420
+    "Base.Cone": {"kind": "food", "nutrition_basis": "per_item", "calories": 15.0,
+                  "carbohydrates": 10.0, "lipids": 5.0, "proteins": 2.0,
+                  "hunger_change": -5.0, "thirst_change": None},               # food.txt:5113
+    "Base.Icecream": {"kind": "food", "nutrition_basis": "per_item", "calories": 1680.0,
+                      "carbohydrates": 180.0, "lipids": 84.0, "proteins": 26.0,
+                      "hunger_change": -30.0, "thirst_change": None},          # food.txt:12478
+    "Base.ConeIcecream": {"kind": "food", "nutrition_basis": "per_item", "calories": 470.0,
+                          "carbohydrates": 120.0, "lipids": 44.0, "proteins": 20.0,
+                          "hunger_change": -15.0, "thirst_change": None},      # food.txt:12417
+    "Base.FishFillet": {"kind": "food", "nutrition_basis": "per_item", "calories": 205.0,
+                        "carbohydrates": 1.0, "lipids": 12.0, "proteins": 28.52,
+                        "hunger_change": -25.0, "thirst_change": None},        # food.txt:6834
+    # SYNTHETIC, not a shipped row: a drainable whose macros are loud enough that charging them
+    # would be unmissable, so the "a drainable input charges no macros" rule is really tested
+    "Test.Syrup": {"kind": "drainable", "nutrition_basis": "per_item", "calories": 1000.0,
+                   "carbohydrates": 250.0, "lipids": 0.0, "proteins": 0.0,
+                   "hunger_change": -50.0, "thirst_change": None},
+    # SYNTHETIC: the `mode:destroy` case -- 10 uses of a 40-point food is a quarter of an item,
+    # and the destroy line annihilates the other three quarters
+    "Test.Block": {"kind": "food", "nutrition_basis": "per_item", "calories": 400.0,
+                   "carbohydrates": 40.0, "lipids": 4.0, "proteins": 8.0,
+                   "hunger_change": -40.0, "thirst_change": None},
+    "Test.Cube": {"kind": "food", "nutrition_basis": "per_item", "calories": 100.0,
+                  "carbohydrates": 10.0, "lipids": 1.0, "proteins": 2.0,
+                  "hunger_change": -10.0, "thirst_change": None},
+}
+
+
+def _one(text, name):
+    """The named recipe of a fixture block of several."""
+    return {r["name"]: r for r in recipe_scan.parse_text(text, "cooking.txt")}[name]
 
 
 # --------------------------------------------------------------------------------------------
@@ -271,14 +370,53 @@ def test_mapper_default_is_not_an_output_type_and_repeats_are_kept():
 
 
 def test_fluid_input_flags_the_row_and_contributes_no_macros():
-    """`-fluid 10.0 [Water]` is a fluid, so it is neither an item input nor a macro term."""
+    """`-fluid 10.0 [Water]` is a fluid, so it is neither an item input nor a macro term.
+
+    It is also a SUB-LINE: `LoadIO @218-@317` hangs it off the bucket line above it, so the
+    loader's `getInputCount()` -- and this record's `inputCount` -- is 2, not 3.
+    """
     r = recipe_scan.parse_text(MILK, "cooking.txt")[0]
-    fluid = r["inputs"][1]
+    assert len(r["inputs"]) == 2 and r["inputCount"] == 2   # the live harness reads back 2
+    bucket, powder = r["inputs"]
+    assert bucket["tags"] == ["base:bucket"] and powder["types"] == ["Base.AnimalMilkPowder"]
+    fluid = bucket["subLines"][0]
     assert (fluid["kind"], fluid["amount"], fluid["types"]) == ("fluid", 10.0, ["Water"])
+    assert fluid["raw"].startswith("-fluid") and powder["subLines"] == []
     assert r["fluidIO"] is True
     assert r["outputs"] == []                              # the block is there and really is empty
     d = recipe_scan.nutrition_delta(r, DATASET)
     assert d["reason"] == "no-outputs"                     # nothing to weigh the inputs against
+    # the flat file still shows the sub-line, in file order, next to the input it hangs off
+    assert [line["raw"] for line in recipe_scan.io_lines(r, "inputs")] == [
+        "item 1 tags[base:bucket] mode:keep", "-fluid 10.0 [Water]",
+        "item 10 [Base.AnimalMilkPowder]"]
+    assert recipe_scan._fluids(r) == ["Water"]
+
+
+def test_a_sub_line_attaches_to_the_line_above_and_a_leading_one_stands_alone():
+    """`is_sub_line` / `attach_sub_lines`, incl. the shape the loader itself would throw on."""
+    assert recipe_scan.is_sub_line("-fluid 0.5 [Water]") is True
+    assert recipe_scan.is_sub_line("+fluid 0.5 [Water]") is True
+    assert recipe_scan.is_sub_line("item 1 Base.Toast") is False
+    lines = [recipe_scan.parse_io(t) for t in
+             ("item 1 [Base.Bowl]", "-fluid 0.5 [Water]", "+fluid 0.2 [Water]",
+              "item 2 [Base.Salt]")]
+    attached = recipe_scan.attach_sub_lines(lines)
+    assert [line["raw"] for line in attached] == ["item 1 [Base.Bowl]", "item 2 [Base.Salt]"]
+    assert [s["raw"] for s in attached[0]["subLines"]] == ["-fluid 0.5 [Water]",
+                                                           "+fluid 0.2 [Water]"]
+    # a sub-line with nothing above it is kept as an entry of its own rather than dropped
+    leading = recipe_scan.attach_sub_lines([lines[1], lines[0]])
+    assert [line["raw"] for line in leading] == ["-fluid 0.5 [Water]", "item 1 [Base.Bowl]"]
+
+
+def test_an_unknown_leading_token_is_kept_verbatim_as_the_kind():
+    """`energy` lines do not occur in vanilla; a mod's line is recorded, never guessed at."""
+    line = recipe_scan.parse_io("energy 5 [Base.Electricity]")
+    assert line["kind"] == "energy" and line["amount"] == 5.0
+    assert line["types"] == ["Base.Electricity"] and line["extras"] == []
+    assert recipe_scan.parse_io("-energy 5 [Base.Electricity]")["kind"] == "energy"
+    assert recipe_scan.parse_io("widget 1 Base.Thing")["kind"] == "widget"
 
 
 def test_absent_outputs_block_is_null_not_an_empty_list():
@@ -322,6 +460,160 @@ def test_absent_macro_sums_as_zero_and_is_named():
     assert "Base.Cornflour2:calories" in d["absentMacros"]
     assert "Base.CornSeed:thirstChange" in d["absentMacros"]
     assert d["absentMacros"] == sorted(d["absentMacros"])
+
+
+# --------------------------------------------------------------------------------------------
+# The input amount: uses vs whole items (q-itemcount-notes.md § What the dataset should compute)
+# --------------------------------------------------------------------------------------------
+
+def test_an_amount_is_uses_unless_item_count_says_items():
+    """The two readings, on the line itself, so a row can be audited without the food table."""
+    counted = recipe_scan.parse_io("item 1 [Base.BreadSlices] flags[ItemCount]")
+    assert counted["amountIsItemCount"] is True and counted["amountUses"] is None
+    uses = recipe_scan.parse_io("item 40 [Base.MincedMeat] flags[InheritFoodAge;InheritCooked]")
+    assert uses["amountIsItemCount"] is False and uses["amountUses"] == 40.0
+    assert recipe_scan.parse_io("item variable[1:20] [Base.Corn]")["amountUses"] is None
+
+
+def test_uses_per_item_is_the_hunger_magnitude_only_when_it_can_be_a_denominator():
+    """`Food.getMaxUses` is `baseHunger == 0 ? 1 : |baseHunger x 100|` -- a food with no usable
+    `HungerChange` holds exactly one use, so its uses ARE items."""
+    assert recipe_scan.uses_per_item(AMOUNT_FOOD["Base.MincedMeat"]) == 40.0
+    assert recipe_scan.uses_per_item({"HungerChange": 0.0}) is None
+    assert recipe_scan.uses_per_item({"HungerChange": -1.0}) is None   # isUsesPartialItem: > 1f
+    assert recipe_scan.uses_per_item({"Calories": 10.0}) is None       # writes none at all
+
+
+def test_a_uses_amount_charges_a_fraction_of_the_item_make_meat_patty():
+    """`item 40 [Base.MincedMeat]` (HungerChange -40) is ONE whole tub, not 40 of them.
+
+    Brief worked example 2: 612 - 300 = +312 kcal, and every other macro conserved.
+    """
+    r = _one(AMOUNTS, "MakeMeatPatty")
+    line = r["inputs"][0]
+    assert line["amountIsItemCount"] is False and line["amountUses"] == 40.0
+    assert recipe_scan.input_charge(line, AMOUNT_FOOD["Base.MincedMeat"])[:2] == (1.0, 0.0)
+    d = recipe_scan.nutrition_delta(r, AMOUNT_FOOD)
+    assert d["calories"] == 312.0
+    assert (d["carbohydrates"], d["lipids"], d["proteins"]) == (0.0, 0.0, 0.0)
+    assert d["hungerChange"] == 0.0 and d["notes"] == [] and d["destroyWaste"] is None
+
+
+def test_scoop_ice_cream_mixes_a_tool_an_item_count_and_a_uses_line():
+    """Brief worked example 3: 470 - (15 + 560) = -105 kcal.
+
+    `mode:keep` spoon -> 0, `item 1 [Base.Cone] flags[ItemCount]` -> one whole cone,
+    `item 10 [Base.Icecream]` (HungerChange -30) -> a THIRD of a tub. Reading the 10 as items
+    would give -16345 kcal, which is the error the whole rule exists to prevent.
+    """
+    r = _one(AMOUNTS, "ScoopIceCream")
+    spoon, cone, tub = r["inputs"]
+    assert spoon["consumed"] is False and cone["amountIsItemCount"] is True
+    charged, wasted, notes = recipe_scan.input_charge(tub, AMOUNT_FOOD["Base.Icecream"])
+    assert round(charged, 6) == 0.333333 and wasted == 0.0 and notes == []
+    d = recipe_scan.nutrition_delta(r, AMOUNT_FOOD)
+    assert d["calories"] == -105.0 and d["carbohydrates"] == 50.0
+    assert d["lipids"] == 11.0 and round(d["proteins"], 2) == 9.33
+    assert d["hungerChange"] == 0.0                        # -15 - (-5 + 1/3 x -30)
+
+
+def test_inherit_food_makes_the_craft_a_split_whose_delta_is_zero_by_construction():
+    """`HalveFillet` gives each of its 2 fillets 1/2 of the one it consumed, so nothing moves.
+
+    The unsplit arithmetic would read the output script twice and claim +205 kcal.
+    """
+    r = _one(AMOUNTS, "HalveFillet")
+    assert r["split"] is True
+    assert [line["raw"] for line in recipe_scan.split_lines(r)] == [
+        "item 1 [Base.FishFillet] flags[InheritCooked;InheritFood;ItemCount;InheritWeight]"]
+    d = recipe_scan.nutrition_delta(r, AMOUNT_FOOD)
+    assert [d[field] for _key, field in recipe_scan.MACROS] == [0.0] * 6
+    assert d["notes"] and d["notes"][0].startswith("split: an input carries InheritFood")
+    # `InheritFoodAge` copies age only and is NOT the split flag -- ScoopIceCream carries it
+    assert _one(AMOUNTS, "ScoopIceCream")["split"] is False
+    assert _one(AMOUNTS, "MakeMeatPatty")["split"] is False
+
+
+DESTROY = """module Base
+{
+    craftRecipe BurnBlock
+    {
+        time = 10,
+        inputs
+        {
+            item 10 [Test.Block] mode:destroy,
+        }
+        outputs
+        {
+            item 1 Test.Cube,
+        }
+    }
+}"""   # SYNTHETIC: no vanilla craftRecipe destroys a non-ItemCount food line with macros
+
+
+def test_mode_destroy_charges_the_whole_item_and_records_the_waste():
+    """10 uses of a 40-point food is a quarter of it; `RemoveItem` deletes the other three.
+
+    `processDestroyAndUsedItems @283-@335 L558-L560` -> `ItemUser.UseItem @260 L66-67`. The
+    ledger charges the whole item and `destroyWaste` keeps the uncharged remainder recoverable.
+    """
+    r = recipe_scan.parse_text(DESTROY, "synthetic.txt")[0]
+    line = r["inputs"][0]
+    charged, wasted, notes = recipe_scan.input_charge(line, AMOUNT_FOOD["Test.Block"])
+    assert (charged, wasted) == (1.0, 0.75) and "mode:destroy" in notes[0]
+    d = recipe_scan.nutrition_delta(r, AMOUNT_FOOD)
+    assert d["calories"] == -300.0                         # 100 - 1 x 400
+    assert d["destroyWaste"]["calories"] == 300.0          # 0.75 x 400, thrown away uncharged
+    assert d["destroyWaste"]["hungerChange"] == -30.0
+    # without the destroy the line would pay for a quarter of the block and waste nothing
+    kept = recipe_scan.parse_text(DESTROY.replace(" mode:destroy", ""), "s.txt")[0]
+    k = recipe_scan.nutrition_delta(kept, AMOUNT_FOOD)
+    assert k["calories"] == 0.0 and k["destroyWaste"] is None
+
+
+DRAINABLE = """module Base
+{
+    craftRecipe TapSyrup
+    {
+        time = 10,
+        inputs
+        {
+            item 2 [Test.Syrup],
+        }
+        outputs
+        {
+            item 1 Test.Cube,
+        }
+    }
+}"""   # SYNTHETIC: the two vanilla drainable inputs are cigarette packs, which carry no macros
+
+
+def test_a_drainable_input_charges_no_macros_and_says_so():
+    """A drainable's uses are `UseDelta` steps of a bar and the food dataset carries no
+    `UseDelta` column, so the line is weighed at 0 rather than at a guessed fraction."""
+    r = recipe_scan.parse_text(DRAINABLE, "synthetic.txt")[0]
+    charged, wasted, notes = recipe_scan.input_charge(r["inputs"][0], AMOUNT_FOOD["Test.Syrup"])
+    assert (charged, wasted) == (0.0, 0.0) and notes[0].startswith("drainable input: Test.Syrup")
+    d = recipe_scan.nutrition_delta(r, AMOUNT_FOOD)
+    assert d["calories"] == 100.0                          # the output alone; the syrup is free
+    assert d["notes"] and "UseDelta" in d["notes"][0]
+    # with `flags[ItemCount]` the same line is 2 whole bottles and the macros do count
+    counted = recipe_scan.parse_text(DRAINABLE.replace("[Test.Syrup],",
+                                                       "[Test.Syrup] flags[ItemCount],"), "s.txt")[0]
+    assert recipe_scan.nutrition_delta(counted, AMOUNT_FOOD)["calories"] == -1900.0
+
+
+def test_a_food_with_no_usable_hunger_is_a_one_use_item_and_the_note_says_why():
+    """`Base.CandyPackage` writes no `HungerChange`, so `getMaxUses` is 1 and its uses ARE
+    items -- the delta must not divide by a hunger the row does not have."""
+    food = {"Base.Pack": {"kind": "food", "nutrition_basis": "per_item", "calories": 500.0,
+                          "hunger_change": None},
+            "Test.Cube": AMOUNT_FOOD["Test.Cube"]}
+    text = DRAINABLE.replace("item 2 [Test.Syrup],", "item 2 [Base.Pack],")
+    r = recipe_scan.parse_text(text, "synthetic.txt")[0]
+    charged, wasted, notes = recipe_scan.input_charge(r["inputs"][0], food["Base.Pack"])
+    assert (charged, wasted) == (2.0, 0.0) and notes[0].startswith("no-hunger-scale: Base.Pack")
+    assert recipe_scan.nutrition_delta(r, food)["calories"] == -900.0     # 100 - 2 x 500
 
 
 def test_food_fields_maps_the_plan_names_onto_the_shipped_dataset():
@@ -411,9 +703,50 @@ def test_csv_is_one_row_per_recipe_in_the_declared_column_order():
     assert toast[header.index("deltaHungerChange")] == "2.0"
     assert toast[header.index("deltaReason")] == ""        # a resolved delta names no blocker
     assert toast[header.index("fluidIO")] == "false"
+    assert toast[header.index("inputCount")] == "1" and toast[header.index("split")] == "false"
+    assert toast[header.index("datasetTypes")] == "Base.BreadSlices;Base.Toast"
     mill = rows[1 + [r["name"] for r in recipes].index("MillCornflour")]
     assert mill[header.index("deltaCalories")] == "-496.0"
     assert mill[header.index("outputTypes")] == "Base.Cornflour2"
+    # the null-for-0 substitution is visible in the flat file too, not only in the JSON
+    assert mill[header.index("deltaAbsentMacros")] == (
+        "Base.CornSeed:thirstChange;Base.Cornflour2:calories;Base.Cornflour2:carbohydrates;"
+        "Base.Cornflour2:lipids;Base.Cornflour2:proteins;Base.Cornflour2:thirstChange")
+
+
+def test_the_two_type_universes_are_named_apart():
+    """`datasetTypes` is any row of the food dataset; `foodItemTypes` is the eaten subset.
+
+    A `fluid_container` row is a vessel whose nutrition is its fluid's, per litre, so counting
+    `Base.WaterBottle` as a food a recipe produced would count a litre of water as the bottle's
+    calories -- which is why the two lists (and the two counts over them) are kept apart.
+    """
+    food = {"Base.Toast": {"kind": "food"}, "Base.WaterBottle": {"kind": "fluid_container"},
+            "Base.Vinegar2": {"kind": "drainable"}}
+    assert recipe_scan.food_item_ids(food) == {"Base.Toast", "Base.Vinegar2"}
+    text = TOASTER.replace("item 1 [Base.BreadSlices] flags[ItemCount],",
+                           "item 1 [Base.BreadSlices] flags[ItemCount],\n"
+                           "            item 1 tags[base:bowl] mode:keep,\n"
+                           "            item 1 [Base.WaterBottle;Base.Vinegar2] mode:keep,")
+    r = recipe_scan.parse_text(text, "toaster.txt")[0]
+    assert recipe_scan.dataset_types(r, food) == ["Base.Toast", "Base.Vinegar2",
+                                                  "Base.WaterBottle"]
+    assert recipe_scan.food_item_types(r, food) == ["Base.Toast", "Base.Vinegar2"]
+    # `_side_values` is the same walk per side and per token, sub-lines included
+    assert recipe_scan._side_values(r, "inputs", "types") == [
+        "Base.BreadSlices", "Base.Vinegar2", "Base.WaterBottle"]
+    assert recipe_scan._side_values(r, "inputs", "tags") == ["base:bowl"]
+    assert recipe_scan._side_values(r, "outputs", "types") == ["Base.Toast"]
+
+
+def test_fluids_name_a_category_with_a_prefix_so_it_cannot_be_read_as_an_id():
+    """26 fluid lines name `categories[...]` instead of ids; `category:<Name>` keeps them apart."""
+    text = MILK.replace("-fluid 10.0 [Water],",
+                        "-fluid 10.0 [Water;TaintedWater],\n"
+                        "            -fluid 0.5 categories[Water] mode:mixture,")
+    r = recipe_scan.parse_text(text, "cooking.txt")[0]
+    assert recipe_scan._fluids(r) == ["TaintedWater", "Water", "category:Water"]
+    assert recipe_scan._fluids(recipe_scan.parse_text(TOASTER, "t.txt")[0]) == []
 
 
 def test_a_blocked_delta_writes_its_reason_and_no_numbers():
@@ -661,11 +994,24 @@ def test_ruling_r3_nulls_the_macros_of_a_non_per_item_row():
     assert recipe_scan.contribution(empty, 5, 0)["reason"] == "no-nutrition"
 
 
-def test_the_games_hunger_clamp_is_flagged_not_applied():
-    """`Base.Cherry` writes `Salad:5` against a hunger of 3, where `addItem` clamps `hunger`."""
-    c = recipe_scan.contribution(EVO_FOOD["Base.Cherry"], 5, 10)
-    assert c["hungerClamped"] is True and c["share"] == 1.0     # the game would give 0.7 here
+def test_the_games_hunger_clamp_is_applied_and_flagged():
+    """`Base.Cherry` writes `Oatmeal:5` against a hunger of 3, where `addItem` clamps `hunger`.
+
+    `@934 L374-376` caps `hunger` at `|HungerChange|` BEFORE the skill reduction, so at
+    Cooking 10 the share is `0.03 x 0.7 / 0.03 = 0.7`, not the unclamped 1.0. Cooking 0 agrees
+    either way (`share` caps at 1), which is why only the `at10` numbers moved.
+    """
+    cherry = EVO_FOOD["Base.Cherry"]
+    c10 = recipe_scan.contribution(cherry, 5, 10)
+    assert c10["hungerClamped"] is True and round(c10["share"], 6) == 0.7
+    assert c10["hunger"] == 0.03 and round(c10["hungerAfterSkill"], 6) == 0.021
+    assert round(c10["calories"], 6) == round(5.0 * (1 + 10 / 15) * 0.7, 6)
+    c0 = recipe_scan.contribution(cherry, 5, 0)
+    assert c0["hungerClamped"] is True and c0["share"] == 1.0   # the clamp cannot move Cooking 0
+    assert round(c0["calories"], 6) == 5.0
+    # an ingredient whose key asks for less than it has is untouched at both levels
     assert recipe_scan.contribution(LETTUCE, 5, 10)["hungerClamped"] is False
+    assert round(recipe_scan.contribution(LETTUCE, 5, 10)["share"], 6) == 0.233333
 
 
 def test_evolved_record_carries_every_field_and_its_source_anchor():
@@ -807,18 +1153,33 @@ def test_real_install_counts():
     assert counts["outputItemTypesInDataset"] == 295       # … plus the 33 fluid containers
     # The plan predicted 116 "recipes touching a food item". No definition reproduces that:
     # every item line on either side naming a food/drainable row gives 375, outputs only 182,
-    # single-type lines only 305. Reported as measured, with the definition above them.
+    # single-type lines only 305. Reported as measured, with the definition above them. The two
+    # universes are named apart on the record: `datasetTypes` (any row, vessels included, 413
+    # recipes) and `foodItemTypes` (the `food`/`drainable` subset, 375).
+    assert counts["recipesTouchingDatasetRow"] == 413
     assert counts["recipesTouchingFood"] == 375
     assert counts["recipesWithFoodOutput"] == 182
     assert counts["recipesWithDelta"] == 31                # the plan's figure, exactly
-    # The plan predicted 23 non-zero calorie deltas: 20 really are non-zero and 3 more (the
-    # cigarette crafts) are zero only because no row on either side writes a `Calories` line.
-    assert counts["recipesWithNonZeroCalorieDelta"] == 20
+    # 15 deltas really move calories; 5 more did until the InheritFood split rule landed (a
+    # split conserves by construction) and 3 more are zero only because no row on either side
+    # writes a `Calories` line -- 15 + 5 + 3 = the plan's 23.
+    assert counts["recipesWithNonZeroCalorieDelta"] == 15
     assert counts["recipesWithCaloriesAbsentOnEverySide"] == 3
+    # 17 shipped recipes carry an `InheritFood` input line; 8 of them resolve to a delta, and
+    # every one of those eight is exactly 0 in all six macros
+    assert counts["splitRecipes"] == 17 and counts["splitRecipesWithDelta"] == 8
+    splits = [r for r in recipes if r["split"] and r["delta"] is not None]
+    assert len(splits) == 8 and all(r["delta"][f] == 0.0 for r in splits
+                                    for _k, f in recipe_scan.MACROS)
+    # the 55 `-fluid` lines are sub-lines of the input above them, not inputs of their own
+    assert counts["inputSubLines"] == 55
+    assert counts["recipesWithDestroyWaste"] == 1          # `UnpackCigarettes`, the one destroy
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
     assert len({r["name"] for r in recipes}) == 969        # every craftRecipe name is unique
     assert meta["build"] == "42.20.4 (b0bbce05d5)"
     assert meta["sources"]["food_items"]["build"] == "42.20.4"
+    # acceptance 3: every output type `items/food.txt` defines has a `data/food-items.json` row
+    assert meta["foodJoinMisses"] == [] and counts["foodJoinMisses"] == 0
     # one output mapper resolves to no type at all: `SmeltMapper` writes only a `default`, so
     # what the craft really yields is that default (`Base.CeramicCrucible_Iron`, on the record
     # as `itemMapperDefaults`), which the plan's "every key except `default`" rule cannot name
@@ -841,7 +1202,8 @@ def test_real_install_spot_rows():
     assert toast["delta"] == {"calories": 0.0, "carbohydrates": 0.0, "lipids": 0.0,
                               "proteins": 0.0, "hungerChange": 2.0, "thirstChange": 0.0,
                               "absentMacros": ["Base.BreadSlices:thirstChange",
-                                               "Base.Toast:thirstChange"]}
+                                               "Base.Toast:thirstChange"],
+                              "destroyWaste": None, "notes": []}
 
     mill = by_name["MillCornflour"]
     assert mill["delta"]["calories"] == -496.0             # 20 x Base.CornSeed -> Base.Cornflour2
@@ -850,12 +1212,45 @@ def test_real_install_spot_rows():
     pizza = by_name["MakePizza"]
     assert pizza["delta"] is None
     assert "tags[base:flour]" in pizza["deltaReason"] and "[*]" in pizza["deltaReason"]
-    assert pizza["fluidIO"] is True and len(pizza["inputs"]) == 10
+    # `getInputCount()` is 9: the `-fluid` line is a sub-line of the input above it, and the
+    # live harness read 9 back (testing/artifacts/exp06-20260910-112726/recipes.json)
+    assert pizza["fluidIO"] is True and len(pizza["inputs"]) == 9 and pizza["inputCount"] == 9
+    assert sum(len(line["subLines"]) for line in pizza["inputs"]) == 1
+    assert len(list(recipe_scan.io_lines(pizza, "inputs"))) == 10
 
     frozen = by_name["OpenBagOfFrozenFood"]
     assert sorted(frozen["outputs"][0]["types"]) == [
         "Base.ChickenNuggets", "Base.FishFingers", "Base.FrenchFries", "Base.TatoDots"]
     assert frozen["delta"] is None and frozen["deltaReason"]
+
+
+@unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
+def test_real_install_input_amount_worked_examples():
+    """The four kcal figures `q-itemcount-notes.md` works out by hand, off the built dataset."""
+    _meta, recipes = _real_dataset()
+    by_name = {r["name"]: r for r in recipes}
+    assert by_name["MakeToast"]["delta"]["calories"] == 0.0          # 177 - 1 x 177
+    assert by_name["MakeMeatPatty"]["delta"]["calories"] == 312.0    # 612 - 40/40 x 300
+    assert by_name["ScoopIceCream"]["delta"]["calories"] == -105.0   # 470 - (15 + 10/30 x 1680)
+    assert by_name["MillCornflour"]["delta"]["calories"] == -496.0   # 0 - 20 x 24.8
+    scoop = by_name["ScoopIceCream"]["delta"]
+    assert (scoop["carbohydrates"], scoop["lipids"]) == (50.0, 11.0)
+    assert round(scoop["proteins"], 2) == 9.33 and scoop["hungerChange"] == 0.0
+    # the one shipped `mode:destroy` line that annihilates more than it charges
+    waste = by_name["UnpackCigarettes"]["delta"]["destroyWaste"]
+    assert waste is not None and waste["calories"] == 0.0   # the pack writes no `Calories` line
+    assert any("drainable input" in n for n in by_name["UnpackCigarettes"]["delta"]["notes"])
+
+
+@unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
+def test_main_creates_its_out_dir():
+    """`--out-dir` may name a path that does not exist yet -- the run must not die at the write."""
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "fresh", "nested")
+        assert not os.path.isdir(out)
+        assert recipe_scan.main(["--out-dir", out]) == 0
+        assert sorted(os.listdir(out)) == ["evolved-recipes.csv", "evolved-recipes.json",
+                                           "recipes.csv", "recipes.json"]
 
 
 @unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")
