@@ -1,0 +1,2920 @@
+{
+ "run_id": "td1-20260910-192457",
+ "mod": "SKITTLE_LongTermPreservation4220",
+ "workshop_item": "3774789651",
+ "subject": "Skittles.CuredPork",
+ "user": "admin",
+ "profile": {
+  "name": "teardown-longtermpreservation4220",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\teardown-longtermpreservation4220.toml",
+  "fixture": "default",
+  "description": "PZTestKit + SKITTLE_LongTermPreservation4220 (workshop 3774789651) \u2014 teardown 1.",
+  "mods": [
+   "PZTestKit",
+   "SKITTLE_LongTermPreservation4220"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "SKITTLE_LongTermPreservation4220": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3774789651\\mods\\LongTermPreservation4220"
+  },
+  "skip": [],
+  "workshop_items": {
+   "SKITTLE_LongTermPreservation4220": "3774789651"
+  },
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "commit": "37e411e",
+ "harness_lua_commit": "37e411e",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "fields": "getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+ "field_count_expected": 26,
+ "moddata_keys": "item:admin/Skittles.CuredPork * | player:admin *",
+ "moddata_note": "LTP writes no modData; both probes are censuses (`*`). customName is excluded from every key comparison (vanilla setCustomName side effect).",
+ "tolerance": {
+  "rule": "|server - client| <= 1e-6 is SYNCED; a last-digit gap on getActualWeight / getWeight is two arms of Food.getActualWeight, not a desync",
+  "value": 1e-06
+ },
+ "acceptance_run": "run-20260910-191842",
+ "world_changes": "none to restore -- no settimespeed, no sandbox write; every write lands in this run's copy of the fixture",
+ "snapshots": [
+  {
+   "tag": "baseline",
+   "wall": 61.283,
+   "client": {
+    "fields": {
+     "side": "client",
+     "subject": "item",
+     "id": "admin/Skittles.CuredPork",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "fields": {
+      "getCalories": 300,
+      "getProteins": 50,
+      "getLipids": 12,
+      "getCarbohydrates": 0,
+      "getHungChange": -0.6,
+      "getHungerChange": -0.6,
+      "getBaseHunger": -0.6,
+      "getThirstChange": 0.2,
+      "getOffAge": 53,
+      "getOffAgeMax": 60,
+      "getAge": 0,
+      "isFresh": true,
+      "isRotten": false,
+      "isCooked": false,
+      "isBurnt": false,
+      "isCookable": true,
+      "getCookingTime": 0,
+      "getHeat": 1,
+      "getMinutesToCook": 300,
+      "getMinutesToBurn": 900,
+      "getActualWeight": 0.5,
+      "getActualWeightUnmodded": 0,
+      "getWeight": 0.5,
+      "isCustomWeight": false,
+      "getID": 562521975,
+      "getFullType": "Skittles.CuredPork"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.349054,
+     "count": 26,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+      "wall": 61.283,
+      "wall_done": 61.8
+     }
+    },
+    "field_count": 26,
+    "field_count_ok": true,
+    "moddata_item": {
+     "side": "client",
+     "scope": "item",
+     "arg": "admin/Skittles.CuredPork",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.351286,
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 2,
+     "keys": [
+      "Tooltip:string",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Skittles.CuredPork *",
+      "wall": 61.8,
+      "wall_done": 62.307
+     }
+    },
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.353518,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 62.307,
+      "wall_done": 62.816
+     }
+    },
+    "stats": {
+     "calories": 796.989136,
+     "carbs": -0.658508,
+     "lipids": -0.212604,
+     "proteins": -0.161805,
+     "weight": 80,
+     "hunger": 0.001699,
+     "thirst": 0.001417,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "endurance": 1,
+     "fatigue": 1.7e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.355749,
+     "mult": 0.799934,
+     "wall": 1789082761092
+    },
+    "census_item": {
+     "side": "client",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 2,
+     "count": 0,
+     "keys": [
+      "Tooltip:string",
+      "customName:string"
+     ],
+     "keyNames": [
+      "Tooltip",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "Tooltip"
+     ],
+     "error": null
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "count": 0,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "error": null
+    }
+   },
+   "server": {
+    "fields": {
+     "side": "server",
+     "subject": "item",
+     "id": "admin/Skittles.CuredPork",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "fields": {
+      "getCalories": 300,
+      "getProteins": 50,
+      "getLipids": 12,
+      "getCarbohydrates": 0,
+      "getHungChange": -0.6,
+      "getHungerChange": -0.6,
+      "getBaseHunger": -0.6,
+      "getThirstChange": 0.2,
+      "getOffAge": 53,
+      "getOffAgeMax": 60,
+      "getAge": 0,
+      "isFresh": true,
+      "isRotten": false,
+      "isCooked": false,
+      "isBurnt": false,
+      "isCookable": true,
+      "getCookingTime": 0,
+      "getHeat": 1,
+      "getMinutesToCook": 300,
+      "getMinutesToBurn": 900,
+      "getActualWeight": 0.5,
+      "getActualWeightUnmodded": 0,
+      "getWeight": 0.5,
+      "isCustomWeight": false,
+      "getID": 562521975,
+      "getFullType": "Skittles.CuredPork"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.358078,
+     "count": 26,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+      "wall": 63.322,
+      "wall_done": 64.084
+     }
+    },
+    "field_count": 26,
+    "field_count_ok": true,
+    "moddata_item": {
+     "side": "server",
+     "scope": "item",
+     "arg": "admin/Skittles.CuredPork",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.366943,
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 1,
+     "keys": [
+      "Tooltip:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Skittles.CuredPork *",
+      "wall": 64.084,
+      "wall_done": 66.094
+     }
+    },
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.375816,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 66.094,
+      "wall_done": 68.108
+     }
+    },
+    "stats": {
+     "calories": 795.327576,
+     "carbs": -1.021742,
+     "lipids": -0.329877,
+     "proteins": -0.251056,
+     "weight": 80,
+     "hunger": 0.002693,
+     "thirst": 0.002247,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "endurance": 1,
+     "fatigue": 1.7e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.383363,
+     "mult": 4.7961,
+     "wall": 1789082767395
+    },
+    "census_item": {
+     "side": "server",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 1,
+     "count": 0,
+     "keys": [
+      "Tooltip:string"
+     ],
+     "keyNames": [
+      "Tooltip"
+     ],
+     "beyondVanilla": [
+      "Tooltip"
+     ],
+     "error": null
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 4,
+     "count": 0,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "error": null
+    },
+    "item_get": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.000941,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 562521975,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false,
+     "serverWorldAge": 2.384696
+    }
+   },
+   "wall_done": 69.877
+  },
+  {
+   "tag": "t+0s",
+   "wall": 84.019,
+   "client": {
+    "fields": {
+     "side": "client",
+     "subject": "item",
+     "id": "admin/Skittles.CuredPork",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "fields": {
+      "getCalories": 210,
+      "getProteins": 35,
+      "getLipids": 8.4,
+      "getCarbohydrates": 0,
+      "getHungChange": -0.42,
+      "getHungerChange": -0.546,
+      "getBaseHunger": -0.6,
+      "getThirstChange": 0.05,
+      "getOffAge": 53,
+      "getOffAgeMax": 60,
+      "getAge": 0,
+      "isFresh": true,
+      "isRotten": false,
+      "isCooked": true,
+      "isBurnt": false,
+      "isCookable": true,
+      "getCookingTime": 301.061554,
+      "getHeat": 1.84703,
+      "getMinutesToCook": 300,
+      "getMinutesToBurn": 900,
+      "getActualWeight": 0.35,
+      "getActualWeightUnmodded": 0,
+      "getWeight": 0.5,
+      "isCustomWeight": false,
+      "getID": 562521975,
+      "getFullType": "Skittles.CuredPork"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.448731,
+     "count": 26,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+      "wall": 84.019,
+      "wall_done": 84.525
+     }
+    },
+    "field_count": 26,
+    "field_count_ok": true,
+    "moddata_item": {
+     "side": "client",
+     "scope": "item",
+     "arg": "admin/Skittles.CuredPork",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.450963,
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 2,
+     "keys": [
+      "Tooltip:string",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Skittles.CuredPork *",
+      "wall": 84.525,
+      "wall_done": 85.035
+     }
+    },
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.453195,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 85.035,
+      "wall_done": 85.545
+     }
+    },
+    "stats": {
+     "calories": 791.360168,
+     "carbs": -1.888173,
+     "lipids": -0.60961,
+     "proteins": -0.463951,
+     "weight": 80,
+     "hunger": 0.00506,
+     "thirst": 0.004228,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "endurance": 1,
+     "fatigue": 1.7e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.455426,
+     "mult": 0.800016,
+     "wall": 1789082783606
+    },
+    "census_item": {
+     "side": "client",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 2,
+     "count": 0,
+     "keys": [
+      "Tooltip:string",
+      "customName:string"
+     ],
+     "keyNames": [
+      "Tooltip",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "Tooltip"
+     ],
+     "error": null
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "count": 0,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "error": null
+    }
+   },
+   "server": {
+    "fields": {
+     "side": "server",
+     "subject": "item",
+     "id": "admin/Skittles.CuredPork",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "fields": {
+      "getCalories": 210,
+      "getProteins": 35,
+      "getLipids": 8.4,
+      "getCarbohydrates": 0,
+      "getHungChange": -0.42,
+      "getHungerChange": -0.546,
+      "getBaseHunger": -0.6,
+      "getThirstChange": 0.1,
+      "getOffAge": 1000000000,
+      "getOffAgeMax": 1000000000,
+      "getAge": 0.004066,
+      "isFresh": true,
+      "isRotten": false,
+      "isCooked": true,
+      "isBurnt": false,
+      "isCookable": false,
+      "getCookingTime": 301.061554,
+      "getHeat": 1.79561,
+      "getMinutesToCook": 300,
+      "getMinutesToBurn": 900,
+      "getActualWeight": 0,
+      "getActualWeightUnmodded": 0,
+      "getWeight": 0.5,
+      "isCustomWeight": true,
+      "getID": 562521975,
+      "getFullType": "Skittles.CuredPork"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.45568,
+     "count": 26,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+      "wall": 85.803,
+      "wall_done": 86.063
+     }
+    },
+    "field_count": 26,
+    "field_count_ok": true,
+    "moddata_item": {
+     "side": "server",
+     "scope": "item",
+     "arg": "admin/Skittles.CuredPork",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.464557,
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 1,
+     "keys": [
+      "Tooltip:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Skittles.CuredPork *",
+      "wall": 86.063,
+      "wall_done": 88.075
+     }
+    },
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.466775,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 88.075,
+      "wall_done": 88.584
+     }
+    },
+    "stats": {
+     "calories": 790.130005,
+     "carbs": -2.156578,
+     "lipids": -0.696266,
+     "proteins": -0.529902,
+     "weight": 80,
+     "hunger": 0.005793,
+     "thirst": 0.004841,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "endurance": 1,
+     "fatigue": 1.7e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.473431,
+     "mult": 4.788899,
+     "wall": 1789082787692
+    },
+    "census_item": {
+     "side": "server",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 1,
+     "count": 0,
+     "keys": [
+      "Tooltip:string"
+     ],
+     "keyNames": [
+      "Tooltip"
+     ],
+     "beyondVanilla": [
+      "Tooltip"
+     ],
+     "error": null
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 4,
+     "count": 0,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "error": null
+    },
+    "item_get": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": true,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.004657,
+     "hungChange": -0.42,
+     "baseHunger": -0.6,
+     "calories": 210,
+     "carbs": 0,
+     "lipids": 8.4,
+     "proteins": 35,
+     "id": 562521975,
+     "uses": 0.42,
+     "fresh": true,
+     "offAge": 1000000000,
+     "offAgeMax": 1000000000,
+     "freezingTime": 0,
+     "cookingTime": 301.061554,
+     "heat": 1.697,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.1,
+     "hungerChange": -0.546,
+     "isCookable": false,
+     "actualWeight": 0,
+     "weight": 0.5,
+     "customWeight": true,
+     "serverWorldAge": 2.482306
+    }
+   },
+   "wall_done": 92.108
+  },
+  {
+   "tag": "t+3s",
+   "wall": 95.11,
+   "client": {
+    "fields": {
+     "side": "client",
+     "subject": "item",
+     "id": "admin/Skittles.CuredPork",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "fields": {
+      "getCalories": 210,
+      "getProteins": 35,
+      "getLipids": 8.4,
+      "getCarbohydrates": 0,
+      "getHungChange": -0.42,
+      "getHungerChange": -0.546,
+      "getBaseHunger": -0.6,
+      "getThirstChange": 0.05,
+      "getOffAge": 53,
+      "getOffAgeMax": 60,
+      "getAge": 0,
+      "isFresh": true,
+      "isRotten": false,
+      "isCooked": true,
+      "isBurnt": false,
+      "isCookable": true,
+      "getCookingTime": 301.061554,
+      "getHeat": 1.84703,
+      "getMinutesToCook": 300,
+      "getMinutesToBurn": 900,
+      "getActualWeight": 0.35,
+      "getActualWeightUnmodded": 0,
+      "getWeight": 0.5,
+      "isCustomWeight": false,
+      "getID": 562521975,
+      "getFullType": "Skittles.CuredPork"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.497642,
+     "count": 26,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+      "wall": 95.11,
+      "wall_done": 95.367
+     }
+    },
+    "field_count": 26,
+    "field_count_ok": true,
+    "moddata_item": {
+     "side": "client",
+     "scope": "item",
+     "arg": "admin/Skittles.CuredPork",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.499873,
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 2,
+     "keys": [
+      "Tooltip:string",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Skittles.CuredPork *",
+      "wall": 95.367,
+      "wall_done": 95.879
+     }
+    },
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.502105,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 95.879,
+      "wall_done": 96.388
+     }
+    },
+    "stats": {
+     "calories": 788.540344,
+     "carbs": -2.503352,
+     "lipids": -0.808225,
+     "proteins": -0.615109,
+     "weight": 80,
+     "hunger": 0.006738,
+     "thirst": 0.005634,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "endurance": 1,
+     "fatigue": 1.7e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.504336,
+     "mult": 0.799997,
+     "wall": 1789082794613
+    },
+    "census_item": {
+     "side": "client",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 2,
+     "count": 0,
+     "keys": [
+      "Tooltip:string",
+      "customName:string"
+     ],
+     "keyNames": [
+      "Tooltip",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "Tooltip"
+     ],
+     "error": null
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "count": 0,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "error": null
+    }
+   },
+   "server": {
+    "fields": {
+     "side": "server",
+     "subject": "item",
+     "id": "admin/Skittles.CuredPork",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "fields": {
+      "getCalories": 210,
+      "getProteins": 35,
+      "getLipids": 8.4,
+      "getCarbohydrates": 0,
+      "getHungChange": -0.42,
+      "getHungerChange": -0.546,
+      "getBaseHunger": -0.6,
+      "getThirstChange": 0.1,
+      "getOffAge": 1000000000,
+      "getOffAgeMax": 1000000000,
+      "getAge": 0.006526,
+      "isFresh": true,
+      "isRotten": false,
+      "isCooked": true,
+      "isBurnt": false,
+      "isCookable": false,
+      "getCookingTime": 301.061554,
+      "getHeat": 1.39397,
+      "getMinutesToCook": 300,
+      "getMinutesToBurn": 900,
+      "getActualWeight": 0,
+      "getActualWeightUnmodded": 0,
+      "getWeight": 0.5,
+      "isCustomWeight": true,
+      "getID": 562521975,
+      "getFullType": "Skittles.CuredPork"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.508948,
+     "count": 26,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+      "wall": 96.899,
+      "wall_done": 97.908
+     }
+    },
+    "field_count": 26,
+    "field_count_ok": true,
+    "moddata_item": {
+     "side": "server",
+     "scope": "item",
+     "arg": "admin/Skittles.CuredPork",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.516937,
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 1,
+     "keys": [
+      "Tooltip:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Skittles.CuredPork *",
+      "wall": 97.908,
+      "wall_done": 99.924
+     }
+    },
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.526702,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 99.924,
+      "wall_done": 101.934
+     }
+    },
+    "stats": {
+     "calories": 786.668457,
+     "carbs": -2.911568,
+     "lipids": -0.940021,
+     "proteins": -0.715414,
+     "weight": 80,
+     "hunger": 0.007849,
+     "thirst": 0.006567,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "endurance": 1,
+     "fatigue": 1.7e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.533354,
+     "mult": 4.783893,
+     "wall": 1789082801194
+    },
+    "census_item": {
+     "side": "server",
+     "resolved": "admin/Skittles.CuredPork #562521975",
+     "keyCount": 1,
+     "count": 0,
+     "keys": [
+      "Tooltip:string"
+     ],
+     "keyNames": [
+      "Tooltip"
+     ],
+     "beyondVanilla": [
+      "Tooltip"
+     ],
+     "error": null
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 4,
+     "count": 0,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "error": null
+    },
+    "item_get": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": true,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.00745,
+     "hungChange": -0.42,
+     "baseHunger": -0.6,
+     "calories": 210,
+     "carbs": 0,
+     "lipids": 8.4,
+     "proteins": 35,
+     "id": 562521975,
+     "uses": 0.42,
+     "fresh": true,
+     "offAge": 1000000000,
+     "offAgeMax": 1000000000,
+     "freezingTime": 0,
+     "cookingTime": 301.061554,
+     "heat": 1.24394,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.1,
+     "hungerChange": -0.546,
+     "isCookable": false,
+     "actualWeight": 0,
+     "weight": 0.5,
+     "customWeight": true,
+     "serverWorldAge": 2.53557
+    }
+   },
+   "wall_done": 103.953
+  }
+ ],
+ "steps": [
+  {
+   "step": "xp_before",
+   "cmd": "perk.xp",
+   "args": "admin Cooking",
+   "wall_before": 69.881,
+   "wall_after": 71.9,
+   "took": 2.019,
+   "ack": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.393569
+   },
+   "serverWorldAge": 2.393569,
+   "gameMinute": null,
+   "worldAgeMinutes": 143.6141
+  },
+  {
+   "step": "set_chef",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork chef admin",
+   "wall_before": 71.901,
+   "wall_after": 73.414,
+   "took": 1.513,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.001866,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 562521975,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.001866,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 562521975,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false
+    },
+    "requested": "admin",
+    "field": "chef",
+    "serverWorldAge": 2.400226
+   },
+   "serverWorldAge": 2.400226,
+   "gameMinute": null,
+   "worldAgeMinutes": 144.0136
+  },
+  {
+   "step": "set_heat",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork heat 2.0",
+   "wall_before": 73.924,
+   "wall_after": 75.937,
+   "took": 2.013,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.001866,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 562521975,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 2,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.001866,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 562521975,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false
+    },
+    "requested": 2,
+    "field": "heat",
+    "serverWorldAge": 2.411305
+   },
+   "serverWorldAge": 2.411305,
+   "gameMinute": null,
+   "worldAgeMinutes": 144.6783
+  },
+  {
+   "step": "set_cookingTime",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork cookingTime 301",
+   "wall_before": 75.94,
+   "wall_after": 77.199,
+   "took": 1.259,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.00279,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 562521975,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 301,
+    "heat": 1.84997,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.00279,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 562521975,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 0.061666,
+     "heat": 1.84997,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false
+    },
+    "requested": 301,
+    "field": "cookingTime",
+    "serverWorldAge": 2.417075
+   },
+   "serverWorldAge": 2.417075,
+   "gameMinute": null,
+   "worldAgeMinutes": 145.0245
+  },
+  {
+   "step": "repin_heat",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork heat 2.0",
+   "wall_before": 79.983,
+   "wall_after": 80.994,
+   "took": 1.011,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.00279,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 562521975,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 301,
+    "heat": 2,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.00279,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 562521975,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 301,
+     "heat": 1.84997,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false
+    },
+    "requested": 2,
+    "field": "heat",
+    "serverWorldAge": 2.433493
+   },
+   "serverWorldAge": 2.433493,
+   "gameMinute": null,
+   "worldAgeMinutes": 146.0096
+  },
+  {
+   "step": "t_action",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork lastCookMinute -1",
+   "wall_before": 80.996,
+   "wall_after": 82.005,
+   "took": 1.009,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.00279,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 562521975,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 301,
+    "heat": 2,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.00279,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 562521975,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 301,
+     "heat": 2,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false
+    },
+    "requested": -1,
+    "field": "lastCookMinute",
+    "serverWorldAge": 2.437931
+   },
+   "serverWorldAge": 2.437931,
+   "gameMinute": null,
+   "worldAgeMinutes": 146.2759
+  },
+  {
+   "step": "item_update",
+   "cmd": "item.update",
+   "args": "admin Skittles.CuredPork",
+   "wall_before": 82.006,
+   "wall_after": 84.017,
+   "took": 2.011,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": true,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.004066,
+    "hungChange": -0.42,
+    "baseHunger": -0.6,
+    "calories": 210,
+    "carbs": 0,
+    "lipids": 8.4,
+    "proteins": 35,
+    "id": 562521975,
+    "uses": 0.42,
+    "fresh": true,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "freezingTime": 0,
+    "cookingTime": 301.061554,
+    "heat": 1.79561,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.1,
+    "hungerChange": -0.546,
+    "isCookable": false,
+    "actualWeight": 0,
+    "weight": 0.5,
+    "customWeight": true,
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": true,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.003733,
+     "hungChange": -0.42,
+     "baseHunger": -0.6,
+     "calories": 210,
+     "carbs": 0,
+     "lipids": 8.4,
+     "proteins": 35,
+     "id": 562521975,
+     "uses": 0.42,
+     "fresh": true,
+     "offAge": 1000000000,
+     "offAgeMax": 1000000000,
+     "freezingTime": 0,
+     "cookingTime": 301.061554,
+     "heat": 1.84703,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.1,
+     "hungerChange": -0.546,
+     "isCookable": false,
+     "actualWeight": 0,
+     "weight": 0.5,
+     "customWeight": true
+    },
+    "gameMinute": 26,
+    "serverWorldAge": 2.446808
+   },
+   "serverWorldAge": 2.446808,
+   "gameMinute": 26,
+   "worldAgeMinutes": 146.8085
+  },
+  {
+   "step": "xp_after",
+   "cmd": "perk.xp",
+   "args": "admin Cooking",
+   "wall_before": 103.955,
+   "wall_after": 105.969,
+   "took": 2.014,
+   "ack": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 2.5,
+    "level": 0,
+    "serverWorldAge": 2.544434
+   },
+   "serverWorldAge": 2.544434,
+   "gameMinute": null,
+   "worldAgeMinutes": 152.666
+  }
+ ],
+ "notes": [],
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "items.count",
+   "expect": "\"Skittles\"",
+   "ok": true,
+   "got": {
+    "total": 5107,
+    "food": 736,
+    "byType": {
+     "base:normal": 1099,
+     "base:weapon": 409,
+     "base:drainable": 150,
+     "base:clothing": 1395,
+     "base:literature": 559,
+     "base:food": 736,
+     "base:container": 308,
+     "base:moveable": 383,
+     "base:key": 6,
+     "base:radio": 17,
+     "base:alarmclockclothing": 16,
+     "base:weaponpart": 11,
+     "base:alarmclock": 2,
+     "base:map": 15,
+     "base:animal": 1
+    },
+    "foodByModule": {
+     "Base": 722,
+     "Skittles": 14
+    },
+    "fluidDefs": 61
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "recipes.craft",
+   "args": "Skittles.MakeCuredMeat",
+   "expect": "\"Skittles.CuredPork\"",
+   "ok": true,
+   "got": {
+    "getCategory": "Cooking",
+    "getTime": 30,
+    "getInputCount": 2,
+    "getOutputCount": 1,
+    "outputs": [
+     {
+      "index": 0,
+      "amount": 1,
+      "resourceType": "Item",
+      "originalLine": "item 1 mapper:meatType",
+      "items": [
+       "Skittles.CuredPork",
+       "Skittles.CuredBeef",
+       "Skittles.CuredVenison",
+       "Skittles.CuredFish"
+      ],
+      "itemCount": 4,
+      "itemFullTypes": [
+       "Skittles.CuredPork",
+       "Skittles.CuredBeef",
+       "Skittles.CuredVenison",
+       "Skittles.CuredFish"
+      ]
+     }
+    ],
+    "lookup": {
+     "accessor": "getCraftRecipe",
+     "asked": "Skittles.MakeCuredMeat",
+     "alternate": "MakeCuredMeat",
+     "askedAnswered": true,
+     "alternateAnswered": false,
+     "route": "as given"
+    },
+    "name": "Skittles.MakeCuredMeat",
+    "outputListSize": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "item.script",
+   "args": "Skittles.CuredPork",
+   "expect": "\"Skittles.CuredPork\"",
+   "ok": true,
+   "got": {
+    "fullType": "Skittles.CuredPork",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -60,
+    "ThirstChange": 20,
+    "DaysFresh": 53,
+    "DaysTotallyRotten": 60,
+    "IsCookable": true,
+    "MinutesToCook": 300,
+    "MinutesToBurn": 900
+   }
+  }
+ ],
+ "mod_log_lines": [
+  "LOG  : Mod          f:0 st:800,035,058> loading SKITTLE_LongTermPreservation4220",
+  "LOG  : Mod          f:0 st:800,035,058> mod \"SKITTLE_LongTermPreservation4220\" overrides",
+  "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\td1-20260910-192457\\server\\mods\\SKITTLE_LongTermPreservation4220\\common\\media\\AnimSets at WindowsException.translat",
+  "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\td1-20260910-192457\\server\\mods\\SKITTLE_LongTermPreservation4220\\common\\media\\actiongroups at WindowsException.tran",
+  "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\td1-20260910-192457\\server\\mods\\SKITTLE_LongTermPreservation4220\\42.20\\media\\AnimSets at WindowsException.translate"
+ ],
+ "folder_check": {
+  "mods_dir": "testing/runs/td1-20260910-192457/server/mods",
+  "listing": [
+   "PZTestKit",
+   "SKITTLE_LongTermPreservation4220"
+  ],
+  "id_folder_present": true,
+  "source_folder_present": false,
+  "mod_info_at_id": true,
+  "ini_mods_line": "Mods=PZTestKit;SKITTLE_LongTermPreservation4220",
+  "predicted": "harness.install copies a profile `sources` entry to <mods_dir>/<mod id>, so the folder is renamed from LongTermPreservation4220 to the declared id"
+ },
+ "items_census": {
+  "foodByModule_Skittles": 14,
+  "expected": 14,
+  "total": 5107,
+  "food": 736,
+  "modules": [
+   "Base",
+   "Skittles"
+  ],
+  "meaning": "items.count walks ScriptManager.getAllItems(), so this is a SCRIPT census at join with nothing spawned: 14 = the 15 live item blocks minus SaltRock (base:normal). A short or missing bucket would be the engine rejecting the brace-unbalanced items_dried.txt (Task 1 Q7 defect 6)."
+ },
+ "recipe_lookup": {
+  "qualified": {
+   "accessor": "getCraftRecipe",
+   "asked": "Skittles.MakeCuredMeat",
+   "alternate": "MakeCuredMeat",
+   "askedAnswered": true,
+   "alternateAnswered": false,
+   "route": "as given"
+  },
+  "bare": {
+   "getCategory": "Cooking",
+   "getTime": 30,
+   "getInputCount": 2,
+   "getOutputCount": 1,
+   "outputs": [
+    {
+     "index": 0,
+     "amount": 1,
+     "resourceType": "Item",
+     "originalLine": "item 1 mapper:meatType",
+     "items": [
+      "Skittles.CuredPork",
+      "Skittles.CuredBeef",
+      "Skittles.CuredVenison",
+      "Skittles.CuredFish"
+     ],
+     "itemCount": 4,
+     "itemFullTypes": [
+      "Skittles.CuredPork",
+      "Skittles.CuredBeef",
+      "Skittles.CuredVenison",
+      "Skittles.CuredFish"
+     ]
+    }
+   ],
+   "lookup": {
+    "accessor": "getCraftRecipe",
+    "asked": "MakeCuredMeat",
+    "alternate": "Base.MakeCuredMeat",
+    "askedAnswered": false,
+    "alternateAnswered": false,
+    "scanAccessor": "getAllCraftRecipes",
+    "scanned": 977,
+    "route": "module-scan",
+    "resolvedFullType": "Skittles.MakeCuredMeat",
+    "resolvedName": "MakeCuredMeat"
+   },
+   "name": "MakeCuredMeat",
+   "outputListSize": 1
+  }
+ },
+ "item_script": {
+  "server": {
+   "fullType": "Skittles.CuredPork",
+   "via": "getItem",
+   "side": "server",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -60,
+   "ThirstChange": 20,
+   "DaysFresh": 53,
+   "DaysTotallyRotten": 60,
+   "IsCookable": true,
+   "MinutesToCook": 300,
+   "MinutesToBurn": 900
+  },
+  "client": {
+   "fullType": "Skittles.CuredPork",
+   "via": "getItem",
+   "side": "client",
+   "access": {
+    "HungerChange": "get",
+    "ThirstChange": "get",
+    "DaysFresh": "get",
+    "DaysTotallyRotten": "get",
+    "IsCookable": "is",
+    "MinutesToCook": "get",
+    "MinutesToBurn": "get"
+   },
+   "HungerChange": -60,
+   "ThirstChange": 20,
+   "DaysFresh": 53,
+   "DaysTotallyRotten": 60,
+   "IsCookable": true,
+   "MinutesToCook": 300,
+   "MinutesToBurn": 900
+  }
+ },
+ "rcon_additem": "",
+ "spawn_wait": [
+  {
+   "attempt": 1,
+   "wall": 61.283,
+   "resolved": "admin/Skittles.CuredPork #562521975",
+   "error": null
+  }
+ ],
+ "timeline": [
+  {
+   "t": 53.7,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "items.count",
+   "ok": true,
+   "got": "{\"total\": 5107, \"food\": 736, \"byType\": {\"base:normal\": 1099, \"base:weapon\": 409, \"base:drainable\": 1"
+  },
+  {
+   "t": 54.2,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "recipes.craft",
+   "ok": true,
+   "got": "{\"getCategory\": \"Cooking\", \"getTime\": 30, \"getInputCount\": 2, \"getOutputCount\": 1, \"outputs\": [{\"ind"
+  },
+  {
+   "t": 54.5,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"Skittles.CuredPork\", \"via\": \"getItem\", \"side\": \"client\", \"access\": {\"HungerChange\": \"g"
+  },
+  {
+   "t": 54.5,
+   "phase": "folder_check",
+   "listing": "PZTestKit,SKITTLE_LongTermPreservation4220"
+  },
+  {
+   "t": 58.5,
+   "phase": "rcon_additem",
+   "ok": true,
+   "reply": ""
+  },
+  {
+   "t": 61.3,
+   "phase": "client_sees_item",
+   "attempts": 1,
+   "resolved": "admin/Skittles.CuredPork #562521975"
+  },
+  {
+   "t": 69.9,
+   "phase": "snapshot",
+   "took": 8.59,
+   "tag": "baseline"
+  },
+  {
+   "t": 71.9,
+   "phase": "step",
+   "took": 2.019,
+   "name": "xp_before",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 73.4,
+   "phase": "step",
+   "took": 1.513,
+   "name": "set_chef",
+   "cmd": "item.set"
+  },
+  {
+   "t": 75.9,
+   "phase": "step",
+   "took": 2.013,
+   "name": "set_heat",
+   "cmd": "item.set"
+  },
+  {
+   "t": 77.2,
+   "phase": "step",
+   "took": 1.259,
+   "name": "set_cookingTime",
+   "cmd": "item.set"
+  },
+  {
+   "t": 80.0,
+   "phase": "guard",
+   "server_cooked": "False",
+   "client_cooked": "False",
+   "heat": "1.84997"
+  },
+  {
+   "t": 81.0,
+   "phase": "step",
+   "took": 1.011,
+   "name": "repin_heat",
+   "cmd": "item.set"
+  },
+  {
+   "t": 82.0,
+   "phase": "step",
+   "took": 1.009,
+   "name": "t_action",
+   "cmd": "item.set"
+  },
+  {
+   "t": 84.0,
+   "phase": "step",
+   "took": 2.011,
+   "name": "item_update",
+   "cmd": "item.update"
+  },
+  {
+   "t": 92.1,
+   "phase": "snapshot",
+   "took": 8.09,
+   "tag": "t+0s"
+  },
+  {
+   "t": 104.0,
+   "phase": "snapshot",
+   "took": 8.84,
+   "tag": "t+3s"
+  },
+  {
+   "t": 106.0,
+   "phase": "step",
+   "took": 2.014,
+   "name": "xp_after",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 106.0,
+   "phase": "hook_lines",
+   "server": 4,
+   "client": 0
+  },
+  {
+   "t": 108.1,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 115.9,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "xp_before": {
+  "step": "xp_before",
+  "cmd": "perk.xp",
+  "args": "admin Cooking",
+  "wall_before": 69.881,
+  "wall_after": 71.9,
+  "took": 2.019,
+  "ack": {
+   "perk": "Cooking",
+   "user": "admin",
+   "side": "server",
+   "xp": 0,
+   "level": 0,
+   "serverWorldAge": 2.393569
+  },
+  "serverWorldAge": 2.393569,
+  "gameMinute": null,
+  "worldAgeMinutes": 143.6141
+ },
+ "chef_readback": {
+  "side": "server",
+  "subject": "item",
+  "id": "admin/Skittles.CuredPork",
+  "resolved": "admin/Skittles.CuredPork #562521975",
+  "fields": {
+   "getChef": "admin"
+  },
+  "missing": {},
+  "nils": {},
+  "worldAge": 2.402443,
+  "count": 1,
+  "_probe": {
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getChef",
+   "wall": 73.416,
+   "wall_done": 73.924
+  }
+ },
+ "guard": {
+  "wall": 79.983,
+  "server": {
+   "side": "server",
+   "subject": "item",
+   "id": "admin/Skittles.CuredPork",
+   "resolved": "admin/Skittles.CuredPork #562521975",
+   "fields": {
+    "getCalories": 300,
+    "getProteins": 50,
+    "getLipids": 12,
+    "getCarbohydrates": 0,
+    "getHungChange": -0.6,
+    "getHungerChange": -0.6,
+    "getBaseHunger": -0.6,
+    "getThirstChange": 0.2,
+    "getOffAge": 53,
+    "getOffAgeMax": 60,
+    "getAge": 0.00279,
+    "isFresh": true,
+    "isRotten": false,
+    "isCooked": false,
+    "isBurnt": false,
+    "isCookable": true,
+    "getCookingTime": 301,
+    "getHeat": 1.84997,
+    "getMinutesToCook": 300,
+    "getMinutesToBurn": 900,
+    "getActualWeight": 0.5,
+    "getActualWeightUnmodded": 0,
+    "getWeight": 0.5,
+    "isCustomWeight": false,
+    "getID": 562521975,
+    "getFullType": "Skittles.CuredPork"
+   },
+   "missing": {},
+   "nils": {},
+   "worldAge": 2.420181,
+   "count": 26,
+   "_probe": {
+    "cmd": "witness.fields",
+    "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+    "wall": 77.202,
+    "wall_done": 77.964
+   }
+  },
+  "client": {
+   "side": "client",
+   "subject": "item",
+   "id": "admin/Skittles.CuredPork",
+   "resolved": "admin/Skittles.CuredPork #562521975",
+   "fields": {
+    "getCalories": 300,
+    "getProteins": 50,
+    "getLipids": 12,
+    "getCarbohydrates": 0,
+    "getHungChange": -0.6,
+    "getHungerChange": -0.6,
+    "getBaseHunger": -0.6,
+    "getThirstChange": 0.2,
+    "getOffAge": 53,
+    "getOffAgeMax": 60,
+    "getAge": 0,
+    "isFresh": true,
+    "isRotten": false,
+    "isCooked": false,
+    "isBurnt": false,
+    "isCookable": true,
+    "getCookingTime": 301,
+    "getHeat": 1.84997,
+    "getMinutesToCook": 300,
+    "getMinutesToBurn": 900,
+    "getActualWeight": 0.5,
+    "getActualWeightUnmodded": 0,
+    "getWeight": 0.5,
+    "isCustomWeight": false,
+    "getID": 562521975,
+    "getFullType": "Skittles.CuredPork"
+   },
+   "missing": {},
+   "nils": {},
+   "worldAge": 2.422221,
+   "count": 26,
+   "_probe": {
+    "cmd": "witness.fields",
+    "args": "item admin/Skittles.CuredPork getCalories,getProteins,getLipids,getCarbohydrates,getHungChange,getHungerChange,getBaseHunger,getThirstChange,getOffAge,getOffAgeMax,getAge,isFresh,isRotten,isCooked,isBurnt,isCookable,getCookingTime,getHeat,getMinutesToCook,getMinutesToBurn,getActualWeight,getActualWeightUnmodded,getWeight,isCustomWeight,getID,getFullType",
+    "wall": 77.964,
+    "wall_done": 78.47
+   }
+  },
+  "server_item_get": {
+   "fullType": "Skittles.CuredPork",
+   "cooked": false,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0.00279,
+   "hungChange": -0.6,
+   "baseHunger": -0.6,
+   "calories": 300,
+   "carbs": 0,
+   "lipids": 12,
+   "proteins": 50,
+   "id": 562521975,
+   "uses": 0.6,
+   "fresh": true,
+   "offAge": 53,
+   "offAgeMax": 60,
+   "freezingTime": 0,
+   "cookingTime": 301,
+   "heat": 1.84997,
+   "minutesToCook": 300,
+   "minutesToBurn": 900,
+   "thirstChange": 0.2,
+   "hungerChange": -0.6,
+   "isCookable": true,
+   "actualWeight": 0.5,
+   "weight": 0.5,
+   "customWeight": false,
+   "serverWorldAge": 2.429053
+  },
+  "assertions": {
+   "server_cooked_false": true,
+   "server_burnt_false": true,
+   "server_frozen_false": true,
+   "server_isCookable_true": true,
+   "server_heat": 1.84997,
+   "server_heat_above_gate": true,
+   "server_cookingTime": 301,
+   "server_cookingTime_past_gate": true,
+   "client_cooked": false,
+   "client_isCookable": true,
+   "client_heat": 1.84997,
+   "outcome_a_at_guard": false
+  }
+ },
+ "t_action": {
+  "wall_before": 80.996,
+  "wall_after": 82.005,
+  "serverWorldAge": 2.437931,
+  "worldAgeMinutes": 146.2759
+ },
+ "who_ran_it": {
+  "before_cooked": true,
+  "before": {
+   "fullType": "Skittles.CuredPork",
+   "cooked": true,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0.003733,
+   "hungChange": -0.42,
+   "baseHunger": -0.6,
+   "calories": 210,
+   "carbs": 0,
+   "lipids": 8.4,
+   "proteins": 35,
+   "id": 562521975,
+   "uses": 0.42,
+   "fresh": true,
+   "offAge": 1000000000,
+   "offAgeMax": 1000000000,
+   "freezingTime": 0,
+   "cookingTime": 301.061554,
+   "heat": 1.84703,
+   "minutesToCook": 300,
+   "minutesToBurn": 900,
+   "thirstChange": 0.1,
+   "hungerChange": -0.546,
+   "isCookable": false,
+   "actualWeight": 0,
+   "weight": 0.5,
+   "customWeight": true
+  },
+  "reading": "before.cooked TRUE = the server's own item tick fired the hook between the action and this call (outcome c); FALSE = this bus call is the transition (outcome b). Either is independent of what the CLIENT's copy did.",
+  "gameMinute": 26
+ },
+ "xp_after": {
+  "step": "xp_after",
+  "cmd": "perk.xp",
+  "args": "admin Cooking",
+  "wall_before": 103.955,
+  "wall_after": 105.969,
+  "took": 2.014,
+  "ack": {
+   "perk": "Cooking",
+   "user": "admin",
+   "side": "server",
+   "xp": 2.5,
+   "level": 0,
+   "serverWorldAge": 2.544434
+  },
+  "serverWorldAge": 2.544434,
+  "gameMinute": null,
+  "worldAgeMinutes": 152.666
+ },
+ "server_hook_lines": [
+  "LOG  : Lua          f:643 st:800,113,605> changing da meat",
+  "LOG  : Lua          f:643 st:800,113,606> post cookable",
+  "LOG  : Lua          f:643 st:800,113,606> meat change days",
+  "LOG  : Lua          f:643 st:800,113,607> meat done"
+ ],
+ "client_hook_lines": [],
+ "comparisons": [
+  {
+   "tag": "baseline",
+   "getters": {
+    "getActualWeight": {
+     "server": 0.5,
+     "client": 0.5,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getActualWeightUnmodded": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getAge": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getBaseHunger": {
+     "server": -0.6,
+     "client": -0.6,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getCalories": {
+     "server": 300,
+     "client": 300,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getCarbohydrates": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getCookingTime": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getFullType": {
+     "server": "Skittles.CuredPork",
+     "client": "Skittles.CuredPork",
+     "synced": true,
+     "exact": true
+    },
+    "getHeat": {
+     "server": 1,
+     "client": 1,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getHungChange": {
+     "server": -0.6,
+     "client": -0.6,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getHungerChange": {
+     "server": -0.6,
+     "client": -0.6,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getID": {
+     "server": 562521975,
+     "client": 562521975,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getLipids": {
+     "server": 12,
+     "client": 12,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getMinutesToBurn": {
+     "server": 900,
+     "client": 900,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getMinutesToCook": {
+     "server": 300,
+     "client": 300,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getOffAge": {
+     "server": 53,
+     "client": 53,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getOffAgeMax": {
+     "server": 60,
+     "client": 60,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getProteins": {
+     "server": 50,
+     "client": 50,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getThirstChange": {
+     "server": 0.2,
+     "client": 0.2,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getWeight": {
+     "server": 0.5,
+     "client": 0.5,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "isBurnt": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    },
+    "isCookable": {
+     "server": true,
+     "client": true,
+     "synced": true,
+     "exact": true
+    },
+    "isCooked": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    },
+    "isCustomWeight": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    },
+    "isFresh": {
+     "server": true,
+     "client": true,
+     "synced": true,
+     "exact": true
+    },
+    "isRotten": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    }
+   },
+   "same_instance": true,
+   "desynced": []
+  },
+  {
+   "tag": "t+0s",
+   "getters": {
+    "getActualWeight": {
+     "server": 0,
+     "client": 0.35,
+     "delta": -0.35,
+     "synced": false,
+     "exact": false
+    },
+    "getActualWeightUnmodded": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getAge": {
+     "server": 0.004066,
+     "client": 0,
+     "delta": 0.004066,
+     "synced": false,
+     "exact": false
+    },
+    "getBaseHunger": {
+     "server": -0.6,
+     "client": -0.6,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getCalories": {
+     "server": 210,
+     "client": 210,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getCarbohydrates": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getCookingTime": {
+     "server": 301.061554,
+     "client": 301.061554,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getFullType": {
+     "server": "Skittles.CuredPork",
+     "client": "Skittles.CuredPork",
+     "synced": true,
+     "exact": true
+    },
+    "getHeat": {
+     "server": 1.79561,
+     "client": 1.84703,
+     "delta": -0.05142000000000002,
+     "synced": false,
+     "exact": false
+    },
+    "getHungChange": {
+     "server": -0.42,
+     "client": -0.42,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getHungerChange": {
+     "server": -0.546,
+     "client": -0.546,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getID": {
+     "server": 562521975,
+     "client": 562521975,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getLipids": {
+     "server": 8.4,
+     "client": 8.4,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getMinutesToBurn": {
+     "server": 900,
+     "client": 900,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getMinutesToCook": {
+     "server": 300,
+     "client": 300,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getOffAge": {
+     "server": 1000000000,
+     "client": 53,
+     "delta": 999999947,
+     "synced": false,
+     "exact": false
+    },
+    "getOffAgeMax": {
+     "server": 1000000000,
+     "client": 60,
+     "delta": 999999940,
+     "synced": false,
+     "exact": false
+    },
+    "getProteins": {
+     "server": 35,
+     "client": 35,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getThirstChange": {
+     "server": 0.1,
+     "client": 0.05,
+     "delta": 0.05,
+     "synced": false,
+     "exact": false
+    },
+    "getWeight": {
+     "server": 0.5,
+     "client": 0.5,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "isBurnt": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    },
+    "isCookable": {
+     "server": false,
+     "client": true,
+     "synced": false,
+     "exact": false
+    },
+    "isCooked": {
+     "server": true,
+     "client": true,
+     "synced": true,
+     "exact": true
+    },
+    "isCustomWeight": {
+     "server": true,
+     "client": false,
+     "synced": false,
+     "exact": false
+    },
+    "isFresh": {
+     "server": true,
+     "client": true,
+     "synced": true,
+     "exact": true
+    },
+    "isRotten": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    }
+   },
+   "same_instance": true,
+   "desynced": [
+    "getActualWeight",
+    "getAge",
+    "getHeat",
+    "getOffAge",
+    "getOffAgeMax",
+    "getThirstChange",
+    "isCookable",
+    "isCustomWeight"
+   ]
+  },
+  {
+   "tag": "t+3s",
+   "getters": {
+    "getActualWeight": {
+     "server": 0,
+     "client": 0.35,
+     "delta": -0.35,
+     "synced": false,
+     "exact": false
+    },
+    "getActualWeightUnmodded": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getAge": {
+     "server": 0.006526,
+     "client": 0,
+     "delta": 0.006526,
+     "synced": false,
+     "exact": false
+    },
+    "getBaseHunger": {
+     "server": -0.6,
+     "client": -0.6,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getCalories": {
+     "server": 210,
+     "client": 210,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getCarbohydrates": {
+     "server": 0,
+     "client": 0,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getCookingTime": {
+     "server": 301.061554,
+     "client": 301.061554,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getFullType": {
+     "server": "Skittles.CuredPork",
+     "client": "Skittles.CuredPork",
+     "synced": true,
+     "exact": true
+    },
+    "getHeat": {
+     "server": 1.39397,
+     "client": 1.84703,
+     "delta": -0.45306,
+     "synced": false,
+     "exact": false
+    },
+    "getHungChange": {
+     "server": -0.42,
+     "client": -0.42,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getHungerChange": {
+     "server": -0.546,
+     "client": -0.546,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getID": {
+     "server": 562521975,
+     "client": 562521975,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getLipids": {
+     "server": 8.4,
+     "client": 8.4,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "getMinutesToBurn": {
+     "server": 900,
+     "client": 900,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getMinutesToCook": {
+     "server": 300,
+     "client": 300,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getOffAge": {
+     "server": 1000000000,
+     "client": 53,
+     "delta": 999999947,
+     "synced": false,
+     "exact": false
+    },
+    "getOffAgeMax": {
+     "server": 1000000000,
+     "client": 60,
+     "delta": 999999940,
+     "synced": false,
+     "exact": false
+    },
+    "getProteins": {
+     "server": 35,
+     "client": 35,
+     "delta": 0,
+     "synced": true,
+     "exact": true
+    },
+    "getThirstChange": {
+     "server": 0.1,
+     "client": 0.05,
+     "delta": 0.05,
+     "synced": false,
+     "exact": false
+    },
+    "getWeight": {
+     "server": 0.5,
+     "client": 0.5,
+     "delta": 0.0,
+     "synced": true,
+     "exact": true
+    },
+    "isBurnt": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    },
+    "isCookable": {
+     "server": false,
+     "client": true,
+     "synced": false,
+     "exact": false
+    },
+    "isCooked": {
+     "server": true,
+     "client": true,
+     "synced": true,
+     "exact": true
+    },
+    "isCustomWeight": {
+     "server": true,
+     "client": false,
+     "synced": false,
+     "exact": false
+    },
+    "isFresh": {
+     "server": true,
+     "client": true,
+     "synced": true,
+     "exact": true
+    },
+    "isRotten": {
+     "server": false,
+     "client": false,
+     "synced": true,
+     "exact": true
+    }
+   },
+   "same_instance": true,
+   "desynced": [
+    "getActualWeight",
+    "getAge",
+    "getHeat",
+    "getOffAge",
+    "getOffAgeMax",
+    "getThirstChange",
+    "isCookable",
+    "isCustomWeight"
+   ]
+  }
+ ],
+ "xp_delta": 2.5,
+ "outcome": {
+  "a_client_ran_it": false,
+  "b_bus_call_ran_it": false,
+  "c_server_tick_ran_it": true,
+  "xp_delta": 2.5,
+  "xp_reading": "Food.update grants the cook 10 Cooking XP and only ever on the server (@789 GameServer.server); an MP client that runs the same transition skips the block. +10 therefore says the SERVER ran it."
+ },
+ "wall_seconds": 115.9,
+ "server_error_count": 0
+}
