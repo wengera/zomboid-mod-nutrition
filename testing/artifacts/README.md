@@ -830,7 +830,8 @@ and cannot be read as the count of what this run found.
   (`player_server_bad_user`: `resolved: false`, `error: "no online player nosuchuser"`); a bad
   `<player|item>` word and a bare `item` scope word answer the usage STRING; `witness.fields
   item` with no id answers a TABLE whose `error` starts `usage:`. All three gates are in the
-  file as `gate_*`.
+  file as `gate_*`. The scope-word gate was exercised with `item` only — **`global` was not
+  sent** — so the bare-`global` branch is read off the Lua (C), not measured here.
 - **A client ignores the `<user>` it is given.** `player_client_wrong_user` asks the client for
   `player nosuchuser` and gets `resolved: "admin"` with `getUsername: "admin"` — `subjectOf`
   resolves the LOCAL player on that side. Always read `resolved`; never assume the name you sent

@@ -61,7 +61,12 @@ asked for either way. `--fill` is the second chance: on its own it re-fetches on
 carrying a real failure, and with `--include-not-requested [--fill-ids <ids|N>]` it tops up rows
 that were never asked for -- either way the row set, the terms and `meta.fetched` are left alone,
 so the stamp still describes the browse pass the rows came from, and each pass appends an entry
-to `meta.fill`.
+to `meta.fill`. **`--catalog-ids` is neither**: it reads item pages for ids named from outside,
+runs no browse pass and joins nothing, and writes its own file (`--out`, default
+`data/workshop-catalog-details.json`) one row per id with a per-row `fetched_at`. It exists
+because a mod the sweep never returned cannot be reached by either of the others -- eight of
+the nine mods in `docs/mods-survey/nutrition-mods.md` § B42 status are in none of the eight
+terms' pages, so `--details-ids` rejects them by name and `--fill` has no row to fill.
 
 **Three row states, one field.** `details_status` is `fetched` (an item page was read: `size` and
 `posted` are real, `updated` is real or genuinely absent), `failed` (an item page was requested
@@ -95,7 +100,7 @@ ITEM_TEMPLATE_ERR = "unrecognised item-page template (no workshopItemTitle / det
 
 BUILD = "42.20.4 (b0bbce05d5)"
 PAUSE = 1.0          # seconds between browse requests -- one page a second, politely
-DETAIL_PAUSE = 4.0   # item pages are the scarce read; 4 s is the spacing every observation used
+DETAIL_PAUSE = 4.0   # item pages are the scarce read; the spacing the recorded runs used
 RETRY_PAUSE = 5.0    # one retry per failure mode, then the failure is recorded on the row
 FETCHED, NOT_REQUESTED, FAILED = "fetched", "not_requested", "failed"   # every row is one of these
 NOT_FETCHED = ("details_status=not_requested: no item page was requested for this row -- it was "
@@ -107,6 +112,14 @@ OUT_DIR = os.path.join(os.path.dirname(HERE), "data")
 
 CSV_COLUMNS = ["workshop_id", "title", "terms", "installed", "mod_ids",
                "size", "posted", "updated", "details_status", "error"]
+
+# `--catalog-ids` writes the same item-page read for ids that are NOT sweep rows:
+# `workshop_id, title, size, posted, updated, details_status, error, fetched_at`. The three
+# stat columns and `details_status` mean exactly what they mean on a sweep row; `terms`,
+# `installed`, `mod_ids`, `grade` and `unblock` do not exist, because no browse page returned
+# these ids and nothing here is joined to anything. Each row carries its own `fetched_at`
+# instead of leaning on a sweep's `meta.fetched`: there is no browse pass whose stamp would
+# cover them, and the pass spans minutes at `DETAIL_PAUSE`.
 
 UNBLOCK = ("subscribe to {id} in Steam, let it download, re-run tools/mod_inventory.py")
 
@@ -463,6 +476,70 @@ def fill(payload, detailer=details, sleep=time.sleep, detail_pause=DETAIL_PAUSE,
     return payload
 
 
+def catalog_details(ids, detailer=details, sleep=time.sleep, detail_pause=DETAIL_PAUSE,
+                    now=None, log=lambda *a: None):
+    """(rows, counts) for ids named directly rather than found by a browse page.
+
+    The catalogued mods are the case this exists for: eight of the nine in
+    `docs/mods-survey/nutrition-mods.md` § B42 status are returned by none of the eight sweep
+    terms, so `--details-ids` cannot reach them (`select_detail_ids` rejects an id the sweep
+    did not return, on purpose) and `--fill` has no row to fill. Same `details()`, same pacing,
+    same one-retry-per-failure-mode, same three `details_status` states; a template miss is a
+    `failed` row with the reason in `error`, never a silent null.
+
+    Duplicate ids are read once, in first-seen order. `now` is stamped per row as it is read.
+    """
+    seen, rows = set(), []
+    wanted = [i for i in ids if not (i in seen or seen.add(i))]
+    log(f"catalog details over {len(wanted)} id(s), {detail_pause}s apart:")
+    for i, wid in enumerate(wanted):
+        if i:
+            sleep(detail_pause)
+        d = detailer(wid)
+        at = (now or datetime.datetime.now()).strftime("%Y-%m-%d %H:%M")
+        rows.append({"workshop_id": wid, "title": d["title"], "size": d["size"],
+                     "posted": d["posted"], "updated": d["updated"],
+                     "details_status": FAILED if d["error"] else FETCHED,
+                     "error": d["error"], "fetched_at": at})
+        log(f"  {wid}  " + (f"ERROR {d['error']}" if d["error"] else
+                            f"{d['size']}  posted {d['posted']}  updated {d['updated']}"))
+    # `incomplete` is the same guard `recount_details` keeps on the sweep and must stay 0: a
+    # read that reported no error owes the row a file size.
+    counts = {"requested": len(wanted),
+              "fetched": sum(1 for r in rows if r["details_status"] == FETCHED),
+              "failed": sum(1 for r in rows if r["details_status"] == FAILED),
+              "incomplete": sum(1 for r in rows
+                                if r["details_status"] == FETCHED and not r["size"])}
+    return rows, counts
+
+
+CATALOG_NOTES = [
+    "Item pages only -- no browse pass, so there is no term, no result set and no meta.fetched: "
+    "each row carries the fetch_at stamp of its own read.",
+    "These ids are named by docs/mods-survey/nutrition-mods.md, not found by a search. Eight of "
+    "the nine are returned by none of the eight sweep terms, which is why they cannot be "
+    "reached with --details-ids or --fill.",
+    "details_status is the row's own answer: fetched (an item page was read: size and posted "
+    "are real, updated is real or genuinely absent) or failed (asked for and unreadable -- "
+    "error says why). Nothing here is not_requested: every row was asked for.",
+    "A Workshop page is graded W wherever it is quoted. It says when the author last uploaded, "
+    "which is the one thing workshop_item_mtime (a download stamp) cannot answer; it says "
+    "nothing about what the mod does.",
+]
+
+
+def build_catalog_meta(counts, ids, now=None):
+    now = now or datetime.datetime.now()
+    return {"build": BUILD,
+            "generated": now.strftime("%Y-%m-%d"),
+            "fetched": now.strftime("%Y-%m-%d %H:%M"),
+            "tool": "tools/workshop_search.py --catalog-ids",
+            "source_url_pattern": {"item": ITEM},
+            "catalog_ids": list(ids),
+            "counts": counts,
+            "notes": CATALOG_NOTES}
+
+
 def write_json(path, meta, rows):
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         json.dump({"meta": meta, "results": rows}, fh, indent=1, ensure_ascii=False)
@@ -502,11 +579,39 @@ def main(argv=None):
                     help="with --fill --include-not-requested: comma-separated workshop ids, or "
                          "a bare count N for the first N not_requested rows in dataset order. "
                          "Omit to top up every not_requested row.")
+    ap.add_argument("--catalog-ids", default=None,
+                    help="comma-separated workshop ids to read item pages for OUTSIDE a sweep "
+                         "-- no browse pass, no join, no rows but these. Writes "
+                         "workshop-catalog-details.json (see --out). The route for ids no "
+                         "search term returns, which --details-ids and --fill cannot reach")
+    ap.add_argument("--out", default=None,
+                    help="with --catalog-ids: the json file to write (default "
+                         "<out-dir>/workshop-catalog-details.json)")
     ap.add_argument("--out-dir", default=OUT_DIR, help="where the json/csv pair is written")
     ap.add_argument("--corpus", default=CORPUS, help="data/mod-inventory.json to join against")
     args = ap.parse_args(argv)
+    # One gate for the flag combinations that would otherwise be accepted and then do nothing
+    # -- each of these ran silently before and cost a pass: `--details-ids` without `--details`
+    # fetched no page at all, `--fill --fill-ids` without `--include-not-requested` selected
+    # `[]` (a fill only repairs failures unless it is told otherwise, and there are none), and
+    # `--fill` with `--details*` reads the flags of a sweep it is not running. Same class as
+    # `select_detail_ids`'s unknown-token error: an argument that cannot mean what it says is a
+    # usage error, never a quiet no-op.
     if args.include_not_requested and not args.fill:
         ap.error("--include-not-requested only means anything with --fill")
+    if args.fill_ids is not None and not (args.fill and args.include_not_requested):
+        ap.error("--fill-ids needs --fill --include-not-requested: a fill without "
+                 "--include-not-requested repairs failures only, and names no row by id")
+    if args.fill and (args.details or args.details_ids):
+        ap.error("--fill and --details/--details-ids are different passes: --fill re-reads the "
+                 "written dataset's rows, --details is part of a new sweep. Run them separately")
+    if args.details_ids and not args.details:
+        ap.error("--details-ids needs --details: without it no item page is read at all")
+    if args.catalog_ids and (args.fill or args.details or args.details_ids):
+        ap.error("--catalog-ids is its own pass: it runs no sweep and reads no written "
+                 "dataset, so --details/--details-ids/--fill mean nothing beside it")
+    if args.out and not args.catalog_ids:
+        ap.error("--out is the --catalog-ids output path; a sweep writes its pair to --out-dir")
     detail_ids = ([t.strip() for t in args.details_ids.split(",") if t.strip()]
                   if args.details_ids else None)
 
@@ -517,6 +622,19 @@ def main(argv=None):
 
     jpath = os.path.join(args.out_dir, "workshop-search.json")
     cpath = os.path.join(args.out_dir, "workshop-search.csv")
+
+    if args.catalog_ids:
+        ids = [t.strip() for t in args.catalog_ids.split(",") if t.strip()]
+        rows, counts = catalog_details(ids, detail_pause=args.details_pause, log=print)
+        path = args.out or os.path.join(args.out_dir, "workshop-catalog-details.json")
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        write_json(path, build_catalog_meta(counts, ids), rows)
+        print(f"\n{counts['fetched']} fetched / {counts['failed']} failed of "
+              f"{counts['requested']} requested\n-> {path}")
+        if counts["incomplete"]:
+            print(f"  WARNING: {counts['incomplete']} row(s) reported no error and no size "
+                  f"-- the item template changed under the parser, do not quote this run")
+        return 0
 
     if args.fill:
         with open(jpath, encoding="utf-8") as fh:

@@ -60,7 +60,7 @@ import patterns from there.
 - `mod_inventory.py` — `python tools/mod_inventory.py`
   Sweeps the same workshop root as `mod_lint` and writes
   `data/mod-inventory.json` — one record per mod folder, **230 across 179
-  workshop items at 2026-09-10 16:20**, ~2 s, byte-stable (LF, utf-8, on every
+  workshop items at 2026-09-10 17:47**, ~2 s, byte-stable (LF, utf-8, on every
   platform) — then prints the class histogram, the `loadstring` and b41-flat
   lists, the top 20 by lua size,
   the two nutrition signals side by side, and a folder-name-≠-id block (**52
@@ -75,18 +75,26 @@ import patterns from there.
   `<live>/media/**/scripts/*.txt` for the item-definition keys (9 mods, 1
   overlap); `script_item_blocks` beside them counts item
   definitions, recipe `item 1 [Base.X]` lines excluded and hyphenated ids kept
-  (17 for Long Term Preservation, where the first cut of the field read 47;
+  (15 for Long Term Preservation, where the first cut of the field read 47;
   492 for `KATTAJ1 Military Pack`, where the second cut read 1 because `-`
-  ended the name — 6648 over the corpus, 2026-09-10). Two caveats before that
+  ended the name — 6630 over the corpus, 2026-09-10 17:47).
+  **All three script regexes read the file comment-stripped**, because the
+  engine's parser and `tools/food_scan.parse_script` both ignore `/* */` and
+  `//` and a definition inside a comment is not a definition: `mod_inventory`
+  **imports `food_scan._strip_comments`** rather than keeping a second opinion
+  about what the engine skips, the same delegation `resolve()` makes to
+  `mod_lint` for identity. It moved the two corpus mods that comment a
+  definition out — Long Term Preservation 17 → **15** items and 135 → **117**
+  keys, `ZVirusVaccine42BETA` 102 → **86** — and nothing else (881 rather than
+  899 across the nine script-signal mods, 2026-09-10 17:47;
+  [`../docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
+  § Discrepancies row 1). One caveat remains before the
   field is read as food: it counts **every** item definition, clothing and
   vehicles included (288 for `Horse`), so food is counted by hand off the
-  `Type = Food` blocks; and it does **not** strip `/* */` comment blocks, which
-  the engine and `tools/food_scan.parse_script` both do, so it over-counts the
-  two corpus mods that comment a definition out — Long Term Preservation 17
-  against **15** live, `ZVirusVaccine42BETA` 102 against **86** (881 rather than
-  899 across the nine script-signal mods, measured 2026-09-10;
-  [`../docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
-  § Discrepancies row 1 and § Open questions Q2). Everything but
+  `Type = Food` blocks. `sandbox_options` reads all three roots a build could
+  load the file from — the live folder, the mod root and **`common/`** —
+  **55 rows**, 11 of which keep `sandbox-options.txt` only in `common/media`
+  and read `false` before that root was checked. Everything but
   `bytes` describes the **newest version folder only** — the de-duplication a
   per-mod record needs, since a mod may ship the same scripts in three folders.
   `common/media`, which the build **also** loads, is not counted here and no
@@ -104,7 +112,7 @@ import patterns from there.
 
 - `workshop_search.py` — `python tools/workshop_search.py [--details]
   [--details-ids IDS] [--details-pause S] [--fill [--include-not-requested]
-  [--fill-ids IDS|N]] [--out-dir D] [--corpus F]`
+  [--fill-ids IDS|N]] [--catalog-ids IDS [--out F]] [--out-dir D] [--corpus F]`
   The **outward** half of the catalog: what nutrition-relevant B42 mods exist on
   the public Workshop, and which of them are installed here. Eight terms
   (`nutrition`, `vitamin`, `malnutrition`, `diet`, `hydration`, `food overhaul`,
@@ -154,6 +162,23 @@ import patterns from there.
   set, the terms and `meta.fetched` are left alone — a re-sweep would change the
   trend-sorted row set — and each pass appends `{at, ids, fetched, failed}` to
   `meta.fill`.
+  **`--catalog-ids <ids>` is a third pass and neither of those**: item pages for
+  ids named from outside, no browse pass, no join, its own file
+  (`--out`, default `data/workshop-catalog-details.json`), one row per id with
+  a per-row `fetched_at` because there is no browse stamp to inherit. It exists
+  because a mod no term returns is unreachable by the other two — `--details-ids`
+  rejects it by name and `--fill` has no row to fill — which is the case for
+  **eight of the nine mods** in
+  [`../docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
+  § B42 status. Run once, 2026-09-10 17:46: **9 requested, 9 fetched, 0 failed**;
+  columns and the readings in [`data/README.md`](../data/README.md)
+  § workshop-catalog-details.
+  **Flag combinations that cannot mean what they say are usage errors**, not
+  quiet no-ops — `--details-ids` without `--details`, `--fill-ids` without
+  `--include-not-requested` (a bare fill repairs failures only), `--fill` beside
+  `--details`/`--details-ids`, `--catalog-ids` beside any of them, `--out`
+  without `--catalog-ids`. Each of those parsed cleanly and did nothing before,
+  which on a read that may not land costs a whole pass.
   **The retry budget is per failure mode, not per URL**: `fetch_once_retried`
   spends the one allowed retry after 5 s on a transport error or an empty body,
   and `fetch_usable` retries once more after 5 s when the body came back as a

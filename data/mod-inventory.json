@@ -4607,7 +4607,7 @@
   "lua_kb": 0,
   "bytes": 138059,
   "workshop_item_mtime": "2026-08-29T22:48:36",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3398090604",
   "folder": "PainkillersRemoveMuscleStrain",
   "class": "other"
@@ -4673,7 +4673,7 @@
   "lua_kb": 0,
   "bytes": 196333,
   "workshop_item_mtime": "2026-08-29T22:48:34",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3404074048",
   "folder": "ExerciseWithCorpses",
   "class": "other"
@@ -6784,7 +6784,7 @@
    "Proteins": 3,
    "ThirstChange": 18
   },
-  "script_item_blocks": 102,
+  "script_item_blocks": 86,
   "script_modules": [
    "Base",
    "LabBooks",
@@ -8108,7 +8108,7 @@
   "lua_kb": 0,
   "bytes": 134305091,
   "workshop_item_mtime": "2026-08-12T00:03:03",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3645980077",
   "folder": "ProjectArcade",
   "class": "content(scripts-only)"
@@ -8329,7 +8329,7 @@
   "lua_kb": 0,
   "bytes": 2147693,
   "workshop_item_mtime": "2026-08-12T00:03:03",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3662913642",
   "folder": "SD-distro",
   "class": "other"
@@ -8358,7 +8358,7 @@
   "lua_kb": 0,
   "bytes": 2292490,
   "workshop_item_mtime": "2026-08-12T00:03:03",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3662913642",
   "folder": "SD-teleporter",
   "class": "other"
@@ -8387,7 +8387,7 @@
   "lua_kb": 0,
   "bytes": 856247,
   "workshop_item_mtime": "2026-08-12T00:03:03",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3662913642",
   "folder": "SDUtils",
   "class": "other"
@@ -8416,7 +8416,7 @@
   "lua_kb": 0,
   "bytes": 325920,
   "workshop_item_mtime": "2026-08-12T00:03:03",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3662913642",
   "folder": "sd-bus",
   "class": "other"
@@ -8607,7 +8607,7 @@
   "lua_kb": 0,
   "bytes": 423181,
   "workshop_item_mtime": "2026-08-12T00:03:03",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3671176591",
   "folder": "dustinguished_bolt_cutters",
   "class": "systems(light-lua)"
@@ -10008,7 +10008,7 @@
   "lua_kb": 0,
   "bytes": 526266,
   "workshop_item_mtime": "2026-08-12T00:03:02",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3763759011",
   "folder": "SDVC",
   "class": "other"
@@ -10331,7 +10331,7 @@
   "lua_kb": 0,
   "bytes": 1053817,
   "workshop_item_mtime": "2026-08-12T00:03:02",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3772533498",
   "folder": "BookConsumerB42",
   "class": "other"
@@ -10389,21 +10389,21 @@
   "signals": {
    "food_nutrition": 4,
    "events_add": 1,
-   "script_nutrition": 135
+   "script_nutrition": 117
   },
   "script_nutrition_keys": {
-   "Calories": 16,
-   "Carbohydrates": 16,
+   "Calories": 14,
+   "Carbohydrates": 14,
    "DaysFresh": 14,
-   "DaysTotallyRotten": 18,
+   "DaysTotallyRotten": 14,
    "EvolvedRecipe": 5,
-   "FoodType": 11,
-   "HungerChange": 16,
-   "Lipids": 16,
-   "Proteins": 16,
-   "ThirstChange": 7
+   "FoodType": 9,
+   "HungerChange": 14,
+   "Lipids": 14,
+   "Proteins": 14,
+   "ThirstChange": 5
   },
-  "script_item_blocks": 17,
+  "script_item_blocks": 15,
   "script_modules": [
    "Skittles"
   ],
@@ -10826,7 +10826,7 @@
   "lua_kb": 0,
   "bytes": 891404,
   "workshop_item_mtime": "2026-08-29T22:48:31",
-  "sandbox_options": false,
+  "sandbox_options": true,
   "workshop_id": "3789019583",
   "folder": "SDHC",
   "class": "other"

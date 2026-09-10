@@ -12,7 +12,7 @@ Queue order and the criteria behind it: [nutrition-mods.md](nutrition-mods.md)
 
 | # | Mod id | Workshop | Why chosen | Status |
 |---|---|---|---|---|
-| 09 | `SKITTLE_LongTermPreservation4220` | 3774789651 | Domain twin. The only nutrition candidate shipping a **42.20** folder, and both mechanisms in one 239 KB mod: 14 new food items with full macro sets, plus a **server-side** `OnCooked` hook that multiplies all four macros and hunger by 0.70 on the crafted instance | **next** |
+| 09 | `SKITTLE_LongTermPreservation4220` | 3774789651 | Domain twin. The only nutrition candidate whose **only** version folder is `42.20`, and both mechanisms in one 239 KB mod: 14 new food items with full macro sets, plus a **server-side** `OnCooked` hook that multiplies all four macros and hunger by 0.70 on the crafted instance | **next** |
 | 10 | `simpleStatus` | 2867431511 | The read side: 12 nutrition reads, all client-side, in one 20 KB file. What a pure client mirror can and cannot see while the server owns the store — and the UI our own mod would overlap | queued |
 | 11 | `AutoCook` | 3388721641 | Cooking-pipeline hook points: what it wraps is what we must not break. Also the corpus's sharpest `common/` vs `42.x/` case — its live folder registers no event and `require`s two files only `common/` ships | queued |
 | — | [ItemQuality](teardowns/itemquality.md) (Girth's Quest System module) | 3624538051 | Per-item modded stats + the definitive MP-sync failure case study | **done** (seeded) |
@@ -35,9 +35,29 @@ surface and the MP-behaviour section the picks turn on.
 dos/don'ts: [../modding/patterns.md](../modding/patterns.md).
 
 Catalog pass (P3) sources, as actually run: `data/mod-inventory.json` (230 mod
-folders across 179 workshop items, swept 2026-09-10 16:20) and
+folders across 179 workshop items, swept 2026-09-10 17:47),
 `data/workshop-search.json` (8 terms, 212 results, 180 distinct ids, 3
-installed, fetched 2026-09-10 16:26).
+installed, fetched 2026-09-10 16:26) and `data/workshop-catalog-details.json`
+(the nine catalogued mods' item pages, 9 fetched / 0 failed, 2026-09-10 17:46).
+
+## Lint gate for this directory
+
+**`docs/mods-survey/` is deliberately NOT in `doc_lint.STAMPED_DIRS`** — only
+`docs/mods-survey/teardowns` is (`tools/doc_lint.py`), a slice-08 ruling in
+[`../decisions.md`](../decisions.md) because widening it would add findings on
+`approved-modlist.md` and `teardown-template.md`, which slice 08 did not own.
+`nutrition-mods.md` is written to the stamped standard by hand instead, and the
+check that enforces it is this one-liner — **run it after any edit to that
+file**, alongside the ordinary `python tools/doc_lint.py docs/vanilla
+docs/modding docs/testing references docs/mods-survey/nutrition-mods.md`:
+
+```bash
+python -c "import sys;sys.path.insert(0,'tools');import doc_lint as d;d.STAMPED_DIRS=('docs/mods-survey',);f=d.lint(['docs/mods-survey/nutrition-mods.md']);[print(x) for x in f];sys.exit(1 if f else 0)"
+```
+
+Exit 0 (verified 2026-09-10). It requires the `Verified against: 42.20.4` stamp,
+a non-empty `## Sources`, no `TODO`/`TBD`, and a C/M/W grade in every row of
+every table carrying an `Ev` header.
 
 ## Leads still open after the slice-08 catalog pass
 

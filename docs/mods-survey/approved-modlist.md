@@ -1,7 +1,7 @@
 # The approved modlist — inventory & tiering
 
 Scan of the full locally-installed workshop set (= the server-approved
-corpus), **regenerated 2026-09-10 16:20**, via
+corpus), **regenerated 2026-09-10 17:47**, via
 [tools/mod_inventory.py](../../tools/mod_inventory.py) → dataset
 [data/mod-inventory.json](../../data/mod-inventory.json). Column definitions
 and every caveat: [data/README.md](../../data/README.md) § mod-inventory. The
@@ -13,8 +13,11 @@ index (`3782784855/Skill Recovery Journal` ships no `mod.info` anywhere). Class
 distribution, 2026-09-10: **175** light-lua systems · **31** other · **15**
 heavy-lua systems · **5** scripts-only content · **4** 3D+lua content. The old
 173/33 pair predates the `42.20.1` resolution fix and Steam's mid-slice rewrite
-of item `3490370700`; `other` is not "ships nothing" — 24 of the 31 keep
-everything in `common/media`.
+of item `3490370700`; `other` is not "ships nothing" — 24 of the 31 have no
+`media/` under the LIVE folder at all, so nothing was scanned rather than nothing
+shipped. All 24 ship a `common/media`, 12 also ship a B41 root `media/`, and
+`STA_PryOpen` ships `42.18/media` and `42.19/media` beside a live `42.20/`
+holding none.
 
 ## Curation quality — the bar our mod must meet
 
@@ -43,7 +46,7 @@ the folder-name fallback — Long Term Preservation really declares
 the **live version folder only**: `Lua` is `signals.food_nutrition` (calls in
 `.lua`), `Script` is `signals.script_nutrition` (nutrition keys at the start of
 a line in a `.txt` under `scripts/`). **19 mods carry at least one; exactly one
-carries both.** Measured 2026-09-10 16:20.
+carries both.** Measured 2026-09-10 17:47.
 
 | Mod id | Item | Lua | Script | Why it matters to us |
 |---|---|---:|---:|---|
@@ -53,7 +56,7 @@ carries both.** Measured 2026-09-10 16:20.
 | **`AutoCook`** | 3388721641 | 4 | 0 | Automates the cooking pipeline — hooks the actions we will extend. **Teardown 11** |
 | `BeyondTen` | 3765241705 | 4 | 0 | Four getter/setter *names* in a reflection table, not four calls (teardown done) |
 | `Economy` | 3624538051 | 4 | 0 | Same shape: a shop-item serializer field map naming the four macro accessors |
-| **`SKITTLE_LongTermPreservation4220`** | 3774789651 | 4 | 135 | The closest domain neighbour, and the only mod on both signals: 14 new food items **and** a server-side `OnCooked` hook multiplying all four macros by 0.70. **Teardown 09** |
+| **`SKITTLE_LongTermPreservation4220`** | 3774789651 | 4 | 117 | The closest domain neighbour, and the only mod on both signals: 14 new food items **and** a server-side `OnCooked` hook multiplying all four macros by 0.70. **Teardown 09** |
 | `SomewhatTraitsCore` | 3498347699 | 3 | 0 | The corpus's only **player** macro write — an `OnTick` server-side calorie adjustment behind a trait |
 | `CustomGamepadUI` | 3001154607 | 1 | 0 | The hit is inside a commented-out vanilla line |
 | **`MoodleFramework`** | 3396446795 | 1 | 0 | **Already server-approved** — our leading candidate for new-nutrient moodle UI. The hit is a debug `print`; the real question is whether its `42.20` folder is whole |

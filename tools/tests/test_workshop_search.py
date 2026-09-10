@@ -6,7 +6,7 @@ server-rendered `detailsStatRight` block), trimmed to the bytes the regexes actu
 `fetch` is exercised with a stubbed `subprocess.run` and the sweep with stub fetchers, so a
 failing test means a parser or join regression, never a Steam outage.
 """
-import json, os, sys, unittest.mock
+import io, json, os, sys, unittest.mock
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import workshop_search as ws
 
@@ -503,3 +503,66 @@ def test_fill_ids_takes_a_count_or_a_list_and_rejects_an_unknown_id():
 def test_terms_are_the_eight_the_slice_is_written_against():
     assert ws.TERMS == ["nutrition", "vitamin", "malnutrition", "diet", "hydration",
                         "food overhaul", "cooking overhaul", "spoilage"]
+
+
+def test_catalog_details_reads_named_ids_with_no_sweep_and_stamps_each_row():
+    """The catalogued mods are not sweep rows -- eight of the nine are returned by none of the
+    eight terms -- so neither `--details-ids` (which rejects an id the sweep did not return) nor
+    `--fill` (which has no row to fill) can reach them. This pass names them directly. Same
+    `details()`, same pacing, same three-state answer; a template miss is `failed` with the
+    reason on the row, and every row carries the stamp of its own read because there is no
+    browse pass to inherit one from."""
+    import datetime
+    asked, slept = [], []
+    rows, counts = ws.catalog_details(
+        ["3774789651", "2932547723", "3774789651"],       # the duplicate is read once
+        detailer=stub_detailer(asked), sleep=slept.append, detail_pause=4.0,
+        now=datetime.datetime(2026, 9, 10, 17, 5))
+    assert asked == ["3774789651", "2932547723"], "de-duplicated, in first-seen order"
+    assert slept == [4.0], "paced between reads, and not before the first"
+    assert counts == {"requested": 2, "fetched": 1, "failed": 1, "incomplete": 0}
+    assert [r["details_status"] for r in rows] == ["fetched", "failed"]
+    assert rows[0] == {"workshop_id": "3774789651", "title": "Nutrition Tweaker Enhanced",
+                       "size": "503.836 KB", "posted": "Nov 10, 2023 @ 2:19am",
+                       "updated": "Jul 22, 2025 @ 1:35pm", "details_status": "fetched",
+                       "error": None, "fetched_at": "2026-09-10 17:05"}
+    assert rows[1]["error"] == ws.ITEM_TEMPLATE_ERR and rows[1]["size"] is None
+    assert "terms" not in rows[0] and "installed" not in rows[0], \
+        "nothing here is joined to anything: there is no sweep and no corpus read"
+
+
+def test_catalog_meta_says_it_is_item_pages_only():
+    import datetime
+    meta = ws.build_catalog_meta({"requested": 9, "fetched": 9, "failed": 0, "incomplete": 0},
+                                 ["3774789651"], now=datetime.datetime(2026, 9, 10, 17, 5))
+    assert meta["build"] == "42.20.4 (b0bbce05d5)"
+    assert meta["tool"] == "tools/workshop_search.py --catalog-ids"
+    assert meta["catalog_ids"] == ["3774789651"]
+    assert set(meta["source_url_pattern"]) == {"item"}, "no browse pass ran"
+    assert "terms" not in meta and "corpus" not in meta and "per_term" not in meta
+    assert any("fetch_at" in n or "fetched_at" in n for n in meta["notes"])
+
+
+def test_flag_combinations_that_would_do_nothing_are_usage_errors():
+    """Each of these parsed cleanly and then quietly did nothing, which on a read that may not
+    land costs a whole pass: `--details-ids` with no `--details` fetched no page at all, `--fill-ids`
+    without `--include-not-requested` selected `[]` (a bare fill repairs failures only, and the
+    committed dataset has none), and `--fill` beside `--details*` reads the flags of a sweep it
+    is not running. Same class as `select_detail_ids`'s unknown-token error."""
+    for argv, expect in [
+            (["--details-ids", "3774789651"], "--details-ids needs --details"),
+            (["--fill", "--fill-ids", "6"], "--fill-ids needs --fill --include-not-requested"),
+            (["--fill", "--details"], "different passes"),
+            (["--fill", "--details-ids", "3774789651"], "different passes"),
+            (["--include-not-requested"], "--include-not-requested only means"),
+            (["--catalog-ids", "3774789651", "--fill"], "--catalog-ids is its own pass"),
+            (["--catalog-ids", "3774789651", "--details"], "--catalog-ids is its own pass"),
+            (["--out", "x.json"], "--out is the --catalog-ids output path")]:
+        with unittest.mock.patch("sys.stderr", new=io.StringIO()) as err:
+            try:
+                ws.main(argv)
+            except SystemExit as exc:
+                assert exc.code == 2, argv
+            else:
+                raise AssertionError("%r must be rejected, not silently accepted" % (argv,))
+        assert expect in err.getvalue(), (argv, err.getvalue())

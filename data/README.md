@@ -509,7 +509,7 @@ are the two evolved-recipe scripts), `cookingLevels` `[0, 10]`, and `counts` —
 **installed workshop tree**
 (`D:\SteamLibrary\steamapps\workshop\content\108600`, read and never written) —
 one record per mod folder, a bare JSON array, `indent=1`. **230 records across
-179 workshop items, swept 2026-09-10 16:20.** Evidence grade **C** for
+179 workshop items, swept 2026-09-10 17:47.** Evidence grade **C** for
 everything read off a shipped file (`mod.info` values, file counts, regex hit
 counts); nothing here is measured in a running game, and a signal count is a
 count of regex hits, not of behaviour.
@@ -523,7 +523,18 @@ resolution fix reads their `42.20.1/` folder where the old rule fell back to an
 older one, and the other five (`3490370700` ×2, `3623584152`, `3703948448`,
 `3745960616`) because Steam rewrote those items' files between the sweeps. Only
 2 of the 7 are item `3490370700`. The sweep date above is the stamp; quote a
-count from this dataset with it. Regenerating is cheap (~2 s) and byte-stable:
+count from this dataset with it.
+
+**The 17:47 sweep against the 16:20 one is the fix and nothing else.** Exactly
+**13 rows** differ, all of them for a reason in the tool: 11 `sandbox_options`
+false → true (`common/media` is now read), and 2 script rows losing
+commented-out content — `SKITTLE_LongTermPreservation4220`
+`script_item_blocks` 17 → **15** with `script_nutrition` 135 → **117**, and
+`ZVirusVaccine42BETA` 102 → **86**. No other row moved a byte in that 87
+minutes, which is a reading about Steam (it rewrote nothing in the window), not
+a guarantee about the next one.
+
+Regenerating is cheap (~2 s) and byte-stable:
 the same tree in gives the same bytes out, LF-terminated on every platform
 (the writer pins `encoding="utf-8", newline="\n"`, so the file no longer picks
 up CRLF when it is generated on Windows — the committed blob was already LF,
@@ -603,13 +614,13 @@ counts, lua architecture, sounds — check `media_at` before believing a zero.
 | `stats` | dict | file counts under `<live>/media`: `lua_client` / `lua_server` / `lua_shared` (by path), `script_files` (`.txt` under a `scripts` path), `models`, `tile_packs`, `map_files`, `sounds`. Absent keys are zero |
 | `signals` | dict | regex hit counts, absent when zero — 18 Lua signals (`events_add`, `send_client_cmd`, `on_client_cmd`, `send_server_cmd`, `mod_data`, `transmit_mod_data`, `monkey_patch`, `pcall`, `loadstring`, `getfilewriter`, `sandbox_vars`, `timed_action_new`, `ui_panel`, `require_line`, `global_write_vanilla`, `onplayerupdate`, `everyoneminute`, `food_nutrition`) plus `script_nutrition` |
 | `script_nutrition_keys` | dict | per-key counts behind `script_nutrition` |
-| `script_item_blocks` | int | item **definitions** — `item <Name>` alone on its line, brace optional, the name matched as `\w[\w.-]*` so hyphenated ids count — over **every** `.txt` under `<live>/media/**/scripts`, not only the ones carrying a nutrition key. An exact count, not a bound (6648 over the corpus, 2026-09-10) |
+| `script_item_blocks` | int | item **definitions** — `item <Name>` alone on its line, brace optional, the name matched as `\w[\w.-]*` so hyphenated ids count — over **every** `.txt` under `<live>/media/**/scripts`, not only the ones carrying a nutrition key, and over the file **comment-stripped** (`food_scan._strip_comments`, the rule `parse_script` applies), so a definition inside `/* … */` is not one. An exact count, not a bound (6630 over the corpus, 2026-09-10 17:47) |
 | `script_modules` | list | every `module <name>` declared in those same `.txt` files, sorted |
 | `top_events` | list | the 8 most-used `Events.<X>.Add` names, `[name, count]` |
 | `lua_kb` | int | total `.lua` characters read, in KiB |
 | `bytes` | int | the **whole** mod folder on disk, every version folder included — what a subscriber downloads (7.01 GiB over the corpus) |
 | `workshop_item_mtime` | string/null | ISO-8601 mtime of the `<workshop-id>/` folder — see the caveat below. Non-null on all 230 rows here; `null` when `scan_mod` is called on a mod folder with no workshop item above it, since the mod folder's own mtime is a different fact |
-| `sandbox_options` | bool | a `media/sandbox-options.txt` in the live folder or at the mod root |
+| `sandbox_options` | bool | a `media/sandbox-options.txt` under the live folder, the mod root **or `common/`** — all three roots a build could load one from. **55 rows true** (2026-09-10 17:47); **11 of them keep the file only in `common/media`** (`3398090604`, `3404074048`, `3645980077`, four mods in `3662913642`, `3671176591`, `3763759011`, `3772533498`, `3789019583`), and read `false` before that root was checked. A profile reads sandbox options off this field, so a false "no options" is the dangerous direction |
 | `workshop_id` / `folder` | string | the item id and the mod folder name; together they are the record's key |
 | `class` | string | `systems(light-lua)` 175, `other` 31, `systems(heavy-lua)` 15, `content(scripts-only)` 5, `content(3d+lua)` 4 — `classify()`'s buckets, in that order of frequency. `other` is the 31 rows whose `stats` came back empty, and they split two ways: **24** have no `<live>/media` at all (`live_media` false — every file is in `common/media`: over the 24, 1 004 `.png`, 191 `.json`, 163 `.fbx`, 119 `.xml`, 105 `.lua`, 65 `.txt`, 13 `.tiles`, 12 `.pack`, and only 6 of the 24 ship any pack or tiles) and **7** have one holding only file kinds `stats` has no bucket for — measured 2026-09-10: **182 `.json`** (133 of them `KnoxBuildworks_Vanilla_Expanded` map definitions and manifests, 49 `lua/shared/Translate/**` strings, 16 of those from the same Knox item), **21 `.txt`** (more translations, plus `AnimSets/` and `actiongroups/` folder placeholders), **4 `.frag`** shaders (`SomewhatWater`) and **1 `.xml`** (`PALSJs Poofs`' hair styles) — and **no `.png`/`.dds`/`.tga` between them**, so they are not "textures". Never read `other` as "ships nothing" |
 
@@ -622,7 +633,12 @@ page.
 
 ### The two nutrition signals
 
-Neither column alone is the catalog, and they are counted from different files:
+Neither column alone is the catalog, and they are counted from different files.
+Both script-side counts read the file **comment-stripped**, exactly as
+`tools/food_scan.parse_script` does and as the engine's own parser does:
+`tools/mod_inventory.py` imports `food_scan._strip_comments` rather than
+keeping a second opinion about what the engine ignores, the same delegation
+`resolve()` makes to `mod_lint` for identity:
 
 - `signals.food_nutrition` — `getNutrition()`, `setCalories` / `setProteins` /
   `setLipids` / `setCarbohydrates`, or `HungerChange` in any `.lua` under the
@@ -632,28 +648,29 @@ Neither column alone is the catalog, and they are counted from different files:
   `Proteins`, `HungerChange`, `ThirstChange`, `DaysFresh`,
   `DaysTotallyRotten`, `FoodType` or `EvolvedRecipe` at the start of a line in
   a `.txt` under `<live>/media/**/scripts`. **9 mods**:
-  `SKITTLE_LongTermPreservation4220` 135, `Horse` 116, `OCsPacking` 76,
+  `SKITTLE_LongTermPreservation4220` 117, `Horse` 116, `OCsPacking` 76,
   `ZVirusVaccine42BETA` 36, `GirthsTweaks` 26, `JadePackingSD` 18, `69mini` 7,
   `SDQuests` 6, `biogas` 1.
-- **One mod shows both**: `SKITTLE_LongTermPreservation4220` (135 script, 4
+- **One mod shows both**: `SKITTLE_LongTermPreservation4220` (117 script, 4
   lua). 19 mods show at least one.
 
 `script_modules` is the override question: a mod writing **`module Base`
 overrides vanilla items**; `module <Own>` only adds new ones. Long Term
-Preservation declares `module Skittles` alone, so its 17 item definitions all
+Preservation declares `module Skittles` alone, so its 15 item definitions all
 add.
 The value is the raw token after `module`, so a `module LabItems{` written
 with the brace on the same line is recorded as `LabItems{`
 (`ZVirusVaccine42BETA`).
 
 `script_item_blocks` is an **exact** count of item definitions: `item <Name>`
-alone on its line, with or without the opening brace. Anchoring the name to
+alone on its line, with or without the opening brace, in the file with its
+comments stripped. Anchoring the name to
 the end of the line is what separates a definition from a `craftRecipe`'s
 inputs and outputs, which are written `item 1 [Base.Bowl]` / `item 1
 Base.DriedApple` at the same indentation. The first version of this field used
 `^\s*item\s+(\S+)` and could not tell them apart, which inflated it on **113
 of the 230 rows** (22231 lines down to 6157 definitions): Long Term
-Preservation read 47 for 17 real items, `JadePackingSD` 923 for 125, and three
+Preservation read 47 for 15 real items, `JadePackingSD` 923 for 125, and three
 rows that only ever write recipe inputs — `3621968227/SWMisc_Patches`,
 `3624538051/QualityEnhancements`, `3645980077/ProjectArcade` — now read 0,
 correctly.
@@ -668,8 +685,20 @@ outside `[\w.]` any id in the corpus uses, and on vanilla 42.20.4's
 `media/scripts` both regexes read the same **5105** definitions, so the widening
 adds no false positive on either corpus.
 
-The nine `script_nutrition` mods read 17 · 288 · 308 · 102 · 14 · 125 · 32 · 12
-· 1 in the order listed above (2026-09-10, unchanged by the hyphen fix — none of
+The third cut fixed a **comment** error. All three script regexes ran over the
+raw file, so a definition its author had commented out was counted as one; the
+engine's parser and `food_scan.parse_script` both ignore `/* … */` and `//`, so
+`mod_inventory` strips them first now. **171 of the corpus's 2401 live script
+files carry a block comment**, and stripping moved exactly two rows (6648 →
+**6630**, 2026-09-10 17:47): `SKITTLE_LongTermPreservation4220` 17 → **15**,
+and `ZVirusVaccine42BETA` 102 → **86**, whose `LabItemsOld.txt` (12
+definitions) and `LabTestZone.txt` (2) are each commented out **whole**, in one
+block. `//` is stripped for the same reason and changes nothing here: one file
+in the corpus contains the token and no count in it moves.
+
+The nine `script_nutrition` mods read 15 · 288 · 308 · 86 · 14 · 125 · 32 · 12
+· 1 in the order listed above — **881** together (2026-09-10 17:47; 899 before
+the comment fix, and unchanged by the hyphen fix — none of
 them uses a hyphenated id). Quote it as "items defined"; it counts definitions
 in every script file, so for a mod that also ships clothing or vehicles it is
 not "food items defined".
@@ -769,7 +798,7 @@ measurable. Until then nothing below is a teardown candidate.
 | `workshop_id` | Title | Size | Posted | Updated | Why it is load-bearing | Ev |
 |---|---|---|---|---|---|---|
 | `3736275816` | ApocalipseBR - Nutrition Sync Fix | 453.434 KB | May 31 @ 7:55am | May 31 @ 11:18am | **someone else hit the MP nutrition-sync problem this library exists to characterise** and shipped a fix for it. Subscribing is the only way to read how; until then we know a title, a size and two dates | W |
-| `3796644824` | [NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation | 471.224 KB | Sep 6 @ 12:58am | *never* | **a third-party patch to our own top teardown pick** (`3774789651`, installed, 135 `script_nutrition` hits) — its title claims the preservation mod launders nutrition, which is a claim about a mod we *can* read. Subscribe to compare the two script sets; the patch is 4 days old and has never been updated | W |
+| `3796644824` | [NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation | 471.224 KB | Sep 6 @ 12:58am | *never* | **a third-party patch to our own top teardown pick** (`3774789651`, installed, 117 `script_nutrition` hits) — its title claims the preservation mod launders nutrition, which is a claim about a mod we *can* read. Subscribe to compare the two script sets; the patch is 4 days old and has never been updated | W |
 | `3690404044` | Nutrition Makes Sense | 1.042 MB | Mar 22 @ 4:57pm | Aug 18 @ 5:01pm | the largest of the nutrition-overhaul group, and the one with an add-on ecosystem (`3796753621` Nutrition Makes Sense Immersive Addon is in the same page) | W |
 | `3785515388` | Reasonable Nutrition | 145.008 KB | Aug 17 @ 7:44pm | Aug 26 @ 3:49pm | a small, recent take on the same problem — the cheapest comparison read if only one of these is ever subscribed | W |
 | `3782835400` | Realistic Nutrition | 636.708 KB | Aug 13 @ 10:59am | *never* | third of the three same-month "nutrition" overhauls; never updated since posting | W |
@@ -803,11 +832,11 @@ and it is the only field to read before the three stat columns:
 - **`fetched` (15 rows, 2026-09-10 16:56)** — an item page was read. `size` and
   `posted` are real; `updated` is real or genuinely absent (see the field
   table). `error` is `null`.
-- **`not_requested` (165 rows)** — no item page was asked for: the row was
+- **`not_requested` (165 rows, 2026-09-10 16:56)** — no item page was asked for: the row was
   outside `meta.details_ids` and outside the fill pass. `error` is `null`, the
   three stat columns are `null`, and **nothing about the item is claimed**.
   This is a statement about what this repo asked for, never about the mod.
-- **`failed` (0 rows)** — an item page was asked for and could not be read.
+- **`failed` (0 rows, 2026-09-10 16:56)** — an item page was asked for and could not be read.
   `error` says why: a `curl rc=…` transport failure, or Steam's alternate
   item-page template. **No row in the committed file is `failed`.**
 
@@ -882,3 +911,57 @@ file still says when each column was read. The committed file has **one** entry
 / 0 failed — so 9 of its 15 fetched rows were read at 16:25:31–16:26:22 and 6
 at 16:55:37–16:56:01. `counts.details_requested` counts both passes (15), which
 is why `details_requested == details_fetched + detail_failures` still holds.
+
+### workshop-catalog-details — the nine catalogued mods (2026-09-10 17:46)
+
+`data/workshop-catalog-details.json`, written by
+`python tools/workshop_search.py --catalog-ids <ids>` — the **same item-page
+read as `--details`, for ids that are not sweep rows**. Eight of the nine mods
+in [`docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
+§ B42 status are returned by none of the eight search terms, so neither
+`--details-ids` (which rejects an id the sweep did not return, on purpose) nor
+`--fill` (which has no row to fill) can reach them, and the table's *Workshop
+updated* column had nothing to put in it. This file is that column.
+
+**One pass, 2026-09-10 17:46:08–17:46:49: 9 requested, 9 fetched, 0 failed, 0
+incomplete**, 4 s apart, one retry per failure mode available and none needed.
+Row shape — `workshop_id`, `title`, `size`, `posted`, `updated`,
+`details_status`, `error`, **`fetched_at`** — and no `terms`, `installed`,
+`mod_ids`, `grade` or `unblock`: no browse page returned these ids and nothing
+here is joined to anything. `fetched_at` is per row because there is no browse
+pass whose `meta.fetched` would cover them. Every reading is **W**: it is what
+a Workshop page said at that minute.
+
+| `workshop_id` | Mod id(s) it holds | Title on the page | Size | Posted | Updated |
+|---|---|---|---|---|---|
+| `3774789651` | `SKITTLE_LongTermPreservation4220` | Long Term Preservation [42.20] | 239.131 KB | Jul 30 @ 6:31pm | *never* |
+| `2867431511` | `simpleStatus` | [B41\|B42] Simple Status | 1.132 MB | Sep 25, 2022 @ 12:57am | Apr 5 @ 5:37pm |
+| `3388721641` | `AutoCook` | Auto Cook | 129.161 KB | Dec 21, 2024 @ 8:53am | Sep 6 @ 9:04pm |
+| `2503622437` | `SkillRecoveryJournal` | Skill Recovery Journal | 4.460 MB | May 31, 2021 @ 8:28am | Sep 4 @ 8:57am |
+| `3396446795` | `MoodleFramework` | Moodle Framework | 180.592 KB | Dec 30, 2024 @ 3:04pm | Sep 7 @ 5:15am |
+| `3498347699` | `SomewhatTraits`, `SomewhatTraitsCore`, `SomewhatTraitsSkills` | Somewhat Traits | 1.737 MB | Jun 13, 2025 @ 9:58am | Aug 10 @ 3:03am |
+| `3437629766` | `CleanUI` | CleanUI [B42] | 11.300 MB | Mar 3, 2025 @ 1:05am | Sep 7 @ 5:57am |
+| `3624538051` | `BaseQuests`, `Economy`, `ItemQuality`, `QualityEnhancements`, `QuestSystem` | Quest System | 3.641 MB | Dec 15, 2025 @ 9:22am | Sep 10 @ 4:53am |
+| `3765241705` | `BeyondTen` | Beyond Ten - Level 15 Skills [B41/B42] | 348.184 KB | Jul 15 @ 6:22am | Sep 4 @ 1:25pm |
+
+**`title` and `size` are the item's, not a mod's.** Two of the nine ship
+several mods, and the page knows only the item: `3498347699` is titled *Somewhat
+Traits* and `3624538051` *Quest System*. **`size` is the sum of the item's mod
+folders and matched `bytes` exactly on all nine** — 1 737 473 for the three
+Somewhat mods against `1.737 MB`, 3 641 208 for the five Girth ones against
+`3.641 MB`, and so on to the byte (Steam divides by 1000 and truncates at three
+decimals). That is a genuine cross-check of two independent readings, and it
+says the local tree is the size of what the Workshop serves today.
+
+**What it answers, and what it does not.** It answers the one question
+`workshop_item_mtime` cannot: when the **author** last uploaded, against a
+download stamp that only says when Steam last wrote here. The two disagree in
+both directions and neither is wrong — `3774789651` has **never been updated**
+since it was posted on Jul 30, yet its item folder was written 2026-09-01;
+`3624538051` was updated on the page 2026-09-10 at 4:53am, hours before this
+read, while its item folder still reads 2026-08-12. A page date is **W** and
+says nothing about what the mod does.
+
+**`3765241705` was read twice by two routes**, once by the sweep's details pass
+at 16:26 and once here at 17:46, and both read `348.184 KB` /
+`Sep 4 @ 1:25pm`. The catalog quotes it as **C + W** for that reason.

@@ -364,7 +364,12 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     an absence; **`fields`** = everything else, a **map** keyed by getter name, so
     a name asked for twice is read twice, counted twice and appears once. "The mod
     did not set it" and "this build never had it" are therefore different answers,
-    which is the whole question in 09–11.
+    which is the whole question in 09–11. **The three buckets are not a partition
+    of `count`.** `count` is names *read*, and `fields` is a map keyed by getter
+    name, so `len(fields) + len(missing) + len(nils) == count` holds only when
+    every name asked for was distinct — ask for `getCalories,getCalories` and
+    `count` is 2 while the map has one entry. Reconcile a reply against the names
+    you sent, never against `count` alone.
   * **`witness.moddata [player[:<user>] | item:<id> | global:<name>] <key ...>`** →
     `{side, scope, arg, resolved, keys, keyCount, values, missing, count, worldAge
     [, error] [, truncatedAt]}`. No scope prefix means `player`: the local player
@@ -379,6 +384,16 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     consumed as the scope, so a modData key literally named `item`, `global` or
     `player` has to be asked for behind an explicit prefix
     (`witness.moddata player:- player`), where it is just a key.
+    **Parked defect (fixed in slice 09 pass 1, while the harness is live):** the
+    gate matches `^(item):(.+)$` and the bare words, so a *trailing colon with no
+    name* — `witness.moddata item:` or `global:` — falls through both and is read
+    as a modData **key** on the default `player` scope. The reply is a plausible
+    census of the wrong subject; `scope` and `resolved` disclose it, and reading
+    them is the workaround. The one-line fix is to gate on
+    `^(player|item|global):?$` as well, and it is deliberately **not** applied
+    here: this file's measured artifact was driven by the shipped Lua, and a
+    docs-and-tools wave must not put it into script/artifact skew for a path no
+    probe in it exercised.
   * **`TK.WITNESS_MAX = 32`** names per call — both replies travel as one bus ack
     line. The cap is counted **before** the read, so `count` is what was actually
     read and `truncatedAt` is the only signal that more were asked for.
@@ -387,7 +402,12 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     error}` with their usual envelope. Only the `argv[1]` gate answers a bare
     **string** — an unknown `<player|item>` word, or a bare `item` / `global`
     scope word. So a driver guards with `isinstance(reply, dict)` and reads
-    `resolved` / `error`, and never has to parse prose anywhere else.
+    `resolved` / `error`, and never has to parse prose anywhere else. A third
+    gate sits inside the table branch and is easy to miss: **`witness.fields
+    item` with no `<id>` answers a TABLE** whose `error` starts `usage:`. So
+    `isinstance(reply, dict)` is necessary and not sufficient — a driver must
+    also check `error` before trusting `fields`. All three are in the artifact
+    as `gate_*`.
   * **`resolved` is the subject that answered, not the one you asked for.** For an
     item it is `<user>/<fullType> #<id>`; on a **client** it always names the local
     player whatever `<user>` was sent, because that side has no one else. The
@@ -410,8 +430,11 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   14 as expected, 1 finding, 0 misses**, 0 server errors and 0 client Lua errors.
   Both commands answered on both sides for a player **and** an item (`count` 5 / 7,
   `truncatedAt` absent everywhere, so the cap never bit); the apple's five macro
-  getters agreed with `data/food-items.json` field for field on both sides, which
-  is what makes the row `M` rather than a self-report; `absent_getter` put both
+  getters agreed with `data/food-items.json` field for field on both sides
+  **to within the float32 band** — `getCarbohydrates` reads `25.129999` live
+  against the dataset's `25.13`, a diff of 1e-6 inside a 1.25e-4 tolerance, and
+  the comparison is per-field with its own tolerance rather than an equality
+  test — which is what makes the row `M` rather than a self-report; `absent_getter` put both
   `getCalories` (it lives on `Nutrition`, not on `IsoPlayer`) and `getNoSuchThing`
   into `missing` with `nils` and `fields` empty; a client `moddata.set` +
   `transmitModData()` moved the **whole** table (the server census went 4 → 6 keys,

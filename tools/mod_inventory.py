@@ -22,9 +22,11 @@ greps `.lua` for the runtime API, `signals.script_nutrition` greps `<live>/media
 for the item-definition keys. On the corpus at 2026-09-10 they overlap on exactly one mod
 (LongTermPreservation4220). A mod writing `module Base` **overrides vanilla items**; a mod
 writing `module <Own>` only adds new ones -- LongTermPreservation4220 declares `module Skittles`
-alone, so the 17 items its item script defines all add and none override. `script_item_blocks`
-reads exactly those 17: `SCRIPT_ITEM` anchors the name to the end of its line, so a
-craftRecipe's 30 `item 1 [Base.X]` input lines drop out. The field is a count, not a bound.
+alone, so the 15 items its item script defines all add and none override. `script_item_blocks`
+reads exactly those 15: `SCRIPT_ITEM` anchors the name to the end of its line, so a
+craftRecipe's 30 `item 1 [Base.X]` input lines drop out, and the file is comment-stripped
+first, so the two definitions inside its `/* OBSOLETE */` block do too. The field is a count,
+not a bound.
 
 **Scope: the newest version folder only** -- the `layout` folder, which is the de-duplication
 the record needs (ZVirusVaccine42BETA ships the same scripts in `42.14/`, `42.20/` and
@@ -46,6 +48,7 @@ import collections, datetime, json, os, re, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mod_lint  # version_dirs / info_chain / read_info / media_root
+import food_scan  # _strip_comments -- the same comment rule parse_script applies
 
 ROOT = r"D:/SteamLibrary/steamapps/workshop/content/108600"
 OUT = os.path.join(os.path.dirname(__file__), "..", "data", "mod-inventory.json")
@@ -72,8 +75,20 @@ SIGNALS = {
 }
 
 # The script-DSL half of the nutrition question: what an item *definition* writes, which the
-# `.lua` regexes above can never see. Keyed line-start so a key named inside a comment or a
+# `.lua` regexes above can never see. Keyed line-start so a key named inside a
 # longer identifier (`ExtraCalories = `) does not count.
+#
+# All three script regexes run over `food_scan._strip_comments(text)`, not over the raw file:
+# the engine's parser ignores `/* ... */` and `//`, so a definition inside a comment block is
+# not a definition. **Imported rather than copied** -- `tools/` may import `tools/`, `resolve()`
+# already delegates identity to `mod_lint` on the same principle, and one definition of "what
+# the engine ignores" is the only way the count here and `parse_script`'s (which the catalog's
+# collision census uses) can be compared at all. The uncommented file text is what the engine
+# reads; before this, two corpus mods commented a definition out and were counted anyway --
+# `SKITTLE_LongTermPreservation4220` read 17 items / 135 keys against 15 / 117 live (a 36-line
+# `/* OBSOLETE */` block at `items_dried.txt:374` holds two whole definitions, and four
+# two-line blocks each hide a `DaysFresh` + a `DaysTotallyRotten`), `ZVirusVaccine42BETA` 102
+# items against 86 (2026-09-10).
 SCRIPT_KEYS = re.compile(r"^\s*(Calories|Carbohydrates|Lipids|Proteins|HungerChange|ThirstChange"
                          r"|DaysFresh|DaysTotallyRotten|FoodType|EvolvedRecipe)\s*=", re.M)
 # An item DEFINITION header: `item <name>` alone on its line, brace optional (`item Foo` with
@@ -194,6 +209,9 @@ def scan_mod(mod_dir, item_dir=None):
                     txt = open(full, encoding="utf-8", errors="replace").read()
                 except OSError:
                     continue
+                # A commented-out definition is not a definition: strip exactly what
+                # `food_scan.parse_script` strips before any of the three script regexes run.
+                txt = food_scan._strip_comments(txt)
                 script_keys.update(SCRIPT_KEYS.findall(txt))
                 script_items += len(SCRIPT_ITEM.findall(txt))
                 script_modules.update(SCRIPT_MODULE.findall(txt))
@@ -207,8 +225,13 @@ def scan_mod(mod_dir, item_dir=None):
                 stats["sounds"] += 1
     if script_keys:
         sig["script_nutrition"] = sum(script_keys.values())
-    has_sandbox = os.path.isfile(os.path.join(live, "media", "sandbox-options.txt")) or \
-                  os.path.isfile(os.path.join(mod_dir, "media", "sandbox-options.txt"))
+    # All three roots a build could load the file from, `common/media` included: 11 of the 55
+    # corpus mods shipping a `sandbox-options.txt` ship it **only** there (`3398090604`,
+    # `3404074048`, `3645980077`, four mods in `3662913642`, `3671176591`, `3763759011`,
+    # `3772533498`, `3789019583`, measured 2026-09-10), and a false "no options" is the
+    # dangerous direction for a profile: it reads sandbox options off this field.
+    has_sandbox = any(os.path.isfile(os.path.join(root, "media", "sandbox-options.txt"))
+                      for root in (live, mod_dir, os.path.join(mod_dir, "common")))
     mtime = os.path.getmtime(item_dir) if item_dir else None
     return {
         "mod_id": info.get("id") or "",

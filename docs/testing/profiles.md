@@ -150,8 +150,10 @@ Three consequences the profile builder is built around:
   left item `3685392864`'s mtime untouched.
 - **The folder is renamed to the id** — **C, not measured.** `harness.install` copies a profile
   source to `<mods_dir>/<mod id>` while `mods.install` (the workshop fallback) keeps the source
-  folder's own name, and the game keys on `mod.info` either way. 51 of the 230 installed folders
-  have a name that differs from their id (the lint's `folder-id` INFO), so this matters for most
+  folder's own name, and the game keys on `mod.info` either way. **52 of the 230 installed folders
+  drift** from their declared id; `mod_lint`'s `folder-id` INFO counts **51** of them, having no
+  id to compare against on the 52nd (`3782784855/Skill Recovery Journal` declares none anywhere).
+  So this matters for most
   of the corpus slice 08 picks from — but the acceptance mod's folder **equals** its id
   (`KeenPerception`), so no run has yet exercised the rename. § Open questions #6 names the check
   that settles it.
@@ -455,11 +457,25 @@ A profile is a **server-side** decision that the client inherits.
    comparison. A probe that needs either belongs in a scenario with a Python evaluator.
 6. **Is the folder rename exercised?** `harness.install` places a profile source at
    `<mods_dir>/<mod id>` while `mods.install` keeps the source folder's name — settled in code
-   (**C**), unexercised in a run: the acceptance mod's folder *is* its id, and 51 of the 230
-   installed folders differ from theirs. The check that settles it is one profiled run on a
-   folder≠id mod — `SimpleStatus` (`2867431511`, folder `SimpleStatus`, id `simpleStatus`) is the
-   cheapest, and its `mods/` listing after the run is the whole answer. Slice 09's first pass runs
-   on exactly such a mod, so it settles this on the way past.
+   (**C**), unexercised in a run: the acceptance mod's folder *is* its id, and 52 of the 230
+   installed folders drift from theirs (the lint's `folder-id` INFO counts 51, having no id to
+   compare on the 52nd). The question has **two halves** — which name the copy lands under, and
+   whether the rename is *required* for the mod to load — and the subject decides which halves a
+   run can answer.
+
+   **`simpleStatus` (`2867431511`, folder `SimpleStatus`, id `simpleStatus`) settles only the
+   first half.** NTFS is case-*preserving*, so the `mods/` listing after a run does show which of
+   the two spellings `harness.install` wrote — that part it answers. But path lookup on Windows
+   is case-*insensitive*: `<mods_dir>/SimpleStatus` and `<mods_dir>/simpleStatus` are the same
+   directory, so the mod loads whichever name is used and the run says nothing about whether the
+   rename is needed.
+
+   **Slice 09 pass 1's subject settles both.** `SKITTLE_LongTermPreservation4220` (`3774789651`)
+   ships in a folder named `LongTermPreservation4220` — a whole-prefix difference, so the listing
+   names it unambiguously *and* a copy left under the folder name would fail to load. It runs
+   first, so this closes on the way past
+   ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md) § Discrepancies
+   row 6).
 
 ## Sources
 

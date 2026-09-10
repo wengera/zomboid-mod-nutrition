@@ -5,12 +5,15 @@ Evidence grades: **C** read off a shipped file — the mod's own tree, cited
 `<version folder>/<path>:<line>`, or the game's jar/Lua — **M** measured on the live dedicated
 server (run id + artifact link), **W** a Workshop page or a wiki mirror: secondary, and never on
 its own a teardown candidate.
-Two datasets carry the numbers and are the **column authority**, not this page:
+Three datasets carry the numbers and are the **column authority**, not this page:
 [`data/README.md`](../../data/README.md) § mod-inventory for the installed corpus
-([`data/mod-inventory.json`](../../data/mod-inventory.json), swept **2026-09-10 16:20**) and
+([`data/mod-inventory.json`](../../data/mod-inventory.json), swept **2026-09-10 17:47**),
 § workshop-search for the public sweep
 ([`data/workshop-search.json`](../../data/workshop-search.json), fetched **2026-09-10 16:26**,
-quoted here at commit `74ba5b0`). Every count on this page carries the stamp of the sweep it came
+quoted here at commit `ce7cd72`) and § workshop-catalog-details for the nine item pages this
+page's B42-status table needs
+([`data/workshop-catalog-details.json`](../../data/workshop-catalog-details.json), fetched
+**2026-09-10 17:46**). Every count on this page carries the stamp of the sweep it came
 from, because both trees are live: Steam rewrites a mod folder under you (item `3490370700`, 13:47
 that same day) and the Workshop reorders its browse pages hourly.
 
@@ -54,9 +57,12 @@ that same day) and the Workshop reorders its browse pages hourly.
 holding 230 mod folders, 229 of which declare an id** the engine can index. One folder
 (`3782784855/Skill Recovery Journal`) ships no `mod.info` anywhere and is invisible to
 `pzt.mods.workshop_index()`. Class distribution, measured 2026-09-10 15:30 and reproduced from the
-committed 16:20 dataset for this page: **175** light-lua systems · **31** other · **15** heavy-lua
-systems · **5** scripts-only content · **4** 3D+lua content. `other` is not "ships nothing" — 24 of
-those 31 keep every file in `common/media`. Ev C.
+committed 17:47 dataset for this page: **175** light-lua systems · **31** other · **15** heavy-lua
+systems · **5** scripts-only content · **4** 3D+lua content. `other` is not "ships nothing": **24
+of those 31 have no `media/` under the LIVE folder at all**, so nothing was scanned rather than
+nothing shipped. Where the content actually is varies — all 24 ship a `common/media`, **12 of
+them also ship a B41 root `media/`**, and `STA_PryOpen` ships `42.18/media` and `42.19/media`
+as well, beside a live `42.20/` holding none. Ev C.
 
 **Ids are the engine-resolved ids.** `mod_id` is the `id=` of the `mod.info` the build actually
 reads — newest `42[.x[.y]]/` folder first, then `common/`, then the mod root — never the folder
@@ -89,7 +95,7 @@ to settle.
 
 ---
 
-## Sweep 1 — Lua nutrition signals (live version folder, 2026-09-10 16:20)
+## Sweep 1 — Lua nutrition signals (live version folder, 2026-09-10 17:47)
 
 `signals.food_nutrition` counts hits of `getNutrition()`, `setCalories`, `setProteins`, `setLipids`,
 `setCarbohydrates` or `HungerChange` in any `.lua` **under the live version folder**. `net` is
@@ -98,7 +104,11 @@ inventory has no signal for `OnServerCommand` (`SkillRecoveryJournal` has 3 of t
 23). Every `food_nutrition` count was reproduced file by file for this page and all eleven totals
 matched the dataset exactly.
 
-| Mod id | Item | Hits | `lua_kb` | net | `mod_data` | patch | `pcall` | Sandbox | Class | Ev |
+`patch` is `signals.monkey_patch` — the **save-and-wrap** idiom, `local original… = X.y`. It is
+not the `global_write_vanilla` count the § API surface table carries (`function IS…:` headers),
+and the two disagree by design: AutoCook reads `patch` **0** here and 21 there.
+
+| Mod id | Item | Hits | `lua_kb` | net | `mod_data` | `monkey_patch` | `pcall` | Sandbox | Class | Ev |
 |---|---|---:|---:|---:|---:|---:|---:|---|---|---|
 | `simpleStatus` | `2867431511` | 12 | 46 | 0 | 4 | 0 | 0 | no | light-lua | C |
 | `CleanUI` | `3437629766` | 11 | 1064 | 8 | 12 | 3 | 101 | no | heavy-lua | C |
@@ -139,24 +149,28 @@ seventh write, LTP's `setHungChange` at `recipe_meats.lua:49`, is not matched by
 **3 sit inside comments** (CleanUI 2, CustomGamepadUI 1); and the remaining **36 are live reads**.
 A hit count is not a behaviour, which is what this second table is for.
 
-## Sweep 2 — script nutrition definitions (live version folder, 2026-09-10 16:20)
+## Sweep 2 — script nutrition definitions (live version folder, 2026-09-10 17:47)
 
 `signals.script_nutrition` counts `Calories`, `Carbohydrates`, `Lipids`, `Proteins`,
 `HungerChange`, `ThirstChange`, `DaysFresh`, `DaysTotallyRotten`, `FoodType` or `EvolvedRecipe` at
-the start of a line in a `.txt` under `<live>/media/**/scripts`. `Items` is
+the start of a line in a `.txt` under `<live>/media/**/scripts`, **read comment-stripped** as the
+engine and `tools/food_scan.parse_script` read it. `Items` is
 `script_item_blocks` — **every** `item` definition in those files, clothing and vehicles included;
-it is not a food count, and § Discrepancies row 1 shows two rows where it is not even a definition
-count. `module Base` is the *capability* to override a vanilla item, not proof of one: the
+it is not a food count. Both columns dropped on two rows when the comment fix landed in
+`Slice 08: final fix wave` (the commit after `c1aa357`): LTP 135 keys / 17 items → **117 / 15**,
+`ZVirusVaccine42BETA` 102 items → **86**, and 899 → **881** items over the nine rows.
+§ Discrepancies row 1 has the per-block arithmetic. `module Base` is the *capability* to override
+a vanilla item, not proof of one: the
 `Collide` column is the measured name-collision count against the **5 092** distinct
 `module Base` item names 42.20.4's own `media/scripts` declares (parsed comment-stripped, so it is
 lower than the 5 105 raw `item` lines `data/README.md` quotes).
 
 | Mod id | Item | Keys | Items | Modules | Collide | Live folder | Ev |
 |---|---|---:|---:|---|---:|---|---|
-| `SKITTLE_LongTermPreservation4220` | `3774789651` | 135 | 17 | `Skittles` | 0 | `42.20` | C |
+| `SKITTLE_LongTermPreservation4220` | `3774789651` | 117 | 15 | `Skittles` | 0 | `42.20` | C |
 | `Horse` | `3661336777` | 116 | 288 | `Base`, `HorseMod` | **1** | `42` | C |
 | `OCsPacking` | `3626823538` | 76 | 308 | `Base`, `OCP` | 0 | `42.15` | C |
-| `ZVirusVaccine42BETA` | `3615135168` | 36 | 102 | `Base`, `LabBooks`, `LabItems`, `LabItems{`, `LabSounds` | 0 | `42.20` | C |
+| `ZVirusVaccine42BETA` | `3615135168` | 36 | 86 | `Base`, `LabBooks`, `LabItems`, `LabItems{`, `LabSounds` | 0 | `42.20` | C |
 | `GirthsTweaks` | `3745960616` | 26 | 14 | `Base`, `GirthsTweaks`, `SDCaches`, `SDFoods`, `SDQuests`, `ST_Tweaks` | 0 | `42` | C |
 | `JadePackingSD` | `3779653231` | 18 | 125 | `Packing` | 0 | `42` | C |
 | `69mini` | `2937786633` | 7 | 32 | `Base` | 0 | `42.13` | C |
@@ -164,26 +178,36 @@ lower than the 5 105 raw `item` lines `data/README.md` quotes).
 | `biogas` | `2925657627` | 1 | 1 | `Base`, `Biofuel` | 0 | `42` | C |
 
 **9 rows. Grades: 9 C, 0 M, 0 W.** Per-key breakdowns are in `script_nutrition_keys` on each
-record. **Seven of the nine declare `module Base` and exactly one of them collides with a vanilla
-item name** — `Horse` redefines `Base.Rope` — so on 42.20.4 the installed corpus contains
+record. **Seven of the nine declare `module Base`; two of the seven actually define an item
+under it** — `Horse` 1 and `69mini` all 32 — **and exactly one of those collides with a vanilla
+item name**: `Horse` redefines `Base.Rope`. The other five declare the module and then define
+everything under a module of their own, which is why the declaration alone proves nothing. So on
+42.20.4 the installed corpus contains
 **no vanilla food override at all**: every nutrition-bearing script block in it adds a new item.
 That is a stronger statement than the module column alone supports, and it is why the column
 carries a measured collision count beside it. Ev C — the intersection of each mod's
 `module <name> / item <name>` pairs with vanilla `media/scripts`, parsed with
 `tools/food_scan.parse_script` (which strips `/* */` as the engine does).
 
+**The two readings now agree row for row.** With `mod_inventory` stripping comments the same
+way, `script_item_blocks` and the parser's own block count are **identical on all nine rows**
+(15 · 288 · 308 · 86 · 14 · 125 · 32 · 12 · 1, 2026-09-10 17:47) — they disagreed on LTP and
+`ZVirusVaccine42BETA` before it. Two independent readers of the same files landing on the same
+number is what makes the Items column quotable at all. Ev C.
+
 **`3041122351/63Type2Van` is deliberately absent**: its 7 nutrition keys live only in a B41 flat
 root `media/` the 42.20.4 build never reads. Ev C.
 
-## Sweep 3 — the public Workshop (fetched 2026-09-10 16:26, commit `74ba5b0`)
+## Sweep 3 — the public Workshop (fetched 2026-09-10 16:26, commit `ce7cd72`)
 
 Eight terms against the `Build 42`-tagged ready-to-use section, one browse page each (Steam serves
 30 a page and the tool does not paginate): **212 results → 180 distinct ids, 3 installed, 0 term
-failures**. 29 ids appear under more than one term. Item pages are **rationed**, so
-size/posted/updated were fetched for a declared subset of **9 ids only** at that commit; the other
-**171 rows carry `error: "details not fetched"`** and their `posted` / `updated` may not be quoted
-at all. See the pinning note at the end of this section — a repair pass has since taken the subset
-to 15.
+failures**. 29 ids appear under more than one term. An item page may answer 200 with a template
+the parser cannot read, so **details were fetched for the named ids only** — a declared subset,
+9 at the browse pass and 6 more in the repair pass below. At `ce7cd72` the file's own census
+reads **`details_status`: 15 `fetched` / 165 `not_requested` / 0 `failed`**, and a row's three
+stat columns may be quoted only when it says `fetched`. Take the census from `details_status`,
+never from a count in prose.
 
 | Term | Results | Installed | Note | Ev |
 |---|---:|---:|---|---|
@@ -199,16 +223,18 @@ to 15.
 **8 rows. Grades: 6 W, 2 W + C.**
 
 **The load-bearing rows.** Titles and ids verbatim from `data/workshop-search.json`. The three
-installed rows are **C** only because they join to a record in `mod-inventory`, which *is* read off
-shipped files; the grade belongs to the inventory, never to the Workshop page. Every W row's
+installed rows are **C + W**: `installed` and `mod_ids` join to a record in `mod-inventory`, which
+*is* read off shipped files, while their Size and Updated cells are Workshop-page readings like
+every other row's — the same split the § B42 status table makes. The C belongs to the inventory,
+never to the page. Every W row's
 unblocking action is the same sentence: *subscribe to `<id>` in Steam, let it download, re-run
 `python tools/mod_inventory.py`*.
 
 | `workshop_id` | Title | Installed | Size | Updated | Why it is here | Ev |
 |---|---|---|---|---|---|---|
-| `2932547723` | '93 Lincoln Town Car + Limo | yes (`93townCar`) | 14.655 MB | Jul 2 @ 11:40am | matched `diet` on its page text; not a nutrition mod | C |
-| `3759421894` | Big Bottles | yes (`BigBottles`) | 107.238 KB | Aug 1 @ 6:44am | matched `hydration`; a container-capacity tweak, no nutrition signal in the inventory | C |
-| `3765241705` | Beyond Ten - Level 15 Skills [B41/B42] | yes (`BeyondTen`) | 348.184 KB | Sep 4 @ 1:25pm | the only installed hit with a nutrition signal, and its teardown is already done | C |
+| `2932547723` | '93 Lincoln Town Car + Limo | yes (`93townCar`) | 14.655 MB | Jul 2 @ 11:40am | matched `diet` on its page text; not a nutrition mod | C + W |
+| `3759421894` | Big Bottles | yes (`BigBottles`) | 107.238 KB | Aug 1 @ 6:44am | matched `hydration`; a container-capacity tweak, no nutrition signal in the inventory | C + W |
+| `3765241705` | Beyond Ten - Level 15 Skills [B41/B42] | yes (`BeyondTen`) | 348.184 KB | Sep 4 @ 1:25pm | the only installed hit with a nutrition signal, and its teardown is already done | C + W |
 | `3736275816` | ApocalipseBR - Nutrition Sync Fix | no | 453.434 KB | May 31 @ 11:18am | **someone else hit the MP nutrition-sync problem this library exists to characterise** and shipped a fix. Subscribing is the only way to read how | W |
 | `3796644824` | [NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation | no | 471.224 KB | *never* | **a third-party patch to pick 1**, four days old, claiming the preservation mod launders nutrition — a claim about a mod we *can* read | W |
 | `3690404044` | Nutrition Makes Sense | no | 1.042 MB | Aug 18 @ 5:01pm | the largest nutrition overhaul on the page, and the one with an add-on ecosystem | W |
@@ -216,19 +242,22 @@ unblocking action is the same sentence: *subscribe to `<id>` in Steam, let it do
 | `3782835400` | Realistic Nutrition | no | 636.708 KB | *never* | third of the three same-month nutrition overhauls | W |
 | `3078272807` | Nutrition Tweaker Enhanced | no | 503.836 KB | Jul 22, 2025 @ 1:35pm | the B41-era ancestor still carrying the `Build 42` tag | W |
 
-**9 rows. Grades: 3 C, 6 W.** Named in the sweep and, at `74ba5b0`, outside the details budget —
-all W with the same unblock action: `3796753621` Nutrition Makes Sense Immersive Addon,
-`3492090092` TwisTonFire - Calories & Nutrition, `3426165280` Fix NaN Nutrition Stats,
+**9 rows. Grades: 3 C + W, 6 W.** Named in the sweep and never asked for at `ce7cd72` —
+all W with the same unblock action: `3796753621` Nutrition Makes Sense Immersive Addon. Three
+more the browse pass left `not_requested` were read by the repair pass below and now carry real
+stats: `3492090092` TwisTonFire - Calories & Nutrition, `3426165280` Fix NaN Nutrition Stats,
 `3388844542` Minimal Display Bars + Nutritions + Discomfort [B41/B42.20].
 
-**This section is pinned to commit `74ba5b0` and the dataset has moved since.** A Task-2 repair
-pass timestamped `meta.fill` **2026-09-10 16:56** — uncommitted while this page was written — runs
+**This section's tables were written against `74ba5b0` and are pinned to `ce7cd72`, which is
+what the repo holds.** A Task-2 repair pass timestamped `meta.fill` **2026-09-10 16:56** —
+uncommitted while this page was written, committed as `ce7cd72` — runs
 six more item pages (`3354834585`, `3388844542`, `3426165280`, `3430945294`, `3492090092`,
-`3653719735`), taking `details_requested` from 9 to **15** and `details_not_fetched` from 171 to
-**165**, and replaces the not-fetched `error` string with `details_status: "not_requested"`.
+`3653719735`), taking `details_requested` from 9 to **15** and the never-asked-for rows from 171
+to **165**, and replaces the old not-fetched `error` string with
+`details_status: "not_requested"` — a decision about the run, not a fetch failure.
 **Nothing above changes**: the same 212 results, the same 180 distinct ids, the same 3 installed
 rows, the same 0 term failures. A reader on a later commit should take the census from
-`meta.counts` and the not-fetched marker from `details_status`, not from the sentence above.
+`meta.counts` and the not-fetched marker from `details_status`, not from any sentence.
 Ev W.
 
 **Two coverage facts bound what this sweep may be used for.** 176 of the 179 installed workshop
@@ -244,24 +273,36 @@ third-party patch to it does. Absence from this dataset is not evidence about a 
 13:47 that day was **84 findings — 3 ERROR, 30 WARN, 51 INFO across 230 mods**, and every mod below
 is inside that sweep. `Bytes` is the whole mod folder on disk, every version folder included.
 **`workshop_item_mtime` is a download stamp, not an update stamp** — Steam rewrites a mod folder
-inside an item without touching the item folder — so a real "last updated" would have to come from
-the Workshop page, and for eight of these nine mods **no such reading exists**: none of them is in
-the sweep's 180 rows, let alone in its 9-id details budget. That column says so rather than
-guessing.
+inside an item without touching the item folder — so a real "last updated" has to come from the
+Workshop page. Eight of these nine are in none of the sweep's 180 rows, so `--details-ids` could
+not reach them; `python tools/workshop_search.py --catalog-ids <the nine>` read the nine item
+pages directly on **2026-09-10 17:46**, 9 fetched / 0 failed in one pass, into
+[`data/workshop-catalog-details.json`](../../data/workshop-catalog-details.json). That is where
+the *Workshop updated* column comes from, and it is **W**: a page reading, at that minute.
+
+**The two stamps disagree in both directions, and neither is wrong.** `3774789651` has **never
+been updated** since it was posted while its item folder was written 2026-09-01; `3624538051` was
+updated on the page at 4:53am on the day of this read while its item folder still says
+2026-08-12. A cross-check falls out of the same pass: the page's *File Size* equalled the sum of
+`bytes` over the item's mod folders on **all nine**, to the byte — including the two items that
+ship several mods (`3498347699` 1 737 473, `3624538051` 3 641 208), whose page title and size
+are the **item's**, not the named mod's.
 
 | Mod id | Version folders | Live | `mod.info` at | Lint E/W/I | Deps | Deps installed | Bytes | Download stamp | Workshop updated | Ev |
 |---|---|---|---|---|---|---|---:|---|---|---|
-| `SKITTLE_LongTermPreservation4220` | `42.20` | `42.20` | `42.20/mod.info` | 0/0/1 | none | n/a | 239 131 | 2026-09-01 13:13 | not fetched — outside the sweep | C |
-| `simpleStatus` | `42.16`, `42.15`, `42.14`, `42` | `42.16` | `42.16/mod.info` | 0/0/1 | none | n/a | 1 132 005 | 2026-08-12 00:03 | not fetched — outside the sweep | C |
-| `AutoCook` | `42.13`, `42` (+ `common/`) | `42.13` | **`common/mod.info`** | **0/1/0** | none | n/a | 129 161 | 2026-08-12 00:03 | not fetched — outside the sweep | C |
-| `SkillRecoveryJournal` | `42.20.1`, `42.19` | `42.20.1` | `42.20.1/mod.info` | 0/0/1 | `ChuckleberryFinnAlertSystem`, `errorMagnifier` | **both** (`3077900375`, `2896041179`) | 4 460 232 | 2026-08-12 00:03 | not fetched — outside the sweep | C |
-| `MoodleFramework` | `42.20`, `42.13`, `42.0` (+ `common/`) | `42.20` | **`42.0/mod.info`** | **0/1/0** | none | n/a | 180 592 | 2026-08-12 00:03 | not fetched — outside the sweep | C |
-| `SomewhatTraitsCore` | `42.15`, `42.13`, `42.12` | `42.15` | `42.15/mod.info` | 0/0/0 | none | n/a | 277 350 | 2026-08-12 00:03 | not fetched — outside the sweep | C |
-| `CleanUI` | `42.19` … `42.12` (6) | `42.19` | `42.19/mod.info` | 0/0/0 | `NeatUI_Framework` | **yes** (`3508537032`) | 11 300 184 | 2026-08-17 13:37 | not fetched — outside the sweep | C |
-| `Economy` | `42` | `42` | `42/mod.info` | 0/0/0 across the item's **5** mods | `QuestSystem` | **yes** (same item) | 600 070 | 2026-08-12 00:03 | not fetched — outside the sweep | C |
-| `BeyondTen` | `42` | `42` | `42/mod.info` | 0/0/0 | none | n/a | 348 184 | 2026-08-12 00:03 | Sep 4 @ 1:25pm | C + W |
+| `SKITTLE_LongTermPreservation4220` | `42.20` | `42.20` | `42.20/mod.info` | 0/0/1 | none | n/a | 239 131 | 2026-09-01 13:13 | **never** (posted Jul 30 @ 6:31pm) | C + W |
+| `simpleStatus` | `42.16`, `42.15`, `42.14`, `42` | `42.16` | `42.16/mod.info` | 0/0/1 | none | n/a | 1 132 005 | 2026-08-12 00:03 | Apr 5 @ 5:37pm | C + W |
+| `AutoCook` | `42.13`, `42` (+ `common/`) | `42.13` | **`common/mod.info`** | **0/1/0** | none | n/a | 129 161 | 2026-08-12 00:03 | Sep 6 @ 9:04pm | C + W |
+| `SkillRecoveryJournal` | `42.20.1`, `42.19` | `42.20.1` | `42.20.1/mod.info` | 0/0/1 | `ChuckleberryFinnAlertSystem`, `errorMagnifier` | **both** (`3077900375`, `2896041179`) | 4 460 232 | 2026-08-12 00:03 | Sep 4 @ 8:57am | C + W |
+| `MoodleFramework` | `42.20`, `42.13`, `42.0` (+ `common/`) | `42.20` | **`42.0/mod.info`** | **0/1/0** | none | n/a | 180 592 | 2026-08-12 00:03 | Sep 7 @ 5:15am | C + W |
+| `SomewhatTraitsCore` | `42.15`, `42.13`, `42.12` | `42.15` | `42.15/mod.info` | 0/0/0 | none | n/a | 277 350 | 2026-08-12 00:03 | Aug 10 @ 3:03am (item: 3 mods) | C + W |
+| `CleanUI` | `42.19` … `42.12` (6) | `42.19` | `42.19/mod.info` | 0/0/0 | `NeatUI_Framework` | **yes** (`3508537032`) | 11 300 184 | 2026-08-17 13:37 | Sep 7 @ 5:57am | C + W |
+| `Economy` | `42` | `42` | `42/mod.info` | 0/0/0 across the item's **5** mods | `QuestSystem` | **yes** (same item) | 600 070 | 2026-08-12 00:03 | Sep 10 @ 4:53am (item: 5 mods) | C + W |
+| `BeyondTen` | `42` | `42` | `42/mod.info` | 0/0/0 | none | n/a | 348 184 | 2026-08-12 00:03 | Sep 4 @ 1:25pm (read twice) | C + W |
 
-**9 rows. Grades: 8 C, 1 C + W.** The three findings that matter:
+**9 rows. Grades: 9 C + W** — every row now pairs a file reading with a page reading, and
+`3765241705` was read on both routes (sweep 16:26, catalog pass 17:46) with the same answer.
+The three findings that matter:
 
 - **`AutoCook` — `mod-info-place` WARN.** Its `mod.info` is in `common/`, not in the newest
   version folder `42.13/` that B42 runs. It is one of the 6 corpus-wide `mod-info-place` warnings,
@@ -272,9 +313,12 @@ guessing.
   `lua/client/MF_ISMoodle.lua`, while `MF_Config.lua` exists only in `42.0/media` and
   `common/media`. Whether the moodle framework is therefore whole on 42.20.4 depends entirely on
   the merge rule this page refuses to assert — recorded as § Open questions Q1, not as a verdict.
-- **`SKITTLE_LongTermPreservation4220` is the only nutrition candidate shipping a `42.20` folder**,
-  and it ships nothing else: one version folder, one `media/`, no `common/`. It is the only mod on
-  this page whose live tree is unambiguous. Ev C.
+- **`SKITTLE_LongTermPreservation4220` is the only nutrition candidate whose *only* version
+  folder is `42.20`** — `version_dirs == ["42.20"]`, `media_at == ["42.20/media"]`, no `common/`.
+  It is not the only one that *ships* a `42.20`: `MoodleFramework` ships `42.20`, `42.13` and
+  `42.0`, and `ZVirusVaccine42BETA`'s live folder is `42.20` with its `mod.info` in it. What is
+  rare is having nothing else. Two mods on this page have an unambiguous live tree, not one —
+  `Economy` is the other (`media_at == ["42/media"]`), and it is out of the picks on size. Ev C.
 
 **Teardown readiness — what a profile can already do with each.** `pzt run --profile` /
 `pzt scenario --profile` copy a mod into a per-run cache by its **resolved id** and run
@@ -283,9 +327,9 @@ guessing.
 the pair of reflective commands measured in this slice: **`witness.fields <player|item> <id>
 <getter,…>`** and **`witness.moddata [player[:<user>]|item:<id>|global:<name>] <key…>`**, which
 answer on both sides and name the subject that answered in `resolved`. Both live in the
-`witness.*` block of `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`; the
-command list in [`../testing/README.md`](../testing/README.md) still carries the older
-`witness.moddata|nutrition|item` naming and is not the authority for them yet.
+`witness.*` block of `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, and
+the command list in [`../testing/README.md`](../testing/README.md) § Command bus is the
+authority for them.
 
 | Mod id | `media_at` (the zero-guard) | Profilable today | The one thing a probe must settle | Ev |
 |---|---|---|---|---|
@@ -303,7 +347,11 @@ command list in [`../testing/README.md`](../testing/README.md) still carries the
 ## API surface
 
 One row per API class × candidate, each with the `file:line` of one real use in the **live** version
-folder. Counts are the inventory's `signals`; the citation is a hand reading.
+folder. Counts are the inventory's `signals`; the citation is a hand reading. The
+monkey-patching rows count **`signals.global_write_vanilla`** — `function IS…:` headers — which
+is a **different signal** from § Sweep 1's `patch` column (`signals.monkey_patch`, the
+save-and-wrap idiom). AutoCook is 21 here and 0 there; `SomewhatTraitsCore` carries both, and
+its row says which number is which.
 
 | API class | Mod id | Count | One real use | Ev |
 |---|---|---:|---|---|
@@ -323,10 +371,10 @@ folder. Counts are the inventory's `signals`; the citation is a hand reading.
 | `getModData` | `simpleStatus` | 4 | `42.16/media/lua/client/ss.main.lua:59`, `…/ISSSBar.lua:33` | C |
 | `transmitModData` | `simpleStatus` | **1** | `42.16/media/lua/client/ISSSBar.lua:35`, immediately after writing `md["SimpleStatusConfig"]` at `:34` — the only `transmitModData` among the three picks | C |
 | `transmitModData` | `AutoCook`, `SKITTLE_LongTermPreservation4220` | 0 | AutoCook writes player modData on the client and never transmits it | C |
-| monkey-patching (`function IS…:`) | `CleanUI` | 287 | `42.19/media/lua/client/ISUI/InventoryWindow/ISInventoryWindowContainerControls.lua:24` — CleanUI ships whole *copies* of vanilla UI files, so the count is a file-replacement count | C |
-| monkey-patching (`function IS…:`) | `SomewhatTraitsCore` | 56 writes + 66 saved originals | `42.15/media/lua/client/SWTraitsCoreOverrides_client.lua:8-9` — `local original_ISMedicalCheckAction = ISMedicalCheckAction.new` then `function ISMedicalCheckAction:new(...)`; the save-and-wrap idiom done 66 times | C |
-| monkey-patching (`function IS…:`) | `AutoCook` | 21 | **all 21 are `function ISCharacterCook:…` in `42.13/media/lua/client/ISCharacterCook.lua`, and `ISCharacterCook` is AutoCook's own class** — no such name exists in the game's `media/lua`. The signal name overstates it: this is a new `ISPanelJoypad` subclass, not 21 vanilla overrides | C |
-| item / recipe script overrides | `SKITTLE_LongTermPreservation4220` | 15 live item blocks, **8** `craftRecipe` blocks | `42.20/media/scripts/items/items_dried.txt:8` `item CuredPork` inside `module Skittles`; `42.20/media/scripts/recipes/recipe_cured.txt:8` `craftRecipe MakeCuredMeat` | C |
+| monkey-patching (`global_write_vanilla`) | `CleanUI` | 287 | `42.19/media/lua/client/ISUI/InventoryWindow/ISInventoryWindowContainerControls.lua:24` — CleanUI ships whole *copies* of vanilla UI files, so the count is a file-replacement count | C |
+| monkey-patching (`global_write_vanilla`) | `SomewhatTraitsCore` | 56 `function IS…:` + 66 `monkey_patch` | `42.15/media/lua/client/SWTraitsCoreOverrides_client.lua:8-9` — `local original_ISMedicalCheckAction = ISMedicalCheckAction.new` then `function ISMedicalCheckAction:new(...)`; the save-and-wrap idiom done 66 times | C |
+| monkey-patching (`global_write_vanilla`) | `AutoCook` | 21 (`monkey_patch` 0) | **all 21 are `function ISCharacterCook:…` in `42.13/media/lua/client/ISCharacterCook.lua`, and `ISCharacterCook` is AutoCook's own class** — no such name exists in the game's `media/lua`. The signal name overstates it: this is a new `ISPanelJoypad` subclass, not 21 vanilla overrides | C |
+| item / recipe script overrides | `SKITTLE_LongTermPreservation4220` | 15 live item blocks (= `script_item_blocks`), **8** `craftRecipe` blocks | `42.20/media/scripts/items/items_dried.txt:8` `item CuredPork` inside `module Skittles`; `42.20/media/scripts/recipes/recipe_cured.txt:8` `craftRecipe MakeCuredMeat` | C |
 | item / recipe script overrides | `simpleStatus`, `AutoCook` | **0 script files** | neither ships a `scripts/` folder in any folder; they cannot change an item definition | C |
 | script → Lua hooks | `SKITTLE_LongTermPreservation4220` | **12** `OnCooked`, 2 Lua `onCreate`, 1 `onTest`, plus 2 Java `RecipeCodeOnCreate` | `items_dried.txt:22` `OnCooked = OnCookedTest` (4 items) and `:160` `OnCooked = CannedFood_OnCooked` (8 items); `recipe_cured.txt:12-13` `onCreate = AdjustStates`, `onTest = TryMeat`; `:78` `OnCreate = RecipeCodeOnCreate.makeJar` and `:110` `…applyLidCondition` are the Java pair | C |
 | sandbox options | `SkillRecoveryJournal` | 30 `SandboxVars.` reads, `sandbox-options.txt` present | `42.20.1/media/lua/client/Skill Recovery Journal SkillProgressBar.lua:26` | C |
@@ -387,13 +435,40 @@ state, or it reads state the server owns. (5) **Small enough to read whole in a 
 
 Applying (1) removes every one of the six most on-topic Workshop items, including
 `3736275816` ApocalipseBR - Nutrition Sync Fix, which is the closest thing on the Workshop to this
-library's own subject. Applying (2) leaves the 19 mods of sweeps 1 and 2. Applying (5) removes
-`CleanUI` (1 064 KB of Lua over 54 files) and `QuestSystem` / `Economy` (718 + 503 KB, and their
-own resident framework). Applying (6) removes `BeyondTen`. What is left is ranked by (4).
+library's own subject. Applying (2) leaves the 19 mods of sweeps 1 and 2. **Applying (3) removes
+nobody**: all 19 resolve a version folder the build reads and none lints ERROR, so B42 status
+never eliminates — it only annotates, which is why two picks are not on a `42.20` folder.
+`simpleStatus`'s newest folder is `42.16` and `AutoCook` carries a `mod-info-place` WARN; both
+are B42-current enough to boot, and each of those facts is itself a teardown finding. Applying
+(5) removes `CleanUI` (1 064 KB of Lua over 54 files) and `QuestSystem` / `Economy` (718 + 503
+KB, and their own resident framework). Applying (6) removes `BeyondTen`. What is left is ranked
+by (4).
+
+**(4) is what removes the eight script-only mods, and it is not a size judgement.** A pure
+content mod — item definitions and nothing else — scores zero on "MP behaviour worth measuring"
+because **script data is parsed identically on both sides and never synced**: the server and the
+client each read the same `.txt` at load and there is no packet, no command and no modData in
+the picture, so a paired snapshot has nothing to disagree about. `OCsPacking` is the sharpest
+case: 308 item blocks, 76 nutrition keys, B42-live, and **5 KB of Lua in a 230 KB folder** —
+well inside the 2 h box, and less Lua than two of the three picks (`simpleStatus` 46 KB,
+`AutoCook` 41 KB) — and it is still out, because a teardown of it would produce no measured MP
+row at all.
+The same reasoning removes `Horse`, `ZVirusVaccine42BETA`, `JadePackingSD`, `69mini`,
+`GirthsTweaks`, `SDQuests` and `biogas`. Ev C.
+
+**Among the code mods, (4) is ranked by domain relevance and finding-richness, not by hit
+count** — which is why `AutoCook` is pick 3 and `SomewhatTraitsCore` is a fall-through despite
+the latter owning the corpus's only **server-side player** calorie write
+(`42.15/media/lua/server/SWTraitsCore_server.lua:84,86`). AutoCook sits on the cooking pipeline
+our own mod extends, and it arrives carrying three live findings of its own (a `mod-info-place`
+WARN, a live folder with no event registration, two `require`s that resolve only in `common/`);
+`SomewhatTraitsCore`'s write is one line of behaviour on a trait we do not ship, its item packs
+three mods so a profile must name the id, and its 66 save-and-wrap sites are a *patching*
+lesson already covered by the BeyondTen teardown. Ev C.
 
 | # | Slice | Mod id | Item | Why this one, against the criteria | Ev |
 |---|---|---|---|---|---|
-| 1 | 09 | `SKITTLE_LongTermPreservation4220` | `3774789651` | The domain twin, and the only nutrition candidate shipping a **42.20** folder. Both mechanisms in one 239 KB mod: 15 live `module Skittles` item blocks, 14 of them food with a full macro set, **and** a **server-side** `OnCooked` hook that multiplies all four macros and `HungerChange` by 0.70 on the crafted instance (`42.20/media/lua/server/recipe_meats.lua:45-49`) while pinning `offAge`/`offAgeMax` to the non-perishable sentinel at `:39-40` — fields `ItemStatsPacket` does **not** carry. That is exactly the question slice 02 left open, now on a real mod. No deps, 0E/0W/1I, `media_at` is `42.20/media` alone so every zero on its record is trustworthy | C |
+| 1 | 09 | `SKITTLE_LongTermPreservation4220` | `3774789651` | The domain twin, and the only nutrition candidate whose **only** version folder is `42.20` (`version_dirs == ["42.20"]`). Both mechanisms in one 239 KB mod: 15 live `module Skittles` item blocks, 14 of them food with a full macro set, **and** a **server-side** `OnCooked` hook that multiplies all four macros and `HungerChange` by 0.70 on the crafted instance (`42.20/media/lua/server/recipe_meats.lua:45-49`) while pinning `offAge`/`offAgeMax` to the non-perishable sentinel at `:39-40` — fields `ItemStatsPacket` does **not** carry. That is exactly the question slice 02 left open, now on a real mod. No deps, 0E/0W/1I, `media_at` is `42.20/media` alone so every zero on its record is trustworthy | C |
 | 2 | 10 | `simpleStatus` | `2867431511` | The read/refresh side: **12** nutrition reads, all in one file and all client-side (`42.16/media/lua/client/ss.stats.lua:238,280,294,308,381,404-411`), 47 803 bytes over 7 files, one `transmitModData` (`ISSSBar.lua:35`), one `ISPanel:derive`. It measures what a pure client reader can and cannot see while the server owns the store — and it is the UI our own mod would overlap, since users already watch these numbers. Its newest folder is `42.16`, so it also documents "works, but not shipped for this build", and its live folder has dropped the `lua/server/` file older folders carry: it is now **100 % client** | C |
 | 3 | 11 | `AutoCook` | `3388721641` | The cooking-pipeline hook points: it reads `getNutrition()` client-side to choose spices and filter ingredients (`42.13/media/lua/client/AutoCook.lua:214,329`), keeps 9 `getModData` settings it never transmits, and automates the actions our mod must not break. It also carries two live findings of its own — a `mod-info-place` WARN, and a live version folder that ships **no event registration and two unresolvable `require`s**, both of which resolve only inside `common/` (§ Open questions Q1). It is the corpus's sharpest example of the merge question | C |
 
@@ -422,14 +497,14 @@ superseded.
 
 | # | Claim / expectation | What is actually the case | Ev |
 |---|---|---|---|
-| 1 | `script_item_blocks` is an **exact** count of item definitions ([`data/README.md`](../../data/README.md) § mod-inventory), so LTP's 17 is "17 real items" | It counts `item <Name>` lines **without stripping `/* */` comments**, which the engine and `tools/food_scan.parse_script` both do. LTP's `items_dried.txt` holds five comment blocks: four two-line ones each hiding a `DaysTotallyRotten`, and a 36-line `/* OBSOLETE */` at `:374` containing two whole item definitions (`DriedPork`, `DriedBeef`). Live figures: **15** item definitions, **14** of them food (the fifteenth is `SaltRock`, `ItemType = base:normal`), and **117** script-nutrition key writes, not 135. `ZVirusVaccine42BETA` is the second case: 102 → **86**. The other seven `script_nutrition` mods are unaffected (899 → 881 corpus-wide). `tools/` and `data/` are not this slice's to change; recorded here and in § Open questions Q2 | C |
+| 1 | `script_item_blocks` is an **exact** count of item definitions ([`data/README.md`](../../data/README.md) § mod-inventory), so LTP's 17 is "17 real items" | **Resolved in `Slice 08: final fix wave` (the commit after `c1aa357`)**: it counted `item <Name>` lines *without* stripping `/* */`, which the engine and `tools/food_scan.parse_script` both do, and `mod_inventory` now imports the same `_strip_comments`. LTP's `items_dried.txt` holds five comment blocks: a 36-line `/* OBSOLETE */` at `:374-409` containing two whole item definitions (`DriedPork`, `DriedBeef`), and four two-line `/*DaysFresh = 60,` / `DaysTotallyRotten = 90,*/` pairs at `:180-181, 229-230, 277-278, 325-326`. The **135 → 117** delta is **14 + 4**, not 9 + 9: the two obsolete definitions carry 7 keys each, while each two-liner cost only its `DaysTotallyRotten` — the `DaysFresh` beside it never matched, because `SCRIPT_KEYS` anchors to line start and that line starts `/*`. Live figures: **15** item definitions, **14** of them food (the fifteenth is `SaltRock`, `ItemType = base:normal`), and **117** key writes. `ZVirusVaccine42BETA` is the second case, 102 → **86** (`LabItemsOld.txt` and `LabTestZone.txt` are each commented out whole). The other seven `script_nutrition` mods are unaffected: 899 → **881** over the nine, 6648 → **6630** corpus-wide | C |
 | 2 | The plan's Lua-signal list names **10** mods | The measured list is **11**: `Economy` (`3624538051`, 4 hits, `42/media/lua/shared/Utilities/ShopkeepItemSerializer.lua:240-243`) is absent from the plan's table and present in the data. `data/README.md` § mod-inventory already says 11 | C |
-| 3 | The plan's script-signal list names **10** mods | **9.** The scan reads the live version folder only, and the plan's wider figures counted stale duplicate copies: `63Type2Van`'s keys live only in a B41 flat root `media/` (B42 signal 0, B41 signal 7), `ZVirus` reads 36 not 72, `69mini` 7 not 21 | C |
+| 3 | The plan's script-signal list names **10** mods, with its own item-block figures | **9.** The scan reads the live version folder only, and the plan's wider figures counted stale duplicate copies: `63Type2Van`'s keys live only in a B41 flat root `media/` (B42 signal 0, B41 signal 7), `ZVirus` reads 36 keys not 72, `69mini` 7 not 21. The plan's **item-block** figures moved too, on the live-folder rule and then on the comment fix (2026-09-10 17:47): `Horse` 56 → **288**, `OCsPacking` 144 → **308**, `ZVirus` 162 → 102 → **86**, `GirthsTweaks` 6 → **14**, `69mini` 97 → **32**, `JadePackingSD` 42 → **125**; and `SkillRecoveryJournal`'s `SandboxVars.` reads 26 → **30** | C |
 | 4 | AutoCook has "21 `function IS…:` **redefinitions**" | 21 `function IS…:` definitions, all of them `function ISCharacterCook:…` in the mod's **own** new class. `ISCharacterCook` appears nowhere in the game's `media/lua`, and neither does `ISContinue`. The `global_write_vanilla` signal matches a name shape, not an override; AutoCook's real vanilla-facing patch lives in `common/media/lua/client/ISCharacterInfoWindow_AddTab.lua`, outside the scanned folder | C |
-| 5 | A mod declaring `module Base` overrides vanilla items ([`data/README.md`](../../data/README.md) § The two nutrition signals) | Declaring `module Base` is the *capability*; an override needs a **name collision**. Measured across the nine `script_nutrition` mods against the 5 092 distinct `module Base` item names vanilla declares: **one** collision in the whole set, `Horse` redefining `Base.Rope`. Seven mods declare `module Base` and add only new names | C |
-| 6 | `simpleStatus` is the cheapest mod for settling slice 07 open question 6 (does `harness.install`'s folder→id rename actually happen?) — [`docs/testing/profiles.md`](../testing/profiles.md) § Open questions 6, and carry-over note 9 | Its folder is `SimpleStatus` and its id is `simpleStatus` — **a case-only difference**, and this host is Windows, where `<mods_dir>/SimpleStatus` and `<mods_dir>/simpleStatus` are the same directory. It cannot settle the question here. **Pick 1 can**: `LongTermPreservation4220` → `SKITTLE_LongTermPreservation4220` differs by a whole prefix, and slice 09 runs it first | C |
+| 5 | A mod declaring `module Base` overrides vanilla items ([`data/README.md`](../../data/README.md) § The two nutrition signals) | Declaring `module Base` is the *capability*; an override needs a **name collision**. Measured across the nine `script_nutrition` mods against the 5 092 distinct `module Base` item names vanilla declares: **one** collision in the whole set, `Horse` redefining `Base.Rope`. Seven declare `module Base`; only **two** define an item under it at all (`Horse` 1, `69mini` 32), and the other five put every definition under a module of their own | C |
+| 6 | `simpleStatus` is the cheapest mod for settling slice 07 open question 6 (does `harness.install`'s folder→id rename actually happen?) — [`docs/testing/profiles.md`](../testing/profiles.md) § Open questions 6, and carry-over note 9 | Its folder is `SimpleStatus` and its id is `simpleStatus` — **a case-only difference**, and it settles only half the question. NTFS is case-*preserving*, so the `mods/` listing after a run **would** show which of the two names `harness.install` wrote — that half it can answer. The half it cannot is the **behavioural** one: path lookup on Windows is case-*insensitive*, so `<mods_dir>/SimpleStatus` and `<mods_dir>/simpleStatus` are the same directory, the mod loads either way, and the run proves nothing about whether the rename is *required*. **Pick 1 answers both halves**: `LongTermPreservation4220` → `SKITTLE_LongTermPreservation4220` differs by a whole prefix, so the listing names it and a wrong name would fail to load — and slice 09 runs it first | C |
 | 7 | `workshop_item_mtime` is when the mod was last updated | It is a **download** stamp. Steam rewrote the mod folder of item `3490370700` at 13:47 on 2026-09-10 while the item folder still read `2026-08-12`. Corpus range is `2026-08-12` … `2026-09-04` — the shape of one subscriber's download history, not of the Workshop's update history | C |
-| 8 | `mod_lint.version_dirs()` and the wiki agree on how a three-part folder name is read | They do not. The [Mod_structure mirror](../../references/wiki-mirrors/mod-structure.md) (page version 42.20.0) says the minor version is **dropped**: `42.1.5` is treated as `42.1`. Our `version_dirs()` tuple-sorts `42.20.1` as itself and ranks it above `42.20`. On the corpus's one three-part folder (`2503622437`, folders `42.20.1` and `42.19`) both readings choose the same folder, so nothing observable differs today — but a mod shipping both `42.20` and `42.20.1` would separate them | C vs W |
+| 8 | `mod_lint.version_dirs()` and the wiki agree on how a three-part folder name is read | They do not. The [Mod_structure mirror](../../references/wiki-mirrors/mod-structure.md) (page version 42.20.0) says the minor version is **dropped**: `42.1.5` is treated as `42.1`. Our `version_dirs()` tuple-sorts `42.20.1` as itself and ranks it above `42.20`. The corpus has **two** three-part folders, both named `42.20.1` and both a Skill Recovery Journal copy — `2503622437` (beside `42.19`) and `3782784855` (alone, and the one row with no `mod.info`) — and on both, the two readings choose the same folder, so nothing observable differs today. A mod shipping both `42.20` and `42.20.1` would separate them | C vs W |
 | 9 | The corpus figures in [approved-modlist.md](approved-modlist.md) — class distribution `173/33/15/5/4`, event histogram `OnGameStart 71/25`, `OnTick 69/14`, `OnPlayerUpdate 54/38`, `OnClientCommand 53/20`, `OnServerCommand 41/14`, `OnCreatePlayer 18/15`, and the heavy-lua sizes (`Economy 497KB`, `GirthsTweaks 269KB`) | All recomputed from the regenerated dataset on 2026-09-10 and corrected in that file: class distribution **175/31/15/5/4**, events **70/25, 70/15, 55/39, 54/20, 43/14, 17/14**, `Economy` **503KB**, `GirthsTweaks` **280KB**. The old figures predate the `42.20.1` resolution fix and Steam's rewrite of `3490370700`. The event census is summed over each record's `top_events`, which keeps only a mod's 8 most-used events, so it is a floor, not a total — that caveat is now in the file too | C |
 
 **9 rows. Grades: 8 C, 1 C vs W.**
@@ -454,12 +529,12 @@ superseded.
    popular, functioning mod, so the common folder must be loaded — but it is an *inference*, not a
    reading of the engine, and this page does not promote it. Slice 11's teardown of AutoCook can
    settle it from the outside with one profiled boot. Ev W + C.
-2. **`script_item_blocks` and `signals.script_nutrition` do not strip `/* */` comments.**
-   § Discrepancies row 1 quantifies it: two of nine rows over-count (LTP 17 → 15 items and
-   135 → 117 keys, ZVirus 102 → 86 items). The fix is one `re.sub` in `tools/mod_inventory.py`
-   plus a fixture, and it belongs to whoever next owns `tools/` — this slice owns neither `tools/`
-   nor `data/`. Until then, quote a script count from this page's § Sweep 2 note, not from the raw
-   field. Ev C.
+2. ~~**`script_item_blocks` and `signals.script_nutrition` do not strip `/* */` comments.**~~
+   **Closed** in `Slice 08: final fix wave` (the commit after `c1aa357`): `tools/mod_inventory.py`
+   imports `food_scan._strip_comments` and all three script regexes read the stripped file, so
+   the raw field and this page now agree — LTP **15** items / **117** keys, ZVirus **86**, 6630
+   corpus-wide, and `script_item_blocks` matches `parse_script`'s own block count on all nine
+   rows. § Discrepancies row 1 keeps the arithmetic. Ev C.
 3. **Is `MoodleFramework` whole on 42.20.4?** `42.20/media` ships only `MF_ISMoodle.lua`;
    `MF_Config.lua` exists in `42.0/media` and `common/media`. Under the wiki's merge rule it is
    whole; under a version-folder-only rule the framework loads a moodle class with no config. This
@@ -481,12 +556,14 @@ superseded.
    `0.15 < sourceItem:getActualWeight() < 1`, which parses as `(0.15 < w) < 1` — a boolean compared
    to a number, which standard Lua raises on. Nothing calls it, so it has never run; whether
    Kahlua raises the same way is unverified. Ev C.
-7. **No Workshop "last updated" exists for eight of the nine catalogued mods.** None of them is in
-   the sweep's 180 rows at all, so there is no dated page reading to quote and the B42-status table
-   says *not fetched* rather than guessing — `workshop_item_mtime` is a download stamp and cannot
-   substitute (§ Discrepancies row 7). Closing it costs one targeted run —
-   `python tools/workshop_search.py` with those eight ids in `--details-ids`, or the `--fill`
-   repair path — against Steam's item-page ration of roughly 13 reads per window. Ev W.
+7. ~~**No Workshop "last updated" exists for eight of the nine catalogued mods.**~~ **Closed.**
+   None of them is in the sweep's 180 rows, so `--details-ids` rejected them by name and `--fill`
+   had no row to fill; `tools/workshop_search.py --catalog-ids` reads item pages for ids named
+   from outside, and one pass on **2026-09-10 17:46** read all nine (9 fetched / 0 failed) into
+   [`data/workshop-catalog-details.json`](../../data/workshop-catalog-details.json). The
+   B42-status column is filled from it and graded **W**. `workshop_item_mtime` is still a
+   download stamp and still cannot substitute (§ Discrepancies row 7) — the two disagree in both
+   directions on this very set. Ev W.
 8. **The corpus contains no vanilla food override to learn from.** Exactly one name collision
    exists in the nutrition-bearing script set and it is `Base.Rope`. So the item-pass mechanism our
    own mod needs — re-declaring vanilla `module Base` food items at scale — has **no precedent in
@@ -498,15 +575,20 @@ superseded.
 
 ## Sources
 
-**Datasets (the column authority, both stamped in-file)**
+**Datasets (the column authority, all three stamped in-file)**
 [`data/mod-inventory.json`](../../data/mod-inventory.json) — 230 records / 179 items, swept
-2026-09-10 16:20, written by `tools/mod_inventory.py`; fields, signal regexes and every caveat in
+2026-09-10 17:47, written by `tools/mod_inventory.py`; fields, signal regexes and every caveat in
 [`data/README.md`](../../data/README.md) § mod-inventory.
 [`data/workshop-search.json`](../../data/workshop-search.json) + `.csv` — 180 rows, fetched
-2026-09-10 16:26, quoted at commit `74ba5b0`, written by `tools/workshop_search.py`; columns and
-the details-ration caveat in [`data/README.md`](../../data/README.md) § workshop-search. The
+2026-09-10 16:26, quoted at commit `ce7cd72`, written by `tools/workshop_search.py`; columns and
+the declared-subset caveat in [`data/README.md`](../../data/README.md) § workshop-search. The
 browse and item URL templates are in that file's `meta.source_url_pattern`, so any row can be
 re-checked by hand.
+[`data/workshop-catalog-details.json`](../../data/workshop-catalog-details.json) — 9 rows, one
+per catalogued mod's workshop item, fetched 2026-09-10 17:46 by
+`tools/workshop_search.py --catalog-ids` (9 fetched / 0 failed, one pass); it is the source of
+the § B42 status *Workshop updated* column and of nothing else.
+[`data/README.md`](../../data/README.md) § workshop-catalog-details.
 
 **Mod files read for this page** (all under
 `D:\SteamLibrary\steamapps\workshop\content\108600\<item>\mods\<folder>\`, read and never written)
@@ -541,9 +623,10 @@ the vocabulary this page's signal columns are named in; each is listed in
 only live artifact of slice 08: 87.1 s, fixture `default`, build 42.20.4, `server_errors []`,
 doctor all-`ok`, 15 graded rows (14 as expected, 1 finding, 0 misses), **n = 1 on one item
 (`Base.Apple`) and one player**. Cite `item_sides_cross_check` for the modData asymmetry and the
-`moddata_*` probes for the transmit shape; the *do not cite* rows — `moddata_global.keyCount`,
-`getMaxWeight` as a body weight, the `getHoursSurvived` gap, `session.rcon_additem`, and
-`moddata_item` as an independent corroboration — are listed in
+`moddata_*` probes for the transmit shape; the **seven** *do not cite* rows — among them
+`moddata_global.keyCount`, `getMaxWeight` as a body weight, the `getHoursSurvived` gap,
+`session.rcon_additem`, `moddata_item` as an independent corroboration, and everything here as a
+population (`n = 1`) — are listed in
 [`testing/artifacts/README.md`](../../testing/artifacts/README.md).
 Earlier runs quoted through this library's own docs, never re-derived here:
 `exp02-20260910-030433` (the `ItemStatsPacket` field-by-field analysis and the stale-zero trap →
@@ -559,5 +642,5 @@ failure this page's MP section generalises), [teardowns/beyondten.md](teardowns/
 § Discrepancies row 9), [README.md](README.md) (the teardown queue),
 [../modding/patterns.md](../modding/patterns.md), [../testing/profiles.md](../testing/profiles.md)
 (profiles, L0 and the folder→id question of § Discrepancies row 6) and
-[`../testing/README.md`](../testing/README.md) (the command bus — its `witness.*` entry predates
-this slice's commands; the authority for those is `PZTestKit_Core.lua` and the artifact above).
+[`../testing/README.md`](../testing/README.md) § Command bus — the authority for this slice's
+`witness.*` commands, beside `PZTestKit_Core.lua` and the artifact above.

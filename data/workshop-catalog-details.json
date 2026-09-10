@@ -1,0 +1,126 @@
+{
+ "meta": {
+  "build": "42.20.4 (b0bbce05d5)",
+  "generated": "2026-09-10",
+  "fetched": "2026-09-10 17:46",
+  "tool": "tools/workshop_search.py --catalog-ids",
+  "source_url_pattern": {
+   "item": "https://steamcommunity.com/sharedfiles/filedetails/?id={id}"
+  },
+  "catalog_ids": [
+   "3774789651",
+   "2867431511",
+   "3388721641",
+   "2503622437",
+   "3396446795",
+   "3498347699",
+   "3437629766",
+   "3624538051",
+   "3765241705"
+  ],
+  "counts": {
+   "requested": 9,
+   "fetched": 9,
+   "failed": 0,
+   "incomplete": 0
+  },
+  "notes": [
+   "Item pages only -- no browse pass, so there is no term, no result set and no meta.fetched: each row carries the fetch_at stamp of its own read.",
+   "These ids are named by docs/mods-survey/nutrition-mods.md, not found by a search. Eight of the nine are returned by none of the eight sweep terms, which is why they cannot be reached with --details-ids or --fill.",
+   "details_status is the row's own answer: fetched (an item page was read: size and posted are real, updated is real or genuinely absent) or failed (asked for and unreadable -- error says why). Nothing here is not_requested: every row was asked for.",
+   "A Workshop page is graded W wherever it is quoted. It says when the author last uploaded, which is the one thing workshop_item_mtime (a download stamp) cannot answer; it says nothing about what the mod does."
+  ]
+ },
+ "results": [
+  {
+   "workshop_id": "3774789651",
+   "title": "Long Term Preservation [42.20]",
+   "size": "239.131 KB",
+   "posted": "Jul 30 @ 6:31pm",
+   "updated": null,
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "2867431511",
+   "title": "[B41|B42] Simple Status",
+   "size": "1.132 MB",
+   "posted": "Sep 25, 2022 @ 12:57am",
+   "updated": "Apr 5 @ 5:37pm",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "3388721641",
+   "title": "Auto Cook",
+   "size": "129.161 KB",
+   "posted": "Dec 21, 2024 @ 8:53am",
+   "updated": "Sep 6 @ 9:04pm",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "2503622437",
+   "title": "Skill Recovery Journal",
+   "size": "4.460 MB",
+   "posted": "May 31, 2021 @ 8:28am",
+   "updated": "Sep 4 @ 8:57am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "3396446795",
+   "title": "Moodle Framework",
+   "size": "180.592 KB",
+   "posted": "Dec 30, 2024 @ 3:04pm",
+   "updated": "Sep 7 @ 5:15am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "3498347699",
+   "title": "Somewhat Traits",
+   "size": "1.737 MB",
+   "posted": "Jun 13, 2025 @ 9:58am",
+   "updated": "Aug 10 @ 3:03am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "3437629766",
+   "title": "CleanUI [B42]",
+   "size": "11.300 MB",
+   "posted": "Mar 3, 2025 @ 1:05am",
+   "updated": "Sep 7 @ 5:57am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "3624538051",
+   "title": "Quest System",
+   "size": "3.641 MB",
+   "posted": "Dec 15, 2025 @ 9:22am",
+   "updated": "Sep 10 @ 4:53am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  },
+  {
+   "workshop_id": "3765241705",
+   "title": "Beyond Ten - Level 15 Skills [B41/B42]",
+   "size": "348.184 KB",
+   "posted": "Jul 15 @ 6:22am",
+   "updated": "Sep 4 @ 1:25pm",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-10 17:46"
+  }
+ ]
+}
