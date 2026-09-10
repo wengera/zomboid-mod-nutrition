@@ -10,9 +10,9 @@ spec's run loop. Statuses: `ready` · `in progress` · `done` · `blocked`.
 | 02 | P1c · Food item model & lifecycle | done | 2026-09-10 | 0c3d6b7..e44610c | `docs/vanilla/food-item-model.md` (114 keys, aging/cooking/evolved models, 36 measured rows); lifecycle harness commands + `s02_lifecycle.py`; artifact `exp02-20260910-030433`; 3 mirrors; ItemStats packet analysis incl. the zero-field leak |
 | 03 | P1b · Body side | in progress | 2026-09-10 | (see resume note) | code map research running |
 | 04 | T2 · Accelerated nutrition scenario | in progress | 2026-09-10 | (see resume note) | test layer + scenario runner being built (server-side per the slice-01/03 ripples) |
-| 05 | P4a · Food scanner + dataset | ready (needs 02; plan in wave 2) | | | |
-| 06 | P4b · Recipes & cooking dataset | ready (needs 05; plan in wave 2) | | | |
-| 07 | T1 · Profile builder | ready (plan in wave 2) | | | |
+| 05 | P4a · Food scanner + dataset | ready (needs 02; plan `superpowers/plans/05-food-scanner.md`) | | | |
+| 06 | P4b · Recipes & cooking dataset | ready (needs 05; plan `superpowers/plans/06-recipes.md`) | | | |
+| 07 | T1 · Profile builder | ready (plan `superpowers/plans/07-profile-builder.md`) | | | |
 | 08 | P3a · Nutrition-mod catalog | ready (needs 07; plan in wave 3) | | | |
 | 09 | P3b · Teardown 1 | ready (needs 07, 08; plan in wave 3) | | | |
 | 10 | P3c · Teardown 2 | ready (needs 07, 08; plan in wave 3) | | | |
