@@ -229,12 +229,18 @@ TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", l
 -- bus round-trips put up to ~1 s of wall time between the clock read and the calorie read.
 -- At `settimespeed 30` on this fixture that is ~500 game-seconds of skew on a window that
 -- only spans ~10 000 -- a 2-5 % rate error injected by the harness itself. Sampling all of
--- it in one tick removes that term entirely. `time.snapshot` and `nutrition.get` are still
--- used at condition boundaries as independent cross-checks.
+-- it in one tick removes that term entirely. `time.snapshot` is still called at session start
+-- and after the teardown clock restore, as an independent read of getGameTime(); the CLIENT's
+-- own `stats.get` is the convergence witness at each window boundary. `nutrition.get` is not
+-- used by the body experiment at all -- this snapshot is a superset of it.
 --
--- Every read goes through TK.call, and each MoodleType / CharacterStat member is nil-checked
--- BEFORE it is passed in: handing a nil enum to a present Java method is an argument
--- mismatch, which Kahlua does not let pcall catch either (see TK.call).
+-- The OPTIONAL reads below go through TK.call, and each MoodleType / CharacterStat member is
+-- nil-checked BEFORE it is passed in: handing a nil enum to a present Java method is an
+-- argument mismatch, which Kahlua does not let pcall catch either (see TK.call). The reads
+-- that are NOT wrapped are so on purpose -- `TK.nutritionSnapshot`'s `p:getNutrition()` block
+-- and `getGameTime():getWorldAgeHours()` are called directly, because every rate in the slice
+-- is fitted against them and a build that lost one should fail loudly here rather than return
+-- a snapshot that quietly has no calories or no clock.
 TK.MOODLES = { hungry = "HUNGRY", thirst = "THIRST", foodEaten = "FOOD_EATEN",
                heavyLoad = "HEAVY_LOAD", endurance = "ENDURANCE" }
 -- The trait STRINGS as CharacterTrait.<clinit> registers them ("Very Underweight" carries a

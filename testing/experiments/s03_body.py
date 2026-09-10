@@ -68,7 +68,32 @@ SPAWN_WAIT = 2.5         # RCON additem -> item visible in the client's inventor
 # accidentally measures weight drift on top of the burn: gain fires above
 # `1000 + (w-80)*40` and loss below `min(0, (w-70)*30)` (Q6 / slice 01).
 PRIME = {"hunger": 0.20, "thirst": 0.20, "carbs": 500.0, "lipids": 400.0, "proteins": 400.0}
-CALORIES_FOR_WEIGHT = {45: -550.0, 60: 100.0, 80: 500.0, 100: 800.0, 105: 800.0, 120: 800.0}
+# One entry per weight any row writes, because a value outside the band for THAT weight is
+# what nudged 45/50/55/60/65 off their set points in exp03-20260910-045523 (read-backs
+# 45.0001 / 50.000099 / 55.000099 / 60.000757 / 65.000099) and cost the exact-boundary
+# readings at 50 and 65. The band per weight, from `updateWeight`:
+#     w    gain above          loss below        primed
+#     45   1000+(45-80)*40=-400   (45-70)*30=-750   -550
+#     50   -200                   -600              -400
+#     55      0                   -450              -225
+#     60    200                   -300               100
+#     65    400                   -150               100
+#     70    600                      0               500
+#     75    800                      0               500
+#     80   1000                      0               500
+#     85   1200                      0               800
+#     95   1600                      0               800
+#    100   1800                      0               800
+#    105   2000                      0               800
+#    120   2600                      0               800
+CALORIES_FOR_WEIGHT = {45: -550.0, 50: -400.0, 55: -225.0, 60: 100.0, 65: 100.0, 70: 500.0,
+                       75: 500.0, 80: 500.0, 85: 800.0, 95: 800.0, 100: 800.0, 105: 800.0,
+                       120: 800.0}
+
+
+def weight_band(w):
+    """updateWeight's neutral window at weight `w`: (loss-below, gain-above)."""
+    return min(0.0, (w - 70) * 30.0), 1000.0 + (w - 80) * 40.0
 
 STEAK = "Base.Steak"
 # Coded constants, per game-second (Q1/Q2, defines.lua). The predictions are built from these.
@@ -89,6 +114,12 @@ TRAIT_ROWS = [("HeartyAppetite", "appetite", 1.5), ("LightEater", "appetite", 0.
               ("HighThirst", "thirst", 2.0), ("LowThirst", "thirst", 0.5)]
 SANDBOX_VALUES = [1, 5]                              # vs the default 3, which row 7's w80 is
 SANDBOX_PREDICTED = {1: 2.0, 2: 1.6, 3: 1.0, 4: 0.8, 5: 0.65}   # inferred in the notes (I)
+# Rows 3-6: the minimum number of CONSECUTIVE moving samples a movement fit needs. Consecutive,
+# not merely present: `updateCalories` picks its constant per tick, so a slope taken over two
+# moving samples with idle samples between them charges that idle time to the moving branch.
+# exp03-20260910-045523 had 5 moving samples in one branch and only ONE adjacent pair, and the
+# old count-only guard let a meaningless 1.2399 ratio into the tracked artifact.
+MIN_CONTIGUOUS_MOVING = 4
 
 
 def num(d, key):
@@ -213,15 +244,24 @@ try:
         `foodtimer` first and always: while the FOOD_EATEN moodle is up and the character is
         not exercising the hunger rate is `hungerIncreaseWhenWellFed` = 0 (Q2), so a leftover
         timer from an earlier row silently zeroes the very quantity being measured. The notes
-        list this as a caveat the harness must handle."""
+        list this as a caveat the harness must handle.
+
+        CALORIES BEFORE WEIGHT, then the trait refresh. The order is the whole point: each bus
+        command is a round-trip of ~0.3 s of live server, so writing the weight while calories
+        are still the PREVIOUS row's value leaves `updateWeight` a window to gain or lose
+        against the wrong threshold. That is what put 60.000757 in row 7's w=60 window and
+        50.000099 / 65.000099 in row 12 (exp03-20260910-045523), and at 50 and 65 the 1e-4 kg
+        nudge is the difference between reading the band boundary and reading past it."""
         r = {}
         r["foodtimer"] = srv("foodtimer.set", f"{USER} {foodtimer}")
+        w_int = int(weight if weight is not None else 80)
+        cal = calories if calories is not None else CALORIES_FOR_WEIGHT.get(w_int, 500.0)
+        r["calories"] = srv("nutrition.set", f"{USER} calories {cal}")
+        r["caloriesRequested"] = cal
+        r["weightBand"] = weight_band(w_int)     # (loss-below, gain-above) for the target weight
         if weight is not None:
             r["weight"] = srv("nutrition.set", f"{USER} weight {weight}")
             r["applytraits"] = srv("nutrition.applytraits", USER)
-        cal = calories if calories is not None else CALORIES_FOR_WEIGHT.get(
-            int(weight if weight is not None else 80), 500.0)
-        r["calories"] = srv("nutrition.set", f"{USER} calories {cal}")
         for k in ("carbs", "lipids", "proteins"):
             r[k] = srv("nutrition.set", f"{USER} {k} {PRIME[k]}")
         h = PRIME["hunger"] if hunger is None else hunger
@@ -314,16 +354,44 @@ try:
                                         num(samples[-1].get("v"), "foodTimer")] if samples else None
         return row
 
+    def witnessed(label, seconds, ctx):
+        """`condition`, with a CLIENT-side mirror read at both boundaries of the window.
+
+        The client is authoritative for none of these values (every updater is server-gated,
+        see the module docstring), so the mirror is a convergence witness and never a
+        measurement: it says whether the client's copy tracked the server across the window.
+        Taken at every accelerated boundary because exp03-20260910-045523 took it only at the
+        session start, around row 1 and in rows 13/14 -- which is narrower than "at condition
+        boundaries" and was reported as though it were not. The two extra round-trips sit
+        OUTSIDE the fit: every rate is d<value>/d(that sample's own `worldAge`)."""
+        before = cli("stats.get")
+        row = condition(label, seconds, ctx)
+        row["client_before"], row["client_after"] = before, cli("stats.get")
+        return row
+
     def run_row(key, label, fn):
+        """`fn` is handed the dict it must accumulate into, so a row that dies mid-way keeps
+        whatever it had already read.
+
+        Row 2 of exp03-20260910-045523 is why: it aborted inside its rate window, and the old
+        code replaced the entire row with `{error, traceback}` -- discarding the `sleep_on`
+        read-back and `heldAtWrite`, which were the only findings the row actually produced.
+        The artifact still shows `r2_asleep` as three keys for that reason."""
         tl.mark("row_start", row=key)
+        res = {}
         try:
-            res = fn()
+            ret = fn(res)
         except Exception as e:                   # noqa: BLE001 - one row must not cost the rest
-            res = {"error": f"{type(e).__name__}: {e}", "traceback": traceback.format_exc()[-2000:]}
+            res["error"] = f"{type(e).__name__}: {e}"
+            res["traceback"] = traceback.format_exc()[-2000:]
             tl.mark("row_error", row=key, detail=str(e)[:120])
             print(res["traceback"])
-        if not isinstance(res, dict):
-            res = {"result": res}
+        else:
+            if ret is not res:                   # a row that built its own dict anyway
+                if isinstance(ret, dict):
+                    res.update(ret)
+                else:
+                    res["result"] = ret
         res["label"] = label
         out["rows"][key] = res
         save(path, out, tl, server)              # incremental: evidence survives a later wedge
@@ -351,8 +419,8 @@ try:
     # The only condition that runs at real speed, because it is the only one that has to
     # answer an ABSOLUTE question: S, the fixture's game-seconds per real second. Everything
     # else is a ratio and cancels the clock.
-    def row1():
-        r = {"settimespeed": timespeed(1), "prime": prime(weight=80)}
+    def row1(r):
+        r.update({"settimespeed": timespeed(1), "prime": prime(weight=80)})
         time.sleep(SETTLE)
         r["client_before"] = cli("stats.get")
         samples = sample_window(BASELINE_SECONDS)
@@ -395,12 +463,12 @@ try:
     # ---- row 7: weight scaling ------------------------------------------------
     # `updateCalories @115 L104` scales every branch by getWeight()/80, so the burn ratio is
     # the cleanest single-variable test in the slice: nothing else in the formula moves.
-    def row7():
-        r = {"settimespeed": timespeed(FAST), "windows": []}
+    def row7(r):
+        r.update({"settimespeed": timespeed(FAST), "windows": []})
         for w in (80, 100, 120, 60):
             p = prime(weight=w)
             time.sleep(SETTLE)
-            row = condition(f"idle, weight {w}", WINDOW_SECONDS, {"mode": "idle", "M": 1.0})
+            row = witnessed(f"idle, weight {w}", WINDOW_SECONDS, {"mode": "idle", "M": 1.0})
             row["prime"], row["requestedWeight"] = p, w
             r["windows"].append(row)
         ref = next((x for x in r["windows"] if x["requestedWeight"] == 80), None)
@@ -424,10 +492,10 @@ try:
     # pinned stat value, and the probe values sit 0.01 above the coded boundaries. At speed 30
     # hunger drifts ~4.5e-3 per second of wall time, so the settle wait alone would carry a
     # probe across its own boundary; at speed 1 the drift is ~1.5e-4/s and cannot.
-    def row11():
-        r = {"settimespeed": timespeed(1), "thresholdsFromCode":
-             {"HUNGRY": [0.15, 0.25, 0.45, 0.70], "THIRST": [0.12, 0.25, 0.70, 0.84]},
-             "hunger": [], "thirst": []}
+    def row11(r):
+        r.update({"settimespeed": timespeed(1), "thresholdsFromCode":
+                  {"HUNGRY": [0.15, 0.25, 0.45, 0.70], "THIRST": [0.12, 0.25, 0.70, 0.84]},
+                  "hunger": [], "thirst": []})
         srv("foodtimer.set", f"{USER} 0")
         for i, v in enumerate(MOODLE_HUNGER):
             srv("stats.set", f"{USER} hunger {v} thirst 0.05")
@@ -457,12 +525,14 @@ try:
     # vanilla take to notice, given the >=2000-updateWeight counter (`@329-@357 L200-L203`)?
     # Measured once, unforced, and time-speed independent: the counter is per update call, not
     # per game-second.
-    def row12():
-        r = {"settimespeed": timespeed(1), "bands": []}
+    def row12(r):
+        r.update({"settimespeed": timespeed(1), "bands": []})
         # (b) first, from a clean slate: weight 80 (no band) -> 105 (Obese), unforced.
+        # Neutral at BOTH ends of the probe: 800 is under 80's gain threshold (1000) and over
+        # 105's loss threshold (0), so neither the start weight nor the target can drift.
+        srv("nutrition.set", f"{USER} calories {CALORIES_FOR_WEIGHT[105]}")
         srv("nutrition.set", f"{USER} weight 80")
         srv("nutrition.applytraits", USER)
-        srv("nutrition.set", f"{USER} calories 500")
         t0 = time.time()
         srv("nutrition.set", f"{USER} weight 105")
         latency, polls = None, []
@@ -478,19 +548,33 @@ try:
         r["refreshLatency"] = {"secondsToObese": latency, "cappedAt": 60, "polls": polls,
                                "note": "unforced; the counter is per updateWeight call, so this "
                                        "is a server-tick-rate measurement, not a game-time one"}
-        # (a) the sweep, forced.
+        # (a) the sweep, forced -- and PRIMED PER WEIGHT. `prime` writes the calorie value
+        # `CALORIES_FOR_WEIGHT` holds for this weight BEFORE the weight itself, so
+        # `updateWeight` has no threshold to cross between the weight write and the comparison
+        # `applyTraitFromWeight` makes. Without it the low bands drift ~1e-4 kg past their own
+        # boundary before the trait is computed, and the exact-boundary question at 50 and 65 --
+        # which is the whole reason those two weights are in the sweep -- cannot be answered.
+        # exp03-20260910-045523 predates this and left 50/65 unmeasured for exactly that reason.
         for w in BAND_WEIGHTS:
-            srv("nutrition.set", f"{USER} weight {w}")
-            applied = srv("nutrition.applytraits", USER)
+            p = prime(weight=w)
+            applied = p.get("applytraits")
             s = snap()
             traits = sub(s, "traits")
             on = sorted(k for k in BAND_KEYS if traits.get(k) is True)
-            r["bands"].append({"weight": w, "readBack": num(s, "weight"),
+            read_back = num(s, "weight")
+            r["bands"].append({"weight": w, "readBack": read_back,
                                "traitsOn": on, "expected": BAND_EXPECTED[w],
                                "match": (on == ([BAND_EXPECTED[w]] if BAND_EXPECTED[w] else [])),
                                "maxWeight": num(s, "maxWeight"),
+                               "primedCalories": p.get("caloriesRequested"),
+                               "caloriesAtRead": num(s, "calories"),
+                               "weightBand": weight_band(w),
+                               # The reading is only about the BOUNDARY if the weight is still
+                               # exactly on it; otherwise the comparison never saw it.
+                               "heldExactly": (read_back is not None and abs(read_back - w) < 1e-6),
                                "applyRoute": applied.get("applied") if isinstance(applied, dict) else None})
         r["allBandsMatch"] = all(x["match"] for x in r["bands"])
+        r["allWeightsHeldExactly"] = all(x["heldExactly"] for x in r["bands"])
         # Put the band traits back to none before any later row reads them.
         srv("nutrition.set", f"{USER} weight 80")
         r["restore"] = srv("nutrition.applytraits", USER)
@@ -504,8 +588,8 @@ try:
     # through ISEatFoodAction (the real MP path, completed server-side) and the item is spawned
     # server-side by RCON, because a client-spawned item makes the server log a SyncItemFields
     # NPE (slice 01).
-    def row8():
-        r = {"settimespeed": timespeed(1)}
+    def row8(r):
+        r.update({"settimespeed": timespeed(1)})
         prime(weight=80)
         time.sleep(SETTLE)
         r["before"] = snap()
@@ -518,22 +602,36 @@ try:
         r["foodTimerAfterEat"] = num(r["after_eat"], "foodTimer")
         r["foodEatenLevelAfterEat"] = sub(r["after_eat"], "moodles").get("foodEaten")
         # The timer decays by 1 x getMultiplier() per BodyDamage.Update tick (Q5), i.e. on a
-        # frame clock rather than a game-time one -- MEASURED at ~40 units per real second at
-        # settimespeed 1 (smoke03-20260910-045044: 500 -> 447 across one bus round-trip), so
-        # ~1200/s at settimespeed 30 and >28000 across a 24 s window. A real eat fills it with
-        # at most 11000 (`JustAteFood` cap), which would expire mid-window and take the gate
-        # with it. Topped up well past that so the window measures the GATE and not its expiry;
+        # frame clock rather than a game-time one -- MEASURED at 1438 units per REAL second at
+        # settimespeed 30 (exp03-20260910-045523, this row's own window: 197 596.8 -> 186 096.2
+        # across its first 8 s), so >34 000 across a 24 s window. A real eat fills it with at
+        # most 11000 (`JustAteFood` cap), which would expire mid-window and take the gate with
+        # it. Topped up well past that so the window measures the GATE and not its expiry;
         # `foodTimerAfterEat` above is the untouched reading of the real path.
-        r["foodTimerDecayNote"] = ("~1200 units/real-s at settimespeed 30 (measured at speed 1 "
-                                   "in the smoke run); 11000 from a real eat lasts <10 s there")
+        r["foodTimerDecayNote"] = ("1438 units/real-s at settimespeed 30 (measured in this "
+                                   "row's own window, exp03-20260910-045523); 11000 from a "
+                                   "real eat lasts under 8 real seconds there")
         r["foodtimer_topup"] = srv("foodtimer.set", f"{USER} 200000")
         srv("stats.set", f"{USER} hunger {PRIME['hunger']} thirst {PRIME['thirst']}")
         r["settimespeed_fast"] = timespeed(FAST)
         time.sleep(SETTLE)
-        r.update(condition("idle, FOOD_EATEN >= 1", WINDOW_SECONDS, {"mode": "wellfed", "M": 1.0}))
+        r.update(witnessed("idle, FOOD_EATEN >= 1", WINDOW_SECONDS, {"mode": "wellfed", "M": 1.0}))
         r["settimespeed_1"] = timespeed(1)
+        # The equality assertion is only meaningful if the gate was up for EVERY sample. In
+        # exp03-20260910-045523 the queued ISEatFoodAction completed 9 samples into the window,
+        # so the window straddled the gate's edge and the whole-window flag came out `false` on
+        # a segment whose gated half was in fact bit-exactly flat. Straddled -> no answer, and
+        # the per-sample series in `raw` is what carries the finding.
+        seen = sub(r.get("observed"), "moodleLevels").get("foodEaten") or []
+        r["foodEatenLevelsAcrossWindow"] = seen
         hf = r.get("fits", {}).get("hunger")
-        r["hungerExactlyFlat"] = (hf is not None and hf["first"] == hf["last"])
+        if seen and all(isinstance(v, int) and not isinstance(v, bool) and v >= 1 for v in seen):
+            r["hungerExactlyFlat"] = (hf is not None and hf["first"] == hf["last"])
+        else:
+            r["hungerExactlyFlat"] = None
+            r["hungerExactlyFlatReason"] = (
+                "n/a: FOOD_EATEN was not >= 1 for every sample (levels seen: %s), so the window "
+                "straddles the gate's edge -- split `raw` at the transition instead" % (seen,))
         r["clear"] = srv("foodtimer.set", f"{USER} 0")
         return r
 
@@ -544,8 +642,8 @@ try:
     # `GameClient.client` early-out BEFORE setWeight and before applyTraitFromWeight, so a
     # client write should survive only until the next PlayerStatsPacket, and hasTrait("Obese")
     # should never turn true on this side no matter what the client's weight says.
-    def row14():
-        r = {"server_before": snap()}
+    def row14(r):
+        r.update({"server_before": snap()})
         r["client_before"] = cli("stats.get")
         r["client_set_105"] = cli("nutrition.set", "weight 105")
         r["client_immediately"] = cli("stats.get")
@@ -566,8 +664,8 @@ try:
             row14)
 
     # ---- row 13: MP authority regression ----------------------------------------
-    def row13():
-        r = {"server_set_0.3": srv("stats.set", f"{USER} hunger 0.3")}
+    def row13(r):
+        r.update({"server_set_0.3": srv("stats.set", f"{USER} hunger 0.3")})
         time.sleep(SYNC_WAIT)
         r["client_set_0.9"] = cli("stats.set", "hunger 0.9")
         polls, t0 = [], time.time()
@@ -591,8 +689,8 @@ try:
     # tableswitch). Two independent settlements are collected: the multiplier the server itself
     # reports through getStatsDecreaseMultiplier (if Kahlua exposes it), and the measured
     # hunger/thirst rates. Calories must NOT move -- updateCalories reads no sandbox term.
-    def row10():
-        r = {"windows": [], "predictedMapping": SANDBOX_PREDICTED, "before": sandbox_before}
+    def row10(r):
+        r.update({"windows": [], "predictedMapping": SANDBOX_PREDICTED, "before": sandbox_before})
         # The whole key->value map in five bus calls: the server exposes
         # getStatsDecreaseMultiplier(), so the mapping can be READ rather than inferred from
         # rates. The two measured windows below then confirm the read is the number the stat
@@ -615,7 +713,7 @@ try:
             timespeed(FAST)
             time.sleep(SETTLE)
             m = SANDBOX_PREDICTED.get(v, 1.0)
-            row = condition(f"idle, StatsDecrease {v}", WINDOW_SECONDS, {"mode": "idle", "M": m})
+            row = witnessed(f"idle, StatsDecrease {v}", WINDOW_SECONDS, {"mode": "idle", "M": m})
             row["sandbox"] = setres
             row["reportedMultiplier"] = (setres.get("statsDecreaseMultiplierAfter")
                                          if isinstance(setres, dict) else None)
@@ -628,8 +726,8 @@ try:
     run_row("r10_sandbox_statsdecrease", "row 10: StatsDecrease 1 / 5 vs the default 3", row10)
 
     # ---- row 9: appetite / thirst traits -------------------------------------------
-    def row9():
-        r = {"windows": []}
+    def row9(r):
+        r.update({"windows": []})
         for name, kind, factor in TRAIT_ROWS:
             add = srv("trait.set", f"{USER} {name} add")
             if isinstance(add, dict) and add.get("after") is True:
@@ -639,7 +737,7 @@ try:
             time.sleep(SETTLE)
             ctx = {"mode": "idle", "M": 1.0}
             ctx["appetite" if kind == "appetite" else "thirstTrait"] = factor
-            row = condition(f"idle, trait {name}", WINDOW_SECONDS, ctx)
+            row = witnessed(f"idle, trait {name}", WINDOW_SECONDS, ctx)
             row["trait_add"], row["trait"], row["expectedFactor"], row["affects"] = add, name, factor, kind
             timespeed(1)
             row["trait_remove"] = srv("trait.set", f"{USER} {name} remove")
@@ -652,8 +750,8 @@ try:
     run_row("r9_traits", "row 9: HeartyAppetite / LightEater / HighThirst / LowThirst", row9)
 
     # ---- row 2: asleep ---------------------------------------------------------------
-    def row2():
-        r = {"sleep_on": srv("player.sleep", f"{USER} true")}
+    def row2(r):
+        r.update({"sleep_on": srv("player.sleep", f"{USER} true")})
         held = isinstance(r["sleep_on"], dict) and r["sleep_on"].get("after") is True
         r["heldAtWrite"] = held
         if not held:
@@ -662,9 +760,16 @@ try:
         prime(weight=80)
         timespeed(FAST)
         time.sleep(SETTLE)
-        r.update(condition("asleep", WINDOW_SECONDS, {"mode": "asleep", "M": 1.0}))
+        r.update(witnessed("asleep", WINDOW_SECONDS, {"mode": "asleep", "M": 1.0}))
         timespeed(1)
         r["sleep_off"] = srv("player.sleep", f"{USER} false")
+        # Persistence, not just the write. `heldAtWrite` is an immediate read-back and says
+        # nothing about whether the flag survived the window; `player.sleep`'s own `before`
+        # field is that reading, for free, at the far end of it. (In exp03-20260910-045523 the
+        # only surviving instance of it -- teardown's -- was already `false`.)
+        r["asleepAtWindowEnd"] = (r["sleep_off"].get("before")
+                                  if isinstance(r["sleep_off"], dict) else None)
+        r["asleepPersisted"] = (r["asleepAtWindowEnd"] is True)
         # The three asleep/idle ratios the notes predict, computed against row 7's w80 window.
         w80 = None
         r7 = out["rows"].get("r7_weight_scaling", {})
@@ -689,12 +794,12 @@ try:
     # walk (the server's copy of a remote player's movement comes from this client's position
     # updates), and the reading that decides the row is whether the SERVER's snapshot ever
     # reports `moving` true -- that is the flag `updateCalories @125 L106` actually branches on.
-    def row3_6():
-        r = {"attempt": "client ISWalkToTimedAction + setRunning(true), sampled server-side",
-             "rows_5_6": "n/a: no trivially reliable automation. Row 5 needs a live "
-                         "SwipeStatePlayer (a real attack against a target); row 6 needs a "
-                         "queued ISBuildAction with materials and a build site. Neither is one "
-                         "command, and the ruling caps this block at one attempt."}
+    def row3_6(r):
+        r.update({"attempt": "client ISWalkToTimedAction + setRunning(true), sampled server-side",
+                  "rows_5_6": "n/a: no trivially reliable automation. Row 5 needs a live "
+                              "SwipeStatePlayer (a real attack against a target); row 6 needs a "
+                              "queued ISBuildAction with materials and a build site. Neither is "
+                              "one command, and the ruling caps this block at one attempt."})
         prime(weight=80)
         timespeed(FAST)
         time.sleep(SETTLE)
@@ -707,25 +812,52 @@ try:
         r["allSamples"] = samples          # kept whole: the per-branch fits below subset it
 
         def branch(want_running):
-            return [s for s in samples if isinstance(s.get("v"), dict)
+            """INDICES, not samples: contiguity is the property that decides the fit below."""
+            return [i for i, s in enumerate(samples) if isinstance(s.get("v"), dict)
                     and s["v"].get("moving") is True
                     and (s["v"].get("running") is True) == want_running]
+
+        def longest_run(idx):
+            """The longest stretch of CONSECUTIVE sample indices in `idx`."""
+            best, cur = [], []
+            for i in idx:
+                cur = cur + [i] if (cur and i == cur[-1] + 1) else [i]
+                if len(cur) > len(best):
+                    best = cur
+            return best
 
         walking, running = branch(False), branch(True)
         r["serverSawMoving"] = len(walking) + len(running)
         r["serverSawWalking"], r["serverSawRunning"] = len(walking), len(running)
+        r["movingSampleIndices"] = {"walking": walking, "running": running}
         r7 = out["rows"].get("r7_weight_scaling", {})
         w80 = next((x for x in r7.get("windows", []) if x.get("requestedWeight") == 80), None)
         # Fitted per branch, never over the union: `updateCalories` picks 0.13 / 0.078 / 0.016
         # from (IsRunning, isPlayerMoving) at each tick, so a mixed window averages three
         # different constants and measures none of them.
-        for name, subset, mode, k in (("row3_walking", walking, "walking", K_CAL_WALK),
-                                      ("row4_running", running, "running", K_CAL_RUN)):
-            if len(subset) < 4:
-                r[name] = {"result": "n/a: only %d server samples in this branch (need >= 4); "
-                                     "one attempt only, per the ruling" % len(subset)}
+        #
+        # And fitted only over CONSECUTIVE samples of a branch. A count-only guard is not
+        # enough: exp03-20260910-045523 had 5 walking samples at indices 0,1,13,27,39 -- one
+        # adjacent pair and three isolated ones -- and a least-squares line through them
+        # charges ~35 s of idle time to the walking branch. It passed the old `len < 4` test
+        # and put `caloriesRatioVsIdle.measured = 1.2399` (against a predicted 4.875) into the
+        # tracked artifact, a number that measures the sampling gaps and nothing else.
+        for name, idx, mode, k in (("row3_walking", walking, "walking", K_CAL_WALK),
+                                   ("row4_running", running, "running", K_CAL_RUN)):
+            best = longest_run(idx)
+            if len(best) < MIN_CONTIGUOUS_MOVING:
+                r[name] = {"result": "n/a: %d server samples in this branch, longest CONSECUTIVE "
+                                     "run %d (need >= %d). A slope over non-adjacent moving "
+                                     "samples charges the idle time between them to the moving "
+                                     "branch; one attempt only, per the ruling."
+                                     % (len(idx), len(best), MIN_CONTIGUOUS_MOVING),
+                           "samplesInBranch": len(idx), "longestConsecutiveRun": len(best),
+                           "sampleIndices": idx, "caloriesRatioVsIdle": None}
                 continue
-            row = condition(name, 0, {"mode": mode, "M": 1.0}, samples=subset)
+            row = condition(name, 0, {"mode": mode, "M": 1.0},
+                            samples=[samples[i] for i in best])
+            row["samplesInBranch"], row["longestConsecutiveRun"] = len(idx), len(best)
+            row["sampleIndices"] = best
             if w80:
                 row["caloriesRatioVsIdle"] = {
                     "measured": ratio(row["measuredPerGameSecond"].get("calories"),
@@ -814,6 +946,13 @@ finally:
         tl.mark("settimespeed_restored", ok=ok_rcon)
     except Exception as e:                       # noqa: BLE001 - teardown path, never raise
         out["settimespeed_restored"] = f"{type(e).__name__}: {e}"
+    # rcon's own reply is the admin command echoing back, not the world's state. `time.snapshot`
+    # reads getGameTime() on the server, so this is the read-back that actually evidences the
+    # one WORLD change this run makes having been put back.
+    try:
+        out["time_after_restore"] = ask(server, "time.snapshot", timeout=15)
+    except Exception as e:                       # noqa: BLE001 - teardown path, never raise
+        out["time_after_restore"] = f"{type(e).__name__}: {e}"
     # Character + world state this run moved, put back in the reverse order it was taken. The
     # session runs against a copy of the fixture restored into this run dir, so none of it can
     # leak into testing/fixtures/ -- the standing rule is to restore anyway, and a restore that

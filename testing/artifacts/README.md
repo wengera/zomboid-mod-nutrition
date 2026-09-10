@@ -17,6 +17,11 @@ Why this exists: an `M` grade in `docs/` claims something was measured. That cla
 be checkable from a fresh clone, so the numbers behind it are committed and the docs cite
 these paths rather than a path that only exists on the machine that ran the experiment.
 
+A committed artifact is evidence, not an oracle: a key can be *present and wrong* when the
+script that wrote it had a defect. Where that is known, the run's block below lists the key
+under **do not cite** and says what to read instead. Nothing here is ever hand-edited to
+correct it.
+
 ## Contents
 
 | Run id | File | Experiment | Cited by |
@@ -32,8 +37,9 @@ Standing rule (`docs/decisions.md`, 2026-09-10, program): **when a fix round fol
 slice's last live run, this README notes the skew — the commit that produced the artifact and
 what the current script adds — instead of assuming a later run erases it.** Re-running an
 experiment for a teardown-only change is poor value; disclosure is what keeps the evidence
-honest. Both slice-01 artifacts predate that slice's last fix round, and the slice-02 artifact
-predates slice 02's, so all three are listed.
+honest. Both slice-01 artifacts predate that slice's last fix round, the slice-02 artifact
+predates slice 02's, and the slice-03 artifact predates slice 03's fix round 1, so all four
+are listed.
 
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
@@ -85,3 +91,42 @@ at commit `5714117`. Since `d9ff9a7` the script writes five keys this file there
   derived in the doc from this file's two `serverWorldAge` values, not read off a key** — that is
   the correction, and it changes the residual, not the measurement: `summary.c.serverAge`
   (**1.00777**) is what was measured and is unaffected.
+
+**`exp03-20260910-045523/body.json`** — produced by `testing/experiments/s03_body.py` at commit
+`752d748`. Slice 03's **fix round 1** changed the script in five ways this file therefore
+predates. The rates it carries are unaffected — every fit is `d<value>/d(worldAge)` and none of
+the changes touches that — but three keys in it are wrong, and are listed as *do not cite*
+below.
+
+- **Row 12 now primes calories per weight** (`CALORIES_FOR_WEIGHT` gained an entry for all
+  eleven band weights). This run primed 500 kcal once and swept the weights against it, so
+  `updateWeight`'s gain branch — which fires above `1000 + (w−80)·40`, i.e. above −400 at 45 kg
+  and above +400 at 65 kg — nudged the low weights off their set points before
+  `applyTraitFromWeight` compared them: `rows.r12_weight_bands.bands[].readBack` reads
+  **45.0001 / 50.000099 / 55.000099 / 65.000099** against weights 45 / 50 / 55 / 65. **The
+  exact-boundary behaviour at 50 kg and at 65 kg is therefore not measured by this file**, and
+  the two `match: false` entries are that drift, not a disagreement with the code.
+- **`prime()` now writes calories before the weight**, so no window is exposed to the previous
+  row's calorie value for the round-trip between the two writes. Visible here as
+  `rows.r7_weight_scaling.windows[3]` (the w = 60 window) running at a measured mean weight of
+  **60.000757**: its 0.7503 burn ratio is computed against that measured weight, so it stands,
+  but the set point did not hold.
+- **A failed row now keeps its partial results.** `run_row` used to replace the whole row with
+  `{error, traceback}`. That is why `rows.r2_asleep` in this file has exactly three keys: the
+  successful `player.sleep true` reply and `heldAtWrite` were discarded by the error handler,
+  not missing from the run. (The traceback shows where it really died — `s03_body.py:665` →
+  `condition()` → `sample_window()` → `snap()`, i.e. inside the rate window, after the sleep
+  write, all eight `prime()` writes and `settimespeed 30` had succeeded.)
+- **The movement fit now requires ≥ 4 *consecutive* moving samples**, not 4 anywhere in the
+  window. See *do not cite* below.
+- **The client mirror is now read at every accelerated window's boundaries.** In this file
+  `stats.get` on the client exists only at the session start, around row 1, and in rows 13 and
+  14 — there is no client witness for rows 7, 8, 9, 10, 2 or 3–6.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `rows.r3_6_movement.row3_walking.caloriesRatioVsIdle` and `summary.r3_6.row3_walking.ratio` | `measured: 1.2399` (vs `predicted: 4.875`) | The branch has 5 moving samples at indices 0, 1, 13, 27, 39 — one adjacent pair and three isolated ones. A least-squares line through them charges ~35 s of idle time to the walking branch, so the number measures the sampling gaps. The current guard writes `null` here. **Rows 3–6 are not measured.** |
+| `summary.r8.hungerExactlyFlat` | `false` | The queued `ISEatFoodAction` completed 9 samples into the window, so the whole-window fit straddles the gate. The gated segment (samples 0–8) is in fact bit-exactly flat at hunger `0.2`; read `rows.r8_food_eaten.raw` split at sample 9. The current script writes `null` plus a reason when the gate is not up for every sample. |
+| `summary.r12.allBandsMatch` | `false` | The two `false` bands are the 50 kg / 65 kg weight drift above, not a band-boundary mismatch. The nine weights whose calorie threshold sat above the primed 500 held exactly and all nine match. |

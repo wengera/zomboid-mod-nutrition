@@ -78,10 +78,12 @@ class CommandBus:
         # os.replace onto a file the game currently has open raises PermissionError
         # (WinError 5) on Windows -- there is no atomic-replace-over-an-open-handle there.
         # The harness polls this file ~3x a second on each side, so the collision window is
-        # real: it cost one row of exp03-20260910-045523 (r2_asleep aborted on the FIRST
-        # command it sent). Retrying is the whole fix -- the handle is released within a
-        # frame -- and a raise on the last attempt keeps the old behaviour for a path that is
-        # genuinely unwritable.
+        # real: it cost one row of exp03-20260910-045523. It is a RANDOM collision, not a
+        # first-command problem -- r2_asleep had already run `player.sleep true`, all eight
+        # `prime()` writes and `settimespeed 30` (27.6 s, timeline `row_start` 960.7 ->
+        # `row_error` 988.3) and died on the first `stats.get` of its rate window. Retrying is
+        # the whole fix -- the handle is released within a frame -- and a raise on the last
+        # attempt keeps the old behaviour for a path that is genuinely unwritable.
         for attempt in range(RENAME_RETRIES):
             try:
                 os.replace(tmp, self.cmd_path)

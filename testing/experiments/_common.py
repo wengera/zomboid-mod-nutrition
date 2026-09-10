@@ -12,10 +12,17 @@ from pzt.bus import parse_ack
 
 def ask(side, cmd, args="", timeout=20):
     """One bus command. A dead or wedged side is recorded, not raised: the remaining
-    probes are still worth collecting."""
+    probes are still worth collecting.
+
+    `OSError` is caught for the same reason: `CommandBus.send` writes the command file with
+    `os.replace`, which on Windows raises `PermissionError` (a subclass of `OSError`) when the
+    game happens to hold the file open. That is a harness collision, not a finding, and it
+    cost a whole row of exp03-20260910-045523 by escaping this helper -- `bus.py` now retries
+    the rename, and if every retry loses, the sample is recorded as an error like any other
+    wedged read instead of aborting the row around it."""
     try:
         return parse_ack(side.send(cmd, args, timeout=timeout))[1]
-    except (RuntimeError, TimeoutError) as e:
+    except (RuntimeError, TimeoutError, OSError) as e:
         return {"error": f"{type(e).__name__}: {e}"}
 
 

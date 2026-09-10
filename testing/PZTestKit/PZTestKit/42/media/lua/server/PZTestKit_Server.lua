@@ -232,8 +232,14 @@ end)
 TK.register("nutrition.applytraits", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
-    local n = p:getNutrition()
-    local out = { weight = n:getWeight() }
+    -- Guarded like every other accessor here: a raw `p:getNutrition():getWeight()` on a build
+    -- that moved either method is an argument/index error Kahlua does not let pcall catch, and
+    -- it would take the whole command bus down rather than answering with a usable error.
+    local _, n = TK.call(p, "getNutrition")
+    if n == nil then return "no IsoGameCharacter:getNutrition" end
+    local out = {}
+    local okW, w = TK.call(n, "getWeight")
+    if okW then out.weight = w else out.error = "no Nutrition:getWeight" end
     out.applied = TK.call(n, "applyTraitFromWeight")
     if not out.applied then out.error = "no Nutrition:applyTraitFromWeight" end
     local set, list = TK.traitNames(p)
