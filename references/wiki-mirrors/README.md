@@ -36,3 +36,5 @@ add a row here (page name + date) when one 404s, so nobody re-tries blindly.
 excerpt was re-fetched through `wiki_mirror.py` (the slug now follows the page
 name). Its 42.20.x modding-news section is not on the live page any more; the
 parts we rely on live in `docs/modding/README.md`, the rest in git history.
+
+**Archived:** [modding-hub-archived.md](modding-hub-archived.md) — the pre-2026-09-09 excerpt of the Modding hub page, kept because its 42.20.x modding-news section is gone from the live page.
