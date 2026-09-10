@@ -135849,5 +135849,1605 @@
    "delta": null,
    "deltaReason": "multi-type: item 1 [Base.RippedSheetsBundle;Base.RippedSheetsDirtyBundle;Base.RippedSheetsSterilizedBundle;Base.DenimStripsBundle;Base.DenimStripsDirtyBundle;Base.LeatherStripsBundle;Base.LeatherStripsDirtyBundle;Base.TwigsBundle;Base.RopeStack;Base.SheetRopeBundle;Base.BarbedWireStack;Base.WireStack] mappers[itemType] flags[AllowFavorite;InheritFavorite] ; multi-type: item 12 mapper:itemType"
   }
+ ],
+ "replacements": [
+  {
+   "from": "Base.BaguetteDough",
+   "to": "Base.Baguette",
+   "trigger": "cooked",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2807,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": -8.0,
+    "thirstChange": -15.0,
+    "absentMacros": [
+     "Base.Baguette:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.BreadSlices",
+   "to": "Base.Toast",
+   "trigger": "cooked",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2123,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 2.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.BreadSlices:thirstChange",
+     "Base.Toast:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.PancakesCraft",
+   "to": "Base.Pancakes",
+   "trigger": "cooked",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 10906,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 4.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.Pancakes:thirstChange",
+     "Base.PancakesCraft:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.ConeIcecream",
+   "to": "Base.ConeIcecreamMelted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12417,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.ConeIcecream:thirstChange",
+     "Base.ConeIcecreamMelted:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.ConeIcecreamToppings",
+   "to": "Base.ConeIcecreamMelted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12456,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.ConeIcecreamMelted:thirstChange",
+     "Base.ConeIcecreamToppings:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.Creamocle",
+   "to": "Base.Creamocle_Melted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12520,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.Creamocle:thirstChange",
+     "Base.Creamocle_Melted:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.FudgeePop",
+   "to": "Base.FudgeePop_Melted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12542,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.FudgeePop:thirstChange",
+     "Base.FudgeePop_Melted:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.Icecream",
+   "to": "Base.IcecreamMelted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12478,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.Icecream:thirstChange",
+     "Base.IcecreamMelted:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.IcecreamSandwich",
+   "to": "Base.IcecreamSandwich_Melted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12564,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.IcecreamSandwich:thirstChange",
+     "Base.IcecreamSandwich_Melted:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.Popsicle",
+   "to": "Base.Popsicle_Melted",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 12585,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.Popsicle:thirstChange",
+     "Base.Popsicle_Melted:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.SugarBeetSyrupPot",
+   "to": "Base.SugarBeetSugarPot",
+   "trigger": "rotten",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 576,
+   "delta": {
+    "calories": 0.0,
+    "carbohydrates": 0.0,
+    "lipids": 0.0,
+    "proteins": 0.0,
+    "hungerChange": 0.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.SugarBeetSugarPot:thirstChange",
+     "Base.SugarBeetSyrupPot:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.BakingTray_Muffin",
+   "to": "Base.MuffinTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2832,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.BakingTray_Muffin_Recipe",
+   "to": "Base.MuffinTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2857,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.BeanBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 10848,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketOfSoup",
+   "to": "Base.Bucket",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6723,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketOfStew",
+   "to": "Base.Bucket",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6751,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CakePrep",
+   "to": "Base.BakingPan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2908,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CakeRaw",
+   "to": "Base.BakingPan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2934,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CanPipe_Tobacco",
+   "to": "Base.CanPipe",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 15394,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CannedBellPepper_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1549,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedBologneseOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3644,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedBroccoli_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1571,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedCabbage_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1593,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedCarrotsOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3695,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedCarrots_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1615,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedChiliOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3747,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedCornOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3851,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedCornedBeefOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3797,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedEggplant_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1637,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedFruitBeverageOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4659,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedFruitCocktailOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3904,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedLeek_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1659,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedMilkOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3949,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedMushroomSoupOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3998,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedPeachesOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4050,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedPeasOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4097,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedPineappleOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4149,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedPotatoOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4196,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedPotato_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1681,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedRedRadish_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1703,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedRoe_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 15503,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedSardinesOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4247,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedTomatoOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4298,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CannedTomato_Open",
+   "to": "Base.EmptyJar",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 1725,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CerealBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4705,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CookieChocolateChipDough",
+   "to": "Base.BakingTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2959,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CookiesChocolateDough",
+   "to": "Base.BakingTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 2985,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CookiesOatmealDough",
+   "to": "Base.BakingTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3011,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CookiesShortbreadDough",
+   "to": "Base.BakingTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3036,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CookiesSugarDough",
+   "to": "Base.BakingTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3062,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.DogfoodOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4349,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.FruitSalad",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5681,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.FruitSaladClay",
+   "to": "Base.ClayBowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5702,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.GriddlePanFriedVegetables",
+   "to": "Base.GridlePan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5723,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.HotDrink",
+   "to": "Base.Mugl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6483,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkClay",
+   "to": "Base.ClayMug",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6507,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkCopper",
+   "to": "Base.CopperCup",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6627,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkGold",
+   "to": "Base.GoldCup",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6651,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkMetal",
+   "to": "Base.MetalCup",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6603,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkRed",
+   "to": "Base.MugRed",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6531,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.HotDrinkSilver",
+   "to": "Base.SilverCup",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6675,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkSpiffo",
+   "to": "Base.MugSpiffo",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6555,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkTea",
+   "to": "Base.Teacup",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6441,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkTeaCeramic",
+   "to": "Base.CeramicTeacup",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6462,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkTumbler",
+   "to": "Base.GlassTumbler",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6699,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.HotDrinkWhite",
+   "to": "Base.MugWhite",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6579,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.MayonnaiseFull",
+   "to": "Base.MayonnaiseEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 253,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.Muffintray_Biscuit",
+   "to": "Base.MuffinTray",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3113,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.NoodleSoup",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 10517,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.Oatmeal",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5745,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.OmeletteRecipe",
+   "to": "Base.Pan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5770,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.OmeletteRecipeForged",
+   "to": "Base.PanForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5799,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.OpenBeans",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4401,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PanFriedVegetables",
+   "to": "Base.Pan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5845,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PanFriedVegetables2",
+   "to": "Base.RoastingPan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5868,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PanFriedVegetablesForged",
+   "to": "Base.PanForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PastaBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 10930,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PastaBowlClay",
+   "to": "Base.ClayBowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 10957,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PastaPan",
+   "to": "Base.Saucepan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5890,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PastaPanCopper",
+   "to": "Base.SaucepanCopper",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5922,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PastaPot",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5954,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PastaPotForged",
+   "to": "Base.PotForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 5984,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PiePrep",
+   "to": "Base.BakingPan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3137,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PieWholeRaw",
+   "to": "Base.BakingPan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3158,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PieWholeRawSweet",
+   "to": "Base.BakingPan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 3184,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PotForgedSoupRecipe",
+   "to": "Base.PotForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6117,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PotForgedStew",
+   "to": "Base.PotForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6176,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PotOfSoup",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6059,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PotOfSoupRecipe",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6088,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PotOfStew",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6146,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.Pumpkin",
+   "to": "Base.PumpkinSeed",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 14666,
+   "delta": {
+    "calories": -249.0,
+    "carbohydrates": -6.33,
+    "lipids": -15.13,
+    "proteins": -30.19,
+    "hungerChange": 35.0,
+    "thirstChange": 0.0,
+    "absentMacros": [
+     "Base.Pumpkin:thirstChange",
+     "Base.PumpkinSeed:thirstChange"
+    ]
+   },
+   "deltaReason": null
+  },
+  {
+   "from": "Base.RamenBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 10984,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RemouladeFull",
+   "to": "Base.RemouladeEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 279,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RiceBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11013,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RiceBowlClay",
+   "to": "Base.ClayBowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11040,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RicePan",
+   "to": "Base.Saucepan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6206,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RicePanCopper",
+   "to": "Base.SaucepanCopper",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6236,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RicePot",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6266,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RicePotForged",
+   "to": "Base.PotForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6296,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.Salad",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6326,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SaladClay",
+   "to": "Base.ClayBowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 6343,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SeedPasteBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 467,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SmokingPipe_Tobacco",
+   "to": "Base.SmokingPipe",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 15371,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.SoupBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11093,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SoupBowlClay",
+   "to": "Base.ClayBowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11122,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.StewBowl",
+   "to": "Base.Bowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11151,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.StewBowlClay",
+   "to": "Base.ClayBowl",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11180,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SugarBeetPulpPot",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 548,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SugarBeetSugarPot",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 602,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.SugarBeetSyrupPot",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 576,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.TestHotDrink",
+   "to": "Base.TestMug",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 25,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.TinnedSoupOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4453,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.TunaTinOpen",
+   "to": "Base.TinCanEmpty",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 4504,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterPotForgedPasta",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11239,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterPotForgedRice",
+   "to": "Base.PotForged",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11301,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterPotPasta",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11209,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterPotRice",
+   "to": "Base.Pot",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11269,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterSaucepanPasta",
+   "to": "Base.Saucepan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11333,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterSaucepanPastaCopper",
+   "to": "Base.SaucepanCopper",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11363,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterSaucepanRice",
+   "to": "Base.Saucepan",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11393,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.WaterSaucepanRiceCopper",
+   "to": "Base.SaucepanCopper",
+   "trigger": "use",
+   "sourceFile": "items/food.txt",
+   "sourceLine": 11425,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.AnimalFeedBag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 210,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.BathTowel",
+   "to": "Base.BathTowelWet",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 2187,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.BucketCarvedClayCement",
+   "to": "Base.BucketCarved",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 411,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketCarvedConcreteFull",
+   "to": "Base.BucketCarved",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 427,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketCarvedPlasterFull",
+   "to": "Base.BucketCarved",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 458,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketCarvedWallpaperPaste",
+   "to": "Base.BucketCarved",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 560,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketClayCement",
+   "to": "Base.Bucket",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 379,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketConcreteFull",
+   "to": "Base.Bucket",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 395,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketPlasterFull",
+   "to": "Base.Bucket",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 443,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.BucketWallpaperPaste",
+   "to": "Base.Bucket",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 546,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CeramicCrucibleSmall_Iron",
+   "to": "Base.CeramicCrucibleSmall",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 42,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CeramicCrucibleSmall_Steel",
+   "to": "Base.CeramicCrucibleSmall",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 56,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CeramicCrucibleWithGlass",
+   "to": "Base.CeramicCrucibleSmall",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 951,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CeramicCrucible_Iron",
+   "to": "Base.CeramicCrucible",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 14,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.CeramicCrucible_Steel",
+   "to": "Base.CeramicCrucible",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 28,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.Claybag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 316,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.CompostBag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 919,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.Dirtbag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 332,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.DishCloth",
+   "to": "Base.DishClothWet",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 2203,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.GardeningSprayAphids",
+   "to": "Base.GardeningSprayEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 107,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.GardeningSprayCigarettes",
+   "to": "Base.GardeningSprayEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 120,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.GardeningSprayMilk",
+   "to": "Base.GardeningSprayEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 94,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.GrassBag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 228,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.Gravelbag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 348,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.PaintBlack",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1803,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintBlue",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1820,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintBrown",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1837,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintCyan",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1854,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintGreen",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1871,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintGrey",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1888,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintLightBlue",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1905,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintLightBrown",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1922,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintOrange",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1939,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintPink",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1956,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintPurple",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1973,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintRed",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1990,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintTurquoise",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 2007,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintWhite",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 2024,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.PaintYellow",
+   "to": "Base.PaintbucketEmpty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 2041,
+   "delta": null,
+   "deltaReason": "no-nutrition"
+  },
+  {
+   "from": "Base.RagFilter",
+   "to": "Base.RippedSheetsDirty",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 1625,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.Sandbag",
+   "to": "Base.EmptySandbag",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 364,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  },
+  {
+   "from": "Base.TestWaterMug",
+   "to": "Base.TestMug",
+   "trigger": "deplete",
+   "sourceFile": "items/drainable.txt",
+   "sourceLine": 70,
+   "delta": null,
+   "deltaReason": "not-in-dataset"
+  }
  ]
 }
