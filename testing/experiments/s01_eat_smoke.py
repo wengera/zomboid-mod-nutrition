@@ -35,6 +35,37 @@ def ask(side, cmd, args="", timeout=20):
         return {"error": f"{type(e).__name__}: {e}"}
 
 
+def save(path, out, tl, server):
+    """Snapshot the timeline and the server's error list into `out` and write it.
+
+    Called twice: once before teardown (so a shutdown that goes wrong still leaves
+    evidence on disk) and once after it (the committed artifact has to show the
+    `client_quit` / `server_stopped` marks and any shutdown-phase server errors, which a
+    pre-teardown snapshot misses). Writes via a temp file so a half-written second pass
+    cannot corrupt a good first one, and never raises: this runs on the teardown path and
+    a failed write must not skip the kills that follow it."""
+    try:
+        out["timeline"] = list(tl.items)
+        out["server_errors"] = server.errors[:20]
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as fh:
+            json.dump(out, fh, indent=1)
+        os.replace(tmp, path)
+        print(f"\nwrote {path}")
+    except Exception as e:                       # noqa: BLE001 - see docstring
+        print(f"could not write {path}: {type(e).__name__}: {e}")
+
+
+def hard_kill(server, clients):
+    """taskkill everything, whatever else went wrong. Never raises, and one failure does
+    not skip the rest: no PZ process may outlive this script."""
+    for proc in list(clients) + [server]:
+        try:
+            proc.kill()
+        except Exception as e:                   # noqa: BLE001 - best effort by design
+            print(f"kill failed: {type(e).__name__}: {e}")
+
+
 rec = fx.load("default")
 run_id, run_dir = new_run_dir("exp01")
 tl = Timeline()
@@ -124,16 +155,11 @@ except (RuntimeError, TimeoutError) as e:
     out["error"] = f"{type(e).__name__}: {e}"
     tl.mark("error", detail=str(e)[:200])
 finally:
-    out["timeline"] = tl.items
-    out["server_errors"] = server.errors[:20]
     path = os.path.join(run_dir, "eat-smoke.json")
-    with open(path, "w", encoding="utf-8") as fh:
-        json.dump(out, fh, indent=1)
-    print(f"\nwrote {path}")
+    save(path, out, tl, server)          # evidence on disk before the shutdown can go wrong
     try:
-        teardown(tl, server, clients)
+        teardown(tl, server, clients)    # graceful: the quit/stop rcs land in the timeline
     finally:
-        for cl in clients:
-            cl.kill()
-        server.kill()
+        hard_kill(server, clients)       # guaranteed, whatever teardown did
+        save(path, out, tl, server)      # the committed artifact: post-teardown timeline+errors
 print(json.dumps(out, indent=1)[:4000])

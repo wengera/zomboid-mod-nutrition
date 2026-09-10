@@ -144,9 +144,12 @@ local function scriptItem(fullType)
     if ok and s then return s, "FindItem" end
     return nil, nil
 end
--- get<X>() / is<X>() / the public field <x>: the script Item keeps calories, carbohydrates,
--- lipids and proteins as public fields with no getter at all (Item.InstanceItem reads them
--- directly), so the field route is not optional. `access` records which one answered.
+-- Tries get<X>(), then is<X>(), then the public field <x>; `access` records which answered.
+-- Measured on 42.20.4: for Calories/Carbohydrates/Lipids/Proteins NONE of the three routes
+-- answered -- all four keys came back absent from `item.script` -- even though the jar keeps
+-- them as public fields on the script Item (Item.InstanceItem reads them directly). Kahlua
+-- does not expose them, so those per-item numbers have to come from an instantiated item
+-- (`eat`'s itemBefore) or from parsing media/scripts.
 local function scriptValues(fullType)
     local s, via = scriptItem(fullType)
     if not s then return nil end
@@ -180,9 +183,16 @@ local function itemState(it)
     end
     return out
 end
+-- Returns (item, "found"|"client"). The AddItem fallback is EXPERIMENT-ONLY: a client-spawned
+-- item is invisible to the server (S6), so eating one makes the server log a SyncItemFields
+-- NPE (IsoGameCharacter.Eat -> syncItemFields on an item the server never heard of) and
+-- `pzt run` counts any server error line as FAIL. Spawn server-side --
+-- RCON `additem "user" "Type" 1` -- for anything that has to stay error-free.
 local function findOrSpawn(fullType)
     local inv = getPlayer():getInventory()
-    return inv:getFirstTypeRecurse(fullType) or inv:AddItem(fullType)
+    local it = inv:getFirstTypeRecurse(fullType)
+    if it then return it, "found" end
+    return inv:AddItem(fullType), "client"
 end
 TK.register("item.state", function(argv)
     local it = findOrSpawn(argv[1])
@@ -206,7 +216,7 @@ end)
 -- NOT the path a real eat takes (the server runs it) - see `eat.action` for that.
 TK.register("eat", function(argv)
     local p = getPlayer()
-    local it = findOrSpawn(argv[1])
+    local it, spawned = findOrSpawn(argv[1])   -- "client" = spawned here; see findOrSpawn
     if not it then return "no item " .. tostring(argv[1]) end
     local fraction = tonumber(argv[2]) or 1.0
     local before, script, stateBefore = nutritionSnapshot(p), scriptValues(argv[1]), itemState(it)
@@ -220,8 +230,8 @@ TK.register("eat", function(argv)
         if type(v) == "number" and type(before[k]) == "number" then delta[k] = v - before[k] end
     end
     local remaining = p:getInventory():getFirstTypeRecurse(argv[1])
-    return { fraction = fraction, signature = "Eat(item,fraction,useUtensil)", before = before,
-             after = after, delta = delta, script = script, itemBefore = stateBefore,
+    return { fraction = fraction, spawned = spawned, signature = "Eat(item,fraction,useUtensil)",
+             before = before, after = after, delta = delta, script = script, itemBefore = stateBefore,
              itemAfter = remaining and itemState(remaining) or "consumed" }
 end)
 
@@ -229,18 +239,27 @@ end)
 -- (NetTimedAction) and the SERVER completes. Result is asynchronous: poll nutrition.get.
 TK.register("eat.action", function(argv)
     local p = getPlayer()
-    local it = findOrSpawn(argv[1])
+    local it, spawned = findOrSpawn(argv[1])   -- "client" spawns trip the server NPE; see findOrSpawn
     if not it then return "no item " .. tostring(argv[1]) end
     local fraction = tonumber(argv[2]) or 1.0
     local before, stateBefore = nutritionSnapshot(p), itemState(it)
     if not ISEatFoodAction or not ISTimedActionQueue then return "no ISEatFoodAction/ISTimedActionQueue" end
     local act = ISEatFoodAction:new(p, it, fraction)
     local _, validStart = TK.call(act, "isValidStart")   -- false when FOOD_EATEN moodle >= 3
-    local _, moodles = TK.call(p, "getMoodles")
-    local _, level = TK.call(moodles, "getMoodleLevel", MoodleType and MoodleType.FOOD_EATEN)
+    -- TK.call only guards against a missing method; passing a nil enum INTO a present Java
+    -- method is an argument mismatch, and that is just as unrecoverable in Kahlua. So skip
+    -- the read entirely rather than call getMoodleLevel(nil) when MoodleType is not exposed.
+    local level
+    local eatenType = MoodleType and MoodleType.FOOD_EATEN
+    if eatenType then
+        local _, moodles = TK.call(p, "getMoodles")
+        local _, lvl = TK.call(moodles, "getMoodleLevel", eatenType)
+        level = lvl
+    end
     ISTimedActionQueue.add(act)
-    return { queued = true, fraction = fraction, itemId = stateBefore.id, itemBefore = stateBefore,
-             validStart = validStart, maxTime = act.maxTime, moodleFoodEaten = level, before = before }
+    return { queued = true, fraction = fraction, spawned = spawned, itemId = stateBefore.id,
+             itemBefore = stateBefore, validStart = validStart, maxTime = act.maxTime,
+             moodleFoodEaten = level, before = before }
 end)
 
 -- Server's authoritative view arrives here; compare with ours and record.
