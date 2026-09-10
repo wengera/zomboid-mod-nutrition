@@ -1,0 +1,30 @@
+# testing/profiles/teardown-longtermpreservation4220.toml — slice 09-11 pass 1:
+# SKITTLE_LongTermPreservation4220 under test on the golden fixture. No [sandbox] block:
+# DayLength stays the fixture's 4 (90 game-min/day), which is what keeps
+# 24 x speed / day_minutes <= 8 if the session accelerates time.
+fixture = "default"
+description = "PZTestKit + SKITTLE_LongTermPreservation4220 (workshop 3774789651) — teardown 1."
+run = { hold = 20 }
+verify = [                    # inline tables: the same array-of-tables as [[verify]] would be
+  # Reads the mod's OWN effect, not a clean boot (spike S3-A). `expect` is a substring of
+  # json.dumps(parsed ack), so each one quotes a stable key/value fragment, never a float.
+  # `items.count` buckets ScriptManager.getAllItems() by module, so `foodByModule.Skittles`
+  # exists at join (script definitions, not spawned instances) and should read 14 — the 15
+  # live item blocks minus SaltRock, which is base:normal. A missing or short bucket is an
+  # engine-side parse abort on the unbalanced items_dried.txt (notes Q7 defect 6).
+  { side = "server", cmd = "items.count", expect = '"Skittles"' },
+  # MakeCuredMeat's only output is `item 1 mapper:meatType`, so this also proves
+  # getPossibleResultItems() resolved the mapper; if it answers empty, weaken to "MakeCuredMeat".
+  { side = "server", cmd = "recipes.craft", args = "MakeCuredMeat", expect = '"Skittles.CuredPork"' },
+  # `item.script` is registered on the CLIENT only — scripts load per-side, so this is the
+  # side that proves the definition reached the client. Match on fullType: Calories/Carbohydrates
+  # /Lipids/Proteins come back absent on 42.20.4 (Kahlua does not expose those script fields).
+  { side = "client", cmd = "item.script", args = "Skittles.CuredPork", expect = '"Skittles.CuredPork"' },
+]                             # bare keys must precede the first table header (TOML)
+
+[[mods]]
+id = "PZTestKit"              # harness, copied from the repo (paths.HARNESS_MODS)
+
+[[mods]]
+id = "SKITTLE_LongTermPreservation4220"   # the id mod.info DECLARES — the folder is
+workshop_id = "3774789651"                # LongTermPreservation4220 and must not appear here
