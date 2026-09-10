@@ -96,9 +96,14 @@ GLOBAL_TABLE = "pzt_probe_table"
 ABSENT_GETTERS = "getCalories,getNoSuchThing"
 BAD_USER = "nosuchuser"          # deliberately not logged in
 
-# `TK.WITNESS_MAX` in PZTestKit_Core.lua. Both getter lists are under it; the assertion that
-# `truncatedAt` is absent is what says the cap did not silently shorten a reading.
+# `TK.WITNESS_MAX` in PZTestKit_Core.lua. Both getter lists must be under it -- checked here
+# rather than claimed in prose, because a list that grew past the cap would be silently
+# shortened server-side. `truncatedAt` being absent in each reply is the live half of the same
+# claim (the cap did not bite on THIS run); this is the static half.
 WITNESS_MAX = 32
+assert len(PLAYER_GETTERS.split(",")) <= WITNESS_MAX, PLAYER_GETTERS
+assert len(ITEM_GETTERS.split(",")) <= WITNESS_MAX, ITEM_GETTERS
+assert len(ABSENT_GETTERS.split(",")) <= WITNESS_MAX, ABSENT_GETTERS
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 DATASET = os.path.join(REPO, "data", "food-items.json")
@@ -112,9 +117,9 @@ ITEM_EXPECT = (("getCalories", "calories", 1.0, "identity"),
                ("getLipids", "lipids", 1.0, "identity"),
                ("getProteins", "proteins", 1.0, "identity"),
                ("getHungChange", "hunger_change", 0.01, "x0.01 (Item.InstanceItem)"))
-# The same five, spelled as `TK.ITEM_STATE` spells them, for the independent `item.get` reading.
-ITEM_GET_KEYS = {"getCalories": "calories", "getCarbohydrates": "carbs", "getLipids": "lipids",
-                 "getProteins": "proteins", "getHungChange": "hungChange"}
+# `item_get_server` (slice 01's `item.get`) is recorded raw and its agreement with the witness
+# is read by hand off the artifact -- `TK.ITEM_STATE` spells the same five differently
+# (`carbs`, `hungChange`), and a name map that nothing consumes is worse than no map at all.
 
 # Nutrition is float32 on the Java side, so an exact compare is wrong even when the arithmetic
 # is: 25.13 reads back 25.129999. Absolute floor plus a relative term against the larger of the
@@ -207,7 +212,6 @@ out = {
     },
     "session": {}, "probes": {}, "grading": [], "summary": {},
 }
-grades_by_name = {}
 print(f"dataset sha256 {str(data_sha)[:16]}; {ITEM_TYPE} in dataset: {apple is not None}; "
       f"doctor {'clean' if doctor_clean else 'DIRTY'}")
 for line in doctor_text.strip().splitlines():
@@ -271,7 +275,6 @@ def grade(name, verdict, expected, observed, ok, **extra):
     r = {"row": name, "verdict": verdict, "expected": expected, "observed": observed, "ok": ok}
     r.update(extra)
     out["grading"].append(r)
-    grades_by_name[name] = r
     return r
 
 
@@ -414,7 +417,11 @@ try:
         grade(f"witness.fields player, {side_name} side",
               "as expected" if (isinstance(fields, dict) and fields and untrunc)
               else ("miss" if not isinstance(fields, dict) else "finding"),
-              "a non-empty `fields` map for the 5 requested getters, `truncatedAt` absent",
+              # What `ok` below actually checks -- NOT "all five answered". A getter this build
+              # does not have lands in `missing` and the row still passes; the three-way sort is
+              # graded on its own row. Keep this text and that condition in step.
+              "a non-empty `fields` map (some of the 5 requested getters may land in `missing` "
+              "instead) and `truncatedAt` absent, i.e. the cap did not shorten the reading",
               {"resolved": (r or {}).get("resolved") if isinstance(r, dict) else None,
                "count": cnt, "truncatedAt": trunc, "fields": got,
                "missing": listy((r or {}).get("missing")) if isinstance(r, dict) else None,
@@ -548,37 +555,51 @@ try:
                                            else "finding"),
           f"client `{MOD_KEY}` = {MOD_VALUE!r}; server absent BEFORE transmitModData, present "
           f"AFTER (slice 06's S6 shape, through the generic command)",
-          {"client": {"resolved": (mc or {}).get("resolved"), "value": mod_value(mc),
-                      "keyCount": (mc or {}).get("keyCount"), "count": (mc or {}).get("count")},
-           "server_before": {"resolved": (mb or {}).get("resolved"), "value": mod_value(mb),
+          # `(x or {}).get(...)` would raise on a reply that survived the bus guard as a STRING
+          # -- inside grade()'s argument list, where the outer `except` would swallow it and
+          # truncate the graded table while still writing a plausible artifact. Same
+          # `if isinstance(x, dict) else None` idiom as the rows above; `shape` records the
+          # survivor instead of turning it into a row of Nones.
+          {"client": {"shape": shape_of(mc), "value": mod_value(mc),
+                      "resolved": mc.get("resolved") if isinstance(mc, dict) else None,
+                      "keyCount": mc.get("keyCount") if isinstance(mc, dict) else None,
+                      "count": mc.get("count") if isinstance(mc, dict) else None},
+           "server_before": {"shape": shape_of(mb), "value": mod_value(mb),
+                             "resolved": mb.get("resolved") if isinstance(mb, dict) else None,
                              "key_in_missing": mod_absent(mb),
-                             "keyCount": (mb or {}).get("keyCount")},
-           "server_after": {"resolved": (ma or {}).get("resolved"), "value": mod_value(ma),
+                             "keyCount": mb.get("keyCount") if isinstance(mb, dict) else None},
+           "server_after": {"shape": shape_of(ma), "value": mod_value(ma),
+                            "resolved": ma.get("resolved") if isinstance(ma, dict) else None,
                             "key_in_missing": mod_absent(ma),
-                            "keyCount": (ma or {}).get("keyCount")}},
+                            "keyCount": ma.get("keyCount") if isinstance(ma, dict) else None}},
           bool(triple_ok))
     # (h) the player census
     cs = out.get("moddata_census_server")
     cs_keys = listy(cs.get("keys")) if isinstance(cs, dict) else None
+    cs_ok = bool(isinstance(cs, dict) and cs.get("resolved") and not cs.get("error"))
     grade("witness.moddata census of a player's modData",
-          "as expected" if isinstance(cs, dict) and cs.get("resolved") and not cs.get("error")
-          else ("miss" if not isinstance(cs, dict) else "finding"),
+          "as expected" if cs_ok else ("miss" if not isinstance(cs, dict) else "finding"),
           "`keys` is every top-level key as sorted `<name>:<type>`, `keyCount` its size, and "
           "`count` is 0 because `*` reads no named key",
-          {"resolved": (cs or {}).get("resolved"), "keys": cs_keys,
-           "keyCount": (cs or {}).get("keyCount"), "count": (cs or {}).get("count"),
-           "error": (cs or {}).get("error")},
-          bool(isinstance(cs, dict) and cs.get("resolved") and not cs.get("error")))
+          {"shape": shape_of(cs), "keys": cs_keys,
+           "resolved": cs.get("resolved") if isinstance(cs, dict) else None,
+           "keyCount": cs.get("keyCount") if isinstance(cs, dict) else None,
+           "count": cs.get("count") if isinstance(cs, dict) else None,
+           "error": cs.get("error") if isinstance(cs, dict) else cs},
+          cs_ok)
     # (i) global: -- the getOrCreate disclosure (amendment 3)
     g = out.get("moddata_global")
     g_keys = listy(g.get("keys")) if isinstance(g, dict) else None
     g_err = g.get("error") if isinstance(g, dict) else None
+    # Amendment 3's documented finding can arrive either way round: as `error` in a table, or
+    # -- if the Lua refuses before it builds one -- as a bare string. Both are the finding.
+    g_text = g if isinstance(g, str) else str(g_err or "")
     if isinstance(g, dict) and not g_err:
         g_verdict, g_ok = "as expected", True
         g_note = ("global ModData is reachable through ModData.getOrCreate; an EMPTY census is "
                   "the expected result and it is evidence of the binding, not of any mod -- "
                   "getOrCreate CREATED this table, the probe did")
-    elif isinstance(g, dict) and "getOrCreate" in str(g_err):
+    elif "getOrCreate" in g_text:
         g_verdict, g_ok = "finding", False
         g_note = ("no ModData.getOrCreate on this build: keep the route, and teardowns must "
                   "read global modData through a mod-specific command instead")
@@ -588,20 +609,25 @@ try:
     grade("witness.moddata global:<name> (ModData.getOrCreate)", g_verdict,
           "either an empty census (the binding exists AND the probe created the table) or the "
           "documented 'no ModData.getOrCreate on this build' finding",
-          {"scope": (g or {}).get("scope"), "arg": (g or {}).get("arg"),
+          {"shape": shape_of(g), "keys": g_keys, "error": g_err if isinstance(g, dict) else g,
+           "scope": g.get("scope") if isinstance(g, dict) else None,
+           "arg": g.get("arg") if isinstance(g, dict) else None,
            "resolved_present": isinstance(g, dict) and "resolved" in g,
-           "keys": g_keys, "keyCount": (g or {}).get("keyCount"), "error": g_err,
+           "keyCount": g.get("keyCount") if isinstance(g, dict) else None,
            "note": g_note}, g_ok)
     # (j) item: scope
     mi = out.get("moddata_item")
     mi_keys = listy(mi.get("keys")) if isinstance(mi, dict) else None
+    mi_ok = bool(isinstance(mi, dict) and mi.get("resolved") and not mi.get("error"))
     grade("witness.moddata item:<user>/<fullType> census",
-          "as expected" if isinstance(mi, dict) and mi.get("resolved") and not mi.get("error")
-          else ("miss" if not isinstance(mi, dict) else "finding"),
-          "the item resolves with the owner-prefixed label and its modData is censused",
-          {"resolved": (mi or {}).get("resolved"), "keys": mi_keys,
-           "keyCount": (mi or {}).get("keyCount"), "error": (mi or {}).get("error")},
-          bool(isinstance(mi, dict) and mi.get("resolved") and not mi.get("error")))
+          "as expected" if mi_ok else ("miss" if not isinstance(mi, dict) else "finding"),
+          "the item resolves with the owner-prefixed label and its modData is censused -- on "
+          "the SERVER only: this row is one side's reading, not a cross-side comparison",
+          {"shape": shape_of(mi), "keys": mi_keys, "side": "server",
+           "resolved": mi.get("resolved") if isinstance(mi, dict) else None,
+           "keyCount": mi.get("keyCount") if isinstance(mi, dict) else None,
+           "error": mi.get("error") if isinstance(mi, dict) else mi},
+          mi_ok)
     # (k) the three shape gates
     g1, g2, g3 = (out.get("gate_bad_subject_word"), out.get("gate_bare_scope_word"),
                   out.get("gate_item_no_id"))
