@@ -64,7 +64,7 @@ Rules (L0), with the corpus result each was verified against **now** (230 folder
 | `loadstring` | ERROR | no `loadstring(` in any `.lua` under the folder (removed in 42.20.x — `docs/modding/patterns.md:69`) | **0 users** across the corpus (matches `docs/mods-survey/approved-modlist.md:13`) |
 | `folder-id` | INFO | folder name == `id` | 51 differ — informational only: `mods.install` keeps the folder name because "the game keys on mod.info, not the folder" |
 
-- [ ] **Step 1: Write `tools/mod_lint.py`.** Version dirs sort by parsed tuple, not by string:
+- [x] **Step 1: Write `tools/mod_lint.py`.** Version dirs sort by parsed tuple, not by string:
 
 ```python
 VERSION_RX = re.compile(r"^42(\.\d+){0,2}$")
@@ -78,9 +78,9 @@ def version_dirs(mod_dir):
 ```
 
   `read_info(path)` parses `key=value` lines (shape of `mod_inventory.parse_modinfo`, keys lowercased, last wins); `lint_mod` walks `*.lua` once for `loadstring`; an all-digits target is a workshop item id and expands to `WORKSHOP_DIR/<id>/mods/*`.
-- [ ] **Step 2: Tests** (`tools/tests/test_mod_lint.py`, style of `test_doc_lint.py`: `sys.path.insert` + `tempfile.TemporaryDirectory`) — a good synthetic mod (`42/mod.info` with `id=Good`, `42/media/lua/shared/x.lua`) lints clean; the **synthetic bad layout** (`bad/media/lua/shared/x.lua` containing `loadstring("return 1")`, `mod.info` only at the root, no version dir) raises exactly `{version-dir, loadstring}` and exits 1; `mod.info` in `common/` only → `mod-info-place` WARN and exit 0; disagreeing ids in `42/` and `42.20/` → `id-agree`; `version_dirs` orders `["42", "42.9", "42.20", "42.20.1"]` as `["42.20.1", "42.20", "42.9", "42"]`.
-- [ ] **Step 3: Corpus sweep** — `cd /c/Users/Angus/repos/project_zomboid && python tools/mod_lint.py > /tmp/modlint.txt; python tools/mod_lint.py 3685392864` → Expected: the whole-corpus run reports the 1 ERROR and 6 WARN rows above (exit 1); the KeenPerception run reports **0 findings, exit 0**. Paste both counts into the Task-5 doc.
-- [ ] **Step 4: Commit** — `git commit -m "Slice 07: mod layout lint (L0)"`
+- [x] **Step 2: Tests** (`tools/tests/test_mod_lint.py`, style of `test_doc_lint.py`: `sys.path.insert` + `tempfile.TemporaryDirectory`) — a good synthetic mod (`42/mod.info` with `id=Good`, `42/media/lua/shared/x.lua`) lints clean; the **synthetic bad layout** (`bad/media/lua/shared/x.lua` containing `loadstring("return 1")`, `mod.info` only at the root, no version dir) raises exactly `{version-dir, loadstring}` and exits 1; `mod.info` in `common/` only → `mod-info-place` WARN and exit 0; disagreeing ids in `42/` and `42.20/` → `id-agree`; `version_dirs` orders `["42", "42.9", "42.20", "42.20.1"]` as `["42.20.1", "42.20", "42.9", "42"]`.
+- [x] **Step 3: Corpus sweep** — `cd /c/Users/Angus/repos/project_zomboid && python tools/mod_lint.py > /tmp/modlint.txt; python tools/mod_lint.py 3685392864` → Expected: the whole-corpus run reports the 1 ERROR and 6 WARN rows above (exit 1); the KeenPerception run reports **0 findings, exit 0**. Paste both counts into the Task-5 doc.
+- [x] **Step 4: Commit** — `git commit -m "Slice 07: mod layout lint (L0)"`
 
 ### Task 2: `testing/pzt/profile.py` + the placement plumbing (no live server)
 
@@ -88,7 +88,7 @@ def version_dirs(mod_dir):
 
 **Interfaces (produces):** `profile.load(name) -> Profile` with `.name .path .fixture .mods .sources .skip .sandbox .users .verify .hold .safemode .launcher .server_timeout .client_timeout`; `profile.ProfileError` (a `SystemExit` subclass, like `fx.load`'s, so the CLI prints and exits without a traceback).
 
-- [ ] **Step 1: Placement plumbing.** `harness.install` gains two keyword-only-in-spirit params (default behaviour byte-identical for every existing caller):
+- [x] **Step 1: Placement plumbing.** `harness.install` gains two keyword-only-in-spirit params (default behaviour byte-identical for every existing caller):
 
 ```python
 def install(mods_dir, mod_ids, workshop=True, sources=None, skip=()):
@@ -103,7 +103,7 @@ def install(mods_dir, mod_ids, workshop=True, sources=None, skip=()):
 ```
 
   `Server.__init__` and `Client.__init__` take `mod_sources=None, mod_skip=()`, store `self.mod_sources = dict(mod_sources or {})` / `self.mod_skip = tuple(mod_skip)` and pass them through their `harness.install(...)` call in `seed()` / `prepare()`. `make_server` gains `mod_sources=None, mod_skip=()` and forwards them; `make_client` gains the same two defaulting to the server's (`server.mod_sources if mod_sources is None else mod_sources`) — the client's `Mods=` already comes from `server.mods`, so no other call site changes. `cmd_attach`'s bare `Server(...)` stub keeps the defaults.
-- [ ] **Step 2: Sandbox merge** (`server.py`). `write_sandbox_vars` writes a *partial* table — applied to a restored fixture it would replace the server's 1020-line file (verified: `testing/fixtures/default/cache/server/Server/pzt_SandboxVars.lua`, 189 top-level keys, 86 nested, 5 nested tables, CRLF) and silently reset the fixture's own `Zombies = 6` to the default. Add beside it:
+- [x] **Step 2: Sandbox merge** (`server.py`). `write_sandbox_vars` writes a *partial* table — applied to a restored fixture it would replace the server's 1020-line file (verified: `testing/fixtures/default/cache/server/Server/pzt_SandboxVars.lua`, 189 top-level keys, 86 nested, 5 nested tables, CRLF) and silently reset the fixture's own `Zombies = 6` to the default. Add beside it:
 
 ```python
 # Top-level options sit at exactly four spaces; the five nested tables (Basement, Map,
@@ -139,7 +139,7 @@ def merge_sandbox_vars(path, overrides):
 ```
 
   `Server.seed` chooses: `merge_sandbox_vars` when `os.path.exists(self.sandbox_path)` (restored fixture), `write_sandbox_vars` when not (fresh `provision` cache — unchanged). Echo the applied/appended lists.
-- [ ] **Step 3: Write `profile.py`.** Resolution and validation happen entirely before any process starts:
+- [x] **Step 3: Write `profile.py`.** Resolution and validation happen entirely before any process starts:
 
 ```python
 """Test profiles (testing/profiles/<name>.toml): fixture + mods under test + sandbox
@@ -174,15 +174,15 @@ def resolve_mod(entry, index):   # index = modindex.workshop_index()
   For the `path`/`workshop_id` branches the id comes from `modindex.mod_id_of(src)`: `None` → error pointing at `python tools/mod_lint.py <src>`; a declared `id` that disagrees with it → error quoting both.
 
   `load(name)` then: resolve the path (`<PROFILES>/<name>.toml`, or the name as given if it ends in `.toml`; a miss lists the profiles that do exist); `tomllib.load` in **binary** mode; `fixture = doc.get("fixture", "default")`; `rec = fx.load(fixture)` (its own `SystemExit` covers a missing fixture); resolve every `[[mods]]` in order, dropping duplicate ids; **prepend `PZTestKit`** if absent (no harness = no bus = no ready marker); validate `[sandbox]` keys against `sandbox_keys(<fixture>/cache/server/Server/<rec["server"]["name"]>_SandboxVars.lua)` and raise `ProfileError` naming the unknown key plus the three closest known keys (`difflib.get_close_matches`); read `[server]`/`[client]`/`[run]`/`[[verify]]` with the CLI's own defaults (`server_timeout=420`, `client_timeout=300`, `users=[ADMIN_USER]`, `hold=5`, `launcher="java"`, `safemode=False`); reject unknown top-level tables.
-- [ ] **Step 4: Tests** (`testing/tests/test_profile.py`; `sys.path.insert(0, <repo>/testing)` then `from pzt import profile, server`) — all pure-Python, no game: resolution by `workshop_id` **3685392864** → `("KeenPerception", <…/3685392864/mods/KeenPerception>, "3685392864")`; by `id = "PZTestKit"` → the repo path from `HARNESS_MODS`; by `path` pointing at `testing/PZTestKit/PZTestKit`; `copy = false` without `id` → `ProfileError`; a bogus `workshop_id = "1"` → `ProfileError` mentioning the workshop dir; an unknown sandbox key (`Zombiess = 6`) → `ProfileError` suggesting `Zombies`; a profile without `PZTestKit` gets it prepended at index 0; `merge_sandbox_vars` on a 4-line fixture copy rewrites `Zombies = 6` → `4`, appends an unlisted key before the final `}`, leaves a nested `        ZombiesDragDown = true,` and the `    Map = {` opener untouched, and keeps CRLF.
-- [ ] **Step 5: Run** — `cd /c/Users/Angus/repos/project_zomboid && python -m pytest tools/tests testing/tests -q` → Expected: all green (14 pre-existing + the new ones).
-- [ ] **Step 6: Commit** — `git commit -m "Slice 07: profile loader and mod placement sources"`
+- [x] **Step 4: Tests** (`testing/tests/test_profile.py`; `sys.path.insert(0, <repo>/testing)` then `from pzt import profile, server`) — all pure-Python, no game: resolution by `workshop_id` **3685392864** → `("KeenPerception", <…/3685392864/mods/KeenPerception>, "3685392864")`; by `id = "PZTestKit"` → the repo path from `HARNESS_MODS`; by `path` pointing at `testing/PZTestKit/PZTestKit`; `copy = false` without `id` → `ProfileError`; a bogus `workshop_id = "1"` → `ProfileError` mentioning the workshop dir; an unknown sandbox key (`Zombiess = 6`) → `ProfileError` suggesting `Zombies`; a profile without `PZTestKit` gets it prepended at index 0; `merge_sandbox_vars` on a 4-line fixture copy rewrites `Zombies = 6` → `4`, appends an unlisted key before the final `}`, leaves a nested `        ZombiesDragDown = true,` and the `    Map = {` opener untouched, and keeps CRLF.
+- [x] **Step 5: Run** — `cd /c/Users/Angus/repos/project_zomboid && python -m pytest tools/tests testing/tests -q` → Expected: all green (14 pre-existing + the new ones).
+- [x] **Step 6: Commit** — `git commit -m "Slice 07: profile loader and mod placement sources"`
 
 ### Task 3: `pzt run --profile` / `pzt scenario --profile` (no live server)
 
 **Files:** Modify `testing/pzt/cli.py`, `testing/pzt/scenario.py`; Create nothing.
 
-- [ ] **Step 1: CLI wiring.** Add `p.add_argument("--profile", default=None, help="testing/profiles/<name>.toml: mods under test + sandbox overrides")` to the `run` and `scenario` subparsers (both keep `--fixture`; the profile's `fixture` wins and the run prints which). In `cmd_run`, before `fx.load`:
+- [x] **Step 1: CLI wiring.** Add `p.add_argument("--profile", default=None, help="testing/profiles/<name>.toml: mods under test + sandbox overrides")` to the `run` and `scenario` subparsers (both keep `--fixture`; the profile's `fixture` wins and the run prints which). In `cmd_run`, before `fx.load`:
 
 ```python
 prof = profile.load(a.profile) if a.profile else None
@@ -197,7 +197,7 @@ server = make_server(run_dir, rec, port=a.port, rcon_port=a.rcon_port,
 
   then, when `prof`, a `tl.mark("profile", name=…, fixture=…, mods=";".join(prof.mods), sandbox=…)` so the first printed line of the run says exactly which combination is under test, and `report.json` gains a `"profile"` block (name, path, resolved sources, sandbox).
 
-- [ ] **Step 2: Fail fast.** Immediately after `tl.mark("server_started", …)`, before any client is launched:
+- [x] **Step 2: Fail fast.** Immediately after `tl.mark("server_started", …)`, before any client is launched:
 
 ```python
 if server.mods_not_found:
@@ -208,7 +208,7 @@ if server.mods_not_found:
 ```
 
   (`grep_file` moves from `spikes.py` to `session.py` and `spikes.py` imports it from there — one definition, two callers.) The existing end-of-run `mods_not_found` check stays as the client-side net. The raise lands in `cmd_run`'s existing `except (RuntimeError, TimeoutError)` → `error` mark → teardown → `RESULT: FAIL`, and the report carries the server's own line verbatim. Cost of a broken profile drops from ~1 min + hold to ~20 s.
-- [ ] **Step 3: Verify probes.** Between `session_ready` and `hold`, run the profile's `[[verify]]` list:
+- [x] **Step 3: Verify probes.** Between `session_ready` and `hold`, run the profile's `[[verify]]` list:
 
 ```python
 def verify(prof, server, clients, tl):
@@ -226,9 +226,9 @@ def verify(prof, server, clients, tl):
 ```
 
   A failed probe sets `result = f"FAIL: verify {cmd}"`; the list goes into `report.json` under `"verify"`.
-- [ ] **Step 4: `scenario.run`** — same three lines for `prof`/`rec`/`make_server` (plus `mod_sources`/`mod_skip`/`sandbox`), the same post-`server_started` fail-fast, and `a.user` defaults to `prof.users[0]` when a profile is given. The scenario artifact gains `"profile": a.profile`.
-- [ ] **Step 5: Smoke without the game** — `python testing/pzt run --profile nope` → Expected: `profile 'nope' not found (…\testing\profiles\nope.toml); have: missing-mod, mod-under-test`, exit 1, **no java process started** (`python testing/pzt doctor` still reports `PZ java processes: none`).
-- [ ] **Step 6: Commit** — `git commit -m "Slice 07: pzt run/scenario --profile"`
+- [x] **Step 4: `scenario.run`** — same three lines for `prof`/`rec`/`make_server` (plus `mod_sources`/`mod_skip`/`sandbox`), the same post-`server_started` fail-fast, and `a.user` defaults to `prof.users[0]` when a profile is given. The scenario artifact gains `"profile": a.profile`.
+- [x] **Step 5: Smoke without the game** — `python testing/pzt run --profile nope` → Expected: `profile 'nope' not found (…\testing\profiles\nope.toml); have: missing-mod, mod-under-test`, exit 1, **no java process started** (`python testing/pzt doctor` still reports `PZ java processes: none`).
+- [x] **Step 6: Commit** — `git commit -m "Slice 07: pzt run/scenario --profile"`
 
 ### Task 4: The two profiles and the live acceptance (LIVE — one session at a time)
 
@@ -236,7 +236,7 @@ def verify(prof, server, clients, tl):
 
 The mod under test is **KeenPerception, workshop item `3685392864`** — 15 KB total, `42/mod.info` (`id=KeenPerception`, no `require=`, no sandbox options), one shared Lua file that removes the Keen Hearing ↔ Deaf/Hard-of-Hearing trait exclusivity, already proven to load under `-nosteam` by spike S3, and readable back through the shipped `trait.check` command. `mod_lint` gives it 0 findings (Task 1 Step 3).
 
-- [ ] **Step 1: Write the profiles** (verbatim):
+- [x] **Step 1: Write the profiles** (verbatim):
 
 ```toml
 # testing/profiles/mod-under-test.toml — the T1 acceptance profile: harness + one real
@@ -274,22 +274,23 @@ id = "NoSuchModHere"
 copy = false
 ```
 
-- [ ] **Step 2: Pre-flight** — `python testing/pzt doctor` → Expected: ports free, no PZ java processes, fixture `default` present and build-matched (`42.20.4`), workshop index ~229 mods, pytest available; exit 0. Do not boot if it FAILs.
-- [ ] **Step 3: The two-mod run** — `python testing/pzt run --profile mod-under-test --hold 5` → Expected: `profile name=mod-under-test fixture=default mods=PZTestKit;KeenPerception sandbox=DayLength=1`, `[server] loading KeenPerception`, `server_started` in ~15 s, `client_ready` in ~35 s, two `verify … ok=True` marks, `RESULT: PASS`, exit 0, ~1 min 15 s total. Record the run id. If a probe returns `keenPerceptionLoaded: false` the mod did not take effect: check `<run>/server/mods/` for the copied folder and grep `server-stdout.log` for `KeenPerception` before changing anything.
-- [ ] **Step 4: Sandbox proof (M)** — after the run, read `testing/runs/<run-id>/server/Server/pzt_SandboxVars.lua`: `DayLength` must still be `1` and `Zombies` still `6` after the server's own boot-time rewrite (spike S1: the server rewrites the file with defaults and keeps seeded values). Also diff the top-level key count against the fixture's 189 — it must be unchanged. This is the measured evidence that the merge composes rather than replaces.
-- [ ] **Step 5: The missing-mod run** — `python testing/pzt run --profile missing-mod` → Expected: exit 1, `RESULT: FAIL`, a `mods_not_found mods=NoSuchModHere` mark and a `mod_missing_line` mark carrying `WARN … ZomboidFileSystem.loadModAndRequired> required mod "NoSuchModHere" not found`, **no client launched**, ≈20 s.
-- [ ] **Step 6: Scenario path** — `python testing/pzt scenario smoke_clock --profile mod-under-test --speed 30` → Expected: PASS, the artifact's `profile` field set. (`smoke_clock` exists — slice 04 shipped it in `server/scenarios/PZTestKit_Scenario_Smoke.lua`, commit 3b1ac80, and `pzt scenario` in `testing/pzt/scenario.py`; a PASS here also proves the profile path through `scenario.run`.)
-- [ ] **Step 7: Artifacts** — copy the two `report.json` files to `testing/artifacts/<run-id>/report.json` (tracked evidence for the doc's M rows) and add their rows to `testing/artifacts/README.md`; write `testing/profiles/README.md` (one paragraph: what lives here, that blobs never do, the two profiles).
-- [ ] **Step 8: Commit** — `git commit -m "Slice 07: acceptance profiles and live runs"`
+- [x] **Step 2: Pre-flight** — `python testing/pzt doctor` → Expected: ports free, no PZ java processes, fixture `default` present and build-matched (`42.20.4`), workshop index ~229 mods, pytest available; exit 0. Do not boot if it FAILs.
+- [x] **Step 3: The two-mod run** — `python testing/pzt run --profile mod-under-test --hold 5` → Expected: `profile name=mod-under-test fixture=default mods=PZTestKit;KeenPerception sandbox=DayLength=1`, `[server] loading KeenPerception`, `server_started` in ~15 s, `client_ready` in ~35 s, two `verify … ok=True` marks, `RESULT: PASS`, exit 0, ~1 min 15 s total. Record the run id. If a probe returns `keenPerceptionLoaded: false` the mod did not take effect: check `<run>/server/mods/` for the copied folder and grep `server-stdout.log` for `KeenPerception` before changing anything.
+- [x] **Step 4: Sandbox proof (M)** — after the run, read `testing/runs/<run-id>/server/Server/pzt_SandboxVars.lua`: `DayLength` must still be `1` and `Zombies` still `6` after the server's own boot-time rewrite (spike S1: the server rewrites the file with defaults and keeps seeded values). Also diff the top-level key count against the fixture's 189 — it must be unchanged. This is the measured evidence that the merge composes rather than replaces.
+- [x] **Step 5: The missing-mod run** — `python testing/pzt run --profile missing-mod` → Expected: exit 1, `RESULT: FAIL`, a `mods_not_found mods=NoSuchModHere` mark and a `mod_missing_line` mark carrying `WARN … ZomboidFileSystem.loadModAndRequired> required mod "NoSuchModHere" not found`, **no client launched**, ≈20 s.
+- [x] **Step 6: Scenario path** — `python testing/pzt scenario smoke_clock --profile mod-under-test --speed 30` → Expected: PASS, the artifact's `profile` field set. (`smoke_clock` exists — slice 04 shipped it in `server/scenarios/PZTestKit_Scenario_Smoke.lua`, commit 3b1ac80, and `pzt scenario` in `testing/pzt/scenario.py`; a PASS here also proves the profile path through `scenario.run`.)
+- [x] **Step 7: Artifacts** — copy the two `report.json` files to `testing/artifacts/<run-id>/report.json` (tracked evidence for the doc's M rows) and add their rows to `testing/artifacts/README.md`; write `testing/profiles/README.md` (one paragraph: what lives here, that blobs never do, the two profiles).
+- [x] **Step 8: Commit** — `git commit -m "Slice 07: acceptance profiles and live runs"`
 
 ### Task 5: Docs and ledgers
 
 **Files:** Create `docs/testing/profiles.md`; Modify `docs/testing/README.md`, `docs/testing/pipeline-design.md`, `tools/README.md`, `docs/progress.md`, `docs/decisions.md`.
 
-- [ ] **Step 1: `docs/testing/profiles.md`** — house skeleton, header `Verified against: 42.20.4 (b0bbce05d5)` + date. Sections: five-line summary; **the TOML schema** (one table: key, type, default, meaning — `fixture`, `[[mods]]` `id`/`workshop_id`/`path`/`copy`, `[sandbox]`, `[server]`, `[client]`, `[run]`, `[[verify]]`), each row graded; **how `-nosteam` mod loading works** (S3: only `<cachedir>/mods`; no `-modfolders`; `WorkshopItems=` needs Steam and stays empty — the numeric id is kept for provenance only); **what a profile changes and what it does not** (overlays `Mods=` and sandbox on a restored copy per run; the fixture record and its world are untouched; options read per boot take effect on a restored world, options baked at world gen do not — list which of the fixture's 189 keys the mod work actually cares about: `Nutrition`, `FoodRotSpeed`, `FridgeFactor`, `StatsDecrease`, `DayLength`); **the missing-mod failure mode** (WARN not error — S3; where it is caught now, what the report shows, and why a clean run is not evidence a mod loaded, hence `[[verify]]`); the L0 lint and its corpus results from Task 1 Step 3; **MP behaviour** (mods are placed on both sides from the same source map; the client reloads Lua with the server's `Mods=` on join, so the server's list is authoritative — `docs/testing/README.md` § How a driven client is controlled); open questions; Sources.
-- [ ] **Step 2: Inventory updates** — `docs/testing/README.md`: add `--profile <name>` to the `run` and `scenario` rows of the command table, a `testing/profiles/` line in the layout paragraph, and a pointer to `profiles.md`; `docs/testing/pipeline-design.md`: mark **T1 ✅** with the run ids and the measured wall times, and update the `-nosteam ignores the workshop folder` row of the fragility budget to name the profile builder (drop the `-modfolders` alternative — S3 proved it does not exist server-side); `tools/README.md`: add `mod_lint.py` beside `doc_lint.py` with its rules and exit code.
-- [ ] **Step 3: Lint + tests** — `python tools/doc_lint.py docs/testing tools` → Expected `0 finding(s)` (measured clean today; the 4 open findings live in `docs/mods-survey/teardowns/`, which slices 09–11 own — per the slice-01 decision a slice lints the dirs it touches); `python -m pytest tools/tests testing/tests -q` → green.
-- [ ] **Step 4: Commit + push** — `git commit -m "Slice 07: profiles doc and command inventory"` then `git push`.
+- [x] **Step 1: `docs/testing/profiles.md`** — house skeleton, header `Verified against: 42.20.4 (b0bbce05d5)` + date. Sections: five-line summary; **the TOML schema** (one table: key, type, default, meaning — `fixture`, `[[mods]]` `id`/`workshop_id`/`path`/`copy`, `[sandbox]`, `[server]`, `[client]`, `[run]`, `[[verify]]`), each row graded; **how `-nosteam` mod loading works** (S3: only `<cachedir>/mods`; no `-modfolders`; `WorkshopItems=` needs Steam and stays empty — the numeric id is kept for provenance only); **what a profile changes and what it does not** (overlays `Mods=` and sandbox on a restored copy per run; the fixture record and its world are untouched; options read per boot take effect on a restored world, options baked at world gen do not — list which of the fixture's 189 keys the mod work actually cares about: `Nutrition`, `FoodRotSpeed`, `FridgeFactor`, `StatsDecrease`, `DayLength`); **the missing-mod failure mode** (WARN not error — S3; where it is caught now, what the report shows, and why a clean run is not evidence a mod loaded, hence `[[verify]]`); the L0 lint and its corpus results from Task 1 Step 3; **MP behaviour** (mods are placed on both sides from the same source map; the client reloads Lua with the server's `Mods=` on join, so the server's list is authoritative — `docs/testing/README.md` § How a driven client is controlled); open questions; Sources.
+- [x] **Step 2: Inventory updates** — `docs/testing/README.md`: add `--profile <name>` to the `run` and `scenario` rows of the command table, a `testing/profiles/` line in the layout paragraph, and a pointer to `profiles.md`; `docs/testing/pipeline-design.md`: mark **T1 ✅** with the run ids and the measured wall times, and update the `-nosteam ignores the workshop folder` row of the fragility budget to name the profile builder (drop the `-modfolders` alternative — S3 proved it does not exist server-side); `tools/README.md`: add `mod_lint.py` beside `doc_lint.py` with its rules and exit code.
+- [x] **Step 3: Lint + tests** — `python tools/doc_lint.py docs/testing tools` → Expected `0 finding(s)` (measured clean today; the 4 open findings live in `docs/mods-survey/teardowns/`, which slices 09–11 own — per the slice-01 decision a slice lints the dirs it touches); `python -m pytest tools/tests testing/tests -q` → green.
+- [x] **Step 4a: Commit** — `git commit -m "Slice 07: profiles doc and command inventory"`.
+- [ ] **Step 4b: Push** — `git push`. The controller's, at slice close, together with `docs/progress.md`; see § Acceptance results.
 
 ## Deliverables
 
@@ -320,3 +321,96 @@ copy = false
 - `docs/progress.md`: 07 → `done` (date, commit range, one-line outcome); **ripples**: (a) profiles exist — slices 08–13 install mods through `testing/profiles/<name>.toml` and never edit the fixture; (b) `tools/mod_inventory.py`'s `pick_version_dir` regex `42(?:\.(\d+))?` misses three-part version folders (`42.20.1`) and sorts by string, so `data/mod-inventory.json` reports the wrong live folder for at least `Skill Recovery Journal` (2503622437) — slice 08 regenerates the inventory with `mod_lint.version_dirs` before picking teardown targets; (c) `pzt/mods.py:mod_id_of` has the same string-sort ordering on `42*/mod.info`; (d) one installed mod (`3782784855/Skill Recovery Journal`) has no `mod.info` at all and is therefore invisible to the workshop index — slice 08's catalog must count 229, not 230.
 - `docs/decisions.md` rows: the acceptance subject (KeenPerception `3685392864`, because S3 already proved it loads and `trait.check` reads its effect); `copy = false` as the one knob that reproduces the missing-mod path hermetically; sandbox overrides **merge** rather than replace; `PZTestKit` auto-prepended; `mod_lint` kept standalone (no `--profile` mode) so `tools/` never imports `testing/pzt`; `WorkshopItems=` left empty under `-nosteam`.
 - Push. Wave 2 is complete when 05, 06 and 07 are all `done`; the next session takes wave 3's plans (08–11) before continuing.
+
+## Acceptance results (2026-09-10)
+
+Every step above ran and is ticked, with one exception noted at the end. Five tasks, six
+commits: `aa61080` (`tools/mod_lint.py` + 19 tests), `da43d4f` (`testing/pzt/profile.py`, the
+`sources`/`skip` placement and `merge_sandbox_vars`, + 28 tests), `556e01e`
+(`pzt run/scenario --profile`, the fail-fast and `[[verify]]`, + 21 tests), `3cf885b` (the
+`profile` mark names the skipped mods), `10581d0` (the two profiles, the three live runs and
+their artifacts), plus this task's doc commit. Three live runs produced committed evidence:
+`run-20260910-133657`, `run-20260910-133916` and `scenario-20260910-134012`.
+
+1. `python testing/pzt run --profile mod-under-test --hold 5` → **`RESULT: PASS`, exit 0, 93 s**
+   (`run-20260910-133657`). Both `trait.check` probes `ok=true`, on the **server and the client**,
+   each returning `{"keenHearingExcludesDeaf": false, "keenHearingExcludesHardOfHearing": false,
+   "keenPerceptionLoaded": true}` — the mod's effect, not merely its presence. `faults: []`,
+   `server_errors: []`, `server_stopped rc=0`. The first console line is the `profile` mark
+   verbatim (`profile name=mod-under-test fixture=default mods=PZTestKit;KeenPerception
+   sandbox=DayLength=1 skip=none`), and `report.json["profile"]` records what it resolved to: the
+   repo kit plus `…\3685392864\mods\KeenPerception`. Artifact:
+   [`run-20260910-133657/report.json`](../../../testing/artifacts/run-20260910-133657/report.json).
+   Two expectations in the step text were met differently and neither is a failure: there is **no
+   `[server] loading KeenPerception` console line** (`Server` echoes only the sandbox merge,
+   missing-mod WARNs and error lines — the game's own line is `server-stdout.log:94`), and
+   `server_started` came at **36.6 s**, not ~15 s, because this was the session's first, cold boot
+   (the two later boots took 13.7 s and 14.0 s — S1's cold-start effect).
+2. `python testing/pzt run --profile missing-mod` → **exit 1, `RESULT: FAIL`, 23 s**
+   (`run-20260910-133916`), and it stopped **before any client**: the `timeline` phase list is
+   exactly `profile → server_launch → server_started → mods_not_found → mod_missing_line → error →
+   server_stopped → faults`, `report.json["clients"]` is `{}` and the run directory has no
+   `clients/` folder at all. `mod_missing_line` carries the server's own line verbatim —
+   `WARN : Mod  f:0 st:779,293,313 at ZomboidFileSystem.loadModAndRequired> required mod
+   "NoSuchModHere" not found` — and one reason is printed once (`faults`:
+   `mods not found at load: NoSuchModHere`, `result`: the bare `FAIL`). `server_errors: 0`, which
+   is the whole point: to this game a missing mod is a WARN and a clean boot. Artifact:
+   [`run-20260910-133916/report.json`](../../../testing/artifacts/run-20260910-133916/report.json).
+3. **The post-run `pzt_SandboxVars.lua` kept both values.** Read off
+   `testing/runs/run-20260910-133657/server/Server/pzt_SandboxVars.lua` *after* the server's own
+   boot-time rewrite (its mtime is 33 s into the boot, so the rewrite really happened):
+   `DayLength = 1` (the profile's) and `Zombies = 6` (the fixture's), **189** four-space
+   assignments, 45 533 bytes, 1 020 CRLF endings — the fixture's numbers exactly — and `diff`
+   against the fixture file is **one hunk, one line**, the seeded one. The scenario run's copy
+   reads the same. **Count correction:** 189 is the number of four-space `key = ` lines, five of
+   which are the nested-table openers; `server.sandbox_keys()` — the list a profile is validated
+   against — therefore returns **184** settable options (184 + 5 = 189, plus 86 nested at eight
+   spaces). Both counts are stable across the merge, and the step's "189 top-level keys" is the
+   first of them.
+4. **`mod_lint` on the corpus: the plan's figures were superseded by the sweep** (its own decision
+   point — a different number is a finding, not a failure). Measured `python tools/mod_lint.py`,
+   230 folders, ~13 s, **exit 1**: Task 1's sweep this morning reported **85 finding(s): 3 ERROR,
+   31 WARN, 51 INFO**, and this task's re-run reports **84: 3 ERROR, 30 WARN, 51 INFO**. Against
+   the plan's predicted "1 ERROR + 6 WARN": the ERRORs are `3782784855/Skill Recovery Journal`
+   (`mod-info` + `id`: no `mod.info` anywhere) **and** `3774052732/SD_CC_TEST` (`id-agree`:
+   `sd_cc_test` in `42/mod.info` and the root vs `SD_CC_TEST_42` in `common/mod.info`) — the plan
+   expected `id-agree` to be 0 because it compared only the *resolved* `mod.info` per folder; the
+   WARNs are 6 `mod-info-place` (a different 6: MoodleFramework `3396446795` in, Skill Recovery
+   Journal out, which the plan counted as passing because `mods.mod_id_of`'s glob accepts any
+   `42*` folder) plus 24–25 `media` (all shipping `common/media`, which the plan asked to "run and
+   record"). The one-WARN difference between the two sweeps is `3490370700/73fordFalconPS`, whose
+   `media/` moved from `common/` into its `42.0/` folder when Steam rewrote that item at 13:47
+   today — the corpus is a live tree, and both numbers are recorded with their dates in
+   [`docs/testing/profiles.md`](../../testing/profiles.md) § L0. The other two halves of the check
+   pass exactly as written: `python tools/mod_lint.py 3685392864` → **`0 finding(s): 0 ERROR,
+   0 WARN, 0 INFO across 1 mod(s)`, exit 0**, and the synthetic bad layout (root `mod.info`, no
+   version folder, a `loadstring(` in `media/lua/shared/x.lua`) → exactly **`version-dir` +
+   `loadstring`, 2 ERROR, exit 1** (re-run in this task, not only cited).
+5. `python -m pytest tools/tests testing/tests -q` → **`188 passed in 4.29s`** (119 pre-existing in
+   `tools/tests` + 19 `test_mod_lint.py` + 28 `test_profile.py` + 21 `test_cli_profile.py`, plus
+   the one slice 06 added after Task 3 measured 187). `python tools/doc_lint.py docs/vanilla
+   docs/modding docs/testing references` → **`0 finding(s)`** with `docs/testing/profiles.md` in
+   place; the 4 pre-existing findings under `docs/mods-survey/teardowns/` stay deferred by the
+   standing ruling in [`docs/decisions.md`](../../decisions.md). `docs/testing` is **not** in
+   `doc_lint.STAMPED_DIRS`, so the new doc's stamp and its C/M/W grades are written by hand and
+   are not machine-enforced — the plan's decision point, taken as defaulted; widening
+   `STAMPED_DIRS` would flag `README.md` / `pipeline-design.md` / `spikes.md` at once and is its
+   own cleanup.
+
+**Two plan expectations moved.** (a) The corpus figures above. (b) A finding that belongs to the
+*combination* rather than to the builder: `scenario-20260910-134012` (`smoke_clock --profile
+mod-under-test --speed 30`) **PASSed** with the artifact's `profile` field set, but was flagged
+`cadence_suspect: true` at `ticks_per_world_min: 0.22` — `DayLength = 1` is a 15-minute day, so
+`--speed 30` demands `24 × 30 / 15 = 48` game-minutes of world clock per wall second and the
+harness's `EveryOneMinute` ceiling is ~8–10 Hz. Keep `24 × speed / day_minutes ≲ 8`; on
+`DayLength = 1` that is `--speed 5`. `smoke_clock`'s own verdict is unaffected (every assertion it
+makes is counted in ticks), but nothing fitted against the game clock on that run may be cited,
+and slices 09–11 must not template a *timed* scenario off `mod-under-test.toml` without re-reading
+`cadence`. Two decision points did **not** fire: KeenPerception loaded and both probes passed on
+the first attempt (no swap to `FasterResting`), and the corpus has no duplicate mod ids (229
+distinct ids over 230 folders — the gap is Skill Recovery Journal's missing `mod.info`, not a
+collision).
+
+**What is not in this task's commit.** Step 4b's `git push` and the `docs/progress.md` half of the
+Done protocol — the board row, its commit range and the four ripples — are the controller's
+close-out. The `docs/decisions.md` half landed here: eleven slice-07 rows.

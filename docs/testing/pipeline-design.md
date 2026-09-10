@@ -114,7 +114,7 @@ one inventory item (condition, conditionMax, modData).
 | Timing/races (spawn not ready, chunk not loaded) | Every step is `eventually(pred, budget)`; no sleeps; world-ready barrier = harness handshake, not a timer |
 | Game/mod updates changing behavior | Run pins game build; harness self-reports versions; a `smoke` suite runs after every Steam update |
 | Port/cachedir collisions between runs | Unique run-id per run; distinct ports; teardown verifies process exit |
-| `-nosteam` ignores the workshop folder | Profile builder copies required workshop mods into `Zomboid/mods` (or uses `-modfolders`, spike S3) |
+| `-nosteam` ignores the workshop folder | The **profile builder** copies every mod a `testing/profiles/<name>.toml` names into the run cache's `mods/`, on both sides, from one source map ([profiles.md](profiles.md)). There is no alternative: S3 proved both workshop roots are gated on Steam mode, there is **no** server `-modfolders`, and `WorkshopItems=` needs Steam and is written empty |
 | Time acceleration side effects in MP | Only in L2/L3 with explicit multiplier; nutrition tests assert against game-seconds, not wall-clock |
 
 ## Spikes (each is a one-session verification, in order)
@@ -160,8 +160,29 @@ one inventory item (condition, conditionMax, modData).
   ready 34 s, no creation screens), `run` (boot + attach + hold + teardown +
   report); harness command bus (`ping`, `quit`). `testing/profiles/` comes
   with T1.
-- **T1** L0+L1: lint + boot validation against the *current* modlist subset
-  (proves the pipeline on other people's mods before ours exists).
+- **T1** ✅ 2026-09-10 — L0+L1: lint + boot validation against the *current*
+  modlist, on other people's mods before ours exists. Shipped: `tools/mod_lint.py`
+  (eight static layout rules; the 230-folder installed corpus scores **84
+  findings — 3 ERROR, 30 WARN, 51 INFO** in ~13 s, exit 1) and the **profile
+  builder** — `testing/profiles/<name>.toml` + `pzt run --profile` /
+  `pzt scenario --profile`, which overlay a named mod set and `[sandbox]`
+  overrides onto a restored fixture, fail fast when a mod did not load, and prove
+  the mod took *effect* with `[[verify]]` bus probes. Schema, the `-nosteam` copy
+  rule, the missing-mod path and the sweep: [profiles.md](profiles.md) — which
+  supersedes the `pzt.toml` / `WorkshopItems=` sketch under *Components* above
+  (the file is per-combination TOML under `testing/profiles/`, and
+  `WorkshopItems=` needs Steam, so it is written empty). **Three live runs**:
+  `run-20260910-133657` (`--profile mod-under-test --hold 5`) **PASS**, 93 s —
+  both `trait.check` probes `ok=true` on the server *and* the client, and
+  `[sandbox] DayLength = 1` survived the server's boot-time rewrite beside the
+  fixture's own `Zombies = 6` at 189/184 keys, one line of `diff`;
+  `run-20260910-133916` (`--profile missing-mod`) **FAIL**, 23 s, exit 1, **no
+  client ever launched**; `scenario-20260910-134012` (`smoke_clock --profile
+  mod-under-test --speed 30`) **PASS**, 63 s, artifact `profile` field set — and
+  `cadence_suspect` at 0.22 ticks per game-minute, the finding that
+  `DayLength = 1` × `--speed 30` overruns the game-minute scheduler (keep
+  `24 × speed / day_minutes ≲ 8`). Boot cost: 36.6 s on the session's first, cold
+  start; 13.7 s / 14.0 s warm — S1's cold-start effect, not a cost of the profile.
 - **T2** ✅ 2026-09-10 — L2: server scenarios + result channel + RCON. Shipped:
   the harness **test layer** (`shared/PZTestKit_Test.lua` — `TK.test`, a
   game-minute scheduler on `EveryOneMinute`, `test.list` / `test.run` /

@@ -33,6 +33,32 @@ import patterns from there.
   somewhere else (the tests lint a temp tree that way); module API:
   `lint(targets, repo_root=None) -> [Finding(path, line, rule, detail)]`.
 
+- `mod_lint.py` — `python tools/mod_lint.py [<mod folder>|<workshop id> ...] [--workshop-dir D]`
+  The **L0** layout check: is this folder even shaped like a B42 mod? An
+  all-digits target is a workshop item id and expands to
+  `<WORKSHOP_DIR>/<id>/mods/*`; no arguments at all sweeps every mod under the
+  workshop root (`D:\SteamLibrary\steamapps\workshop\content\108600`,
+  `--workshop-dir` to point elsewhere). Prints `mod: LEVEL: rule: detail`, then
+  `N finding(s): a ERROR, b WARN, c INFO across M mod(s)`; **exit 1 iff an ERROR
+  fired** (WARN and INFO exit 0). Rules: `version-dir` ERROR (a `42[.x[.y]]`
+  child folder exists — b41-flat and unversioned mods fail here), `mod-info`
+  ERROR (a `mod.info` in some version folder, `common/` or the root), `id` ERROR
+  (the resolved `mod.info` declares a non-empty `id=`), `id-agree` ERROR (every
+  `mod.info` in the tree declares the *same* id — otherwise whichever file a
+  reader opens first decides), `loadstring` ERROR (removed from the engine in
+  42.20.x), `mod-info-place` WARN (the `mod.info` is in the **newest** version
+  folder), `media` WARN (`media/` is inside that folder), `folder-id` INFO
+  (folder name == id). Version folders sort by parsed tuple, not by string, so
+  `42.20.1 > 42.20 > 42.9 > 42`. Module API mirrors `doc_lint.py`:
+  `Finding(path, level, rule, detail)`, `lint_mod(mod_dir, name=None)`,
+  `lint(targets, workshop_dir=None)`, plus `version_dirs` / `read_info` /
+  `info_chain` / `media_root` / `mod_dirs` / `display_name`. Deliberately
+  **standalone** — stdlib only, no import of `testing/pzt` — so `tools/` stays
+  runnable without the game. The installed 230-folder corpus scored 84 findings
+  (3 ERROR, 30 WARN, 51 INFO) on 2026-09-10, ~13 s; the rows and the drift since
+  the first sweep are in
+  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0.
+
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes
   `data/food-items.json` + `data/food-items.csv` (1005 items, 61 columns, 61

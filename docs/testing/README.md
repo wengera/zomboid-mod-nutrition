@@ -4,7 +4,9 @@ Automated integration testing of mods on a **real** dedicated server with
 **real** driven clients. Design: [pipeline-design.md](pipeline-design.md)
 (layers L0–L4, harness mod + python orchestrator, fragility budget, spikes
 S1–S7, roadmap T0–T4). Verified facts and measurements per spike:
-[spikes.md](spikes.md).
+[spikes.md](spikes.md). Putting a mod **under** test — the
+`testing/profiles/<name>.toml` schema, how `-nosteam` mod loading works, the
+missing-mod failure mode and the L0 layout lint: [profiles.md](profiles.md).
 
 ## `pzt` — the orchestrator (`testing/pzt/`)
 
@@ -16,8 +18,8 @@ from `testing/`). Requires the local game install (path in `pzt/paths.py`).
 | `provision --name default` | Fresh server (fixed sandbox: `Zombies=6` = none, override with `--sandbox K=V`), the `admin` client joins, creates the world and its character, quits cleanly; server stops; snapshot → `testing/fixtures/default/` | ~2.5 min, once per game/mod-set version |
 | `boot --fixture default [--hold N]` | Restore the fixture's server world into a fresh run dir and start it | ~14 s |
 | `attach --fixture default --server 127.0.0.1:27261 --user admin` | Restore that user's client cache, launch the client, wait until it is in-world (no creation screens), ping it | ~35 s |
-| `run --fixture default [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors | ~1 min + hold |
-| `scenario <name> [--side server\|client] [--speed N] [--timeout S] [--fixture F]` | run one registered harness test at accelerated time: boot + attach the subject client, `test.list` on the chosen side, RCON `settimespeed <N>`, `test.run <name> <user>`, wait for the result doc, **then the Python evaluator for that name, and only then** `settimespeed 1` + teardown from the `finally` — that order because the evaluator is scenario code that can raise, and a raise must not skip the speed restore (`scenario.py:148-194`); report and artifact are written last (details below) | ~1 min + the test (3 game-days at `--speed 30` ≈ 10 min) |
+| `run --fixture default [--profile <name>] [--hold N] [--clients a,b]` | boot + attach every fixture client + hold (the test slot) + graceful teardown + `report.json` (timeline, events, collected results); exit code 0 only with zero non-baseline server errors and no client lua errors. `--profile` puts a named mod set + sandbox overrides on the fixture, fails fast if a mod did not load, and runs the profile's `[[verify]]` probes ([profiles.md](profiles.md)) | ~1 min + hold |
+| `scenario <name> [--side server\|client] [--speed N] [--timeout S] [--fixture F] [--profile <name>]` | run one registered harness test at accelerated time: boot + attach the subject client, `test.list` on the chosen side, RCON `settimespeed <N>`, `test.run <name> <user>`, wait for the result doc, **then the Python evaluator for that name, and only then** `settimespeed 1` + teardown from the `finally` — that order because the evaluator is scenario code that can raise, and a raise must not skip the speed restore (`scenario.py:148-194`); report and artifact are written last (details below). `--profile` runs it on a named mod set (the profile's fixture wins over `--fixture` and its first client over `--user`; its `[[verify]]` probes are **not** run on this path, and `DayLength` × `--speed` has a cadence ceiling — [profiles.md](profiles.md)) | ~1 min + the test (3 game-days at `--speed 30` ≈ 10 min) |
 | `spike S3 S4 S5 S6 S7 [--reloadalllua]` | the design spikes as scripted experiments; S3 boots its own sessions, the rest share one; findings → `runs/spike-*/findings.json` | 2–5 min |
 | `doctor` | cold-start checks before booting anything: stray PZ `java.exe` (reported, never killed), ports 27261/27262/27015 free, fixture present and build-matched, workshop index reachable, pytest available; exit 1 on a FAIL | seconds |
 
@@ -32,6 +34,11 @@ Every invocation gets its own `testing/runs/<cmd>-<timestamp>/` with
 the game's `console.txt`) and `report.json` (timeline + events). Fixture
 blobs (`fixtures/*/cache/`) and runs are gitignored; `fixtures/*/fixture.json`
 records how a fixture was built (build, mods, sandbox, accounts, timings).
+`testing/profiles/<name>.toml` is one *named combination under test* — fixture +
+mods (workshop id, bare id or an explicit folder) + `[sandbox]` overrides +
+`[[verify]]` bus probes — text only, never a blob: a run overlays a restored
+per-run copy of the fixture and mutates neither it nor the workshop tree
+([profiles.md](profiles.md); two ship, `mod-under-test` and `missing-mod`).
 
 ### How a driven client is controlled
 
