@@ -30,6 +30,9 @@ correct it.
 | `exp01-20260910-003929` | `eat-matrix.json` | `testing/experiments/s01_eat_matrix.py` | same three docs |
 | `exp02-20260910-030433` | `lifecycle.json` | `testing/experiments/s02_lifecycle.py` | [`docs/vanilla/food-item-model.md`](../../docs/vanilla/food-item-model.md) |
 | `exp03-20260910-045523` | `body.json` | `testing/experiments/s03_body.py` | slice 03 (`.superpowers/sdd/03-body-side/task-3-report.md`; docs to follow) |
+| `scenario-20260910-052624` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` (unwatered first attempt: the subject dies of thirst at game-hour 35) | slice 04 (`.superpowers/sdd/04-nutrition-scenario/task-3-report.md`; docs to follow) |
+| `scenario-20260910-054012` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain` | same |
+| `scenario-20260910-055029` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast` | same |
 
 ## Script/artifact skew
 

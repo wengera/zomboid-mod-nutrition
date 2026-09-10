@@ -11,6 +11,7 @@ next PlayerStatsPacket overwrites. --side client is kept for the convergence rea
 the point IS the mirror. The client is attached either way -- the server resolves the test's
 subject by username out of getOnlinePlayers(), so it has to be online.
 """
+import json
 import os
 import time
 
@@ -55,6 +56,22 @@ def cadence(doc):
     if world_min > 0:
         out["ticks_per_world_min"] = round(ticks / world_min, 3)
     return out
+
+
+def write_artifact(run_dir, a, run_id, server, result, doc, ev, cad):
+    """The evidence file, written by the run itself: the result doc, the evaluation, and the
+    fixture/build that produced them, in one JSON. testing/artifacts/ takes byte-for-byte copies
+    of what a run wrote (its README), so composing this here rather than by hand afterwards is
+    what keeps the committed evidence machine-written -- and carrying `fixture`/`build` inside it
+    is what keeps it readable without the run report beside it (the gap flagged for the slice-02
+    artifact)."""
+    art = {"run_id": run_id, "scenario": a.name, "fixture": a.fixture, "build": server.build,
+           "side": a.side, "user": a.user, "speed": a.speed, "result": result,
+           "cadence": cad, "evaluation": ev, "server_errors": server.errors[:20], "test": doc}
+    path = os.path.join(run_dir, f"scenario-{a.name}.json")
+    with open(path, "w") as fh:
+        json.dump(art, fh, indent=1)
+    return path
 
 
 def run(a):
@@ -116,6 +133,7 @@ def run(a):
     cad = cadence(doc or {})
     if cad:
         tl.mark("cadence", **cad)
+    write_artifact(run_dir, a, run_id, server, result, doc, ev, cad)
     write_report(run_dir, {"run_id": run_id, "result": result, "side": a.side, "user": a.user,
                            "speed": a.speed, "timeline": tl.items, "cadence": cad, "test": doc,
                            "evaluation": ev, "server_errors": server.errors[:20],
@@ -124,5 +142,7 @@ def run(a):
     return 0 if result == "PASS" else 1
 
 
-# Evaluator modules register themselves in EVALUATORS on import; added by slice 04 T3:
-# from . import scenarios_nutrition  # noqa: F401
+# Evaluator modules register themselves in EVALUATORS on import. At the BOTTOM because
+# scenarios_nutrition imports EVALUATORS from here: at the top this would be a cycle, and the
+# name has to exist before the evaluator module is executed.
+from . import scenarios_nutrition  # noqa: E402,F401  (import for side effect: EVALUATORS)
