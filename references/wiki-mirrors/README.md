@@ -31,15 +31,23 @@ the page claims that our docs use or contradict, and what to verify in code firs
 | `appliances.md` | [Appliances](https://pzwiki.net/wiki/Appliances) | 42.8.0 | 2026-09-10 | B42 appliance tile catalogue; the Fridges table is the refrigeration roster (hardware only, no spoilage numbers) |
 | `evolved-recipes.md` | [Evolved recipes](https://pzwiki.net/wiki/Evolved_recipes) | 41.78.19 | 2026-09-10 | How ingredients combine into dishes: per-recipe hunger values, spices, stale/rotten rules, B41 recipe roster |
 | `fridge.md` | [Fridge](https://pzwiki.net/wiki/Fridge) | 41.78.19 | 2026-09-10 | The fridge/freezer spoil-rate multipliers and the B41 fridge variant list |
+| `hungry.md` | [Hungry](https://pzwiki.net/wiki/Hungry) | 42.12.3 | 2026-09-10 | The Hungry/FoodEaten moodle: level thresholds, per-level penalties, the base hunger rate and its traits |
+| `thirsty.md` | [Thirsty](https://pzwiki.net/wiki/Thirsty) | 42.12.3 | 2026-09-10 | The Thirst moodle: level thresholds, per-level penalties, the base thirst rate and its activity/trait modifiers |
+| `moodle.md` | [Moodle](https://pzwiki.net/wiki/Moodle) | 42.13.2 | 2026-09-10 | Index of every moodle with a one-paragraph cause/effect summary; no thresholds or rates |
+| `trait.md` | [Trait](https://pzwiki.net/wiki/Trait) | 42.20.4 | 2026-09-10 | Full trait roster with point costs and effects, plus the adaptive strength/fitness/weight band tables |
+| `fitness.md` | [Fitness](https://pzwiki.net/wiki/Fitness) | 42.18.0 | 2026-09-10 | The Fitness skill: per-level endurance loss/recovery and combat multipliers, and the trait/occupation offsets |
 
-**Absent pages:** "Food spoilage" and "Canned food" (both 404, 2026-09-10). Every other
-page requested up to 2026-09-10 fetched successfully; add a row here (page name + date)
-when one 404s, so nobody re-tries blindly.
+**Absent pages:** "Food spoilage", "Canned food" and "Character stats" (all 404,
+2026-09-10). Every other page requested up to 2026-09-10 fetched successfully; add a row
+here (page name + date) when one 404s, so nobody re-tries blindly.
 
 **Redirects, not mirrored:** "Refrigerator" and "Freezer" both redirect to
 `Appliances#Refrigerators` and "Rotten" redirects to `Food`, so all three resolve to pages
 already mirrored here — fetch `appliances.md` / `food.md` instead. Note the redirect anchor
 is stale: the Appliances page's refrigeration section is headed `== Fridges ==` as of 42.8.0.
+Likewise "Hunger" -> `Hungry`, "Thirst" -> `Thirsty`, "Moodles" -> `Moodle`,
+"Weight" -> `Nutrition#Weight` and "Traits" -> `Trait` are redirects whose targets are all
+mirrored here — fetch `hungry.md` / `thirsty.md` / `moodle.md` / `nutrition.md` / `trait.md`.
 
 **Renames:** `modding-hub.md` became `modding.md` on 2026-09-09 when the hand
 excerpt was re-fetched through `wiki_mirror.py` (the slug now follows the page
