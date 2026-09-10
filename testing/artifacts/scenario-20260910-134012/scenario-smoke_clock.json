@@ -1,0 +1,62 @@
+{
+ "run_id": "scenario-20260910-134012",
+ "scenario": "smoke_clock",
+ "fixture": "default",
+ "profile": "mod-under-test",
+ "build": "42.20.4",
+ "side": "server",
+ "user": "admin",
+ "speed": 30,
+ "result": "PASS",
+ "cadence": {
+  "wall_s": 2.0,
+  "game_minutes": 20.0,
+  "ticks_per_wall_s": 10.08,
+  "world_min_per_wall_s": 45.89,
+  "ticks_per_world_min": 0.22,
+  "cadence_suspect": true
+ },
+ "evaluation": {},
+ "faults": [],
+ "server_errors": [],
+ "test": {
+  "test": "smoke_clock",
+  "pass": true,
+  "detail": "clock ok",
+  "failures": {},
+  "samples": [
+   {
+    "calories": 770.885193,
+    "gameMinute": 5,
+    "worldAge": 3.519946,
+    "wall": 1789062063051
+   },
+   {
+    "calories": 749.142517,
+    "gameMinute": 10,
+    "worldAge": 3.89717,
+    "wall": 1789062063543
+   },
+   {
+    "calories": 727.119263,
+    "gameMinute": 15,
+    "worldAge": 4.279039,
+    "wall": 1789062064039
+   }
+  ],
+  "log": [
+   "[0m] start smoke_clock on server player=admin",
+   "[0m] smoke_clock: sampling calories every 5 game minutes",
+   "[10m] eventually ok: second sample"
+  ],
+  "gameMinutes": 20,
+  "player": "admin",
+  "side": "server",
+  "startedWall": 1789062062556,
+  "startedWorldAge": 3.147127,
+  "endedWorldAge": 4.664575,
+  "complete": true,
+  "t": 1789062064540,
+  "name": "test_smoke_clock"
+ }
+}

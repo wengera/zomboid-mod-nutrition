@@ -1,0 +1,11 @@
+# testing/profiles/missing-mod.toml — the failure mode: a mod named in Mods= that the game
+# cannot find. copy = false places nothing, so this needs nothing installed (spike S3-A).
+fixture = "default"
+description = "Regression: a profile whose mod never reaches <cachedir>/mods must fail fast."
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NoSuchModHere"
+copy = false

@@ -1,0 +1,19 @@
+# testing/profiles/mod-under-test.toml — the T1 acceptance profile: harness + one real
+# workshop mod on the golden fixture. Doubles as the template for slices 09-11.
+fixture = "default"
+description = "PZTestKit + KeenPerception (spike S3's subject), DayLength forced to 15 min."
+run = { hold = 5 }
+verify = [                    # inline tables: the same array-of-tables as [[verify]] would be
+  { side = "server", cmd = "trait.check", expect = '"keenPerceptionLoaded": true' },
+  { side = "client", cmd = "trait.check", expect = '"keenPerceptionLoaded": true' },
+]                             # bare keys must precede the first table header (TOML)
+
+[[mods]]
+id = "PZTestKit"              # harness, copied from the repo (paths.HARNESS_MODS)
+
+[[mods]]
+id = "KeenPerception"
+workshop_id = "3685392864"
+
+[sandbox]
+DayLength = 1                 # 1 = 15 minutes (fixture default 4 = 1 h 30 m)

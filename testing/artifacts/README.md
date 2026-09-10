@@ -37,6 +37,9 @@ correct it.
 | `exp05b-20260910-093307` | `drink-probe.json` | `testing/experiments/s05b_drink_probe.py` | [`docs/vanilla/food-dataset-notes.md`](../../docs/vanilla/food-dataset-notes.md), [`data/README.md`](../../data/README.md) § Per litre, not per item (and `.superpowers/sdd/05-food-scanner/task-5b-report.md`) |
 | `exp06-20260910-112726` | `recipes.json` | `testing/experiments/s06_recipes.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4-report.md`; its **evolved** half is the offline input for slice 06 tasks 3 and 5) |
 | `exp06b-20260910-120123` | `use-probe.json` | `testing/experiments/s06b_use_probe.py` | slice 06 (`.superpowers/sdd/06-recipes/task-4b-report.md`; the `M` behind `q-itemcount-notes.md`'s per-use consumption rule, i.e. behind every non-`ItemCount` consumption figure in `data/recipes.json`) |
+| `run-20260910-133657` | `report.json` | `pzt run --profile mod-under-test --hold 5` | slice 07 (`.superpowers/sdd/07-profile-builder/task-4-report.md`; the `M` behind the profile builder's "a named mod set loads and takes effect" claim, and behind the sandbox-merge survival numbers) |
+| `run-20260910-133916` | `report.json` | `pzt run --profile missing-mod` | slice 07 (same report; the `M` behind "a mod that never reaches `<cachedir>/mods` fails the run before a client is launched") |
+| `scenario-20260910-134012` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 30` | slice 07 (same report; the `M` behind the profile path through `scenario.run`, and behind the `DayLength × --speed` cadence ceiling) |
 
 ## Script/artifact skew
 
@@ -55,16 +58,33 @@ until slice 05's **final fix wave** corrected two of its drift labels and the ba
 it is listed with the rest, at the end, where it also carries a *do not cite* block of its
 own. So all nine are below.
 
-The tenth, **`exp06-20260910-112726`**, is **skew-free**: it is committed in the same commit as
-the script and the harness command that produced it. Its block is therefore not a skew note but
-a reading guide — two of its `summary` keys mislead when quoted alone, and one of the *plan*
-expectations it was run against turns out to be wrong.
+The tenth, **`exp06-20260910-112726`**, and the eleventh, **`exp06b-20260910-120123`**, were
+skew-free — each landed in the same commit as the script and the harness command that produced
+it — **until slice 06's final fix wave**, which edited both drivers *and* both harness files.
+Neither block's measured numbers move, and both blocks now open with a skew note saying exactly
+what changed and why (the verdict defect that scored an unmeasured row as a pass, the
+`collect()` absent-vs-empty guard, the `item.use` refusal on a depleted item, the tolerance
+anchoring, the corrected citations, and a pure move of five helpers into `_common.py`). Both
+blocks are also reading guides: `exp06`'s carries three **errata** and two *do not cite* keys —
+two of its `summary` keys mislead when quoted alone, one *plan* expectation it was run against
+turns out to be wrong, and the scanner has since resolved the two mismatches its `comparison`
+block records; `exp06b`'s carries two *do not cite* keys and the reminder that the reduction ran
+through the `setCurrentUses` **fallback** rather than through `ItemUser.UseItem`.
 
-The eleventh, **`exp06b-20260910-120123`**, is **skew-free** for the same reason: script
-(`s06b_use_probe.py`), harness command (`item.use`) and artifact land in one commit. Its block
-is a reading guide too — it has **no** *do not cite* rows, but the one thing a reader must
-carry away from it is that the reduction ran through the `setCurrentUses` **fallback** rather
-than through `ItemUser.UseItem`, and what that does and does not change.
+The twelfth, thirteenth and fourteenth — **`run-20260910-133657`**, **`run-20260910-133916`** and
+**`scenario-20260910-134012`** — are **skew-free** for that same reason: the profiles that produced
+them and the artifacts land in one commit, and the CLI they ran on (`testing/pzt/`) was already at
+HEAD. One disclosure on the harness mod: a concurrent slice-06 fix round had
+`PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
+three ran, so the copies in their run caches are that in-flight text rather than either commit's.
+Nothing on the paths these runs exercised is in those two files — `trait.check` is in
+`PZTestKit_Core.lua`, `smoke_clock` in `server/scenarios/PZTestKit_Scenario_Smoke.lua`, the bus and
+the game-minute scheduler in `PZTestKit_Core.lua` / `PZTestKit_Test.lua`, and all four were at HEAD
+— and all three runs recorded `server_errors: 0`. What these blocks carry instead of a skew note is
+the **provenance a profiled run needs and a plain experiment does not**: the two inputs are the
+profile file and the mod folder, so each block records the profile's bytes (they are also in the
+artifact's own `profile` block) and which workshop item, `mod.info` id and version folder the mod
+was copied from.
 
 A skew entry is about the *script*. Which **dataset** an artifact was measured against is a
 separate question, and `exp05-20260910-084109` is the run that shows why: its
@@ -311,7 +331,45 @@ The file carries two readings of each drink, and only one of them is the measure
 **`exp06-20260910-112726/recipes.json`** — produced by `testing/experiments/s06_recipes.py`,
 the slice-06 recipe cross-check, together with the harness commands it drives
 (`server/PZTestKit_Server_Recipes.lua`: `recipes.count` / `recipes.evolved` /
-`recipes.craft`). Script and artifact land in one commit, so there is **no skew**.
+`recipes.craft`). Script, commands and artifact landed in one commit (`21fa79d`).
+
+**Skew (slice 06's final fix wave).** Both the driver and the harness command file have since
+been edited, and **no measured number in this file moves**. What changed, and why each is
+harmless to the readings:
+
+- *Harness*, `collect()` in `PZTestKit_Server_Recipes.lua`: it now takes the owner and the
+  method name (so an absent getter answers `itemsError` instead of looking like an empty
+  list), and it keeps `items` and `itemFullTypes` index-aligned by writing the placeholder
+  `?no-full-type` for an element that answers a label but no full type, reporting
+  `itemFullTypesAligned: false` when it does. On 42.20.4 every element of all fifteen probes
+  answered both, so a re-run produces the same lists with neither new key present.
+- *Driver*, `s06_recipes.py`: (a) `summary.per_recipe.<name>.ok` is now
+  `block.matched is True` instead of `not block.mismatches` — a recipe with **no dataset
+  record** returns `matched: false` with an *empty* `mismatches` list and was scoring as a
+  pass; all ten probes here had a record, so the verdict is identical (10/10 either way).
+  (b) `INPUT_SUBLINE_NOTE` and the `EVOLVED` axis strings were corrected (see the errata
+  below), so the *text* of `meta.input_subline_note`, the `inputCount` rows' `basis` and
+  `evolved.<name>.axis` in this file differ from the script at HEAD. (c) `load_json` /
+  `git_say` / `git_dirty` / `doctor` / `num` moved verbatim into `_common.py`. None of (a)–(c)
+  reads or writes a game value.
+
+**Errata (this file is immutable; the corrections live here).**
+
+- The `comparison` block, and with it `summary.craft_all_matched` / `fields_mismatched`,
+  records two `inputCount` mismatches that the **scanner has since resolved** — `6694568`
+  adopted the loader's sub-line model, so `data/recipes.json` now reads `inputCount` 9 and 2.
+  The same comparator replayed offline at HEAD against this artifact gives **10 of 10 recipes,
+  77 of 77 fields, `mismatches []`**. Those two summary keys are already *do not cite* below;
+  this is the number that replaces them.
+- `meta.input_subline_note` (and every `inputCount` row's `basis`) puts both sub-line arms in
+  one span. They are two: the `-` arm is `CraftRecipe.LoadIO @218–@317 L589–L604`
+  (`consumeFromItemScript`), the `+` arm the earlier `@122–@215 L574–L588`
+  (`createToItemScript`). Everything else the note says is right, and the corrected text is in
+  the script at HEAD.
+- `evolved.Salad.axis` and `evolved.SaladClay.axis` assert the plan's **187**. The measurement
+  in this same file says **189** and the plan is what is wrong (see the *do not cite* row on
+  `salad_matches_plan`). The axis strings are prose the driver carried in; they were corrected
+  at HEAD and cannot be corrected here.
 
 The run is clean — `server_errors []`, `client_quit rc=0`, `server_stopped rc=0`, doctor
 all-`ok` (recorded in `meta.doctor`), 89.1 s wall, dataset `ab26d41` with
@@ -324,7 +382,13 @@ It carries **two readings, and only one of them is a verdict**:
 - **`counts` and `comparison`** — the measurement. `recipes.count` answered
   **craft 969 / evolved 63 / legacy 0 / unique 0**, matching the plan's expectations and
   `data/recipes.json`'s own `meta.counts` on all three of the compared rows; ten craft recipes
-  were compared field for field against their dataset rows, **77 fields, 75 matched**.
+  were compared field for field against their dataset rows, **77 fields, 75 matched**. Ten of
+  those 77 are the **live-vs-live** `outputListSize` row — `getOutputCount()` against the
+  length of the list the command itself walked, two reads of one `ArrayList` — so the
+  dataset-versus-game count is **67 fields, 65 matched** at run time, and **67 of 67** once the
+  scanner adopted the loader's sub-line model (the offline replay above). Quote the 67 when the
+  question is "does the dataset describe what the game loaded"; the raw 77 includes a row that
+  never touches the dataset.
 - **`evolved`** — five `EvolvedRecipe` replies **recorded verbatim and compared against
   nothing**, by controller ruling (`meta.sequencing`): this run happened *before* slice 06
   task 3, so `data/evolved-recipes.json` did not exist. `summary.evolved_observations` is
@@ -349,14 +413,54 @@ Two further readings this file evidences, both of which a scanner has to match:
 - **`getResultItem()` strips the module.** The reply's `getResultItem` reads `Salad`,
   `SaladClay`, `ConeIcecreamToppings`, `PotOfSoupRecipe`, `Chum` — not the `Base.`-prefixed
   strings the scripts write. `EvolvedRecipe.getResultItem @0–@22 L685–L688` splits the stored
-  value on `.` and returns the last part; `getFullResultItem @0–@4 L692` is the raw one, and
-  this command does not read it. Compare against the stripped name, or against
-  `getBaseItem`, which **is** full (`Base.Bowl`, `Base.Pot`, `Base.Chum`).
+  value on `.` and returns **`split("\.")[1]`, the second element** — not "the last part":
+  on a value with two dots it answers the middle segment, and on a bare `Salad` (no dot) the
+  split has one element and index 1 does not exist. Every shipped `ResultItem` is
+  `Module.Type`, so on 42.20.4 the two readings coincide. `getFullResultItem @0–@4 L692` is
+  the raw one, and this command does not read it. Compare against the stripped name, or
+  against `getBaseItem`, which **is** full (`Base.Bowl`, `Base.Pot`, `Base.Chum`).
+- **`getPossibleItems()` is filled through BOTH `Item.OnScriptsLoaded` arms.** An item's
+  `EvolvedRecipe = <Name>:<use>` key is resolved by the exact-name lookup
+  `getEvolvedRecipe(key)` (`@43–@59 L3033–L3035`, case-**sensitive**) *and* by a pass over
+  every recipe whose `Template` `equalsIgnoreCase` the key (`@122–@140 L3039`,
+  case-**insensitive**). `SaladClay` is the proof: **no item writes a `SaladClay` key at all**,
+  so its whole 189-item list arrives through the Template arm, and an expansion that models
+  only the name arm predicts an empty list for it. `ConeIcecream` is the other half of the
+  same reading — `Base.Cinnamon` writes `ConeIceCream:1`, which only the case-insensitive arm
+  matches.
 
 **`exp06b-20260910-120123/use-probe.json`** — produced by
 `testing/experiments/s06b_use_probe.py`, the slice-06 per-use consumption probe, together
 with the harness command it drives (`item.use` in `server/PZTestKit_Server.lua`). Script,
-command and artifact land in one commit, so there is **no skew**.
+command and artifact landed in one commit (`3c16632`).
+
+**Skew (slice 06's final fix wave).** Both the command and the driver have since been edited,
+and **no measured number in this file moves**:
+
+- *Harness*, `item.use`: (a) it now **refuses** an already-depleted instance —
+  `currentUses == 0` would send `setCurrentUses(0)` into `consumeHunger((0−0)/100f)`, i.e.
+  `r = |0/0|` = NaN, and `multiplyFoodValues(1 − NaN)` would write NaN into every macro. All
+  three rows here were spawned whole (30 / 40 / 15 uses), so the guard never fires on this run.
+  (b) `predicted` no longer carries `thirstChange` (see the *do not cite* row below).
+  (c) `candidatesAfterError` is a new key for a **failed** post-call enumeration, which used to
+  be indistinguishable from an empty inventory; the enumeration succeeded on all three rows
+  here, so the key is absent either way. (d) Comment corrections only: the `replaceOnDeplete` /
+  `sendItemStats` skip list and the `used/cur` exactness caveat, both below.
+- *Driver*, `s06b_use_probe.py`: (a) `summary.per_item.<key>.ok` is now
+  `block.matched is True` instead of `not block.mismatches` — `compare_item` returns early with
+  `matched: false` and an *empty* `mismatches` list on three paths (the use phase never ran, no
+  `data/food-items.json` record, no `before` snapshot) and every one of them was scoring as a
+  pass; all three rows here reached the full comparison, so the verdict is identical.
+  (b) The scaling rows' tolerance is now anchored on the two values being **compared** rather
+  than on `before`, and a 0 expectation is compared exactly — the bands in this file's
+  `scaling.*.tolerance` are therefore **wider than the script at HEAD would write** (e.g.
+  `calories` on the Icecream row: 0.16801 here, 0.11201 at HEAD; on the two factor-0 rows,
+  0.03001 / 0.01131 here against an exact compare at HEAD). Every row matched with room to
+  spare either way — the replay below re-scores all 96 under the narrower rule and none moves.
+  (c) `load_json` / `git_say` / `doctor` / `num` moved verbatim into `_common.py`.
+
+The comparator replayed offline at HEAD against this artifact gives **3 of 3 items, 96 of 96
+fields, `mismatches []`** — unchanged from the run's own verdict.
 
 The run is clean — `server_errors []`, `client_quit rc=0`, `server_stopped rc=0`, doctor
 all-`ok` (recorded in `meta.doctor`), 89.6 s wall, `data/recipes.json` at `c6ef7f2` with
@@ -365,8 +469,8 @@ no `settimespeed`, no sandbox write, no character write. The only thing it touch
 items it spawns into this run's own copy of the fixture.
 
 It is a **single-verdict** file: `summary.all_matched true`, **96 of 96** compared fields
-matched across three items, `mismatches []`. There are no *do not cite* rows. What a reader
-does have to carry away is the **route**:
+matched across three items, `mismatches []`. What a reader does have to carry away is the
+**route**:
 
 - **`ItemUser.UseItem` was not reachable and was not used.**
   `comparison.<item>.route_attempts[0]` records `memberAbsent: true` — `ItemUser` is not a Lua
@@ -375,9 +479,15 @@ does have to carry away is the **route**:
   `zombie/inventory/ItemUser` is not one of them. Every row therefore ran through
   `item:setCurrentUses(currentUses − used)`, which **is** the line `UseItem @28 L37-38`
   executes and the only path by which crafting reaches hunger at all. What the fallback skips
-  is UseItem's bookkeeping *after* the reduction — the `replaceOnUse` / `replaceOnDeplete`
-  spawn and `RemoveItem` at `@272 L68-70`. No nutrition field moves in either, so the
-  measurement is untouched; but the two fully consumed items **stayed in the inventory**
+  is UseItem's bookkeeping *after* the reduction, and for a `Food` that is exactly three
+  things: the `replaceOnUse` spawn, `sendItemStats(item)` when uses **remain**
+  (`@293 L73-74`), and `RemoveItem` at `@272 L68-70` when they do not. It is **not**
+  `replaceOnDeplete` — that arm is behind `instanceof DrainableComboItem` (`@146 L53`) and a
+  `Food` never reaches it, so an earlier wording of this row overstated what the fallback
+  skips. No nutrition field moves in any of the three, and the skipped `sendItemStats` is a
+  *client push* this command does not make on either route (every reading here is server-side,
+  on the object the server holds), so the measurement is untouched; but the two fully consumed
+  items **stayed in the inventory**
   (`candidates_after` length 1, `after.inContainer true`, `getCurrentUses() 0`) where the
   crafting code would have removed them. `depletion.removed_from_inventory` is compared
   against the expectation **for the route that ran**, which is why it reads
@@ -388,6 +498,23 @@ does have to carry away is the **route**:
   `Base.MincedMeat` 40/40 and `Base.Cheese` 15/15 both landed on 0 for every macro and for
   `getCurrentUses()`. `delta.worldAgeHours` is `0` on all three — both snapshots are taken
   inside the one Lua call — so none of these numbers carries passive drift.
+  **Read the strength of that claim carefully: the FRACTIONAL factor rests on `Base.Icecream`
+  alone.** It is the only row whose factor is neither 0 nor 1, and it carries the whole of the
+  fractional evidence — seven fields (`hungChange`, four macros, `getCurrentUses()` and
+  `getCurrentUsesFloat()`), including the `(int)` truncation that makes `30 → 20` a second,
+  integer-valued reading of the same scaling. The other two rows are **boundary rows at factor
+  0**: they rule out "one use = one item" and "N is a count of items" — 40 uses of a 40-use tub
+  empties it rather than needing 40 tubs — but a model that scaled by *anything* vanishing at
+  `used == cur` would satisfy them. Cite all three for the boundary and the Icecream row for
+  the fraction.
+- **`used/currentUses` is exact only for a whole item.** `getCurrentUses()` is
+  `(int)|hungChange × 100|`, so `|hungChange| = cur/100` — and with it
+  `1 − used/cur` — holds exactly only while `|hungChange| × 100` is a whole number. On a
+  part-spent item the real argument is `1 − ((cur − used)/100)/|hungChange|`, a hair under it.
+  Every item here was spawned fresh and `spawn_guard.current_uses_is_whole` checks that per
+  row, which is what makes the shorthand legitimate for these three; `factor.float32` (the
+  game's own arithmetic, replayed at float32 width) is what the compared expectations use and
+  `factor.exact` carries the `1 − used/cur` reading beside it.
 - **`getMaxUses()` and `baseHunger` do not move.** 30 / 40 / 15 and −0.30 / −0.40 / −0.15
   before *and* after, including on the two items consumed to nothing. This is what makes
   `currentUses` — not `maxUses` — the denominator of any *second* reduction on a part-eaten
@@ -401,3 +528,95 @@ does have to carry away is the **route**:
   read 0 before and after, so nothing is hidden by it here.) `hungerChange` moved in lockstep
   with `hungChange` on all three rows only because each item was fresh and uncooked, so the
   read-time ladder is the identity.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `items.<key>.use.predicted.thirstChange` | `0` on all three rows | **Not a prediction of anything the game does.** The harness built it as `before.thirstChange × factor`, and `before.thirstChange` is `TK.ITEM_STATE`'s reading of the **modified** getter, while `multiplyFoodValues @42 L2292` scales `getThirstChangeUnmodified()`. The two are the same number only where no modifier bites — which is why all three rows read 0 here and nothing is visibly wrong. The comparator never used it (`SCALED` deliberately excludes thirst; the before/after pair is in `comparison.<key>.recorded_uncompared`), and the command at HEAD no longer computes it. The other five `predicted` keys are sound and are compared as `harness_prediction` beside each scaling row. |
+| `comparison.<key>.scaling.*.tolerance` | e.g. `0.16801` on `icecream_third.calories` | True as computed and **wider than the rule the script now applies**. The band was `ABS_FLOOR + REL × max(expected, live, before)`, so it was sized by the `before` value — the nutrition that is supposed to have *gone*. At HEAD the band is anchored on the two values being compared and a 0 expectation is compared exactly. Every row here matched under both rules (re-scored offline: 96/96), so the numbers stand; do not quote a tolerance from this file as the band the harness uses. |
+
+**`run-20260910-133657/report.json`** — written by `pzt run --profile mod-under-test --hold 5`
+(93 s wall; server started at 36.6 s, client ready at 37.3 s; `RESULT: PASS`, exit 0). The
+slice-07 acceptance run: a named mod set on the golden fixture, proven to have taken **effect**
+and not merely to have booted quietly.
+
+- **Provenance — the profile.** `testing/profiles/mod-under-test.toml` at this commit:
+  `fixture = "default"`, `run = { hold = 5 }`, `[[mods]] id = "PZTestKit"` then
+  `[[mods]] id = "KeenPerception", workshop_id = "3685392864"`, `[sandbox] DayLength = 1`, and
+  two `verify` entries (`side = "server"` / `"client"`, `cmd = "trait.check"`,
+  `expect = '"keenPerceptionLoaded": true'`). The file's own bytes are reproduced in the
+  artifact's `profile` block, which records both what was asked for and what it **resolved to**
+  — the two source folders that actually reached `<run>/server/mods/`.
+- **Provenance — the mod.** Workshop item `3685392864` (15 KB), version folder `42/`, whose
+  `42/mod.info` declares `id=KeenPerception`, `name=Keen Perception`, `author=somewhatfrog`,
+  `pack=trait_keenhearing`, **no `require=`**, no sandbox options; one shared Lua file
+  (`42/media/lua/shared/SWKeenPerception.lua`), a translation JSON and a texture pack. It is
+  spike S3's own subject. The workshop folder is read-only to the harness: `harness.install`
+  copies it into the per-run cache, so nothing under `steamapps/` is touched by a run.
+- **What `verify` proves.** Both probes returned
+  `{"keenHearingExcludesDeaf": false, "keenHearingExcludesHardOfHearing": false,
+  "keenPerceptionLoaded": true}` — the Keen Hearing ↔ Deaf / Hard-of-Hearing exclusivity is
+  *gone* on the server **and** on the client. `trait.check` is the harness's own command
+  (`PZTestKit_Core.lua`), reading `CharacterTraitDefinition.getCharacterTraitDefinition(
+  CharacterTrait.KEEN_HEARING):getMutuallyExclusiveTraits()`. A boot log alone could not say
+  this: under `-nosteam` a mod the game cannot find is a WARN and a clean boot (S3-A), so
+  "0 errors" is compatible with the mod never having loaded. Server log line 94 also has the
+  positive form, `LOG : Mod … loading KeenPerception`.
+- **The sandbox merge, measured.** `[sandbox] DayLength = 1` was merged into the restored
+  fixture's `Server/pzt_SandboxVars.lua` (`applied ['DayLength'], appended none`), and the
+  server then rewrote that file during boot as it always does (spike S1). After the rewrite the
+  run's copy still reads `DayLength = 1` **and** the fixture's own `Zombies = 6`, at **189**
+  four-space assignments / **184** `sandbox_keys()` settable options — the fixture's counts
+  exactly. `diff` against the fixture file is **one line**, the seeded one; every comment, the
+  five nested tables and their 86 eight-space options and all 1 020 CRLF endings survive. The
+  merge composes, it does not replace. (These numbers are in the run report's timeline and in
+  the report of `.superpowers/sdd/07-profile-builder/task-4-report.md`, not in this JSON: the
+  file they were read off is `testing/runs/<id>/server/Server/pzt_SandboxVars.lua`, which lives
+  under the gitignored run directory.)
+- `server_errors` is **0** and `faults` is empty, so the `RESULT: PASS` is a pass on a clean
+  session, not merely a green probe.
+
+**`run-20260910-133916/report.json`** — written by `pzt run --profile missing-mod` (23 s wall;
+`RESULT: FAIL`, exit 1). The regression for the failure mode S3-A found: the game *does not*
+fail on a mod it cannot locate, so the harness has to.
+
+- **Provenance — the profile.** `testing/profiles/missing-mod.toml` at this commit: `fixture =
+  "default"`, `[[mods]] id = "PZTestKit"`, `[[mods]] id = "NoSuchModHere", copy = false`. Nothing
+  is installed for it and nothing needs to be — `copy = false` names the mod in `Mods=` and
+  places it nowhere, which is precisely the state S3-A measured.
+- **What it proves, and where to read it.** The `timeline` phase list is
+  `profile → server_launch → server_started → mods_not_found → mod_missing_line → error →
+  server_stopped → faults`: **there is no `client_launch`**, and the run directory has no
+  `clients/` folder at all, so the ~37 s of client boot was never paid for. `mod_missing_line`
+  carries the server's own words verbatim — `WARN : Mod … at
+  ZomboidFileSystem.loadModAndRequired> required mod "NoSuchModHere" not found` — which is the
+  finding, in the game's voice rather than the harness's. `faults` repeats the reason once
+  (`mods not found at load: NoSuchModHere`); the `RESULT:` line prints once.
+- **Do not read `server_errors: 0` as "nothing was wrong".** It is 0 because a missing mod is
+  *not* an error line to this game: the server booted normally in 13.7 s with the mod absent.
+  That is the whole point of the run.
+
+**`scenario-20260910-134012/scenario-smoke_clock.json`** — written by `pzt scenario smoke_clock
+--profile mod-under-test --speed 30` (63 s wall; `RESULT: PASS`, exit 0). The same profile down
+the scenario path: `profile: "mod-under-test"`, `fixture: "default"`, `build: 42.20.4`,
+`side: "server"`, `user: "admin"`, `test.pass: true` (`"clock ok"`, 3 samples at game-minute 20),
+`evaluation: {}` (no evaluator is registered for `smoke_clock`), `faults: []`, `server_errors: 0`.
+The server log again carries `loading KeenPerception`, and the run's `pzt_SandboxVars.lua` again
+reads `DayLength = 1` / `Zombies = 6` at 189/184 after the boot-time rewrite.
+
+- **Read `cadence` as a finding about the profile, not about the harness.** This run is flagged
+  `cadence_suspect: true` at `ticks_per_world_min: 0.22` — `Events.EveryOneMinute` fired 20 times
+  while the world advanced ~92 game-minutes (`world_min_per_wall_s: 45.89` × `wall_s: 2.0`). The cause is the *combination* in this profile:
+  `DayLength = 1` is a 15-minute day, so `--speed 30` demands `24 × 30 / 15 = 48` game-minutes of
+  world clock per wall second, and the event fired at **10.08/s** (`ticks_per_wall_s`). The
+  ceiling is the harness's game-minute event, and it is ~8–10 Hz: the three slice-04 scenario
+  artifacts ran the same `--speed 30` on the same fixture at its **default** `DayLength = 4`
+  (a 90-minute day → `24 × 30 / 90 = 8` game-min/wall-s) and recorded `ticks_per_world_min: 1.0`
+  with `ticks_per_wall_s` 7.99–8.00. So keep `24 × speed / day_minutes ≲ 8`; on `DayLength = 1`
+  that is `--speed 5`, not 30.
+- **`smoke_clock`'s own verdict is unaffected** and this is why it still reads PASS: every
+  assertion it makes is counted in *ticks* (`t:every(5, …)`, `t:eventually`, `t:at(20, …)`), so
+  the test measures the scheduler against itself. **Nothing fitted against the game clock on this
+  run may be cited** — no rate, no per-game-hour figure, no `worldAge` span. Do not carry
+  `DayLength = 1` into a nutrition scenario at speed without re-reading `cadence` first.

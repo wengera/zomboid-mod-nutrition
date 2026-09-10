@@ -1,0 +1,81 @@
+{
+ "run_id": "run-20260910-133916",
+ "result": "FAIL",
+ "faults": [
+  "mods not found at load: NoSuchModHere"
+ ],
+ "timeline": [
+  {
+   "t": 0.0,
+   "phase": "profile",
+   "name": "missing-mod",
+   "fixture": "default",
+   "mods": "PZTestKit;NoSuchModHere",
+   "sandbox": "none",
+   "skip": "NoSuchModHere"
+  },
+  {
+   "t": 0.4,
+   "phase": "server_launch",
+   "port": 27261
+  },
+  {
+   "t": 13.7,
+   "phase": "server_started",
+   "build": "42.20.4"
+  },
+  {
+   "t": 14.1,
+   "phase": "mods_not_found",
+   "mods": "NoSuchModHere"
+  },
+  {
+   "t": 14.1,
+   "phase": "mod_missing_line",
+   "detail": "WARN : Mod          f:0 st:779,293,313 at ZomboidFileSystem.loadModAndRequired> required mod \"NoSuchModHere\" not found"
+  },
+  {
+   "t": 14.1,
+   "phase": "error",
+   "detail": "mods not found at load: NoSuchModHere"
+  },
+  {
+   "t": 22.9,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 22.9,
+   "phase": "faults",
+   "detail": "mods not found at load: NoSuchModHere"
+  }
+ ],
+ "server_errors": [],
+ "clients": {},
+ "results": {
+  "server": {}
+ },
+ "profile": {
+  "name": "missing-mod",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\missing-mod.toml",
+  "fixture": "default",
+  "description": "Regression: a profile whose mod never reaches <cachedir>/mods must fail fast.",
+  "mods": [
+   "PZTestKit",
+   "NoSuchModHere"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit"
+  },
+  "skip": [
+   "NoSuchModHere"
+  ],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "verify": []
+}
