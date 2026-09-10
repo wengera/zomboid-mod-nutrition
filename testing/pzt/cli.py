@@ -4,6 +4,7 @@ import datetime
 import os
 import time
 
+from . import doctor
 from . import fixture as fx
 from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
@@ -222,6 +223,9 @@ def main(argv=None):
     common_server(p)
     common_client(p)
     p.set_defaults(fn=spikes.run)
+
+    p = sub.add_parser("doctor", help="cold-start checks; reports, never kills")
+    p.set_defaults(fn=doctor.run)
 
     a = ap.parse_args(argv)
     return a.fn(a)
