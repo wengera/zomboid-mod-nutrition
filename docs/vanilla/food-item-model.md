@@ -56,8 +56,8 @@ nothing else crosses over. Ev C (`Food.updateAge(Z) @140–@151 L754-755`,
 > **nothing in the jar reads** — `isRotten()` reads `age`. And `setFrozen(true)` is undone by the
 > next `updateFreezing` tick **on a server** (where `updateAge` runs), because `isThawing()` is true
 > while `freezingTime` is still 0. **Off a server it sticks**: `updateFreezing` has exactly one
-> caller in the whole jar — `Food.updateAge(Z) @16 L739` — and every route into `updateAge` is
-> server-gated (`Food.update @38–@46 L369-L370`, `OnAddedToContainer @0–@7 L2518-L2519` and
+> caller in the whole jar — `Food.updateAge(Z) @16 L739` — and every *ticking* route into `updateAge` is server-gated
+> — the exceptions, which do run on clients, are `IsoGenerator.setActivated(Z) @82–@83 L552 → updateFridgeFreezerItems @73–@83 L387-L388 → Food.updateAge()` (toggling a generator near a powered fridge/freezer) and an explicit Lua `item:updateAge()` — (`Food.update @38–@46 L369-L370`, `OnAddedToContainer @0–@7 L2518-L2519` and
 > `OnBeforeRemoveFromContainer @0–@7 L2525-L2526` all test `GameServer.server`; `updateRotting`
 > returns first on `GameClient.client @13 L658`), so on an **MP client** — and, per open question 5,
 > in **single-player** at default settings — nothing thaws the flag, which is why slice 01's

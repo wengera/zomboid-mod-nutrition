@@ -360,7 +360,7 @@ on a server** (where `updateAge` runs): it sets the flag (and the ×0 age rate f
 because `updateAge` reads `isFrozen()`), but the very next `updateFreezing` tick sees `isThawing()`
 (freezingTime still 0) and will drive `setFreezingTime(negative)` → `setFrozen(false)`.
 `updateFreezing` has exactly **one caller in the whole jar** — `Food.updateAge(Z) @16 L739` — and
-every route into `updateAge` is server-gated (`Food.update @38–@46 L369-L370`,
+every *ticking* route into `updateAge` is server-gated — the exceptions, which do run on clients, are `IsoGenerator.setActivated(Z) @82–@83 L552 → updateFridgeFreezerItems @73–@83 L387-L388 → Food.updateAge()` (toggling a generator near a powered fridge/freezer) and an explicit Lua `item:updateAge()` — (`Food.update @38–@46 L369-L370`,
 `OnAddedToContainer @0–@7 L2518-L2519`, `OnBeforeRemoveFromContainer @0–@7 L2525-L2526` all test
 `GameServer.server`; `updateRotting` returns first on `GameClient.client @13 L658`), so on an **MP
 client** — and, per Q5, in **single-player** at default settings — there is no tick to undo it and
