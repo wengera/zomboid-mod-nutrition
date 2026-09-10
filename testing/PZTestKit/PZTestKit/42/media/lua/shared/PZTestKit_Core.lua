@@ -142,6 +142,47 @@ end
 TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", lipids = "setLipids",
                          proteins = "setProteins", weight = "setWeight" }
 
+-- ---- writing stats (hunger/thirst) ------------------------------------------
+-- Needed because CharacterStat.HUNGER/THIRST clamp to [0,1]: on a satiated character every
+-- eat's hunger/thirst relief is silently discarded and dHunger/dThirst measure nothing.
+-- B42 writes stats through the enum -- the game's own Lua is Stats:set(CharacterStat.HUNGER, v)
+-- (ISAnimalContextMenu.lua:739, Tutorial/Steps.lua:548, server/ClientCommands.lua:897), which
+-- also pins the arity at two -- so that is the primary route and set<Name>() the fallback.
+-- The enum is read BEFORE the call and the route skipped when it is nil: handing a nil enum to
+-- a present Java method is an argument mismatch, and Kahlua does not let pcall catch that
+-- either. Returns (ok, how): `how` names the route that answered, or why none did.
+TK.STAT_FIELDS = { hunger = { "HUNGER", "setHunger" }, thirst = { "THIRST", "setThirst" },
+                   fatigue = { "FATIGUE", "setFatigue" }, endurance = { "ENDURANCE", "setEndurance" } }
+
+function TK.setStat(p, field, value)
+    local spec = TK.STAT_FIELDS[field]
+    if not spec then return false, "unknown stat '" .. tostring(field) .. "'" end
+    local s = p:getStats()
+    local enum = CharacterStat and CharacterStat[spec[1]]
+    if enum and TK.call(s, "set", enum, value) then
+        return true, "Stats:set(CharacterStat." .. spec[1] .. ")"
+    end
+    if TK.call(s, spec[2], value) then return true, "Stats:" .. spec[2] .. "()" end
+    return false, "no Stats:set(CharacterStat." .. spec[1] .. ") and no Stats:" .. spec[2] .. "()"
+end
+
+-- "<field> <value> [<field> <value> ...]" starting at argv[first]. Reports per field so a
+-- half-applied prime is visible in the results rather than silently wrong.
+function TK.applyStats(p, argv, first)
+    local applied, any = {}, false
+    for i = first, #argv - 1, 2 do
+        local v = tonumber(argv[i + 1])
+        if v == nil then
+            applied[tostring(argv[i])] = "not a number: " .. tostring(argv[i + 1])
+        else
+            local ok, how = TK.setStat(p, argv[i], v)
+            applied[tostring(argv[i])] = (ok and how or ("failed: " .. tostring(how)))
+            any = any or ok
+        end
+    end
+    return applied, any
+end
+
 -- ---- command bus -----------------------------------------------------------
 function TK.register(name, fn) TK.commands[name] = fn end
 

@@ -134,6 +134,80 @@ TK.register("nutrition.set", function(argv)
     return nutritionSnapshot(getPlayer())
 end)
 
+-- <field> <value> [<field> <value> ...]; the snapshot comes back so the caller can see the
+-- read-back in the same ack. Whether a client-side write SURVIVES is a separate question --
+-- the server owns Nutrition (task 3) -- so the experiment probes both sides before relying
+-- on either.
+TK.register("stats.set", function(argv)
+    local p = getPlayer()
+    if #argv < 2 then return "usage: stats.set <hunger|thirst|fatigue|endurance> <value> [...]" end
+    local applied = TK.applyStats(p, argv, 1)
+    local snap = nutritionSnapshot(p)
+    snap.applied = applied
+    return snap
+end)
+
+-- <option> [true|false] [push]: read a sandbox option, or flip it at runtime.
+-- With no value it only reports (there is no other read command).
+-- The game's own admin panel does NOT call getSandboxOptions():set() on a client --
+-- ISServerSandboxOptionsUI.lua:738 guards it with `if not isClient()` and clients instead
+-- fill a SandboxOptions copy and call :sendToServer() -- so a plain flip here is expected to
+-- be client-local. `push` additionally tries sendToServer() (admin only, nil-checked).
+TK.register("sandbox.set", function(argv)
+    local name = argv[1]
+    if not name then return "usage: sandbox.set <option> [true|false] [push]" end
+    if argv[2] and argv[2] ~= "true" and argv[2] ~= "false" and argv[2] ~= "push" then
+        return "usage: sandbox.set <option> [true|false] [push]"
+    end
+    if not getSandboxOptions then return "no getSandboxOptions()" end
+    local opts = getSandboxOptions()
+    if not opts then return "getSandboxOptions() returned nil" end
+    local out = { option = name, side = TK.side }
+    local hasByName, opt = TK.call(opts, "getOptionByName", name)
+    if hasByName and opt then
+        local ok, v = TK.call(opt, "getValue")
+        if ok then out.before = v end
+        ok, v = TK.call(opt, "getType")
+        if ok then out.type = v end
+    else
+        out.before = "no SandboxOptions:getOptionByName"
+    end
+    out.sandboxVarsBefore = SandboxVars and SandboxVars[name]
+    if argv[2] == "true" or argv[2] == "false" then
+        local value = argv[2] == "true"
+        out.requested = value
+        -- pcall wraps the CALL, not the lookup: TK.call has already ruled out "call nil" (the
+        -- one failure pcall cannot catch), so what is left is an argument/type mismatch inside
+        -- SandboxOptions:set -- which pcall does catch, and which must fall through to the
+        -- per-option setter rather than kill the ack.
+        local ran, present = pcall(TK.call, opts, "set", name, value)
+        if ran and present then
+            out.route = "SandboxOptions:set(name,value)"
+        else
+            if not ran then out.setError = tostring(present) end
+            local ran2, present2 = false, false
+            if opt then ran2, present2 = pcall(TK.call, opt, "setValue", value) end
+            if ran2 and present2 then
+                out.route = "getOptionByName():setValue()"
+            else
+                out.route = "none"
+                out.error = "not settable at runtime: no SandboxOptions:set and no option:setValue"
+                if not ran2 and opt then out.setValueError = tostring(present2) end
+            end
+        end
+    end
+    if hasByName and opt then
+        local ok, v = TK.call(opt, "getValue")
+        if ok then out.after = v end
+    end
+    out.sandboxVarsAfter = SandboxVars and SandboxVars[name]
+    if argv[2] == "push" or argv[3] == "push" then
+        out.push = TK.call(opts, "sendToServer") and "sendToServer() called"
+            or "no SandboxOptions:sendToServer"
+    end
+    return out
+end)
+
 local SCRIPT_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrates", "Lipids", "Proteins",
                          "DaysFresh", "DaysTotallyRotten", "IsCookable", "MinutesToCook", "MinutesToBurn" }
 local function scriptItem(fullType)

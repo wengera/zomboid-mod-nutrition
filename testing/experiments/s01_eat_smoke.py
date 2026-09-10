@@ -16,55 +16,15 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # testing/
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # experiments/
+from _common import ask, hard_kill, save
 from pzt import fixture as fx
-from pzt.bus import parse_ack
 from pzt.paths import new_run_dir
 from pzt.session import Timeline, make_client, make_server, teardown
 
 POLL_SECONDS = 12
 ANY_CHANGE_KCAL = 0.5      # above the read noise
 MEAL_KCAL = 10.0           # a one-second step this big is food arriving, not metabolism
-
-
-def ask(side, cmd, args="", timeout=20):
-    """One bus command. A dead or wedged side is recorded, not raised: the remaining
-    probes are still worth collecting."""
-    try:
-        return parse_ack(side.send(cmd, args, timeout=timeout))[1]
-    except (RuntimeError, TimeoutError) as e:
-        return {"error": f"{type(e).__name__}: {e}"}
-
-
-def save(path, out, tl, server):
-    """Snapshot the timeline and the server's error list into `out` and write it.
-
-    Called twice: once before teardown (so a shutdown that goes wrong still leaves
-    evidence on disk) and once after it (the committed artifact has to show the
-    `client_quit` / `server_stopped` marks and any shutdown-phase server errors, which a
-    pre-teardown snapshot misses). Writes via a temp file so a half-written second pass
-    cannot corrupt a good first one, and never raises: this runs on the teardown path and
-    a failed write must not skip the kills that follow it."""
-    try:
-        out["timeline"] = list(tl.items)
-        out["server_errors"] = server.errors[:20]
-        tmp = path + ".tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(out, fh, indent=1)
-        os.replace(tmp, path)
-        print(f"\nwrote {path}")
-    except Exception as e:                       # noqa: BLE001 - see docstring
-        print(f"could not write {path}: {type(e).__name__}: {e}")
-
-
-def hard_kill(server, clients):
-    """taskkill everything, whatever else went wrong. Never raises, and one failure does
-    not skip the rest: no PZ process may outlive this script."""
-    for proc in list(clients) + [server]:
-        try:
-            proc.kill()
-        except Exception as e:                   # noqa: BLE001 - best effort by design
-            print(f"kill failed: {type(e).__name__}: {e}")
-
 
 rec = fx.load("default")
 run_id, run_dir = new_run_dir("exp01")

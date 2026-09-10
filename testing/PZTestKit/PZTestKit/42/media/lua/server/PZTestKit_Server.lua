@@ -42,6 +42,21 @@ TK.register("nutrition.set", function(argv)
     return TK.nutritionSnapshot(p)
 end)
 
+-- <user> <field> <value> [<field> <value> ...]. The twin of the client's stats.set: which of
+-- the two survives says who owns hunger/thirst, the same way the nutrition.set pair settled
+-- who owns Nutrition.
+TK.register("stats.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    if #argv < 3 then
+        return "usage: stats.set <username> <hunger|thirst|fatigue|endurance> <value> [...]"
+    end
+    local applied = TK.applyStats(p, argv, 2)
+    local snap = TK.nutritionSnapshot(p)
+    snap.applied = applied
+    return snap
+end)
+
 -- The server's view of what a client asked about; sent back on the same channel.
 local function witness(player, args)
     local reply = { kind = args.kind, key = args.key }
