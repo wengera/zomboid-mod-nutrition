@@ -54,7 +54,15 @@ nothing else crosses over. Ev C (`Food.updateAge(Z) @140–@151 L754-755`,
 
 > **Two setters that do not work.** `Food.setRotten(boolean) @0–@5 L1846-L1847` writes a field
 > **nothing in the jar reads** — `isRotten()` reads `age`. And `setFrozen(true)` is undone by the
-> next `updateFreezing` tick, because `isThawing()` is true while `freezingTime` is still 0. Vanilla
+> next `updateFreezing` tick **on a server** (where `updateAge` runs), because `isThawing()` is true
+> while `freezingTime` is still 0. **Off a server it sticks**: `updateFreezing` has exactly one
+> caller in the whole jar — `Food.updateAge(Z) @16 L739` — and every route into `updateAge` is
+> server-gated (`Food.update @38–@46 L369-L370`, `OnAddedToContainer @0–@7 L2518-L2519` and
+> `OnBeforeRemoveFromContainer @0–@7 L2525-L2526` all test `GameServer.server`; `updateRotting`
+> returns first on `GameClient.client @13 L658`), so on an **MP client** — and, per open question 5,
+> in **single-player** at default settings — nothing thaws the flag, which is why slice 01's
+> client-side `item.state … frozen` rows ([eating-pipeline.md](eating-pipeline.md), the frozen
+> intake and boredom/unhappiness rows) are valid. Vanilla
 > itself never trusts either alone: `ItemPickerJava.rotItem @59–@70 L2253-L2254` calls
 > `setRotten(true)` *and then* `setAge(getOffAgeMax())`. The working routes are
 > `setAge(offAgeMax + 1)` / `setAge(offAge)` and `freeze()` / `setFreezingTime(100)` (Ev C;
@@ -631,6 +639,56 @@ it for any food), `write` emits it once (`@75 L245`), and the receiver applies i
 fields (`setItemHeat @64–@67 L528`, then `Food.setHeat @100–@103 L533` for food). And they
 *collapse* `customName` and `name`, which are two packet fields, into one entry. Ev C.
 
+### A zero-valued packet field can arrive carrying another item's value
+
+Most of the food block is written **conditionally**. `write` adds a bit-header flag and puts the
+value only when the field is non-zero — `cookingTime` at `@162–@186 L261–L263` (`!= 0f` → flag
+`16`) is the pattern, and **twenty** value fields in all are written this way: eighteen behind a
+plain `!= 0` test, `poisonDetectionLevel` behind `!= -1`, and `fertilizedTime` behind the
+`isFertilized` boolean. `parse` mirrors the guard exactly
+(`cookingTime` at `@172–@188 L390–L391`), so a skipped field is simply *not read*. Three further
+facts turn that into a defect:
+
+1. **`applyItemStats` applies unconditionally.** `Food.setCookingTime(this.cookingTime)` at
+   `@122–@127 L536` is one of 31 `Food` setters that run with no guard beyond the single `isFood`
+   test (`@70–@74 L529`). Whatever the field holds is written onto the item.
+2. **The packet object has no reset.** Its entire method list is `<init>()`, `setData`, `write`,
+   `parse`, `processServer`, `processClient`, `applyItemStats` — nothing zeroes it between uses.
+3. **The receiver reuses one packet object per type.** `PacketType.onClientPacket` fetches the
+   instance from the connection's cache (`@33–@40 L1002` → `PacketsCache.getPacket @0–@11 L41`, a
+   `HashMap<PacketType, INetworkPacket>` lookup) and allocates a fresh one **only** when
+   `isPostponed()` or `shouldInstantiate()` says so (`@41–@80 L1003–L1004`). Both default to
+   `false` on `INetworkPacket` (`L70`, `L79`) and `ItemStatsPacket` overrides neither.
+
+The sender is clean — `setData` refreshes every field off the item (`cookingTime` at `@224–@230
+L184`) and even `clear()`s its two lists — so the stale value lives on the **receiving** object.
+Net effect: **any conditionally-written field that is zero on the sender arrives carrying whatever
+the last packet that did set it left behind, and the receiver writes that onto the item.** Ev C.
+
+| Guard in `write` (skipping it leaves the field stale) | Field(s) | Flag |
+|---|---|---|
+| `!= 0f` | `cookingTime` (`L261–263`), `minutesToCook` (`L265–267`), `minutesToBurn` (`L269–271`), `hungChange` (`L273–275`) | 16, 32, 64, 128 |
+| all four `== 0f` | `calories`, `proteins`, `lipids`, `carbohydrates` — one block, any one non-zero writes all four (`L277–282`) | 256 |
+| `!= 0f` | `thirstChange` (`L284–286`), `painReduction` (`L292–294`), `endChange` (`L296–298`), `stressChange` (`L304–306`), `fatigueChange` (`L308–310`), `unhappyChange` (`L312–314`), `boredomChange` (`L316–318`), `baseHunger` (`L329–331`) | 512, 2048, 4096, 16384, 32768, 65536, 131072, 2097152 |
+| `!= 0` (int) | `fluReduction` (`L288–290`), `foodSicknessChange` (`L300–302`) | 1024, 8192 |
+| `!= -1` | `poisonDetectionLevel` (`L322–324`) | 524288 |
+| `isFertilized` | `fertilizedTime` (`L347–349`) — a stale time then lands on a *non*-fertilized item | 33554432 |
+
+Four groups are **not** vulnerable, and it is worth knowing which: `extraItems` and `spices` are
+conditionally written but `parse` `clear()`s both *before* the flag test (`@546–@550 L445`,
+`@599–@603 L452`); `poisonPower`'s flag is added unconditionally (`@570–@584 L320-321`), so it is
+always on the wire and always read; the pure booleans (`isFrozen` 1, `isTainted` 2, `isCooked` 4,
+`isBurnt` 8, `isAlcoholic` 1048576, `isCustomName` 16777216, `isFertilized` 33554432) are
+re-derived from the header on every parse; and `condition`, `uses`, `usedDelta`, `heat`, `name`,
+`actualWeight` are written outside the bit header altogether. Ev C.
+
+The measurement matches the shape: in `exp02-20260910-030433` an apple synced right after a steak
+arrived on the client with the steak's `cookingTime` (**71.119644** — a value the apple had held on
+neither side), while its own non-zero `minutesToCook 60` / `minutesToBurn 120` arrived correctly.
+Same item id on both sides, an empty baseline diff, a single field diverging — not a harness lookup
+ambiguity. It reproduced in the uncommitted shakedown run with that run's then-current steak value,
+and survived cooling the steak below the cooking gate. Ev M `exp02-20260910-030433`.
+
 **Per field.** The fields that matter here, graded by what was actually put to the test — a field
 only carries information when the two sides were first made to *differ* on it:
 
@@ -676,6 +734,12 @@ command exists, not as a measured row).
    Bowl and the untouched ingredients. The summation is pure Java arithmetic that both sides run
    identically; what an MP server stores after a real `ISAddItemInRecipe` was not measured.
    Ev M (caveat), `exp02-20260910-030433`.
+5. **A zero-valued `ItemStatsPacket` field is not trustworthy client-side.** Any of the twenty
+   conditionally-written fields above — `cookingTime`, `minutesToCook`/`minutesToBurn`,
+   `hungChange`, the four macros as a block, `baseHunger` and the mood/health deltas — arrives
+   carrying the previous packet's value whenever the sending item's own value is zero, so a
+   client-side `getCookingTime()` / `getCalories()` read on an item that *should* be zero may be
+   reading another item's number. Ev C, and M for `cookingTime` (`exp02-20260910-030433`).
 
 ---
 
@@ -689,7 +753,7 @@ command exists, not as a measured row).
 | 4 | "As food begins to rot, its effects will become more negative" — reads as blanket ([food.md](../../references/wiki-mirrors/food.md), 42.20.0) | Rot leaves **all four macros untouched**: 220 kcal / 0 / 9.35 / 31.62 identical at ages 0, 1.9, 2.1 and 4.1. Only `getHungerChange` (÷2.2), stress (÷2), boredom/unhappiness (+20) and the sickness roll degrade; thirst and endurance have no rot branch at all | W vs C+M `exp02-20260910-030433` |
 | 5 | "every ingredient adds −5 boredom **and** unhappiness the first time; three of the same negates the bonus, more than three adds a penalty" ([evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md), **41.78.19**) | Two errors against `EvolvedRecipe.addItem`: `boredomChange` is zeroed once in phase A and never touched again — only `unhappyChange` moves, as `−(5 − dupes×5)` clamped at `+25` plus an over-stuffing term — and the off-by-one: the bonus already stops on the **second** identical copy and the penalty starts on the third | W vs C |
 | 6 | The recipe roster, ~35 rows, no `Template` mechanism ([evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md), 41.78.19) | 42.20.4 loads **62** `evolvedrecipe` blocks, and an item's `EvolvedRecipe = Name:use` attaches both to the matching recipe **and** to every recipe whose `Template` equals that key. Verify any roster entry or hunger figure against `EvolvedRecipe.Load` / `Item.OnScriptsLoaded`, not that table | W vs C |
-| 7 | Per-level table: ingredient consumed falls 100 % → 70 % while nutrition added per ingredient rises 100 % → **117 %**, "level 10 lands slightly below level 9" ([cooking.md](../../references/wiki-mirrors/cooking.md), **42.18.0**) | **The wiki is right and our own first code reading was wrong.** Consumption is `1 − 0.03·lvl` = 0.70 at level 10 (measured: lettuce `share` 0.33333 → 0.23333, exactly ×0.70) and macros per unit of dish hunger are `skillBonus × (1 − 0.03·lvl)` = **1.16667** at level 10 against **1.168** at level 9 — the page's "slightly below" is real, and holds while `share < 1`. (Our own digest on [evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md) repeats the `1.67×` reading and needs the same correction) | W confirmed by C+M `exp02-20260910-030433` |
+| 7 | Per-level table: ingredient consumed falls 100 % → 70 % while nutrition added per ingredient rises 100 % → **117 %**, "level 10 lands slightly below level 9" ([cooking.md](../../references/wiki-mirrors/cooking.md), **42.18.0**) | **The wiki is right and our own first code reading was wrong.** Consumption is `1 − 0.03·lvl` = 0.70 at level 10 (measured: lettuce `share` 0.33333 → 0.23333, exactly ×0.70) and macros per unit of dish hunger are `skillBonus × (1 − 0.03·lvl)` = **1.16667** at level 10 against **1.168** at level 9 — the page's "slightly below" is real, and holds while `share < 1`. (Our own digest on [evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md) carried the same `1.67×` reading and was corrected in the same pass — it now reads `1.1667x`) | W confirmed by C+M `exp02-20260910-030433` |
 | 8 | "An evolved recipe inherits the age of its base ingredient only" ([cooking.md](../../references/wiki-mirrors/cooking.md), 42.18.0) | Nearly right, but **proportional**, not inherited: phase A sets `newAge = newOffAgeMax × (oldAge / oldOffAgeMax)` and only when *both* items have real thresholds (neither at the `1000000000` sentinel); ingredients contribute no age at all | W vs C |
 | 9 | The Fridges table as a refrigeration roster ([appliances.md](../../references/wiki-mirrors/appliances.md), **42.8.0**) | Groups tiles by *category*, not by container type, and carries no spoilage, power or temperature figure whatsoever. `ItemContainer.isFridge()` returns **false** for anything that is already a freezer, so Generic Cooled Shelves and White Display Counter are the likeliest false positives. The page's own banner says tiles were removed during B42 unstable | W vs C |
 | 10 | Nutritional-values rows are state-free ([nutritional-values.md](../../references/wiki-mirrors/nutritional-values.md), **42.20.0**) | Correct for the macros — bare `getfield` reads, no cooked/burnt/rotten/frozen modifier, measured identical at four ages — but its hunger column is the raw script value (÷100 at instantiation) and so an identity column, not an arithmetic one; its "Fat" column is the script/Java `Lipids` | W vs C+M `exp02-20260910-030433` |
@@ -718,20 +782,17 @@ actually headed `== Fridges ==` as of 42.8.0) — see
    uncommitted shakedown run `exp02-20260910-025434` — same time speed, same container. **Do not
    quote a thaw number as measured** without a third run. The Δ`age` = 0 result the phase exists for
    reproduced in both.
-3. **A stray `cookingTime` arrives on the wrong item — probably a real sync defect.** After
-   `item.set … Base.Apple calories 999` + `sendItemStats(apple)`, the client's apple came back with
-   `cookingTime = 71.119644` — the steak's `cookingTime` at the previous `sendItemStats`, a value
-   the apple never had on either side (server 0, client baseline 0). Same item id on both sides, an
-   empty baseline diff, a single field diverging, and `minutesToCook`/`minutesToBurn` correct on
-   both — so it is not a harness lookup ambiguity. Working reading: an `ItemStatsPacket` write/read
-   asymmetry for `cookingTime` on a **non-cookable** item (a field not re-initialised between
-   sends). It reproduced in the shakedown run with that run's then-current steak value, and survived
-   cooling the steak below the cooking gate. Three discriminating runs would settle it: (i) set the
-   steak's `cookingTime` to a distinctive value, sync steak then apple, and see whether the apple
-   tracks it; (ii) sync the apple twice with no steak send in between; (iii) sync an apple in a
-   session where no cookable item was ever synced. **Mod-relevant hazard:** any mod that reads
-   `getCookingTime()` client-side on non-cookable food may be reading another item's value.
-   (M, `exp02-20260910-030433`.)
+3. **Which of the twenty leaking `ItemStatsPacket` fields reproduce at runtime.** The *mechanism*
+   is no longer open — it is code-read end to end under MP behaviour, "A zero-valued packet field
+   can arrive carrying another item's value" (conditional `write`, mirrored `parse`, unconditional
+   `applyItemStats`, no reset, one cached packet object per type), and `cookingTime` is measured:
+   the client's apple came back with the steak's `71.119644`. What is *not* established is the
+   breadth. Only `cookingTime` has been seen to carry over; the other nineteen fields are read off
+   the `write`/`parse` guard list and have never been made to differ in a run, and the observed case
+   happened to involve a **non-cookable** receiver, which the mechanism says is incidental but no
+   run has shown to be. One optional confirmation would settle it: sync an item with a distinctive
+   `cookingTime`, then sync a zero-valued item, and see whether the second inherits it. (C, with M
+   for `cookingTime`, `exp02-20260910-030433`.)
 4. **The fridge and freezer *container* multipliers are unmeasured.** `isInFridge`/`isInFreezer`
    need a real placed appliance whose container type is `fridge`/`freezer` (or whose parent carries
    `IsoPropertyType.IS_FRIDGE`), on a square where `getSourceGrid().haveElectricity()` — which the
@@ -781,6 +842,7 @@ actually headed `== Fridges ==` as of 42.8.0) — see
 `setAutoAge`, `setFreezingTime`, `freeze`, `isFreezing`, `isThawing`, `isFresh`, `isRotten`,
 `canAge`, `getFridgeFactor`, `getFoodRotSpeed`, `getHungerChange`, `getThirstChange`, `getCalories`
 and siblings, `setCooked`, `setBurnt`, `setRotten`, `isPackaged`, `isPoison`, `getUseForPoison`,
+`OnAddedToContainer`, `OnBeforeRemoveFromContainer`,
 `save`, `load`); `zombie/inventory/InventoryItem` (`getAge`, `setAge`, `getOffAge`, `getOffAgeMax`,
 `isCookable`, `getCookingTime`, `getStringItemType`, `update`, `calculateTimeMultiplier`);
 `zombie/inventory/ItemContainer` (`isFridge`, `isFreezer`, `getTemprature`, `AddItem`);
@@ -790,8 +852,10 @@ and siblings, `setCooked`, `setBurnt`, `setRotten`, `isPackaged`, `isPoison`, `g
 `zombie/inventory/ItemPickerJava` (`doRollItemInternal`, `rotItem`, `getLootType`);
 `zombie/iso/IsoCell.ProcessItems`, `zombie/iso/objects/IsoStove`, `IsoCompost`;
 `zombie/characters/IsoGameCharacter` (`updateInternal`, `recursiveItemUpdater`, `isKnownPoison`);
-`zombie/network/packets/ItemStatsPacket`, `SyncItemFieldsPacket`; `zombie/GameTime.checkHours`;
-`zombie/SandboxOptions`.
+`zombie/network/packets/ItemStatsPacket` (`<init>`, `setData`, `write`, `parse`, `applyItemStats`),
+`SyncItemFieldsPacket`, `INetworkPacket` (`isPostponed`, `shouldInstantiate`);
+`zombie/network/PacketTypes$PacketType.onClientPacket`; `zombie/network/PacketsCache.getPacket`;
+`zombie/GameTime.checkHours`; `zombie/SandboxOptions`.
 
 **Lua (`D:\SteamLibrary\steamapps\common\ProjectZomboid\media\lua`)**
 `shared/TimedActions/ISAddItemInRecipe.lua`, `client/ISUI/ISInventoryPaneContextMenu.lua`,
@@ -818,7 +882,7 @@ harness commands this run added are listed in [`../testing/README.md`](../testin
 earlier shakedown run of the same script (`exp02-20260910-025434`) is **not** committed and is cited
 here only where it is named as non-evidence, in three places: the thaw-rate disagreement (open
 question 2), the perk-overwrite rationale (§ MP behaviour) and the corroborating reproduction of the
-cross-item `cookingTime` leak (open question 3).
+cross-item `cookingTime` leak (§ MP behaviour, "A zero-valued packet field…").
 
 **Wiki mirrors** [fridge.md](../../references/wiki-mirrors/fridge.md) (page version 41.78.19),
 [evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md) (41.78.19),

@@ -389,7 +389,13 @@ TK.register("recipe.evolved", function(argv)
                 row.canBeUseCount = "no EvolvedRecipe:getItemsCanBeUse"
             end
             local okUsable, usable = TK.call(recipe, "isItemUsableInRecipe", p, base, ing:getID())
-            row.usable = okUsable and usable or "no EvolvedRecipe:isItemUsableInRecipe"
+            -- not `okUsable and usable or "..."`: a legitimate `false` would report the
+            -- missing-method string, which is the one answer that must stay distinguishable.
+            if okUsable then
+                row.usable = usable
+            else
+                row.usable = "no EvolvedRecipe:isItemUsableInRecipe"
+            end
             local okAdd, newBase = TK.call(recipe, "addItem", base, ing, p)
             if not okAdd then
                 row.error = "no EvolvedRecipe:addItem"

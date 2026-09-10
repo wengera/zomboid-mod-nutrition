@@ -23,7 +23,7 @@ these paths rather than a path that only exists on the machine that ran the expe
 |---|---|---|---|
 | `exp01-20260910-000351` | `eat-smoke.json` | `testing/experiments/s01_eat_smoke.py` | [`docs/vanilla/eating-pipeline.md`](../../docs/vanilla/eating-pipeline.md), [`docs/vanilla/nutrition-core.md`](../../docs/vanilla/nutrition-core.md), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) |
 | `exp01-20260910-003929` | `eat-matrix.json` | `testing/experiments/s01_eat_matrix.py` | same three docs |
-| `exp02-20260910-030433` | `lifecycle.json` | `testing/experiments/s02_lifecycle.py` | slice 02 (`.superpowers/sdd/02-food-item-model/task-M-report.md`; docs to follow in T6) |
+| `exp02-20260910-030433` | `lifecycle.json` | `testing/experiments/s02_lifecycle.py` | [`docs/vanilla/food-item-model.md`](../../docs/vanilla/food-item-model.md) |
 
 ## Script/artifact skew
 
@@ -31,7 +31,8 @@ Standing rule (`docs/decisions.md`, 2026-09-10, program): **when a fix round fol
 slice's last live run, this README notes the skew — the commit that produced the artifact and
 what the current script adds — instead of assuming a later run erases it.** Re-running an
 experiment for a teardown-only change is poor value; disclosure is what keeps the evidence
-honest. Both slice-01 artifacts predate that slice's last fix round, so both are listed.
+honest. Both slice-01 artifacts predate that slice's last fix round, and the slice-02 artifact
+predates slice 02's, so all three are listed.
 
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
@@ -62,3 +63,24 @@ at commit `1d32909`. Since `39fceca` the script additionally:
   `sandbox_nutrition_restored`). This run has no such key: the belt-and-braces restore did not
   exist yet. Its in-band restore did run and read back `true`
   (`probe_sandbox.restore_true.after`), so the fixture was left as found regardless.
+
+**`exp02-20260910-030433/lifecycle.json`** — produced by `testing/experiments/s02_lifecycle.py`
+at commit `5714117`. Since `d9ff9a7` the script writes five keys this file therefore lacks:
+
+- **`fixture`** and **`build`** at the top level — the fixture name and the server build parsed
+  out of the startup log. Absent here, so the fixture and the build behind these numbers are on
+  the word of the run report (`.superpowers/sdd/02-food-item-model/task-M-report.md`) rather
+  than the artifact.
+- **`dWorldHoursWait`** and **`dWorldHoursContaining`** on phase (c). This file carries the wait
+  window only, as `summary.c.dWorldHours` = **24.50126** game-hours. The *containing* window —
+  from the `setAge(0)` reply to the `item.get` reply, which is the window the item actually aged
+  over — is **not** a key here; the doc derives it from the two `serverWorldAge` stamps this file
+  does carry (**2.400196 → 26.956989** = 24.556793 game-h).
+- **`expectedFrom`**, the flag saying which of the two windows the prediction was computed over.
+  The prediction in this file, `summary.c.expectedAtRotSpeed1` = **1.0209**, is therefore the
+  **wait-window** figure — which flatters the phase-(c) shortfall to 1.3 %. The current script
+  predicts over the containing window instead. **The 1.0232 / 1.5 % pair quoted in
+  [`docs/vanilla/food-item-model.md`](../../docs/vanilla/food-item-model.md) (open question 1) is
+  derived in the doc from this file's two `serverWorldAge` values, not read off a key** — that is
+  the correction, and it changes the residual, not the measurement: `summary.c.serverAge`
+  (**1.00777**) is what was measured and is unaffected.

@@ -355,11 +355,17 @@ boolean isThawing()  { return canBeFrozen() && freezingTime > 0 && (!isInFreezer
 void freeze()        { setFreezingTime(100f); }    // @0–@7 L2170-L2171
 ```
 
-So `setFrozen(true)` **alone is as inert as `setRotten(true)` is for rot in one direction**: it
-sets the flag (and the ×0 age rate follows immediately, because `updateAge` reads `isFrozen()`),
-but the very next `updateFreezing` tick sees `isThawing()` (freezingTime still 0) and will drive
-`setFreezingTime(negative)` → `setFrozen(false)`. **Use `freeze()`** (or `setFreezingTime(100)`)
-in experiments, not `setFrozen(true)`.
+So `setFrozen(true)` **alone is as inert as `setRotten(true)` is for rot in one direction — but only
+on a server** (where `updateAge` runs): it sets the flag (and the ×0 age rate follows immediately,
+because `updateAge` reads `isFrozen()`), but the very next `updateFreezing` tick sees `isThawing()`
+(freezingTime still 0) and will drive `setFreezingTime(negative)` → `setFrozen(false)`.
+`updateFreezing` has exactly **one caller in the whole jar** — `Food.updateAge(Z) @16 L739` — and
+every route into `updateAge` is server-gated (`Food.update @38–@46 L369-L370`,
+`OnAddedToContainer @0–@7 L2518-L2519`, `OnBeforeRemoveFromContainer @0–@7 L2525-L2526` all test
+`GameServer.server`; `updateRotting` returns first on `GameClient.client @13 L658`), so on an **MP
+client** — and, per Q5, in **single-player** at default settings — there is no tick to undo it and
+`setFrozen(true)` sticks; that is why slice 01's client-side `item.state … frozen` rows hold.
+**Use `freeze()`** (or `setFreezingTime(100)`) in **server-side** experiments, not `setFrozen(true)`.
 
 ### Spawn-time age — `Food.setAutoAge()`
 
@@ -1091,7 +1097,7 @@ only, a silent no-op on a client; there is no client→server item-field push
 | force rotten | **`item:setAge(item:getOffAgeMax() + 1)`** | `setRotten(true)` is inert (Q2) — slice 01's fallback is the *only* route |
 | force stale | `item:setAge(item:getOffAge())` | matches `ItemPickerJava.rotItem @93 L2257` |
 | force fresh | `item:setAge(0)` | already in `item.state … fresh` |
-| force frozen | **`item:freeze()`** or `item:setFreezingTime(100)` | `setFrozen(true)` alone is undone by the next `updateFreezing` tick (Q2). `item.state … frozen` currently uses `setFrozen` — expect it to decay |
+| force frozen | **`item:freeze()`** or `item:setFreezingTime(100)` | `setFrozen(true)` alone is undone by the next `updateFreezing` tick **on the server bus** (Q2); on the client bus there is no tick, so `item.state … frozen`'s `setFrozen` sticks |
 | read frozen | `item:isFrozen()`, `item:getFreezingTime()` | 0–100 |
 | force cooked | `item:setCooked(true)` | also raises `cookingTime` to `minutesToCook` |
 | force burnt | `item:setBurnt(true)` | also raises `cookingTime` to `minutesToBurn` |
