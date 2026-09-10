@@ -569,6 +569,22 @@ def test_mode_destroy_charges_the_whole_item_and_records_the_waste():
     kept = recipe_scan.parse_text(DESTROY.replace(" mode:destroy", ""), "s.txt")[0]
     k = recipe_scan.nutrition_delta(kept, AMOUNT_FOOD)
     assert k["calories"] == 0.0 and k["destroyWaste"] is None
+    # A round-up whose row carries NO macro at all publishes `null`, not six zeroes -- vanilla's
+    # one case, `UnpackCigarettes`' `Base.CigarettePack`. The dict is the macros LOST, and an
+    # all-zero one reads as a measured "0.0 kcal destroyed" where the truth is that the destroyed
+    # row has nothing this dataset can weigh. The notes still record the round-up, and say that
+    # `mode:destroy` supersedes the drainable rule that had charged the line 0.
+    bare = dict(AMOUNT_FOOD)
+    bare["Test.Syrup"] = {"kind": "drainable", "nutrition_basis": "per_item"}
+    pack = recipe_scan.parse_text(DRAINABLE.replace("[Test.Syrup],",
+                                                    "[Test.Syrup] mode:destroy,"), "s.txt")[0]
+    b = recipe_scan.nutrition_delta(pack, bare)
+    assert b["destroyWaste"] is None
+    assert any("supersedes the drainable note on Test.Syrup" in n for n in b["notes"])
+    assert any("drainable input: Test.Syrup" in n for n in b["notes"])
+    # ...and with macros to lose, the same shape DOES publish them
+    with_macros = recipe_scan.nutrition_delta(pack, AMOUNT_FOOD)
+    assert with_macros["destroyWaste"]["calories"] == 1000.0   # Test.Syrup's whole bottle
 
 
 DRAINABLE = """module Base
@@ -1068,6 +1084,34 @@ def test_an_ingredient_with_no_hunger_has_no_share():
     c = recipe_scan.contribution({"HungerChange": 0.0, "Calories": 100.0}, 5, 0)
     assert c["share"] == 0.0 and c["calories"] == 0.0 and c["reason"] == "no hunger"
     assert recipe_scan.contribution({"Calories": 100.0}, 5, 0)["reason"] == "no hunger"
+    # ...and the clamp still applies to it. `addItem @934 L374-376` is a bare
+    # `min(hunger, |getHungerChange()|)` with no zero guard, so a key asking for 0.05 against an
+    # ingredient with no hunger is clamped to 0 rather than left asking. No vanilla row reaches
+    # this (all 6881 carriers write a non-zero HungerChange); it is here so the guard that used
+    # to sit in front of the clamp cannot come back.
+    assert c["hungerClamped"] is True and c["hunger"] == 0.0 and c["hungerAfterSkill"] == 0.0
+    zero_key = recipe_scan.contribution({"HungerChange": 0.0, "Calories": 100.0}, 0, 0)
+    assert zero_key["hungerClamped"] is False        # 0 asked against 0 held is not a clamp
+
+
+def test_the_dried_food_skip_is_recorded_even_when_the_row_refuses_its_macros():
+    """`addItem @1316 L416` skips the thirst line for a `DRIED_FOOD` item whatever else is true.
+
+    On a row Ruling R3 refuses (`nutrition_basis != per_item`) every macro is **null**, so the
+    old `if out["thirstChange"]` test could never flag one -- null is falsy for the same reason
+    0.0 is, and the two mean opposite things. Zero vanilla rows are refused, so this is the
+    latent case; the 550 tagged rows whose thirst is *already* 0 stay unflagged, because there
+    the 0 is an absent value and not this branch.
+    """
+    dried = dict(EVO_FOOD["Base.Ramen"], nutrition_basis="per_litre")
+    c = recipe_scan.contribution(dried, 10, 0)
+    assert c["reason"] == "fluid-sourced" and c["thirstChange"] is None
+    assert c["thirstSkipped"] is True                 # the loader skips the line either way
+    # a tagged row that writes no thirst at all is NOT flagged: its 0.0 is `absentMacros`
+    no_thirst = dict(EVO_FOOD["Base.Ramen"])
+    no_thirst.pop("thirst_change", None)
+    no_thirst.pop("ThirstChange", None)
+    assert recipe_scan.contribution(no_thirst, 10, 0)["thirstSkipped"] is False
 
 
 def test_ruling_r3_nulls_the_macros_of_a_non_per_item_row():
@@ -1279,7 +1323,11 @@ def test_real_install_counts():
                                     for _k, f in recipe_scan.MACROS)
     # the 55 `-fluid` lines are sub-lines of the input above them, not inputs of their own
     assert counts["inputSubLines"] == 55
-    assert counts["recipesWithDestroyWaste"] == 1          # `UnpackCigarettes`, the one destroy
+    # 0 rows PUBLISH a waste block. One row rounds up (`UnpackCigarettes`) but the item it
+    # destroys is the drainable `Base.CigarettePack`, which writes no macro key at all, so its
+    # six macros would all be 0 and an all-zero block would read as a measured "0.0 kcal
+    # destroyed". The round-up is in that row's `delta.notes` instead.
+    assert counts["recipesWithDestroyWaste"] == 0
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
     assert len({r["name"] for r in recipes}) == 969        # every craftRecipe name is unique
     assert meta["build"] == "42.20.4 (b0bbce05d5)"
@@ -1342,10 +1390,17 @@ def test_real_install_input_amount_worked_examples():
     scoop = by_name["ScoopIceCream"]["delta"]
     assert (scoop["carbohydrates"], scoop["lipids"]) == (50.0, 11.0)
     assert round(scoop["proteins"], 2) == 9.33 and scoop["hungerChange"] == 0.0
-    # the one shipped `mode:destroy` line that annihilates more than it charges
-    waste = by_name["UnpackCigarettes"]["delta"]["destroyWaste"]
-    assert waste is not None and waste["calories"] == 0.0   # the pack writes no `Calories` line
-    assert any("drainable input" in n for n in by_name["UnpackCigarettes"]["delta"]["notes"])
+    # The one shipped `mode:destroy` line that annihilates more than it charges. Its waste block
+    # is `null`, not six zeroes: `Base.CigarettePack` writes no macro key, so nothing measurable
+    # was thrown away and a zero block would claim otherwise. Both notes are present and the
+    # second says which rule wins, because "charges no macros" and "charges one whole item" read
+    # as a contradiction side by side.
+    unpack = by_name["UnpackCigarettes"]["delta"]
+    assert unpack["destroyWaste"] is None
+    notes = unpack["notes"]
+    assert any("drainable input" in n for n in notes)
+    assert any("mode:destroy on Base.CigarettePack" in n for n in notes)
+    assert any("supersedes the drainable note" in n for n in notes)
 
 
 @unittest.skipUnless(HAVE_INSTALL and HAVE_FOOD, "game install or food dataset not present")

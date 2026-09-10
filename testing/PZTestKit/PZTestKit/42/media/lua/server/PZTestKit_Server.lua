@@ -862,20 +862,31 @@ end)
 --       ItemUser.UseItem(item, true, false, ceil(remaining), keep, destroy)
 --   ItemUser.UseItem @18 L34            used = Math.min(item.getCurrentUses(), count)
 --                    @28-@41 L37-38     if (!keep) item.setCurrentUses(getCurrentUses() - used)
+--                    @146 L53           replaceOnDeplete is behind `instanceof
+--                                       DrainableComboItem` -- a Food never enters that arm
+--                    @293 L73-74        sendItemStats(item) when uses REMAIN
 --                    @272 L68-70        uses <= 0 && !isKeepOnDeplete() -> RemoveItem(item)
---   Food.setCurrentUses  @23-@35 L2228-L2233  n = max(0, n);
+--   Food.setCurrentUses  @6      L2230  a `baseHunger == 0` branch sits ahead of the line
+--                                       below, so an item with no hunger scale never reaches
+--                                       consumeHunger (the same zero getMaxUses answers 1 for)
+--                        @23-@35 L2228-L2233  n = max(0, n);
 --                                             consumeHunger((getCurrentUses() - n) / 100f)
 --   Food.consumeHunger   @0-@17  L2714-L2715  r = |a / hungChange|; multiplyFoodValues(1 - r)
 --   Food.getCurrentUses  @14-@26 L2219-L2223  (int)|hungChange  * 100|
 --   Food.getMaxUses      @11-@23 L2210-L2214  (int)|baseHunger * 100|
 --
--- so `r = ((cur - n)/100) / |hungChange|` and, since `|hungChange| = cur/100`, that is
--- exactly `used / cur`: every field `multiplyFoodValues` touches (hungChange, calories,
--- carbohydrates, proteins, lipids, and the thirst/mood block) is scaled by
--- **`1 - used/currentUses`**. The denominator is `currentUses`, NOT `maxUses` -- they are
--- equal only while the item is whole, because `multiplyFoodValues` moves `hungChange` (and
--- with it `getCurrentUses()`) but never `baseHunger` (and with it `getMaxUses()`). Both ints
--- are in `before`, so a caller checks that rather than assuming it.
+-- so `r = ((cur - n)/100) / |hungChange|`, and every field `multiplyFoodValues` touches
+-- (hungChange, calories, carbohydrates, proteins, lipids, and the thirst/mood block) is scaled
+-- by `1 - r`. `|hungChange| = cur/100` -- and with it `r = used/cur` -- holds EXACTLY only
+-- while `|hungChange| * 100` is a whole number, i.e. on an item whose uses have never been
+-- part-spent: `getCurrentUses()` truncates, so on a nibbled item `cur/100` is a hair under
+-- `|hungChange|` and the real factor is a hair under `1 - used/cur`. `predictedFactor` below
+-- is the readable `1 - used/cur`; the experiment recomputes `1 - amount/hungChange` at float32
+-- width for its compare, which is the arithmetic the game runs. The denominator is
+-- `currentUses`, NOT `maxUses` -- they are equal only while the item is whole, because
+-- `multiplyFoodValues` moves `hungChange` (and with it `getCurrentUses()`) but never
+-- `baseHunger` (and with it `getMaxUses()`). Both ints are in `before`, so a caller checks
+-- that rather than assuming it.
 --
 -- SERVER-side for the same reason `drink` is: the server owns the item, and slice 02
 -- measured that a client's copy is a stale mirror. No `sendItemStats` push is made here --
@@ -898,14 +909,9 @@ local function useState(it)
     return st
 end
 
--- The finder `drink` uses. `fluidCandidates` is the enumeration itself (`getAllTypeRecurse`,
--- the game's own list route) and the `getFirstTypeRecurse` fallback below is `drink`'s own
--- belt and braces, for the same reason: only the first-match route has been exercised against
--- a full type by this harness (`item.get`), so an empty list falls back to it rather than
--- reporting an absent item -- and the reply says which finder answered, because the fallback
--- cannot see a second instance and its "most uses" guarantee is therefore void. The fluid
--- column those rows carry (`hasFluidContainer`, false on every Food) is left in: it is the
--- reading that says the uses below are the `Food` override's and not a drainable's.
+-- The four uses columns one candidate row carries. The fluid column those rows also carry
+-- (`hasFluidContainer`, false on every Food, set by `fluidCandidates`) is left in: it is the
+-- reading that says these uses are the `Food` override's and not a drainable's.
 local function useRow(it, row)
     local ok, v = TK.call(it, "getCurrentUses");   if ok then row.currentUses = v end
     ok, v = TK.call(it, "getMaxUses");             if ok then row.maxUses = v end
@@ -914,6 +920,17 @@ local function useRow(it, row)
     return row
 end
 
+-- The finder `drink` uses. `fluidCandidates` is the enumeration itself (`getAllTypeRecurse`,
+-- the game's own list route) and the `getFirstTypeRecurse` fallback below is `drink`'s own
+-- belt and braces, for the same reason: only the first-match route has been exercised against
+-- a full type by this harness (`item.get`), so an empty list falls back to it rather than
+-- reporting an absent item -- and the reply says which finder answered, because the fallback
+-- cannot see a second instance and its "most uses" guarantee is therefore void.
+--
+-- Returns `(cands, finder, err)`, and `cands == nil` is the FAILED enumeration -- distinct
+-- from an empty list, which is a successfully-read empty inventory. Callers must not let the
+-- two look alike: `candidatesAfter` being empty is how the reply says a depleted item was
+-- removed.
 local function useCandidates(p, fullType)
     local cands, cerr = fluidCandidates(p, fullType)
     if cands == nil then return nil, nil, cerr end
@@ -1000,6 +1017,21 @@ TK.register("item.use", function(argv)
         out.error = "no InventoryItem:getCurrentUses() on the selected instance"
         return out
     end
+    -- REFUSED, not applied: on an already-depleted `Food` the chain divides by zero. `cur == 0`
+    -- means `|hungChange|` has already been scaled to 0 (`getCurrentUses` is
+    -- `(int)|hungChange * 100|`), so `setCurrentUses(0)` reaches
+    -- `consumeHunger((0 - 0) / 100f)` and `Food.consumeHunger @0-@17 L2714-L2715` computes
+    -- `r = |0 / 0|` = NaN, then `multiplyFoodValues(1 - NaN)` writes NaN into hungChange,
+    -- calories, carbohydrates, proteins, lipids and the mood block. The item would be
+    -- unreadable afterwards and the run would have destroyed its own evidence, so the command
+    -- answers with the `before` snapshot it already took and changes nothing.
+    if cur == 0 then
+        out.error = "the selected " .. tostring(fullType) .. " has 0 uses left; refusing: "
+                    .. "Food.consumeHunger would divide by a zero hungChange and write NaN "
+                    .. "into every macro (@0-@17 L2714-L2715). Nothing was applied."
+        out.route = "none (refused: currentUses == 0)"
+        return out
+    end
     -- `used = Math.min(item.getCurrentUses(), count)` -- UseItem @18 L34.
     local used = uses
     if cur < used then used = cur end
@@ -1008,14 +1040,19 @@ TK.register("item.use", function(argv)
     -- The rule's own prediction, next to the reading (`drink`'s `predictedNutrition` shape).
     -- Computed in Lua doubles while the game computes it in float32, so it is the READABLE
     -- version -- the experiment recomputes the same chain at float32 width for its compare.
-    local factor = 1.0
-    if cur > 0 then factor = 1.0 - (used / cur) end
+    local factor = 1.0 - (used / cur)            -- cur > 0 is guaranteed by the guard above
     out.predictedFactor = factor
     out.predictedFactorBasis =
         "multiplyFoodValues(1 - used/currentUses), via Food.setCurrentUses -> consumeHunger; "
-        .. "equal to 1 - used/maxUses only while the item is whole"
-    local pred, PRED = {}, { "hungChange", "calories", "carbs", "lipids", "proteins",
-                             "thirstChange" }
+        .. "equal to 1 - used/maxUses only while the item is whole, and equal to the game's "
+        .. "own 1 - amount/hungChange only while |hungChange| * 100 is a whole number"
+    -- `thirstChange` is NOT predicted here. `multiplyFoodValues @42 L2292` scales
+    -- `getThirstChangeUnmodified()`, while `TK.ITEM_STATE.thirstChange` reads the MODIFIED
+    -- getter -- the two are different numbers, so a prediction built from the modified one
+    -- would be wrong wherever the modifiers bite, and right only by accident where they do
+    -- not. `before.thirstChange` / `after.thirstChange` are still in the reply, recorded and
+    -- uncompared.
+    local pred, PRED = {}, { "hungChange", "calories", "carbs", "lipids", "proteins" }
     for i = 1, #PRED do
         local b = out.before[PRED[i]]
         if b ~= nil then pred[PRED[i]] = b * factor end
@@ -1079,12 +1116,17 @@ TK.register("item.use", function(argv)
     -- (`@28-@41 L37-38`), and the notes' whole point is that crafting reaches hunger ONLY
     -- through this polymorphic setter -- a jar-wide grep puts no `setHungChange` /
     -- `consumeHunger` / `multiplyFoodValues` call anywhere in the crafting packages. What it
-    -- does not do is UseItem's bookkeeping AFTER the reduction: the replaceOnUse /
-    -- replaceOnDeplete spawn and `getCurrentUses() <= 0 && !isKeepOnDeplete() ->
-    -- RemoveItem(item)` (`@272 L68-70`). Neither moves a nutrition field, so the measurement
-    -- is unaffected -- but a fully consumed item stays in the inventory on this route where
-    -- the crafting code would have removed it, and `after.inContainer` / `candidatesAfter`
-    -- are what say which happened rather than leaving it to be inferred.
+    -- does not do is UseItem's bookkeeping AFTER the reduction, which for a `Food` is exactly
+    -- three things: the `replaceOnUse` spawn, `sendItemStats(item)` when uses REMAIN
+    -- (`@293 L73-74`), and `getCurrentUses() <= 0 && !isKeepOnDeplete() -> RemoveItem(item)`
+    -- (`@272 L68-70`). It is NOT `replaceOnDeplete`: that arm is behind
+    -- `instanceof DrainableComboItem` (`@146 L53`) and a `Food` never reaches it. None of the
+    -- three moves a nutrition field, so the measurement is unaffected -- and the skipped
+    -- `sendItemStats` is a client PUSH, which this command deliberately does not make either
+    -- way (every reading here is server-side, on the object the server holds). But a fully
+    -- consumed item stays in the inventory on this route where the crafting code would have
+    -- removed it, and `after.inContainer` / `candidatesAfter` are what say which happened
+    -- rather than leaving it to be inferred.
     if not applied then
         local ran, present = pcall(TK.call, it, "setCurrentUses", out.targetUses)
         if ran and present then
@@ -1107,9 +1149,16 @@ TK.register("item.use", function(argv)
     out.worldAgeAfter = gt:getWorldAgeHours()
     -- The inventory re-enumerated after the call. A depleted item is `RemoveItem`d on route 1
     -- and is not on route 2, so this is the direct reading of that, not an inference.
-    local cAfter = useCandidates(p, fullType)
+    --
+    -- The enumeration's own error is captured: an empty `candidatesAfter` is how a caller
+    -- reads "the item was removed", and a FAILED enumeration also leaves it empty. Left
+    -- uncaptured the two would be indistinguishable and a wedged inventory read would be
+    -- reported as a successful depletion (the slice-05 `fluidDefsError` rule).
+    local cAfter, _finderAfter, cAfterErr = useCandidates(p, fullType)
     local rowsAfter = {}
-    if cAfter ~= nil then
+    if cAfter == nil then
+        out.candidatesAfterError = cAfterErr or "useCandidates answered no list and no error"
+    else
         for i = 1, #cAfter do rowsAfter[#rowsAfter + 1] = cAfter[i].row end
     end
     out.candidatesAfter = rowsAfter

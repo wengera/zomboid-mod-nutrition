@@ -111,7 +111,7 @@
    "recipesWithCaloriesAbsentOnEverySide": 3,
    "splitRecipes": 17,
    "splitRecipesWithDelta": 8,
-   "recipesWithDestroyWaste": 1,
+   "recipesWithDestroyWaste": 0,
    "inputSubLines": 55
   },
   "outputMapperIssues": [
@@ -149587,17 +149587,11 @@
      "Base.CigaretteSingle:proteins",
      "Base.CigaretteSingle:thirstChange"
     ],
-    "destroyWaste": {
-     "calories": 0.0,
-     "carbohydrates": 0.0,
-     "lipids": 0.0,
-     "proteins": 0.0,
-     "hungerChange": 0.0,
-     "thirstChange": 0.0
-    },
+    "destroyWaste": null,
     "notes": [
      "drainable input: Base.CigarettePack uses are UseDelta steps of a bar, not nutrition (consumeInputItemUsesInternal @0-@125 L960-L988), so the line charges no macros",
-     "mode:destroy on Base.CigarettePack: the line pays for 0 item(s) and RemoveItem (UseItem @260 L66-67) deletes 1, so the whole item is charged and the difference is in destroyWaste"
+     "mode:destroy on Base.CigarettePack: the line pays for 0 item(s) and RemoveItem (UseItem @260 L66-67) deletes 1, so the whole item is charged and the uncharged remainder is published as destroyWaste -- null when the row writes no macro for it to carry",
+     "mode:destroy supersedes the drainable note on Base.CigarettePack: the line is weighed at the whole item RemoveItem deleted, not at the 0 the drainable rule gave it. Its UseDelta uses still carry no nutrition; the whole-item charge is the row's own macro keys, if it writes any"
     ]
    },
    "deltaReason": null

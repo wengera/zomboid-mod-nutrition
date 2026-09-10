@@ -517,6 +517,12 @@ def uses_per_item(row):
     -- but a food that writes **no** `HungerChange` (or a 0 one) holds exactly one use, and its
     uses are whole items. `|HungerChange| <= 1` lands in the same place, which is what the game's
     own `InputScript.isUsesPartialItem @0-@85 L182-L191` says when it demands `> 1f`.
+
+    LATENT (no vanilla row reaches it): this divides by the **float** `|HungerChange|`, where
+    `getMaxUses` is the truncated `(int)|baseHunger * 100|` -- so a food with a fractional
+    `|HungerChange| > 1` (say `-2.5`) would be charged `N/2.5` of an item where the game gives it
+    2 uses and charges `N/2`. No shipped food has a fractional `|HungerChange|` above 1, so the
+    two readings coincide in 42.20.4; a mod's item could separate them.
     """
     hunger = food_value(row, "HungerChange")
     if hunger is None:
@@ -550,9 +556,11 @@ def input_charge(line, row):
     """
     amount, item_id, notes = line["amount"], line["types"][0], []
     kind = _row_kind(row)
+    drainable = False
     if line["amountIsItemCount"]:
         items = amount
     elif kind == "drainable":
+        drainable = True
         items = 0.0
         notes.append("drainable input: %s uses are UseDelta steps of a bar, not nutrition "
                      "(consumeInputItemUsesInternal @0-@125 L960-L988), so the line charges "
@@ -575,7 +583,21 @@ def input_charge(line, row):
         if whole > items:
             notes.append("mode:destroy on %s: the line pays for %.6g item(s) and RemoveItem "
                          "(UseItem @260 L66-67) deletes %.6g, so the whole item is charged and "
-                         "the difference is in destroyWaste" % (item_id, items, whole))
+                         "the uncharged remainder is published as destroyWaste -- null when the "
+                         "row writes no macro for it to carry" % (item_id, items, whole))
+            if drainable:
+                # The two branches can both fire on one line -- the one shipped case is
+                # `UnpackCigarettes`' `item 1 [Base.CigarettePack] mode:destroy`. Left side by
+                # side the notes read as a contradiction (0 items, then 1), so the destroy
+                # branch says outright that it wins: what the line charges is one WHOLE item of
+                # whatever macros the drainable row itself writes -- which for a cigarette pack
+                # is none, so the ledger still moves nothing. The drainable note stays because
+                # it is the reason the charge was 0 before the round-up.
+                notes.append("mode:destroy supersedes the drainable note on %s: the line is "
+                             "weighed at the whole item RemoveItem deleted, not at the 0 the "
+                             "drainable rule gave it. Its UseDelta uses still carry no "
+                             "nutrition; the whole-item charge is the row's own macro keys, if "
+                             "it writes any" % item_id)
             wasted, items = whole - items, whole
     return items, wasted, notes
 
@@ -595,6 +617,12 @@ def nutrition_delta(recipe, food):
     overwritten with `1/outputCount` of that input's consumed macros, so the flagged input and
     every output drop out of the sum and only any *other* consumed input can move the total.
     Vanilla's 8 resolvable splits have no other input, so all eight are exactly 0.
+
+    LATENT (no vanilla row reaches it): the split rule zeroes **every** output, while
+    `createOutputItems @1096-@1143 L1542-L1544` calls `Food.copyFoodFromSplit` on the food output
+    only -- a split whose block also produced a non-food output would have that output's macros
+    dropped from the sum here. All 8 resolvable splits have exactly one output, so the two
+    readings coincide in 42.20.4; a mod that splits into two outputs would need the narrower rule.
 
     Returns the six-macro dict plus `absentMacros`, `destroyWaste` and `notes`, or
     `{"reason", "blockers"}` when the sum would have to guess: a recipe with no outputs to weigh
@@ -645,9 +673,14 @@ def nutrition_delta(recipe, food):
         delta[field] = round(total, 6)
         waste[field] = round(lost, 6)
     delta["absentMacros"] = sorted(absent)
-    # the macros of the part `mode:destroy` threw away without spending a use on it -- null when
-    # no line wasted anything, so the field is never a row of meaningless zeroes
-    delta["destroyWaste"] = waste if wasted_any else None
+    # The macros of the part `mode:destroy` threw away without spending a use on it. Null unless
+    # a destroy line really lost something: `wasted_any` says a line ROUNDED UP, which is not the
+    # same question as whether any macro went with the rounding. Vanilla's one destroy round-up
+    # is `UnpackCigarettes`' drainable `Base.CigarettePack`, which writes no macro key at all, so
+    # publishing its six zeroes would read as a measured "0.0 calories destroyed" where the truth
+    # is that the destroyed row carries nothing this dataset can weigh. The round-up itself stays
+    # visible in `notes`, and `wasted_any` is what says whether the dict was even in question.
+    delta["destroyWaste"] = waste if (wasted_any and any(waste.values())) else None
     delta["notes"] = sorted(notes)
     return delta
 
@@ -894,11 +927,19 @@ def contribution(item, use, level):
       (`is_dried_food`), so a dry noodle block adds no water to the pot. The flag marks the rows
       whose committed `thirstChange` of 0.0 is that skip rather than an absent or measured 0:
       27 of the 6881 (`meta.counts.driedFoodThirstRows`), `Base.Ramen` / `Base.Macaroni` /
-      `Base.Pasta` over nine recipes each. The other four macros are untouched by the tag.
+      `Base.Pasta` over nine recipes each. The other four macros are untouched by the tag. It is
+      **not** set on the other 550 tagged rows, whose 0.0 is an absent `ThirstChange` or a
+      spice's zero share and would have been 0 with or without the tag; it **is** set on a
+      basis-refused row, whose `thirstChange` is null rather than 0 -- the loader skips that
+      line whatever this dataset does with the row (0 such rows in 42.20.4).
     """
     hung = abs((food_value(item, "HungerChange") or 0.0) / 100.0)
     asked = use / 100.0
-    clamped = bool(hung) and asked > hung
+    # `hunger = min(hunger, |ing.getHungerChange()|)`, and the loader's `min` has no zero guard:
+    # an ingredient with no hunger at all is clamped to 0 rather than left asking for `use/100`.
+    # (Zero vanilla rows -- every one of the 6881 carriers writes a non-zero `HungerChange` --
+    # but the guard that used to sit here diverged from `addItem` for a mod's 0-hunger item.)
+    clamped = asked > hung
     hunger = hung if clamped else asked        # addItem @934 L374-376, before the skill cut
     after = hunger * (1.0 - 0.03 * level)
     share = min(abs(after / hung), 1.0) if hung else 0.0
@@ -918,8 +959,14 @@ def contribution(item, use, level):
         out["reason"] = refusal
     for src, dst in CONTRIBUTION_MACROS:
         out[dst] = None if refusal else (food_value(item, src) or 0.0) * bonus * share
-    if out["thirstChange"] and is_dried_food(item):        # addItem @1316 L416 skips the line
-        out["thirstChange"], out["thirstSkipped"] = 0.0, True
+    # `addItem @1316 L416` skips the thirst line for a DRIED_FOOD item. A refused row's macros
+    # are null, not 0, so the old `if out["thirstChange"]` guard could never flag one even though
+    # the loader skips its thirst line just the same -- `is None` is the branch that says
+    # "refused", not "zero" (0 rows in 42.20.4; a per-litre dried item would be the first).
+    if is_dried_food(item) and (out["thirstChange"] or out["thirstChange"] is None):
+        out["thirstSkipped"] = True
+        if out["thirstChange"]:
+            out["thirstChange"] = 0.0
     return out
 
 
@@ -1222,10 +1269,9 @@ def _calories_absent_on_every_side(recipe, food):
 def build(recipes, food):
     """Join the food dataset onto parsed recipes and sort by name -- the committed row order."""
     out = sorted(recipes, key=lambda r: r["name"])
-    items = food_item_ids(food)
     for record in out:
         record["datasetTypes"] = dataset_types(record, food)
-        record["foodItemTypes"] = [t for t in record["datasetTypes"] if t in items]
+        record["foodItemTypes"] = food_item_types(record, food)
         delta = nutrition_delta(record, food)
         if "reason" in delta:                         # `nutrition_delta` always returns a dict
             record["delta"], record["deltaReason"] = None, delta["reason"]

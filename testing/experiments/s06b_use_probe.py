@@ -11,14 +11,26 @@ one use is one raw `HungerChange` point:
     ItemUser.UseItem     @18     L34          used = Math.min(item.getCurrentUses(), count)
                          @28-@41 L37-38       if (!keep) setCurrentUses(getCurrentUses() - used)
                          @272    L68-70       uses <= 0 && !isKeepOnDeplete() -> RemoveItem
-    Food.setCurrentUses  @23-@35 L2228-L2233  consumeHunger((getCurrentUses() - n) / 100f)
+    Food.setCurrentUses  @6      L2230        a `baseHunger == 0` branch sits AHEAD of the
+                                              call below, so an item with no hunger scale
+                                              never reaches consumeHunger (the same zero
+                                              baseHunger `getMaxUses` answers 1 for)
+                         @23-@35 L2228-L2233  consumeHunger((getCurrentUses() - n) / 100f)
     Food.consumeHunger   @0-@17  L2714-L2715  r = |a / hungChange|; multiplyFoodValues(1 - r)
     Food.getCurrentUses  @14-@26 L2219-L2223  (int)|hungChange  * 100|
     Food.getMaxUses      @11-@23 L2210-L2214  (int)|baseHunger * 100|
 
 `|hungChange| = currentUses/100`, so `r = used/currentUses` and every field
 `multiplyFoodValues` writes -- `hungChange`, `calories`, `carbohydrates`, `proteins`,
-`lipids` and the mood block -- comes out scaled by **`1 - used/currentUses`**. The
+`lipids` and the mood block -- comes out scaled by **`1 - used/currentUses`**. That last
+step is an EQUALITY only while `|hungChange| * 100` is a whole number, i.e. on an item
+whose uses have never been part-spent: `getCurrentUses()` truncates (`(int)`), so on a
+nibbled item `cur/100` is a hair under `|hungChange|` and the real argument is
+`1 - ((cur - n)/100) / |hungChange|`, a hair under `1 - used/cur`. `used/cur` is the
+readable form and the harness's own `predictedFactor`; `factor32()` below replays the
+arithmetic the game actually does (`amount / hungChange`), which is what the compared
+expectations use, and `factor.exact` carries the `1 - used/cur` reading beside it. All
+three rows here are spawned whole, so the two agree to the last float32 bit. The
 denominator is `currentUses`, **not** `maxUses`: `multiplyFoodValues` moves `hungChange`
 (and with it `getCurrentUses()`) but never `baseHunger` (and with it `getMaxUses()`), so the
 two are equal only while the item is whole. Every item here is spawned fresh and the
@@ -60,34 +72,65 @@ classes `exposeAll()` registers and `zombie/inventory/ItemUser` is not one of th
 harness falls back to `item:setCurrentUses(cur - used)`, which is *literally the line*
 `UseItem @28 L37-38` executes and is the only way crafting reaches hunger at all (no
 crafting class calls `setHungChange` / `consumeHunger` / `multiplyFoodValues`). What the
-fallback skips is UseItem's bookkeeping *after* the reduction -- the `replaceOnUse` spawn and
-`RemoveItem` at `@272 L68-70`. Neither moves a nutrition field, so the measurement is
-untouched; but a depleted item stays in the inventory, and `depletion.removed_from_inventory`
-is compared against the expectation *for the route that actually ran* rather than against the
-one the crafting code would have taken.
+fallback skips is UseItem's bookkeeping *after* the reduction, and for a `Food` that is
+exactly three things: the `replaceOnUse` spawn, `sendItemStats @293 L73-74` when uses remain,
+and `RemoveItem` at `@272 L68-70` when they do not. It is **not** `replaceOnDeplete`: that arm
+is behind `instanceof DrainableComboItem` (`@146 L53`) and a `Food` never enters it. None of
+the three moves a nutrition field, so the measurement is untouched; but a depleted item stays
+in the inventory, and `depletion.removed_from_inventory` is compared against the expectation
+*for the route that actually ran* rather than against the one the crafting code would have
+taken.
 
 The run makes no world change -- no `settimespeed`, no sandbox write, no character write. The
 spawned items land in the run directory's own COPY of the fixture (`fx.restore_server`), so
 teardown is the whole cleanup path. `data/` is never touched: a number that disagrees is the
 finding, written into `comparison` with both values.
 
+**Wall time and the timeline are ~0.5 s apart.** `wall_seconds` is measured around the whole
+script (`t_start` is set before `pzt doctor` runs) while the `timeline` marks start at
+`session_ready`; and each `tl.mark` is stamped when the bus reply lands, not when the game
+acted. So a timeline span read as a duration is short by roughly half a second against the
+wall clock, and neither is a game-time reading -- the only game-time number here is
+`delta.worldAgeHours`, taken inside the command handler, and it is 0.
+
+**Replaying the comparator offline.** `compare_item` is pure -- replies in, block out -- so a
+committed artifact can be re-scored at HEAD without booting the game. That is how the
+comparator was checked before the live session (four synthetic replies: a whole reply, one
+with no `before`, one for a type with no food record, and one where the use phase never ran --
+the three early returns plus the happy path), and how a later fix round re-verifies this run.
+Everything above the `LIVE SESSION BELOW` marker is definitions, so:
+
+    p = "testing/experiments/s06b_use_probe.py"
+    src = open(p, encoding="utf-8").read().rsplit("# ==== LIVE SESSION BELOW", 1)[0]
+    ns = {"__file__": p}; exec(compile(src, p, "exec"), ns)
+    art = json.load(open("testing/artifacts/exp06b-20260910-120123/use-probe.json"))
+    foods = {r["id"]: r for r in json.load(open("data/food-items.json"))["items"]}
+    for spec in ns["ITEMS"]:
+        block = ns["compare_item"](spec, art["items"][spec["key"]], foods.get(spec["type"]))
+
+At HEAD that gives **3 of 3 items matched, 96 of 96 fields**, unchanged from the run's own
+verdict. Feed it a hand-built reply dict instead of `art["items"][...]` to exercise the three
+early returns; each must come back `matched: False` with an empty `mismatches` list, which is
+why the summary scores `ok` off `matched` and not off that list.
+
 Everything lands in `<run_dir>/use-probe.json`, copied byte-for-byte at the end to
 `testing/artifacts/<run-id>/use-probe.json`. Run with `python testing/pzt doctor` clean and
 nothing else live; the doctor is re-run from here and its verdict is in the artifact.
 """
-import hashlib
 import json
 import os
 import shutil
 import struct
-import subprocess
 import sys
 import time
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # testing/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # experiments/
-from _common import ask, hard_kill, save
+# `load_json` / `git_say` / `doctor` / `num` used to be defined here word for word, and in
+# three sibling drivers. Slice 06's final fix wave promoted the identical copies into
+# `_common.py`; the bodies are unchanged, so nothing this script writes into an artifact moves.
+from _common import ask, doctor, git_say, hard_kill, load_json, num, save
 from pzt import fixture as fx
 from pzt.paths import new_run_dir
 from pzt.session import Timeline, make_client, make_server, teardown
@@ -139,51 +182,11 @@ SCRIPT_COLUMNS = (("calories", "calories"), ("carbs", "carbohydrates"),
                   ("lipids", "lipids"), ("proteins", "proteins"))
 
 
-def load_json(path):
-    """`(data, error, sha256)` -- one read, hashed and decoded, so the digest is of the same
-    bytes that were parsed (`s05_food_scan.py`: `git log -1` names the newest commit that
-    TOUCHED the path, which is a different question from where these bytes came from)."""
-    try:
-        with open(path, "rb") as fh:
-            raw = fh.read()
-        return json.loads(raw.decode("utf-8")), None, hashlib.sha256(raw).hexdigest()
-    except (ValueError, OSError, UnicodeDecodeError) as e:
-        return None, f"{type(e).__name__}: {e}", None
-
-
-def git_say(*args):
-    """A short `git` answer, or the error string. Provenance only -- never fatal."""
-    try:
-        p = subprocess.run(["git", "-C", REPO] + list(args), capture_output=True, text=True,
-                           timeout=30)
-        if p.returncode != 0:
-            return f"git rc={p.returncode}"
-        return (p.stdout or "").strip()
-    except Exception as e:                       # noqa: BLE001 - provenance, never fatal
-        return f"{type(e).__name__}: {e}"
-
-
-def doctor():
-    """`pzt doctor` from inside the run: `(clean, text)`. The brief's precondition, recorded
-    rather than remembered -- a run booted onto a dirty machine is not evidence."""
-    try:
-        p = subprocess.run([sys.executable, os.path.join(REPO, "testing", "pzt"), "doctor"],
-                           capture_output=True, text=True, timeout=300)
-        return p.returncode == 0, (p.stdout or "") + (p.stderr or "")
-    except Exception as e:                       # noqa: BLE001 - reported, not raised
-        return False, f"{type(e).__name__}: {e}"
-
-
 def f32(x):
     """The nearest float32, as a Python float. Every field in the chain is a Java `float`,
     and the chain ends at an `(int)` truncation, so a prediction that has to survive that
     boundary must be computed the same width."""
     return struct.unpack("f", struct.pack("f", x))[0]
-
-
-def num(v):
-    """A number, or None for anything else (a missing key, an `{'error': ...}` reply)."""
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
 def dig(obj, *keys):
@@ -196,7 +199,13 @@ def dig(obj, *keys):
 
 def tol(*magnitudes):
     """The float32 + JSON-rounding band: an absolute floor plus a relative term against the
-    largest value involved. See ABS_FLOOR / REL."""
+    largest value involved. See ABS_FLOOR / REL.
+
+    Pass the values being COMPARED and nothing else. Handing it a `before` value as well
+    anchors the band on the number that is supposed to have *moved*: at factor 0 the
+    expectation is 0 and `tol(0, 0, 1680)` is 0.168 kcal of slack around zero -- a band on the
+    tub, not on the reading. `banded()` is the caller that gets this right, including the 0
+    case, which needs no band at all."""
     m = max([abs(x) for x in magnitudes if isinstance(x, (int, float))] or [0.0])
     return ABS_FLOOR + REL * m
 
@@ -227,6 +236,20 @@ def eq_row(expected, live, **extra):
     else:
         r["match"] = expected == live
     return r
+
+
+def banded(expected, live, **extra):
+    """A float compare whose band is anchored on the two values being compared -- and an EXACT
+    compare when the expectation is 0.
+
+    Zero is the case the band cannot express: `ABS_FLOOR + REL * 0` is 1e-5, which is not a
+    tolerance so much as a rounding allowance, and every value the boundary rows here predict
+    at 0 comes back as an integer 0 from `TK.json`. So a 0 expectation goes through `eq_row`
+    and says exactly that -- the field is gone, not nearly gone. Anything else keeps
+    `ABS_FLOOR + REL * max(|expected|, |live|)`, the float32 + JSON-rounding band."""
+    if expected == 0:                    # covers -0.0; None falls through to the banded branch
+        return eq_row(expected, live, **extra)
+    return row(expected, live, tol(expected, live), **extra)
 
 
 def factor32(hung_before, used):
@@ -351,13 +374,18 @@ def compare_item(spec, r, record):
         exp = None if (b is None or f_32 is None) else f32(f32(b) * f_32)
         exp_exact = None if (b is None or f_exact is None) else b * f_exact
         a = num(after.get(live_key))
+        # `banded`, not `row(..., tol(exp, a, b))`: the `before` value has no business in the
+        # band. On the two factor-0 rows it would have allowed 0.168 kcal (Icecream) or 0.030
+        # (MincedMeat) of slack around an expectation of exactly 0 -- a band sized by the
+        # nutrition that is supposed to be gone. `banded` compares 0 exactly and sizes every
+        # other row on the two numbers actually being compared.
         block["scaling"][live_key] = flag(
             "scaling", live_key,
-            row(exp, a, tol(exp, a, b), before=b, expected_from_exact=exp_exact,
-                harness_prediction=num(dig(rep, "predicted", live_key)),
-                dataset_column=column,
-                basis="multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues "
-                      "@20/@104/@114/@124 L2290/L2298/L2299/L2300"))
+            banded(exp, a, before=b, expected_from_exact=exp_exact,
+                   harness_prediction=num(dig(rep, "predicted", live_key)),
+                   dataset_column=column,
+                   basis="multiplyFoodValues(1 - used/currentUses) -- Food.multiplyFoodValues "
+                         "@20/@104/@114/@124 L2290/L2298/L2299/L2300"))
     # `getCurrentUses()` is `(int)|hungChange * 100|`, so it is a SECOND, integer-valued
     # reading of the same scaling -- and the one that shows the truncation. Predicted from
     # the float32 hungChange, with the exact-arithmetic prediction beside it; the band is one
@@ -373,9 +401,8 @@ def compare_item(spec, r, record):
                   "one truncation unit"))
     block["scaling"]["usesFloat"] = flag(
         "scaling", "usesFloat",
-        row(None if exp_hung32 is None else abs(exp_hung32), num(after.get("uses")),
-            tol(exp_hung32, 1.0),
-            basis="Food.getCurrentUsesFloat = |hungChange| @14-@21 L2239-L2243"))
+        banded(None if exp_hung32 is None else abs(exp_hung32), num(after.get("uses")),
+               basis="Food.getCurrentUsesFloat = |hungChange| @14-@21 L2239-L2243"))
     block["scaling"]["max_uses_unmoved"] = flag(
         "scaling", "max_uses_unmoved",
         eq_row(num(before.get("maxUses")), num(after.get("maxUses")),
@@ -384,9 +411,8 @@ def compare_item(spec, r, record):
                      "of any SECOND reduction"))
     block["scaling"]["base_hunger_unmoved"] = flag(
         "scaling", "base_hunger_unmoved",
-        row(num(before.get("baseHunger")), num(after.get("baseHunger")),
-            tol(num(before.get("baseHunger")), 1.0),
-            basis="the same claim read off the float rather than the int"))
+        banded(num(before.get("baseHunger")), num(after.get("baseHunger")),
+               basis="the same claim read off the float rather than the int"))
     # Both snapshots are taken inside one Lua call, so the window must be 0. A compared field,
     # not a note: anything else means the block above is not drift-free.
     block["atomic_window_game_hours"] = row(
@@ -488,6 +514,8 @@ def compare_item(spec, r, record):
     return block
 
 
+# ==== LIVE SESSION BELOW ==== everything above this line is definitions, so an offline replay
+# execs the file up to this marker and calls `compare_item` itself (see the module docstring).
 rec = fx.load("default")
 run_id, run_dir = new_run_dir("exp06b")
 path = os.path.join(run_dir, "use-probe.json")
@@ -608,11 +636,18 @@ try:
         if isinstance(rr, dict) and "match" in rr:
             n += 1
             m += 1 if rr["match"] is True else 0
+        # `matched`, NOT `not mismatches`: `compare_item` returns early with `matched: False`
+        # and an EMPTY `mismatches` list on three paths -- the use phase never ran (`:275`), no
+        # `data/food-items.json` record for the type (`:279`), and a reply with no `before`
+        # snapshot (`:292`) -- and an empty list is falsy, so the emptiness test would have
+        # scored a row that was never measured as a pass. All three rows of
+        # `exp06b-20260910-120123` reached the comparison with a `before`, so the two readings
+        # agree on that run (3/3 either way); this is the latent case closed.
         per_item[key] = {"fields": n, "matched": m,
                          "mismatched": len(block.get("mismatches") or []),
                          "route": block.get("route"),
                          "factor": dig(block, "factor", "float32"),
-                         "ok": not block.get("mismatches")}
+                         "ok": block.get("matched") is True}
         for b in (block.get("mismatches") or []):
             mismatches.append(dict(b, item=key))
         fields += n

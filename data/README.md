@@ -358,7 +358,9 @@ carries.
 ### JSON
 
 `{"meta": {...}, "recipes": [...969...], "replacements": [...163...]}`,
-`indent=1`, recipes sorted by `name`, LF endings, byte-stable across runs. A
+`indent=1`, recipes sorted by `name`, LF endings, byte-stable across runs
+**within one UTC day** — `meta.generated` is today's UTC *date*, so it is the
+one line a rebuild after midnight UTC changes. A
 recipe record carries every column above except the six derived `input*` /
 `output*` flattenings, which it keeps structured instead, plus:
 
@@ -382,9 +384,14 @@ recipe record carries every column above except the six derived `input*` /
 - **`delta`** — `{calories, carbohydrates, lipids, proteins, hungerChange,
   thirstChange, absentMacros, destroyWaste, notes}`, or `null` with the reason
   in `deltaReason`. `destroyWaste` is the six macros of the remainder a
-  `mode:destroy` line annihilates beyond what it charges (1 recipe); `notes`
-  names each weighing decision that is not the plain rule (a drainable input, a
-  food with no usable `HungerChange`, a destroy round-up).
+  `mode:destroy` line annihilates beyond what it charges, and is **`null`
+  unless one of those six is non-zero** — 0 recipes in 42.20.4. One row
+  (`UnpackCigarettes`) does round its charge up to a whole item, but the item
+  is the drainable `Base.CigarettePack`, which writes no macro key at all, so
+  there is nothing to publish and six zeroes would read as a measured "0.0 kcal
+  destroyed". `notes` names each weighing decision that is not the plain rule
+  (a drainable input, a food with no usable `HungerChange`, a destroy round-up
+  — and, on that one row, which of the two wins).
 
 **`replacements`** is a third top-level array, after `recipes`, holding one
 record per `ReplaceOn{Cooked,Rotten,Use,Deplete}` link a food row declares:
@@ -402,7 +409,7 @@ same `absentMacros` rule as a recipe delta.
 |---|---|
 | `build` / `generated` / `tool` | `42.20.4 (b0bbce05d5)`, the UTC date of the run, `tools/recipe_scan.py` |
 | `sources` | `scripts` (the root walked), `files` (the 74 a recipe was read from) and `food_items` — the joined dataset's own `path` / `build` / `jar_hash` / `generated`, so a rebuild of one half against a stale other half is visible in the file |
-| `counts` | `craftRecipes` 969, `files` 74, `scriptFiles` 1004, `legacyRecipeBlocks` 0, `componentCraftRecipes` 202 (an entity's own build recipes — counted because a raw grep of the scripts sees their `inputs` blocks too, **not** rows of this dataset), `itemMappers` 225, `overlayMappers` 3, `recipesWithoutOutputs` 11, `recipesWithEmptyOutputs` 26, `fluidRecipes` 53, `outputItemTypes` 1693, `outputItemTypesInDataset` 295, `outputItemTypesInFoodDataset` 262, `recipesTouchingDatasetRow` 413, `recipesTouchingFood` 375, `recipesWithFoodOutput` 182, `foodJoinMisses` 0, `recipesWithDelta` 31, `recipesWithNonZeroCalorieDelta` 15, `recipesWithCaloriesAbsentOnEverySide` 3, `splitRecipes` 17, `splitRecipesWithDelta` 8, `recipesWithDestroyWaste` 1, `inputSubLines` 55 |
+| `counts` | `craftRecipes` 969, `files` 74, `scriptFiles` 1004, `legacyRecipeBlocks` 0, `componentCraftRecipes` 202 (an entity's own build recipes — counted because a raw grep of the scripts sees their `inputs` blocks too, **not** rows of this dataset), `itemMappers` 225, `overlayMappers` 3, `recipesWithoutOutputs` 11, `recipesWithEmptyOutputs` 26, `fluidRecipes` 53, `outputItemTypes` 1693, `outputItemTypesInDataset` 295, `outputItemTypesInFoodDataset` 262, `recipesTouchingDatasetRow` 413, `recipesTouchingFood` 375, `recipesWithFoodOutput` 182, `foodJoinMisses` 0, `recipesWithDelta` 31, `recipesWithNonZeroCalorieDelta` 15, `recipesWithCaloriesAbsentOnEverySide` 3, `splitRecipes` 17, `splitRecipesWithDelta` 8, `recipesWithDestroyWaste` **0** (rows publishing a non-null `destroyWaste`; the one `mode:destroy` round-up, `UnpackCigarettes`, wastes a drainable that carries no macros — see the `delta` bullet above), `inputSubLines` 55 |
 | `outputMapperIssues` | `{recipe, mapper, why}` for a mapper an output names that resolves to no type — one row in 42.20.4 (`ExtractIronFromIronOre` / `SmeltMapper`, which writes only a `default`) |
 | `foodJoinMisses` | every output type that `items/food.txt` really defines and `data/food-items.json` has no row for — empty in 42.20.4, and the file says so rather than leaving it implied |
 
@@ -424,9 +431,11 @@ summation itself is
 lookup **and** through every recipe whose `Template` matches
 case-insensitively, with five parse-time aliases applied first
 (`RicePot`/`RicePan` → `Rice`, `PastaPot`/`PastaPan` → `Pasta`,
-`Roasted Vegetables` → `Stir fry`). 374 carrier items × 63 recipes = **6 902**
-(key, recipe) joins → **6 881 rows** (21 land on the same (recipe, item) pair
-twice and are collapsed, with the collapsed keys kept), **0 unmatched**.
+`Roasted Vegetables` → `Stir fry`). **374 carriers joined across 63 recipes**
+yield **6 902** (key part, recipe) joins → **6 881 rows** (21 land on the same
+(recipe, item) pair twice and are collapsed, with the collapsed keys kept),
+**0 unmatched**. It is not a product: a carrier writes as many key parts as it
+writes, and each part reaches however many recipes match it.
 
 ### CSV columns
 
@@ -446,7 +455,7 @@ reading; the JSON carries both contribution blocks in full.
 | 9 | `carbs0` | float | derived, same level |
 | 10 | `lipids0` | float | derived, same level |
 | 11 | `proteins0` | float | derived, same level |
-| 12 | `share10` | float | derived: the fraction consumed at Cooking 10 (`×0.70` of level 0 unless the clamp bit) |
+| 12 | `share10` | float | derived: the fraction consumed at Cooking 10. On **all 6 881 rows** `share10 == 0.70 × share0`, with **no exceptions — the 59 clamped rows included**. The clamp is what makes the relation hold: it caps `hunger` at the ingredient's own `abs(HungerChange)` *before* the skill reduction, so `share` is `(1 − 0.03 × level)` of the level-0 share instead of saturating at 1.0 |
 | 13 | `kcal10` | float | derived: what it adds at Cooking 10 (`×1.6667` skill bonus on a smaller share) |
 
 ### JSON

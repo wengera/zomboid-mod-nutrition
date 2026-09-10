@@ -214,8 +214,18 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   `getMinimumWater`, plus `items` (the labels
   `getPossibleItems()` yields), `itemFullTypes` and `ingredientCount` —
   `getPossibleItems()` is the values of the recipe's own `itemsList`, which
-  the *item* scripts fill (`EvolvedRecipe = Salad:10` on a food item registers
-  it against the `Salad` recipe), so its size is the ingredient count.
+  the *item* scripts fill, so its size is the ingredient count. That map is
+  filled through **both** arms of `Item.OnScriptsLoaded`, not just the
+  obvious one: the exact-name lookup `getEvolvedRecipe(key)`
+  (`@43–@59 L3033–L3035`, case-**sensitive**) *and* a pass over every recipe
+  whose `Template` `equalsIgnoreCase` the key (`@122–@140 L3039`,
+  case-**insensitive**). So `EvolvedRecipe = Salad:10` on a food item
+  registers it against `Salad` by name *and* against every recipe templated
+  `Salad`; `SaladClay` — which **no** item names — gets its whole 189-item
+  list through the Template arm alone. `itemsError` names an absent getter
+  (an empty list is a different finding) and `itemFullTypesAligned: false`
+  says an element answered a label but no full type, so the two lists are
+  padded rather than shifted.
   `recipes.craft <name>` → `getCategory` / `getTime` / `getInputCount` /
   `getOutputCount` plus one row per output line with `amount`
   (`getIntAmount()`), `resourceType`, `originalLine` and the items it resolves
@@ -239,12 +249,15 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
     the whole reply. On 42.20.4 Kahlua takes the no-argument overload and all
     three lists came back empty on all fifteen probes.
   * **`getInputCount()` is not the number of input *lines*.**
-    `CraftRecipe.LoadIO @218–@317` attaches a `-` (or `+`) prefixed line
-    inside an `inputs` block to the *preceding* input as
-    `consumeFromItemScript` / `createToItemScript` and adds it to `ioLines`,
-    never to `inputs`; `getInputCount()` is `inputs.size()` (`@0–@7 L257`).
+    `CraftRecipe.LoadIO` attaches a `-` prefixed line inside an `inputs`
+    block to the *preceding* input as its `consumeFromItemScript`
+    (`@218–@317 L589–L604`) and a `+` one as its `createToItemScript`
+    (`@122–@215 L574–L588` — a separate, earlier arm, not part of the same
+    span); both go into `ioLines` and **neither** into `inputs`, and
+    `getInputCount()` is `inputs.size()` (`@0–@7 L257`).
     So a recipe written with a fluid sub-line answers one less than its
     script has lines. Driven by `testing/experiments/s06_recipes.py`.
+
   `item.use <user> <fullType> <uses>` — also slice 06, but in
   `server/PZTestKit_Server.lua` beside `item.get` and `drink` rather than in
   the recipe file, because it is an **item** command: it consumes N *uses* of a
@@ -256,7 +269,13 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
   fallback, and **most `getCurrentUses()` then highest id** in place of
   `drink`'s fullest-container rule — then returns `{route, before, after,
   delta}` plus `candidates` / `candidatesAfter`, `usedUses` / `targetUses`,
-  `predictedFactor` / `predicted` and `routeAttempts`. Both snapshots are
+  `predictedFactor` / `predicted` and `routeAttempts`, with
+  `candidatesAfterError` when the post-call enumeration *failed* (an empty
+  `candidatesAfter` otherwise reads as "the item was removed"). It **refuses**
+  an instance already at `getCurrentUses() == 0`, answering with the `before`
+  snapshot and changing nothing: a depleted `Food` has `hungChange` 0, so
+  `setCurrentUses(0)` would reach `consumeHunger((0 − 0)/100f)`, compute
+  `r = |0/0|` = NaN and write NaN into every macro. Both snapshots are
   `TK.itemState` **plus** `currentUses` / `maxUses` (the ints the reduction
   actually works in — `TK.itemState`'s own `uses` is `getCurrentUsesFloat()`,
   which on a `Food` is `|hungChange|`) and `inContainer`; they are taken on
@@ -276,11 +295,16 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
     literally the line `UseItem @28 L37-38` executes and the **only** way
     crafting reaches hunger at all (no crafting class calls `setHungChange` /
     `consumeHunger` / `multiplyFoodValues`). What it skips is UseItem's
-    bookkeeping *after* the reduction — the `replaceOnUse` spawn and
-    `RemoveItem` at `@272 L68-70` — so a fully consumed item **stays in the
-    inventory** here where the crafting code would have removed it. No
-    nutrition field moves either way; `after.inContainer` and
-    `candidatesAfter` say which happened rather than leaving it to be inferred.
+    bookkeeping *after* the reduction, which for a `Food` is exactly three
+    things — the `replaceOnUse` spawn, `sendItemStats(item)` when uses
+    **remain** (`@293 L73-74`), and `RemoveItem` at `@272 L68-70` when they do
+    not — so a fully consumed item **stays in the inventory** here where the
+    crafting code would have removed it. It is *not* `replaceOnDeplete`: that
+    arm sits behind `instanceof DrainableComboItem` (`@146 L53`) and a `Food`
+    never reaches it. No nutrition field moves in any of the three, and the
+    skipped `sendItemStats` is a client push this command does not make on
+    either route; `after.inContainer` and `candidatesAfter` say which happened
+    rather than leaving it to be inferred.
   * **What it measured.** Every field `Food.multiplyFoodValues` writes is
     scaled by `1 − used/currentUses`, with
     `used = min(getCurrentUses(), requested)`. **MEASURED** on 42.20.4:
@@ -291,7 +315,15 @@ records how a fixture was built (build, mods, sandbox, accounts, timings).
     **not** move (30 / 40 / 15 throughout), which is why the denominator is
     `currentUses` and not `maxUses` — the two are equal only while the item is
     whole, and `spawn_guard.current_uses_is_whole` checks that per run. 96 of
-    96 compared fields matched. Driven by
+    96 compared fields matched. **The FRACTIONAL factor is evidenced by
+    `Base.Icecream` alone** — seven fields plus the `(int)` truncation that
+    makes `getCurrentUses() 30 → 20` a second reading of the same scaling;
+    the other two rows are **boundary rows at factor 0**, which rule out "one
+    use = one item" and "N is a count of items" but would be satisfied by any
+    model that vanishes at `used == cur`. And `1 − used/currentUses` is exact
+    only while the item is whole: `getCurrentUses()` truncates, so on a
+    part-spent item the real factor is a hair under it (the driver's
+    `factor32` replays the game's own `1 − amount/hungChange`). Driven by
     `testing/experiments/s06b_use_probe.py`.
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the

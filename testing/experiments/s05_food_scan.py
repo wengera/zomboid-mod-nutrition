@@ -57,7 +57,12 @@ import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # testing/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # experiments/
-from _common import ask, hard_kill, save
+# `git_dirty` used to be defined here word for word, and in `s06_recipes.py`. Slice 06's final
+# fix wave promoted the identical copy into `_common.py`; the body is unchanged, so nothing
+# this script writes into an artifact moves. `git_short` and this file's RETRYING
+# `load_dataset` stay here: neither is the same function as `_common`'s `git_say` /
+# `load_json`, so neither was promoted.
+from _common import ask, git_dirty, hard_kill, save
 from pzt import fixture as fx
 from pzt.paths import new_run_dir
 from pzt.session import Timeline, make_client, make_server, teardown
@@ -220,25 +225,6 @@ def git_short(rel_path):
         return (p.stdout or "").strip() or f"git said nothing (rc={p.returncode})"
     except Exception as e:                       # noqa: BLE001 - provenance, never fatal
         return f"{type(e).__name__}: {e}"
-
-
-def git_dirty(rel_path):
-    """`git status --porcelain -- <path>` non-empty: the working tree differs from the index or
-    HEAD, so `git_short`'s commit is NOT where the bytes came from.
-
-    Returns `(dirty, note)`. `dirty` is `True` / `False` when git answered and **`None`** when it
-    could not be asked -- unknown is a third state, and it must not be a truthy error string in
-    the flag's own slot, where `if dirty:` would read it as "dirty" and a JSON consumer would
-    have to type-check before believing it. The reason travels beside it as
-    `meta.dataset_dirty_note`. Provenance, never fatal."""
-    try:
-        p = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "--", rel_path],
-                           capture_output=True, text=True, timeout=30)
-        if p.returncode != 0:
-            return None, f"git status rc={p.returncode}"
-        return bool((p.stdout or "").strip()), None
-    except Exception as e:                       # noqa: BLE001 - provenance, never fatal
-        return None, f"{type(e).__name__}: {e}"
 
 
 def same(expected, live):

@@ -23,7 +23,32 @@ lands, so `data/evolved-recipes.json` does not exist yet and there is nothing to
 evolved half against. Every reply is written into the artifact whole -- all five recipes, the
 full `items` lists and their `itemFullTypes` twins -- so tasks 3 and 5 can do that comparison
 offline against this file (the plan's expectations for them: `Salad` and `SaladClay` at 187
-ingredients each, `Cinnamon` present in `ConeIcecream`'s list).
+ingredients each, `Cinnamon` present in `ConeIcecream`'s list). The 187 did **not** hold: both
+answered **189** and the plan's figure is the wrong one -- it counts `items/food.txt` only and
+drops the two `drainable.txt` carriers (`Base.Vinegar2`, `Base.Vinegar_Jug`) that its own
+"374 carriers = 372 food + 2 drainable" line names. The `EVOLVED` axis strings below say so;
+the committed artifact still records `plan_expected_187` and its two `false` flags, and
+`testing/artifacts/README.md` carries the erratum.
+
+**Replaying the comparator offline.** `compare_craft` is pure -- reply in, block out -- so a
+committed artifact can be re-scored at HEAD without booting the game, which is how a fix round
+re-verifies this run. Everything above the `LIVE SESSION BELOW` marker is definitions, so exec
+the file up to it and then feed it the artifact:
+
+    p = "testing/experiments/s06_recipes.py"
+    src = open(p, encoding="utf-8").read().rsplit("# ==== LIVE SESSION BELOW", 1)[0]
+    ns = {"__file__": p}; exec(compile(src, p, "exec"), ns)
+    art = json.load(open("testing/artifacts/exp06-20260910-112726/recipes.json"))
+    by_name = {r["name"]: r for r in json.load(open("data/recipes.json"))["recipes"]}
+    for name, rowv in art["craft"].items():
+        block = ns["compare_craft"](name, rowv["axis"], by_name.get(name), rowv["reply"])
+
+At HEAD that gives **10 of 10 recipes matched, 77 of 77 fields** against the current
+`data/recipes.json` (the artifact's own run predates the scanner's sub-line fix and recorded
+2 `inputCount` mismatches; see `INPUT_SUBLINE_NOTE`). Of the 77, **10 are the live-vs-live
+`outputListSize` row** -- `getOutputCount()` against the length of the list the command walked,
+two reads of one ArrayList -- so the dataset-versus-game count is **67**, and it was 65/67 at
+run time.
 
 **The tenth craft recipe is derived, not named.** Nine come from the brief; the tenth is "the
 first row in the file whose outputs resolve to a single food type", which `pick_tenth` computes
@@ -43,18 +68,20 @@ Everything lands in `<run_dir>/recipes.json`, copied byte-for-byte after teardow
 `testing/artifacts/<run-id>/recipes.json`. Run it with `python testing/pzt doctor` clean and
 nothing else live; the doctor is re-run from here and its verdict is in the artifact.
 """
-import hashlib
 import json
 import os
 import shutil
-import subprocess
 import sys
 import time
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # testing/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # experiments/
-from _common import ask, hard_kill, save
+# `load_json` / `git_say` / `git_dirty` / `doctor` / `num` used to be defined here, in
+# `s05_food_scan.py` and in `s05b_drink_probe.py` word for word. Slice 06's final fix wave
+# promoted the identical copies into `_common.py`; the bodies are unchanged, so nothing this
+# script writes into an artifact moves.
+from _common import ask, doctor, git_dirty, git_say, hard_kill, load_json, num, save
 from pzt import fixture as fx
 from pzt.paths import new_run_dir
 from pzt.session import Timeline, make_client, make_server, teardown
@@ -97,9 +124,12 @@ TENTH_RULE = ("the first row in data/recipes.json, in the file's own stored orde
 
 # The five the brief names. Recorded verbatim -- see the module docstring.
 EVOLVED = [
-    ("Salad", "the plan's 187-ingredient row"),
+    ("Salad", "the plan's 187-ingredient row -- MEASURED 189 in exp06-20260910-112726: the "
+              "plan counts items/food.txt only and omits the two drainables (Base.Vinegar2, "
+              "Base.Vinegar_Jug) its own 374 = 372 + 2 carrier line names"),
     ("SaladClay", "the same `Template = Salad` on a different base item: its ingredient list "
-                  "must be the SAME 187, which is what makes the template arm measurable"),
+                  "must be the SAME list as Salad's, which is what makes the template arm "
+                  "measurable (both answered 189, name for name)"),
     ("ConeIcecream", "the case-insensitive template arm (Q3): its item list is expected to "
                      "contain `Cinnamon`"),
     ("Soup", "`Cookable = true` and `MinimumWater = 0.9` -- the two scalar getters no other "
@@ -109,10 +139,11 @@ EVOLVED = [
 ]
 
 # MEASURED off the jar (42.20.4), and the reason a raw input-count comparison can disagree
-# without either side being wrong. `CraftRecipe.LoadIO @218-@317` handles a `-`-prefixed line
-# inside an `inputs` block by attaching it to the PRECEDING input as its
+# without either side being wrong. `CraftRecipe.LoadIO` handles a `-`-prefixed line inside an
+# `inputs` block at `@218-@317 L589-L604`, attaching it to the PRECEDING input as its
 # `consumeFromItemScript` and adding it to `ioLines` -- it is never added to `inputs`. A
-# `+`-prefixed line goes the same way into `createToItemScript`. `getInputCount()` is
+# `+`-prefixed line goes the same way into `createToItemScript`, in the EARLIER branch
+# `@122-@215 L574-L588` (the two are separate arms, not one span). `getInputCount()` is
 # `inputs.size()` (`@0-@7 L257`), so it counts top-level lines only, while the dataset's
 # `inputs` array is flat and lists the sub-lines beside their parents. The comparison below
 # therefore carries BOTH numbers: the flat length is what is compared (the dataset as it is,
@@ -120,76 +151,23 @@ EVOLVED = [
 # is what the game's counter should equal. A row where `top_level` matches and the flat length
 # does not is this modelling difference, not a lost or invented input.
 INPUT_SUBLINE_NOTE = (
-    "CraftRecipe.LoadIO @218-@317: a `-` (or `+`) prefixed line inside an `inputs` block is "
-    "attached to the preceding input as consumeFromItemScript/createToItemScript and added to "
-    "ioLines, NOT to `inputs`; getInputCount() is inputs.size() (@0-@7 L257). The dataset's "
-    "`inputs` array is flat and keeps those sub-lines as rows of their own")
-
-
-def load_json(path):
-    """`(data, error, sha256)` -- one read, hashed and decoded, so the digest is of the same
-    bytes that were parsed. `s05_food_scan.py` explains why the digest and not just the commit:
-    `git log -1` names the newest commit that TOUCHED the path, which is a different question
-    from where these bytes came from."""
-    try:
-        with open(path, "rb") as fh:
-            raw = fh.read()
-        return json.loads(raw.decode("utf-8")), None, hashlib.sha256(raw).hexdigest()
-    except (ValueError, OSError, UnicodeDecodeError) as e:
-        return None, f"{type(e).__name__}: {e}", None
-
-
-def git_say(*args):
-    """A short `git` answer, or the error string. Provenance only -- never fatal."""
-    try:
-        p = subprocess.run(["git", "-C", REPO] + list(args), capture_output=True, text=True,
-                           timeout=30)
-        if p.returncode != 0:
-            return f"git rc={p.returncode}"
-        return (p.stdout or "").strip()
-    except Exception as e:                       # noqa: BLE001 - provenance, never fatal
-        return f"{type(e).__name__}: {e}"
-
-
-def git_dirty(rel_path):
-    """`(dirty, note)`. `dirty` is True/False when git answered and **None** when it could not
-    be asked -- unknown is a third state and must not be a truthy error string in the flag's own
-    slot (the slice-05 fix). The reason travels beside it."""
-    try:
-        p = subprocess.run(["git", "-C", REPO, "status", "--porcelain", "--", rel_path],
-                           capture_output=True, text=True, timeout=30)
-        if p.returncode != 0:
-            return None, f"git status rc={p.returncode}"
-        return bool((p.stdout or "").strip()), None
-    except Exception as e:                       # noqa: BLE001 - provenance, never fatal
-        return None, f"{type(e).__name__}: {e}"
-
-
-def doctor():
-    """`pzt doctor` from inside the run: `(clean, text)`. The brief's precondition, recorded
-    rather than remembered -- a run booted onto a dirty machine is not evidence."""
-    try:
-        p = subprocess.run([sys.executable, os.path.join(REPO, "testing", "pzt"), "doctor"],
-                           capture_output=True, text=True, timeout=300)
-        return p.returncode == 0, (p.stdout or "") + (p.stderr or "")
-    except Exception as e:                       # noqa: BLE001 - reported, not raised
-        return False, f"{type(e).__name__}: {e}"
+    "CraftRecipe.LoadIO: a `-` prefixed line inside an `inputs` block (@218-@317 L589-L604) is "
+    "attached to the preceding input as consumeFromItemScript, and a `+` one (@122-@215 "
+    "L574-L588) as createToItemScript; both are added to ioLines, NEITHER to `inputs`. "
+    "getInputCount() is inputs.size() (@0-@7 L257). The dataset's `inputs` array is flat and "
+    "keeps those sub-lines as rows of their own")
 
 
 def as_list(v):
     """A Lua-side list, normalised. `TK.json` has no way to tell an empty ARRAY from an empty
     OBJECT -- `#v == 0` sends both through the object branch -- so an empty `items` /
     `itemFullTypes` / `outputs` arrives as `{}` and not `[]`. Anything else non-list (a missing
-    key, an `{"error": ...}` reply) also becomes `[]`, and the caller's own `reply_ok` check is
-    what distinguishes "empty" from "never answered"."""
+    key, an `{"error": ...}` reply) also becomes `[]`, and it is the caller's own usable-reply
+    check -- `compare_craft`'s `ok = isinstance(reply, dict) and "error" not in reply` -- that
+    distinguishes "empty" from "never answered"."""
     if isinstance(v, list):
         return v
     return []
-
-
-def num(v):
-    """A number, or None for anything else. Booleans are excluded: `isinstance(True, int)`."""
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
 def resolved_output_types(record, out):
@@ -375,6 +353,8 @@ def compare_craft(name, axis, record, reply):
     return block
 
 
+# ==== LIVE SESSION BELOW ==== everything above this line is definitions, so an offline replay
+# execs the file up to this marker and calls `compare_craft` itself (see the module docstring).
 rec = fx.load("default")
 run_id, run_dir = new_run_dir("exp06")
 path = os.path.join(run_dir, "recipes.json")
@@ -544,9 +524,14 @@ try:
                 if isinstance(o.get(key), dict):
                     n += 1
                     m += 1 if o[key].get("match") is True else 0
+        # `matched`, NOT `not mismatches`: `compare_craft` returns early with `matched: False`
+        # and an EMPTY `mismatches` list when there is no dataset record for the name (`:291`),
+        # and an empty list is falsy -- so the emptiness test would have scored an unfound
+        # recipe as a pass. Every recipe in `exp06-20260910-112726` had a record, so the two
+        # readings agree on that run (10/10 either way); this is the latent case closed.
         per_recipe[name] = {"fields": n, "matched": m,
                             "mismatched": len(block.get("mismatches") or []),
-                            "ok": not block.get("mismatches"),
+                            "ok": block.get("matched") is True,
                             "getter_errors": block.get("getter_errors"),
                             "missing_getters": block.get("missing_getters")}
         for b in (block.get("mismatches") or []):

@@ -60,23 +60,49 @@ local function label(o)
     return tostring(v)
 end
 
--- java List -> (labels, size, fullTypes). Both lists are returned because the two element
--- types spell a full type through different members (see `label`): a Task-3 comparison
--- against a scanned `Base.X` needs `fullTypes`, and the brief's expectations are written
--- against `labels`. An element the list yielded but that answered neither is still counted in
--- `size`, so a short list is visible against it rather than silently equal to it.
-local function collect(l)
-    local labels, full, n = {}, {}, get(l, "size") or 0
+-- Written into `itemFullTypes` for an element that answered a label but no full type, so the
+-- two lists stay index-for-index. A string no full type can be (`.` separates module from
+-- type, and no module is empty), so a consumer that reads it as a type gets an obvious miss
+-- rather than a plausible one.
+local NO_FULL_TYPE = "?no-full-type"
+
+-- java List -> (labels, size, fullTypes, err, aligned). The owner and the METHOD NAME rather
+-- than the list, because a build that does not expose the getter and a getter that answered
+-- an empty list both leave `labels` empty and they are different findings -- the slice-05
+-- `fluidDefsError` rule. `err` is non-nil for exactly the first case; an empty list with a nil
+-- `err` is a genuinely empty list.
+--
+-- Both lists are returned because the two element types spell a full type through different
+-- members (see `label`): a Task-3 comparison against a scanned `Base.X` needs `fullTypes`, and
+-- the brief's expectations are written against `labels`. They are kept INDEX-ALIGNED -- an
+-- element that answers a label but no full type takes `NO_FULL_TYPE` in `fullTypes` rather
+-- than being dropped, which would silently shift every pair after it -- and `aligned` is false
+-- when that happened, so a caller can refuse the pairing instead of trusting it. An element
+-- the list yielded as nil is skipped on BOTH sides (the two stay aligned with each other) and
+-- is still counted in `size`, so a short list is visible against it rather than silently equal.
+local function collect(owner, method)
+    local labels, full = {}, {}
+    if owner == nil then return labels, 0, full, "no object to ask " .. method .. "()", true end
+    local ok, l = TK.call(owner, method)
+    if not ok then return labels, 0, full, "no " .. method .. "() on this build", true end
+    if l == nil then return labels, 0, full, method .. "() answered nil", true end
+    local n = get(l, "size") or 0
     if type(n) ~= "number" then n = 0 end
+    local aligned = true
     for i = 0, n - 1 do
         local v = get(l, "get", i)
         if v ~= nil then
             labels[#labels + 1] = label(v)
             local ft = get(v, "getFullType") or get(v, "getFullName")
-            if ft ~= nil then full[#full + 1] = tostring(ft) end
+            if ft ~= nil then
+                full[#full + 1] = tostring(ft)
+            else
+                full[#full + 1] = NO_FULL_TYPE
+                aligned = false
+            end
         end
     end
-    return labels, n, full
+    return labels, n, full, nil, aligned
 end
 
 -- Run each getter and report what happened to it, the slice-05 `missingGetters` pattern with
@@ -170,9 +196,16 @@ end)
 -- ---- recipes.evolved <name> --------------------------------------------------
 -- One `EvolvedRecipe` read whole: its five scalar properties and the full list of items that
 -- may be added to it. `getPossibleItems()` is the values of the recipe's own `itemsList` map,
--- which the item scripts fill (`EvolvedRecipe = Salad:10` on a food item registers that item
--- against the `Salad` recipe), so the list is the ingredient set and its size is the
--- ingredient count.
+-- so the list is the ingredient set and its size is the ingredient count.
+--
+-- That map is filled by `Item.OnScriptsLoaded` through BOTH of its arms, not just the obvious
+-- one: the exact-name lookup `getEvolvedRecipe(key)` (`@43-@59 L3033-L3035`, case-SENSITIVE)
+-- **and** a pass over every recipe whose `Template` `equalsIgnoreCase` the key
+-- (`@122-@140 L3039`, case-INSENSITIVE). An item writing `EvolvedRecipe = Salad:10` therefore
+-- registers against `Salad` by name *and* against every recipe templated `Salad`. `SaladClay`
+-- is the case that proves it matters: no item writes a `SaladClay` key at all, so its whole
+-- list arrives through the Template arm -- a reader who expects only the name arm would
+-- predict an empty list and read 189.
 local EVOLVED_GETTERS = { "getBaseItem", "getResultItem", "getMaxItems", "isCookable",
                           "getMinimumWater" }
 
@@ -185,8 +218,12 @@ TK.register("recipes.evolved", function(argv)
     if r == nil then return "no evolved recipe " .. want end
     local out = fields(r, EVOLVED_GETTERS)
     out.name, out.lookup = want, lookup
-    local items, n, full = collect(get(r, "getPossibleItems"))
+    local items, n, full, ierr, aligned = collect(r, "getPossibleItems")
     out.items, out.ingredientCount, out.itemFullTypes = items, n, full
+    -- absent getter vs empty list, and the pairing of the two lists: both are findings, so
+    -- both are named rather than left to look like a short list (see `collect`).
+    if ierr ~= nil then out.itemsError = ierr end
+    if not aligned then out.itemFullTypesAligned = false end
     return out
 end)
 
@@ -201,6 +238,14 @@ end)
 -- logs its own warning). `getOriginalLine()` is the recipe file's own text for that line,
 -- which is the dataset's `outputs[].raw`: a direct string cross-check that does not depend on
 -- the scanner and the game agreeing about how to parse it.
+--
+-- `getInputCount()` is NOT the number of input lines, and a comparison that assumes it is will
+-- disagree with a flat scan on every recipe that uses a sub-line. `CraftRecipe.LoadIO` attaches
+-- a `-` prefixed line inside an `inputs` block to the PRECEDING input as its
+-- `consumeFromItemScript` (`@218-@317 L589-L604`) and a `+` one as `createToItemScript`
+-- (`@122-@215 L574-L588` -- a separate, earlier arm, not part of the same span); both go into
+-- `ioLines` and NEITHER into `inputs`, and `getInputCount()` is `inputs.size()`
+-- (`@0-@7 L257`). 55 shipped lines are sub-lines.
 local CRAFT_GETTERS = { "getCategory", "getTime", "getInputCount", "getOutputCount" }
 
 TK.register("recipes.craft", function(argv)
@@ -220,14 +265,19 @@ TK.register("recipes.craft", function(argv)
     for i = 0, n - 1 do
         local o = get(outs, "get", i)
         if o ~= nil then
-            local items, cnt, full = collect(get(o, "getPossibleResultItems"))
+            local items, cnt, full, ierr, aligned = collect(o, "getPossibleResultItems")
             local rt = get(o, "getResourceType")
-            out.outputs[#out.outputs + 1] = {
+            local orow = {
                 index = i,
                 amount = get(o, "getIntAmount"),
                 resourceType = (rt ~= nil) and tostring(rt) or nil,
                 originalLine = get(o, "getOriginalLine"),
                 items = items, itemCount = cnt, itemFullTypes = full }
+            -- same two findings as the evolved half: an absent getter is not an empty mapper,
+            -- and a short `itemFullTypes` must never be read as a re-ordered one.
+            if ierr ~= nil then orow.itemsError = ierr end
+            if not aligned then orow.itemFullTypesAligned = false end
+            out.outputs[#out.outputs + 1] = orow
         end
     end
     return out

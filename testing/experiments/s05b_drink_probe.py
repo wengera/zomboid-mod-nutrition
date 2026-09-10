@@ -59,19 +59,21 @@ Everything lands in `<run_dir>/drink-probe.json`, copied byte-for-byte at the en
 `testing/artifacts/<run-id>/drink-probe.json`. Run with `python testing/pzt doctor` clean and
 nothing else live; the doctor is re-run from here and its verdict is in the artifact.
 """
-import hashlib
 import json
 import os
 import shutil
 import struct
-import subprocess
 import sys
 import time
 import traceback
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # testing/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # experiments/
-from _common import ask, hard_kill, save
+# `load_json` (this file called it `load_dataset`), `git_say`, `doctor` and `num` used to be
+# defined here word for word, and in three sibling drivers. Slice 06's final fix wave promoted
+# the identical copies into `_common.py`; the bodies are unchanged, so nothing this script
+# writes into an artifact moves.
+from _common import ask, doctor, git_say, hard_kill, load_json, num, save
 from pzt import fixture as fx
 from pzt.paths import new_run_dir
 from pzt.session import Timeline, make_client, make_server, teardown
@@ -174,52 +176,11 @@ PROPERTY_FIELDS = (("calories", "calories_per_container", 1.0),
 # same key, with no mapping in between.
 
 
-def load_dataset(path):
-    """`(data, error, sha256)` -- one read, hashed and decoded, so the digest is of the same
-    bytes that were parsed. `s05_food_scan.py` explains why the digest and not just the commit:
-    `git log -1` names the newest commit that TOUCHED the path, which is not the same question
-    as where these bytes came from."""
-    try:
-        with open(path, "rb") as fh:
-            raw = fh.read()
-        return json.loads(raw.decode("utf-8")), None, hashlib.sha256(raw).hexdigest()
-    except (ValueError, OSError, UnicodeDecodeError) as e:
-        return None, f"{type(e).__name__}: {e}", None
-
-
-def git_say(*args):
-    """A short `git` answer, or the error string. Provenance only -- never fatal."""
-    try:
-        p = subprocess.run(["git", "-C", REPO] + list(args), capture_output=True, text=True,
-                           timeout=30)
-        if p.returncode != 0:
-            return f"git rc={p.returncode}"
-        return (p.stdout or "").strip()
-    except Exception as e:                       # noqa: BLE001 - provenance, never fatal
-        return f"{type(e).__name__}: {e}"
-
-
-def doctor():
-    """`pzt doctor` from inside the run: `(clean, text)`. The brief's precondition, recorded
-    rather than remembered -- a run booted onto a dirty machine is not evidence."""
-    try:
-        p = subprocess.run([sys.executable, os.path.join(REPO, "testing", "pzt"), "doctor"],
-                           capture_output=True, text=True, timeout=300)
-        return p.returncode == 0, (p.stdout or "") + (p.stderr or "")
-    except Exception as e:                       # noqa: BLE001 - reported, not raised
-        return False, f"{type(e).__name__}: {e}"
-
-
 def f32(x):
     """The nearest float32, as a Python float. Java holds `Nutrition`, `SealedFluidProperties`
     and every fluid property in `float`, so a prediction that has to survive a truncation
     boundary must be computed the same width (see `food_timer`)."""
     return struct.unpack("f", struct.pack("f", x))[0]
-
-
-def num(v):
-    """A number, or None for anything else (a missing key, an `{'error': ...}` reply)."""
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
 def dig(obj, *keys):
@@ -456,7 +417,7 @@ clients = []
 t_start = time.time()
 
 doctor_clean, doctor_text = doctor()
-data, data_err, data_sha = load_dataset(DATASET)
+data, data_err, data_sha = load_json(DATASET)
 items_by_id = {r["id"]: r for r in (data or {}).get("items", [])}
 fluids_by_id = {r["id"]: r for r in (data or {}).get("fluids", [])}
 out = {"run_id": run_id,

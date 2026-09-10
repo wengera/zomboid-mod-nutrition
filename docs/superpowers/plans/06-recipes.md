@@ -366,7 +366,7 @@ TK.log("recipe commands loaded")
 
 **Files:** Create `docs/vanilla/recipes-dataset-notes.md`; Modify `data/README.md`, `tools/README.md`, `docs/vanilla/README.md`, `docs/testing/README.md`, `docs/progress.md`, `docs/decisions.md`.
 
-- [x] **Step 1: The doc**, house skeleton — header `Verified against: 42.20.4 (b0bbce05d5)` + date + slice; five-line summary; **Model** (Task 2's format table and Task 3's resolution rules, every table row graded, the summation *cited* to `food-item-model.md`, never restated as a derivation); **Code map** (`ScriptManager.getAllCraftRecipes` / `getAllEvolvedRecipesList` / `getAllRecipes`, `Item.OnScriptsLoaded @122–@140 L3039`, `EvolvedRecipe.addItem`, `Food.update`'s `ReplaceOnCooked` branch, `Food.updateRotting`); **Cooking deltas** (the zero-delta result with `MakeToast` worked through; the 3 + 8 `ReplaceOn*` rows; the 23 non-zero craft deltas, largest first); **MP behaviour** (the dataset is not sided — the same `ScriptManager` parses the same files on both — but the *effects* are: `updateRotting` and therefore every `ReplaceOnRotten` swap is server-only (`Food.updateRotting @13–@19 L658-659`), and the Cooking perk level that scales the evolved summation is owned by the server, so a client-side perk write silently runs the recipe at the server's level (`food-item-model.md` § MP behaviour, M `exp02-20260910-030433`)); **Discrepancies**; **Open questions**; **Sources** (script paths with line numbers, the jar cites, the artifact id).
+- [x] **Step 1: The doc**, house skeleton — header `Verified against: 42.20.4 (b0bbce05d5)` + date + slice; five-line summary; **Model** (Task 2's format table and Task 3's resolution rules, every table row graded, the summation *cited* to `food-item-model.md`, never restated as a derivation); **Code map** (`ScriptManager.getAllCraftRecipes` / `getAllEvolvedRecipesList` / `getAllRecipes`, `Item.OnScriptsLoaded @122–@140 L3039`, `EvolvedRecipe.addItem`, `Food.update`'s `ReplaceOnCooked` branch, `Food.updateRotting`); **Cooking deltas** (the zero-delta result with `MakeToast` worked through; the 3 + 8 `ReplaceOn*` rows; the 23 non-zero craft deltas *(now 31 resolvable / 15 non-zero — see Acceptance results)*, largest first); **MP behaviour** (the dataset is not sided — the same `ScriptManager` parses the same files on both — but the *effects* are: `updateRotting` and therefore every `ReplaceOnRotten` swap is server-only (`Food.updateRotting @13–@19 L658-659`), and the Cooking perk level that scales the evolved summation is owned by the server, so a client-side perk write silently runs the recipe at the server's level (`food-item-model.md` § MP behaviour, M `exp02-20260910-030433`)); **Discrepancies**; **Open questions**; **Sources** (script paths with line numbers, the jar cites, the artifact id).
 - [x] **Step 2: Document the data** — extend `data/README.md` with every column of both CSVs and the top-level shape of both JSONs; replace the `evolved_recipes.py` line under "Planned (P4)" in `tools/README.md` with the real `recipe_scan.py` entry (invocation, outputs, that it imports `food_scan`'s parser); add the notes doc to `docs/vanilla/README.md`.
 - [x] **Step 3: Acceptance** — run every check below and paste the outputs into this plan file under a new `## Acceptance results` heading.
 - [x] **Step 4: Ledgers and push** — see Done protocol; commit `Slice 06: recipes dataset notes` and push.
@@ -416,7 +416,9 @@ this task's doc commit. Two live sessions produced committed evidence:
 `exp06-20260910-112726` and `exp06b-20260910-120123`.
 
 1. **`python tools/recipe_scan.py --out-dir data` → exit 0, four files, counts as predicted.**
-   Verbatim:
+   The census the scanner prints, identical under `--out-dir data` and under the doc task's
+   scratch-directory run — only the four output **paths** differ, and they are shown here as the
+   `--out-dir data` run writes them:
 
    ```
    craftRecipes 969 in 74 files, 0 legacy recipe blocks, 225 itemMappers
@@ -446,12 +448,16 @@ this task's doc commit. Two live sessions produced committed evidence:
    names. The dataset agrees with the **game** (189 / 189), and each of the five live ingredient
    lists is **set-equal** to the dataset's — 0 extra, 0 missing, both directions, on `Salad`,
    `SaladClay`, `ConeIcecream` (56, `Cinnamon` present — Q3's case-insensitive template arm),
-   `Soup` (193) and `AddBaitToChum` (42). The ten `recipes.craft` spot checks compared **77
-   fields, 75 matched** at run time; both misses are the one field `inputCount`
-   (`MakePizza` 10 vs 9, `MakeMilkFromPowderBucket` 3 vs 2), which is the loader attaching a
-   `-fluid` sub-line to the preceding input — the artifact's own `top_level_matches: true` rows
-   said so at the time, the scanner adopted the loader's model in `6694568`, and the same
-   comparison replayed offline against the artifact is now **10/10 recipes, 77/77 fields**.
+   `Soup` (193) and `AddBaitToChum` (42) — the five list *sizes* are the run's, the set-equality
+   an offline computation against the committed `itemFullTypes`. The ten `recipes.craft` spot
+   checks compared **77 rows, 75 matched** at run time; ten of those 77 are the **live-vs-live**
+   `outputListSize` check (`getOutputCount()` against the length of the list the command walked),
+   so the dataset-versus-game figure is **67 fields, 65 matched**. Both misses are the one field
+   `inputCount` (`MakePizza` 10 vs 9, `MakeMilkFromPowderBucket` 3 vs 2), which is the loader
+   attaching a `-fluid` sub-line to the preceding input — the artifact's own
+   `top_level_matches: true` rows said so at the time, the scanner adopted the loader's model in
+   `6694568`, and the same comparison replayed offline against the artifact is now **10/10
+   recipes, 77/77 rows — 67 of 67 dataset fields**.
    Artifact `testing/artifacts/exp06-20260910-112726/recipes.json`, 89.1 s, `server_errors []`,
    doctor all-`ok`, no world change.
 3. **Every `items/food.txt` output type resolves to a `data/food-items.json` key.**
@@ -466,7 +472,8 @@ this task's doc commit. Two live sessions produced committed evidence:
    `0 finding(s)`**, run on the tree with `docs/vanilla/recipes-dataset-notes.md` in place and
    with the § Evolved recipes hunger-clamp row added to `docs/vanilla/food-item-model.md`.
 6. **`python testing/pzt run --hold 5` → met by the two live runs, not re-run here.** The doc task
-   does not boot the game. `testing/` has not been touched since `3c16632`, so the harness in the
+   does not boot the game. **The Lua harness** had not been touched since `3c16632` (slice 07 was
+   editing `testing/pzt/` in parallel, which is the runner rather than the mod), so the mod in the
    tree is byte-for-byte the one both sessions loaded: `exp06-20260910-112726` booted
    `server/PZTestKit_Server_Recipes.lua` with all three recipe commands answering on fifteen
    probes, and `exp06b-20260910-120123` booted `PZTestKit_Server.lua` carrying `item.use` — both
@@ -478,8 +485,13 @@ this task's doc commit. Two live sessions produced committed evidence:
 
 **Two plan expectations moved, and one measurement was added beyond the plan.** (a) The plan's
 "`item N`" was read as N items; it is N **uses** — for a `Food`, N raw `HungerChange` points. That
-changed eight of the 31 resolvable deltas (`ScoopIceCream` −16 345 → **−105**, `MakeMeatPatty`
-−11 388 → **+312**, five `InheritFood` splits to 0) and is the reason `data/recipes.json` gained
+moved **ten** of the 31 resolvable deltas in at least one macro (`ScoopIceCream` −16 345 →
+**−105**, `MakeMeatPatty` −11 388 → **+312**, `MakeTortillaChips` +80 → **+112**, and **seven**
+exact-`InheritFood` splits to 0 — `HalveFillet`, `HarvestRoe`, `SliceBaloney`, `SliceHam`,
+`SlicePumpkin`, `SliceSalami`, `SliceWatermelon`; the eighth split, `MakeHalloweenPumpkin`, was
+already 0), leaving **21** unchanged. An earlier "eight moved / five to 0 / 23 unchanged" counted
+kcal and hunger only, and so missed `SliceHam` (carbs) and `SliceWatermelon` (carbs, lipids,
+proteins, thirst −60 → 0). The rule is also the reason `data/recipes.json` gained
 `amountIsItemCount`, `amountUses`, `subLines`, `split`, `destroyWaste` and the delta's `notes`.
 (b) The evolved summation needed three branches the plan's verbatim block omits — the hunger
 clamp (59 rows), the spice return (2 522 rows) and the `DRIED_FOOD` thirst skip (27 rows). (c)
