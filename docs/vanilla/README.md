@@ -11,7 +11,8 @@ Every doc ends with an **MP behavior** section.
 | [nutrition-core.md](nutrition-core.md) | Nutrition class: calories→weight, macro effects, store clamps, traits, XP gates | **done** — the `updateCalories` burn model moved to [body-stats.md](body-stats.md) (slice 03), which also closed this doc's `characterHaveWeightTrouble`, Nutritionist and sandbox open questions |
 | [food-item-model.md](food-item-model.md) | The food item itself: all 114 `food.txt`/`drainable.txt` script keys, the aging model (fresh → stale → rotten, fridge/freezer/frozen), cooking transitions, evolved-recipe nutrition summation, packaged/canned, poison, and item-state ownership in MP | **done** — slice 02 (P1c), code map + measured lifecycle run |
 | [food-dataset-notes.md](food-dataset-notes.md) | The vanilla food/drink **dataset** (`data/food-items.{json,csv}`): the four `kind` buckets and the selection rule, absent-vs-zero, the `nutrition_source` / `nutrition_basis` rule and the per-litre fluid join with its `*_per_container` arithmetic, the live count cross-check, ten field-for-field spot checks and a three-drink probe | **done** — slice 05 (P4a), code map + two measured runs (`exp05-20260910-084109`, `exp05b-20260910-093307`) |
-| eating-cooking.md | Evolved recipes, cooking XP, batch cooking | pending — slice 06 (the recipe *dataset*). The `ISEatFoodAction` → `Eat` pipeline that was planned here lives in [eating-pipeline.md](eating-pipeline.md); the evolved-recipe *mechanism* (summation, gating, cooking XP) is in [food-item-model.md](food-item-model.md) |
+| [recipes-dataset-notes.md](recipes-dataset-notes.md) | The vanilla recipe **datasets** (`data/recipes.{json,csv}`, `data/evolved-recipes.{json,csv}`): the `craftRecipe` format and IO grammar, the uses-not-items input rule, the nutrition delta and its refusals, the two evolved-recipe join arms, the 3 + 8 `ReplaceOn*` links, and the live count / spot-check cross-check | **done** — slice 06 (P4b), code map + two measured runs (`exp06-20260910-112726`, `exp06b-20260910-120123`) |
+| eating-cooking.md | Cooking XP, batch cooking, the cooking UI | pending. The recipe *dataset* landed as [recipes-dataset-notes.md](recipes-dataset-notes.md) (slice 06); the `ISEatFoodAction` → `Eat` pipeline that was planned here lives in [eating-pipeline.md](eating-pipeline.md); the evolved-recipe *mechanism* (summation, gating, cooking XP) is in [food-item-model.md](food-item-model.md) |
 | food-sources.md | Farming/foraging/trapping/fishing/butchering yield data paths | pending (foraging partly done in pz-b42) |
 | [body-stats.md](body-stats.md) | The body side: the five-branch passive calorie burn, hunger/thirst decay with their sandbox and trait multipliers, the HUNGRY/THIRST/FOOD_EATEN moodle thresholds and everything they drive, the weight bands and every effect of the band traits, MP ownership per stat | **done** — slice 03 (P1b), code map + measured run `exp03-20260910-045523` (was planned as `stats-moodles.md`) |
 | mp-sync-model.md | SyncItemFieldsPacket fields, modData transmission, client/server authority per system | pending — slice 12 (P2a). What is settled so far: item fields and player modData in [../testing/spikes.md](../testing/spikes.md) §S6, `Nutrition` + hunger/thirst authority in [eating-pipeline.md](eating-pipeline.md) § MP behaviour |
@@ -39,6 +40,12 @@ Every doc ends with an **MP behavior** section.
   banks `macro × (1 + cookLvl/15) × share` in the dish, i.e. ×1.1667 macros per
   unit of dish hunger at Cooking 10, with ~17 % of the calories created from
   nothing (slice 02, measured).
+- **Cooking moves no nutrition — only a *type change* does** (slice 06, from
+  the data): `MakeToast` is all-zero in the four macros, all 8
+  `ReplaceOnRotten` melts conserve every macro, and none of the 3
+  `ReplaceOnCooked` links moves one. Any cooking *value* a mod wants has to
+  come from a type change or from new mechanics. See
+  [recipes-dataset-notes.md](recipes-dataset-notes.md).
 - **`Nutrition` is server-authoritative in MP** (slice 01, measured): a
   client-side write is overwritten within a second by the 1 Hz push, and the
   eat itself completes on the server. Same for hunger and thirst. Every MP

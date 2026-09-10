@@ -60,12 +60,35 @@ import patterns from there.
   last-write-wins, so a repeated key survives), `coerce` / `coerce_props`,
   `canonical_key`, `is_known_key`, `KEY_TYPES` (the 114 keys of
   `docs/vanilla/food-item-model.md`), `load_translations`. `recipe_scan.py`
-  will import it; read the module docstring before changing it.
+  imports it; read the module docstring before changing it.
+
+- `recipe_scan.py` — `python tools/recipe_scan.py --out-dir data`
+  (also `--root` for a different `media/`, `--food` for a different
+  `data/food-items.json`; the out-dir is created if it does not exist).
+  Parses the same 42.20.4 scripts and writes **four** files:
+  `data/recipes.json` + `data/recipes.csv` (969 `craftRecipe` rows, 37 CSV
+  columns — inputs, outputs, item mappers, fluids, and the nutrition delta
+  where every consumed input and every output resolves) and
+  `data/evolved-recipes.json` + `data/evolved-recipes.csv` (the 63
+  `evolvedrecipe` blocks joined to 6 881 ingredient rows, each with what it
+  contributes to the dish at Cooking 0 and Cooking 10). `data/recipes.json`
+  additionally carries a `replacements` array — the 163 `ReplaceOn*` links
+  (3 cooked, 8 rotten, 110 use, 42 deplete) with the delta each swap moves.
+  It prints its census, ending
+  `163 ReplaceOn* links (3 cooked, 8 rotten, 110 use, 42 deplete)`.
+  It **imports `food_scan`'s parser** (`sys.path` insert + `import
+  food_scan`) and never walks the DSL itself, and it reads
+  `data/food-items.json` for nutrition — through `FOOD_FIELDS`, so this plan's
+  script-case names and the dataset's lowercase columns both resolve. Two
+  rules a consumer has to know: an input amount is a count of **uses** unless
+  the line carries `flags[ItemCount]`, and a delta term is only taken from a
+  `nutrition_basis = per_item` row. Both output pairs are byte-stable across
+  runs. Columns, the JSON shapes and `meta` are documented in `data/README.md`
+  § recipes and § evolved-recipes; the model, the refusals and the live
+  cross-check are `docs/vanilla/recipes-dataset-notes.md`.
 
 ## Planned (P4)
 
-- `evolved_recipes.py` — evolvedrecipe graph (base items, ingredients,
-  nutrition math) → `data/evolved-recipes.json`.
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
   matrix for the item pass).
 

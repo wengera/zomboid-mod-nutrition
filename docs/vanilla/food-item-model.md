@@ -481,6 +481,7 @@ ing.calories    -= ing.calories * share;  … same for the other three …   // 
 |---|---|---|---|
 | `hunger` | `use / 100` | the script `Name:use` points, in hunger units | C+M |
 | rotten ingredient | `0.05 × baseHunger` at Cooking 7–8, `0.10 ×` at 9–10; **refused below Cooking 7** | rounding `DECIMAL_FORMAT`, `HALF_EVEN` | C |
+| **hunger clamp** | `hunger = min(hunger, abs(ing.getHungerChange()))` | applied **before** the Cooking reduction (`addItem @934 L374–376`), so a key that asks for more hunger than the ingredient carries can only ever spend the whole ingredient. 17 vanilla keys over-ask, across 59 of the 6 881 ingredient rows of `data/evolved-recipes.json` — [recipes-dataset-notes.md](recipes-dataset-notes.md) § The evolved summation | C |
 | `hungerAfterSkill` | `hunger × (1 − 0.03 × cookLvl)` | ⇒ 70 % of the ingredient consumed at Cooking 10 | C+M |
 | `share` | `min(abs(hungerAfterSkill / ing.hungChange), 1)` | capped at the whole ingredient | C+M |
 | `skillBonus` | `1 + cookLvl / 15` | 1.0 at level 0, 1.6667 at level 10 | C+M |

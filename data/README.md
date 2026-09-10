@@ -1,7 +1,7 @@
 # Data
 
-Generated datasets (do not hand-edit): food-items, evolved-recipes, mod
-overlays. Regenerate with tools/ scanners. The **JSON** of a pair carries the
+Generated datasets (do not hand-edit): food-items, recipes, evolved-recipes,
+mod overlays. Regenerate with tools/ scanners. The **JSON** of a pair carries the
 build it was generated from, in its `meta` block; the **CSV deliberately
 carries no stamp row** — a `meta` line above the header would break every
 `csv.reader` consumer — and is documented instead by its JSON twin's `meta`
@@ -281,3 +281,215 @@ All four `ReplaceOn*` keys — `ReplaceOnCooked`, `ReplaceOnRotten`,
 `ReplaceOnUse`, `ReplaceOnDeplete` — have a column of their own and are
 resolved against the dataset's own ids, so a row shows the link and `meta`
 shows the miss. Each is kept verbatim in `props_raw` as well.
+
+## recipes
+
+`data/recipes.json` + `data/recipes.csv`, written by
+`python tools/recipe_scan.py --out-dir data` from the 42.20.4 scripts under
+`media/scripts/` — **one row per `craftRecipe` block**, 969 of them in 74
+files, with its inputs and outputs parsed line by line. Evidence grade **C**
+for everything read off a script line (every record names its
+`sourceFile:sourceLine`); the `delta` block is `C (arith.)` — arithmetic on
+those lines and on `data/food-items.json`, under a rule whose measured half is
+`testing/artifacts/exp06b-20260910-120123/use-probe.json`. The mechanism, the
+refusals and the live cross-check are
+[`docs/vanilla/recipes-dataset-notes.md`](../docs/vanilla/recipes-dataset-notes.md);
+this section is the column authority.
+
+**An input amount is a count of *uses*, not of items, unless the line carries
+`flags[ItemCount]`** — and for a `Food` one use is one raw `HungerChange`
+point, so `item 40 [Base.MincedMeat]` is one whole tub and
+`item 10 [Base.Icecream]` is a third of one. Every `delta*` column is computed
+that way. **A delta term is only ever taken from a `nutrition_basis =
+per_item` row**: a drink (`per_litre`) and a row with no nutrition key are
+refused by name in `deltaReason`, never converted, so the two units of
+§ Per litre, not per item are never added together.
+
+### CSV columns
+
+37 columns, one row per recipe, 969 rows. **An absent key is the empty string,
+never `0`**, exactly as in food-items; booleans print `true` / `false`; list
+columns join their parts with `;`.
+
+| # | Column | Type | From |
+|---|---|---|---|
+| 1 | `name` | string | the `craftRecipe` block name — unique across the 969 |
+| 2 | `module` | string | the enclosing `module` block (`Base` on every vanilla recipe) |
+| 3 | `category` | string | `category` (935 blocks write one) |
+| 4 | `time` | int | `time` |
+| 5 | `timedAction` | string | `timedAction` |
+| 6 | `tags` | list `;` | `Tags` |
+| 7 | `skillRequired` | list `;` | `SkillRequired`, parts kept whole (`Blacksmith:0`) |
+| 8 | `xpAward` | list `;` | `xpAward`, parts kept whole (`Blacksmith:10`) |
+| 9 | `needToBeLearn` | bool | `NeedToBeLearn` |
+| 10 | `autoLearnAll` | list `;` | `AutoLearnAll` |
+| 11 | `autoLearnAny` | list `;` | `AutoLearnAny` |
+| 12 | `allowBatchCraft` | bool | `AllowBatchCraft` |
+| 13 | `metaRecipe` | string | `MetaRecipe` |
+| 14 | `onCreate` | string | `OnCreate` — the Lua hook the 37 output-less recipes mutate their input through |
+| 15 | `tooltip` | string | `Tooltip` |
+| 16 | `inputTypes` | list `;` | derived: every distinct type named by an input **item** line, sorted, sub-lines included |
+| 17 | `inputTags` | list `;` | derived: the same over `tags[…]` inputs (`base:bowl`) |
+| 18 | `inputFluids` | list `;` | derived: every `-fluid` line's fluid ids, plus `category:<Name>` for a line naming categories instead |
+| 19 | `inputCount` | int | derived: **the loader's own `inputs.size()`** — a `-`/`+` sub-line belongs to the input above it and does not count (`CraftRecipe.LoadIO @218–@317`, `getInputCount @0–@7 L257`) |
+| 20 | `outputTypes` | list `;` | derived: every distinct output type, a `mapper:<name>` line resolved to every result of that mapper except the literal `default` |
+| 21 | `itemMappers` | list `;` | the mapper names this recipe declares |
+| 22 | `fluidIO` | bool | derived: the recipe has at least one fluid line (53 recipes). Fluid nutrition is **not** in the delta |
+| 23 | `split` | bool | derived: an input carries `flags[InheritFood]`, so each output takes `1/outputCount` of the *consumed instance's* macros and the delta is 0 by construction (17 recipes) |
+| 24 | `datasetTypes` | list `;` | derived: the IO types that are a `data/food-items.json` row **at all**, vessels included |
+| 25 | `foodItemTypes` | list `;` | derived: the `food` / `drainable` subset of column 24 — the rows a delta may weigh |
+| 26 | `deltaCalories` | float | derived `C (arith.)`: Σ(outputs × their own script macros) − Σ(what each consumed input really spends). Empty — never `0` — when `deltaReason` says why |
+| 27 | `deltaCarbohydrates` | float | derived, same rule |
+| 28 | `deltaLipids` | float | derived, same rule |
+| 29 | `deltaProteins` | float | derived, same rule |
+| 30 | `deltaHungerChange` | float | derived, same rule, in raw script points (`/100` for stat-bar units) |
+| 31 | `deltaThirstChange` | float | derived, same rule |
+| 32 | `deltaAbsentMacros` | list `;` | `<id>:<macro>` for every term that summed as `0` because that block writes no such line — the null-for-0 substitution, never silent |
+| 33 | `deltaReason` | string | why the delta is refused, blockers joined with ` ; ` and each naming its line verbatim: `tags-only`, `multi-type`, `wildcard`, `variable-amount`, `no-outputs`, `not-in-dataset`, `no-nutrition`, `fluid-sourced`, `no-type` |
+| 34 | `inputsRaw` | string | every input line verbatim, joined with ` \| ` — the **flat** reading, a parent's sub-lines following it, so no line is hidden |
+| 35 | `outputsRaw` | string | every output line verbatim, same join |
+| 36 | `sourceFile` | string | path under `media/scripts/generated/`, e.g. `recipes/recipes_cooking.txt` |
+| 37 | `sourceLine` | int | 1-based line of the block's header |
+
+The delta's `notes` and `destroyWaste` are **JSON-only** (a list of sentences
+and a six-macro dict); columns 26–32 are the whole of the delta the flat file
+carries.
+
+### JSON
+
+`{"meta": {...}, "recipes": [...969...], "replacements": [...163...]}`,
+`indent=1`, recipes sorted by `name`, LF endings, byte-stable across runs. A
+recipe record carries every column above except the six derived `input*` /
+`output*` flattenings, which it keeps structured instead, plus:
+
+- **`inputs` / `outputs`** — the parsed IO lines. `null` when the block is
+  absent and `[]` when it is present and empty (11 and 26 recipes). Every line
+  carries all 17 fields whether or not it writes them: `kind` (`item` /
+  `fluid`), `amount`, `variable` (`"1:20"` for a `variable[…]` line, and then
+  `amount` is `null`), `types`, `tags`, `categories`, `mode`, `flags`,
+  `mappers`, `mapper`, `overlayMapper`, `extras`, `consumed`
+  (**`mode != "keep"`**), `amountIsItemCount`, `amountUses`, `subLines` (the
+  `-`/`+` lines the loader attaches to this one) and `raw`.
+- **`itemMappers`** `{mapper: {result: source}}` — the contract dict, which
+  keeps the *last* source of a repeated result — beside **`itemMapperPairs`**
+  `{mapper: [[result, source], …]}`, every line in file order (56 mappers name
+  one result twice, so the dict alone would lose a pair), and
+  **`itemMapperDefaults`** `{mapper: default|null}` (134 mappers write one).
+- **`overlayMapper`** — the `{default, pairs}` of an `overlayMapper` block
+  (3 recipes), or `null`.
+- **`props`** — every key no column claims, raw: `overlayStyle`, `OnTest`,
+  `recipeGroup`, `Icon`, `ResearchSkillLevel`, `ResearchAny` in 42.20.4.
+- **`delta`** — `{calories, carbohydrates, lipids, proteins, hungerChange,
+  thirstChange, absentMacros, destroyWaste, notes}`, or `null` with the reason
+  in `deltaReason`. `destroyWaste` is the six macros of the remainder a
+  `mode:destroy` line annihilates beyond what it charges (1 recipe); `notes`
+  names each weighing decision that is not the plain rule (a drainable input, a
+  food with no usable `HungerChange`, a destroy round-up).
+
+**`replacements`** is a third top-level array, after `recipes`, holding one
+record per `ReplaceOn{Cooked,Rotten,Use,Deplete}` link a food row declares:
+`{from, to, trigger, sourceFile, sourceLine, delta, deltaReason}`, sorted by
+trigger (cooked, rotten, use, deplete) then source then target. 163 links —
+**3 cooked, 8 rotten, 110 use, 42 deplete** — of which 12 carry a delta and 151
+are refused by name (114 `no-nutrition`, 37 `not-in-dataset`). `sourceLine` is
+the **item block's** header line, the way every other record here anchors, not
+the line of the `ReplaceOn*` key. The delta is one item for one item, with the
+same `absentMacros` rule as a recipe delta.
+
+`meta` keys:
+
+| Key | Meaning |
+|---|---|
+| `build` / `generated` / `tool` | `42.20.4 (b0bbce05d5)`, the UTC date of the run, `tools/recipe_scan.py` |
+| `sources` | `scripts` (the root walked), `files` (the 74 a recipe was read from) and `food_items` — the joined dataset's own `path` / `build` / `jar_hash` / `generated`, so a rebuild of one half against a stale other half is visible in the file |
+| `counts` | `craftRecipes` 969, `files` 74, `scriptFiles` 1004, `legacyRecipeBlocks` 0, `componentCraftRecipes` 202 (an entity's own build recipes — counted because a raw grep of the scripts sees their `inputs` blocks too, **not** rows of this dataset), `itemMappers` 225, `overlayMappers` 3, `recipesWithoutOutputs` 11, `recipesWithEmptyOutputs` 26, `fluidRecipes` 53, `outputItemTypes` 1693, `outputItemTypesInDataset` 295, `outputItemTypesInFoodDataset` 262, `recipesTouchingDatasetRow` 413, `recipesTouchingFood` 375, `recipesWithFoodOutput` 182, `foodJoinMisses` 0, `recipesWithDelta` 31, `recipesWithNonZeroCalorieDelta` 15, `recipesWithCaloriesAbsentOnEverySide` 3, `splitRecipes` 17, `splitRecipesWithDelta` 8, `recipesWithDestroyWaste` 1, `inputSubLines` 55 |
+| `outputMapperIssues` | `{recipe, mapper, why}` for a mapper an output names that resolves to no type — one row in 42.20.4 (`ExtractIronFromIronOre` / `SmeltMapper`, which writes only a `default`) |
+| `foodJoinMisses` | every output type that `items/food.txt` really defines and `data/food-items.json` has no row for — empty in 42.20.4, and the file says so rather than leaving it implied |
+
+## evolved-recipes
+
+`data/evolved-recipes.json` + `data/evolved-recipes.csv`, written by the same
+run of `tools/recipe_scan.py` — **the 63 `evolvedrecipe` blocks** (62 in
+`generated/evolvedrecipes.txt`, `AddBaitToChum` in
+`generated/recipes/recipes_fishing_evolvedrecipe.txt`) resolved to their
+ingredient lists the way the game resolves them, each ingredient carrying what
+it contributes to the dish at Cooking **0** and Cooking **10**. Grade **C** for
+the script values, `C (arith.)` for the two contribution blocks — the
+summation itself is
+[`docs/vanilla/food-item-model.md`](../docs/vanilla/food-item-model.md)
+§ Evolved recipes, cited and not re-derived.
+
+**The join is the game's, not a name match.** An item's
+`EvolvedRecipe = <Name>:<use>` key reaches a recipe through an exact-name
+lookup **and** through every recipe whose `Template` matches
+case-insensitively, with five parse-time aliases applied first
+(`RicePot`/`RicePan` → `Rice`, `PastaPot`/`PastaPan` → `Pasta`,
+`Roasted Vegetables` → `Stir fry`). 374 carrier items × 63 recipes = **6 902**
+(key, recipe) joins → **6 881 rows** (21 land on the same (recipe, item) pair
+twice and are collapsed, with the collapsed keys kept), **0 unmatched**.
+
+### CSV columns
+
+13 columns, one row per (recipe, ingredient) pair, 6 881 rows — the sampled
+reading; the JSON carries both contribution blocks in full.
+
+| # | Column | Type | From |
+|---|---|---|---|
+| 1 | `recipe` | string | the `evolvedrecipe` block name |
+| 2 | `resultItem` | string | `ResultItem`, as written (`Base.Salad`) — the game's own `getResultItem()` strips the module |
+| 3 | `item` | string | the ingredient's full type (`Base.Lettuce`) |
+| 4 | `use` | int | the `<use>` half of the item's `EvolvedRecipe` key: hunger points the key asks for |
+| 5 | `requiresCooked` | bool | the key's `Cooked` suffix |
+| 6 | `spice` | bool | the item's `Spice` — a spice transfers no hunger and no macros |
+| 7 | `share0` | float | derived: the fraction of the ingredient consumed at Cooking 0 |
+| 8 | `kcal0` | float | derived: what it adds to the dish at Cooking 0 |
+| 9 | `carbs0` | float | derived, same level |
+| 10 | `lipids0` | float | derived, same level |
+| 11 | `proteins0` | float | derived, same level |
+| 12 | `share10` | float | derived: the fraction consumed at Cooking 10 (`×0.70` of level 0 unless the clamp bit) |
+| 13 | `kcal10` | float | derived: what it adds at Cooking 10 (`×1.6667` skill bonus on a smaller share) |
+
+### JSON
+
+`{"meta": {...}, "recipes": [...63...], "unmatchedKeys": []}`, `indent=1`. A
+recipe record carries `name`, `module`, `sourceFile`, `sourceLine`,
+`displayName` (the `Name` key), `baseItem`, `resultItem`, `template`,
+`maxItems`, `cookable`, `canAddSpicesEmpty`, `addIngredientIfCooked`,
+`addIngredientSound`, `minimumWater`, `isHidden`, `allowFrozenItem` (the two
+loader-only keys, `null` on all 63), `props` and `ingredients`. **`cookable` is
+the script value**: the game's `isCookable()` answers on the *presence* of the
+key, so `AddBaitToChum` writes `false` here and the engine says `true` — the
+only one of the 63 where the two differ.
+
+An ingredient row carries `item`, `key` (the raw script part, e.g.
+`ConeIceCream:1`), `duplicateKeys` (the keys collapsed into this row), `use`,
+`requiresCooked`, `spice`, `evolvedRecipeName`, `resolvedVia`
+(`name` / `template` / `both` — **`name` alone never happens in vanilla**),
+`absentMacros` (which of the five macros the item writes no line for, so a
+`0.0` contribution is readable as absent rather than measured), `sourceFile`,
+`sourceLine`, and `at0` / `at10`.
+
+A contribution block (`at0`, `at10`) carries `use`, `hunger`,
+`hungerAfterSkill`, `share`, `skillBonus`, `hungerClamped` (the key asked for
+more hunger than the item carries, so the game's clamp bit — 59 rows),
+`thirstSkipped` (the item is tagged `DRIED_FOOD`, so its thirst line is skipped
+— 27 rows), `spice`, `reason`, `note`, then `calories`, `carbohydrates`,
+`lipids`, `proteins`, `thirstChange`. Floats are rounded to 6 places. A spice
+row is **0** in hunger, share and every macro — a *measured* zero, the branch
+being modelled; `null` in these datasets means the source writes nothing. The
+one branch of the summation not modelled per row is the **rotten** ingredient
+(Cooking ≥ 7), which needs an instance's state rather than script data.
+
+`unmatchedKeys` records `EvolvedRecipe` keys that reach no recipe — empty in
+42.20.4, and an unmatched key would be recorded, never guessed at.
+
+`meta` keys: `build` / `generated` / `tool` / `sources` as above (its `files`
+are the two evolved-recipe scripts), `cookingLevels` `[0, 10]`, and `counts` —
+`evolvedRecipes` 63, `carriers` 374 (`carriersFood` 372, `carriersDrainable`
+2), `keyParts` 2446, `distinctKeys` 31, `aliasedKeyParts` 5, `cookedSuffixes`
+213, `pairs` 6902, `pairsFromFoodTxt` 6858 (the same join counted over
+`items/food.txt` alone — the figure that omits the two vinegars), `ingredients`
+6881, `duplicateJoins` 21, `unmatchedKeys` 0, `resolvedViaName` 0 /
+`resolvedViaTemplate` 4748 / `resolvedViaBoth` 2133, `spiceIngredients` 2522,
+`ingredientsRefusedByBasis` 0, `hungerClampRows` 59, `driedFoodThirstRows` 27,
+`duplicateRecipeNames` 0.

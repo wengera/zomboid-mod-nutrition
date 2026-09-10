@@ -54,9 +54,9 @@ Slice 05 is written in parallel with this plan, so the names above are a contrac
 
 **Files:** Read `tools/food_scan.py`, `data/food-items.json`; Modify `tools/food_scan.py` only if Step 3 requires it.
 
-- [ ] **Step 1: Confirm 05 landed** — `cd C:\Users\Angus\repos\project_zomboid && python -c "import json;d=json.load(open('data/food-items.json'));print(d['meta']);print(len(d.get('items',d)))"`. Expected: a `meta` naming build 42.20.4 and a row count at or above **722** (the `base:food` block count, `docs/vanilla/food-item-model.md` § Key reference; more if 05 also rows fluids/drainables). If the file is absent, set slice 06 `blocked` in `docs/progress.md` with "needs slice 05's dataset" and stop — do not build a substitute.
-- [ ] **Step 2: Pin the field names** — print `Base.Lettuce` and compare with the contract list. Put `FOOD_FIELDS = {...}` at the top of `recipe_scan.py` mapping this plan's names → the real ones; every later step reads through it. A field 05 does not carry maps to `None` and its dependent output is emitted as `null` with a `reason`. Any non-identity mapping → `docs/decisions.md`.
-- [ ] **Step 3: Pin the parser API** — `grep -n "^def \|^class \|^[A-Z_]\+ =" tools/food_scan.py`. Slice 06 needs comment stripping, the script-tree walk, and a **nested** block walker (item blocks are flat `Key = Value`; recipe blocks carry sub-blocks and lines that are not `Key = Value` at all). Slice 05 ships `parse_script(text, path)` → nested Block **dicts** with `props` (the `Key = Value` entries), `lines` (every other in-block entry — the recipe IO lines — trailing comma stripped) and `blocks` (children), plus `kind`/`name`/`module`/`file`/`line`; its plan was amended so that same-line brace headers and comments are handled too. **Use it.** If a Step 4 check fails, extend `parse_script` **in place** with a test in `tools/tests/test_food_scan.py` — never add a second walker. The `Block`/`iter_blocks` code below is the reference implementation this plan was validated with (its counts are Task 2's expected values): port a missing behaviour from it, not its API.
+- [x] **Step 1: Confirm 05 landed** — `cd C:\Users\Angus\repos\project_zomboid && python -c "import json;d=json.load(open('data/food-items.json'));print(d['meta']);print(len(d.get('items',d)))"`. Expected: a `meta` naming build 42.20.4 and a row count at or above **722** (the `base:food` block count, `docs/vanilla/food-item-model.md` § Key reference; more if 05 also rows fluids/drainables). If the file is absent, set slice 06 `blocked` in `docs/progress.md` with "needs slice 05's dataset" and stop — do not build a substitute.
+- [x] **Step 2: Pin the field names** — print `Base.Lettuce` and compare with the contract list. Put `FOOD_FIELDS = {...}` at the top of `recipe_scan.py` mapping this plan's names → the real ones; every later step reads through it. A field 05 does not carry maps to `None` and its dependent output is emitted as `null` with a `reason`. Any non-identity mapping → `docs/decisions.md`.
+- [x] **Step 3: Pin the parser API** — `grep -n "^def \|^class \|^[A-Z_]\+ =" tools/food_scan.py`. Slice 06 needs comment stripping, the script-tree walk, and a **nested** block walker (item blocks are flat `Key = Value`; recipe blocks carry sub-blocks and lines that are not `Key = Value` at all). Slice 05 ships `parse_script(text, path)` → nested Block **dicts** with `props` (the `Key = Value` entries), `lines` (every other in-block entry — the recipe IO lines — trailing comma stripped) and `blocks` (children), plus `kind`/`name`/`module`/`file`/`line`; its plan was amended so that same-line brace headers and comments are handled too. **Use it.** If a Step 4 check fails, extend `parse_script` **in place** with a test in `tools/tests/test_food_scan.py` — never add a second walker. The `Block`/`iter_blocks` code below is the reference implementation this plan was validated with (its counts are Task 2's expected values): port a missing behaviour from it, not its API.
 
 ```python
 class Block:
@@ -111,8 +111,8 @@ def iter_blocks(text):
     return [b for r in roots for b in (r.children if r.kind == "module" else [r])]
 ```
 
-- [ ] **Step 4: Prove it on the install** — a `python -c` that imports `food_scan`, walks every `*.txt` under `media/scripts` and prints the counts. Expected, verified 2026-09-10 on 42.20.4: `craftRecipe` **969**, `item` blocks **5105** of which `ItemType = base:food` **722**; `craftRecipe` children `inputs` **969**, `outputs` **958**, `itemMapper` **225**, `overlayMapper` **3**; IO leading tokens `inputs/item` **3355**, `outputs/item` **988**, `inputs/-fluid` **55**. Also check three named blocks: `MakeToast` (`generated/entities/appliances/workstations/entity_toaster_craftRecipe.txt:3`) has `props["time"] == "20"` and children `inputs`/`outputs` with one line each; `MakePizza` (`generated/recipes/recipes_cooking.txt:509`) has 10 input lines and `outputs.lines == ["item 1 Base.PizzaRecipe"]`; `OpenBagOfFrozenFood` (`:41`) has an `itemMapper` child named `foodType` whose `props` hold the four `Base.X = Base.Frozen_X` pairs.
-- [ ] **Step 5:** `python -m pytest tools/tests -q` → still green (14 tests before this slice adds any). Commit `Slice 06: shared script block parser` (skip if `food_scan.py` needed no change).
+- [x] **Step 4: Prove it on the install** — a `python -c` that imports `food_scan`, walks every `*.txt` under `media/scripts` and prints the counts. Expected, verified 2026-09-10 on 42.20.4: `craftRecipe` **969**, `item` blocks **5105** of which `ItemType = base:food` **722**; `craftRecipe` children `inputs` **969**, `outputs` **958**, `itemMapper` **225**, `overlayMapper` **3**; IO leading tokens `inputs/item` **3355**, `outputs/item` **988**, `inputs/-fluid` **55**. Also check three named blocks: `MakeToast` (`generated/entities/appliances/workstations/entity_toaster_craftRecipe.txt:3`) has `props["time"] == "20"` and children `inputs`/`outputs` with one line each; `MakePizza` (`generated/recipes/recipes_cooking.txt:509`) has 10 input lines and `outputs.lines == ["item 1 Base.PizzaRecipe"]`; `OpenBagOfFrozenFood` (`:41`) has an `itemMapper` child named `foodType` whose `props` hold the four `Base.X = Base.Frozen_X` pairs.
+- [x] **Step 5:** `python -m pytest tools/tests -q` → still green (14 tests before this slice adds any). Commit `Slice 06: shared script block parser` (skip if `food_scan.py` needed no change).
 
 ### Task 2: `craftRecipe` scanner → `data/recipes.json` + `data/recipes.csv`
 
@@ -131,7 +131,7 @@ def iter_blocks(text):
 | `itemMapper` | `Result = Source` pairs; the literal key `default` appears 134 times and is not a result type |
 | legacy `recipe` blocks | **zero** in the shipped scripts — but `ScriptType.Recipe` still registers the token `recipe` (`zombie/scripting/ScriptType.<clinit> @66–@74 L20`) and `zombie/scripting/objects/Recipe.Load(String,String)` still exists: the loader kept the format, vanilla stopped using it (Q2) |
 
-- [ ] **Step 1: Tests first** — `tools/tests/test_recipe_scan.py`, same style as `test_doc_lint.py` (sys.path insert, plain asserts). Fixtures are real blocks quoted from the install:
+- [x] **Step 1: Tests first** — `tools/tests/test_recipe_scan.py`, same style as `test_doc_lint.py` (sys.path insert, plain asserts). Fixtures are real blocks quoted from the install:
 
 ```python
 import os, sys
@@ -215,14 +215,14 @@ def test_io_line_grammar():
     assert (f["kind"], f["amount"], f["categories"], f["consumed"]) == ("fluid", 0.5, ["Water"], True)
 ```
 
-- [ ] **Step 2: Write `tools/recipe_scan.py`** — stdlib only, `mod_inventory.py` / `insulation_scan.py` style (module docstring, `main(argv)`, `--root`, `--out-dir`). Shape:
+- [x] **Step 2: Write `tools/recipe_scan.py`** — stdlib only, `mod_inventory.py` / `insulation_scan.py` style (module docstring, `main(argv)`, `--root`, `--out-dir`). Shape:
   - `parse_io(line)` → `{kind: "item"|"fluid", amount: float|None, variable: str|None, types: [], tags: [], categories: [], mode: str|None, flags: [], mappers: [], mapper: str|None, consumed: bool, raw: str}`. Bracketed lists split on `;`; a bare trailing token in an output is a single type; a leading `-` marks a consumed fluid; `variable[…]` → `amount=None`. **`consumed = mode != "keep"`** (no mode and `mode:destroy` both consume).
   - `parse_text(text, path)` → recipe dicts: `name`, `module`, `sourceFile`, `sourceLine`, `time` (int), `timedAction`, `category`, `tags`, `skillRequired`, `needToBeLearn`, `autoLearnAll`, `autoLearnAny`, `xpAward`, `onCreate`, `metaRecipe`, `allowBatchCraft`, `tooltip`, `inputs`, `outputs`, `itemMappers` (`{name: {result: source}}`), plus the untouched `props` for anything unlisted. An output `mapper:<name>` resolves to **every key** of that mapper except the literal `default`.
   - `nutrition_delta(recipe, food)` → `{calories, carbohydrates, lipids, proteins, hungerChange, thirstChange}` = Σ(outputs × amount) − Σ(**consumed** item inputs × amount); or `None`/`{"reason": …}` when any consumed item input or any output is not a single type present in `food`, or an amount is variable. Fluids contribute no macros; a recipe with fluid IO still gets its item-side delta plus `fluidIO: true`.
   - `scan(root)` walks every `*.txt` under `media/scripts`. Writer emits the spec's `meta` block: `build "42.20.4 (b0bbce05d5)"`, `generated`, `tool`, `sources` (scripts root + `data/food-items.json` and its meta build), `counts`.
-- [ ] **Step 3: Generate** — `python tools/recipe_scan.py --out-dir data`. Expected counts, verified while writing this plan: `craftRecipes` **969**, files **74**, distinct output item types **1693** of which **262** resolve to food items, recipes touching ≥ 1 food item **116**, recipes with a fully food-resolvable delta **31**, of those with a non-zero calorie delta **23**. A different number is a finding, not a failure: re-derive it, state both figures in the notes doc, never accept it silently.
-- [ ] **Step 4: Spot-check by hand** — print the `MakeToast`, `MakePizza`, `OpenBagOfFrozenFood` and `MillCornflour` rows. Expected: `MakeToast` all-zero macros with `hungerChange +2.0`; `MillCornflour` (`Base.CornSeed` → `Base.Cornflour2`) `calories −496.0`; `MakePizza` `delta = None` with a `reason` naming its `tags[…]` and `[*]` inputs.
-- [ ] **Step 5:** `python -m pytest tools/tests -q` green; commit `Slice 06: craftRecipe scanner and dataset`.
+- [x] **Step 3: Generate** — `python tools/recipe_scan.py --out-dir data`. Expected counts, verified while writing this plan: `craftRecipes` **969**, files **74**, distinct output item types **1693** of which **262** resolve to food items, recipes touching ≥ 1 food item **116**, recipes with a fully food-resolvable delta **31**, of those with a non-zero calorie delta **23**. A different number is a finding, not a failure: re-derive it, state both figures in the notes doc, never accept it silently.
+- [x] **Step 4: Spot-check by hand** — print the `MakeToast`, `MakePizza`, `OpenBagOfFrozenFood` and `MillCornflour` rows. Expected: `MakeToast` all-zero macros with `hungerChange +2.0`; `MillCornflour` (`Base.CornSeed` → `Base.Cornflour2`) `calories −496.0`; `MakePizza` `delta = None` with a `reason` naming its `tags[…]` and `[*]` inputs.
+- [x] **Step 5:** `python -m pytest tools/tests -q` green; commit `Slice 06: craftRecipe scanner and dataset`.
 
 ### Task 3: Evolved recipes, aliases and the `ReplaceOn*` links
 
@@ -236,7 +236,7 @@ def test_io_line_grammar():
 - The one vanilla case that discriminates the arms: `item Cinnamon` (`food.txt:13665`) declares `ConeIceCream:1` while the recipe and its template are `ConeIcecream` (`evolvedrecipes.txt:603`, `:610`). It joins **only** through the case-insensitive template arm; a case-sensitive expansion loses exactly that pair and reports a false "unmatched key".
 - With those rules: **6902** (recipe, ingredient) pairs, **0** unmatched keys; `Salad` and `SaladClay` take **187** ingredients each.
 
-- [ ] **Step 1: Tests first.** The expected values are the *measured* Salad rows of `docs/vanilla/food-item-model.md` § Evolved recipes (run `exp02-20260910-030433`, dish 24.999998 kcal at Cooking 0 and 29.166666 at Cooking 10), reproduced by applying the cited formula to the script values — green means the code applies the documented rule and nothing else:
+- [x] **Step 1: Tests first.** The expected values are the *measured* Salad rows of `docs/vanilla/food-item-model.md` § Evolved recipes (run `exp02-20260910-030433`, dish 24.999998 kcal at Cooking 0 and 29.166666 at Cooking 10), reproduced by applying the cited formula to the script values — green means the code applies the documented rule and nothing else:
 
 ```python
 LETTUCE = {"HungerChange": -15.0, "Calories": 54.0, "Carbohydrates": 10.33,
@@ -265,7 +265,7 @@ def test_key_resolution():
     assert recipe_scan.resolve_recipes("ConeIceCream", {"ConeIcecream": {"Template": "ConeIcecream"}}) == ["ConeIcecream"]
 ```
 
-- [ ] **Step 2: Implement** `alias(key)`, `parse_evolved_key(value)`, `resolve_recipes(key, recipes)` (exact name **plus** case-insensitive template, deduped, sorted), and `contribution` applying the summation **verbatim** as cited:
+- [x] **Step 2: Implement** `alias(key)`, `parse_evolved_key(value)`, `resolve_recipes(key, recipes)` (exact name **plus** case-insensitive template, deduped, sorted), and `contribution` applying the summation **verbatim** as cited:
 
 ```python
 def contribution(item, use, level):
@@ -288,9 +288,9 @@ def contribution(item, use, level):
 ```
 
   A `Spice = true` ingredient gets `share = 0`, `spice: true` and a note pointing at the spice branch; an ingredient whose `HungerChange` is 0 gets `share = 0` and `reason: "no hunger"`.
-- [ ] **Step 3: `data/evolved-recipes.json`** — `meta` + `recipes: [{name, sourceFile, sourceLine, baseItem, resultItem, template, maxItems, cookable, canAddSpicesEmpty, addIngredientIfCooked, minimumWater, ingredients: [{item, use, requiresCooked, spice, resolvedVia: "name"|"template"|"both", at0: {…}, at10: {…}}]}]` + `unmatchedKeys: []`. `data/evolved-recipes.csv`: one row per (recipe, ingredient) — `recipe, resultItem, item, use, requiresCooked, spice, share0, kcal0, carbs0, lipids0, proteins0, share10, kcal10`.
-- [ ] **Step 4: `ReplaceOn*` links** — add a `replacements` array to `data/recipes.json`: `{from, to, trigger: "cooked"|"rotten", delta: {…}|null}` for every food item carrying `ReplaceOnCooked` (a `;`-list) or `ReplaceOnRotten`. Expected from the install: **3** cooked links (`BreadSlices → Base.Toast` `food.txt:2132`, `→ Base.Baguette` `:2816`, `→ Base.Pancakes` `:10914`) and **8** rotten links (`:599` `SugarBeetSugarPot`, then `:12425`, `:12464`, `:12486`, `:12539`, `:12561`, `:12582`, `:12604` — the ice-cream melts). Semantics for the doc, from `food-item-model.md` § Cooking / § Key reference: `ReplaceOnCooked` fires on the cook transition **and only if not rotten** — each name is `AddItem`-ed with `copyConditionStatesFrom(this)`, the original is removed and `Food.update` **returns**, so the item is replaced and **never flagged cooked**; `ReplaceOnRotten` makes `updateRotting` age the item every tick and, once rotten, create the replacement, copy `age` + condition states and destroy the original — and `updateRotting` returns immediately on any MP client, so that swap is server-only.
-- [ ] **Step 5:** regenerate both datasets, `pytest` green, commit `Slice 06: evolved recipes and replacement links`.
+- [x] **Step 3: `data/evolved-recipes.json`** — `meta` + `recipes: [{name, sourceFile, sourceLine, baseItem, resultItem, template, maxItems, cookable, canAddSpicesEmpty, addIngredientIfCooked, minimumWater, ingredients: [{item, use, requiresCooked, spice, resolvedVia: "name"|"template"|"both", at0: {…}, at10: {…}}]}]` + `unmatchedKeys: []`. `data/evolved-recipes.csv`: one row per (recipe, ingredient) — `recipe, resultItem, item, use, requiresCooked, spice, share0, kcal0, carbs0, lipids0, proteins0, share10, kcal10`.
+- [x] **Step 4: `ReplaceOn*` links** — add a `replacements` array to `data/recipes.json`: `{from, to, trigger: "cooked"|"rotten", delta: {…}|null}` for every food item carrying `ReplaceOnCooked` (a `;`-list) or `ReplaceOnRotten`. Expected from the install: **3** cooked links (`BreadSlices → Base.Toast` `food.txt:2132`, `→ Base.Baguette` `:2816`, `→ Base.Pancakes` `:10914`) and **8** rotten links (`:599` `SugarBeetSugarPot`, then `:12425`, `:12464`, `:12486`, `:12539`, `:12561`, `:12582`, `:12604` — the ice-cream melts). Semantics for the doc, from `food-item-model.md` § Cooking / § Key reference: `ReplaceOnCooked` fires on the cook transition **and only if not rotten** — each name is `AddItem`-ed with `copyConditionStatesFrom(this)`, the original is removed and `Food.update` **returns**, so the item is replaced and **never flagged cooked**; `ReplaceOnRotten` makes `updateRotting` age the item every tick and, once rotten, create the replacement, copy `age` + condition states and destroy the original — and `updateRotting` returns immediately on any MP client, so that swap is server-only.
+- [x] **Step 5:** regenerate both datasets, `pytest` green, commit `Slice 06: evolved recipes and replacement links`.
 
 ### Task 4: Harness cross-check on the live server
 
@@ -298,7 +298,7 @@ def contribution(item, use, level):
 
 A new file rather than an edit to `PZTestKit_Server.lua`, for the reason slice 03 used `PZTestKit_Client_Body.lua`: no collision with a parallel slice, and `PZTestKit_Server.lua` sorts before it, so `TK` is loaded first. Harness Lua needs no re-provisioning (the fixture excludes `mods/`).
 
-- [ ] **Step 1: The commands**
+- [x] **Step 1: The commands**
 
 ```lua
 -- Slice 06: script-inventory counts read off ScriptManager, server side.
@@ -358,18 +358,18 @@ TK.log("recipe commands loaded")
 ```
 
   `getTime` is overloaded (`()I` and `(IsoGameCharacter)I`). If Kahlua picks the wrong one and errors, drop it from that getter list and record the limitation in the notes doc — no acceptance depends on it.
-- [ ] **Step 2: The driver** — `testing/experiments/s06_recipes.py` on `_common.py`, one artifact `testing/artifacts/exp06-<stamp>/recipes.json`, ~2 min, one session, `python testing/pzt doctor` first. Phases: (a) `recipes.count`; (b) `recipes.evolved` for `Salad`, `SaladClay`, `ConeIcecream`, `Soup`, `AddBaitToChum`; (c) `recipes.craft` for ten recipes taken from `data/recipes.json` — `MakeToast`, `MakePizza`, `OpenBagOfFrozenFood`, `OpenEggCarton`, `MakeMilkFromPowderBucket`, `PutEggsInCarton`, `MillCornflour`, `MillSunflowerSeeds`, `GrindCornmeal`, and the first row in the file whose outputs resolve to a single food type; (d) compare each against the scanned row in Python and record `match: true|false` plus the differing fields.
-- [ ] **Step 3: Read the results.** Expected: `craft 969`, `evolved 63`, `legacy 0` (Q2 measured); `recipes.evolved Salad` and `SaladClay` → `ingredientCount 187` each; `ConeIcecream`'s item list **contains `Cinnamon`** (Q3 — the case-insensitive template arm, measured). Any mismatch is the finding: diff the two name sets in Python, name the missing/extra blocks, fix the scanner if the game is right.
-- [ ] **Step 4:** add the three commands to the server list in `docs/testing/README.md`; commit `Slice 06: recipes.count harness cross-check`.
+- [x] **Step 2: The driver** — `testing/experiments/s06_recipes.py` on `_common.py`, one artifact `testing/artifacts/exp06-<stamp>/recipes.json`, ~2 min, one session, `python testing/pzt doctor` first. Phases: (a) `recipes.count`; (b) `recipes.evolved` for `Salad`, `SaladClay`, `ConeIcecream`, `Soup`, `AddBaitToChum`; (c) `recipes.craft` for ten recipes taken from `data/recipes.json` — `MakeToast`, `MakePizza`, `OpenBagOfFrozenFood`, `OpenEggCarton`, `MakeMilkFromPowderBucket`, `PutEggsInCarton`, `MillCornflour`, `MillSunflowerSeeds`, `GrindCornmeal`, and the first row in the file whose outputs resolve to a single food type; (d) compare each against the scanned row in Python and record `match: true|false` plus the differing fields.
+- [x] **Step 3: Read the results.** Expected: `craft 969`, `evolved 63`, `legacy 0` (Q2 measured); `recipes.evolved Salad` and `SaladClay` → `ingredientCount 187` each; `ConeIcecream`'s item list **contains `Cinnamon`** (Q3 — the case-insensitive template arm, measured). Any mismatch is the finding: diff the two name sets in Python, name the missing/extra blocks, fix the scanner if the game is right.
+- [x] **Step 4:** add the three commands to the server list in `docs/testing/README.md`; commit `Slice 06: recipes.count harness cross-check`.
 
 ### Task 5: Notes doc, ledgers, close
 
 **Files:** Create `docs/vanilla/recipes-dataset-notes.md`; Modify `data/README.md`, `tools/README.md`, `docs/vanilla/README.md`, `docs/testing/README.md`, `docs/progress.md`, `docs/decisions.md`.
 
-- [ ] **Step 1: The doc**, house skeleton — header `Verified against: 42.20.4 (b0bbce05d5)` + date + slice; five-line summary; **Model** (Task 2's format table and Task 3's resolution rules, every table row graded, the summation *cited* to `food-item-model.md`, never restated as a derivation); **Code map** (`ScriptManager.getAllCraftRecipes` / `getAllEvolvedRecipesList` / `getAllRecipes`, `Item.OnScriptsLoaded @122–@140 L3039`, `EvolvedRecipe.addItem`, `Food.update`'s `ReplaceOnCooked` branch, `Food.updateRotting`); **Cooking deltas** (the zero-delta result with `MakeToast` worked through; the 3 + 8 `ReplaceOn*` rows; the 23 non-zero craft deltas, largest first); **MP behaviour** (the dataset is not sided — the same `ScriptManager` parses the same files on both — but the *effects* are: `updateRotting` and therefore every `ReplaceOnRotten` swap is server-only (`Food.updateRotting @13–@19 L658-659`), and the Cooking perk level that scales the evolved summation is owned by the server, so a client-side perk write silently runs the recipe at the server's level (`food-item-model.md` § MP behaviour, M `exp02-20260910-030433`)); **Discrepancies**; **Open questions**; **Sources** (script paths with line numbers, the jar cites, the artifact id).
-- [ ] **Step 2: Document the data** — extend `data/README.md` with every column of both CSVs and the top-level shape of both JSONs; replace the `evolved_recipes.py` line under "Planned (P4)" in `tools/README.md` with the real `recipe_scan.py` entry (invocation, outputs, that it imports `food_scan`'s parser); add the notes doc to `docs/vanilla/README.md`.
-- [ ] **Step 3: Acceptance** — run every check below and paste the outputs into this plan file under a new `## Acceptance results` heading.
-- [ ] **Step 4: Ledgers and push** — see Done protocol; commit `Slice 06: recipes dataset notes` and push.
+- [x] **Step 1: The doc**, house skeleton — header `Verified against: 42.20.4 (b0bbce05d5)` + date + slice; five-line summary; **Model** (Task 2's format table and Task 3's resolution rules, every table row graded, the summation *cited* to `food-item-model.md`, never restated as a derivation); **Code map** (`ScriptManager.getAllCraftRecipes` / `getAllEvolvedRecipesList` / `getAllRecipes`, `Item.OnScriptsLoaded @122–@140 L3039`, `EvolvedRecipe.addItem`, `Food.update`'s `ReplaceOnCooked` branch, `Food.updateRotting`); **Cooking deltas** (the zero-delta result with `MakeToast` worked through; the 3 + 8 `ReplaceOn*` rows; the 23 non-zero craft deltas, largest first); **MP behaviour** (the dataset is not sided — the same `ScriptManager` parses the same files on both — but the *effects* are: `updateRotting` and therefore every `ReplaceOnRotten` swap is server-only (`Food.updateRotting @13–@19 L658-659`), and the Cooking perk level that scales the evolved summation is owned by the server, so a client-side perk write silently runs the recipe at the server's level (`food-item-model.md` § MP behaviour, M `exp02-20260910-030433`)); **Discrepancies**; **Open questions**; **Sources** (script paths with line numbers, the jar cites, the artifact id).
+- [x] **Step 2: Document the data** — extend `data/README.md` with every column of both CSVs and the top-level shape of both JSONs; replace the `evolved_recipes.py` line under "Planned (P4)" in `tools/README.md` with the real `recipe_scan.py` entry (invocation, outputs, that it imports `food_scan`'s parser); add the notes doc to `docs/vanilla/README.md`.
+- [x] **Step 3: Acceptance** — run every check below and paste the outputs into this plan file under a new `## Acceptance results` heading.
+- [x] **Step 4: Ledgers and push** — see Done protocol; commit `Slice 06: recipes dataset notes` and push.
 
 ## Deliverables
 
@@ -404,3 +404,92 @@ TK.log("recipe commands loaded")
 - `docs/decisions.md`: one row per default taken (separate tool importing `food_scan` vs a module inside it; `consumed = mode != "keep"`; fluids excluded from deltas; a non-identity `FOOD_FIELDS` mapping if there was one).
 - `docs/testing/README.md`: the three new server commands in the inventory.
 - Commit (`Slice 06: …`, no attribution trailer) and push.
+
+## Acceptance results (2026-09-10)
+
+Every step above ran and is ticked, with the two exceptions named at the end. Seven commits:
+`ab26d41` (craftRecipe scanner + dataset), `21fa79d` (`recipes.count` / `recipes.evolved` /
+`recipes.craft` and the live cross-check), `c6ef7f2` (evolved recipes, the `replacements` array),
+`3c16632` (the `item.use` per-use probe), `6694568` (scanner fixes: input amounts, sub-lines,
+join misses, the hunger clamp), `d94f0d9` (evolved fixes: dried-food thirst, spice hunger), plus
+this task's doc commit. Two live sessions produced committed evidence:
+`exp06-20260910-112726` and `exp06b-20260910-120123`.
+
+1. **`python tools/recipe_scan.py --out-dir data` → exit 0, four files, counts as predicted.**
+   Verbatim:
+
+   ```
+   craftRecipes 969 in 74 files, 0 legacy recipe blocks, 225 itemMappers
+   1693 distinct output item types, 262 of them food items; 375 recipes touch a food item
+   31 recipes carry a nutrition delta, 15 of them non-zero in calories
+   17 splits (delta 0 by construction), 55 input sub-lines attached, 0 food join misses
+   969 recipes, 37 columns -> data\recipes.csv
+   969 recipes -> data\recipes.json
+   63 evolvedRecipes, 374 carriers, 6902 key->recipe joins, 0 unmatched keys
+   6881 ingredient rows (21 duplicate joins collapsed), 2522 spices -> data\evolved-recipes.csv
+   59 rows hunger-clamped, 27 dried-food rows with their thirst line skipped
+   163 ReplaceOn* links (3 cooked, 8 rotten, 110 use, 42 deplete) -> data\recipes.json
+   ```
+
+   `craftRecipes` **969**, `evolvedRecipes` **63**, `pairs` **6902**, `unmatchedKeys` **0** — all
+   four exactly as this plan predicted. The doc task re-ran the scanner into a scratch directory
+   rather than over `data/`, and all four outputs are **byte-identical** to the committed files
+   (`cmp`), so the committed bytes are this run's. Three other figures in this plan did move and
+   each is a Discrepancies row in the notes doc: 116 → **375** recipes touching a food item, 23 →
+   **15** non-zero calorie deltas (+ 5 splits + 3 absent-on-every-side, which reconstructs 23),
+   and "10 recipes with no outputs" → **11 + 26**.
+2. **Live cross-check: counts yes, spot checks yes, and the plan's 187 was wrong.**
+   `recipes.count` answered **craft 969 / evolved 63 / legacy 0** (+ `unique 0`, recorded and
+   uncompared), equal to the scan and to this plan. `recipes.evolved Salad` and `SaladClay`
+   answered **189**, not 187: the plan's figure counts `items/food.txt` only and omits
+   `Base.Vinegar2` / `Base.Vinegar_Jug`, the two drainables its own "374 carriers = 372 + 2" line
+   names. The dataset agrees with the **game** (189 / 189), and each of the five live ingredient
+   lists is **set-equal** to the dataset's — 0 extra, 0 missing, both directions, on `Salad`,
+   `SaladClay`, `ConeIcecream` (56, `Cinnamon` present — Q3's case-insensitive template arm),
+   `Soup` (193) and `AddBaitToChum` (42). The ten `recipes.craft` spot checks compared **77
+   fields, 75 matched** at run time; both misses are the one field `inputCount`
+   (`MakePizza` 10 vs 9, `MakeMilkFromPowderBucket` 3 vs 2), which is the loader attaching a
+   `-fluid` sub-line to the preceding input — the artifact's own `top_level_matches: true` rows
+   said so at the time, the scanner adopted the loader's model in `6694568`, and the same
+   comparison replayed offline against the artifact is now **10/10 recipes, 77/77 fields**.
+   Artifact `testing/artifacts/exp06-20260910-112726/recipes.json`, 89.1 s, `server_errors []`,
+   doctor all-`ok`, no world change.
+3. **Every `items/food.txt` output type resolves to a `data/food-items.json` key.**
+   `meta.foodJoinMisses` is `[]` and `meta.counts.foodJoinMisses` is **0** over the 1 693 distinct
+   output types — the scanner collects the 722 ids that file defines and asserts the join in
+   `test_real_install_counts`. Expected none, found none.
+4. **`python -m pytest tools/tests -q` → `119 passed in 2.84s`.** 60 pre-existing (14 from before
+   slice 05 plus slice 05's 46, all untouched) and **59** in `tools/tests/test_recipe_scan.py`;
+   none skipped, so every install-gated test really ran against the game scripts and both
+   datasets.
+5. **`python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` →
+   `0 finding(s)`**, run on the tree with `docs/vanilla/recipes-dataset-notes.md` in place and
+   with the § Evolved recipes hunger-clamp row added to `docs/vanilla/food-item-model.md`.
+6. **`python testing/pzt run --hold 5` → met by the two live runs, not re-run here.** The doc task
+   does not boot the game. `testing/` has not been touched since `3c16632`, so the harness in the
+   tree is byte-for-byte the one both sessions loaded: `exp06-20260910-112726` booted
+   `server/PZTestKit_Server_Recipes.lua` with all three recipe commands answering on fifteen
+   probes, and `exp06b-20260910-120123` booted `PZTestKit_Server.lua` carrying `item.use` — both
+   with `server_errors []`, `client_quit rc=0`, `server_stopped rc=0` and `pzt doctor` all-`ok`
+   recorded in the artifact. Both artifacts are recorded as **skew-free** in
+   `testing/artifacts/README.md` (script, command and artifact in one commit). That is the same
+   load path `pzt run --hold 5` exercises; a dedicated smoke run remains the cheaper proof if the
+   controller wants one.
+
+**Two plan expectations moved, and one measurement was added beyond the plan.** (a) The plan's
+"`item N`" was read as N items; it is N **uses** — for a `Food`, N raw `HungerChange` points. That
+changed eight of the 31 resolvable deltas (`ScoopIceCream` −16 345 → **−105**, `MakeMeatPatty`
+−11 388 → **+312**, five `InheritFood` splits to 0) and is the reason `data/recipes.json` gained
+`amountIsItemCount`, `amountUses`, `subLines`, `split`, `destroyWaste` and the delta's `notes`.
+(b) The evolved summation needed three branches the plan's verbatim block omits — the hunger
+clamp (59 rows), the spice return (2 522 rows) and the `DRIED_FOOD` thirst skip (27 rows). (c)
+Task 4b (`item.use`, `exp06b-20260910-120123`) was added to measure (a) rather than ship it as a
+jar reading: 96 of 96 fields matched, `Base.Icecream` at 10 of 30 uses reading
+`1680 → 1120 kcal` and `−0.30 → −0.20` hunger.
+
+**What is not in this task's commit.** Step 4's `git push` and the `docs/progress.md` half of the
+Done protocol — the board row, its commit range and the slice-07/12/14 ripples — are the
+controller's close-out. Step 4's `docs/decisions.md` half landed here (eleven slice-06 rows), as did
+`docs/testing/README.md`'s inventory, which Tasks 4 and 4b had already written in full (the three
+recipe commands, `item.use`, both experiment drivers) and which this task therefore left
+unchanged.
