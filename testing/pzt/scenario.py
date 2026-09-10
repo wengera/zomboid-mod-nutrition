@@ -55,6 +55,13 @@ def cadence(doc):
            "world_min_per_wall_s": round(world_min / wall_s, 2)}
     if world_min > 0:
         out["ticks_per_world_min"] = round(ticks / world_min, 3)
+        # Anything outside a few percent of 1.0 means the event did NOT fire once per game
+        # minute -- ticks lost at a high multiplier, or counted twice by a double-registered
+        # handler. Everything the tests schedule is in game minutes and every rate the
+        # evaluators fit is per game hour, so the run is still reported, but flagged: the
+        # numbers are being read off a clock that was not keeping time.
+        if not 0.95 <= out["ticks_per_world_min"] <= 1.05:
+            out["cadence_suspect"] = True
     return out
 
 
@@ -91,9 +98,16 @@ def run(a):
         tl.mark("client_launch", user=a.user, restored=restored)
         tl.mark("client_ready", user=a.user, t=c.wait_ready(timeout=a.client_timeout))
         node = server if a.side == "server" else c
-        names = parse_ack(node.send("test.list"))[1]
-        tl.mark("test_list", side=a.side, tests=",".join(names or []) or "none")
-        if a.name not in (names or []):
+        ok_list, names = parse_ack(node.send("test.list"))
+        if isinstance(names, dict) and not names:
+            names = []          # TK.json writes an empty Lua table as {}: an empty registry
+        # Without the ok flag an `err:...` body arrives here as a plain string, and both the
+        # join and the membership test below then silently operate on its characters -- a test
+        # whose name is a substring of the error message would look registered.
+        if not ok_list or not isinstance(names, list):
+            raise RuntimeError(f"test.list failed on the {a.side} side: {str(names)[:120]}")
+        tl.mark("test_list", side=a.side, tests=",".join(names) or "none")
+        if a.name not in names:
             raise RuntimeError(f"unknown test '{a.name}' on the {a.side} side; registered: {names}")
         ok, rep = server.rcon(f"settimespeed {a.speed}")
         tl.mark("settimespeed", x=a.speed, ok=ok, reply=str(rep)[:40])
@@ -110,9 +124,23 @@ def run(a):
         for line in (doc.get("failures") or [])[:10]:
             tl.mark("test_failure", detail=str(line)[:160])
         ok, ev = evaluate(a.name, doc)
-        tl.mark("evaluation", ok=ok, **scalars(ev))
+        # Evaluator detail keys are scenario-authored, so they cannot be splatted blind:
+        # `phase` collides with Timeline.mark's own parameter (TypeError, after the expensive
+        # part of the run), `ok` with the flag below, and `t` would quietly overwrite the
+        # timeline's own timestamp. Rename rather than drop -- the detail is evidence.
+        marks = {"ok": ok}
+        for k, v in scalars(ev).items():
+            marks["ev_" + k if k in ("ok", "phase", "t") else k] = v
+        tl.mark("evaluation", **marks)
         result = "PASS" if (doc.get("pass") and ok) else "FAIL"
-    except (RuntimeError, TimeoutError) as e:
+    # Wider than the RuntimeError/TimeoutError the happy path raises: bus.send can raise
+    # PermissionError (the command file swap losing to the game's reader), wait_result can
+    # raise on a truncated JSON doc, and an evaluator is scenario code that can raise anything.
+    # None of that may skip the finally below -- settimespeed is a world change and the clients
+    # are real processes -- and all of it must still land in the report as an `error` mark with
+    # result FAIL (exit 1). KeyboardInterrupt/SystemExit are deliberately still let through:
+    # the finally restores and tears down either way.
+    except Exception as e:                     # noqa: BLE001 - see above
         tl.mark("error", detail=f"{type(e).__name__}: {e}"[:200])
     finally:
         # settimespeed is a WORLD change and must not outlive the run, whatever went wrong
@@ -133,6 +161,10 @@ def run(a):
     cad = cadence(doc or {})
     if cad:
         tl.mark("cadence", **cad)
+        if cad.get("cadence_suspect"):
+            say("  WARNING: EveryOneMinute did not fire once per game minute "
+                f"({cad['ticks_per_world_min']} ticks/game-min) -- anything this run fitted "
+                "against the game clock is suspect")
     write_artifact(run_dir, a, run_id, server, result, doc, ev, cad)
     write_report(run_dir, {"run_id": run_id, "result": result, "side": a.side, "user": a.user,
                            "speed": a.speed, "timeline": tl.items, "cadence": cad, "test": doc,

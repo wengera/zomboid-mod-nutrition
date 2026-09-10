@@ -20,7 +20,8 @@
 -- no `goto`; and no "%d" on a Lua number (every Lua number is a double and %d can raise) --
 -- "%.0f" everywhere.
 
-TK.tests = TK.tests or { registry = {}, running = nil, clock = 0, due = {}, hooked = false }
+TK.tests = TK.tests or { registry = {}, running = nil, clock = 0, due = {}, hooked = false,
+                         seq = 0 }
 local T = TK.tests
 
 -- The server has no getPlayer(); the client has no other player. Returns (player, err).
@@ -63,8 +64,11 @@ function Ctx:sample(tbl)
     return tbl
 end
 
+-- `seq` is only for ordering: onMinute dispatches a batch by `at` and table.sort is not stable,
+-- so ties fall back to the order the callbacks were scheduled in.
 function Ctx:at(minutes, fn)
-    T.due[#T.due + 1] = { at = T.clock + (minutes or 0), fn = fn }
+    T.seq = (T.seq or 0) + 1
+    T.due[#T.due + 1] = { at = T.clock + (minutes or 0), fn = fn, seq = T.seq }
 end
 
 -- The re-arm happens BEFORE fn runs: a callback that raises is recorded as a failure by
@@ -97,17 +101,43 @@ end
 -- Poll `pred` once per game minute until it is true or the budget runs out. The budget is the
 -- failure mode that matters in an accelerated run: a condition that never arrives must end the
 -- test with a named timeout, not hang until the outer timeoutMin and lose the label.
+--
+-- Like `every`, the re-arm happens BEFORE `pred` runs, and `pred` runs under its own pcall: a
+-- predicate that reaches through a nil (a player who logged out, a Java member that is only
+-- there while awake) used to be swallowed by onMinute's pcall with the poll un-armed, so the
+-- test ran on to the outer `timeoutMin` and reported "test timeout" instead of this label. A
+-- raise is now a recorded failure and polling continues -- the condition may still arrive, and
+-- if it does not, the labelled timeout below is what ends the test. Only the first raise is
+-- asserted; the rest are logged, so a permanently broken predicate cannot flood `failures`
+-- with one line per game minute of the budget.
 function Ctx:eventually(pred, budgetMinutes, label)
     local deadline = T.clock + (budgetMinutes or 60)
+    local finished, raised = false, 0
     local function poll()
-        if T.running ~= self then return end
-        if pred() then self:log("eventually ok: " .. tostring(label)); return end
-        if T.clock >= deadline then
-            self:assert(false, "eventually timed out: " .. tostring(label))
-            self:done(false, "timeout: " .. tostring(label))
+        if finished or T.running ~= self then return end
+        self:at(1, poll)
+        local ok, hit = pcall(pred)
+        if not ok then
+            raised = raised + 1
+            if raised == 1 then
+                self:assert(false, "eventually pred error (" .. tostring(label) .. "): " ..
+                            tostring(hit))
+            else
+                self:log(string.format("eventually pred error #%.0f (%s): %s", raised,
+                                       tostring(label), tostring(hit)))
+            end
+        elseif hit then
+            -- The re-armed tick above is left in T.due; `finished` makes it a no-op and the next
+            -- minute's dispatch drops it.
+            finished = true
+            self:log("eventually ok: " .. tostring(label))
             return
         end
-        self:at(1, poll)
+        if T.clock >= deadline then
+            finished = true
+            self:assert(false, "eventually timed out: " .. tostring(label))
+            self:done(false, "timeout: " .. tostring(label))
+        end
     end
     poll()
 end
@@ -168,6 +198,18 @@ local function onMinute()
         if d.at <= T.clock then due[#due + 1] = d else rest[#rest + 1] = d end
     end
     T.due = rest
+    -- Dispatch a batch in schedule order, not insertion order. Anything with `at <= clock` comes
+    -- due together -- same-minute callbacks, and anything scheduled for a minute already gone (a
+    -- fractional offset, or an `at(0, ...)` from inside another callback) -- and registration
+    -- order is not schedule order when the later-registered callback is the earlier one. Sorting
+    -- makes the order the test reads on the page the order it runs in. table.sort is not stable,
+    -- hence the `seq` tiebreak from Ctx:at, which keeps same-minute callbacks in insertion order.
+    if #due > 1 then
+        table.sort(due, function(x, y)
+            if x.at ~= y.at then return x.at < y.at end
+            return (x.seq or 0) < (y.seq or 0)
+        end)
+    end
     for _, d in ipairs(due) do
         if T.running == nil then break end   -- one of them finished the test: drop the batch
         local ok, err = pcall(d.fn)
