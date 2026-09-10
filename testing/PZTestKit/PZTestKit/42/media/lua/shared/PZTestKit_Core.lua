@@ -452,12 +452,20 @@ end)
 --   nothing here passes arguments to the member it reads.
 --   -> { side, subject, id, resolved, fields = {<getter> = value}, missing = {...},
 --        nils = {...}, count, worldAge [, truncatedAt] }
---   Each name lands in EXACTLY one of the three lists and the three partition `count`:
+--   `count` is how many names were READ (the cap applies first); each read is sorted into one
+--   of the three by outcome:
 --     missing = this build's object does not expose the member at all (TK.call said absent);
 --     nils    = it DOES expose it and the call returned nil -- a reading, not an absence;
 --     fields  = anything else, encoded by TK.json (a Java object as its toString()).
+--   `fields` is a MAP keyed by getter name, so a name asked for twice is read twice and
+--   counted twice but appears ONCE; `missing`/`nils` are lists and keep the repeat. The three
+--   therefore add up to `count` only when the requested names are distinct -- they are not a
+--   partition, and nothing here de-duplicates the request.
 --   Splitting `nils` out of "simply not in fields" is what makes "the mod did not set it"
 --   distinguishable from "this build never had it", which is the whole question in 09-11.
+--   A subject that does not RESOLVE still answers a table: { side, subject, id, resolved =
+--   false, worldAge, error }. Only a missing/unknown <player|item> word answers the usage
+--   string, so a caller never meets a bare string except on that gate.
 --
 -- witness.moddata [player[:<user>] | item:<id> | global:<name>] <key ...>
 --   No scope prefix => player: the LOCAL player on a client, the first online one on the
@@ -467,7 +475,17 @@ end)
 --   dotted path (`a.b.c`), which walks nested tables; a path that does not resolve is
 --   `missing`, exactly as an unset key is.
 --   -> { side, scope, arg, resolved, keys, keyCount, values = {<key> = value},
---        missing = {...}, worldAge [, error] [, truncatedAt] }
+--        missing = {...}, count, worldAge [, error] [, truncatedAt] }
+--   `count` is keys READ (the census is sized by `keyCount`); `values` is a map and repeats
+--   collapse in it exactly as in witness.fields. A subject that does not resolve answers
+--   `resolved = false` plus `error`, the same table shape as witness.fields.
+--   The scope words are RESERVED in the FIRST argument: a bare `item` or `global` answers the
+--   usage string, and a bare `player` is consumed as the scope. So a modData key literally
+--   named `item`, `global` or `player` cannot be read at the default scope -- ask for it
+--   behind an explicit prefix (`witness.moddata player:- player`), where it is just a key.
+--   `global:<name>` reads through ModData.getOrCreate, which CREATES the table when it is
+--   absent. A global census can therefore never report "no such table": an empty `keys` says
+--   only that nothing stores anything under that name -- and the probe has just made it.
 --
 -- Both replies travel as one bus ack line, hence the TK.WITNESS_MAX cap on names per call.
 -- getGameTime():getWorldAgeHours() and getOnlinePlayers() are reached DIRECTLY, on purpose and
@@ -508,6 +526,11 @@ local function subjectOf(kind, id)
     local _, inv = TK.call(owner, "getInventory")
     if inv == nil then return nil, nil, "no getInventory() on " .. tostring(label) end
     local target = what or id
+    -- No id at all: `target` would go into getFirstTypeRecurse as a nil, and that member is
+    -- OVERLOADED on this jar ((String) and (ItemKey)), so a nil is an ambiguous same-arity
+    -- dispatch -- the one failure pcall cannot catch (see TK.call's note above; measured: the
+    -- whole side drops off the bus). Refuse before the lookup instead.
+    if target == nil then return nil, nil, "usage: <id> required for an item subject" end
     local wantId = string.match(tostring(target), "^#(%d+)$")
     if wantId == nil then
         -- the harness's own idiom everywhere else, and the only route that looks inside bags
@@ -515,7 +538,7 @@ local function subjectOf(kind, id)
         if okR and it ~= nil then
             local _, full = TK.call(it, "getFullType")
             local _, iid = TK.call(it, "getID")
-            return it, tostring(full) .. " #" .. tostring(iid)
+            return it, tostring(label) .. "/" .. tostring(full) .. " #" .. tostring(iid)
         end
     end
     local _, items = TK.call(inv, "getItems")   -- flat, but the only route that matches by id
@@ -525,7 +548,7 @@ local function subjectOf(kind, id)
         local _, full = TK.call(it, "getFullType")
         local _, iid = TK.call(it, "getID")
         if (wantId ~= nil and tostring(iid) == wantId) or (wantId == nil and full == target) then
-            return it, tostring(full) .. " #" .. tostring(iid)
+            return it, tostring(label) .. "/" .. tostring(full) .. " #" .. tostring(iid)
         end
     end
     return nil, nil, "no item " .. tostring(target) .. " on " .. tostring(label)
@@ -536,8 +559,14 @@ TK.register("witness.fields", function(argv)
         return "usage: witness.fields <player|item> <id> <getter,...>"
     end
     local subject, label, err = subjectOf(argv[1], argv[2])
-    if subject == nil then return err or "no subject" end
-    local out = { side = TK.side, subject = argv[1], id = argv[2], resolved = label,
+    -- A subject that does not resolve is a RESULT, not a usage error, so it answers the same
+    -- table shape witness.moddata does: the driver reads reply.fields/reply.error without ever
+    -- meeting a string. Only the argv[1] gate above (a missing/unknown subject word) is usage.
+    if subject == nil then
+        return { side = TK.side, subject = argv[1], id = argv[2] or "-", resolved = false,
+                 worldAge = getGameTime():getWorldAgeHours(), error = err or "no subject" }
+    end
+    local out = { side = TK.side, subject = argv[1], id = argv[2] or "-", resolved = label,
                   fields = {}, missing = {}, nils = {},
                   worldAge = getGameTime():getWorldAgeHours() }
     local n = 0
@@ -578,7 +607,9 @@ TK.register("witness.moddata", function(argv)
         tbl = t
     else
         local subject, label, err = subjectOf(scope, arg or "-")
-        if subject == nil then out.error = err; return out end
+        -- `resolved = false` matches witness.fields' failure reply: both twins say resolved
+        -- plus error, and `out` already carries side/worldAge from its constructor.
+        if subject == nil then out.resolved = false; out.error = err or "no subject"; return out end
         out.resolved = label
         local ok, t = TK.call(subject, "getModData")
         if not ok then out.error = "no getModData() on " .. tostring(label); return out end
@@ -607,6 +638,7 @@ TK.register("witness.moddata", function(argv)
             else out.values[argv[i]] = (type(node) == "table") and node or tostring(node) end
         end
     end
+    out.count = wanted        -- keys READ, as witness.fields' `count`; `keyCount` is the census
     return out
 end)
 
