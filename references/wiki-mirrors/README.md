@@ -28,9 +28,18 @@ the page claims that our docs use or contradict, and what to verify in code firs
 | `cooking.md` | [Cooking](https://pzwiki.net/wiki/Cooking) | 42.18.0 | 2026-09-09 | Cooking skill: per-level ingredient use, evolved-recipe nutrition, poison thresholds |
 | `modding.md` | [Modding](https://pzwiki.net/wiki/Modding) | 42.20.4 | 2026-09-09 | Modding hub: policy, fields, tool index, MP migration pointer |
 | `startup-parameters.md` | [Startup parameters](https://pzwiki.net/wiki/Startup_parameters) | 42.20.4 | 2026-09-09 | Launcher/JVM/game arguments for client and server (test-harness input) |
+| `appliances.md` | [Appliances](https://pzwiki.net/wiki/Appliances) | 42.8.0 | 2026-09-10 | B42 appliance tile catalogue; the Fridges table is the refrigeration roster (hardware only, no spoilage numbers) |
+| `evolved-recipes.md` | [Evolved recipes](https://pzwiki.net/wiki/Evolved_recipes) | 41.78.19 | 2026-09-10 | How ingredients combine into dishes: per-recipe hunger values, spices, stale/rotten rules, B41 recipe roster |
+| `fridge.md` | [Fridge](https://pzwiki.net/wiki/Fridge) | 41.78.19 | 2026-09-10 | The fridge/freezer spoil-rate multipliers and the B41 fridge variant list |
 
-**Absent pages:** none. Every page requested up to 2026-09-09 fetched successfully;
-add a row here (page name + date) when one 404s, so nobody re-tries blindly.
+**Absent pages:** "Food spoilage" and "Canned food" (both 404, 2026-09-10). Every other
+page requested up to 2026-09-10 fetched successfully; add a row here (page name + date)
+when one 404s, so nobody re-tries blindly.
+
+**Redirects, not mirrored:** "Refrigerator" and "Freezer" both redirect to
+`Appliances#Refrigerators` and "Rotten" redirects to `Food`, so all three resolve to pages
+already mirrored here — fetch `appliances.md` / `food.md` instead. Note the redirect anchor
+is stale: the Appliances page's refrigeration section is headed `== Fridges ==` as of 42.8.0.
 
 **Renames:** `modding-hub.md` became `modding.md` on 2026-09-09 when the hand
 excerpt was re-fetched through `wiki_mirror.py` (the slug now follows the page
