@@ -152,7 +152,9 @@ end)
 -- The game's own admin panel does NOT call getSandboxOptions():set() on a client --
 -- ISServerSandboxOptionsUI.lua:738 guards it with `if not isClient()` and clients instead
 -- fill a SandboxOptions copy and call :sendToServer() -- so a plain flip here is expected to
--- be client-local. `push` additionally tries sendToServer() (admin only, nil-checked).
+-- be client-local. `push` additionally tries sendToServer(): nil-checked and pcall-wrapped,
+-- but NOT admin-gated -- nothing here checks isAdmin(), so whether a non-admin's push is
+-- refused is the server's decision and is not established by this harness.
 TK.register("sandbox.set", function(argv)
     local name = argv[1]
     if not name then return "usage: sandbox.set <option> [true|false] [push]" end
@@ -202,8 +204,15 @@ TK.register("sandbox.set", function(argv)
     end
     out.sandboxVarsAfter = SandboxVars and SandboxVars[name]
     if argv[2] == "push" or argv[3] == "push" then
-        out.push = TK.call(opts, "sendToServer") and "sendToServer() called"
-            or "no SandboxOptions:sendToServer"
+        -- Same reasoning as the `set` route above: TK.call rules out "call nil" (which pcall
+        -- cannot catch), so what pcall catches here is a failure INSIDE sendToServer -- and
+        -- that must be reported, not allowed to kill the ack after the flip already happened.
+        local ran, present = pcall(TK.call, opts, "sendToServer")
+        if not ran then
+            out.push, out.pushError = "sendToServer() raised", tostring(present)
+        else
+            out.push = present and "sendToServer() called" or "no SandboxOptions:sendToServer"
+        end
     end
     return out
 end)
@@ -268,8 +277,12 @@ local function findOrSpawn(fullType)
     if it then return it, "found" end
     return inv:AddItem(fullType), "client"
 end
+-- `spawned` is reported here for the same reason `eat` reports it, and it is the reading that
+-- actually counts: when a caller runs item.state BEFORE eat (the matrix does), it is THIS call
+-- that finds-or-spawns the item, so a missed server-side spawn is answered here and eat's own
+-- `spawned` would read "found" either way. Dropping it made the provenance unfalsifiable.
 TK.register("item.state", function(argv)
-    local it = findOrSpawn(argv[1])
+    local it, spawned = findOrSpawn(argv[1])
     if not it then return "no item " .. tostring(argv[1]) end
     local s = argv[2]
     if s == "cooked" then TK.call(it, "setCooked", true)
@@ -283,7 +296,9 @@ TK.register("item.state", function(argv)
         end
     elseif s == "frozen" then TK.call(it, "setFrozen", true)
     elseif s == "fresh" then TK.call(it, "setAge", 0) end
-    return itemState(it)
+    local out = itemState(it)
+    out.spawned = spawned
+    return out
 end)
 
 -- Direct application: measures the intake arithmetic of IsoGameCharacter.Eat. In MP this is

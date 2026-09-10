@@ -21,8 +21,10 @@ Two facts from task 3 shape the whole script:
     and each row carries its own `before.hunger` as proof the prime held.
 
 Items are spawned SERVER-side (RCON `additem`) so the mirrored action can find them and so
-the client-spawn NPE (task 3, concern 1) stays out of the log; `spawned` on every row says
-whether that worked.
+the client-spawn NPE (task 3, concern 1) stays out of the log. `state_spawned` on every row
+says whether that worked -- it is the provenance of the FIRST client command to touch the
+item (`item.state`), the only one whose "found" can still be falsified: whatever it did, the
+item exists by the time `eat` runs, so eat's own `spawned` reads "found" either way.
 
 Everything lands in <run_dir>/eat-matrix.json. ~6 minutes, one session; run it with the
 machine idle (`python testing/pzt doctor` first).
@@ -153,6 +155,10 @@ try:
         time.sleep(SPAWN_WAIT)
         st = ask(c, "item.state", f'{item["type"]} {state}')
         row["item_state_cmd"] = st
+        # THIS is the row's provenance, not `eat`'s: item.state runs first and does the
+        # find-or-spawn itself, so a missed RCON additem is answered here (as "client") and
+        # `eat` a moment later would report "found" whatever happened.
+        row["state_spawned"] = st.get("spawned") if isinstance(st, dict) else None
         # `item.state fresh` is only setAge(0) -- nothing to read back -- so it counts as
         # applied by definition; every other state has to show its flag true afterwards.
         row["state_applied"] = True if state == "fresh" else (isinstance(st, dict)
@@ -293,6 +299,7 @@ try:
     out["summary"] = [
         {"item": r["item"], "state": r["state"], "fraction": r["fraction"],
          "applied": r["state_applied"], "spawned": r.get("spawned"),
+         "stateSpawned": r.get("state_spawned"),
          "beforeHunger": num(r.get("before"), "hunger"), "beforeThirst": num(r.get("before"), "thirst"),
          **{f"d{k[0].upper()}{k[1:]}": (round(num(r.get("delta"), k), 4)
                                         if num(r.get("delta"), k) is not None else None)
@@ -317,6 +324,19 @@ finally:
         tl.mark("settimespeed_restored", ok=ok_rcon)
     except Exception as e:                       # noqa: BLE001 - teardown path, never raise
         out["settimespeed_restored"] = f"{type(e).__name__}: {e}"
+    # The Nutrition sandbox option is a WORLD change too, and section 4 proved the flip
+    # reaches the server -- so a failure between `flip_false` and the in-band `restore_true`
+    # would leave the saved world with vanilla nutrition switched off. Unconditional and
+    # idempotent: re-setting an option that is already true costs one bus command and the
+    # ack shows what it read back.
+    try:
+        sb_restore = (ask(clients[0], "sandbox.set", "Nutrition true", timeout=15)
+                      if clients else "no client")
+        out["sandbox_nutrition_restored"] = sb_restore
+        tl.mark("sandbox_nutrition_restored",
+                after=(sb_restore.get("after") if isinstance(sb_restore, dict) else sb_restore))
+    except Exception as e:                       # noqa: BLE001 - teardown path, never raise
+        out["sandbox_nutrition_restored"] = f"{type(e).__name__}: {e}"
     path = os.path.join(run_dir, "eat-matrix.json")
     save(path, out, tl, server)          # evidence on disk before the shutdown can go wrong
     try:
@@ -325,13 +345,19 @@ finally:
         hard_kill(server, clients)       # guaranteed, whatever teardown did
         # The plan asks for the EatFood / SyncItemFields lines from THIS run's server log;
         # after teardown the file is complete and the reader thread has stopped.
+        # Matching is CASE-INSENSITIVE: the harness logs its own commands lowercase
+        # (`nutrition.get`), so a case-sensitive "Nutrition" reported zero hits while the log
+        # held dozens -- a silent false negative in exactly the direction that flatters the
+        # result. An empty list here now means the string is genuinely absent.
         try:
             log = os.path.join(run_dir, "server-stdout.log")
             hits = {"EatFood": [], "SyncItemFields": [], "Nutrition": []}
+            needles = [(key, key.lower()) for key in hits]
             with open(log, encoding="utf-8", errors="replace") as fh:
                 for i, line in enumerate(fh, 1):
-                    for key in hits:
-                        if key in line and len(hits[key]) < 12:
+                    low = line.lower()
+                    for key, needle in needles:
+                        if needle in low and len(hits[key]) < 12:
                             hits[key].append(f"{i}: {line.rstrip()[:220]}")
             out["log_grep"] = hits
         except Exception as e:                   # noqa: BLE001 - teardown path, never raise
