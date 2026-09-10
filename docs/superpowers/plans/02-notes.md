@@ -908,6 +908,18 @@ disables it for `Base.Bleach` only (`ISInventoryPaneContextMenu.lua:4270`, `:428
 
 ## Q6 — Packaged, canned, ReplaceOnUse
 
+> **Correction (re-counted block-by-block from `media/scripts/generated/items/food.txt` on 42.20.4,
+> slice 02 task 6):** three counts below are wrong. **`Packaged = true` is 127, not 129** — the key
+> occurs 129 times but 2 blocks say `false`, and this section's own 52 + 75 split already sums to
+> 127. **Sealed cans are 21, not 22** — items with `CannedFood = true` *and* `CantEat = true`; all 21
+> are `Packaged = true`, 17 carry `OpeningRecipe`, none carry `DaysFresh`. **`OnCooked =
+> RecipeCodeOnCooked.cannedFood` is 10 blocks, not 89** — `food.txt` holds only 11 `OnCooked` lines
+> in total, the 11th being `RecipeCodeOnCooked.nameCakePrep` (the key inventory's own `11 OnCooked`
+> agrees). The **19 opened variants** figure is right once stated precisely: 19 of the 20 non-sealed
+> `CannedFood` items declare thresholds, the exception being `CannedMilk`, which declares none and so
+> never ages. The prose below is left as written; see `docs/vanilla/food-item-model.md` § Packaging
+> for the verified numbers.
+
 ### `Packaged`
 
 Parsed at `Item.DoParam @9071–@9094 L2743` (`v.trim().equalsIgnoreCase("true")`), copied to the

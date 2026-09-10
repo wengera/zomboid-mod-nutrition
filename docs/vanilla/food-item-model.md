@@ -200,8 +200,9 @@ recipes below, all from run `exp02-20260910-030433`
 `item TestWaterMug`, both silently becoming `defaultModData`. Two more of the 114 are parsed but
 effectively unread on the item instance: `Packaged` (copied over, then read by nothing) and
 `CannedFood` (never copied; read only off the script object) — see § Packaging. Two further keys the
-loader recognises, `Poison` and `UseForPoison`, have no reader at all *and* appear in neither file —
-see § Poison. Ev C.
+loader recognises, `Poison` and `UseForPoison`, have **no Java and no vanilla-Lua reader** — their
+getters exist and are exposed to Kahlua, but nothing in the game calls them — *and* they appear in
+neither file; see § Poison. Ev C.
 
 Value types as parsed: `Integer.parseInt` (int), `Float.parseFloat` (float),
 `Boolean.parseBoolean` **or** `equalsIgnoreCase("true")` (bool — only the literal `true` is true),
@@ -404,13 +405,15 @@ ROT: updateRotting(c);                                                   // @125
 
 **Measured — both transitions with no appliance at all.** `Base.Steak`
 (`MinutesToCook 50`, `MinutesToBurn 70`) in a player's inventory, primed server-side with
-`heat 2.0` + `lastCookMinute -1` + a `cookingTime` just past the threshold, then one `item:update()`:
+`heat 2.0` + `lastCookMinute -1` + a `cookingTime` just past the threshold, then one `item:update()`.
+The `heat` column is the value **read back** at that step, not the requested one — `2.0` was what the
+harness asked for, and the item had already cooled by the time the priming finished (see below):
 
 | Step | `cookingTime` | `cooked` | `burnt` | `heat` | Ev |
 |---|---:|---|---|---:|---|
-| primed to `minutesToCook + 1` | 51 | false | false | 2.0 | **M** `exp02-20260910-030433` |
+| primed to `minutesToCook + 1` | 51 | false | false | **1.84703** (requested 2.0) | **M** `exp02-20260910-030433` |
 | after `item:update()` | 51.059658 | **true** | false | 1.78979 | **M** `exp02-20260910-030433` |
-| primed to `minutesToBurn + 1` | 71 | true | false | 2.0 | **M** `exp02-20260910-030433` |
+| primed to `minutesToBurn + 1` | 71 | true | false | **1.90721** (requested 2.0) | **M** `exp02-20260910-030433` |
 | after `item:update()` | 71.061172 | **false** | **true** | 1.83512 | **M** `exp02-20260910-030433` |
 
 The per-minute rate is confirmed to five decimal places **including** the residual-heat factor: the
@@ -420,9 +423,14 @@ player inventory) sits at temperature 1.0. Burning **clears** `cooked`. Nutritio
 cooking: 220 kcal before and after, raw `hungChange` still −0.4 while `getHungerChange` reads
 −0.133333 (the burnt `max(|h|/3, 0.01)` branch). Ev M, `exp02-20260910-030433`.
 
-`heat` cannot be pinned: `Food.update` runs `updateTemperature` and `updateAge` before the cooking
-block, both of which pull `heat` toward the container temperature (2.0 → 1.79 within one call), so a
-longer cooking experiment needs a real appliance. Ev M, same run.
+`heat` cannot be pinned. `Food.update` runs `updateTemperature` and `updateAge` before the cooking
+block, both of which pull `heat` toward the container temperature — and the game's own per-tick
+`update()` does the same between harness commands, so the decay happens twice over. In the cook
+priming the requested `2.0` had already fallen to **1.84703** by the time `cookingTime` was set (the
+item ticked once on its own in between, `+0.061568` of `cookingTime`), and the explicit
+`item:update()` then took it **1.84703 → 1.78979**; the burn priming decayed `2.0 → 1.90721` between
+commands and `1.90721 → 1.83512` inside the call. A longer cooking experiment therefore needs a real
+appliance. Ev M, same run.
 
 ### Evolved recipes
 
@@ -542,7 +550,7 @@ Four loader keys, all recognised by `Item.DoParam`; only one is used by any ship
 | `PoisonPower` | int → `Food.poisonPower` (`@463–@477 L2011`, instance `@531`) | **4** / 0 | `BodyDamage.JustAteFood` (POISON/PAIN at eat time, slice 01), `EvolvedRecipe.addItem @1866 L475`, `ItemStatsPacket` | C |
 | `Poison` | bool → `Food.poison` (`@388–@405`, instance `@501–@504`) | **0** / 0 | `Food.isPoison()Z @0 L1909` has **no Java and no vanilla-Lua caller** — exposed to Kahlua only | C |
 | `PoisonDetectionLevel` | int → `Food.poisonDetectionLevel` (`@439–@453`, instance `@510`) | **0** / 0 | `IsoGameCharacter.isKnownPoison`, `UsedItemProperties.addInventoryItem`, `Food.copyPoisonFrom`, `ItemStatsPacket.setData`, `EvolvedRecipe.addPoison`, `ISForageIcon.lua:25` | C |
-| `UseForPoison` | int → `Food.useForPoison` (`@487–@501`) | **0** / 0 | **no reader at all** — serialised in `Food.save` (bit `131072`) / `Food.load` and nothing else | C |
+| `UseForPoison` | int → `Food.useForPoison` (`@487–@501`) | **0** / 0 | `Food.getUseForPoison()I` has **no Java and no vanilla-Lua caller** — exposed to Kahlua only, exactly like `isPoison()`; the value is serialised in `Food.save` (bit `131072`) / `Food.load` and read by nothing else | C |
 
 Poisoning a dish (`EvolvedRecipe.addPoison @0–… L526–…`): `poisonDetectionLevel` accumulates and is
 **capped at 10**, `poisonPower` transfers **whole** and zeroes the source, the chef's name is written
@@ -570,7 +578,7 @@ for `Base.Bleach` (`ISInventoryPaneContextMenu.lua:4270`, `:4288`). Ev C.
 | `zombie/scripting/objects/RecipeCodeOnCooked.cannedFood` | home canning: rewrites `offAge`/`offAgeMax` to 730/1560 days | C |
 | `zombie/inventory/ItemPickerJava.doRollItemInternal` / `rotItem` | loot-time aging and the 75 % spawn-rot roll with its sealed-can exemption | C |
 | `zombie/iso/IsoCell.ProcessItems`, `IsoGameCharacter.recursiveItemUpdater` | what actually calls `InventoryItem.update()` — world/container items and every non-zombie character's inventory, per tick, with no side guard | C |
-| `zombie/network/packets/ItemStatsPacket` (`setData` / `applyItemStats`) | the 38-field item stats packet — see § MP behaviour for what is *not* in it | C+M |
+| `zombie/network/packets/ItemStatsPacket` (`setData` / `write` / `applyItemStats`) | the item stats packet: 43 packet fields, of which 2 are addressing and 3 presence flags, so **38 item-state values** — see § MP behaviour for the count and for what is *not* in it | C+M |
 | `media/lua/shared/TimedActions/ISAddItemInRecipe.lua:70` | `recipe:addItem(base, used, character)` — the only Lua→Java bridge into the summation | C+M |
 | `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua:332`, `:4238–4297`, `:2372–2390` | the evolved-recipe menu: probe, submenu build, and the action queue | C |
 
@@ -595,9 +603,20 @@ bit-flag scheme, and the MP carriers of that blob are `GameClient.receiveSendIte
 (re)transmitted whole, never when its stats change. A reverse-reference scan for callers of
 `setAge` returns **no packet class at all**. Ev C.
 
-**Per field.** `ItemStatsPacket` carries 38 fields; the ones that matter here, graded by what was
-actually put to the test — a field only carries information when the two sides were first made to
-*differ* on it:
+**How many fields the packet actually carries: 38.** `ItemStatsPacket.setData(Object[]) @0–@566
+L153–L229` populates **43 distinct packet fields** and `write(ByteBufferWriter) @0–@875 L233–L363`
+puts exactly those 43 on the wire. Two of them are addressing (`containerId`, `id`) and three are
+presence flags (`isFluidContainer`, `isFood`, `isCustomName`), which leaves **38 item-state values**.
+The receiver applies 40 of the 43 (`applyItemStats @0–@427 L520–L577`): besides the two addressing
+fields, `uses` is written but never applied — the receiving side rebuilds it as
+`usedDelta × getMaxUses()` (`@8–@27 L521-522`). The enumeration in
+`docs/superpowers/plans/02-notes.md` Q8 lists **39** entries for the same packet because it counts
+`itemHeat` and `heat` as two; `setData` writes both into the single `heat` field — `@153–@158 L176`
+from `InventoryItem.getItemHeat`, then `@197–@203 L181` from `Food.getHeat`, which overwrites it for
+any food — and `write` emits it once (`@75 L245`). Ev C.
+
+**Per field.** The fields that matter here, graded by what was actually put to the test — a field
+only carries information when the two sides were first made to *differ* on it:
 
 | Field | Owning side | In `ItemStatsPacket`? | Evidence | Ev |
 |---|---|---|---|---|
@@ -774,12 +793,16 @@ and siblings, `setCooked`, `setBurnt`, `setRotten`, `isPackaged`, `isPoison`, `g
 [`testing/artifacts/exp02-20260910-030433/lifecycle.json`](../../testing/artifacts/exp02-20260910-030433/lifecycle.json)
 (sha256 `8cce2fa9…`), one live session, seven phases (client-side getter arithmetic, server-age
 visibility, one accelerated game day, frozen, cooking transitions, the evolved-recipe summation, MP
-ownership), 329 s wall, **0 server errors**, fixture `default`. Script:
-`testing/experiments/s02_lifecycle.py`. Sandbox as measured: `FoodRotSpeed 3`, `FridgeFactor 3`,
+ownership), 329 s wall, **0 server errors**. It ran on fixture `default` — that is **not** recorded
+in the artifact, which carries no fixture or build key; the name and its contents come from
+`testing/fixtures/default/fixture.json` (build 42.20.4, server `pzt`, mod `PZTestKit`, one admin
+client, `boot_errors []`). Script: `testing/experiments/s02_lifecycle.py`. Sandbox as measured: `FoodRotSpeed 3`, `FridgeFactor 3`,
 `DaysForRottenFoodRemoval −1`, `ElecShutModifier 14`. The harness commands this run added are listed
 in [`../testing/README.md`](../testing/README.md). An earlier shakedown run of the same script
 (`exp02-20260910-025434`) is **not** committed and is cited here only where it is named as
-non-evidence (the thaw-rate disagreement and the perk-overwrite rationale).
+non-evidence, in three places: the thaw-rate disagreement (open question 2), the perk-overwrite
+rationale (§ MP behaviour) and the corroborating reproduction of the cross-item `cookingTime` leak
+(open question 3).
 
 **Wiki mirrors** [fridge.md](../../references/wiki-mirrors/fridge.md) (page version 41.78.19),
 [evolved-recipes.md](../../references/wiki-mirrors/evolved-recipes.md) (41.78.19),
