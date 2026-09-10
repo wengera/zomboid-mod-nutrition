@@ -43,28 +43,28 @@
 
 ### Task 1: Passive burn and hunger decay (C)
 
-- [ ] **Step 1:** `./pz.sh dump zombie/characters/BodyDamage/Nutrition updateCalories` in full (all offsets) and `update`; transcribe the formula with the resolved constants.
-- [ ] **Step 2:** `./pz.sh grep "getHunger" --max 20`; for `IsoGameCharacter`, `IsoPlayer`, `BodyDamage`: `./pz.sh methods <class> | grep -iE "hunger|thirst|updateStats|update\b"`; dump the update method(s) that write hunger/thirst; record constants and sandbox reads (`SandboxOptions` getters — `./pz.sh methods zombie/SandboxOptions | grep -iE "hunger|thirst|stat|nutrition"`).
-- [ ] **Step 3:** traits: `./pz.sh grep "HeartyAppetite" --max 10`, `"LightEater"`, `"Thirsty"` → dump the readers.
+- [x] **Step 1:** `./pz.sh dump zombie/characters/BodyDamage/Nutrition updateCalories` in full (all offsets) and `update`; transcribe the formula with the resolved constants.
+- [x] **Step 2:** `./pz.sh grep "getHunger" --max 20`; for `IsoGameCharacter`, `IsoPlayer`, `BodyDamage`: `./pz.sh methods <class> | grep -iE "hunger|thirst|updateStats|update\b"`; dump the update method(s) that write hunger/thirst; record constants and sandbox reads (`SandboxOptions` getters — `./pz.sh methods zombie/SandboxOptions | grep -iE "hunger|thirst|stat|nutrition"`).
+- [x] **Step 3:** traits: `./pz.sh grep "HeartyAppetite" --max 10`, `"LightEater"`, `"Thirsty"` → dump the readers.
 
 ### Task 2: Weight bands, traits, moodles (C)
 
-- [ ] **Step 1:** dump `Nutrition.applyTraitFromWeight`, `applyWeightFromTraits`, `characterHaveWeightTrouble`, `canAddFitnessXp` (cross-check nutrition-core.md; extend, don't duplicate).
-- [ ] **Step 2:** `./pz.sh grep "Obese" --max 20` (and `Overweight`, `Underweight`, `Emaciated`, `VeryUnderweight`): dump each reader outside `Nutrition` (movement speed in `IsoPlayer`/`IsoGameCharacter`, combat, endurance) and record the numbers.
-- [ ] **Step 3:** moodles: `find media/scripts -iname "*moodle*"`, read the definitions; `./pz.sh methods zombie/characters/Moodles/Moodles`; dump `Moodles.update` sections for Hungry/Thirsty/FoodEaten/Heavy? — thresholds per level; then grep Lua `media/lua/**/*.lua` for `MoodleType.HUNGRY`/`THIRST` effects (speed etc. may be Java: `./pz.sh grep "HUNGRY"`).
+- [x] **Step 1:** dump `Nutrition.applyTraitFromWeight`, `applyWeightFromTraits`, `characterHaveWeightTrouble`, `canAddFitnessXp` (cross-check nutrition-core.md; extend, don't duplicate).
+- [x] **Step 2:** `./pz.sh grep "Obese" --max 20` (and `Overweight`, `Underweight`, `Emaciated`, `VeryUnderweight`): dump each reader outside `Nutrition` (movement speed in `IsoPlayer`/`IsoGameCharacter`, combat, endurance) and record the numbers.
+- [x] **Step 3:** moodles: `find media/scripts -iname "*moodle*"`, read the definitions; `./pz.sh methods zombie/characters/Moodles/Moodles`; dump `Moodles.update` sections for Hungry/Thirsty/FoodEaten/Heavy? — thresholds per level; then grep Lua `media/lua/**/*.lua` for `MoodleType.HUNGRY`/`THIRST` effects (speed etc. may be Java: `./pz.sh grep "HUNGRY"`).
 
 ### Task 3: Measured rates (M)
 
-- [ ] **Step 1:** add a client command `stats.sample` → `{worldAge, calories, hunger, thirst, weight, endurance, fatigue}` (endurance/fatigue from `getStats()`), and `stats.sampler <minutesGame> <count>` that schedules samples on `EveryOneMinute` and writes `TK.result("stats_samples", {samples=[...]})` when done (reuse slice 04's scheduler if it already exists; otherwise a minimal `EveryOneMinute` counter here — slice 04 will generalize it).
-- [ ] **Step 2:** experiment `testing/experiments/s03_decay.py`: `nutrition.set calories 0`, `settimespeed 30`, sample every 60 game-minutes for 24 game-hours (≈ 3.2 min wall) with the player idle; then a second run of 6 game-hours with the player running in circles (add `player.run <seconds>` command using `getPlayer():setRunning(true)` + a move target via `player:setX/Y`? simpler: `player:getPathFindBehavior2():pathToLocationF(x+10,y,z)` in a loop; if movement automation is fragile, measure resting only and mark running as an open question). Restore `settimespeed 1`.
-- [ ] **Step 3:** compute kcal/game-day at rest, hunger and thirst per game-hour; compare with Task 1 constants; record run ids.
-- [ ] **Step 4 (MP):** after the idle run, `witness.nutrition` — server vs client calories (S6 mechanism); grep the server log for any nutrition packet names found in Task 1 (Q7).
+- [x] **Step 1:** add a client command `stats.sample` → `{worldAge, calories, hunger, thirst, weight, endurance, fatigue}` (endurance/fatigue from `getStats()`), and `stats.sampler <minutesGame> <count>` that schedules samples on `EveryOneMinute` and writes `TK.result("stats_samples", {samples=[...]})` when done (reuse slice 04's scheduler if it already exists; otherwise a minimal `EveryOneMinute` counter here — slice 04 will generalize it).
+- [x] **Step 2:** experiment `testing/experiments/s03_decay.py`: `nutrition.set calories 0`, `settimespeed 30`, sample every 60 game-minutes for 24 game-hours (≈ 3.2 min wall) with the player idle; then a second run of 6 game-hours with the player running in circles (add `player.run <seconds>` command using `getPlayer():setRunning(true)` + a move target via `player:setX/Y`? simpler: `player:getPathFindBehavior2():pathToLocationF(x+10,y,z)` in a loop; if movement automation is fragile, measure resting only and mark running as an open question). Restore `settimespeed 1`.
+- [x] **Step 3:** compute kcal/game-day at rest, hunger and thirst per game-hour; compare with Task 1 constants; record run ids.
+- [x] **Step 4 (MP):** after the idle run, `witness.nutrition` — server vs client calories (S6 mechanism); grep the server log for any nutrition packet names found in Task 1 (Q7).
 
 ### Task 4: Mirrors and doc
 
-- [ ] **Step 1:** `python tools/wiki_mirror.py Hunger Thirst Moodles Weight Traits` (skip absent pages), digests.
-- [ ] **Step 2:** write `docs/vanilla/body-stats.md` (skeleton; tables with `Ev`), update `docs/vanilla/README.md` (`stats-moodles.md` row → body-stats.md done) and close the `updateCalories`/sandbox open questions in `nutrition-core.md` (cite this doc).
-- [ ] **Step 3:** lint → 0; commit `Slice 03: body stats and moodles`.
+- [x] **Step 1:** `python tools/wiki_mirror.py Hunger Thirst Moodles Weight Traits` (skip absent pages), digests.
+- [x] **Step 2:** write `docs/vanilla/body-stats.md` (skeleton; tables with `Ev`), update `docs/vanilla/README.md` (`stats-moodles.md` row → body-stats.md done) and close the `updateCalories`/sandbox open questions in `nutrition-core.md` (cite this doc).
+- [x] **Step 3:** lint → 0; commit `Slice 03: body stats and moodles`.
 
 ## Deliverables
 
@@ -83,3 +83,17 @@
 ## Done protocol
 
 - `docs/progress.md` 03 → done + ripples (burn rate constant → slice 04 prediction inputs); `docs/decisions.md`; push.
+
+## Acceptance results (2026-09-10)
+
+Execution was restructured by ledger rulings (see `docs/decisions.md`, slice 03): Tasks 1+2 as one code-reading dispatch (`03-notes.md`), Task 3 as one live session (`testing/experiments/s03_body.py`, artifact `exp03-20260910-045523`), Task 4 the doc; the planned Lua `stats.sample`/`stats.sampler` became the atomic server `stats.get` plus Python-side polling; `player.run` never registered as running on the server (row n/a).
+
+| Check | Result |
+|---|---|
+| `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references` | 0 findings |
+| `python -m pytest tools/tests -q` | 14 passed |
+| `python testing/pzt doctor` | all ok (after the slice-04 TIME_WAIT fix) |
+| `python testing/pzt run --hold 5` | PASS — `run-20260910-065745`, server up 14.8 s, client ready 36.8 s, 0 server errors |
+| Live probe of the rewritten harness bodies (`accept03-20260910-065854`, 63 s) | `nutrition.applytraits admin` → `applied: true` (weight 80, no band trait); server `stats.get admin` and client `stats.get` answered full snapshots (`Stats:get(CharacterStat.HUNGER)` route); `nutrition.get admin` consistent; 0 server errors, 0 client Lua errors |
+| Q1–Q7 cited in `docs/vanilla/body-stats.md` | yes (57 measured rows; every number reproduces from the artifact — final review) |
+| Review trail | task reviews + one fix round each for Tasks 3 and 4; whole-branch review → one fix wave (`5b9b959`) → scoped re-review |
