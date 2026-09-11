@@ -246,6 +246,28 @@ what the static read assumed:
   and read the client's `heat` / `cookingTime` twice 10 s apart on an item the client itself
   holds. Those two readings separate "never scheduled" from "scheduled on a different object".
 
+  **Cross-reference, 2026-09-10 — slice 10 ran that check and it REOPENS this row; nothing
+  below is rewritten.** On run `td2-20260910-231655` (appendix A2, a pass-1 follow-up carried on
+  the simpleStatus session — [`simplestatus.md`](simplestatus.md) § Two pass-1 follow-up
+  controls) a server-pinned **vanilla** `Base.Steak` **did move** on the client: `getHeat`
+  2 → 1.697029948234558 and `getCookingTime` 0 → 0.1182333305478096 over 10.5 s,
+  **bit-identical to the server across a 0.5 s read offset**. Both readings are real and the
+  reconciliation is a **hypothesis, not a finding**: `Food.update` has no client guard and
+  `updateTemperature` runs unconditionally, so a client copy *can* tick, while the push at
+  `Food.update @86-@103 L377-L379` fires `GameServer.sendItemStats(this)` once per **game
+  minute** only while the cooking branch is live, gated at `@49-@71 L372-L373` on
+  `isCookable && !isFrozen() && heat > 1.6f` (C, jar). The Steak never left that gate
+  (2.0 → 1.697) so pushes kept the sides identical; this run's `Skittles.CuredPork` **crossed**
+  it (server 1.79561 → 1.39397 against a client pinned at 1.84703), and the pushes stopped. The
+  discriminator is the **1.6 gate**; the probe that settles it is one pin **below** the gate
+  (`heat 1.2`, two reads 10 s apart on both sides), carried as slice 11's session item. The
+  freeze measured here stands as a reading; the *mechanism* sentence above ("why it did not run
+  is unexplained") is the part slice 10 puts a candidate against. `getContainer` was also read
+  on both sides and is **presence + within-side stability only** — `ItemContainer.toString`
+  ends in a per-JVM identity hash, so the full strings must never be compared across sides.
+  Graded row: [`../../modding/patterns.md`](../../modding/patterns.md) § Measured MP sync facts
+  → *The other direction*, now marked **CONTESTED**.
+
 **The weight story, and the mod-authoring finding inside it.** Predicted: server ≈ 0.35 stored,
 client 0.35 recomputed, synced by two different arms of `Food.getActualWeight`. Measured: server
 **0**, client **0.35**. The chain, all of it read directly on `td1b`:
@@ -294,6 +316,20 @@ client 0.35 recomputed, synced by two different arms of `Food.getActualWeight`. 
   any item block at all. **Slice 10's session runs the six-vs-`Steak` reads**; nothing here does.
   (The mod's only display-name code is commented out: `recipe_meats.lua:50-51`.)
 
+  **Cross-reference, 2026-09-10 — slice 10 ran that control and the answer is hypothesis (i);
+  nothing above is rewritten.** On run `td2-20260910-231655` (appendix A1, a pass-1 follow-up on
+  the simpleStatus session — [`simplestatus.md`](simplestatus.md) § Two pass-1 follow-up
+  controls) one of the six, `Base.FruitSaladClay`, was spawned beside `Base.Steak` and both were
+  read with the same six getters on **both** sides: `FruitSaladClay` reads
+  `getDisplayName` **`Base.FruitSaladClay`** — equal to `getFullType` — with
+  `getActualWeightUnmodded` **0** on client *and* server, while `Steak` reads `Steak` and keeps
+  **0.3** everywhere. So **no `ItemName.json` entry is sufficient on its own, inside vanilla**:
+  hypothesis (i) is confirmed, **(iii) is not required** to explain `Skittles.CuredPork`, and
+  both sides agreeing rules out a sync explanation. **(ii) stays open by design** — separating
+  "42.20.4 never loads a B41-layout `ItemName_EN.txt`" from (i) would need an `ItemName.json`
+  added to the mod tree, i.e. a write under the read-only workshop folder. One item, one
+  session: `n = 1` for the absent-name case.
+
 **A vanilla defect found by accident: a cooked food's thirst halves on every server→client hop.**
 (Canonical graded row: [`../../modding/patterns.md`](../../modding/patterns.md) § Measured MP
 sync facts → *The other direction — server → client*, the `thirstChange` row. This section is a
@@ -326,6 +362,17 @@ modData key on every side that instantiates the item** — general, not LTP-spec
 vanilla control (no `Tooltip =` line, no key) confirms the route rather than weakening it. The
 census baseline for later teardowns is therefore: exclude `customName` always, and exclude
 `Tooltip` for any item whose script declares one. No push changed either census.
+
+**Cross-reference, 2026-09-10 — the *player*-scope half of that baseline is a LATE-SESSION
+reading, corrected by slice 10; the item-scope rows above are unaffected.** Pass 1's player
+census (`census_player`, and the exclusion set derived from it) read **server 4 keys /
+client 5** — the four vanilla fitness/strength keys, plus `hotbar` on the client. Run
+`td2-20260910-231655` took the same census six times across one session and the server's copy
+is **empty at join**: `keyCount 0` at 79.194 s, 91.074 s and 97.411 s, then **4** at 108.773 s
+— the four keys are written server-side **lazily**, 22–33 s after `session_ready`. Early in a
+session the pair is **server 0 / client 5**. Nothing pass 1 concluded moves (the client is the
+strict superset either way), but anything comparing censuses **at join** must expect an empty
+server side. Reading: [`simplestatus.md`](simplestatus.md) § MP handling.
 
 **Latent risks not measured.** (i) Whether a relog or a save round-trip repairs the client's
 copy of the four uncarried fields is **not** measured here — `InventoryItem.save`/`load` is a

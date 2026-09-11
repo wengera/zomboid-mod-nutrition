@@ -50,7 +50,7 @@ carries both.** Measured 2026-09-10 17:47.
 
 | Mod id | Item | Lua | Script | Why it matters to us |
 |---|---|---:|---:|---|
-| **`simpleStatus`** | 2867431511 | 12 | 0 | Displays nutrition stats — UI overlap; users already watch these numbers. All 12 reads client-side, in one file. **Teardown 10** |
+| **`simpleStatus`** | 2867431511 | 12 | 0 | Displays nutrition stats — UI overlap; users already watch these numbers. All 12 reads client-side, in one file. **[Teardown 10](teardowns/simplestatus.md) — done** |
 | `CleanUI` | 3437629766 | 11 | 0 | Full UI overhaul over food/status surfaces; 1 064 KB of Lua. All 11 hits are `getHungerChange` in copied vanilla tooltip files — territory, not mechanism |
 | `SkillRecoveryJournal` | 2503622437 | 8 | 0 | **Answered:** gates fitness XP on `canAddFitnessXp()` and scales the exercise multiplier by `getProteins()`. In `lua/shared`, so it runs on both sides |
 | **`AutoCook`** | 3388721641 | 4 | 0 | Automates the cooking pipeline — hooks the actions we will extend. **Teardown 11** |
@@ -81,11 +81,12 @@ Set by slice 08 — criteria, evidence and fall-through in
 
 Done: [ItemQuality](teardowns/itemquality.md) · [BeyondTen](teardowns/beyondten.md) ·
 [SKITTLE_LongTermPreservation4220](teardowns/longtermpreservation4220.md) (slice 09,
-2026-09-10; measured on `td1-20260910-192457` and `td1b-20260910-202029`).
+2026-09-10; measured on `td1-20260910-192457` and `td1b-20260910-202029`) ·
+[simpleStatus](teardowns/simplestatus.md) (slice 10, 2026-09-10; measured on
+`td2-20260910-231655`).
 
 | Slice | Mod id | Angle |
 |---|---|---|
-| 10 | `simpleStatus` | How nutrition values are read and refreshed for UI, against a store the server owns |
 | 11 | `AutoCook` | Cooking-pipeline hook points (what it wraps = what we must not break), and the `common/` vs `42.x/` question |
 
 Fall-through: `SkillRecoveryJournal` → `MoodleFramework` → `SomewhatTraitsCore`

@@ -518,6 +518,23 @@ A profile is a **server-side** decision that the client inherits.
    mind if a future change to `harness.install` needs re-proving — the regression subject has to
    be a mod whose folder differs from its id by more than case.
 
+   **Cross-reference, 2026-09-10 — slice 10 ran `simpleStatus` and the second half is still
+   `C`.** Run **`td2-20260910-231655`** ([teardown](../mods-survey/teardowns/simplestatus.md))
+   recorded the listings as run metadata: `<run>/server/mods/` = `["PZTestKit",
+   "simpleStatus"]`, `<run>/clients/admin/mods/` the same plus the two vanilla `*.txt` files,
+   `mod_info_at_id true` (M, `folder_check`) — the declared-id placement again, on a
+   case-only subject, which is the half that was already **M**. It is **not** an answer to the
+   second half, and one premise of the paragraph above needs correcting while the answer stands:
+   a `[[mods]]` entry does **not** reach `mods.install`'s name-keeping fallback. Both profile
+   branches — bare `id` (`testing/pzt/profile.py:190-196`) and `id` + `workshop_id` — return a
+   **non-empty** `src`, `load()` files it under `sources[mod_id]` (`:267-274`), and
+   `harness.install` takes the sources branch, `<mods_dir>/<mod_id>`
+   (`testing/pzt/harness.py:27-32`). The fallback is reachable only on the plain,
+   non-`--profile` path, where `mod_sources` is `None` (`testing/pzt/session.py:104`,
+   `testing/pzt/mods.py:71-82`), so producing the counterfactual would need the mod in the
+   **golden fixture's own `Mods=`** — a fixture re-provision, shared state, and not something a
+   teardown pass should touch. **Recorded as out of reach from a profile, not as unrun.**
+
 ## Sources
 
 - Code (by symbol, because the line numbers move): `testing/pzt/profile.py` (schema, resolution,

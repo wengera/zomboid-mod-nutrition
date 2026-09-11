@@ -47,6 +47,7 @@ correct it.
 | `exp08-20260910-152944` | `witness-probe.json` | `testing/experiments/s08_witness.py` (**at `ba19649`** — the driver has since been hardened without a re-run; see the block's skew note) | slice 08 (`.superpowers/sdd/08-nutrition-mod-catalog/task-4-report.md`; the `M` behind `witness.fields` / `witness.moddata` — every claim slices 09–11 make about reading an unnamed getter or modData key on either side, and the harness-wide `{}`-for-an-empty-list shape. `docs/mods-survey/nutrition-mods.md` and [`docs/testing/README.md`](../../docs/testing/README.md) to follow) |
 | `td1-20260910-192457` | `teardown-longtermpreservation4220.json` | `testing/experiments/td1_longtermpreservation4220.py` (**at `e3afaa0`** — four minor driver edits landed after the run without a re-run; see the block's skew note) | slice 09 pass 1: [`docs/mods-survey/teardowns/longtermpreservation4220.md`](../../docs/mods-survey/teardowns/longtermpreservation4220.md) (every `M` row of its § MP handling), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) § The other direction — server → client and FILTER 1, [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 6 (the folder→id rename, closed on `folder_check`) |
 | `td1b-20260910-202029` | `teardown-longtermpreservation4220-followup.json` | `testing/experiments/td1b_longtermpreservation4220.py` | slice 09 pass 1, same three docs — the five follow-up answers: the display-name reads on both sides plus a **vanilla control**, the second thirst hop, the vanilla item-modData baseline, and the two null controls (`chef` unset, `lastCookMinute` after the cook) |
+| `td2-20260910-231655` | `teardown-simplestatus.json` | `testing/experiments/td2_simplestatus.py` | slice 10 pass 2: [`docs/mods-survey/teardowns/simplestatus.md`](../../docs/mods-survey/teardowns/simplestatus.md) (every `M` row of its § MP handling), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) § Measured MP sync facts (the modData-transmit wipe → FILTER 10, the `updateWeight` flag half, the **contested** client-copy row, the vanilla display-name control) and its closed cadence question, [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 6 (metadata only — it does **not** answer the second half). **The first artifact written under the widened float rendering** (`291f977`) |
 
 ## Script/artifact skew
 
@@ -158,6 +159,12 @@ round commissioned, and it is **skew-free**: driver and artifact landed in one c
 on harness Lua at `903ccaa`, clean in the working tree, which the file records for itself
 (`commit`, `harness_lua_commit`, `harness_lua_dirty false`, `doctor_clean true`). Both blocks are
 at the end of this file.
+
+The twentieth, **`td2-20260910-231655`**, is slice 10's teardown session and is **skew-free** the
+same way — driver and artifact in one commit (`7453580`) on harness Lua at `291f977`, clean, all
+four facts recorded in the file itself. It is nevertheless the artifact the next paragraph is
+about: it is the first one written on the far side of the rendering change, and no artifact
+listed above it can be diffed against it number-for-number.
 
 One further disclosure, unchanged by the wave and about the harness mod rather than the CLI: a concurrent slice-06 fix round had
 `PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
@@ -1005,7 +1012,7 @@ after it, and it was not re-run; every number below is the file's own.
 
 | Key | Value in the file | Why not |
 |---|---|---|
-| `snapshots[].{server,client}.census_player.beyondVanilla` | all four/five vanilla fitness keys (`fitnessMod`, `fitnessUpTimer`, `strengthMod`, `strengthUpTimer`, and `hotbar` on the client) | **A driver defect, fixed after the run (`4239c5d`).** The exclusion set `VANILLA_ITEM_KEYS = {customName}` was applied to the **player** scope too, so every vanilla player key came back flagged as a finding. The census itself (`keys`, `keyCount`) is correct and is what to quote; `beyondVanilla` on the **player** rows is noise. The **item** rows' `beyondVanilla` (`Tooltip`) is right. |
+| `snapshots[].{server,client}.census_player.beyondVanilla` | all four/five vanilla fitness keys (`fitnessMod`, `fitnessUpTimer`, `strengthMod`, `strengthUpTimer`, and `hotbar` on the client) | **A driver defect, fixed after the run (`4239c5d`).** The exclusion set `VANILLA_ITEM_KEYS = {customName}` was applied to the **player** scope too, so every vanilla player key came back flagged as a finding. The census itself (`keys`, `keyCount`) is correct and is what to quote; `beyondVanilla` on the **player** rows is noise. The **item** rows' `beyondVanilla` (`Tooltip`) is right. **Dated note, 2026-09-10 (slice 10):** the player counts here — server 4 / client 5 — are a *late-session* reading. `td2-20260910-231655` took the same census six times and found the server's player modData **empty at join**, gaining the four vanilla fitness keys 22–33 s after `session_ready`; at join the pair is server 0 / client 5. |
 | `who_ran_it.reading` | "…fired the hook between the action and this call" | True as a *timing* statement and misleading as a causal one. The `lastCookMinute -1` step is measured **not** to be a precondition: the cook block had already been entered twice this run, 1.33–1.67 game minutes apart, and on `td1b-20260910-202029` the same transition fired **907 ms before** that write reached the server. Cite `before_cooked` for outcome (c); never cite this run as evidence that the flip unblocked anything. |
 | `rcon_additem` | `""` | The RCON `additem` answered with an empty body. It says nothing about the spawn; `timeline`'s `additem ok=True` and the client resolving the item id 3 s later are what say it worked. The driver records the boolean as `rcon_additem_ok` only from `4239c5d` on, which is after this run. |
 | `notes` | `[]` | Correct here, but **not** reusable as a test. `notes` was both the dormant re-ask branch's sink and, from `4239c5d`, the home of a standing `KEYS_NOTE` — so on later artifacts an empty `notes` is not the "nothing went wrong" signal. On this file it is genuinely empty: no re-ask fired. |
@@ -1058,3 +1065,71 @@ the first artifact anywhere carrying `lastCookMinute` and an `item.set` ack's `g
 | `steps[set_lastCookMinute]` | the write is still sent | Kept from the `td1` sequence and, on this run, sent **after** the transition — a step the driver no longer needs. A future driver testing the *gate* must send it **before** the `cookingTime` pin; as recorded here it proves the flip is unnecessary and nothing else. |
 | every float | rounded to six decimals | Same instrument limit as the block above: the bus quantises, so nothing in this file supports a bit-for-bit claim. `getActualWeight` 0 vs 0.35 and `getThirstChange` 0.1 vs 0.05 are whole-value differences, far above it. |
 | everything measured here, as a population | — | **`n = 1` per question, `n = 2` for the item pair.** One session, one fixture, one mod item, one vanilla control. The five answers are each a single reading; three of them (the display-name pair, the thirst hop, the XP null control) are second readings of something `td1` saw, which is exactly why they are worth more than their count. |
+
+**`td2-20260910-231655/teardown-simplestatus.json`** — produced by
+`testing/experiments/td2_simplestatus.py` at commit `7453580` (167.8 s wall, no `error` key,
+`server_error_count 0`, `client_lua_error false`, `client_quit rc=0`; 105 267 bytes, sha256
+`a91b19eecd7c676bf955f3867b50d4f15f4bfbc6cb4275561808745de7796298`). Slice 10's teardown
+session, and the **read** side of the pair: a pure client-UI mod on a real dedicated server with
+a real client, comparing the five server-owned nutrition numbers the mod draws on **both** sides
+at six snapshots. **Skew-free**: driver and artifact landed in one commit on harness Lua at
+`291f977`, clean in the working tree, which the file records for itself (`commit`,
+`harness_lua_commit`, `harness_lua_dirty false`, `doctor_clean true`). **It is the first
+artifact written under the widened float rendering** — see § Script/artifact skew, "a skew of a
+third kind": every float here is `tostring(v)` (`Double.toString`, an exact round trip) rather
+than `%.6f`, verified on this file's own bytes at 1 292 numbers scanned / 0 non-round-tripping,
+and that is why its weight rows can carry a bit-level claim when no earlier artifact's can.
+
+- **Provenance — the profile.** `testing/profiles/teardown-simplestatus.toml`:
+  `fixture = "default"`, `[[mods]] id = "PZTestKit"` then `[[mods]] id = "simpleStatus",
+  workshop_id = "2867431511"`, **no `[sandbox]` block**, and **one** `[[verify]]` probe — client
+  `text.get IGUI_SS_BARTITLE_HAPPY`, expecting `"Happiness"`. The profile was committed at
+  `a42c8b4` with `verify = []` (tier (b): no tier-(a) probe existed **on the shipped bus**); the
+  `text.get` reader and the row both landed in `291f977`, moving the tier to **(a)**. Its
+  acceptance run is named in `acceptance_run`: **`run-20260910-230752`** (`RESULT: PASS`, 95 s)
+  — that run's `report.json` is *not* committed here, and the session re-asked the same probe
+  itself, so cite `verify[0]` from this file and treat the acceptance run id as provenance.
+- **Provenance — the mod.** Workshop item `2867431511`, folder `SimpleStatus`, declared id
+  `simpleStatus` (a **case-only** drift), live version folder `42.16/` of four (`42.16`,
+  `42.15`, `42.14`, `42`) beside an empty `common/` and a root-level B41 `media/`; no `author=`
+  in any `mod.info`, no `require=`, no sandbox options, **no `media/scripts/` anywhere**;
+  1 132 005 B, every file stamped 2026-08-12 00:02. The workshop tree is read-only to the
+  harness.
+- **How to read the cross-side rows — they are TIMING readings, not equality tests.** The
+  server's nutrition store decays continuously while the client's copy steps only on the 1 Hz
+  `PlayerStatsPacket`, and the two sides are read ~1–3 s apart, so `grades[]` grades each
+  snapshot against a band computed from **that snapshot's own signed read skew**
+  (`delta_min` / `delta_max`, client half read first) and records `gap_client_minus_server`,
+  `band`, `in_band` and `residual` per field. **Never quote a gap without its snapshot's skew**;
+  and `in_band` is the verdict — "equal" is not what a healthy mirror looks like here. Weight's
+  band is **negative** and is built from a per-snapshot rate (`weight_model.arm` / `mult` /
+  `ratio`), widened by one float32 ulp.
+- **`graded` is not `in_band`.** Two of the six snapshots (`t0`, `t2+0s`) sit inside a write's
+  push window and are **ungraded by rule** (`tolerance.settle_rule`, 1.5 s) — they are arrival
+  readings, and `arrivals[]` is where the latency actually lives (0.766 s / 0.765 s). Both fell
+  inside their bands anyway, which is a bonus, not the grade. `summary.graded_snapshots` names
+  the four that were graded.
+- **The wipe is the phase-2 headline** (`wipe_reading`): a key planted on the **server** only
+  vanished after one client `transmitModData()`, while the client's key and `hotbar` arrived and
+  `server_census_equals_client` went `true`. `baseline_difference_set` is **empty**, which is
+  why the planted key was needed at all — without it the run would have proved nothing in that
+  direction.
+- **The appendix is two PASS-1 follow-ups, not simpleStatus findings.** `appendix.A1` is the
+  vanilla display-name control (`Base.FruitSaladClay` vs `Base.Steak`, both sides);
+  `appendix.A2` is the client-copy tick check on a server-pinned `Base.Steak`. Cite them against
+  [`docs/mods-survey/teardowns/longtermpreservation4220.md`](../../docs/mods-survey/teardowns/longtermpreservation4220.md),
+  never against simpleStatus, which owns no item and reads no item field.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1`.** One session, build 42.20.4, fixture `default`, one mod, one character, one machine. Every gap landed **inside** its band, including the two ungraded snapshots, so the falsifier was never approached: the rule is validated as *consistent* with a 1 Hz push, not as *tight*. The weight arm was exercised on the **gain** side only (the loss arm and its opposite-signed band are untested), the ×2 arm at carbs/lipids > 400 was never entered (this run used carbs 800, the ×3 arm), and `isDead` / `isGodMod` were `false` throughout, so neither `Nutrition.update` gate was seen in its blocking state. |
+| `grades[].flags*`, as an answer to body-stats open question 10 | flags agree on both sides at all six snapshots | Both sides' `traitList` came back **empty** (`grades[].traits`), so the reading is "**no disagreement on a character with no weight-band traits**". The flag prediction depends on both sides computing the same `gainThreshold`, which depends on `hasTrait(WEIGHT_GAIN)` / `hasTrait(WEIGHT_LOSS)` agreeing — untested here, and that is exactly open question 10. |
+| `appendix.A2.container`, full strings | `ItemContainer:[type:none, parent:IsoPlayer{ Name:null, ID:5 }]` (client) against `ID:1` (server) | **Presence and within-side stability only.** `ItemContainer.toString() @0-@16 L3513` is `getType() + String.valueOf(getParent())` and the parent's `IsoObject.toString()` ends at `@42 L5982` in a per-JVM identity hash, so the two sides' strings differ **by construction**. Comparing them across sides reads as a desync and is not one; the leading type token is the comparable part. |
+| `appendix.A1`, as an answer to LTP's B41-layout hypothesis | hypothesis "no translation entry" confirmed inside vanilla | It separates "no `ItemName.json` entry" from a mod-specific failure and no further: whether 42.20.4 ever loads a **B41-layout `ItemName_EN.txt`** stays open, because separating it needs an `ItemName.json` added to a mod tree — a write under the read-only workshop folder. `n = 1` for the absent-name case. |
+| `moddata_keys` | the three probes joined by ` / ` for the reader | A **display** string, not a bus token — the three probes were sent separately, and `notes[0]` says so. The `global:`-scoped one is **non-discriminating in both directions** and is metadata, not a control: `ModData.getOrCreate` creates the table for the census itself, and the mod's retired server half only ever created it empty. |
+| `folder_check` | `server_mods ["PZTestKit", "simpleStatus"]` | Run metadata, **not** an answer to the folder→id rename question: on NTFS `simpleStatus` and `SimpleStatus` are the same directory, and no profile can reach `mods.install`'s name-keeping branch at all. [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 6 stays "first half M, second half C". |
+| `empirical_slope.pairs[0..2]` | 0.307242 / 0.235916 / 0.311225 kcal/real-s | The three **short** windows (6–11 s) scatter ±20 %, because ~6 s at 0.25 kcal/s is ~1.5 kcal against a quantised float32 store. Quote `empirical_slope.longest` (38.947 s, **0.250296**) against the derived 0.2560552 — ratio 0.9775 — which is the reading the bands were justified with. |
+| `snapshots[].{client,server}.census_player`, quoted as a standing baseline | server 4 / client 5 | True only **after ~30 s of session**. The server's copy is **empty at join** (`keyCount 0` at 79.194 / 91.074 / 97.411 s, then 4 at 108.773 s): the four vanilla fitness/strength keys are written server-side lazily. Anything comparing censuses at join sees **server 0 / client 5** — which also corrects the pass-1 player-scope baseline recorded on `td1-20260910-192457`. |
+| `float_format`, or any float here compared against an older artifact's | `tostring(v)` | This file renders non-integral numbers exactly; **every artifact before `291f977` renders them at six decimals**. A diff across that boundary shows a rendering change, never a measurement one — and the `±Inf → null` behaviour the same commit added is **C (inferred), not measured**. |

@@ -4,7 +4,10 @@
 MP sync facts re-checked and the nutrition row corrected 2026-09-10 (slice 01);
 slice-03 corrections 2026-09-10; the **server→client** sync table, the FILTER 1
 addition and the first closed open question added 2026-09-10 (slice 09, the
-LongTermPreservation4220 teardown).
+LongTermPreservation4220 teardown); the modData-transmit wipe (FILTER 10), the
+`updateWeight` flag half, the vanilla display-name control, the **contested**
+client-copy row and the closed cadence question added 2026-09-10 (slice 10, the
+simpleStatus teardown).
 
 Derived from the 230-mod inventory
 ([survey](../mods-survey/approved-modlist.md)) + line-level reads of
@@ -114,6 +117,21 @@ on; treat divergence as a decision point, not a free choice.**
    wire — check `setData`'s getter, not the field name. **Canonical graded
    row:** § Measured MP sync facts → *The other direction — server → client*,
    the `thirstChange` row; this entry is a copy and that row owns the numbers.
+10. **Keeping server-authoritative state in player modData on a server that also runs a
+    client-side transmitter** (measured, slice 10, run `td2-20260910-231655`). A client
+    `player:transmitModData()` sends the **whole** table and the receiver **wipes before it
+    rawsets** (`KahluaTableImpl.load @0-@6 L332-L333`), so the server's copy of that player's
+    modData becomes *exactly* the client's: a key planted on the server only vanished on the
+    first transmit, while the client's keys arrived. simpleStatus fires that transmit from
+    **seven** UI-input handlers — a bar drag, a menu toggle, a font change
+    (`ISSSBar.lua:274,282,290,297,307,476,540` → `:35`) — none of which knows anything about
+    your keys. **Rule: player modData is a client-writable channel in practice. Either keep
+    server-authoritative per-player state out of it (server-side table + `sendServerCommand`, or
+    global modData), or guarantee the client's copy is complete before any client transmits.**
+    The mod that loses the data is never the mod that called `transmitModData`, which is what
+    makes this a FILTER rather than a note: our own state has to survive *someone else's*
+    transmit. Full reading:
+    [teardown](../mods-survey/teardowns/simplestatus.md) § MP handling.
 
 ## Measured MP sync facts (42.20.4, spike S6 — [testing/spikes.md](../testing/spikes.md))
 
@@ -122,12 +140,12 @@ they sharpen KEEP 1–2 and FILTER 1.
 
 | Change made on the client | Reaches the server? | Ev |
 |---|---|---|
-| `player:getModData().k = v` | **no** — until `player:transmitModData()`, then yes | M (spike S6) |
+| `player:getModData().k = v` | **no** — until `player:transmitModData()`, then yes. **And the transmit is a whole-table WIPE AND REPLACE, measured** (2026-09-10, run `td2-20260910-231655`): a key planted on the **server** only (`pzt_ss_server`) was **gone** from the server's census after one client `transmitModData()`, while the client's own key and an unrelated `hotbar` arrived — the server's key set became *exactly* the client's. Mechanism (C, jar): `ObjectModDataPacket.write @8-@52 L42-L44` serialises the whole table and `KahluaTableImpl.load @0-@6 L332-L333` **wipes before it rawsets**; an empty sender's table wipes the receiver outright (`parse @126-@139 L76-L77`), and `transmitModData` returns silently if the player's square is null (`IsoObject.transmitModData @0-@7 L4850-L4851`). So a client transmit destroys any player-modData key the server holds and that client's copy lacks — see FILTER 10 | M (spike S6) for the arrival; **M** (run `td2-20260910-231655`, `wipe_reading`) for the wipe |
 | `setCondition` / `setConditionMax` / `getModData()` on an inventory item, then `sendItemStats(item)` | **never** — `sendItemStats` is `GameServer.sendItemStats` (server → owning client, packet `ItemStats`); on a client it is a silent no-op. There is no client→server "push my item fields" API, and waiting 60 s changes nothing | M (spike S6) |
 | `inventory:AddItem("Base.X")` client-side | **never** — the server's copy of the player's inventory (it does hold one: a server-side `additem` shows up on both sides with one id) never gains the item | M (spike S6) |
 | nutrition (`getNutrition()` calories/weight/macros) | **never** — and it is overwritten. `Nutrition` is **server-authoritative**: the eat itself completes on the server, which pushes the whole object at eat time (`EatFoodPacket`) and once a second (`PlayerStatsPacket`). A client `setCalories(3000)` never reached the server and was back to the server's value inside 3 s; a server-side write reached the client inside 3 s. The 0.2 kcal agreement S6 measured is mirror lag, not client authority | M (run `exp01-20260910-000351`) |
 | `getStats():set(CharacterStat.HUNGER / .THIRST, v)` client-side | **never** — same shape as nutrition: a client write to 0.9 was gone within 3 s while a server-side write to 0.4 reached the client. Re-measured with a tighter bound: a client write of 0.9 against a server pinned to 0.3 read back 0.9 at t = 0.51 s and **0.3004 at t = 1.42 s** — the revert lands inside 1.5 s, consistent with the 1 Hz push | M (runs `exp01-20260910-003929`, `exp03-20260910-045523`) |
-| `getNutrition():setWeight(v)` client-side | **never — and the client cannot derive weight either.** `Nutrition.updateWeight` runs on the client but a `GameClient.client` skip (`@317–@320 L198`) sits before `setWeight` and before `applyTraitFromWeight`, so the client computes a weight delta, discards it, and **never applies the weight band traits**. A client `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the server's 80 within 3 s with `Obese` still false. Consequence for a mod (**inference, not measured**): the band traits are not in `PlayerStatsPacket`, and whether any *other* packet syncs `CharacterTraits` was not traced (open question 10 in [../vanilla/body-stats.md](../vanilla/body-stats.md)) — so evaluate anything keyed on Obese/Overweight/Underweight/Emaciated server-side, or feed it an explicitly transmitted value, as the safe default rather than a proven necessity | M (run `exp03-20260910-045523`) for the client write/discard; the consequence is an **inference under C** — the `GameClient.client` skip and `PlayerStatsPacket`'s field list are code-read, the "so evaluate it server-side" step is our reasoning from them, not a separate measurement; mechanism and citations in [../vanilla/body-stats.md](../vanilla/body-stats.md) § MP behaviour |
+| `getNutrition():setWeight(v)` client-side | **never — and the client cannot derive weight either.** `Nutrition.updateWeight` runs on the client but a `GameClient.client` skip (`@317–@320 L198`) sits before `setWeight` and before `applyTraitFromWeight`, so the client computes a weight delta, discards it, and **never applies the weight band traits**. A client `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the server's 80 within 3 s with `Obese` still false. Consequence for a mod (**inference, not measured**): the band traits are not in `PlayerStatsPacket`, and whether any *other* packet syncs `CharacterTraits` was not traced (open question 10 in [../vanilla/body-stats.md](../vanilla/body-stats.md)) — so evaluate anything keyed on Obese/Overweight/Underweight/Emaciated server-side, or feed it an explicitly transmitted value, as the safe default rather than a proven necessity. **Slice 10 measured the half of `updateWeight` that runs BEFORE that skip** (2026-09-10, run `td2-20260910-231655`): the three direction flags `isIncWeight` / `isIncWeightLot` / `isDecWeight` are set at `@129-@131 L167`, `@186-@188 L178`, `@222-@224 L181` and `@260-@262 L186` — all of them ahead of the `@317-@320 L198` skip — so a client **does** compute them, and they agreed with the server's on **both sides at all six snapshots**, matching the arm predicted from that snapshot's own macros. A client can therefore derive a weight *direction* it cannot derive a weight. Two caveats: both sides' trait lists were **empty**, so this is "no disagreement on a character with no band traits", not an answer to open question 10; and `setIncWeightLot(true)` fires on the ×2 arm as well as the ×3 (`updateWeight @194-@226 L179-L181`), i.e. from **carbs or lipids > 400**, not 700 — correct the threshold wherever 700 is quoted alone | M (run `exp03-20260910-045523`) for the client write/discard; **M** (run `td2-20260910-231655`, `grades[].flags`) for the flags agreeing on both sides; the 400 threshold is **C** (jar); the consequence is an **inference under C** — the `GameClient.client` skip and `PlayerStatsPacket`'s field list are code-read, the "so evaluate it server-side" step is our reasoning from them, not a separate measurement; mechanism and citations in [../vanilla/body-stats.md](../vanilla/body-stats.md) § MP behaviour |
 
 ### The other direction — server → client, on one item (slice 09)
 
@@ -143,9 +161,9 @@ within 1e-6, read on both sides through the same witness command.
 | `setCalories` / `setProteins` / `setLipids` / `setCarbohydrates` / `setHungChange` | **yes, intact** — all five are in `ItemStatsPacket`, `hungChange` as the **raw** field, so each side ladders it once and both read the same `getHungerChange`. **Four** of the five are measured intact (calories 300→210, proteins 50→35, lipids 12→8.4, `hungChange` −0.6→−0.42); `getCarbohydrates` went 0 → 0 (×0.70 of zero), which carries no information, so *carbohydrates'* packet membership is **C**, read off `setData`, not measured | M (run `td1-20260910-192457`) for four; **C** for `carbohydrates` |
 | `setOffAge` / `setOffAgeMax` / `setIsCookable` / `setCustomWeight` | **never** — none is among the packet's 43 fields. The client kept `offAge 53` against the server's 1e9 and `isCookable true` against `false`, on the **two post-cook snapshots 11.1 s apart** (the pre-cook baseline is not desynced at all), and nothing later repairs it | M (same run) |
 | a cooked food's `thirstChange` | **yes, but halved.** `ItemStatsPacket.setData` sends `Food.getThirstChange()` — the *cooked ladder* getter — while `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field, so the receiver ladders it a second time: 0.2 → 0.1 on the wire → 0.05 on read. A **vanilla** defect, surfaced by any mod that cooks anything in MP. It is **one halving per server→client hop and it converges** (a second push left the client at 0.05 with the server unchanged at 0.1) — compounding would need a client→server item hop, which the table above records as a silent no-op | M (runs `td1-20260910-192457`, `td1b-20260910-202029`) |
-| `setActualWeight` | **the field travels** (`setData` fills it from `getActualWeightUnmodded()`), but read back the two sides disagreed **0 vs 0.35**. The display-name guard alone does not explain it: `getActualWeightUnmodded` returns 0 whenever `getDisplayName().equals(getFullType())`, and that was true on **both** sides for that mod item (false for a vanilla control, `Base.Steak`, 0.3 everywhere) — a symmetric guard cannot produce an asymmetric reading. What splits the sides is `isCustomWeight` **choosing an arm**: the server, where the mod had just set it `true`, goes `Food.getActualWeight @288 L910` → the guarded `InventoryItem` route → **0**; the client, still `false`, goes `@215-@287 L902-L908` → script weight × hunger fraction → **0.35**. Check a getter's guards *and* which arm your own write moves it onto before trusting a synced field | **M** for the two values (run `td1b-20260910-202029`); **C** for the arms (jar, `Food.getActualWeight`) |
+| `setActualWeight` | **the field travels** (`setData` fills it from `getActualWeightUnmodded()`), but read back the two sides disagreed **0 vs 0.35**. The display-name guard alone does not explain it: `getActualWeightUnmodded` returns 0 whenever `getDisplayName().equals(getFullType())`, and that was true on **both** sides for that mod item (false for a vanilla control, `Base.Steak`, 0.3 everywhere) — a symmetric guard cannot produce an asymmetric reading. What splits the sides is `isCustomWeight` **choosing an arm**: the server, where the mod had just set it `true`, goes `Food.getActualWeight @288 L910` → the guarded `InventoryItem` route → **0**; the client, still `false`, goes `@215-@287 L902-L908` → script weight × hunger fraction → **0.35**. Check a getter's guards *and* which arm your own write moves it onto before trusting a synced field. **The guard's own trigger is now measured inside vanilla** (2026-09-10, run `td2-20260910-231655`, appendix A1, a pass-1 follow-up): `Base.FruitSaladClay` — a vanilla food **absent** from `media/lua/shared/Translate/EN/ItemName.json` — reads `getDisplayName() == getFullType()` and `getActualWeightUnmodded() == 0` on **both** sides, while `Base.Steak` (present at `ItemName.json:4218`) reads `Steak` and keeps 0.3 on both. So "no name in the translation table" is sufficient on its own; no mod-specific explanation is needed for the mod item, and no sync explanation survives either (both sides agree) | **M** for the two values (run `td1b-20260910-202029`); **M** for the vanilla display-name control (run `td2-20260910-231655`, `appendix.A1`); **C** for the arms (jar, `Food.getActualWeight`) |
 | the aging fields — `age`, `offAge`, `offAgeMax` | **never** — `age` was measured not to cross in slice 02, and slice 09 moves `offAge`/`offAgeMax` from packet-read to measured. `freezingTime`, `lastAged` and `rotten` are absent from the packet too but have **not** been measured, so they stay **C** | M (runs `exp02-20260910-030433`, `td1-20260910-192457`); `freezingTime` / `lastAged` / `rotten` **C** |
-| anything at all, on a client copy that is not ticking | **the push lands, the simulation does not.** The client's copy of a server-spawned item held `heat` and `cookingTime` frozen across 11.1 s while the server's ran two or three ticks — so a client-side reader sees the last pushed value, not a live one. Mechanism open (the update path carries no side guard) | M on the freeze (run `td1-20260910-192457`); the cause is **C** and unexplained |
+| anything at all, on a client copy that is not ticking | **CONTESTED — two measurements, both real, and the mechanism is a hypothesis.** *Slice 09 (run `td1-20260910-192457`):* the client's copy of a server-spawned `Skittles.CuredPork` held `heat` and `cookingTime` **frozen across 11.1 s** (client 1.84703 while the server fell 1.79561 → 1.39397, same instance `#562521975`) — the push lands, the simulation does not. *Slice 10 (2026-09-10, run `td2-20260910-231655`, appendix A2, a **pass-1 follow-up** carried on a different session):* a server-pinned vanilla `Base.Steak` **did move** on the client — `heat` 2 → 1.697029948234558 and `cookingTime` 0 → 0.1182333305478096 over 10.5 s — **bit-identical to the server across a 0.5 s read offset** during which an independently ticking copy would have decayed further. **Hypothesis that reconciles them (C, jar), with the probe that would settle it:** `Food.update` has no client guard and `updateTemperature` runs unconditionally, so a client copy *can* tick; and the push is `Food.update @86-@103 L377-L379` — `if (GameTime.getMinutes() != lastCookMinute) { if (GameServer.server != null) GameServer.sendItemStats(this); … }`, once per **game minute** (≈3.75 real s at `DayLength 4`) **while the cooking branch is live**, gated at `@49-@71 L372-L373` on `isCookable && !isFrozen() && heat > 1.6f`. The Steak never left that gate (2.0 → 1.697) so pushes kept the sides identical; the CuredPork **crossed** it, and the pushes stopped. The discriminator is the **1.6 gate**, and the probe is one pin below it (`heat 1.2`, two reads 10 s apart on both sides) — carried as slice 11's session item. Until then: a client-side reader of a live item field may be reading a push, not a simulation, and must not assume either | **M** on both readings (runs `td1-20260910-192457` and `td2-20260910-231655`, `appendix.A2`); the reconciling mechanism is **C** and **unresolved** |
 
 Two timing facts from the same sessions, for anyone designing a probe or a
 heartbeat around item state: **the dedicated server's inventory-item tick runs
@@ -196,8 +214,24 @@ Consequences for the nutrition mod:
   four macros and `hungChange` arrive, and `offAge`, `offAgeMax`, `isCookable`
   and `isCustomWeight` never do, so the client's copy of a cured meat still
   believes it spoils in 53 days.
-- What cadence does simpleStatus poll nutrition at, and does it read
-  getNutrition() client-side only?
+- ~~What cadence does simpleStatus poll nutrition at, and does it read
+  getNutrition() client-side only?~~ **Answered, slice 10
+  ([teardown](../mods-survey/teardowns/simplestatus.md), run
+  `td2-20260910-231655`): per UI frame, uncached, and client-side only.**
+  `SSBar:prerender` calls `prepareBarInfo()` unconditionally
+  (`ISSSBar.lua:464`), which reads `bar.valueFn(self.player)` at `:171` and
+  then re-enters it up to three more times per bar through
+  `percentFn` / `textFn` / `colorFn` at `:236-238` — so a single frame issues
+  **up to four `player:getNutrition()` round trips per visible nutrition bar**,
+  with no cache anywhere (the file's one timer, `:453-457`, throttles
+  `adjustWindowSize`, never the value read). The mod is 7 client-only Lua
+  files: it registers **nothing** server-side, so all 12 nutrition reads are
+  client-side by construction (C, 2026-09-10). **The source it polls changes
+  once a second** — `PlayerStatsPacket`, measured here at 0.766 s / 0.765 s
+  arrival — so ~59 of every 60 reads return an unchanged value. **Rule for our
+  own UI: cache at the push cadence, not the frame cadence.** What the mod
+  draws is nonetheless correct: every one of its five macros mirrored inside
+  its signed per-snapshot band on all six snapshots.
 - MoodleFramework API surface + MP behavior — adoption decision.
 - How the Girth stack namespaces its 228 command sites (slice-08 catalog,
   2026-09-10 — the "110+" this list used to carry predates that sweep;
@@ -234,4 +268,17 @@ Consequences for the nutrition mod:
   jar citations in
   [../mods-survey/teardowns/longtermpreservation4220.md](../mods-survey/teardowns/longtermpreservation4220.md)
   § MP handling. Provenance and *do not cite* notes for both runs:
+  [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).
+- **The client→server modData wipe, the `updateWeight` flag half, the contested
+  client-copy row and the vanilla display-name control** (slice 10, 2026-09-10):
+  run `td2-20260910-231655`, committed at
+  [`testing/artifacts/td2-20260910-231655/teardown-simplestatus.json`](../../testing/artifacts/td2-20260910-231655/teardown-simplestatus.json)
+  — keys `wipe_reading`, `phase2[]`, `grades[].flags`, `appendix.A1`,
+  `appendix.A2` — with the field-by-field reading, the signed per-snapshot band
+  and the jar citations in
+  [../mods-survey/teardowns/simplestatus.md](../mods-survey/teardowns/simplestatus.md)
+  § MP handling. **It is the first artifact written under the widened float
+  rendering** (`291f977`, `tostring` rather than `%.6f`), which is why its
+  weight rows support a bit-level claim and no earlier artifact does; the
+  *do not cite* list is in
   [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).
