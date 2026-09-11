@@ -16,8 +16,9 @@ this library carried until 2026-09-11.
    addressable only by the version dir's.
 2. **`Mods=` resolves ids, not paths.** Resolution runs as a whole pass *before* any mod
    loads; a miss prints `required mod "<id>" not found` and the mod is dropped. The 52
-   installed workshop folders whose name differs from their id load normally, and
-   `harness.install`'s rename to `<mods_dir>/<mod id>` is a convenience, not a requirement.
+   installed workshop folders whose name differs from their id (`data/mod-inventory.json`,
+   swept **2026-09-10 17:47**) load normally, and `harness.install`'s rename to
+   `<mods_dir>/<mod id>` is a convenience, not a requirement.
 3. **`common/` and the build's version dir both load, and the version dir wins** a
    same-relative-path collision — one `HashMap.put` over another into `activeFileMap`. A
    version dir that ships only a `mod.info` costs the mod nothing; `common/` still runs.
@@ -55,7 +56,7 @@ one `mod.info` carries the key.
 | `category` | 108 | display only (mod selector filter) | C |
 | `modversion` | 45 | display only. **`modVersion` and `version` are not keys** — 2 folders each, dropped | C |
 | `pack` (+ `type=`) / `tiledef` | 16 / 12 | `addPack` / `addTileDef`; consumed by `loadModPackFiles` / `loadModTileDefs`, which warn `pack file "<f>" needed by <id> not found` | C |
-| `incompatible` | 12 | **display only.** `getIncompatible` is called from exactly one place in the whole jar-plus-Lua tree: `media/lua/client/OptionScreens/ModSelector/ModSelectorModel.lua:120`. A server's `Mods=` ignores it | C |
+| `incompatible` | 12 | **display only.** `getIncompatible` is called from exactly two places in the whole jar-plus-Lua tree, **both mod-selector UI**: `media/lua/client/OptionScreens/ModSelector/ModSelectorModel.lua:120` and `.../ModSelector/ModInfoPanelInteractionParam.lua:58`; no jar class but the declaring `ChooseGameInfo$Mod` so much as names it. A server's `Mods=` ignores it | C |
 | `url` | 5 | display only | C |
 | `loadModBefore` / `loadModAfter` | 1 / 1 | **advisory, client UI only.** `getLoadBefore` / `getLoadAfter` are read only by `ModLoadOrderPanel.lua:52,68,222,258` and `ModOrderListBox.lua:50,60` — they arrange the selector's list. The server loads in literal `Mods=` order | C |
 | `tags`, `pzversion`, `texts`, `supports`, `zoomX/Y/S` | 15 / 10 / 1 / 1 / 1 | **not parsed at all.** No branch tests them | C |
@@ -90,9 +91,11 @@ The measurement is n = 1 probe per boot, one build, the **dedicated-server** pat
 (`Mods=` → `ZomboidFileSystem.loadModAndRequired`); the client's own mod-list call site was
 not exercised. A folder whose **only** `mod.info` is `common/mod.info` is untested as a *probe*
 — though **4** installed mods have that shape (`3388721641/AutoCook`, `3413255058/RemoveAllItems`,
-`3520263838/EN_Newburbs`, `3717099183/WorkingKnowledge`, counted 2026-09-11) and all four load,
-and the jar says why: `versionDir` names a directory that ships no `mod.info`, so the fallback
-fires.
+`3520263838/EN_Newburbs`, `3717099183/WorkingKnowledge`, counted 2026-09-11). Of those,
+**AutoCook has booted** — **M** (`testing/artifacts/td3-20260911-001948/teardown-autocook.json`
+→ `loading_lines`: three `loading AutoCook` lines, server 94 and client 84/167) — and **the
+other three rest on the jar fallback**, **C**: `versionDir` names a directory that ships no
+`mod.info`, so `readModInfoAux` takes `<commonDir>/mod.info`.
 
 **This closes `docs/testing/profiles.md` § Open questions 1.** The lint's model —
 newest version folder first, then `common/` — is **vindicated for this lookup**; the plan's
@@ -123,7 +126,7 @@ The merge rule itself is restated from [`../mods-survey/teardowns/autocook.md`](
 | the loader prints **one line per shadowed file per Lua state**, tail = the lower-cased relative path | server 1 line, client 2, all `mod "TKX_LoaderVersion" overrides media/lua/shared/tkx_loader_which.lua` | M (same file → `phases.L2.reading.overrides_tails`) |
 | a mod that shadows nothing **and ships `common/`** prints no `overrides` line at all | `overrides_any` 1 line on the server and 2 on the client, all from `TKX_LoaderVersion`; `TKX_CommonOnly`, which ships `common/media` and collides with nothing, printed none | M (same file → `greps.overrides_any`) |
 | **a version dir holding only a `mod.info` and no `media/` costs the mod nothing** — the new arm | `loading TKX_CommonOnly` (server 96, client 86/166), `TKX_CommonOnly.version` resolves on both sides off `common/media`, no `required mod … not found` | M (same file → `phases.L3.reading`) |
-| a mod with **no** `common/` prints an `overrides` line with an **empty tail** — one per such mod per Lua state | **three** empty tails per state (server 95/97/100, client 85/87/90 and 169/171/174), one each for `TKX_ZWatermelon`, `TKX_ItemOverride` and `TKX_EatHook`, none of which ships `common/`; `TKX_ItemOverride`'s real `itemname.json` line sits at 98 beside its empty one, and `PZTestKit` — also `common/`-less and loaded first — seeds the `""` key and prints none | M (`testing/artifacts/x124-20260911-035819/platform-order.json` → `greps.script_files`); mechanism **C** (slice 11, run `td3-20260911-001948`: `loadMod L754-L755` / `L769-L770` with `getRelativeFile` returning `""` — reading in [`../mods-survey/teardowns/longtermpreservation4220.md`](../mods-survey/teardowns/longtermpreservation4220.md)) |
+| a mod with **no** `common/` prints an `overrides` line with an **empty tail** — one per such mod per Lua state | **three** empty tails per state (server 95/97/100, client 85/87/90 and 169/171/174), one each for `TKX_ZWatermelon`, `TKX_ItemOverride` and `TKX_EatHook`, none of which ships `common/`; `TKX_ItemOverride`'s real `itemname.json` line sits at 98 beside its empty one, and `PZTestKit` — also `common/`-less and loaded first — seeds the `""` key and prints none | M for one of the three (`testing/artifacts/x124-20260911-035819/platform-order.json` → `greps.script_files`, whose pattern spells the other two mod names with underscores and so misses them); all three read directly from that run's logs, `testing/runs/x124-20260911-035819/server/server-console.txt` and `clients/admin/console.txt`, which `.gitignore:44` keeps out of the repo — so the committed half of this row is the mechanism, **C** (slice 11, run `td3-20260911-001948`: `loadMod L754-L755` / `L769-L770` with `getRelativeFile` returning `""` — reading in [`../mods-survey/teardowns/longtermpreservation4220.md`](../mods-survey/teardowns/longtermpreservation4220.md)) |
 | the wiki's statement of the order — common, then closest versioning folder, overwriting | agrees with the measurement | W ([mod-structure mirror](../../references/wiki-mirrors/mod-structure.md), page version 42.20.0, fetched 2026-09-10) |
 
 **KEEP 10's bound now reads "a version dir that ships colliding files, or none at all."** The
@@ -141,8 +144,10 @@ the client prints twice: the client runs two Lua states and the count is 2 × n.
 produced the counterfactual that slice 09 recorded as out of reach: a folder renamed to
 `TKX_DriftedFolder`, matching neither of its ids, loaded when `Mods=` named the version dir's
 id — **M**, `boots.drift`. The rename is therefore a convenience, and the **52 installed
-workshop folders whose name drifts from their declared id** (the lint's `folder-id` INFO
-counts 51, having no id to compare on the 52nd) load by id in normal play.
+workshop folders whose name drifts from their declared id** (`data/mod-inventory.json`, swept
+**2026-09-10 17:47**; the lint's `folder-id` INFO counts 51, having no id to compare on the
+52nd — the pair falls to 51 and 50 after the 2026-09-11 04:47 workshop change § 7 records)
+load by id in normal play.
 
 **This closes `docs/testing/profiles.md` § Open questions 6, second half.** The one thing the
 boot does *not* license: `folder_check.installed_id_folder_present` was `false` in both boots,
@@ -202,7 +207,10 @@ independent witnesses in one session: `TKX_Nutrient.side` read `"server"` **on t
 (the client-only file had written `"client"` to the same global), `TKX_Nutrient.ticks` read 58
 on the client against 38 on the server, and `TKX_EatHook.wrapped` was `true` client-side —
 **M**, n = 1 session, incidental, mechanism untraced
-(`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M7.mod_globals.client`).
+(`testing/artifacts/x121-20260911-030023/platform-overrides.json` →
+`phases.M7.mod_globals.client` for the two `TKX_Nutrient` globals;
+`phases.M5.globals.client` and `verdicts.M5b.observed.wrapped` for `wrapped`, which is a
+phase-M5 reading and not an M7 one).
 **Rule: guard `server/` files with `isServer()`. A "server" file is not a server-only file.**
 The probe that would trace it: a `server/` file printing `isServer()` / `isClient()` at file
 scope on both sides, read alongside the `LuaManager` load path for the client's two states.
@@ -227,25 +235,35 @@ them from model to engine reading.
 The two rules the plan called models are now split: `mod-info-place` is a reading (bounded to
 the dedicated-server requested-id lookup) and `media` is a reading that says the opposite of
 a failure. `media_root`'s "newest version folder present" stays a model in one respect only —
-it ignores the engine's `≤ build` ceiling, which is invisible on a corpus where nothing ships
-above `42.20.1`.
+it ignores the engine's `≤ build` ceiling, which is invisible on a corpus whose version dirs
+top out at `42.20.1` (`data/mod-inventory.json`, swept **2026-09-10 17:47**).
 
-Sweep, reproduced **2026-09-11**: `84 finding(s): 3 ERROR, 30 WARN, 51 INFO across 230
+Sweep, reproduced **2026-09-11 04:27**: `84 finding(s): 3 ERROR, 30 WARN, 51 INFO across 230
 mod(s)` — 51 `folder-id`, 24 `media`, 6 `mod-info-place`, and the three errors on the two
-known mods. Unchanged from the 2026-09-10 sweep.
+known mods. Unchanged from the 2026-09-10 sweep — and **moved twenty minutes later**: at
+**2026-09-11 04:47** Steam rewrote `3161951724/76chevyKseriesExpanded`'s `42.20/mod.info`,
+fixing the id typo `76chevyKserieseExpanded` → `76chevyKseriesExpanded`, so a sweep after that
+reads `83 finding(s): 3 ERROR, 30 WARN, 50 INFO` and the drifted-folder count is 51, not 52
+(**C**, file mtime + re-sweep, 2026-09-11). Quote a sweep with its stamp: the tree is live.
 
 ### The six experiment mods
 
-All six live under `testing/experiments/`, are `versionMin=42.0.0`, and are test-profile only.
+All six cited here live under `testing/experiments/`, are `versionMin=42.0.0`, and are
+test-profile only.
 
 | Mod | Id(s) | Profile | Session(s) | What it measured | Ev |
 |---|---|---|---|---|---|
-| A | `TKX_ItemOverride` | `x12-overrides`, `x12-order` | 1, 4 | script override shapes, three translation states, the Watermelon collision | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json`) |
-| B | `TKX_EatHook` | `x12-overrides`, `x12-order` | 1, 4 | `OnEat` on both sides, the `ISEatFoodAction.complete()` wrapper, the second Watermelon body | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5a`, `phases.M5b`) |
+| A | `TKX_ItemOverride` | `x12-overrides`, `x12-order`, `x12-order2` | 1, 4, 5 | script override shapes, three translation states, the Watermelon collision | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json`) |
+| B | `TKX_EatHook` | `x12-overrides`, `x12-order`, `x12-order2` | 1, 4, 5 | `OnEat` on both sides, the `ISEatFoodAction.complete()` wrapper, the second Watermelon body | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5a`, `phases.M5b`) |
 | C | `TKX_Nutrient` | `x12-overrides` | 1 | modData routes, and incidentally the `server/`-file finding of § 6 | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M6`, `phases.M7`, `phases.M9`) |
 | D | `TKX_LoaderVersion` (`42.20/`) and `TKX_LoaderCommon` (`common/`) | `x12-loader` | 2, 3 | the merge direction, the `overrides` tails, the folder drift, the requested-id discriminator | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L2_which`; `testing/artifacts/x123-20260911-034426/platform-folder.json` → `boots.drift`, `boots.common_id`) |
 | E | `TKX_CommonOnly` | `x12-loader` | 2, 3 | a version dir holding only a `mod.info` | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `phases.L3.reading`) |
-| F | `TKX_ZWatermelon` | `x12-order` | 4 | a Watermelon body whose id sorts last; gated at tier (c) | M (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O1`) |
+| F | `TKX_ZWatermelon` | `x12-order`, `x12-order2` | 4, 5 | a Watermelon body whose id sorts last; gated at tier (c) | M (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O1`; `testing/artifacts/x125-20260911-042055/platform-order2.json` → `phases.O1`) |
+
+**Session 6 landed as this document was being fixed** — mod G `TKX_PcallProbe`, profile
+`x12-pcall`, run `x126-20260911-045205`, the nil-`pcall` / handler-chain probe of
+[lua-api.md](lua-api.md)'s guard rules. Its citable-claims file is not written yet, so it gets
+no row here and nothing of it is read below.
 
 ## Code map — the `Mods=` chain, re-derived
 
@@ -278,26 +296,13 @@ even its leaf branch delegates to `ChooseGameInfo.readModInfo(file.getParent())`
 
 ## MP behaviour
 
-- **A profile is a server-side decision the client inherits.** The server's `Mods=` is
-  authoritative on join; the client's own mod list is not consulted for what a joined session
-  runs. Both sides are seeded from **one** source map (`profile.resolve_mod` →
-  `sources[mod_id]` → `harness.install`), which is what makes a per-side divergence a harness
-  bug rather than a platform fact.
-- **Everything in § 1–§ 4 was measured on the dedicated-server path.** The client's own
-  mod-list call site (`ChooseGameInfo.getModDetails` reached from the selector rather than
-  from `loadMods`) was never exercised; the chain above is shared, but that is a code reading.
-- **Scripts and translations load per side and never sync.** A value written in an item script
-  is identical on both sides for free (patterns.md KEEP 11, run `td1-20260910-192457`); a
-  translation table is built independently on each side, and the dedicated server's item-name
-  table is effectively empty (§ 5). Anything keyed on a display name is therefore a
-  client-only value.
-- **Lua state count differs by side.** The server runs one Lua state, the client two — visible
-  as the doubled `overrides` and `loading` lines in every client log this slice produced
-  (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L1_loading`, `summary.L2_overrides`). A mod's file-scope side effects run
-  **twice** on a client.
-- **A mod's `server/` tree runs on the client too** (§ 6). In MP this is the single most
-  consequential anatomy fact in this document: a file under `media/lua/server/` is a naming
-  convention, not a deployment boundary.
+| Fact | What it rests on | Ev |
+|---|---|---|
+| **A profile is a server-side decision the client inherits.** The server's `Mods=` is authoritative on join; the client's own mod list is not consulted for what a joined session runs | both sides are seeded from **one** source map (`testing/pzt/profile.py:132` `resolve_mod` → `sources[mod_id]` → `testing/pzt/harness.py:27-32` `install`), which is what makes a per-side divergence a harness bug rather than a platform fact. Not separated in these runs — the harness installs the same map on both sides | C (our harness at the two paths named; the engine half is § Code map steps 1–2, where the requested list is `GameServer.ServerMods`) |
+| **Everything in § 1–§ 4 was measured on the dedicated-server path** | the client's own mod-list call site — `ChooseGameInfo.getModDetails` reached from the selector rather than from `loadMods` — was never exercised; the chain above is shared, but that is a code reading (§ Open questions 1) | C (§ Code map steps 1 and 4: `ZomboidFileSystem.loadMods @0-@79 L957-L969`, `ChooseGameInfo.getModDetails @0-@142 L121-L145`) |
+| **Scripts and translations load per side and never sync.** Anything keyed on a display name is therefore a client-only value | a value written in an item script is identical on both sides for free; a translation table is built independently on each side, and the dedicated server's item-name table is effectively empty (§ 5) | M — the script half from [patterns.md](patterns.md) § Measured MP sync facts KEEP 11, run `td1-20260910-192457`, cited not re-graded; the translation half is § 5's rows (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M4`) |
+| **Lua state count differs by side.** The server runs one Lua state, the client two, so a mod's file-scope side effects run **twice** on a client | the doubled `overrides` and `loading` lines in every client log this slice produced | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L1_loading`, `summary.L2_overrides`) |
+| **A mod's `server/` tree runs on the client too** (§ 6). In MP the single most consequential anatomy fact in this document: a file under `media/lua/server/` is a naming convention, not a deployment boundary | three globals read **on the client** that only the mod's `server/`-tree file writes | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M7.mod_globals.client`, plus `phases.M5.globals.client` for `wrapped`; n = 1 session, incidental, mechanism untraced) |
 
 ## Discrepancies
 
@@ -355,7 +360,7 @@ One line per entry area: what classifies it today, and what would settle the res
 |---|---|---|---|
 | New nutrient fields | **CAN WITH A WORKAROUND** | per-side modData holds without a transmit, and a server→client `transmitModData()` **wipes and replaces** the receiver's table (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M6`, `phases.M9`); FILTER 10 is the rule. Unsettled: the server→client **item**-modData direction — un-run | M |
 | Eat hooks | **CAN** | `OnEat` fires on both sides at fraction 1 (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5a`); `ISEatFoodAction.complete()` runs server-only and a Lua wrapper of it runs **before** `Eat`, installing silently on the client too (`phases.M5b`) | M |
-| The weight formula | **CANNOT** client-side, **CAN** for direction | `Nutrition.updateWeight`'s `GameClient.client` skip sits before `setWeight` (C, re-quoted from [`../vanilla/body-stats.md`](../vanilla/body-stats.md) § MP behaviour, not re-dumped here); the three direction flags are set ahead of it and agreed across sides on both non-trivial arms (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `m8`). `nutrition.set calories −100` is **not clamped** (−102.57 read back) | M |
+| The weight formula | **CANNOT** client-side, **CAN** for direction | `Nutrition.updateWeight`'s `GameClient.client` skip sits before `setWeight` (C, re-quoted from [`../vanilla/body-stats.md`](../vanilla/body-stats.md) § MP behaviour, not re-dumped here); the three direction flags are set ahead of it and agreed across sides on both non-trivial arms (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M8.arms[*].reading` and `summary.M8_flags`). `nutrition.set calories −100` is **not clamped** (−102.5664 read back on the server, −102.10 on the client, same key) | M |
 | Moodles | **UNKNOWN** | MoodleFramework "whole on 42.20.4" is **C** derived from the merge rule — nothing has booted it, and it is the one corpus mod whose `mod.info` chain differs between the lint and the engine (§ Discrepancies 1). Probe: boot it under a profile and read one `MF_Config.lua` global | C |
 | Sync — item stats | **CAN** | the server→client table in [patterns.md](patterns.md) § Measured MP sync facts (runs `td1-20260910-192457`, `td1b-20260910-202029`): 43 fields, `hungChange` faithful, `thirstChange` halved per hop, aging fields absent | M |
 | Sync — player stats | **CANNOT** client-side | `Nutrition` and `CharacterStat` are server-authoritative and pushed at 1 Hz; a client write is gone inside 1.5 s (patterns.md, runs `exp01-20260910-000351`, `exp03-20260910-045523`) | M |
@@ -365,19 +370,19 @@ One line per entry area: what classifies it today, and what would settle the res
 | Translations | **CAN**, client-only, JSON-only | § 5: `ItemName.json` resolves on the client, `_EN.txt` never, a dedicated server resolves no name (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M4`), and `getText` cannot reach the table (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O5`). Gate on a `UI_` / `IGUI_` key | M |
 | The merge rules | **CAN** | version dir wins, `common/` supplies the rest, n = 2 with `td3-20260911-001948`, plus the empty-version-dir arm (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L2_which`, `phases.L3.reading`). Remaining arm: a version dir shipping `media/` that collides with nothing | M |
 
-**The three checks this slice records rather than claims.**
+**The four checks this slice records rather than claims.**
 
 1. **The id-vs-script-path boot** — the reversed-`Mods=` check this slice opened is now
    **closed** by session 5. Across three boots (x121 111, x124 999, x125 999) script bodies
    replay in a **sorted, `Mods=`-independent** order with per-key last-wins, and
    `Mods=`-last-wins, first-in-`Mods=`-wins and alphabetical-first are all falsified — **M**,
-   n = 3 boots over 4 mod bodies
+   n = 2 permutations of the same bodies plus x121's independent kills, over 4 mod bodies
    (`testing/artifacts/x125-20260911-042055/platform-order2.json` → `phases.O1`,
    `verdicts.P20`). The sort key is the **stored script path** (`ScriptManager$38.compare` and
    `ScriptManager.searchFolders`, **C**, read in [item-overrides.md](item-overrides.md), which
-   owns this row). What no boot separates is sort-by-**id** from sort-by-**path**: in every
-   boot the three ids and their script basenames sort identically. The check is a mod whose id
-   sorts last while its script file sorts first. Not run. Note for anyone reading the frozen
+   owns this row). What no boot separates is sort-by-**id** from sort-by-**path** — or from
+   folder name or `mod.info` display name: all four sort identically in every boot. The check
+   is a mod whose id sorts last while its script file sorts first. Not run. For the frozen
    profiles: `testing/profiles/x12-overrides.toml`'s comment that "`Mods=` order is LOAD order,
    and it is load-bearing here" is now known **wrong for script bodies**; `Mods=` order still
    governs the loader's own `loading <id>` lines.
@@ -387,6 +392,11 @@ One line per entry area: what classifies it today, and what would settle the res
    fork, so the collision is live and the runtime half stays **C**.
 3. **The server→client item-modData direction.** Slice 12 measured the player-modData
    directions; item modData across the same hop is untested.
+4. **The nil-`pcall` / handler-chain probe.** Whether a raise from calling a nil global escapes
+   `pcall`, and whether a failed handler stops the handlers behind it on the same event, are
+   **C**-only here and the jar disagrees with the run that prompted them; [lua-api.md](lua-api.md)
+   owns that row. Session 6 (`x126-20260911-045205`, mod `TKX_PcallProbe`, profile `x12-pcall`)
+   ran while this document was being fixed; its claims file is not out, so it is not read here.
 
 ## Sources
 
@@ -401,11 +411,15 @@ One line per entry area: what classifies it today, and what would settle the res
   [`x124-20260911-035819`](../../testing/artifacts/x124-20260911-035819/platform-order.json)
   (script-body order) and
   [`x125-20260911-042055`](../../testing/artifacts/x125-20260911-042055/platform-order2.json)
-  (the ordering discriminator, cited only in § Inputs for the wall map; the rule itself is
-  [item-overrides.md](item-overrides.md)'s row). Earlier runs cited by their owning docs, not
-  re-graded here:
-  `td1-20260910-192457`, `td1b-20260910-202029`, `td2-20260910-231655`,
-  `td3-20260911-001948`, `exp01`–`exp03`, spike S6.
+  (the ordering discriminator, cited in § Inputs for the wall map and for mod F's second boot;
+  the rule itself is [item-overrides.md](item-overrides.md)'s row); and
+  [`td3-20260911-001948`](../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
+  → `loading_lines`, the one `common/`-only corpus mod that has booted (§ 2). **Not committed:**
+  § 3's three empty `overrides` tails are read from `testing/runs/x124-20260911-035819/`'s
+  server and client console logs, which `.gitignore:44` excludes; the artifact holds one of the
+  three. Earlier runs cited by their owning docs, not re-graded here:
+  `td1-20260910-192457`, `td1b-20260910-202029`, `td2-20260910-231655`, `td3`'s merge-rule
+  rows, `exp01`–`exp03`, spike S6.
 - **Jar (C), 42.20.4 `b0bbce05d5`, dumped 2026-09-11:** `zombie/ZomboidFileSystem`
   (`loadMods`, `loadModAndRequired`, `loadModsAux`, `loadMod`, `getModDir`, `setModIdToDir`,
   `getAllModFolders`, `getAllModFoldersAux`, `getModVersionDirName`,

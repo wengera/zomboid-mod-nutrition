@@ -201,7 +201,8 @@ def lint_mod(mod_dir, name=None):
         out.append(Finding(name, WARN, "mod-info-place",
                            "mod.info is %s, not %s (this lint's model: newest version folder "
                            "first; the engine reads the build's version folder then common/ "
-                           "-- measured, run x123b-20260911-034500)"
+                           "-- measured on the dedicated-server Mods= path, "
+                           "run x123b-20260911-034500)"
                            % (chosen, chain[0])))
 
     mod_id = (infos.get(chosen) or {}).get("id", "") if chosen else ""

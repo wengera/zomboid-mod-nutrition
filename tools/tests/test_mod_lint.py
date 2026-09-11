@@ -73,7 +73,12 @@ def test_mod_info_place_warn_separates_the_model_from_the_measured_engine_chain(
     folder newest-first, then `common/`, then the mod root); the engine's is the build's version
     folder then `common/` and nothing else, measured on the `Mods=` path by slice 12's run
     `x123b-20260911-034500` (`docs/modding/anatomy.md` section 2). Neither the old
-    "B42 reads the version folder first" claim nor the old "the order is open" hedge may return."""
+    "B42 reads the version folder first" claim nor the old "the order is open" hedge may return.
+
+    The measurement's BOUND travels with it: that run exercised the dedicated-server `Mods=`
+    path only (`ZomboidFileSystem.loadModAndRequired`), never the client's own mod-list call
+    site, and the detail says so -- the docstring on `info_chain` has carried the bound since
+    the reading landed, and a WARN a packager reads in a console must not drop it."""
     with tempfile.TemporaryDirectory() as d:
         mod = _mod(d, "Common2", {"common/mod.info": "id=Common2\n",
                                   "42/media/lua/shared/x.lua": "print(1)\n"})
@@ -81,6 +86,7 @@ def test_mod_info_place_warn_separates_the_model_from_the_measured_engine_chain(
         assert "B42 reads the version folder first" not in detail, detail
         assert "open question 1" not in detail, detail
         assert "this lint's model" in detail, detail
+        assert "measured on the dedicated-server Mods= path" in detail, detail
         assert "x123b-20260911-034500" in detail, detail
 
 
