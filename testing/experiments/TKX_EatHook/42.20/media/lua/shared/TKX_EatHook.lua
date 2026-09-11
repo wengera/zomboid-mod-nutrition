@@ -19,13 +19,20 @@ end
 TKX_EatHook = { version = 1, calls = 0, completes = 0, order = "", lastSide = "?", lastFraction = -1, lastCalories = -1 }
 
 -- isServer/isClient are globals, not Java members, so they take a plain pcall rather than the
--- member guard. Same shape as the harness's TK.side, resolved per call because a Lua state can
--- load this file before the side is decided.
+-- member guard -- behind the `== nil` pre-check the sibling files use (TKX_Nutrient_Client.lua
+-- on getPlayer, TKX_Nutrient_Server.lua on getOnlinePlayers): in Kahlua a call on a nil is
+-- uncatchable and escapes the pcall (docs/modding/patterns.md:173), so the pcall alone is not a
+-- guard. Same shape as the harness's TK.side, resolved per call because a Lua state can load
+-- this file before the side is decided.
 local function tkxSide()
-    local okS, s = pcall(isServer)
-    if okS and s then return "server" end
-    local okC, c = pcall(isClient)
-    if okC and c then return "client" end
+    if isServer ~= nil then
+        local okS, s = pcall(isServer)
+        if okS and s then return "server" end
+    end
+    if isClient ~= nil then
+        local okC, c = pcall(isClient)
+        if okC and c then return "client" end
+    end
     return "sp"
 end
 
