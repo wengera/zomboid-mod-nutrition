@@ -148,15 +148,16 @@ Three consequences the profile builder is built around:
   source map, which wins over both the harness map and the workshop index
   (`harness.install`). The workshop tree is never written to: the acceptance runs
   left item `3685392864`'s mtime untouched.
-- **The folder is renamed to the id** — **C, not measured.** `harness.install` copies a profile
+- **The folder is renamed to the id** — **M** since slice 09 (run `td1-20260910-192457`;
+  the artifact's `folder_check`, § Open questions #6). `harness.install` copies a profile
   source to `<mods_dir>/<mod id>` while `mods.install` (the workshop fallback) keeps the source
   folder's own name, and the game keys on `mod.info` either way. **52 of the 230 installed folders
   drift** from their declared id; `mod_lint`'s `folder-id` INFO counts **51** of them, having no
   id to compare against on the 52nd (`3782784855/Skill Recovery Journal` declares none anywhere).
-  So this matters for most
-  of the corpus slice 08 picks from — but the acceptance mod's folder **equals** its id
-  (`KeenPerception`), so no run has yet exercised the rename. § Open questions #6 names the check
-  that settles it.
+  So this matters for most of the corpus slice 08 picks from, and the slice-07 acceptance mod
+  could not exercise it because its folder **equals** its id (`KeenPerception`). Slice 09's
+  subject does — folder `LongTermPreservation4220`, id `SKITTLE_LongTermPreservation4220` — and
+  the run's `mods/` listing holds the id and not the folder name.
 - **`WorkshopItems=` stays empty.** `Server.seed` writes `WorkshopItems=";".join(self.workshop_items)`
   from a list no profile fills, beside `Mods=";".join(self.mods)` (`server.Server.seed`) — **C**,
   which is the grade to cite: the acceptance run's own `Server/pzt.ini` (`Mods=PZTestKit;KeenPerception`
@@ -455,27 +456,47 @@ A profile is a **server-side** decision that the client inherits.
 5. **`[[verify]]` matches `expect` as a substring of the dumped JSON**, which is deliberately
    forgiving (it matches at any nesting) and therefore cannot express "not present" or a numeric
    comparison. A probe that needs either belongs in a scenario with a Python evaluator.
-6. **Is the folder rename exercised?** `harness.install` places a profile source at
-   `<mods_dir>/<mod id>` while `mods.install` keeps the source folder's name — settled in code
-   (**C**), unexercised in a run: the acceptance mod's folder *is* its id, and 52 of the 230
-   installed folders drift from theirs (the lint's `folder-id` INFO counts 51, having no id to
-   compare on the 52nd). The question has **two halves** — which name the copy lands under, and
-   whether the rename is *required* for the mod to load — and the subject decides which halves a
-   run can answer.
+6. ~~**Is the folder rename exercised?**~~ **Closed, M** — slice 09 (teardown pass 1), run
+   **`td1-20260910-192457`**; the same profile's acceptance run `run-20260910-191842` showed the
+   same listing, but its run directory is gitignored, so the committed artifact below is the
+   citable reading. `harness.install` places a profile source at `<mods_dir>/<mod id>`
+   while `mods.install` keeps the source folder's name — settled in code (**C**) and now
+   measured on the one subject that can answer **both** halves.
 
-   **`simpleStatus` (`2867431511`, folder `SimpleStatus`, id `simpleStatus`) settles only the
-   first half.** NTFS is case-*preserving*, so the `mods/` listing after a run does show which of
-   the two spellings `harness.install` wrote — that part it answers. But path lookup on Windows
-   is case-*insensitive*: `<mods_dir>/SimpleStatus` and `<mods_dir>/simpleStatus` are the same
-   directory, so the mod loads whichever name is used and the run says nothing about whether the
-   rename is needed.
+   The artifact's `folder_check` block, recorded verbatim from the session's own run directory
+   ([`testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json`](../../testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json)):
 
-   **Slice 09 pass 1's subject settles both.** `SKITTLE_LongTermPreservation4220` (`3774789651`)
-   ships in a folder named `LongTermPreservation4220` — a whole-prefix difference, so the listing
-   names it unambiguously *and* a copy left under the folder name would fail to load. It runs
-   first, so this closes on the way past
-   ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md) § Discrepancies
-   row 6).
+   | Reading | Value | Ev |
+   |---|---|---|
+   | `mods_dir` | `testing/runs/td1-20260910-192457/server/mods` | M |
+   | `listing` | `["PZTestKit", "SKITTLE_LongTermPreservation4220"]` | M |
+   | `id_folder_present` / `source_folder_present` | **`true`** / **`false`** — no `LongTermPreservation4220/` anywhere | M |
+   | `mod_info_at_id` | **`true`** (`…/SKITTLE_LongTermPreservation4220/42.20/mod.info`) | M |
+   | `ini_mods_line` | `Mods=PZTestKit;SKITTLE_LongTermPreservation4220` | M |
+
+   **Both halves answered.** *Which name the copy lands under:* the declared id — the
+   `workshop_id` branch of `profile.resolve_mod` files the workshop folder under
+   `sources[mod_id]` and `harness.install` copies it to `<mods_dir>/<mod id>`, never through
+   `mods.install`'s name-keeping fallback. *Whether the rename is required:* yes —
+   `LongTermPreservation4220` → `SKITTLE_LongTermPreservation4220` differs by a whole prefix, so
+   a copy left under the folder name could not have been found by `Mods=`, and the mod
+   demonstrably loaded (server log `loading SKITTLE_LongTermPreservation4220`, the mod's 14 food
+   items counted at join, its recipes and item scripts answering on both sides). Predicted (C)
+   and measured (M) agree exactly. `simpleStatus` (the slice-10 subject) could only ever have
+   settled the first half, its folder differing from its id in **case alone** on a
+   case-insensitive filesystem — which is why slice 09's subject was the one that closed this
+   ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md) § Discrepancies row 6).
+   Still true and unaffected: 52 of the 230 installed folders drift from their declared id (the
+   lint's `folder-id` INFO counts 51, having no id to compare on the 52nd), so this path is
+   exercised by most of the corpus.
+
+   **Why the case-only subject would not have done.** NTFS is case-*preserving*, so a
+   `simpleStatus` run's `mods/` listing does show which of the two spellings `harness.install`
+   wrote. But path lookup on Windows is case-*insensitive*: `<mods_dir>/SimpleStatus` and
+   `<mods_dir>/simpleStatus` are the same directory, so that mod loads whichever name is used
+   and such a run says nothing about whether the rename is *needed*. Keep the distinction in
+   mind if a future change to `harness.install` needs re-proving — the regression subject has to
+   be a mod whose folder differs from its id by more than case.
 
 ## Sources
 
@@ -503,6 +524,13 @@ A profile is a **server-side** decision that the client inherits.
   — `pzt scenario smoke_clock --profile mod-under-test --speed 30`, PASS with the cadence finding.
   Provenance and the "do not cite" notes for all three:
   [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).
+- Measured run (slice 09, 2026-09-10) — the folder-to-id rename of § Open questions 6:
+  [`td1-20260910-192457`](../../testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json),
+  a profiled teardown session on `SKITTLE_LongTermPreservation4220` (workshop `3774789651`),
+  whose `folder_check` block records the run's own `server/mods/` listing and `Mods=` line. The
+  same profile's acceptance run is `run-20260910-191842` (PASS, 3/3 probes; not committed — its
+  three `verify` readings survive in the session artifact). What the session was *for* is
+  [`../mods-survey/teardowns/longtermpreservation4220.md`](../mods-survey/teardowns/longtermpreservation4220.md).
 - Spikes: [spikes.md](spikes.md) § T0 (the server's boot-time `SandboxVars` rewrite — a partial
   file is filled in with defaults and rewritten whole — and the warm boot of a restored fixture,
   13.4 s), § S1 (the ini's ports and RCON password survive that rewrite; its 57.2 s is a

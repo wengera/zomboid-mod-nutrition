@@ -1,5 +1,9 @@
 # Teardown: Beyond Ten — Level 15 Skills
 
+**Verified against: 42.20.4 (`b0bbce05d5`)** — read 2026-09-04; stamp and sources backfilled
+2026-09-10 (slice 09 pass 1). This teardown was **read, not measured**: every claim below is
+**C** (code reading), and no run in `testing/artifacts/` evidences any of it.
+
 - Workshop ID: 3765241705 · mod ID BeyondTen · author Patryk.
 - Build examined: `42/` tree, 2026-09-04 session (B41 root + B42 subtree).
 - Origin: full read of Shared/Bonuses/ExtendedBonuses/SkillRecoveryJournal lua.
@@ -62,3 +66,26 @@ This is the working example of exactly what our nutrient stats need to be:
 The architectural north star for mod-side nutrient stats: modData reservoir +
 derived-on-read values + idempotent wrappers + cooperative compat shims. Not
 a dependency, but its patterns get lifted nearly wholesale.
+
+## Sources
+
+All **C** — a read of the installed mod, with no live run behind it.
+
+- The mod folder, read-only: workshop item `3765241705`, folder
+  `3765241705/mods/BeyondTen`. The `42/` tree is the one examined — its Lua is
+  eight files, and the four this teardown reads are
+  `42/media/lua/shared/BeyondTen/{Shared,Bonuses,ExtendedBonuses,SkillRecoveryJournal}.lua`
+  (the DetailedSkillTooltips compat file is
+  `42/media/lua/client/BeyondTen/DetailedSkillTooltipsCompat.lua`). `media_at`
+  is `42/media`, `common/media` and a B41 root `media/`.
+- [`data/mod-inventory.json`](../../../data/mod-inventory.json) — the
+  `BeyondTen` row (230 mod folders swept 2026-09-10 17:47; 348 184 B, 170 KB of
+  Lua, `require []`): `signals` `food_nutrition 4`, `mod_data 14`,
+  `monkey_patch 12`, `pcall 47`, `events_add 26`.
+  [`../approved-modlist.md`](../approved-modlist.md) carries the same row's
+  reading (the four nutrition hits are getter/setter **names** in a reflection
+  table, not four calls).
+- Distilled into [`../../modding/patterns.md`](../../modding/patterns.md) —
+  KEEP 4 (idempotent monkey-patching), KEEP 5 (derived-on-read), KEEP 7
+  (cooperative framework detection) and FILTER 3 (effective-level injection)
+  are this mod's rows.

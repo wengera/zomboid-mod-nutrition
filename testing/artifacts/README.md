@@ -45,6 +45,8 @@ correct it.
 | `run-20260910-151642` | `report.json` | `pzt run --profile mod-under-test --hold 5` | slice 07 (the final-wave acceptance run, made on the CLI at `a6b0b54`; the first artifact carrying `took` beside an elapsed `t`; both `trait.check` probes true) |
 | `scenario-20260910-151753` | `scenario-smoke_clock.json` | `pzt scenario smoke_clock --profile mod-under-test --speed 5` | slice 07 (the final-wave acceptance scenario, same commit; the first scenario artifact with a `verify` key — the `M` behind `[[verify]]` on the scenario path — at a speed sitting exactly on the cadence ceiling for this profile) |
 | `exp08-20260910-152944` | `witness-probe.json` | `testing/experiments/s08_witness.py` (**at `ba19649`** — the driver has since been hardened without a re-run; see the block's skew note) | slice 08 (`.superpowers/sdd/08-nutrition-mod-catalog/task-4-report.md`; the `M` behind `witness.fields` / `witness.moddata` — every claim slices 09–11 make about reading an unnamed getter or modData key on either side, and the harness-wide `{}`-for-an-empty-list shape. `docs/mods-survey/nutrition-mods.md` and [`docs/testing/README.md`](../../docs/testing/README.md) to follow) |
+| `td1-20260910-192457` | `teardown-longtermpreservation4220.json` | `testing/experiments/td1_longtermpreservation4220.py` (**at `e3afaa0`** — four minor driver edits landed after the run without a re-run; see the block's skew note) | slice 09 pass 1: [`docs/mods-survey/teardowns/longtermpreservation4220.md`](../../docs/mods-survey/teardowns/longtermpreservation4220.md) (every `M` row of its § MP handling), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) § The other direction — server → client and FILTER 1, [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 6 (the folder→id rename, closed on `folder_check`) |
+| `td1b-20260910-202029` | `teardown-longtermpreservation4220-followup.json` | `testing/experiments/td1b_longtermpreservation4220.py` | slice 09 pass 1, same three docs — the five follow-up answers: the display-name reads on both sides plus a **vanilla control**, the second thirst hop, the vanilla item-modData baseline, and the two null controls (`chef` unset, `lastCookMinute` after the cook) |
 
 ## Script/artifact skew
 
@@ -128,6 +130,34 @@ recognised in a string reply as well as a table's `error`, tighter `expected` te
 and two dead names removed. **Every one of those paths was inert on this run**, so no number in
 the file moves and it was not re-run; its block opens with the note. Its block is at the end of
 this file.
+
+The eighteenth, **`td1-20260910-192457`**, is slice 09's first teardown session, and it carries
+skew of both kinds — a driver fix round and a **harness** one. Its own commit (`e3afaa0`) landed
+the driver and the artifact together, on harness Lua at `37e411e` (clean, recorded in the file as
+`commit` / `harness_lua_commit` / `harness_lua_dirty`). Then the review round edited the driver
+(`4239c5d`, four minors) and the harness (`903ccaa`, two read-backs), with **no re-run**:
+
+- **Driver (`4239c5d`), four edits, none of which changes what a command sent or what a reply
+  said** — they change only how the Python side files what came back: a failed re-ask now records
+  `reasked` / `first_reply` under `notes` instead of dropping them; the modData exclusion set is
+  now per scope (`VANILLA_ITEM_KEYS` for items, `VANILLA_PLAYER_KEYS` for the player — see the
+  *do not cite* row below, which is the defect this fixes); `KEYS` is documented as a **display**
+  string whose ` | ` is a reader's separator and never a bus token, with a `KEYS_NOTE` in
+  `notes`; and the RCON spawn's success is recorded as `rcon_additem_ok` beside the empty
+  `rcon_additem` body. **No number in this file moves.**
+- **Harness (`903ccaa`), two additions only** — `TK.ITEM_STATE` gained a read-only
+  `lastCookMinute` and `item.set`'s ack gained `gameMinute`. The ripple is wider than the three
+  server commands: **every `itemState`-bearing reply on both sides gains `lastCookMinute`**,
+  because the state table lives in the shared core. This artifact predates both, so every
+  `item.get` / `item.set` / `item.update` reply in it simply lacks those keys; `td1b-*` is the
+  first artifact that carries either. A diff against a later artifact will show the addition —
+  it is an addition, never a changed value.
+
+The nineteenth, **`td1b-20260910-202029`**, is the follow-up micro-session that the same review
+round commissioned, and it is **skew-free**: driver and artifact landed in one commit (`38ecf23`)
+on harness Lua at `903ccaa`, clean in the working tree, which the file records for itself
+(`commit`, `harness_lua_commit`, `harness_lua_dirty false`, `doctor_clean true`). Both blocks are
+at the end of this file.
 
 One further disclosure, unchanged by the wave and about the harness mod rather than the CLI: a concurrent slice-06 fix round had
 `PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
@@ -899,3 +929,107 @@ disclosure and the server's failure shape), `item_get_server` (the independent `
 reading), and the three `gate_*` shape probes. The brief's own `item_byid` route is exercised via
 `resolved` rather than skipped — see the bullet above. Everything else is the brief's probe list
 in the brief's order.
+
+**`td1-20260910-192457/teardown-longtermpreservation4220.json`** — produced by
+`testing/experiments/td1_longtermpreservation4220.py` at commit `e3afaa0` (115.9 s wall, no
+`error` key, `server_error_count 0`; 71 165 bytes, sha256
+`df8542c17705839ca9af7d57516cd1af034c7472ab8e2f7591755dddf71cb9d5`). Slice 09's first teardown
+session: a **mod** on a real dedicated server with a real client, reading the same inventory item
+on both sides while the mod's own server-side `OnCooked` hook rewrote it. **It opens with the
+skew note above** — four driver minors (`4239c5d`) and two harness read-backs (`903ccaa`) landed
+after it, and it was not re-run; every number below is the file's own.
+
+- **Provenance — the profile.** `testing/profiles/teardown-longtermpreservation4220.toml`:
+  `fixture = "default"`, `[[mods]] id = "PZTestKit"` then `[[mods]] id =
+  "SKITTLE_LongTermPreservation4220", workshop_id = "3774789651"`, **no `[sandbox]` block**, and
+  three `[[verify]]` probes (server `items.count`, server `recipes.craft Skittles.MakeCuredMeat`
+  — module-qualified, `45c0915` — and client `item.script`). The file's resolved form is in the
+  artifact's own `profile` block, including the two source folders that reached
+  `<run>/server/mods/`. Its acceptance run is named in `acceptance_run`:
+  **`run-20260910-191842`** (`RESULT: PASS`, 3/3 probes, 70.6 s) — that run's own `report.json`
+  is *not* committed here; what survives of it is the three `verify` readings, repeated in this
+  file's `verify` key.
+- **Provenance — the mod.** Workshop item `3774789651`, folder `LongTermPreservation4220`,
+  version folder `42.20/` (its only one), `42.20/mod.info` declaring
+  `id=SKITTLE_LongTermPreservation4220`, `author=Skittles`, **no `require=`**, no sandbox
+  options; 239 131 B, every file stamped 2026-09-01 13:13. The workshop tree is read-only to the
+  harness. **`folder_check` is the reading that says where the copy landed**: `listing
+  ["PZTestKit", "SKITTLE_LongTermPreservation4220"]`, `source_folder_present false`,
+  `mod_info_at_id true`, `ini_mods_line Mods=PZTestKit;SKITTLE_LongTermPreservation4220` — the
+  folder-to-id rename, measured, which is what closes
+  [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 6.
+- **How to read the cross-side rows.** `comparisons[]` holds three graded blocks (`baseline`,
+  `t+0s`, `t+3s`), each comparing the same **26** getters server-vs-client numerically under
+  `tolerance.value` (1e-6), with `same_instance` and a `desynced` list. `same_instance` is
+  `true` and `getID` is `562521975` on both sides at all three, so every disagreement is two
+  copies of one item, not two items. The four headline desyncs (`getOffAge`, `getOffAgeMax`,
+  `isCookable`, `isCustomWeight`) sit in `desynced` beside three more the static read did not
+  predict (`getActualWeight`, `getThirstChange`, `getHeat`) and one control that was expected to
+  differ (`getAge`) — `desynced` is a list of *differences*, not a list of *findings*, so read it
+  against the teardown's table rather than quoting its length.
+- **Who ran the cook transition.** `who_ran_it.before_cooked` is **`true`** — the server's own
+  inventory-item tick had already run the hook before the witness `item.update` reached the item
+  (outcome (c)). The four hook prints are in `server_hook_lines` with the server's own frame and
+  millisecond clock (`f:643 st:800,113,605-607`); `client_hook_lines` is **empty**, for the
+  second session in a row. `outcome` records all three candidate outcomes as booleans.
+- **Every float on this bus is rounded to six decimals** (`TK.json` formats a non-integral
+  number with `%.6f`), so no reading in this file supports a bit-for-bit claim. The ulp-level
+  weight predictions the slice was written against are simply not obtainable here; every desync
+  it grades is whole-value (0.05 to 1e9), far above the tolerance.
+- **The witness read what it was asked to.** `field_count` is **26** on every `witness.fields`
+  reply on both sides at all three snapshots (`field_count_ok true`), so the getter list reached
+  the wire as one whitespace-free token and nothing was silently dropped.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `snapshots[].{server,client}.census_player.beyondVanilla` | all four/five vanilla fitness keys (`fitnessMod`, `fitnessUpTimer`, `strengthMod`, `strengthUpTimer`, and `hotbar` on the client) | **A driver defect, fixed after the run (`4239c5d`).** The exclusion set `VANILLA_ITEM_KEYS = {customName}` was applied to the **player** scope too, so every vanilla player key came back flagged as a finding. The census itself (`keys`, `keyCount`) is correct and is what to quote; `beyondVanilla` on the **player** rows is noise. The **item** rows' `beyondVanilla` (`Tooltip`) is right. |
+| `who_ran_it.reading` | "…fired the hook between the action and this call" | True as a *timing* statement and misleading as a causal one. The `lastCookMinute -1` step is measured **not** to be a precondition: the cook block had already been entered twice this run, 1.33–1.67 game minutes apart, and on `td1b-20260910-202029` the same transition fired **907 ms before** that write reached the server. Cite `before_cooked` for outcome (c); never cite this run as evidence that the flip unblocked anything. |
+| `rcon_additem` | `""` | The RCON `additem` answered with an empty body. It says nothing about the spawn; `timeline`'s `additem ok=True` and the client resolving the item id 3 s later are what say it worked. The driver records the boolean as `rcon_additem_ok` only from `4239c5d` on, which is after this run. |
+| `notes` | `[]` | Correct here, but **not** reusable as a test. `notes` was both the dormant re-ask branch's sink and, from `4239c5d`, the home of a standing `KEYS_NOTE` — so on later artifacts an empty `notes` is not the "nothing went wrong" signal. On this file it is genuinely empty: no re-ask fired. |
+| `steps[].ack.*.lastCookMinute`, `steps[].ack.gameMinute` | absent | The harness gained both in `903ccaa`, after this run. Their absence here is skew, not a reading; the `item.update` step does carry `gameMinute 26`, which is the one counter this build of the harness reported. |
+| `getHeat` on the client (frozen at 1.84703 across 12 s) | — | A real reading, and **one item over 12 s**. It says the client's copy of *this* server-spawned item did not tick; it is not a general law about client-side item updates, and the mechanism is unexplained (the update path carries no side guard). Quote it as the observation, with the open question. |
+| everything measured here, as a population | — | **`n = 1`.** One session, build 42.20.4, fixture `default`, one mod, one item (`Skittles.CuredPork`), one player, one cook transition. The desyncs are structural (they follow from the packet's field list) but every *number* is a single reading, and the two surprises — the weight and the thirst rows — are each a single session until `td1b-20260910-202029` re-reads them. |
+
+**`td1b-20260910-202029/teardown-longtermpreservation4220-followup.json`** — produced by
+`testing/experiments/td1b_longtermpreservation4220.py` at commit `38ecf23` (96.9 s wall, no
+`error` key, `server_error_count 0`, `client_quit rc=0`; 41 075 bytes, sha256
+`a69f3c89315fcf455f452f03f4f964f83db5ddfc1a07207b3abc6cf77af395e0`). **Skew-free**: driver,
+artifact and the harness it ran on (`903ccaa`) are all pinned in the file itself (`commit`,
+`harness_lua_commit`, `harness_lua_dirty false`, `doctor_clean true`). A five-question follow-up
+to the run above, on the same profile and the same mod, commissioned by that run's review — and
+the first artifact anywhere carrying `lastCookMinute` and an `item.set` ack's `gameMinute`.
+
+- **What it adds that `td1` could not answer.** (1) `getDisplayName` read **directly** on both
+  sides (`answers.4.1_*`, `weight_reads[0]` / `[2]`); (2) a **vanilla control**, `Base.Steak`,
+  spawned into the same inventory and read with the same six getters (`answers.4.2_*`,
+  `weight_reads[1]` / `[3]`); (3) a deliberate second server-to-client push on the already-cooked
+  item with the client's `getThirstChange` read either side of it (`thirst_hops`); (4) a
+  **vanilla item's** modData census on both sides (`censuses[0]`); (5) two null controls — the
+  cook run with `chef` **unset** (`xp_delta` **0**, against `td1`'s 2.5) and `lastCookMinute`
+  read after the transition (`item_get_after_cook.lastCookMinute` −1).
+- **The bonus finding, and it is the load-bearing one.** `steps[set_lastCookMinute]` arrives with
+  `before.cooked` **true** and `before.lastCookMinute` **23** — the server's own tick had already
+  stamped a minute and transitioned, 907 ms before our write landed (the server console has both
+  to the millisecond). `heat > 1.6` plus `cookingTime > minutesToCook` suffice; the minute gate
+  opens on its own within one game minute. This is what settles `td1`'s withdrawn causal claim by
+  reproduction rather than by argument.
+- **Provenance — the mod and the profile** are the same as the block above (item `3774789651`,
+  profile `teardown-longtermpreservation4220.toml`, `verify` 3/3 `ok=True`), and both RCON spawns
+  are recorded in both shapes: `rcon["Skittles.CuredPork"].ok true` with an **empty** body and
+  `rcon["Base.Steak"].ok true` with `"Item Base.Steak Added in admin's inventory."` — the pair
+  that shows why an empty body is not a failure.
+- **World changes:** two `additem` spawns and one cook transition, in this run's copy of the
+  fixture. No `settimespeed`, no sandbox write, `chef` deliberately unset. Nothing to restore.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `censuses[].server.keys` | `[]` on the vanilla item | **A driver normalisation, not the wire's shape.** The empty census came back over the bus as `{}` (the harness-wide empty-table shape `exp08-20260910-152944` measured); the driver rendered it as a JSON list. Test emptiness with **`keyCount`**, which is `0` here and is what the readings quote; do not cite this file as evidence about the bus's empty-collection shape. |
+| `answers.4.2_vanilla_raw` / `4.2_vanilla_after` | `Base.Steak` resolves its display name on both sides; `Skittles.CuredPork` does not | Supports exactly two claims — "not dedicated-server-wide" and "this item's name does not resolve" — and **not** "mod item names do not resolve". `n = 2`, and the two items differ in **two** ways at once: the mod item has no `DisplayName =` line *and* relies on a mod translation table. The discriminating control (an item that carries `DisplayName =`, or a vanilla item that does not) cannot come from this mod — its only two `DisplayName =` lines sit inside a commented-out block — so the cause stays **C** and open. |
+| `cook_poll` | one row | The transition had already happened before the first poll fired, so the poll loop measured **nothing** about timing. The server console is what dated the transition, in this run as in `td1`; the bus still cannot time a server-side tick on its own. |
+| `steps[set_lastCookMinute]` | the write is still sent | Kept from the `td1` sequence and, on this run, sent **after** the transition — a step the driver no longer needs. A future driver testing the *gate* must send it **before** the `cookingTime` pin; as recorded here it proves the flip is unnecessary and nothing else. |
+| every float | rounded to six decimals | Same instrument limit as the block above: the bus quantises, so nothing in this file supports a bit-for-bit claim. `getActualWeight` 0 vs 0.35 and `getThirstChange` 0.1 vs 0.05 are whole-value differences, far above it. |
+| everything measured here, as a population | — | **`n = 1` per question, `n = 2` for the item pair.** One session, one fixture, one mod item, one vanilla control. The five answers are each a single reading; three of them (the display-name pair, the thirst hop, the XP null control) are second readings of something `td1` saw, which is exactly why they are worth more than their count. |

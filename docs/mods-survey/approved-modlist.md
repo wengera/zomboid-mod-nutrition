@@ -56,7 +56,7 @@ carries both.** Measured 2026-09-10 17:47.
 | **`AutoCook`** | 3388721641 | 4 | 0 | Automates the cooking pipeline — hooks the actions we will extend. **Teardown 11** |
 | `BeyondTen` | 3765241705 | 4 | 0 | Four getter/setter *names* in a reflection table, not four calls (teardown done) |
 | `Economy` | 3624538051 | 4 | 0 | Same shape: a shop-item serializer field map naming the four macro accessors |
-| **`SKITTLE_LongTermPreservation4220`** | 3774789651 | 4 | 117 | The closest domain neighbour, and the only mod on both signals: 14 new food items **and** a server-side `OnCooked` hook multiplying all four macros by 0.70. **Teardown 09** |
+| **`SKITTLE_LongTermPreservation4220`** | 3774789651 | 4 | 117 | The closest domain neighbour, and the only mod on both signals: 14 new food items **and** a server-side `OnCooked` hook multiplying all four macros by 0.70. **[Teardown 09](teardowns/longtermpreservation4220.md) — done** |
 | `SomewhatTraitsCore` | 3498347699 | 3 | 0 | The corpus's only **player** macro write — an `OnTick` server-side calorie adjustment behind a trait |
 | `CustomGamepadUI` | 3001154607 | 1 | 0 | The hit is inside a commented-out vanilla line |
 | **`MoodleFramework`** | 3396446795 | 1 | 0 | **Already server-approved** — our leading candidate for new-nutrient moodle UI. The hit is a debug `print`; the real question is whether its `42.20` folder is whole |
@@ -79,11 +79,12 @@ Set by slice 08 — criteria, evidence and fall-through in
 [nutrition-mods.md](nutrition-mods.md) § The three picks; queue itself in
 [README.md](README.md).
 
-Done: [ItemQuality](teardowns/itemquality.md) · [BeyondTen](teardowns/beyondten.md).
+Done: [ItemQuality](teardowns/itemquality.md) · [BeyondTen](teardowns/beyondten.md) ·
+[SKITTLE_LongTermPreservation4220](teardowns/longtermpreservation4220.md) (slice 09,
+2026-09-10; measured on `td1-20260910-192457` and `td1b-20260910-202029`).
 
 | Slice | Mod id | Angle |
 |---|---|---|
-| 09 | `SKITTLE_LongTermPreservation4220` | Domain twin: the item-definition set, the server-side `OnCooked` macro write, and what of it reaches a client |
 | 10 | `simpleStatus` | How nutrition values are read and refreshed for UI, against a store the server owns |
 | 11 | `AutoCook` | Cooking-pipeline hook points (what it wraps = what we must not break), and the `common/` vs `42.x/` question |
 
