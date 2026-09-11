@@ -1,9 +1,9 @@
 # Item overrides — the five routes a mod has into a vanilla item's nutrition
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-11 · slice 12 (P2a). Measured on five
-experiment mods we wrote (`testing/experiments/TKX_*`), driven by four live sessions:
-`x121-20260911-030023` (the routes), `x124-20260911-035819` (replay order),
-`x122-20260911-032326` and `x123-20260911-034426` (the loader).
+experiment mods we wrote (`testing/experiments/TKX_*`), driven by five live sessions:
+`x121-20260911-030023` (the routes), `x124-20260911-035819` and `x125-20260911-042055`
+(replay order), `x122-20260911-032326` and `x123-20260911-034426` (the loader).
 Evidence grades: **C** read from bytecode / Lua / scripts, **M** measured on the live dedicated
 server + real client (run id and artifact key given), **W** wiki mirror (secondary).
 
@@ -22,9 +22,10 @@ server + real client (run id and artifact key given), **W** wiki mirror (seconda
 4. A new item in the mod's own module collides with nothing, but without an `ItemName.json` entry
    it reads `getDisplayName() == getFullType()` and `getActualWeightUnmodded() == 0` — and a
    **dedicated server resolves no mod display name at all**, so never branch on names server-side.
-5. Which mod's body lands last is **not** `Mods=` order (falsified, n = 2 boots). The jar names the
-   ordering key as the lower-cased *relative script path*; four rival rules are still
-   unseparated by measurement. § Load order between two mods has the state of it.
+5. Which mod's body lands last has nothing to do with `Mods=`: bodies replay **sorted**, three of
+   the four rival rules falsified (`Mods=`-last, first-in-`Mods=`, alphabetical-first). The jar
+   names the sort key as the lower-cased *relative script path*; measurement cannot yet separate
+   that from the mod id, the folder name or the `mod.info` display name. § Load order has it.
 
 ---
 
@@ -36,8 +37,8 @@ server + real client (run id and artifact key given), **W** wiki mirror (seconda
 |---|---|---|---|
 | R1 | **Full restatement** of a vanilla block in `module Base` | every script key of that item is re-declared; the item record count does not change | **M** (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M2.items."Base.Apple"`, `phases.M1.items_count`) |
 | R2 | **Partial block** in `module Base` | only the named keys change; every omitted key stays at vanilla | **M** (same file → `phases.M2.items."Base.Orange"`, `phases.M1.scripts."Base.Orange"`) |
-| R3 | **New item in the mod's own module** | no collision possible; costs the display name unless the mod ships `ItemName.json` | **M** (same file → `phases.M1.items_count.foodByModule`, `phases.M4.items`) + **C** (the LTP precedent, run `td1-20260910-192457`) |
-| R4 | **Lua hooks on the instance** — `OnEat`, a wrapper of `ISEatFoodAction:complete`, `OnCooked` | per-instance edits at eat/cook time, bounded by what `ItemStatsPacket` carries | **M** (same file → `phases.M5.globals`) + **C** (`IsoGameCharacter.Eat`, `EatOnClient`) |
+| R3 | **New item in the mod's own module** | no collision possible; costs the display name unless the mod ships `ItemName.json` | **M** (same file → `phases.M1.items_count.foodByModule`, `phases.M4.items`) + **C+M** (the display-name cost: `Food.getActualWeight @215-@287 L902-L908`; the LTP precedent for the route at scale: run `td1-20260910-192457`) |
+| R4 | **Lua hooks on the instance** — `OnEat`, a wrapper of `ISEatFoodAction:complete`, `OnCooked` | per-instance edits at eat/cook time, bounded by what `ItemStatsPacket` carries | **M** (same file → `phases.M5.globals`) + **C** (`IsoGameCharacter.Eat @762-@802 L5811-L5814`, `EatOnClient @0-@57 L5725-L5736`) |
 | R5 | **Item modData** + `syncItemFields()` | arbitrary new fields (a custom nutrient) on one instance | **M** (same file → `phases.M7.before` / `phases.M7.after`) |
 
 R1–R3 are script routes and are free of sync cost. R4–R5 are Lua routes and are not.
@@ -77,7 +78,7 @@ block is `testing/experiments/TKX_ItemOverride/42.20/media/scripts/tkx_item_over
 |---|---|---|---|
 | `Base.Apple` `getCalories` (vanilla 95.0) | 400 | 400 | **M** (`x121-20260911-030023` → `phases.M2.items."Base.Apple".witness`) |
 | `getCarbohydrates` / `getLipids` / `getProteins` / `getHungChange` | 25.13 / 0.31 / 0.47 / −0.16 | identical | **M** (same key) |
-| `foodByModule.Base` after three `module Base` redefinitions | — | **722**, delta 0 against the `exp05-20260910-084109` baseline (2026-09-11) | **M** (`phases.M1.items_count`; n = 3 boots with `x124` `phases.O3`) |
+| `foodByModule.Base` after three `module Base` redefinitions | — | **722**, delta 0 against the `exp05-20260910-084109` baseline (2026-09-11) | **M** (`phases.M1.items_count`; n = 3 redefinition boots — `x124` and `x125` `phases.O3` — against the one `exp05` baseline) |
 
 Two facts fall out. A redefinition **replaces, it does not add** — the `Base` food count never
 moves. And the two sides agree for free, because item scripts are parsed per side and never
@@ -89,7 +90,7 @@ gap, re-confirmed here (`phases.M1.script_access`, Ev **M**). Only an instance g
 
 ### R2 — The partial block, and why the trap is not where the plan put it
 
-Mod A's `Orange` block is four lines —
+Mod A's `Orange` block is six lines naming three keys —
 `tkx_item_override.txt:24-29`: `DisplayCategory`, `ItemType`, `Calories = 400.0`, and nothing
 else. Vanilla Orange carries `HungerChange = -12`, `ThirstChange = -8`, `Calories = 65`,
 `Carbohydrates = 16.27`, `Lipids = 0.3`, `Proteins = 1.0`, `DaysFresh = 6`,
@@ -209,8 +210,10 @@ notification, not an intake point.
 (`.../media/lua/server/TKX_EatHook_Server.lua:54`, sentinel at `:31`, re-tried on
 `Events.OnServerStarted` at `:70`) — and it reports `wrapped = true` on the **client** as well,
 silently, because a mod's `media/lua/server/` files execute in the MP client's Lua state. That
-finding is `docs/modding/anatomy.md`'s row, with its bound (n = 1 session, mechanism untraced);
-cite it there rather than from here.
+finding is [`anatomy.md`](anatomy.md) § 6 *`require` and Lua load order*'s row, with its bound
+(n = 1 session, mechanism untraced); cite it there rather than from here. The three hooks' separate
+name-resolution rules — and why `OnCooked` accepts `Table.func` while `OnEat` does not — are
+[`lua-api.md`](lua-api.md) § 3 *Script-side hooks*.
 
 **`OnCooked`** is the third point, and slice 09 measured it: the dispatch inside `Food.update` is
 **not** server-gated (`@627-@718 L462-L467`, Ev **C**), and LTP's server-side hook rewrote the
@@ -220,8 +223,9 @@ crafted instance's fields with its prints landing in the **server** console (Ev 
 **The limit that binds all three.** Whatever a hook writes to an item reaches the other side only
 through `ItemStatsPacket` — 43 packet fields of which 2 are addressing and 2 are presence flags,
 leaving **39 item-state values** (`setData @0-@566 L153-L229`, `write @0-@875 L233-L363`, Ev
-**C**; `docs/vanilla/food-item-model.md` § MP behaviour). `offAge`, `offAgeMax`, `isCookable` and
-`isCustomWeight` are **not** among them and never arrive — measured, the client held `offAge 53`
+**C**; `docs/vanilla/food-item-model.md` § MP behaviour; the getter-by-getter split against this
+library's `TK.ITEM_STATE` set is [`lua-api.md`](lua-api.md) § 2). `offAge`, `offAgeMax`,
+`isCookable` and `isCustomWeight` are **not** among them and never arrive — measured, the client held `offAge 53`
 against the server's 1e9 and `isCookable true` against `false` across two snapshots 11.1 s apart
 (**M**, run `td1-20260910-192457`). And a cooked food's `thirstChange` is **halved once per
 server→client hop**, because `setData` sends the cooked-ladder getter while `applyItemStats`
@@ -258,8 +262,10 @@ per-player nutrient state out of it — a server-side table plus `sendServerComm
 modData (`docs/modding/patterns.md` FILTER 10).
 
 **Two keys any item-modData census must exclude**, or it will report vanilla as a finding:
-`customName`, which `InventoryItem.setCustomName` writes into modData from `InventoryItem.load`
-as a deserialization side effect (**M**, run `exp08-20260910-152944`), and `Tooltip`, which
+`customName`, which `InventoryItem.setCustomName` writes into modData as a side effect of
+`InventoryItem.load` — **C+M**: that route is the jar's (six call sites, quoted from
+`docs/mods-survey/nutrition-mods.md`), while the run read the key's **presence** only, client-side
+(`{}` on the server for the same instance; run `exp08-20260910-152944`). And `Tooltip`, which
 `Item.InstanceItem @3505-@3510` passes to `InventoryItem.setTooltip`, whose first act is
 `getModData():rawset('Tooltip', …)` — so any script `Tooltip =` line is an item-modData key on
 every side that instantiates the item (**C**, jar). The exclusion set is chosen **per scope**: a
@@ -289,57 +295,84 @@ Consequence: **two mods shipping `media/scripts/items.txt` do not both load — 
 the other's blocks are never parsed**, and the loader prints a `mod "<id>" overrides <relpath>`
 line when it happens. Within one mod that collision is measured (the version dir wins, `common/`
 still runs; **M**, run `x122-20260911-032326`, keys `summary.L2_which` / `L2_trees` /
-`phases.L2.reading.overrides_tails`), and the loader prints only on a real collision
-(`greps.overrides_any` 1 of 2 mods). **Across two mods it is C only** — no session has shipped the
-same relative script path from two mods. Practical rule for the item pass: give the pass's script
-files a mod-unique basename and the question never arises.
+`phases.L2.reading.overrides_tails`), and the loader prints a **tailed** `overrides` line only on a
+real collision (`greps.overrides_any` 1 of 2 mods). Do not read a bare line as one: an
+**empty-tail** `mod "<id>" overrides ` also prints once per Lua state for every mod with no
+`common/` tree — three in `x124` (server lines 95/97/100) and again in `x125`, none of them a
+collision (slice 11's `getRelativeFile` → `""`, run `td3-20260911-001948`; n = 3 sessions).
+**Across two mods it is C only** — no session has shipped the same relative script path from two
+mods. Practical rule for the item pass: give the pass's script files a mod-unique basename and the
+question never arises.
 
 ### (b) Two mods redefine the same item name in different files
 
 Then both files parse, both bodies append (§ *What a second `item` block actually does*), and the
 question is which body replays last.
 
-**What the jar says (C).** `ScriptManager.Load @97-@536 L1440-L1502` builds the vanilla list
-first, then walks `ZomboidFileSystem.getModIDs()` (`@105-@111 L1441`; `getModIDs @0-@4 L972`
-returns the `mods` list as stored, unsorted), appending each mod's `common/` then version-dir
-script files (`@234-@242 L1456`, `@415-@423 L1474`). It then sorts **both** lists with
-`ScriptManager$38` (`@524-@535 L1500-L1501`) and appends the mod list to the vanilla list
-(`PZArrayUtil.addAll @0-@45 L1365-L1369`, dest-then-src). `ScriptManager$38.compare @0-@72
-L1489-L1497` puts basenames starting `template_` first and otherwise returns
-`a.compareTo(b)` on the **full stored path strings** — which are the lower-cased *relative* paths
-from (a). So the ordering key the jar names contains no mod id, no folder name and no `Mods=`
-position: it is the script file's path under `media/`, pooled across every mod, with vanilla's
-bodies always first.
+**What the jar says (C).** `ScriptManager.Load @97-@536 L1440-L1502` pools one file list — vanilla's
+files, then every mod's `common/` and version dir in `Mods=` order **as stored** (`getModIDs @0-@4
+L972`, unsorted; `@105-@111 L1441`, `@234-@242 L1456`, `@415-@423 L1474`) — and then **sorts** it.
+The sort, not `Mods=`, decides the replay order.
 
-**What the runs measured (M).** Two boots, both consistent with that and with three other rules:
+**What the runs measured (M).** Three boots, two of them the same bodies permuted in `Mods=`:
 
 | Boot | `Mods=` order | Bodies for `Base.Watermelon` | Read on both sides | Ev |
 |---|---|---|---|---|
 | `x121-20260911-030023` | `TKX_ItemOverride`, `TKX_Nutrient`, `TKX_EatHook` | 111 (`tkx_item_override.txt:43`), 777 (`tkx_eat_hook.txt:37`) | **111** — the mod **earlier** in `Mods=` | **M** (`phases.M3.watermelon.witness`) |
 | `x124-20260911-035819` | `TKX_ZWatermelon`, `TKX_ItemOverride`, `TKX_EatHook` | 999 (`tkx_zwatermelon.txt:15`), 111, 777 | **999** — the mod **first** in `Mods=`, last alphabetically | **M** (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O1.witness`, `verdicts.P18`) |
+| `x125-20260911-042055` | `TKX_ItemOverride`, `TKX_ZWatermelon`, `TKX_EatHook` | 111, 999, 777 — the same three bodies as `x124`, permuted | **999** — the mod in the **middle** of `Mods=`, last alphabetically (111 would have said first-in-`Mods=`, 777 `Mods=`-last) | **M** (`testing/artifacts/x125-20260911-042055/platform-order2.json` → `phases.O1.calories`, `phases.O1.body`, `verdicts.P20`) |
 
-`Mods=`-order-last-wins is **falsified**, n = 2 boots. But the rule is **not settled**:
-alphabetical-by-id, alphabetical-by-folder, alphabetical-by-script-path and
-first-in-`Mods=`-wins all predict 999 here and 111 there, because our three ids, three folder
-names and three script basenames sort identically and `Mods=` was deliberately reversed. Do not
-write "alphabetical by mod id" and do not write "`Mods=` position is irrelevant" — the review of
-session 4 struck both.
+**The rule.** Script bodies are replayed **sorted by the stored script path** (C:
+`ScriptManager$38.compare @67-@71 L1497` — `String.compareTo` on the full stored path strings;
+`searchFolders @93-@114 L1208-1209` stores `getRelativeFile(uri, abs).toLowerCase(ENGLISH)`
+relative to the lower-cased canonical version dir (L1466-1474) or the `common/` dir (L1449-1456);
+L1500-1502 sorts the vanilla and mod lists **separately** and `addAll(vanilla, mods)` — vanilla
+always first), **independent of `Mods=` position** (M, n = 2 permutations of the same bodies —
+`x124` and `x125` — plus `x121`'s independent kills), **last body wins per key** (M, `x121`
+Orange). `Mods=`-order-last-wins, first-in-`Mods=`-wins (reverse replay) and alphabetical-first
+are all **falsified**.
 
 The loader's own `loading <id>` lines **do** walk `Mods=` order (server lines 94/97/99 in `x121`,
-94/96/99 in `x124`, **M**), which is a separate order from the body replay and is the reason the
-two are easy to confuse.
+94/96/99 in `x124`, 94/97/99 in `x125`, **M**), which is a separate order from the body replay and
+is the reason the two are easy to confuse.
 
-**The checks that close it.** Session 5 (`x125`) was running when this was written: the same three
-mods with `Mods=` order `TKX_ItemOverride, TKX_ZWatermelon, TKX_EatHook`, where 999 / 111 / 777
-separate alphabetical-last, first-in-`Mods=` and `Mods=`-last. That still leaves
-id-vs-folder-vs-path confounded, and the jar read above says the answer is **path**; the boot that
-would make it **M** is a mod whose **id sorts last while its script basename sorts first**
+**The check that closes the sort key.** `x125` ran the promised profile — `TKX_ZWatermelon` moved
+to the **middle** of `Mods=` — and read 999, which is what killed first-in-`Mods=` and
+alphabetical-first. What no boot separates is which *string* sorts: our mod ids, folder names,
+script basenames and `mod.info` display names sort identically in all three. The jar says **path**;
+the boot that makes that **M** is a mod whose **id sorts last while its script file sorts first**
 (e.g. id `TKX_ZZ`, file `aaa_watermelon.txt`). Handed to slice 13.
 
 **What is safe to rely on today.** Per-key last-wins is settled (§ R2): whichever body lands last
 wins only the keys it names. So a pass that ships one `module Base` block per item is robust to the
 ordering question for every key it does *not* touch, and contested only on the keys two mods both
 declare.
+
+---
+
+## Code map
+
+Read on 42.20.4, 2026-09-11 (`C:\Users\Angus\pz-b42`, `./pz.sh dump|methods`); every site Ev **C**,
+offsets quoted at each use above.
+
+| Class | Methods read | What it decides |
+|---|---|---|
+| `zombie/scripting/ScriptBucket` | `CreateFromTokenPP`, `LoadScripts` | a repeated name **appends** a body; `reset()` runs before every body but the first |
+| `zombie/scripting/ScriptType` | `<clinit>` | `Item` carries `ResetExisting` — and it does not matter |
+| `zombie/scripting/objects/BaseScriptObject` | `reset` | the empty `return` that makes the merge per-key (chain `Item → zombie/scripting/entity/GameEntityScript → BaseScriptObject`, no intermediate `reset`) |
+| `zombie/scripting/objects/Item` | `Load`, `InitLoadPP` | per-key `DoParam`; the per-body `fileName` re-stamp and net-id allocation |
+| `zombie/scripting/ScriptManager` | `Load`, `loadScripts`, `searchFolders` | the file list, its dedupe, and the lower-cased relative path that is the sort key |
+| `zombie/scripting/ScriptManager$38` | `compare` | `template_`-first, then `String.compareTo` on the stored path |
+| `zombie/util/list/PZArrayUtil` | `addAll` | vanilla's bodies before every mod's |
+| `zombie/ZomboidFileSystem` | `getModIDs`, `getRelativeFile`, `getAbsolutePath` | `Mods=` order as stored, and the one-absolute-path-per-relative-path map |
+
+Earlier jar reads quoted from the docs that own them, not re-derived here: `IsoGameCharacter.Eat` /
+`EatOnClient` and `EatFoodPacket` ([`../vanilla/eating-pipeline.md`](../vanilla/eating-pipeline.md));
+`ItemStatsPacket.setData` / `write`, `Food.getActualWeight`, `Food.update`'s `OnCooked` dispatch,
+`Item.InstanceItem` → `InventoryItem.setTooltip`
+([`../vanilla/food-item-model.md`](../vanilla/food-item-model.md)); `InventoryItem.setCustomName`'s
+six call sites ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md));
+`ZomboidFileSystem.loadMod`'s two `activeFileMap` passes ([`patterns.md`](patterns.md) KEEP 10).
 
 ---
 
@@ -365,7 +398,7 @@ Task 10 of this slice updates both.
 | # | What was expected | What is actually the case | Ev |
 |---|---|---|---|
 | 1 | A second `item` block is a **wholesale reset**: `ScriptType.Item` carries `ResetExisting` and `LoadScripts` calls `reset()` before every body but the first, so a partial block rebuilds the item from that block alone (this slice's plan, § Cold-start context) | **Falsified.** The `reset()` call happens exactly as predicted, and does nothing: `BaseScriptObject.reset()V @0 L194` is an empty `return` and neither `Item` nor `GameEntityScript` overrides it. `Item.Load` assigns per key. Result: a per-key merge. Measured first (`x121` `verdicts.M2b`), then re-derived on the jar 2026-09-11 | **M** + **C** |
-| 2 | Script bodies replay in **alphabetical-by-mod-id** order (the pre-review reading of session 4) | Superseded by the session-4 review: four rules — by id, by folder, by script path, and first-in-`Mods=` — all fit both boots. `Mods=`-order-last-wins is falsified (n = 2). The **jar** names the key as the lower-cased relative script path (**C**); the rule stays **open** by measurement | **M** for the numbers, **C** for the ordering site |
+| 2 | Script bodies replay in **alphabetical-by-mod-id** order (the pre-review reading of session 4) | Right about the outcome, wrong about the reason, and it took a third boot to say so. `x125` settles the **rule** — bodies replay sorted, independent of `Mods=` position, last-wins per key, with `Mods=`-last, first-in-`Mods=` and alphabetical-first all falsified. The **sort key** is the lower-cased relative script path by the jar; id vs folder vs path vs `mod.info` display name stays unseparated by measurement | **M** for the rule, **C** for the key |
 | 3 | The vanilla `Base.Apple` block has 18 keys (this slice's plan) | **17** — counted in `media/scripts/generated/items/food.txt` and reproduced in mod A's restatement | **C** |
 | 4 | `getText` / the harness's `text.get` can read a mod's item name | It cannot, under either key form, on either side, while `getDisplayName()` off the instance answers correctly. Every display-name row here rests on `getDisplayName` | **M** (`x124-20260911-035819` → `phases.O5`) |
 
@@ -375,9 +408,9 @@ Task 10 of this slice updates both.
 
 1. **A partial block that omits `ItemType`.** Untested; our R2 block kept it. Probe: the same
    Orange block minus `ItemType`, read `foodByModule.Base` plus the five instance getters.
-2. **The replay ordering key** — id vs folder vs script path. `x125` discriminates
-   alphabetical-last from first-in-`Mods=`; the id-vs-path closer is a mod whose id sorts last and
-   whose script basename sorts first. The jar's answer (path) is **C** and wants a boot.
+2. **The replay sort *key*** — id vs folder vs script path vs `mod.info` display name. The rule
+   itself is settled (`x125`); only the key is confounded, all four strings sorting identically in
+   every boot run. The jar's answer (path) is **C** and wants the closer named in § Load order (b).
 3. **Two mods at the same relative script path.** The `activeFileMap` mechanism is **C**; no run
    has shipped the collision across two mods. The sharpest arm is a mod file at a **vanilla**
    relative path (`media/scripts/generated/items/food.txt`), which the same read predicts is
@@ -401,6 +434,11 @@ Task 10 of this slice updates both.
 `phases.M9`, `m8`, `greps.loading`.
 `testing/artifacts/x124-20260911-035819/platform-order.json` — replay order and the `getText`
 route, keys `phases.O1`, `phases.O3`, `phases.O5`, `verdicts.P18`, `greps.loading`.
+`testing/artifacts/x125-20260911-042055/platform-order2.json` — the ordering rule, keys
+`phases.O1`, `phases.O3`, `verdicts.P20`. **Do not cite** its `body.*.means`, `summary.O1_means` and
+`verdicts.P20.observed.means` sentences: they call the sort key the mod id, which is exactly what
+the run could not separate. `phases.O2` is citable only as the negative — **no script path is
+printed at default verbosity** (n = 3 sessions) — never as a replay order.
 `testing/artifacts/x122-20260911-032326/platform-loader.json` — the same-relative-path collision
 inside one mod, keys `summary.L2_which`, `L2_trees`, `phases.L2.reading.overrides_tails`,
 `greps.overrides_any`.
@@ -417,28 +455,12 @@ Earlier runs cited by id, not re-graded here: `td1-20260910-192457`, `td1b-20260
 `testing/experiments/TKX_Nutrient/42.20/media/lua/server/TKX_Nutrient_Server.lua`,
 `testing/experiments/TKX_ZWatermelon/42.20/media/scripts/tkx_zwatermelon.txt`.
 
-**Jar reads (C), 42.20.4, 2026-09-11** (`C:\Users\Angus\pz-b42`, `./pz.sh dump|methods`).
-`zombie/scripting/ScriptBucket` — `CreateFromTokenPP`, `LoadScripts`;
-`zombie/scripting/ScriptType` — `<clinit>`;
-`zombie/scripting/objects/BaseScriptObject` — `reset`;
-`zombie/scripting/objects/Item` — `Load`, `InitLoadPP` (class chain
-`Item → zombie/scripting/entity/GameEntityScript → BaseScriptObject`, no intermediate `reset`);
-`zombie/scripting/ScriptManager` — `Load`, `loadScripts`, `searchFolders`;
-`zombie/scripting/ScriptManager$38` — `compare`;
-`zombie/util/list/PZArrayUtil` — `addAll`;
-`zombie/ZomboidFileSystem` — `getModIDs`, `getRelativeFile`, `getAbsolutePath`.
-Earlier jar reads quoted from the docs that own them, not re-derived here:
-`IsoGameCharacter.Eat` / `EatOnClient` and `EatFoodPacket`
-([`../vanilla/eating-pipeline.md`](../vanilla/eating-pipeline.md));
-`ItemStatsPacket.setData` / `write`, `Food.getActualWeight`, `Food.update`'s `OnCooked` dispatch,
-`Item.InstanceItem` → `InventoryItem.setTooltip`
-([`../vanilla/food-item-model.md`](../vanilla/food-item-model.md));
-`ZomboidFileSystem.loadMod`'s two `activeFileMap` passes
-([`patterns.md`](patterns.md) KEEP 10).
-
 **Library cross-references.**
 [`patterns.md`](patterns.md) § Measured MP sync facts (the sync rows, FILTER 10, KEEP 10/11),
-[`anatomy.md`](anatomy.md) (mod layout; the `server/`-Lua-in-the-client-VM row),
+[`anatomy.md`](anatomy.md) (mod layout) and its § 6 *`require` and Lua load order* (the
+`server/`-Lua-in-the-client-VM row),
+[`lua-api.md`](lua-api.md) § 3 *Script-side hooks* (R4's three hooks) and § 2 *Java members by
+owner* (the `TK.ITEM_STATE` set against `ItemStatsPacket`),
 [`../vanilla/eating-pipeline.md`](../vanilla/eating-pipeline.md) § `OnEat`, `EatType`, `Eattime`,
 [`../vanilla/food-item-model.md`](../vanilla/food-item-model.md) § MP behaviour,
 [`../vanilla/food-dataset-notes.md`](../vanilla/food-dataset-notes.md) (the 1 005 item records),
