@@ -1,0 +1,4210 @@
+{
+ "run_id": "td2-20260910-231655",
+ "mod": "simpleStatus",
+ "workshop_item": "2867431511",
+ "subject": "player admin (the mod owns no item and no script)",
+ "user": "admin",
+ "profile": {
+  "name": "teardown-simplestatus",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\teardown-simplestatus.toml",
+  "fixture": "default",
+  "description": "PZTestKit + simpleStatus (workshop 2867431511) \u2014 teardown 2.",
+  "mods": [
+   "PZTestKit",
+   "simpleStatus"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "simpleStatus": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\2867431511\\mods\\SimpleStatus"
+  },
+  "skip": [],
+  "workshop_items": {
+   "simpleStatus": "2867431511"
+  },
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "commit": "291f977",
+ "harness_lua_commit": "291f977",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "fields": "getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+ "field_count_expected": 5,
+ "moddata_keys": "player:admin * | player:admin SimpleStatusConfig | global:SimpleStatusConfig *",
+ "moddata_note": "moddata_keys is a DISPLAY string: the ` | ` joins three probes for the reader and is not a bus token. They are sent separately. The global-scoped one is NON-DISCRIMINATING in both directions -- ModData.getOrCreate CREATES the table for the census itself, and the mod's server half only ever created it empty -- so it is metadata, not a control.",
+ "float_format": "TK.json renders a non-integral number with tostring(v) from the harness-prep commit of this slice on (Kahlua's numberToString -> Double.toString, an exact round trip); every artifact before it is quantised to six decimals.",
+ "tolerance": {
+  "rule": "per snapshot, on the SIGNED skew of that snapshot's own wall brackets: client - server in [r*d_min, r*(d_max + 1 s)], d_min = t_srv_before - t_cli_after, d_max = t_srv_after - t_cli_before. Weight uses the opposite sign (-rho) plus one float32 ulp at each end, with rho computed from the same snapshot's readings and its arm checked against isIncWeight/isDecWeight.",
+  "push_window_s": 1.0,
+  "settle_s": 1.5,
+  "settle_rule": "a snapshot closer than settle_s to the last server write is an ARRIVAL LATENCY reading, not a band test (graded = false).",
+  "game_s_per_real_s": 16.0,
+  "macro_rate_per_game_s": {
+   "calories": 0.016,
+   "carbs": 0.0035,
+   "lipids": 0.00113,
+   "proteins": 0.00086
+  }
+ },
+ "acceptance_run": "run-20260910-230752",
+ "world_changes": "none to restore -- no settimespeed, no sandbox write; nutrition.set writes the character's own store and every write lands in this run's copy of the fixture",
+ "snapshots": [
+  {
+   "tag": "baseline",
+   "wall": 75.638,
+   "since_last_write": null,
+   "client": {
+    "stats": {
+     "calories": 799.2306518554688,
+     "carbs": -0.16830335557460785,
+     "lipids": -0.054337941110134125,
+     "proteins": -0.04135453701019287,
+     "weight": 80,
+     "hunger": 0.0003376179956831038,
+     "thirst": 0.0002813938772305846,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.510614401922794e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.3536272048950195,
+     "mult": 0.8000304102897644,
+     "wall": 1789096691673,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "",
+      "wall": 75.638,
+      "wall_done": 76.146
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.35585880279541,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 76.146,
+      "wall_done": 76.653
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.3580894470214844,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 76.653,
+      "wall_done": 76.911
+     }
+    },
+    "config_key": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.3603200912475586,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 76.911,
+      "wall_done": 77.417
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 76.653,
+     "error": null
+    },
+    "moddata_global": {
+     "side": "client",
+     "scope": "global",
+     "arg": "SimpleStatusConfig",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.362550735473633,
+     "keyCount": 0,
+     "keys": {},
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:SimpleStatusConfig *",
+      "wall": 77.417,
+      "wall_done": 77.923
+     }
+    },
+    "config_leaves": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig.SS_pos_x",
+      "SimpleStatusConfig.SS_locked",
+      "SimpleStatusConfig.SS_fontSize",
+      "SimpleStatusConfig.SS_isVertical",
+      "SimpleStatusConfig.SS_isRulerOn",
+      "SimpleStatusConfig.SS_shown_calories"
+     ],
+     "worldAge": 2.3647823333740234,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 6,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig.SS_pos_x SimpleStatusConfig.SS_locked SimpleStatusConfig.SS_fontSize SimpleStatusConfig.SS_isVertical SimpleStatusConfig.SS_isRulerOn SimpleStatusConfig.SS_shown_calories",
+      "wall": 77.923,
+      "wall_done": 78.431
+     }
+    }
+   },
+   "server": {
+    "stats": {
+     "calories": 798.3768920898438,
+     "carbs": -0.35502830147743225,
+     "lipids": -0.11462342739105225,
+     "proteins": -0.08723551779985428,
+     "weight": 80,
+     "hunger": 0.0008494775393046439,
+     "thirst": 0.000708193751052022,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6258270989055745e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.366748809814453,
+     "mult": 4.709777355194092,
+     "wall": 1789096694213,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "admin",
+      "wall": 78.431,
+      "wall_done": 78.687
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.3693714141845703,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 78.687,
+      "wall_done": 79.194
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.3781661987304688,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 79.194,
+      "wall_done": 81.206
+     }
+    },
+    "config_key": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.383469581604004,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 81.206,
+      "wall_done": 82.466
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": [],
+     "keyNames": [],
+     "beyondVanilla": [],
+     "wall": 79.194,
+     "error": null
+    },
+    "moddata_global": {
+     "side": "server",
+     "scope": "global",
+     "arg": "SimpleStatusConfig",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.387009620666504,
+     "keyCount": 0,
+     "keys": {},
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:SimpleStatusConfig *",
+      "wall": 82.466,
+      "wall_done": 83.225
+     }
+    },
+    "config_leaves": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig.SS_pos_x",
+      "SimpleStatusConfig.SS_locked",
+      "SimpleStatusConfig.SS_fontSize",
+      "SimpleStatusConfig.SS_isVertical",
+      "SimpleStatusConfig.SS_isRulerOn",
+      "SimpleStatusConfig.SS_shown_calories"
+     ],
+     "worldAge": 2.395872116088867,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 6,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig.SS_pos_x SimpleStatusConfig.SS_locked SimpleStatusConfig.SS_fontSize SimpleStatusConfig.SS_isVertical SimpleStatusConfig.SS_isRulerOn SimpleStatusConfig.SS_shown_calories",
+      "wall": 83.225,
+      "wall_done": 85.237
+     }
+    }
+   },
+   "wall_done": 85.237
+  },
+  {
+   "tag": "t0",
+   "wall": 87.525,
+   "since_last_write": 1.278,
+   "client": {
+    "stats": {
+     "calories": 1999.7698974609375,
+     "carbs": -0.8281469941139221,
+     "lipids": -0.26737314462661743,
+     "proteins": -0.20348750054836273,
+     "weight": 80.00009155273438,
+     "hunger": 0.0021452405489981174,
+     "thirst": 0.0017896080389618874,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6573374523431994e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.4087228775024414,
+     "mult": 0.799987256526947,
+     "wall": 1789096703675,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "",
+      "wall": 87.525,
+      "wall_done": 88.035
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.410954475402832,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 88.035,
+      "wall_done": 88.542
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.4131851196289062,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 88.542,
+      "wall_done": 89.049
+     }
+    },
+    "config_key": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.415416717529297,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 89.049,
+      "wall_done": 89.556
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 88.542,
+     "error": null
+    }
+   },
+   "server": {
+    "stats": {
+     "calories": 1999.052978515625,
+     "carbs": -0.9847724437713623,
+     "lipids": -0.3179408013820648,
+     "proteins": -0.24197259545326233,
+     "weight": 80.00038421184581,
+     "hunger": 0.002573831006884575,
+     "thirst": 0.0021476089023053646,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.662979593675118e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.4167299270629883,
+     "mult": 4.799613952636719,
+     "wall": 1789096705505,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "admin",
+      "wall": 89.556,
+      "wall_done": 89.813
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.4225025177001953,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 89.813,
+      "wall_done": 91.074
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.4313783645629883,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 91.074,
+      "wall_done": 93.087
+     }
+    },
+    "config_key": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.433595657348633,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 93.087,
+      "wall_done": 93.596
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": [],
+     "keyNames": [],
+     "beyondVanilla": [],
+     "wall": 91.074,
+     "error": null
+    }
+   },
+   "wall_done": 93.596
+  },
+  {
+   "tag": "t+3s",
+   "wall": 93.597,
+   "since_last_write": 7.35,
+   "client": {
+    "stats": {
+     "calories": 1998.2333984375,
+     "carbs": -1.16377592086792,
+     "lipids": -0.37573328614234924,
+     "proteins": -0.28595632314682007,
+     "weight": 80.00071716308594,
+     "hunger": 0.0030634321738034487,
+     "thirst": 0.0025567596312612295,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6649179087835364e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.435211181640625,
+     "mult": 0.799987256526947,
+     "wall": 1789096709670,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "",
+      "wall": 93.597,
+      "wall_done": 94.108
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.437441825866699,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 94.108,
+      "wall_done": 94.617
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.4396724700927734,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 94.617,
+      "wall_done": 95.131
+     }
+    },
+    "config_key": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.4419784545898438,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 95.131,
+      "wall_done": 95.642
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 94.617,
+     "error": null
+    }
+   },
+   "server": {
+    "stats": {
+     "calories": 1997.18310546875,
+     "carbs": -1.3930763006210327,
+     "lipids": -0.449764609336853,
+     "proteins": -0.3422987163066864,
+     "weight": 80.00114177246815,
+     "hunger": 0.003690252546221018,
+     "thirst": 0.0030808758456259966,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6680960470694117e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.449130058288574,
+     "mult": 4.799342632293701,
+     "wall": 1789096712806,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "admin",
+      "wall": 95.642,
+      "wall_done": 97.154
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.4500198364257812,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 97.154,
+      "wall_done": 97.411
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.4580078125,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 97.411,
+      "wall_done": 99.173
+     }
+    },
+    "config_key": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.4668807983398438,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 99.173,
+      "wall_done": 101.186
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": [],
+     "keyNames": [],
+     "beyondVanilla": [],
+     "wall": 97.411,
+     "error": null
+    }
+   },
+   "wall_done": 101.186
+  },
+  {
+   "tag": "t2+0s",
+   "wall": 104.475,
+   "since_last_write": 1.275,
+   "client": {
+    "stats": {
+     "calories": 1995.414794921875,
+     "carbs": 799.9495239257812,
+     "lipids": -0.574343204498291,
+     "proteins": -0.4371109902858734,
+     "weight": 80.00204467773438,
+     "hunger": 0.004744166042655706,
+     "thirst": 0.003962848801165819,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6706419046386145e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.484119415283203,
+     "mult": 0.799776017665863,
+     "wall": 1789096720690,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "",
+      "wall": 104.475,
+      "wall_done": 104.982
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.486349105834961,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 104.982,
+      "wall_done": 105.49
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.488579750061035,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 105.49,
+      "wall_done": 105.998
+     }
+    },
+    "config_key": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.490809440612793,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 105.998,
+      "wall_done": 106.506
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 105.49,
+     "error": null
+    }
+   },
+   "server": {
+    "stats": {
+     "calories": 1994.6201171875,
+     "carbs": 799.7754516601562,
+     "lipids": -0.6303383708000183,
+     "proteins": -0.4797268807888031,
+     "weight": 80.0030074610022,
+     "hunger": 0.005217511672526598,
+     "thirst": 0.004359276033937931,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.673792939982377e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.4935169219970703,
+     "mult": 4.796213626861572,
+     "wall": 1789096722807,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "admin",
+      "wall": 106.506,
+      "wall_done": 107.265
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.5001773834228516,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 107.265,
+      "wall_done": 108.773
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.502396583557129,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 108.773,
+      "wall_done": 109.285
+     }
+    },
+    "config_key": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.511263847351074,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 109.285,
+      "wall_done": 111.05
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 108.773,
+     "error": null
+    }
+   },
+   "wall_done": 111.05
+  },
+  {
+   "tag": "t2+3s",
+   "wall": 111.054,
+   "since_last_write": 7.854,
+   "client": {
+    "stats": {
+     "calories": 1993.6204833984375,
+     "carbs": 799.5572509765625,
+     "lipids": -0.7007291913032532,
+     "proteins": -0.5332988500595093,
+     "weight": 80.00421905517578,
+     "hunger": 0.005812229122966528,
+     "thirst": 0.00485761696472764,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6750545910326764e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.5131149291992188,
+     "mult": 0.7998527884483337,
+     "wall": 1789096727191,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "",
+      "wall": 111.054,
+      "wall_done": 111.563
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.515117645263672,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 111.563,
+      "wall_done": 112.073
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.5173492431640625,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 112.073,
+      "wall_done": 112.585
+     }
+    },
+    "config_key": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.5195798873901367,
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 112.585,
+      "wall_done": 113.095
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 5,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 112.073,
+     "error": null
+    }
+   },
+   "server": {
+    "stats": {
+     "calories": 1992.5694580078125,
+     "carbs": 799.3273315429688,
+     "lipids": -0.7747547030448914,
+     "proteins": -0.5896369814872742,
+     "weight": 80.0054916049794,
+     "hunger": 0.006437270902097225,
+     "thirst": 0.0053816912695765495,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6787329514045268e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.529020309448242,
+     "mult": 4.797692775726318,
+     "wall": 1789096730806,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "admin",
+      "wall": 113.095,
+      "wall_done": 115.106
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.5334606170654297,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 115.106,
+      "wall_done": 116.115
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.537900924682617,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 116.115,
+      "wall_done": 117.125
+     }
+    },
+    "config_key": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.546778678894043,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 117.125,
+      "wall_done": 119.136
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 116.115,
+     "error": null
+    }
+   },
+   "wall_done": 119.136
+  },
+  {
+   "tag": "final",
+   "wall": 150.008,
+   "since_last_write": 46.808,
+   "client": {
+    "stats": {
+     "calories": 1983.617431640625,
+     "carbs": 797.3696899414062,
+     "lipids": -1.4050037860870361,
+     "proteins": -1.0692952871322632,
+     "weight": 80.01630401611328,
+     "hunger": 0.011742964386940002,
+     "thirst": 0.009843644686043262,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6923266230151057e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.6867284774780273,
+     "mult": 0.8000592589378357,
+     "wall": 1789096766287,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "",
+      "wall": 150.008,
+      "wall_done": 150.769
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 2.1125001907348633,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.688960075378418,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 150.769,
+      "wall_done": 151.028
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.691190719604492,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "pzt_ss_client:string",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 151.028,
+      "wall_done": 151.535
+     }
+    },
+    "config_key": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.693142890930176,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "pzt_ss_client:string",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 151.535,
+      "wall_done": 152.042
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "pzt_ss_client:string",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "pzt_ss_client",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "pzt_ss_client"
+     ],
+     "wall": 151.028,
+     "error": null
+    }
+   },
+   "server": {
+    "stats": {
+     "calories": 1982.8211669921875,
+     "carbs": 797.1956176757812,
+     "lipids": -1.4610061645507812,
+     "proteins": -1.111916422843933,
+     "weight": 80.01726107890681,
+     "hunger": 0.012213042005896568,
+     "thirst": 0.01024012453854084,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false,
+     "endurance": 1,
+     "fatigue": 1.6891275663510896e-05,
+     "moodles": {
+      "hungry": 0,
+      "thirst": 0,
+      "foodEaten": 0,
+      "heavyLoad": 0,
+      "endurance": 0
+     },
+     "traits": {
+      "obese": false,
+      "overweight": false,
+      "underweight": false,
+      "veryUnderweight": false,
+      "emaciated": false,
+      "HeartyAppetite": false,
+      "LightEater": false,
+      "HighThirst": false,
+      "LowThirst": false
+     },
+     "traitRoute": "getKnownTraits",
+     "traitList": {},
+     "maxWeight": 12,
+     "foodTimer": 0,
+     "standardFoodTime": 1600,
+     "asleep": false,
+     "running": false,
+     "sprinting": false,
+     "moving": false,
+     "worldAge": 2.697726249694824,
+     "mult": 4.802700042724609,
+     "wall": 1789096768803,
+     "_probe": {
+      "cmd": "stats.get",
+      "args": "admin",
+      "wall": 152.042,
+      "wall_done": 153.051
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getInventoryWeight": 2.1125001907348633,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false,
+      "getUsername": "admin"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.7003917694091797,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername",
+      "wall": 153.051,
+      "wall_done": 153.808
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.7066078186035156,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "pzt_ss_client:string",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 153.808,
+      "wall_done": 155.068
+     }
+    },
+    "config_key": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "SimpleStatusConfig"
+     ],
+     "worldAge": 2.715489387512207,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "pzt_ss_client:string",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 1,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin SimpleStatusConfig",
+      "wall": 155.068,
+      "wall_done": 157.082
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "pzt_ss_client:string",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "pzt_ss_client",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "pzt_ss_client"
+     ],
+     "wall": 153.808,
+     "error": null
+    }
+   },
+   "wall_done": 157.082
+  }
+ ],
+ "steps": [
+  {
+   "step": "t_action1",
+   "cmd": "nutrition.set",
+   "args": "admin calories 2000",
+   "side": "server",
+   "wall_before": 85.238,
+   "wall_after": 86.247,
+   "took": 1.009,
+   "ack": {
+    "calories": 2000,
+    "carbs": -0.7778388857841492,
+    "lipids": -0.2511308193206787,
+    "proteins": -0.19112609326839447,
+    "weight": 80,
+    "hunger": 0.002007538452744484,
+    "thirst": 0.0016746181063354015,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null,
+   "stamped_last_write": 86.247
+  },
+  {
+   "step": "t_action2",
+   "cmd": "nutrition.set",
+   "args": "admin carbs 800",
+   "side": "server",
+   "wall_before": 101.189,
+   "wall_after": 103.2,
+   "took": 2.011,
+   "ack": {
+    "calories": 1995.6455078125,
+    "carbs": 800,
+    "lipids": -0.5580922365188599,
+    "proteins": -0.4247429072856903,
+    "weight": 80.00176377531352,
+    "hunger": 0.004606748465448618,
+    "thirst": 0.0038477974012494087,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null,
+   "stamped_last_write": 103.2
+  },
+  {
+   "step": "plant_server",
+   "cmd": "moddata.set",
+   "args": "admin pzt_ss_server 1",
+   "side": "server",
+   "wall_before": 119.91,
+   "wall_after": 121.169,
+   "took": 1.259,
+   "ack": {
+    "user": "admin",
+    "key": "pzt_ss_server",
+    "value": "1",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "pzt_ss_server",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.555659294128418
+   },
+   "serverWorldAge": 2.555659294128418,
+   "gameMinute": null,
+   "worldAgeMinutes": 153.3396
+  },
+  {
+   "step": "plant_client",
+   "cmd": "moddata.set",
+   "args": "pzt_ss_client 1",
+   "side": "admin",
+   "wall_before": 123.189,
+   "wall_after": 123.445,
+   "took": 0.256,
+   "ack": "set pzt_ss_client",
+   "ack_shape": "str"
+  },
+  {
+   "step": "t_action3",
+   "cmd": "moddata.transmit",
+   "args": "",
+   "side": "admin",
+   "wall_before": 125.213,
+   "wall_after": 125.471,
+   "took": 0.258,
+   "ack": "transmitted",
+   "ack_shape": "str"
+  },
+  {
+   "step": "pin_heat",
+   "cmd": "item.set",
+   "args": "admin Base.Steak heat 2.0",
+   "side": "server",
+   "wall_before": 137.212,
+   "wall_after": 138.726,
+   "took": 1.514,
+   "ack": {
+    "fullType": "Base.Steak",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.4000000059604645,
+    "baseHunger": -0.4000000059604645,
+    "calories": 220,
+    "carbs": 0,
+    "lipids": 9.350000381469727,
+    "proteins": 31.6200008392334,
+    "id": 2044894080,
+    "uses": 0.4000000059604645,
+    "fresh": true,
+    "offAge": 2,
+    "offAgeMax": 4,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 2,
+    "minutesToCook": 50,
+    "minutesToBurn": 70,
+    "thirstChange": 0,
+    "hungerChange": -0.4000000059604645,
+    "isCookable": true,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Base.Steak",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.4000000059604645,
+     "baseHunger": -0.4000000059604645,
+     "calories": 220,
+     "carbs": 0,
+     "lipids": 9.350000381469727,
+     "proteins": 31.6200008392334,
+     "id": 2044894080,
+     "uses": 0.4000000059604645,
+     "fresh": true,
+     "offAge": 2,
+     "offAgeMax": 4,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 50,
+     "minutesToBurn": 70,
+     "thirstChange": 0,
+     "hungerChange": -0.4000000059604645,
+     "isCookable": true,
+     "actualWeight": 0.30000001192092896,
+     "weight": 0.30000001192092896,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "requested": 2,
+    "field": "heat",
+    "gameMinute": 38,
+    "serverWorldAge": 2.6333351135253906
+   },
+   "serverWorldAge": 2.6333351135253906,
+   "gameMinute": 38,
+   "worldAgeMinutes": 158.0001
+  }
+ ],
+ "phase2": [
+  {
+   "tag": "p2a_baseline",
+   "wall": 119.908,
+   "note": "before anything is planted; SimpleStatusConfig expected absent on both sides (its seven writers are UI-input only)",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 5,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [],
+    "wall": 119.143,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [],
+    "wall": 119.651,
+    "error": null
+   },
+   "server_only": [],
+   "client_only": [
+    "hotbar"
+   ],
+   "identical": false
+  },
+  {
+   "tag": "p2c_after_server_plant",
+   "wall": 123.186,
+   "note": "the server now holds a key the client's copy does not -- the difference set the wipe needs, which vanilla alone never provides (client 5 keys vs server 4)",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 5,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [],
+    "wall": 121.171,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 5,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "pzt_ss_server:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "pzt_ss_server",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_server"
+    ],
+    "wall": 121.677,
+    "error": null
+   },
+   "server_only": [
+    "pzt_ss_server"
+   ],
+   "client_only": [
+    "hotbar"
+   ],
+   "identical": false
+  },
+  {
+   "tag": "p2e_after_client_plant",
+   "wall": 125.211,
+   "note": "the client's own write has not crossed (S6); the server is unchanged",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "pzt_ss_client:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "pzt_ss_client",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_client"
+    ],
+    "wall": 123.447,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 5,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "pzt_ss_server:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "pzt_ss_server",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_server"
+    ],
+    "wall": 123.953,
+    "error": null
+   },
+   "server_only": [
+    "pzt_ss_server"
+   ],
+   "client_only": [
+    "hotbar",
+    "pzt_ss_client"
+   ],
+   "identical": false
+  },
+  {
+   "tag": "p2g0_after_transmit",
+   "wall": 127.243,
+   "note": "immediately after transmitModData(): the prediction is that the server's census becomes exactly the client's -- pzt_ss_client arrives and pzt_ss_server is GONE (KahluaTableImpl.load @5-@6 L333 wipes before it rawsets)",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "pzt_ss_client:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "pzt_ss_client",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_client"
+    ],
+    "wall": 125.474,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "pzt_ss_client:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "pzt_ss_client",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_client"
+    ],
+    "wall": 125.979,
+    "error": null
+   },
+   "server_only": [],
+   "client_only": [],
+   "identical": true
+  },
+  {
+   "tag": "p2g3_after_transmit_3s",
+   "wall": 131.265,
+   "note": "and again one push window later",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "pzt_ss_client:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "pzt_ss_client",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_client"
+    ],
+    "wall": 130.245,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "pzt_ss_client:string",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "pzt_ss_client",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "pzt_ss_client"
+    ],
+    "wall": 130.507,
+    "error": null
+   },
+   "server_only": [],
+   "client_only": [],
+   "identical": true
+  }
+ ],
+ "appendix": {
+  "spawn": {
+   "absent_ok": true,
+   "absent_reply": "Item Base.FruitSaladClay Added in admin's inventory.",
+   "present_ok": true,
+   "present_reply": "",
+   "note": "RCON, not a bus command: a CLIENT AddItem is invisible to the server (spike S6)"
+  },
+  "spawn_wait": [
+   {
+    "attempt": 1,
+    "wall": 134.162,
+    "resolved": "admin/Base.Steak #2044894080"
+   }
+  ],
+  "A1": {
+   "question": "does a vanilla food with NO ItemName.json entry read getDisplayName() == getFullType(), and does getActualWeightUnmodded() take its guarded arm?",
+   "hypotheses": [
+    "1 no translation entry",
+    "2 mod translations not consulted on a dedicated server",
+    "3 LTP ships a B41-layout ItemName_EN.txt 42.20.4 may never load -- NOT testable in this session (a mod-tree write)"
+   ],
+   "reads": [
+    {
+     "side": "client",
+     "type": "Base.FruitSaladClay",
+     "reply": {
+      "side": "client",
+      "subject": "item",
+      "id": "admin/Base.FruitSaladClay",
+      "resolved": "admin/Base.FruitSaladClay #2128104881",
+      "fields": {
+       "getDisplayName": "Base.FruitSaladClay",
+       "getFullType": "Base.FruitSaladClay",
+       "getActualWeight": 0.7000000476837158,
+       "getActualWeightUnmodded": 0,
+       "isCustomWeight": false,
+       "getWeight": 0.7000000476837158
+      },
+      "missing": {},
+      "nils": {},
+      "worldAge": 2.6153030395507812,
+      "count": 6,
+      "_probe": {
+       "cmd": "witness.fields",
+       "args": "item admin/Base.FruitSaladClay getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+       "wall": 134.162,
+       "wall_done": 134.669
+      }
+     },
+     "count_ok": true,
+     "resolved": "admin/Base.FruitSaladClay #2128104881",
+     "fields": {
+      "getDisplayName": "Base.FruitSaladClay",
+      "getFullType": "Base.FruitSaladClay",
+      "getActualWeight": 0.7000000476837158,
+      "getActualWeightUnmodded": 0,
+      "isCustomWeight": false,
+      "getWeight": 0.7000000476837158
+     },
+     "missing": {},
+     "wall": 134.162
+    },
+    {
+     "side": "server",
+     "type": "Base.FruitSaladClay",
+     "reply": {
+      "side": "server",
+      "subject": "item",
+      "id": "admin/Base.FruitSaladClay",
+      "resolved": "admin/Base.FruitSaladClay #2128104881",
+      "fields": {
+       "getDisplayName": "Base.FruitSaladClay",
+       "getFullType": "Base.FruitSaladClay",
+       "getActualWeight": 0.7000000476837158,
+       "getActualWeightUnmodded": 0,
+       "isCustomWeight": false,
+       "getWeight": 0.7000000476837158
+      },
+      "missing": {},
+      "nils": {},
+      "worldAge": 2.616922378540039,
+      "count": 6,
+      "_probe": {
+       "cmd": "witness.fields",
+       "args": "item admin/Base.FruitSaladClay getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+       "wall": 134.669,
+       "wall_done": 134.928
+      }
+     },
+     "count_ok": true,
+     "resolved": "admin/Base.FruitSaladClay #2128104881",
+     "fields": {
+      "getDisplayName": "Base.FruitSaladClay",
+      "getFullType": "Base.FruitSaladClay",
+      "getActualWeight": 0.7000000476837158,
+      "getActualWeightUnmodded": 0,
+      "isCustomWeight": false,
+      "getWeight": 0.7000000476837158
+     },
+     "missing": {},
+     "wall": 134.669
+    },
+    {
+     "side": "client",
+     "type": "Base.Steak",
+     "reply": {
+      "side": "client",
+      "subject": "item",
+      "id": "admin/Base.Steak",
+      "resolved": "admin/Base.Steak #2044894080",
+      "fields": {
+       "getDisplayName": "Steak",
+       "getFullType": "Base.Steak",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0.30000001192092896,
+       "isCustomWeight": false,
+       "getWeight": 0.30000001192092896
+      },
+      "missing": {},
+      "nils": {},
+      "worldAge": 2.6175336837768555,
+      "count": 6,
+      "_probe": {
+       "cmd": "witness.fields",
+       "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+       "wall": 134.928,
+       "wall_done": 135.191
+      }
+     },
+     "count_ok": true,
+     "resolved": "admin/Base.Steak #2044894080",
+     "fields": {
+      "getDisplayName": "Steak",
+      "getFullType": "Base.Steak",
+      "getActualWeight": 0.30000001192092896,
+      "getActualWeightUnmodded": 0.30000001192092896,
+      "isCustomWeight": false,
+      "getWeight": 0.30000001192092896
+     },
+     "missing": {},
+     "wall": 134.928
+    },
+    {
+     "side": "server",
+     "type": "Base.Steak",
+     "reply": {
+      "side": "server",
+      "subject": "item",
+      "id": "admin/Base.Steak",
+      "resolved": "admin/Base.Steak #2044894080",
+      "fields": {
+       "getDisplayName": "Steak",
+       "getFullType": "Base.Steak",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0.30000001192092896,
+       "isCustomWeight": false,
+       "getWeight": 0.30000001192092896
+      },
+      "missing": {},
+      "nils": {},
+      "worldAge": 2.6266822814941406,
+      "count": 6,
+      "_probe": {
+       "cmd": "witness.fields",
+       "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+       "wall": 135.191,
+       "wall_done": 137.203
+      }
+     },
+     "count_ok": true,
+     "resolved": "admin/Base.Steak #2044894080",
+     "fields": {
+      "getDisplayName": "Steak",
+      "getFullType": "Base.Steak",
+      "getActualWeight": 0.30000001192092896,
+      "getActualWeightUnmodded": 0.30000001192092896,
+      "isCustomWeight": false,
+      "getWeight": 0.30000001192092896
+     },
+     "missing": {},
+     "wall": 135.191
+    }
+   ]
+  },
+  "A2": {
+   "question": "does the client's copy of a server-spawned, server-pinned item tick?",
+   "window_s": 10.0,
+   "client_read_1": {
+    "side": "client",
+    "type": "Base.Steak",
+    "reply": {
+     "side": "client",
+     "subject": "item",
+     "id": "admin/Base.Steak",
+     "resolved": "admin/Base.Steak #2044894080",
+     "fields": {
+      "getHeat": 2,
+      "getCookingTime": 0,
+      "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.635456085205078,
+     "count": 3,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+      "wall": 138.729,
+      "wall_done": 138.984
+     }
+    },
+    "count_ok": true,
+    "resolved": "admin/Base.Steak #2044894080",
+    "fields": {
+     "getHeat": 2,
+     "getCookingTime": 0,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+    },
+    "missing": {},
+    "wall": 138.729
+   },
+   "client_read_2": {
+    "side": "client",
+    "type": "Base.Steak",
+    "reply": {
+     "side": "client",
+     "subject": "item",
+     "id": "admin/Base.Steak",
+     "resolved": "admin/Base.Steak #2044894080",
+     "fields": {
+      "getHeat": 1.697029948234558,
+      "getCookingTime": 0.1182333305478096,
+      "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.6822662353515625,
+     "count": 3,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+      "wall": 149.242,
+      "wall_done": 149.749
+     }
+    },
+    "count_ok": true,
+    "resolved": "admin/Base.Steak #2044894080",
+    "fields": {
+     "getHeat": 1.697029948234558,
+     "getCookingTime": 0.1182333305478096,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+    },
+    "missing": {},
+    "wall": 149.242
+   },
+   "server_read_1": {
+    "side": "server",
+    "type": "Base.Steak",
+    "reply": {
+     "side": "server",
+     "subject": "item",
+     "id": "admin/Base.Steak",
+     "resolved": "admin/Base.Steak #2044894080",
+     "fields": {
+      "getHeat": 2,
+      "getCookingTime": 0,
+      "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.6355552673339844,
+     "count": 3,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+      "wall": 138.984,
+      "wall_done": 139.241
+     }
+    },
+    "count_ok": true,
+    "resolved": "admin/Base.Steak #2044894080",
+    "fields": {
+     "getHeat": 2,
+     "getCookingTime": 0,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+    },
+    "missing": {},
+    "wall": 138.984
+   },
+   "server_read_2": {
+    "side": "server",
+    "type": "Base.Steak",
+    "reply": {
+     "side": "server",
+     "subject": "item",
+     "id": "admin/Base.Steak",
+     "resolved": "admin/Base.Steak #2044894080",
+     "fields": {
+      "getHeat": 1.697029948234558,
+      "getCookingTime": 0.1182333305478096,
+      "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.6835155487060547,
+     "count": 3,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+      "wall": 149.749,
+      "wall_done": 150.008
+     }
+    },
+    "count_ok": true,
+    "resolved": "admin/Base.Steak #2044894080",
+    "fields": {
+     "getHeat": 1.697029948234558,
+     "getCookingTime": 0.1182333305478096,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+    },
+    "missing": {},
+    "wall": 149.749
+   },
+   "client_moved": {
+    "getHeat": {
+     "first": 2,
+     "second": 1.697029948234558,
+     "changed": true
+    },
+    "getCookingTime": {
+     "first": 0,
+     "second": 0.1182333305478096,
+     "changed": true
+    }
+   },
+   "server_moved": {
+    "getHeat": {
+     "first": 2,
+     "second": 1.697029948234558,
+     "changed": true
+    },
+    "getCookingTime": {
+     "first": 0,
+     "second": 0.1182333305478096,
+     "changed": true
+    }
+   },
+   "container": {
+    "client_present": true,
+    "server_present": true,
+    "client_stable": true,
+    "server_stable": true,
+    "client_type_token": "ItemContainer:[type:none,",
+    "server_type_token": "ItemContainer:[type:none,",
+    "reading": "PRESENCE and within-side stability only. ItemContainer.toString() is getType() + String.valueOf(getParent()) (@0-@16 L3513) and the parent's IsoObject.toString() ends in an identity hash (@42 L5982), so the full strings must NEVER be compared across sides."
+   },
+   "reading": "client values identical while the server's moved = the client copy does not tick, extending pass 1's freeze to a server-PINNED item. Client values moved = the copy ticks and pass 1's freeze was a push-timing artefact."
+  }
+ },
+ "notes": [
+  "moddata_keys is a DISPLAY string: the ` | ` joins three probes for the reader and is not a bus token. They are sent separately. The global-scoped one is NON-DISCRIMINATING in both directions -- ModData.getOrCreate CREATES the table for the census itself, and the mod's server half only ever created it empty -- so it is metadata, not a control."
+ ],
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "client",
+   "cmd": "text.get",
+   "args": "IGUI_SS_BARTITLE_HAPPY",
+   "expect": "\"Happiness\"",
+   "ok": true,
+   "got": {
+    "key": "IGUI_SS_BARTITLE_HAPPY",
+    "text": "Happiness",
+    "miss": false,
+    "side": "client"
+   }
+  }
+ ],
+ "mod_log_lines_server": [
+  "LOG  : Mod          f:0 st:813,954,008> loading simpleStatus",
+  "LOG  : Mod          f:0 st:813,954,010> mod \"simpleStatus\" overrides media/lua/shared/translate/ch/ig_ui.json",
+  "LOG  : Mod          f:0 st:813,954,010> mod \"simpleStatus\" overrides media/lua/shared/translate/cn/ig_ui.json",
+  "LOG  : Mod          f:0 st:813,954,010> mod \"simpleStatus\" overrides media/lua/shared/translate/de/ig_ui.json",
+  "LOG  : Mod          f:0 st:813,954,010> mod \"simpleStatus\" overrides media/lua/shared/translate/en/ig_ui.json"
+ ],
+ "mod_log_lines": {
+  "show": {
+   "cite": "ss.main.lua:62",
+   "hits": [
+    {
+     "line": 3019,
+     "text": "LOG  : Lua          f:0 st:0> [SimpleStatus] Showing status bar for player: admin"
+    }
+   ]
+  },
+  "load": {
+   "cite": "ss.main.lua:13",
+   "hits": [
+    {
+     "line": 3020,
+     "text": "LOG  : Lua          f:0 st:0> [SimpleStatus] Loading config for player: admin"
+    }
+   ]
+  },
+  "built": {
+   "cite": "ss.main.lua:79",
+   "hits": [
+    {
+     "line": 3021,
+     "text": "LOG  : Lua          f:0 st:0> [SimpleStatus] Status bar created for player: admin"
+    }
+   ]
+  }
+ },
+ "mod_log_reading": {
+  "all_three": true,
+  "got": {
+   "show": true,
+   "load": true,
+   "built": true
+  },
+  "rule": "order is :62 -> :13 -> :79. all three = the bar was built; show+load without built = loadPlayerConfig or the bar construction (:73-77) raised; show alone = the raise was at :64-72; built without load is IMPOSSIBLE and means log lines were lost.",
+  "impossible_combination": false
+ },
+ "folder_check": {
+  "server_mods": [
+   "PZTestKit",
+   "simpleStatus"
+  ],
+  "client_mods": [
+   "PZTestKit",
+   "default.txt",
+   "reset-mods-42_00.txt",
+   "simpleStatus"
+  ],
+  "id_folder_present": true,
+  "mod_info_at_id": true,
+  "reading": "metadata, NOT an answer to the rename question: on NTFS 'simpleStatus' and 'SimpleStatus' are the same directory, and no profile can reach mods.install's name-keeping branch (every profile mod carries a non-empty src). docs/testing/profiles.md OQ 6 stays 'first half M, second half C'."
+ },
+ "timeline": [
+  {
+   "t": 75.4,
+   "phase": "session_ready"
+  },
+  {
+   "t": 75.6,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "text.get",
+   "ok": true,
+   "got": "{\"key\": \"IGUI_SS_BARTITLE_HAPPY\", \"text\": \"Happiness\", \"miss\": false, \"side\": \"client\"}"
+  },
+  {
+   "t": 75.6,
+   "phase": "mod_prints",
+   "show": "True",
+   "load": "True",
+   "built": "True"
+  },
+  {
+   "t": 85.2,
+   "phase": "snapshot",
+   "took": 9.6,
+   "tag": "baseline"
+  },
+  {
+   "t": 86.2,
+   "phase": "step",
+   "took": 1.009,
+   "name": "t_action1",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 87.5,
+   "phase": "arrival",
+   "tag": "after_calories_2000",
+   "latency": 0.766
+  },
+  {
+   "t": 93.6,
+   "phase": "snapshot",
+   "took": 6.07,
+   "tag": "t0"
+  },
+  {
+   "t": 101.2,
+   "phase": "snapshot",
+   "took": 7.59,
+   "tag": "t+3s"
+  },
+  {
+   "t": 103.2,
+   "phase": "step",
+   "took": 2.011,
+   "name": "t_action2",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 104.5,
+   "phase": "arrival",
+   "tag": "after_carbs_800",
+   "latency": 0.765
+  },
+  {
+   "t": 111.1,
+   "phase": "snapshot",
+   "took": 6.58,
+   "tag": "t2+0s"
+  },
+  {
+   "t": 119.1,
+   "phase": "snapshot",
+   "took": 8.08,
+   "tag": "t2+3s"
+  },
+  {
+   "t": 119.9,
+   "phase": "census",
+   "tag": "p2a_baseline",
+   "server": 4,
+   "client": 5
+  },
+  {
+   "t": 121.2,
+   "phase": "step",
+   "took": 1.259,
+   "name": "plant_server",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 123.2,
+   "phase": "census",
+   "tag": "p2c_after_server_plant",
+   "server": 5,
+   "client": 5
+  },
+  {
+   "t": 123.4,
+   "phase": "step",
+   "took": 0.256,
+   "name": "plant_client",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 125.2,
+   "phase": "census",
+   "tag": "p2e_after_client_plant",
+   "server": 5,
+   "client": 6
+  },
+  {
+   "t": 125.5,
+   "phase": "step",
+   "took": 0.258,
+   "name": "t_action3",
+   "cmd": "moddata.transmit"
+  },
+  {
+   "t": 127.2,
+   "phase": "census",
+   "tag": "p2g0_after_transmit",
+   "server": 6,
+   "client": 6
+  },
+  {
+   "t": 131.3,
+   "phase": "census",
+   "tag": "p2g3_after_transmit_3s",
+   "server": 6,
+   "client": 6
+  },
+  {
+   "t": 131.4,
+   "phase": "rcon_additem",
+   "absent": true,
+   "present": true
+  },
+  {
+   "t": 138.7,
+   "phase": "step",
+   "took": 1.514,
+   "name": "pin_heat",
+   "cmd": "item.set"
+  },
+  {
+   "t": 157.1,
+   "phase": "snapshot",
+   "took": 7.07,
+   "tag": "final"
+  },
+  {
+   "t": 159.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 167.8,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "t_action1": {
+  "wall_before": 85.238,
+  "wall_after": 86.247,
+  "ack": {
+   "calories": 2000,
+   "carbs": -0.7778388857841492,
+   "lipids": -0.2511308193206787,
+   "proteins": -0.19112609326839447,
+   "weight": 80,
+   "hunger": 0.002007538452744484,
+   "thirst": 0.0016746181063354015,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)",
+   "incWeight": false,
+   "incWeightLot": false,
+   "decWeight": false
+  }
+ },
+ "arrivals": [
+  {
+   "tag": "after_calories_2000",
+   "key": "calories",
+   "target": 1900.0,
+   "client_before_write": 799.2306518554688,
+   "already_at_target": false,
+   "readings": [
+    {
+     "wall": 86.248,
+     "wall_done": 86.507,
+     "calories": 796.4688720703125
+    },
+    {
+     "wall": 86.507,
+     "wall_done": 87.013,
+     "calories": 796.4688720703125
+    },
+    {
+     "wall": 87.013,
+     "wall_done": 87.523,
+     "calories": 1999.7698974609375
+    }
+   ],
+   "first_seen_wall": 87.013,
+   "write_wall": 86.247,
+   "latency_s": 0.766,
+   "note": "an UPPER bound on arrival: the write's own ack and one client round trip (~0.3-0.8 s each) are inside it, and the poll cannot see a packet that landed between two reads. A lower bound it is not."
+  },
+  {
+   "tag": "after_carbs_800",
+   "key": "carbs",
+   "target": 700.0,
+   "client_before_write": -0.16830335557460785,
+   "already_at_target": false,
+   "readings": [
+    {
+     "wall": 103.202,
+     "wall_done": 103.458,
+     "carbs": -1.7230076789855957
+    },
+    {
+     "wall": 103.458,
+     "wall_done": 103.965,
+     "carbs": -1.7230076789855957
+    },
+    {
+     "wall": 103.965,
+     "wall_done": 104.471,
+     "carbs": 799.9495239257812
+    }
+   ],
+   "first_seen_wall": 103.965,
+   "write_wall": 103.2,
+   "latency_s": 0.765,
+   "note": "an UPPER bound on arrival: the write's own ack and one client round trip (~0.3-0.8 s each) are inside it, and the poll cannot see a packet that landed between two reads. A lower bound it is not."
+  }
+ ],
+ "t_action2": {
+  "wall_before": 101.189,
+  "wall_after": 103.2,
+  "ack": {
+   "calories": 1995.6455078125,
+   "carbs": 800,
+   "lipids": -0.5580922365188599,
+   "proteins": -0.4247429072856903,
+   "weight": 80.00176377531352,
+   "hunger": 0.004606748465448618,
+   "thirst": 0.0038477974012494087,
+   "statsApi": "Stats:get(CharacterStat.HUNGER)",
+   "incWeight": true,
+   "incWeightLot": false,
+   "decWeight": false
+  }
+ },
+ "t_action3": {
+  "wall_before": 125.213,
+  "wall_after": 125.471,
+  "ack": "transmitted"
+ },
+ "wipe_reading": {
+  "planted_on_server": "pzt_ss_server",
+  "planted_on_client": "pzt_ss_client",
+  "server_before_transmit": [
+   "fitnessMod",
+   "fitnessUpTimer",
+   "pzt_ss_server",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "server_after_transmit": [
+   "fitnessMod",
+   "fitnessUpTimer",
+   "hotbar",
+   "pzt_ss_client",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "client_after_transmit": [
+   "fitnessMod",
+   "fitnessUpTimer",
+   "hotbar",
+   "pzt_ss_client",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "server_key_wiped": true,
+  "client_key_arrived": true,
+  "server_census_equals_client": true,
+  "baseline_difference_set": [],
+  "reading": "server_key_wiped TRUE with client_key_arrived TRUE = load() is a WIPE AND REPLACE, not a merge: the receiving side's table is whatever the sender had. server_key_wiped FALSE would make it a merge and falsify Q7 risk 3."
+ },
+ "grades": [
+  {
+   "tag": "baseline",
+   "wall": 75.638,
+   "delta_min": 2.285,
+   "delta_max": 3.049,
+   "since_last_write": null,
+   "graded": true,
+   "graded_reason": "band",
+   "client_read": {
+    "wall": 75.638,
+    "wall_done": 76.146
+   },
+   "server_read": {
+    "wall": 78.431,
+    "wall_done": 78.687
+   },
+   "weight_model": {
+    "gainThreshold": 1000.0,
+    "lossThreshold": 0.0,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "base": 1000.0,
+    "arm": "none",
+    "mult": 0.0,
+    "ratio": 0.0,
+    "predicted_flags": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "rate_per_real_s": 0.0
+   },
+   "macros": {
+    "calories": {
+     "server": 798.3768920898438,
+     "client": 799.2306518554688,
+     "rate_per_real_s": 0.256,
+     "gap_client_minus_server": 0.853759765625,
+     "band": [
+      0.58496,
+      1.036544
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "carbs": {
+     "server": -0.35502830147743225,
+     "client": -0.16830335557460785,
+     "rate_per_real_s": 0.056,
+     "gap_client_minus_server": 0.1867249459028244,
+     "band": [
+      0.12796000000000002,
+      0.22674399999999997
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "lipids": {
+     "server": -0.11462342739105225,
+     "client": -0.054337941110134125,
+     "rate_per_real_s": 0.01808,
+     "gap_client_minus_server": 0.06028548628091812,
+     "band": [
+      0.0413128,
+      0.07320591999999998
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "proteins": {
+     "server": -0.08723551779985428,
+     "client": -0.04135453701019287,
+     "rate_per_real_s": 0.01376,
+     "gap_client_minus_server": 0.04588098078966141,
+     "band": [
+      0.0314416,
+      0.05571423999999999
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "weight": {
+     "server": 80,
+     "client": 80,
+     "rate_per_real_s": 0.0,
+     "arm": "none",
+     "ulp": 7.62939453125e-06,
+     "bit_identical": true,
+     "gap_client_minus_server": 0,
+     "band": [
+      -7.62939453125e-06,
+      7.62939453125e-06
+     ],
+     "in_band": true,
+     "residual": 0.0
+    }
+   },
+   "flags": {
+    "server": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "flags_predicted_from_server": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "flags_agree_across_sides": true,
+   "flags_server_match_model": true,
+   "fields": {
+    "getInventoryWeight": {
+     "server": 1.1125000715255737,
+     "client": 1.1125000715255737,
+     "equal": true
+    },
+    "getMaxWeight": {
+     "server": 12,
+     "client": 12,
+     "equal": true
+    },
+    "getUsername": {
+     "server": "admin",
+     "client": "admin",
+     "equal": true
+    },
+    "isDead": {
+     "server": false,
+     "client": false,
+     "equal": true
+    },
+    "isGodMod": {
+     "server": false,
+     "client": false,
+     "equal": true
+    }
+   },
+   "maxWeight_cross_check": {
+    "witness_server": 12,
+    "snapshot_server": 12,
+    "witness_client": 12,
+    "snapshot_client": 12,
+    "server_routes_agree": true,
+    "client_routes_agree": true
+   },
+   "traits_agree_across_sides": true,
+   "traits": {
+    "server": {},
+    "client": {},
+    "serverRoute": "getKnownTraits",
+    "clientRoute": "getKnownTraits"
+   },
+   "worldAge": {
+    "server": 2.366748809814453,
+    "client": 2.3536272048950195
+   }
+  },
+  {
+   "tag": "t0",
+   "wall": 87.525,
+   "delta_min": 1.521,
+   "delta_max": 2.288,
+   "since_last_write": 1.278,
+   "graded": false,
+   "graded_reason": "inside a write's push window (< 1.5s since the last server write) -- an arrival latency reading, not a band test",
+   "client_read": {
+    "wall": 87.525,
+    "wall_done": 88.035
+   },
+   "server_read": {
+    "wall": 89.556,
+    "wall_done": 89.813
+   },
+   "weight_model": {
+    "gainThreshold": 1000.0153684738325,
+    "lossThreshold": 0.0,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "base": 1000.0,
+    "arm": "gain",
+    "mult": 1.0,
+    "ratio": 0.49976324462890626,
+    "predicted_flags": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "rate_per_real_s": 0.00010395075488281249
+   },
+   "macros": {
+    "calories": {
+     "server": 1999.052978515625,
+     "client": 1999.7698974609375,
+     "rate_per_real_s": 0.2560012294779066,
+     "gap_client_minus_server": 0.7169189453125,
+     "band": [
+      0.3893778700358959,
+      0.8417320425233569
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "carbs": {
+     "server": -0.9847724437713623,
+     "client": -0.8281469941139221,
+     "rate_per_real_s": 0.056,
+     "gap_client_minus_server": 0.15662544965744019,
+     "band": [
+      0.085176,
+      0.184128
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "lipids": {
+     "server": -0.3179408013820648,
+     "client": -0.26737314462661743,
+     "rate_per_real_s": 0.01808,
+     "gap_client_minus_server": 0.05056765675544739,
+     "band": [
+      0.027499679999999995,
+      0.05944703999999999
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "proteins": {
+     "server": -0.24197259545326233,
+     "client": -0.20348750054836273,
+     "rate_per_real_s": 0.01376,
+     "gap_client_minus_server": 0.0384850949048996,
+     "band": [
+      0.02092896,
+      0.04524288
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "weight": {
+     "server": 80.00038421184581,
+     "client": 80.00009155273438,
+     "rate_per_real_s": 0.00010395075488281249,
+     "arm": "gain",
+     "ulp": 7.62939453125e-06,
+     "bit_identical": false,
+     "gap_client_minus_server": -0.00029265911143738776,
+     "band": [
+      -0.00034941947658593745,
+      -0.0001504797036455078
+     ],
+     "in_band": true,
+     "residual": 0.0
+    }
+   },
+   "flags": {
+    "server": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "flags_predicted_from_server": {
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "flags_agree_across_sides": true,
+   "flags_server_match_model": true,
+   "fields": {
+    "getInventoryWeight": {
+     "server": 1.1125000715255737,
+     "client": 1.1125000715255737,
+     "equal": true
+    },
+    "getMaxWeight": {
+     "server": 12,
+     "client": 12,
+     "equal": true
+    },
+    "getUsername": {
+     "server": "admin",
+     "client": "admin",
+     "equal": true
+    },
+    "isDead": {
+     "server": false,
+     "client": false,
+     "equal": true
+    },
+    "isGodMod": {
+     "server": false,
+     "client": false,
+     "equal": true
+    }
+   },
+   "maxWeight_cross_check": {
+    "witness_server": 12,
+    "snapshot_server": 12,
+    "witness_client": 12,
+    "snapshot_client": 12,
+    "server_routes_agree": true,
+    "client_routes_agree": true
+   },
+   "traits_agree_across_sides": true,
+   "traits": {
+    "server": {},
+    "client": {},
+    "serverRoute": "getKnownTraits",
+    "clientRoute": "getKnownTraits"
+   },
+   "worldAge": {
+    "server": 2.4167299270629883,
+    "client": 2.4087228775024414
+   }
+  },
+  {
+   "tag": "t+3s",
+   "wall": 93.597,
+   "delta_min": 1.534,
+   "delta_max": 3.557,
+   "since_last_write": 7.35,
+   "graded": true,
+   "graded_reason": "band",
+   "client_read": {
+    "wall": 93.597,
+    "wall_done": 94.108
+   },
+   "server_read": {
+    "wall": 95.642,
+    "wall_done": 97.154
+   },
+   "weight_model": {
+    "gainThreshold": 1000.0456708987258,
+    "lossThreshold": 0.0,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "base": 1000.0,
+    "arm": "gain",
+    "mult": 1.0,
+    "ratio": 0.4992957763671875,
+    "predicted_flags": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "rate_per_real_s": 0.00010385352148437499
+   },
+   "macros": {
+    "calories": {
+     "server": 1997.18310546875,
+     "client": 1998.2333984375,
+     "rate_per_real_s": 0.2560036536718981,
+     "gap_client_minus_server": 1.05029296875,
+     "band": [
+      0.3927096047326917,
+      1.1666086497828396
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "carbs": {
+     "server": -1.3930763006210327,
+     "client": -1.16377592086792,
+     "rate_per_real_s": 0.056,
+     "gap_client_minus_server": 0.2293003797531128,
+     "band": [
+      0.08590400000000001,
+      0.25519200000000003
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "lipids": {
+     "server": -0.449764609336853,
+     "client": -0.37573328614234924,
+     "rate_per_real_s": 0.01808,
+     "gap_client_minus_server": 0.07403132319450378,
+     "band": [
+      0.027734719999999997,
+      0.08239056
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "proteins": {
+     "server": -0.3422987163066864,
+     "client": -0.28595632314682007,
+     "rate_per_real_s": 0.01376,
+     "gap_client_minus_server": 0.05634239315986633,
+     "band": [
+      0.02110784,
+      0.06270432000000001
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "weight": {
+     "server": 80.00114177246815,
+     "client": 80.00071716308594,
+     "rate_per_real_s": 0.00010385352148437499,
+     "arm": "gain",
+     "ulp": 7.62939453125e-06,
+     "bit_identical": false,
+     "gap_client_minus_server": -0.0004246093822075636,
+     "band": [
+      -0.0004808898919355469,
+      -0.00015168190742578124
+     ],
+     "in_band": true,
+     "residual": 0.0
+    }
+   },
+   "flags": {
+    "server": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "flags_predicted_from_server": {
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "flags_agree_across_sides": true,
+   "flags_server_match_model": true,
+   "fields": {
+    "getInventoryWeight": {
+     "server": 1.1125000715255737,
+     "client": 1.1125000715255737,
+     "equal": true
+    },
+    "getMaxWeight": {
+     "server": 12,
+     "client": 12,
+     "equal": true
+    },
+    "getUsername": {
+     "server": "admin",
+     "client": "admin",
+     "equal": true
+    },
+    "isDead": {
+     "server": false,
+     "client": false,
+     "equal": true
+    },
+    "isGodMod": {
+     "server": false,
+     "client": false,
+     "equal": true
+    }
+   },
+   "maxWeight_cross_check": {
+    "witness_server": 12,
+    "snapshot_server": 12,
+    "witness_client": 12,
+    "snapshot_client": 12,
+    "server_routes_agree": true,
+    "client_routes_agree": true
+   },
+   "traits_agree_across_sides": true,
+   "traits": {
+    "server": {},
+    "client": {},
+    "serverRoute": "getKnownTraits",
+    "clientRoute": "getKnownTraits"
+   },
+   "worldAge": {
+    "server": 2.449130058288574,
+    "client": 2.435211181640625
+   }
+  },
+  {
+   "tag": "t2+0s",
+   "wall": 104.475,
+   "delta_min": 1.524,
+   "delta_max": 2.79,
+   "since_last_write": 1.275,
+   "graded": false,
+   "graded_reason": "inside a write's push window (< 1.5s since the last server write) -- an arrival latency reading, not a band test",
+   "client_read": {
+    "wall": 104.475,
+    "wall_done": 104.982
+   },
+   "server_read": {
+    "wall": 106.506,
+    "wall_done": 107.265
+   },
+   "weight_model": {
+    "gainThreshold": 1000.1202984400879,
+    "lossThreshold": 0.0,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "base": 1000.0,
+    "arm": "gain",
+    "mult": 3.0,
+    "ratio": 0.498655029296875,
+    "predicted_flags": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    },
+    "rate_per_real_s": 0.00031116073828125
+   },
+   "macros": {
+    "calories": {
+     "server": 1994.6201171875,
+     "client": 1995.414794921875,
+     "rate_per_real_s": 0.25600962387520704,
+     "gap_client_minus_server": 0.794677734375,
+     "band": [
+      0.3901586667858155,
+      0.9702764744870347
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "carbs": {
+     "server": 799.7754516601562,
+     "client": 799.9495239257812,
+     "rate_per_real_s": 0.056,
+     "gap_client_minus_server": 0.174072265625,
+     "band": [
+      0.085344,
+      0.21224
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "lipids": {
+     "server": -0.6303383708000183,
+     "client": -0.574343204498291,
+     "rate_per_real_s": 0.01808,
+     "gap_client_minus_server": 0.055995166301727295,
+     "band": [
+      0.02755392,
+      0.06852319999999999
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "proteins": {
+     "server": -0.4797268807888031,
+     "client": -0.4371109902858734,
+     "rate_per_real_s": 0.01376,
+     "gap_client_minus_server": 0.04261589050292969,
+     "band": [
+      0.02097024,
+      0.0521504
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "weight": {
+     "server": 80.0030074610022,
+     "client": 80.00204467773438,
+     "rate_per_real_s": 0.00031116073828125,
+     "arm": "gain",
+     "ulp": 7.62939453125e-06,
+     "bit_identical": false,
+     "gap_client_minus_server": -0.0009627832678233972,
+     "band": [
+      -0.0011869285926171874,
+      -0.00046657957060937497
+     ],
+     "in_band": true,
+     "residual": 0.0
+    }
+   },
+   "flags": {
+    "server": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    }
+   },
+   "flags_predicted_from_server": {
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false
+   },
+   "flags_agree_across_sides": true,
+   "flags_server_match_model": true,
+   "fields": {
+    "getInventoryWeight": {
+     "server": 1.1125000715255737,
+     "client": 1.1125000715255737,
+     "equal": true
+    },
+    "getMaxWeight": {
+     "server": 12,
+     "client": 12,
+     "equal": true
+    },
+    "getUsername": {
+     "server": "admin",
+     "client": "admin",
+     "equal": true
+    },
+    "isDead": {
+     "server": false,
+     "client": false,
+     "equal": true
+    },
+    "isGodMod": {
+     "server": false,
+     "client": false,
+     "equal": true
+    }
+   },
+   "maxWeight_cross_check": {
+    "witness_server": 12,
+    "snapshot_server": 12,
+    "witness_client": 12,
+    "snapshot_client": 12,
+    "server_routes_agree": true,
+    "client_routes_agree": true
+   },
+   "traits_agree_across_sides": true,
+   "traits": {
+    "server": {},
+    "client": {},
+    "serverRoute": "getKnownTraits",
+    "clientRoute": "getKnownTraits"
+   },
+   "worldAge": {
+    "server": 2.4935169219970703,
+    "client": 2.484119415283203
+   }
+  },
+  {
+   "tag": "t2+3s",
+   "wall": 111.054,
+   "delta_min": 1.532,
+   "delta_max": 4.052,
+   "since_last_write": 7.854,
+   "graded": true,
+   "graded_reason": "band",
+   "client_read": {
+    "wall": 111.054,
+    "wall_done": 111.563
+   },
+   "server_read": {
+    "wall": 113.095,
+    "wall_done": 115.106
+   },
+   "weight_model": {
+    "gainThreshold": 1000.2196641991759,
+    "lossThreshold": 0.0,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "base": 1000.0,
+    "arm": "gain",
+    "mult": 3.0,
+    "ratio": 0.49814236450195315,
+    "predicted_flags": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    },
+    "rate_per_real_s": 0.00031084083544921876
+   },
+   "macros": {
+    "calories": {
+     "server": 1992.5694580078125,
+     "client": 1993.6204833984375,
+     "rate_per_real_s": 0.2560175731359341,
+     "gap_client_minus_server": 1.051025390625,
+     "band": [
+      0.392218922044251,
+      1.293400779482739
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "carbs": {
+     "server": 799.3273315429688,
+     "client": 799.5572509765625,
+     "rate_per_real_s": 0.056,
+     "gap_client_minus_server": 0.22991943359375,
+     "band": [
+      0.08579200000000001,
+      0.282912
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "lipids": {
+     "server": -0.7747547030448914,
+     "client": -0.7007291913032532,
+     "rate_per_real_s": 0.01808,
+     "gap_client_minus_server": 0.07402551174163818,
+     "band": [
+      0.027698559999999997,
+      0.09134015999999999
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "proteins": {
+     "server": -0.5896369814872742,
+     "client": -0.5332988500595093,
+     "rate_per_real_s": 0.01376,
+     "gap_client_minus_server": 0.05633813142776489,
+     "band": [
+      0.02108032,
+      0.06951552
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "weight": {
+     "server": 80.0054916049794,
+     "client": 80.00421905517578,
+     "rate_per_real_s": 0.00031084083544921876,
+     "arm": "gain",
+     "ulp": 7.62939453125e-06,
+     "bit_identical": false,
+     "gap_client_minus_server": -0.0012725498036161298,
+     "band": [
+      -0.001577997295220703,
+      -0.00046857876537695315
+     ],
+     "in_band": true,
+     "residual": 0.0
+    }
+   },
+   "flags": {
+    "server": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    }
+   },
+   "flags_predicted_from_server": {
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false
+   },
+   "flags_agree_across_sides": true,
+   "flags_server_match_model": true,
+   "fields": {
+    "getInventoryWeight": {
+     "server": 1.1125000715255737,
+     "client": 1.1125000715255737,
+     "equal": true
+    },
+    "getMaxWeight": {
+     "server": 12,
+     "client": 12,
+     "equal": true
+    },
+    "getUsername": {
+     "server": "admin",
+     "client": "admin",
+     "equal": true
+    },
+    "isDead": {
+     "server": false,
+     "client": false,
+     "equal": true
+    },
+    "isGodMod": {
+     "server": false,
+     "client": false,
+     "equal": true
+    }
+   },
+   "maxWeight_cross_check": {
+    "witness_server": 12,
+    "snapshot_server": 12,
+    "witness_client": 12,
+    "snapshot_client": 12,
+    "server_routes_agree": true,
+    "client_routes_agree": true
+   },
+   "traits_agree_across_sides": true,
+   "traits": {
+    "server": {},
+    "client": {},
+    "serverRoute": "getKnownTraits",
+    "clientRoute": "getKnownTraits"
+   },
+   "worldAge": {
+    "server": 2.529020309448242,
+    "client": 2.5131149291992188
+   }
+  },
+  {
+   "tag": "final",
+   "wall": 150.008,
+   "delta_min": 1.273,
+   "delta_max": 3.043,
+   "since_last_write": 46.808,
+   "graded": true,
+   "graded_reason": "band",
+   "client_read": {
+    "wall": 150.008,
+    "wall_done": 150.769
+   },
+   "server_read": {
+    "wall": 152.042,
+    "wall_done": 153.051
+   },
+   "weight_model": {
+    "gainThreshold": 1000.6904431562725,
+    "lossThreshold": 0.0,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "base": 1000.0,
+    "arm": "gain",
+    "mult": 3.0,
+    "ratio": 0.4957052917480469,
+    "predicted_flags": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    },
+    "rate_per_real_s": 0.00030932010205078126
+   },
+   "macros": {
+    "calories": {
+     "server": 1982.8211669921875,
+     "client": 1983.617431640625,
+     "rate_per_real_s": 0.2560552354525018,
+     "gap_client_minus_server": 0.7962646484375,
+     "band": [
+      0.32595831473103476,
+      1.035231316934465
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "carbs": {
+     "server": 797.1956176757812,
+     "client": 797.3696899414062,
+     "rate_per_real_s": 0.056,
+     "gap_client_minus_server": 0.174072265625,
+     "band": [
+      0.07128799999999999,
+      0.22640800000000003
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "lipids": {
+     "server": -1.4610061645507812,
+     "client": -1.4050037860870361,
+     "rate_per_real_s": 0.01808,
+     "gap_client_minus_server": 0.05600237846374512,
+     "band": [
+      0.023015839999999996,
+      0.07309744
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "proteins": {
+     "server": -1.111916422843933,
+     "client": -1.0692952871322632,
+     "rate_per_real_s": 0.01376,
+     "gap_client_minus_server": 0.04262113571166992,
+     "band": [
+      0.017516479999999997,
+      0.05563168
+     ],
+     "in_band": true,
+     "residual": 0.0
+    },
+    "weight": {
+     "server": 80.01726107890681,
+     "client": 80.01630401611328,
+     "rate_per_real_s": 0.00030932010205078126,
+     "arm": "gain",
+     "ulp": 7.62939453125e-06,
+     "bit_identical": false,
+     "gap_client_minus_server": -0.0009570627935318043,
+     "band": [
+      -0.0012582105671225586,
+      -0.0003861350953793945
+     ],
+     "in_band": true,
+     "residual": 0.0
+    }
+   },
+   "flags": {
+    "server": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": true,
+     "incWeightLot": true,
+     "decWeight": false
+    }
+   },
+   "flags_predicted_from_server": {
+    "incWeight": true,
+    "incWeightLot": true,
+    "decWeight": false
+   },
+   "flags_agree_across_sides": true,
+   "flags_server_match_model": true,
+   "fields": {
+    "getInventoryWeight": {
+     "server": 2.1125001907348633,
+     "client": 2.1125001907348633,
+     "equal": true
+    },
+    "getMaxWeight": {
+     "server": 12,
+     "client": 12,
+     "equal": true
+    },
+    "getUsername": {
+     "server": "admin",
+     "client": "admin",
+     "equal": true
+    },
+    "isDead": {
+     "server": false,
+     "client": false,
+     "equal": true
+    },
+    "isGodMod": {
+     "server": false,
+     "client": false,
+     "equal": true
+    }
+   },
+   "maxWeight_cross_check": {
+    "witness_server": 12,
+    "snapshot_server": 12,
+    "witness_client": 12,
+    "snapshot_client": 12,
+    "server_routes_agree": true,
+    "client_routes_agree": true
+   },
+   "traits_agree_across_sides": true,
+   "traits": {
+    "server": {},
+    "client": {},
+    "serverRoute": "getKnownTraits",
+    "clientRoute": "getKnownTraits"
+   },
+   "worldAge": {
+    "server": 2.697726249694824,
+    "client": 2.6867284774780273
+   }
+  }
+ ],
+ "empirical_slope": {
+  "pairs": [
+   {
+    "from": "t0",
+    "to": "t+3s",
+    "seconds": 6.086,
+    "calories_from": 1999.052978515625,
+    "calories_to": 1997.18310546875,
+    "slope_per_real_s": 0.307242
+   },
+   {
+    "from": "t+3s",
+    "to": "t2+0s",
+    "seconds": 10.864,
+    "calories_from": 1997.18310546875,
+    "calories_to": 1994.6201171875,
+    "slope_per_real_s": 0.235916
+   },
+   {
+    "from": "t2+0s",
+    "to": "t2+3s",
+    "seconds": 6.589,
+    "calories_from": 1994.6201171875,
+    "calories_to": 1992.5694580078125,
+    "slope_per_real_s": 0.311225
+   },
+   {
+    "from": "t2+3s",
+    "to": "final",
+    "seconds": 38.947,
+    "calories_from": 1992.5694580078125,
+    "calories_to": 1982.8211669921875,
+    "slope_per_real_s": 0.250296
+   }
+  ],
+  "longest": {
+   "from": "t2+3s",
+   "to": "final",
+   "seconds": 38.947,
+   "calories_from": 1992.5694580078125,
+   "calories_to": 1982.8211669921875,
+   "slope_per_real_s": 0.250296
+  },
+  "derived_r_calories_per_real_s": 0.2560552354525018,
+  "ratio_measured_over_derived": 0.9775,
+  "rule": "grade with the MEASURED slope when the two differ by more than 10 %, and say which was used; the derived one assumes Thermoregulator.getEnergyMultiplier ~= 1, which nothing has measured."
+ },
+ "summary": {
+  "verify_ok": [
+   true
+  ],
+  "mod_prints": {
+   "show": true,
+   "load": true,
+   "built": true
+  },
+  "graded_snapshots": [
+   "baseline",
+   "t+3s",
+   "t2+3s",
+   "final"
+  ],
+  "out_of_band": [
+   {
+    "baseline": []
+   },
+   {
+    "t+3s": []
+   },
+   {
+    "t2+3s": []
+   },
+   {
+    "final": []
+   }
+  ],
+  "flags_agree": {
+   "baseline": true,
+   "t0": true,
+   "t+3s": true,
+   "t2+0s": true,
+   "t2+3s": true,
+   "final": true
+  },
+  "traits_agree": {
+   "baseline": true,
+   "t0": true,
+   "t+3s": true,
+   "t2+0s": true,
+   "t2+3s": true,
+   "final": true
+  },
+  "wipe": true,
+  "client_copy_ticked": true
+ },
+ "wall_seconds": 167.8,
+ "server_error_count": 0,
+ "client_lua_error": false
+}

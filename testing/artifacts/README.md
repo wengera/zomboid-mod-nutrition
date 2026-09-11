@@ -176,12 +176,10 @@ separate question, and `exp05-20260910-084109` is the run that shows why: its
 `meta.dataset_commit` names a commit the bytes it read were not in. That is a *do not cite*
 row in its block, not a skew bullet.
 
-**A skew of a third kind landed in slice 10's harness-prep commit
-(`Slice 10: harness — float precision, weight flags, moddata.set, text.get`), and this is it.**
-Until that commit
+**A skew of a third kind landed in `291f977`, and this is it.** Until that commit
 `TK.json` rendered every non-integral number with `string.format("%.6f")`, so **every float on the
 bus — in every artifact listed above — is quantised to six decimals**, and none of them supports a
-bit-for-bit claim. From that commit on, the same branch renders `tostring(v)`, which is
+bit-for-bit claim. From `291f977` on, the same branch renders `tostring(v)`, which is
 Kahlua's `KahluaUtil.numberToString` → `Double.toString(d)` for a non-integral double and therefore
 round-trips exactly; integers are untouched (the `%.0f` branch still takes them first), so no key
 changes name or type, and NaN still answers `null` while ±Inf — previously an unparseable ack —
@@ -191,8 +189,10 @@ were not chosen; the reason is in
 itself. This is a **rendering** change, not a measurement one: it changes the shape of every ack
 the harness emits and therefore of every artifact written after it, while everything written
 before it — `td1`, `td1b` and all seventeen older runs — stays exactly as recorded and stays
-readable at six decimals. **The first artifact written under the new format is slice 10 pass 2's
-own teardown session** (`td2-*`, `teardown-simplestatus.json`, its Contents row below); it is also
+readable at six decimals. **The first artifact written under the new format is `td2-20260910-231655`**
+(`teardown-simplestatus.json`, its Contents row below), whose client-side weight readings are
+exactly float32-representable while its server-side ones are not — the `d2f`/`f2d` narrowing on
+the wire, which six decimals could not have shown; it is also
 the first artifact whose `nutrition.get` / `stats.get` replies carry the three
 `incWeight` / `incWeightLot` / `decWeight` keys that same commit added.
 
