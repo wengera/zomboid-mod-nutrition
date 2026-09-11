@@ -1,0 +1,5 @@
+name=TKX Common Only
+id=TKX_CommonOnly
+description=Slice-12 experiment: a version folder that carries only a mod.info and no media/, with the whole payload under common/. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

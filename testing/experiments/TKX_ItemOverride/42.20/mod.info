@@ -1,0 +1,5 @@
+name=TKX Item Override
+id=TKX_ItemOverride
+description=Slice-12 experiment: script-override shapes (full restatement, partial block, cross-mod collision), three new TKX items, three translation states. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

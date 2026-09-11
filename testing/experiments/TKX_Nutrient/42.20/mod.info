@@ -1,0 +1,5 @@
+name=TKX Nutrient
+id=TKX_Nutrient
+description=Slice-12 experiment: new-nutrient-field routes (player modData without transmit, server-driven transmitModData, per-item modData + syncItemFields). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

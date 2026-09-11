@@ -1,0 +1,4 @@
+ItemName_EN = 
+{
+  ItemName_TKX.FibreBarNamed = "TKX Fibre Bar Named",
+}

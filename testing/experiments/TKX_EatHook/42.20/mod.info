@@ -1,0 +1,5 @@
+name=TKX Eat Hook
+id=TKX_EatHook
+description=Slice-12 experiment: two eat interception points (script OnEat probe, sentinel-guarded ISEatFoodAction.complete wrapper) and a cross-mod script collision on Watermelon. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

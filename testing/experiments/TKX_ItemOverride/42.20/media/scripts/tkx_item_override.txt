@@ -1,0 +1,104 @@
+module Base
+{
+    item Apple
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.2,
+        Icon = Apple,
+        EvolvedRecipe = Cake:16;FruitSalad:8;Pancakes:8;Muffin:8;PieSweet:16;Oatmeal:4;Salad:8,
+        FoodType = Fruits,
+        HungerChange = -16.0,
+        ThirstChange = -7.0,
+        Calories = 400.0,
+        Carbohydrates = 25.13,
+        Lipids = 0.31,
+        Proteins = 0.47,
+        CustomEatSound = EatingFruit,
+        StaticModel = Apple_Ground,
+        WorldStaticModel = Apple_Ground,
+        DaysFresh = 5,
+        DaysTotallyRotten = 8,
+    }
+
+    item Orange
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Calories = 400.0,
+    }
+
+    item Watermelon
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 3.0,
+        Icon = Watermelon,
+        CantEat = true,
+        FoodType = Fruits,
+        DaysFresh = 6,
+        DaysTotallyRotten = 8,
+        HungerChange = -60.0,
+        ThirstChange = -140.0,
+        Calories = 111.0,
+        Carbohydrates = 341.11,
+        Lipids = 6.78,
+        Proteins = 27.56,
+        CustomEatSound = EatingFruit,
+        StaticModel = Watermelon_Ground,
+        WorldStaticModel = Watermelon_Ground,
+        Tooltip = Tooltip_item_Watermelon,
+        EvolvedRecipeName = Watermelon,
+    }
+}
+
+module TKX
+{
+    item FibreBar
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.3,
+        Icon = Apple,
+        HungerChange = -20.0,
+        ThirstChange = 0.0,
+        Calories = 250.0,
+        Carbohydrates = 30.0,
+        Lipids = 5.0,
+        Proteins = 8.0,
+        DaysFresh = 42,
+        DaysTotallyRotten = 84,
+    }
+
+    item FibreBarNamed
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.3,
+        Icon = Apple,
+        HungerChange = -20.0,
+        ThirstChange = 0.0,
+        Calories = 250.0,
+        Carbohydrates = 30.0,
+        Lipids = 5.0,
+        Proteins = 8.0,
+        DaysFresh = 42,
+        DaysTotallyRotten = 84,
+    }
+
+    item FibreBarJson
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.3,
+        Icon = Apple,
+        HungerChange = -20.0,
+        ThirstChange = 0.0,
+        Calories = 250.0,
+        Carbohydrates = 30.0,
+        Lipids = 5.0,
+        Proteins = 8.0,
+        DaysFresh = 42,
+        DaysTotallyRotten = 84,
+    }
+}

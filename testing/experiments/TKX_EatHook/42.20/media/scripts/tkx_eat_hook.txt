@@ -1,0 +1,47 @@
+module Base
+{
+    item Banana
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.2,
+        Icon = Banana,
+        EvolvedRecipe = Bread:16;Cake:16;FruitSalad:8;Pancakes:8;Muffin:8;ConeIcecream:4;PieSweet:16;Oatmeal:4;Sandwich:8,
+        FoodType = Fruits,
+        HungerChange = -16.0,
+        ThirstChange = -5.0,
+        Calories = 105.0,
+        Carbohydrates = 26.95,
+        Lipids = 0.39,
+        Proteins = 1.29,
+        CustomEatSound = EatingMushy,
+        StaticModel = Banana_Ground,
+        WorldStaticModel = Banana_Ground,
+        DaysFresh = 5,
+        DaysTotallyRotten = 7,
+        OnEat = TKX_OnEatProbe,
+    }
+
+    item Watermelon
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 3.0,
+        Icon = Watermelon,
+        CantEat = true,
+        FoodType = Fruits,
+        DaysFresh = 6,
+        DaysTotallyRotten = 8,
+        HungerChange = -60.0,
+        ThirstChange = -140.0,
+        Calories = 777.0,
+        Carbohydrates = 341.11,
+        Lipids = 6.78,
+        Proteins = 27.56,
+        CustomEatSound = EatingFruit,
+        StaticModel = Watermelon_Ground,
+        WorldStaticModel = Watermelon_Ground,
+        Tooltip = Tooltip_item_Watermelon,
+        EvolvedRecipeName = Watermelon,
+    }
+}

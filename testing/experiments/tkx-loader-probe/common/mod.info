@@ -1,0 +1,5 @@
+name=TKX Loader Probe
+id=TKX_LoaderCommon
+description=Slice-12 experiment: loader discriminator. Folder name matches neither id; common/ and 42.20/ collide on one relative Lua path and carry one unique file each. Test profiles only.
+modversion=1.0
+versionMin=42.0.0
