@@ -72,8 +72,8 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   error — only `started` leads to a result doc) and `test.status`
   (`{running, name, clock, due, side, samples}`); server: `time.multiplier`,
   `players`, `nutrition.get <user>`, `nutrition.set <user> <field> <v>`,
-  `stats.set <user> <stat> <v> …`; client: `quit`, `player.stats`,
-  `moddata.set/transmit`, the S6 round-trip witnesses `witness.sync.moddata`
+  `stats.set <user> <stat> <v> …`, `moddata.set <user> <k> <v>` (since 291f977); client: `quit`, `player.stats`,
+  `moddata.set/transmit`, `text.get <IGUI key>` (since 291f977), the S6 round-trip witnesses `witness.sync.moddata`
   (called `witness.moddata` until slice 08 gave that name to the shared
   reflective command below; the `kind` on the wire, the comparison and the
   `witness_moddata_<key>.json` result file are unchanged), `witness.nutrition`
@@ -528,7 +528,7 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     shorter. Two non-finite cases still answer **`null`**, because JSON has no
     literal for either and a bare `nan`/`inf` would lose the whole ack, not one
     number: NaN did before this change and still does; ±Inf produced an
-    unparseable ack before it. Every artifact written **before** this commit
+    unparseable ack before it (C: inferred from Kahlua's own `%f`, not measured). Every artifact written **before** this commit
     stays exactly as recorded and is read at six decimals
     (`../../testing/artifacts/README.md` § Script/artifact skew).
   * **`TK.nutritionSnapshot` gained three read-only keys** —

@@ -65,7 +65,9 @@ function TK.json(v, depth)
     -- string.format, and its `%g` is `StringLib.appendSignificantNumber` + `roundToSignificantNumbers`
     -- (`Math.round(x*10^k)/10^k` on the FRACTIONAL part) -- a reimplementation whose exactness
     -- cannot be established from the bytecode, and there is no way to run Kahlua offline here
-    -- (the jar ships no interpreter entry point and the machine has a JRE, no javac).
+    -- (the jar has one `main` -- se/krka/kahlua/threading/BlockingKahluaThread, a hardcoded
+    -- 100-thread demo of `x = (x or 0) + 1`, not a script runner; 105 classes under se/krka/kahlua;
+    -- the machine has a JRE with no javac and no jshell to drive LuaCompiler.loadstring).
     -- `tostring` is decidable and is exactly what is wanted: `KahluaUtil.tostring` -> `rawTostring`
     -- -> `numberToString` (jar-read, 42.20.4) is
     --     NaN -> "nan";  +/-Inf -> "inf"/"-inf";

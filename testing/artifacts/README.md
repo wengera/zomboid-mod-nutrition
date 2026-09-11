@@ -182,7 +182,7 @@ bus — in every artifact listed above — is quantised to six decimals**, and n
 bit-for-bit claim. From `291f977` on, the same branch renders `tostring(v)`, which is
 Kahlua's `KahluaUtil.numberToString` → `Double.toString(d)` for a non-integral double and therefore
 round-trips exactly; integers are untouched (the `%.0f` branch still takes them first), so no key
-changes name or type, and NaN still answers `null` while ±Inf — previously an unparseable ack —
+changes name or type, and NaN still answers `null` while ±Inf — previously an unparseable ack (C, inferred, not measured) —
 answers `null` too. The three candidate formats the deferral named (`%.9g` / `%.10g` / `%.17g`)
 were not chosen; the reason is in
 [`../../docs/testing/README.md`](../../docs/testing/README.md) § Command bus, beside the format

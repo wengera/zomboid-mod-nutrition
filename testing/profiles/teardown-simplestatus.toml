@@ -6,7 +6,7 @@ description = "PZTestKit + simpleStatus (workshop 2867431511) — teardown 2."
 run = { hold = 20 }
 # Tier (a) since slice 10's harness-prep commit. It was tier (b) when this profile was committed
 # (a42c8b4, `verify = []`), and the reason is worth keeping straight: there was no tier-(a) probe
-# for this subject NONE ON THE SHIPPED BUS as of a42c8b4 — not "by construction", which the first
+# for this subject ON THE SHIPPED BUS as of a42c8b4 — not "by construction", which the first
 # draft of this comment overstated. The mod ships no media/scripts in any of its five media trees
 # (script_item_blocks: 0), so items.count / recipes.craft / item.script have nothing to read; its
 # one modData key, SimpleStatusConfig, is written ONLY by UI input handlers (the seven
