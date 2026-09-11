@@ -1,0 +1,1506 @@
+{
+ "run_id": "x122-20260911-032326",
+ "session": "x122 -- slice 12 session 2: the loader session (common/ vs version dir)",
+ "user": "admin",
+ "profile": {
+  "name": "x12-loader",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x12-loader.toml",
+  "fixture": "default",
+  "description": "PZTestKit + the two loader probes \u2014 slice 12 sessions 2 and 3.",
+  "mods": [
+   "PZTestKit",
+   "TKX_LoaderVersion",
+   "TKX_CommonOnly"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "TKX_LoaderVersion": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\tkx-loader-probe",
+   "TKX_CommonOnly": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_CommonOnly"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "TKX_LoaderVersion",
+  "TKX_CommonOnly"
+ ],
+ "commit": "6afcb40",
+ "harness_lua_commit": "5d9633f",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "run-20260911-031417",
+ "subjects": {
+  "TKX_LoaderVersion": {
+   "source": "testing/experiments/tkx-loader-probe",
+   "commit": "f36a860",
+   "dirty": false,
+   "dirty_note": null,
+   "files": [
+    "42.20/media/lua/shared/TKX_Loader_Version.lua",
+    "42.20/media/lua/shared/TKX_Loader_Which.lua",
+    "42.20/mod.info",
+    "common/media/lua/shared/TKX_Loader_Common.lua",
+    "common/media/lua/shared/TKX_Loader_Which.lua",
+    "common/mod.info"
+   ]
+  },
+  "TKX_CommonOnly": {
+   "source": "testing/experiments/TKX_CommonOnly",
+   "commit": "f36a860",
+   "dirty": false,
+   "dirty_note": null,
+   "files": [
+    "42.20/mod.info",
+    "common/media/lua/shared/TKX_CommonOnly.lua"
+   ]
+  }
+ },
+ "installed_as_note": "harness.install copies a profile source folder to mods/<mod id> (harness.py:29-31), so on disk BOTH probes sit in a folder named exactly the id the server asks for -- mods/TKX_LoaderVersion and mods/TKX_CommonOnly. Mod D's own mod.info description says 'folder name matches neither id', and that is true of the SOURCE folder (tkx-loader-probe) and NOT of the installed one. Nothing here rests on the folder name -- D's discriminator is the two mod.info ids inside it -- but a later reader comparing this artifact against a workshop mod, where the folder name is a numeric item id, must know which of the two names the engine saw.",
+ "reading_order": "L4's control global is sent FIRST (amendment 5), then L2's three, then L3's two; the greps are file reads taken before any of them and cost no bus time. The grading below is written in the plan's L1..L4 order regardless of when each read was taken.",
+ "world_changes": {
+  "restored": "nothing -- this driver writes no world state at all.",
+  "left_in_place": [],
+  "why": "the only bus command sent is `lua.global`, which READS _G and never calls what it finds (PZTestKit_Core.lua:782-784). No RCON, no moddata.set, no sandbox write, no settimespeed.",
+  "lua_reload": "NEVER sent -- and here that is the experiment's integrity, not a precaution: reloading would re-execute BOTH copies of TKX_Loader_Which.lua in the reloader's own order and overwrite the very global L2 reads. The load-order reading exists only in the state the boot left behind."
+ },
+ "steps": [],
+ "notes": [],
+ "phases": {
+  "L1": {
+   "question": "which id does the engine ANNOUNCE for a mod whose two mod.info files carry two different ids?",
+   "counts": {
+    "loading_version": {
+     "server": 1,
+     "client": 2
+    },
+    "loading_common": {
+     "server": 0,
+     "client": 0
+    },
+    "wide_TKX_Loader": {
+     "server": 6,
+     "client": 9
+    },
+    "common_id_mentions": {
+     "server": 0,
+     "client": 0
+    }
+   },
+   "loading_version_hits": {
+    "server": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:828,743,755> loading TKX_LoaderVersion"
+     }
+    ],
+    "client": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_LoaderVersion"
+     }
+    ]
+   },
+   "loading_common_hits": {
+    "server": [],
+    "client": []
+   },
+   "common_id_mentions": {
+    "server": [],
+    "client": []
+   },
+   "wide_hits": {
+    "server": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:828,743,755> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:828,743,756> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 1267,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\common\\media\\AnimSets at WindowsException.translateToIOException"
+     },
+     {
+      "line": 1288,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\common\\media\\actiongroups at WindowsException.translateToIOExcep"
+     },
+     {
+      "line": 1309,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\42.20\\media\\AnimSets at WindowsException.translateToIOException("
+     },
+     {
+      "line": 1330,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\42.20\\media\\actiongroups at WindowsException.translateToIOExcept"
+     }
+    ],
+    "client": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 165,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 300,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\common\\media\\AnimSets at WindowsException.translateToIOEx"
+     },
+     {
+      "line": 330,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\common\\media\\actiongroups at WindowsException.translateTo"
+     },
+     {
+      "line": 360,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\42.20\\media\\AnimSets at WindowsException.translateToIOExc"
+     },
+     {
+      "line": 390,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\42.20\\media\\actiongroups at WindowsException.translateToI"
+     },
+     {
+      "line": 3420,
+      "text": "LOG  : Lua          f:79 st:828,793,368> PZTK: cmd #1 lua.global -> {\"side\":\"client\",\"name\":\"TKX_LoaderVersionTree\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+     }
+    ]
+   },
+   "weakness": "amendment 3: searchForModInfo returns the first mod.info whose id MATCHES the requested id, so with Mods=TKX_LoaderVersion the mod loads under EITHER read order and P12 holds trivially. The discriminating boot -- asking for TKX_LoaderCommon -- is Task 6's second boot, not this one."
+  },
+  "L2": {
+   "question": "when common/ and a version dir ship the SAME relative path, which copy does the engine run -- and did the losing tree run at all?",
+   "reading": {
+    "overrides_lines": {
+     "server": 1,
+     "client": 2,
+     "server_saturated": false,
+     "client_saturated": false
+    },
+    "overrides_tails": {
+     "server": [
+      {
+       "line": 95,
+       "mod": "TKX_LoaderVersion",
+       "tail": "media/lua/shared/tkx_loader_which.lua"
+      }
+     ],
+     "client": [
+      {
+       "line": 85,
+       "mod": "TKX_LoaderVersion",
+       "tail": "media/lua/shared/tkx_loader_which.lua"
+      },
+      {
+       "line": 165,
+       "mod": "TKX_LoaderVersion",
+       "tail": "media/lua/shared/tkx_loader_which.lua"
+      }
+     ]
+    },
+    "empty_tails": {
+     "server": 0,
+     "client": 0
+    },
+    "tail_matches_prediction": true,
+    "TKX_LoaderWhich": {
+     "client": "version",
+     "server": "version"
+    },
+    "TKX_LoaderWhich_sides_agree": true,
+    "TKX_LoaderCommonTree": {
+     "client": true,
+     "server": true,
+     "value": {
+      "client": 1,
+      "server": 1
+     }
+    },
+    "TKX_LoaderVersionTree": {
+     "client": true,
+     "server": true,
+     "value": {
+      "client": 1,
+      "server": 1
+     }
+    },
+    "both_trees_ran": true,
+    "media_trees_walked": {
+     "server": [
+      "42.20",
+      "common"
+     ],
+     "client": [
+      "42.20",
+      "common"
+     ]
+    }
+   },
+   "why_both_unique_globals": "TKX_LoaderWhich alone cannot separate 'common/ lost the collision' from 'common/ never ran'. The two unique globals can: TKX_LoaderCommonTree exists only under common/ and TKX_LoaderVersionTree only under 42.20/, and neither has a counterpart that could override it.",
+   "case_rule": "the loader lower-cases the relative paths it prints (td3-20260911-001948: `media/lua/client/autocook.lua` for a file shipped as AutoCook.lua), so the tail is compared case-INSENSITIVELY."
+  },
+  "L3": {
+   "question": "does a version folder holding a mod.info and NO media/ suppress the mod's common/ tree, or cost it nothing?",
+   "reading": {
+    "boot_check": {
+     "mods_not_found": {
+      "server": [],
+      "client": []
+     },
+     "check_mods_loaded_raised": false,
+     "log_lines": []
+    },
+    "TKX_CommonOnly": {
+     "client": true,
+     "server": true,
+     "type": {
+      "client": "table",
+      "server": "table"
+     },
+     "keyCount": {
+      "client": 1,
+      "server": 1
+     }
+    },
+    "TKX_CommonOnly.version": {
+     "client": true,
+     "server": true,
+     "value": {
+      "client": 1,
+      "server": 1
+     },
+     "failedAt": {
+      "client": null,
+      "server": null
+     }
+    },
+    "media_trees_walked": {
+     "server": [
+      "42.20",
+      "common"
+     ],
+     "client": [
+      "42.20",
+      "common"
+     ]
+    },
+    "wide_hits": {
+     "server": [
+      {
+       "line": 96,
+       "text": "LOG  : Mod          f:0 st:828,743,756> loading TKX_CommonOnly"
+      },
+      {
+       "line": 1351,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\common\\media\\AnimSets at WindowsException.translateToIOException(nu"
+      },
+      {
+       "line": 1372,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\common\\media\\actiongroups at WindowsException.translateToIOExceptio"
+      },
+      {
+       "line": 1393,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nul"
+      },
+      {
+       "line": 1414,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\42.20\\media\\actiongroups at WindowsException.translateToIOException"
+      }
+     ],
+     "client": [
+      {
+       "line": 86,
+       "text": "LOG  : Mod          f:0> loading TKX_CommonOnly"
+      },
+      {
+       "line": 166,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_CommonOnly"
+      },
+      {
+       "line": 420,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\common\\media\\AnimSets at WindowsException.translateToIOExcep"
+      },
+      {
+       "line": 450,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\common\\media\\actiongroups at WindowsException.translateToIOE"
+      },
+      {
+       "line": 480,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\42.20\\media\\AnimSets at WindowsException.translateToIOExcept"
+      },
+      {
+       "line": 510,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\42.20\\media\\actiongroups at WindowsException.translateToIOEx"
+      }
+     ]
+    },
+    "observed": "resolved on both sides"
+   },
+   "not_a_gate": "deliberately NOT a [[verify]] row (the profile says so in its own comment): a measurement must never be a gate, and `resolved: false` here is the opposite finding rather than a failure.",
+   "amendment_9": "if the engine had answered `required mod \"TKX_CommonOnly\" not found`, check_mods_loaded's raise would itself have been the reading; the arm is wired into this driver and `boot_check` above records whether it fired."
+  },
+  "L4": {
+   "question": "is the _G walk itself sound on both sides?",
+   "reading": {
+    "client": {
+     "resolved": true,
+     "value": 1
+    },
+    "server": {
+     "resolved": true,
+     "value": 1
+    },
+    "echo_ok": true
+   },
+   "why_first": "sent before every other global (amendment 5): a `resolved: false` anywhere above is only a finding once this has passed."
+  }
+ },
+ "verdicts": {
+  "L1": {
+   "phase": "L1",
+   "predicted": "P12: the engine announces the id it was asked for -- `loading TKX_LoaderVersion` once on the server and twice on the client console, and NO `loading TKX_LoaderCommon`. The common id is registered into modIdToDir on the way past but is not the mod that loaded.",
+   "falsifier": "a `loading TKX_LoaderCommon` line -- or a version-id count other than 1 server / 2 client -- falsifies it and rewrites mod_lint.info_chain's model. Any OTHER line naming TKX_LoaderCommon is positive evidence for the registration half and lifts the verdict off `trivial`.",
+   "observed": {
+    "loading_version": {
+     "server": 1,
+     "client": 2
+    },
+    "loading_common": {
+     "server": 0,
+     "client": 0
+    },
+    "wide_TKX_Loader": {
+     "server": 6,
+     "client": 9
+    },
+    "common_id_mentions": {
+     "server": 0,
+     "client": 0
+    }
+   },
+   "verdict": "trivial",
+   "wall": 65.469,
+   "grading_rule": "trivial unless the log shows something unexpected (amendment 3)"
+  },
+  "L2": {
+   "phase": "L2",
+   "predicted": "P13: exactly ONE `mod \"TKX_LoaderVersion\" overrides` line on the server with tail `media/lua/shared/tkx_loader_which.lua`, and TWO on the client console (one per Lua state). P14: `TKX_LoaderWhich` == \"version\" on BOTH sides, with TKX_LoaderCommonTree and TKX_LoaderVersionTree BOTH resolving.",
+   "falsifier": "`common` for TKX_LoaderWhich = the version dir LOST the collision (pass order is version-then-common). An unresolved TKX_LoaderCommonTree beside a `version` answer means common/ never ran and the `overrides` line is about VANILLA, not about the common tree -- a different rule entirely. A second tail, or a tail that is not `media/lua/shared/tkx_loader_which.lua`, means the two trees were merged by something other than relative path.",
+   "observed": {
+    "overrides_lines": {
+     "server": 1,
+     "client": 2,
+     "server_saturated": false,
+     "client_saturated": false
+    },
+    "overrides_tails": {
+     "server": [
+      {
+       "line": 95,
+       "mod": "TKX_LoaderVersion",
+       "tail": "media/lua/shared/tkx_loader_which.lua"
+      }
+     ],
+     "client": [
+      {
+       "line": 85,
+       "mod": "TKX_LoaderVersion",
+       "tail": "media/lua/shared/tkx_loader_which.lua"
+      },
+      {
+       "line": 165,
+       "mod": "TKX_LoaderVersion",
+       "tail": "media/lua/shared/tkx_loader_which.lua"
+      }
+     ]
+    },
+    "empty_tails": {
+     "server": 0,
+     "client": 0
+    },
+    "tail_matches_prediction": true,
+    "TKX_LoaderWhich": {
+     "client": "version",
+     "server": "version"
+    },
+    "TKX_LoaderWhich_sides_agree": true,
+    "TKX_LoaderCommonTree": {
+     "client": true,
+     "server": true,
+     "value": {
+      "client": 1,
+      "server": 1
+     }
+    },
+    "TKX_LoaderVersionTree": {
+     "client": true,
+     "server": true,
+     "value": {
+      "client": 1,
+      "server": 1
+     }
+    },
+    "both_trees_ran": true,
+    "media_trees_walked": {
+     "server": [
+      "42.20",
+      "common"
+     ],
+     "client": [
+      "42.20",
+      "common"
+     ]
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 65.47
+  },
+  "L3": {
+   "phase": "L3",
+   "predicted": "P15: `TKX_CommonOnly.version` resolves to 1 on BOTH sides -- pass A maps common/media into activeFileMap and pass B adds nothing, so a version dir that ships only a mod.info costs the mod nothing.",
+   "falsifier": "`resolved: false` (failedAt TKX_CommonOnly = the global never existed), or a `required mod \"TKX_CommonOnly\" not found` line at boot, is the opposite finding and is equally citable.",
+   "observed": {
+    "boot_check": {
+     "mods_not_found": {
+      "server": [],
+      "client": []
+     },
+     "check_mods_loaded_raised": false,
+     "log_lines": []
+    },
+    "TKX_CommonOnly": {
+     "client": true,
+     "server": true,
+     "type": {
+      "client": "table",
+      "server": "table"
+     },
+     "keyCount": {
+      "client": 1,
+      "server": 1
+     }
+    },
+    "TKX_CommonOnly.version": {
+     "client": true,
+     "server": true,
+     "value": {
+      "client": 1,
+      "server": 1
+     },
+     "failedAt": {
+      "client": null,
+      "server": null
+     }
+    },
+    "media_trees_walked": {
+     "server": [
+      "42.20",
+      "common"
+     ],
+     "client": [
+      "42.20",
+      "common"
+     ]
+    },
+    "wide_hits": {
+     "server": [
+      {
+       "line": 96,
+       "text": "LOG  : Mod          f:0 st:828,743,756> loading TKX_CommonOnly"
+      },
+      {
+       "line": 1351,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\common\\media\\AnimSets at WindowsException.translateToIOException(nu"
+      },
+      {
+       "line": 1372,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\common\\media\\actiongroups at WindowsException.translateToIOExceptio"
+      },
+      {
+       "line": 1393,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nul"
+      },
+      {
+       "line": 1414,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\42.20\\media\\actiongroups at WindowsException.translateToIOException"
+      }
+     ],
+     "client": [
+      {
+       "line": 86,
+       "text": "LOG  : Mod          f:0> loading TKX_CommonOnly"
+      },
+      {
+       "line": 166,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_CommonOnly"
+      },
+      {
+       "line": 420,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\common\\media\\AnimSets at WindowsException.translateToIOExcep"
+      },
+      {
+       "line": 450,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\common\\media\\actiongroups at WindowsException.translateToIOE"
+      },
+      {
+       "line": 480,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\42.20\\media\\AnimSets at WindowsException.translateToIOExcept"
+      },
+      {
+       "line": 510,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\42.20\\media\\actiongroups at WindowsException.translateToIOEx"
+      }
+     ]
+    },
+    "observed": "resolved on both sides"
+   },
+   "verdict": "as_predicted",
+   "wall": 65.472
+  },
+  "L4": {
+   "phase": "L4",
+   "predicted": "TK.version == 1 on BOTH sides. TK is a global on purpose (PZTestKit_Core.lua:2).",
+   "falsifier": "a resolved=false or a value other than 1 means the _G walk is broken, and every `resolved: false` above becomes unreadable rather than a finding.",
+   "observed": {
+    "client": {
+     "resolved": true,
+     "value": 1
+    },
+    "server": {
+     "resolved": true,
+     "value": 1
+    },
+    "echo_ok": true
+   },
+   "verdict": "as_predicted",
+   "wall": 65.476
+  }
+ },
+ "mods_loaded_check": {
+  "raised": false,
+  "missing": [],
+  "log_lines": []
+ },
+ "session_ready_wall": 53.064,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_LoaderVersionTree",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_LoaderVersionTree",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "greps": {
+  "loading_version": {
+   "name": "loading_version",
+   "pattern": "loading\\ TKX_LoaderVersion",
+   "server": {
+    "limit": 6,
+    "count": 1,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:828,743,755> loading TKX_LoaderVersion"
+     }
+    ]
+   },
+   "client": {
+    "limit": 12,
+    "count": 2,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_LoaderVersion"
+     }
+    ]
+   }
+  },
+  "loading_common": {
+   "name": "loading_common",
+   "pattern": "loading\\ TKX_LoaderCommon",
+   "server": {
+    "limit": 6,
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client": {
+    "limit": 12,
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   }
+  },
+  "loader_wide": {
+   "name": "loader_wide",
+   "pattern": "TKX_Loader",
+   "server": {
+    "limit": 40,
+    "count": 6,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:828,743,755> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:828,743,756> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 1267,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\common\\media\\AnimSets at WindowsException.translateToIOException"
+     },
+     {
+      "line": 1288,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\common\\media\\actiongroups at WindowsException.translateToIOExcep"
+     },
+     {
+      "line": 1309,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\42.20\\media\\AnimSets at WindowsException.translateToIOException("
+     },
+     {
+      "line": 1330,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_LoaderVersion\\42.20\\media\\actiongroups at WindowsException.translateToIOExcept"
+     }
+    ]
+   },
+   "client": {
+    "limit": 60,
+    "count": 9,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 165,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 300,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\common\\media\\AnimSets at WindowsException.translateToIOEx"
+     },
+     {
+      "line": 330,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\common\\media\\actiongroups at WindowsException.translateTo"
+     },
+     {
+      "line": 360,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\42.20\\media\\AnimSets at WindowsException.translateToIOExc"
+     },
+     {
+      "line": 390,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_LoaderVersion\\42.20\\media\\actiongroups at WindowsException.translateToI"
+     },
+     {
+      "line": 3420,
+      "text": "LOG  : Lua          f:79 st:828,793,368> PZTK: cmd #1 lua.global -> {\"side\":\"client\",\"name\":\"TKX_LoaderVersionTree\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+     }
+    ]
+   }
+  },
+  "commononly_wide": {
+   "name": "commononly_wide",
+   "pattern": "TKX_CommonOnly",
+   "server": {
+    "limit": 40,
+    "count": 5,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 96,
+      "text": "LOG  : Mod          f:0 st:828,743,756> loading TKX_CommonOnly"
+     },
+     {
+      "line": 1351,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\common\\media\\AnimSets at WindowsException.translateToIOException(nu"
+     },
+     {
+      "line": 1372,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\common\\media\\actiongroups at WindowsException.translateToIOExceptio"
+     },
+     {
+      "line": 1393,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nul"
+     },
+     {
+      "line": 1414,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\server\\mods\\TKX_CommonOnly\\42.20\\media\\actiongroups at WindowsException.translateToIOException"
+     }
+    ]
+   },
+   "client": {
+    "limit": 60,
+    "count": 6,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 86,
+      "text": "LOG  : Mod          f:0> loading TKX_CommonOnly"
+     },
+     {
+      "line": 166,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_CommonOnly"
+     },
+     {
+      "line": 420,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\common\\media\\AnimSets at WindowsException.translateToIOExcep"
+     },
+     {
+      "line": 450,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\common\\media\\actiongroups at WindowsException.translateToIOE"
+     },
+     {
+      "line": 480,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\42.20\\media\\AnimSets at WindowsException.translateToIOExcept"
+     },
+     {
+      "line": 510,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x122-20260911-032326\\clients\\admin\\mods\\TKX_CommonOnly\\42.20\\media\\actiongroups at WindowsException.translateToIOEx"
+     }
+    ]
+   }
+  },
+  "overrides_version": {
+   "name": "overrides_version",
+   "pattern": "mod\\ \"TKX_LoaderVersion\"\\ overrides",
+   "server": {
+    "limit": 6,
+    "count": 1,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:828,743,756> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     }
+    ],
+    "tails": [
+     {
+      "line": 95,
+      "mod": "TKX_LoaderVersion",
+      "tail": "media/lua/shared/tkx_loader_which.lua"
+     }
+    ]
+   },
+   "client": {
+    "limit": 12,
+    "count": 2,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 165,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     }
+    ],
+    "tails": [
+     {
+      "line": 85,
+      "mod": "TKX_LoaderVersion",
+      "tail": "media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 165,
+      "mod": "TKX_LoaderVersion",
+      "tail": "media/lua/shared/tkx_loader_which.lua"
+     }
+    ]
+   }
+  },
+  "overrides_any": {
+   "name": "overrides_any",
+   "pattern": "mod \"TKX_[A-Za-z_]+\" overrides",
+   "server": {
+    "limit": 20,
+    "count": 1,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:828,743,756> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     }
+    ],
+    "tails": [
+     {
+      "line": 95,
+      "mod": "TKX_LoaderVersion",
+      "tail": "media/lua/shared/tkx_loader_which.lua"
+     }
+    ]
+   },
+   "client": {
+    "limit": 40,
+    "count": 2,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 165,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_LoaderVersion\" overrides media/lua/shared/tkx_loader_which.lua"
+     }
+    ],
+    "tails": [
+     {
+      "line": 85,
+      "mod": "TKX_LoaderVersion",
+      "tail": "media/lua/shared/tkx_loader_which.lua"
+     },
+     {
+      "line": 165,
+      "mod": "TKX_LoaderVersion",
+      "tail": "media/lua/shared/tkx_loader_which.lua"
+     }
+    ]
+   }
+  },
+  "loading_any": {
+   "name": "loading_any",
+   "pattern": "loading TKX_",
+   "server": {
+    "limit": 12,
+    "count": 2,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:828,743,755> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 96,
+      "text": "LOG  : Mod          f:0 st:828,743,756> loading TKX_CommonOnly"
+     }
+    ]
+   },
+   "client": {
+    "limit": 24,
+    "count": 4,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 86,
+      "text": "LOG  : Mod          f:0> loading TKX_CommonOnly"
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_LoaderVersion"
+     },
+     {
+      "line": 166,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_CommonOnly"
+     }
+    ]
+   }
+  },
+  "lua_errors": {
+   "name": "lua_errors",
+   "pattern": "tried to call nil|stack traceback|attempted to index",
+   "server": {
+    "limit": 12,
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client": {
+    "limit": 12,
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   }
+  },
+  "mod_missing": {
+   "name": "mod_missing",
+   "pattern": "required mod \"([^\"]+)\" not found",
+   "server": {
+    "limit": 10,
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client": {
+    "limit": 10,
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   }
+  }
+ },
+ "timeline": [
+  {
+   "t": 53.1,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.6,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_LoaderVersionTree\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 53.6,
+   "phase": "greps",
+   "loading_version": 1,
+   "loading_common": 0,
+   "overrides": 1
+  },
+  {
+   "t": 65.5,
+   "phase": "globals",
+   "read": 6
+  },
+  {
+   "t": 65.5,
+   "phase": "verdict",
+   "name": "L1",
+   "verdict": "trivial"
+  },
+  {
+   "t": 65.5,
+   "phase": "verdict",
+   "name": "L2",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 65.5,
+   "phase": "verdict",
+   "name": "L3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 65.5,
+   "phase": "verdict",
+   "name": "L4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 67.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 75.6,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "globals": {
+  "TK.version": {
+   "client": {
+    "side": "client",
+    "name": "TK.version",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TK.version",
+    "echo_side": "client",
+    "echo_ok": true,
+    "error": null,
+    "wall": 53.601,
+    "reply": {
+     "side": "client",
+     "name": "TK.version",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TK.version",
+      "wall": 53.601,
+      "wall_done": 53.86
+     }
+    }
+   },
+   "server": {
+    "side": "server",
+    "name": "TK.version",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TK.version",
+    "echo_side": "server",
+    "echo_ok": true,
+    "error": null,
+    "wall": 53.86,
+    "reply": {
+     "side": "server",
+     "name": "TK.version",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TK.version",
+      "wall": 53.86,
+      "wall_done": 55.87
+     }
+    }
+   },
+   "reading": "L4",
+   "tree": "control",
+   "why": "TK is a global on purpose (PZTestKit_Core.lua:2). MUST be 1 on BOTH sides: a resolved=false here says the _G walk is broken, not that a mod global is absent."
+  },
+  "TKX_LoaderWhich": {
+   "client": {
+    "side": "client",
+    "name": "TKX_LoaderWhich",
+    "resolved": true,
+    "type": "string",
+    "value": "version",
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_LoaderWhich",
+    "echo_side": "client",
+    "echo_ok": true,
+    "error": null,
+    "wall": 55.871,
+    "reply": {
+     "side": "client",
+     "name": "TKX_LoaderWhich",
+     "type": "string",
+     "resolved": true,
+     "value": "version",
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_LoaderWhich",
+      "wall": 55.871,
+      "wall_done": 56.378
+     }
+    }
+   },
+   "server": {
+    "side": "server",
+    "name": "TKX_LoaderWhich",
+    "resolved": true,
+    "type": "string",
+    "value": "version",
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_LoaderWhich",
+    "echo_side": "server",
+    "echo_ok": true,
+    "error": null,
+    "wall": 56.378,
+    "reply": {
+     "side": "server",
+     "name": "TKX_LoaderWhich",
+     "type": "string",
+     "resolved": true,
+     "value": "version",
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_LoaderWhich",
+      "wall": 56.378,
+      "wall_done": 57.64
+     }
+    }
+   },
+   "reading": "L2",
+   "tree": "BOTH trees (the collision)",
+   "why": "media/lua/shared/TKX_Loader_Which.lua exists in common/ AND 42.20/; the copy that ran last owns the global. 'version' = the version tree won, 'common' = it lost. Meaningless on its own -- it is only a collision reading if both unique globals below resolve."
+  },
+  "TKX_LoaderCommonTree": {
+   "client": {
+    "side": "client",
+    "name": "TKX_LoaderCommonTree",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_LoaderCommonTree",
+    "echo_side": "client",
+    "echo_ok": true,
+    "error": null,
+    "wall": 57.642,
+    "reply": {
+     "side": "client",
+     "name": "TKX_LoaderCommonTree",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_LoaderCommonTree",
+      "wall": 57.642,
+      "wall_done": 57.901
+     }
+    }
+   },
+   "server": {
+    "side": "server",
+    "name": "TKX_LoaderCommonTree",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_LoaderCommonTree",
+    "echo_side": "server",
+    "echo_ok": true,
+    "error": null,
+    "wall": 57.901,
+    "reply": {
+     "side": "server",
+     "name": "TKX_LoaderCommonTree",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_LoaderCommonTree",
+      "wall": 57.901,
+      "wall_done": 59.663
+     }
+    }
+   },
+   "reading": "L2",
+   "tree": "common/ only",
+   "why": "common/.../TKX_Loader_Common.lua:4. No file of that relative path exists under 42.20/, so nothing can override it: absent => the common/ tree never ran AT ALL, which is a different fact from 'common/ lost the collision'."
+  },
+  "TKX_LoaderVersionTree": {
+   "client": {
+    "side": "client",
+    "name": "TKX_LoaderVersionTree",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_LoaderVersionTree",
+    "echo_side": "client",
+    "echo_ok": true,
+    "error": null,
+    "wall": 59.664,
+    "reply": {
+     "side": "client",
+     "name": "TKX_LoaderVersionTree",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_LoaderVersionTree",
+      "wall": 59.664,
+      "wall_done": 59.92
+     }
+    }
+   },
+   "server": {
+    "side": "server",
+    "name": "TKX_LoaderVersionTree",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_LoaderVersionTree",
+    "echo_side": "server",
+    "echo_ok": true,
+    "error": null,
+    "wall": 59.92,
+    "reply": {
+     "side": "server",
+     "name": "TKX_LoaderVersionTree",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_LoaderVersionTree",
+      "wall": 59.92,
+      "wall_done": 61.685
+     }
+    }
+   },
+   "reading": "L2",
+   "tree": "42.20/ only",
+   "why": "42.20/.../TKX_Loader_Version.lua:4, the mirror of the above. It is also the profile's one [[verify]] row -- a gate precisely BECAUSE it loads under either merge direction and so discriminates nothing."
+  },
+  "TKX_CommonOnly": {
+   "client": {
+    "side": "client",
+    "name": "TKX_CommonOnly",
+    "resolved": true,
+    "type": "table",
+    "value": null,
+    "keyCount": 1,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_CommonOnly",
+    "echo_side": "client",
+    "echo_ok": true,
+    "error": null,
+    "wall": 61.686,
+    "reply": {
+     "side": "client",
+     "name": "TKX_CommonOnly",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_CommonOnly",
+      "wall": 61.686,
+      "wall_done": 61.941
+     }
+    }
+   },
+   "server": {
+    "side": "server",
+    "name": "TKX_CommonOnly",
+    "resolved": true,
+    "type": "table",
+    "value": null,
+    "keyCount": 1,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_CommonOnly",
+    "echo_side": "server",
+    "echo_ok": true,
+    "error": null,
+    "wall": 61.941,
+    "reply": {
+     "side": "server",
+     "name": "TKX_CommonOnly",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_CommonOnly",
+      "wall": 61.941,
+      "wall_done": 63.7
+     }
+    }
+   },
+   "reading": "L3",
+   "tree": "mod E, common/ only",
+   "why": "the table itself, so keyCount separates 'the global is a table with something in it' from 'the dotted read found a leaf on an empty table'."
+  },
+  "TKX_CommonOnly.version": {
+   "client": {
+    "side": "client",
+    "name": "TKX_CommonOnly.version",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_CommonOnly.version",
+    "echo_side": "client",
+    "echo_ok": true,
+    "error": null,
+    "wall": 63.702,
+    "reply": {
+     "side": "client",
+     "name": "TKX_CommonOnly.version",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_CommonOnly.version",
+      "wall": 63.702,
+      "wall_done": 63.958
+     }
+    }
+   },
+   "server": {
+    "side": "server",
+    "name": "TKX_CommonOnly.version",
+    "resolved": true,
+    "type": "number",
+    "value": 1,
+    "keyCount": null,
+    "failedAt": null,
+    "stoppedOn": null,
+    "echo_name": "TKX_CommonOnly.version",
+    "echo_side": "server",
+    "echo_ok": true,
+    "error": null,
+    "wall": 63.958,
+    "reply": {
+     "side": "server",
+     "name": "TKX_CommonOnly.version",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TKX_CommonOnly.version",
+      "wall": 63.958,
+      "wall_done": 65.468
+     }
+    }
+   },
+   "reading": "L3",
+   "tree": "mod E, common/ only",
+   "why": "common/.../TKX_CommonOnly.lua:4 -- the whole payload of a mod whose 42.20/ folder holds a mod.info and no media/ at all. THE L3 reading."
+  }
+ },
+ "summary": {
+  "verify_ok": [
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "echo_ok": true,
+  "echo_checks": 12,
+  "echo_failures": [],
+  "verdicts": {
+   "L1": "trivial",
+   "L2": "as_predicted",
+   "L3": "as_predicted",
+   "L4": "as_predicted"
+  },
+  "L1_loading": {
+   "loading_version": {
+    "server": 1,
+    "client": 2
+   },
+   "loading_common": {
+    "server": 0,
+    "client": 0
+   },
+   "wide_TKX_Loader": {
+    "server": 6,
+    "client": 9
+   },
+   "common_id_mentions": {
+    "server": 0,
+    "client": 0
+   }
+  },
+  "L2_overrides": {
+   "server": 1,
+   "client": 2,
+   "server_tails": [
+    "media/lua/shared/tkx_loader_which.lua"
+   ],
+   "client_tails": [
+    "media/lua/shared/tkx_loader_which.lua",
+    "media/lua/shared/tkx_loader_which.lua"
+   ]
+  },
+  "L2_which": {
+   "client": "version",
+   "server": "version"
+  },
+  "L2_trees": {
+   "common": {
+    "client": true,
+    "server": true
+   },
+   "version": {
+    "client": true,
+    "server": true
+   }
+  },
+  "L3_common_only_version": {
+   "client": 1,
+   "server": 1,
+   "resolved": {
+    "client": true,
+    "server": true
+   }
+  },
+  "L4_TK_version": {
+   "client": 1,
+   "server": 1
+  },
+  "lua_error_hits": {
+   "server": 0,
+   "client": 0
+  },
+  "mod_missing_hits": {
+   "server": 0,
+   "client": 0
+  }
+ },
+ "wall_seconds": 75.6,
+ "server_error_count": 0,
+ "client_lua_error": false
+}
