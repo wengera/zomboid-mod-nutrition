@@ -14,14 +14,20 @@ Queue order and the criteria behind it: [nutrition-mods.md](nutrition-mods.md)
 |---|---|---|---|---|
 | 09 | [`SKITTLE_LongTermPreservation4220`](teardowns/longtermpreservation4220.md) | 3774789651 | Domain twin. The only nutrition candidate whose **only** version folder is `42.20`, and both mechanisms in one 239 KB mod: 14 new food items with full macro sets, plus a **server-side** `OnCooked` hook that multiplies all four macros and hunger by 0.70 on the crafted instance | **done** — measured on `td1-20260910-192457` + `td1b-20260910-202029`: the five packet-carried macros sync, `offAge` / `offAgeMax` / `isCookable` / `isCustomWeight` do not, and the mod's own weight write is discarded server-side |
 | 10 | [`simpleStatus`](teardowns/simplestatus.md) | 2867431511 | The read side: 12 nutrition reads, all client-side, in one 20 KB file. What a pure client mirror can and cannot see while the server owns the store — and the UI our own mod would overlap | **done** — measured on `td2-20260910-231655`: all five macros mirror inside a signed per-snapshot band on all six snapshots (arrival 0.766 s), the three weight-direction flags agree on both sides although no packet carries them, and `transmitModData()` is a whole-table **wipe-and-replace** — a server-only player-modData key was destroyed by one client transmit |
-| 11 | `AutoCook` | 3388721641 | Cooking-pipeline hook points: what it wraps is what we must not break. Also the corpus's sharpest `common/` vs `42.x/` case — its live folder registers no event and `require`s two files only `common/` ships | **next** |
+| 11 | [`AutoCook`](teardowns/autocook.md) | 3388721641 | Cooking-pipeline hook points: what it wraps is what we must not break. Also the corpus's sharpest `common/` vs `42.x/` case — its live folder registers no event and `require`s two files only `common/` ships | **done** — measured on `td3-20260911-001948`: the merge rule is the wiki's (**version-wins**, five agreeing readings, closing [nutrition-mods.md](nutrition-mods.md) § Open questions 1 and 3), the mod has **no** server presence and its modData key is empty on a fresh character, and one neighbour's `transmitModData()` pushes its whole "client-only" settings table to the server |
 | — | [ItemQuality](teardowns/itemquality.md) (Girth's Quest System module) | 3624538051 | Per-item modded stats + the definitive MP-sync failure case study | **done** (seeded) |
 | — | [BeyondTen](teardowns/beyondten.md) | 3765241705 | Parallel-stat architecture done right: modData reservoirs, wrapper patterns, reapply-on-event | **done** (seeded) |
 
-**Fall-through**, in order, if a pick will not boot or its lint regresses — the
-pass that uses one records that it did: `SkillRecoveryJournal` (2503622437) →
-`MoodleFramework` (3396446795) → `SomewhatTraitsCore` (3498347699; that item
-ships **3** mods, so a profile must name the `id`). `CleanUI` (3437629766) is
+**The slice-08 queue is exhausted** (2026-09-11): all three picks are torn down
+and no pass consumed a fall-through. The list below therefore stops being a
+fall-through list and becomes the **future-picks** list, in the same order:
+`SkillRecoveryJournal` (2503622437) → `MoodleFramework` (3396446795) →
+`SomewhatTraitsCore` (3498347699; that item ships **3** mods, so a profile must
+name the `id`). Two of the three now carry a pass-3 reason of their own:
+MoodleFramework is **whole on 42.20.4** under the merge rule slice 11 measured
+([teardowns/autocook.md](teardowns/autocook.md) § Architecture), so an adoption
+read is no longer blocked on that question; and `SomewhatTraitsCore` is still
+the corpus's only **player** macro write. `CleanUI` (3437629766) is
 **dropped from the queue** — 1 064 KB of Lua over 54 files is past a 2 h
 teardown; its 11 nutrition hits are all `getHungerChange` in copied vanilla
 tooltip files and are catalogued in

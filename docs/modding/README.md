@@ -20,7 +20,15 @@ installed workshop mods** — real shipped code beats documentation.
 ## Hard-won platform facts (from prior sessions — cite before reuse)
 
 - Version-folder resolution picks the highest `42.x` ≤ game build; `common/`
-  shared; flat layout = legacy B41 (still loads for some mods).
+  shared; flat layout = legacy B41 (still loads for some mods). **How the two
+  combine is measured** (slice 11, 2026-09-11, run `td3-20260911-001948`): the
+  version folder's file **wins** a same-relative-path collision, `common/`
+  supplies everything the version folder does not ship, and both end up in one
+  Lua state — translations excepted, because `Translator` merges rather than
+  resolving through `activeFileMap`. Outcome **M**, mechanism **C** (four jar
+  sites), bounded to a version dir that actually ships colliding files:
+  [`../mods-survey/teardowns/autocook.md`](../mods-survey/teardowns/autocook.md)
+  § Architecture.
 - `ResourceLocation`-style ids are lowercased (case-insensitive registries).
 - Item scripts: generated `.txt` DSL; recipes support mappers, Inherit* flags,
   OnCreate java handlers (`RecipeCodeOnCreate`) and lua-visible hooks.

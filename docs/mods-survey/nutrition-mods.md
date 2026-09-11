@@ -89,9 +89,11 @@ points are in `common/` and nowhere else (§ Open questions Q1). Ev C.
 
 **What this page does not do.** It does not read a mod's behaviour: every claim here is a file read
 or a count of regex hits over shipped files, and a hit count is not a behaviour. It does not rank
-the Workshop, which is a trend-sorted top-30-per-term slice and not a census. And it asserts no
-rule for how `common/` and `42.x/` combine — that is § Open questions Q1, left for a teardown pass
-to settle.
+the Workshop, which is a trend-sorted top-30-per-term slice and not a census. And it asserted no
+rule for how `common/` and `42.x/` combine — that was § Open questions Q1, left for a teardown
+pass to settle, and slice 11 settled it (2026-09-11, run `td3-20260911-001948`): **version-wins**.
+The counts on this page are unchanged by that answer; the *scope* caveat above is not — it is
+sharpened, because the merge rule is now the measured reason a `common/`-only file runs.
 
 ---
 
@@ -311,8 +313,10 @@ The three findings that matter:
 - **`MoodleFramework` — `mod-info-place` WARN, and a split that is worse.** Its `mod.info` sits in
   the oldest folder, `42.0/`. Its newest folder `42.20/media` ships **exactly one file**,
   `lua/client/MF_ISMoodle.lua`, while `MF_Config.lua` exists only in `42.0/media` and
-  `common/media`. Whether the moodle framework is therefore whole on 42.20.4 depends entirely on
-  the merge rule this page refuses to assert — recorded as § Open questions Q1, not as a verdict.
+  `common/media`. Whether the moodle framework is therefore whole on 42.20.4 depended entirely on
+  the merge rule this page once refused to assert. **Slice 11 measured that rule** (2026-09-11,
+  run `td3-20260911-001948`) and the answer is **whole**: pass B overwrites only `mf_ismoodle.lua`,
+  so `mf_config.lua` survives from `common/` and executes — § Open questions Q3, now closed.
 - **`SKITTLE_LongTermPreservation4220` is the only nutrition candidate whose *only* version
   folder is `42.20`** — `version_dirs == ["42.20"]`, `media_at == ["42.20/media"]`, no `common/`.
   It is not the only one that *ships* a `42.20`: `MoodleFramework` ships `42.20`, `42.13` and
@@ -513,11 +517,37 @@ superseded.
 
 ## Open questions
 
-1. **How do `common/` and the live `42.x/` folder combine?** The
+1. ~~**How do `common/` and the live `42.x/` folder combine?**~~ **Closed (slice 11, 2026-09-11)**
+   — [`teardowns/autocook.md`](teardowns/autocook.md) § Architecture, run
+   **`td3-20260911-001948`**. **The wiki is right: version-wins.** The version folder's file wins a
+   same-relative-path collision, `common/` supplies everything the version folder does not ship,
+   and both end up in **one** Lua state — with translations the exception, because the `Translator`
+   merges rather than resolving through `activeFileMap`. Five agreeing readings on AutoCook, the
+   corpus's sharpest case: the loader printed **exactly 5** `mod "AutoCook" overrides` lines (2
+   translation JSONs over vanilla, then the 3 client Lua over `common/`, and **no `.png` tail**, so
+   `getVersionDir()` resolved to `42.13/`); `lua.global` found **both** 42.13-only discriminators —
+   `AutoCook.acceptIngredient` (`42.13/…/AutoCook.lua:245`) and `AutoCook.baseAcceptsSpice`
+   (`:234`) — live on the client, alongside `AutoCook.selectPreferedFood` from the common-only
+   `AutoCook_Diets.lua`; `_G.AutoCook`'s **`keyCount 49`** is the arithmetic cross-check (a
+   common-wins state reads 47); the load-time modData key proves `common/` ran and the require
+   chain completed; and the client console carried **zero** `HasTrait` raises, which a common-wins
+   build would have produced at `common/…/AutoCook.lua:39`. **Grading: the OUTCOME is M** (n = 1
+   session, but two independent halves — the loader's map and the resulting Lua state); **the
+   MECHANISM is C**, from four jar sites (`ZomboidFileSystem.loadMod`'s two unconditional
+   `activeFileMap.put`s at `L758`/`L773`, `getAbsolutePath @0-@19 L483-L484`,
+   `LuaManager.LoadDirBase`'s vanilla-first `HashSet` dedupe at `L1208-L1222`, and
+   `Translator.tryFillMapFromMods @0-@97 L376-L391`). **Bounded**: it measures a mod whose
+   `getVersionDir()` resolves to a tree that *ships colliding files* — a version dir that is
+   absent, empty or non-colliding is untested. The sibling question is **not** closed:
+   [`docs/testing/profiles.md`](../testing/profiles.md) § Open questions 1 (the `mod.info`
+   resolution order) stays open, strengthened by two more jar readings and by the precision that
+   `searchForModInfo` returns the first `mod.info` **whose id matches**, in `File.list()` order.
+   Ev **M + C** (`td3-20260911-001948`). The original framing, kept because the corpus evidence
+   behind it is still the reason this mattered: the
    [Mod_structure mirror](../../references/wiki-mirrors/mod-structure.md) (page version 42.20.0)
-   states it plainly — *"1. Common folder. 2. Closest versioning folder to the game version
-   (overwrites common files which are present in it)"* — but that is **W**: nothing in this repo
-   has confirmed it against the 42.20.4 engine or a run, and
+   stated it plainly — *"1. Common folder. 2. Closest versioning folder to the game version
+   (overwrites common files which are present in it)"* — but that was **W**: nothing in this repo
+   had confirmed it against the 42.20.4 engine or a run, and
    [`docs/testing/profiles.md`](../testing/profiles.md) § Open questions 1 has its sibling — the
    `mod.info` resolution order — open from the other end. The corpus makes it urgent rather than
    academic:
@@ -525,21 +555,29 @@ superseded.
    and Lua plus scripts in a version folder; `MoodleFramework`'s `42.20/media` ships one file while
    its config lives in `42.0/` and `common/`; and **`AutoCook`'s live `42.13/media` registers no
    event at all and `require`s two files (`ISContinue`, `ISCharacterInfoWindow_AddTab`) that exist
-   only in `common/media`**. That last one is close to a proof by working mod — AutoCook is a
-   popular, functioning mod, so the common folder must be loaded — but it is an *inference*, not a
-   reading of the engine, and this page does not promote it. Slice 11's teardown of AutoCook can
-   settle it from the outside with one profiled boot. Ev W + C.
+   only in `common/media`**. That last one was close to a proof by working mod — AutoCook is a
+   popular, functioning mod, so the common folder must be loaded — but it was an *inference*, not a
+   reading of the engine, and this page did not promote it. Slice 11's teardown settled it from the
+   outside with one profiled boot, exactly as planned.
 2. ~~**`script_item_blocks` and `signals.script_nutrition` do not strip `/* */` comments.**~~
    **Closed** in `Slice 08: final fix wave` (`9f551f6`): `tools/mod_inventory.py`
    imports `food_scan._strip_comments` and all three script regexes read the stripped file, so
    the raw field and this page now agree — LTP **15** items / **117** keys, ZVirus **86**, 6630
    corpus-wide, and `script_item_blocks` matches `parse_script`'s own block count on all nine
    rows. § Discrepancies row 1 keeps the arithmetic. Ev C.
-3. **Is `MoodleFramework` whole on 42.20.4?** `42.20/media` ships only `MF_ISMoodle.lua`;
-   `MF_Config.lua` exists in `42.0/media` and `common/media`. Under the wiki's merge rule it is
-   whole; under a version-folder-only rule the framework loads a moodle class with no config. This
-   matters directly, because the new-nutrient UI in our own mod is the reason MoodleFramework is on
-   the list at all. Q1 settles it. Ev C.
+3. ~~**Is `MoodleFramework` whole on 42.20.4?**~~ **Closed (slice 11, 2026-09-11) — yes, whole.**
+   `42.20/media` ships only `MF_ISMoodle.lua`; `MF_Config.lua` exists in `42.0/media` and
+   `common/media`. Q1 settled the rule (version-wins, [`teardowns/autocook.md`](teardowns/autocook.md)
+   § Architecture, run `td3-20260911-001948`), and it decides this directly: on 42.20.4
+   `getModVersionDirName` picks `42.20/`; `loadMod` pass A puts both `mf_config.lua` and
+   `mf_ismoodle.lua` from `common/`, and pass B overwrites **only** `mf_ismoodle.lua` — so
+   `mf_config.lua`, having no version-dir counterpart, survives in `activeFileMap` and executes.
+   The framework does **not** load a moodle class with no config. This matters directly, because
+   the new-nutrient UI in our own mod is the reason MoodleFramework is on the list at all; an
+   adoption read is no longer blocked on the layout question. Ev **C** — derived from the measured
+   rule, not a second measurement: nothing has booted MoodleFramework itself, so the
+   `MF_Config.lua`-executes step is an application of Q1's mechanism (jar) and not an observation
+   of that mod.
 4. ~~**Does LTP's ×0.70 reach the client, and what happens to the sentinel?**~~
    `recipe_meats.lua:39-49` writes `offAge` / `offAgeMax` (**not** in `ItemStatsPacket`) beside the
    four macros and `HungChange` (**in** it). The crafted item is produced by

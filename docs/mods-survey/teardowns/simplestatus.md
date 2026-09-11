@@ -2,7 +2,10 @@
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** — mod read cold 2026-09-10 (no server), then
 measured the same day on one dedicated-MP session with a real client:
-`td2-20260910-231655` (acceptance `run-20260910-230752`).
+`td2-20260910-231655` (acceptance `run-20260910-230752`). One **dated cross-reference** was added
+later and nothing measured here was rewritten: slice 11 (2026-09-11, `td3-20260911-001948`) ran
+the below-gate probe this doc's appendix A2 named, and it **resolves** the client-copy question
+per arm (§ Two pass-1 follow-up controls).
 
 - **Workshop ID / mod ID(s):** item **`2867431511`**, one mod, declared id **`simpleStatus`**
   (`42.16/mod.info:2`). The **folder** is `SimpleStatus` — a **case-only** drift from the id,
@@ -485,6 +488,25 @@ not a finding:
 > **The probe that separates them:** pin `heat 1.2` — below the gate — and read both sides twice
 > 10 s apart. Carried as slice 11's session item; nothing here settles it.
 
+**Cross-reference, 2026-09-11 — slice 11 ran that probe and the hypothesis holds; nothing above is
+rewritten.** On run `td3-20260911-001948` (the `carrier` block of the AutoCook session —
+[`autocook.md`](autocook.md) § MP handling → The carrier; again a **follow-up**, not a finding
+about that mod) the same vanilla `Base.Steak` was pinned at **`heat 1.2`, below the 1.6 gate**,
+and read on both sides twice **12.54 s** apart: the **client's copy was frozen to the bit**
+(`1.2000000476837158`, `getCookingTime 0` at both reads) while the **server's decayed to the 1.0
+floor**. The mirror image of the table above, on the same item and the same fixture, with the only
+difference being which side of the gate the pin sat on — so the **1.6 gate is the measured
+discriminator** and the carrier is the per-game-minute `GameServer.sendItemStats` inside
+`Food.update`'s cooking branch. **M per arm** (`n = 1` in each of the three arms, across three
+sessions); mechanism still **C**. One refinement the below-gate arm forces: it shows the client
+copy did not tick **at all**, and `updateTemperature` runs unconditionally inside `Food.update`, so
+the defensible statement is "**`Food.update` did not advance the client's held copy in this
+window**" — the hypothesis's "a client copy *can* tick" clause is narrowed, not proved. Bounds:
+one item, one window, one fixture; frozen and non-cookable items and every other push path
+untested. Graded row:
+[`../../modding/patterns.md`](../../modding/patterns.md) § Measured MP sync facts → *The other
+direction*, now **resolved per arm** rather than CONTESTED.
+
 `getContainer`, graded as **presence + within-side stability only**: present on both sides,
 stable across both reads on both sides, type token `ItemContainer:[type:none,` on both. The full
 strings differ exactly where the jar says they must (`parent:IsoPlayer{ … ID:5 }` on the client
@@ -672,6 +694,12 @@ the full run directory stays local under the gitignored `testing/runs/`):
   `steps[]`, `t_action1` / `t_action2` / `t_action3`, `arrivals[]`, `empirical_slope`,
   `phase2[]`, `wipe_reading`, `appendix.A1` / `appendix.A2`, `verify`, `mod_log_lines`,
   `mod_log_lines_server`, `mod_log_reading`, `folder_check`, `timeline`, `summary`.
+- **`td3-20260911-001948`** — slice 11's session, cited here only for the **follow-up that closes
+  appendix A2's hypothesis**. Artifact
+  [`testing/artifacts/td3-20260911-001948/teardown-autocook.json`](../../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
+  (64 170 B; 179.4 s wall; `server_error_count 0`), driver `testing/experiments/td3_autocook.py`
+  at commit `3f4b646`; one key cited, **`carrier`** — the below-gate `heat 1.2` pin and its four
+  cross-side reads (§ Two pass-1 follow-up controls, the 2026-09-11 cross-reference).
 - **`td2-20260910-231655` is the first artifact written under the widened float rendering.**
   Harness commit `291f977` replaced `TK.json`'s `string.format("%.6f", v)` with `tostring(v)`
   (Kahlua's `KahluaUtil.numberToString` → `Double.toString` for a non-integral double, an exact

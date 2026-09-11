@@ -53,7 +53,7 @@ carries both.** Measured 2026-09-10 17:47.
 | **`simpleStatus`** | 2867431511 | 12 | 0 | Displays nutrition stats — UI overlap; users already watch these numbers. All 12 reads client-side, in one file. **[Teardown 10](teardowns/simplestatus.md) — done** |
 | `CleanUI` | 3437629766 | 11 | 0 | Full UI overhaul over food/status surfaces; 1 064 KB of Lua. All 11 hits are `getHungerChange` in copied vanilla tooltip files — territory, not mechanism |
 | `SkillRecoveryJournal` | 2503622437 | 8 | 0 | **Answered:** gates fitness XP on `canAddFitnessXp()` and scales the exercise multiplier by `getProteins()`. In `lua/shared`, so it runs on both sides |
-| **`AutoCook`** | 3388721641 | 4 | 0 | Automates the cooking pipeline — hooks the actions we will extend. **Teardown 11** |
+| **`AutoCook`** | 3388721641 | 4 | 0 | Automates the cooking pipeline — hooks the actions we will extend. Its 4 Lua hits are all client-side reads of the server's `Nutrition`. **[Teardown 11](teardowns/autocook.md) — done** |
 | `BeyondTen` | 3765241705 | 4 | 0 | Four getter/setter *names* in a reflection table, not four calls (teardown done) |
 | `Economy` | 3624538051 | 4 | 0 | Same shape: a shop-item serializer field map naming the four macro accessors |
 | **`SKITTLE_LongTermPreservation4220`** | 3774789651 | 4 | 117 | The closest domain neighbour, and the only mod on both signals: 14 new food items **and** a server-side `OnCooked` hook multiplying all four macros by 0.70. **[Teardown 09](teardowns/longtermpreservation4220.md) — done** |
@@ -83,15 +83,16 @@ Done: [ItemQuality](teardowns/itemquality.md) · [BeyondTen](teardowns/beyondten
 [SKITTLE_LongTermPreservation4220](teardowns/longtermpreservation4220.md) (slice 09,
 2026-09-10; measured on `td1-20260910-192457` and `td1b-20260910-202029`) ·
 [simpleStatus](teardowns/simplestatus.md) (slice 10, 2026-09-10; measured on
-`td2-20260910-231655`).
+`td2-20260910-231655`) · [AutoCook](teardowns/autocook.md) (slice 11,
+2026-09-11; measured on `td3-20260911-001948`).
 
-| Slice | Mod id | Angle |
-|---|---|---|
-| 11 | `AutoCook` | Cooking-pipeline hook points (what it wraps = what we must not break), and the `common/` vs `42.x/` question |
-
-Fall-through: `SkillRecoveryJournal` → `MoodleFramework` → `SomewhatTraitsCore`
-(item 3498347699 ships 3 mods; a profile must name the `id`). `CleanUI` is
-dropped from the queue as too large for a 2 h teardown.
+**The queue is empty** as of 2026-09-11: all three slice-08 picks are torn down
+and none of the three passes needed a fall-through. Future picks, same order as
+the old fall-through list: `SkillRecoveryJournal` → `MoodleFramework` →
+`SomewhatTraitsCore` (item 3498347699 ships 3 mods; a profile must name the
+`id`). `CleanUI` stays dropped as too large for a 2 h teardown — though slice 11
+read its `ISInventoryPaneContextMenu.lua` fork cold for the AutoCook collision
+analysis, so part of it is already characterised.
 
 ## Heavy-lua landscape (top by `lua_kb`, 2026-09-10)
 

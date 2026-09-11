@@ -601,7 +601,17 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
   them into `report.json` and `bus.wait_result()` blocks on one.
 - **Observation**: the client's `console.txt` is tailed for
-  `STATE: enter …` transitions and `PZTK:` harness lines.
+  `STATE: enter …` transitions and `PZTK:` harness lines. **A client-side
+  `session.grep_file` must expect `2 × n`, not `n`** (measured 2026-09-11, run
+  `td3-20260911-001948`): the client runs **two** Lua states in one process —
+  the main-menu one and the in-session one — and engine load output is printed
+  **once per state**. AutoCook's five-line `mod "AutoCook" overrides …` block
+  appeared at client-console lines **85–89 and again at 168–172**, identical
+  tails in identical order, each preceded by its own `loading AutoCook` (84,
+  167), while the **server** printed the block once. So size a client grep's
+  `limit` at **≥ 2 × predicted + headroom** — a `limit` set to the predicted
+  count saturates on the first block and silently truncates the second, which
+  reads as a pass.
 
 ### Harness layout (`testing/PZTestKit/PZTestKit/`)
 

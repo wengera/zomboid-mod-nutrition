@@ -115,6 +115,11 @@ def media_root(mod_dir, vers):
     local `pick_version_dir` used a `42(?:\\.(\\d+))?` regex that missed three-part names, so
     `42.20.1` (Skill Recovery Journal `2503622437`) was invisible to it and it fell back to an
     older folder. `version_dirs` here is the correct reading, and now the only one.
+
+    Scope, measured (slice 11, 2026-09-11, run `td3-20260911-001948`): this names ONE folder,
+    but the engine loads `common/` too and the version folder's file merely WINS a
+    same-relative-path collision -- so for a mod shipping both, every count taken over this
+    folder alone is a partial view of the mod (`docs/mods-survey/teardowns/autocook.md`).
     """
     if vers:
         return vers[0]

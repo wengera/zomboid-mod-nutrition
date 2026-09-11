@@ -7,7 +7,9 @@ addition and the first closed open question added 2026-09-10 (slice 09, the
 LongTermPreservation4220 teardown); the modData-transmit wipe (FILTER 10), the
 `updateWeight` flag half, the vanilla display-name control, the **contested**
 client-copy row and the closed cadence question added 2026-09-10 (slice 10, the
-simpleStatus teardown).
+simpleStatus teardown); the measured `common/`-vs-version-folder merge rule
+(KEEP 10), FILTER 11, and the **per-arm resolution of that contested
+client-copy row** added 2026-09-11 (slice 11, the AutoCook teardown).
 
 Derived from the 230-mod inventory
 ([survey](../mods-survey/approved-modlist.md)) + line-level reads of
@@ -51,6 +53,25 @@ on; treat divergence as a decision point, not a free choice.**
 10. **Version-folder layout** `42/` + `42.x/` overrides + `common/` (every
     mod on the list) with `mod.info` `require=` for dependency ordering
     (ChuckleberryFinn mods chain: SRJ → AlertSystem + errorMagnifier).
+    **The combination rule is now measured** (slice 11, run
+    `td3-20260911-001948`): the **version folder's file wins** a
+    same-relative-path collision, `common/` supplies everything the version
+    folder does not ship, and both end up in **one** Lua state — translations
+    excepted, because `Translator` merges rather than resolving through
+    `activeFileMap`. AutoCook's `42.13/` port is **three files / ~40 lines**
+    against 1 238 shared lines in `common/`, and five independent readings
+    agreed on the direction ([teardown](../mods-survey/teardowns/autocook.md)
+    § Architecture). Two consequences worth adopting with it: **a
+    `common/`-hosted entry point with a version-folder implementation** is a
+    sound shape — one `Events.*.Add` in `common/`
+    (`AutoCook_RISCookMenuInsertion.lua:117`) calling into the per-build body —
+    and the inventory's per-mod numbers are computed over the **live folder
+    only**, so a mod built this way reads as registering nothing (`top_events:
+    []` for AutoCook is correct and misleading at once; `media_at` with two
+    entries is the flag). The hazard on the other side is FILTER 11.
+    **Outcome M** (n = 1 session, two independent halves), **mechanism C**
+    (four jar sites), and bounded to a mod whose version dir actually ships
+    colliding files.
 11. **Script-first for item data; Lua only for what the packet can carry**
     (LongTermPreservation4220, measured — run `td1-20260910-192457`). Item
     scripts are loaded **per side and never synced**, so a value written in a
@@ -132,6 +153,32 @@ on; treat divergence as a decision point, not a free choice.**
     makes this a FILTER rather than a note: our own state has to survive *someone else's*
     transmit. Full reading:
     [teardown](../mods-survey/teardowns/simplestatus.md) § MP handling.
+    **Second subject, slice 11** (run `td3-20260911-001948`): AutoCook has **9**
+    `getModData()` sites and **zero** `transmitModData`, and its whole nested
+    `AutoCook` table still crossed to the server the first time something else
+    on that client transmitted — the server's census became *exactly* the
+    client's, `hotbar` included. "We never transmit" is not a guarantee about
+    anything in player modData.
+11. **Leaving a `common/` copy of a file the version folder shadows** and
+    letting it rot (measured, slice 11, run `td3-20260911-001948`). Under
+    KEEP 10's rule a `common/` file with a version-folder counterpart is
+    **unexecuted code on that build**, and AutoCook's three shadowed copies
+    have quietly accumulated calls the engine removed: `HasTrait(String)` at
+    `common/…/AutoCook.lua:39` and `common/…/ISCharacterCook.lua:50,221`, and
+    `getTypeString()` at `common/…/AutoCook_AutoCraftRecipes.lua:39` — none of
+    which exists on 42.20.4. They are harmless **only** because the version
+    folder wins, which nothing in the mod asserts and which this library had
+    not measured until now; and a Kahlua "tried to call nil" is uncatchable, so
+    the failure mode is not a degraded feature but the whole `require` chain
+    dying at file load. The session's console grep returned **0** such raises,
+    which is the bounded confirmation: it proves `common/…/AutoCook.lua:39`
+    did not run (the line before it demonstrably did), not that the whole
+    `common/` tree is inert — the two `ISCharacterCook` sites sit inside
+    `prerender` and were never reached. **Rule: treat a shadowed `common/`
+    file as unmaintained — delete it, or keep it building against the same API
+    as the live copy; never let the live path depend on a merge direction you
+    have not read out of the engine.** Full reading:
+    [teardown](../mods-survey/teardowns/autocook.md) § Pitfalls 1.
 
 ## Measured MP sync facts (42.20.4, spike S6 — [testing/spikes.md](../testing/spikes.md))
 
@@ -163,7 +210,7 @@ within 1e-6, read on both sides through the same witness command.
 | a cooked food's `thirstChange` | **yes, but halved.** `ItemStatsPacket.setData` sends `Food.getThirstChange()` — the *cooked ladder* getter — while `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field, so the receiver ladders it a second time: 0.2 → 0.1 on the wire → 0.05 on read. A **vanilla** defect, surfaced by any mod that cooks anything in MP. It is **one halving per server→client hop and it converges** (a second push left the client at 0.05 with the server unchanged at 0.1) — compounding would need a client→server item hop, which the table above records as a silent no-op | M (runs `td1-20260910-192457`, `td1b-20260910-202029`) |
 | `setActualWeight` | **the field travels** (`setData` fills it from `getActualWeightUnmodded()`), but read back the two sides disagreed **0 vs 0.35**. The display-name guard alone does not explain it: `getActualWeightUnmodded` returns 0 whenever `getDisplayName().equals(getFullType())`, and that was true on **both** sides for that mod item (false for a vanilla control, `Base.Steak`, 0.3 everywhere) — a symmetric guard cannot produce an asymmetric reading. What splits the sides is `isCustomWeight` **choosing an arm**: the server, where the mod had just set it `true`, goes `Food.getActualWeight @288 L910` → the guarded `InventoryItem` route → **0**; the client, still `false`, goes `@215-@287 L902-L908` → script weight × hunger fraction → **0.35**. Check a getter's guards *and* which arm your own write moves it onto before trusting a synced field. **The guard's own trigger is now measured inside vanilla** (2026-09-10, run `td2-20260910-231655`, appendix A1, a pass-1 follow-up): `Base.FruitSaladClay` — a vanilla food **absent** from `media/lua/shared/Translate/EN/ItemName.json` — reads `getDisplayName() == getFullType()` and `getActualWeightUnmodded() == 0` on **both** sides, while `Base.Steak` (present at `ItemName.json:4218`) reads `Steak` and keeps 0.3 on both. So "no name in the translation table" is sufficient on its own; no mod-specific explanation is needed for the mod item, and no sync explanation survives either (both sides agree) | **M** for the two values (run `td1b-20260910-202029`); **M** for the vanilla display-name control (run `td2-20260910-231655`, `appendix.A1`); **C** for the arms (jar, `Food.getActualWeight`) |
 | the aging fields — `age`, `offAge`, `offAgeMax` | **never** — `age` was measured not to cross in slice 02, and slice 09 moves `offAge`/`offAgeMax` from packet-read to measured. `freezingTime`, `lastAged` and `rotten` are absent from the packet too but have **not** been measured, so they stay **C** | M (runs `exp02-20260910-030433`, `td1-20260910-192457`); `freezingTime` / `lastAged` / `rotten` **C** |
-| anything at all, on a client copy that is not ticking | **CONTESTED — two measurements, both real, and the mechanism is a hypothesis.** *Slice 09 (run `td1-20260910-192457`):* the client's copy of a server-spawned `Skittles.CuredPork` held `heat` and `cookingTime` **frozen across 11.1 s** (client 1.84703 while the server fell 1.79561 → 1.39397, same instance `#562521975`) — the push lands, the simulation does not. *Slice 10 (2026-09-10, run `td2-20260910-231655`, appendix A2, a **pass-1 follow-up** carried on a different session):* a server-pinned vanilla `Base.Steak` **did move** on the client — `heat` 2 → 1.697029948234558 and `cookingTime` 0 → 0.1182333305478096 over 10.5 s — **bit-identical to the server across a 0.5 s read offset** during which an independently ticking copy would have decayed further. **Hypothesis that reconciles them (C, jar), with the probe that would settle it:** `Food.update` has no client guard and `updateTemperature` runs unconditionally, so a client copy *can* tick; and the push is `Food.update @86-@103 L377-L379` — `if (GameTime.getMinutes() != lastCookMinute) { if (GameServer.server != null) GameServer.sendItemStats(this); … }`, once per **game minute** (≈3.75 real s at `DayLength 4`) **while the cooking branch is live**, gated at `@49-@71 L372-L373` on `isCookable && !isFrozen() && heat > 1.6f`. The Steak never left that gate (2.0 → 1.697) so pushes kept the sides identical; the CuredPork **crossed** it, and the pushes stopped. The discriminator is the **1.6 gate**, and the probe is one pin below it (`heat 1.2`, two reads 10 s apart on both sides) — carried as slice 11's session item. Until then: a client-side reader of a live item field may be reading a push, not a simulation, and must not assume either | **M** on both readings (runs `td1-20260910-192457` and `td2-20260910-231655`, `appendix.A2`); the reconciling mechanism is **C** and **unresolved** |
+| anything at all, on a client copy that is not ticking | **RESOLVED, per arm, 2026-09-11 (slice 11, run `td3-20260911-001948`) — the discriminator is the 1.6 cooking gate, and the carrier is `Food.update`'s cooking-branch `sendItemStats`.** The probe the contested row itself named was run: a server-pinned vanilla `Base.Steak` at **`heat 1.2`, BELOW the gate**, read on both sides twice **12.54 s** apart. The **client's copy was frozen to the bit** (`1.2000000476837158` / `getCookingTime 0` at both reads) while the **server's decayed to the 1.0 floor** — the mirror image of pass 2's above-gate arm, and the same shape as pass 1's freeze. The pin's own push did arrive (`item.set` fires `sendItemStats` on its way out; both sides read the identical value at read 1), so the freeze is not "the client never saw it". **Grading: M per arm** — `n = 1` in each of the three arms, across three sessions — **mechanism C** (the jar text below). **What it REFINES rather than confirms:** `updateTemperature` runs unconditionally inside `Food.update`, so the honest statement about the below-gate arm is "**`Food.update` did not advance the client's held copy in this window**", not "the client cannot tick"; the hypothesis's "a client copy *can* tick" clause is narrowed, not proved. **Still open:** one item, one 12.54 s window, one fixture; frozen and non-cookable items are untested, and so is every other push path. **The operative rule is unchanged: a client-side reader of a live item field may be reading a push, not a simulation, and must not assume either.** Full reading: [teardown](../mods-survey/teardowns/autocook.md) § MP handling → The carrier. The three readings, kept because each is a separate arm: *Slice 09 (run `td1-20260910-192457`):* the client's copy of a server-spawned `Skittles.CuredPork` held `heat` and `cookingTime` **frozen across 11.1 s** (client 1.84703 while the server fell 1.79561 → 1.39397, same instance `#562521975`) — the push lands, the simulation does not. *Slice 10 (2026-09-10, run `td2-20260910-231655`, appendix A2, a **pass-1 follow-up** carried on a different session):* a server-pinned vanilla `Base.Steak` **did move** on the client — `heat` 2 → 1.697029948234558 and `cookingTime` 0 → 0.1182333305478096 over 10.5 s — **bit-identical to the server across a 0.5 s read offset** during which an independently ticking copy would have decayed further. **The mechanism that reconciles them (C, jar) — a hypothesis when it was written, and the thing the third arm then confirmed:** `Food.update` has no client guard and `updateTemperature` runs unconditionally, so a client copy *can* tick; and the push is `Food.update @86-@103 L377-L379` — `if (GameTime.getMinutes() != lastCookMinute) { if (GameServer.server != null) GameServer.sendItemStats(this); … }`, once per **game minute** (≈3.75 real s at `DayLength 4`) **while the cooking branch is live**, gated at `@49-@71 L372-L373` on `isCookable && !isFrozen() && heat > 1.6f`. The Steak never left that gate (2.0 → 1.697) so pushes kept the sides identical; the CuredPork **crossed** it, and the pushes stopped. *Slice 11 (2026-09-11, run `td3-20260911-001948`, `carrier`):* the same pin **below** the gate froze the client's copy while the server's moved — the third arm, and the one that makes the gate the measured discriminator rather than a candidate | **M** on all three readings (runs `td1-20260910-192457`, `td2-20260910-231655` `appendix.A2`, and `td3-20260911-001948` `carrier`), **M per arm** with `n = 1` in each; the mechanism stays **C** (jar) and the bounds above stay open |
 
 Two timing facts from the same sessions, for anyone designing a probe or a
 heartbeat around item state: **the dedicated server's inventory-item tick runs
@@ -232,7 +279,17 @@ Consequences for the nutrition mod:
   own UI: cache at the push cadence, not the frame cadence.** What the mod
   draws is nonetheless correct: every one of its five macros mirrored inside
   its signed per-snapshot band on all six snapshots.
-- MoodleFramework API surface + MP behavior — adoption decision.
+- MoodleFramework API surface + MP behavior — adoption decision. **One
+  precondition is now settled** (slice 11, 2026-09-11): the framework is
+  **whole** on 42.20.4 — its `42.20/` folder ships only `MF_ISMoodle.lua`, and
+  under KEEP 10's measured rule `MF_Config.lua` survives from `common/` and
+  executes, so an adoption read is no longer blocked on the layout question
+  ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md)
+  § Open questions 3). The API surface and MP behaviour are still unread.
+- ~~How does a `common/` folder combine with the live `42.x/` folder?~~
+  **Answered, slice 11** ([teardown](../mods-survey/teardowns/autocook.md),
+  run `td3-20260911-001948`): **version-wins**, with translations merged rather
+  than shadowed. The statement, its grading and its bounds are KEEP 10.
 - How the Girth stack namespaces its 228 command sites (slice-08 catalog,
   2026-09-10 — the "110+" this list used to carry predates that sweep;
   collision risk for our module names on the same bus).
@@ -281,4 +338,15 @@ Consequences for the nutrition mod:
   rendering** (`291f977`, `tostring` rather than `%.6f`), which is why its
   weight rows support a bit-level claim and no earlier artifact does; the
   *do not cite* list is in
+  [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).
+- **The `common/`-vs-version-folder merge rule (KEEP 10), FILTER 11 and the
+  below-gate arm that resolves the client-copy row** (slice 11, 2026-09-11):
+  run `td3-20260911-001948`, committed at
+  [`testing/artifacts/td3-20260911-001948/teardown-autocook.json`](../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
+  — keys `M1_overrides`, `M4_globals`, `summary.M4_autocook_keyCount_client`,
+  `nilcall_lines`, `transmit_reading`, `carrier` — with the five readings, the
+  jar call sites and the bounds in
+  [../mods-survey/teardowns/autocook.md](../mods-survey/teardowns/autocook.md)
+  § Architecture and § MP handling. The *do not cite* list for that run
+  (including the `window_s` mismatch and the trivial weight-flag arm) is in
   [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).

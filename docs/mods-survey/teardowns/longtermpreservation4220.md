@@ -2,7 +2,11 @@
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** — mod read cold 2026-09-10 (no server), then
 measured the same day on two dedicated-MP sessions with a real client:
-`td1-20260910-192457` and `td1b-20260910-202029`.
+`td1-20260910-192457` and `td1b-20260910-202029`. Two later passes left **dated
+cross-references** inside, and nothing this doc measured was rewritten: slice 10 (2026-09-10,
+`td2-20260910-231655`) reopened the client-copy row and answered the display-name question, and
+slice 11 (2026-09-11, `td3-20260911-001948`) **resolved the client-copy row per arm** and
+**corrected the `overrides`-line reading** in § Compatibility notes.
 
 - **Workshop ID / mod ID(s):** item **`3774789651`**, one mod, declared id
   **`SKITTLE_LongTermPreservation4220`** (`42.20/mod.info:2`). The **folder** is
@@ -268,6 +272,27 @@ what the static read assumed:
   Graded row: [`../../modding/patterns.md`](../../modding/patterns.md) § Measured MP sync facts
   → *The other direction*, now marked **CONTESTED**.
 
+  **Cross-reference, 2026-09-11 — slice 11 ran the probe and it RESOLVES the contradiction;
+  nothing above is rewritten.** On run `td3-20260911-001948` (the `carrier` block of the AutoCook
+  session — [`autocook.md`](autocook.md) § MP handling → The carrier; a **pass-1/pass-2
+  follow-up**, not an AutoCook finding) a server-pinned vanilla `Base.Steak` was set to
+  **`heat 1.2`, BELOW the 1.6 gate**, and read on both sides twice **12.54 s** apart: the
+  **client's copy was frozen to the bit** (`1.2000000476837158`, `getCookingTime 0` at both reads)
+  while the **server's decayed to the 1.0 floor**. That is this row's own freeze, reproduced on a
+  *vanilla* item with a *known* gate position — so the three arms line up: pass 2's Steak stayed
+  above the gate and tracked the server, pass 1's CuredPork crossed it and froze, pass 3's Steak
+  was pinned below it and froze. **The carrier is the per-game-minute `GameServer.sendItemStats`
+  inside `Food.update`'s cooking branch** (`@86-@103 L377-L379`, gated `@49-@71 L372-L373`).
+  **Graded M per arm** (`n = 1` in each, across three sessions); the mechanism stays **C**. Two
+  bounds that keep this row honest rather than closed: the below-gate arm shows the client copy
+  did not tick **at all**, and since `updateTemperature` runs unconditionally inside `Food.update`
+  the defensible statement is "**`Food.update` did not advance the client's held copy in this
+  window**" — which *refines* the hypothesis's "a client copy can tick" clause rather than proving
+  it; and it is one item, one window, one fixture, with frozen and non-cookable items and every
+  other push path untested. **The operative rule for a client-side reader is unchanged**: you may
+  be reading a push, not a simulation. The "why it did not run is unexplained" sentence above now
+  has its answer for the *cooking* case and keeps its question for every other field.
+
 **The weight story, and the mod-authoring finding inside it.** Predicted: server ≈ 0.35 stored,
 client 0.35 recomputed, synced by two different arms of `Food.getActualWeight`. Measured: server
 **0**, client **0.35**. The chain, all of it read directly on `td1b`:
@@ -484,14 +509,30 @@ the 1e-6 rule, so no verdict turns on it.
   2026-09-10), no `require=` in `mod.info`, and its one `require` is vanilla's own
   `Foraging/forageSystem`. The single ordering-sensitive surface is the forage-def
   registration, which vanilla's `onAddForageDefs` event already serialises.
-- **Patched API surface: zero**, and the loader says so in its own words. Both artifacts'
-  `mod_log_lines` carry the same pair of `LOG : Mod` lines: `loading
-  SKITTLE_LongTermPreservation4220`, then `mod "SKITTLE_LongTermPreservation4220" overrides` —
-  the loader's **override census**, printed per mod as the name followed by the list of vanilla
-  files this mod shadows. Here the list is **empty**: the line ends at `overrides` (88 characters,
-  well inside the 200-character capture limit that truncates the three `NoSuchFileException`
-  lines beside it), so the engine agrees LTP shadows nothing (**M** — `td1`, `td1b`,
-  `mod_log_lines[1]`). It consumes three extension points (`onAddForageDefs`, the script hook
+- **Patched API surface: zero**, and the loader agrees — though **not in the way this section
+  first read it. Correction, 2026-09-11 (slice 11, pass 3's jar read + run
+  `td3-20260911-001948`).** Both artifacts' `mod_log_lines` carry the same pair of `LOG : Mod`
+  lines: `loading SKITTLE_LongTermPreservation4220`, then
+  `mod "SKITTLE_LongTermPreservation4220" overrides` with **nothing after it** (88 characters,
+  well inside the 200-character capture limit that truncates the three `NoSuchFileException` lines
+  beside it) — **M**, `td1` / `td1b`, `mod_log_lines[1]`. The *reading* originally attached to it
+  — "the loader's override census, printed per mod as the name followed by the list of vanilla
+  files this mod shadows", an empty list meaning "shadows nothing" — is **wrong**. The jar prints
+  **one line per shadowed file, with that file's relative path appended** (format constant #1670,
+  `'mod "\x01" overrides \x01'`, emitted from `ZomboidFileSystem.loadMod` at `L754-L755` /
+  `L769-L770`), so an empty tail is not a census of zero; it is a **single line with an empty
+  path**. Its cause is separate: `searchFolders` adds a path to `loadList` as a *file* when
+  `isDirectory()` is false — which a **missing** directory is — and LTP has no `common/`
+  ([`../nutrition-mods.md`](../nutrition-mods.md)). `getRelativeFile(commonDirUri, thatSamePath)`
+  then relativizes the URI against itself and returns **`""`** (`@31-@56 L1013-L1021`), which has
+  been sitting in `activeFileMap` since the first `common/`-less mod, so the next one prints the
+  line with nothing after it. **The M consequence, measured on a subject that *does* ship
+  `common/`:** AutoCook produced **five NON-EMPTY tails, one per shadowed file**, and **no** empty
+  one (`td3-20260911-001948`, `M1_overrides.server_log.tails` —
+  [`autocook.md`](autocook.md) § Architecture). **The conclusion for LTP is unchanged** — it
+  shadows nothing, and the 0 script-name collisions and 0 monkey-patches above are the real
+  evidence for that; what changes is that the empty line is no longer the *reason*. Graded **C**
+  for the mechanism (jar), **M** for both tails. It consumes three extension points (`onAddForageDefs`, the script hook
   keys, the `RecipeCodeOnCreate` statics) and replaces nothing. Re-loading it is idempotent by
   construction: `recipe_meats.lua` assigns 7 plain globals at file scope and holds no state.
 - **The `_G` namespace is the one real conflict risk** — see Pitfalls 3.
@@ -599,7 +640,15 @@ client; full run directories stay local under the gitignored `testing/runs/`):
   `testing/experiments/td1b_longtermpreservation4220.py` at commit `38ecf23`. Keys cited:
   `answers`, `weight_reads[]`, `thirst_hops`, `censuses[]`, `steps[]`, `item_get_after_cook`,
   `xp_delta`, `server_hook_lines`, `client_hook_lines`.
-- Provenance, reading guides and the *do not cite* list for both:
+- **`td3-20260911-001948`** — slice 11's session, cited here only for its **pass-1 follow-up**.
+  Artifact
+  [`testing/artifacts/td3-20260911-001948/teardown-autocook.json`](../../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
+  (64 170 B; 179.4 s wall; `server_error_count 0`), driver `testing/experiments/td3_autocook.py`
+  at commit `3f4b646`. One key cited: **`carrier`** — the below-gate (`heat 1.2`) pin of a vanilla
+  `Base.Steak` and its four cross-side reads, which resolve the client-copy row per arm
+  (§ MP handling, the 2026-09-11 cross-reference). It also supplied this doc's `overrides`-line
+  correction, from the jar rather than from the run (`M1_overrides.server_log.tails` is the M half).
+- Provenance, reading guides and the *do not cite* list for all three:
   [`../../../testing/artifacts/README.md`](../../../testing/artifacts/README.md).
 - Profile: `testing/profiles/teardown-longtermpreservation4220.toml` (harness + `[[mods]]
   workshop_id = "3774789651"`, no `[sandbox]` block; the module-qualified recipe probe landed in
