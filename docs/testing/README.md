@@ -508,6 +508,62 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   session; it is slice 09's first pass) and everything here as a population
   (one session, one item, one player).
 
+  **Slice-10 additions** (pass 2's harness-prep commit, ahead of its session, so
+  the `td2-*` artifact is the first written under all four):
+  * **The number format on the bus changed, and it is a rendering change, not a
+    measurement one.** `TK.json` rendered every non-integral number with
+    `string.format("%.6f", v)`; it now renders it with **`tostring(v)`**.
+    Integers are untouched — the `%.0f` branch still takes them first, with its
+    own `1e15` cut-off — so `2` is still `2`, never `2.0`, and no key changes
+    name or type. What changes is precision: `tostring` is Kahlua's
+    `KahluaUtil.numberToString`, which is `Double.toString(d)` for a
+    non-integral double (jar-read on 42.20.4) and therefore **round-trips
+    exactly** by the language spec, where `%.6f` quantised every float on the
+    bus to six decimals and made ulp-level cross-side comparison impossible.
+    The three candidates the deferral named (`%.9g` / `%.10g` / `%.17g`) were
+    **not** chosen: Kahlua implements its own `string.format`, its `%g` is
+    `StringLib.appendSignificantNumber` + `roundToSignificantNumbers`
+    (`Math.round(x·10^k)/10^k` on the fractional part), and nothing in the
+    bytecode makes that exact — while `tostring` is decidably exact and
+    shorter. Two non-finite cases still answer **`null`**, because JSON has no
+    literal for either and a bare `nan`/`inf` would lose the whole ack, not one
+    number: NaN did before this change and still does; ±Inf produced an
+    unparseable ack before it. Every artifact written **before** this commit
+    stays exactly as recorded and is read at six decimals
+    (`../../testing/artifacts/README.md` § Script/artifact skew).
+  * **`TK.nutritionSnapshot` gained three read-only keys** —
+    `incWeight`, `incWeightLot`, `decWeight`, from
+    `Nutrition.isIncWeight()Z` / `isIncWeightLot()Z` / `isDecWeight()Z`
+    (jar-confirmed) through `TK.call`, so a build without them omits the keys
+    rather than raising. They therefore appear in every `nutrition.get` and
+    every `stats.get` reply on **both** sides. They are the weight *direction*
+    flags `Nutrition.updateWeight` sets, and they are **not** in
+    `PlayerStatsPacket` (`Nutrition.save` writes the five macros only), so the
+    pair of readings is the only way to see whether a client recomputes them
+    from its mirrored macros.
+  * Server: **`moddata.set <user> <key> <value>`** — the exact twin of the
+    client command of the same name, writing `getModData()[key] = value` on the
+    named online player (`IsoObject.getModData()` is jar-confirmed and
+    inherited by `IsoPlayer`; no new Java surface). The value is always a
+    **string**, like the client's, and there is no delete. It exists because
+    the player census is server 4 keys / client 5 (the four vanilla fitness
+    keys, plus `hotbar` on the client): the client is a strict superset, so
+    without a planted server-only key the difference set that would expose
+    `KahluaTableImpl.load`'s wipe-before-rawset on the receiving side of a
+    `transmitModData()` is empty. The reply is
+    `{user, key, value, side, keyCount, keys, serverWorldAge}`.
+  * Client: **`text.get <translation key>`** → `{key, text, miss, side}`, or a
+    usage string with no argument. `getText` is a Lua **global** the engine
+    exposes (`LuaManager$GlobalObject.getText(String, Object[])`, varargs;
+    jar-confirmed), not a member on an object, so it is nil-checked and called
+    directly — the harness's own idiom for globals — rather than through
+    `TK.call`. A **miss returns the key itself**
+    (`Translator.getTextInternal`), which the reply reports as `miss: true`;
+    that is also what makes a hit evidence, since the text cannot be an echo of
+    the argument. It is the route to a tier-(a) `[[verify]]` probe for a mod
+    that ships no scripts and writes no readable state — a translation key it
+    defines and vanilla does not.
+
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects

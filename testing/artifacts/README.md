@@ -176,17 +176,25 @@ separate question, and `exp05-20260910-084109` is the run that shows why: its
 `meta.dataset_commit` names a commit the bytes it read were not in. That is a *do not cite*
 row in its block, not a skew bullet.
 
-**A skew of a third kind is coming, and this is where it will be disclosed.** `TK.json` renders
-every non-integral number with `string.format("%.6f")`, so every float on the bus — in every
-artifact above — is quantised to six decimals. The **first harness change of slice 10 widens that
-format** (`%.9g`, or the widest form Kahlua's own `string.format` accepts, measured on the bus
-first). That is a **rendering** change, not a measurement one: it changes the shape of every ack
+**A skew of a third kind landed in slice 10's harness-prep commit
+(`Slice 10: harness — float precision, weight flags, moddata.set, text.get`), and this is it.**
+Until that commit
+`TK.json` rendered every non-integral number with `string.format("%.6f")`, so **every float on the
+bus — in every artifact listed above — is quantised to six decimals**, and none of them supports a
+bit-for-bit claim. From that commit on, the same branch renders `tostring(v)`, which is
+Kahlua's `KahluaUtil.numberToString` → `Double.toString(d)` for a non-integral double and therefore
+round-trips exactly; integers are untouched (the `%.0f` branch still takes them first), so no key
+changes name or type, and NaN still answers `null` while ±Inf — previously an unparseable ack —
+answers `null` too. The three candidate formats the deferral named (`%.9g` / `%.10g` / `%.17g`)
+were not chosen; the reason is in
+[`../../docs/testing/README.md`](../../docs/testing/README.md) § Command bus, beside the format
+itself. This is a **rendering** change, not a measurement one: it changes the shape of every ack
 the harness emits and therefore of every artifact written after it, while everything written
 before it — `td1`, `td1b` and all seventeen older runs — stays exactly as recorded and stays
-readable at six decimals. When the change lands, it is disclosed here as its own paragraph naming
-the producing commit and the first artifact written under the new format, and in
-[`../../docs/testing/README.md`](../../docs/testing/README.md) § Command bus beside the number
-format itself. Until then, no artifact in this directory supports a bit-for-bit claim.
+readable at six decimals. **The first artifact written under the new format is slice 10 pass 2's
+own teardown session** (`td2-*`, `teardown-simplestatus.json`, its Contents row below); it is also
+the first artifact whose `nutrition.get` / `stats.get` replies carry the three
+`incWeight` / `incWeightLot` / `decWeight` keys that same commit added.
 
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two

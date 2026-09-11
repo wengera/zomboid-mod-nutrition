@@ -4,26 +4,44 @@
 fixture = "default"
 description = "PZTestKit + simpleStatus (workshop 2867431511) — teardown 2."
 run = { hold = 20 }
-# EMPTY BY RULING, not by oversight — tier (b) of the plan's Task 2 Step 2. There is no tier-(a)
-# probe for this subject BY CONSTRUCTION, and that is a finding: the mod ships no media/scripts in
-# any of its five media trees (script_item_blocks: 0), so items.count / recipes.craft / item.script
-# have nothing to read; its one modData key, SimpleStatusConfig, is written ONLY by UI click
-# handlers (the seven savePlayerData call sites, ISSSBar.lua:274,282,290,297,307,476,540, all
-# landing on ISSSBar.lua:34) and no bus command can click, so `witness.moddata player:admin
-# SimpleStatusConfig` reads `missing` whether the mod loaded or not, while the global-scoped form
-# is created by ModData.getOrCreate and would answer either way (docs/testing/README.md § witness);
-# and both events the mod registers (ss.main.lua:82-83) are CLIENT-only and write nothing readable.
+# Tier (a) since slice 10's harness-prep commit. It was tier (b) when this profile was committed
+# (a42c8b4, `verify = []`), and the reason is worth keeping straight: there was no tier-(a) probe
+# for this subject NONE ON THE SHIPPED BUS as of a42c8b4 — not "by construction", which the first
+# draft of this comment overstated. The mod ships no media/scripts in any of its five media trees
+# (script_item_blocks: 0), so items.count / recipes.craft / item.script have nothing to read; its
+# one modData key, SimpleStatusConfig, is written ONLY by UI input handlers (the seven
+# savePlayerData call sites, ISSSBar.lua:274,282,290,297,307,476,540 — six mouse handlers and one
+# keypress at :540 in SSBar:handleKey — all landing on ISSSBar.lua:34) and no bus command can
+# click or press a key, so `witness.moddata player:admin SimpleStatusConfig` reads `missing`
+# whether the mod loaded or not, while the global-scoped form is created by ModData.getOrCreate and
+# would answer either way (docs/testing/README.md § witness); and both events the mod registers
+# (ss.main.lua:82-83) are CLIENT-only and write nothing readable.
 #
-# The took-effect evidence is therefore the mod's own print at join, grepped by Task 3 out of
-# testing/runs/<run-id>/clients/admin/console.txt — the CLIENT log, because the mod registers
-# nothing server-side — with session.grep_file:
+# What DID exist was a reachable piece of the mod's own state with no shipped reader: its 52
+# translation keys (40 IGUI_SS_BARTITLE_*, 12 IGUI_SS_OPT_*, in 13 language trees). Slice 10's
+# harness-prep commit adds the reader — client `text.get <key>` — and the row below is the result:
+# IGUI_SS_BARTITLE_HAPPY → "Happiness" (42.16/media/lua/shared/Translate/EN/IG_UI.json:7). Vanilla
+# defines ZERO IGUI_SS_ keys, and a MISS returns the key itself (Translator.getTextInternal), so
+# mod-absent answers "text":"IGUI_SS_BARTITLE_HAPPY" — of which "Happiness" is not a substring.
+# The mod's Lua global SimpleStatus.VERSION (SimpleStatus.lua:4) would be another tier-(a) row for
+# any future _G reader; the harness has none, so it is recorded here rather than probed.
+#
+# Tier (b) still stands beside it, and Task 3 records it anyway — the mod's own prints at join,
+# grepped out of testing/runs/<run-id>/clients/admin/console.txt (the CLIENT log, because the mod
+# registers nothing server-side) with session.grep_file, which takes a COMPILED REGEX (escape the
+# brackets):
 #   [SimpleStatus] Showing status bar for player: admin   -- 42.16/media/lua/client/ss.main.lua:62
 #   [SimpleStatus] Loading config for player: admin       -- ss.main.lua:13, reached from :72
 #   [SimpleStatus] Status bar created for player: admin   -- ss.main.lua:79
-# in THAT order (:62 prints before loadPlayerConfig is called), so :62 and :79 arriving without :13
-# would mean loadPlayerConfig raised. Tier-(c) fallback, if even the prints are absent: the copied
-# folder under <run>/clients/admin/mods/ plus an empty mods_not_found.
-verify = []
+# Execution order is :62 → :13 (the first statement of loadPlayerConfig) → :79. So all three = the
+# bar was built; :62 + :13 without :79 = loadPlayerConfig or the bar construction (:73-77) raised;
+# :62 alone = the raise was at :64-72; and :79 without :13 is IMPOSSIBLE and means log lines were
+# lost — not, as this comment first had it, that loadPlayerConfig raised.
+# Tier-(c) fallback, if even the prints are absent: the copied folder under
+# <run>/clients/admin/mods/ plus an empty mods_not_found.
+verify = [                    # bare keys must precede the first table header (TOML)
+  { side = "client", cmd = "text.get", args = "IGUI_SS_BARTITLE_HAPPY", expect = '"Happiness"' },
+]
 
 [[mods]]
 id = "PZTestKit"              # harness, copied from the repo (paths.HARNESS_MODS)

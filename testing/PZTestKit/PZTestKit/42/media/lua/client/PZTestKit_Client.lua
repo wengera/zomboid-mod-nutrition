@@ -91,6 +91,31 @@ TK.register("moddata.transmit", function()
     getPlayer():transmitModData()
     return "transmitted"
 end)
+-- <translation key>  (slice 10). A mod that ships no scripts, registers nothing server-side and
+-- writes its one modData key only from UI input handlers has no state a bus command can read --
+-- except its TRANSLATIONS, which are shared/ files the engine loads at start. This command is
+-- what turns such a mod's `[[verify]]` probe from tier (b) (grep the mod's own console print out
+-- of the client log) into tier (a) (read the mod's own effect through the bus).
+-- `getText` is a Lua GLOBAL the engine exposes, not a member on an object, so TK.call / TK.field
+-- (both of which index an object) do not apply. The nil-check-then-call is this harness's own
+-- idiom for globals (`getSandboxOptions` at :177, `getEvolvedRecipes` at :301) and is safe:
+-- reading an undefined global is nil in Lua, never a raise.
+-- Jar-confirmed on 42.20.4: `zombie/Lua/LuaManager$GlobalObject.getText(Ljava/lang/String;
+-- [Ljava/lang/Object;)Ljava/lang/String;` -- varargs, and the game's own Lua calls it with one
+-- argument everywhere. A MISS returns the KEY ITSELF (`Translator.getTextInternal`, the IGUI_
+-- branch at @116-@138 L434-L435, null at @684-@685, `aload_0` return at @749-@750 L491), so
+-- `text == key` is "no such key" and is reported as `miss` rather than left for the caller to
+-- infer. That is also why a translated value is real evidence: it cannot be echoed from the
+-- argument.
+TK.register("text.get", function(argv)
+    local key = argv[1]
+    if key == nil then return "usage: text.get <translation key>" end
+    if getText == nil then
+        return { key = key, side = TK.side, error = "no getText() on this build" }
+    end
+    local text = tostring(getText(key))
+    return { key = key, text = text, miss = (text == key), side = TK.side }
+end)
 -- Renamed from `witness.moddata` in slice 08. That name now belongs to the SHARED reflective
 -- command in PZTestKit_Core.lua, and shared/ loads before client/, so a client registration of
 -- the same name would silently shadow it on this side only. Nothing else about this command

@@ -111,6 +111,40 @@ TK.register("perk.xp", function(argv)
     return out
 end)
 
+-- ---- player modData (slice 10) -----------------------------------------------
+-- <user> <key> <value>. The SERVER twin of the client's `moddata.set`
+-- (`client/PZTestKit_Client.lua:86-89`), and the only way to plant a player-modData key the
+-- CLIENT's copy does not have. That asymmetry is the whole point: pass 1 measured the player
+-- census as server 4 keys / client 5 (the four vanilla fitness keys, plus `hotbar` on the
+-- client), so the client is a strict superset and the difference set that would expose
+-- `KahluaTableImpl.load`'s wipe-before-rawset on the receiving side is empty without this
+-- command. Plant a key here, have the client `moddata.transmit`, and a server census that has
+-- LOST the planted key is the wipe, measured rather than read off the jar.
+--
+-- Jar-confirmed on 42.20.4: `zombie/iso/IsoObject.getModData()Lse/krka/kahlua/vm/KahluaTable;`
+-- (inherited by IsoPlayer) -- no new Java surface; `transmitModData()V` is on the same class.
+-- The write is a plain assignment, exactly like the client's shipped command: a KahluaTableImpl
+-- carries no metatable, so `md[k] = v` IS a raw set, and `rawset` is a global this build's Lua
+-- never uses anywhere (0 hits in the game's own media/lua), which would make an absent one an
+-- uncatchable "tried to call nil" on the server.
+-- The VALUE is always a string (`argv[3]`, the bus splits on %S+), like the client's -- see
+-- docs/testing/README.md. There is no delete: writing nil through this path cannot be told from
+-- a missing argument, and nothing needs it.
+TK.register("moddata.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    if argv[2] == nil or argv[3] == nil then return "usage: moddata.set <user> <key> <value>" end
+    local ok, md = TK.call(p, "getModData")
+    if not ok then return "no getModData() on " .. tostring(argv[1]) end
+    if type(md) ~= "table" then return "modData is a " .. type(md) .. ", not a table" end
+    md[argv[2]] = argv[3]
+    local keys = {}
+    for k in pairs(md) do keys[#keys + 1] = tostring(k) end
+    table.sort(keys)
+    return { user = tostring(argv[1]), key = argv[2], value = argv[3], side = TK.side,
+             keyCount = #keys, keys = keys, serverWorldAge = getGameTime():getWorldAgeHours() }
+end)
+
 -- ---- body-side commands (slice 03) -------------------------------------------
 -- Everything below is SERVER-side on purpose. Hunger, thirst, endurance and the whole
 -- Nutrition block tick only here in MP: `updateStats_WakeState @8-@26 L10227` and the twin

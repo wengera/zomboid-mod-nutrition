@@ -60,10 +60,29 @@ function TK.json(v, depth)
     local t = type(v)
     if t == "nil" then return "null" end
     if t == "boolean" then return v and "true" or "false" end
+    -- Slice 10 widened the non-integral branch from `string.format("%.6f", v)` to `tostring(v)`.
+    -- WHY NOT `%.9g` / `%.17g` (the three candidates the ruling named): Kahlua implements its own
+    -- string.format, and its `%g` is `StringLib.appendSignificantNumber` + `roundToSignificantNumbers`
+    -- (`Math.round(x*10^k)/10^k` on the FRACTIONAL part) -- a reimplementation whose exactness
+    -- cannot be established from the bytecode, and there is no way to run Kahlua offline here
+    -- (the jar ships no interpreter entry point and the machine has a JRE, no javac).
+    -- `tostring` is decidable and is exactly what is wanted: `KahluaUtil.tostring` -> `rawTostring`
+    -- -> `numberToString` (jar-read, 42.20.4) is
+    --     NaN -> "nan";  +/-Inf -> "inf"/"-inf";
+    --     floor(d)==d and |d|<1e14 -> String.valueOf((long) d);   -- integers stay integers
+    --     otherwise -> Double.toString(d)                         -- round-trips EXACTLY (JLS)
+    -- so a float32 widened to a double (every packet-carried number) survives the bus intact
+    -- instead of being quantised to six decimals. Integers are unaffected either way: the `%.0f`
+    -- branch below still takes them first, and it keeps its own 1e15 cut-off.
+    -- The two non-finite cases are the reason this branch still guards: JSON has no literal for
+    -- either, and `tostring` would emit a bare `nan`/`inf` that no parser accepts, which would
+    -- lose the WHOLE ack rather than one number. NaN answered `null` before this change and still
+    -- does; +/-Inf produced an unparseable ack before it and answers `null` now.
     if t == "number" then
         if v ~= v then return "null" end
         if v == math.floor(v) and math.abs(v) < 1e15 then return string.format("%.0f", v) end
-        return string.format("%.6f", v)
+        if v * 0 ~= 0 then return "null" end     -- +/-Inf (finite*0 == 0; Inf*0 is NaN)
+        return tostring(v)
     end
     if t == "string" then return jsonString(v) end
     if t == "table" then
@@ -279,13 +298,31 @@ local function statValue(s, enumName, getter, field)
     return nil, "none"
 end
 
+-- The three weight-DIRECTION flags (slice 10) are OPTIONAL reads and go through TK.call, unlike
+-- the five macros above them, which are called directly on purpose (see the note above
+-- TK.bodySnapshot: a build that lost getCalories must fail loudly rather than answer with no
+-- calories). Jar-confirmed on 42.20.4, `zombie/characters/BodyDamage/Nutrition`:
+--   isIncWeight()Z   isIncWeightLot()Z   isDecWeight()Z
+-- They are what `Nutrition.updateWeight` sets and are NOT carried by PlayerStatsPacket
+-- (`Nutrition.save` writes calories/carbs/lipids/proteins/weight only), so reading them on both
+-- sides is the only way to see whether a client recomputes them from its mirrored macros.
+-- `false` is a real reading here, so each key is written only when the member EXISTS
+-- (TK.call's first return), never when it merely answered false.
+local WEIGHT_FLAGS = { incWeight = "isIncWeight", incWeightLot = "isIncWeightLot",
+                       decWeight = "isDecWeight" }
+
 function TK.nutritionSnapshot(p)
     local n, s = p:getNutrition(), p:getStats()
     local hunger, api = statValue(s, "HUNGER", "getHunger", "hunger")
     local thirst = statValue(s, "THIRST", "getThirst", "thirst")
-    return { calories = n:getCalories(), carbs = n:getCarbohydrates(), lipids = n:getLipids(),
-             proteins = n:getProteins(), weight = n:getWeight(), hunger = hunger, thirst = thirst,
-             statsApi = api }
+    local out = { calories = n:getCalories(), carbs = n:getCarbohydrates(), lipids = n:getLipids(),
+                  proteins = n:getProteins(), weight = n:getWeight(), hunger = hunger,
+                  thirst = thirst, statsApi = api }
+    for key, getter in pairs(WEIGHT_FLAGS) do
+        local ok, v = TK.call(n, getter)
+        if ok then out[key] = v end
+    end
+    return out
 end
 
 TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", lipids = "setLipids",
