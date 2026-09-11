@@ -32,6 +32,12 @@ import patterns from there.
   target can never silently switch a rule off. `--root DIR` points that root
   somewhere else (the tests lint a temp tree that way); module API:
   `lint(targets, repo_root=None) -> [Finding(path, line, rule, detail)]`.
+  **Table trap (2026-09-11, slice 10).** `_tables()` splits a row by stripping
+  and splitting on `|` with no escape handling, so a backslash-escaped `\|`
+  inside a cell **still splits the row** and shifts every later cell one place.
+  In a table with an `Ev` column that either fails a correctly graded row or
+  grades the wrong cell. Rewrite the cell (name the alternatives in prose)
+  rather than escaping the pipe; the splitter is deliberately simple.
 
 - `mod_lint.py` — `python tools/mod_lint.py [<mod folder>|<workshop id> ...] [--workshop-dir D]`
   The **L0** layout check: is this folder even shaped like a B42 mod? An
