@@ -17,8 +17,8 @@ are **server-authoritative** and arrive on the client as a **push**, so a client
 reading a mirror, not a simulation. (2) A mod's `media/lua/server/` files are **not**
 server-only in MP — they execute in the client's Lua state too. (3) Kahlua's "tried to call
 nil" **is** caught by `pcall` — measured, both sides — but an **unguarded** one aborts the rest
-of that handler's body and names nothing in any log, so every Java member is still reached by
-indexing first. **§ 5 owns that rule — both shapes, both sides, and its bounds.**
+of that handler's body and no log ever names the member, so every Java member is still reached
+by indexing first. **§ 5 owns that rule, its bounds, and what it does to a `-debug` client.**
 
 ## Model — the four surfaces
 
@@ -73,15 +73,14 @@ reads return an unchanged value ([teardown](../mods-survey/teardowns/simplestatu
 § MP handling, run `td2-20260910-231655`).
 
 **A raise aborts its own handler's body — not the handlers behind it.** An unguarded nil call
-inside a handler stopped the rest of *that* handler's body (`raw_tail` still `"0"` after ~70
-fires) while every handler registered behind it kept running (`behind` +17, in lockstep with
-`before`) — M, `x127-20260911-052049`, **server VM only**, n = 1 session / two passes. The
-mechanism is per-callback: `Event.trigger` calls each callback through
-`LuaCaller.protectedCallVoid` (`@89` and `@276`, one in each of its two dispatch branches)
-inside a per-iteration `catch (Throwable) → ExceptionLogger.logException` (`@194-@198
-L41-L42`) and continues the loop (`@216-@219 L31`) — C (jar, 2026-09-11). So a `pcall` at the
-rim (KEEP 9) is how you keep **your own** body running; it is not what keeps the other handlers
-alive. The measured rule, its two shapes and its bounds are in § 5.
+stopped the rest of *that* handler's body (`raw_tail` still `"0"` after ~70 fires) while every
+handler registered behind it kept running (`behind` +17, in lockstep with `before`) — M,
+`x127-20260911-052049`, **server VM only**, n = 1 session / two passes. The mechanism is
+per-callback: `Event.trigger` routes each callback through `LuaCaller.protectedCallVoid` (`@89`
+and `@276`, one per dispatch branch) inside a per-iteration
+`catch (Throwable) → ExceptionLogger.logException` (`@194-@198 L41-L42`) and continues the loop
+(`@216-@219 L31`) — C (jar, 2026-09-11). So a rim `pcall` (KEEP 9) keeps **your own** body
+running, not the other handlers. The rule, both shapes and its bounds are in § 5.
 
 ## 2. Java members by owner
 
@@ -210,63 +209,74 @@ B42's Lua is Kahlua, not PUC Lua. These are the rules every file in this repo is
 | **A sentinel for a wrapped vanilla method must live OUTSIDE any table the shared file re-creates** | `TKX_EatHook.lua:19` re-creates `TKX_EatHook` by plain assignment on every load, so the wrap sentinel lives in its own global `TKX_EatHook_Installed` (`TKX_EatHook_Server.lua:31`). Kept inside, a `reloadlua` of the shared file would wipe it while the old wrapper was still installed, and the next install would wrap the wrapper | C (the mod's own code and its reasoning; the `wrapAt "file"` reading on both sides is consistent with a single wrap per VM) |
 | **(not a Kahlua limit — a loader fact, listed here because it bites the same code)** a mod's `media/lua/server/` file runs in the **MP client's** Lua state too | resolve the side at runtime (`isServer()`, nil-checked as above) instead of trusting the folder; "only my server file writes this" is false until the guard is there. § MP behaviour owns the row, the three witnesses and the bound | M (`x121-20260911-030023` key `phases.M7.mod_globals.client`; n = 1 session, incidental, mechanism untraced) |
 
-**The nil-call rule, measured (sessions 6 and 7).** This is the one place the rule is stated.
+**The nil-call rule, measured (sessions 6 and 7).** The one place this file states it.
 
-- **`pcall` catches it.** `pcall(<nil argument>)` — the `TK.call` / `tkxCall` shape — returns
-  `false, "tried to call nil java.lang.RuntimeException"` on **both** sides, byte-identical per
-  side and on both passes — **M**, `x126-20260911-045205`, keys
-  `phases.reads.client.values.ok` / `.err` and `phases.reads.server.values.ok` / `.err`,
-  verdicts `verdicts.P21_client` / `verdicts.P21_server`; n = 1 session, two passes 12 s apart.
-  It is a real raise, really caught (**C**, jar 2026-09-11): `KahluaThread.call(I)I` loads the
-  callee (`@14-@23 L139`), branches (`@25 ifnonnull 40`) and **throws** (`@30-@39 L142`);
-  `BaseLib.pcall @0-@10 L313` enters `KahluaThread.pcall(I)I`, whose try covers that `call`
-  (`@80-@85 L1740`) and whose `Throwable` arm (`@189-@213 L1758-L1760`) concatenates
-  `getMessage()` with `getClass().getName()` — the only producer of the observed string — beside
-  `Boolean.FALSE` (`@256-@276 L1768-L1769`). There is no "returns false without raising" branch
-  anywhere on that path, so quote the **whole** string, class name included.
-- **The nested shape catches too.** `pcall(function() SomeNil() end)` returned
+- **`pcall` catches it — both shapes.** The argument slot (the `TK.call` / `tkxCall` shape)
+  returned `false, "tried to call nil java.lang.RuntimeException"` on **both** sides,
+  byte-identical and on both passes (**M**, `x126-20260911-045205`,
+  `phases.reads.<side>.values.ok` / `.err`, `verdicts.P21_client` / `P21_server`; n = 1 session,
+  two passes 12 s apart); the nested shape `pcall(function() SomeNil() end)` returned
   `false, "Object tried to call nil in pcall java.lang.RuntimeException"` with the lines after
-  the `pcall` still running — so the protection covers the whole dynamic extent (`call(I)I`
-  pushes a frame at `@145` and runs the nested `luaMainloop` at `@155-@158 L162` **inside** the
-  same try), not just the argument slot — **M**, `x127-20260911-052049`, keys
-  `phases.reads.server.values.nested_ok` / `.nested_err` / `.nested_tail`, verdict
-  `verdicts.P22_server`; **server VM only**, n = 1 session, two passes.
+  it still running (**M**, `x127-20260911-052049`, `phases.reads.server.values.nested_ok` /
+  `.nested_err` / `.nested_tail`, `verdicts.P22_server`; **server VM only**, two passes). Quote
+  the **whole** string, class name included.
+- **Why it catches (C, jar 2026-09-11).** `KahluaThread.call(I)I` loads the callee
+  (`@14-@23 L139`), branches (`@25 ifnonnull 40`) and **throws** (`@30-@39 L142`) — no "returns
+  false without raising" arm exists. `BaseLib.pcall @0-@10 L313` enters
+  `KahluaThread.pcall(I)I`, whose try covers that `call` (`@80-@85 L1740`) **and** the nested
+  `luaMainloop` it runs after pushing a frame (`@145`, `@155-@158 L162`) — which is why both
+  shapes are caught; its `Throwable` arm (`@189-@213 L1758-L1760`) concatenates `getMessage()`
+  with `getClass().getName()` beside `Boolean.FALSE` (`@256-@276 L1768-L1769`), the only
+  producer of the observed string.
 - **Unguarded, it aborts the rest of that handler's body** (`raw_tail` `"0"`) **but not the
-  handlers behind it** (`behind` +17 in lockstep with `before`) — **M**, same run, keys
-  `phases.reads.server.values.raw_tail` / `.behind` / `.before`, server VM only; mechanism
-  **C** (`Event.trigger`, § 1).
-- **Nothing names the missing member.** The caught argument-slot call was **silent in both
-  consoles**: `names_the_global: false` (x126 `verdicts.P21_<side>.observed.err`) and 0 log hits
-  for the probe's global, for `attempted to call` and for `ExceptionLogger` (x126 `greps.*`) —
-  **M**. A *nested* raise the mod caught is still logged in full — 73 engine trace blocks (x127
-  `greps_final["nil in pcall"].server.engine_count`) — and an unguarded one is logged as a stack
-  trace that **still** never prints the name (`TKX_DefinitelyNilThree`: 0 hits in both logs,
-  x127 `greps_final.TKX_DefinitelyNilThree`) — **M**.
-- **So the guard stays, with its reason rewritten.** Index first and call second — not because
-  `pcall` fails to catch (it catches), but because a nil call is otherwise **silent** about what
-  was nil, **aborts the body** it sits in, and on a debug client may be **session-ending**. The
-  slice-08 outage `exp01-20260909-235420` (the client stopped answering the bus entirely) is
-  explained by *the raise aborted the bus-pump handler's body every tick*; that run predates the
-  artifact convention and has **no committed JSON**, so the explanation is **C** (the x126/x127
-  mechanism applied to an ungraded observation) — never quote it as a measurement.
-- **Bounded platform observation — the `-debug` client froze.** On two independent boots the
-  harness client reached `in_game`, raised **one** mod Lua error, and then stopped: console
-  dead, `ready` never printed, bus never answered a single command, process still alive —
-  **M**, x127, keys `client_ready`, `client_lua_error`, `bus_dead.client`, with
-  `verdicts.P22_client` = `unmeasured`; n = 2 boots. **The cause is not measured.** The jar does
-  carry a debug-gated break on this exact path — `luaMainloop`'s error handler calls
-  `UIManager.debugBreakpoint(currentfile, currentLine − 1)` when `Core.debug` is set and
-  `UIManager.defaultthread == LuaManager.thread`, before `debugException` /
-  `doStacktraceProper` / `KahluaUtil.fail` (`@3349-@3397 L843-L850`, **C**) — which is
-  *consistent with* the freeze and does not establish it. Every client-side reading of x127 is
-  `unmeasured`. Read this as a hazard of the `-debug` harness client, not as a rule about
-  shipped mods on a normal client.
+  handlers behind it** (`behind` +17 in lockstep with `before`) — **M**, x127,
+  `phases.reads.server.values.raw_tail` / `.behind` / `.before`, `second_pass.deltas.server`,
+  server VM only; mechanism **C** (`Event.trigger`, § 1).
+- **The silence is about the *name*, and only one shape is quiet.** x126's argument-slot catch
+  printed nothing at all in either console — `names_the_global: false`
+  (`verdicts.P21_<side>.observed.err`), 0 hits for the probe's global, for `attempted to call`
+  and for `ExceptionLogger` (`greps.*`) — because that raise is `call`'s direct `athrow` and
+  never reaches `KahluaUtil.fail`. Both x127 shapes are **logged in full** (73 engine hits each
+  for `… in pcall` and `… in Add` — `greps_final.<pattern>.server.engine_count`). What no log
+  ever prints is the **name** (`TKX_DefinitelyNilThree` / `…Too`: 0 hits on both sides —
+  `greps_final.*`, `phases.engine_log_signature.per_side.*.names_the_global`) — **M** — because
+  `luaMainloop` builds the message as `"Object tried to call nil in " + closure.prototype.name`
+  before calling `fail` (`@3020-@3035 L763`, fallback `"… in unknown"` `@3041-@3044 L765`,
+  **C**): it names the enclosing closure, never the missing global.
+- **So the guard stays, reason rewritten.** Index first, call second — not because `pcall`
+  fails to catch, but because a nil call never says **which** member was nil, aborts the body it
+  sits in when unguarded, and on a `-debug` client is session-ending (below). The slice-08
+  outage `exp01-20260909-235420` (the client stopped answering the bus) is explained by *the
+  raise aborted the bus-pump handler's body every tick* — that run predates the artifact
+  convention and has **no committed JSON**, so the explanation is **C**, never a measurement.
+- **A `-debug` client does not survive one: it parks in the Lua debugger.** On two independent
+  boots the harness client reached `in_game`, printed one complete trace, then stopped — console
+  dead, `ready` never printed, bus never answering, process alive (**M**, x127, `client_ready`,
+  `summary.client_bus_answered`, `bus_dead.client`, `verdicts.P22_client` = `unmeasured`,
+  n = 2 boots). The route is `KahluaUtil.fail(String)` and the two sides took different arms of
+  it: it tests `Core.debug && UIManager.defaultthread == LuaManager.thread` (`L95`), and on the
+  true arm prints `Lua fail. Message: %s` (`L96`) and calls
+  `UIManager.debugBreakpoint(currentfile, currentLine − 1)` (`@35-@50 L97`) **before** the
+  `athrow` at `@53-@61 L100`. The client's log carries that `L96` line and never the throw, the
+  server's only the throw (**M**,
+  `phases.engine_log_signature.per_side.{client,server}.h1_message_first_hit`), so the client
+  never left `debugBreakpoint` — which returns unless `showLuaDebuggerOnError` (`L1173`), returns
+  at once on a `GameServer.server` (`L1183`, so no server ever breaks), else swaps
+  `defaultthread` to `LuaManager.debugthread` (`L1192-L1193`), calls `DoLuaDebuggerOnBreak`
+  (`@300 L1239`) and enters the modal `UIManager.sync.begin()` pump (`@331-@334 L1244`), **C**.
+  The harness launches its admin client with `-debug` (`testing/pzt/client.py:137-139`);
+  **negative control**: x126's same debug client never froze, because that shape never reaches
+  `fail`. So **"any Lua error freezes a debug client" is false** — one routed through `fail`
+  does, and **catching it does not help**: x127's *caught* nested raise took the same route, so
+  on a debug client only the index-first guard, which never raises at all, keeps you alive.
+  Open: the **release** client (`Core.debug`-gated — C, unmeasured) and what sets
+  `showLuaDebuggerOnError`.
 
 ## 6. Removed or absent on 42.20.4
 
 Each of these is a live hazard, not trivia: a shipped mod still calling one **raises**, and an
-unguarded raise aborts the rest of the handler body that reached it without naming the member
-in any log (§ 5).
+unguarded raise aborts the rest of the handler body that reached it — without ever naming the
+member (§ 5).
 
 | API | Jar reading (2026-09-11) | Still called in the corpus by | Ev |
 |---|---|---|---|
@@ -326,16 +336,15 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
 
 ## Discrepancies
 
-- **RESOLVED 2026-09-11 — the nil-call rule was half right; the bytecode was right.** The
-  standing rule said Kahlua's "tried to call nil" escapes `pcall` *and* kills the handler chain,
-  against a bytecode reading (`KahluaThread.pcall(I)I`'s `Throwable` arm `@189-@213 L1758-L1760`,
-  beside its `KahluaException` arm `@173-@186 L1755-L1757`) that said it should be caught. Both
-  halves are now measured (§ 5): **`pcall` catches** — both sides in the argument slot
-  (`x126-20260911-045205`), server-side in the nested shape (`x127-20260911-052049`), the quoted
-  string being exactly what `pcall` *returns* — and an unguarded raise **aborts its own
-  handler's body** (right) **but not the handlers behind it** (wrong). The guard is kept for the
-  rewritten reasons, not this one. Still open: everything client-side in `x127` (the `-debug`
-  client froze), and the slice-08 outage that produced the rule has no committed artifact.
+- **RESOLVED 2026-09-11 — the nil-call rule was half right; the bytecode was right.** The rule
+  said Kahlua's "tried to call nil" escapes `pcall` *and* kills the handler chain, against a
+  bytecode reading (`KahluaThread.pcall(I)I`'s `Throwable` arm `@189-@213 L1758-L1760`, beside
+  its `KahluaException` arm `@173-@186 L1755-L1757`) that said it should be caught. Both halves
+  are now measured (§ 5): `pcall` **catches** (x126 both sides, x127 nested server-side — the
+  quoted string is what `pcall` *returns*), and an unguarded raise **aborts its own handler's
+  body** (right) **but not the handlers behind it** (wrong); the guard is kept for the rewritten
+  reasons, not this one. Still lost: every client-side reading of `x127` (the `-debug` client
+  parked in the Lua debugger — cause settled in § 5). Still ungraded: the slice-08 outage.
 - **`getText` misses everywhere, yet `getDisplayName()` resolves.** Recorded above; the
   reconciliation is that the two do not share a route, and only the instance getter was ever
   shown to reach the table.
@@ -358,16 +367,15 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
    `PlayerStatsPacket` and nothing else has been traced; both sides' trait lists were empty in
    every run so far, so "no disagreement" is not an answer
    ([body-stats.md](../vanilla/body-stats.md) open question 10).
-5. **Why the `-debug` harness client froze at its first mod Lua error.** Measured at n = 2
-   boots (`x127`); the cause is not. The named check is the same probe under a `debug=False`
-   client — a harness launch-flag change, not a doc change — and it has to remove `x127`'s
-   confound at the same time: both raising handlers lived in **one** mod and only the first
-   one's trace printed, so "a caught nested raise hangs the debug client" and "the first raise
-   of any shape hangs it" are not separated. Put the two raises in separate mods.
-6. **The nil-call rule on the client, unguarded.** `x126` measured the caught shape on both
-   sides, but the body-abort / chain-survives half is **server VM only** (`x127`), because of
-   the freeze above. Until a client answers it, treat the client half as jar-supported (C) and
-   unmeasured.
+5. **What a *release* client does with a `KahluaUtil.fail` raise.** The debug-client break is
+   settled (§ 5, C confirmed by M) and gated on `Core.debug`; nothing here has run a
+   `debug=False` client, so the release path is **C, unmeasured**. The same run should settle
+   what sets `UIManager.showLuaDebuggerOnError`, the break's other gate.
+6. **The nil-call rule on the client, unguarded.** The body-abort / chain-survives half is
+   **server VM only** (`x127`, because the debug client parked) — treat the client half as
+   jar-supported (C) and unmeasured. Split any follow-up by raise **origin** (`call(I)I`'s
+   direct `athrow` vs `luaMainloop` → `fail`), not by handler shape: both of `x127`'s handlers
+   took the `fail` route, so that session cannot separate them.
 7. **Whether a mod-registered `MoodleType` carries a Java effect.** `MoodleType.register` and
    `MoodleStat.register` exist on the jar — `MoodleType.register(String)`, `registerBase(String)`,
    `register(boolean, String)` and `MoodleStat.register(MoodleType, F, F, F, F, F)`, read
@@ -386,18 +394,20 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
   [`testing/artifacts/x124-20260911-035819/platform-order.json`](../../testing/artifacts/x124-20260911-035819/platform-order.json);
   `x123-20260911-034426` / `x123b-20260911-034500` (the server-only bus readings), at
   [`testing/artifacts/x123-20260911-034426/platform-folder.json`](../../testing/artifacts/x123-20260911-034426/platform-folder.json);
-  `x126-20260911-045205` (the `pcall` probe — keys `phases.reads.<side>.values.ok` / `.err` /
-  `.tail` / `.behind` / `.ctrl_ok` / `.ctrl_err`, `verdicts.P21_client` / `verdicts.P21_server`
-  incl. `observed.err.names_the_global`, `summary.values.<side>`, `second_pass`, `greps.*`), at
+  `x126-20260911-045205` (the `pcall` probe — `phases.reads.<side>.values.{ok, err, tail,
+  behind, ctrl_ok, ctrl_err}`, `verdicts.P21_client` / `P21_server` incl.
+  `observed.err.names_the_global`, `summary.values.<side>`, `second_pass`, `greps.*`), at
   [`testing/artifacts/x126-20260911-045205/platform-pcall.json`](../../testing/artifacts/x126-20260911-045205/platform-pcall.json);
-  `x127-20260911-052049` (the raise probe — keys `phases.reads.server.values.nested_ok` /
-  `.nested_err` / `.nested_tail` / `.raw_tail` / `.behind` / `.before`, `verdicts.P22_server`,
-  `verdicts.P22_client` (`unmeasured`), `client_ready`, `client_lua_error`, `bus_dead.client`,
-  `greps_final.*`, `summary.second_pass_deltas.server`), at
+  `x127-20260911-052049` (the raise probe — `phases.reads.server.values.{nested_ok, nested_err,
+  nested_tail, raw_tail, behind, before}`, `second_pass.deltas.server`, `verdicts.P22_server`,
+  `verdicts.P22_client` (`unmeasured`), `greps_final.<pattern>.<side>.{count, engine_count}`,
+  `phases.engine_log_signature.per_side.*`, `client_ready`, `summary.client_bus_answered`,
+  `bus_dead.client`), at
   [`testing/artifacts/x127-20260911-052049/platform-raise.json`](../../testing/artifacts/x127-20260911-052049/platform-raise.json).
-  Their do-not-cite lists bind: **every** client-side reading of `x127`, its
-  `summary.sides_agree`, its `server_error_count` as a fault count, and `x126`'s
-  `server_error_count` (a harness classifier artefact) are not quoted here.
+  Do-not-cite, and obeyed here: every client-side *reading* of `x127` (its bus never answered),
+  its `summary.sides_agree`, both runs' `server_error_count` as a fault count. The freeze's
+  **cause** became citable with the Task 6e review (C confirmed by M); only the **release**-client
+  behaviour stays uncitable.
   `x122-20260911-032326` is cited by [`anatomy.md`](anatomy.md), not here.
 - **Earlier measured rows quoted by run id, not re-graded here:** spike **S6**
   (`spike-20260909-143930`, `spike-20260909-144417`), `exp01-20260910-000351`,
@@ -418,8 +428,10 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
   `LuaManager$Exposer.exposeAll`'s class set; `KahluaThread.call(I)I @14-@39 L139-L142`,
   `@70-@102 L149-L150` and `@145-@158 L157-L162`, `BaseLib.pcall @0-@10 L313`,
   `KahluaThread.pcall(I)I @80-@85 L1740` and `@173-@276 L1755-L1769`,
-  `KahluaThread.luaMainloop @3041-@3044 L765`, `@3340-@3343 L842` and its error handler
-  `@3349-@3397 L843-L850`; `zombie/Lua/Event.trigger @89` / `@194-@198 L41-L42` /
+  `KahluaThread.luaMainloop @3020-@3035 L763`, `@3041-@3044 L765` and `@3340-@3343 L842`;
+  `KahluaUtil.fail(String) @0-@61 L95-L100`; `UIManager.debugBreakpoint(String,J)`
+  `L1173` / `L1183` / `L1192-L1193` / `@300 L1239` / `@331-@334 L1244`;
+  `zombie/Lua/Event.trigger @89` / `@194-@198 L41-L42` /
   `@216-@219 L31` / `@276`; and the method lists of `Stats`, `IsoGameCharacter`,
   `IsoGameCharacter$XP`, `InventoryItem`, `Food`, `ScriptManager` and
   `zombie.scripting.objects.Item` (the absences in § 6).
