@@ -1,0 +1,20 @@
+# testing/profiles/x12-loader.toml — slice 12 sessions 2 and 3: the loader probes.
+# TKX_CommonOnly is deliberately UNGATED: whether a version dir with no media/ still lets
+# common/ load is the measurement, and a measurement must never be a [[verify]] row.
+fixture = "default"
+description = "PZTestKit + the two loader probes — slice 12 sessions 2 and 3."
+run = { hold = 20 }
+verify = [
+  # TKX_Loader_Version.lua has no common/ counterpart, so it loads under EITHER merge
+  # direction — which is exactly what makes it a gate and not a discriminator.
+  { side = "client", cmd = "lua.global", args = "TKX_LoaderVersionTree", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_LoaderVersion"          # the id `mods.mod_id_of` resolves (newest version dir first)
+path = "testing/experiments/tkx-loader-probe"
+[[mods]]
+id = "TKX_CommonOnly"
+path = "testing/experiments/TKX_CommonOnly"

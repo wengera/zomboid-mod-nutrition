@@ -1,0 +1,25 @@
+# testing/profiles/x12-overrides.toml — slice 12: the three surface mods on the golden fixture.
+# Mods= order is LOAD order, and it is load-bearing here: TKX_EatHook is LAST, so its
+# `item Watermelon` body is applied after TKX_ItemOverride's (ScriptBucket.LoadScripts replays
+# the bodies in order) and Calories should read 777, not 111.
+fixture = "default"
+description = "PZTestKit + TKX_ItemOverride + TKX_Nutrient + TKX_EatHook — slice 12 session 1."
+run = { hold = 20 }
+verify = [   # one tier-(a) row per mod, each certain to pass IF the mod loaded at all; nothing
+             # that is a measurement is used as a gate.
+  { side = "server", cmd = "item.script", args = "TKX.FibreBar",      expect = '"DaysFresh": 42' },
+  { side = "server", cmd = "lua.global",  args = "TKX_Nutrient.version", expect = '"value": 1' },
+  { side = "client", cmd = "lua.global",  args = "TKX_EatHook.version",  expect = '"value": 1' },
+]
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_ItemOverride"
+path = "testing/experiments/TKX_ItemOverride"
+[[mods]]
+id = "TKX_Nutrient"
+path = "testing/experiments/TKX_Nutrient"
+[[mods]]
+id = "TKX_EatHook"
+path = "testing/experiments/TKX_EatHook"

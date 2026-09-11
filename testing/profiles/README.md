@@ -10,7 +10,7 @@ the fixture was built; `steamapps/workshop/content/108600/`, read-only), and eac
 *restored per-run copy* of the fixture, so nothing here mutates either. Everything a
 profile asks for is resolved and validated before a single process starts (`testing/pzt/profile.py`),
 because the game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A) —
-a run that looks green while the thing under test was never loaded. Five profiles ship:
+a run that looks green while the thing under test was never loaded. Seven profiles ship:
 **`mod-under-test.toml`** — PZTestKit + KeenPerception (workshop `3685392864`) on `default` with
 `DayLength = 1`, the T1 acceptance case and the template for slices 09–11, whose `[[verify]]`
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
@@ -37,7 +37,24 @@ whose two `[[verify]]` rows are both **client** and both read load-time state, o
 that loads a mod split across two media trees: `text.get UI_AutoCookMode` for the Translator's
 merge of `common/`'s JSON, and `witness.moddata player:admin *` for the modData key the Lua require
 chain writes. A hit on the second proves `common/` ran and that the chain completed — **not** which
-copy of `AutoCook.lua` won the collision, which is `lua.global`'s question.
+copy of `AutoCook.lua` won the collision, which is `lua.global`'s question; and
+**`x12-overrides.toml`** — slice 12's session 1, and the first profile whose subjects are OURS:
+PZTestKit + `TKX_ItemOverride` + `TKX_Nutrient` + `TKX_EatHook` (each a `path =` into
+`testing/experiments/`, not a workshop item) on `default` with **no `[sandbox]`** so DayLength stays
+the fixture's 4, whose three `[[verify]]` rows are one tier-(a) gate per mod — server
+`item.script TKX.FibreBar`, server `lua.global TKX_Nutrient.version`, client
+`lua.global TKX_EatHook.version` — each certain to pass IF the mod loaded at all. The `Mods=` order
+is LOAD order and is load-bearing here: `TKX_EatHook` is last, so its `item Watermelon` body is
+replayed after `TKX_ItemOverride`'s, and the `Calories` that results is the MEASUREMENT, never a
+gate; and **`x12-loader.toml`** — slice 12's sessions 2 and 3, PZTestKit + the two loader probes,
+`TKX_LoaderVersion` (folder `testing/experiments/tkx-loader-probe`, whose name matches neither id
+the folder declares — `mods.mod_id_of` picks the newest version dir's) and `TKX_CommonOnly` (a
+`42.20/` carrying only a `mod.info`, the whole payload under `common/`), on `default` with **no
+`[sandbox]`** either, whose single `[[verify]]` row is client `lua.global TKX_LoaderVersionTree` —
+that file has no `common/` counterpart, so it loads under EITHER merge direction, which is exactly
+what makes it a gate and not a discriminator. `TKX_CommonOnly` is deliberately UNGATED: whether a
+version dir with no `media/` still lets `common/` load is the measurement, and a measurement is
+never a `[[verify]]` row.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
