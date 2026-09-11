@@ -1,0 +1,5 @@
+name=TKX ZWatermelon
+id=TKX_ZWatermelon
+description=slice 12 session 4: a Base.Watermelon redefinition whose id sorts last
+modversion=1.0
+versionMin=42.0.0

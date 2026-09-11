@@ -1,0 +1,25 @@
+module Base
+{
+    item Watermelon
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 3.0,
+        Icon = Watermelon,
+        CantEat = true,
+        FoodType = Fruits,
+        DaysFresh = 6,
+        DaysTotallyRotten = 8,
+        HungerChange = -60.0,
+        ThirstChange = -140.0,
+        Calories = 999.0,
+        Carbohydrates = 341.11,
+        Lipids = 6.78,
+        Proteins = 27.56,
+        CustomEatSound = EatingFruit,
+        StaticModel = Watermelon_Ground,
+        WorldStaticModel = Watermelon_Ground,
+        Tooltip = Tooltip_item_Watermelon,
+        EvolvedRecipeName = Watermelon,
+    }
+}

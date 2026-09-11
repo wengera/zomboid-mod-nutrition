@@ -1,0 +1,39 @@
+# testing/profiles/x12-order.toml — slice 12 session 4: which mod's script BODY is applied last?
+#
+# Session 1 (`x121-20260911-030023`) read `Base.Watermelon` at 111 — TKX_ItemOverride's body,
+# the mod FIRST in `Mods=` — not 777, TKX_EatHook's, the mod LAST in it. Per-key last-wins is
+# settled (Orange's vanilla 95 lost to the mod's 400), so the surviving hypothesis is that the
+# bodies are replayed in an order that is NOT `Mods=` order, and `TKX_EatHook` < `TKX_ItemOverride`
+# alphabetically. One collision pair cannot separate "alphabetical by id" from anything else.
+#
+# This profile is the separator: `TKX_ZWatermelon` sorts LAST of the three alphabetically and is
+# placed FIRST of the three in `Mods=`. Its Watermelon body is mod C's byte for byte apart from
+# `Calories = 999.0`. 999 ⇒ alphabetical-by-id replay (position in `Mods=` irrelevant); 777 ⇒
+# `Mods=` order after all; 111 ⇒ neither, and the driver names the next discriminator.
+fixture = "default"
+description = "PZTestKit + TKX_ZWatermelon + TKX_ItemOverride + TKX_EatHook — slice 12 session 4."
+run = { hold = 20 }
+verify = [   # tier-(a) rows only: one per mod that CAN be gated, each certain to pass IF the mod
+             # loaded at all, and none of them a measurement.
+  { side = "server", cmd = "item.script", args = "TKX.FibreBar",     expect = '"DaysFresh": 42' },
+  { side = "client", cmd = "lua.global",  args = "TKX_EatHook.version", expect = '"value": 1' },
+]
+# TKX_ZWatermelon is deliberately UNGATED, and not because a gate was forgotten. It ships no Lua
+# (so `lua.global` has nothing to read) and no new item (so `item.script` has no type of its own),
+# and the one thing it does ship — a second `item Watermelon` body — is the MEASUREMENT. The
+# obvious-looking row, `item.script Base.Watermelon` expecting `"side": "server"`, passes with the
+# mod absent: vanilla defines Watermelon, so it gates nothing. F is therefore gated at tier (c) —
+# the folder copied into `<cachedir>/mods` plus an EMPTY `mods_not_found` on both sides — which the
+# driver records in the artifact (`f_tier_c`) rather than leaving to the reader.
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_ZWatermelon"            # FIRST of the three in Mods=, LAST of the three alphabetically
+path = "testing/experiments/TKX_ZWatermelon"
+[[mods]]
+id = "TKX_ItemOverride"
+path = "testing/experiments/TKX_ItemOverride"
+[[mods]]
+id = "TKX_EatHook"
+path = "testing/experiments/TKX_EatHook"

@@ -10,7 +10,7 @@ the fixture was built; `steamapps/workshop/content/108600/`, read-only), and eac
 *restored per-run copy* of the fixture, so nothing here mutates either. Everything a
 profile asks for is resolved and validated before a single process starts (`testing/pzt/profile.py`),
 because the game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A) —
-a run that looks green while the thing under test was never loaded. Seven profiles ship:
+a run that looks green while the thing under test was never loaded. Eight profiles ship:
 **`mod-under-test.toml`** — PZTestKit + KeenPerception (workshop `3685392864`) on `default` with
 `DayLength = 1`, the T1 acceptance case and the template for slices 09–11, whose `[[verify]]`
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
@@ -55,7 +55,19 @@ the folder declares — `mods.mod_id_of` picks the newest version dir's) and `TK
 that file has no `common/` counterpart, so it loads under EITHER merge direction, which is exactly
 what makes it a gate and not a discriminator. `TKX_CommonOnly` is deliberately UNGATED: whether a
 version dir with no `media/` still lets `common/` load is the measurement, and a measurement is
-never a `[[verify]]` row.
+never a `[[verify]]` row; and **`x12-order.toml`** — slice 12's session 4, PZTestKit +
+`TKX_ZWatermelon` + `TKX_ItemOverride` + `TKX_EatHook` on `default` with **no `[sandbox]`** either.
+It exists because session 1 read `Base.Watermelon` at **111** — the body of the mod FIRST in
+`Mods=`, not the 777 of the one last in it — so the surviving hypothesis is that script bodies are
+replayed in an order that is not `Mods=` order, and `TKX_EatHook` sorts before `TKX_ItemOverride`.
+`TKX_ZWatermelon` separates the two rules by sorting **last** of the three alphabetically while
+sitting **first** of the three in `Mods=`; its `Calories = 999.0` is the reading. Two tier-(a)
+`[[verify]]` rows gate the two mods that can be gated — server `item.script TKX.FibreBar` and
+client `lua.global TKX_EatHook.version`. `TKX_ZWatermelon` is deliberately UNGATED: it ships no Lua
+and no new item, the second `item Watermelon` body it does ship is the measurement, and the
+obvious-looking `item.script Base.Watermelon` row would pass with the mod absent because vanilla
+defines Watermelon. It is gated at tier (c) instead — folder copied, `mods_not_found` empty on both
+sides — which the driver records in the artifact.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
