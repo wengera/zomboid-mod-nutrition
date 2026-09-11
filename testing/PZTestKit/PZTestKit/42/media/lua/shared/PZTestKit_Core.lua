@@ -848,6 +848,7 @@ end)
 -- ---- translation lookup (both sides; slice 10, moved here by slice 12) -------
 -- text.get <translation key>
 --   -> { key, text, miss, side }                            the lookup ran
+--   -> { key, side, miss = true, null = true }              getText() returned Java NULL
 --   -> { key, side, error = "no getText() on this build" }  no getText global on this side
 --   -> "usage: ..."                                         no key given
 --
@@ -868,8 +869,8 @@ end)
 -- `getText` is a Lua GLOBAL the engine exposes, not a member on an object, so TK.call / TK.field
 -- (both of which index an object) do not apply. The nil-check-then-call is this harness's own
 -- idiom for globals (`getScriptManager` at :217 in this file; `getSandboxOptions` at
--- client/PZTestKit_Client.lua:169, `getEvolvedRecipes` at :305) and is safe: reading an
--- undefined global is nil in Lua, never a raise.
+-- client/PZTestKit_Client.lua:169, `getEvolvedRecipes` at client/PZTestKit_Client.lua:305) and
+-- is safe: reading an undefined global is nil in Lua, never a raise.
 -- Jar-confirmed on 42.20.4: `zombie/Lua/LuaManager$GlobalObject.getText(Ljava/lang/String;
 -- [Ljava/lang/Object;)Ljava/lang/String;` -- varargs, and the game's own Lua calls it with one
 -- argument everywhere. A MISS returns the KEY ITSELF (`Translator.getTextInternal`, the IGUI_
@@ -877,13 +878,27 @@ end)
 -- `text == key` is "no such key" and is reported as `miss` rather than left for the caller to
 -- infer. That is also why a translated value is real evidence: it cannot be echoed from the
 -- argument.
+-- The NULL guard (slice 12, Task 3 review finding 2, landed ahead of the x121 session): the
+-- return is a Java `String`, so a route that answers `null` arrives in Kahlua as `nil`, and the
+-- old `tostring(getText(key))` turned that into the STRING `"nil"` -- which is neither the key
+-- nor a translation, so `miss` came back FALSE and a null read as a hit. That is a false hit
+-- exactly where x121's M4 grades on `miss`, so a nil return is now its own answer:
+-- `miss = true` (it is certainly not a translation) beside `null = true` (and NO `text` key, so
+-- a reader cannot mistake the string "nil" for one). `Translator.getTextInternal` is read as
+-- returning the key on a miss, but the server half is unproven and this build's server route
+-- is exactly what M4 measures -- so the shape it might answer with is recorded rather than
+-- assumed away.
 TK.register("text.get", function(argv)
     local key = argv[1]
     if key == nil then return "usage: text.get <translation key>" end
     if getText == nil then
         return { key = key, side = TK.side, error = "no getText() on this build" }
     end
-    local text = tostring(getText(key))
+    local t = getText(key)
+    if t == nil then
+        return { key = key, side = TK.side, miss = true, null = true }
+    end
+    local text = tostring(t)
     return { key = key, text = text, miss = (text == key), side = TK.side }
 end)
 TK.log("core loaded (" .. TK.side .. ")")

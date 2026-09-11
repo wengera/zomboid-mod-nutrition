@@ -87,13 +87,17 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   `time.snapshot`, `trait.check`, `lua.reload <file>`,
   `text.get <IGUI key>` (since 291f977 — client-only until slice 12 moved the
   registration into `shared/PZTestKit_Core.lua`, so **both sides answer it**;
-  **a miss returns the key itself**, reported as `miss: true`. The **server**
+  **a miss returns the key itself**, reported as `miss: true`, and a Java
+  **null** return is its own shape — `{key, side, miss: true, null: true}`
+  with **no `text`** — since the slice-12 null guard, because
+  `tostring(getText(key))` had been turning a null into the string `"nil"`
+  with `miss: false`, i.e. a false hit. The **server**
   half is unproven until `x121` M4 reads it — a server that answers
   `no getText() on this build` is the finding there, not a fault), and the
   slice-04 test layer's `test.list` (registered names, sorted),
-  `test.run <name> [user]`
-  (ack `started` / `unknown` / `already running <x>` / the player-resolution
-  error — only `started` leads to a result doc) and `test.status`
+  `test.run <name> [user]` (ack `started` / `unknown` /
+  `already running <x>` / the player-resolution error — only `started` leads
+  to a result doc) and `test.status`
   (`{running, name, clock, due, side, samples}`); server: `time.multiplier`,
   `players`, `nutrition.get <user>`, `nutrition.set <user> <field> <v>`,
   `stats.set <user> <stat> <v> …`, `moddata.set <user> <k> <v>` (since 291f977); client: `quit`, `player.stats`,
@@ -585,7 +589,16 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     `TK.call`. A **miss returns the key itself**
     (`Translator.getTextInternal`), which the reply reports as `miss: true`;
     that is also what makes a hit evidence, since the text cannot be an echo of
-    the argument. It is the route to a tier-(a) `[[verify]]` probe for a mod
+    the argument. **A Java `null` return is a fourth shape**, added by the
+    slice-12 null guard ahead of the `x121` session (Task 3 review finding 2):
+    `{key, side, miss: true, null: true}`, carrying **no `text`**. Before it,
+    `tostring(getText(key))` rendered a null as the string `"nil"`, which is
+    neither the key nor a translation — so `miss` came back **false** and a
+    null read as a **hit**, precisely the reading `x121` M4 grades on. `null:
+    true` is *not* the same claim as a key miss: it says the lookup route
+    answered nothing at all, which on the unproven server half is a reading in
+    its own right rather than a defect. It is the route to a tier-(a)
+    `[[verify]]` probe for a mod
     that ships no scripts and writes no readable state — a translation key it
     defines and vanilla does not. Slice 12 moved the registration into
     `shared/PZTestKit_Core.lua` — registered once, there, because `shared/` loads
