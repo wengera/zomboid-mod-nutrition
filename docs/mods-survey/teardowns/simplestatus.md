@@ -738,8 +738,8 @@ the full run directory stays local under the gitignored `testing/runs/`):
   (Kahlua's `KahluaUtil.numberToString` → `Double.toString` for a non-integral double, an exact
   round trip; integers untouched), verified on this artifact's own bytes: **1 225 JSON number
   tokens — 871 non-integral and 354 integer — 0 non-round-tripping** (re-counted 2026-09-11 by
-  parsing the file; the **1 292** first recorded here is a *raw-text* digit-run scan, which also
-  counts digit runs inside strings and is not the token census).
+  parsing the file; the **1 292** first recorded here has no recorded provenance and does not
+  reproduce as any census of the file (`\d+` gives 2 339) — cite 1 225).
   **Every artifact before `291f977` — `td1`, `td1b` and the
   seventeen older runs — renders floats at six decimals** and supports no bit-level claim; the
   D→F→D weight evidence in § MP handling is obtainable only under the new rendering. Provenance,

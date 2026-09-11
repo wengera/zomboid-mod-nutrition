@@ -1093,8 +1093,8 @@ at six snapshots. **Skew-free**: driver and artifact landed in one commit on har
 artifact written under the widened float rendering** — see § Script/artifact skew, "a skew of a
 third kind": every float here is `tostring(v)` (`Double.toString`, an exact round trip) rather
 than `%.6f`, verified on this file's own bytes at **1 225 JSON number tokens** (871 non-integral,
-354 integer) / 0 non-round-tripping — the **1 292** first recorded for this run is a *raw-text*
-digit-run scan, which also counts digit runs inside strings and is not the token census —
+354 integer) / 0 non-round-tripping — the **1 292** first recorded for this run has no recorded
+provenance and does not reproduce as any census of the file (`\d+` gives 2 339) — cite 1 225 —
 and that is why its weight rows can carry a bit-level claim when no earlier artifact's can.
 
 - **Provenance — the profile.** `testing/profiles/teardown-simplestatus.toml`:

@@ -283,8 +283,8 @@ Consequences for the nutrition mod:
   `percentFn` / `textFn` / `colorFn` at `:236-238` — so a single frame issues
   **up to four `player:getNutrition()` round trips per visible nutrition bar**,
   with no cache anywhere (the file's one timer, `:453-457`, throttles
-  `adjustWindowSize`, never the value read). **The bound is per bar, and four
-  is the floor rather than the ceiling: the weight bar costs ten** — one
+  `adjustWindowSize`, never the value read). **The bound is per bar: four for a
+  macro bar, ten for the weight bar** — one
   `valueFn`, two re-entries, and **seven** further direct `getNutrition()` calls
   its `textFn` makes for the three direction flags
   (`ss.stats.lua:404-411`). The mod is 7 client-only Lua
