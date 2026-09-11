@@ -1,0 +1,55 @@
+# testing/profiles/teardown-autocook.toml — slice 09-11 pass 3: AutoCook under test on the golden
+# fixture. No [sandbox] block: DayLength stays the fixture's 4 (90 game-min/day), which is what
+# keeps 24 x speed / day_minutes <= 8 if the session accelerates time.
+fixture = "default"
+description = "PZTestKit + AutoCook (workshop 3388721641) — teardown 3."
+run = { hold = 20 }
+# Tier (a), two rows, both CLIENT. Tier (b) does NOT exist for this subject, and that is worth
+# stating here rather than leaving Task 3 to discover it: every print AutoCook makes sits behind
+# `if AutoCook.Verbose then`, and `AutoCook.Verbose = false` at
+# 42.13/media/lua/client/AutoCook.lua:6, so a default client emits none of the mod's own output.
+# No bus command flips it — `moddata.set` writes modData, not `_G`, and AutoCook.init copies
+# modData into the globals only at construction. The console evidence Task 3 does have is the
+# ENGINE's rather than the mod's (the loader's `mod "AutoCook" overrides …` lines); reading it,
+# and the execution-order failure signature, is Task 3's job, not this file's.
+#
+# Neither row reaches the mod's actual effect. The cooking pipeline's only entry is a context-menu
+# option (common/media/lua/client/AutoCook_RISCookMenuInsertion.lua:87) whose handler runs on a
+# right-click, and nothing on the shipped bus clicks, presses a key or calls triggerEvent — the
+# same wall pass 2 hit with simpleStatus's input handlers. So both rows read LOAD-TIME state, and
+# they are picked to read it from the two DIFFERENT media trees this mod is split across (`42.13/`
+# and `common/`). items.count / recipes.craft / item.script have nothing to read here: the mod
+# ships no media/scripts in either tree (script_item_blocks: 0).
+verify = [                    # bare keys must precede the first table header (TOML)
+  # The TRANSLATOR half, and the `common/` tree. "Cooking diet: " is byte-exact including the
+  # trailing space — common/media/lua/shared/Translate/EN/UI.json:5. (The B41-era UI_EN.txt:5
+  # beside it carries the same strings and is never parsed on B42: Translator.tryFillMapFromFile
+  # formats `<dir>/media/lua/shared/Translate/<lang>/<file>.json` and reads nothing else.) Vanilla
+  # defines ZERO UI_AutoCook* keys and a MISS returns the key itself (Translator.getTextInternal),
+  # so mod-absent answers "text":"UI_AutoCookMode", of which "Cooking diet: " is not a substring —
+  # the row fails correctly. `text.get` is registered on the CLIENT only.
+  { side = "client", cmd = "text.get", args = "UI_AutoCookMode", expect = '"Cooking diet: "' },
+  # The LUA half — and both trees in one command, which is what makes this the stronger row. The
+  # census renders every top-level key as "<name>:<type>" (PZTestKit_Core.lua:742), so
+  # "AutoCook:table" matches as a JSON substring and nothing vanilla produces it. The key is
+  # written at 42.13/media/lua/client/AutoCook.lua:38, reached only from the AutoCook.init call at
+  # ISCharacterCook.lua:17 (ISCharacterCook:createChildren), which runs only because
+  # addCharacterPageTab("Cook", ISCharacterCook) executed at ISCharacterCook.lua:398 — and
+  # addCharacterPageTab is defined ONLY in common/…/ISCharacterInfoWindow_AddTab.lua:2. Had
+  # `common/` not loaded, ISCharacterCook.lua:2's `require "ISCharacterInfoWindow_AddTab"` would
+  # have failed before the class was declared, so a hit says files from BOTH trees ran in one Lua
+  # state. CLIENT and not server: the mod has 9 getModData() sites per tree and 0 transmitModData,
+  # so the server census is not expected to carry the key at baseline (that asymmetry is a
+  # measurement for Task 3, not a gate). The row needs the client to be past createPlayerData —
+  # verify probes run after client_ready on both entry points (docs/testing/profiles.md §
+  # `[[verify]]`), which is after OnCreatePlayer; if it proves flaky on the run, demote it to a
+  # timed driver read and keep row 1 as the gate.
+  { side = "client", cmd = "witness.moddata", args = "player:admin *", expect = '"AutoCook:table"' },
+]
+
+[[mods]]
+id = "PZTestKit"              # harness, copied from the repo (paths.HARNESS_MODS)
+
+[[mods]]
+id = "AutoCook"               # the id mod.info DECLARES (common/mod.info:3) — here it is also the
+workshop_id = "3388721641"    # folder name, so there is no drift to guard, unlike passes 1 and 2

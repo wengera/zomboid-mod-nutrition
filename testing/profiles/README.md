@@ -10,7 +10,7 @@ the fixture was built; `steamapps/workshop/content/108600/`, read-only), and eac
 *restored per-run copy* of the fixture, so nothing here mutates either. Everything a
 profile asks for is resolved and validated before a single process starts (`testing/pzt/profile.py`),
 because the game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A) —
-a run that looks green while the thing under test was never loaded. Four profiles ship:
+a run that looks green while the thing under test was never loaded. Five profiles ship:
 **`mod-under-test.toml`** — PZTestKit + KeenPerception (workshop `3685392864`) on `default` with
 `DayLength = 1`, the T1 acceptance case and the template for slices 09–11, whose `[[verify]]`
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
@@ -27,7 +27,13 @@ command is registered client-side only); and **`teardown-simplestatus.toml`** �
 teardown subject, PZTestKit + `simpleStatus` (workshop `2867431511`, folder `SimpleStatus`) on
 `default` with **no `[sandbox]`** either, whose `verify` is **empty by ruling** — the mod ships no
 scripts and no bus-readable state, so the took-effect evidence is its own client-side console print
-at join, grepped from the run's `clients/admin/console.txt`.
+at join, grepped from the run's `clients/admin/console.txt`; and **`teardown-autocook.toml`** —
+slice 11's teardown subject, PZTestKit + `AutoCook` (workshop `3388721641`, folder `AutoCook` — the
+one pass where the declared id and the folder agree) on `default` with **no `[sandbox]`** either,
+whose two `[[verify]]` rows are both **client** and both read load-time state, one per media tree
+the mod is split across: `text.get UI_AutoCookMode` for the `common/` translations, and
+`witness.moddata player:admin *` for the modData key `42.13/` writes only by way of a `common/`
+helper.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
