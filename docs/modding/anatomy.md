@@ -335,8 +335,9 @@ even its leaf branch delegates to `ChooseGameInfo.readModInfo(file.getParent())`
    The selector reaches `ChooseGameInfo.getModDetails` too, so the chain is shared by code
    reading — but a client-side boot with a drifted folder has not been run.
 2. **A folder carrying *only* `common/mod.info` as a purpose-built probe.** 4 installed mods
-   have the shape and load, and the jar explains it, but slice 12's discriminator carried
-   both files. One boot closes it.
+   have the shape; one of them, AutoCook, has booted (**M**, `td3-20260911-001948`), the other
+   three rest on the jar fallback (**C**), and slice 12's discriminator carried both files.
+   One boot closes it.
 3. **A version dir that ships `media/` colliding with nothing.** KEEP 10's remaining untested
    arm; both measured arms had a collision or an empty version dir.
 4. **Why a mod's `server/` tree executes in the client's Lua state** — the outcome is M, the
