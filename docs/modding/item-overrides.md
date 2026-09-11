@@ -283,8 +283,8 @@ Two different collisions, resolved by two different mechanisms. Keep them apart.
 The file list the parser walks is keyed on the **lower-cased path relative to the mod's version
 directory** — `media/scripts/foo.txt` for every mod, and `media/scripts/…` for vanilla too
 (`ScriptManager.searchFolders @93-@122 L1208-L1210` stores
-`getRelativeFile(base, abs).toLowerCase(ENGLISH)`; `getRelativeFile @0-@90 L1011-L1026` is
-`base.relativize(lowercasedAbsUri).getPath()`). Those strings are then resolved back through
+`getRelativeFile(uri, abs).toLowerCase(ENGLISH)`; `getRelativeFile @0-@90 L1011-L1026` is
+`uri.relativize(lowercasedAbsUri).getPath()`). Those strings are then resolved back through
 `ZomboidFileSystem.getAbsolutePath @0-@19 L483-L484`, a plain `activeFileMap` lookup, and the
 walk drops any relative path it has already seen (`ScriptManager.Load @562-@619 L1509-L1515`, a
 `HashSet`). `activeFileMap` holds **one** absolute path per relative path, filled by
