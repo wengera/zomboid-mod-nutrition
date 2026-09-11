@@ -69,8 +69,8 @@ def find(mod_id):
 
 
 def install(mods_dir, mod_id):
-    """Copy a workshop mod into mods_dir (folder name kept: the game keys on mod.info,
-    not the folder). Returns the destination or None when the mod is not installed."""
+    """Copy a workshop mod into mods_dir (folder name kept: the id comes from mod.info; whether Mods= needs the
+    folder to match is open -- docs/testing/profiles.md open question 6). Returns the destination or None when the mod is not installed."""
     hit = find(mod_id)
     if not hit:
         return None

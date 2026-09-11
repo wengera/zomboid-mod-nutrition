@@ -70,7 +70,7 @@ on; treat divergence as a decision point, not a free choice.**
    (`recipe_meats.lua:36-49`; the per-call table is in the teardown's
    § Architecture): **six** the packet carries — the four macros, `hungChange`
    and `actualWeight` — and **five** it does not: `isCookable`, `offAge`,
-   `offAgeMax`, `weight` and `customWeight`. The six arrive; of the five, the
+   `offAgeMax`, `weight` and `customWeight`. Six are carried (four measured intact; `carbohydrates` 0 → 0 carries no information; `actualWeight` arrives but see its row below); of the five, the
    four the client is left **permanently wrong** about are `offAge`,
    `offAgeMax`, `isCookable` and `isCustomWeight` (`weight` is uncarried but not
    desynced — both sides read 0.5, and "not carried" is not "desynced").

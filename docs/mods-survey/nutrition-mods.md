@@ -548,11 +548,11 @@ superseded.
    the same instance with `witness.fields` on both sides. Ev C.
    **Closed (slice 09)** — [`teardowns/longtermpreservation4220.md`](teardowns/longtermpreservation4220.md)
    § MP handling, runs `td1-20260910-192457` and `td1b-20260910-202029`. **The ×0.70 reaches the
-   client; the sentinel does not.** All five packet-carried writes arrive intact on the same
+   client; the sentinel does not.** Four packet-carried writes arrive intact (carbohydrates 0 → 0 carries no information) on the same
    instance (`getID 562521975`, `same_instance true` at every snapshot): calories 300 → 210,
    proteins 50 → 35, lipids 12 → 8.4, `hungChange` −0.6 → −0.42, equal on both sides to within the
    comparison tolerance. The sentinel `1000000000` never crosses — the client kept `offAge 53` and
-   `offAgeMax 60` against the server's 1e9 across three snapshots 12 s apart, and nothing later
+   `offAgeMax 60` against the server's 1e9 on the two post-cook snapshots 11.1 s apart (the baseline snapshot is not desynced), and nothing later
    repairs it; `isCookable` and `isCustomWeight` desync the same way, making **four** uncarried
    fields, not two. Two corrections to the framing above: the measured instance was **RCON-spawned,
    not crafted** (nothing on the bus executes a `craftRecipe`), so the `createOutputItems` half is

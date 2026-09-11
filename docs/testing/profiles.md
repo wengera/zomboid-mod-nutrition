@@ -505,7 +505,7 @@ A profile is a **server-side** decision that the client inherits.
    the *lookup* question, so a stricter control renames a copy to something that differs by more
    than case. **Recorded as the check; not run here.** Related:
    ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md) § Discrepancies row 6)
-   explains why `simpleStatus` could never have answered the first half.
+   explains why `simpleStatus` could never have answered the second half.
    Still true and unaffected: 52 of the 230 installed folders drift from their declared id (the
    lint's `folder-id` INFO counts 51, having no id to compare on the 52nd), so this path is
    exercised by most of the corpus.

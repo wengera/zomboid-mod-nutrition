@@ -202,17 +202,19 @@ static read did not predict**: the weight row and the thirst row.
 carrying `offAge 1000000000`, `isCookable false`, `customWeight true` — so the hook had fired
 before the witness call, and the four `OnCookedTest` prints are in the **server** console in one
 frame, **1.71 s** earlier (`server_hook_lines`, `f:643 st:800,113,605-607`). That 1.71 s is a
-**console-derived** figure: the artifacts carry the wall times of the bus acks, while the frame
-stamp that dates the transition lives in the server console under the gitignored
-`testing/runs/td1-20260910-192457/`, so it is reproducible only on this machine. The client
+**console-derived** figure: the artifacts carry the wall times of the bus acks, while the bus acks
+carry no frame stamp — the hook lines' `st:` stamps ARE in the committed `server_hook_lines`, but the
+ack side of the subtraction exists only in the server console under the gitignored
+`testing/runs/td1-20260910-192457/`, so the subtraction is reproducible only on this machine. The client
 console is empty. Three readings the sessions forced on top of that, all of them corrections to
 what the static read assumed:
 
 - **The scripted `lastCookMinute -1` flip is not a precondition.** On `td1` the cook block had
   already been entered twice (1.33–1.67 game minutes apart), so the minute gate had reopened on
   its own; on `td1b` the transition fired **907 ms before** the flip reached the server — again a
-  figure read off the server console under the gitignored `testing/runs/td1b-20260910-202029/`,
-  against the ack's own wall time in the artifact. The committed keys are on the **step row**:
+  figure whose ack-side stamp exists only in the server console under the gitignored
+  `testing/runs/td1b-20260910-202029/` (the hook stamp itself is in the committed `server_hook_lines`),
+  against the ack wall time in the artifact. The committed keys are on the **step row**:
   `steps[set_lastCookMinute]` carries `cooked: true` and `before_lastCookMinute: 23` as flat
   keys (the nested `before` object lives one level deeper, on `…ack.before`, and reads the same).
   `heat > 1.6` plus `cookingTime > minutesToCook` suffice, and the minute gate opens by itself
