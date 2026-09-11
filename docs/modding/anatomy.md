@@ -2,7 +2,8 @@
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-11 · slice 12 (P2a), runs
 `x121-20260911-030023`, `x122-20260911-032326`, `x123-20260911-034426` /
-`x123b-20260911-034500`, `x124-20260911-035819`, `x125-20260911-042055`.
+`x123b-20260911-034500`, `x124-20260911-035819`, `x125-20260911-042055`,
+`x126-20260911-045205`.
 Evidence grades: **C** read from bytecode/Lua/scripts, **M** measured on the live
 dedicated server + client (run id given), **W** wiki mirror (secondary). The jar chain in
 § Code map was re-derived for this document; it supersedes the `searchForModInfo` reading
@@ -246,10 +247,9 @@ fixing the id typo `76chevyKserieseExpanded` → `76chevyKseriesExpanded`, so a 
 reads `83 finding(s): 3 ERROR, 30 WARN, 50 INFO` and the drifted-folder count is 51, not 52
 (**C**, file mtime + re-sweep, 2026-09-11). Quote a sweep with its stamp: the tree is live.
 
-### The six experiment mods
+### The seven experiment mods
 
-All six cited here live under `testing/experiments/`, are `versionMin=42.0.0`, and are
-test-profile only.
+All seven live under `testing/experiments/`, are `versionMin=42.0.0`, and are test-profile only.
 
 | Mod | Id(s) | Profile | Session(s) | What it measured | Ev |
 |---|---|---|---|---|---|
@@ -259,11 +259,7 @@ test-profile only.
 | D | `TKX_LoaderVersion` (`42.20/`) and `TKX_LoaderCommon` (`common/`) | `x12-loader` | 2, 3 | the merge direction, the `overrides` tails, the folder drift, the requested-id discriminator | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L2_which`; `testing/artifacts/x123-20260911-034426/platform-folder.json` → `boots.drift`, `boots.common_id`) |
 | E | `TKX_CommonOnly` | `x12-loader` | 2, 3 | a version dir holding only a `mod.info` | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `phases.L3.reading`) |
 | F | `TKX_ZWatermelon` | `x12-order`, `x12-order2` | 4, 5 | a Watermelon body whose id sorts last; gated at tier (c) | M (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O1`; `testing/artifacts/x125-20260911-042055/platform-order2.json` → `phases.O1`) |
-
-**Session 6 landed as this document was being fixed** — mod G `TKX_PcallProbe`, profile
-`x12-pcall`, run `x126-20260911-045205`, the nil-`pcall` / handler-chain probe of
-[lua-api.md](lua-api.md)'s guard rules. Its citable-claims file is not written yet, so it gets
-no row here and nothing of it is read below.
+| G | `TKX_PcallProbe` | `x12-pcall` | 6 | whether `pcall` catches a Kahlua nil call, and whether the handler body and the handler registered behind it survive one | M (`testing/artifacts/x126-20260911-045205/platform-pcall.json` → `phases.reads.client.values`, `phases.reads.server.values`, `verdicts.P21_client` / `verdicts.P21_server`) |
 
 ## Code map — the `Mods=` chain, re-derived
 
@@ -369,8 +365,9 @@ One line per entry area: what classifies it today, and what would settle the res
 | Traits | **CANNOT** be read client-side with confidence | the band traits are not in `PlayerStatsPacket` and no other packet was traced (body-stats open question 10); `HasTrait(String)` no longer exists on 42.20.4 | C |
 | Translations | **CAN**, client-only, JSON-only | § 5: `ItemName.json` resolves on the client, `_EN.txt` never, a dedicated server resolves no name (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M4`), and `getText` cannot reach the table (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O5`). Gate on a `UI_` / `IGUI_` key | M |
 | The merge rules | **CAN** | version dir wins, `common/` supplies the rest, n = 2 with `td3-20260911-001948`, plus the empty-version-dir arm (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L2_which`, `phases.L3.reading`). Remaining arm: a version dir shipping `media/` that collides with nothing | M |
+| Lua limits — the nil-call guard | **CAN**, guard kept for visibility, not for survival | `pcall` **catches** a Kahlua nil call on both sides — `ok` `false`, `err` `tried to call nil java.lang.RuntimeException`, and both the handler's own tail and the handler registered behind it advanced (client 3 / 3, server 15 / 15) — so this library's "a nil call escapes `pcall`" half is **falsified**. The catch is silent (the message names no global, line or file; the engine logs nothing), which is why the `TK.call` / `tkxCall` index-first guards stay. **Bound:** the probe measured `pcall(<nil function argument>)` only; an unguarded raise's effect on the rest of a handler and on the chain behind it is session 7 (`x127`), un-run. [lua-api.md](lua-api.md) and [patterns.md](patterns.md) own the rule text and are not re-graded here | M (`testing/artifacts/x126-20260911-045205/platform-pcall.json` → `phases.reads.client.values`, `phases.reads.server.values`, `verdicts.P21_client` / `verdicts.P21_server`) |
 
-**The four checks this slice records rather than claims.**
+**The three checks this slice records rather than claims.**
 
 1. **The id-vs-script-path boot** — the reversed-`Mods=` check this slice opened is now
    **closed** by session 5. Across three boots (x121 111, x124 999, x125 999) script bodies
@@ -392,11 +389,6 @@ One line per entry area: what classifies it today, and what would settle the res
    fork, so the collision is live and the runtime half stays **C**.
 3. **The server→client item-modData direction.** Slice 12 measured the player-modData
    directions; item modData across the same hop is untested.
-4. **The nil-`pcall` / handler-chain probe.** Whether a raise from calling a nil global escapes
-   `pcall`, and whether a failed handler stops the handlers behind it on the same event, are
-   **C**-only here and the jar disagrees with the run that prompted them; [lua-api.md](lua-api.md)
-   owns that row. Session 6 (`x126-20260911-045205`, mod `TKX_PcallProbe`, profile `x12-pcall`)
-   ran while this document was being fixed; its claims file is not out, so it is not read here.
 
 ## Sources
 
@@ -412,7 +404,12 @@ One line per entry area: what classifies it today, and what would settle the res
   (script-body order) and
   [`x125-20260911-042055`](../../testing/artifacts/x125-20260911-042055/platform-order2.json)
   (the ordering discriminator, cited in § Inputs for the wall map and for mod F's second boot;
-  the rule itself is [item-overrides.md](item-overrides.md)'s row); and
+  the rule itself is [item-overrides.md](item-overrides.md)'s row),
+  [`x126-20260911-045205`](../../testing/artifacts/x126-20260911-045205/platform-pcall.json)
+  (the nil-`pcall` probe, cited in § Inputs for the wall map and mod G's row; the rule text is
+  [lua-api.md](lua-api.md)'s and [patterns.md](patterns.md)'s — note the run's citable-claims
+  file names its keys as `readings.*` / `verdicts.P21`, which the artifact does not carry: the
+  keys are `phases.reads.<side>.values` and `verdicts.P21_client` / `verdicts.P21_server`); and
   [`td3-20260911-001948`](../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
   → `loading_lines`, the one `common/`-only corpus mod that has booted (§ 2). **Not committed:**
   § 3's three empty `overrides` tails are read from `testing/runs/x124-20260911-035819/`'s
