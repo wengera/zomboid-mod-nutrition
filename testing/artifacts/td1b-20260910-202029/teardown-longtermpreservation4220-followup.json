@@ -1,0 +1,1666 @@
+{
+ "run_id": "td1b-20260910-202029",
+ "follow_up_to": "td1-20260910-192457",
+ "mod": "SKITTLE_LongTermPreservation4220",
+ "workshop_item": "3774789651",
+ "subject": "Skittles.CuredPork",
+ "control": "Base.Steak",
+ "user": "admin",
+ "profile": {
+  "name": "teardown-longtermpreservation4220",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\teardown-longtermpreservation4220.toml",
+  "fixture": "default",
+  "description": "PZTestKit + SKITTLE_LongTermPreservation4220 (workshop 3774789651) \u2014 teardown 1.",
+  "mods": [
+   "PZTestKit",
+   "SKITTLE_LongTermPreservation4220"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "SKITTLE_LongTermPreservation4220": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3774789651\\mods\\LongTermPreservation4220"
+  },
+  "skip": [],
+  "workshop_items": {
+   "SKITTLE_LongTermPreservation4220": "3774789651"
+  },
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "commit": "903ccaa",
+ "harness_lua_commit": "903ccaa",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "weight_fields": "getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+ "weight_field_count_expected": 6,
+ "thirst_fields": "getThirstChange,isCooked",
+ "moddata_scopes": {
+  "mod_item": "item:admin/Skittles.CuredPork *",
+  "vanilla_item": "item:admin/Base.Steak *"
+ },
+ "questions": {
+  "4.1": "getDisplayName on both sides for the MOD item -- is it the full type?",
+  "4.2": "the same six getters on a VANILLA item -- mod-specific or server-wide?",
+  "4.3": "one more server->client push: client getThirstChange 0.05 (one halving per hop) or 0.025 (compounding)?",
+  "4.4": "the vanilla item's modData census on both sides -- the slices 10/11 baseline",
+  "4.5": "chef UNSET: XP delta 0? and the server's lastCookMinute after the cook"
+ },
+ "world_changes": "none to restore -- two RCON additem spawns and one cook transition; no settimespeed, no sandbox write, no chef; every write lands in this run's copy of the fixture",
+ "reads": [
+  {
+   "tag": "4.1-mod-raw",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getDisplayName": "Skittles.CuredPork",
+     "getFullType": "Skittles.CuredPork",
+     "getActualWeight": 0.5,
+     "getActualWeightUnmodded": 0,
+     "isCustomWeight": false,
+     "getWeight": 0.5
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.343244,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 59.006,
+     "wall_done": 59.511
+    }
+   },
+   "wall": 59.006,
+   "wall_done": 59.511
+  },
+  {
+   "tag": "4.1-mod-raw",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getDisplayName": "Skittles.CuredPork",
+     "getFullType": "Skittles.CuredPork",
+     "getActualWeight": 0.5,
+     "getActualWeightUnmodded": 0,
+     "isCustomWeight": false,
+     "getWeight": 0.5
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.349765,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 59.512,
+     "wall_done": 61.026
+    }
+   },
+   "wall": 59.512,
+   "wall_done": 61.026
+  },
+  {
+   "tag": "4.2-vanilla-raw",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #160170971",
+    "fields": {
+     "getDisplayName": "Steak",
+     "getFullType": "Base.Steak",
+     "getActualWeight": 0.3,
+     "getActualWeightUnmodded": 0.3,
+     "isCustomWeight": false,
+     "getWeight": 0.3
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.35217,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 61.028,
+     "wall_done": 61.539
+    }
+   },
+   "wall": 61.028,
+   "wall_done": 61.539
+  },
+  {
+   "tag": "4.2-vanilla-raw",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #160170971",
+    "fields": {
+     "getDisplayName": "Steak",
+     "getFullType": "Base.Steak",
+     "getActualWeight": 0.3,
+     "getActualWeightUnmodded": 0.3,
+     "isCustomWeight": false,
+     "getWeight": 0.3
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.358624,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 61.54,
+     "wall_done": 63.052
+    }
+   },
+   "wall": 61.54,
+   "wall_done": 63.052
+  },
+  {
+   "tag": "4.4-vanilla",
+   "side": "client",
+   "cmd": "witness.moddata",
+   "args": "item:admin/Base.Steak *",
+   "reply": {
+    "side": "client",
+    "scope": "item",
+    "arg": "admin/Base.Steak",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.361096,
+    "resolved": "admin/Base.Steak #160170971",
+    "keyCount": 1,
+    "keys": [
+     "customName:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Base.Steak *",
+     "wall": 63.054,
+     "wall_done": 63.56
+    }
+   },
+   "wall": 63.054,
+   "wall_done": 63.56
+  },
+  {
+   "tag": "4.4-vanilla",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/Base.Steak *",
+   "reply": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/Base.Steak",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.367054,
+    "resolved": "admin/Base.Steak #160170971",
+    "keyCount": 0,
+    "keys": {},
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Base.Steak *",
+     "wall": 63.562,
+     "wall_done": 64.82
+    }
+   },
+   "wall": 63.562,
+   "wall_done": 64.82
+  },
+  {
+   "tag": "4.4-mod",
+   "side": "client",
+   "cmd": "witness.moddata",
+   "args": "item:admin/Skittles.CuredPork *",
+   "reply": {
+    "side": "client",
+    "scope": "item",
+    "arg": "admin/Skittles.CuredPork",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.367791,
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "keyCount": 2,
+    "keys": [
+     "Tooltip:string",
+     "customName:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Skittles.CuredPork *",
+     "wall": 64.824,
+     "wall_done": 65.08
+    }
+   },
+   "wall": 64.824,
+   "wall_done": 65.08
+  },
+  {
+   "tag": "4.4-mod",
+   "side": "server",
+   "cmd": "witness.moddata",
+   "args": "item:admin/Skittles.CuredPork *",
+   "reply": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/Skittles.CuredPork",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.376378,
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "keyCount": 1,
+    "keys": [
+     "Tooltip:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Skittles.CuredPork *",
+     "wall": 65.081,
+     "wall_done": 67.097
+    }
+   },
+   "wall": 65.081,
+   "wall_done": 67.097
+  },
+  {
+   "tag": "4.3-hop1",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getThirstChange": 0.1,
+     "isCooked": true
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.41676,
+    "count": 2,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+     "wall": 74.919,
+     "wall_done": 76.179
+    }
+   },
+   "wall": 74.919,
+   "wall_done": 76.179
+  },
+  {
+   "tag": "4.3-hop1",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getThirstChange": 0.05,
+     "isCooked": true
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.418687,
+    "count": 2,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+     "wall": 76.18,
+     "wall_done": 76.44
+    }
+   },
+   "wall": 76.18,
+   "wall_done": 76.44
+  },
+  {
+   "tag": "4.3-hop2",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getThirstChange": 0.1,
+     "isCooked": true
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.438511,
+    "count": 2,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+     "wall": 79.953,
+     "wall_done": 80.96
+    }
+   },
+   "wall": 79.953,
+   "wall_done": 80.96
+  },
+  {
+   "tag": "4.3-hop2",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getThirstChange": 0.05,
+     "isCooked": true
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.440744,
+    "count": 2,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getThirstChange,isCooked",
+     "wall": 80.962,
+     "wall_done": 81.47
+    }
+   },
+   "wall": 80.962,
+   "wall_done": 81.47
+  },
+  {
+   "tag": "4.1-mod-cooked",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getDisplayName": "Skittles.CuredPork",
+     "getFullType": "Skittles.CuredPork",
+     "getActualWeight": 0.35,
+     "getActualWeightUnmodded": 0,
+     "isCustomWeight": false,
+     "getWeight": 0.5
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.442976,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 81.473,
+     "wall_done": 81.978
+    }
+   },
+   "wall": 81.473,
+   "wall_done": 81.978
+  },
+  {
+   "tag": "4.1-mod-cooked",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Skittles.CuredPork",
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "fields": {
+     "getDisplayName": "Skittles.CuredPork",
+     "getFullType": "Skittles.CuredPork",
+     "getActualWeight": 0,
+     "getActualWeightUnmodded": 0,
+     "isCustomWeight": true,
+     "getWeight": 0.5
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.447392,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Skittles.CuredPork getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 81.982,
+     "wall_done": 82.989
+    }
+   },
+   "wall": 81.982,
+   "wall_done": 82.989
+  },
+  {
+   "tag": "4.2-vanilla-after",
+   "side": "client",
+   "cmd": "witness.fields",
+   "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #160170971",
+    "fields": {
+     "getDisplayName": "Steak",
+     "getFullType": "Base.Steak",
+     "getActualWeight": 0.3,
+     "getActualWeightUnmodded": 0.3,
+     "isCustomWeight": false,
+     "getWeight": 0.3
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.449671,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 82.994,
+     "wall_done": 83.503
+    }
+   },
+   "wall": 82.994,
+   "wall_done": 83.503
+  },
+  {
+   "tag": "4.2-vanilla-after",
+   "side": "server",
+   "cmd": "witness.fields",
+   "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #160170971",
+    "fields": {
+     "getDisplayName": "Steak",
+     "getFullType": "Base.Steak",
+     "getActualWeight": 0.3,
+     "getActualWeightUnmodded": 0.3,
+     "isCustomWeight": false,
+     "getWeight": 0.3
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.456275,
+    "count": 6,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded,isCustomWeight,getWeight",
+     "wall": 83.507,
+     "wall_done": 85.017
+    }
+   },
+   "wall": 83.507,
+   "wall_done": 85.017
+  }
+ ],
+ "steps": [
+  {
+   "step": "xp_before",
+   "cmd": "perk.xp",
+   "args": "admin Cooking",
+   "wall_before": 67.101,
+   "wall_after": 68.611,
+   "took": 1.51,
+   "ack": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.383481
+   },
+   "serverWorldAge": 2.383481,
+   "gameMinute": null,
+   "lastCookMinute": null,
+   "before_lastCookMinute": null,
+   "cooked": null,
+   "worldAgeMinutes": 143.0089
+  },
+  {
+   "step": "set_heat",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork heat 2.0",
+   "wall_before": 68.614,
+   "wall_after": 68.874,
+   "took": 0.26,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.001853,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 1763449581,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 2,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.001853,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 1763449581,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "requested": 2,
+    "field": "heat",
+    "gameMinute": 23,
+    "serverWorldAge": 2.385258
+   },
+   "serverWorldAge": 2.385258,
+   "gameMinute": 23,
+   "lastCookMinute": 0,
+   "before_lastCookMinute": 0,
+   "cooked": false,
+   "worldAgeMinutes": 143.1155
+  },
+  {
+   "step": "set_cookingTime",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork cookingTime 301",
+   "wall_before": 68.875,
+   "wall_after": 70.886,
+   "took": 2.011,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.001853,
+    "hungChange": -0.6,
+    "baseHunger": -0.6,
+    "calories": 300,
+    "carbs": 0,
+    "lipids": 12,
+    "proteins": 50,
+    "id": 1763449581,
+    "uses": 0.6,
+    "fresh": true,
+    "offAge": 53,
+    "offAgeMax": 60,
+    "freezingTime": 0,
+    "cookingTime": 301,
+    "heat": 2,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.2,
+    "hungerChange": -0.6,
+    "isCookable": true,
+    "actualWeight": 0.5,
+    "weight": 0.5,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.001853,
+     "hungChange": -0.6,
+     "baseHunger": -0.6,
+     "calories": 300,
+     "carbs": 0,
+     "lipids": 12,
+     "proteins": 50,
+     "id": 1763449581,
+     "uses": 0.6,
+     "fresh": true,
+     "offAge": 53,
+     "offAgeMax": 60,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 2,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.2,
+     "hungerChange": -0.6,
+     "isCookable": true,
+     "actualWeight": 0.5,
+     "weight": 0.5,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "requested": 301,
+    "field": "cookingTime",
+    "gameMinute": 23,
+    "serverWorldAge": 2.394131
+   },
+   "serverWorldAge": 2.394131,
+   "gameMinute": 23,
+   "lastCookMinute": 0,
+   "before_lastCookMinute": 0,
+   "cooked": false,
+   "worldAgeMinutes": 143.6479
+  },
+  {
+   "step": "set_lastCookMinute",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork lastCookMinute -1",
+   "wall_before": 70.888,
+   "wall_after": 72.4,
+   "took": 1.512,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": true,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.002796,
+    "hungChange": -0.42,
+    "baseHunger": -0.6,
+    "calories": 210,
+    "carbs": 0,
+    "lipids": 8.4,
+    "proteins": 35,
+    "id": 1763449581,
+    "uses": 0.42,
+    "fresh": true,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "freezingTime": 0,
+    "cookingTime": 301.061584,
+    "heat": 1.84709,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.1,
+    "hungerChange": -0.546,
+    "isCookable": false,
+    "actualWeight": 0,
+    "weight": 0.5,
+    "customWeight": true,
+    "lastCookMinute": -1,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": true,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.002796,
+     "hungChange": -0.42,
+     "baseHunger": -0.6,
+     "calories": 210,
+     "carbs": 0,
+     "lipids": 8.4,
+     "proteins": 35,
+     "id": 1763449581,
+     "uses": 0.42,
+     "fresh": true,
+     "offAge": 1000000000,
+     "offAgeMax": 1000000000,
+     "freezingTime": 0,
+     "cookingTime": 301.061584,
+     "heat": 1.84709,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.1,
+     "hungerChange": -0.546,
+     "isCookable": false,
+     "actualWeight": 0,
+     "weight": 0.5,
+     "customWeight": true,
+     "lastCookMinute": 23
+    },
+    "requested": -1,
+    "field": "lastCookMinute",
+    "gameMinute": 24,
+    "serverWorldAge": 2.400339
+   },
+   "serverWorldAge": 2.400339,
+   "gameMinute": 24,
+   "lastCookMinute": -1,
+   "before_lastCookMinute": 23,
+   "cooked": true,
+   "worldAgeMinutes": 144.0203
+  },
+  {
+   "step": "second_push",
+   "cmd": "item.set",
+   "args": "admin Skittles.CuredPork heat 2.0",
+   "wall_before": 76.441,
+   "wall_after": 76.95,
+   "took": 0.509,
+   "ack": {
+    "fullType": "Skittles.CuredPork",
+    "cooked": true,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0.00372,
+    "hungChange": -0.42,
+    "baseHunger": -0.6,
+    "calories": 210,
+    "carbs": 0,
+    "lipids": 8.4,
+    "proteins": 35,
+    "id": 1763449581,
+    "uses": 0.42,
+    "fresh": true,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "freezingTime": 0,
+    "cookingTime": 301.061584,
+    "heat": 2,
+    "minutesToCook": 300,
+    "minutesToBurn": 900,
+    "thirstChange": 0.1,
+    "hungerChange": -0.546,
+    "isCookable": false,
+    "actualWeight": 0,
+    "weight": 0.5,
+    "customWeight": true,
+    "lastCookMinute": -1,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Skittles.CuredPork",
+     "cooked": true,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0.00372,
+     "hungChange": -0.42,
+     "baseHunger": -0.6,
+     "calories": 210,
+     "carbs": 0,
+     "lipids": 8.4,
+     "proteins": 35,
+     "id": 1763449581,
+     "uses": 0.42,
+     "fresh": true,
+     "offAge": 1000000000,
+     "offAgeMax": 1000000000,
+     "freezingTime": 0,
+     "cookingTime": 301.061584,
+     "heat": 1.69706,
+     "minutesToCook": 300,
+     "minutesToBurn": 900,
+     "thirstChange": 0.1,
+     "hungerChange": -0.546,
+     "isCookable": false,
+     "actualWeight": 0,
+     "weight": 0.5,
+     "customWeight": true,
+     "lastCookMinute": -1
+    },
+    "requested": 2,
+    "field": "heat",
+    "gameMinute": 25,
+    "serverWorldAge": 2.420753
+   },
+   "serverWorldAge": 2.420753,
+   "gameMinute": 25,
+   "lastCookMinute": -1,
+   "before_lastCookMinute": -1,
+   "cooked": true,
+   "worldAgeMinutes": 145.2452
+  },
+  {
+   "step": "xp_after",
+   "cmd": "perk.xp",
+   "args": "admin Cooking",
+   "wall_before": 85.02,
+   "wall_after": 87.03,
+   "took": 2.01,
+   "ack": {
+    "perk": "Cooking",
+    "user": "admin",
+    "side": "server",
+    "xp": 0,
+    "level": 0,
+    "serverWorldAge": 2.465159
+   },
+   "serverWorldAge": 2.465159,
+   "gameMinute": null,
+   "lastCookMinute": null,
+   "before_lastCookMinute": null,
+   "cooked": null,
+   "worldAgeMinutes": 147.9095
+  }
+ ],
+ "notes": [],
+ "weight_reads": [
+  {
+   "tag": "4.1-mod-raw",
+   "fullType": "Skittles.CuredPork",
+   "server_count": 6,
+   "client_count": 6,
+   "server": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getFullType": "Skittles.CuredPork",
+    "getActualWeight": 0.5,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": false,
+    "getWeight": 0.5
+   },
+   "client": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getFullType": "Skittles.CuredPork",
+    "getActualWeight": 0.5,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": false,
+    "getWeight": 0.5
+   },
+   "nameIsFullType": {
+    "server": true,
+    "client": true
+   },
+   "differs": []
+  },
+  {
+   "tag": "4.2-vanilla-raw",
+   "fullType": "Base.Steak",
+   "server_count": 6,
+   "client_count": 6,
+   "server": {
+    "getDisplayName": "Steak",
+    "getFullType": "Base.Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   },
+   "client": {
+    "getDisplayName": "Steak",
+    "getFullType": "Base.Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   },
+   "nameIsFullType": {
+    "server": false,
+    "client": false
+   },
+   "differs": []
+  },
+  {
+   "tag": "4.1-mod-cooked",
+   "fullType": "Skittles.CuredPork",
+   "server_count": 6,
+   "client_count": 6,
+   "server": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getFullType": "Skittles.CuredPork",
+    "getActualWeight": 0,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": true,
+    "getWeight": 0.5
+   },
+   "client": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getFullType": "Skittles.CuredPork",
+    "getActualWeight": 0.35,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": false,
+    "getWeight": 0.5
+   },
+   "nameIsFullType": {
+    "server": true,
+    "client": true
+   },
+   "differs": [
+    "getActualWeight",
+    "isCustomWeight"
+   ]
+  },
+  {
+   "tag": "4.2-vanilla-after",
+   "fullType": "Base.Steak",
+   "server_count": 6,
+   "client_count": 6,
+   "server": {
+    "getDisplayName": "Steak",
+    "getFullType": "Base.Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   },
+   "client": {
+    "getDisplayName": "Steak",
+    "getFullType": "Base.Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   },
+   "nameIsFullType": {
+    "server": false,
+    "client": false
+   },
+   "differs": []
+  }
+ ],
+ "censuses": [
+  {
+   "tag": "4.4-vanilla",
+   "scope": "item:admin/Base.Steak *",
+   "vanillaExclusions": [
+    "customName"
+   ],
+   "client": {
+    "resolved": "admin/Base.Steak #160170971",
+    "keyCount": 1,
+    "keys": [
+     "customName:string"
+    ],
+    "keyNames": [
+     "customName"
+    ],
+    "beyondVanilla": []
+   },
+   "server": {
+    "resolved": "admin/Base.Steak #160170971",
+    "keyCount": 0,
+    "keys": [],
+    "keyNames": [],
+    "beyondVanilla": []
+   }
+  },
+  {
+   "tag": "4.4-mod",
+   "scope": "item:admin/Skittles.CuredPork *",
+   "vanillaExclusions": [
+    "customName"
+   ],
+   "client": {
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "keyCount": 2,
+    "keys": [
+     "Tooltip:string",
+     "customName:string"
+    ],
+    "keyNames": [
+     "Tooltip",
+     "customName"
+    ],
+    "beyondVanilla": [
+     "Tooltip"
+    ]
+   },
+   "server": {
+    "resolved": "admin/Skittles.CuredPork #1763449581",
+    "keyCount": 1,
+    "keys": [
+     "Tooltip:string"
+    ],
+    "keyNames": [
+     "Tooltip"
+    ],
+    "beyondVanilla": [
+     "Tooltip"
+    ]
+   }
+  }
+ ],
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "items.count",
+   "expect": "\"Skittles\"",
+   "ok": true,
+   "got": {
+    "total": 5107,
+    "food": 736,
+    "byType": {
+     "base:normal": 1099,
+     "base:weapon": 409,
+     "base:drainable": 150,
+     "base:clothing": 1395,
+     "base:literature": 559,
+     "base:food": 736,
+     "base:container": 308,
+     "base:moveable": 383,
+     "base:key": 6,
+     "base:radio": 17,
+     "base:alarmclockclothing": 16,
+     "base:weaponpart": 11,
+     "base:alarmclock": 2,
+     "base:map": 15,
+     "base:animal": 1
+    },
+    "foodByModule": {
+     "Base": 722,
+     "Skittles": 14
+    },
+    "fluidDefs": 61
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "recipes.craft",
+   "args": "Skittles.MakeCuredMeat",
+   "expect": "\"Skittles.CuredPork\"",
+   "ok": true,
+   "got": {
+    "getCategory": "Cooking",
+    "getTime": 30,
+    "getInputCount": 2,
+    "getOutputCount": 1,
+    "outputs": [
+     {
+      "index": 0,
+      "amount": 1,
+      "resourceType": "Item",
+      "originalLine": "item 1 mapper:meatType",
+      "items": [
+       "Skittles.CuredPork",
+       "Skittles.CuredBeef",
+       "Skittles.CuredVenison",
+       "Skittles.CuredFish"
+      ],
+      "itemCount": 4,
+      "itemFullTypes": [
+       "Skittles.CuredPork",
+       "Skittles.CuredBeef",
+       "Skittles.CuredVenison",
+       "Skittles.CuredFish"
+      ]
+     }
+    ],
+    "lookup": {
+     "accessor": "getCraftRecipe",
+     "asked": "Skittles.MakeCuredMeat",
+     "alternate": "MakeCuredMeat",
+     "askedAnswered": true,
+     "alternateAnswered": false,
+     "route": "as given"
+    },
+    "name": "Skittles.MakeCuredMeat",
+    "outputListSize": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "item.script",
+   "args": "Skittles.CuredPork",
+   "expect": "\"Skittles.CuredPork\"",
+   "ok": true,
+   "got": {
+    "fullType": "Skittles.CuredPork",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -60,
+    "ThirstChange": 20,
+    "DaysFresh": 53,
+    "DaysTotallyRotten": 60,
+    "IsCookable": true,
+    "MinutesToCook": 300,
+    "MinutesToBurn": 900
+   }
+  }
+ ],
+ "mod_log_lines": [
+  "LOG  : Mod          f:0 st:803,366,639> loading SKITTLE_LongTermPreservation4220",
+  "LOG  : Mod          f:0 st:803,366,639> mod \"SKITTLE_LongTermPreservation4220\" overrides",
+  "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\td1b-20260910-202029\\server\\mods\\SKITTLE_LongTermPreservation4220\\common\\media\\AnimSets at WindowsException.transla",
+  "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\td1b-20260910-202029\\server\\mods\\SKITTLE_LongTermPreservation4220\\common\\media\\actiongroups at WindowsException.tra",
+  "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\td1b-20260910-202029\\server\\mods\\SKITTLE_LongTermPreservation4220\\42.20\\media\\AnimSets at WindowsException.translat"
+ ],
+ "rcon": {
+  "Skittles.CuredPork": {
+   "ok": true,
+   "reply": ""
+  },
+  "Base.Steak": {
+   "ok": true,
+   "reply": "Item Base.Steak Added in admin's inventory."
+  }
+ },
+ "spawn_wait": [
+  {
+   "attempt": 1,
+   "wall": 59.006,
+   "resolved": {
+    "Skittles.CuredPork": "admin/Skittles.CuredPork #1763449581",
+    "Base.Steak": "admin/Base.Steak #160170971"
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 52.9,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.1,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "items.count",
+   "ok": true,
+   "got": "{\"total\": 5107, \"food\": 736, \"byType\": {\"base:normal\": 1099, \"base:weapon\": 409, \"base:drainable\": 1"
+  },
+  {
+   "t": 54.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "recipes.craft",
+   "ok": true,
+   "got": "{\"getCategory\": \"Cooking\", \"getTime\": 30, \"getInputCount\": 2, \"getOutputCount\": 1, \"outputs\": [{\"ind"
+  },
+  {
+   "t": 55.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"Skittles.CuredPork\", \"via\": \"getItem\", \"side\": \"client\", \"access\": {\"HungerChange\": \"g"
+  },
+  {
+   "t": 55.4,
+   "phase": "rcon_additem",
+   "item": "Skittles.CuredPork",
+   "ok": true,
+   "reply": ""
+  },
+  {
+   "t": 55.5,
+   "phase": "rcon_additem",
+   "item": "Base.Steak",
+   "ok": true,
+   "reply": "Item Base.Steak Added in admin's inventory."
+  },
+  {
+   "t": 59.0,
+   "phase": "client_sees_items",
+   "attempts": 1
+  },
+  {
+   "t": 59.5,
+   "phase": "read",
+   "tag": "4.1-mod-raw",
+   "side": "client"
+  },
+  {
+   "t": 61.0,
+   "phase": "read",
+   "tag": "4.1-mod-raw",
+   "side": "server"
+  },
+  {
+   "t": 61.5,
+   "phase": "read",
+   "tag": "4.2-vanilla-raw",
+   "side": "client"
+  },
+  {
+   "t": 63.1,
+   "phase": "read",
+   "tag": "4.2-vanilla-raw",
+   "side": "server"
+  },
+  {
+   "t": 63.6,
+   "phase": "read",
+   "tag": "4.4-vanilla",
+   "side": "client"
+  },
+  {
+   "t": 64.8,
+   "phase": "read",
+   "tag": "4.4-vanilla",
+   "side": "server"
+  },
+  {
+   "t": 65.1,
+   "phase": "read",
+   "tag": "4.4-mod",
+   "side": "client"
+  },
+  {
+   "t": 67.1,
+   "phase": "read",
+   "tag": "4.4-mod",
+   "side": "server"
+  },
+  {
+   "t": 68.6,
+   "phase": "step",
+   "took": 1.51,
+   "name": "xp_before",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 68.9,
+   "phase": "step",
+   "took": 0.26,
+   "name": "set_heat",
+   "cmd": "item.set"
+  },
+  {
+   "t": 70.9,
+   "phase": "step",
+   "took": 2.011,
+   "name": "set_cookingTime",
+   "cmd": "item.set"
+  },
+  {
+   "t": 72.4,
+   "phase": "step",
+   "took": 1.512,
+   "name": "set_lastCookMinute",
+   "cmd": "item.set"
+  },
+  {
+   "t": 72.9,
+   "phase": "cooked",
+   "found": true,
+   "wall": 72.907
+  },
+  {
+   "t": 76.2,
+   "phase": "read",
+   "tag": "4.3-hop1",
+   "side": "server"
+  },
+  {
+   "t": 76.4,
+   "phase": "read",
+   "tag": "4.3-hop1",
+   "side": "client"
+  },
+  {
+   "t": 77.0,
+   "phase": "step",
+   "took": 0.509,
+   "name": "second_push",
+   "cmd": "item.set"
+  },
+  {
+   "t": 81.0,
+   "phase": "read",
+   "tag": "4.3-hop2",
+   "side": "server"
+  },
+  {
+   "t": 81.5,
+   "phase": "read",
+   "tag": "4.3-hop2",
+   "side": "client"
+  },
+  {
+   "t": 82.0,
+   "phase": "read",
+   "tag": "4.1-mod-cooked",
+   "side": "client"
+  },
+  {
+   "t": 83.0,
+   "phase": "read",
+   "tag": "4.1-mod-cooked",
+   "side": "server"
+  },
+  {
+   "t": 83.5,
+   "phase": "read",
+   "tag": "4.2-vanilla-after",
+   "side": "client"
+  },
+  {
+   "t": 85.0,
+   "phase": "read",
+   "tag": "4.2-vanilla-after",
+   "side": "server"
+  },
+  {
+   "t": 87.0,
+   "phase": "step",
+   "took": 2.01,
+   "name": "xp_after",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 87.1,
+   "phase": "hook_lines",
+   "server": 4,
+   "client": 0
+  },
+  {
+   "t": 89.1,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 96.9,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "xp_before": {
+  "step": "xp_before",
+  "cmd": "perk.xp",
+  "args": "admin Cooking",
+  "wall_before": 67.101,
+  "wall_after": 68.611,
+  "took": 1.51,
+  "ack": {
+   "perk": "Cooking",
+   "user": "admin",
+   "side": "server",
+   "xp": 0,
+   "level": 0,
+   "serverWorldAge": 2.383481
+  },
+  "serverWorldAge": 2.383481,
+  "gameMinute": null,
+  "lastCookMinute": null,
+  "before_lastCookMinute": null,
+  "cooked": null,
+  "worldAgeMinutes": 143.0089
+ },
+ "cook_poll": [
+  {
+   "poll": 1,
+   "wall": 72.907,
+   "cooked": true,
+   "heat": 1.84709,
+   "cookingTime": 301.061584,
+   "lastCookMinute": -1,
+   "serverWorldAge": 2.403002,
+   "isCookable": false,
+   "thirstChange": 0.1,
+   "ack_shape": null,
+   "worldAgeMinutes": 144.1801
+  }
+ ],
+ "cooked_at": {
+  "poll": 1,
+  "wall": 72.907,
+  "cooked": true,
+  "heat": 1.84709,
+  "cookingTime": 301.061584,
+  "lastCookMinute": -1,
+  "serverWorldAge": 2.403002,
+  "isCookable": false,
+  "thirstChange": 0.1,
+  "ack_shape": null,
+  "worldAgeMinutes": 144.1801
+ },
+ "item_get_after_cook": {
+  "fullType": "Skittles.CuredPork",
+  "cooked": true,
+  "burnt": false,
+  "rotten": false,
+  "frozen": false,
+  "age": 0.002796,
+  "hungChange": -0.42,
+  "baseHunger": -0.6,
+  "calories": 210,
+  "carbs": 0,
+  "lipids": 8.4,
+  "proteins": 35,
+  "id": 1763449581,
+  "uses": 0.42,
+  "fresh": true,
+  "offAge": 1000000000,
+  "offAgeMax": 1000000000,
+  "freezingTime": 0,
+  "cookingTime": 301.061584,
+  "heat": 1.84709,
+  "minutesToCook": 300,
+  "minutesToBurn": 900,
+  "thirstChange": 0.1,
+  "hungerChange": -0.546,
+  "isCookable": false,
+  "actualWeight": 0,
+  "weight": 0.5,
+  "customWeight": true,
+  "lastCookMinute": -1,
+  "serverWorldAge": 2.411878
+ },
+ "thirst_hops": {
+  "server_hop1": 0.1,
+  "client_hop1": 0.05,
+  "client_hop1_wall": 76.18,
+  "push_wall": {
+   "before": 76.441,
+   "after": 76.95
+  },
+  "push_sync": "sendItemStats(item)",
+  "server_hop2": 0.1,
+  "client_hop2": 0.05,
+  "client_hop2_wall": 80.962,
+  "delta": 0.0,
+  "reading": "equal => ONE halving per server->client hop (the server's raw field never moves, so every push carries the same value and the client converges); halved again => compounding, which would need a client->server hop that docs/modding/patterns.md:83 records as a silent no-op"
+ },
+ "xp_after": {
+  "step": "xp_after",
+  "cmd": "perk.xp",
+  "args": "admin Cooking",
+  "wall_before": 85.02,
+  "wall_after": 87.03,
+  "took": 2.01,
+  "ack": {
+   "perk": "Cooking",
+   "user": "admin",
+   "side": "server",
+   "xp": 0,
+   "level": 0,
+   "serverWorldAge": 2.465159
+  },
+  "serverWorldAge": 2.465159,
+  "gameMinute": null,
+  "lastCookMinute": null,
+  "before_lastCookMinute": null,
+  "cooked": null,
+  "worldAgeMinutes": 147.9095
+ },
+ "xp_delta": 0,
+ "server_hook_lines": [
+  "LOG  : Lua          f:545 st:803,434,623> changing da meat",
+  "LOG  : Lua          f:545 st:803,434,623> post cookable",
+  "LOG  : Lua          f:545 st:803,434,623> meat change days",
+  "LOG  : Lua          f:545 st:803,434,624> meat done"
+ ],
+ "client_hook_lines": [],
+ "answers": {
+  "4.1_mod_raw": {
+   "tag": "4.1-mod-raw",
+   "fullType": "Skittles.CuredPork",
+   "nameIsFullType": {
+    "server": true,
+    "client": true
+   },
+   "differs": [],
+   "server": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getActualWeight": 0.5,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": false,
+    "getWeight": 0.5
+   },
+   "client": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getActualWeight": 0.5,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": false,
+    "getWeight": 0.5
+   }
+  },
+  "4.1_mod_cooked": {
+   "tag": "4.1-mod-cooked",
+   "fullType": "Skittles.CuredPork",
+   "nameIsFullType": {
+    "server": true,
+    "client": true
+   },
+   "differs": [
+    "getActualWeight",
+    "isCustomWeight"
+   ],
+   "server": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getActualWeight": 0,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": true,
+    "getWeight": 0.5
+   },
+   "client": {
+    "getDisplayName": "Skittles.CuredPork",
+    "getActualWeight": 0.35,
+    "getActualWeightUnmodded": 0,
+    "isCustomWeight": false,
+    "getWeight": 0.5
+   }
+  },
+  "4.2_vanilla_raw": {
+   "tag": "4.2-vanilla-raw",
+   "fullType": "Base.Steak",
+   "nameIsFullType": {
+    "server": false,
+    "client": false
+   },
+   "differs": [],
+   "server": {
+    "getDisplayName": "Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   },
+   "client": {
+    "getDisplayName": "Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   }
+  },
+  "4.2_vanilla_after": {
+   "tag": "4.2-vanilla-after",
+   "fullType": "Base.Steak",
+   "nameIsFullType": {
+    "server": false,
+    "client": false
+   },
+   "differs": [],
+   "server": {
+    "getDisplayName": "Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   },
+   "client": {
+    "getDisplayName": "Steak",
+    "getActualWeight": 0.3,
+    "getActualWeightUnmodded": 0.3,
+    "isCustomWeight": false,
+    "getWeight": 0.3
+   }
+  },
+  "4.3_one_halving_per_hop": true,
+  "4.3_client_readings": [
+   0.05,
+   0.05
+  ],
+  "4.4_vanilla_keys": [],
+  "4.5_xp_delta_with_chef_unset": 0,
+  "4.5_lastCookMinute_after_cook": -1,
+  "cooked": true
+ },
+ "wall_seconds": 96.9,
+ "server_error_count": 0
+}
