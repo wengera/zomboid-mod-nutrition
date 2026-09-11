@@ -22,8 +22,7 @@ FAIL before a client is ever launched; and **`teardown-longtermpreservation4220.
 teardown subject, PZTestKit + `SKITTLE_LongTermPreservation4220` (workshop `3774789651`, folder
 `LongTermPreservation4220`) on `default` with **no `[sandbox]`** so DayLength stays the fixture's 4,
 whose `[[verify]]` probes read the mod's own scripts back — `items.count` and
-`recipes.craft MakeCuredMeat` on the server, `item.script Skittles.CuredPork` on the client (that
-command is registered client-side only); and **`teardown-simplestatus.toml`** — slice 10's
+`recipes.craft MakeCuredMeat` on the server, `item.script Skittles.CuredPork` on the client (registered client-side only at the time; slice 09 added the server half); and **`teardown-simplestatus.toml`** — slice 10's
 teardown subject, PZTestKit + `simpleStatus` (workshop `2867431511`, folder `SimpleStatus`) on
 `default` with **no `[sandbox]`** either, whose `verify` **shipped empty by ruling** at `a42c8b4` —
 the mod ships no scripts and no bus-readable state — and **gained one tier-(a) row in `291f977`**:
