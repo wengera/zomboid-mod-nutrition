@@ -1,0 +1,2377 @@
+{
+ "run_id": "td3-20260911-001948",
+ "mod": "AutoCook",
+ "workshop_item": "3388721641",
+ "subject": "player admin (the mod owns no item and no script; it ships no media/scripts)",
+ "user": "admin",
+ "profile": {
+  "name": "teardown-autocook",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\teardown-autocook.toml",
+  "fixture": "default",
+  "description": "PZTestKit + AutoCook (workshop 3388721641) \u2014 teardown 3.",
+  "mods": [
+   "PZTestKit",
+   "AutoCook"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "AutoCook": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3388721641\\mods\\AutoCook"
+  },
+  "skip": [],
+  "workshop_items": {
+   "AutoCook": "3388721641"
+  },
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "commit": "d8cc34e",
+ "harness_lua_commit": "d8cc34e",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "run-20260911-001251",
+ "fields": "getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+ "field_count_expected": 5,
+ "moddata_keys": "player:admin * | player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients | (planted: AutoCookProbe)",
+ "moddata_note": "moddata_keys is a DISPLAY string: the ` | ` joins three separate probes for the reader and is not a bus token.",
+ "vanilla_player_keys": [
+  "fitnessMod",
+  "fitnessUpTimer",
+  "hotbar",
+  "strengthMod",
+  "strengthUpTimer"
+ ],
+ "vanilla_item_keys": [
+  "Tooltip",
+  "customName"
+ ],
+ "world_changes": "none to restore -- no settimespeed, no sandbox write, no lua.reload (the mod's three ISCharacterInfoWindow wrappers are non-idempotent). The planted modData key and the RCON-spawned Steak live in this run's copy of the fixture.",
+ "snapshots": [
+  {
+   "tag": "baseline_join",
+   "wall": 87.814,
+   "client": {
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.3740367889404297,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "AutoCook:table",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 87.814,
+      "wall_done": 88.321
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "AutoCook:table",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "AutoCook",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "AutoCook"
+     ],
+     "wall": 87.814,
+     "since_session_ready": 1.044,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "AutoCook": {}
+     },
+     "missing": [
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.3800735473632812,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "AutoCook:table",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 88.828,
+      "wall_done": 89.337
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.376267433166504,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 88.322,
+      "wall_done": 88.828
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 798.4546508789062,
+     "carbs": -0.33801892399787903,
+     "lipids": -0.10913180559873581,
+     "proteins": -0.08305606245994568,
+     "weight": 80,
+     "hunger": 0.0008074737270362675,
+     "thirst": 0.0006731621106155217,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 89.337,
+      "wall_done": 89.843
+     }
+    }
+   },
+   "server": {
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.383516311645508,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 89.843,
+      "wall_done": 90.1
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": [],
+     "keyNames": [],
+     "beyondVanilla": [],
+     "wall": 89.843,
+     "since_session_ready": 3.073,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "AutoCook",
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.393930435180664,
+     "resolved": "admin",
+     "keyCount": 0,
+     "keys": {},
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 90.608,
+      "wall_done": 92.62
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.3852338790893555,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 90.1,
+      "wall_done": 90.608
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 797.4010009765625,
+     "carbs": -0.568442165851593,
+     "lipids": -0.18352560698986053,
+     "proteins": -0.1396743655204773,
+     "weight": 80,
+     "hunger": 0.0014387869741767645,
+     "thirst": 0.0011998439440503716,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 92.62,
+      "wall_done": 94.131
+     }
+    }
+   },
+   "wall_done": 94.131
+  },
+  {
+   "tag": "baseline_late",
+   "wall": 127.091,
+   "client": {
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.548320770263672,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "AutoCook:table",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 127.091,
+      "wall_done": 127.347
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "AutoCook:table",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "AutoCook",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "AutoCook"
+     ],
+     "wall": 127.091,
+     "since_session_ready": 40.321,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "AutoCook": {}
+     },
+     "missing": [
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.552783966064453,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "AutoCook:table",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 127.857,
+      "wall_done": 128.363
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.5505523681640625,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 127.347,
+      "wall_done": 127.857
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 788.4915161132812,
+     "carbs": -2.514132499694824,
+     "lipids": -0.8117058873176575,
+     "proteins": -0.6177585124969482,
+     "weight": 80,
+     "hunger": 0.006753707304596901,
+     "thirst": 0.005647137761116028,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 128.363,
+      "wall_done": 128.872
+     }
+    }
+   },
+   "server": {
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.5625171661376953,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 128.872,
+      "wall_done": 130.63
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [],
+     "wall": 128.872,
+     "since_session_ready": 42.102,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": [
+      "AutoCook",
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.5713977813720703,
+     "resolved": "admin",
+     "keyCount": 4,
+     "keys": [
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 131.637,
+      "wall_done": 132.647
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.5669593811035156,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 130.63,
+      "wall_done": 131.637
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 787.0031127929688,
+     "carbs": -2.8386666774749756,
+     "lipids": -0.9164841175079346,
+     "proteins": -0.697501003742218,
+     "weight": 80,
+     "hunger": 0.00763745978474617,
+     "thirst": 0.006388931069523096,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 132.647,
+      "wall_done": 134.661
+     }
+    }
+   },
+   "wall_done": 134.661
+  },
+  {
+   "tag": "t0",
+   "wall": 136.946,
+   "client": {
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.5927419662475586,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 136.946,
+      "wall_done": 137.458
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "AutoCook",
+      "AutoCookProbe",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "AutoCook",
+      "AutoCookProbe"
+     ],
+     "wall": 136.946,
+     "since_session_ready": 50.176,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "AutoCook": {}
+     },
+     "missing": [
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.59720516204834,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 137.965,
+      "wall_done": 138.473
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.594973564147949,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 137.458,
+      "wall_done": 137.965
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 785.92529296875,
+     "carbs": -3.073622226715088,
+     "lipids": -0.9923410415649414,
+     "proteins": -0.7552328109741211,
+     "weight": 80,
+     "hunger": 0.008276786655187607,
+     "thirst": 0.00692596985027194,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 138.473,
+      "wall_done": 138.98
+     }
+    }
+   },
+   "server": {
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.6069183349609375,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 138.98,
+      "wall_done": 140.491
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "AutoCook",
+      "AutoCookProbe",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "AutoCook",
+      "AutoCookProbe"
+     ],
+     "wall": 138.98,
+     "since_session_ready": 52.21,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "AutoCook": {}
+     },
+     "missing": [
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.6166906356811523,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 142.501,
+      "wall_done": 142.76
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.615802764892578,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 140.491,
+      "wall_done": 142.501
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 784.4365844726562,
+     "carbs": -3.398181438446045,
+     "lipids": -1.0971273183822632,
+     "proteins": -0.8349815607070923,
+     "weight": 80,
+     "hunger": 0.009159252047538757,
+     "thirst": 0.007667820900678635,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 142.76,
+      "wall_done": 144.523
+     }
+    }
+   },
+   "wall_done": 144.523
+  },
+  {
+   "tag": "t+3s",
+   "wall": 144.525,
+   "client": {
+    "moddata_player": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.625988006591797,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 144.525,
+      "wall_done": 144.781
+     }
+    },
+    "census_player": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "AutoCook",
+      "AutoCookProbe",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "AutoCook",
+      "AutoCookProbe"
+     ],
+     "wall": 144.525,
+     "since_session_ready": 57.755,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "AutoCook": {}
+     },
+     "missing": [
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.6304502487182617,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 145.29,
+      "wall_done": 145.799
+     }
+    },
+    "fields": {
+     "side": "client",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.6282196044921875,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 144.781,
+      "wall_done": 145.29
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 784.1285400390625,
+     "carbs": -3.465332269668579,
+     "lipids": -1.1188074350357056,
+     "proteins": -0.8514814972877502,
+     "weight": 80,
+     "hunger": 0.00934173446148634,
+     "thirst": 0.007821308448910713,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 145.799,
+      "wall_done": 146.309
+     }
+    }
+   },
+   "server": {
+    "moddata_player": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.6335649490356445,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 146.309,
+      "wall_done": 146.567
+     }
+    },
+    "census_player": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "AutoCook",
+      "AutoCookProbe",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "AutoCook",
+      "AutoCookProbe"
+     ],
+     "wall": 146.309,
+     "since_session_ready": 59.539,
+     "error": null
+    },
+    "autocook_keys": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "AutoCook": {}
+     },
+     "missing": [
+      "AutoCook.CookMode",
+      "AutoCook.MaxSpices",
+      "AutoCook.UseRotten",
+      "AutoCook.SmartSpices",
+      "AutoCook.PrioritizeVariety",
+      "AutoCook.MaxDuplicate",
+      "AutoCook.CompleteExistingMeal",
+      "AutoCook.AutoCraftIngredients"
+     ],
+     "worldAge": 2.650437355041504,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "AutoCook:table",
+      "AutoCookProbe:string",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 9,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin AutoCook AutoCook.CookMode AutoCook.MaxSpices AutoCook.UseRotten AutoCook.SmartSpices AutoCook.PrioritizeVariety AutoCook.MaxDuplicate AutoCook.CompleteExistingMeal AutoCook.AutoCraftIngredients",
+      "wall": 148.583,
+      "wall_done": 150.345
+     }
+    },
+    "fields": {
+     "side": "server",
+     "subject": "player",
+     "id": "admin",
+     "resolved": "admin",
+     "fields": {
+      "getUsername": "admin",
+      "getInventoryWeight": 1.1125000715255737,
+      "getMaxWeight": 12,
+      "isDead": false,
+      "isGodMod": false
+     },
+     "missing": {},
+     "nils": {},
+     "worldAge": 2.642444610595703,
+     "count": 5,
+     "_probe": {
+      "cmd": "witness.fields",
+      "args": "player admin getUsername,getInventoryWeight,getMaxWeight,isDead,isGodMod",
+      "wall": 146.567,
+      "wall_done": 148.582
+     }
+    },
+    "field_count": 5,
+    "field_count_ok": true,
+    "nutrition": {
+     "calories": 782.8963623046875,
+     "carbs": -3.7338879108428955,
+     "lipids": -1.205512523651123,
+     "proteins": -0.9174693822860718,
+     "weight": 80,
+     "hunger": 0.010071195662021637,
+     "thirst": 0.008435149677097797,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 150.345,
+      "wall_done": 150.604
+     }
+    }
+   },
+   "wall_done": 150.604
+  }
+ ],
+ "steps": [
+  {
+   "step": "plant_client",
+   "cmd": "moddata.set",
+   "args": "AutoCookProbe 7",
+   "side": "admin",
+   "wall_before": 134.663,
+   "wall_after": 134.918,
+   "took": 0.255,
+   "ack": "set AutoCookProbe",
+   "ack_shape": "str"
+  },
+  {
+   "step": "t_action",
+   "cmd": "moddata.transmit",
+   "args": "",
+   "side": "admin",
+   "wall_before": 136.687,
+   "wall_after": 136.944,
+   "took": 0.257,
+   "ack": "transmitted",
+   "ack_shape": "str"
+  },
+  {
+   "step": "pin_heat",
+   "cmd": "item.set",
+   "args": "admin Base.Steak heat 1.2",
+   "side": "server",
+   "wall_before": 153.388,
+   "wall_after": 154.151,
+   "took": 0.763,
+   "ack": {
+    "fullType": "Base.Steak",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.4000000059604645,
+    "baseHunger": -0.4000000059604645,
+    "calories": 220,
+    "carbs": 0,
+    "lipids": 9.350000381469727,
+    "proteins": 31.6200008392334,
+    "id": 829047872,
+    "uses": 0.4000000059604645,
+    "fresh": true,
+    "offAge": 2,
+    "offAgeMax": 4,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1.2000000476837158,
+    "minutesToCook": 50,
+    "minutesToBurn": 70,
+    "thirstChange": 0,
+    "hungerChange": -0.4000000059604645,
+    "isCookable": true,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "sync": "sendItemStats(item)",
+    "before": {
+     "fullType": "Base.Steak",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.4000000059604645,
+     "baseHunger": -0.4000000059604645,
+     "calories": 220,
+     "carbs": 0,
+     "lipids": 9.350000381469727,
+     "proteins": 31.6200008392334,
+     "id": 829047872,
+     "uses": 0.4000000059604645,
+     "fresh": true,
+     "offAge": 2,
+     "offAgeMax": 4,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 50,
+     "minutesToBurn": 70,
+     "thirstChange": 0,
+     "hungerChange": -0.4000000059604645,
+     "isCookable": true,
+     "actualWeight": 0.30000001192092896,
+     "weight": 0.30000001192092896,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "requested": 1.2,
+    "field": "heat",
+    "gameMinute": 40,
+    "serverWorldAge": 2.666804313659668
+   },
+   "serverWorldAge": 2.666804313659668,
+   "gameMinute": 40,
+   "worldAgeMinutes": 160.0083
+  }
+ ],
+ "phase2": [
+  {
+   "tag": "p2a_after_set",
+   "wall": 136.685,
+   "note": "the client's own write has not crossed (spike S6): a client modData write reaches the server ONLY after transmitModData (patterns.md:125)",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "AutoCook:table",
+     "AutoCookProbe:string",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "AutoCook",
+     "AutoCookProbe",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "AutoCook",
+     "AutoCookProbe"
+    ],
+    "wall": 134.92,
+    "since_session_ready": 48.15,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [],
+    "wall": 135.427,
+    "since_session_ready": 48.657,
+    "error": null
+   },
+   "server_only": [],
+   "client_only": [
+    "AutoCook",
+    "AutoCookProbe",
+    "hotbar"
+   ],
+   "identical": false
+  }
+ ],
+ "notes": [
+  "moddata_keys is a DISPLAY string: the ` | ` joins three separate probes for the reader and is not a bus token."
+ ],
+ "session_ready_wall": 86.77,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "client",
+   "cmd": "text.get",
+   "args": "UI_AutoCookMode",
+   "expect": "\"Cooking diet: \"",
+   "ok": true,
+   "got": {
+    "key": "UI_AutoCookMode",
+    "text": "Cooking diet: ",
+    "miss": false,
+    "side": "client"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "witness.moddata",
+   "args": "player:admin *",
+   "expect": "\"AutoCook:table\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.3717336654663086,
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "AutoCook:table",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0
+   }
+  }
+ ],
+ "M1_overrides": {
+  "question": "which relative paths did the version dir take from common/, and which did common/ take from vanilla?",
+  "server_log": {
+   "path": "server-stdout.log",
+   "hits": [
+    {
+     "line": 95,
+     "text": "LOG  : Mod          f:0 st:817,727,429> mod \"AutoCook\" overrides media/lua/shared/translate/en/contextmenu.json"
+    },
+    {
+     "line": 96,
+     "text": "LOG  : Mod          f:0 st:817,727,429> mod \"AutoCook\" overrides media/lua/shared/translate/en/ui.json"
+    },
+    {
+     "line": 97,
+     "text": "LOG  : Mod          f:0 st:817,727,430> mod \"AutoCook\" overrides media/lua/client/autocook.lua"
+    },
+    {
+     "line": 98,
+     "text": "LOG  : Mod          f:0 st:817,727,430> mod \"AutoCook\" overrides media/lua/client/autocook_autocraftrecipes.lua"
+    },
+    {
+     "line": 99,
+     "text": "LOG  : Mod          f:0 st:817,727,430> mod \"AutoCook\" overrides media/lua/client/ischaractercook.lua"
+    }
+   ],
+   "count": 5,
+   "tails": [
+    "media/lua/shared/translate/en/contextmenu.json",
+    "media/lua/shared/translate/en/ui.json",
+    "media/lua/client/autocook.lua",
+    "media/lua/client/autocook_autocraftrecipes.lua",
+    "media/lua/client/ischaractercook.lua"
+   ]
+  },
+  "client_console": {
+   "path": "clients\\admin\\console.txt",
+   "hits": [
+    {
+     "line": 85,
+     "text": "LOG  : Mod          f:0> mod \"AutoCook\" overrides media/lua/shared/translate/en/contextmenu.json"
+    },
+    {
+     "line": 86,
+     "text": "LOG  : Mod          f:0> mod \"AutoCook\" overrides media/lua/shared/translate/en/ui.json"
+    },
+    {
+     "line": 87,
+     "text": "LOG  : Mod          f:0> mod \"AutoCook\" overrides media/lua/client/autocook.lua"
+    },
+    {
+     "line": 88,
+     "text": "LOG  : Mod          f:0> mod \"AutoCook\" overrides media/lua/client/autocook_autocraftrecipes.lua"
+    },
+    {
+     "line": 89,
+     "text": "LOG  : Mod          f:0> mod \"AutoCook\" overrides media/lua/client/ischaractercook.lua"
+    },
+    {
+     "line": 168,
+     "text": "LOG  : Mod          f:0 st:0> mod \"AutoCook\" overrides media/lua/shared/translate/en/contextmenu.json"
+    },
+    {
+     "line": 169,
+     "text": "LOG  : Mod          f:0 st:0> mod \"AutoCook\" overrides media/lua/shared/translate/en/ui.json"
+    },
+    {
+     "line": 170,
+     "text": "LOG  : Mod          f:0 st:0> mod \"AutoCook\" overrides media/lua/client/autocook.lua"
+    },
+    {
+     "line": 171,
+     "text": "LOG  : Mod          f:0 st:0> mod \"AutoCook\" overrides media/lua/client/autocook_autocraftrecipes.lua"
+    },
+    {
+     "line": 172,
+     "text": "LOG  : Mod          f:0 st:0> mod \"AutoCook\" overrides media/lua/client/ischaractercook.lua"
+    }
+   ],
+   "count": 10,
+   "tails": [
+    "media/lua/shared/translate/en/contextmenu.json",
+    "media/lua/shared/translate/en/ui.json",
+    "media/lua/client/autocook.lua",
+    "media/lua/client/autocook_autocraftrecipes.lua",
+    "media/lua/client/ischaractercook.lua",
+    "media/lua/shared/translate/en/contextmenu.json",
+    "media/lua/shared/translate/en/ui.json",
+    "media/lua/client/autocook.lua",
+    "media/lua/client/autocook_autocraftrecipes.lua",
+    "media/lua/client/ischaractercook.lua"
+   ]
+  },
+  "prediction": "P1: exactly 5 on the server -- media/lua/shared/translate/en/{contextmenu,ui}.json (pass A, over vanilla) then media/lua/client/{autocook,autocook_autocraftrecipes,ischaractercook}.lua (pass B, over common/). limit=12 so a 6th line is visible rather than truncated.",
+  "falsifiers": {
+   "3 lines, client Lua only": "vanilla's media/** is not in activeFileMap when mods load -- a startup-order fact",
+   "3 lines, one with an icon tail and NO client Lua": "getVersionDir() resolved to 42/ (which ships only the two PNGs, and the print gate filters any rel ending poster.png)",
+   "0 lines": "the version pass did not see common/'s keys -- the wiki rule is wrong"
+  }
+ },
+ "mod_log_lines_server": [
+  "LOG  : Mod          f:0 st:817,727,429> mod \"AutoCook\" overrides media/lua/shared/translate/en/contextmenu.json",
+  "LOG  : Mod          f:0 st:817,727,429> mod \"AutoCook\" overrides media/lua/shared/translate/en/ui.json",
+  "LOG  : Mod          f:0 st:817,727,430> mod \"AutoCook\" overrides media/lua/client/autocook.lua",
+  "LOG  : Mod          f:0 st:817,727,430> mod \"AutoCook\" overrides media/lua/client/autocook_autocraftrecipes.lua",
+  "LOG  : Mod          f:0 st:817,727,430> mod \"AutoCook\" overrides media/lua/client/ischaractercook.lua"
+ ],
+ "loading_lines": {
+  "server": [
+   {
+    "line": 94,
+    "text": "LOG  : Mod          f:0 st:817,727,428> loading AutoCook"
+   }
+  ],
+  "client": [
+   {
+    "line": 84,
+    "text": "LOG  : Mod          f:0> loading AutoCook"
+   },
+   {
+    "line": 167,
+    "text": "LOG  : Mod          f:0 st:0> loading AutoCook"
+   }
+  ]
+ },
+ "nilcall_lines": {
+  "client": [],
+  "server": [],
+  "reading": "a raise naming HasTrait or getTypeString is the COMMON-WINS signature: both members were removed in 42.20.4 and only the common/ copies still call them (common/AutoCook.lua:39, common/ISCharacterCook.lua:50)."
+ },
+ "timeline": [
+  {
+   "t": 86.8,
+   "phase": "session_ready"
+  },
+  {
+   "t": 87.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "text.get",
+   "ok": true,
+   "got": "{\"key\": \"UI_AutoCookMode\", \"text\": \"Cooking diet: \", \"miss\": false, \"side\": \"client\"}"
+  },
+  {
+   "t": 87.8,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "witness.moddata",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"scope\": \"player\", \"arg\": \"admin\", \"values\": {}, \"missing\": {}, \"worldAge\": 2.371"
+  },
+  {
+   "t": 87.8,
+   "phase": "greps",
+   "overrides_server": 5,
+   "overrides_client": 10
+  },
+  {
+   "t": 94.1,
+   "phase": "snapshot",
+   "took": 6.32,
+   "tag": "baseline_join",
+   "client": 6,
+   "server": 0
+  },
+  {
+   "t": 95.4,
+   "phase": "M3",
+   "miss": false
+  },
+  {
+   "t": 114.6,
+   "phase": "M4",
+   "read": 22
+  },
+  {
+   "t": 134.7,
+   "phase": "snapshot",
+   "took": 7.57,
+   "tag": "baseline_late",
+   "client": 6,
+   "server": 4
+  },
+  {
+   "t": 134.9,
+   "phase": "step",
+   "took": 0.255,
+   "name": "plant_client",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 136.7,
+   "phase": "census",
+   "tag": "p2a_after_set",
+   "server": 4,
+   "client": 7
+  },
+  {
+   "t": 136.9,
+   "phase": "step",
+   "took": 0.257,
+   "name": "t_action",
+   "cmd": "moddata.transmit"
+  },
+  {
+   "t": 144.5,
+   "phase": "snapshot",
+   "took": 7.58,
+   "tag": "t0",
+   "client": 7,
+   "server": 7
+  },
+  {
+   "t": 150.6,
+   "phase": "snapshot",
+   "took": 6.08,
+   "tag": "t+3s",
+   "client": 7,
+   "server": 7
+  },
+  {
+   "t": 150.6,
+   "phase": "rcon_additem",
+   "ok": true
+  },
+  {
+   "t": 154.2,
+   "phase": "step",
+   "took": 0.763,
+   "name": "pin_heat",
+   "cmd": "item.set"
+  },
+  {
+   "t": 171.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 179.4,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "M3_translations": {
+  "question": "did the Translator read common/media/lua/shared/Translate/EN/UI.json?",
+  "mod_key": {
+   "key": "UI_AutoCookMode",
+   "text": "Cooking diet: ",
+   "miss": false,
+   "side": "client",
+   "_probe": {
+    "cmd": "text.get",
+    "args": "UI_AutoCookMode",
+    "wall": 94.132,
+    "wall_done": 94.389
+   }
+  },
+  "expected": "Cooking diet: ",
+  "controls": {
+   "ContextMenu_Destroy": {
+    "key": "ContextMenu_Destroy",
+    "text": "Destroy",
+    "miss": false,
+    "side": "client",
+    "_probe": {
+     "cmd": "text.get",
+     "args": "ContextMenu_Destroy",
+     "wall": 94.389,
+     "wall_done": 94.896
+    }
+   },
+   "UI_Yes": {
+    "key": "UI_Yes",
+    "text": "Yes",
+    "miss": false,
+    "side": "client",
+    "_probe": {
+     "cmd": "text.get",
+     "args": "UI_Yes",
+     "wall": 94.896,
+     "wall_done": 95.403
+    }
+   }
+  },
+  "controls_reading": "P7: both must still answer their VANILLA text. Either one missing would mean the mod's same-named ContextMenu.json / UI.json displaced vanilla's -- i.e. some consumer resolves translations through activeFileMap after all, which the static read says is not how Translator.tryFillMapFromFile works."
+ },
+ "M4_globals": {
+  "question": "which copy of AutoCook.lua did the engine run?",
+  "command": "lua.global (H4, added in this slice's harness-prep commit)",
+  "names": [
+   {
+    "name": "TK.version",
+    "tree": "control",
+    "why": "TK is a global on purpose (PZTestKit_Core.lua:2). MUST resolve to 1 on BOTH sides: a resolved=false here means the _G walk is broken, not that a mod global is absent."
+   },
+   {
+    "name": "ISContinue",
+    "tree": "common-only file",
+    "why": "common/media/lua/client/ISContinue.lua:4. Absent => common/ never ran and the mod is inert."
+   },
+   {
+    "name": "addCharacterPageTab",
+    "tree": "common-only file",
+    "why": "common/.../ISCharacterInfoWindow_AddTab.lua:2. The only route to the modData key M2 reads."
+   },
+   {
+    "name": "ISCharacterCook",
+    "tree": "both trees",
+    "why": "ISCharacterCook.lua:5 in BOTH copies -- present either way, so NOT a discriminator."
+   },
+   {
+    "name": "AutoCook",
+    "tree": "both trees",
+    "why": "the config table itself; keyCount is the reading (23 file-scope scalars + the methods of every AutoCook_* file that ran)."
+   },
+   {
+    "name": "AutoCook.selectPreferedFood",
+    "tree": "common-only file",
+    "why": "common/.../AutoCook_Diets.lua:21. A common-ONLY FILE, so it proves that file ran whichever copy of AutoCook.lua won -- it is not the version discriminator."
+   },
+   {
+    "name": "AutoCook.acceptIngredient",
+    "tree": "42.13 only",
+    "why": "42.13/.../AutoCook.lua:245, ABSENT from the common copy. THE discriminator: present = version-wins."
+   },
+   {
+    "name": "AutoCook.baseAcceptsSpice",
+    "tree": "42.13 only",
+    "why": "42.13/.../AutoCook.lua:234, ABSENT from the common copy. The second discriminator; it must agree with the first; a disagreement would mean the copies were merged per-FUNCTION."
+   },
+   {
+    "name": "AutoCook.CookMode",
+    "tree": "both trees",
+    "why": "P9: file-scope default 1 at :22 in both copies. 5 would mean the fixture character is a Nutritionist (init :38-41 sets the GLOBAL only, never modData)."
+   },
+   {
+    "name": "AutoCook.Verbose",
+    "tree": "both trees",
+    "why": "P9 and the H4 guard: the value is the boolean FALSE, which is exactly why presence is tested with `v == nil` and never with `if not v`."
+   },
+   {
+    "name": "AutoCook.MaxSpices",
+    "tree": "both trees",
+    "why": "P9 and the H4 guard: the value is -1."
+   }
+  ],
+  "client": {
+   "TK.version": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "wall": 95.403,
+     "wall_done": 95.909
+    }
+   },
+   "ISContinue": {
+    "side": "client",
+    "name": "ISContinue",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 8,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "ISContinue",
+     "wall": 95.909,
+     "wall_done": 96.415
+    }
+   },
+   "addCharacterPageTab": {
+    "side": "client",
+    "name": "addCharacterPageTab",
+    "type": "function",
+    "resolved": true,
+    "value": "function",
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "addCharacterPageTab",
+     "wall": 96.415,
+     "wall_done": 96.921
+    }
+   },
+   "ISCharacterCook": {
+    "side": "client",
+    "name": "ISCharacterCook",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 25,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "ISCharacterCook",
+     "wall": 96.921,
+     "wall_done": 97.428
+    }
+   },
+   "AutoCook": {
+    "side": "client",
+    "name": "AutoCook",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 49,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook",
+     "wall": 97.428,
+     "wall_done": 97.934
+    }
+   },
+   "AutoCook.selectPreferedFood": {
+    "side": "client",
+    "name": "AutoCook.selectPreferedFood",
+    "type": "function",
+    "resolved": true,
+    "value": "function",
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.selectPreferedFood",
+     "wall": 97.934,
+     "wall_done": 98.442
+    }
+   },
+   "AutoCook.acceptIngredient": {
+    "side": "client",
+    "name": "AutoCook.acceptIngredient",
+    "type": "function",
+    "resolved": true,
+    "value": "function",
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.acceptIngredient",
+     "wall": 98.442,
+     "wall_done": 98.948
+    }
+   },
+   "AutoCook.baseAcceptsSpice": {
+    "side": "client",
+    "name": "AutoCook.baseAcceptsSpice",
+    "type": "function",
+    "resolved": true,
+    "value": "function",
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.baseAcceptsSpice",
+     "wall": 98.948,
+     "wall_done": 99.454
+    }
+   },
+   "AutoCook.CookMode": {
+    "side": "client",
+    "name": "AutoCook.CookMode",
+    "type": "number",
+    "resolved": true,
+    "value": 1,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.CookMode",
+     "wall": 99.454,
+     "wall_done": 99.959
+    }
+   },
+   "AutoCook.Verbose": {
+    "side": "client",
+    "name": "AutoCook.Verbose",
+    "type": "boolean",
+    "resolved": true,
+    "value": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.Verbose",
+     "wall": 99.959,
+     "wall_done": 100.465
+    }
+   },
+   "AutoCook.MaxSpices": {
+    "side": "client",
+    "name": "AutoCook.MaxSpices",
+    "type": "number",
+    "resolved": true,
+    "value": -1,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.MaxSpices",
+     "wall": 100.465,
+     "wall_done": 100.971
+    }
+   }
+  },
+  "server": {
+   "TK.version": {
+    "side": "server",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "wall": 100.972,
+     "wall_done": 101.48
+    }
+   },
+   "ISContinue": {
+    "side": "server",
+    "name": "ISContinue",
+    "failedAt": "ISContinue",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "ISContinue",
+     "wall": 101.48,
+     "wall_done": 102.742
+    }
+   },
+   "addCharacterPageTab": {
+    "side": "server",
+    "name": "addCharacterPageTab",
+    "failedAt": "addCharacterPageTab",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "addCharacterPageTab",
+     "wall": 102.742,
+     "wall_done": 104.502
+    }
+   },
+   "ISCharacterCook": {
+    "side": "server",
+    "name": "ISCharacterCook",
+    "failedAt": "ISCharacterCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "ISCharacterCook",
+     "wall": 104.502,
+     "wall_done": 105.26
+    }
+   },
+   "AutoCook": {
+    "side": "server",
+    "name": "AutoCook",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook",
+     "wall": 105.26,
+     "wall_done": 106.517
+    }
+   },
+   "AutoCook.selectPreferedFood": {
+    "side": "server",
+    "name": "AutoCook.selectPreferedFood",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.selectPreferedFood",
+     "wall": 106.517,
+     "wall_done": 108.529
+    }
+   },
+   "AutoCook.acceptIngredient": {
+    "side": "server",
+    "name": "AutoCook.acceptIngredient",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.acceptIngredient",
+     "wall": 108.529,
+     "wall_done": 109.035
+    }
+   },
+   "AutoCook.baseAcceptsSpice": {
+    "side": "server",
+    "name": "AutoCook.baseAcceptsSpice",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.baseAcceptsSpice",
+     "wall": 109.035,
+     "wall_done": 110.544
+    }
+   },
+   "AutoCook.CookMode": {
+    "side": "server",
+    "name": "AutoCook.CookMode",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.CookMode",
+     "wall": 110.544,
+     "wall_done": 112.555
+    }
+   },
+   "AutoCook.Verbose": {
+    "side": "server",
+    "name": "AutoCook.Verbose",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.Verbose",
+     "wall": 112.555,
+     "wall_done": 112.81
+    }
+   },
+   "AutoCook.MaxSpices": {
+    "side": "server",
+    "name": "AutoCook.MaxSpices",
+    "failedAt": "AutoCook",
+    "resolved": false,
+    "_probe": {
+     "cmd": "lua.global",
+     "args": "AutoCook.MaxSpices",
+     "wall": 112.81,
+     "wall_done": 114.574
+    }
+   }
+  }
+ },
+ "plant": {
+  "wall_before": 134.663,
+  "wall_after": 134.918,
+  "ack": "set AutoCookProbe"
+ },
+ "t_action": {
+  "wall_before": 136.687,
+  "wall_after": 136.944,
+  "ack": "transmitted"
+ },
+ "transmit_reading": {
+  "planted_on_client": "AutoCookProbe",
+  "client_before": [
+   "AutoCook",
+   "fitnessMod",
+   "fitnessUpTimer",
+   "hotbar",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "server_before": [
+   "fitnessMod",
+   "fitnessUpTimer",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "client_after": [
+   "AutoCook",
+   "AutoCookProbe",
+   "fitnessMod",
+   "fitnessUpTimer",
+   "hotbar",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "server_after": [
+   "AutoCook",
+   "AutoCookProbe",
+   "fitnessMod",
+   "fitnessUpTimer",
+   "hotbar",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "probe_key_crossed": true,
+  "autocook_crossed": true,
+  "server_census_equals_client": true,
+  "reading": "CORROBORATION of pass 2's wipe-and-replace reading with a second subject, not a discovery. What is subject-specific: if the server census gains AutoCook here having not had it at either baseline, AutoCook's 'client-only' settings are private only until SOMEONE ELSE transmits -- a compatibility fact for our own mod. The mod itself has 9 getModData() sites per tree and ZERO transmitModData, so it never causes this crossing on its own."
+ },
+ "baseline_timing": {
+  "rule": "pass 2 measured the server's player modData EMPTY at join and carrying the four vanilla fitness keys from ~30 s in, so a server keyCount is only readable beside its wall offset against session_ready.",
+  "join": {
+   "client": 6,
+   "server": 0,
+   "client_since_ready": 1.044,
+   "server_since_ready": 3.073
+  },
+  "late": {
+   "client": 6,
+   "server": 4,
+   "client_since_ready": 40.321,
+   "server_since_ready": 42.102
+  },
+  "prediction": "P3/P4: client 6 at both (4 vanilla fitness + hotbar + AutoCook); server 0 at join and 4 later, with AutoCook absent from the server at both."
+ },
+ "carrier": {
+  "question": "is the per-game-minute sendItemStats inside Food.update's COOKING branch the carrier that made pass 2's client copy move while pass 1's froze?",
+  "gate": "Food.update's cooking branch is gated at heat >= 1.6; this probe pins heat at 1.2, BELOW it.",
+  "spawn": {
+   "ok": true,
+   "reply": "",
+   "note": "RCON, not a bus command: a CLIENT AddItem is invisible to the server (spike S6)"
+  },
+  "spawn_wait": [
+   {
+    "attempt": 1,
+    "wall": 153.388,
+    "resolved": "admin/Base.Steak #829047872"
+   }
+  ],
+  "pin": {
+   "fullType": "Base.Steak",
+   "cooked": false,
+   "burnt": false,
+   "rotten": false,
+   "frozen": false,
+   "age": 0,
+   "hungChange": -0.4000000059604645,
+   "baseHunger": -0.4000000059604645,
+   "calories": 220,
+   "carbs": 0,
+   "lipids": 9.350000381469727,
+   "proteins": 31.6200008392334,
+   "id": 829047872,
+   "uses": 0.4000000059604645,
+   "fresh": true,
+   "offAge": 2,
+   "offAgeMax": 4,
+   "freezingTime": 0,
+   "cookingTime": 0,
+   "heat": 1.2000000476837158,
+   "minutesToCook": 50,
+   "minutesToBurn": 70,
+   "thirstChange": 0,
+   "hungerChange": -0.4000000059604645,
+   "isCookable": true,
+   "actualWeight": 0.30000001192092896,
+   "weight": 0.30000001192092896,
+   "customWeight": false,
+   "lastCookMinute": 0,
+   "sync": "sendItemStats(item)",
+   "before": {
+    "fullType": "Base.Steak",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.4000000059604645,
+    "baseHunger": -0.4000000059604645,
+    "calories": 220,
+    "carbs": 0,
+    "lipids": 9.350000381469727,
+    "proteins": 31.6200008392334,
+    "id": 829047872,
+    "uses": 0.4000000059604645,
+    "fresh": true,
+    "offAge": 2,
+    "offAgeMax": 4,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 50,
+    "minutesToBurn": 70,
+    "thirstChange": 0,
+    "hungerChange": -0.4000000059604645,
+    "isCookable": true,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "lastCookMinute": 0
+   },
+   "requested": 1.2,
+   "field": "heat",
+   "gameMinute": 40,
+   "serverWorldAge": 2.666804313659668
+  },
+  "window_s": 10.0,
+  "client_read_1": {
+   "side": "client",
+   "type": "Base.Steak",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #829047872",
+    "fields": {
+     "getHeat": 1.2000000476837158,
+     "getCookingTime": 0,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.668233871459961,
+    "count": 3,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+     "wall": 154.154,
+     "wall_done": 154.415
+    }
+   },
+   "count_ok": true,
+   "resolved": "admin/Base.Steak #829047872",
+   "fields": {
+    "getHeat": 1.2000000476837158,
+    "getCookingTime": 0,
+    "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+   },
+   "missing": {},
+   "wall": 154.154
+  },
+  "client_read_2": {
+   "side": "client",
+   "type": "Base.Steak",
+   "reply": {
+    "side": "client",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #829047872",
+    "fields": {
+     "getHeat": 1.2000000476837158,
+     "getCookingTime": 0,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.723639488220215,
+    "count": 3,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+     "wall": 166.695,
+     "wall_done": 166.955
+    }
+   },
+   "count_ok": true,
+   "resolved": "admin/Base.Steak #829047872",
+   "fields": {
+    "getHeat": 1.2000000476837158,
+    "getCookingTime": 0,
+    "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:5 }]"
+   },
+   "missing": {},
+   "wall": 166.695
+  },
+  "server_read_1": {
+   "side": "server",
+   "type": "Base.Steak",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #829047872",
+    "fields": {
+     "getHeat": 1.2000000476837158,
+     "getCookingTime": 0,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.669011116027832,
+    "count": 3,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+     "wall": 154.415,
+     "wall_done": 154.674
+    }
+   },
+   "count_ok": true,
+   "resolved": "admin/Base.Steak #829047872",
+   "fields": {
+    "getHeat": 1.2000000476837158,
+    "getCookingTime": 0,
+    "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+   },
+   "missing": {},
+   "wall": 154.415
+  },
+  "server_read_2": {
+   "side": "server",
+   "type": "Base.Steak",
+   "reply": {
+    "side": "server",
+    "subject": "item",
+    "id": "admin/Base.Steak",
+    "resolved": "admin/Base.Steak #829047872",
+    "fields": {
+     "getHeat": 1,
+     "getCookingTime": 0,
+     "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+    },
+    "missing": {},
+    "nils": {},
+    "worldAge": 2.731104850769043,
+    "count": 3,
+    "_probe": {
+     "cmd": "witness.fields",
+     "args": "item admin/Base.Steak getHeat,getCookingTime,getContainer",
+     "wall": 166.955,
+     "wall_done": 168.718
+    }
+   },
+   "count_ok": true,
+   "resolved": "admin/Base.Steak #829047872",
+   "fields": {
+    "getHeat": 1,
+    "getCookingTime": 0,
+    "getContainer": "ItemContainer:[type:none, parent:IsoPlayer{  Name:null,  ID:1 }]"
+   },
+   "missing": {},
+   "wall": 166.955
+  },
+  "client_moved": {
+   "getHeat": {
+    "first": 1.2000000476837158,
+    "second": 1.2000000476837158,
+    "changed": false
+   },
+   "getCookingTime": {
+    "first": 0,
+    "second": 0,
+    "changed": false
+   }
+  },
+  "server_moved": {
+   "getHeat": {
+    "first": 1.2000000476837158,
+    "second": 1,
+    "changed": true
+   },
+   "getCookingTime": {
+    "first": 0,
+    "second": 0,
+    "changed": false
+   }
+  },
+  "item_census": {
+   "client": {
+    "side": "client",
+    "resolved": "admin/Base.Steak #829047872",
+    "keyCount": 1,
+    "keys": [
+     "customName:string"
+    ],
+    "keyNames": [
+     "customName"
+    ],
+    "beyondVanilla": [],
+    "wall": 154.674,
+    "since_session_ready": 67.904,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin/Base.Steak #829047872",
+    "keyCount": 0,
+    "keys": [],
+    "keyNames": [],
+    "beyondVanilla": [],
+    "wall": 154.934,
+    "since_session_ready": 68.164,
+    "error": null
+   },
+   "note": "the ITEM exclusion set ({customName, Tooltip}) is applied here and NOWHERE else; the player censuses use the five vanilla player keys instead."
+  },
+  "container_note": "PRESENCE and within-side stability only. ItemContainer.toString() is getType() + String.valueOf(getParent()) and the parent's toString() ends in an identity hash, so the full strings must NEVER be compared across sides.",
+  "reading": "client frozen while the server moved = the cooking branch's sendItemStats is the carrier, and pass 1's freeze and pass 2's moving copy are reconciled. Both sides moving = something else pushes and the question stays open. NEITHER side moving = the pin itself is below every tick's threshold and the probe measured nothing."
+ },
+ "summary": {
+  "verify_ok": [
+   true,
+   true
+  ],
+  "verify_keyCount": 6,
+  "M1_overrides_server": 5,
+  "M1_tails": [
+   "media/lua/shared/translate/en/contextmenu.json",
+   "media/lua/shared/translate/en/ui.json",
+   "media/lua/client/autocook.lua",
+   "media/lua/client/autocook_autocraftrecipes.lua",
+   "media/lua/client/ischaractercook.lua"
+  ],
+  "M1_verdict": "version-wins: 2 translation JSONs (pass A over vanilla) + 3 client Lua (pass B over common/), which is the wiki's rule with getVersionDir() == 42.13/",
+  "M2_autocook_key_client_at_join": true,
+  "M2_autocook_key_server_at_join": false,
+  "M2_verdict": "common/ ran and the require chain completed (it does NOT name the winner)",
+  "M3_miss": false,
+  "M3_text": "Cooking diet: ",
+  "M3_controls": {
+   "ContextMenu_Destroy": "Destroy",
+   "UI_Yes": "Yes"
+  },
+  "M4_client": {
+   "TK.version": true,
+   "ISContinue": true,
+   "addCharacterPageTab": true,
+   "ISCharacterCook": true,
+   "AutoCook": true,
+   "AutoCook.selectPreferedFood": true,
+   "AutoCook.acceptIngredient": true,
+   "AutoCook.baseAcceptsSpice": true,
+   "AutoCook.CookMode": true,
+   "AutoCook.Verbose": true,
+   "AutoCook.MaxSpices": true
+  },
+  "M4_server": {
+   "TK.version": true,
+   "ISContinue": false,
+   "addCharacterPageTab": false,
+   "ISCharacterCook": false,
+   "AutoCook": false,
+   "AutoCook.selectPreferedFood": false,
+   "AutoCook.acceptIngredient": false,
+   "AutoCook.baseAcceptsSpice": false,
+   "AutoCook.CookMode": false,
+   "AutoCook.Verbose": false,
+   "AutoCook.MaxSpices": false
+  },
+  "M4_autocook_keyCount_client": 49,
+  "M4_verdict": "version-wins (42.13/ AutoCook.lua)",
+  "nilcall_hits_client": 0,
+  "transmit_probe_key_crossed": true,
+  "transmit_autocook_crossed": true,
+  "transmit_server_equals_client": true,
+  "carrier_client_moved": false,
+  "carrier_server_moved": true,
+  "field_count_ok": true
+ },
+ "wall_seconds": 179.4,
+ "server_error_count": 0,
+ "client_lua_error": false
+}
