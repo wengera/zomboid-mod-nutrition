@@ -1,9 +1,9 @@
 # Lua API & events — the curated surface a nutrition mod needs
 
-**Verified against: 42.20.4 (`b0bbce05d5`)** — written 2026-09-11 (slice 12) from the four
-platform sessions `x121` / `x122` / `x123`+`x123b` / `x124`, the three teardowns
-(`td1`/`td1b`, `td2`, `td3`), the harness's own Lua and the jar. Jar readings re-taken on
-42.20.4 the same day with `pz-b42/pz.sh`.
+**Verified against: 42.20.4 (`b0bbce05d5`)** — written 2026-09-11 (slice 12) from the six
+platform sessions `x121` / `x122` / `x123`+`x123b` / `x124` / `x126` / `x127`, the three
+teardowns (`td1`/`td1b`, `td2`, `td3`), the harness's own Lua and the jar. Jar readings
+re-taken on 42.20.4 the same day with `pz-b42/pz.sh`.
 
 **This file is CURATED, not an inventory.** A row exists here only because **this library has
 used it or measured it** — in the harness (`testing/PZTestKit/`), in the five slice-12
@@ -16,7 +16,9 @@ nutrition mod actually stands on, with the side that owns each piece and whether
 are **server-authoritative** and arrive on the client as a **push**, so a client-side reader is
 reading a mirror, not a simulation. (2) A mod's `media/lua/server/` files are **not**
 server-only in MP — they execute in the client's Lua state too. (3) Kahlua's "tried to call
-nil" is treated here as **uncatchable**: every Java member is reached by indexing first.
+nil" **is** caught by `pcall` — measured, both sides — but an **unguarded** one aborts the rest
+of that handler's body and names nothing in any log, so every Java member is still reached by
+indexing first. **§ 5 owns that rule — both shapes, both sides, and its bounds.**
 
 ## Model — the four surfaces
 
@@ -70,9 +72,16 @@ second** — `PlayerStatsPacket`, measured arriving at 0.766 s / 0.765 s — so 
 reads return an unchanged value ([teardown](../mods-survey/teardowns/simplestatus.md)
 § MP handling, run `td2-20260910-231655`).
 
-**A failed handler takes the ones behind it.** A hook that throws kills every later handler on
-that event, which is why the corpus's careful mods pcall at the rim (KEEP 9) — and why every
-Java call in the harness and in all five experiment mods is guarded (§ 5).
+**A raise aborts its own handler's body — not the handlers behind it.** An unguarded nil call
+inside a handler stopped the rest of *that* handler's body (`raw_tail` still `"0"` after ~70
+fires) while every handler registered behind it kept running (`behind` +17, in lockstep with
+`before`) — M, `x127-20260911-052049`, **server VM only**, n = 1 session / two passes. The
+mechanism is per-callback: `Event.trigger` calls each callback through
+`LuaCaller.protectedCallVoid` (`@89` and `@276`, one in each of its two dispatch branches)
+inside a per-iteration `catch (Throwable) → ExceptionLogger.logException` (`@194-@198
+L41-L42`) and continues the loop (`@216-@219 L31`) — C (jar, 2026-09-11). So a `pcall` at the
+rim (KEEP 9) is how you keep **your own** body running; it is not what keeps the other handlers
+alive. The measured rule, its two shapes and its bounds are in § 5.
 
 ## 2. Java members by owner
 
@@ -86,7 +95,7 @@ Reached as `player:getNutrition()`; `getNutrition()` is declared on **`IsoPlayer
 | `getCalories/setCalories`, and the `Carbohydrates` / `Lipids` / `Proteins` pairs | **server** | **yes, server→client** | pushed in `PlayerStatsPacket` at ~1 Hz and in `EatFoodPacket` at eat time. A client-side write is erased inside ~1 s; a server-side write reaches the client inside 3 s | M ([patterns.md](patterns.md) § Measured MP sync facts, runs `exp01-20260910-000351` / `exp03-20260910-045523`) |
 | `getWeight/setWeight` | **server** | yes downward, never upward | **and the client cannot derive it either**: a `GameClient.client` early-out at `updateWeight @317-@320 L198` sits ahead of both `setWeight @326 L199` and `applyTraitFromWeight @350`, so a client computes a weight delta and discards it | M (same runs) for the write/discard; C (jar) for the skip |
 | `isIncWeight` / `isIncWeightLot` / `isDecWeight` | computed on **both** sides | not packet fields — each side computes its own, and they **agree** | the three are written **ahead** of that skip (`updateWeight @0-@12 L138-L140` resets them, `@129-@131 L167` sets `incWeight`, `@186-@188 L178` and `@222-@224 L181` set `incWeightLot`, `@260-@262 L186` sets `decWeight`), so a client can derive a weight **direction** it cannot derive a weight. Slice 10 got agreement only in the **trivial** arm; `x121` ran the non-trivial ones and both sides agreed: **T/F/F** at calories 1500, **F/F/T** at −102.57 | M (`x121-20260911-030023`, JSON path `phases.M8.arms[]`, the `incWeight` and `decWeight` arms; the claims file labels this reading `m8`) |
-| `setCalories` clamping | server | n/a | the store clamps are calories −2200…3700 and −500…1000 per macro, but **nothing clamps at zero**: `nutrition.set calories -100` read back **−102.57** on both sides 8 s later. Negative stores are a normal state, not an error state | M (`x121-20260911-030023`, JSON path `phases.M8.arms[]`, the `decWeight` arm, `clamped: false`) |
+| `setCalories` clamping | server | n/a | the store clamps are calories −2200…3700 and −500…1000 per macro, but **nothing clamps at zero**: `nutrition.set calories -100` read back **−102.57 server / −102.10 client** 8 s later — each side has run its own decay ticks since the write, so read the pair as two readings of "not clamped", not as a sync figure. Negative stores are a normal state, not an error state | M (`x121-20260911-030023`, JSON path `phases.M8.arms[1]` — `reading.server.calories` / `reading.client.calories`, `clamped: false`; also `verdicts.M8.observed.decWeight_arm`) |
 | `updateWeight`'s cadence | server | n/a | per character update tick, **no timer gate**: `IsoPlayer.update @8` → `updateInternal1 @51 L2200` → `updateInternal2 @392-@402 L2306-L2307` (gated only on `SystemDisabler.doCharacterStats`) → `Nutrition.update @107 L81` → `updateWeight` | C (jar, re-read 2026-09-11; the same chain is recorded in that artifact at `m8.cadence`) |
 | anything else — a mod field, a hook, a replacement object | — | n/a | **absent.** No `getModData` on `Nutrition`, no generic accessor, no `setNutrition` anywhere on the jar | C (method list + `grep setNutrition`, 2026-09-11) |
 
@@ -103,7 +112,8 @@ server-side write.
 | `cooked` `burnt` `frozen` `hungChange` `baseHunger` `calories` `carbs` `lipids` `proteins` `uses` `cookingTime` `heat` `minutesToCook` `minutesToBurn` | **yes** — `setData` reads `isCooked`, `isBurnt`, `isFrozen`, `getHungChange`, `getBaseHunger`, `getCalories`, `getCarbohydrates`, `getLipids`, `getProteins`, `getCurrentUsesFloat`, `getCookingTime`, `getHeat`/`getItemHeat`, `getMinutesToCook`, `getMinutesToBurn` | C (jar, the `setData` getter list read 2026-09-11); **M** for `calories`, `burnt`, `cookingTime`, `heat` (run `exp02-20260910-030433`) and for four of the five fields `setData` sends for the macro block — calories, proteins, lipids and `hungChange` — server→client (run `td1-20260910-192457`); `carbohydrates` went 0 → 0, which carries no information, so its packet membership stays C |
 | `thirstChange` | **yes, but lossy** — `setData` sends `getThirstChange()`, the *cooked-ladder* getter, and `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field: 0.2 → 0.1 on the wire → 0.05 on read. One halving per server→client hop; it converges | M (runs `td1-20260910-192457`, `td1b-20260910-202029`; FILTER 9) |
 | `actualWeight` | **yes, by a different getter** — `setData` fills the field from `getActualWeightUnmodded()`, not `getActualWeight()`, so which value arrives depends on a guard the sender may have moved | M (run `td1b-20260910-202029`); C (jar, `Food.getActualWeight`) |
-| `rotten` `age` `id` `fresh` `offAge` `offAgeMax` `freezingTime` `hungerChange` `isCookable` `weight` `customWeight` `lastCookMinute` | **no.** `age` and `offAge`/`offAgeMax` are measured not to cross; `isCookable`/`isCustomWeight` are measured to stay wrong on the client; `hungerChange` is a read-time ladder getter, not a field (the packet carries the raw `hungChange` instead); `rotten` and `fresh` derive from `age`; `id` is addressing | M for `age`, `offAge`, `offAgeMax`, `isCookable`, `isCustomWeight` (runs `exp02-20260910-030433`, `td1-20260910-192457`); C for the rest (the `setData` getter list) |
+| `rotten` `age` `fresh` `offAge` `offAgeMax` `freezingTime` `hungerChange` `isCookable` `weight` `customWeight` `lastCookMinute` | **no.** `age` and `offAge`/`offAgeMax` are measured not to cross; `isCookable`/`isCustomWeight` are measured to stay wrong on the client; `hungerChange` is a read-time ladder getter, not a field (the packet carries the raw `hungChange` instead); `rotten` and `fresh` derive from `age` | M for `age`, `offAge`, `offAgeMax`, `isCookable`, `isCustomWeight` (runs `exp02-20260910-030433`, `td1-20260910-192457`); C for the rest (the `setData` getter list) |
+| `id` | **carried, as addressing** — not state. `setData` reads the field `InventoryItem.id` (`@67`) straight into the packet's own `id` (`@70`), which is how the receiving side finds the instance the rest of the payload is about; it is not a value a mod should treat as synced item state | C (jar, `ItemStatsPacket.setData @65-@70 L162`, read 2026-09-11) |
 
 | Other member | Side | Syncs? | Reading | Ev |
 |---|---|---|---|---|
@@ -121,7 +131,7 @@ server-side write.
 | `transmitModData()` — **server → client** | server | **the same shape in the other direction**, measured for the first time in slice 12 | after a server-driven transmit the client **lost** `TKX_eat_onEat_client` and `hotbar`, **gained** `TKX_eat_onEat_server`, and the server-only residual was empty. Graded after setting aside the one key the client's own handler rewrites each tick | M (`x121-20260911-030023` key `phases.M6.after_transmit`), n = 1 |
 | the routing itself | both | both directions are real; neither is a merge | `IsoObject.transmitModData @0-@7 L4850-L4851` **returns silently** if the object's square is null; otherwise `@8-@28 L4853-L4854` sends `ObjectModData` on a client and `@31-@38 L4855-L4856` calls `GameServer.sendObjectModData` on a server | C (jar, 2026-09-11) |
 | `getModData()` writes from a `server/` file | **lands in the client VM too** | n/a | mod B's `server/` file wrote `TKX_fibre` into the client's own copy of player modData, and mod C's `shared/` probe wrote `TKX_eat_onEat_client`, because a `media/lua/server/` file executes in the MP client's Lua state (§ MP behaviour) | M (`x121-20260911-030023` key `phases.M7.mod_globals.client`) |
-| `hasTrait(CharacterTrait)` | both | traits are character state; **not** in `PlayerStatsPacket` | the jar exposes only `hasTrait(CharacterTrait)` and `hasTrait(CharacterTrait[])` — **there is no string overload**. The game's own Lua route is `char:getCharacterTraits():add(CharacterTrait.X)`, so a string argument is exactly the argument mismatch `pcall` cannot catch; the harness reads traits back off the trait *list* instead, never through `hasTrait` (`PZTestKit_Server.lua:227-274`) | C (jar method list, 2026-09-11) |
+| `hasTrait(CharacterTrait)` | both | traits are character state; **not** in `PlayerStatsPacket` | the jar exposes only `hasTrait(CharacterTrait)` and `hasTrait(CharacterTrait[])` — **there is no string overload**. The game's own Lua route is `char:getCharacterTraits():add(CharacterTrait.X)`, so a string argument is exactly the argument mismatch § 5 tells you not to make; the harness reads traits back off the trait *list* instead, never through `hasTrait` (`PZTestKit_Server.lua:227-274`) | C (jar method list, 2026-09-11) |
 | `getXp()` then `XP.getXP(Perk)` | server owns the value | perk level reaches the client within one bus round trip | **two calls, never one**: `IsoGameCharacter.getXp()` is zero-argument and answers the inner `IsoGameCharacter$XP` object; the number comes from `XP.getXP(PerkFactory$Perk)F` on *that* object. There is no single getter — which is precisely why `witness.fields` (zero-argument getters only) cannot read XP, and why the harness has a dedicated `perk.xp` (`PZTestKit_Server.lua:89-110`) | C (jar method lists, 2026-09-11); M for the level reaching the client (run `exp02-20260910-030433`) |
 
 ### `ScriptManager` and the script `Item`
@@ -189,20 +199,74 @@ B42's Lua is Kahlua, not PUC Lua. These are the rules every file in this repo is
 
 | Limit | Consequence for a mod | Ev |
 |---|---|---|
-| **Calling a nil member is treated as uncatchable** | index first, then call: `TK.call(obj, name, …) → (present, value)` (`PZTestKit_Core.lua:126-131`), and **every Lua file in the experiment mods that touches a Java member carries its own six-line `tkxCall`**, so a mod never depends on the harness being installed (`TKX_EatHook.lua:12`, `TKX_EatHook_Server.lua:22`, `TKX_Nutrient.lua:13`, `TKX_Nutrient_Server.lua:13`, `TKX_Nutrient_Client.lua:10`). The raise itself is a bare `RuntimeException("tried to call nil")` at `KahluaThread.call(I)I @25-@39 L141-L142`, with the interpreter's own sites at `luaMainloop @3041-@3044 L765` and `@3340-@3343 L842` going through `KahluaUtil.fail` / `luaAssert` | C (jar, 2026-09-11) for the raise sites; the **escapes-`pcall`** half is this library's standing operating rule, adopted after harness run `exp01-20260909-235420` (the client stopped answering the bus entirely) — that run predates the artifact convention and has **no committed JSON**, and slice 12 did not re-measure it, so it is written here as a rule the code obeys, not as a graded measurement. See § Discrepancies |
-| **An argument-arity (or ambiguous-overload) mismatch is as fatal as a nil call** | `witness.fields` takes **zero-argument getters only** and passes nothing to the member it reads (`PZTestKit_Core.lua:558-562`); a nil into an overloaded member is the same trap — `getFirstTypeRecurse` is overloaded `(String)` / `(ItemKey)`, so the harness refuses a nil id before the lookup rather than paying for the dispatch | C (harness code + the jar's overload lists); the practice is why no slice-08–12 session lost a side to it |
-| **`isServer()` / `isClient()` must be nil-checked before `pcall`** | a `pcall` on a nil global is not a guard, because the raise escapes it. Every experiment mod resolves its side as `if isServer ~= nil then pcall(isServer) …` (`TKX_EatHook.lua:27-36`) | C (the mods' own code, written to the rule above) |
+| **Calling a nil member raises** — `pcall` catches it; an unguarded call does not | index first, then call: `TK.call(obj, name, …) → (present, value)` (`PZTestKit_Core.lua:126-131`), and **every Lua file in the experiment mods that touches a Java member carries its own six-line `tkxCall`**, so a mod never depends on the harness being installed (`TKX_EatHook.lua:12`, `TKX_EatHook_Server.lua:22`, `TKX_Nutrient.lua:13`, `TKX_Nutrient_Server.lua:13`, `TKX_Nutrient_Client.lua:10`). The raise itself is a bare `RuntimeException("tried to call nil")` at `KahluaThread.call(I)I @25-@39 L141-L142`, with the interpreter's own sites at `luaMainloop @3041-@3044 L765` and `@3340-@3343 L842` going through `KahluaUtil.fail` / `luaAssert`. **What `pcall` does and does not save you from is measured — the rule is the block below this table, and it is written once** | C (jar, 2026-09-11) for the raise sites; M (`x126-20260911-045205`, `x127-20260911-052049`) for the rule below |
+| **An argument-arity (or ambiguous-overload) mismatch raises the same way** | `witness.fields` takes **zero-argument getters only** and passes nothing to the member it reads (`PZTestKit_Core.lua:558-562`); a nil into an overloaded member is the same trap — `getFirstTypeRecurse` is overloaded `(String)` / `(ItemKey)`, so the harness refuses a nil id before the lookup rather than paying for the dispatch. Whatever the Java member throws comes back out as a `RuntimeException` carrying the class name (`KahluaThread.call(I)I @70-@102 L149-L150`), i.e. the same shape the block below describes — **not measured here**, because the practice is to never make the call | C (harness code, the jar's overload lists, and that re-throw site, 2026-09-11); the practice is why no slice-08–12 session lost a side to it |
+| **`isServer()` / `isClient()` still get a nil check before `pcall`** | not because the raise escapes — it does not — but because `pcall(nil)` comes back as a *failure that names nothing*, so "the global is absent" and "the global threw" are the same reply. Every experiment mod resolves its side as `if isServer ~= nil then pcall(isServer) …` (`TKX_EatHook.lua:27-36`), which turns absence into a branch instead of an error string | M (`x126-20260911-045205`, `phases.reads.client.values.err` / `phases.reads.server.values.err` = `tried to call nil java.lang.RuntimeException`, with `names_the_global: false` under `verdicts.P21_client` / `verdicts.P21_server`) for the catch and the silence; C (the mods' own code) for the practice |
 | **No `goto`** | loops and early-outs only — a standing harness rule, obeyed by every Lua file in this repo | C ([`../testing/README.md`](../testing/README.md), the scenario section's *same Java rules* bullet) |
 | **`%d` on a float raises** | never format a Lua number with `%d`; the harness formats integers through a `%.0f` branch with its own `1e15` cut-off (`PZTestKit_Core.lua`, `TK.json`) | C (same standing rule and the same bullet) |
 | **`#` does not work on a Java list** | walk `size()` / `get(i)` from 0 — mod B does exactly that for both the online-player list and an inventory (`TKX_Nutrient_Server.lua:33-45`) | C |
 | **`pairs()` on a Java-backed object raises** | `lua.global`'s walk takes a hop only when the node is a `table`, and gates `keyCount` on `type(v) == "table"` (`PZTestKit_Core.lua:794`) | C |
 | **`string.format` is Kahlua's own** | its `%g` is `StringLib.appendSignificantNumber` + `roundToSignificantNumbers`, a reimplementation whose exactness cannot be established from the bytecode — so it is **not** Java's `%g`. The bus renders numbers with `tostring` instead (`KahluaUtil.numberToString` → `Double.toString` for a non-integral double, which round-trips exactly), since `291f977` | C (jar) |
 | **A sentinel for a wrapped vanilla method must live OUTSIDE any table the shared file re-creates** | `TKX_EatHook.lua:19` re-creates `TKX_EatHook` by plain assignment on every load, so the wrap sentinel lives in its own global `TKX_EatHook_Installed` (`TKX_EatHook_Server.lua:31`). Kept inside, a `reloadlua` of the shared file would wipe it while the old wrapper was still installed, and the next install would wrap the wrapper | C (the mod's own code and its reasoning; the `wrapAt "file"` reading on both sides is consistent with a single wrap per VM) |
+| **(not a Kahlua limit — a loader fact, listed here because it bites the same code)** a mod's `media/lua/server/` file runs in the **MP client's** Lua state too | resolve the side at runtime (`isServer()`, nil-checked as above) instead of trusting the folder; "only my server file writes this" is false until the guard is there. § MP behaviour owns the row, the three witnesses and the bound | M (`x121-20260911-030023` key `phases.M7.mod_globals.client`; n = 1 session, incidental, mechanism untraced) |
+
+**The nil-call rule, measured (sessions 6 and 7).** This is the one place the rule is stated.
+
+- **`pcall` catches it.** `pcall(<nil argument>)` — the `TK.call` / `tkxCall` shape — returns
+  `false, "tried to call nil java.lang.RuntimeException"` on **both** sides, byte-identical per
+  side and on both passes — **M**, `x126-20260911-045205`, keys
+  `phases.reads.client.values.ok` / `.err` and `phases.reads.server.values.ok` / `.err`,
+  verdicts `verdicts.P21_client` / `verdicts.P21_server`; n = 1 session, two passes 12 s apart.
+  It is a real raise, really caught (**C**, jar 2026-09-11): `KahluaThread.call(I)I` loads the
+  callee (`@14-@23 L139`), branches (`@25 ifnonnull 40`) and **throws** (`@30-@39 L142`);
+  `BaseLib.pcall @0-@10 L313` enters `KahluaThread.pcall(I)I`, whose try covers that `call`
+  (`@80-@85 L1740`) and whose `Throwable` arm (`@189-@213 L1758-L1760`) concatenates
+  `getMessage()` with `getClass().getName()` — the only producer of the observed string — beside
+  `Boolean.FALSE` (`@256-@276 L1768-L1769`). There is no "returns false without raising" branch
+  anywhere on that path, so quote the **whole** string, class name included.
+- **The nested shape catches too.** `pcall(function() SomeNil() end)` returned
+  `false, "Object tried to call nil in pcall java.lang.RuntimeException"` with the lines after
+  the `pcall` still running — so the protection covers the whole dynamic extent (`call(I)I`
+  pushes a frame at `@145` and runs the nested `luaMainloop` at `@155-@158 L162` **inside** the
+  same try), not just the argument slot — **M**, `x127-20260911-052049`, keys
+  `phases.reads.server.values.nested_ok` / `.nested_err` / `.nested_tail`, verdict
+  `verdicts.P22_server`; **server VM only**, n = 1 session, two passes.
+- **Unguarded, it aborts the rest of that handler's body** (`raw_tail` `"0"`) **but not the
+  handlers behind it** (`behind` +17 in lockstep with `before`) — **M**, same run, keys
+  `phases.reads.server.values.raw_tail` / `.behind` / `.before`, server VM only; mechanism
+  **C** (`Event.trigger`, § 1).
+- **Nothing names the missing member.** The caught argument-slot call was **silent in both
+  consoles**: `names_the_global: false` (x126 `verdicts.P21_<side>.observed.err`) and 0 log hits
+  for the probe's global, for `attempted to call` and for `ExceptionLogger` (x126 `greps.*`) —
+  **M**. A *nested* raise the mod caught is still logged in full — 73 engine trace blocks (x127
+  `greps_final["nil in pcall"].server.engine_count`) — and an unguarded one is logged as a stack
+  trace that **still** never prints the name (`TKX_DefinitelyNilThree`: 0 hits in both logs,
+  x127 `greps_final.TKX_DefinitelyNilThree`) — **M**.
+- **So the guard stays, with its reason rewritten.** Index first and call second — not because
+  `pcall` fails to catch (it catches), but because a nil call is otherwise **silent** about what
+  was nil, **aborts the body** it sits in, and on a debug client may be **session-ending**. The
+  slice-08 outage `exp01-20260909-235420` (the client stopped answering the bus entirely) is
+  explained by *the raise aborted the bus-pump handler's body every tick*; that run predates the
+  artifact convention and has **no committed JSON**, so the explanation is **C** (the x126/x127
+  mechanism applied to an ungraded observation) — never quote it as a measurement.
+- **Bounded platform observation — the `-debug` client froze.** On two independent boots the
+  harness client reached `in_game`, raised **one** mod Lua error, and then stopped: console
+  dead, `ready` never printed, bus never answered a single command, process still alive —
+  **M**, x127, keys `client_ready`, `client_lua_error`, `bus_dead.client`, with
+  `verdicts.P22_client` = `unmeasured`; n = 2 boots. **The cause is not measured.** The jar does
+  carry a debug-gated break on this exact path — `luaMainloop`'s error handler calls
+  `UIManager.debugBreakpoint(currentfile, currentLine − 1)` when `Core.debug` is set and
+  `UIManager.defaultthread == LuaManager.thread`, before `debugException` /
+  `doStacktraceProper` / `KahluaUtil.fail` (`@3349-@3397 L843-L850`, **C**) — which is
+  *consistent with* the freeze and does not establish it. Every client-side reading of x127 is
+  `unmeasured`. Read this as a hazard of the `-debug` harness client, not as a rule about
+  shipped mods on a normal client.
 
 ## 6. Removed or absent on 42.20.4
 
-Each of these is a live hazard, not trivia: a Kahlua nil call is uncatchable, so a shipped mod
-still calling one takes out whatever path reaches it.
+Each of these is a live hazard, not trivia: a shipped mod still calling one **raises**, and an
+unguarded raise aborts the rest of the handler body that reached it without naming the member
+in any log (§ 5).
 
 | API | Jar reading (2026-09-11) | Still called in the corpus by | Ev |
 |---|---|---|---|
@@ -237,7 +301,8 @@ executed in the **client's** Lua state, on three independent witnesses: the shar
 `side` field read `"server"` on the client, the `EveryOneMinute` counter read **58 client / 38
 server** (two registered handlers in the client VM against one in the server's — consistent
 with ~104 s of client uptime at 3.75 s per firing), and the item-modData arm's `itemWrites`
-landed **1 on the client, 0 on the server**. Grade **M**, n = 1 session, **mechanism
+landed **1 on the client, 0 on the server**. Grade **M**, n = 1 session, **incidental** (no
+probe was aimed at this — it fell out of three arms asking other questions) and **mechanism
 untraced** — see the loader chain in [`anatomy.md`](anatomy.md). **Guard every `server/` file
 with `isServer()`** (nil-checked, § 5) rather than trusting the folder; and treat
 "only my server file writes this" as false until the guard is there.
@@ -261,16 +326,16 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
 
 ## Discrepancies
 
-- **The nil-call rule and the bytecode disagree.** This library's operating rule is that
-  Kahlua's "tried to call nil" escapes `pcall` and kills the handler, and every file is written
-  to it. But `KahluaThread.pcall(I)I` does carry an exception handler that reads
-  `Throwable.getMessage()` and the throwable's class name (`@189-@213 L1758-L1760`), beside a
-  `KahluaException` handler (`@173-@186 L1755-L1757`) — so the naive bytecode reading says a
-  raise *should* be caught. The rule is kept because it is what the harness observed, and
-  because the cost of being wrong is losing a whole side of a session; the mechanism
-  by which the raise still escapes in PZ (event dispatch, the `LuaCaller` layer, or a different
-  `pcall` entry point) is **not traced**. Do not relax the guard on the strength of the
-  bytecode alone.
+- **RESOLVED 2026-09-11 — the nil-call rule was half right; the bytecode was right.** The
+  standing rule said Kahlua's "tried to call nil" escapes `pcall` *and* kills the handler chain,
+  against a bytecode reading (`KahluaThread.pcall(I)I`'s `Throwable` arm `@189-@213 L1758-L1760`,
+  beside its `KahluaException` arm `@173-@186 L1755-L1757`) that said it should be caught. Both
+  halves are now measured (§ 5): **`pcall` catches** — both sides in the argument slot
+  (`x126-20260911-045205`), server-side in the nested shape (`x127-20260911-052049`), the quoted
+  string being exactly what `pcall` *returns* — and an unguarded raise **aborts its own
+  handler's body** (right) **but not the handlers behind it** (wrong). The guard is kept for the
+  rewritten reasons, not this one. Still open: everything client-side in `x127` (the `-debug`
+  client froze), and the slice-08 outage that produced the rule has no committed artifact.
 - **`getText` misses everywhere, yet `getDisplayName()` resolves.** Recorded above; the
   reconciliation is that the two do not share a route, and only the instance getter was ever
   shown to reach the table.
@@ -293,7 +358,17 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
    `PlayerStatsPacket` and nothing else has been traced; both sides' trait lists were empty in
    every run so far, so "no disagreement" is not an answer
    ([body-stats.md](../vanilla/body-stats.md) open question 10).
-5. **Whether a mod-registered `MoodleType` carries a Java effect.** `MoodleType.register` and
+5. **Why the `-debug` harness client froze at its first mod Lua error.** Measured at n = 2
+   boots (`x127`); the cause is not. The named check is the same probe under a `debug=False`
+   client — a harness launch-flag change, not a doc change — and it has to remove `x127`'s
+   confound at the same time: both raising handlers lived in **one** mod and only the first
+   one's trace printed, so "a caught nested raise hangs the debug client" and "the first raise
+   of any shape hangs it" are not separated. Put the two raises in separate mods.
+6. **The nil-call rule on the client, unguarded.** `x126` measured the caught shape on both
+   sides, but the body-abort / chain-survives half is **server VM only** (`x127`), because of
+   the freeze above. Until a client answers it, treat the client half as jar-supported (C) and
+   unmeasured.
+7. **Whether a mod-registered `MoodleType` carries a Java effect.** `MoodleType.register` and
    `MoodleStat.register` exist on the jar — `MoodleType.register(String)`, `registerBase(String)`,
    `register(boolean, String)` and `MoodleStat.register(MoodleType, F, F, F, F, F)`, read
    2026-09-11 — and `MoodleType` is Lua-exposed (the harness reads `MoodleType.FOOD_EATEN` at
@@ -310,7 +385,19 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
   `x124-20260911-035819` (key `phases.O5`, the `getText` key-form probe), at
   [`testing/artifacts/x124-20260911-035819/platform-order.json`](../../testing/artifacts/x124-20260911-035819/platform-order.json);
   `x123-20260911-034426` / `x123b-20260911-034500` (the server-only bus readings), at
-  [`testing/artifacts/x123-20260911-034426/platform-folder.json`](../../testing/artifacts/x123-20260911-034426/platform-folder.json).
+  [`testing/artifacts/x123-20260911-034426/platform-folder.json`](../../testing/artifacts/x123-20260911-034426/platform-folder.json);
+  `x126-20260911-045205` (the `pcall` probe — keys `phases.reads.<side>.values.ok` / `.err` /
+  `.tail` / `.behind` / `.ctrl_ok` / `.ctrl_err`, `verdicts.P21_client` / `verdicts.P21_server`
+  incl. `observed.err.names_the_global`, `summary.values.<side>`, `second_pass`, `greps.*`), at
+  [`testing/artifacts/x126-20260911-045205/platform-pcall.json`](../../testing/artifacts/x126-20260911-045205/platform-pcall.json);
+  `x127-20260911-052049` (the raise probe — keys `phases.reads.server.values.nested_ok` /
+  `.nested_err` / `.nested_tail` / `.raw_tail` / `.behind` / `.before`, `verdicts.P22_server`,
+  `verdicts.P22_client` (`unmeasured`), `client_ready`, `client_lua_error`, `bus_dead.client`,
+  `greps_final.*`, `summary.second_pass_deltas.server`), at
+  [`testing/artifacts/x127-20260911-052049/platform-raise.json`](../../testing/artifacts/x127-20260911-052049/platform-raise.json).
+  Their do-not-cite lists bind: **every** client-side reading of `x127`, its
+  `summary.sides_agree`, its `server_error_count` as a fault count, and `x126`'s
+  `server_error_count` (a harness classifier artefact) are not quoted here.
   `x122-20260911-032326` is cited by [`anatomy.md`](anatomy.md), not here.
 - **Earlier measured rows quoted by run id, not re-graded here:** spike **S6**
   (`spike-20260909-143930`, `spike-20260909-144417`), `exp01-20260910-000351`,
@@ -326,10 +413,14 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
   L5725-L5736`; `Food.update @627-@718 L462-L467` (the `OnCooked` dispatch);
   `InventoryItem.initialiseItem @0-@35 L4214-L4221`; `Item.InstanceItem @745-@778 L1578-L1581`
   and `@4051-@4063 L1943-L1947`; `IsoObject.transmitModData @0-@38 L4850-L4856`;
-  `ItemStatsPacket.setData`'s getter list; `LuaManager.getFunctionObject(String)` and
-  `LuaManager$Exposer.exposeAll`'s class set; `KahluaThread.call(I)I @25-@39 L141-L142`,
-  `KahluaThread.pcall(I)I @173-@213 L1755-L1760`, `KahluaThread.luaMainloop @3041-@3044 L765`
-  and `@3340-@3343 L842`; and the method lists of `Stats`, `IsoGameCharacter`,
+  `ItemStatsPacket.setData`'s getter list and its `@65-@70 L162` id copy;
+  `LuaManager.getFunctionObject(String)` and
+  `LuaManager$Exposer.exposeAll`'s class set; `KahluaThread.call(I)I @14-@39 L139-L142`,
+  `@70-@102 L149-L150` and `@145-@158 L157-L162`, `BaseLib.pcall @0-@10 L313`,
+  `KahluaThread.pcall(I)I @80-@85 L1740` and `@173-@276 L1755-L1769`,
+  `KahluaThread.luaMainloop @3041-@3044 L765`, `@3340-@3343 L842` and its error handler
+  `@3349-@3397 L843-L850`; `zombie/Lua/Event.trigger @89` / `@194-@198 L41-L42` /
+  `@216-@219 L31` / `@276`; and the method lists of `Stats`, `IsoGameCharacter`,
   `IsoGameCharacter$XP`, `InventoryItem`, `Food`, `ScriptManager` and
   `zombie.scripting.objects.Item` (the absences in § 6).
 - **This repo's own code, cited by path and line:**
