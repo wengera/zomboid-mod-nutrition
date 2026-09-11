@@ -397,6 +397,12 @@ TK.register("item.set", function(argv)
     end
     local out = TK.itemState(it)
     out.field, out.requested, out.before, out.sync = argv[3], value, before, pushed
+    -- The cook block's gate value, beside the world age that was already here. `serverWorldAge`
+    -- is hours-since-world-start; `getMinutes()` is the 0-59 clock minute Food.update @86
+    -- actually compares against lastCookMinute, and slice 09's first session had to infer one
+    -- from the other. `item.update` has carried it since slice 02 (see below); a sequence of
+    -- item.set calls around a cook transition needs it on every step, not only on the witness.
+    out.gameMinute = getGameTime():getMinutes()
     out.serverWorldAge = getGameTime():getWorldAgeHours()
     return out
 end)

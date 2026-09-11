@@ -128,6 +128,19 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   is never synced, so one side answering is not evidence about the other; both
   sides run the same implementation (`TK.scriptValues` in the core) and the
   reply now carries `side` beside `fullType` / `via` / `access`.
+  **Slice-09 fix round 1** added two more, both about the cook block's own gate
+  (`Food.update @86`: `GameTime.getMinutes() != lastCookMinute`, stamped at
+  `@104–@106`) — the first teardown session could not tell a gate *we* opened
+  from one that had already reopened, because neither value was readable.
+  `TK.ITEM_STATE` gains a fifth read-only key, **`lastCookMinute`**
+  (`Food.getLastCookMinute()I`, jar-confirmed; the *setter* was already in
+  `item.set`, so this is its read-back), and **`item.set`'s ack gains
+  `gameMinute`** = `getGameTime():getMinutes()` beside the `serverWorldAge` it
+  already carried — `item.update` has reported it since slice 02, but a
+  sequence of `item.set` calls around a transition needs it on every step, not
+  only on the witness. Both land after the first teardown artifact, so
+  `testing/artifacts/td1-20260910-192457/` predates them; `td1b-*` is the first
+  artifact that carries either.
   Slice-03 body commands — server: `stats.get <user>` (one **atomic**
   `TK.bodySnapshot`: stats, moodles, nutrition, weight, max weight, traits and
   the world clock in a single reply, so a sample cannot straddle a tick),

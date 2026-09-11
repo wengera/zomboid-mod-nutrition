@@ -150,6 +150,14 @@ TK.ITEM_STATE = {
     -- getActualWeight()F, getWeight()F, isCustomWeight()Z (and Food overrides the first two).
     isCookable = "isCookable", actualWeight = "getActualWeight",
     weight = "getWeight", customWeight = "isCustomWeight",
+    -- slice 09 fix round 1: the cook block's OWN gate. Food.update runs it at most once per
+    -- game minute (`@86 L377`: GameTime.getMinutes() ~= lastCookMinute, stamped at
+    -- `@104-@106 L381`), and slice 09's first session could not tell "the flip we sent opened
+    -- the gate" from "the gate had already reopened on its own" because the stamped minute was
+    -- never readable -- only the item.set that WROTE it. Read-only here: the setter already
+    -- exists in ITEM_SETTERS, and this is its read-back. Jar-confirmed on 42.20.4,
+    -- zombie/inventory/types/Food: getLastCookMinute()I (and setLastCookMinute(I)V).
+    lastCookMinute = "getLastCookMinute",
 }
 
 function TK.itemState(it)
