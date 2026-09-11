@@ -1,0 +1,39 @@
+# testing/profiles/x12-pcall.toml — slice 12 session 6: the pcall / handler-chain probe.
+#
+# The library's standing rule — "Kahlua's `tried to call nil` escapes `pcall` and kills the
+# whole handler", the reason `TK.call` and every mod's `tkxCall` exist — rests on
+# `exp01-20260909-235420`, a run with no committed artifact. The Task 9 jar review reads the
+# other way on BOTH halves: `BaseLib.pcall` → `KahluaThread.pcall(I)I` wraps `call(I)I` in a
+# try whose dynamic extent covers the nested `luaMainloop`, so the raise looks CATCHABLE; and
+# `zombie/Lua/Event.trigger` calls each callback through `LuaCaller.protectedCallVoid` inside
+# a per-iteration `catch (Throwable)` that CONTINUES the loop, so a raise in one handler looks
+# survivable by the handlers behind it. One probe mod, four `EveryOneMinute` handlers, both
+# Lua states.
+#
+# The mod is `shared/`, so the server VM and the client VM each run their own copy and the
+# session gets TWO readings, not one. Every field of `TKX_P` is a STRING on purpose: a `false`
+# arriving through `lua.global` would be indistinguishable from a walk that stopped, and
+# `"unset"` vs `"false"` is the whole of H1.
+#
+# No `[sandbox]`, so DayLength stays the fixture's 4 (3.75 s per game minute) — the driver
+# waits on `TKX_P.before` reaching 2 rather than on a clock.
+fixture = "default"
+description = "PZTestKit + TKX_PcallProbe — slice 12 session 6."
+run = { hold = 20 }
+verify = [   # one tier-(a) gate: certain to pass IF the mod loaded at all, and not a measurement.
+  { side = "client", cmd = "lua.global", args = "TKX_P.version", expect = '"value": 1' },
+]
+# `TKX_P.version` and nothing else. The eight fields that ARE the session — side, before, ok,
+# err, tail, behind, ctrl_ok, ctrl_err — are measurements, and a measurement is never a
+# `[[verify]]` row: `before` is 0 at load time, and `ok`/`tail`/`behind` are exactly what the
+# run is trying to find out. `version` is assigned in the table constructor on the first line
+# of the file, so it answers 1 the moment the file has run at all, whatever the handlers do.
+# The SERVER side is deliberately ungated even though the file is `shared/`: whether the server
+# VM loads it too is part of the reading (the driver records `TKX_P.side` on both sides), and a
+# server gate would turn that reading into a boot requirement.
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_PcallProbe"
+path = "testing/experiments/TKX_PcallProbe"

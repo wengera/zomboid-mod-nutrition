@@ -1,0 +1,5 @@
+name=TKX Pcall Probe
+id=TKX_PcallProbe
+description=Slice-12 experiment: does a Kahlua nil call escape pcall, and does a raise in one event handler kill the handlers registered behind it? Four EveryOneMinute handlers on each Lua state, every reading stored as a string. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

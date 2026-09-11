@@ -77,7 +77,21 @@ reverse `Mods=` order) were confounded by the orders themselves. Moving `TKX_Ite
 front and `TKX_ZWatermelon` to the middle makes the three surviving rules name three different
 `Calories`: **999** ⇒ alphabetical-last, **111** ⇒ first-in-`Mods=`, **777** ⇒ `Mods=`-last (out
 twice already, so a 777 reopens both earlier sessions). `TKX_ZWatermelon` is UNGATED here for the
-same reason and gated at tier (c) by the driver.
+same reason and gated at tier (c) by the driver; and **`x12-pcall.toml`** — slice 12's session 6,
+the smallest profile in the slice: PZTestKit + `TKX_PcallProbe` (a single `shared/` file,
+`path = "testing/experiments/TKX_PcallProbe"`) on `default` with **no `[sandbox]`**, so DayLength
+stays the fixture's 4 and `EveryOneMinute` fires every 3.75 s. It exists to measure the library's
+own standing rule — "a Kahlua nil call escapes `pcall` and kills the whole handler", the reason
+`TK.call` and every `tkxCall` guard exist — which rests on a run with no committed artifact while
+the jar reads the other way twice over (`KahluaThread.pcall`'s try covers the nested `luaMainloop`;
+`Event.trigger` calls each callback through `LuaCaller.protectedCallVoid` inside a per-iteration
+`catch (Throwable)` that continues the loop). Four handlers register on one event: a counter, then
+`pcall` on a global that is never defined, then a second counter BEHIND it, then `pcall(error,
+"boom")` as the control. Its single tier-(a) row is client `lua.global TKX_P.version` — assigned in
+the table constructor on the file's first line, so it answers 1 the moment the file has run at all,
+whatever the handlers do. The other eight fields are the measurement and never gated, and the
+SERVER side is ungated on purpose: the file is `shared/`, so whether the server VM runs it too is
+itself a reading (`TKX_P.side`) rather than a boot requirement.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
