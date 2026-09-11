@@ -1,0 +1,6044 @@
+{
+ "run_id": "x121-20260911-030023",
+ "session": "x121 -- slice 12 session 1: item overrides, eat hooks, custom nutrient fields",
+ "user": "admin",
+ "profile": {
+  "name": "x12-overrides",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x12-overrides.toml",
+  "fixture": "default",
+  "description": "PZTestKit + TKX_ItemOverride + TKX_Nutrient + TKX_EatHook \u2014 slice 12 session 1.",
+  "mods": [
+   "PZTestKit",
+   "TKX_ItemOverride",
+   "TKX_Nutrient",
+   "TKX_EatHook"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "TKX_ItemOverride": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_ItemOverride",
+   "TKX_Nutrient": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_Nutrient",
+   "TKX_EatHook": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_EatHook"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "TKX_ItemOverride",
+  "TKX_Nutrient",
+  "TKX_EatHook"
+ ],
+ "commit": "5d9633f",
+ "harness_lua_commit": "5d9633f",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "run-20260911-024303",
+ "fixture_day_length": 4,
+ "game_minute_seconds": 3.75,
+ "vanilla_player_keys": [
+  "fitnessMod",
+  "fitnessUpTimer",
+  "hotbar",
+  "strengthMod",
+  "strengthUpTimer"
+ ],
+ "vanilla_item_keys": [
+  "Tooltip",
+  "customName"
+ ],
+ "field_counts_expected": {
+  "macros": 5,
+  "names": 4
+ },
+ "phase_order_note": "amendment 4: M5 before M6 so the eat-hook's modData keys are in the table M6 transmits; M6 before M9 so M9's wipe reading is taken on a client table that is already the server's.",
+ "world_changes": {
+  "restored": "the calorie store (M8) is written back to the value it held when M8 started, inside the try, before teardown.",
+  "left_in_place": [
+   "TKX_transmit_now",
+   "TKX_ServerOnly",
+   "TKX_fibre",
+   "TKX_fibre_client",
+   "TKX_eat_onEat_server",
+   "TKX_eat_onEat_client",
+   "item modData TKX_fibre on Base.Cheese"
+  ],
+  "why": "there is no delete on the bus; none of these keys is owned by the fixture and none is read by any other run. They are named here rather than removed.",
+  "spawned": "RCON-spawned items live in this run's copy of the fixture (run_dir), never in the golden one.",
+  "lua_reload": "never sent -- mod C's ISEatFoodAction wrapper is sentinel-guarded, but re-executing the vanilla file underneath a live wrapper is not a state any reading here should be taken in."
+ },
+ "m8": {
+  "cadence": "per character update tick, no timer gate: IsoPlayer.update @8 -> updateInternal1 @51 L2200 -> updateInternal2 @392-@402 L2306-L2307 (gated only on SystemDisabler.doCharacterStats) -> Nutrition.update @107 L81 -> updateWeight. Jar-read 2026-09-11 on 42.20.4; `grep updateWeight` finds the name in only three classes and no caller of THIS one outside Nutrition itself.",
+  "wait_s": 8.0,
+  "baseline_calories": 876.00537109375,
+  "restore": {
+   "wrote": 876.00537109375,
+   "ack": {
+    "calories": 876.00537109375,
+    "carbs": 18.944272994995117,
+    "lipids": -2.194709062576294,
+    "proteins": -0.6771243214607239,
+    "weight": 80.00084541274742,
+    "hunger": 0.006531963590532541,
+    "thirst": 0.011010942049324512,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true
+   },
+   "read_back_server": 875.4922485351562,
+   "read_back_client": -103.90099334716797,
+   "ok": true
+  }
+ },
+ "steps": [
+  {
+   "step": "m1_items_count",
+   "cmd": "items.count",
+   "args": "",
+   "side": "server",
+   "wall_before": 57.544,
+   "wall_after": 57.796,
+   "took": 0.252,
+   "ack": {
+    "total": 5095,
+    "food": 725,
+    "byType": {
+     "base:normal": 1098,
+     "base:weapon": 409,
+     "base:drainable": 150,
+     "base:clothing": 1395,
+     "base:literature": 559,
+     "base:food": 725,
+     "base:container": 308,
+     "base:moveable": 383,
+     "base:key": 6,
+     "base:radio": 17,
+     "base:alarmclockclothing": 16,
+     "base:weaponpart": 11,
+     "base:alarmclock": 2,
+     "base:map": 15,
+     "base:animal": 1
+    },
+    "foodByModule": {
+     "Base": 722,
+     "TKX": 3
+    },
+    "fluidDefs": 61
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "m2_item_get_Base.Apple",
+   "cmd": "item.get",
+   "args": "admin Base.Apple",
+   "side": "server",
+   "wall_before": 69.225,
+   "wall_after": 69.734,
+   "took": 0.509,
+   "ack": {
+    "fullType": "Base.Apple",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.1599999964237213,
+    "baseHunger": -0.1599999964237213,
+    "calories": 400,
+    "carbs": 25.1299991607666,
+    "lipids": 0.3100000023841858,
+    "proteins": 0.4699999988079071,
+    "id": 1632255293,
+    "uses": 0.1599999964237213,
+    "fresh": true,
+    "offAge": 5,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -0.07000000029802322,
+    "hungerChange": -0.1599999964237213,
+    "isCookable": false,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.3859119415283203
+   },
+   "serverWorldAge": 2.3859119415283203,
+   "gameMinute": null,
+   "worldAgeMinutes": 143.1547
+  },
+  {
+   "step": "m2_item_get_Base.Orange",
+   "cmd": "item.get",
+   "args": "admin Base.Orange",
+   "side": "server",
+   "wall_before": 73.772,
+   "wall_after": 75.533,
+   "took": 1.761,
+   "ack": {
+    "fullType": "Base.Orange",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.11999999731779099,
+    "baseHunger": -0.11999999731779099,
+    "calories": 400,
+    "carbs": 16.270000457763672,
+    "lipids": 0.30000001192092896,
+    "proteins": 1,
+    "id": 1719863840,
+    "uses": 0.11999999731779099,
+    "fresh": true,
+    "offAge": 6,
+    "offAgeMax": 9,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -0.07999999821186066,
+    "hungerChange": -0.11999999731779099,
+    "isCookable": false,
+    "actualWeight": 0.20000000298023224,
+    "weight": 0.20000000298023224,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.412538528442383
+   },
+   "serverWorldAge": 2.412538528442383,
+   "gameMinute": null,
+   "worldAgeMinutes": 144.7523
+  },
+  {
+   "step": "m3_item_get",
+   "cmd": "item.get",
+   "args": "admin Base.Watermelon",
+   "side": "server",
+   "wall_before": 79.675,
+   "wall_after": 80.432,
+   "took": 0.757,
+   "ack": {
+    "fullType": "Base.Watermelon",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.6000000238418579,
+    "baseHunger": -0.6000000238418579,
+    "calories": 111,
+    "carbs": 341.1099853515625,
+    "lipids": 6.78000020980835,
+    "proteins": 27.559999465942383,
+    "id": 951948220,
+    "uses": 0.6000000238418579,
+    "fresh": true,
+    "offAge": 6,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -1.399999976158142,
+    "hungerChange": -0.6000000238418579,
+    "isCookable": false,
+    "actualWeight": 3.000000476837158,
+    "weight": 3,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.433403968811035
+   },
+   "serverWorldAge": 2.433403968811035,
+   "gameMinute": null,
+   "worldAgeMinutes": 146.0042
+  },
+  {
+   "step": "m5_eat_action",
+   "cmd": "eat.action",
+   "args": "Base.Banana 1.0",
+   "side": "admin",
+   "wall_before": 102.416,
+   "wall_after": 102.922,
+   "took": 0.506,
+   "ack": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 713211653,
+    "itemBefore": {
+     "fullType": "Base.Banana",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.1599999964237213,
+     "baseHunger": -0.1599999964237213,
+     "calories": 105,
+     "carbs": 26.950000762939453,
+     "lipids": 0.38999998569488525,
+     "proteins": 1.2899999618530273,
+     "id": 713211653,
+     "uses": 0.1599999964237213,
+     "fresh": true,
+     "offAge": 5,
+     "offAgeMax": 7,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": -0.05000000074505806,
+     "hungerChange": -0.1599999964237213,
+     "isCookable": false,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.02560997009277,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": 786.8621826171875,
+     "carbs": -2.8696155548095703,
+     "lipids": -0.9264758825302124,
+     "proteins": -0.7051054239273071,
+     "weight": 80,
+     "hunger": 0.007734744343906641,
+     "thirst": 0.006470631808042526,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "m6_arm_transmit",
+   "cmd": "moddata.set",
+   "args": "admin TKX_transmit_now 1",
+   "side": "server",
+   "wall_before": 127.723,
+   "wall_after": 129.231,
+   "took": 1.508,
+   "ack": {
+    "user": "admin",
+    "key": "TKX_transmit_now",
+    "value": "1",
+    "side": "server",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_transmit_now",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.6500043869018555
+   },
+   "serverWorldAge": 2.6500043869018555,
+   "gameMinute": null,
+   "worldAgeMinutes": 159.0003
+  },
+  {
+   "step": "m8_set_incWeight",
+   "cmd": "nutrition.set",
+   "args": "admin calories 1500",
+   "side": "server",
+   "wall_before": 163.666,
+   "wall_after": 165.68,
+   "took": 2.014,
+   "ack": {
+    "calories": 1500,
+    "carbs": 20.511123657226562,
+    "lipids": -1.6888431310653687,
+    "proteins": -0.29212871193885803,
+    "weight": 80,
+    "hunger": 0.002253192011266947,
+    "thirst": 0.0074295774102211,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "m8_set_decWeight",
+   "cmd": "nutrition.set",
+   "args": "admin calories -100",
+   "side": "server",
+   "wall_before": 175.711,
+   "wall_after": 177.721,
+   "took": 2.01,
+   "ack": {
+    "calories": -100,
+    "carbs": 19.839723587036133,
+    "lipids": -1.905608892440796,
+    "proteins": -0.4571009874343872,
+    "weight": 80.00093419573022,
+    "hunger": 0.004088917747139931,
+    "thirst": 0.008964205160737038,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "m9_plant_server_only",
+   "cmd": "moddata.set",
+   "args": "admin TKX_ServerOnly 1",
+   "side": "server",
+   "wall_before": 187.753,
+   "wall_after": 189.262,
+   "took": 1.509,
+   "ack": {
+    "user": "admin",
+    "key": "TKX_ServerOnly",
+    "value": "1",
+    "side": "server",
+    "keyCount": 7,
+    "keys": [
+     "TKX_ServerOnly",
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.9169092178344727
+   },
+   "serverWorldAge": 2.9169092178344727,
+   "gameMinute": null,
+   "worldAgeMinutes": 175.0146
+  },
+  {
+   "step": "m9_client_transmit",
+   "cmd": "moddata.transmit",
+   "args": "",
+   "side": "admin",
+   "wall_before": 191.537,
+   "wall_after": 191.791,
+   "took": 0.254,
+   "ack": "transmitted",
+   "ack_shape": "str"
+  },
+  {
+   "step": "restore_calories",
+   "cmd": "nutrition.set",
+   "args": "admin calories 876.00537109375",
+   "side": "server",
+   "wall_before": 193.07,
+   "wall_after": 193.575,
+   "took": 0.505,
+   "ack": {
+    "calories": 876.00537109375,
+    "carbs": 18.944272994995117,
+    "lipids": -2.194709062576294,
+    "proteins": -0.6771243214607239,
+    "weight": 80.00084541274742,
+    "hunger": 0.006531963590532541,
+    "thirst": 0.011010942049324512,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "M1": {
+   "question": "does a redefinition ADD an item record or REPLACE one, and does the script object expose the macros to Kahlua?",
+   "items_count": {
+    "total": 5095,
+    "food": 725,
+    "byType": {
+     "base:normal": 1098,
+     "base:weapon": 409,
+     "base:drainable": 150,
+     "base:clothing": 1395,
+     "base:literature": 559,
+     "base:food": 725,
+     "base:container": 308,
+     "base:moveable": 383,
+     "base:key": 6,
+     "base:radio": 17,
+     "base:alarmclockclothing": 16,
+     "base:weaponpart": 11,
+     "base:alarmclock": 2,
+     "base:map": 15,
+     "base:animal": 1
+    },
+    "foodByModule": {
+     "Base": 722,
+     "TKX": 3
+    },
+    "fluidDefs": 61
+   },
+   "scripts": {
+    "Base.Apple": {
+     "client": {
+      "fullType": "Base.Apple",
+      "via": "getItem",
+      "side": "client",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -16,
+      "ThirstChange": -7,
+      "DaysFresh": 5,
+      "DaysTotallyRotten": 8,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "Base.Apple",
+       "wall": 57.797,
+       "wall_done": 58.301
+      }
+     },
+     "server": {
+      "fullType": "Base.Apple",
+      "via": "getItem",
+      "side": "server",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -16,
+      "ThirstChange": -7,
+      "DaysFresh": 5,
+      "DaysTotallyRotten": 8,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "Base.Apple",
+       "wall": 58.301,
+       "wall_done": 59.561
+      }
+     }
+    },
+    "Base.Orange": {
+     "client": {
+      "fullType": "Base.Orange",
+      "via": "getItem",
+      "side": "client",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -12,
+      "ThirstChange": -8,
+      "DaysFresh": 6,
+      "DaysTotallyRotten": 9,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "Base.Orange",
+       "wall": 59.561,
+       "wall_done": 59.814
+      }
+     },
+     "server": {
+      "fullType": "Base.Orange",
+      "via": "getItem",
+      "side": "server",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -12,
+      "ThirstChange": -8,
+      "DaysFresh": 6,
+      "DaysTotallyRotten": 9,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "Base.Orange",
+       "wall": 59.814,
+       "wall_done": 61.572
+      }
+     }
+    },
+    "Base.Watermelon": {
+     "client": {
+      "fullType": "Base.Watermelon",
+      "via": "getItem",
+      "side": "client",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -60,
+      "ThirstChange": -140,
+      "DaysFresh": 6,
+      "DaysTotallyRotten": 8,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "Base.Watermelon",
+       "wall": 61.572,
+       "wall_done": 61.825
+      }
+     },
+     "server": {
+      "fullType": "Base.Watermelon",
+      "via": "getItem",
+      "side": "server",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -60,
+      "ThirstChange": -140,
+      "DaysFresh": 6,
+      "DaysTotallyRotten": 8,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "Base.Watermelon",
+       "wall": 61.825,
+       "wall_done": 63.582
+      }
+     }
+    },
+    "TKX.FibreBar": {
+     "client": {
+      "fullType": "TKX.FibreBar",
+      "via": "getItem",
+      "side": "client",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -20,
+      "ThirstChange": 0,
+      "DaysFresh": 42,
+      "DaysTotallyRotten": 84,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "TKX.FibreBar",
+       "wall": 63.582,
+       "wall_done": 63.834
+      }
+     },
+     "server": {
+      "fullType": "TKX.FibreBar",
+      "via": "getItem",
+      "side": "server",
+      "access": {
+       "HungerChange": "get",
+       "ThirstChange": "get",
+       "DaysFresh": "get",
+       "DaysTotallyRotten": "get",
+       "IsCookable": "is",
+       "MinutesToCook": "get",
+       "MinutesToBurn": "get"
+      },
+      "HungerChange": -20,
+      "ThirstChange": 0,
+      "DaysFresh": 42,
+      "DaysTotallyRotten": 84,
+      "IsCookable": false,
+      "MinutesToCook": 60,
+      "MinutesToBurn": 120,
+      "_probe": {
+       "cmd": "item.script",
+       "args": "TKX.FibreBar",
+       "wall": 63.834,
+       "wall_done": 65.339
+      }
+     }
+    }
+   },
+   "script_macro_gap": "TK.SCRIPT_GETTERS (PZTestKit_Core.lua:207-211) comes back with all four nutrition keys ABSENT on a SCRIPT item -- measured slice 01, re-confirmed in td1-20260910-192457. A missing `Calories` below is that KNOWN GAP, not a defect; only M2/M3's instance getters discriminate.",
+   "baseline_base_food": 722,
+   "baseline_source": "testing/artifacts/exp05-20260910-084109/food-scan.json:350 (foodByModule.Base; 1005 is that dataset's total item RECORDS, not its food count)",
+   "script_access": {
+    "Base.Apple": {
+     "client": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     },
+     "server": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     }
+    },
+    "Base.Orange": {
+     "client": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     },
+     "server": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     }
+    },
+    "Base.Watermelon": {
+     "client": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     },
+     "server": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     }
+    },
+    "TKX.FibreBar": {
+     "client": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     },
+     "server": {
+      "answered": [
+       "DaysFresh",
+       "DaysTotallyRotten",
+       "HungerChange",
+       "IsCookable",
+       "MinutesToBurn",
+       "MinutesToCook",
+       "ThirstChange"
+      ],
+      "absent": [
+       "Calories",
+       "Carbohydrates",
+       "Lipids",
+       "Proteins"
+      ],
+      "via": "getItem",
+      "macro_keys_present": []
+     }
+    }
+   }
+  },
+  "M2": {
+   "question": "what happens to the vanilla block, and to the keys the mod's block omits?",
+   "items": {
+    "Base.Apple": {
+     "spawn": {
+      "type": "Base.Apple",
+      "why": "M2: the instance is the only route to the macros -- the script object does not expose them to Kahlua",
+      "rcon_ok": true,
+      "rcon_reply": "Item Base.Apple Added in admin's inventory.",
+      "wall_rcon": 65.452,
+      "attempts": [
+       {
+        "attempt": 1,
+        "wall": 68.21,
+        "resolved": "admin/Base.Apple #1632255293",
+        "id": 1632255293
+       }
+      ],
+      "resolved": true,
+      "measured_wait_s": 2.758
+     },
+     "witness": {
+      "client": {
+       "side": "client",
+       "subject": "item admin/Base.Apple",
+       "why": "the five macro getters on the INSTANCE",
+       "count": 5,
+       "count_expected": 5,
+       "count_ok": true,
+       "resolved": "admin/Base.Apple #1632255293",
+       "error": null,
+       "fields": {
+        "getCalories": 400,
+        "getCarbohydrates": 25.1299991607666,
+        "getLipids": 0.3100000023841858,
+        "getProteins": 0.4699999988079071,
+        "getHungChange": -0.1599999964237213
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 68.212,
+       "reply": {
+        "side": "client",
+        "subject": "item",
+        "id": "admin/Base.Apple",
+        "resolved": "admin/Base.Apple #1632255293",
+        "fields": {
+         "getCalories": 400,
+         "getCarbohydrates": 25.1299991607666,
+         "getLipids": 0.3100000023841858,
+         "getProteins": 0.4699999988079071,
+         "getHungChange": -0.1599999964237213
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.3821496963500977,
+        "count": 5,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/Base.Apple getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+         "wall": 68.212,
+         "wall_done": 68.719
+        }
+       }
+      },
+      "server": {
+       "side": "server",
+       "subject": "item admin/Base.Apple",
+       "why": "the five macro getters on the INSTANCE",
+       "count": 5,
+       "count_expected": 5,
+       "count_ok": true,
+       "resolved": "admin/Base.Apple #1632255293",
+       "error": null,
+       "fields": {
+        "getCalories": 400,
+        "getCarbohydrates": 25.1299991607666,
+        "getLipids": 0.3100000023841858,
+        "getProteins": 0.4699999988079071,
+        "getHungChange": -0.1599999964237213
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 68.719,
+       "reply": {
+        "side": "server",
+        "subject": "item",
+        "id": "admin/Base.Apple",
+        "resolved": "admin/Base.Apple #1632255293",
+        "fields": {
+         "getCalories": 400,
+         "getCarbohydrates": 25.1299991607666,
+         "getLipids": 0.3100000023841858,
+         "getProteins": 0.4699999988079071,
+         "getHungChange": -0.1599999964237213
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.383692741394043,
+        "count": 5,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/Base.Apple getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+         "wall": 68.719,
+         "wall_done": 69.225
+        }
+       }
+      }
+     },
+     "server_item_get": {
+      "fullType": "Base.Apple",
+      "cooked": false,
+      "burnt": false,
+      "rotten": false,
+      "frozen": false,
+      "age": 0,
+      "hungChange": -0.1599999964237213,
+      "baseHunger": -0.1599999964237213,
+      "calories": 400,
+      "carbs": 25.1299991607666,
+      "lipids": 0.3100000023841858,
+      "proteins": 0.4699999988079071,
+      "id": 1632255293,
+      "uses": 0.1599999964237213,
+      "fresh": true,
+      "offAge": 5,
+      "offAgeMax": 8,
+      "freezingTime": 0,
+      "cookingTime": 0,
+      "heat": 1,
+      "minutesToCook": 60,
+      "minutesToBurn": 120,
+      "thirstChange": -0.07000000029802322,
+      "hungerChange": -0.1599999964237213,
+      "isCookable": false,
+      "actualWeight": 0.20000000298023224,
+      "weight": 0.20000000298023224,
+      "customWeight": false,
+      "lastCookMinute": 0,
+      "serverWorldAge": 2.3859119415283203
+     },
+     "vanilla": {
+      "getCalories": 95.0,
+      "getCarbohydrates": 25.13,
+      "getLipids": 0.31,
+      "getProteins": 0.47,
+      "getHungChange": -0.16
+     }
+    },
+    "Base.Orange": {
+     "spawn": {
+      "type": "Base.Orange",
+      "why": "M2: the instance is the only route to the macros -- the script object does not expose them to Kahlua",
+      "rcon_ok": true,
+      "rcon_reply": "",
+      "wall_rcon": 69.739,
+      "attempts": [
+       {
+        "attempt": 1,
+        "wall": 72.749,
+        "resolved": "admin/Base.Orange #1719863840",
+        "id": 1719863840
+       }
+      ],
+      "resolved": true,
+      "measured_wait_s": 3.01
+     },
+     "witness": {
+      "client": {
+       "side": "client",
+       "subject": "item admin/Base.Orange",
+       "why": "the five macro getters on the INSTANCE",
+       "count": 5,
+       "count_expected": 5,
+       "count_ok": true,
+       "resolved": "admin/Base.Orange #1719863840",
+       "error": null,
+       "fields": {
+        "getCalories": 400,
+        "getCarbohydrates": 16.270000457763672,
+        "getLipids": 0.30000001192092896,
+        "getProteins": 1,
+        "getHungChange": -0.11999999731779099
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 72.751,
+       "reply": {
+        "side": "client",
+        "subject": "item",
+        "id": "admin/Base.Orange",
+        "resolved": "admin/Base.Orange #1719863840",
+        "fields": {
+         "getCalories": 400,
+         "getCarbohydrates": 16.270000457763672,
+         "getLipids": 0.30000001192092896,
+         "getProteins": 1,
+         "getHungChange": -0.11999999731779099
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.4022340774536133,
+        "count": 5,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/Base.Orange getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+         "wall": 72.751,
+         "wall_done": 73.26
+        }
+       }
+      },
+      "server": {
+       "side": "server",
+       "subject": "item admin/Base.Orange",
+       "why": "the five macro getters on the INSTANCE",
+       "count": 5,
+       "count_expected": 5,
+       "count_ok": true,
+       "resolved": "admin/Base.Orange #1719863840",
+       "error": null,
+       "fields": {
+        "getCalories": 400,
+        "getCarbohydrates": 16.270000457763672,
+        "getLipids": 0.30000001192092896,
+        "getProteins": 1,
+        "getHungChange": -0.11999999731779099
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 73.26,
+       "reply": {
+        "side": "server",
+        "subject": "item",
+        "id": "admin/Base.Orange",
+        "resolved": "admin/Base.Orange #1719863840",
+        "fields": {
+         "getCalories": 400,
+         "getCarbohydrates": 16.270000457763672,
+         "getLipids": 0.30000001192092896,
+         "getProteins": 1,
+         "getHungChange": -0.11999999731779099
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.4036617279052734,
+        "count": 5,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/Base.Orange getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+         "wall": 73.26,
+         "wall_done": 73.772
+        }
+       }
+      }
+     },
+     "server_item_get": {
+      "fullType": "Base.Orange",
+      "cooked": false,
+      "burnt": false,
+      "rotten": false,
+      "frozen": false,
+      "age": 0,
+      "hungChange": -0.11999999731779099,
+      "baseHunger": -0.11999999731779099,
+      "calories": 400,
+      "carbs": 16.270000457763672,
+      "lipids": 0.30000001192092896,
+      "proteins": 1,
+      "id": 1719863840,
+      "uses": 0.11999999731779099,
+      "fresh": true,
+      "offAge": 6,
+      "offAgeMax": 9,
+      "freezingTime": 0,
+      "cookingTime": 0,
+      "heat": 1,
+      "minutesToCook": 60,
+      "minutesToBurn": 120,
+      "thirstChange": -0.07999999821186066,
+      "hungerChange": -0.11999999731779099,
+      "isCookable": false,
+      "actualWeight": 0.20000000298023224,
+      "weight": 0.20000000298023224,
+      "customWeight": false,
+      "lastCookMinute": 0,
+      "serverWorldAge": 2.412538528442383
+     },
+     "vanilla": {
+      "getCalories": 65.0,
+      "getCarbohydrates": 16.27,
+      "getLipids": 0.3,
+      "getProteins": 1.0,
+      "getHungChange": -0.12
+     }
+    }
+   }
+  },
+  "M3": {
+   "question": "when two mods redefine the same block, which wins?",
+   "watermelon": {
+    "spawn": {
+     "type": "Base.Watermelon",
+     "why": "M3: the load-order discriminator",
+     "rcon_ok": true,
+     "rcon_reply": "Item Base.Watermelon Added in admin's inventory.",
+     "wall_rcon": 75.646,
+     "attempts": [
+      {
+       "attempt": 1,
+       "wall": 78.402,
+       "resolved": "admin/Base.Watermelon #951948220",
+       "id": 951948220
+      }
+     ],
+     "resolved": true,
+     "measured_wait_s": 2.756
+    },
+    "witness": {
+     "client": {
+      "side": "client",
+      "subject": "item admin/Base.Watermelon",
+      "why": "Calories is 111 in TKX_ItemOverride and 777 in TKX_EatHook",
+      "count": 5,
+      "count_expected": 5,
+      "count_ok": true,
+      "resolved": "admin/Base.Watermelon #951948220",
+      "error": null,
+      "fields": {
+       "getCalories": 111,
+       "getCarbohydrates": 341.1099853515625,
+       "getLipids": 6.78000020980835,
+       "getProteins": 27.559999465942383,
+       "getHungChange": -0.6000000238418579
+      },
+      "missing": {},
+      "nils": {},
+      "wall": 78.403,
+      "reply": {
+       "side": "client",
+       "subject": "item",
+       "id": "admin/Base.Watermelon",
+       "resolved": "admin/Base.Watermelon #951948220",
+       "fields": {
+        "getCalories": 111,
+        "getCarbohydrates": 341.1099853515625,
+        "getLipids": 6.78000020980835,
+        "getProteins": 27.559999465942383,
+        "getHungChange": -0.6000000238418579
+       },
+       "missing": {},
+       "nils": {},
+       "worldAge": 2.426532745361328,
+       "count": 5,
+       "_probe": {
+        "cmd": "witness.fields",
+        "args": "item admin/Base.Watermelon getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+        "wall": 78.403,
+        "wall_done": 78.911
+       }
+      }
+     },
+     "server": {
+      "side": "server",
+      "subject": "item admin/Base.Watermelon",
+      "why": "Calories is 111 in TKX_ItemOverride and 777 in TKX_EatHook",
+      "count": 5,
+      "count_expected": 5,
+      "count_ok": true,
+      "resolved": "admin/Base.Watermelon #951948220",
+      "error": null,
+      "fields": {
+       "getCalories": 111,
+       "getCarbohydrates": 341.1099853515625,
+       "getLipids": 6.78000020980835,
+       "getProteins": 27.559999465942383,
+       "getHungChange": -0.6000000238418579
+      },
+      "missing": {},
+      "nils": {},
+      "wall": 78.911,
+      "reply": {
+       "side": "server",
+       "subject": "item",
+       "id": "admin/Base.Watermelon",
+       "resolved": "admin/Base.Watermelon #951948220",
+       "fields": {
+        "getCalories": 111,
+        "getCarbohydrates": 341.1099853515625,
+        "getLipids": 6.78000020980835,
+        "getProteins": 27.559999465942383,
+        "getHungChange": -0.6000000238418579
+       },
+       "missing": {},
+       "nils": {},
+       "worldAge": 2.4302978515625,
+       "count": 5,
+       "_probe": {
+        "cmd": "witness.fields",
+        "args": "item admin/Base.Watermelon getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+        "wall": 78.911,
+        "wall_done": 79.675
+       }
+      }
+     }
+    },
+    "server_item_get": {
+     "fullType": "Base.Watermelon",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.6000000238418579,
+     "baseHunger": -0.6000000238418579,
+     "calories": 111,
+     "carbs": 341.1099853515625,
+     "lipids": 6.78000020980835,
+     "proteins": 27.559999465942383,
+     "id": 951948220,
+     "uses": 0.6000000238418579,
+     "fresh": true,
+     "offAge": 6,
+     "offAgeMax": 8,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": -1.399999976158142,
+     "hungerChange": -0.6000000238418579,
+     "isCookable": false,
+     "actualWeight": 3.000000476837158,
+     "weight": 3,
+     "customWeight": false,
+     "lastCookMinute": 0,
+     "serverWorldAge": 2.433403968811035
+    },
+    "mods_order": [
+     "PZTestKit",
+     "TKX_ItemOverride",
+     "TKX_Nutrient",
+     "TKX_EatHook"
+    ],
+    "vanilla": {
+     "getCalories": 1355.0,
+     "getCarbohydrates": 341.11,
+     "getLipids": 6.78,
+     "getProteins": 27.56,
+     "getHungChange": -0.6
+    }
+   }
+  },
+  "M4": {
+   "question": "which translation layout does 42.20.4 load, and are mod translations consulted on a DEDICATED SERVER?",
+   "items": {
+    "TKX.FibreBar": {
+     "spawn": {
+      "type": "TKX.FibreBar",
+      "why": "M4: the display name is only readable off an instance",
+      "rcon_ok": true,
+      "rcon_reply": "",
+      "wall_rcon": 80.456,
+      "attempts": [
+       {
+        "attempt": 1,
+        "wall": 83.211,
+        "resolved": "admin/TKX.FibreBar #1426125880",
+        "id": 1426125880
+       }
+      ],
+      "resolved": true,
+      "measured_wait_s": 2.755
+     },
+     "witness": {
+      "client": {
+       "side": "client",
+       "subject": "item admin/TKX.FibreBar",
+       "why": "getDisplayName == getFullType is the UNTRANSLATED signature",
+       "count": 4,
+       "count_expected": 4,
+       "count_ok": true,
+       "resolved": "admin/TKX.FibreBar #1426125880",
+       "error": null,
+       "fields": {
+        "getDisplayName": "TKX.FibreBar",
+        "getFullType": "TKX.FibreBar",
+        "getActualWeight": 0.30000001192092896,
+        "getActualWeightUnmodded": 0
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 83.214,
+       "reply": {
+        "side": "client",
+        "subject": "item",
+        "id": "admin/TKX.FibreBar",
+        "resolved": "admin/TKX.FibreBar #1426125880",
+        "fields": {
+         "getDisplayName": "TKX.FibreBar",
+         "getFullType": "TKX.FibreBar",
+         "getActualWeight": 0.30000001192092896,
+         "getActualWeightUnmodded": 0
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.448847770690918,
+        "count": 4,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/TKX.FibreBar getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded",
+         "wall": 83.214,
+         "wall_done": 83.722
+        }
+       }
+      },
+      "server": {
+       "side": "server",
+       "subject": "item admin/TKX.FibreBar",
+       "why": "getDisplayName == getFullType is the UNTRANSLATED signature",
+       "count": 4,
+       "count_expected": 4,
+       "count_ok": true,
+       "resolved": "admin/TKX.FibreBar #1426125880",
+       "error": null,
+       "fields": {
+        "getDisplayName": "TKX.FibreBar",
+        "getFullType": "TKX.FibreBar",
+        "getActualWeight": 0.30000001192092896,
+        "getActualWeightUnmodded": 0
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 83.722,
+       "reply": {
+        "side": "server",
+        "subject": "item",
+        "id": "admin/TKX.FibreBar",
+        "resolved": "admin/TKX.FibreBar #1426125880",
+        "fields": {
+         "getDisplayName": "TKX.FibreBar",
+         "getFullType": "TKX.FibreBar",
+         "getActualWeight": 0.30000001192092896,
+         "getActualWeightUnmodded": 0
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.4502601623535156,
+        "count": 4,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/TKX.FibreBar getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded",
+         "wall": 83.722,
+         "wall_done": 84.23
+        }
+       }
+      }
+     }
+    },
+    "TKX.FibreBarNamed": {
+     "spawn": {
+      "type": "TKX.FibreBarNamed",
+      "why": "M4: the display name is only readable off an instance",
+      "rcon_ok": true,
+      "rcon_reply": "",
+      "wall_rcon": 84.245,
+      "attempts": [
+       {
+        "attempt": 1,
+        "wall": 87.253,
+        "resolved": "admin/TKX.FibreBarNamed #1964288037",
+        "id": 1964288037
+       }
+      ],
+      "resolved": true,
+      "measured_wait_s": 3.008
+     },
+     "witness": {
+      "client": {
+       "side": "client",
+       "subject": "item admin/TKX.FibreBarNamed",
+       "why": "getDisplayName == getFullType is the UNTRANSLATED signature",
+       "count": 4,
+       "count_expected": 4,
+       "count_ok": true,
+       "resolved": "admin/TKX.FibreBarNamed #1964288037",
+       "error": null,
+       "fields": {
+        "getDisplayName": "TKX.FibreBarNamed",
+        "getFullType": "TKX.FibreBarNamed",
+        "getActualWeight": 0.30000001192092896,
+        "getActualWeightUnmodded": 0
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 87.255,
+       "reply": {
+        "side": "client",
+        "subject": "item",
+        "id": "admin/TKX.FibreBarNamed",
+        "resolved": "admin/TKX.FibreBarNamed #1964288037",
+        "fields": {
+         "getDisplayName": "TKX.FibreBarNamed",
+         "getFullType": "TKX.FibreBarNamed",
+         "getActualWeight": 0.30000001192092896,
+         "getActualWeightUnmodded": 0
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.466700553894043,
+        "count": 4,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/TKX.FibreBarNamed getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded",
+         "wall": 87.255,
+         "wall_done": 87.765
+        }
+       }
+      },
+      "server": {
+       "side": "server",
+       "subject": "item admin/TKX.FibreBarNamed",
+       "why": "getDisplayName == getFullType is the UNTRANSLATED signature",
+       "count": 4,
+       "count_expected": 4,
+       "count_ok": true,
+       "resolved": "admin/TKX.FibreBarNamed #1964288037",
+       "error": null,
+       "fields": {
+        "getDisplayName": "TKX.FibreBarNamed",
+        "getFullType": "TKX.FibreBarNamed",
+        "getActualWeight": 0.30000001192092896,
+        "getActualWeightUnmodded": 0
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 87.765,
+       "reply": {
+        "side": "server",
+        "subject": "item",
+        "id": "admin/TKX.FibreBarNamed",
+        "resolved": "admin/TKX.FibreBarNamed #1964288037",
+        "fields": {
+         "getDisplayName": "TKX.FibreBarNamed",
+         "getFullType": "TKX.FibreBarNamed",
+         "getActualWeight": 0.30000001192092896,
+         "getActualWeightUnmodded": 0
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.474675178527832,
+        "count": 4,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/TKX.FibreBarNamed getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded",
+         "wall": 87.765,
+         "wall_done": 89.524
+        }
+       }
+      }
+     }
+    },
+    "TKX.FibreBarJson": {
+     "spawn": {
+      "type": "TKX.FibreBarJson",
+      "why": "M4: the display name is only readable off an instance",
+      "rcon_ok": true,
+      "rcon_reply": "",
+      "wall_rcon": 89.553,
+      "attempts": [
+       {
+        "attempt": 1,
+        "wall": 92.311,
+        "resolved": "admin/TKX.FibreBarJson #1295560222",
+        "id": 1295560222
+       }
+      ],
+      "resolved": true,
+      "measured_wait_s": 2.758
+     },
+     "witness": {
+      "client": {
+       "side": "client",
+       "subject": "item admin/TKX.FibreBarJson",
+       "why": "getDisplayName == getFullType is the UNTRANSLATED signature",
+       "count": 4,
+       "count_expected": 4,
+       "count_ok": true,
+       "resolved": "admin/TKX.FibreBarJson #1295560222",
+       "error": null,
+       "fields": {
+        "getDisplayName": "TKX Fibre Bar Json",
+        "getFullType": "TKX.FibreBarJson",
+        "getActualWeight": 0.30000001192092896,
+        "getActualWeightUnmodded": 0.30000001192092896
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 92.314,
+       "reply": {
+        "side": "client",
+        "subject": "item",
+        "id": "admin/TKX.FibreBarJson",
+        "resolved": "admin/TKX.FibreBarJson #1295560222",
+        "fields": {
+         "getDisplayName": "TKX Fibre Bar Json",
+         "getFullType": "TKX.FibreBarJson",
+         "getActualWeight": 0.30000001192092896,
+         "getActualWeightUnmodded": 0.30000001192092896
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.4887571334838867,
+        "count": 4,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/TKX.FibreBarJson getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded",
+         "wall": 92.314,
+         "wall_done": 92.819
+        }
+       }
+      },
+      "server": {
+       "side": "server",
+       "subject": "item admin/TKX.FibreBarJson",
+       "why": "getDisplayName == getFullType is the UNTRANSLATED signature",
+       "count": 4,
+       "count_expected": 4,
+       "count_ok": true,
+       "resolved": "admin/TKX.FibreBarJson #1295560222",
+       "error": null,
+       "fields": {
+        "getDisplayName": "TKX.FibreBarJson",
+        "getFullType": "TKX.FibreBarJson",
+        "getActualWeight": 0.30000001192092896,
+        "getActualWeightUnmodded": 0
+       },
+       "missing": {},
+       "nils": {},
+       "wall": 92.819,
+       "reply": {
+        "side": "server",
+        "subject": "item",
+        "id": "admin/TKX.FibreBarJson",
+        "resolved": "admin/TKX.FibreBarJson #1295560222",
+        "fields": {
+         "getDisplayName": "TKX.FibreBarJson",
+         "getFullType": "TKX.FibreBarJson",
+         "getActualWeight": 0.30000001192092896,
+         "getActualWeightUnmodded": 0
+        },
+        "missing": {},
+        "nils": {},
+        "worldAge": 2.492443084716797,
+        "count": 4,
+        "_probe": {
+         "cmd": "witness.fields",
+         "args": "item admin/TKX.FibreBarJson getDisplayName,getFullType,getActualWeight,getActualWeightUnmodded",
+         "wall": 92.819,
+         "wall_done": 93.587
+        }
+       }
+      }
+     }
+    }
+   },
+   "text": {
+    "client": {
+     "ItemName_TKX.FibreBarJson": {
+      "why": "mod, B42 ItemName.json layout -- the hypothesis (iii) test",
+      "reply": {
+       "key": "ItemName_TKX.FibreBarJson",
+       "text": "ItemName_TKX.FibreBarJson",
+       "miss": true,
+       "side": "client",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_TKX.FibreBarJson",
+        "wall": 93.589,
+        "wall_done": 93.848
+       }
+      }
+     },
+     "ItemName_TKX.FibreBarNamed": {
+      "why": "mod, B41 ItemName_EN.txt layout -- the hypothesis (ii) test",
+      "reply": {
+       "key": "ItemName_TKX.FibreBarNamed",
+       "text": "ItemName_TKX.FibreBarNamed",
+       "miss": true,
+       "side": "client",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_TKX.FibreBarNamed",
+        "wall": 95.357,
+        "wall_done": 95.862
+       }
+      }
+     },
+     "ItemName_TKX.FibreBar": {
+      "why": "negative control: no entry in EITHER file, must miss on both sides",
+      "reply": {
+       "key": "ItemName_TKX.FibreBar",
+       "text": "ItemName_TKX.FibreBar",
+       "miss": true,
+       "side": "client",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_TKX.FibreBar",
+        "wall": 97.621,
+        "wall_done": 97.877
+       }
+      }
+     },
+     "ItemName_Base.Apple": {
+      "why": "vanilla control: did the mod's same-named ItemName.json displace vanilla's table, and does a dedicated server have one at all?",
+      "reply": {
+       "key": "ItemName_Base.Apple",
+       "text": "ItemName_Base.Apple",
+       "miss": true,
+       "side": "client",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_Base.Apple",
+        "wall": 99.142,
+        "wall_done": 99.398
+       }
+      }
+     }
+    },
+    "server": {
+     "ItemName_TKX.FibreBarJson": {
+      "why": "mod, B42 ItemName.json layout -- the hypothesis (iii) test",
+      "reply": {
+       "key": "ItemName_TKX.FibreBarJson",
+       "text": "ItemName_TKX.FibreBarJson",
+       "miss": true,
+       "side": "server",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_TKX.FibreBarJson",
+        "wall": 93.848,
+        "wall_done": 95.357
+       }
+      }
+     },
+     "ItemName_TKX.FibreBarNamed": {
+      "why": "mod, B41 ItemName_EN.txt layout -- the hypothesis (ii) test",
+      "reply": {
+       "key": "ItemName_TKX.FibreBarNamed",
+       "text": "ItemName_TKX.FibreBarNamed",
+       "miss": true,
+       "side": "server",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_TKX.FibreBarNamed",
+        "wall": 95.863,
+        "wall_done": 97.621
+       }
+      }
+     },
+     "ItemName_TKX.FibreBar": {
+      "why": "negative control: no entry in EITHER file, must miss on both sides",
+      "reply": {
+       "key": "ItemName_TKX.FibreBar",
+       "text": "ItemName_TKX.FibreBar",
+       "miss": true,
+       "side": "server",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_TKX.FibreBar",
+        "wall": 97.877,
+        "wall_done": 99.142
+       }
+      }
+     },
+     "ItemName_Base.Apple": {
+      "why": "vanilla control: did the mod's same-named ItemName.json displace vanilla's table, and does a dedicated server have one at all?",
+      "reply": {
+       "key": "ItemName_Base.Apple",
+       "text": "ItemName_Base.Apple",
+       "miss": true,
+       "side": "server",
+       "_probe": {
+        "cmd": "text.get",
+        "args": "ItemName_Base.Apple",
+        "wall": 99.398,
+        "wall_done": 99.652
+       }
+      }
+     }
+    }
+   },
+   "grading_rule": "amendment 12: a server-side text.get reply carrying `null = true` (or, without the slice-12 null guard, `text == \"nil\"`) is INCONCLUSIVE for the server half of question 4, not a miss. The server-side display-name reading then rests on witness.fields getDisplayName, which is the brief's decision-point default."
+  },
+  "M5": {
+   "question": "where can a mod intercept eating in MP -- which sides does OnEat fire on, and where does a Lua wrapper of ISEatFoodAction:complete fire?",
+   "spawn": {
+    "type": "Base.Banana",
+    "why": "M5: RCON first -- eat.action's own findOrSpawn falls back to a CLIENT spawn, which trips a server SyncItemFields NPE",
+    "rcon_ok": true,
+    "rcon_reply": "",
+    "wall_rcon": 99.656,
+    "attempts": [
+     {
+      "attempt": 1,
+      "wall": 102.414,
+      "resolved": "admin/Base.Banana #713211653",
+      "id": 713211653
+     }
+    ],
+    "resolved": true,
+    "measured_wait_s": 2.758
+   },
+   "eat_action": {
+    "queued": true,
+    "fraction": 1,
+    "spawned": "found",
+    "itemId": 713211653,
+    "itemBefore": {
+     "fullType": "Base.Banana",
+     "cooked": false,
+     "burnt": false,
+     "rotten": false,
+     "frozen": false,
+     "age": 0,
+     "hungChange": -0.1599999964237213,
+     "baseHunger": -0.1599999964237213,
+     "calories": 105,
+     "carbs": 26.950000762939453,
+     "lipids": 0.38999998569488525,
+     "proteins": 1.2899999618530273,
+     "id": 713211653,
+     "uses": 0.1599999964237213,
+     "fresh": true,
+     "offAge": 5,
+     "offAgeMax": 7,
+     "freezingTime": 0,
+     "cookingTime": 0,
+     "heat": 1,
+     "minutesToCook": 60,
+     "minutesToBurn": 120,
+     "thirstChange": -0.05000000074505806,
+     "hungerChange": -0.1599999964237213,
+     "isCookable": false,
+     "actualWeight": 0.20000000298023224,
+     "weight": 0.20000000298023224,
+     "customWeight": false,
+     "lastCookMinute": 0
+    },
+    "validStart": true,
+    "maxTime": 232.02560997009277,
+    "moodleFoodEaten": 0,
+    "before": {
+     "calories": 786.8621826171875,
+     "carbs": -2.8696155548095703,
+     "lipids": -0.9264758825302124,
+     "proteins": -0.7051054239273071,
+     "weight": 80,
+     "hunger": 0.007734744343906641,
+     "thirst": 0.006470631808042526,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "queued_at_wall": 102.922,
+   "polls": [
+    {
+     "i": 1,
+     "wall": 106.201,
+     "moved": true,
+     "server_calories": 890.3742065429688,
+     "client_calories": 785.8361206054688
+    }
+   ],
+   "post_queue": {
+    "tag": "m5_post_queue",
+    "wall": 102.926,
+    "wall_done": 103.698,
+    "client": {
+     "calories": 786.605712890625,
+     "carbs": -2.925560235977173,
+     "lipids": -0.9445379972457886,
+     "proteins": -0.7188517451286316,
+     "weight": 80,
+     "hunger": 0.007886993698775768,
+     "thirst": 0.006598504725843668,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 102.926,
+      "wall_done": 103.437
+     }
+    },
+    "server": {
+     "calories": 786.4004516601562,
+     "carbs": -2.9703166484832764,
+     "lipids": -0.9589878916740417,
+     "proteins": -0.7298489809036255,
+     "weight": 80,
+     "hunger": 0.00800877995789051,
+     "thirst": 0.006700805388391018,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 103.437,
+      "wall_done": 103.698
+     }
+    },
+    "client_calories": 786.605712890625,
+    "server_calories": 786.4004516601562,
+    "client_flags": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "server_flags": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "client_weight": 80,
+    "server_weight": 80,
+    "flags_agree": true
+   },
+   "baseline_calories": 786.8621826171875,
+   "baseline_source": "eat.action ack `before.calories`",
+   "calories_moved": true,
+   "measured_wait_s": 4.804,
+   "globals": {
+    "client": {
+     "TK.version": {
+      "why": "control -- MUST answer 1 on BOTH sides; resolved=false here means the _G walk is broken, not that a mod global is absent",
+      "reply": {
+       "side": "client",
+       "name": "TK.version",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TK.version",
+        "wall": 107.726,
+        "wall_done": 108.232
+       }
+      }
+     },
+     "TKX_EatHook.calls": {
+      "why": "P6: >= 1 on BOTH sides. The server's from Eat @762 L5811; the client's from EatFoodPacket -> EatOnClient @0-@57 L5725-L5736, which applies NO numbers",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.calls",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.calls",
+        "wall": 109.745,
+        "wall_done": 110.251
+       }
+      }
+     },
+     "TKX_EatHook.completes": {
+      "why": "P7: >= 1 on the SERVER only. A client >= 1 would overturn LuaTimedActionNew.complete @31 L162",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.completes",
+       "type": "number",
+       "resolved": true,
+       "value": 0,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.completes",
+        "wall": 110.51,
+        "wall_done": 110.771
+       }
+      }
+     },
+     "TKX_EatHook.order": {
+      "why": "P7: begins \"complete\" on the server -- the Lua wrapper runs before IsoGameCharacter.Eat, which is the whole point of sitting there",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.order",
+       "type": "string",
+       "resolved": true,
+       "value": "onEat ",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.order",
+        "wall": 111.781,
+        "wall_done": 112.291
+       }
+      }
+     },
+     "TKX_EatHook.lastSide": {
+      "why": "which side the OnEat probe resolved itself as",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.lastSide",
+       "type": "string",
+       "resolved": true,
+       "value": "client",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastSide",
+        "wall": 113.553,
+        "wall_done": 113.81
+       }
+      }
+     },
+     "TKX_EatHook.lastFraction": {
+      "why": "the fraction the engine passed OnEat; -1 = never called",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.lastFraction",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastFraction",
+        "wall": 114.068,
+        "wall_done": 114.33
+       }
+      }
+     },
+     "TKX_EatHook.lastCalories": {
+      "why": "the calorie store as OnEat saw it; -1 = never called",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.lastCalories",
+       "type": "number",
+       "resolved": true,
+       "value": 890.3999633789062,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastCalories",
+        "wall": 115.593,
+        "wall_done": 115.852
+       }
+      }
+     },
+     "TKX_EatHook.lastComplete": {
+      "why": "the item the complete() wrapper saw, still intact",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.lastComplete",
+       "failedAt": "lastComplete",
+       "resolved": false,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastComplete",
+        "wall": 117.617,
+        "wall_done": 117.872
+       }
+      }
+     },
+     "TKX_EatHook.wrapped": {
+      "why": "NOT a measurement -- the disambiguator. completes == 0 with wrapped == false is 'the wrapper never installed'; with wrapped == true it is 'complete() never ran on this side'",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.wrapped",
+       "type": "boolean",
+       "resolved": true,
+       "value": true,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.wrapped",
+        "wall": 119.637,
+        "wall_done": 119.894
+       }
+      }
+     },
+     "TKX_EatHook.wrapAt": {
+      "why": "which install call did the wrapping (file scope / boot event)",
+      "reply": {
+       "side": "client",
+       "name": "TKX_EatHook.wrapAt",
+       "type": "string",
+       "resolved": true,
+       "value": "file",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.wrapAt",
+        "wall": 121.66,
+        "wall_done": 121.916
+       }
+      }
+     }
+    },
+    "server": {
+     "TK.version": {
+      "why": "control -- MUST answer 1 on BOTH sides; resolved=false here means the _G walk is broken, not that a mod global is absent",
+      "reply": {
+       "side": "server",
+       "name": "TK.version",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TK.version",
+        "wall": 108.232,
+        "wall_done": 109.741
+       }
+      }
+     },
+     "TKX_EatHook.calls": {
+      "why": "P6: >= 1 on BOTH sides. The server's from Eat @762 L5811; the client's from EatFoodPacket -> EatOnClient @0-@57 L5725-L5736, which applies NO numbers",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.calls",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.calls",
+        "wall": 110.251,
+        "wall_done": 110.507
+       }
+      }
+     },
+     "TKX_EatHook.completes": {
+      "why": "P7: >= 1 on the SERVER only. A client >= 1 would overturn LuaTimedActionNew.complete @31 L162",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.completes",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.completes",
+        "wall": 110.771,
+        "wall_done": 111.778
+       }
+      }
+     },
+     "TKX_EatHook.order": {
+      "why": "P7: begins \"complete\" on the server -- the Lua wrapper runs before IsoGameCharacter.Eat, which is the whole point of sitting there",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.order",
+       "type": "string",
+       "resolved": true,
+       "value": "complete onEat ",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.order",
+        "wall": 112.291,
+        "wall_done": 113.55
+       }
+      }
+     },
+     "TKX_EatHook.lastSide": {
+      "why": "which side the OnEat probe resolved itself as",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.lastSide",
+       "type": "string",
+       "resolved": true,
+       "value": "server",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastSide",
+        "wall": 113.81,
+        "wall_done": 114.066
+       }
+      }
+     },
+     "TKX_EatHook.lastFraction": {
+      "why": "the fraction the engine passed OnEat; -1 = never called",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.lastFraction",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastFraction",
+        "wall": 114.33,
+        "wall_done": 115.588
+       }
+      }
+     },
+     "TKX_EatHook.lastCalories": {
+      "why": "the calorie store as OnEat saw it; -1 = never called",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.lastCalories",
+       "type": "number",
+       "resolved": true,
+       "value": 890.3999633789062,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastCalories",
+        "wall": 115.852,
+        "wall_done": 117.61
+       }
+      }
+     },
+     "TKX_EatHook.lastComplete": {
+      "why": "the item the complete() wrapper saw, still intact",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.lastComplete",
+       "type": "string",
+       "resolved": true,
+       "value": "Base.Banana",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.lastComplete",
+        "wall": 117.872,
+        "wall_done": 119.634
+       }
+      }
+     },
+     "TKX_EatHook.wrapped": {
+      "why": "NOT a measurement -- the disambiguator. completes == 0 with wrapped == false is 'the wrapper never installed'; with wrapped == true it is 'complete() never ran on this side'",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.wrapped",
+       "type": "boolean",
+       "resolved": true,
+       "value": true,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.wrapped",
+        "wall": 119.894,
+        "wall_done": 121.654
+       }
+      }
+     },
+     "TKX_EatHook.wrapAt": {
+      "why": "which install call did the wrapping (file scope / boot event)",
+      "reply": {
+       "side": "server",
+       "name": "TKX_EatHook.wrapAt",
+       "type": "string",
+       "resolved": true,
+       "value": "file",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatHook.wrapAt",
+        "wall": 121.916,
+        "wall_done": 123.682
+       }
+      }
+     }
+    }
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "TKX_eat_onEat_client": "1"
+     },
+     "missing": [
+      "TKX_eat_onEat_server"
+     ],
+     "worldAge": 2.628612518310547,
+     "resolved": "admin",
+     "keyCount": 8,
+     "keys": [
+      "TKX_eat_onEat_client:number",
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 2,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin TKX_eat_onEat_server TKX_eat_onEat_client",
+      "wall": 123.684,
+      "wall_done": 124.189
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {
+      "TKX_eat_onEat_server": "1"
+     },
+     "missing": [
+      "TKX_eat_onEat_client"
+     ],
+     "worldAge": 2.633575439453125,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 2,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin TKX_eat_onEat_server TKX_eat_onEat_client",
+      "wall": 124.189,
+      "wall_done": 125.448
+     }
+    }
+   }
+  },
+  "M6": {
+   "question": "can a mod put a new nutrient field on PLAYER modData and have the client see it -- in the server -> client direction?",
+   "join": {
+    "tag": "m6_join",
+    "wall": 57.543,
+    "note": "as close to client_ready as the bus allows; the server's vanilla fitness keys are written LAZILY (~30 s), so a keyCount here is only readable beside its offset",
+    "scope": "player:admin *",
+    "client": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "TKX_fibre",
+      "TKX_fibre_client",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "TKX_fibre",
+      "TKX_fibre_client"
+     ],
+     "wall": 56.275,
+     "since_session_ready": 2.785,
+     "error": null
+    },
+    "server": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 1,
+     "keys": [
+      "TKX_fibre:number"
+     ],
+     "keyNames": [
+      "TKX_fibre"
+     ],
+     "beyondVanilla": [
+      "TKX_fibre"
+     ],
+     "wall": 56.781,
+     "since_session_ready": 3.291,
+     "error": null
+    },
+    "client_raw": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.3290348052978516,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 56.275,
+      "wall_done": 56.781
+     }
+    },
+    "server_raw": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.332890510559082,
+     "resolved": "admin",
+     "keyCount": 1,
+     "keys": [
+      "TKX_fibre:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 56.781,
+      "wall_done": 57.543
+     }
+    },
+    "server_only": [],
+    "client_only": [
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "identical": false,
+    "measured_span_s": 1.268
+   },
+   "late": {
+    "tag": "m6_late",
+    "wall": 127.72,
+    "note": "past the server's lazy vanilla-fitness write (>= 40.0 s since session_ready), and past M5, so the eat-hook's own modData keys are in the table the transmit below will send",
+    "scope": "player:admin *",
+    "client": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 8,
+     "keys": [
+      "TKX_eat_onEat_client:number",
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "TKX_eat_onEat_client",
+      "TKX_fibre",
+      "TKX_fibre_client",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "TKX_eat_onEat_client",
+      "TKX_fibre",
+      "TKX_fibre_client"
+     ],
+     "wall": 125.454,
+     "since_session_ready": 71.964,
+     "error": null
+    },
+    "server": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre"
+     ],
+     "wall": 125.709,
+     "since_session_ready": 72.219,
+     "error": null
+    },
+    "client_raw": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.6353063583374023,
+     "resolved": "admin",
+     "keyCount": 8,
+     "keys": [
+      "TKX_eat_onEat_client:number",
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "hotbar:table",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 125.454,
+      "wall_done": 125.709
+     }
+    },
+    "server_raw": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.6433420181274414,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 125.709,
+      "wall_done": 127.72
+     }
+    },
+    "server_only": [
+     "TKX_eat_onEat_server"
+    ],
+    "client_only": [
+     "TKX_eat_onEat_client",
+     "TKX_fibre_client",
+     "hotbar"
+    ],
+    "identical": false,
+    "measured_span_s": 2.266
+   },
+   "after_transmit": {
+    "tag": "m6_after_server_transmit",
+    "wall": 141.752,
+    "note": "after the mod's next EveryOneMinute tick cleared TKX_transmit_now and called player:transmitModData() SERVER-side -- the direction this library has never measured",
+    "scope": "player:admin *",
+    "client": {
+     "side": "client",
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "TKX_fibre_client",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "TKX_fibre_client"
+     ],
+     "wall": 140.485,
+     "since_session_ready": 86.995,
+     "error": null
+    },
+    "server": {
+     "side": "server",
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "keyNames": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "beyondVanilla": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre"
+     ],
+     "wall": 140.741,
+     "since_session_ready": 87.251,
+     "error": null
+    },
+    "client_raw": {
+     "side": "client",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.701784133911133,
+     "resolved": "admin",
+     "keyCount": 7,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "TKX_fibre_client:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 140.485,
+      "wall_done": 140.741
+     }
+    },
+    "server_raw": {
+     "side": "server",
+     "scope": "player",
+     "arg": "admin",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.7055206298828125,
+     "resolved": "admin",
+     "keyCount": 6,
+     "keys": [
+      "TKX_eat_onEat_server:number",
+      "TKX_fibre:number",
+      "fitnessMod:number",
+      "fitnessUpTimer:number",
+      "strengthMod:number",
+      "strengthUpTimer:number"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "player:admin *",
+      "wall": 140.741,
+      "wall_done": 141.752
+     }
+    },
+    "server_only": [],
+    "client_only": [
+     "TKX_fibre_client"
+    ],
+    "identical": false,
+    "measured_span_s": 1.267
+   },
+   "arm_step": {
+    "wall_before": 127.723,
+    "wall_after": 129.231,
+    "ack": {
+     "user": "admin",
+     "key": "TKX_transmit_now",
+     "value": "1",
+     "side": "server",
+     "keyCount": 7,
+     "keys": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "TKX_transmit_now",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "serverWorldAge": 2.6500043869018555
+    }
+   },
+   "measured_wait_s": 12.521,
+   "requested_wait_s": 11.25,
+   "tick_note": "EveryOneMinute fires every 3.75 s at DayLength 4 with settimespeed 1; the wait covers at least two firings."
+  },
+  "M7": {
+   "question": "does a custom item-modData field reach the client through syncItemFields()?",
+   "spawn": {
+    "type": "Base.Cheese",
+    "why": "M7: the mod writes item modData + syncItemFields() once per instance, on its next EveryOneMinute tick",
+    "rcon_ok": true,
+    "rcon_reply": "",
+    "wall_rcon": 141.772,
+    "attempts": [
+     {
+      "attempt": 1,
+      "wall": 144.783,
+      "resolved": "admin/Base.Cheese #399850461",
+      "id": 399850461
+     }
+    ],
+    "resolved": true,
+    "measured_wait_s": 3.011
+   },
+   "before": {
+    "tag": "m7_item_before",
+    "wall": 145.558,
+    "note": "the ITEM census, taken as early after the spawn as the bus allows; the mod's write lands on its next tick, so a TKX_fibre here means the tick beat the read -- which the wall stamps say",
+    "scope": "item:admin/Base.Cheese *",
+    "client": {
+     "side": "client",
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "keyNames": [
+      "TKX_fibre",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "TKX_fibre"
+     ],
+     "wall": 144.789,
+     "since_session_ready": 91.299,
+     "error": null
+    },
+    "server": {
+     "side": "server",
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "keyNames": [
+      "TKX_fibre",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "TKX_fibre"
+     ],
+     "wall": 145.3,
+     "since_session_ready": 91.81,
+     "error": null
+    },
+    "client_raw": {
+     "side": "client",
+     "scope": "item",
+     "arg": "admin/Base.Cheese",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.721867561340332,
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Base.Cheese *",
+      "wall": 144.789,
+      "wall_done": 145.3
+     }
+    },
+    "server_raw": {
+     "side": "server",
+     "scope": "item",
+     "arg": "admin/Base.Cheese",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.72329044342041,
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Base.Cheese *",
+      "wall": 145.3,
+      "wall_done": 145.558
+     }
+    },
+    "server_only": [],
+    "client_only": [],
+    "identical": true,
+    "measured_span_s": 0.769
+   },
+   "after": {
+    "tag": "m7_item_after",
+    "wall": 157.577,
+    "note": "after >= 2 EveryOneMinute firings",
+    "scope": "item:admin/Base.Cheese *",
+    "client": {
+     "side": "client",
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "keyNames": [
+      "TKX_fibre",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "TKX_fibre"
+     ],
+     "wall": 156.814,
+     "since_session_ready": 103.324,
+     "error": null
+    },
+    "server": {
+     "side": "server",
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "keyNames": [
+      "TKX_fibre",
+      "customName"
+     ],
+     "beyondVanilla": [
+      "TKX_fibre"
+     ],
+     "wall": 157.321,
+     "since_session_ready": 103.831,
+     "error": null
+    },
+    "client_raw": {
+     "side": "client",
+     "scope": "item",
+     "arg": "admin/Base.Cheese",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.7752208709716797,
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Base.Cheese *",
+      "wall": 156.814,
+      "wall_done": 157.321
+     }
+    },
+    "server_raw": {
+     "side": "server",
+     "scope": "item",
+     "arg": "admin/Base.Cheese",
+     "values": {},
+     "missing": {},
+     "worldAge": 2.7766008377075195,
+     "resolved": "admin/Base.Cheese #399850461",
+     "keyCount": 2,
+     "keys": [
+      "TKX_fibre:number",
+      "customName:string"
+     ],
+     "count": 0,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "item:admin/Base.Cheese *",
+      "wall": 157.321,
+      "wall_done": 157.577
+     }
+    },
+    "server_only": [],
+    "client_only": [],
+    "identical": true,
+    "measured_span_s": 0.763
+   },
+   "mod_globals": {
+    "client": {
+     "TKX_Nutrient.ticks": {
+      "side": "client",
+      "name": "TKX_Nutrient.ticks",
+      "type": "number",
+      "resolved": true,
+      "value": 58,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_Nutrient.ticks",
+       "wall": 157.584,
+       "wall_done": 157.839
+      }
+     },
+     "TKX_Nutrient.itemWrites": {
+      "side": "client",
+      "name": "TKX_Nutrient.itemWrites",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_Nutrient.itemWrites",
+       "wall": 159.347,
+       "wall_done": 159.859
+      }
+     },
+     "TKX_Nutrient.side": {
+      "side": "client",
+      "name": "TKX_Nutrient.side",
+      "type": "string",
+      "resolved": true,
+      "value": "server",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_Nutrient.side",
+       "wall": 161.624,
+       "wall_done": 161.884
+      }
+     }
+    },
+    "server": {
+     "TKX_Nutrient.ticks": {
+      "side": "server",
+      "name": "TKX_Nutrient.ticks",
+      "type": "number",
+      "resolved": true,
+      "value": 38,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_Nutrient.ticks",
+       "wall": 157.839,
+       "wall_done": 159.347
+      }
+     },
+     "TKX_Nutrient.itemWrites": {
+      "side": "server",
+      "name": "TKX_Nutrient.itemWrites",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_Nutrient.itemWrites",
+       "wall": 159.859,
+       "wall_done": 161.624
+      }
+     },
+     "TKX_Nutrient.side": {
+      "side": "server",
+      "name": "TKX_Nutrient.side",
+      "type": "string",
+      "resolved": true,
+      "value": "server",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_Nutrient.side",
+       "wall": 161.884,
+       "wall_done": 162.891
+      }
+     }
+    }
+   },
+   "measured_wait_s": 12.019,
+   "exclusion_set": [
+    "Tooltip",
+    "customName"
+   ],
+   "exclusion_note": "the ITEM exclusion set is applied HERE and nowhere else; the player censuses use the five vanilla player keys instead. `customName` is a deserialization side effect of InventoryItem.setCustomName, not mod data (exp08-20260910-152944)."
+  },
+  "M8": {
+   "question": "do the weight-direction flags agree across sides under a NON-TRIVIAL arm?",
+   "cadence": "per character update tick, no timer gate: IsoPlayer.update @8 -> updateInternal1 @51 L2200 -> updateInternal2 @392-@402 L2306-L2307 (gated only on SystemDisabler.doCharacterStats) -> Nutrition.update @107 L81 -> updateWeight. Jar-read 2026-09-11 on 42.20.4; `grep updateWeight` finds the name in only three classes and no caller of THIS one outside Nutrition itself.",
+   "wait_s": 8.0,
+   "baseline": {
+    "tag": "m8_baseline",
+    "wall": 162.898,
+    "wall_done": 163.662,
+    "client": {
+     "calories": 876.2105712890625,
+     "carbs": 20.667552947998047,
+     "lipids": -1.6383382081985474,
+     "proteins": -0.2536911070346832,
+     "weight": 80,
+     "hunger": 0.001824992592446506,
+     "thirst": 0.007072018459439278,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 162.898,
+      "wall_done": 163.404
+     }
+    },
+    "server": {
+     "calories": 876.00537109375,
+     "carbs": 20.6228084564209,
+     "lipids": -1.6527836322784424,
+     "proteins": -0.2646850347518921,
+     "weight": 80,
+     "hunger": 0.0019474847940728068,
+     "thirst": 0.007174287457019091,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 163.404,
+      "wall_done": 163.662
+     }
+    },
+    "client_calories": 876.2105712890625,
+    "server_calories": 876.00537109375,
+    "client_flags": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "server_flags": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "client_weight": 80,
+    "server_weight": 80,
+    "flags_agree": true
+   },
+   "baseline_calories": 876.00537109375,
+   "arms": [
+    {
+     "arm": "incWeight",
+     "wrote": "1500",
+     "set_ack": {
+      "calories": 1500,
+      "carbs": 20.511123657226562,
+      "lipids": -1.6888431310653687,
+      "proteins": -0.29212871193885803,
+      "weight": 80,
+      "hunger": 0.002253192011266947,
+      "thirst": 0.0074295774102211,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "requested_wait_s": 8.0,
+     "measured_wait_s": 8.004,
+     "reading": {
+      "tag": "m8_incWeight",
+      "wall": 173.684,
+      "wall_done": 175.702,
+      "client": {
+       "calories": 1497.8973388671875,
+       "carbs": 20.05232810974121,
+       "lipids": -1.8369693756103516,
+       "proteins": -0.40486207604408264,
+       "weight": 80.00064086914062,
+       "hunger": 0.003507995745167136,
+       "thirst": 0.008478260599076748,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": true,
+       "incWeightLot": false,
+       "decWeight": false,
+       "_probe": {
+        "cmd": "nutrition.get",
+        "args": "",
+        "wall": 173.684,
+        "wall_done": 174.19
+       }
+      },
+      "server": {
+       "calories": 1497.4359130859375,
+       "carbs": 19.951589584350586,
+       "lipids": -1.869491696357727,
+       "proteins": -0.4296136200428009,
+       "weight": 80.00077867500204,
+       "hunger": 0.003783287014812231,
+       "thirst": 0.008708509616553783,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": true,
+       "incWeightLot": false,
+       "decWeight": false,
+       "_probe": {
+        "cmd": "nutrition.get",
+        "args": "admin",
+        "wall": 174.19,
+        "wall_done": 175.702
+       }
+      },
+      "client_calories": 1497.8973388671875,
+      "server_calories": 1497.4359130859375,
+      "client_flags": {
+       "incWeight": true,
+       "incWeightLot": false,
+       "decWeight": false
+      },
+      "server_flags": {
+       "incWeight": true,
+       "incWeightLot": false,
+       "decWeight": false
+      },
+      "client_weight": 80.00064086914062,
+      "server_weight": 80.00077867500204,
+      "flags_agree": true
+     },
+     "server_flags": {
+      "incWeight": true,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "client_flags": {
+      "incWeight": true,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "flags_agree": true,
+     "server_calories": 1497.4359130859375,
+     "client_calories": 1497.8973388671875,
+     "wrote_float": 1500.0,
+     "delta_from_write": -2.564,
+     "clamped": false
+    },
+    {
+     "arm": "decWeight",
+     "wrote": "-100",
+     "set_ack": {
+      "calories": -100,
+      "carbs": 19.839723587036133,
+      "lipids": -1.905608892440796,
+      "proteins": -0.4571009874343872,
+      "weight": 80.00093419573022,
+      "hunger": 0.004088917747139931,
+      "thirst": 0.008964205160737038,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": true,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "requested_wait_s": 8.0,
+     "measured_wait_s": 8.004,
+     "reading": {
+      "tag": "m8_decWeight",
+      "wall": 185.725,
+      "wall_done": 187.74,
+      "client": {
+       "calories": -102.10445404052734,
+       "carbs": 19.380807876586914,
+       "lipids": -2.05376935005188,
+       "proteins": -0.5698604583740234,
+       "weight": 80.00089263916016,
+       "hunger": 0.005341701675206423,
+       "thirst": 0.010013137012720108,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": true,
+       "_probe": {
+        "cmd": "nutrition.get",
+        "args": "",
+        "wall": 185.725,
+        "wall_done": 186.231
+       }
+      },
+      "server": {
+       "calories": -102.5664291381836,
+       "carbs": 19.280067443847656,
+       "lipids": -2.0862948894500732,
+       "proteins": -0.5946140885353088,
+       "weight": 80.00087912549867,
+       "hunger": 0.005616508889943361,
+       "thirst": 0.010243403725326061,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": true,
+       "_probe": {
+        "cmd": "nutrition.get",
+        "args": "admin",
+        "wall": 186.231,
+        "wall_done": 187.74
+       }
+      },
+      "client_calories": -102.10445404052734,
+      "server_calories": -102.5664291381836,
+      "client_flags": {
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": true
+      },
+      "server_flags": {
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": true
+      },
+      "client_weight": 80.00089263916016,
+      "server_weight": 80.00087912549867,
+      "flags_agree": true
+     },
+     "server_flags": {
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": true
+     },
+     "client_flags": {
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": true
+     },
+     "flags_agree": true,
+     "server_calories": -102.5664291381836,
+     "client_calories": -102.10445404052734,
+     "wrote_float": -100.0,
+     "delta_from_write": -2.566,
+     "clamped": false
+    }
+   ],
+   "threshold_model": "at weight 80 the gain threshold is 1000 + (80-80)*40 = 1000 and the loss threshold 0, so 1500 takes the incWeight arm and -100 the decWeight arm -- unless the store clamps at 0 on the negative write, which is itself the reading."
+  },
+  "M9": {
+   "question": "does the receiver of a transmitModData() WIPE before it rawsets?",
+   "transmit_wipe": {
+    "before": {
+     "client": {
+      "side": "client",
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_eat_onEat_server:number",
+       "TKX_fibre:number",
+       "TKX_fibre_client:number",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "keyNames": [
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "TKX_fibre_client",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "beyondVanilla": [
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "TKX_fibre_client"
+      ],
+      "wall": 189.266,
+      "since_session_ready": 135.776,
+      "error": null
+     },
+     "server": {
+      "side": "server",
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_ServerOnly:string",
+       "TKX_eat_onEat_server:number",
+       "TKX_fibre:number",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "keyNames": [
+       "TKX_ServerOnly",
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "beyondVanilla": [
+       "TKX_ServerOnly",
+       "TKX_eat_onEat_server",
+       "TKX_fibre"
+      ],
+      "wall": 189.772,
+      "since_session_ready": 136.282,
+      "error": null
+     }
+    },
+    "after": {
+     "client": {
+      "side": "client",
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_eat_onEat_server:number",
+       "TKX_fibre:number",
+       "TKX_fibre_client:number",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "keyNames": [
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "TKX_fibre_client",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "beyondVanilla": [
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "TKX_fibre_client"
+      ],
+      "wall": 191.796,
+      "since_session_ready": 138.306,
+      "error": null
+     },
+     "server": {
+      "side": "server",
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_eat_onEat_server:number",
+       "TKX_fibre:number",
+       "TKX_fibre_client:number",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "keyNames": [
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "TKX_fibre_client",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "beyondVanilla": [
+       "TKX_eat_onEat_server",
+       "TKX_fibre",
+       "TKX_fibre_client"
+      ],
+      "wall": 192.302,
+      "since_session_ready": 138.812,
+      "error": null
+     }
+    }
+   },
+   "plant_step": {
+    "wall_before": 187.753,
+    "wall_after": 189.262,
+    "ack": {
+     "user": "admin",
+     "key": "TKX_ServerOnly",
+     "value": "1",
+     "side": "server",
+     "keyCount": 7,
+     "keys": [
+      "TKX_ServerOnly",
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "serverWorldAge": 2.9169092178344727
+    }
+   },
+   "transmit_step": {
+    "wall_before": 191.537,
+    "wall_after": 191.791,
+    "ack": "transmitted"
+   },
+   "measured_wait_s": 1.27,
+   "masking_note": "only TKX_ServerOnly is an unambiguous reading here: the mod rewrites TKX_fibre server-side on every tick, so its presence after the transmit cannot distinguish 'never wiped' from 'wiped and rewritten'."
+  }
+ },
+ "verdicts": {
+  "M1": {
+   "phase": "M1",
+   "predicted": "P1: foodByModule.TKX == 3 and foodByModule.Base == 722 (-0 against the baseline) -- a redefinition REPLACES, it does not add",
+   "falsifier": "725 falsifies it (a redefinition ADDS). 721 says the narrowed Orange lost its ItemType after all and R2 must be re-read before M2 is graded",
+   "observed": {
+    "foodByModule.TKX": 3,
+    "foodByModule.Base": 722,
+    "delta_vs_baseline": 0,
+    "total": 5095,
+    "food": 725,
+    "script_access": {
+     "Base.Apple": {
+      "client": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      },
+      "server": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      }
+     },
+     "Base.Orange": {
+      "client": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      },
+      "server": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      }
+     },
+     "Base.Watermelon": {
+      "client": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      },
+      "server": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      }
+     },
+     "TKX.FibreBar": {
+      "client": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      },
+      "server": {
+       "answered": [
+        "DaysFresh",
+        "DaysTotallyRotten",
+        "HungerChange",
+        "IsCookable",
+        "MinutesToBurn",
+        "MinutesToCook",
+        "ThirstChange"
+       ],
+       "absent": [
+        "Calories",
+        "Carbohydrates",
+        "Lipids",
+        "Proteins"
+       ],
+       "via": "getItem",
+       "macro_keys_present": []
+      }
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 65.34
+  },
+  "M2a": {
+   "phase": "M2a",
+   "predicted": "P2: Apple getCalories 400 on BOTH sides, every other macro at vanilla -- a full restatement changes exactly what it restates differently",
+   "falsifier": "a getCalories of 95 says the mod's block never applied; a macro off vanilla says a full restatement is not a clean substitution",
+   "observed": {
+    "getCalories": {
+     "client": 400,
+     "server": 400
+    },
+    "others": {
+     "getCarbohydrates": {
+      "client": 25.1299991607666,
+      "server": 25.1299991607666,
+      "vanilla": 25.13,
+      "at_vanilla_client": true
+     },
+     "getLipids": {
+      "client": 0.3100000023841858,
+      "server": 0.3100000023841858,
+      "vanilla": 0.31,
+      "at_vanilla_client": true
+     },
+     "getProteins": {
+      "client": 0.4699999988079071,
+      "server": 0.4699999988079071,
+      "vanilla": 0.47,
+      "at_vanilla_client": true
+     },
+     "getHungChange": {
+      "client": -0.1599999964237213,
+      "server": -0.1599999964237213,
+      "vanilla": -0.16,
+      "at_vanilla_client": true
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 75.538
+  },
+  "M2b": {
+   "phase": "M2b",
+   "predicted": "P3: Orange getCalories 400, with the ResetExisting replacement showing in EITHER readable form -- getHungChange and getCarbohydrates at 0 (arm A, still a Food), or those two in the reply's `missing` set (arm B, a plain InventoryItem). Both are the same finding: a WHOLESALE RESET",
+   "falsifier": "-0.12 / 16.27 SURVIVING is a field merge and falsifies the reset reading outright",
+   "observed": {
+    "getCalories": {
+     "client": 400,
+     "server": 400
+    },
+    "getHungChange": {
+     "client": -0.11999999731779099,
+     "server": -0.11999999731779099
+    },
+    "getCarbohydrates": {
+     "client": 16.270000457763672,
+     "server": 16.270000457763672
+    },
+    "missing": {
+     "client": [],
+     "server": []
+    },
+    "vanilla": {
+     "getHungChange": -0.12,
+     "getCarbohydrates": 16.27,
+     "getCalories": 65.0
+    },
+    "arm": "FIELD MERGE -- the vanilla keys the mod's block omits survived"
+   },
+   "verdict": "falsified",
+   "wall": 75.541
+  },
+  "M3": {
+   "phase": "M3",
+   "predicted": "P4: getCalories 777 -- the body of the mod LATER in Mods= is applied last (ScriptBucket.LoadScripts replays LoadData.scriptBodies in order)",
+   "falsifier": "111 means FIRST-wins and inverts the rule; 1355 means neither body applied",
+   "observed": {
+    "getCalories": {
+     "client": 111,
+     "server": 111
+    },
+    "mods_order": [
+     "PZTestKit",
+     "TKX_ItemOverride",
+     "TKX_Nutrient",
+     "TKX_EatHook"
+    ],
+    "candidates": {
+     "TKX_ItemOverride": 111.0,
+     "TKX_EatHook": 777.0,
+     "vanilla": 1355.0
+    }
+   },
+   "verdict": "falsified",
+   "wall": 80.434
+  },
+  "M4": {
+   "phase": "M4",
+   "predicted": "P5: Json resolves its name and keeps a non-zero getActualWeightUnmodded; Named (B41 .txt only) and the untranslated FibreBar read getDisplayName() == getFullType() and 0. That splits slice 09's hypotheses (ii) and (iii): a server-side hit on Json kills (iii), a miss on Named confirms (ii)",
+   "falsifier": "a Named that resolves means the B41 .txt layout is still read on 42.20.4; a Json that misses means the .json layout is not, and hypothesis (iii) survives",
+   "observed": {
+    "names": {
+     "TKX.FibreBar": {
+      "client": {
+       "getDisplayName": "TKX.FibreBar",
+       "getFullType": "TKX.FibreBar",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0,
+       "resolved": "admin/TKX.FibreBar #1426125880",
+       "translated": false
+      },
+      "server": {
+       "getDisplayName": "TKX.FibreBar",
+       "getFullType": "TKX.FibreBar",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0,
+       "resolved": "admin/TKX.FibreBar #1426125880",
+       "translated": false
+      }
+     },
+     "TKX.FibreBarNamed": {
+      "client": {
+       "getDisplayName": "TKX.FibreBarNamed",
+       "getFullType": "TKX.FibreBarNamed",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0,
+       "resolved": "admin/TKX.FibreBarNamed #1964288037",
+       "translated": false
+      },
+      "server": {
+       "getDisplayName": "TKX.FibreBarNamed",
+       "getFullType": "TKX.FibreBarNamed",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0,
+       "resolved": "admin/TKX.FibreBarNamed #1964288037",
+       "translated": false
+      }
+     },
+     "TKX.FibreBarJson": {
+      "client": {
+       "getDisplayName": "TKX Fibre Bar Json",
+       "getFullType": "TKX.FibreBarJson",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0.30000001192092896,
+       "resolved": "admin/TKX.FibreBarJson #1295560222",
+       "translated": true
+      },
+      "server": {
+       "getDisplayName": "TKX.FibreBarJson",
+       "getFullType": "TKX.FibreBarJson",
+       "getActualWeight": 0.30000001192092896,
+       "getActualWeightUnmodded": 0,
+       "resolved": "admin/TKX.FibreBarJson #1295560222",
+       "translated": false
+      }
+     }
+    },
+    "text": {
+     "ItemName_TKX.FibreBarJson": {
+      "client": {
+       "text": "ItemName_TKX.FibreBarJson",
+       "miss": true
+      },
+      "server": {
+       "text": "ItemName_TKX.FibreBarJson",
+       "miss": true
+      }
+     },
+     "ItemName_TKX.FibreBarNamed": {
+      "client": {
+       "text": "ItemName_TKX.FibreBarNamed",
+       "miss": true
+      },
+      "server": {
+       "text": "ItemName_TKX.FibreBarNamed",
+       "miss": true
+      }
+     },
+     "ItemName_TKX.FibreBar": {
+      "client": {
+       "text": "ItemName_TKX.FibreBar",
+       "miss": true
+      },
+      "server": {
+       "text": "ItemName_TKX.FibreBar",
+       "miss": true
+      }
+     },
+     "ItemName_Base.Apple": {
+      "client": {
+       "text": "ItemName_Base.Apple",
+       "miss": true
+      },
+      "server": {
+       "text": "ItemName_Base.Apple",
+       "miss": true
+      }
+     }
+    },
+    "json_translated": true,
+    "named_translated": false,
+    "plain_translated": false,
+    "server_text_inconclusive": {
+     "ItemName_TKX.FibreBarJson": false,
+     "ItemName_TKX.FibreBarNamed": false,
+     "ItemName_TKX.FibreBar": false,
+     "ItemName_Base.Apple": false
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 99.653
+  },
+  "M5a": {
+   "phase": "M5a",
+   "predicted": "P6: TKX_EatHook.calls >= 1 on BOTH sides -- the server's from Eat @762 L5811, the client's from EatFoodPacket -> EatOnClient @0-@57 L5725-L5736, which applies NO numbers",
+   "falsifier": "calls == 0 on a side means OnEat never fired there; a client 0 with a server >= 1 would mean EatOnClient does not resolve the script's OnEat at all",
+   "observed": {
+    "calls": {
+     "client": 1,
+     "server": 1
+    },
+    "lastSide": {
+     "client": "client",
+     "server": "server"
+    },
+    "lastFraction": {
+     "client": 1,
+     "server": 1
+    },
+    "lastCalories": {
+     "client": 890.3999633789062,
+     "server": 890.3999633789062
+    },
+    "moddata": {
+     "client": {
+      "TKX_eat_onEat_client": "1"
+     },
+     "server": {
+      "TKX_eat_onEat_server": "1"
+     }
+    },
+    "TK_version_control": {
+     "client": 1,
+     "server": 1
+    },
+    "calories_moved": true
+   },
+   "verdict": "as_predicted",
+   "wall": 125.448
+  },
+  "M5b": {
+   "phase": "M5b",
+   "predicted": "P7: completes >= 1 on the SERVER ONLY, and `order` begins \"complete\" -- the Lua wrapper runs BEFORE IsoGameCharacter.Eat, which is why a mod that wants the item intact has to sit there",
+   "falsifier": "a client completes >= 1 would overturn LuaTimedActionNew.complete @31 L162 (the Lua complete is skipped when GameClient.client); an order beginning \"onEat\" on the server would put the wrapper AFTER Eat",
+   "observed": {
+    "completes": {
+     "client": 0,
+     "server": 1
+    },
+    "order": {
+     "client": "onEat ",
+     "server": "complete onEat "
+    },
+    "wrapped": {
+     "client": true,
+     "server": true
+    },
+    "wrapAt": {
+     "client": "file",
+     "server": "file"
+    },
+    "lastComplete": {
+     "client": null,
+     "server": "Base.Banana"
+    },
+    "disambiguation": "completes == 0 with wrapped == false is 'the wrapper never installed on this side' -- a DIFFERENT finding from 'complete() never ran there', and the reason `wrapped` is read at all."
+   },
+   "verdict": "as_predicted",
+   "wall": 125.451
+  },
+  "M6": {
+   "phase": "M6",
+   "predicted": "P8: TKX_fibre present SERVER-SIDE ONLY before the transmit; after the server-side transmitModData() the client's census GAINS it and becomes exactly the server's -- the untested direction of slice 10's wipe-and-replace",
+   "falsifier": "a client that still lacks TKX_fibre after the transmit says the server -> client direction does not carry modData at all; a client that gains it while KEEPING keys the server never had says the receiver MERGES rather than wipes-and-replaces",
+   "observed": {
+    "before": {
+     "server_keys": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "client_keys": [
+      "TKX_eat_onEat_client",
+      "TKX_fibre",
+      "TKX_fibre_client",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "server_only": [
+      "TKX_eat_onEat_server"
+     ],
+     "client_only": [
+      "TKX_eat_onEat_client",
+      "TKX_fibre_client",
+      "hotbar"
+     ],
+     "TKX_fibre_server": true,
+     "TKX_fibre_client": true
+    },
+    "after": {
+     "server_keys": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "client_keys": [
+      "TKX_eat_onEat_server",
+      "TKX_fibre",
+      "TKX_fibre_client",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "server_only": [],
+     "client_only": [
+      "TKX_fibre_client"
+     ],
+     "TKX_fibre_client": true,
+     "identical": false
+    },
+    "arm": "the client ALREADY held TKX_fibre before the transmit -- P8's premise (server-side only) does not hold on this build, and the route that carried it earlier is the finding",
+    "join": {
+     "server_keys": [
+      "TKX_fibre"
+     ],
+     "client_keys": [
+      "TKX_fibre",
+      "TKX_fibre_client",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "hotbar",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "client_since_ready": 2.785,
+     "server_since_ready": 3.291
+    },
+    "client_only_after_less_rewrites": [],
+    "replacement_reading": "the client's table is the server's once the keys the CLIENT's own mod rewrites every tick are set aside; ['TKX_fibre_client'] is that set, and a non-empty `client_only_after_less_rewrites` is what would say the receiver MERGES. `identical` is reported but NOT graded, for the same reason.",
+    "graded_on": "the client gaining TKX_fibre; `identical` is secondary"
+   },
+   "verdict": "trivial",
+   "wall": 141.756
+  },
+  "M7": {
+   "phase": "M7",
+   "predicted": "P9: TKX_fibre reaches the client through syncItemFields() (SyncItemFieldsPacket.processModData wipes and replaces)",
+   "falsifier": "TKX_fibre on the server and NOT on the client falsifies P9. TKX_fibre on NEITHER side is unmeasured, not falsified: the mod's own write did not happen (read itemWrites)",
+   "observed": {
+    "server_keys": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "client_keys": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "before_server": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "before_client": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "TKX_fibre_server": true,
+    "TKX_fibre_client": true,
+    "server_values": {},
+    "itemWrites_server": 0,
+    "consequence": "if it does not reach the client, per-item custom nutrients are a CANNOT for slice 13."
+   },
+   "verdict": "as_predicted",
+   "wall": 162.891
+  },
+  "M8": {
+   "phase": "M8",
+   "predicted": "P10: at weight 80 the gain threshold is 1000, so 1500 takes the incWeight arm and -100 the decWeight arm; both sides should AGREE if the client recomputes the flags (updateWeight's flag half sits ahead of the GameClient.client skip at @317-@320 L198)",
+   "falsifier": "a disagreement on either arm falsifies the slice-10 flag-mirroring finding under a non-trivial arm -- which is exactly what slice 11 could not test. A clamp at 0 on the negative write makes the decWeight half TRIVIAL, and that is the reading, not a retry",
+   "observed": {
+    "incWeight_arm": {
+     "wrote": "1500",
+     "server_flags": {
+      "incWeight": true,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "client_flags": {
+      "incWeight": true,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "flags_agree": true,
+     "server_calories": 1497.4359130859375,
+     "client_calories": 1497.8973388671875,
+     "measured_wait_s": 8.004
+    },
+    "decWeight_arm": {
+     "wrote": "-100",
+     "server_flags": {
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": true
+     },
+     "client_flags": {
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": true
+     },
+     "flags_agree": true,
+     "server_calories": -102.5664291381836,
+     "client_calories": -102.10445404052734,
+     "measured_wait_s": 8.004,
+     "clamped": false
+    },
+    "weight": {
+     "server": 80,
+     "client": 80
+    },
+    "cadence": "per character update tick, no timer gate: IsoPlayer.update @8 -> updateInternal1 @51 L2200 -> updateInternal2 @392-@402 L2306-L2307 (gated only on SystemDisabler.doCharacterStats) -> Nutrition.update @107 L81 -> updateWeight. Jar-read 2026-09-11 on 42.20.4; `grep updateWeight` finds the name in only three classes and no caller of THIS one outside Nutrition itself.",
+    "wait_s": 8.0
+   },
+   "verdict": "as_predicted",
+   "wall": 187.749
+  },
+  "M9": {
+   "phase": "M9",
+   "predicted": "P11: the server's census has LOST TKX_ServerOnly after the client's transmit -- KahluaTableImpl.load @5-@6 L333 wipes before it rawsets, so the receiver keeps only what the sender sent. Pass 3 corroborated wipe-and-REPLACE only; the wipe half rested on a single pass-2 reading and this takes it to n = 2",
+   "falsifier": "TKX_ServerOnly still present server-side falsifies it and says the receiver MERGES",
+   "observed": {
+    "planted_server_side": true,
+    "present_after_client_transmit": false,
+    "server_before": [
+     "TKX_ServerOnly",
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "server_after": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "client_before": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "client_after": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "server_only_after": [],
+    "client_only_after": []
+   },
+   "verdict": "as_predicted",
+   "wall": 193.066
+  }
+ },
+ "session_ready_wall": 53.49,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "item.script",
+   "args": "TKX.FibreBar",
+   "expect": "\"DaysFresh\": 42",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.FibreBar",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -20,
+    "ThirstChange": 0,
+    "DaysFresh": 42,
+    "DaysTotallyRotten": 84,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TKX_Nutrient.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TKX_Nutrient.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_EatHook.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_EatHook.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "greps": {
+  "overrides": {
+   "pattern": "mod \"TKX_[A-Za-z]+\" overrides",
+   "limit": 20,
+   "server": {
+    "count": 4,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:827,360,889> mod \"TKX_ItemOverride\" overrides"
+     },
+     {
+      "line": 96,
+      "text": "LOG  : Mod          f:0 st:827,360,889> mod \"TKX_ItemOverride\" overrides media/lua/shared/translate/en/itemname.json"
+     },
+     {
+      "line": 98,
+      "text": "LOG  : Mod          f:0 st:827,360,890> mod \"TKX_Nutrient\" overrides"
+     },
+     {
+      "line": 100,
+      "text": "LOG  : Mod          f:0 st:827,360,890> mod \"TKX_EatHook\" overrides"
+     }
+    ]
+   },
+   "client": {
+    "count": 8,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_ItemOverride\" overrides"
+     },
+     {
+      "line": 86,
+      "text": "LOG  : Mod          f:0> mod \"TKX_ItemOverride\" overrides media/lua/shared/translate/en/itemname.json"
+     },
+     {
+      "line": 88,
+      "text": "LOG  : Mod          f:0> mod \"TKX_Nutrient\" overrides"
+     },
+     {
+      "line": 90,
+      "text": "LOG  : Mod          f:0> mod \"TKX_EatHook\" overrides"
+     },
+     {
+      "line": 169,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ItemOverride\" overrides"
+     },
+     {
+      "line": 170,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ItemOverride\" overrides media/lua/shared/translate/en/itemname.json"
+     },
+     {
+      "line": 172,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_Nutrient\" overrides"
+     },
+     {
+      "line": 174,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_EatHook\" overrides"
+     }
+    ]
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "overrides"
+  },
+  "loading": {
+   "pattern": "loading TKX_",
+   "limit": 16,
+   "server": {
+    "count": 3,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:827,360,889> loading TKX_ItemOverride"
+     },
+     {
+      "line": 97,
+      "text": "LOG  : Mod          f:0 st:827,360,890> loading TKX_Nutrient"
+     },
+     {
+      "line": 99,
+      "text": "LOG  : Mod          f:0 st:827,360,890> loading TKX_EatHook"
+     }
+    ]
+   },
+   "client": {
+    "count": 6,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_ItemOverride"
+     },
+     {
+      "line": 87,
+      "text": "LOG  : Mod          f:0> loading TKX_Nutrient"
+     },
+     {
+      "line": 89,
+      "text": "LOG  : Mod          f:0> loading TKX_EatHook"
+     },
+     {
+      "line": 168,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_ItemOverride"
+     },
+     {
+      "line": 171,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_Nutrient"
+     },
+     {
+      "line": 173,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_EatHook"
+     }
+    ]
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "loading"
+  },
+  "lua_errors": {
+   "pattern": "tried to call nil|stack traceback|attempted to index",
+   "limit": 12,
+   "server": {
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client": {
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "lua_errors"
+  },
+  "reading": "`overrides` is the loader's activeFileMap shadowing print, one line per shadowed file per mod. TKX_ItemOverride ships media/lua/shared/Translate/EN/ItemName.json, which COLLIDES with vanilla's -- so an `itemname.json` tail here is what makes M4's vanilla text.get control load-bearing rather than decorative."
+ },
+ "censuses": [
+  {
+   "tag": "m6_join",
+   "wall": 57.543,
+   "note": "as close to client_ready as the bus allows; the server's vanilla fitness keys are written LAZILY (~30 s), so a keyCount here is only readable beside its offset",
+   "scope": "player:admin *",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_fibre",
+     "TKX_fibre_client"
+    ],
+    "wall": 56.275,
+    "since_session_ready": 2.785,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 1,
+    "keys": [
+     "TKX_fibre:number"
+    ],
+    "keyNames": [
+     "TKX_fibre"
+    ],
+    "beyondVanilla": [
+     "TKX_fibre"
+    ],
+    "wall": 56.781,
+    "since_session_ready": 3.291,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.3290348052978516,
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 56.275,
+     "wall_done": 56.781
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.332890510559082,
+    "resolved": "admin",
+    "keyCount": 1,
+    "keys": [
+     "TKX_fibre:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 56.781,
+     "wall_done": 57.543
+    }
+   },
+   "server_only": [],
+   "client_only": [
+    "TKX_fibre_client",
+    "fitnessMod",
+    "fitnessUpTimer",
+    "hotbar",
+    "strengthMod",
+    "strengthUpTimer"
+   ],
+   "identical": false,
+   "measured_span_s": 1.268
+  },
+  {
+   "tag": "m6_late",
+   "wall": 127.72,
+   "note": "past the server's lazy vanilla-fitness write (>= 40.0 s since session_ready), and past M5, so the eat-hook's own modData keys are in the table the transmit below will send",
+   "scope": "player:admin *",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 8,
+    "keys": [
+     "TKX_eat_onEat_client:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_client",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "hotbar",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_client",
+     "TKX_fibre",
+     "TKX_fibre_client"
+    ],
+    "wall": 125.454,
+    "since_session_ready": 71.964,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre"
+    ],
+    "wall": 125.709,
+    "since_session_ready": 72.219,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.6353063583374023,
+    "resolved": "admin",
+    "keyCount": 8,
+    "keys": [
+     "TKX_eat_onEat_client:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "hotbar:table",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 125.454,
+     "wall_done": 125.709
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.6433420181274414,
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 125.709,
+     "wall_done": 127.72
+    }
+   },
+   "server_only": [
+    "TKX_eat_onEat_server"
+   ],
+   "client_only": [
+    "TKX_eat_onEat_client",
+    "TKX_fibre_client",
+    "hotbar"
+   ],
+   "identical": false,
+   "measured_span_s": 2.266
+  },
+  {
+   "tag": "m6_after_server_transmit",
+   "wall": 141.752,
+   "note": "after the mod's next EveryOneMinute tick cleared TKX_transmit_now and called player:transmitModData() SERVER-side -- the direction this library has never measured",
+   "scope": "player:admin *",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client"
+    ],
+    "wall": 140.485,
+    "since_session_ready": 86.995,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre"
+    ],
+    "wall": 140.741,
+    "since_session_ready": 87.251,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.701784133911133,
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 140.485,
+     "wall_done": 140.741
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.7055206298828125,
+    "resolved": "admin",
+    "keyCount": 6,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 140.741,
+     "wall_done": 141.752
+    }
+   },
+   "server_only": [],
+   "client_only": [
+    "TKX_fibre_client"
+   ],
+   "identical": false,
+   "measured_span_s": 1.267
+  },
+  {
+   "tag": "m7_item_before",
+   "wall": 145.558,
+   "note": "the ITEM census, taken as early after the spawn as the bus allows; the mod's write lands on its next tick, so a TKX_fibre here means the tick beat the read -- which the wall stamps say",
+   "scope": "item:admin/Base.Cheese *",
+   "client": {
+    "side": "client",
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "keyNames": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "beyondVanilla": [
+     "TKX_fibre"
+    ],
+    "wall": 144.789,
+    "since_session_ready": 91.299,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "keyNames": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "beyondVanilla": [
+     "TKX_fibre"
+    ],
+    "wall": 145.3,
+    "since_session_ready": 91.81,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "item",
+    "arg": "admin/Base.Cheese",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.721867561340332,
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Base.Cheese *",
+     "wall": 144.789,
+     "wall_done": 145.3
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/Base.Cheese",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.72329044342041,
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Base.Cheese *",
+     "wall": 145.3,
+     "wall_done": 145.558
+    }
+   },
+   "server_only": [],
+   "client_only": [],
+   "identical": true,
+   "measured_span_s": 0.769
+  },
+  {
+   "tag": "m7_item_after",
+   "wall": 157.577,
+   "note": "after >= 2 EveryOneMinute firings",
+   "scope": "item:admin/Base.Cheese *",
+   "client": {
+    "side": "client",
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "keyNames": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "beyondVanilla": [
+     "TKX_fibre"
+    ],
+    "wall": 156.814,
+    "since_session_ready": 103.324,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "keyNames": [
+     "TKX_fibre",
+     "customName"
+    ],
+    "beyondVanilla": [
+     "TKX_fibre"
+    ],
+    "wall": 157.321,
+    "since_session_ready": 103.831,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "item",
+    "arg": "admin/Base.Cheese",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.7752208709716797,
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Base.Cheese *",
+     "wall": 156.814,
+     "wall_done": 157.321
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "item",
+    "arg": "admin/Base.Cheese",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.7766008377075195,
+    "resolved": "admin/Base.Cheese #399850461",
+    "keyCount": 2,
+    "keys": [
+     "TKX_fibre:number",
+     "customName:string"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "item:admin/Base.Cheese *",
+     "wall": 157.321,
+     "wall_done": 157.577
+    }
+   },
+   "server_only": [],
+   "client_only": [],
+   "identical": true,
+   "measured_span_s": 0.763
+  },
+  {
+   "tag": "m9_before",
+   "wall": 191.532,
+   "note": "TKX_ServerOnly planted SERVER-side, BEFORE any client transmit -- a key the client's copy has never held",
+   "scope": "player:admin *",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client"
+    ],
+    "wall": 189.266,
+    "since_session_ready": 135.776,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_ServerOnly:string",
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_ServerOnly",
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_ServerOnly",
+     "TKX_eat_onEat_server",
+     "TKX_fibre"
+    ],
+    "wall": 189.772,
+    "since_session_ready": 136.282,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.919367790222168,
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 189.266,
+     "wall_done": 189.772
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.927570343017578,
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_ServerOnly:string",
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 189.772,
+     "wall_done": 191.532
+    }
+   },
+   "server_only": [
+    "TKX_ServerOnly"
+   ],
+   "client_only": [
+    "TKX_fibre_client"
+   ],
+   "identical": false,
+   "measured_span_s": 2.266
+  },
+  {
+   "tag": "m9_after",
+   "wall": 193.061,
+   "note": "immediately after the CLIENT's transmitModData(); read fast, because the mod's own EveryOneMinute tick re-writes TKX_fibre server-side every 3.75 s and would mask a wipe of THAT key (never of TKX_ServerOnly, which nothing rewrites)",
+   "scope": "player:admin *",
+   "client": {
+    "side": "client",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client"
+    ],
+    "wall": 191.796,
+    "since_session_ready": 138.306,
+    "error": null
+   },
+   "server": {
+    "side": "server",
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "keyNames": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "beyondVanilla": [
+     "TKX_eat_onEat_server",
+     "TKX_fibre",
+     "TKX_fibre_client"
+    ],
+    "wall": 192.302,
+    "since_session_ready": 138.812,
+    "error": null
+   },
+   "client_raw": {
+    "side": "client",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.930525779724121,
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 191.796,
+     "wall_done": 192.302
+    }
+   },
+   "server_raw": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {},
+    "missing": {},
+    "worldAge": 2.933342933654785,
+    "resolved": "admin",
+    "keyCount": 7,
+    "keys": [
+     "TKX_eat_onEat_server:number",
+     "TKX_fibre:number",
+     "TKX_fibre_client:number",
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 0,
+    "_probe": {
+     "cmd": "witness.moddata",
+     "args": "player:admin *",
+     "wall": 192.302,
+     "wall_done": 193.06
+    }
+   },
+   "server_only": [],
+   "client_only": [],
+   "identical": true,
+   "measured_span_s": 1.265
+  }
+ ],
+ "timeline": [
+  {
+   "t": 53.5,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.FibreBar\", \"via\": \"getItem\", \"side\": \"server\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 55.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_Nutrient.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 56.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_EatHook.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 56.3,
+   "phase": "greps",
+   "overrides_server": 4,
+   "overrides_client": 8
+  },
+  {
+   "t": 57.5,
+   "phase": "census",
+   "tag": "m6_join",
+   "server": 1,
+   "client": 7
+  },
+  {
+   "t": 57.8,
+   "phase": "step",
+   "took": 0.252,
+   "name": "m1_items_count",
+   "cmd": "items.count"
+  },
+  {
+   "t": 65.3,
+   "phase": "verdict",
+   "name": "M1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 68.2,
+   "phase": "spawn",
+   "type": "Base.Apple",
+   "resolved": true
+  },
+  {
+   "t": 69.7,
+   "phase": "step",
+   "took": 0.509,
+   "name": "m2_item_get_Base.Apple",
+   "cmd": "item.get"
+  },
+  {
+   "t": 72.7,
+   "phase": "spawn",
+   "type": "Base.Orange",
+   "resolved": true
+  },
+  {
+   "t": 75.5,
+   "phase": "step",
+   "took": 1.761,
+   "name": "m2_item_get_Base.Orange",
+   "cmd": "item.get"
+  },
+  {
+   "t": 75.5,
+   "phase": "verdict",
+   "name": "M2a",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 75.5,
+   "phase": "verdict",
+   "name": "M2b",
+   "verdict": "falsified"
+  },
+  {
+   "t": 78.4,
+   "phase": "spawn",
+   "type": "Base.Watermelon",
+   "resolved": true
+  },
+  {
+   "t": 80.4,
+   "phase": "step",
+   "took": 0.757,
+   "name": "m3_item_get",
+   "cmd": "item.get"
+  },
+  {
+   "t": 80.4,
+   "phase": "verdict",
+   "name": "M3",
+   "verdict": "falsified"
+  },
+  {
+   "t": 83.2,
+   "phase": "spawn",
+   "type": "TKX.FibreBar",
+   "resolved": true
+  },
+  {
+   "t": 87.3,
+   "phase": "spawn",
+   "type": "TKX.FibreBarNamed",
+   "resolved": true
+  },
+  {
+   "t": 92.3,
+   "phase": "spawn",
+   "type": "TKX.FibreBarJson",
+   "resolved": true
+  },
+  {
+   "t": 99.7,
+   "phase": "verdict",
+   "name": "M4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 102.4,
+   "phase": "spawn",
+   "type": "Base.Banana",
+   "resolved": true
+  },
+  {
+   "t": 102.9,
+   "phase": "step",
+   "took": 0.506,
+   "name": "m5_eat_action",
+   "cmd": "eat.action"
+  },
+  {
+   "t": 103.7,
+   "phase": "nutrition",
+   "tag": "m5_post_queue",
+   "server": 786.4004516601562,
+   "client": 786.605712890625
+  },
+  {
+   "t": 107.7,
+   "phase": "nutrition",
+   "tag": "m5_poll_1",
+   "server": 890.3742065429688,
+   "client": 785.8361206054688
+  },
+  {
+   "t": 125.4,
+   "phase": "verdict",
+   "name": "M5a",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 125.5,
+   "phase": "verdict",
+   "name": "M5b",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 127.7,
+   "phase": "census",
+   "tag": "m6_late",
+   "server": 6,
+   "client": 8
+  },
+  {
+   "t": 129.2,
+   "phase": "step",
+   "took": 1.508,
+   "name": "m6_arm_transmit",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 141.8,
+   "phase": "census",
+   "tag": "m6_after_server_transmit",
+   "server": 6,
+   "client": 7
+  },
+  {
+   "t": 141.8,
+   "phase": "verdict",
+   "name": "M6",
+   "verdict": "trivial"
+  },
+  {
+   "t": 144.8,
+   "phase": "spawn",
+   "type": "Base.Cheese",
+   "resolved": true
+  },
+  {
+   "t": 145.6,
+   "phase": "census",
+   "tag": "m7_item_before",
+   "server": 2,
+   "client": 2
+  },
+  {
+   "t": 157.6,
+   "phase": "census",
+   "tag": "m7_item_after",
+   "server": 2,
+   "client": 2
+  },
+  {
+   "t": 162.9,
+   "phase": "verdict",
+   "name": "M7",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 163.7,
+   "phase": "nutrition",
+   "tag": "m8_baseline",
+   "server": 876.00537109375,
+   "client": 876.2105712890625
+  },
+  {
+   "t": 165.7,
+   "phase": "step",
+   "took": 2.014,
+   "name": "m8_set_incWeight",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 175.7,
+   "phase": "nutrition",
+   "tag": "m8_incWeight",
+   "server": 1497.4359130859375,
+   "client": 1497.8973388671875
+  },
+  {
+   "t": 177.7,
+   "phase": "step",
+   "took": 2.01,
+   "name": "m8_set_decWeight",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 187.7,
+   "phase": "nutrition",
+   "tag": "m8_decWeight",
+   "server": -102.5664291381836,
+   "client": -102.10445404052734
+  },
+  {
+   "t": 187.7,
+   "phase": "verdict",
+   "name": "M8",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 189.3,
+   "phase": "step",
+   "took": 1.509,
+   "name": "m9_plant_server_only",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 191.5,
+   "phase": "census",
+   "tag": "m9_before",
+   "server": 7,
+   "client": 7
+  },
+  {
+   "t": 191.8,
+   "phase": "step",
+   "took": 0.254,
+   "name": "m9_client_transmit",
+   "cmd": "moddata.transmit"
+  },
+  {
+   "t": 193.1,
+   "phase": "census",
+   "tag": "m9_after",
+   "server": 7,
+   "client": 7
+  },
+  {
+   "t": 193.1,
+   "phase": "verdict",
+   "name": "M9",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 193.6,
+   "phase": "step",
+   "took": 0.505,
+   "name": "restore_calories",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 195.6,
+   "phase": "nutrition",
+   "tag": "restored",
+   "server": 875.4922485351562,
+   "client": -103.90099334716797
+  },
+  {
+   "t": 197.4,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 205.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "spawns": [
+  {
+   "type": "Base.Apple",
+   "why": "M2: the instance is the only route to the macros -- the script object does not expose them to Kahlua",
+   "rcon_ok": true,
+   "rcon_reply": "Item Base.Apple Added in admin's inventory.",
+   "wall_rcon": 65.452,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 68.21,
+     "resolved": "admin/Base.Apple #1632255293",
+     "id": 1632255293
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 2.758
+  },
+  {
+   "type": "Base.Orange",
+   "why": "M2: the instance is the only route to the macros -- the script object does not expose them to Kahlua",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 69.739,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 72.749,
+     "resolved": "admin/Base.Orange #1719863840",
+     "id": 1719863840
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 3.01
+  },
+  {
+   "type": "Base.Watermelon",
+   "why": "M3: the load-order discriminator",
+   "rcon_ok": true,
+   "rcon_reply": "Item Base.Watermelon Added in admin's inventory.",
+   "wall_rcon": 75.646,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 78.402,
+     "resolved": "admin/Base.Watermelon #951948220",
+     "id": 951948220
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 2.756
+  },
+  {
+   "type": "TKX.FibreBar",
+   "why": "M4: the display name is only readable off an instance",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 80.456,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 83.211,
+     "resolved": "admin/TKX.FibreBar #1426125880",
+     "id": 1426125880
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 2.755
+  },
+  {
+   "type": "TKX.FibreBarNamed",
+   "why": "M4: the display name is only readable off an instance",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 84.245,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 87.253,
+     "resolved": "admin/TKX.FibreBarNamed #1964288037",
+     "id": 1964288037
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 3.008
+  },
+  {
+   "type": "TKX.FibreBarJson",
+   "why": "M4: the display name is only readable off an instance",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 89.553,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 92.311,
+     "resolved": "admin/TKX.FibreBarJson #1295560222",
+     "id": 1295560222
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 2.758
+  },
+  {
+   "type": "Base.Banana",
+   "why": "M5: RCON first -- eat.action's own findOrSpawn falls back to a CLIENT spawn, which trips a server SyncItemFields NPE",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 99.656,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 102.414,
+     "resolved": "admin/Base.Banana #713211653",
+     "id": 713211653
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 2.758
+  },
+  {
+   "type": "Base.Cheese",
+   "why": "M7: the mod writes item modData + syncItemFields() once per instance, on its next EveryOneMinute tick",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 141.772,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 144.783,
+     "resolved": "admin/Base.Cheese #399850461",
+     "id": 399850461
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 3.011
+  }
+ ],
+ "nutrition": [
+  {
+   "tag": "m5_post_queue",
+   "wall": 102.926,
+   "wall_done": 103.698,
+   "client": {
+    "calories": 786.605712890625,
+    "carbs": -2.925560235977173,
+    "lipids": -0.9445379972457886,
+    "proteins": -0.7188517451286316,
+    "weight": 80,
+    "hunger": 0.007886993698775768,
+    "thirst": 0.006598504725843668,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "",
+     "wall": 102.926,
+     "wall_done": 103.437
+    }
+   },
+   "server": {
+    "calories": 786.4004516601562,
+    "carbs": -2.9703166484832764,
+    "lipids": -0.9589878916740417,
+    "proteins": -0.7298489809036255,
+    "weight": 80,
+    "hunger": 0.00800877995789051,
+    "thirst": 0.006700805388391018,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "admin",
+     "wall": 103.437,
+     "wall_done": 103.698
+    }
+   },
+   "client_calories": 786.605712890625,
+   "server_calories": 786.4004516601562,
+   "client_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "server_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "client_weight": 80,
+   "server_weight": 80,
+   "flags_agree": true
+  },
+  {
+   "tag": "m5_poll_1",
+   "wall": 106.201,
+   "wall_done": 107.72,
+   "client": {
+    "calories": 785.8361206054688,
+    "carbs": -3.09334659576416,
+    "lipids": -0.9987090826034546,
+    "proteins": -0.7600794434547424,
+    "weight": 80,
+    "hunger": 0.008343476802110672,
+    "thirst": 0.006982018239796162,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "",
+     "wall": 106.201,
+     "wall_done": 106.708
+    }
+   },
+   "server": {
+    "calories": 890.3742065429688,
+    "carbs": 23.75593376159668,
+    "lipids": -0.6412271857261658,
+    "proteins": 0.505172073841095,
+    "weight": 80,
+    "hunger": 0,
+    "thirst": 1.2828574654122349e-05,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "admin",
+     "wall": 106.708,
+     "wall_done": 107.72
+    }
+   },
+   "client_calories": 785.8361206054688,
+   "server_calories": 890.3742065429688,
+   "client_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "server_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "client_weight": 80,
+   "server_weight": 80,
+   "flags_agree": true
+  },
+  {
+   "tag": "m8_baseline",
+   "wall": 162.898,
+   "wall_done": 163.662,
+   "client": {
+    "calories": 876.2105712890625,
+    "carbs": 20.667552947998047,
+    "lipids": -1.6383382081985474,
+    "proteins": -0.2536911070346832,
+    "weight": 80,
+    "hunger": 0.001824992592446506,
+    "thirst": 0.007072018459439278,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "",
+     "wall": 162.898,
+     "wall_done": 163.404
+    }
+   },
+   "server": {
+    "calories": 876.00537109375,
+    "carbs": 20.6228084564209,
+    "lipids": -1.6527836322784424,
+    "proteins": -0.2646850347518921,
+    "weight": 80,
+    "hunger": 0.0019474847940728068,
+    "thirst": 0.007174287457019091,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "admin",
+     "wall": 163.404,
+     "wall_done": 163.662
+    }
+   },
+   "client_calories": 876.2105712890625,
+   "server_calories": 876.00537109375,
+   "client_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "server_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "client_weight": 80,
+   "server_weight": 80,
+   "flags_agree": true
+  },
+  {
+   "tag": "m8_incWeight",
+   "wall": 173.684,
+   "wall_done": 175.702,
+   "client": {
+    "calories": 1497.8973388671875,
+    "carbs": 20.05232810974121,
+    "lipids": -1.8369693756103516,
+    "proteins": -0.40486207604408264,
+    "weight": 80.00064086914062,
+    "hunger": 0.003507995745167136,
+    "thirst": 0.008478260599076748,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "",
+     "wall": 173.684,
+     "wall_done": 174.19
+    }
+   },
+   "server": {
+    "calories": 1497.4359130859375,
+    "carbs": 19.951589584350586,
+    "lipids": -1.869491696357727,
+    "proteins": -0.4296136200428009,
+    "weight": 80.00077867500204,
+    "hunger": 0.003783287014812231,
+    "thirst": 0.008708509616553783,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "admin",
+     "wall": 174.19,
+     "wall_done": 175.702
+    }
+   },
+   "client_calories": 1497.8973388671875,
+   "server_calories": 1497.4359130859375,
+   "client_flags": {
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "server_flags": {
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "client_weight": 80.00064086914062,
+   "server_weight": 80.00077867500204,
+   "flags_agree": true
+  },
+  {
+   "tag": "m8_decWeight",
+   "wall": 185.725,
+   "wall_done": 187.74,
+   "client": {
+    "calories": -102.10445404052734,
+    "carbs": 19.380807876586914,
+    "lipids": -2.05376935005188,
+    "proteins": -0.5698604583740234,
+    "weight": 80.00089263916016,
+    "hunger": 0.005341701675206423,
+    "thirst": 0.010013137012720108,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "",
+     "wall": 185.725,
+     "wall_done": 186.231
+    }
+   },
+   "server": {
+    "calories": -102.5664291381836,
+    "carbs": 19.280067443847656,
+    "lipids": -2.0862948894500732,
+    "proteins": -0.5946140885353088,
+    "weight": 80.00087912549867,
+    "hunger": 0.005616508889943361,
+    "thirst": 0.010243403725326061,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "admin",
+     "wall": 186.231,
+     "wall_done": 187.74
+    }
+   },
+   "client_calories": -102.10445404052734,
+   "server_calories": -102.5664291381836,
+   "client_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true
+   },
+   "server_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true
+   },
+   "client_weight": 80.00089263916016,
+   "server_weight": 80.00087912549867,
+   "flags_agree": true
+  },
+  {
+   "tag": "restored",
+   "wall": 193.58,
+   "wall_done": 195.598,
+   "client": {
+    "calories": -103.90099334716797,
+    "carbs": 18.989049911499023,
+    "lipids": -2.18025279045105,
+    "proteins": -0.6661221981048584,
+    "weight": 80.00084686279297,
+    "hunger": 0.0064099435694515705,
+    "thirst": 0.010908595286309719,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "",
+     "wall": 193.58,
+     "wall_done": 193.837
+    }
+   },
+   "server": {
+    "calories": 875.4922485351562,
+    "carbs": 18.832374572753906,
+    "lipids": -2.2308356761932373,
+    "proteins": -0.7046188116073608,
+    "weight": 80.00084541274742,
+    "hunger": 0.006836829241365194,
+    "thirst": 0.011266705580055714,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "_probe": {
+     "cmd": "nutrition.get",
+     "args": "admin",
+     "wall": 193.838,
+     "wall_done": 195.598
+    }
+   },
+   "client_calories": -103.90099334716797,
+   "server_calories": 875.4922485351562,
+   "client_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": true
+   },
+   "server_flags": {
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "client_weight": 80.00084686279297,
+   "server_weight": 80.00084541274742,
+   "flags_agree": false
+  }
+ ],
+ "summary": {
+  "verify_ok": [
+   true,
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "field_count_ok": true,
+  "field_checks": 12,
+  "field_count_failures": [],
+  "verdicts": {
+   "M1": "as_predicted",
+   "M2a": "as_predicted",
+   "M2b": "falsified",
+   "M3": "falsified",
+   "M4": "as_predicted",
+   "M5a": "as_predicted",
+   "M5b": "as_predicted",
+   "M6": "trivial",
+   "M7": "as_predicted",
+   "M8": "as_predicted",
+   "M9": "as_predicted"
+  },
+  "M1_foodByModule": {
+   "Base": 722,
+   "TKX": 3
+  },
+  "M2a_apple_calories": {
+   "client": 400,
+   "server": 400
+  },
+  "M2b_orange": {
+   "calories": {
+    "client": 400,
+    "server": 400
+   },
+   "getHungChange": {
+    "client": -0.11999999731779099,
+    "server": -0.11999999731779099
+   },
+   "getCarbohydrates": {
+    "client": 16.270000457763672,
+    "server": 16.270000457763672
+   },
+   "arm": "FIELD MERGE -- the vanilla keys the mod's block omits survived"
+  },
+  "M3_watermelon_calories": {
+   "client": 111,
+   "server": 111
+  },
+  "M4_translated": {
+   "Json": true,
+   "Named": false,
+   "FibreBar": false
+  },
+  "M4_server_text": {
+   "ItemName_TKX.FibreBarJson": {
+    "text": "ItemName_TKX.FibreBarJson",
+    "miss": true
+   },
+   "ItemName_TKX.FibreBarNamed": {
+    "text": "ItemName_TKX.FibreBarNamed",
+    "miss": true
+   },
+   "ItemName_TKX.FibreBar": {
+    "text": "ItemName_TKX.FibreBar",
+    "miss": true
+   },
+   "ItemName_Base.Apple": {
+    "text": "ItemName_Base.Apple",
+    "miss": true
+   }
+  },
+  "M5_calls": {
+   "client": 1,
+   "server": 1
+  },
+  "M5_completes": {
+   "client": 0,
+   "server": 1
+  },
+  "M5_order": {
+   "client": "onEat ",
+   "server": "complete onEat "
+  },
+  "M6_client_gained_fibre": true,
+  "M7_item_fibre": {
+   "server": true,
+   "client": true
+  },
+  "M8_flags": {
+   "inc": {
+    "server": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    },
+    "client": {
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "dec": {
+    "server": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": true
+    },
+    "client": {
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": true
+    }
+   }
+  },
+  "M9_server_only_survived": false,
+  "lua_error_hits": {
+   "client": 0,
+   "server": 0
+  },
+  "overrides_lines": {
+   "client": 8,
+   "server": 4
+  }
+ },
+ "wall_seconds": 205.1,
+ "server_error_count": 0,
+ "client_lua_error": false
+}
