@@ -2,7 +2,7 @@
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-11 · slice 12 (P2a), runs
 `x121-20260911-030023`, `x122-20260911-032326`, `x123-20260911-034426` /
-`x123b-20260911-034500`, `x124-20260911-035819`.
+`x123b-20260911-034500`, `x124-20260911-035819`, `x125-20260911-042055`.
 Evidence grades: **C** read from bytecode/Lua/scripts, **M** measured on the live
 dedicated server + client (run id given), **W** wiki mirror (secondary). The jar chain in
 § Code map was re-derived for this document; it supersedes the `searchForModInfo` reading
@@ -367,14 +367,20 @@ One line per entry area: what classifies it today, and what would settle the res
 
 **The three checks this slice records rather than claims.**
 
-1. **The reversed-`Mods=` boot — the script-body ordering key is OPEN.** Session 4 falsified
-   "`Mods=`-last wins" (n = 2 boots) and measured the number, not the rule: its `Mods=` order
-   was the **exact reverse** of the alphabetical id order (`testing/artifacts/x124-20260911-035819/platform-order.json` → `mods_order_note`) and
-   session 1's pair was degenerate the same way, so alphabetical-by-id, alphabetical-by-folder,
-   alphabetical-by-script-path **and** first-in-`Mods=` all predict both readings. The
-   separator is a boot with the alphabetically-last id in the **middle** of `Mods=`; that is
-   session 5 (`x125`), in flight as this document was written. The row itself belongs to
-   [item-overrides.md](item-overrides.md) — nothing here may be read as settling it.
+1. **The id-vs-script-path boot** — the reversed-`Mods=` check this slice opened is now
+   **closed** by session 5. Across three boots (x121 111, x124 999, x125 999) script bodies
+   replay in a **sorted, `Mods=`-independent** order with per-key last-wins, and
+   `Mods=`-last-wins, first-in-`Mods=`-wins and alphabetical-first are all falsified — **M**,
+   n = 3 boots over 4 mod bodies
+   (`testing/artifacts/x125-20260911-042055/platform-order2.json` → `phases.O1`,
+   `verdicts.P20`). The sort key is the **stored script path** (`ScriptManager$38.compare` and
+   `ScriptManager.searchFolders`, **C**, read in [item-overrides.md](item-overrides.md), which
+   owns this row). What no boot separates is sort-by-**id** from sort-by-**path**: in every
+   boot the three ids and their script basenames sort identically. The check is a mod whose id
+   sorts last while its script file sorts first. Not run. Note for anyone reading the frozen
+   profiles: `testing/profiles/x12-overrides.toml`'s comment that "`Mods=` order is LOAD order,
+   and it is load-bearing here" is now known **wrong for script bodies**; `Mods=` order still
+   governs the loader's own `loading <id>` lines.
 2. **The CleanUI × `triggerEvent` two-order boot**, carried from
    [`../mods-survey/teardowns/autocook.md`](../mods-survey/teardowns/autocook.md)
    § Compatibility notes: CleanUI's live tree on 42.20.4 is `42.19/`, which does ship the
@@ -393,7 +399,11 @@ One line per entry area: what classifies it today, and what would settle the res
   (boot **a**, folder drift, and boot **b**, run id `x123b-20260911-034500`, the requested-id
   discriminator, under `boots.common_id`),
   [`x124-20260911-035819`](../../testing/artifacts/x124-20260911-035819/platform-order.json)
-  (script-body order). Earlier runs cited by their owning docs, not re-graded here:
+  (script-body order) and
+  [`x125-20260911-042055`](../../testing/artifacts/x125-20260911-042055/platform-order2.json)
+  (the ordering discriminator, cited only in § Inputs for the wall map; the rule itself is
+  [item-overrides.md](item-overrides.md)'s row). Earlier runs cited by their owning docs, not
+  re-graded here:
   `td1-20260910-192457`, `td1b-20260910-202029`, `td2-20260910-231655`,
   `td3-20260911-001948`, `exp01`–`exp03`, spike S6.
 - **Jar (C), 42.20.4 `b0bbce05d5`, dumped 2026-09-11:** `zombie/ZomboidFileSystem`
