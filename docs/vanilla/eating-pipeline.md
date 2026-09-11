@@ -452,6 +452,15 @@ consistent with both readings, and the authority probes below settle it.
 | **Hunger and thirst behave identically** — `CharacterStat.HUNGER`/`THIRST` are server-owned too | a client `stats.set hunger 0.9` read back 0.9 while the server stayed at 0.0005 and the client fell back to 0.00098 within 3 s; a server-side `0.4` reached the client (0.400293) | **M** `exp01-20260910-003929` |
 | Client-spawned food makes the server log a `SyncItemFields` NPE | `Eat`'s final `syncItemFields()` (`@961 L5841`) runs against an item the server never heard of. **Positive evidence** — the smoke run, whose harness `eat` spawned the item client-side, left two lines in `server_errors[0..1]` of [`eat-smoke.json`](../../testing/artifacts/exp01-20260910-000351/eat-smoke.json): `Error with packet of type: SyncItemFields` and `NullPointerException: Cannot invoke "zombie.inventory.InventoryItem.hasSharpness()" because "item" is null at SyncItemFieldsPacket.parse(SyncItemFieldsPacket.java:383)`. **Negative control** — the matrix run spawned every item server-side over RCON `additem` and logged **0** `SyncItemFields` lines and **0** server errors | C+M `exp01-20260910-000351` (positive), `exp01-20260910-003929` (control) |
 
+**Cross-reference — what a client reads off a *cooked* item is not what the server reads.** The
+rows above are the **player** side (`Nutrition`, hunger/thirst). The **item** side has a vanilla
+distortion of its own: `ItemStatsPacket.setData` sends `Food.getThirstChange()`, the cooked-ladder
+getter, while the receiver stores it as the raw field, so a cooked food's thirst value halves on
+each server→client hop. Its graded, canonical row is
+[`../modding/patterns.md`](../modding/patterns.md) § Measured MP sync facts → *The other
+direction — server → client* (slice 09, runs `td1-20260910-192457` / `td1b-20260910-202029`); do
+not restate the numbers here.
+
 **What a mod must do to change intake for MP players.** Anything that alters what eating delivers
 has to run where `Eat` runs — the server. A client-side Lua mod that writes vanilla nutrient numbers
 onto `IsoPlayer` is overwritten within a second by the 1 Hz `PlayerStatsPacket`; a client-side mod

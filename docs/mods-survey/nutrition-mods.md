@@ -540,22 +540,44 @@ superseded.
    whole; under a version-folder-only rule the framework loads a moodle class with no config. This
    matters directly, because the new-nutrient UI in our own mod is the reason MoodleFramework is on
    the list at all. Q1 settles it. Ev C.
-4. **Does LTP's ×0.70 reach the client, and what happens to the sentinel?**
+4. ~~**Does LTP's ×0.70 reach the client, and what happens to the sentinel?**~~
    `recipe_meats.lua:39-49` writes `offAge` / `offAgeMax` (**not** in `ItemStatsPacket`) beside the
    four macros and `HungChange` (**in** it). The crafted item is produced by
    `CraftRecipeData.createOutputItems`, which is one of the six `setCustomName` call sites, so the
    crafted instance carries a `customName` modData key on whichever side built it. Slice 09 reads
    the same instance with `witness.fields` on both sides. Ev C.
+   **Closed (slice 09)** — [`teardowns/longtermpreservation4220.md`](teardowns/longtermpreservation4220.md)
+   § MP handling, runs `td1-20260910-192457` and `td1b-20260910-202029`. **The ×0.70 reaches the
+   client; the sentinel does not.** All five packet-carried writes arrive intact on the same
+   instance (`getID 562521975`, `same_instance true` at every snapshot): calories 300 → 210,
+   proteins 50 → 35, lipids 12 → 8.4, `hungChange` −0.6 → −0.42, equal on both sides to within the
+   comparison tolerance. The sentinel `1000000000` never crosses — the client kept `offAge 53` and
+   `offAgeMax 60` against the server's 1e9 across three snapshots 12 s apart, and nothing later
+   repairs it; `isCookable` and `isCustomWeight` desync the same way, making **four** uncarried
+   fields, not two. Two corrections to the framing above: the measured instance was **RCON-spawned,
+   not crafted** (nothing on the bus executes a `craftRecipe`), so the `createOutputItems` half is
+   still C — on that instance `customName` was present on the **client only**; and the packet
+   carries **43** fields, not the 39 slice 02 counted. Ev **M**.
 5. **`AutoCook` writes player modData on the client and never transmits it** (9 `getModData`, 0
    `transmitModData`). Whether its per-player cooking settings survive a relog on a dedicated
    server is unmeasured, and it is the cheapest MP question on the whole page. Ev C.
-6. **Three dead or defective code paths in pick 1**, all latent, all worth one line in the slice-09
-   teardown: `AdjustStates` and `AdjustStatesPemmican` (`recipe_meats.lua:26-32`) are empty
+6. ~~**Three dead or defective code paths in pick 1**~~, all latent, all worth one line in the
+   slice-09 teardown: `AdjustStates` and `AdjustStatesPemmican` (`recipe_meats.lua:26-32`) are empty
    function bodies wired into two `craftRecipe onCreate` keys; `TryMeatLard` and `TryMeatCanned`
    (`:9-22`) are referenced by no shipped recipe; and `TryMeatCanned:19` writes
    `0.15 < sourceItem:getActualWeight() < 1`, which parses as `(0.15 < w) < 1` — a boolean compared
    to a number, which standard Lua raises on. Nothing calls it, so it has never run; whether
    Kahlua raises the same way is unverified. Ev C.
+   **Closed (slice 09)** — all three are written up, re-verified on disk, in
+   [`teardowns/longtermpreservation4220.md`](teardowns/longtermpreservation4220.md) § Pitfalls /
+   anti-patterns 4, with **two additions**: a fourth defect, the *live* `onTest` `TryMeat`, whose
+   comment says "only meats above a weight of 0.2" while its body returns `getActualWeight() > 0.0`
+   and passes a non-`Food` input unconditionally (`recipe_meats.lua:1,4,6`) — a no-op guard, not a
+   dead one; and a fifth, `items_dried.txt`'s brace imbalance (17 `{` against 18 `}` after comment
+   stripping), whose row moves **C → M**: the engine loaded all 15 blocks regardless —
+   `items.count` answered `foodByModule {"Base": 722, "Skittles": 14}` at join (acceptance run
+   `run-20260910-191842`, reproduced on `td1-20260910-192457` and `td1b-20260910-202029`). The
+   Kahlua question on `(0.15 < w) < 1` stays open and unreachable: nothing calls it. Ev C + **M**.
 7. ~~**No Workshop "last updated" exists for eight of the nine catalogued mods.**~~ **Closed.**
    None of them is in the sweep's 180 rows, so `--details-ids` rejected them by name and `--fill`
    had no row to fill; `tools/workshop_search.py --catalog-ids` reads item pages for ids named
