@@ -103,8 +103,13 @@ import patterns from there.
   and read `false` before that root was checked. Everything but
   `bytes` describes the **newest version folder only** — the de-duplication a
   per-mod record needs, since a mod may ship the same scripts in three folders.
-  `common/media`, which the build **also** loads, is not counted here and no
-  merge rule is asserted, so **`media_at` is the guard on a zero**: **177 rows**
+  `common/media`, which the build **also** loads, is not counted here and this
+  scan asserts no merge rule of its own — though the rule itself is no longer
+  open: slice 11 **measured** it (`td3-20260911-001948`) as the version folder's
+  file winning a same-relative-path collision while `common/` supplies everything
+  the version folder does not ship, both in one Lua state, bounded to a mod whose
+  version folder ships colliding files. The scan is unchanged by that, so
+  **`media_at` is still the guard on a zero**: **177 rows**
   list a `common/media` this scan did not read; on 111 of the 153 that also have a
   live `media/`, a `stats` bucket reads 0 while that folder holds the file kind, and
   with the 24 blank rows that is 135 of the 177 (2026-09-10).
