@@ -17,9 +17,11 @@ run = { hold = 20 }
 # option (common/media/lua/client/AutoCook_RISCookMenuInsertion.lua:87) whose handler runs on a
 # right-click, and nothing on the shipped bus clicks, presses a key or calls triggerEvent — the
 # same wall pass 2 hit with simpleStatus's input handlers. So both rows read LOAD-TIME state, and
-# they are picked to read it from the two DIFFERENT media trees this mod is split across (`42.13/`
-# and `common/`). items.count / recipes.craft / item.script have nothing to read here: the mod
-# ships no media/scripts in either tree (script_item_blocks: 0).
+# they are picked to read the two DIFFERENT SUBSYSTEMS that load a mod split across `42.13/` and
+# `common/` — the Translator's merge of the JSON, and the Lua require chain. Neither row names
+# which tree won a per-file collision; that is `lua.global`'s question, not a profile's.
+# items.count / recipes.craft / item.script have nothing to read here either: the mod ships no
+# media/scripts in either tree (script_item_blocks: 0).
 verify = [                    # bare keys must precede the first table header (TOML)
   # The TRANSLATOR half, and the `common/` tree. "Cooking diet: " is byte-exact including the
   # trailing space — common/media/lua/shared/Translate/EN/UI.json:5. (The B41-era UI_EN.txt:5
@@ -29,21 +31,29 @@ verify = [                    # bare keys must precede the first table header (T
   # so mod-absent answers "text":"UI_AutoCookMode", of which "Cooking diet: " is not a substring —
   # the row fails correctly. `text.get` is registered on the CLIENT only.
   { side = "client", cmd = "text.get", args = "UI_AutoCookMode", expect = '"Cooking diet: "' },
-  # The LUA half — and both trees in one command, which is what makes this the stronger row. The
-  # census renders every top-level key as "<name>:<type>" (PZTestKit_Core.lua:742), so
-  # "AutoCook:table" matches as a JSON substring and nothing vanilla produces it. The key is
+  # The LUA half, and the stronger row: it exercises the require chain and not a data file. The
+  # census `witness.moddata` carries renders every top-level key as "<name>:<type>" — cited by
+  # COMMAND and not by line, because the line moves (it was :705 at 94d208e, :742 at 291f977 and
+  # :744 after the slice-10 residuals landed in 0449fa3) — so "AutoCook:table" matches as a JSON
+  # substring and nothing vanilla produces it. The key is
   # written at 42.13/media/lua/client/AutoCook.lua:38, reached only from the AutoCook.init call at
   # ISCharacterCook.lua:17 (ISCharacterCook:createChildren), which runs only because
   # addCharacterPageTab("Cook", ISCharacterCook) executed at ISCharacterCook.lua:398 — and
   # addCharacterPageTab is defined ONLY in common/…/ISCharacterInfoWindow_AddTab.lua:2. Had
   # `common/` not loaded, ISCharacterCook.lua:2's `require "ISCharacterInfoWindow_AddTab"` would
-  # have failed before the class was declared, so a hit says files from BOTH trees ran in one Lua
-  # state. CLIENT and not server: the mod has 9 getModData() sites per tree and 0 transmitModData,
-  # so the server census is not expected to carry the key at baseline (that asymmetry is a
+  # have failed before the class was declared, so a hit PROVES `common/` RAN and that the require
+  # chain completed. It does NOT identify which copy of AutoCook.lua won: the `common/` copy writes
+  # the same key at the same line (:38), one line BEFORE its B41-era HasTrait call at :39, so a
+  # green row is consistent with either copy having won. Naming the winner needs a `_G` read
+  # (AutoCook.acceptIngredient exists only in 42.13/). CLIENT and not server: the mod has 9
+  # getModData() sites per tree and 0 transmitModData, so the server census is not expected to
+  # carry the key at baseline (that asymmetry is a
   # measurement for Task 3, not a gate). The row needs the client to be past createPlayerData —
   # verify probes run after client_ready on both entry points (docs/testing/profiles.md §
   # `[[verify]]`), which is after OnCreatePlayer; if it proves flaky on the run, demote it to a
-  # timed driver read and keep row 1 as the gate.
+  # timed driver read and keep row 1 as the gate. The `*` is skipped by the census's own `~= "*"`
+  # guard, so it never lands in `missing` and is not a miss: the number worth recording is
+  # `keyCount`, at report["verify"][1]["got"]["keyCount"].
   { side = "client", cmd = "witness.moddata", args = "player:admin *", expect = '"AutoCook:table"' },
 ]
 

@@ -761,4 +761,77 @@ TK.register("witness.moddata", function(argv)
     return out
 end)
 
+-- ---- Lua globals (both sides, slice 11) --------------------------------------
+-- lua.global <name>[.<field>...]
+--   -> { side, name, resolved = true, type, value }               scalars and functions
+--   -> { side, name, resolved = true, type = "table", keyCount }  tables
+--   -> { side, name, resolved = false, failedAt [, stoppedOn] }   a path that does not resolve
+--   -> "usage: ..."                                               only when no name was given
+--
+-- Why it exists: nothing on the bus could read `_G`. A mod whose whole surface is Lua -- no
+-- scripts, no server half, no modData it transmits -- has nothing else left to read once its
+-- load-time state has been censused, and slice 11's question is WHICH PHYSICAL COPY of a file a
+-- mod split across two media trees actually ran (`42.13/AutoCook.lua` defines
+-- `AutoCook:acceptIngredient`; the `common/` copy of the same file does not). A global present
+-- in only one of the two copies is the one reading that separates them. Slice 10 parked the
+-- same gap for `SimpleStatus.VERSION` (testing/profiles/teardown-simplestatus.toml).
+--
+-- It READS, and it never calls. A function is reported as the string "function" -- that it
+-- exists, and its type, never its result -- because calling an unknown global at unknown arity
+-- is exactly the uncatchable Kahlua raise TK.call exists to avoid (the note at :120-125).
+-- No Java surface at all: `_G` is Kahlua's own global table and the dotted walk is the game's
+-- own idiom -- `client/ISUI/ISXuiBuilder.lua:10-35` (`findFunction`) walks `_G` segment by
+-- segment, guarding each hop with `type(container[v]) == "table"`.
+--
+-- Three guards, all deliberate:
+--   * `_G` itself is nil-checked, the way text.get checks `getText` -- reading an absent global
+--     is nil in Lua, never a raise, and it must be REPORTED rather than walked;
+--   * a hop is taken only when the node is a `table`. pairs() and indexing on a Java-backed
+--     object raise rather than answer (the note above the census loop at :742-744), so a
+--     non-table node ENDS the walk: `failedAt` names the segment that could not be entered and
+--     `stoppedOn` the type that stopped it. That is also why `keyCount` is gated on
+--     `type(v) == "table"` and not on "it looks like it has keys";
+--   * presence is `node == nil`, NEVER `if not node`. The first subject has
+--     `AutoCook.Verbose = false` and `AutoCook.MaxSpices = -1`, and a truthiness test would
+--     report the boolean false as missing -- reading a global's absence IS the command.
+--
+-- `TK.version` is the control a session should send first: TK is a global on purpose (see :2),
+-- so it must resolve to the number 1 on BOTH sides, and a `resolved = false` there means the
+-- walk itself is broken rather than the asked-for global being absent.
+TK.register("lua.global", function(argv)
+    local name = argv[1]
+    if name == nil then return "usage: lua.global <name>[.<field>...]" end
+    if _G == nil then
+        return { side = TK.side, name = name, resolved = false, error = "no _G on this build" }
+    end
+    local out = { side = TK.side, name = name }
+    local node, parts = _G, 0
+    for part in string.gmatch(tostring(name), "[^%.]+") do
+        parts = parts + 1
+        if type(node) ~= "table" then
+            out.resolved, out.failedAt, out.stoppedOn = false, part, type(node)
+            return out
+        end
+        node = node[part]
+        if node == nil then
+            out.resolved, out.failedAt = false, part
+            return out
+        end
+    end
+    if parts == 0 then return "usage: lua.global <name>[.<field>...]" end
+    local t = type(node)
+    out.resolved, out.type = true, t
+    if t == "table" then
+        local n = 0
+        for _k in pairs(node) do n = n + 1 end
+        out.keyCount = n
+    elseif t == "function" then
+        out.value = "function"                 -- never called: the type IS the reading
+    elseif t == "boolean" or t == "number" or t == "string" then
+        out.value = node
+    else
+        out.value = tostring(node)             -- a Java object: its toString(), as TK.json does
+    end
+    return out
+end)
 TK.log("core loaded (" .. TK.side .. ")")

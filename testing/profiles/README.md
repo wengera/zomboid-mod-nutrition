@@ -30,10 +30,11 @@ scripts and no bus-readable state, so the took-effect evidence is its own client
 at join, grepped from the run's `clients/admin/console.txt`; and **`teardown-autocook.toml`** —
 slice 11's teardown subject, PZTestKit + `AutoCook` (workshop `3388721641`, folder `AutoCook` — the
 one pass where the declared id and the folder agree) on `default` with **no `[sandbox]`** either,
-whose two `[[verify]]` rows are both **client** and both read load-time state, one per media tree
-the mod is split across: `text.get UI_AutoCookMode` for the `common/` translations, and
-`witness.moddata player:admin *` for the modData key `42.13/` writes only by way of a `common/`
-helper.
+whose two `[[verify]]` rows are both **client** and both read load-time state, one per subsystem
+that loads a mod split across two media trees: `text.get UI_AutoCookMode` for the Translator's
+merge of `common/`'s JSON, and `witness.moddata player:admin *` for the modData key the Lua require
+chain writes. A hit on the second proves `common/` ran and that the chain completed — **not** which
+copy of `AutoCook.lua` won the collision, which is `lua.global`'s question.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed

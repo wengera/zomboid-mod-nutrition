@@ -564,6 +564,38 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     that ships no scripts and writes no readable state — a translation key it
     defines and vanilla does not.
 
+  **Slice-11 addition** (pass 3's harness-prep commit, ahead of its session):
+  * **`lua.global <name>[.<field>...]`** (shared, so **both sides answer it**) →
+    `{side, name, resolved, type, value}` for a scalar or a function,
+    `{side, name, resolved, type = "table", keyCount}` for a table, and
+    `{side, name, resolved = false, failedAt [, stoppedOn]}` for a path that
+    does not resolve; a bare `lua.global` answers the usage string. It walks
+    `_G` segment by segment — `AutoCook.acceptIngredient` is
+    `_G.AutoCook.acceptIngredient` — which is the game's own idiom
+    (`client/ISUI/ISXuiBuilder.lua:10-35`), and it adds **no Java surface**:
+    `_G` is Kahlua's own global table, so unlike every other command here there
+    was nothing to confirm against the jar. **It never calls what it finds.** A
+    function reports the string `"function"`; reading its *result* would mean
+    calling an unknown global at unknown arity, which is the uncatchable Kahlua
+    raise `TK.call` exists to avoid. Three things follow from how the walk is
+    written and matter when reading a reply: a hop is taken only when the node
+    is a `table`, so a non-table node **ends** the walk (`failedAt` is the
+    segment that could not be entered, `stoppedOn` the type that stopped it) and
+    `keyCount` is likewise gated on `type(v) == "table"` — `pairs()` on a
+    Java-backed object raises rather than answering; presence is `v == nil` and
+    never `if not v`, so a global whose value is `false` or `-1` reads as
+    **present**; and `resolved = false` means *this path*, not *this mod* — the
+    two are the same claim only when the name is known to exist in one copy of a
+    file and not another. **Send `lua.global TK.version` first**: `TK` is a
+    global on purpose, so it must answer `1` on both sides, and a `resolved =
+    false` there says the walk is broken rather than the asked-for global
+    absent. It exists because a mod that ships no scripts, registers nothing
+    server-side and transmits no modData has nothing left to read once its
+    load-time state has been censused — and for a mod split across two media
+    trees, a global defined in only one copy of a file is the **only** reading
+    that says which copy the engine actually ran. Slice 10 parked exactly this
+    gap (`SimpleStatus.VERSION`, `testing/profiles/teardown-simplestatus.toml`).
+
 - **Results**: `TK.result(name, table)` writes `<cachedir>/Lua/pzt-results/
   <name>.json` as one complete JSON object (that is the ready signal — the
   writer's extension allowlist rules out `.ready` markers); `pzt` collects
