@@ -100,8 +100,16 @@ FIELD_COUNT = 26
 # is an `InventoryItem.setCustomName` deserialisation side effect with six vanilla call sites.
 ITEM_SCOPE = f"item:{USER}/{ITEM} *"
 PLAYER_SCOPE = f"player:{USER} *"
+# A DISPLAY string for the artifact header -- the ` | ` is a human separator, NOT a bus token.
+# The two probes are sent separately, as ITEM_SCOPE and PLAYER_SCOPE; nothing ever sends KEYS.
 KEYS = f"{ITEM_SCOPE} | {PLAYER_SCOPE}"
+KEYS_NOTE = ("moddata_keys is a DISPLAY string: the ` | ` joins the two scopes for the reader and "
+             "is not a bus token. The probes are sent separately as `" + ITEM_SCOPE + "` and `" +
+             PLAYER_SCOPE + "`.")
+# Two exclusion sets, one per scope. Applying the ITEM list to the PLAYER census reports all four
+# vanilla fitness keys as `beyondVanilla`, which is the opposite of what that field means.
 VANILLA_ITEM_KEYS = {"customName"}
+VANILLA_PLAYER_KEYS = {"fitnessMod", "fitnessUpTimer", "strengthMod", "strengthUpTimer", "hotbar"}
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
@@ -153,7 +161,7 @@ out = {
     "acceptance_run": "run-20260910-191842",
     "world_changes": "none to restore -- no settimespeed, no sandbox write; every write lands "
                      "in this run's copy of the fixture",
-    "snapshots": [], "steps": [], "notes": [],
+    "snapshots": [], "steps": [], "notes": [KEYS_NOTE],
 }
 
 
@@ -192,6 +200,11 @@ def probe(side, cmd, args, timeout=20):
     if isinstance(val, dict):
         val = dict(val)
         val["_probe"] = meta
+    elif meta.get("reasked"):
+        # A non-dict SECOND reply has nowhere to carry `_probe`, so the re-ask evidence --
+        # that this reading was degraded once and re-asked, and what the first reply said --
+        # would be dropped on the one path where it matters most. Keep it beside the run.
+        out["notes"].append({"reask_failed": meta, "second_reply": val})
     return val
 
 
@@ -237,12 +250,17 @@ def keys_of(reply):
     return None
 
 
-def census_row(reply, side_name):
+def census_row(reply, side_name, vanilla=VANILLA_ITEM_KEYS):
     """The per-side item/player modData census, named by side (amendment 3: slice 08 ran the
-    server only and its README marks the client half do-not-cite)."""
+    server only and its README marks the client half do-not-cite).
+
+    `vanilla` is the exclusion set for THIS scope: the item list for an item census, the
+    player list for a player one. One shared list makes `beyondVanilla` meaningless on the
+    player scope, where the four fitness keys and `hotbar` are exactly what vanilla puts there.
+    """
     ks = keys_of(reply)
     names = sorted(s.split(":")[0] for s in ks) if ks is not None else None
-    extra = sorted(set(names or []) - VANILLA_ITEM_KEYS) if names is not None else None
+    extra = sorted(set(names or []) - vanilla) if names is not None else None
     return {"side": side_name,
             "resolved": reply.get("resolved") if isinstance(reply, dict) else None,
             "keyCount": reply.get("keyCount") if isinstance(reply, dict) else None,
@@ -268,8 +286,10 @@ def snapshot(tag, c):
             "moddata_player": probe(side, "witness.moddata", PLAYER_SCOPE),
             "stats": ask(side, "stats.get", USER if name == "server" else ""),
         }
-        row[name]["census_item"] = census_row(row[name]["moddata_item"], name)
-        row[name]["census_player"] = census_row(row[name]["moddata_player"], name)
+        row[name]["census_item"] = census_row(row[name]["moddata_item"], name,
+                                              VANILLA_ITEM_KEYS)
+        row[name]["census_player"] = census_row(row[name]["moddata_player"], name,
+                                                VANILLA_PLAYER_KEYS)
     row["server"]["item_get"] = ask(server, "item.get", f"{USER} {ITEM}")
     row["wall_done"] = wall()
     out["snapshots"].append(row)
@@ -365,6 +385,9 @@ try:
 
     # ---- step 0: spawn server-side ------------------------------------------------------
     ok_rcon, reply = server.rcon(f'additem "{USER}" "{ITEM}" 1')
+    # The boolean belongs in the artifact, not only in the timeline: `additem` answers with an
+    # empty body on success, so `rcon_additem: ""` alone cannot be told from a silent failure.
+    out["rcon_additem_ok"] = ok_rcon
     out["rcon_additem"] = str(reply) if ok_rcon else f"rcon failed: {reply}"
     tl.mark("rcon_additem", ok=ok_rcon, reply=str(reply)[:80])
     # The baseline is the only reading taken before anything is pushed, so it is worth waiting
