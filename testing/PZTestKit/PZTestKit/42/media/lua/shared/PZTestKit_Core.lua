@@ -844,4 +844,46 @@ TK.register("lua.global", function(argv)
     end
     return out
 end)
+
+-- ---- translation lookup (both sides; slice 10, moved here by slice 12) -------
+-- text.get <translation key>
+--   -> { key, text, miss, side }                            the lookup ran
+--   -> { key, side, error = "no getText() on this build" }  no getText global on this side
+--   -> "usage: ..."                                         no key given
+--
+-- Moved here from the client file by slice 12 so the SERVER answers it too -- the same move
+-- slice 09 made for `item.script` (TK.scriptValues above), and for the same reason:
+-- translation tables are loaded PER SIDE and never synced, so "the string the client has" and
+-- "the string the server has" are two readings, not one. Registered ONCE, here: shared/ loads
+-- before client/, so a client registration of the same name would silently shadow this one.
+-- The SERVER half is UNPROVEN as of this commit -- no run has sent `text.get` to a dedicated
+-- server yet. Slice 12's x121 M4 is the first read, and `no getText() on this build` is a
+-- legitimate ANSWER there (the finding for question 4), not a bug to fix.
+--
+-- Why it exists (slice 10): a mod that ships no scripts, registers nothing server-side and
+-- writes its one modData key only from UI input handlers has no state a bus command can read --
+-- except its TRANSLATIONS, which are shared/ files the engine loads at start. This command is
+-- what turns such a mod's `[[verify]]` probe from tier (b) (grep the mod's own console print out
+-- of the client log) into tier (a) (read the mod's own effect through the bus).
+-- `getText` is a Lua GLOBAL the engine exposes, not a member on an object, so TK.call / TK.field
+-- (both of which index an object) do not apply. The nil-check-then-call is this harness's own
+-- idiom for globals (`getScriptManager` at :217 in this file; `getSandboxOptions` at
+-- client/PZTestKit_Client.lua:169, `getEvolvedRecipes` at :305) and is safe: reading an
+-- undefined global is nil in Lua, never a raise.
+-- Jar-confirmed on 42.20.4: `zombie/Lua/LuaManager$GlobalObject.getText(Ljava/lang/String;
+-- [Ljava/lang/Object;)Ljava/lang/String;` -- varargs, and the game's own Lua calls it with one
+-- argument everywhere. A MISS returns the KEY ITSELF (`Translator.getTextInternal`, the IGUI_
+-- branch at @116-@138 L434-L435, null at @684-@685, `aload_0` return at @749-@750 L491), so
+-- `text == key` is "no such key" and is reported as `miss` rather than left for the caller to
+-- infer. That is also why a translated value is real evidence: it cannot be echoed from the
+-- argument.
+TK.register("text.get", function(argv)
+    local key = argv[1]
+    if key == nil then return "usage: text.get <translation key>" end
+    if getText == nil then
+        return { key = key, side = TK.side, error = "no getText() on this build" }
+    end
+    local text = tostring(getText(key))
+    return { key = key, text = text, miss = (text == key), side = TK.side }
+end)
 TK.log("core loaded (" .. TK.side .. ")")

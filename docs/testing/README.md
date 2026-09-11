@@ -84,14 +84,20 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   executes each seq once (last seq recovered from `pzt-ack.txt` after a Lua
   reset) and answers in `pzt-ack.txt` (`ok:`/`err:` + a string or one-line
   JSON). Shared commands: `ping`, `version`, `state`, `result <name>`,
-  `time.snapshot`, `trait.check`, `lua.reload <file>`, and the slice-04 test
-  layer's `test.list` (registered names, sorted), `test.run <name> [user]`
+  `time.snapshot`, `trait.check`, `lua.reload <file>`,
+  `text.get <IGUI key>` (since 291f977 — client-only until slice 12 moved the
+  registration into `shared/PZTestKit_Core.lua`, so **both sides answer it**;
+  **a miss returns the key itself**, reported as `miss: true`. The **server**
+  half is unproven until `x121` M4 reads it — a server that answers
+  `no getText() on this build` is the finding there, not a fault), and the
+  slice-04 test layer's `test.list` (registered names, sorted),
+  `test.run <name> [user]`
   (ack `started` / `unknown` / `already running <x>` / the player-resolution
   error — only `started` leads to a result doc) and `test.status`
   (`{running, name, clock, due, side, samples}`); server: `time.multiplier`,
   `players`, `nutrition.get <user>`, `nutrition.set <user> <field> <v>`,
   `stats.set <user> <stat> <v> …`, `moddata.set <user> <k> <v>` (since 291f977); client: `quit`, `player.stats`,
-  `moddata.set/transmit`, `text.get <IGUI key>` (since 291f977), the S6 round-trip witnesses `witness.sync.moddata`
+  `moddata.set/transmit`, the S6 round-trip witnesses `witness.sync.moddata`
   (called `witness.moddata` until slice 08 gave that name to the shared
   reflective command below; the `kind` on the wire, the comparison and the
   `witness_moddata_<key>.json` result file are unchanged), `witness.nutrition`
@@ -570,7 +576,8 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     `KahluaTableImpl.load`'s wipe-before-rawset on the receiving side of a
     `transmitModData()` is empty. The reply is
     `{user, key, value, side, keyCount, keys, serverWorldAge}`.
-  * Client: **`text.get <translation key>`** → `{key, text, miss, side}`, or a
+  * **`text.get <translation key>`** (client-only when it landed; **shared, so
+    both sides answer it**, since slice 12) → `{key, text, miss, side}`, or a
     usage string with no argument. `getText` is a Lua **global** the engine
     exposes (`LuaManager$GlobalObject.getText(String, Object[])`, varargs;
     jar-confirmed), not a member on an object, so it is nil-checked and called
@@ -580,7 +587,15 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     that is also what makes a hit evidence, since the text cannot be an echo of
     the argument. It is the route to a tier-(a) `[[verify]]` probe for a mod
     that ships no scripts and writes no readable state — a translation key it
-    defines and vanilla does not.
+    defines and vanilla does not. Slice 12 moved the registration into
+    `shared/PZTestKit_Core.lua` — registered once, there, because `shared/` loads
+    before `client/` and a second registration would shadow it — so the
+    **server** answers it too: translation tables are loaded per side and never
+    synced, which makes the two sides two readings rather than one. The
+    **server half is unproven**: no run has sent `text.get` to a dedicated
+    server, `x121` M4 is the first read, and a reply of
+    `{key, side, error = "no getText() on this build"}` there is the finding for
+    that question rather than a bug to fix.
 
   **Slice-11 addition** (pass 3's harness-prep commit, ahead of its session):
   * **`lua.global <name>[.<field>...]`** (shared, so **both sides answer it**) →
