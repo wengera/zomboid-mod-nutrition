@@ -1,0 +1,5 @@
+name=TKX Raise Probe
+id=TKX_RaiseProbe
+description=Slice-12 experiment: what does an UNGUARDED Kahlua nil call do to the rest of its event handler and to the handlers registered behind it, and does the nested pcall(function() Nil() end) shape catch? Four EveryOneMinute handlers on each Lua state, every reading stored as a string. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

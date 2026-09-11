@@ -1,0 +1,5455 @@
+{
+ "run_id": "x127-20260911-052049",
+ "session": "x127 -- slice 12 session 7: what does an UNGUARDED Kahlua nil call do to the rest of its handler and to the handlers behind it, and does the nested pcall shape catch?",
+ "user": "admin",
+ "profile": {
+  "name": "x12-raise",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x12-raise.toml",
+  "fixture": "default",
+  "description": "PZTestKit + TKX_RaiseProbe \u2014 slice 12 session 7.",
+  "mods": [
+   "PZTestKit",
+   "TKX_RaiseProbe"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "TKX_RaiseProbe": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_RaiseProbe"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "TKX_RaiseProbe"
+ ],
+ "commit": "fe49a2f",
+ "harness_lua_commit": "5d9633f",
+ "harness_lua_commit_expected": "5d9633f",
+ "harness_lua_commit_matches": true,
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "run-20260911-050339",
+ "acceptance_result": "FAIL: 970 server error lines; lua errors on admin",
+ "acceptance_reading": {
+  "expected_by_the_brief": "PASS -- a raise in a mod handler must not fail the boot",
+  "observed": "FAIL: 970 server error lines; lua errors on admin",
+  "faults": [
+   "970 server error lines",
+   "lua errors on admin"
+  ],
+  "timeline_error": "TimeoutError: admin: not ready within 300s (seen: ['in_game', 'lua_error'], clicks: 126)",
+  "verify_rows_run": 0,
+  "why_verify_is_empty": "`pzt run` raised at wait_ready, so the single tier-(a) gate (client `lua.global TKX_R.version`) was never sent. That is NOT a reading about the gate -- it is a reading about the client.",
+  "server": "survived. server_stopped rc=0 after 384.7 s, 970 error lines, two engine stack traces per EveryOneMinute fire (H1 at TKX_RaiseProbe.lua:32, H2 at :37) for ~97 fires. The server's EveryOneMinute kept firing to the end.",
+  "client": "froze. One trace only -- H1's, at frame f:1 of IngameState, 05:04:30, ~50 s after launch -- and then console.txt and the DebugLog both stop dead. `PZTK: player admin at ...` (the orchestrator's `ready` line) never printed. Session 6's acceptance client, at the identical point in the join, went on to frame f:21 and printed it.",
+  "client_debug_caveat": "the harness runs the admin client with -debug (client.py: debug defaults to True for the admin user). The client's dump comes from KahluaUtil.fail(KahluaUtil.java:96) while the server's comes from :100 -- two different call sites in the same method, so the client is on a debug-only branch. Whether a NON-debug client freezes the same way is NOT measured by this session and must not be claimed."
+ },
+ "acceptance_loading_lines": {
+  "server": {
+   "PZTestKit": 93,
+   "TKX_RaiseProbe": 94
+  },
+  "client": {
+   "PZTestKit": [
+    83,
+    162
+   ],
+   "TKX_RaiseProbe": [
+    84,
+    163
+   ]
+  }
+ },
+ "acceptance_grep_counts": {
+  "TKX_DefinitelyNilThree": {
+   "server": 0,
+   "client": 0
+  },
+  "TKX_DefinitelyNilToo": {
+   "server": 0,
+   "client": 0
+  },
+  "tried to call nil": {
+   "server": 194,
+   "client": 1
+  },
+  "attempted to call": {
+   "server": 0,
+   "client": 0
+  },
+  "ExceptionLogger": {
+   "server": 0,
+   "client": 0
+  },
+  "TKX_RaiseProbe": {
+   "server": 879,
+   "client": 12
+  }
+ },
+ "fixture_day_length": 4,
+ "game_minute_seconds": 3.75,
+ "why": "session 6 (x126-20260911-045205) found pcall(<nil>) CATCHES on both sides, which falsifies the first half of the library's standing rule -- but because it caught, nothing raised, so (1) 'kills the whole handler / the chain' was never tested and (2) the nested shape pcall(function() SomeNil() end), where the raise comes from inside the nested luaMainloop rather than from the argument slot, was never tested either. The jar says Event.trigger's per-callback catch (Throwable) continues the loop and KahluaThread.pcall's try covers the nested call; both are readings of what the engine COULD do.",
+ "probe": {
+  "mod": "TKX_RaiseProbe",
+  "file": "testing/experiments/TKX_RaiseProbe/42.20/media/lua/shared/TKX_RaiseProbe.lua",
+  "lines": {
+   "32": "local ok, err = pcall(function() TKX_DefinitelyNilToo() end)",
+   "37": "TKX_DefinitelyNilThree()          -- no guard: if the raise aborts the body, raw_tail never advances",
+   "line_count": 40
+  },
+  "shared_why": "shared/ on purpose -- the server VM and the client VM each run their own copy, so the session gets TWO independent readings of one question.",
+  "handlers": {
+   "H0": "TKX_R.before ++ -- the event fires and the chain reaches this file",
+   "H1": "local ok, err = pcall(function() TKX_DefinitelyNilToo() end); then nested_ok / nested_err assigned and nested_tail ++  (file line 32)",
+   "H2": "TKX_DefinitelyNilThree() UNGUARDED, then raw_tail ++  (file line 37) -- if the raise aborts the body, raw_tail never advances",
+   "H3": "TKX_R.behind ++ -- registered AFTER the raising handler"
+  },
+  "strings_why": "every field is a STRING: a `false` arriving through lua.global would be indistinguishable from a walk that stopped, and \"unset\" vs \"false\" is the whole of H1 -- \"unset\" is what the table constructor put there, so it means the assignment line never ran."
+ },
+ "scope_exclusions": {
+  "applies_here": false,
+  "why": "no modData census is taken this session -- every reading is a lua.global on one table this run's own mod defines. The per-scope exclusion sets (pass-1 precedent, docs/decisions.md:133) are recorded as inapplicable rather than silently omitted."
+ },
+ "world_changes": {
+  "restored": "nothing needs restoring -- this session writes NO state. No additem, no nutrition.set, no moddata.set, no item.set, no eat.action.",
+  "left_in_place": [],
+  "lua_reload": "never sent -- re-running the probe file would reset TKX_R's counters and re-register all four handlers on top of the live ones, which is not a state any reading here should be taken in."
+ },
+ "p22_predicted": "P22, per side, two halves of one question. H1 (the NESTED pcall shape): TKX_R.nested_ok == \"false\", TKX_R.nested_err a message, TKX_R.nested_tail >= \"1\" -- the nested shape CATCHES too, i.e. the whole dynamic extent of pcall is protected, which is the Task 9 jar reading (KahluaThread.pcall's try covers the nested luaMainloop, not merely the argument slot). H2/H3 (the UNGUARDED raise): TKX_R.raw_tail == \"0\" with TKX_R.behind >= \"1\" and advancing -- an unguarded nil call aborts the rest of THAT handler's body and the engine runs the handlers registered behind it, which is Event.trigger's per-callback catch (Throwable) confirmed live. Both halves must land for the side's P22 verdict to be as_predicted.",
+ "p22_falsifier": "H1 is falsified by nested_ok == \"unset\" / nested_tail == \"0\": the nested shape does NOT catch, a raise from inside the nested luaMainloop escapes, and the message is recorded verbatim. Anything else (nested_ok == \"true\", or ok assigned while the tail did not advance) is h1_other and graded falsified like any other non-match. H2/H3 is falsified by raw_tail >= \"1\", which would mean the unguarded nil call did not raise AT ALL (unexpected, recorded verbatim), or by behind == \"0\" while before advances, which would mean the raise kills the chain behind it and the library's old sentence was right after all. A side is UNMEASURED -- not graded -- when a field did not resolve or H0's counter never left \"0\": the first says the bus or the _G walk did not answer on that side, the second says the event never fired there, and an H1/H2 reading taken under either says nothing about the rule.",
+ "notes": [
+  {
+   "wall": 106.526,
+   "note": "client never reached `ready` (PZTK: player <user> at ...) inside 90.0s: TimeoutError: admin: not ready within 90.0s (seen: ['in_game', 'lua_error'], clicks: 27). The session continues -- the server side is read normally and the client side is read for as long as its bus answers."
+  },
+  {
+   "wall": 136.586,
+   "note": "the profile's tier-(a) gate could not be sent: TimeoutError: no ack for #1 lua.global within 30s"
+  },
+  {
+   "wall": 156.629,
+   "note": "client: bus did not answer `lua.global TKX_R.before` within 20s (TimeoutError: no ack for #2 lua.global within 20s). Every later probe on this side uses 4s."
+  },
+  {
+   "wall": 168.647,
+   "note": "TKX_R.before never reached 2 on the client inside the 30 s cap. Falling back to the SERVER's own counter so the server readings are still taken after at least two fires; the client side is graded on its own H0 counter, as always."
+  }
+ ],
+ "phases": {
+  "reads": {
+   "question": "does an unguarded Kahlua nil call abort the rest of its handler's body and kill the handlers registered behind it, and does pcall(function() Nil() end) catch?",
+   "order": "client first, then server",
+   "fields": [
+    "side",
+    "before",
+    "nested_ok",
+    "nested_err",
+    "nested_tail",
+    "raw_tail",
+    "behind"
+   ],
+   "client": {
+    "side_asked": "client",
+    "values": {
+     "side": null,
+     "before": null,
+     "nested_ok": null,
+     "nested_err": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    },
+    "replies": {
+     "side": {
+      "error": "TimeoutError: no ack for #5 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.side",
+       "wall": 169.656,
+       "wall_done": 173.664,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "before": {
+      "error": "TimeoutError: no ack for #6 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.before",
+       "wall": 173.664,
+       "wall_done": 177.674,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "nested_ok": {
+      "error": "TimeoutError: no ack for #7 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_ok",
+       "wall": 177.674,
+       "wall_done": 181.684,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "nested_err": {
+      "error": "TimeoutError: no ack for #8 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_err",
+       "wall": 181.684,
+       "wall_done": 185.693,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "nested_tail": {
+      "error": "TimeoutError: no ack for #9 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_tail",
+       "wall": 185.693,
+       "wall_done": 189.703,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "raw_tail": {
+      "error": "TimeoutError: no ack for #10 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.raw_tail",
+       "wall": 189.703,
+       "wall_done": 193.712,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "behind": {
+      "error": "TimeoutError: no ack for #11 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.behind",
+       "wall": 193.712,
+       "wall_done": 197.722,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     }
+    },
+    "table": {
+     "reply": {
+      "error": "TimeoutError: no ack for #12 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R",
+       "wall": 197.722,
+       "wall_done": 201.731,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "keyCount": null,
+     "keyCount_expected": 8,
+     "type": null,
+     "resolved": null,
+     "keyCount_ok": false
+    },
+    "mod_control": {
+     "global": "TKX_R.version",
+     "reply": {
+      "error": "TimeoutError: no ack for #13 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.version",
+       "wall": 201.731,
+       "wall_done": 205.74,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "value": null,
+     "why": "assigned in the table constructor on the file's first statement, so a 1 says the file RAN whatever the handlers did afterwards."
+    },
+    "harness_control": {
+     "global": "TK.version",
+     "reply": {
+      "error": "TimeoutError: no ack for #14 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 205.74,
+       "wall_done": 209.75,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "value": null,
+     "why": "a resolved=false here means the _G walk itself is broken on this side and every reading above it is suspect -- it does NOT mean a mod global is absent. An `error` here instead means the bus did not answer at all."
+    },
+    "counters": {
+     "before": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    },
+    "bus_dead_at_read": true,
+    "wall": 209.75
+   },
+   "server": {
+    "side_asked": "server",
+    "values": {
+     "side": "server",
+     "before": "53",
+     "nested_ok": "false",
+     "nested_err": "Object tried to call nil in pcall java.lang.RuntimeException",
+     "nested_tail": "54",
+     "raw_tail": "0",
+     "behind": "55"
+    },
+    "replies": {
+     "side": {
+      "side": "server",
+      "name": "TKX_R.side",
+      "type": "string",
+      "resolved": true,
+      "value": "server",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.side",
+       "wall": 209.75,
+       "wall_done": 211.513,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "before": {
+      "side": "server",
+      "name": "TKX_R.before",
+      "type": "string",
+      "resolved": true,
+      "value": "53",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.before",
+       "wall": 211.513,
+       "wall_done": 211.769,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "nested_ok": {
+      "side": "server",
+      "name": "TKX_R.nested_ok",
+      "type": "string",
+      "resolved": true,
+      "value": "false",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_ok",
+       "wall": 211.769,
+       "wall_done": 213.78,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "nested_err": {
+      "side": "server",
+      "name": "TKX_R.nested_err",
+      "type": "string",
+      "resolved": true,
+      "value": "Object tried to call nil in pcall java.lang.RuntimeException",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_err",
+       "wall": 213.78,
+       "wall_done": 215.291,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "nested_tail": {
+      "side": "server",
+      "name": "TKX_R.nested_tail",
+      "type": "string",
+      "resolved": true,
+      "value": "54",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_tail",
+       "wall": 215.291,
+       "wall_done": 215.545,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "raw_tail": {
+      "side": "server",
+      "name": "TKX_R.raw_tail",
+      "type": "string",
+      "resolved": true,
+      "value": "0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.raw_tail",
+       "wall": 215.545,
+       "wall_done": 217.555,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "behind": {
+      "side": "server",
+      "name": "TKX_R.behind",
+      "type": "string",
+      "resolved": true,
+      "value": "55",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.behind",
+       "wall": 217.555,
+       "wall_done": 219.064,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     }
+    },
+    "table": {
+     "reply": {
+      "side": "server",
+      "name": "TKX_R",
+      "type": "table",
+      "resolved": true,
+      "keyCount": 8,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R",
+       "wall": 219.064,
+       "wall_done": 219.571,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "keyCount": 8,
+     "keyCount_expected": 8,
+     "type": "table",
+     "resolved": true,
+     "keyCount_ok": true
+    },
+    "mod_control": {
+     "global": "TKX_R.version",
+     "reply": {
+      "side": "server",
+      "name": "TKX_R.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.version",
+       "wall": 219.571,
+       "wall_done": 221.581,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "value": 1,
+     "why": "assigned in the table constructor on the file's first statement, so a 1 says the file RAN whatever the handlers did afterwards."
+    },
+    "harness_control": {
+     "global": "TK.version",
+     "reply": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 221.581,
+       "wall_done": 222.843,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "value": 1,
+     "why": "a resolved=false here means the _G walk itself is broken on this side and every reading above it is suspect -- it does NOT mean a mod global is absent. An `error` here instead means the bus did not answer at all."
+    },
+    "counters": {
+     "before": 53,
+     "nested_tail": 54,
+     "raw_tail": 0,
+     "behind": 55
+    },
+    "bus_dead_at_read": false,
+    "wall": 222.843
+   }
+  },
+  "classification": {
+   "client": {
+    "h1_branch": "unmeasured",
+    "h1_verdict": "unmeasured",
+    "h1_means": "not graded. Either a field did not resolve (the bus or the _G walk did not answer on this side) or H0's counter never left \"0\" (the event never fired here), and a reading taken under either says nothing about the rule.",
+    "h2_branch": "unmeasured",
+    "h2_verdict": "unmeasured",
+    "h2_means": "not graded. Either a field did not resolve (the bus or the _G walk did not answer on this side) or H0's counter never left \"0\" (the event never fired here), and a reading taken under either says nothing about the rule.",
+    "verdict": "unmeasured",
+    "gates": {
+     "readable": false,
+     "event_fired": false,
+     "table_keyCount_ok": false,
+     "table_keyCount": null,
+     "mod_control_value": null,
+     "harness_control_value": null,
+     "bus_dead_at_read": true
+    },
+    "readings": {
+     "side_reported": null,
+     "nested_ok": null,
+     "err": {
+      "verbatim": null,
+      "mentions_nil": false,
+      "mentions_call": false,
+      "names_the_global": false,
+      "is_unset": false
+     },
+     "before": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    }
+   },
+   "server": {
+    "h1_branch": "h1_nested_catches",
+    "h1_verdict": "as_predicted",
+    "h1_means": "pcall(function() SomeNil() end) CAUGHT the raise on this side: ok came back false, err carries a message and the three lines after the pcall ran. The whole dynamic extent of pcall is protected, not just the argument slot -- KahluaThread.pcall's try covers the nested luaMainloop, exactly as the jar reads. A doc sentence of the form 'wrapping your handler body in pcall catches nil calls inside it' is now MEASURED.",
+    "h2_branch": "h2_aborts_body_chain_continues",
+    "h2_verdict": "as_predicted",
+    "h2_means": "the unguarded raise aborted the REST of its own handler's body (raw_tail never advanced past the nil call) and the engine ran the handler registered BEHIND it anyway (behind advanced). Event.trigger's per-callback catch (Throwable) is confirmed live: the standing rule is right about the handler body and WRONG about the chain.",
+    "verdict": "as_predicted",
+    "gates": {
+     "readable": true,
+     "event_fired": true,
+     "table_keyCount_ok": true,
+     "table_keyCount": 8,
+     "mod_control_value": 1,
+     "harness_control_value": 1,
+     "bus_dead_at_read": false
+    },
+    "readings": {
+     "side_reported": "server",
+     "nested_ok": "false",
+     "err": {
+      "verbatim": "Object tried to call nil in pcall java.lang.RuntimeException",
+      "mentions_nil": true,
+      "mentions_call": true,
+      "names_the_global": false,
+      "is_unset": false
+     },
+     "before": 53,
+     "nested_tail": 54,
+     "raw_tail": 0,
+     "behind": 55
+    }
+   }
+  },
+  "engine_log_signature": {
+   "question": "did the engine LOG the unguarded raise, and in what words?",
+   "excludes": "every line matching `PZTK: cmd` -- the harness echoing this driver's own bus replies back into the same log it is grepped from. Counts below are engine_count = count - echo_count.",
+   "per_side": {
+    "server": {
+     "h2_frame_lines": 168,
+     "h2_first_hit": {
+      "line": 2086,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     "h2_message_lines": 56,
+     "h2_message_first_hit": {
+      "line": 2088,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     "h1_frame_lines": 336,
+     "h1_first_hit": {
+      "line": 2049,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     "h1_message_lines": 56,
+     "h1_message_first_hit": {
+      "line": 2052,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     "names_the_global": {
+      "TKX_DefinitelyNilThree": 0,
+      "TKX_DefinitelyNilToo": 0
+     }
+    },
+    "client": {
+     "h2_frame_lines": 0,
+     "h2_first_hit": null,
+     "h2_message_lines": 0,
+     "h2_message_first_hit": null,
+     "h1_frame_lines": 4,
+     "h1_first_hit": {
+      "line": 3280,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     "h1_message_lines": 1,
+     "h1_message_first_hit": {
+      "line": 3282,
+      "text": "Lua fail. Message: Object tried to call nil in pcall",
+      "harness_echo": false
+     },
+     "names_the_global": {
+      "TKX_DefinitelyNilThree": 0,
+      "TKX_DefinitelyNilToo": 0
+     }
+    }
+   }
+  }
+ },
+ "verdicts": {
+  "P22_client": {
+   "phase": "P22_client",
+   "predicted": "P22, per side, two halves of one question. H1 (the NESTED pcall shape): TKX_R.nested_ok == \"false\", TKX_R.nested_err a message, TKX_R.nested_tail >= \"1\" -- the nested shape CATCHES too, i.e. the whole dynamic extent of pcall is protected, which is the Task 9 jar reading (KahluaThread.pcall's try covers the nested luaMainloop, not merely the argument slot). H2/H3 (the UNGUARDED raise): TKX_R.raw_tail == \"0\" with TKX_R.behind >= \"1\" and advancing -- an unguarded nil call aborts the rest of THAT handler's body and the engine runs the handlers registered behind it, which is Event.trigger's per-callback catch (Throwable) confirmed live. Both halves must land for the side's P22 verdict to be as_predicted.",
+   "falsifier": "H1 is falsified by nested_ok == \"unset\" / nested_tail == \"0\": the nested shape does NOT catch, a raise from inside the nested luaMainloop escapes, and the message is recorded verbatim. Anything else (nested_ok == \"true\", or ok assigned while the tail did not advance) is h1_other and graded falsified like any other non-match. H2/H3 is falsified by raw_tail >= \"1\", which would mean the unguarded nil call did not raise AT ALL (unexpected, recorded verbatim), or by behind == \"0\" while before advances, which would mean the raise kills the chain behind it and the library's old sentence was right after all. A side is UNMEASURED -- not graded -- when a field did not resolve or H0's counter never left \"0\": the first says the bus or the _G walk did not answer on that side, the second says the event never fired there, and an H1/H2 reading taken under either says nothing about the rule.",
+   "observed": {
+    "side": "client",
+    "side_reported_by_probe": null,
+    "values": {
+     "side": null,
+     "before": null,
+     "nested_ok": null,
+     "nested_err": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    },
+    "counters": {
+     "before": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    },
+    "h1_branch": "unmeasured",
+    "h1_verdict": "unmeasured",
+    "h1_means": "not graded. Either a field did not resolve (the bus or the _G walk did not answer on this side) or H0's counter never left \"0\" (the event never fired here), and a reading taken under either says nothing about the rule.",
+    "h2_branch": "unmeasured",
+    "h2_verdict": "unmeasured",
+    "h2_means": "not graded. Either a field did not resolve (the bus or the _G walk did not answer on this side) or H0's counter never left \"0\" (the event never fired here), and a reading taken under either says nothing about the rule.",
+    "gates": {
+     "readable": false,
+     "event_fired": false,
+     "table_keyCount_ok": false,
+     "table_keyCount": null,
+     "mod_control_value": null,
+     "harness_control_value": null,
+     "bus_dead_at_read": true
+    },
+    "nested_err": {
+     "verbatim": null,
+     "mentions_nil": false,
+     "mentions_call": false,
+     "names_the_global": false,
+     "is_unset": false
+    },
+    "table_keyCount": null,
+    "engine_log": {
+     "TKX_DefinitelyNilThree": {
+      "server": 0,
+      "client": 0
+     },
+     "TKX_DefinitelyNilToo": {
+      "server": 0,
+      "client": 0
+     },
+     "tried to call nil": {
+      "server": 112,
+      "client": 1
+     },
+     "attempted to call": {
+      "server": 0,
+      "client": 0
+     },
+     "ExceptionLogger": {
+      "server": 0,
+      "client": 0
+     },
+     "TKX_RaiseProbe": {
+      "server": 510,
+      "client": 12
+     },
+     "H1 frame .lua:32": {
+      "server": 336,
+      "client": 4
+     },
+     "H2 frame .lua:37": {
+      "server": 168,
+      "client": 0
+     },
+     "nil in pcall": {
+      "server": 56,
+      "client": 1
+     },
+     "nil in Add": {
+      "server": 56,
+      "client": 0
+     }
+    }
+   },
+   "verdict": "unmeasured",
+   "wall": 222.876,
+   "h1_branch": "unmeasured",
+   "h2_branch": "unmeasured"
+  },
+  "P22_server": {
+   "phase": "P22_server",
+   "predicted": "P22, per side, two halves of one question. H1 (the NESTED pcall shape): TKX_R.nested_ok == \"false\", TKX_R.nested_err a message, TKX_R.nested_tail >= \"1\" -- the nested shape CATCHES too, i.e. the whole dynamic extent of pcall is protected, which is the Task 9 jar reading (KahluaThread.pcall's try covers the nested luaMainloop, not merely the argument slot). H2/H3 (the UNGUARDED raise): TKX_R.raw_tail == \"0\" with TKX_R.behind >= \"1\" and advancing -- an unguarded nil call aborts the rest of THAT handler's body and the engine runs the handlers registered behind it, which is Event.trigger's per-callback catch (Throwable) confirmed live. Both halves must land for the side's P22 verdict to be as_predicted.",
+   "falsifier": "H1 is falsified by nested_ok == \"unset\" / nested_tail == \"0\": the nested shape does NOT catch, a raise from inside the nested luaMainloop escapes, and the message is recorded verbatim. Anything else (nested_ok == \"true\", or ok assigned while the tail did not advance) is h1_other and graded falsified like any other non-match. H2/H3 is falsified by raw_tail >= \"1\", which would mean the unguarded nil call did not raise AT ALL (unexpected, recorded verbatim), or by behind == \"0\" while before advances, which would mean the raise kills the chain behind it and the library's old sentence was right after all. A side is UNMEASURED -- not graded -- when a field did not resolve or H0's counter never left \"0\": the first says the bus or the _G walk did not answer on that side, the second says the event never fired there, and an H1/H2 reading taken under either says nothing about the rule.",
+   "observed": {
+    "side": "server",
+    "side_reported_by_probe": "server",
+    "values": {
+     "side": "server",
+     "before": "53",
+     "nested_ok": "false",
+     "nested_err": "Object tried to call nil in pcall java.lang.RuntimeException",
+     "nested_tail": "54",
+     "raw_tail": "0",
+     "behind": "55"
+    },
+    "counters": {
+     "before": 53,
+     "nested_tail": 54,
+     "raw_tail": 0,
+     "behind": 55
+    },
+    "h1_branch": "h1_nested_catches",
+    "h1_verdict": "as_predicted",
+    "h1_means": "pcall(function() SomeNil() end) CAUGHT the raise on this side: ok came back false, err carries a message and the three lines after the pcall ran. The whole dynamic extent of pcall is protected, not just the argument slot -- KahluaThread.pcall's try covers the nested luaMainloop, exactly as the jar reads. A doc sentence of the form 'wrapping your handler body in pcall catches nil calls inside it' is now MEASURED.",
+    "h2_branch": "h2_aborts_body_chain_continues",
+    "h2_verdict": "as_predicted",
+    "h2_means": "the unguarded raise aborted the REST of its own handler's body (raw_tail never advanced past the nil call) and the engine ran the handler registered BEHIND it anyway (behind advanced). Event.trigger's per-callback catch (Throwable) is confirmed live: the standing rule is right about the handler body and WRONG about the chain.",
+    "gates": {
+     "readable": true,
+     "event_fired": true,
+     "table_keyCount_ok": true,
+     "table_keyCount": 8,
+     "mod_control_value": 1,
+     "harness_control_value": 1,
+     "bus_dead_at_read": false
+    },
+    "nested_err": {
+     "verbatim": "Object tried to call nil in pcall java.lang.RuntimeException",
+     "mentions_nil": true,
+     "mentions_call": true,
+     "names_the_global": false,
+     "is_unset": false
+    },
+    "table_keyCount": 8,
+    "engine_log": {
+     "TKX_DefinitelyNilThree": {
+      "server": 0,
+      "client": 0
+     },
+     "TKX_DefinitelyNilToo": {
+      "server": 0,
+      "client": 0
+     },
+     "tried to call nil": {
+      "server": 112,
+      "client": 1
+     },
+     "attempted to call": {
+      "server": 0,
+      "client": 0
+     },
+     "ExceptionLogger": {
+      "server": 0,
+      "client": 0
+     },
+     "TKX_RaiseProbe": {
+      "server": 510,
+      "client": 12
+     },
+     "H1 frame .lua:32": {
+      "server": 336,
+      "client": 4
+     },
+     "H2 frame .lua:37": {
+      "server": 168,
+      "client": 0
+     },
+     "nil in pcall": {
+      "server": 56,
+      "client": 1
+     },
+     "nil in Add": {
+      "server": 56,
+      "client": 0
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 222.878,
+   "h1_branch": "h1_nested_catches",
+   "h2_branch": "h2_aborts_body_chain_continues"
+  }
+ },
+ "client_ready": {
+  "timeout_s": 90.0,
+  "ok": false,
+  "error": "TimeoutError: admin: not ready within 90.0s (seen: ['in_game', 'lua_error'], clicks: 27)",
+  "seen": [
+   "in_game",
+   "lua_error"
+  ],
+  "client_alive": true,
+  "wall": 106.526
+ },
+ "session_ready_wall": 106.526,
+ "build": "42.20.4",
+ "verify": [],
+ "verify_error": "TimeoutError: no ack for #1 lua.global within 30s",
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "mods_dir": {
+  "path": "testing\\runs\\x127-20260911-052049\\server\\mods",
+  "listing": [
+   "PZTestKit",
+   "TKX_RaiseProbe"
+  ],
+  "probe_folder_present": true
+ },
+ "timeline": [
+  {
+   "t": 106.5,
+   "phase": "session_ready",
+   "client_ready": "False"
+  },
+  {
+   "t": 169.7,
+   "phase": "wait_done",
+   "client": "False",
+   "server": "True"
+  },
+  {
+   "t": 209.7,
+   "phase": "read_client"
+  },
+  {
+   "t": 222.8,
+   "phase": "read_server"
+  },
+  {
+   "t": 222.9,
+   "phase": "verdict",
+   "name": "P22_client",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 222.9,
+   "phase": "verdict",
+   "name": "P22_server",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 346.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": null
+  },
+  {
+   "t": 355.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 892
+  }
+ ],
+ "server_errors": [
+  "ERROR: General      f:1 st:835,800,627 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:1 st:835,800,628> Lua((MOD:TKX Raise Probe)).pcall> Exception thrown\n\tjava.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).\n\tStack trace:\n\t\tse.krka.kahlua.vm.KahluaUtil.fail(KahluaUtil.java:100)\n\t\tLua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)\n\t\tLua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)\n\t\tse.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:763)",
+  "ERROR: General      f:1 st:835,800,629 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:1 st:835,800,629 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:1 st:835,800,629> Lua((MOD:TKX Raise Probe)).Add> Exception thrown\n\tjava.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).\n\tStack trace:\n\t\tse.krka.kahlua.vm.KahluaUtil.fail(KahluaUtil.java:100)\n\t\tLua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)\n\t\tse.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:763)\n\t\tse.krka.kahlua.vm.KahluaThread.call(KahluaThread.java:162)",
+  "ERROR: General      f:1 st:835,800,630 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:22 st:835,802,710 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:22 st:835,802,711> Lua((MOD:TKX Raise Probe)).pcall> Exception thrown\n\tjava.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).\n\tStack trace:\n\t\tse.krka.kahlua.vm.KahluaUtil.fail(KahluaUtil.java:100)\n\t\tLua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)\n\t\tLua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)\n\t\tse.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:763)",
+  "ERROR: General      f:22 st:835,802,711 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:22 st:835,802,711 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE",
+  "ERROR: General      f:22 st:835,802,711> Lua((MOD:TKX Raise Probe)).Add> Exception thrown\n\tjava.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).\n\tStack trace:\n\t\tse.krka.kahlua.vm.KahluaUtil.fail(KahluaUtil.java:100)\n\t\tLua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)\n\t\tse.krka.kahlua.vm.KahluaThread.luaMainloop(KahluaThread.java:763)\n\t\tse.krka.kahlua.vm.KahluaThread.call(KahluaThread.java:162)",
+  "ERROR: General      f:22 st:835,802,711 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+  "STACK TRACE"
+ ],
+ "wait": {
+  "global": "TKX_R.before",
+  "target": 2,
+  "poll_every_s": 2.0,
+  "cap_s": 30.0,
+  "client": {
+   "side": "client",
+   "polls": [
+    {
+     "wall": 156.629,
+     "value": null,
+     "int": null,
+     "resolved": null,
+     "error": "TimeoutError: no ack for #2 lua.global within 20s"
+    },
+    {
+     "wall": 162.638,
+     "value": null,
+     "int": null,
+     "resolved": null,
+     "error": "TimeoutError: no ack for #3 lua.global within 4s"
+    },
+    {
+     "wall": 168.647,
+     "value": null,
+     "int": null,
+     "resolved": null,
+     "error": "TimeoutError: no ack for #4 lua.global within 4s"
+    }
+   ],
+   "target_met": false,
+   "waited_s": 32.059
+  },
+  "server_fallback": {
+   "side": "server",
+   "polls": [
+    {
+     "wall": 169.654,
+     "value": "41",
+     "int": 41,
+     "resolved": true,
+     "error": null
+    }
+   ],
+   "target_met": true,
+   "waited_s": 1.007
+  },
+  "why": "H0 is registered FIRST on the event, so `before` reaching 2 proves the event has fired at least twice AND that the chain reaches this file -- which is the only state in which the H1 and H2 readings mean anything.",
+  "cadence": "DayLength 4 -> 3.75 s per game minute"
+ },
+ "greps": {
+  "TKX_DefinitelyNilThree": {
+   "pattern": "TKX_DefinitelyNilThree",
+   "when": "after the graded reads",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "TKX_DefinitelyNilToo": {
+   "pattern": "TKX_DefinitelyNilToo",
+   "when": "after the graded reads",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "tried to call nil": {
+   "pattern": "tried to call nil",
+   "when": "after the graded reads",
+   "from_brief": true,
+   "server": {
+    "count": 113,
+    "echo_count": 1,
+    "engine_count": 112,
+    "kept": [
+     {
+      "line": 2052,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2088,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2118,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2154,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2183,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2219,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2248,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2284,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2315,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2351,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2380,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2416,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2445,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2481,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2510,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2546,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2575,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2611,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2640,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2676,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2725,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2761,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2790,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2826,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2855,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2891,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2920,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2956,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2985,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3021,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3050,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3086,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3115,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3151,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3180,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3216,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3245,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3310,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3346,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3375,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3411,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3440,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3476,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3505,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3541,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3570,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3606,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3635,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3671,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3700,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3736,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3765,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3801,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3830,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3866,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3895,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3931,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3960,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3996,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 5492,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5524,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5560,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5582,
+      "text": "LOG  : Lua          f:1977 st:835,998,213> PZTK: cmd #5 lua.global -> {\"side\":\"server\",\"name\":\"TKX_R.nested_err\",\"type\":\"string\",\"resolved\":true,\"value\":\"Object tried to call nil in pcall java.lang.RuntimeException\"}",
+      "harness_echo": true
+     },
+     {
+      "line": 5592,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5628,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5660,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5696,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "keep": 60,
+    "complete": false,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 1,
+    "echo_count": 0,
+    "engine_count": 1,
+    "kept": [
+     {
+      "line": 3282,
+      "text": "Lua fail. Message: Object tried to call nil in pcall",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 80,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 194,
+    "client": 1
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "attempted to call": {
+   "pattern": "attempted to call",
+   "when": "after the graded reads",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "ExceptionLogger": {
+   "pattern": "ExceptionLogger",
+   "when": "after the graded reads",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "TKX_RaiseProbe": {
+   "pattern": "TKX_RaiseProbe",
+   "when": "after the graded reads",
+   "from_brief": true,
+   "server": {
+    "count": 510,
+    "echo_count": 0,
+    "engine_count": 510,
+    "kept": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:835,786,524> loading TKX_RaiseProbe",
+      "harness_echo": false
+     },
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:835,786,525> mod \"TKX_RaiseProbe\" overrides",
+      "harness_echo": false
+     },
+     {
+      "line": 1266,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 1287,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 1308,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 1329,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 2049,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2050,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2055,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2056,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2080,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2081,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2086,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2091,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2109,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2115,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2116,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2121,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2122,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2146,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2147,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2152,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2157,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2175,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2180,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2181,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2186,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2187,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2211,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2212,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2217,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2222,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2240,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2245,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2246,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2251,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2252,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2276,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2277,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2282,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 5658,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5663,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5664,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5688,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5689,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5694,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5699,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5717,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 12,
+    "echo_count": 0,
+    "engine_count": 12,
+    "kept": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_RaiseProbe",
+      "harness_echo": false
+     },
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_RaiseProbe\" overrides",
+      "harness_echo": false
+     },
+     {
+      "line": 163,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_RaiseProbe",
+      "harness_echo": false
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_RaiseProbe\" overrides",
+      "harness_echo": false
+     },
+     {
+      "line": 298,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 328,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 358,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 388,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 3280,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3284,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3285,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 60,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 879,
+    "client": 12
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "H1 frame .lua:32": {
+   "pattern": "TKX_RaiseProbe\\.lua:32",
+   "when": "after the graded reads",
+   "from_brief": false,
+   "server": {
+    "count": 336,
+    "echo_count": 0,
+    "engine_count": 336,
+    "kept": [
+     {
+      "line": 2049,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2050,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2055,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2056,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2080,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2081,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2115,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2116,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2121,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2122,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2146,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2147,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2180,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2181,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2186,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2187,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2211,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2212,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2245,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2246,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2251,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2252,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2276,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2277,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2312,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2313,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2318,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2319,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2343,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2344,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2377,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2378,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2383,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2384,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2408,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2409,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2442,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2443,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2448,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2449,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 5620,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5621,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5657,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5658,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5663,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5664,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5688,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 5689,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 4,
+    "echo_count": 0,
+    "engine_count": 4,
+    "kept": [
+     {
+      "line": 3280,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3284,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3285,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "H2 frame .lua:37": {
+   "pattern": "TKX_RaiseProbe\\.lua:37",
+   "when": "after the graded reads",
+   "from_brief": false,
+   "server": {
+    "count": 168,
+    "echo_count": 0,
+    "engine_count": 168,
+    "kept": [
+     {
+      "line": 2086,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2091,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2109,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2152,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2157,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2175,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2217,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2222,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2240,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2282,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2287,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2305,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2349,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2354,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2372,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2414,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2419,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2437,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2479,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2484,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2502,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2544,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2549,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2567,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2609,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2614,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2632,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2674,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2679,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2697,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2759,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2764,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2782,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2824,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2829,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2847,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2889,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2894,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2912,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2954,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 5563,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5581,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5626,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5631,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5649,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5694,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5699,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 5717,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "nil in pcall": {
+   "pattern": "Object tried to call nil in pcall",
+   "when": "after the graded reads",
+   "from_brief": false,
+   "server": {
+    "count": 57,
+    "echo_count": 1,
+    "engine_count": 56,
+    "kept": [
+     {
+      "line": 2052,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2118,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2183,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2248,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2315,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2380,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2445,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2510,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2575,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2640,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2725,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2790,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2855,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2920,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2985,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3050,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3115,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3180,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3245,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3310,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3375,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3440,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3505,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3570,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3635,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3700,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3765,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3830,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3895,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3960,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4025,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4090,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4155,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4220,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4285,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4350,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4415,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4480,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4545,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4610,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 5261,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5326,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5391,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5456,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5524,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5582,
+      "text": "LOG  : Lua          f:1977 st:835,998,213> PZTK: cmd #5 lua.global -> {\"side\":\"server\",\"name\":\"TKX_R.nested_err\",\"type\":\"string\",\"resolved\":true,\"value\":\"Object tried to call nil in pcall java.lang.RuntimeException\"}",
+      "harness_echo": true
+     },
+     {
+      "line": 5592,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5660,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 1,
+    "echo_count": 0,
+    "engine_count": 1,
+    "kept": [
+     {
+      "line": 3282,
+      "text": "Lua fail. Message: Object tried to call nil in pcall",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "nil in Add": {
+   "pattern": "Object tried to call nil in Add",
+   "when": "after the graded reads",
+   "from_brief": false,
+   "server": {
+    "count": 56,
+    "echo_count": 0,
+    "engine_count": 56,
+    "kept": [
+     {
+      "line": 2088,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2154,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2219,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2284,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2351,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2416,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2481,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2546,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2611,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2676,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2761,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2826,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2891,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2956,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3021,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3086,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3151,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3216,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3346,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3411,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3476,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3541,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3606,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3671,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3736,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3801,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3866,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3931,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3996,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4061,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4126,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4191,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4256,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4321,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4386,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4451,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4516,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4581,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4646,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 5232,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5297,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5362,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5427,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5492,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5560,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5628,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 5696,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 5718,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  }
+ },
+ "second_pass": {
+  "gap_s": 12.0,
+  "game_minutes_in_gap": 3.2,
+  "why": "supplementary corroboration, never a graded reading: a single snapshot cannot separate a counter that advanced once from one that advances every fire. A branch that DISAGREES between the two passes is itself the finding and is flagged here rather than averaged away.",
+  "reads": {
+   "client": {
+    "side_asked": "client",
+    "values": {
+     "side": null,
+     "before": null,
+     "nested_ok": null,
+     "nested_err": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    },
+    "replies": {
+     "side": {
+      "error": "TimeoutError: no ack for #15 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.side",
+       "wall": 234.883,
+       "wall_done": 238.891,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "before": {
+      "error": "TimeoutError: no ack for #16 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.before",
+       "wall": 238.891,
+       "wall_done": 242.9,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "nested_ok": {
+      "error": "TimeoutError: no ack for #17 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_ok",
+       "wall": 242.9,
+       "wall_done": 246.91,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "nested_err": {
+      "error": "TimeoutError: no ack for #18 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_err",
+       "wall": 246.91,
+       "wall_done": 250.92,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "nested_tail": {
+      "error": "TimeoutError: no ack for #19 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_tail",
+       "wall": 250.92,
+       "wall_done": 254.931,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "raw_tail": {
+      "error": "TimeoutError: no ack for #20 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.raw_tail",
+       "wall": 254.931,
+       "wall_done": 258.94,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "behind": {
+      "error": "TimeoutError: no ack for #21 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.behind",
+       "wall": 258.94,
+       "wall_done": 262.948,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     }
+    },
+    "table": {
+     "reply": {
+      "error": "TimeoutError: no ack for #22 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R",
+       "wall": 262.948,
+       "wall_done": 266.956,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "keyCount": null,
+     "keyCount_expected": 8,
+     "type": null,
+     "resolved": null,
+     "keyCount_ok": false
+    },
+    "mod_control": {
+     "global": "TKX_R.version",
+     "reply": {
+      "error": "TimeoutError: no ack for #23 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.version",
+       "wall": 266.956,
+       "wall_done": 270.965,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "value": null,
+     "why": "assigned in the table constructor on the file's first statement, so a 1 says the file RAN whatever the handlers did afterwards."
+    },
+    "harness_control": {
+     "global": "TK.version",
+     "reply": {
+      "error": "TimeoutError: no ack for #24 lua.global within 4s",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 270.965,
+       "wall_done": 274.974,
+       "timeout": 4,
+       "short_timeout": true
+      }
+     },
+     "value": null,
+     "why": "a resolved=false here means the _G walk itself is broken on this side and every reading above it is suspect -- it does NOT mean a mod global is absent. An `error` here instead means the bus did not answer at all."
+    },
+    "counters": {
+     "before": null,
+     "nested_tail": null,
+     "raw_tail": null,
+     "behind": null
+    },
+    "bus_dead_at_read": true,
+    "wall": 274.974
+   },
+   "server": {
+    "side_asked": "server",
+    "values": {
+     "side": "server",
+     "before": "70",
+     "nested_ok": "false",
+     "nested_err": "Object tried to call nil in pcall java.lang.RuntimeException",
+     "nested_tail": "71",
+     "raw_tail": "0",
+     "behind": "72"
+    },
+    "replies": {
+     "side": {
+      "side": "server",
+      "name": "TKX_R.side",
+      "type": "string",
+      "resolved": true,
+      "value": "server",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.side",
+       "wall": 274.974,
+       "wall_done": 275.484,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "before": {
+      "side": "server",
+      "name": "TKX_R.before",
+      "type": "string",
+      "resolved": true,
+      "value": "70",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.before",
+       "wall": 275.484,
+       "wall_done": 275.741,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "nested_ok": {
+      "side": "server",
+      "name": "TKX_R.nested_ok",
+      "type": "string",
+      "resolved": true,
+      "value": "false",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_ok",
+       "wall": 275.741,
+       "wall_done": 277.754,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "nested_err": {
+      "side": "server",
+      "name": "TKX_R.nested_err",
+      "type": "string",
+      "resolved": true,
+      "value": "Object tried to call nil in pcall java.lang.RuntimeException",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_err",
+       "wall": 277.754,
+       "wall_done": 279.262,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "nested_tail": {
+      "side": "server",
+      "name": "TKX_R.nested_tail",
+      "type": "string",
+      "resolved": true,
+      "value": "71",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.nested_tail",
+       "wall": 279.262,
+       "wall_done": 279.771,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "raw_tail": {
+      "side": "server",
+      "name": "TKX_R.raw_tail",
+      "type": "string",
+      "resolved": true,
+      "value": "0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.raw_tail",
+       "wall": 279.771,
+       "wall_done": 281.785,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "behind": {
+      "side": "server",
+      "name": "TKX_R.behind",
+      "type": "string",
+      "resolved": true,
+      "value": "72",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.behind",
+       "wall": 281.785,
+       "wall_done": 282.796,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     }
+    },
+    "table": {
+     "reply": {
+      "side": "server",
+      "name": "TKX_R",
+      "type": "table",
+      "resolved": true,
+      "keyCount": 8,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R",
+       "wall": 282.796,
+       "wall_done": 283.558,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "keyCount": 8,
+     "keyCount_expected": 8,
+     "type": "table",
+     "resolved": true,
+     "keyCount_ok": true
+    },
+    "mod_control": {
+     "global": "TKX_R.version",
+     "reply": {
+      "side": "server",
+      "name": "TKX_R.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_R.version",
+       "wall": 283.558,
+       "wall_done": 285.568,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "value": 1,
+     "why": "assigned in the table constructor on the file's first statement, so a 1 says the file RAN whatever the handlers did afterwards."
+    },
+    "harness_control": {
+     "global": "TK.version",
+     "reply": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 285.568,
+       "wall_done": 286.576,
+       "timeout": 20,
+       "short_timeout": false
+      }
+     },
+     "value": 1,
+     "why": "a resolved=false here means the _G walk itself is broken on this side and every reading above it is suspect -- it does NOT mean a mod global is absent. An `error` here instead means the bus did not answer at all."
+    },
+    "counters": {
+     "before": 70,
+     "nested_tail": 71,
+     "raw_tail": 0,
+     "behind": 72
+    },
+    "bus_dead_at_read": false,
+    "wall": 286.576
+   }
+  },
+  "deltas": {
+   "client": {
+    "before": null,
+    "nested_tail": null,
+    "raw_tail": null,
+    "behind": null,
+    "h1_first_pass": "unmeasured",
+    "h1_second_pass": "unmeasured",
+    "h2_first_pass": "unmeasured",
+    "h2_second_pass": "unmeasured",
+    "branches_agree": true
+   },
+   "server": {
+    "before": 17,
+    "nested_tail": 17,
+    "raw_tail": 0,
+    "behind": 17,
+    "h1_first_pass": "h1_nested_catches",
+    "h1_second_pass": "h1_nested_catches",
+    "h2_first_pass": "h2_aborts_body_chain_continues",
+    "h2_second_pass": "h2_aborts_body_chain_continues",
+    "branches_agree": true
+   }
+  }
+ },
+ "greps_final": {
+  "TKX_DefinitelyNilThree": {
+   "pattern": "TKX_DefinitelyNilThree",
+   "when": "end of session, after the supplementary read",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "TKX_DefinitelyNilToo": {
+   "pattern": "TKX_DefinitelyNilToo",
+   "when": "end of session, after the supplementary read",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "tried to call nil": {
+   "pattern": "tried to call nil",
+   "when": "end of session, after the supplementary read",
+   "from_brief": true,
+   "server": {
+    "count": 148,
+    "echo_count": 2,
+    "engine_count": 146,
+    "kept": [
+     {
+      "line": 2052,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2088,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2118,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2154,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2183,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2219,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2248,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2284,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2315,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2351,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2380,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2416,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2445,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2481,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2510,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2546,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2575,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2611,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2640,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2676,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2725,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2761,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2790,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2826,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2855,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2891,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2920,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2956,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2985,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3021,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3050,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3086,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3115,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3151,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3180,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3216,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3245,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3310,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3346,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3375,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3411,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3440,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3476,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3505,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3541,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3570,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3606,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3635,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3671,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3700,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3736,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3765,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3801,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3830,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3866,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3895,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3931,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3960,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3996,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 6607,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6639,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6675,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6697,
+      "text": "LOG  : Lua          f:2615 st:836,062,012> PZTK: cmd #15 lua.global -> {\"side\":\"server\",\"name\":\"TKX_R.nested_err\",\"type\":\"string\",\"resolved\":true,\"value\":\"Object tried to call nil in pcall java.lang.RuntimeException\"}",
+      "harness_echo": true
+     },
+     {
+      "line": 6707,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6743,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6775,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6811,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "keep": 60,
+    "complete": false,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 1,
+    "echo_count": 0,
+    "engine_count": 1,
+    "kept": [
+     {
+      "line": 3282,
+      "text": "Lua fail. Message: Object tried to call nil in pcall",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 80,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 194,
+    "client": 1
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "attempted to call": {
+   "pattern": "attempted to call",
+   "when": "end of session, after the supplementary read",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "ExceptionLogger": {
+   "pattern": "ExceptionLogger",
+   "when": "end of session, after the supplementary read",
+   "from_brief": true,
+   "server": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 0,
+    "client": 0
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "TKX_RaiseProbe": {
+   "pattern": "TKX_RaiseProbe",
+   "when": "end of session, after the supplementary read",
+   "from_brief": true,
+   "server": {
+    "count": 663,
+    "echo_count": 0,
+    "engine_count": 663,
+    "kept": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:835,786,524> loading TKX_RaiseProbe",
+      "harness_echo": false
+     },
+     {
+      "line": 95,
+      "text": "LOG  : Mod          f:0 st:835,786,525> mod \"TKX_RaiseProbe\" overrides",
+      "harness_echo": false
+     },
+     {
+      "line": 1266,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 1287,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 1308,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 1329,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\server\\mods\\TKX_RaiseProbe\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 2049,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2050,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2055,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2056,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2080,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2081,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2086,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2091,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2109,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2115,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2116,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2121,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2122,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2146,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2147,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2152,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2157,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2175,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2180,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2181,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2186,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2187,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2211,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2212,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2217,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2222,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2240,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2245,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2246,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2251,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2252,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2276,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2277,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2282,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 6773,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6778,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6779,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6803,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6804,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6809,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6814,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6832,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 12,
+    "echo_count": 0,
+    "engine_count": 12,
+    "kept": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_RaiseProbe",
+      "harness_echo": false
+     },
+     {
+      "line": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_RaiseProbe\" overrides",
+      "harness_echo": false
+     },
+     {
+      "line": 163,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_RaiseProbe",
+      "harness_echo": false
+     },
+     {
+      "line": 164,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_RaiseProbe\" overrides",
+      "harness_echo": false
+     },
+     {
+      "line": 298,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 328,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 358,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 388,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x127-20260911-052049\\clients\\admin\\mods\\TKX_RaiseProbe\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "harness_echo": false
+     },
+     {
+      "line": 3280,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3284,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3285,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 60,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": {
+    "server": 879,
+    "client": 12
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "H1 frame .lua:32": {
+   "pattern": "TKX_RaiseProbe\\.lua:32",
+   "when": "end of session, after the supplementary read",
+   "from_brief": false,
+   "server": {
+    "count": 438,
+    "echo_count": 0,
+    "engine_count": 438,
+    "kept": [
+     {
+      "line": 2049,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2050,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2055,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2056,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2080,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2081,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2115,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2116,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2121,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2122,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2146,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2147,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2180,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2181,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2186,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2187,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2211,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2212,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2245,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2246,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2251,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2252,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2276,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2277,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2312,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2313,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2318,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2319,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2343,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2344,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2377,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2378,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2383,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2384,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2408,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2409,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2442,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2443,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2448,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 2449,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 6735,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6736,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6772,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6773,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6778,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6779,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6803,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 6804,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 4,
+    "echo_count": 0,
+    "engine_count": 4,
+    "kept": [
+     {
+      "line": 3280,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3284,
+      "text": "Lua((MOD:TKX Raise Probe)).pcall(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     },
+     {
+      "line": 3285,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:32)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "H2 frame .lua:37": {
+   "pattern": "TKX_RaiseProbe\\.lua:37",
+   "when": "end of session, after the supplementary read",
+   "from_brief": false,
+   "server": {
+    "count": 219,
+    "echo_count": 0,
+    "engine_count": 219,
+    "kept": [
+     {
+      "line": 2086,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2091,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2109,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2152,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2157,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2175,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2217,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2222,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2240,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2282,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2287,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2305,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2349,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2354,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2372,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2414,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2419,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2437,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2479,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2484,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2502,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2544,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2549,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2567,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2609,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2614,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2632,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2674,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2679,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2697,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2759,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2764,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2782,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2824,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2829,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2847,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2889,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2894,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2912,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 2954,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 6678,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6696,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6741,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6746,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6764,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6809,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6814,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     },
+     {
+      "line": 6832,
+      "text": "Lua((MOD:TKX Raise Probe)).Add(TKX_RaiseProbe.lua:37)",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "nil in pcall": {
+   "pattern": "Object tried to call nil in pcall",
+   "when": "end of session, after the supplementary read",
+   "from_brief": false,
+   "server": {
+    "count": 75,
+    "echo_count": 2,
+    "engine_count": 73,
+    "kept": [
+     {
+      "line": 2052,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2118,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2183,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2248,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2315,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2380,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2445,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2510,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2575,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2640,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2725,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2790,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2855,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2920,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2985,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3050,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3115,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3180,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3245,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3310,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3375,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3440,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3505,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3570,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3635,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3700,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3765,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3830,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3895,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3960,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4025,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4090,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4155,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4220,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4285,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4350,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4415,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4480,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4545,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4610,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 6376,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6441,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6506,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6571,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6639,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6697,
+      "text": "LOG  : Lua          f:2615 st:836,062,012> PZTK: cmd #15 lua.global -> {\"side\":\"server\",\"name\":\"TKX_R.nested_err\",\"type\":\"string\",\"resolved\":true,\"value\":\"Object tried to call nil in pcall java.lang.RuntimeException\"}",
+      "harness_echo": true
+     },
+     {
+      "line": 6707,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6775,
+      "text": "java.lang.RuntimeException: Object tried to call nil in pcall at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 1,
+    "echo_count": 0,
+    "engine_count": 1,
+    "kept": [
+     {
+      "line": 3282,
+      "text": "Lua fail. Message: Object tried to call nil in pcall",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  },
+  "nil in Add": {
+   "pattern": "Object tried to call nil in Add",
+   "when": "end of session, after the supplementary read",
+   "from_brief": false,
+   "server": {
+    "count": 73,
+    "echo_count": 0,
+    "engine_count": 73,
+    "kept": [
+     {
+      "line": 2088,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2154,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2219,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2284,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2351,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2416,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2481,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2546,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2611,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2676,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2761,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2826,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2891,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 2956,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3021,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3086,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3151,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3216,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3281,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3346,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3411,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3476,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3541,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3606,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3671,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3736,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3801,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3866,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3931,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 3996,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4061,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4126,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4191,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4256,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4321,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4386,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4451,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4516,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4581,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 4646,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "kept_tail": [
+     {
+      "line": 6347,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6412,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6477,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6542,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6607,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6675,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6743,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     },
+     {
+      "line": 6811,
+      "text": "java.lang.RuntimeException: Object tried to call nil in Add at KahluaUtil.fail(KahluaUtil.java:100).",
+      "harness_echo": false
+     }
+    ],
+    "keep": 40,
+    "complete": false,
+    "scanned_lines": 6833,
+    "error": null
+   },
+   "client": {
+    "count": 0,
+    "echo_count": 0,
+    "engine_count": 0,
+    "kept": [],
+    "kept_tail": [],
+    "keep": 40,
+    "complete": true,
+    "scanned_lines": 3309,
+    "error": null
+   },
+   "acceptance_counts": null,
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so a load-time count is expected at 2x the server's; a RUNTIME error count is not, because only the in-session state runs EveryOneMinute."
+  }
+ },
+ "summary": {
+  "acceptance_result": "FAIL: 970 server error lines; lua errors on admin",
+  "client_ready": false,
+  "client_seen": [
+   "in_game",
+   "lua_error"
+  ],
+  "client_bus_answered": false,
+  "server_bus_answered": true,
+  "verify_ok": [],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "wait_target_met": {
+   "client": false,
+   "server_fallback": true
+  },
+  "verdicts": {
+   "P22_client": "unmeasured",
+   "P22_server": "as_predicted"
+  },
+  "h1_branch": {
+   "client": "unmeasured",
+   "server": "h1_nested_catches"
+  },
+  "h2_branch": {
+   "client": "unmeasured",
+   "server": "h2_aborts_body_chain_continues"
+  },
+  "sides_agree": false,
+  "values": {
+   "client": {
+    "side": null,
+    "before": null,
+    "nested_ok": null,
+    "nested_err": null,
+    "nested_tail": null,
+    "raw_tail": null,
+    "behind": null
+   },
+   "server": {
+    "side": "server",
+    "before": "53",
+    "nested_ok": "false",
+    "nested_err": "Object tried to call nil in pcall java.lang.RuntimeException",
+    "nested_tail": "54",
+    "raw_tail": "0",
+    "behind": "55"
+   }
+  },
+  "counters": {
+   "client": {
+    "before": null,
+    "nested_tail": null,
+    "raw_tail": null,
+    "behind": null
+   },
+   "server": {
+    "before": 53,
+    "nested_tail": 54,
+    "raw_tail": 0,
+    "behind": 55
+   }
+  },
+  "table_keyCount": {
+   "client": null,
+   "server": 8
+  },
+  "mod_control": {
+   "client": null,
+   "server": 1
+  },
+  "harness_control": {
+   "client": null,
+   "server": 1
+  },
+  "second_pass_deltas": {
+   "client": {
+    "before": null,
+    "nested_tail": null,
+    "raw_tail": null,
+    "behind": null,
+    "h1_first_pass": "unmeasured",
+    "h1_second_pass": "unmeasured",
+    "h2_first_pass": "unmeasured",
+    "h2_second_pass": "unmeasured",
+    "branches_agree": true
+   },
+   "server": {
+    "before": 17,
+    "nested_tail": 17,
+    "raw_tail": 0,
+    "behind": 17,
+    "h1_first_pass": "h1_nested_catches",
+    "h1_second_pass": "h1_nested_catches",
+    "h2_first_pass": "h2_aborts_body_chain_continues",
+    "h2_second_pass": "h2_aborts_body_chain_continues",
+    "branches_agree": true
+   }
+  },
+  "grep_counts": {
+   "TKX_DefinitelyNilThree": {
+    "server": 0,
+    "server_engine": 0,
+    "client": 0,
+    "client_engine": 0,
+    "complete": [
+     "server",
+     "client"
+    ]
+   },
+   "TKX_DefinitelyNilToo": {
+    "server": 0,
+    "server_engine": 0,
+    "client": 0,
+    "client_engine": 0,
+    "complete": [
+     "server",
+     "client"
+    ]
+   },
+   "tried to call nil": {
+    "server": 148,
+    "server_engine": 146,
+    "client": 1,
+    "client_engine": 1,
+    "complete": [
+     "client"
+    ]
+   },
+   "attempted to call": {
+    "server": 0,
+    "server_engine": 0,
+    "client": 0,
+    "client_engine": 0,
+    "complete": [
+     "server",
+     "client"
+    ]
+   },
+   "ExceptionLogger": {
+    "server": 0,
+    "server_engine": 0,
+    "client": 0,
+    "client_engine": 0,
+    "complete": [
+     "server",
+     "client"
+    ]
+   },
+   "TKX_RaiseProbe": {
+    "server": 663,
+    "server_engine": 663,
+    "client": 12,
+    "client_engine": 12,
+    "complete": [
+     "client"
+    ]
+   },
+   "H1 frame .lua:32": {
+    "server": 438,
+    "server_engine": 438,
+    "client": 4,
+    "client_engine": 4,
+    "complete": [
+     "client"
+    ]
+   },
+   "H2 frame .lua:37": {
+    "server": 219,
+    "server_engine": 219,
+    "client": 0,
+    "client_engine": 0,
+    "complete": [
+     "client"
+    ]
+   },
+   "nil in pcall": {
+    "server": 75,
+    "server_engine": 73,
+    "client": 1,
+    "client_engine": 1,
+    "complete": [
+     "client"
+    ]
+   },
+   "nil in Add": {
+    "server": 73,
+    "server_engine": 73,
+    "client": 0,
+    "client_engine": 0,
+    "complete": [
+     "client"
+    ]
+   }
+  },
+  "h1_means": {
+   "client": "not graded. Either a field did not resolve (the bus or the _G walk did not answer on this side) or H0's counter never left \"0\" (the event never fired here), and a reading taken under either says nothing about the rule.",
+   "server": "pcall(function() SomeNil() end) CAUGHT the raise on this side: ok came back false, err carries a message and the three lines after the pcall ran. The whole dynamic extent of pcall is protected, not just the argument slot -- KahluaThread.pcall's try covers the nested luaMainloop, exactly as the jar reads. A doc sentence of the form 'wrapping your handler body in pcall catches nil calls inside it' is now MEASURED."
+  },
+  "h2_means": {
+   "client": "not graded. Either a field did not resolve (the bus or the _G walk did not answer on this side) or H0's counter never left \"0\" (the event never fired here), and a reading taken under either says nothing about the rule.",
+   "server": "the unguarded raise aborted the REST of its own handler's body (raw_tail never advanced past the nil call) and the engine ran the handler registered BEHIND it anyway (behind advanced). Event.trigger's per-callback catch (Throwable) is confirmed live: the standing rule is right about the handler body and WRONG about the chain."
+  }
+ },
+ "wall_seconds": 355.1,
+ "server_error_count": 892,
+ "client_lua_error": true,
+ "bus_dead": {
+  "client": true,
+  "server": false
+ }
+}

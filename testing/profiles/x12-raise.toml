@@ -1,0 +1,46 @@
+# testing/profiles/x12-raise.toml — slice 12 session 7: the UNGUARDED-raise / nested-pcall probe.
+#
+# Session 6 (`x126-20260911-045205`, profile `x12-pcall`) measured `pcall(<nil>)` — the undefined
+# global passed as pcall's function ARGUMENT, the shape `TK.call` and every `tkxCall` guard use —
+# and found it CAUGHT on both Lua states, returning `false, "tried to call nil
+# java.lang.RuntimeException"`. Because it caught, nothing ever raised, and two questions stayed
+# open: (1) does an UNGUARDED nil call abort the rest of its own handler's body, and do the
+# handlers registered AFTER it still run — the second half of the library's standing rule, which
+# the Task 9 jar review reads as survivable (`zombie/Lua/Event.trigger` calls each callback
+# through `LuaCaller.protectedCallVoid` inside a per-iteration `catch (Throwable)` that CONTINUES
+# the loop); and (2) does the NESTED shape `pcall(function() SomeNil() end)` catch too, where the
+# raise comes from one frame deeper inside the nested `luaMainloop`.
+#
+# Four `EveryOneMinute` handlers answer both at once: a counter, then the nested-pcall shape, then
+# an UNGUARDED `TKX_DefinitelyNilThree()` with a tail counter after it, then a counter registered
+# BEHIND the raising handler. `raw_tail` staying at "0" while `behind` advances is the reading.
+#
+# The mod is `shared/`, so the server VM and the client VM each run their own copy and the session
+# gets TWO readings, not one. Every field of `TKX_R` is a STRING on purpose: a `false` arriving
+# through `lua.global` would be indistinguishable from a walk that stopped, and `"unset"` vs
+# `"false"` is the whole of H1.
+#
+# No `[sandbox]`, so DayLength stays the fixture's 4 (3.75 s per game minute) — the driver waits on
+# `TKX_R.before` reaching 2 rather than on a clock.
+fixture = "default"
+description = "PZTestKit + TKX_RaiseProbe — slice 12 session 7."
+run = { hold = 20 }
+verify = [   # one tier-(a) gate: certain to pass IF the mod loaded at all, and not a measurement.
+  { side = "client", cmd = "lua.global", args = "TKX_R.version", expect = '"value": 1' },
+]
+# `TKX_R.version` and nothing else. The seven fields that ARE the session — side, before,
+# nested_ok, nested_err, nested_tail, raw_tail, behind — are measurements, and a measurement is
+# never a `[[verify]]` row: `before` is 0 at load time, and `nested_ok`/`raw_tail`/`behind` are
+# exactly what the run is trying to find out. `version` is assigned in the table constructor on
+# the first line of the file, so it answers 1 the moment the file has run at all, whatever the
+# handlers do — including the handler that raises.
+# The SERVER side is deliberately ungated even though the file is `shared/`: whether the server VM
+# loads it too is part of the reading (the driver records `TKX_R.side` on both sides), and a server
+# gate would turn that reading into a boot requirement. A raise in a mod's event handler must not
+# fail the boot either — if it does, THAT is the session's first reading, not a profile error.
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_RaiseProbe"
+path = "testing/experiments/TKX_RaiseProbe"

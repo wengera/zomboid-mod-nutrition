@@ -10,7 +10,7 @@ the fixture was built; `steamapps/workshop/content/108600/`, read-only), and eac
 *restored per-run copy* of the fixture, so nothing here mutates either. Everything a
 profile asks for is resolved and validated before a single process starts (`testing/pzt/profile.py`),
 because the game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A) —
-a run that looks green while the thing under test was never loaded. Ten profiles ship:
+a run that looks green while the thing under test was never loaded. Eleven profiles ship:
 **`mod-under-test.toml`** — PZTestKit + KeenPerception (workshop `3685392864`) on `default` with
 `DayLength = 1`, the T1 acceptance case and the template for slices 09–11, whose `[[verify]]`
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
@@ -91,7 +91,19 @@ the jar reads the other way twice over (`KahluaThread.pcall`'s try covers the ne
 the table constructor on the file's first line, so it answers 1 the moment the file has run at all,
 whatever the handlers do. The other eight fields are the measurement and never gated, and the
 SERVER side is ungated on purpose: the file is `shared/`, so whether the server VM runs it too is
-itself a reading (`TKX_P.side`) rather than a boot requirement.
+itself a reading (`TKX_P.side`) rather than a boot requirement; and **`x12-raise.toml`** — slice
+12's session 7, the follow-on `x12-pcall` earned: PZTestKit + `TKX_RaiseProbe` (a single `shared/`
+file, `path = "testing/experiments/TKX_RaiseProbe"`) on `default` with **no `[sandbox]`** either.
+Session 6 measured `pcall(<nil>)` and found it **catches** on both sides — so nothing raised, and
+the standing rule's SECOND half ("kills the whole handler") went untested, as did the NESTED shape
+`pcall(function() SomeNil() end)`, where the raise comes a frame deeper inside the nested
+`luaMainloop`. This profile's four handlers close both: a counter, the nested-pcall shape, an
+**UNGUARDED** `TKX_DefinitelyNilThree()` with a tail counter after it, and a counter registered
+BEHIND the raising handler. `raw_tail` staying at `"0"` while `behind` advances is the reading —
+the raise aborts its own handler's body and `Event.trigger` runs the rest of the chain. Its single
+tier-(a) row is client `lua.global TKX_R.version`, for the same constructor-line reason, and the
+server side is ungated for the same `shared/` reason; a raise in a mod's handler must not fail the
+boot, and if it does, that is the session's first reading rather than a profile error.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
