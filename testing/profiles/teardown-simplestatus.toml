@@ -1,0 +1,33 @@
+# testing/profiles/teardown-simplestatus.toml — slice 09-11 pass 2: simpleStatus under test on
+# the golden fixture. No [sandbox] block: DayLength stays the fixture's 4 (90 game-min/day),
+# which is what keeps 24 x speed / day_minutes <= 8 if the session accelerates time.
+fixture = "default"
+description = "PZTestKit + simpleStatus (workshop 2867431511) — teardown 2."
+run = { hold = 20 }
+# EMPTY BY RULING, not by oversight — tier (b) of the plan's Task 2 Step 2. There is no tier-(a)
+# probe for this subject BY CONSTRUCTION, and that is a finding: the mod ships no media/scripts in
+# any of its five media trees (script_item_blocks: 0), so items.count / recipes.craft / item.script
+# have nothing to read; its one modData key, SimpleStatusConfig, is written ONLY by UI click
+# handlers (the seven savePlayerData call sites, ISSSBar.lua:274,282,290,297,307,476,540, all
+# landing on ISSSBar.lua:34) and no bus command can click, so `witness.moddata player:admin
+# SimpleStatusConfig` reads `missing` whether the mod loaded or not, while the global-scoped form
+# is created by ModData.getOrCreate and would answer either way (docs/testing/README.md § witness);
+# and both events the mod registers (ss.main.lua:82-83) are CLIENT-only and write nothing readable.
+#
+# The took-effect evidence is therefore the mod's own print at join, grepped by Task 3 out of
+# testing/runs/<run-id>/clients/admin/console.txt — the CLIENT log, because the mod registers
+# nothing server-side — with session.grep_file:
+#   [SimpleStatus] Showing status bar for player: admin   -- 42.16/media/lua/client/ss.main.lua:62
+#   [SimpleStatus] Loading config for player: admin       -- ss.main.lua:13, reached from :72
+#   [SimpleStatus] Status bar created for player: admin   -- ss.main.lua:79
+# in THAT order (:62 prints before loadPlayerConfig is called), so :62 and :79 arriving without :13
+# would mean loadPlayerConfig raised. Tier-(c) fallback, if even the prints are absent: the copied
+# folder under <run>/clients/admin/mods/ plus an empty mods_not_found.
+verify = []
+
+[[mods]]
+id = "PZTestKit"              # harness, copied from the repo (paths.HARNESS_MODS)
+
+[[mods]]
+id = "simpleStatus"           # the id mod.info DECLARES — the folder is SimpleStatus, a case-only
+workshop_id = "2867431511"    # difference; harness.install copies it to <mods_dir>/simpleStatus
