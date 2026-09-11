@@ -611,7 +611,13 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   167), while the **server** printed the block once. So size a client grep's
   `limit` at **≥ 2 × predicted + headroom** — a `limit` set to the predicted
   count saturates on the first block and silently truncates the second, which
-  reads as a pass.
+  reads as a pass. **The general rule, and it applies to the server log too:
+  `grep_file`'s `limit` is a BREAK, not a window** — the reader stops at the
+  limit, so a result of exactly `limit` means *saturation*, never *exhaustion*.
+  Size it above the expected count, and never report a saturated read as a
+  census. (Slice 10 did: `limit=5` on the server's mod grep reported four
+  `overrides` lines where the log held thirteen — the simpleStatus teardown's
+  § MP handling has the corrected reading.)
 
 ### Harness layout (`testing/PZTestKit/PZTestKit/`)
 

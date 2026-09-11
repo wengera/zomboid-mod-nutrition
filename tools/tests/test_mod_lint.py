@@ -68,6 +68,18 @@ def test_mod_info_in_common_only_warns_and_still_passes():
         assert _run(mod).returncode == 0
 
 
+def test_mod_info_place_warn_names_the_model_not_an_engine_read():
+    """The WARN used to end "(B42 reads the version folder first)", which the jar contradicts at
+    `ZomboidFileSystem.getAllModFoldersAux` -- it tests `common/mod.info` FIRST. The detail must
+    name the lint's own model and point at the open question, never assert an engine read order."""
+    with tempfile.TemporaryDirectory() as d:
+        mod = _mod(d, "Common2", {"common/mod.info": "id=Common2\n",
+                                  "42/media/lua/shared/x.lua": "print(1)\n"})
+        detail = mod_lint.lint([mod])[0].detail
+        assert "B42 reads the version folder first" not in detail, detail
+        assert "this lint's model" in detail and "open question 1" in detail, detail
+
+
 def test_mod_info_in_an_older_version_dir_warns():
     """MoodleFramework 3396446795: mod.info in 42.0/ while the live folder is 42.20/. The id it
     resolves to is whatever that older file says, so the placement rule reads 'newest', not 'any'."""

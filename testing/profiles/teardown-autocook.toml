@@ -1,5 +1,5 @@
 # testing/profiles/teardown-autocook.toml — slice 09-11 pass 3: AutoCook under test on the golden
-# fixture. No [sandbox] block: DayLength stays the fixture's 4 (90 game-min/day), which is what
+# fixture. No [sandbox] block: DayLength stays the fixture's 4 (90 REAL minutes per game day), which is what
 # keeps 24 x speed / day_minutes <= 8 if the session accelerates time.
 fixture = "default"
 description = "PZTestKit + AutoCook (workshop 3388721641) — teardown 3."

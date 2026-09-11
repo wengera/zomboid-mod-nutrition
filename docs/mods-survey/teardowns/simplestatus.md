@@ -14,7 +14,9 @@ per arm (§ Two pass-1 follow-up controls).
   because path lookup is case-insensitive, which is exactly why this subject **cannot** settle
   the folder-rename question ([`../../testing/profiles.md`](../../testing/profiles.md)
   § Open questions 6). Workshop page (W): *[B41|B42] Simple Status*, 1.132 MB, posted
-  Sep 25, 2022 @ 12:57am, **updated Apr 5 @ 5:37pm** —
+  Sep 25, 2022 @ 12:57am, **updated Apr 5 @ 5:37pm** (Steam omits the *current* year, so
+  that string alone is undated; `fetched_at 2026-09-10` and `modversion=2.260406.1` fix it at
+  **2026-04-05**) —
   <https://steamcommunity.com/sharedfiles/filedetails/?id=2867431511>, fetched 2026-09-10 17:46
   into [`data/workshop-catalog-details.json`](../../../data/workshop-catalog-details.json).
 - **Build examined (date + version folder used):** **`42.16/`**, the newest of **four** version
@@ -72,7 +74,9 @@ from the 42.20.4 jar; vanilla Lua and scripts are relative to the game install.
 
 **Files that matter** (`42.16/`, whole census 62 files, 2026-09-10). Unlike pass 1's subject
 **every one of the seven Lua files ends with a newline**, so `wc -l` equals the last line number
-and every citation below is a real line.
+and every Lua citation below is a real line. **The reassurance is scoped to the Lua**:
+`42.16/mod.info` is *not* newline-terminated — `wc -l` answers **6** for **7** lines — so the
+`mod.info:7` citations here name a line the count does not reach (C, 2026-09-10).
 
 | File | Lines | Side | Role | Ev |
 |---|---:|---|---|---|
@@ -120,7 +124,11 @@ UI frame and calls `self:prepareBarInfo()` **unconditionally** at `:464`. `prepa
 (`:140-243`) calls `bar.valueFn(self.player)` at `:171`, then `percentFn` / `textFn` / `colorFn`
 at `:236-238` — and for the nutrition bars those closures call `valueFn` **again**
 (`ss.stats.lua:241,252,266,387,401`), so a single frame issues **up to four**
-`player:getNutrition()` round trips per visible nutrition bar. Nothing is cached: the only timer
+`player:getNutrition()` round trips per visible nutrition bar. **The bound is per bar, and the
+weight bar is the worst of them: ten.** Its `valueFn` is one, `colorFn` and `textFn` re-enter it
+for two more, and `textFn` then makes **seven** further direct `getNutrition()` calls for the
+three direction flags (`ss.stats.lua:404-411`) — 1 + 2 + 7 = **10 per frame** against a store that
+moves at 1 Hz (C, counted 2026-09-10). Nothing is cached: the only timer
 in the file (`:453-457`) throttles `adjustWindowSize` to one frame in 60, never the value read.
 This is the answer to [`../../modding/patterns.md`](../../modding/patterns.md) § Open pattern
 questions' cadence question, and it is an **anti-pattern**, not a technique (§ Pitfalls 1).
@@ -186,9 +194,10 @@ Everything below is one live dedicated server plus one real client, same charact
 
 **How a cross-side row is graded here, and why it is not pass 1's rule.** The two sides of a
 snapshot are separate bus round trips ~1–3 s apart and **the server's copy is moving between
-them**: `Nutrition.update @42-@45 L75` jumps past all four decays and `updateCalories` on a
-client, so the client is a **staircase** that steps only when a packet lands while the server is
-a **ramp**. The gap is therefore a **timing** reading, not float noise, and "equal" is the wrong
+them**: `Nutrition.update @42-@45 L75` jumps past the **three** explicit decays —
+carbohydrates `L76`, lipids `L77`, proteins `L78` — **and** `updateCalories()` at `L79` on a
+client (four statements, three of them decays), so the client is a **staircase** that steps only
+when a packet lands while the server is a **ramp**. The gap is therefore a **timing** reading, not float noise, and "equal" is the wrong
 verdict to look for. Each snapshot is graded against a band computed from **its own** signed read
 skew — `δ_min = t_srv_before − t_cli_after`, `δ_max = t_srv_after − t_cli_before`, band
 `[r·δ_min, r·(δ_max + 1 s)]` for a decaying macro, the sorted `[−ρ·(δ_max + 1 s), −ρ·δ_min]`
@@ -322,7 +331,9 @@ arrival bounds rather than artefacts of a snapshot's eight bus calls:
 
 Both bracket the 1 Hz `PlayerStatsPacket` window from above, and the "still old" reading at
 +0.26 s brackets it from below. Over the session's longest write-free window (**38.947 s**,
-`t2+3s` → `final`) the server's calories fell at **0.250296 kcal/real-s** against a derived
+`t2+3s` → `final`) — **write-free in NUTRITION only**: the appendix's two RCON `additem` spawns
+and its server `item.set admin Base.Steak heat 2.0` all ran inside it, and none of the three
+touches `Nutrition` — the server's calories fell at **0.250296 kcal/real-s** against a derived
 **0.2560552** — ratio **0.9775**, inside 10 %, so the derived `r` was used for every band and
 `Thermoregulator.getEnergyMultiplier() ≈ 1` is corroborated to about 2 % (M —
 `empirical_slope.longest`). Short windows scatter ±20 % and should not be quoted: ~6 s at
@@ -371,9 +382,11 @@ conclusion it was used for is unaffected — the client is the superset either w
 difference set the wipe needs is empty without a planted key.
 
 **`SimpleStatusConfig` was absent on both sides at every snapshot** — in `missing`, never in
-`values`, for the top-level key and for all six dotted leaves (`SS_pos_x`, `SS_locked`,
-`SS_fontSize`, `SS_isVertical`, `SS_isRulerOn`, `SS_shown_calories`) (M —
-`snapshots[].{client,server}.config_key` / `config_leaves`). That is a positive statement, not a
+`values` — for the **top-level key at all six** (`snapshots[].{client,server}.config_key`). The
+**six dotted leaves** (`SS_pos_x`, `SS_locked`, `SS_fontSize`, `SS_isVertical`, `SS_isRulerOn`,
+`SS_shown_calories`) were probed **once**: `config_leaves` is non-null at **`snapshots[0]` only**
+and `null` at the other five, so that half of the reading is one probe per side, not six (M —
+`snapshots[0].{client,server}.config_leaves`). That is a positive statement, not a
 gap in the probe: **a pure client-UI mod's persistent state is invisible to the command bus until
 a human clicks**, because all seven writers are UI-input handlers
 (`ISSSBar.lua:274,282,290,297,307,476,540`) and no bus command can synthesise a click or a key
@@ -382,11 +395,11 @@ honestly (below).
 
 ### Controls carried on the same session
 
-| Reading | Server | Client | Reading | Ev |
+| Getter | Server | Client | Reading | Ev |
 |---|---|---|---|---|
-| `getInventoryWeight` | 1.1125000715255737 (2.1125001907348633 at `final`) | identical at every snapshot | the `weight_capacity` bar's numerator **does** cross, exactly — nothing in the library had recorded it | M — `td2-20260910-231655`, `grades[].fields` |
+| `getInventoryWeight` | 1.1125000715255737 (2.1125001907348633 at `final`) | identical at every snapshot | the `weight_capacity` bar's numerator **does** cross, exactly — nothing in the library had recorded it. **The 1.0 step is the appendix, not the mod**: the two items it spawns inside the same window (`Base.FruitSaladClay` 0.7 + `Base.Steak` 0.3) weigh exactly 1.0 | M — `td2-20260910-231655`, `grades[].fields` |
 | `getMaxWeight` | 12 | 12 | its denominator; an `I`, so no band applies. `witness.fields` 12 = `bodySnapshot.maxWeight` 12 on both sides at all six snapshots, which is what proves the `TK.call` wrapper sound | M — `grades[].maxWeight_cross_check` |
-| `isDead` / `isGodMod` | false / false | false / false | `Nutrition.update`'s two gates (`@13-@30 L68-L69`, `@31-@41 L71-L72`) recorded rather than assumed — **neither was exercised in its blocking state** | M — `grades[].fields` |
+| `isDead` / `isGodMod` | false / false | false / false | the **two of `Nutrition.update`'s three gates this session read** (`@13-@30 L68-L69`, `@31-@41 L71-L72`), recorded rather than assumed — **neither was exercised in its blocking state**. The third, the `SandboxOptions` nutrition switch ahead of them, has no bus reader and was not read | M — `grades[].fields` |
 | `getUsername` | `admin` | `admin` | identity control: both sides are reading the same character | M — `grades[].fields` |
 | trait list | `{}` route `getKnownTraits` | `{}` route `getKnownTraits` | agree at all six snapshots — see the flags caveat above | M — `grades[].traits` |
 | `worldAge` | 2.3667 game-days at `baseline` | 2.3536 | the two world clocks have not diverged (each side's own clock, so it is a check, not a skew) | M — `grades[0].worldAge` |
@@ -409,9 +422,22 @@ line 3019), `[SimpleStatus] Loading config for player: admin` (`ss.main.lua:13`,
 3021). All three ⇒ the bar was built (`mod_log_reading.all_three true`,
 `impossible_combination false`) (M).
 
-**What the server loads.** The server log's mod grep returned **five** lines: `loading
-simpleStatus`, then four `mod "simpleStatus" overrides media/lua/shared/translate/<lang>/ig_ui.json`
-(`ch`, `cn`, `de`, `en`) (M — `mod_log_lines_server`). So the server **does** install and load
+**What the server loads — and the committed key is a CAPPED grep, corrected 2026-09-11.** The
+artifact's `mod_log_lines_server` holds **five** lines (`loading simpleStatus` then four
+`overrides` lines, `ch` `cn` `de` `en`), and that five is the **driver's cap, not the log's
+content**: the driver called `grep_file(server.log_path, MOD_RX, limit=5)` and `grep_file`
+**breaks** at its limit, so five hits means **saturation**, never exhaustion. The server log
+itself (`testing/runs/td2-20260910-231655/server/Logs/2026-09-10_23-16_DebugLog-server.txt`,
+under the gitignored `testing/runs/`) holds **18** matching lines: `loading simpleStatus` (`:94`),
+**13** `mod "simpleStatus" overrides media/lua/shared/translate/<lang>/ig_ui.json` (`:95-107`) —
+**one per shipped language**, `ch` `cn` `de` `en` `es` `fr` `hu` `it` `ko` `pl` `pt` `ru` `tr` —
+and four `java.nio.file.NoSuchFileException` lines for the `AnimSets` / `actiongroups` folders
+this mod does not ship (`:1278`, `:1299`, `:1320`, `:1341`), which is the per-copied-mod baseline
+noise every profile run carries. **13 is what this doc already implied** — its `:80` counts 13
+translation JSONs and the format below is one line per shadowed file — and **the conclusion is
+unchanged**. Re-read off the log 2026-09-11 (M); the capped key carries a *do not cite* row in
+[`../../../testing/artifacts/README.md`](../../../testing/artifacts/README.md). So the server
+**does** install and load
 the mod's **shared translate tree** — the one part of it that is not client-only. The engine's
 word "overrides" here is **file-level** (one line per shadowed file), not a key collision, and it
 does **not** contradict the tier-(a) argument above: the client's `text.get` still answers the
@@ -470,7 +496,7 @@ explanation. Hypothesis 3 — whether 42.20.4 ever loads a B41-layout `ItemName_
 
 **The client's copy did NOT stay frozen** — both fields moved — and the two sides are
 **bit-identical across a 0.5 s read offset**, during which an independently ticking copy would
-have decayed further (heat falls ≈0.029/s here, in ≈0.01 quanta every ≈0.35 s). This **reopens**
+have decayed further (heat falls ≈0.029/s here). This **reopens**
 pass 1's freeze row, and the session does **not** close it: two mechanisms remain, a
 server→client push landing inside the window versus two copies ticking independently and
 converging on the same float32. The reconciliation below is a **hypothesis with a named probe**,
@@ -525,10 +551,12 @@ routes).
   snapshots. **The technique is the dependency check, not the trick:** it holds only while every
   input is packet-carried, and here one of them — the weight-band traits — is **not** (body-stats
   open question 10). Write the dependency list down when you use this.
-- **One modData key holding a flat table of scalars** (`ISSSBar.lua:18-36`), all four value types
-  (string, number, boolean, nested table) chosen from the four `KahluaTableImpl.getValueByte`
-  carries. Nothing in the mod's own payload is silently dropped on the wire — a property worth
-  checking deliberately rather than discovering later.
+- **One modData key holding a flat table of scalars** (`ISSSBar.lua:18-36`). The **45 leaves** are
+  **string, number and boolean** only (§ Architecture, the leaf table); the fourth type
+  `KahluaTableImpl.getValueByte` carries — `KahluaTableImpl` itself — is the **container**
+  `SimpleStatusConfig`. So the payload exercises **all four** carried types and contains **none** of
+  the ones the wire silently drops (functions and Java objects, type byte −1). Nothing in the mod's
+  own payload is dropped — a property worth checking deliberately rather than discovering later.
 - **Consume extension points; patch nothing.** `ISPanel:derive` plus super-calls, two vanilla
   event dispatchers, `PZAPI.ModOptions` for key binds — **zero** vanilla tables touched, zero
   script blocks, one `_G` name in the whole mod. The same clean shape pass 1's subject has, for a
@@ -544,8 +572,10 @@ routes).
 
 1. **Per-frame, uncached reads of a server-owned store.** `prerender` → `prepareBarInfo`
    unconditionally (`ISSSBar.lua:464`), `valueFn` at `:171` and up to three more times per bar at
-   `:236-238`, so **up to four `getNutrition()` round trips per visible nutrition bar per frame**
-   against a store that only changes **once a second** (the `PlayerStatsPacket` cadence, measured
+   `:236-238`, so **up to four `getNutrition()` round trips per visible nutrition bar per
+   frame** — **and ten for the weight bar**, whose `textFn` adds seven direct calls of its own
+   for the three direction flags (`ss.stats.lua:404-411`) — against a store that only changes
+   **once a second** (the `PlayerStatsPacket` cadence, measured
    here at 0.766 / 0.765 s arrival). **Rule: cache anything read from a pushed store at the push
    cadence, not the frame cadence — a 1 Hz source read at 60 Hz is 59 wasted reads out of 60.**
    The cost is client-side only and this mod is small, but our own UI will draw more numbers than
@@ -581,7 +611,8 @@ routes).
    ship a registration API, build the derived indexes lazily or rebuild them on registration —
    an API that only works before your own file finished loading is not an API.**
 6. **Dead branches that look live.** `ISSSBar.lua:508` indexes `toggleStats` by
-   `getReverseStat(name)` while `:148` and `:512` key it by the **primary** name, so `:508-510`
+   `getReverseStat(name)` while its two partner sites — `:148` and `:502` — key it by the
+   **primary** name (`:512` reads a different table, `shownConfig`), so `:508-510`
    never fires and the settings menu always labels the option with the primary name;
    `ss.main.lua:59-60` assigns a local from modData and never reads it (the real read is
    `loadPlayerConfig`'s own at `:15`, reached from `:72`); `ss.mods.compatible.lua:5-33` is a
@@ -607,7 +638,9 @@ routes).
 - **API surface patched: zero.** It consumes four extension points (`Events.OnCreatePlayer`,
   `Events.OnKeyPressed`, `ISPanel:derive`, `PZAPI.ModOptions`) and replaces nothing. The server's
   own loader census agrees in the narrowest possible way: the only files it reports this mod
-  shadowing are **its own** translation JSONs (four `overrides` lines, M — `mod_log_lines_server`).
+  shadowing are **its own** translation JSONs — **13** `overrides` lines, one per shipped language
+  (M — the server log, re-read 2026-09-11; the artifact's `mod_log_lines_server` stops at **five**,
+  which is the driver's `limit=5` cap and not the count — § MP handling).
 - **The `transmitModData` blast radius is the real compatibility risk**, and it is measured
   (§ MP handling). Any mod keeping authoritative per-player state in `player:getModData()` on the
   **server** without pushing it to the client first loses it to the next SimpleStatus bar drag.
@@ -703,8 +736,11 @@ the full run directory stays local under the gitignored `testing/runs/`):
 - **`td2-20260910-231655` is the first artifact written under the widened float rendering.**
   Harness commit `291f977` replaced `TK.json`'s `string.format("%.6f", v)` with `tostring(v)`
   (Kahlua's `KahluaUtil.numberToString` → `Double.toString` for a non-integral double, an exact
-  round trip; integers untouched), verified on this artifact's own bytes: **1 292 numbers
-  scanned, 0 non-round-tripping**. **Every artifact before `291f977` — `td1`, `td1b` and the
+  round trip; integers untouched), verified on this artifact's own bytes: **1 225 JSON number
+  tokens — 871 non-integral and 354 integer — 0 non-round-tripping** (re-counted 2026-09-11 by
+  parsing the file; the **1 292** first recorded here is a *raw-text* digit-run scan, which also
+  counts digit runs inside strings and is not the token census).
+  **Every artifact before `291f977` — `td1`, `td1b` and the
   seventeen older runs — renders floats at six decimals** and supports no bit-level claim; the
   D→F→D weight evidence in § MP handling is obtainable only under the new rendering. Provenance,
   reading guides and the *do not cite* list:

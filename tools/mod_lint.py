@@ -13,7 +13,7 @@ the 230 installed folders, 29 (13 %) carry a WARN and 67 (29 %) a WARN or an INF
 |---|---|---|
 | `version-dir`    | ERROR | at least one `42[.x[.y]]/` folder |
 | `mod-info`       | ERROR | a `mod.info` in some version folder, in `common/`, or at the mod root |
-| `mod-info-place` | WARN  | that `mod.info` is in the *newest* version folder, the one B42 runs |
+| `mod-info-place` | WARN  | that `mod.info` is in the *newest* version folder -- this lint's model of what B42 reads, not a reading of it (open question 1) |
 | `id`             | ERROR | the resolved `mod.info` declares a non-empty `id=` |
 | `id-agree`       | ERROR | every `mod.info` a resolver can reach declares the same `id` (`info_chain`, plus any `42*/mod.info`) |
 | `id-drift`       | WARN  | a `mod.info` OUTSIDE that chain (`LEGACY/42.12/mod.info`, a vendored copy) declares a different `id` |
@@ -89,6 +89,15 @@ def info_chain(vers):
     folders are then tried in order is the lint's own model, recorded as open question 1 in
     `docs/testing/profiles.md` and settled by slice 12's mod-anatomy doc. `mod-info-place` is a
     WARN, never an ERROR, precisely because of that.
+
+    Two jar reads bound the model and neither is version-first (C, 2026-09-11, slice 11 plus
+    slice 10's fix wave): for DISCOVERY, `ZomboidFileSystem.getAllModFoldersAux` tests
+    `<mod>/common/mod.info` FIRST (`@124-151 L602`) and `<mod>/<versionDir>/mod.info` after it;
+    for the ID READ, `searchForModInfo` recurses in `File.list()` order (`L708-L730`) and returns
+    the first `mod.info` whose id MATCHES the requested id -- not simply the first one found --
+    registering every file it passes into `modIdToDir`. Neither is a reading of a running build,
+    so open question 1 stays open; what they do settle is that no wording here may claim B42
+    reads the version folder first, which is why the WARN names this lint's model instead.
 
     `pzt.mods.mod_id_of` resolves in this same order. It has not always: until slice 07's final
     fix wave it string-sorted its `42*/mod.info` glob, which puts `42/mod.info` above
@@ -181,10 +190,14 @@ def lint_mod(mod_dir, name=None):
         out.append(Finding(name, ERROR, "mod-info",
                            "no mod.info in any version folder, common/ or the mod root"))
     elif vers and chain[0] not in infos:
-        # The newest version folder is the one the running build reads; anything else is a
+        # The newest version folder is where THIS LINT expects the file; anything else is a
         # fallback, and the id it resolves to is whatever that older/shared file happens to say.
+        # The WARN text used to say "B42 reads the version folder first", which the jar
+        # contradicts at `ZomboidFileSystem.getAllModFoldersAux` (it tests `common/mod.info`
+        # FIRST) -- see `info_chain` below and `docs/testing/profiles.md` open question 1.
         out.append(Finding(name, WARN, "mod-info-place",
-                           "mod.info is %s, not %s (B42 reads the version folder first)"
+                           "mod.info is %s, not %s (this lint's model: newest version folder "
+                           "first; the engine's own order is open -- profiles.md open question 1)"
                            % (chosen, chain[0])))
 
     mod_id = (infos.get(chosen) or {}).get("id", "") if chosen else ""

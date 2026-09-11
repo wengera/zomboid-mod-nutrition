@@ -151,8 +151,14 @@ Three consequences the profile builder is built around:
 - **The folder is renamed to the id** — **M** since slice 09 (run `td1-20260910-192457`;
   the artifact's `folder_check`, § Open questions #6). `harness.install` copies a profile
   source to `<mods_dir>/<mod id>` while `mods.install` (the workshop fallback) keeps the source
-  folder's own name. **Whether a run would still load a mod left under its folder name is
-  untested** (§ Open questions #6): the workshop tree itself is full of drifting folders that the
+  folder's own name. **Every profile mod takes the rename, whichever way it is named:** a bare
+  `id` resolves through the workshop index to a non-empty `src` exactly as a `workshop_id` entry
+  does (`profile.resolve_mod`, `profile.load`'s `sources[mod_id] = src`), and `harness.install`
+  copies anything with a `src` to `<mods_dir>/<mod id>` — so no `[[mods]]` entry can reach the
+  name-keeping fallback at all; `mods.install` belongs to the **plain, non-`--profile`** path
+  (`session.resolve_profile` passes no `mod_sources`). **Whether a run would still load a mod
+  left under its folder name is untested** (§ Open questions #6): the workshop tree itself is
+  full of drifting folders that the
   game does load, which is evidence the loader keys on `mod.info` rather than on the directory
   name — but nothing here has put a drifting folder into a `<mods_dir>` and started a server on
   it, so the two claims are not in evidence together and this page asserts only the copy
@@ -339,7 +345,7 @@ Frockin Splendor mods' `LEGACY/42.1x/mod.info`, and they agree).
 |---|---|---|---|
 | `version-dir` | ERROR | at least one child folder matching `^42(\.\d+){0,2}$` (b41-flat and unversioned mods fail here) | C — `mod_lint.lint_mod` |
 | `mod-info` | ERROR | a `mod.info` exists in **some** version folder, in `common/`, or at the mod root | C — `mod_lint.lint_mod` |
-| `mod-info-place` | WARN | there is a version folder and the **newest** one holds the `mod.info`; the detail names where it actually is | C — `mod_lint.lint_mod` |
+| `mod-info-place` | WARN | there is a version folder and the **newest** one holds the `mod.info`; the detail names where it actually is, and (since slice 10's final fix wave) says the expectation is **this lint's model**, not a read of the engine — see open question 1 | C — `mod_lint.lint_mod` |
 | `id` | ERROR | the resolved `mod.info` declares a non-empty `id=` | C — `mod_lint.lint_mod` |
 | `id-agree` | ERROR | every `mod.info` a **resolver can reach** declares the same `id` — the chain below, plus anything the wider `42*` glob in `mods.mod_id_of` catches. A disagreement there decides the mod's id by which file was opened first | C — `mod_lint.lint_mod` |
 | `id-drift` | WARN | a `mod.info` **outside** that chain (a `LEGACY/42.12/mod.info`, a vendored copy) declares a different id. No resolver can reach it, so it cannot change anyone's answer — worth knowing, not a defect | C — `mod_lint.lint_mod` |
@@ -441,6 +447,24 @@ A profile is a **server-side** decision that the client inherits.
    finding — which is why `mod-info-place` is a WARN. It matters on 6 installed mods, and on
    `3774052732/SD_CC_TEST` a wrong model would change the mod's *id*. Slice 12's mod-anatomy doc
    settles it from the engine.
+
+   **What the jar says, bounded (C, dumped 2026-09-11, slices 11 and 10's fix wave).** Two call
+   sites, and neither is version-first: (a) **discovery** — `ZomboidFileSystem.getAllModFoldersAux`
+   accepts a folder as a mod when `<mod>/common/mod.info` exists, **checked first** (`@124-151
+   L602`), *or* when `<mod>/<versionDir>/mod.info` does, resolving the two `media` roots only
+   afterwards (`@200-219 L607`, `@221-239 L608`); (b) **the id read** — `searchForModInfo` recurses
+   in **`File.list()` order** (`L708-L730`), neither version-first nor `common/`-first, and returns
+   the first `mod.info` **whose id matches the requested id** (not simply the first `mod.info`
+   found), registering every file it passes into `modIdToDir` (`L727`) and appending it to the
+   caller's list (`L728`). **The bound:** this is a jar read, not a reading of a running build, and
+   slice 11's subject could not discriminate (`AutoCook` ships exactly one `mod.info`), so **this
+   question stays open** and the three models — `mod_lint.info_chain` / `pzt.mods.mod_id_of`,
+   `getModVersionDirName`, and `searchForModInfo` — are still unreconciled. What the read *does*
+   settle is negative and now carries across the library: **any wording that says B42 reads the
+   version folder first, or that the first `mod.info` found wins, is wrong** — which is why
+   `mod_lint`'s WARN text was reworded to name its own model instead
+   ([`../mods-survey/teardowns/autocook.md`](../mods-survey/teardowns/autocook.md)
+   § Compatibility notes has the same read from the pass that took it).
 2. ~~**`pzt scenario --profile` does not run the profile's `[[verify]]` probes.**~~ **Closed**
    (slice 07 final fix wave). `scenario.run` runs them once the client is ready, the same
    `session.verify` call `pzt run` makes; they land in `report["verify"]` and in the scenario

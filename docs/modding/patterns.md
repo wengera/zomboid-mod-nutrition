@@ -139,7 +139,9 @@ on; treat divergence as a decision point, not a free choice.**
    row:** § Measured MP sync facts → *The other direction — server → client*,
    the `thirstChange` row; this entry is a copy and that row owns the numbers.
 10. **Keeping server-authoritative state in player modData on a server that also runs a
-    client-side transmitter** (measured, slice 10, run `td2-20260910-231655`). A client
+    client-side transmitter** (**M** for the wipe — slice 10, run `td2-20260910-231655`; **C**
+    for the seven-call-site half, which is a code read of `ISSSBar.lua` and was *not* exercised,
+    because no bus command can synthesise the UI click each site needs). A client
     `player:transmitModData()` sends the **whole** table and the receiver **wipes before it
     rawsets** (`KahluaTableImpl.load @0-@6 L332-L333`), so the server's copy of that player's
     modData becomes *exactly* the client's: a key planted on the server only vanished on the
@@ -271,7 +273,11 @@ Consequences for the nutrition mod:
   `percentFn` / `textFn` / `colorFn` at `:236-238` — so a single frame issues
   **up to four `player:getNutrition()` round trips per visible nutrition bar**,
   with no cache anywhere (the file's one timer, `:453-457`, throttles
-  `adjustWindowSize`, never the value read). The mod is 7 client-only Lua
+  `adjustWindowSize`, never the value read). **The bound is per bar, and four
+  is the floor rather than the ceiling: the weight bar costs ten** — one
+  `valueFn`, two re-entries, and **seven** further direct `getNutrition()` calls
+  its `textFn` makes for the three direction flags
+  (`ss.stats.lua:404-411`). The mod is 7 client-only Lua
   files: it registers **nothing** server-side, so all 12 nutrition reads are
   client-side by construction (C, 2026-09-10). **The source it polls changes
   once a second** — `PlayerStatsPacket`, measured here at 0.766 s / 0.765 s

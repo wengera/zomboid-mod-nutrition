@@ -593,8 +593,12 @@ by this session.
   `ZomboidFileSystem.getAllModFoldersAux` accepts a folder as a mod when `<mod>/common/mod.info`
   exists — **checked first** (`@124-151 L602`) — *or* `<mod>/<versionDir>/mod.info` does, and only
   then resolves the two `media` roots (`@200-219 L607`, `@221-239 L608`). So for *discovery* the
-  common placement is tested first, and the WARN's text ("B42 reads the version folder first") is
-  contradicted **at that call site**. That is the folder-acceptance test, **not the id read**: which
+  common placement is tested first, and the WARN's text as this pass read it ("B42 reads the
+  version folder first") is contradicted **at that call site**. *(Dated follow-up, 2026-09-11:
+  slice 10's final fix wave acted on this finding — the WARN now names the lint's own model and
+  points at open question 1 instead of asserting an engine read order, and the bounded jar
+  statement went into [`../../testing/profiles.md`](../../testing/profiles.md) § Open questions 1.
+  Nothing measured here changes.)* That is the folder-acceptance test, **not the id read**: which
   `mod.info` supplies the id comes from `ZomboidFileSystem.searchForModInfo`, and the precision
   there is that it returns the first `mod.info` **whose id matches the requested id**, in
   `File.list()` order (`L709` / `L730`) — *not* simply the first `mod.info` found; every one passed

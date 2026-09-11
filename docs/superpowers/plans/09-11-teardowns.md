@@ -28,7 +28,7 @@
 - **Profiles (slice 07).** `testing/profiles/<name>.toml`: `fixture`, `[[mods]]` (`id` / `workshop_id` / `path` / `copy = false`), `[sandbox]` (merged into the fixture's 189-key `SandboxVars.lua`, never replaced), `[server]`/`[client]`/`[run]`, and `verify` — bus probes run between `session_ready` and the hold, `expect` matched as a **substring of `json.dumps(parsed ack)`** (`testing/pzt/session.py:162-183`). Everything is resolved and validated before a process starts (`testing/pzt/profile.py`). Run: `python testing/pzt run --profile <name> [--hold N]`; a mod named in `Mods=` that never reaches `<cachedir>/mods` fails the run right after `server_started` (`mods_not_found` + `mod_missing_line` marks). Read `testing/profiles/mod-under-test.toml` — this plan's profiles are that file with the subject swapped.
 - **Mod ids are not folder names.** `pzt/mods.workshop_index()` keys on the id in `mod.info` (229 mods indexed). Measured now: item `3774789651`'s folder is `LongTermPreservation4220` while its `42.20/mod.info` declares `id=SKITTLE_LongTermPreservation4220`, so `index["LongTermPreservation4220"]` is `None` and only the declared id works in `Mods=`. `data/mod-inventory.json` **is** authoritative for ids at HEAD, and the rule is: `mod_id` is the **engine-resolved** id — `mod_inventory.resolve()` imports `mod_lint`'s `version_dirs` / `info_chain` / `read_info`, so it reads the newest `42[.x[.y]]/` folder's `mod.info` first, then `common/`, then the root — and it is **`""`** when the mod declares none anywhere (1 row of 230), never the folder name; the folder name is kept beside it as `mod_id_fallback`. LTP's row therefore reads `mod_id: "SKITTLE_LongTermPreservation4220"`, `name: "Long Term Preservation [42.20]"`, `author: "Skittles"`. **52 of the 230 rows drift** from their folder name, so never key a profile on `folder`. *(pass 3)* **How `common/` and the version folder merge is now measured, not modelled:** the version directory's file **wins** a same-relative-path collision, `common/` supplies everything the version directory does not ship, and both end up in **one** Lua state — outcome **M** (`td3-20260911-001948`, five agreeing readings), mechanism **C** (`ZomboidFileSystem.loadMod` maps `commonDir` then `versionDir` with an unconditional `activeFileMap.put`, `L758`/`L773`; `LuaManager.LoadDirBase` dedupes by relative path with **vanilla's** block first; `Translator.tryFillMapFromMods` **merges** rather than reading that map, so a mod's translation file at a vanilla path does not cost vanilla its strings). **The bound travels with the rule:** it is measured on a mod whose `getVersionDir()` resolves to a tree that **ships colliding files**, n = 1. Two consequences a Task 1 needs on the first read — `common/` is never dead weight (it can hold the mod's only event registration), and a **shadowed** `common/` copy is **unexecuted code**, which is where a B41-era call can sit for a year without ever raising. The five readings are in `docs/mods-survey/teardowns/autocook.md` § Architecture.
 - **Harness.** Global `TK` in `testing/PZTestKit/PZTestKit/42/media/lua/{shared,server,client}/`; `TK.register(name, fn(argv, kv))`, `TK.result(name, tbl)` → `<cachedir>/Lua/pzt-results/<name>.json`, and **every Java member goes through `TK.call(obj, "method", …)` → `(present, value)`** because Kahlua's "tried to call nil" escapes `pcall` and kills the whole event handler. No `goto`; never `%d` on a Lua number. Command inventory: `docs/testing/README.md`.
-- **Wave-3 witness (slice 08's deliverable, shipped — consume it by name):** `witness.fields <player|item> <id> <getter,…>` and `witness.moddata [player[:<user>]|item:<id>|global:<name>] <key…>` (keys space-separated), registered in `shared/PZTestKit_Core.lua` so **both sides answer them**, documented in `docs/testing/README.md` § Command bus — which is the authority. **Both answer INLINE**, as a table on every path but the `argv[1]` usage gate. The client's older S6 round-trip was **renamed `witness.sync.moddata`** in the same slice to stop it shadowing the shared command on the client: that one, and its neighbours `witness.nutrition` / `witness.item`, still ack `"sent"`, send the question with `sendClientCommand`, and land the reply in `Events.OnServerCommand` where the client compares and writes `TK.result("witness_<kind>…")` (`client/PZTestKit_Client.lua:94-107,472-521`; `server/PZTestKit_Server.lua:394-430`). The Task-3 driver's `probe()` keeps its ack-then-result-doc branch for those, but against the two shipped commands the branch is **dormant** — they never ack `"sent"`.
+- **Wave-3 witness (slice 08's deliverable, shipped — consume it by name):** `witness.fields <player|item> <id> <getter,…>` and `witness.moddata [player[:<user>]|item:<id>|global:<name>] <key…>` (keys space-separated), registered in `shared/PZTestKit_Core.lua` so **both sides answer them**, documented in `docs/testing/README.md` § Command bus — which is the authority. **Both answer INLINE**, as a table on every path but the `argv[1]` usage gate. The client's older S6 round-trip was **renamed `witness.sync.moddata`** in the same slice to stop it shadowing the shared command on the client: that one, and its neighbours `witness.nutrition` / `witness.item`, still ack `"sent"`, send the question with `sendClientCommand`, and land the reply in `Events.OnServerCommand` where the client compares and writes `TK.result("witness_<kind>…")`. **Cite them by COMMAND NAME with `docs/testing/README.md` § Command bus as the authority, not by line span** — `291f977` inserted 25 lines above the trio and every span this plan first carried (`PZTestKit_Client.lua:94-107,472-521`; `PZTestKit_Server.lua:394-430`) is now wrong. At HEAD they are the three client registrations at `client/PZTestKit_Client.lua:119-138` (comment block included), the client `Events.OnServerCommand` handler at `:474-522`, and the server pair — the `witness` function and its `OnClientCommand` dispatch — at `server/PZTestKit_Server.lua:486-523`; those move again the next time the harness does, which is the point. The Task-3 driver's `probe()` keeps its ack-then-result-doc branch for those, but against the two shipped commands the branch is **dormant** — they never ack `"sent"`.
 - **Commands available on the bus** (all in `docs/testing/README.md`): client `eat.action <type>` (queues the real timed action; completes server-side), `moddata.set <k> <v>` + `moddata.transmit`, `text.get <translation key>` (since `291f977`), `item.spawn`, `stats.get`; server `stats.get <user>`, `nutrition.get/set <user> …`, `item.get/set <user> <type> …`, `item.use`, `drink`, `items.count`, `fluid.script <id>`, `recipes.count`, `recipes.craft <name>`, `recipes.evolved <name>`, `sandbox.set`, `trait.set`, `perk.set`, `perk.xp <user> <PerkName>`, `moddata.set <user> <k> <v>` (since `291f977`); and on **both sides** `item.script <type>`, `lua.global <name>[.<field>…]` (since `d8cc34e`) and the two `witness.*` commands. **The three newest are passes 2/3's and each exists for a reason a later pass will meet again:** `text.get` answers `{key, text, miss, side}` and a **miss returns the key itself**, which turns a mod's own prefixed translation key into a **tier-(a)** load probe for a mod that ships no scripts (pass 2 moved (b) → (a) on one); the server `moddata.set` is the exact twin of the client's and is what makes `transmitModData()`'s whole-table wipe **measurable** rather than inferred (plant a key on the server, watch it vanish); `lua.global` walks `_G` by dotted path on either side. Pass 2 also put `incWeight` / `incWeightLot` / `decWeight` into every `nutrition.get` / `stats.get` reply on both sides. (`item.script` was **client-only** when this plan was written — pass 1 mirrored it into `shared/` as `TK.scriptValues` in `37e411e`, and the reply now carries `side`. Reading it on both sides is what attributes a runtime desync to the packet rather than to a script mismatch: measured identical field for field, run `td1-20260910-192457`.) Items are spawned **server-side** with RCON `additem "<user>" "<fullType>" 1` (a client-side `AddItem` is invisible to the server — spike S6).
 - **`recipes.craft <name>` READS a recipe script; it does not craft.** It answers the block's category, time, inputs and outputs off `media/scripts`, and **nothing on the shipped bus executes a `craftRecipe`** — there is no `CraftRecipeData` route. Consequence for every pass: a mod's `onCreate` / `onTest` / `OnCooked` **recipe** hooks are unreachable through a craft and stay **C** unless another route fires them. The routes that do execute something are: RCON `additem`, server `item.update` / `item.set` (which call `sendItemStats` and fire the `OnCooked`-class item hooks), `item.use`, `drink`, client `eat.action`, `moddata.set` + `moddata.transmit`, and `nutrition.set`.
 - **MP facts the teardown measures against** (`docs/modding/patterns.md` § Measured MP sync facts): the **server** owns `Nutrition`, hunger/thirst, weight and item aging; a client write to any of them is overwritten inside ~1.5 s by the 1 Hz `PlayerStatsPacket`; `player:getModData()` reaches the server **only** after `player:transmitModData()`; a client's `sendItemStats` is a no-op; `ItemStatsPacket` **puts 43 fields on the wire, of which 39 are item state** — the other four are 2 addressing (`containerId`, `id`) and 2 presence flags (`isFluidContainer`, `isFood`), never applied to the item; see `docs/vanilla/food-item-model.md` § MP behaviour for the reconciliation and the pass-1 teardown's § MP handling for the names. The packet also reuses cached packets, so a zero-valued field can arrive carrying the previous packet's value.
@@ -65,7 +65,7 @@ python -c "import sys; sys.path.insert(0,'testing'); from pzt import mods; \
   print(mods.mod_id_of(r'D:\SteamLibrary\steamapps\workshop\content\108600\<ITEM>\mods\<FOLDER>'))"
 ```
 
-  Expected: `mod_lint` exits 0 with at most INFO/WARN rows. Measured **2026-09-10**, for the three mods the passes actually lint: `3774789651` (pass 1) → `1 finding(s): 0 ERROR, 0 WARN, 1 INFO`, `folder-id: folder 'LongTermPreservation4220' != id 'SKITTLE_LongTermPreservation4220'`; `2867431511` (pass 2) → `1 finding(s): 0 ERROR, 0 WARN, 1 INFO`, `folder-id: folder 'SimpleStatus' != id 'simpleStatus'`; `3388721641` (pass 3, **AutoCook**) → `1 finding(s): 0 ERROR, 1 WARN, 0 INFO`, `mod-info-place: mod.info is common/mod.info, not 42.13/mod.info (B42 reads the version folder first)`. `mod_id_of` prints the id that goes in the profile. An **ERROR** row is a stop: record it and go to the next pick (decision points).
+  Expected: `mod_lint` exits 0 with at most INFO/WARN rows. Measured **2026-09-10**, for the three mods the passes actually lint: `3774789651` (pass 1) → `1 finding(s): 0 ERROR, 0 WARN, 1 INFO`, `folder-id: folder 'LongTermPreservation4220' != id 'SKITTLE_LongTermPreservation4220'`; `2867431511` (pass 2) → `1 finding(s): 0 ERROR, 0 WARN, 1 INFO`, `folder-id: folder 'SimpleStatus' != id 'simpleStatus'`; `3388721641` (pass 3, **AutoCook**) → `1 finding(s): 0 ERROR, 1 WARN, 0 INFO`, `mod-info-place: mod.info is common/mod.info, not 42.13/mod.info (this lint's model: newest version folder first; the engine's own order is open -- profiles.md open question 1)` *(corrected, pass 3's finding applied in slice 10's final fix wave: the old tail said "B42 reads the version folder first", which the jar contradicts — see § Corrections applied)*. `mod_id_of` prints the id that goes in the profile. An **ERROR** row is a stop: record it and go to the next pick (decision points).
 - [ ] **Step 3: Census and read (C).** `find <mod folder> -type f | sort`, `wc -l` on every `.lua`, then one sweep for the architecture signals:
 
 ```bash
@@ -84,7 +84,7 @@ HungerChange|SandboxVars\.|ISBaseTimedAction:derive|^\s*function IS" "<live vers
 | recipes / new items / script overrides | RCON `additem "<user>" "<Base.ModItem>" 1`, then server `item.update`/`item.set` on it (that is what fires the `OnCooked`-class hooks; `recipes.craft <ModRecipe>` only **reads** the script and executes nothing). **Read the guard state BEFORE the last `item.set` that opens the gate**, never after: the server's own item tick fires the transition on its own schedule, so a guard read taken after the flip grades "the server's tick won" as "`additem` spawned it already transitioned" | server `item.get` vs client `witness.fields item <id> …` |
 | writes player modData | client `moddata.set <key> <v>` then `moddata.transmit` | `witness.moddata <KEYS>` on both sides, before and after the transmit |
 | `OnPlayerUpdate` / `EveryOneMinute` simulation | RCON `settimespeed 30`, hold ≥ 60 s wall, restore `settimespeed 1` | snapshots each 20 s; `24 × 30 / 90 = 8.0`, at the ceiling |
-| pure client UI, no state of its own | server `nutrition.set <user> calories 2000` | the fields the mod renders, on both sides, at t0 and t+3 s — the mirror it depends on |
+| pure client UI, no state of its own | server `nutrition.set <user> calories 2000` | the fields the mod renders, on both sides, at t0 and t+3 s — the mirror it depends on. **Route them correctly or the probe measures nothing:** the macro getters (`getCalories` / `getCarbohydrates` / `getLipids` / `getProteins` / `getWeight`) live on `Nutrition`, while `witness.fields`'s `player` subject resolves to the `IsoPlayer`, so they come from server `nutrition.get` / `stats.get` and client `stats.get` — which is also where the three weight-direction flags arrive. `FIELDS` is only for getters that genuinely sit on the subject |
 
 - [ ] **Step 6: No commit.** `.superpowers/` is gitignored, so the notes file is the working read and a commit here would be empty. Task 1's deliverables are the notes and the report; the first commit of a pass is Task 2's profile.
 
@@ -200,11 +200,7 @@ The values below were read from the installed corpus while this plan was written
 fixture = "default"
 description = "PZTestKit + simpleStatus (workshop 2867431511) — teardown 2."
 run = { hold = 20 }
-verify = []                   # tier (b) as Task 2 shipped it (a42c8b4): proof is the mod's own
-                              # console line (ss.main.lua:62). Task 3's harness commit 291f977
-                              # replaced this with a tier-(a) row:
-                              #   { side = "client", cmd = "text.get",
-                              #     args = "IGUI_SS_BARTITLE_HAPPY", expect = '"Happiness"' },
+verify = []                   # SUPERSEDED: 291f977 replaced this with a tier-(a) text.get row (§ Corrections applied, pass 2)
 
 [[mods]]
 id = "PZTestKit"
@@ -255,3 +251,93 @@ workshop_id = "2867431511"
 - `docs/testing/README.md`: whenever a pass adds or changes a harness command, in the same commit as the Lua.
 - `testing/artifacts/README.md`: one Contents row per pass, plus a skew note when a fix round followed that pass's live run.
 - Commits per pass, subject line only, no attribution; **the pass does not push**. The controller pushes at the pass close, after the whole-branch review. Wave 3 is complete when 08–11 are all `done`; the next session writes the wave-4 plans (12–14) before continuing.
+
+## Corrections applied
+
+Every defect a pass found **in this plan**, each listed once, in the state it was corrected to.
+The inline `*(pass N: …)*` parentheticals above stay where they are — they are the correction at
+its point of use; this section is the index, so a cold start can see what the template got wrong
+before trusting any unrun part of it. A future pass adds its own block here.
+
+**Pass 1 — slice 09, 2026-09-10.**
+
+- The Task-3 driver **skeleton** joined `witness.moddata`'s keys with commas. The grammar is
+  **space-separated behind an explicit scope** (`player:<user> k1 k2`), and a comma-joined list is
+  read as one key named `"k1,k2"`, answering a plausible census of nothing. Corrected: the plan
+  carries **no skeleton** and sends a pass to the shipped
+  `testing/experiments/td1_longtermpreservation4220.py`, which gets the grammar right.
+  *(corrected, pass 1)*
+- The plan's original "do not add commands to the harness in this slice" is **superseded** by the
+  standing not-frozen rule: jar-confirm first, land the additions in their **own commit ahead of**
+  the session with `docs/testing/README.md` updated in it, and use the acceptance run as their
+  smoke test. *(corrected, pass 1 — § Expected decision points)*
+- `doc_lint docs/mods-survey` read **4 findings** when this plan was written (the two seeded
+  teardowns had neither stamp nor `## Sources`). Pass 1 backfilled them at `f8c6ceb`, so passes 2
+  and 3 both **start and end at 0**. *(corrected, pass 1)*
+
+**Pass 2 — slice 10, 2026-09-10/11** (all in § Worked example unless said otherwise).
+
+- **The one wrong and load-bearing value.** `FIELDS` first read the five macro getters. They live
+  on `zombie/characters/BodyDamage/Nutrition` while `witness.fields`'s `player` subject resolves
+  to the **`IsoPlayer`**, so every one of them would have landed in `missing` with `fields` empty.
+  The macros are **not a `witness.fields` question**: they come from `stats.get` / `nutrition.get`
+  on each side. `FIELDS` is for getters that genuinely sit on the subject —
+  `getInventoryWeight,getMaxWeight,isDead,isGodMod,getUsername` is what pass 2 used, and those
+  double as controls that must not drift. *(corrected, pass 2)*
+- `DayLength = 4` is **90 REAL minutes per game day**, not 90 game-minutes; `day_minutes` in
+  `24 × speed / day_minutes ≲ 8` is real minutes and the arithmetic only balances that way.
+  *(corrected, pass 2 — § Cold-start context and the profile TOML comment)*
+- `common/` is **not** a version dir (`mod_lint.version_dirs` returns 4 for this subject), and on
+  this item it is an **empty** directory; the item also ships a root-level B41 `media/` tree that
+  `media_at` does list. Count version dirs with the linter, and never read a `common/` entry in
+  `media_at` as evidence that anything is in it. *(corrected, pass 2)*
+- The server file `ss.save.config.lua` was dropped at **`42.15`**, not `42.16`, together with
+  `client/ss.events.lua`, and the config store moved from **global** `ModData` to **per-player**
+  modData at that version. A version-history claim has to be diffed against the version dir that
+  actually changed. *(corrected, pass 2)*
+- `savePlayerData` begins at `ISSSBar.lua:18` — `:15` is a comment and `:16-17` are `---@param`
+  annotations. *(corrected, pass 2)*
+- The cadence answer **understated** the cost: `:236-238` re-enter `valueFn` up to three more
+  times per bar per frame, so a frame issues up to **four** `getNutrition()` round trips per
+  nutrition bar — and **ten** for the weight bar, whose `textFn` adds seven direct calls for the
+  three direction flags. *(corrected, pass 2; the per-bar ten added by slice 10's final fix wave)*
+- The `[[verify]]` tier moved **(b) → (a) mid-pass**: `291f977` added a client `text.get`, and the
+  profile gained `text.get IGUI_SS_BARTITLE_HAPPY` expecting `"Happiness"` — a miss returns the
+  key itself, so the row cannot pass unless the mod's translations loaded. **A mod with no scripts
+  is not automatically tier (b) — check its translation keys first.** The console grep was kept
+  beside it. *(corrected, pass 2)*
+- The cold-start bus list gained slice 10's client `text.get` and server `moddata.set`.
+  *(corrected, pass 2)*
+
+**Pass 3 — slice 11, 2026-09-11** (§ Cold-start context and § Expected decision points).
+
+- The `common/`-vs-version-folder sentence is now the **measured merge rule with its bound**: the
+  version directory's file **wins** a same-relative-path collision, `common/` supplies everything
+  the version directory does not ship, and both end up in **one** Lua state — outcome **M**
+  (`td3-20260911-001948`), mechanism **C**, bounded to a mod whose `getVersionDir()` resolves to a
+  tree that ships colliding files, n = 1. *(corrected, pass 3)*
+- The cold-start **client-copy** paragraph is **resolved per arm** rather than contested: the
+  carrier is the per-game-minute `sendItemStats` inside `Food.update`'s cooking branch and the
+  **1.6 heat gate** is the discriminator, with the probe's own numbers quoted. *(corrected, pass 3)*
+- `data/mod-inventory.json`'s `signals` / `stats` / `top_events` describe the **live version
+  folder only** — on AutoCook's row that hides 7 of 10 Lua files, 1 238 of 2 155 lines, the mod's
+  only event registration, its only vanilla patch and its whole translation set. *(corrected,
+  pass 3 — Task 1 Step 4)*
+- The picks decision point records the slice-08 queue **exhausted** and re-labels the fall-through
+  list the **future-picks** list. *(corrected, pass 3)*
+- The cold-start bus list gained the **shared** `lua.global` (`d8cc34e`). *(corrected, pass 3)*
+
+**Slice 10's final fix wave — 2026-09-11** (applied after pass 3 landed).
+
+- Task 1 Step 2's quoted `mod-info-place` expected output carried the WARN's old tail, "(B42
+  reads the version folder first)". The jar contradicts it at
+  `ZomboidFileSystem.getAllModFoldersAux`, which tests `<mod>/common/mod.info` **first**;
+  `tools/mod_lint.py` now names its own model and points at
+  `docs/testing/profiles.md` open question 1, and the quoted output moved in the same edit.
+  *(corrected, slice 10 final fix wave)*
+- Action-menu row 5 said only "the fields the mod renders, on both sides", which is the invitation
+  that produced pass 2's `FIELDS` error; it now says where the macros actually come from.
+  *(corrected, slice 10 final fix wave)*
+- The cold-start `witness.*` trio was cited by line span; `291f977` moved every span. It is now
+  cited by **command name** with `docs/testing/README.md` § Command bus as the authority, with the
+  HEAD spans given as a dated convenience. *(corrected, slice 10 final fix wave)*

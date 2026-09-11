@@ -1,5 +1,5 @@
 # testing/profiles/teardown-simplestatus.toml — slice 09-11 pass 2: simpleStatus under test on
-# the golden fixture. No [sandbox] block: DayLength stays the fixture's 4 (90 game-min/day),
+# the golden fixture. No [sandbox] block: DayLength stays the fixture's 4 (90 REAL minutes per game day),
 # which is what keeps 24 x speed / day_minutes <= 8 if the session accelerates time.
 fixture = "default"
 description = "PZTestKit + simpleStatus (workshop 2867431511) — teardown 2."

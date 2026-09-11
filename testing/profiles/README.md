@@ -25,9 +25,12 @@ whose `[[verify]]` probes read the mod's own scripts back — `items.count` and
 `recipes.craft MakeCuredMeat` on the server, `item.script Skittles.CuredPork` on the client (that
 command is registered client-side only); and **`teardown-simplestatus.toml`** — slice 10's
 teardown subject, PZTestKit + `simpleStatus` (workshop `2867431511`, folder `SimpleStatus`) on
-`default` with **no `[sandbox]`** either, whose `verify` is **empty by ruling** — the mod ships no
-scripts and no bus-readable state, so the took-effect evidence is its own client-side console print
-at join, grepped from the run's `clients/admin/console.txt`; and **`teardown-autocook.toml`** —
+`default` with **no `[sandbox]`** either, whose `verify` **shipped empty by ruling** at `a42c8b4` —
+the mod ships no scripts and no bus-readable state — and **gained one tier-(a) row in `291f977`**:
+client `text.get IGUI_SS_BARTITLE_HAPPY` expecting `"Happiness"`, which cannot pass unless the
+mod's translation tree loaded, because a translation miss returns the key itself. The mod's own
+client-side console print at join, grepped from the run's `clients/admin/console.txt`, is kept
+beside it; and **`teardown-autocook.toml`** —
 slice 11's teardown subject, PZTestKit + `AutoCook` (workshop `3388721641`, folder `AutoCook` — the
 one pass where the declared id and the folder agree) on `default` with **no `[sandbox]`** either,
 whose two `[[verify]]` rows are both **client** and both read load-time state, one per subsystem

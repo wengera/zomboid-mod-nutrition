@@ -1,6 +1,6 @@
 # testing/profiles/teardown-longtermpreservation4220.toml — slice 09-11 pass 1:
 # SKITTLE_LongTermPreservation4220 under test on the golden fixture. No [sandbox] block:
-# DayLength stays the fixture's 4 (90 game-min/day), which is what keeps
+# DayLength stays the fixture's 4 (90 REAL minutes per game day), which is what keeps
 # 24 x speed / day_minutes <= 8 if the session accelerates time.
 fixture = "default"
 description = "PZTestKit + SKITTLE_LongTermPreservation4220 (workshop 3774789651) — teardown 1."

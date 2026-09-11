@@ -261,8 +261,9 @@ what the static read assumed:
   `Food.update @86-@103 L377-L379` fires `GameServer.sendItemStats(this)` once per **game
   minute** only while the cooking branch is live, gated at `@49-@71 L372-L373` on
   `isCookable && !isFrozen() && heat > 1.6f` (C, jar). The Steak never left that gate
-  (2.0 → 1.697) so pushes kept the sides identical; this run's `Skittles.CuredPork` **crossed**
-  it (server 1.79561 → 1.39397 against a client pinned at 1.84703), and the pushes stopped. The
+  (2.0 → 1.697) so pushes kept the sides identical; **pass 1's** `Skittles.CuredPork` (run
+  `td1-20260910-192457`, *not* the `td2` run this paragraph names) **crossed** it — server
+  1.79561 → 1.39397 against a client pinned at 1.84703 — and the pushes stopped. The
   discriminator is the **1.6 gate**; the probe that settles it is one pin **below** the gate
   (`heat 1.2`, two reads 10 s apart on both sides), carried as slice 11's session item. The
   freeze measured here stands as a reading; the *mechanism* sentence above ("why it did not run
@@ -270,7 +271,8 @@ what the static read assumed:
   on both sides and is **presence + within-side stability only** — `ItemContainer.toString`
   ends in a per-JVM identity hash, so the full strings must never be compared across sides.
   Graded row: [`../../modding/patterns.md`](../../modding/patterns.md) § Measured MP sync facts
-  → *The other direction*, now marked **CONTESTED**.
+  → *The other direction*, marked **CONTESTED** on that date — and **resolved per arm** a day
+  later by the cross-reference immediately below, which is how that row reads at HEAD.
 
   **Cross-reference, 2026-09-11 — slice 11 ran the probe and it RESOLVES the contradiction;
   nothing above is rewritten.** On run `td3-20260911-001948` (the `carrier` block of the AutoCook
@@ -405,13 +407,20 @@ different path from `ItemStatsPacket`, and nothing in these sessions reads it. (
 copy keeps `isCookable true`, so if it ever does tick `Food.update` it can re-enter the cook
 block on its own and call a nil `OnCookedTest`; neither session reproduced that.
 
-**Instrument limit, recorded rather than worked around.** `TK.json` renders a non-integral
-number with `string.format("%.6f")`, so **every float on the bus arrives rounded to six
-decimals**. The ulp-level predictions the static read made (0.3500000536441803 vs
-0.3500000238418579; "one ulp above an exact 0.5" on `getWeight`) are **not obtainable through
-this harness** — they collapse to `0.350000` / `0.500000`. Rows above read "synced at the bus's
-resolution", never "bit-equal". Every desync graded here is whole-value (0.05 to 1e9), far above
-the 1e-6 rule, so no verdict turns on it.
+**Instrument limit of THESE runs, recorded rather than worked around — and since lifted.** When
+`td1` and `td1b` were measured, `TK.json` rendered a non-integral number with
+`string.format("%.6f")`, so **every float on this pass's bus arrived rounded to six decimals**.
+The ulp-level predictions the static read made (0.3500000536441803 vs 0.3500000238418579; "one
+ulp above an exact 0.5" on `getWeight`) were **not obtainable through the harness as it then
+stood** — they collapse to `0.350000` / `0.500000`. Rows above therefore read "synced at the
+bus's resolution", never "bit-equal". Every desync graded here is whole-value (0.05 to 1e9), far
+above the 1e-6 rule, so no verdict turns on it. **Slice 10's harness commit `291f977` replaced
+that branch with `tostring(v)`** (Kahlua's `KahluaUtil.numberToString` → `Double.toString` for a
+non-integral double, an exact round trip), so the limit is **gone from `td2` onward** — but it is
+a *rendering* change, not a measurement one: **these two artifacts stay exactly as recorded and
+stay readable at six decimals**, and no number in them gains a bit-level claim retroactively
+([`../../../testing/artifacts/README.md`](../../../testing/artifacts/README.md) § Script/artifact
+skew).
 
 ## Techniques worth stealing
 
@@ -541,8 +550,9 @@ the 1e-6 rule, so no verdict turns on it.
   **2026-09-10**: **228** `sendClientCommand` / `OnClientCommand` / `sendServerCommand` sites
   across the six Girth mods, 96 of them in `QuestSystem`
   ([`../approved-modlist.md`](../approved-modlist.md) § the resident stack — the "110+" this doc
-  first carried was a pre-slice-08 figure); and CleanUI's live `42.19/` ships **54** client Lua
-  files, **33** of them at the same relative path as a vanilla `media/lua` file, i.e.
+  first carried was a pre-slice-08 figure); and CleanUI's live `42.19/` ships **54** Lua files
+  (**51** under `client/`, **3** under `shared/` — not 54 client files, as this line first read),
+  **33** of them at the same relative path as a vanilla `media/lua` file, i.e.
   replacements (C, counted 2026-09-10). LTP's own surface is 0 on both.
 - **Overlap with our own item pass.** LTP adds **14 new food items with a full macro set** in
   `module Skittles` (117 nutrition-key writes, 2026-09-10 17:47). An item pass that rewrites
