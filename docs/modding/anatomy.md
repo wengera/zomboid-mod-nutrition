@@ -61,7 +61,7 @@ one `mod.info` carries the key.
 | `url` | 5 | display only | C |
 | `loadModBefore` / `loadModAfter` | 1 / 1 | **advisory, client UI only.** `getLoadBefore` / `getLoadAfter` are read only by `ModLoadOrderPanel.lua:52,68,222,258` and `ModOrderListBox.lua:50,60` — they arrange the selector's list. The server loads in literal `Mods=` order | C |
 | `tags`, `pzversion`, `texts`, `supports`, `zoomX/Y/S` | 15 / 10 / 1 / 1 / 1 | **not parsed at all.** No branch tests them | C |
-| the keys **we** declare | 6 mods, 7 ids | every slice-12 experiment mod ships exactly `name` + `id` + `description` + `modversion` + `versionMin` and nothing else; all seven ids resolved and every mod loaded | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `mods_not_found` empty; `testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.mods_not_found`) |
+| the keys **we** declare | 7 mods, 8 ids (A–G; mod D declares two) | every slice-12 experiment mod ships exactly `name` + `id` + `description` + `modversion` + `versionMin` and nothing else; all seven ids resolved and every mod loaded | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `mods_not_found` empty; `testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.mods_not_found`) |
 
 **Load-order declarations, ranked by what the engine does with them:** `require=` is the only
 one the loader acts on (it loads dependencies first and gates availability). `loadModAfter=` /
@@ -366,7 +366,7 @@ One line per entry area: what classifies it today, and what would settle the res
 | Traits | **CANNOT** be read client-side with confidence | the band traits are not in `PlayerStatsPacket` and no other packet was traced (body-stats open question 10); `HasTrait(String)` no longer exists on 42.20.4 | C |
 | Translations | **CAN**, client-only, JSON-only | § 5: `ItemName.json` resolves on the client, `_EN.txt` never, a dedicated server resolves no name (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M4`), and `getText` cannot reach the table (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O5`). Gate on a `UI_` / `IGUI_` key | M |
 | The merge rules | **CAN** | version dir wins, `common/` supplies the rest, n = 2 with `td3-20260911-001948`, plus the empty-version-dir arm (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L2_which`, `phases.L3.reading`). Remaining arm: a version dir shipping `media/` that collides with nothing | M |
-| Lua limits — the nil-call guard | **CAN**, guard kept for visibility, not for survival | `pcall` **catches** a Kahlua nil call on both sides — `ok` `false`, `err` `tried to call nil java.lang.RuntimeException`, and both the handler's own tail and the handler registered behind it advanced (client 3 / 3, server 15 / 15) — so this library's "a nil call escapes `pcall`" half is **falsified**. The catch is silent (the message names no global, line or file; the engine logs nothing), which is why the `TK.call` / `tkxCall` index-first guards stay. **Bound:** the probe measured `pcall(<nil function argument>)` only; an unguarded raise's effect on the rest of a handler and on the chain behind it is session 7 (`x127`), un-run. [lua-api.md](lua-api.md) and [patterns.md](patterns.md) own the rule text and are not re-graded here | M (`testing/artifacts/x126-20260911-045205/platform-pcall.json` → `phases.reads.client.values`, `phases.reads.server.values`, `verdicts.P21_client` / `verdicts.P21_server`) |
+| Lua limits — the nil-call guard | **CAN**, guard kept for visibility, not for survival | `pcall` **catches** a Kahlua nil call on both sides — `ok` `false`, `err` `tried to call nil java.lang.RuntimeException`, and both the handler's own tail and the handler registered behind it advanced (client 3 / 3, server 15 / 15) — so this library's "a nil call escapes `pcall`" half is **falsified**. The catch is silent (the message names no global, line or file; the engine logs nothing), which is why the `TK.call` / `tkxCall` index-first guards stay. **Bound:** the probe measured `pcall(<nil function argument>)` only; an unguarded raise's effect on the rest of a handler and on the chain behind it, and the nested-origin shape `pcall(function() SomeNil() end)`, are session 7 (`x127`). [lua-api.md](lua-api.md) and [patterns.md](patterns.md) own the rule text and are not re-graded here | M (`testing/artifacts/x126-20260911-045205/platform-pcall.json` → `phases.reads.client.values`, `phases.reads.server.values`, `verdicts.P21_client` / `verdicts.P21_server`) |
 
 **The three checks this slice records rather than claims.**
 
@@ -409,8 +409,8 @@ One line per entry area: what classifies it today, and what would settle the res
   [`x126-20260911-045205`](../../testing/artifacts/x126-20260911-045205/platform-pcall.json)
   (the nil-`pcall` probe, cited in § Inputs for the wall map and mod G's row; the rule text is
   [lua-api.md](lua-api.md)'s and [patterns.md](patterns.md)'s — note the run's citable-claims
-  file names its keys as `readings.*` / `verdicts.P21`, which the artifact does not carry: the
-  keys are `phases.reads.<side>.values` and `verdicts.P21_client` / `verdicts.P21_server`); and
+  file first named its keys as `readings.*` / `verdicts.P21`, which the artifact does not carry; its
+  § Corrections (2026-09-11) supersede them with the artifact's keys, `phases.reads.<side>.values` and `verdicts.P21_client` / `verdicts.P21_server`); and
   [`td3-20260911-001948`](../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
   → `loading_lines`, the one `common/`-only corpus mod that has booted (§ 2). **Not committed:**
   § 3's three empty `overrides` tails are read from `testing/runs/x124-20260911-035819/`'s
@@ -433,7 +433,7 @@ One line per entry area: what classifies it today, and what would settle the res
   `ModInfoPanelInteractionParam.lua` — the only readers of `loadModAfter` / `loadModBefore` /
   `incompatible` / `versionMin` / `versionMax`.
 - **Corpus (C):** `python tools/mod_lint.py` over the 230 installed workshop mod folders,
-  swept 2026-09-11 (84 findings: 3 ERROR, 30 WARN, 51 INFO); `data/mod-inventory.json`; the
+  swept 2026-09-11 04:27 (84 findings: 3 ERROR, 30 WARN, 51 INFO; 83 after the 04:47 workshop change recorded in § 7); `data/mod-inventory.json`; the
   `mod.info` key census and the lint-vs-engine chain comparison of § Discrepancies 1, both
   computed the same day against the read-only workshop tree.
 - **Wiki (W):** [`../../references/wiki-mirrors/mod-structure.md`](../../references/wiki-mirrors/mod-structure.md),
