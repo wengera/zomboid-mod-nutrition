@@ -29,6 +29,24 @@ blobs byte-identical); the full run directories with logs stay local under
 `testing/runs/` (gitignored). Experiment scripts live in `testing/experiments/`
 (`_common.py` = the shared boot/ask/save/teardown pattern).
 
+**Driver notes for the next pass** (slice 11, from `td3_autocook.py`'s review;
+recorded rather than applied, because a driver is frozen once the run it
+produced is committed). Four habits worth carrying. Put every *negative* the
+run establishes into the artifact's own `out`: `mods_not_found` lives on the
+`Server` / `Client` objects (`testing/pzt/client.py:65`,
+`testing/pzt/server.py:155`) and was never written to the file, so the artifact
+cannot say "no mod failed to load" — one line in `out` next time. Record the
+**measured** window, never the requested sleep: `carrier.window_s` reads `10.0`
+where the reads' own wall stamps give **12.54 s**. Name a snapshot tag by its
+**measured** offset, not its intended one: the tag `t+3s` opened at
+**transmit + 7.58 s**, because the snapshot before it took 7.58 s to walk both
+sides. And keep a dormant fallback's routing table as wide as the commands that
+reach it: `probe()`'s `sent` branch maps only `witness.fields` /
+`witness.moddata` onto a result-doc name (`td3_autocook.py:242`) although
+`probe` now also carries `lua.global`, `text.get` and `nutrition.get` — were it
+ever to fire on one of those it would block on the wrong document, so widen the
+map or drop the branch.
+
 Every invocation gets its own `testing/runs/<cmd>-<timestamp>/` with
 `server-stdout.log`, `server/` (cachedir), `clients/<user>/` (cachedirs incl.
 the game's `console.txt`) and `report.json` (timeline + events). A timeline
@@ -567,9 +585,14 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   **Slice-11 addition** (pass 3's harness-prep commit, ahead of its session):
   * **`lua.global <name>[.<field>...]`** (shared, so **both sides answer it**) →
     `{side, name, resolved, type, value}` for a scalar or a function,
-    `{side, name, resolved, type = "table", keyCount}` for a table, and
+    `{side, name, resolved, type = "table", keyCount}` for a table,
     `{side, name, resolved = false, failedAt [, stoppedOn]}` for a path that
-    does not resolve; a bare `lua.global` answers the usage string. It walks
+    does not resolve, and a **fourth** shape on a build with no `_G` at all —
+    `{side, name, resolved = false, error = "no _G on this build"}`, which
+    carries **no `failedAt`** because no segment was ever tried, so a reader
+    keying on `failedAt` must treat its absence as this case. A bare
+    `lua.global` — or a name with no segments (`""`, `"."`) — answers the usage
+    string. It walks
     `_G` segment by segment — `AutoCook.acceptIngredient` is
     `_G.AutoCook.acceptIngredient` — which is the game's own idiom
     (`client/ISUI/ISXuiBuilder.lua:10-35`), and it adds **no Java surface**:
@@ -621,7 +644,8 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
 
 ### Harness layout (`testing/PZTestKit/PZTestKit/`)
 
-`mod.info` + `42/mod.info` (B42 reads the one inside the version folder),
+`mod.info` + `42/mod.info` (identical files; which copy B42 reads first when
+two exist is open — [profiles.md](profiles.md) § Open questions 1),
 `42/media/lua/shared/PZTestKit_Core.lua` (global `TK`: KV files, JSON, command
 bus, results, shared commands, slice 08's reflective witness),
 `shared/PZTestKit_Test.lua` (slice 04: the test layer — game-time scheduler,

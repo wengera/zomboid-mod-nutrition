@@ -25,8 +25,9 @@ installed workshop mods** — real shipped code beats documentation.
   version folder's file **wins** a same-relative-path collision, `common/`
   supplies everything the version folder does not ship, and both end up in one
   Lua state — translations excepted, because `Translator` merges rather than
-  resolving through `activeFileMap`. Outcome **M**, mechanism **C** (four jar
-  sites), bounded to a version dir that actually ships colliding files:
+  resolving through `activeFileMap`. Outcome **M** (n = 1), mechanism **C**
+  (four jar sites), bounded to a version dir that actually ships colliding
+  files:
   [`../mods-survey/teardowns/autocook.md`](../mods-survey/teardowns/autocook.md)
   § Architecture.
 - `ResourceLocation`-style ids are lowercased (case-insensitive registries).

@@ -766,7 +766,10 @@ end)
 --   -> { side, name, resolved = true, type, value }               scalars and functions
 --   -> { side, name, resolved = true, type = "table", keyCount }  tables
 --   -> { side, name, resolved = false, failedAt [, stoppedOn] }   a path that does not resolve
---   -> "usage: ..."                                               only when no name was given
+--   -> { side, name, resolved = false, error = "no _G on this build" }   no failedAt: the walk
+--                                                                 never started (guard 1)
+--   -> "usage: ..."                                               no name, or a name with no
+--                                                                 segments (guard 4)
 --
 -- Why it exists: nothing on the bus could read `_G`. A mod whose whole surface is Lua -- no
 -- scripts, no server half, no modData it transmits -- has nothing else left to read once its
@@ -783,17 +786,24 @@ end)
 -- own idiom -- `client/ISUI/ISXuiBuilder.lua:10-35` (`findFunction`) walks `_G` segment by
 -- segment, guarding each hop with `type(container[v]) == "table"`.
 --
--- Three guards, all deliberate:
+-- Four guards, all deliberate:
 --   * `_G` itself is nil-checked, the way text.get checks `getText` -- reading an absent global
---     is nil in Lua, never a raise, and it must be REPORTED rather than walked;
+--     is nil in Lua, never a raise, and it must be REPORTED rather than walked. That reply is
+--     its own shape: `resolved = false` with an `error` and NO `failedAt`, because no segment
+--     was ever tried -- a reader keying on `failedAt` must treat its absence as this case;
 --   * a hop is taken only when the node is a `table`. pairs() and indexing on a Java-backed
---     object raise rather than answer (the note above the census loop at :742-744), so a
+--     object raise rather than answer (the note above the census loop at :737-738), so a
 --     non-table node ENDS the walk: `failedAt` names the segment that could not be entered and
 --     `stoppedOn` the type that stopped it. That is also why `keyCount` is gated on
 --     `type(v) == "table"` and not on "it looks like it has keys";
 --   * presence is `node == nil`, NEVER `if not node`. The first subject has
 --     `AutoCook.Verbose = false` and `AutoCook.MaxSpices = -1`, and a truthiness test would
---     report the boolean false as missing -- reading a global's absence IS the command.
+--     report the boolean false as missing -- reading a global's absence IS the command;
+--   * a name that yields NO segments (`""`, or `"."`) answers the usage string rather than
+--     censusing `_G` itself. `string.gmatch` on such a name iterates zero times, so the walk
+--     would fall through with `node` still `_G` and report the whole global table as a hit --
+--     the `parts == 0` gate after the loop is what stops that, and it is why a bare name and a
+--     nil name give the same reply.
 --
 -- `TK.version` is the control a session should send first: TK is a global on purpose (see :2),
 -- so it must resolve to the number 1 on BOTH sides, and a `resolved = false` there means the

@@ -171,12 +171,22 @@ on; treat divergence as a decision point, not a free choice.**
     which exists on 42.20.4. They are harmless **only** because the version
     folder wins, which nothing in the mod asserts and which this library had
     not measured until now; and a Kahlua "tried to call nil" is uncatchable, so
-    the failure mode is not a degraded feature but the whole `require` chain
-    dying at file load. The session's console grep returned **0** such raises,
-    which is the bounded confirmation: it proves `common/…/AutoCook.lua:39`
-    did not run (the line before it demonstrably did), not that the whole
-    `common/` tree is inert — the two `ISCharacterCook` sites sit inside
-    `prerender` and were never reached. **Rule: treat a shadowed `common/`
+    the failure mode is not a degraded feature. It is **not "dying at file
+    load"** either — none of the four calls sits at file scope. What would die
+    is the character-info window as it is **built**, inside `createPlayerData`
+    at spawn: `ISCharacterCook:createChildren` calls `AutoCook.init` at `:17`
+    and `createCookingModeCombo` unconditionally at `:23`, and between them
+    they reach three of the four sites (`AutoCook.lua:39` from `init`;
+    `AutoCook_AutoCraftRecipes.lua:39` inside `initAutoCraftRecipes`, called
+    from `init:53`; `ISCharacterCook.lua:221` inside `createCookingModeCombo`).
+    The session's console grep returned **0** such raises, so the bounded
+    confirmation is wider than one line: the whole **window-build** path did
+    not execute the `common/` copies — load-bearing because
+    `common/…/AutoCook.lua:38`, the line before the first site, demonstrably
+    did, and the join-time census puts that path at `session_ready + 1.044 s`.
+    Only `common/…/ISCharacterCook.lua:50` stays uncovered: it sits inside
+    `prerender`, which needs the Cook tab rendered, and nothing on the bus
+    opens it. **Rule: treat a shadowed `common/`
     file as unmaintained — delete it, or keep it building against the same API
     as the live copy; never let the live path depend on a merge direction you
     have not read out of the engine.** Full reading:

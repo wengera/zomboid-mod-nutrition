@@ -18,10 +18,12 @@ measured 2026-09-11 on one dedicated-MP session with a real client:
   the loader's own output (§ Architecture, M1). Beside them the item ships a **`common/` that is
   the bigger tree** (14 files / 74 462 B against `42.13/`'s 42 604 B) and a `42/` that holds
   **two PNGs and nothing else** — no `media/`, no `mod.info`. Whole item: **19 files /
-  129 161 B**, CRLF throughout, four files with no final newline. File mtimes come in **two**
-  stamps — 16 files at `2026-08-12 00:02` (the Steam download) and **three at
-  `2026-09-07 21:54`**: `common/mod.info`, `common/media/lua/client/AutoCook_RISCookMenuInsertion.lua`
-  and `42.13/media/lua/client/AutoCook.lua`, i.e. the v1.6 update itself, which the item-directory
+  129 161 B**, **CRLF except the two live translation JSONs** —
+  `common/…/Translate/EN/ContextMenu.json` and `UI.json` are LF-only (0 CRLF; 4 and 36 LF) —
+  and four files with no final newline. File mtimes come in **two** stamps — 16 files at
+  `2026-08-12 00:02` (the Steam download) and **three at `2026-09-07 21:54`**: `common/mod.info`,
+  `common/media/lua/client/AutoCook_RISCookMenuInsertion.lua` and
+  `42.13/media/lua/client/AutoCook.lua`, i.e. the v1.6 update itself, which the item-directory
   stamp (`workshop_item_mtime 2026-08-12T00:03:05`) does not show. Inventory figures below are
   [`data/mod-inventory.json`](../../../data/mod-inventory.json), swept 2026-09-10 17:47:
   `layout 42.13`, `version_dirs ["42.13","42"]`, `mod_info_at common/mod.info`,
@@ -101,7 +103,8 @@ recorded as [`../nutrition-mods.md`](../nutrition-mods.md) § Open questions 1. 
 corpus's sharpest test of it because **the direction is load-bearing**: the three files the
 version folder shadows are exactly the three the author ported to B42, and the `common/` copies
 still call two members that **no longer exist on 42.20.4** (§ Pitfalls, D1/D2). Under the wiki
-rule the mod works; under the inverse it raises at file load and at `prerender`.
+rule the mod works; under the inverse it raises when the character-info window is **built** — at
+spawn, inside `createPlayerData` — and again at `prerender`, if the Cook tab is ever opened.
 
 **The mechanism, from the 42.20.4 jar (C).** Four call sites, and the fourth is what makes the
 rule observable:
@@ -121,8 +124,16 @@ rule observable:
    **media** tree before any mod loads (`init` sets `workdir = new File(base, "media")` at
    `@16-@36 L151` and `searchFolders(workdir)` at `@165-@173 L163`), which is why a mod file at a
    vanilla relative path shadows vanilla's and prints the line. Scope note: only paths under
-   `media/` are pre-seeded, so only those can be shadowed — every relative path AutoCook ships is
-   under `media/`.
+   `media/` are pre-seeded, so only those can shadow **VANILLA**. AutoCook's own `mod.info` and its
+   four PNGs sit at **tree root** (`common/mod.info`, `common/AutoCookIcon.png`,
+   `common/AutoCookPoster.png`, `42/AutoCookIcon.png`, `42/AutoCookPoster.png` — 5 of its 19
+   files), where no vanilla path can collide with them and only the mod's **own** version dir can
+   shadow the `common/` copy. That is what makes M1's counterfactual work at all: the two
+   `common/` root PNGs are in `activeFileMap` from pass A, so a `42/` resolution would have
+   overwritten them in pass B — and of those two tails only **`autocookicon.png`** would print,
+   because a path ending `poster.png` (like one ending `mod.info`) is gated out of the print at
+   `L769-L770`. The no-`.png`-tail reading is therefore a **one-tail** test, and it still
+   discriminates.
 3. `LuaManager.LoadDirBase(subdir)` (`@0-@540 L1141-L1232`) builds the execution list vanilla-first
    (`PZArrayUtil.addAll(vanillaList, modList)`, `@371-@373`), then **per mod** `commonDir` then
    `versionDir` (`@136-@229 L1169-L1181`, `@239-@332 L1184-L1196`), each mod's block sorted
@@ -152,12 +163,20 @@ common-wins state would have executed `common/…/AutoCook.lua:39`'s `player:Has
 — a member removed in 42.20.4 — and Kahlua's "tried to call nil" is uncatchable
 (`PZTestKit_Core.lua:118-122`, run `exp01-20260909-235420`). The console grep
 `tried to call nil|HasTrait|getTypeString` returned **0** on the client and **0** on the server
-(M — `nilcall_lines`). **What that proves is exactly one line's worth:** `common/…/AutoCook.lua:39`
-did not run, and it is load-bearing because the line *before* it (`:38`, the modData write)
-demonstrably did execute on this fresh character. It does **not** cover
-`common/…/ISCharacterCook.lua:50` or `:221` — both sit inside `prerender`, which never runs
-unless the Cook tab is opened, and nothing on the bus opens it. Treat the zero as a reading about
-`AutoCook.lua`, not about the whole `common/` tree.
+(M — `nilcall_lines`). **What that proves is the whole WINDOW-BUILD path, not one line.**
+`ISCharacterCook:createChildren` calls `AutoCook.init` at `:17` and then, six lines later,
+`createCookingModeCombo()` **unconditionally** at `:23` — identical in both copies — so a
+common-wins state would have raised at three separate sites on that single path:
+`common/…/AutoCook.lua:39` (from `AutoCook:init`), `common/…/AutoCook_AutoCraftRecipes.lua:39`
+(inside `initAutoCraftRecipes` `:3-54`, called from `AutoCook:init:53`) and
+`common/…/ISCharacterCook.lua:221` (inside `createCookingModeCombo` `:199-235`). **None of the
+four live removed-API calls sits at file scope**, so "dying at file load" is the wrong picture: a
+common-wins state dies when the character-info window is **built**, inside `createPlayerData` at
+spawn — and M2 proves that path ran, at `session_ready + 1.044 s`. The zero is load-bearing
+because the line *before* the first of the three (`common/…/AutoCook.lua:38`, the modData write)
+demonstrably did execute on this fresh character. **One site stays uncovered:**
+`common/…/ISCharacterCook.lua:50`, which sits inside `prerender` and needs the Cook tab actually
+rendered — nothing on the bus opens it.
 
 **The rule, graded honestly.** The **outcome is M** — one session on 42.20.4, with two independent
 halves: M1 reads the loader's *map* and M4 (+M4b) reads the resulting *Lua state*, and neither
@@ -261,7 +280,8 @@ settings are therefore **per client, not per character** (§ Pitfalls, D6).
 **Everything is client.** Across both trees: **10 client `.lua`, 0 server, 0 shared** (the only
 `shared/` content is the four translation files, which are data). There is **no
 `sendClientCommand`, no `sendServerCommand`, no `OnClientCommand`, no `OnServerCommand`, no
-`transmitModData`, no `sendItemStats`** anywhere — the sweep returns zero for all seven (C).
+`transmitModData`, no `sendItemStats`** and no `SandboxVars.` reference anywhere — the sweep
+returns zero for all seven (C).
 
 The run turned that from an inference into a reading: **every** AutoCook global is absent
 server-side. `ISContinue`, `addCharacterPageTab`, `ISCharacterCook` and `AutoCook` all answered
@@ -312,7 +332,7 @@ was read first.**
 | 3 | the eight `AutoCook.*` leaves | client | **all eight `missing` at every snapshot**; the table itself renders `{}` — a fresh character's settings live only on the Lua global | M — `snapshots[].client.autocook_keys` |
 | 4 | the server's own player modData, timed | server | **`keyCount 0` at +3.073 s**, **4 at +42.102 s** — the four vanilla fitness/strength keys are written **server-side lazily**, reproducing pass 2 exactly. A server `keyCount` is only a reading beside its wall offset | M — `baseline_timing` |
 | 5 | `moddata.set AutoCookProbe 7` on the client, then a census pair | both | **did not cross.** The server census opened **0.51 s after the ack** and closed 1.77 s after it, still at `keyCount 4` — a client modData write reaches the server only after `transmitModData()` | M — `phase2[0]`, `steps[plant_client]` |
-| 6 | `moddata.transmit` | both | **`AutoCookProbe` and the nested `AutoCook` table both crossed**, and the server census became **exactly** the client's, `hotbar` included: `probe_key_crossed true`, `autocook_crossed true`, `server_census_equals_client true`. The server census at **transmit + 2.04 s** already showed all 7 keys | M — `transmit_reading`, `t_action` |
+| 6 | `moddata.transmit` | both | **`AutoCookProbe` and the nested `AutoCook` table both crossed**, and the server census became **exactly** the client's, `hotbar` included: `probe_key_crossed true`, `autocook_crossed true`, `server_census_equals_client true`. The server census at **transmit + 2.04 s** already showed all 7 keys | M — `transmit_reading`, `t_action`, `snapshots[2].server.census_player` |
 | 7 | `AutoCook` on the **server** after the transmit | server | `{}` — an empty table, with the same eight leaves `missing`. The wipe-and-replace carried the nested table's *shape*, and the shape is empty | M — `snapshots[2..3].server.autocook_keys` |
 | 8 | `text.get UI_AutoCookMode` and two vanilla controls | client | `"Cooking diet: "` (`miss false`, trailing space intact); `ContextMenu_Destroy` → `Destroy`; `UI_Yes` → `Yes`. The mod's same-named JSONs do **not** cost vanilla its strings | M — `M3_translations` |
 | 9 | every AutoCook Lua global | server | **absent**, with `TK.version` → `1` on both sides as the control | M — `M4_globals.server` |
@@ -373,7 +393,7 @@ item at `heat 2.0`, **above** the gate, and its client copy moved in lock step; 
 1.0 floor. Mechanism (C, jar): `Food.update @86-@103 L377-L379` fires
 `GameServer.sendItemStats(this)` once per **game minute** while the cooking branch is live, gated
 at `@49-@71 L372-L373` on `isCookable && !isFrozen() && heat > 1.6f`.
-**Graded M per arm** — `n = 1` in each arm, across two sessions — **mechanism C.**
+**Graded M per arm** — `n = 1` in each arm, across three sessions — **mechanism C.**
 
 **What it refines, and what it does not settle.** The below-gate arm shows the client copy did not
 tick **at all**. `updateTemperature` runs unconditionally inside `Food.update`, so the honest
@@ -436,7 +456,10 @@ by this session.
 ## Techniques worth stealing
 
 - **Split a mod across `common/` + a version folder, and put the parts that do not change in
-  `common/`.** This mod's B42 port is **three files and ~40 lines**; the other seven files and
+  `common/`.** The layout on disk is one `mod.info` declaring the id (`common/mod.info:3`) and two
+  `media/` roots — `common/media/lua/{client,shared}/` (7 Lua + 4 translation files) beside
+  `42.13/media/lua/client/` (3 Lua files). This mod's B42 port is **three files and ~40 lines**;
+  the other seven files and
   1 238 lines are shared unchanged across every build it supports. The merge rule that makes it
   work is now measured (§ Architecture), so this is a technique we can rely on rather than copy on
   faith. **The dependency to write down:** it works because the version folder's copy wins a
@@ -454,6 +477,9 @@ by this session.
   the vanilla action already has.
 - **A prefixed translation key as a load probe.** Vanilla declares **zero** `UI_AutoCook*` or
   `ContextMenu_AutoCook_*` keys and a miss returns the key itself, so `text.get UI_AutoCookMode`
+  — the key is `common/media/lua/shared/Translate/EN/UI.json:5`, the probe
+  `testing/experiments/td3_autocook.py:456` and the profile row
+  `testing/profiles/teardown-autocook.toml:33` —
   is a tier-(a) `[[verify]]` row for a mod that ships no scripts and writes no server state
   (the same trick pass 2 used, second subject).
 - **Save-and-call wrapping of a vanilla UI method**
@@ -474,11 +500,15 @@ by this session.
    `zombie/inventory/InventoryItem` nor `zombie/scripting/objects/Item` has `getTypeString`). They
    are harmless **only because the version folder wins**, which this session measured and which no
    line of the mod asserts. A Kahlua nil call is uncatchable, so the failure mode is not a
-   degraded feature, it is the whole require chain dying at file load. **Rule: a file in `common/`
-   that a version folder shadows is unexecuted code on that build — treat it as unmaintained, and
-   never let your live path depend on a merge direction you have not read out of the engine.**
-   (C, with the bounded **M** negative in § Architecture: zero `HasTrait` raises proves `:39` did
-   not run, not that the whole `common/` tree is inert.)
+   degraded feature — and it is **not** "dying at file load" either: none of the four calls sits
+   at file scope, so what dies is the character-info window when it is **built**, inside
+   `createPlayerData` at spawn (`ISCharacterCook:createChildren` reaches three of the four —
+   `AutoCook.init` at `:17`, `createCookingModeCombo` unconditionally at `:23`). **Rule: a file in
+   `common/` that a version folder shadows is unexecuted code on that build — treat it as
+   unmaintained, and never let your live path depend on a merge direction you have not read out of
+   the engine.** (C, with the bounded **M** negative in § Architecture: zero raises proves the
+   whole window-build path skipped the `common/` copies, leaving only
+   `common/…/ISCharacterCook.lua:50` — inside `prerender` — uncovered.)
 2. **A `nil` return used as both "reject" and "no opinion", where the caller reads it as neither.**
    `selectForStrength` can return `nil` (`common/…/AutoCook_Diets.lua:104`, deliberately, to avoid
    over-protein), and `chooseItem`'s `evoItem = self:selectPreferedFood(evoItem, item)`

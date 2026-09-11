@@ -541,9 +541,10 @@ skew).
   [`autocook.md`](autocook.md) § Architecture). **The conclusion for LTP is unchanged** — it
   shadows nothing, and the 0 script-name collisions and 0 monkey-patches above are the real
   evidence for that; what changes is that the empty line is no longer the *reason*. Graded **C**
-  for the mechanism (jar), **M** for both tails. It consumes three extension points (`onAddForageDefs`, the script hook
-  keys, the `RecipeCodeOnCreate` statics) and replaces nothing. Re-loading it is idempotent by
-  construction: `recipe_meats.lua` assigns 7 plain globals at file scope and holds no state.
+  for the mechanism (jar), **M** for both tails. It consumes three extension points
+  (`onAddForageDefs`, the script hook keys, the `RecipeCodeOnCreate` statics) and replaces
+  nothing. Re-loading it is idempotent by construction: `recipe_meats.lua` assigns 7 plain globals
+  at file scope and holds no state.
 - **The `_G` namespace is the one real conflict risk** — see Pitfalls 3.
 - **No command bus and no UI surface**, so it cannot collide with the resident Girth stack's
   command sites or with CleanUI's client UI tree. Both counts are the slice-08 catalog's, dated

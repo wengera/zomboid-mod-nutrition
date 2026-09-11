@@ -1,6 +1,7 @@
 # Nutrition mods — the catalog, and the three teardown picks
 
-**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-10 · slice 08 (P3).
+**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-10 · slice 08 (P3), updated
+**2026-09-11** (slice 11: OQ 1, 3 closed).
 Evidence grades: **C** read off a shipped file — the mod's own tree, cited
 `<version folder>/<path>:<line>`, or the game's jar/Lua — **M** measured on the live dedicated
 server (run id + artifact link), **W** a Workshop page or a wiki mirror: secondary, and never on

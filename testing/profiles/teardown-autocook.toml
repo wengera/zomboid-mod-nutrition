@@ -32,11 +32,11 @@ verify = [                    # bare keys must precede the first table header (T
   # the row fails correctly. `text.get` is registered on the CLIENT only.
   { side = "client", cmd = "text.get", args = "UI_AutoCookMode", expect = '"Cooking diet: "' },
   # The LUA half, and the stronger row: it exercises the require chain and not a data file. The
-  # census `witness.moddata` carries renders every top-level key as "<name>:<type>" — cited by
-  # COMMAND and not by line, because the line moves (it was :705 at 94d208e, :742 at 291f977 and
-  # :744 after the slice-10 residuals landed in 0449fa3) — so "AutoCook:table" matches as a JSON
-  # substring and nothing vanilla produces it. The key is
-  # written at 42.13/media/lua/client/AutoCook.lua:38, reached only from the AutoCook.init call at
+  # census `witness.moddata` renders every top-level key as "<name>:<type>" — cited by COMMAND
+  # and not by line, because the line moves (it was :705 at 94d208e, :742 at 291f977 and :744
+  # after the slice-10 residuals landed in 0449fa3) — so "AutoCook:table" matches as a JSON
+  # substring and nothing vanilla produces it. The key is written at
+  # 42.13/media/lua/client/AutoCook.lua:38, reached only from the AutoCook.init call at
   # ISCharacterCook.lua:17 (ISCharacterCook:createChildren), which runs only because
   # addCharacterPageTab("Cook", ISCharacterCook) executed at ISCharacterCook.lua:398 — and
   # addCharacterPageTab is defined ONLY in common/…/ISCharacterInfoWindow_AddTab.lua:2. Had
@@ -47,13 +47,12 @@ verify = [                    # bare keys must precede the first table header (T
   # green row is consistent with either copy having won. Naming the winner needs a `_G` read
   # (AutoCook.acceptIngredient exists only in 42.13/). CLIENT and not server: the mod has 9
   # getModData() sites per tree and 0 transmitModData, so the server census is not expected to
-  # carry the key at baseline (that asymmetry is a
-  # measurement for Task 3, not a gate). The row needs the client to be past createPlayerData —
-  # verify probes run after client_ready on both entry points (docs/testing/profiles.md §
-  # `[[verify]]`), which is after OnCreatePlayer; if it proves flaky on the run, demote it to a
-  # timed driver read and keep row 1 as the gate. The `*` is skipped by the census's own `~= "*"`
-  # guard, so it never lands in `missing` and is not a miss: the number worth recording is
-  # `keyCount`, at report["verify"][1]["got"]["keyCount"].
+  # carry the key at baseline (that asymmetry is a measurement for Task 3, not a gate). The row
+  # needs the client to be past createPlayerData — verify probes run after client_ready on both
+  # entry points (docs/testing/profiles.md § `[[verify]]`), which is after OnCreatePlayer; if it
+  # proves flaky on the run, demote it to a timed driver read and keep row 1 as the gate. The `*`
+  # is skipped by the census's own `~= "*"` guard, so it never lands in `missing` and is not a
+  # miss: the number worth recording is `keyCount`, at report["verify"][1]["got"]["keyCount"].
   { side = "client", cmd = "witness.moddata", args = "player:admin *", expect = '"AutoCook:table"' },
 ]
 
