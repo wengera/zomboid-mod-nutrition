@@ -35,7 +35,7 @@
 ## Questions (the slice is done when each has a cited answer or a named open check)
 
 1. **New nutrients.** Can a mod track vitamin/mineral-class stats beside the vanilla four, where does that state live, and what makes it survive a save, a client, and a server? (`STRATEGY.md:9-11`)
-2. **The item pass.** By what mechanism does a mod rebalance the nutrition of 1 005 vanilla food records, what does the mechanism cost on each side of the wire, and what does the corpus show about doing it at scale? (`STRATEGY.md:12`)
+2. **The item pass.** By what mechanism does a mod rebalance the nutrition of the 1 005 consumable records in `data/food-items.*` (722 `base:food` items, 150 drainables, 133 fluid containers — `data/README.md`), what does the mechanism cost on each side of the wire, and what does the corpus show about doing it at scale? (`STRATEGY.md:12`)
 3. **UI.** How does a player see a mod-side nutrient — panel, moodle, tooltip, translation — and what does the corpus show about the cost and the neighbours? (derived: spec row 14 + `docs/modding/README.md` § Planned documents)
 4. **MP sync.** Which side owns each quantity the mod touches, which wire routes exist for mod state, and which of them are safe? (`STRATEGY.md:13-14`, method rule 2 at `:27-29`)
 5. **Balance testing.** What can the shipped pipeline already prove about a balance change, at what cadence, and what must a balance claim carry to be citable? (`STRATEGY.md:48`)

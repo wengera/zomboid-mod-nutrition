@@ -151,7 +151,7 @@ cd /c/Users/Angus/pz-b42
 | I7 | `loadstring` | **CANNOT** (removed 42.20.x) · Task 1 J6; corpus count zero |
 | I8 | Coexist with a second mod shadowing the same file | **CAN WITH A WORKAROUND** · `activeFileMap.put` is unconditional, last write wins in `File.list()`/mod order; residual risk — the loader's `overrides` print is the only visible signal |
 | J1 | Redefine a vanilla `module Base` food block | **CAN** · slice 12 experiment (a); grade from its artifact, else C + W (the Mod_structure mirror) `-> X` |
-| J2 | Do it across all 1 005 vanilla foods | **CAN WITH A WORKAROUND** · no corpus precedent (one collision in 230 mods: `Horse` redefining `Base.Rope`); the scale, not the mechanism, is the risk |
+| J2 | Do it across the 722 `base:food` items (1 005 dataset rows once drainables and fluid containers are counted; `data/README.md`) | **CAN WITH A WORKAROUND** · no corpus precedent (one collision in 230 mods: `Horse` redefining `Base.Rope`); the scale, not the mechanism, is the risk |
 | J3 | Survive an MP script mismatch between server and client | **CAN** (no checksum gate found) · Task 1 Step 3's grep + `item.script` identical field-for-field on both sides, M `td1` |
 
 - [ ] **Step 4: Ripple check.** `grep -n "slice 13\|13's wall map\|wall map" docs/progress.md` and confirm every ripple addressed to slice 13 maps onto a row above. Add a row for any that does not. Record the mapping in the harvest — Task 5's acceptance check re-runs this grep.
