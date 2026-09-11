@@ -10,7 +10,7 @@ the fixture was built; `steamapps/workshop/content/108600/`, read-only), and eac
 *restored per-run copy* of the fixture, so nothing here mutates either. Everything a
 profile asks for is resolved and validated before a single process starts (`testing/pzt/profile.py`),
 because the game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A) —
-a run that looks green while the thing under test was never loaded. Eight profiles ship:
+a run that looks green while the thing under test was never loaded. Nine profiles ship:
 **`mod-under-test.toml`** — PZTestKit + KeenPerception (workshop `3685392864`) on `default` with
 `DayLength = 1`, the T1 acceptance case and the template for slices 09–11, whose `[[verify]]`
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
@@ -67,7 +67,17 @@ client `lua.global TKX_EatHook.version`. `TKX_ZWatermelon` is deliberately UNGAT
 and no new item, the second `item Watermelon` body it does ship is the measurement, and the
 obvious-looking `item.script Base.Watermelon` row would pass with the mod absent because vanilla
 defines Watermelon. It is gated at tier (c) instead — folder copied, `mods_not_found` empty on both
-sides — which the driver records in the artifact.
+sides — which the driver records in the artifact; and **`x12-order2.toml`** — slice 12's session 5,
+the SAME four mods as `x12-order` in a different `Mods=` order: PZTestKit + `TKX_ItemOverride` +
+`TKX_ZWatermelon` + `TKX_EatHook` on `default` with **no `[sandbox]`** either, and the same two
+tier-(a) rows. It exists because sessions 1 and 4 each read a number that TWO rules predict —
+both times the winning body belonged to the mod that was simultaneously FIRST in `Mods=` and
+alphabetically LAST — so "alphabetical-last wins" and "first-in-`Mods=` wins" (bodies replayed in
+reverse `Mods=` order) were confounded by the orders themselves. Moving `TKX_ItemOverride` to the
+front and `TKX_ZWatermelon` to the middle makes the three surviving rules name three different
+`Calories`: **999** ⇒ alphabetical-last, **111** ⇒ first-in-`Mods=`, **777** ⇒ `Mods=`-last (out
+twice already, so a 777 reopens both earlier sessions). `TKX_ZWatermelon` is UNGATED here for the
+same reason and gated at tier (c) by the driver.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed

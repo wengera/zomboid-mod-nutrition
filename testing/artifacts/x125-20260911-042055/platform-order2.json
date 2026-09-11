@@ -1,0 +1,1957 @@
+{
+ "run_id": "x125-20260911-042055",
+ "session": "x125 -- slice 12 session 5: the three-way ordering discriminator",
+ "user": "admin",
+ "profile": {
+  "name": "x12-order2",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x12-order2.toml",
+  "fixture": "default",
+  "description": "PZTestKit + TKX_ItemOverride + TKX_ZWatermelon + TKX_EatHook \u2014 slice 12 session 5.",
+  "mods": [
+   "PZTestKit",
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon",
+   "TKX_EatHook"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "TKX_ItemOverride": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_ItemOverride",
+   "TKX_ZWatermelon": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_ZWatermelon",
+   "TKX_EatHook": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_EatHook"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "TKX_ItemOverride",
+  "TKX_ZWatermelon",
+  "TKX_EatHook"
+ ],
+ "mods_order": [
+  "PZTestKit",
+  "TKX_ItemOverride",
+  "TKX_ZWatermelon",
+  "TKX_EatHook"
+ ],
+ "alphabetical_order": [
+  "TKX_EatHook",
+  "TKX_ItemOverride",
+  "TKX_ZWatermelon"
+ ],
+ "mods_order_note": "Mods= order is this list's order. The ALPHABETICAL order of the three TKX ids is TKX_EatHook < TKX_ItemOverride < TKX_ZWatermelon. Unlike x121 and x124, NO mod here is both first in Mods= and last alphabetically: ItemOverride is Mods=-first and alpha-first, ZWatermelon is Mods=-middle and alpha-last, EatHook is Mods=-last and alpha-middle. That is the whole design -- the three rules now name three different numbers.",
+ "commit": "f6c336e",
+ "harness_lua_commit": "5d9633f",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 229 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "run-20260911-041437",
+ "acceptance_loading_lines": {
+  "server": {
+   "TKX_ItemOverride": 94,
+   "TKX_ZWatermelon": 97,
+   "TKX_EatHook": 99
+  },
+  "client": {
+   "TKX_ItemOverride": [
+    84,
+    168
+   ],
+   "TKX_ZWatermelon": [
+    87,
+    171
+   ],
+   "TKX_EatHook": [
+    89,
+    173
+   ]
+  }
+ },
+ "fixture_day_length": 4,
+ "game_minute_seconds": 3.75,
+ "scope_exclusions": {
+  "player": [
+   "fitnessMod",
+   "fitnessUpTimer",
+   "hotbar",
+   "strengthMod",
+   "strengthUpTimer"
+  ],
+  "item": [
+   "Tooltip",
+   "customName"
+  ],
+  "applies_here": false,
+  "why": "no modData census is taken this session -- O1-O4 read script data and log files. The sets are recorded so a reader of the series can see they were considered and found inapplicable, not omitted."
+ },
+ "field_counts_expected": {
+  "macros": 5
+ },
+ "candidates": {
+  "999": {
+   "mod": "TKX_ZWatermelon",
+   "mods_position": 2,
+   "alpha_position": 3,
+   "selects": "ALPHABETICAL-LAST wins",
+   "kills": [
+    "first-in-Mods= (reverse-Mods= replay)",
+    "Mods=-last",
+    "alphabetical-first"
+   ],
+   "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did"
+  },
+  "111": {
+   "mod": "TKX_ItemOverride",
+   "mods_position": 1,
+   "alpha_position": 1,
+   "selects": "FIRST-IN-Mods= wins (bodies replayed in REVERSE Mods= order)",
+   "kills": [
+    "alphabetical-last",
+    "Mods=-last",
+    "alphabetical-first"
+   ],
+   "means": "the body replayed last is the one FIRST in Mods=, from the FIRST alphabetical slot -- so session 4's alphabetical-by-id call is wrong and both earlier readings were reverse-Mods= all along"
+  },
+  "777": {
+   "mod": "TKX_EatHook",
+   "mods_position": 3,
+   "alpha_position": 2,
+   "selects": "Mods=-LAST or ALPHABETICAL-FIRST -- the two rules coincide on this mod in this order, and BOTH were falsified in x121 and again in x124",
+   "kills": [],
+   "means": "REOPENS both earlier sessions: no single rule over these three ids explains 111 (x121), 999 (x124) and 777 (here) together, so the ordering key is not a property of the id set at all"
+  },
+  "1355": {
+   "mod": "vanilla",
+   "mods_position": 0,
+   "alpha_position": 0,
+   "selects": "none",
+   "kills": [],
+   "means": "no mod body applied at all -- the session measured nothing about order"
+  }
+ },
+ "still_confounded": "a 999 selects 'alphabetical-last' but not alphabetical BY WHAT. The three ids (TKX_EatHook < TKX_ItemOverride < TKX_ZWatermelon), the three script file basenames (tkx_eat_hook.txt < tkx_item_override.txt < tkx_zwatermelon.txt) and the three FOLDER names (identical to the ids) all sort in the SAME order, so id / script path / folder name remain confounded -- exactly as x124's report recorded. The cheap discriminator, if a later task wants it closed, is a fourth mod whose id sorts last while its script file sorts first (session 3 proved the loader resolves through mod.info, not the folder name -- x123-20260911-034426, P16 as_predicted -- so the drift is safe to introduce).",
+ "prior": {
+  "x121_run": "x121-20260911-030023",
+  "x121_M3": "getCalories 111 (TKX_ItemOverride) -- Mods=-first AND alpha-last of the two bodies in that run. Verdict falsified against a Mods=-last prediction.",
+  "x121_M2b": "verdict falsified -- a partial block MERGES per key, so per-key LAST-wins is established independently (vanilla's Apple 95 lost to the mod's 400)",
+  "x124_run": "x124-20260911-035819",
+  "x124_P18": "getCalories 999 on both sides (TKX_ZWatermelon) -- Mods=-first AND alpha-last again. Verdict as_predicted, but ALPHABETICAL-LAST and FIRST-IN-Mods= fit it equally, which is why this session exists.",
+  "x124_O5": "all five text.get key forms missed on both sides -- getText is not the route to item names on 42.20.4. Not re-asked here.",
+  "loading_lines_prior": "x121 server 94/97/99, x124 server 94/96/99, both in Mods= order. The LOADER walks Mods=; the body replay is the open question."
+ },
+ "world_changes": {
+  "restored": "nothing needs restoring -- this session writes no state. No nutrition.set, no moddata.set, no item.set, no eat.action.",
+  "left_in_place": [
+   "one RCON-spawned Base.Watermelon in admin's inventory"
+  ],
+  "why": "the spawned item lives in THIS run's copy of the fixture (run_dir), never in the golden one, so it is discarded with the run directory.",
+  "lua_reload": "never sent -- re-executing vanilla's ISEatFoodAction underneath mod C's live wrapper is not a state any reading here should be taken in."
+ },
+ "steps": [
+  {
+   "step": "o1_item_get",
+   "cmd": "item.get",
+   "args": "admin Base.Watermelon",
+   "side": "server",
+   "wall_before": 59.706,
+   "wall_after": 61.719,
+   "took": 2.013,
+   "ack": {
+    "fullType": "Base.Watermelon",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.6000000238418579,
+    "baseHunger": -0.6000000238418579,
+    "calories": 999,
+    "carbs": 341.1099853515625,
+    "lipids": 6.78000020980835,
+    "proteins": 27.559999465942383,
+    "id": 1567421272,
+    "uses": 0.6000000238418579,
+    "fresh": true,
+    "offAge": 6,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -1.399999976158142,
+    "hungerChange": -0.6000000238418579,
+    "isCookable": false,
+    "actualWeight": 3.000000476837158,
+    "weight": 3,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.35024356842041
+   },
+   "serverWorldAge": 2.35024356842041,
+   "gameMinute": null,
+   "worldAgeMinutes": 141.0146
+  },
+  {
+   "step": "o3_items_count",
+   "cmd": "items.count",
+   "args": "",
+   "side": "server",
+   "wall_before": 61.735,
+   "wall_after": 63.743,
+   "took": 2.008,
+   "ack": {
+    "total": 5095,
+    "food": 725,
+    "byType": {
+     "base:normal": 1098,
+     "base:weapon": 409,
+     "base:drainable": 150,
+     "base:clothing": 1395,
+     "base:literature": 559,
+     "base:food": 725,
+     "base:container": 308,
+     "base:moveable": 383,
+     "base:key": 6,
+     "base:radio": 17,
+     "base:alarmclockclothing": 16,
+     "base:weaponpart": 11,
+     "base:alarmclock": 2,
+     "base:map": 15,
+     "base:animal": 1
+    },
+    "foodByModule": {
+     "Base": 722,
+     "TKX": 3
+    },
+    "fluidDefs": 61
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "O1": {
+   "question": "with TKX_ItemOverride FIRST in Mods= and TKX_ZWatermelon LAST alphabetically but only MIDDLE in Mods=, whose Watermelon body is applied last?",
+   "spawn": {
+    "type": "Base.Watermelon",
+    "why": "O1: the macros live on the INSTANCE -- Kahlua does not expose them on the script object, so item.script cannot answer this",
+    "rcon_ok": true,
+    "rcon_reply": "",
+    "wall_rcon": 54.425,
+    "attempts": [
+     {
+      "attempt": 1,
+      "wall": 57.436,
+      "resolved": "admin/Base.Watermelon #1567421272",
+      "id": 1567421272
+     }
+    ],
+    "resolved": true,
+    "measured_wait_s": 3.011
+   },
+   "witness": {
+    "client": {
+     "side": "client",
+     "subject": "item admin/Base.Watermelon",
+     "why": "Calories: 999 in TKX_ZWatermelon, 111 in TKX_ItemOverride, 777 in TKX_EatHook, 1355 in vanilla",
+     "count": 5,
+     "count_expected": 5,
+     "count_ok": true,
+     "resolved": "admin/Base.Watermelon #1567421272",
+     "error": null,
+     "fields": {
+      "getCalories": 999,
+      "getCarbohydrates": 341.1099853515625,
+      "getLipids": 6.78000020980835,
+      "getProteins": 27.559999465942383,
+      "getHungChange": -0.6000000238418579
+     },
+     "missing": {},
+     "nils": {},
+     "wall": 57.437,
+     "reply": {
+      "side": "client",
+      "subject": "item",
+      "id": "admin/Base.Watermelon",
+      "resolved": "admin/Base.Watermelon #1567421272",
+      "fields": {
+       "getCalories": 999,
+       "getCarbohydrates": 341.1099853515625,
+       "getLipids": 6.78000020980835,
+       "getProteins": 27.559999465942383,
+       "getHungChange": -0.6000000238418579
+      },
+      "missing": {},
+      "nils": {},
+      "worldAge": 2.3326473236083984,
+      "count": 5,
+      "_probe": {
+       "cmd": "witness.fields",
+       "args": "item admin/Base.Watermelon getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+       "wall": 57.437,
+       "wall_done": 57.695
+      }
+     }
+    },
+    "server": {
+     "side": "server",
+     "subject": "item admin/Base.Watermelon",
+     "why": "Calories: 999 in TKX_ZWatermelon, 111 in TKX_ItemOverride, 777 in TKX_EatHook, 1355 in vanilla",
+     "count": 5,
+     "count_expected": 5,
+     "count_ok": true,
+     "resolved": "admin/Base.Watermelon #1567421272",
+     "error": null,
+     "fields": {
+      "getCalories": 999,
+      "getCarbohydrates": 341.1099853515625,
+      "getLipids": 6.78000020980835,
+      "getProteins": 27.559999465942383,
+      "getHungChange": -0.6000000238418579
+     },
+     "missing": {},
+     "nils": {},
+     "wall": 57.695,
+     "reply": {
+      "side": "server",
+      "subject": "item",
+      "id": "admin/Base.Watermelon",
+      "resolved": "admin/Base.Watermelon #1567421272",
+      "fields": {
+       "getCalories": 999,
+       "getCarbohydrates": 341.1099853515625,
+       "getLipids": 6.78000020980835,
+       "getProteins": 27.559999465942383,
+       "getHungChange": -0.6000000238418579
+      },
+      "missing": {},
+      "nils": {},
+      "worldAge": 2.3422775268554688,
+      "count": 5,
+      "_probe": {
+       "cmd": "witness.fields",
+       "args": "item admin/Base.Watermelon getCalories,getCarbohydrates,getLipids,getProteins,getHungChange",
+       "wall": 57.695,
+       "wall_done": 59.706
+      }
+     }
+    }
+   },
+   "server_item_get": {
+    "fullType": "Base.Watermelon",
+    "cooked": false,
+    "burnt": false,
+    "rotten": false,
+    "frozen": false,
+    "age": 0,
+    "hungChange": -0.6000000238418579,
+    "baseHunger": -0.6000000238418579,
+    "calories": 999,
+    "carbs": 341.1099853515625,
+    "lipids": 6.78000020980835,
+    "proteins": 27.559999465942383,
+    "id": 1567421272,
+    "uses": 0.6000000238418579,
+    "fresh": true,
+    "offAge": 6,
+    "offAgeMax": 8,
+    "freezingTime": 0,
+    "cookingTime": 0,
+    "heat": 1,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "thirstChange": -1.399999976158142,
+    "hungerChange": -0.6000000238418579,
+    "isCookable": false,
+    "actualWeight": 3.000000476837158,
+    "weight": 3,
+    "customWeight": false,
+    "lastCookMinute": 0,
+    "serverWorldAge": 2.35024356842041
+   },
+   "mods_order": [
+    "PZTestKit",
+    "TKX_ItemOverride",
+    "TKX_ZWatermelon",
+    "TKX_EatHook"
+   ],
+   "alphabetical_order": [
+    "TKX_EatHook",
+    "TKX_ItemOverride",
+    "TKX_ZWatermelon"
+   ],
+   "loading_lines": {
+    "server": [
+     {
+      "mod": "TKX_ItemOverride",
+      "line": 94
+     },
+     {
+      "mod": "TKX_ZWatermelon",
+      "line": 97
+     },
+     {
+      "mod": "TKX_EatHook",
+      "line": 99
+     }
+    ],
+    "client": [
+     {
+      "mod": "TKX_ItemOverride",
+      "line": 84
+     },
+     {
+      "mod": "TKX_ZWatermelon",
+      "line": 87
+     },
+     {
+      "mod": "TKX_EatHook",
+      "line": 89
+     },
+     {
+      "mod": "TKX_ItemOverride",
+      "line": 168
+     },
+     {
+      "mod": "TKX_ZWatermelon",
+      "line": 171
+     },
+     {
+      "mod": "TKX_EatHook",
+      "line": 173
+     }
+    ],
+    "server_ids_in_order": [
+     "TKX_ItemOverride",
+     "TKX_ZWatermelon",
+     "TKX_EatHook"
+    ],
+    "matches_mods_order": true,
+    "acceptance_run_lines": {
+     "server": {
+      "TKX_ItemOverride": 94,
+      "TKX_ZWatermelon": 97,
+      "TKX_EatHook": 99
+     },
+     "client": {
+      "TKX_ItemOverride": [
+       84,
+       168
+      ],
+      "TKX_ZWatermelon": [
+       87,
+       171
+      ],
+      "TKX_EatHook": [
+       89,
+       173
+      ]
+     }
+    },
+    "why": "the LOADER's order, recorded beside the reading because the whole session is the claim that the BODY replay order is a different order. x121 read 94/97/99 and x124 94/96/99, both Mods= order."
+   },
+   "candidates": {
+    "999": {
+     "mod": "TKX_ZWatermelon",
+     "mods_position": 2,
+     "alpha_position": 3,
+     "selects": "ALPHABETICAL-LAST wins",
+     "kills": [
+      "first-in-Mods= (reverse-Mods= replay)",
+      "Mods=-last",
+      "alphabetical-first"
+     ],
+     "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did"
+    },
+    "111": {
+     "mod": "TKX_ItemOverride",
+     "mods_position": 1,
+     "alpha_position": 1,
+     "selects": "FIRST-IN-Mods= wins (bodies replayed in REVERSE Mods= order)",
+     "kills": [
+      "alphabetical-last",
+      "Mods=-last",
+      "alphabetical-first"
+     ],
+     "means": "the body replayed last is the one FIRST in Mods=, from the FIRST alphabetical slot -- so session 4's alphabetical-by-id call is wrong and both earlier readings were reverse-Mods= all along"
+    },
+    "777": {
+     "mod": "TKX_EatHook",
+     "mods_position": 3,
+     "alpha_position": 2,
+     "selects": "Mods=-LAST or ALPHABETICAL-FIRST -- the two rules coincide on this mod in this order, and BOTH were falsified in x121 and again in x124",
+     "kills": [],
+     "means": "REOPENS both earlier sessions: no single rule over these three ids explains 111 (x121), 999 (x124) and 777 (here) together, so the ordering key is not a property of the id set at all"
+    },
+    "1355": {
+     "mod": "vanilla",
+     "mods_position": 0,
+     "alpha_position": 0,
+     "selects": "none",
+     "kills": [],
+     "means": "no mod body applied at all -- the session measured nothing about order"
+    }
+   },
+   "calories": {
+    "client_witness": 999,
+    "server_item_get": 999,
+    "server_witness": 999,
+    "server_routes_agree": true
+   },
+   "body": {
+    "client": {
+     "mod": "TKX_ZWatermelon",
+     "mods_position": 2,
+     "alpha_position": 3,
+     "selects": "ALPHABETICAL-LAST wins",
+     "kills": [
+      "first-in-Mods= (reverse-Mods= replay)",
+      "Mods=-last",
+      "alphabetical-first"
+     ],
+     "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+     "calories": 999.0
+    },
+    "server": {
+     "mod": "TKX_ZWatermelon",
+     "mods_position": 2,
+     "alpha_position": 3,
+     "selects": "ALPHABETICAL-LAST wins",
+     "kills": [
+      "first-in-Mods= (reverse-Mods= replay)",
+      "Mods=-last",
+      "alphabetical-first"
+     ],
+     "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+     "calories": 999.0
+    }
+   },
+   "invariant": {
+    "client": {
+     "getCarbohydrates": {
+      "read": 341.1099853515625,
+      "expected": 341.11,
+      "ok": true
+     },
+     "getLipids": {
+      "read": 6.78000020980835,
+      "expected": 6.78,
+      "ok": true
+     },
+     "getProteins": {
+      "read": 27.559999465942383,
+      "expected": 27.56,
+      "ok": true
+     },
+     "getHungChange": {
+      "read": -0.6000000238418579,
+      "expected": -0.6,
+      "ok": true
+     }
+    },
+    "server": {
+     "getCarbohydrates": {
+      "read": 341.1099853515625,
+      "expected": 341.11,
+      "ok": true
+     },
+     "getLipids": {
+      "read": 6.78000020980835,
+      "expected": 6.78,
+      "ok": true
+     },
+     "getProteins": {
+      "read": 27.559999465942383,
+      "expected": 27.56,
+      "ok": true
+     },
+     "getHungChange": {
+      "read": -0.6000000238418579,
+      "expected": -0.6,
+      "ok": true
+     }
+    }
+   },
+   "invariant_ok": true,
+   "invariant_rule": "all three mod bodies and vanilla carry IDENTICAL Carbohydrates / Lipids / Proteins / HungerChange, so these four are the check that the instance read is the item this session is about -- never a second discriminator."
+  },
+  "O2": {
+   "question": "does the server log name the three script FILES, and if so in what order?",
+   "script_files": {
+    "pattern": "tkx_zwatermelon|tkx_item_override|tkx_eat_hook",
+    "limit": 60,
+    "server": {
+     "count": 6,
+     "saturated": false,
+     "hits": [
+      {
+       "line": 97,
+       "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 98,
+       "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides"
+      },
+      {
+       "line": 1355,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n"
+      },
+      {
+       "line": 1376,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti"
+      },
+      {
+       "line": 1397,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu"
+      },
+      {
+       "line": 1418,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio"
+      }
+     ]
+    },
+    "client": {
+     "count": 8,
+     "saturated": false,
+     "hits": [
+      {
+       "line": 87,
+       "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 88,
+       "text": "LOG  : Mod          f:0> mod \"TKX_ZWatermelon\" overrides"
+      },
+      {
+       "line": 171,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 172,
+       "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ZWatermelon\" overrides"
+      },
+      {
+       "line": 428,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOExce"
+      },
+      {
+       "line": 458,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIO"
+      },
+      {
+       "line": 488,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep"
+      },
+      {
+       "line": 518,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOE"
+      }
+     ]
+    },
+    "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+    "name": "script_files"
+   },
+   "watermelon": {
+    "pattern": "watermelon",
+    "limit": 60,
+    "server": {
+     "count": 6,
+     "saturated": false,
+     "hits": [
+      {
+       "line": 97,
+       "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 98,
+       "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides"
+      },
+      {
+       "line": 1355,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n"
+      },
+      {
+       "line": 1376,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti"
+      },
+      {
+       "line": 1397,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu"
+      },
+      {
+       "line": 1418,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio"
+      }
+     ]
+    },
+    "client": {
+     "count": 8,
+     "saturated": false,
+     "hits": [
+      {
+       "line": 87,
+       "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 88,
+       "text": "LOG  : Mod          f:0> mod \"TKX_ZWatermelon\" overrides"
+      },
+      {
+       "line": 171,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 172,
+       "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ZWatermelon\" overrides"
+      },
+      {
+       "line": 428,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOExce"
+      },
+      {
+       "line": 458,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIO"
+      },
+      {
+       "line": 488,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep"
+      },
+      {
+       "line": 518,
+       "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOE"
+      }
+     ]
+    },
+    "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+    "name": "watermelon"
+   },
+   "loading": {
+    "pattern": "loading TKX_",
+    "limit": 16,
+    "server": {
+     "count": 3,
+     "saturated": false,
+     "hits": [
+      {
+       "line": 94,
+       "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ItemOverride"
+      },
+      {
+       "line": 97,
+       "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 99,
+       "text": "LOG  : Mod          f:0 st:832,192,504> loading TKX_EatHook"
+      }
+     ]
+    },
+    "client": {
+     "count": 6,
+     "saturated": false,
+     "hits": [
+      {
+       "line": 84,
+       "text": "LOG  : Mod          f:0> loading TKX_ItemOverride"
+      },
+      {
+       "line": 87,
+       "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 89,
+       "text": "LOG  : Mod          f:0> loading TKX_EatHook"
+      },
+      {
+       "line": 168,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_ItemOverride"
+      },
+      {
+       "line": 171,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+      },
+      {
+       "line": 173,
+       "text": "LOG  : Mod          f:0 st:0> loading TKX_EatHook"
+      }
+     ]
+    },
+    "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+    "name": "loading"
+   },
+   "reading": "the `loading <id>` lines are the LOADER walking Mods=; x121 measured them at 94/97/99, x124 at 94/96/99 and this run's acceptance boot at 94/97/99. They are NOT the body replay order, which is what O1 measures indirectly and what this grep would measure directly IF the engine printed script paths.",
+   "classification_rule": "x124's do-not-cite (report concern 1): `tkx_zwatermelon` is BOTH a script basename and the lowercase of the mod id, so loader lines and NoSuchFileException paths naming the MOD counted as if they named the FILE. Here a hit is a FILE hit only if the name carries the `.txt` extension or the line sits inside a `media/scripts` path -- a bare path separator is NOT enough, because x124's four NoSuchFileException lines put the MOD FOLDER under a path while naming no script (\u2026/TKX_ZWatermelon/42.20/media/AnimSets). The order is computed from the file hits alone, and the raw broad-grep counts are kept beside them unchanged so the two sessions stay comparable.",
+   "order_rule": "if the engine prints the script files, the LINE ORDER is the replay order and can be compared against both Mods= order and alphabetical order directly. If it prints nothing, `script_load_lines` classifies to zero file hits and this reading is TRIVIAL -- O1 still answers the question.",
+   "script_load_lines": [
+    {
+     "line": 97,
+     "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+    },
+    {
+     "line": 98,
+     "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides"
+    },
+    {
+     "line": 1355,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n"
+    },
+    {
+     "line": 1376,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti"
+    },
+    {
+     "line": 1397,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu"
+    },
+    {
+     "line": 1418,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio"
+    }
+   ],
+   "script_load_lines_client": [
+    {
+     "line": 87,
+     "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+    },
+    {
+     "line": 88,
+     "text": "LOG  : Mod          f:0> mod \"TKX_ZWatermelon\" overrides"
+    },
+    {
+     "line": 171,
+     "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+    },
+    {
+     "line": 172,
+     "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ZWatermelon\" overrides"
+    },
+    {
+     "line": 428,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOExce"
+    },
+    {
+     "line": 458,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIO"
+    },
+    {
+     "line": 488,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep"
+    },
+    {
+     "line": 518,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOE"
+    }
+   ],
+   "watermelon_lines": [
+    {
+     "line": 97,
+     "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+    },
+    {
+     "line": 98,
+     "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides"
+    },
+    {
+     "line": 1355,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n"
+    },
+    {
+     "line": 1376,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti"
+    },
+    {
+     "line": 1397,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu"
+    },
+    {
+     "line": 1418,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio"
+    },
+    {
+     "line": 2242,
+     "text": "LOG  : Lua          f:420 st:832,248,452> PZTK: cmd #2 witness.fields -> {\"side\":\"server\",\"subject\":\"item\",\"id\":\"admin/Base.Watermelon\",\"resolved\":\"admin/Base.Watermelon #1567421272\",\"fields\":{\"getCal"
+    },
+    {
+     "line": 2243,
+     "text": "LOG  : Lua          f:438 st:832,250,247> PZTK: cmd #3 item.get -> {\"fullType\":\"Base.Watermelon\",\"cooked\":false,\"burnt\":false,\"rotten\":false,\"frozen\":false,\"age\":0,\"hungChange\":-0.6000000238418579,\"ba"
+    }
+   ],
+   "classified_server": [
+    {
+     "line": 97,
+     "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 98,
+     "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 1355,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 1376,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 1397,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 1418,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    }
+   ],
+   "classified_client": [
+    {
+     "line": 87,
+     "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 88,
+     "text": "LOG  : Mod          f:0> mod \"TKX_ZWatermelon\" overrides",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 171,
+     "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 172,
+     "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ZWatermelon\" overrides",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 428,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOExce",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 458,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIO",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 488,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    },
+    {
+     "line": 518,
+     "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOE",
+     "hit_class": "id_or_other",
+     "file_match": null,
+     "scripts_path": false
+    }
+   ],
+   "file_hits_server": [],
+   "file_hits_client": [],
+   "id_or_other_server": 6,
+   "first_mention_order_server": [],
+   "first_mention_order_client": [],
+   "expected_if_mods_order": [
+    "tkx_item_override",
+    "tkx_zwatermelon",
+    "tkx_eat_hook"
+   ],
+   "expected_if_alphabetical": [
+    "tkx_eat_hook",
+    "tkx_item_override",
+    "tkx_zwatermelon"
+   ],
+   "observed_order_server": [],
+   "matches_mods_order": null,
+   "matches_alphabetical": null
+  },
+  "O3": {
+   "question": "do THREE redefinitions of one existing type add any item record?",
+   "items_count": {
+    "total": 5095,
+    "food": 725,
+    "byType": {
+     "base:normal": 1098,
+     "base:weapon": 409,
+     "base:drainable": 150,
+     "base:clothing": 1395,
+     "base:literature": 559,
+     "base:food": 725,
+     "base:container": 308,
+     "base:moveable": 383,
+     "base:key": 6,
+     "base:radio": 17,
+     "base:alarmclockclothing": 16,
+     "base:weaponpart": 11,
+     "base:alarmclock": 2,
+     "base:map": 15,
+     "base:animal": 1
+    },
+    "foodByModule": {
+     "Base": 722,
+     "TKX": 3
+    },
+    "fluidDefs": 61
+   },
+   "foodByModule_Base": 722,
+   "foodByModule_TKX": 3,
+   "baseline": 722,
+   "baseline_source": "testing/artifacts/exp05-20260910-084109/food-scan.json:350 (foodByModule.Base; 1005 is that dataset's total item RECORDS)",
+   "note": "x121 read 722 with TWO Watermelon redefinitions in play and x124 read 722 with the same three as here, in a different Mods= order. A count that moved with the ORDER would be the real finding."
+  },
+  "O4": {
+   "question": "is the _G walk itself sound on both sides?",
+   "global": "TK.version",
+   "replies": {
+    "client": {
+     "side": "client",
+     "name": "TK.version",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TK.version",
+      "wall": 63.75,
+      "wall_done": 64.257
+     }
+    },
+    "server": {
+     "side": "server",
+     "name": "TK.version",
+     "type": "number",
+     "resolved": true,
+     "value": 1,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "TK.version",
+      "wall": 64.257,
+      "wall_done": 65.515
+     }
+    }
+   },
+   "why": "a resolved=false here means the walk is broken and every lua.global reading in this file is suspect -- it does NOT mean a mod global is absent."
+  }
+ },
+ "verdicts": {
+  "P20": {
+   "phase": "P20",
+   "predicted": "getCalories == 999 on BOTH sides -- TKX_ZWatermelon's body, from the MIDDLE of Mods= and the LAST alphabetical slot, is applied last. That selects ALPHABETICAL-LAST and kills first-in-Mods= (reverse-Mods= replay), Mods=-last and alphabetical-first, confirming x124's call on a reading where the two surviving rules could finally disagree. The loader's own `loading` lines still walk Mods=; the two orders differ.",
+   "falsifier": "111 means FIRST-IN-Mods= wins -- the bodies are replayed in REVERSE Mods= order, x124's alphabetical-by-id call is wrong, and both earlier readings were reverse-Mods= all along. 777 means TKX_EatHook won from the Mods=-LAST and alphabetically-FIRST slot, and BOTH of those rules were falsified in x121 and again in x124 -- so a 777 selects nothing and REOPENS the whole line (see next_if_777). 1355 means no mod body applied at all and the session measured nothing about order. The two sides disagreeing falsifies it outright: script data is loaded per side and never synced, so a split would say the replay order is not even a property of the build.",
+   "observed": {
+    "getCalories": {
+     "client": 999,
+     "server": 999,
+     "server_witness": 999
+    },
+    "body_that_won": {
+     "client": {
+      "mod": "TKX_ZWatermelon",
+      "mods_position": 2,
+      "alpha_position": 3,
+      "selects": "ALPHABETICAL-LAST wins",
+      "kills": [
+       "first-in-Mods= (reverse-Mods= replay)",
+       "Mods=-last",
+       "alphabetical-first"
+      ],
+      "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+      "calories": 999.0
+     },
+     "server": {
+      "mod": "TKX_ZWatermelon",
+      "mods_position": 2,
+      "alpha_position": 3,
+      "selects": "ALPHABETICAL-LAST wins",
+      "kills": [
+       "first-in-Mods= (reverse-Mods= replay)",
+       "Mods=-last",
+       "alphabetical-first"
+      ],
+      "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+      "calories": 999.0
+     }
+    },
+    "sides_agree": true,
+    "invariant": {
+     "client": {
+      "getCarbohydrates": {
+       "read": 341.1099853515625,
+       "expected": 341.11,
+       "ok": true
+      },
+      "getLipids": {
+       "read": 6.78000020980835,
+       "expected": 6.78,
+       "ok": true
+      },
+      "getProteins": {
+       "read": 27.559999465942383,
+       "expected": 27.56,
+       "ok": true
+      },
+      "getHungChange": {
+       "read": -0.6000000238418579,
+       "expected": -0.6,
+       "ok": true
+      }
+     },
+     "server": {
+      "getCarbohydrates": {
+       "read": 341.1099853515625,
+       "expected": 341.11,
+       "ok": true
+      },
+      "getLipids": {
+       "read": 6.78000020980835,
+       "expected": 6.78,
+       "ok": true
+      },
+      "getProteins": {
+       "read": 27.559999465942383,
+       "expected": 27.56,
+       "ok": true
+      },
+      "getHungChange": {
+       "read": -0.6000000238418579,
+       "expected": -0.6,
+       "ok": true
+      }
+     }
+    },
+    "invariant_ok": true,
+    "mods_order": [
+     "PZTestKit",
+     "TKX_ItemOverride",
+     "TKX_ZWatermelon",
+     "TKX_EatHook"
+    ],
+    "alphabetical_order": [
+     "TKX_EatHook",
+     "TKX_ItemOverride",
+     "TKX_ZWatermelon"
+    ],
+    "loading_lines": {
+     "server": [
+      {
+       "mod": "TKX_ItemOverride",
+       "line": 94
+      },
+      {
+       "mod": "TKX_ZWatermelon",
+       "line": 97
+      },
+      {
+       "mod": "TKX_EatHook",
+       "line": 99
+      }
+     ],
+     "client": [
+      {
+       "mod": "TKX_ItemOverride",
+       "line": 84
+      },
+      {
+       "mod": "TKX_ZWatermelon",
+       "line": 87
+      },
+      {
+       "mod": "TKX_EatHook",
+       "line": 89
+      },
+      {
+       "mod": "TKX_ItemOverride",
+       "line": 168
+      },
+      {
+       "mod": "TKX_ZWatermelon",
+       "line": 171
+      },
+      {
+       "mod": "TKX_EatHook",
+       "line": 173
+      }
+     ],
+     "server_ids_in_order": [
+      "TKX_ItemOverride",
+      "TKX_ZWatermelon",
+      "TKX_EatHook"
+     ],
+     "matches_mods_order": true,
+     "acceptance_run_lines": {
+      "server": {
+       "TKX_ItemOverride": 94,
+       "TKX_ZWatermelon": 97,
+       "TKX_EatHook": 99
+      },
+      "client": {
+       "TKX_ItemOverride": [
+        84,
+        168
+       ],
+       "TKX_ZWatermelon": [
+        87,
+        171
+       ],
+       "TKX_EatHook": [
+        89,
+        173
+       ]
+      }
+     },
+     "why": "the LOADER's order, recorded beside the reading because the whole session is the claim that the BODY replay order is a different order. x121 read 94/97/99 and x124 94/96/99, both Mods= order."
+    },
+    "rule_selected": "ALPHABETICAL-LAST wins",
+    "rules_killed": [
+     "first-in-Mods= (reverse-Mods= replay)",
+     "Mods=-last",
+     "alphabetical-first"
+    ],
+    "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+    "still_confounded": "a 999 selects 'alphabetical-last' but not alphabetical BY WHAT. The three ids (TKX_EatHook < TKX_ItemOverride < TKX_ZWatermelon), the three script file basenames (tkx_eat_hook.txt < tkx_item_override.txt < tkx_zwatermelon.txt) and the three FOLDER names (identical to the ids) all sort in the SAME order, so id / script path / folder name remain confounded -- exactly as x124's report recorded. The cheap discriminator, if a later task wants it closed, is a fourth mod whose id sorts last while its script file sorts first (session 3 proved the loader resolves through mod.info, not the folder name -- x123-20260911-034426, P16 as_predicted -- so the drift is safe to introduce).",
+    "next_if_777": "if 777: the ordering key is not a property of the id set. Mods=-last was falsified by x121 (111, EatHook last in Mods=) and by x124 (999, EatHook last in Mods=); alphabetical-first was falsified by the same two readings. A 777 here would contradict both, and the next step is NOT another ordering profile but a re-read of whether the three bodies are all reaching the same table -- start by confirming f_tier_c and the loading lines in THIS artifact, then re-run x124's exact profile to check the 999 reproduces at all."
+   },
+   "verdict": "as_predicted",
+   "wall": 61.72
+  },
+  "O2": {
+   "phase": "O2",
+   "predicted": "IF the engine prints the three script file PATHS, their first-mention order is ALPHABETICAL (tkx_eat_hook, tkx_item_override, tkx_zwatermelon) and not Mods= order (tkx_item_override, tkx_zwatermelon, tkx_eat_hook) -- the same claim P20 makes, read directly off the log instead of inferred from a number. x124 printed NONE, so this is expected to come back trivial again.",
+   "falsifier": "an order matching Mods= falsifies it. NOTHING printed is TRIVIAL, not a falsifier: the engine is under no obligation to log script paths, and O1 is the reading that actually settles the question. Fewer than three files named is UNMEASURED -- a partial order cannot be compared against either rule.",
+   "observed": {
+    "observed": [],
+    "expected_if_alphabetical": [
+     "tkx_eat_hook",
+     "tkx_item_override",
+     "tkx_zwatermelon"
+    ],
+    "expected_if_mods_order": [
+     "tkx_item_override",
+     "tkx_zwatermelon",
+     "tkx_eat_hook"
+    ],
+    "broad_grep_hits_server": 6,
+    "broad_grep_hits_client": 8,
+    "file_path_hits_server": 0,
+    "file_path_hits_client": 0,
+    "id_or_other_hits_server": 6,
+    "watermelon_hits_server": 8,
+    "saturated": false
+   },
+   "verdict": "trivial",
+   "wall": 61.734
+  },
+  "O3": {
+   "phase": "O3",
+   "predicted": "foodByModule.Base == 722 (-0 against the baseline, unchanged from x121 and x124) and foodByModule.TKX == 3 -- three redefinitions of an existing type add NO item record, and re-ordering Mods= does not change that",
+   "falsifier": "723 (or +2) falsifies it -- a redefinition would then ADD a record and 'which body wins' would be the wrong question entirely, since there would be several records rather than one contested one.",
+   "observed": {
+    "foodByModule.Base": 722,
+    "foodByModule.TKX": 3,
+    "delta_vs_baseline": 0,
+    "total": 5095,
+    "food": 725
+   },
+   "verdict": "as_predicted",
+   "wall": 63.746
+  },
+  "O4": {
+   "phase": "O4",
+   "predicted": "TK.version resolves to 1 on BOTH sides",
+   "falsifier": "anything else means the harness's own _G walk is broken on that side and the session's lua.global readings cannot be trusted -- it is a harness finding, not a mod finding.",
+   "observed": {
+    "value": {
+     "client": 1,
+     "server": 1
+    },
+    "resolved": {
+     "client": true,
+     "server": true
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 65.515
+  }
+ },
+ "session_ready_wall": 53.1,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "item.script",
+   "args": "TKX.FibreBar",
+   "expect": "\"DaysFresh\": 42",
+   "ok": true,
+   "got": {
+    "fullType": "TKX.FibreBar",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -20,
+    "ThirstChange": 0,
+    "DaysFresh": 42,
+    "DaysTotallyRotten": 84,
+    "IsCookable": false,
+    "MinutesToCook": 60,
+    "MinutesToBurn": 120
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_EatHook.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_EatHook.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "greps": {
+  "loading": {
+   "pattern": "loading TKX_",
+   "limit": 16,
+   "server": {
+    "count": 3,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 94,
+      "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ItemOverride"
+     },
+     {
+      "line": 97,
+      "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 99,
+      "text": "LOG  : Mod          f:0 st:832,192,504> loading TKX_EatHook"
+     }
+    ]
+   },
+   "client": {
+    "count": 6,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_ItemOverride"
+     },
+     {
+      "line": 87,
+      "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 89,
+      "text": "LOG  : Mod          f:0> loading TKX_EatHook"
+     },
+     {
+      "line": 168,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_ItemOverride"
+     },
+     {
+      "line": 171,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 173,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_EatHook"
+     }
+    ]
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "loading"
+  },
+  "script_files": {
+   "pattern": "tkx_zwatermelon|tkx_item_override|tkx_eat_hook",
+   "limit": 60,
+   "server": {
+    "count": 6,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 97,
+      "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 98,
+      "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides"
+     },
+     {
+      "line": 1355,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n"
+     },
+     {
+      "line": 1376,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti"
+     },
+     {
+      "line": 1397,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu"
+     },
+     {
+      "line": 1418,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio"
+     }
+    ]
+   },
+   "client": {
+    "count": 8,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 87,
+      "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 88,
+      "text": "LOG  : Mod          f:0> mod \"TKX_ZWatermelon\" overrides"
+     },
+     {
+      "line": 171,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 172,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ZWatermelon\" overrides"
+     },
+     {
+      "line": 428,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOExce"
+     },
+     {
+      "line": 458,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIO"
+     },
+     {
+      "line": 488,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep"
+     },
+     {
+      "line": 518,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOE"
+     }
+    ]
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "script_files"
+  },
+  "watermelon": {
+   "pattern": "watermelon",
+   "limit": 60,
+   "server": {
+    "count": 6,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 97,
+      "text": "LOG  : Mod          f:0 st:832,192,503> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 98,
+      "text": "LOG  : Mod          f:0 st:832,192,504> mod \"TKX_ZWatermelon\" overrides"
+     },
+     {
+      "line": 1355,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOException(n"
+     },
+     {
+      "line": 1376,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIOExcepti"
+     },
+     {
+      "line": 1397,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu"
+     },
+     {
+      "line": 1418,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\server\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio"
+     }
+    ]
+   },
+   "client": {
+    "count": 8,
+    "saturated": false,
+    "hits": [
+     {
+      "line": 87,
+      "text": "LOG  : Mod          f:0> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 88,
+      "text": "LOG  : Mod          f:0> mod \"TKX_ZWatermelon\" overrides"
+     },
+     {
+      "line": 171,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_ZWatermelon"
+     },
+     {
+      "line": 172,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_ZWatermelon\" overrides"
+     },
+     {
+      "line": 428,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\AnimSets at WindowsException.translateToIOExce"
+     },
+     {
+      "line": 458,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\common\\media\\actiongroups at WindowsException.translateToIO"
+     },
+     {
+      "line": 488,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep"
+     },
+     {
+      "line": 518,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x125-20260911-042055\\clients\\admin\\mods\\TKX_ZWatermelon\\42.20\\media\\actiongroups at WindowsException.translateToIOE"
+     }
+    ]
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "watermelon"
+  },
+  "lua_errors": {
+   "pattern": "tried to call nil|stack traceback|attempted to index",
+   "limit": 12,
+   "server": {
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client": {
+    "count": 0,
+    "saturated": false,
+    "hits": []
+   },
+   "client_rule": "a client console runs TWO Lua states and prints engine load output once per state, so the client count is expected at 2x the server's.",
+   "name": "lua_errors"
+  }
+ },
+ "loading_lines": {
+  "server": [
+   {
+    "mod": "TKX_ItemOverride",
+    "line": 94
+   },
+   {
+    "mod": "TKX_ZWatermelon",
+    "line": 97
+   },
+   {
+    "mod": "TKX_EatHook",
+    "line": 99
+   }
+  ],
+  "client": [
+   {
+    "mod": "TKX_ItemOverride",
+    "line": 84
+   },
+   {
+    "mod": "TKX_ZWatermelon",
+    "line": 87
+   },
+   {
+    "mod": "TKX_EatHook",
+    "line": 89
+   },
+   {
+    "mod": "TKX_ItemOverride",
+    "line": 168
+   },
+   {
+    "mod": "TKX_ZWatermelon",
+    "line": 171
+   },
+   {
+    "mod": "TKX_EatHook",
+    "line": 173
+   }
+  ],
+  "server_ids_in_order": [
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon",
+   "TKX_EatHook"
+  ],
+  "matches_mods_order": true,
+  "acceptance_run_lines": {
+   "server": {
+    "TKX_ItemOverride": 94,
+    "TKX_ZWatermelon": 97,
+    "TKX_EatHook": 99
+   },
+   "client": {
+    "TKX_ItemOverride": [
+     84,
+     168
+    ],
+    "TKX_ZWatermelon": [
+     87,
+     171
+    ],
+    "TKX_EatHook": [
+     89,
+     173
+    ]
+   }
+  },
+  "why": "the LOADER's order, recorded beside the reading because the whole session is the claim that the BODY replay order is a different order. x121 read 94/97/99 and x124 94/96/99, both Mods= order."
+ },
+ "f_tier_c": {
+  "why": "TKX_ZWatermelon is UNGATED in the profile on purpose: it ships no Lua (nothing for lua.global) and no new item (nothing for item.script), and the obvious row `item.script Base.Watermelon` passes with the mod absent because vanilla defines Watermelon. Tier (c) is folder + mods_not_found + the loader's own line.",
+  "mods_dir": "testing\\runs\\x125-20260911-042055\\server\\mods",
+  "listing": [
+   "PZTestKit",
+   "TKX_EatHook",
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon"
+  ],
+  "folder_present": true,
+  "mods_not_found_empty": true,
+  "loading_line_present": true,
+  "loading_ids_server_in_order": [
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon",
+   "TKX_EatHook"
+  ],
+  "loading_matches_mods_order": true,
+  "ok": true
+ },
+ "timeline": [
+  {
+   "t": 53.1,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "item.script",
+   "ok": true,
+   "got": "{\"fullType\": \"TKX.FibreBar\", \"via\": \"getItem\", \"side\": \"server\", \"access\": {\"HungerChange\": \"get\", \""
+  },
+  {
+   "t": 54.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_EatHook.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 54.4,
+   "phase": "tier_c",
+   "ok": "True"
+  },
+  {
+   "t": 57.4,
+   "phase": "spawn",
+   "type": "Base.Watermelon",
+   "resolved": true
+  },
+  {
+   "t": 61.7,
+   "phase": "step",
+   "took": 2.013,
+   "name": "o1_item_get",
+   "cmd": "item.get"
+  },
+  {
+   "t": 61.7,
+   "phase": "verdict",
+   "name": "P20",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 61.7,
+   "phase": "verdict",
+   "name": "O2",
+   "verdict": "trivial"
+  },
+  {
+   "t": 63.7,
+   "phase": "step",
+   "took": 2.008,
+   "name": "o3_items_count",
+   "cmd": "items.count"
+  },
+  {
+   "t": 63.7,
+   "phase": "verdict",
+   "name": "O3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 65.5,
+   "phase": "verdict",
+   "name": "O4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 67.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 75.7,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "spawns": [
+  {
+   "type": "Base.Watermelon",
+   "why": "O1: the macros live on the INSTANCE -- Kahlua does not expose them on the script object, so item.script cannot answer this",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 54.425,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 57.436,
+     "resolved": "admin/Base.Watermelon #1567421272",
+     "id": 1567421272
+    }
+   ],
+   "resolved": true,
+   "measured_wait_s": 3.011
+  }
+ ],
+ "summary": {
+  "verify_ok": [
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "f_tier_c_ok": true,
+  "field_count_ok": true,
+  "field_checks": 2,
+  "field_count_failures": [],
+  "verdicts": {
+   "P20": "as_predicted",
+   "O2": "trivial",
+   "O3": "as_predicted",
+   "O4": "as_predicted"
+  },
+  "mods_order": [
+   "PZTestKit",
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon",
+   "TKX_EatHook"
+  ],
+  "alphabetical_order": [
+   "TKX_EatHook",
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon"
+  ],
+  "loading_lines": {
+   "server": [
+    {
+     "mod": "TKX_ItemOverride",
+     "line": 94
+    },
+    {
+     "mod": "TKX_ZWatermelon",
+     "line": 97
+    },
+    {
+     "mod": "TKX_EatHook",
+     "line": 99
+    }
+   ],
+   "client": [
+    {
+     "mod": "TKX_ItemOverride",
+     "line": 84
+    },
+    {
+     "mod": "TKX_ZWatermelon",
+     "line": 87
+    },
+    {
+     "mod": "TKX_EatHook",
+     "line": 89
+    },
+    {
+     "mod": "TKX_ItemOverride",
+     "line": 168
+    },
+    {
+     "mod": "TKX_ZWatermelon",
+     "line": 171
+    },
+    {
+     "mod": "TKX_EatHook",
+     "line": 173
+    }
+   ],
+   "server_ids_in_order": [
+    "TKX_ItemOverride",
+    "TKX_ZWatermelon",
+    "TKX_EatHook"
+   ],
+   "matches_mods_order": true,
+   "acceptance_run_lines": {
+    "server": {
+     "TKX_ItemOverride": 94,
+     "TKX_ZWatermelon": 97,
+     "TKX_EatHook": 99
+    },
+    "client": {
+     "TKX_ItemOverride": [
+      84,
+      168
+     ],
+     "TKX_ZWatermelon": [
+      87,
+      171
+     ],
+     "TKX_EatHook": [
+      89,
+      173
+     ]
+    }
+   },
+   "why": "the LOADER's order, recorded beside the reading because the whole session is the claim that the BODY replay order is a different order. x121 read 94/97/99 and x124 94/96/99, both Mods= order."
+  },
+  "O1_watermelon_calories": {
+   "client": 999,
+   "server": 999,
+   "server_witness": 999
+  },
+  "O1_body_that_won": {
+   "client": {
+    "mod": "TKX_ZWatermelon",
+    "mods_position": 2,
+    "alpha_position": 3,
+    "selects": "ALPHABETICAL-LAST wins",
+    "kills": [
+     "first-in-Mods= (reverse-Mods= replay)",
+     "Mods=-last",
+     "alphabetical-first"
+    ],
+    "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+    "calories": 999.0
+   },
+   "server": {
+    "mod": "TKX_ZWatermelon",
+    "mods_position": 2,
+    "alpha_position": 3,
+    "selects": "ALPHABETICAL-LAST wins",
+    "kills": [
+     "first-in-Mods= (reverse-Mods= replay)",
+     "Mods=-last",
+     "alphabetical-first"
+    ],
+    "means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+    "calories": 999.0
+   }
+  },
+  "O1_invariant_ok": true,
+  "O1_rule_selected": "ALPHABETICAL-LAST wins",
+  "O1_rules_killed": [
+   "first-in-Mods= (reverse-Mods= replay)",
+   "Mods=-last",
+   "alphabetical-first"
+  ],
+  "O1_means": "the body replayed last is the one whose id sorts last, from the MIDDLE of Mods= -- so Mods= position is irrelevant to the body order, and session 4's alphabetical call stands on a reading that could finally disagree with the reverse-Mods= rule and did",
+  "O1_still_confounded": "a 999 selects 'alphabetical-last' but not alphabetical BY WHAT. The three ids (TKX_EatHook < TKX_ItemOverride < TKX_ZWatermelon), the three script file basenames (tkx_eat_hook.txt < tkx_item_override.txt < tkx_zwatermelon.txt) and the three FOLDER names (identical to the ids) all sort in the SAME order, so id / script path / folder name remain confounded -- exactly as x124's report recorded. The cheap discriminator, if a later task wants it closed, is a fourth mod whose id sorts last while its script file sorts first (session 3 proved the loader resolves through mod.info, not the folder name -- x123-20260911-034426, P16 as_predicted -- so the drift is safe to introduce).",
+  "O2_script_file_order": [],
+  "O2_file_path_hits": {
+   "server": 0,
+   "client": 0
+  },
+  "O2_broad_grep_hits": {
+   "server": 6,
+   "client": 8
+  },
+  "O2_loading_ids": [
+   "TKX_ItemOverride",
+   "TKX_ZWatermelon",
+   "TKX_EatHook"
+  ],
+  "O3_foodByModule": {
+   "Base": 722,
+   "TKX": 3
+  },
+  "O4_TK_version": {
+   "client": 1,
+   "server": 1
+  },
+  "lua_error_hits": {
+   "client": 0,
+   "server": 0
+  }
+ },
+ "wall_seconds": 75.7,
+ "server_error_count": 0,
+ "client_lua_error": false
+}
