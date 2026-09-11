@@ -69,9 +69,24 @@ on; treat divergence as a decision point, not a free choice.**
     only**, so a mod built this way reads as registering nothing (`top_events:
     []` for AutoCook is correct and misleading at once; `media_at` with two
     entries is the flag). The hazard on the other side is FILTER 11.
-    **Outcome M** (n = 1 session, two independent halves), **mechanism C**
-    (four jar sites), and bounded to a mod whose version dir actually ships
-    colliding files.
+    **Outcome M**, **mechanism C** (four jar sites). **Second subject and a
+    second arm, slice 12** (2026-09-11, run `x122-20260911-032326`): a mod we
+    control, `tkx-loader-probe`, shipping the same relative path in both trees
+    read `TKX_LoaderWhich == "version"` on **both** sides with the `common/`-only
+    and version-only markers *both* resolving (`summary.L2_which`,
+    `summary.L2_trees`) — so the direction is **n = 2** (one workshop mod, one of
+    ours). The same run added the arm KEEP 10's bound used to exclude: a version
+    dir holding **only a `mod.info`** and no `media/` at all costs the mod
+    nothing — `loading TKX_CommonOnly` printed, its `common/media` payload global
+    resolved on both sides, and no `required mod … not found`
+    (`phases.L3.reading`). **The bound now reads: a version dir that ships
+    colliding files, OR none at all.** The arm still untested is a version dir
+    that ships `media/` colliding with *nothing*. Two cautions travel with the
+    rule: the `common/`-enumerated-first lines in the logs are the
+    `AdvancedAnimator.loadModMedia` media walk, **never** the `activeFileMap`
+    pass; and the loader prints one `mod "<id>" overrides <relpath>` line per
+    shadowed file **per Lua state**, so a client grep sees `2 × n`. Full chain
+    and the jar re-derivation: [`anatomy.md`](anatomy.md) § 3.
 11. **Script-first for item data; Lua only for what the packet can carry**
     (LongTermPreservation4220, measured — run `td1-20260910-192457`). Item
     scripts are loaded **per side and never synced**, so a value written in a
@@ -82,6 +97,25 @@ on; treat divergence as a decision point, not a free choice.**
     rather than inferred. Put our item pass in scripts, and reach for a
     server-side field write only when the field is in `ItemStatsPacket` or the
     value may stay server-only.
+12. **Guard every `media/lua/server/` file with `isServer()` — the folder is not
+    a side.** A mod's `media/lua/server/` files **execute in the MP client's Lua
+    state too** (measured 2026-09-11, run `x121-20260911-030023`, key
+    `phases.M7.mod_globals.client`), on three independent witnesses in one
+    session: mod C's own `TKX_Nutrient.side` read `client` from a file under
+    `server/`, its per-tick counter advanced on the client (58 ticks against the
+    server's 38), and mod B's `ISEatFoodAction.complete` wrapper reported
+    `TKX_EatHook.wrapped` **true** client-side while staying silent there. So
+    "only my server file writes this" is false until the guard is written, and a
+    `server/` file that mutates shared state, installs a wrapper or registers a
+    handler does it **twice per MP session** — once per side. Resolve the side at
+    runtime, never from the folder: `if isServer ~= nil then …` first, because
+    the global may be absent (`TKX_EatHook.lua:27-36`). **M**, n = 1 session,
+    incidental to the run that found it, and the **mechanism is untraced** — we
+    did not read which pass maps `server/` into the client's state. The probe
+    that would settle it: one mod, one file per `client|server|shared` folder,
+    each writing its folder name into a global, booted once with a real client
+    and read on both sides. Owned by slice 13. The rule and its bound are also
+    [`lua-api.md`](lua-api.md) § 5's last row and [`anatomy.md`](anatomy.md) § 6.
 
 ## FILTER OUT — anti-patterns observed or implied
 
@@ -161,6 +195,19 @@ on; treat divergence as a decision point, not a free choice.**
     on that client transmitted — the server's census became *exactly* the
     client's, `hotbar` included. "We never transmit" is not a guarantee about
     anything in player modData.
+    **Third subject, slice 12, and the wipe is now measured on both sides**
+    (2026-09-11, run `x121-20260911-030023`). *Client → server:* a key planted
+    **server-side only** (`TKX_ServerOnly`) was gone from the server's census
+    **1.27 s** after the client transmitted (`phases.M9`) — the same direction as
+    pass 2, so the wipe half stands at **n = 2** (`td2-20260910-231655` +
+    `x121`). *Server → client:* the same call in the other direction is
+    **wipe-and-replace too** (`phases.M6`) — the client lost `hotbar` and its own
+    `TKX_eat_onEat_client`, gained the server's `TKX_eat_onEat_server`, and the
+    residual difference set came back `[]`; **M**, n = 1, graded after setting
+    aside the one key the client itself rewrites. **So neither direction merges.**
+    Whichever side calls it, `transmitModData()` replaces the receiver's whole
+    player-modData table with the sender's — one owner per value, or keep the
+    value out of player modData.
 11. **Leaving a `common/` copy of a file the version folder shadows** and
     letting it rot (measured, slice 11, run `td3-20260911-001948`). Under
     KEEP 10's rule a `common/` file with a version-folder counterpart is
@@ -170,9 +217,15 @@ on; treat divergence as a decision point, not a free choice.**
     `getTypeString()` at `common/…/AutoCook_AutoCraftRecipes.lua:39` — none of
     which exists on 42.20.4. They are harmless **only** because the version
     folder wins, which nothing in the mod asserts and which this library had
-    not measured until now; and a Kahlua "tried to call nil" is uncatchable, so
-    the failure mode is not a degraded feature. It is **not "dying at file
-    load"** either — none of the four calls sits at file scope. What would die
+    not measured until now; and an unguarded Kahlua "tried to call nil"
+    **aborts the rest of the body it fires in** (measured 2026-09-11, run
+    `x127-20260911-052049`, server VM), so the failure mode is not a degraded
+    feature — it is the remainder of that handler never running. Two clauses of
+    this library's old rule were **wrong** and are corrected in
+    [`lua-api.md`](lua-api.md) § 5, which owns the rule: `pcall` **does** catch
+    the raise (`x126-20260911-045205`, both sides), and the handlers registered
+    **behind** the raising one still run (`x127`, server). It is **not "dying at
+    file load"** either — none of the four calls sits at file scope. What would die
     is the character-info window as it is **built**, inside `createPlayerData`
     at spawn: `ISCharacterCook:createChildren` calls `AutoCook.init` at `:17`
     and `createCookingModeCombo` unconditionally at `:23`, and between them
@@ -204,7 +257,7 @@ they sharpen KEEP 1–2 and FILTER 1.
 | `inventory:AddItem("Base.X")` client-side | **never** — the server's copy of the player's inventory (it does hold one: a server-side `additem` shows up on both sides with one id) never gains the item | M (spike S6) |
 | nutrition (`getNutrition()` calories/weight/macros) | **never** — and it is overwritten. `Nutrition` is **server-authoritative**: the eat itself completes on the server, which pushes the whole object at eat time (`EatFoodPacket`) and once a second (`PlayerStatsPacket`). A client `setCalories(3000)` never reached the server and was back to the server's value inside 3 s; a server-side write reached the client inside 3 s. The 0.2 kcal agreement S6 measured is mirror lag, not client authority | M (run `exp01-20260910-000351`) |
 | `getStats():set(CharacterStat.HUNGER / .THIRST, v)` client-side | **never** — same shape as nutrition: a client write to 0.9 was gone within 3 s while a server-side write to 0.4 reached the client. Re-measured with a tighter bound: a client write of 0.9 against a server pinned to 0.3 read back 0.9 at t = 0.51 s and **0.3004 at t = 1.42 s** — the revert lands inside 1.5 s, consistent with the 1 Hz push | M (runs `exp01-20260910-003929`, `exp03-20260910-045523`) |
-| `getNutrition():setWeight(v)` client-side | **never — and the client cannot derive weight either.** `Nutrition.updateWeight` runs on the client but a `GameClient.client` skip (`@317–@320 L198`) sits before `setWeight` and before `applyTraitFromWeight`, so the client computes a weight delta, discards it, and **never applies the weight band traits**. A client `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the server's 80 within 3 s with `Obese` still false. Consequence for a mod (**inference, not measured**): the band traits are not in `PlayerStatsPacket`, and whether any *other* packet syncs `CharacterTraits` was not traced (open question 10 in [../vanilla/body-stats.md](../vanilla/body-stats.md)) — so evaluate anything keyed on Obese/Overweight/Underweight/Emaciated server-side, or feed it an explicitly transmitted value, as the safe default rather than a proven necessity. **Slice 10 measured the half of `updateWeight` that runs BEFORE that skip** (2026-09-10, run `td2-20260910-231655`): the three direction flags `isIncWeight` / `isIncWeightLot` / `isDecWeight` are set at `@129-@131 L167`, `@186-@188 L178`, `@222-@224 L181` and `@260-@262 L186` — all of them ahead of the `@317-@320 L198` skip — so a client **does** compute them, and they agreed with the server's on **both sides at all six snapshots**, matching the arm predicted from that snapshot's own macros. A client can therefore derive a weight *direction* it cannot derive a weight. Two caveats: both sides' trait lists were **empty**, so this is "no disagreement on a character with no band traits", not an answer to open question 10; and `setIncWeightLot(true)` fires on the ×2 arm as well as the ×3 (`updateWeight @194-@226 L179-L181`), i.e. from **carbs or lipids > 400**, not 700 — correct the threshold wherever 700 is quoted alone | M (run `exp03-20260910-045523`) for the client write/discard; **M** (run `td2-20260910-231655`, `grades[].flags`) for the flags agreeing on both sides; the 400 threshold is **C** (jar); the consequence is an **inference under C** — the `GameClient.client` skip and `PlayerStatsPacket`'s field list are code-read, the "so evaluate it server-side" step is our reasoning from them, not a separate measurement; mechanism and citations in [../vanilla/body-stats.md](../vanilla/body-stats.md) § MP behaviour |
+| `getNutrition():setWeight(v)` client-side | **never — and the client cannot derive weight either.** `Nutrition.updateWeight` runs on the client but a `GameClient.client` skip (`@317–@320 L198`) sits before `setWeight` and before `applyTraitFromWeight`, so the client computes a weight delta, discards it, and **never applies the weight band traits**. A client `setWeight(105)` read back 105 with `hasTrait(Obese)` false, then reverted to the server's 80 within 3 s with `Obese` still false. Consequence for a mod (**inference, not measured**): the band traits are not in `PlayerStatsPacket`, and whether any *other* packet syncs `CharacterTraits` was not traced (open question 10 in [../vanilla/body-stats.md](../vanilla/body-stats.md)) — so evaluate anything keyed on Obese/Overweight/Underweight/Emaciated server-side, or feed it an explicitly transmitted value, as the safe default rather than a proven necessity. **Slice 10 measured the half of `updateWeight` that runs BEFORE that skip** (2026-09-10, run `td2-20260910-231655`): the three direction flags `isIncWeight` / `isIncWeightLot` / `isDecWeight` are set at `@129-@131 L167`, `@186-@188 L178`, `@222-@224 L181` and `@260-@262 L186` — all of them ahead of the `@317-@320 L198` skip — so a client **does** compute them, and they agreed with the server's on **both sides at all six snapshots**, matching the arm predicted from that snapshot's own macros. A client can therefore derive a weight *direction* it cannot derive a weight. Two caveats: both sides' trait lists were **empty**, so this is "no disagreement on a character with no band traits", not an answer to open question 10; and `setIncWeightLot(true)` fires on the ×2 arm as well as the ×3 (`updateWeight @194-@226 L179-L181`), i.e. from **carbs or lipids > 400**, not 700 — correct the threshold wherever 700 is quoted alone. **The trivial-arm caveat is now closed** (2026-09-11, run `x121-20260911-030023`, key `m8`): slice 11 could only read the three flags on an arm where all three were `false`, so the agreement carried no information. Slice 12 drove both non-trivial arms on purpose and the flags still agreed across sides — `+1500` kcal read **T / F / F** and `−100` kcal read **F / F / T** on both sides, each matching the arm recomputed from that snapshot's own macros. So "a client derives a weight *direction* it cannot derive a weight" is **measured on the arms that could have disagreed**, not inferred from a degenerate one. The same probe settles two neighbours: `nutrition.set calories -100` is **not clamped at 0** (−102.5664 read back on the server, −102.10 on the client, so the loss arm is real and not a floor artefact), and `updateWeight` runs **per character update tick with no timer gate** (`IsoPlayer.update @8` → `updateInternal1 @51 L2200` → `updateInternal2 @392-@402 L2306-L2307` → `Nutrition.update @107 L81`, **C**, jar-read 2026-09-11 — both arms were read back after an 8.0 s wait and had already landed) | M (run `exp03-20260910-045523`) for the client write/discard; **M** (run `td2-20260910-231655`, `grades[].flags`) for the flags agreeing on the trivial arm and **M** (run `x121-20260911-030023`, `m8`) for both non-trivial arms and the missing clamp; the 400 threshold is **C** (jar); the consequence is an **inference under C** — the `GameClient.client` skip and `PlayerStatsPacket`'s field list are code-read, the "so evaluate it server-side" step is our reasoning from them, not a separate measurement; mechanism and citations in [../vanilla/body-stats.md](../vanilla/body-stats.md) § MP behaviour |
 
 ### The other direction — server → client, on one item (slice 09)
 
@@ -223,6 +276,33 @@ within 1e-6, read on both sides through the same witness command.
 | `setActualWeight` | **the field travels** (`setData` fills it from `getActualWeightUnmodded()`), but read back the two sides disagreed **0 vs 0.35**. The display-name guard alone does not explain it: `getActualWeightUnmodded` returns 0 whenever `getDisplayName().equals(getFullType())`, and that was true on **both** sides for that mod item (false for a vanilla control, `Base.Steak`, 0.3 everywhere) — a symmetric guard cannot produce an asymmetric reading. What splits the sides is `isCustomWeight` **choosing an arm**: the server, where the mod had just set it `true`, goes `Food.getActualWeight @288 L910` → the guarded `InventoryItem` route → **0**; the client, still `false`, goes `@215-@287 L902-L908` → script weight × hunger fraction → **0.35**. Check a getter's guards *and* which arm your own write moves it onto before trusting a synced field. **The guard's own trigger is now measured inside vanilla** (2026-09-10, run `td2-20260910-231655`, appendix A1, a pass-1 follow-up): `Base.FruitSaladClay` — a vanilla food **absent** from `media/lua/shared/Translate/EN/ItemName.json` — reads `getDisplayName() == getFullType()` and `getActualWeightUnmodded() == 0` on **both** sides, while `Base.Steak` (present at `ItemName.json:4218`) reads `Steak` and keeps 0.3 on both. So "no name in the translation table" is sufficient on its own; no mod-specific explanation is needed for the mod item, and no sync explanation survives either (both sides agree) | **M** for the two values (run `td1b-20260910-202029`); **M** for the vanilla display-name control (run `td2-20260910-231655`, `appendix.A1`); **C** for the arms (jar, `Food.getActualWeight`) |
 | the aging fields — `age`, `offAge`, `offAgeMax` | **never** — `age` was measured not to cross in slice 02, and slice 09 moves `offAge`/`offAgeMax` from packet-read to measured. `freezingTime`, `lastAged` and `rotten` are absent from the packet too but have **not** been measured, so they stay **C** | M (runs `exp02-20260910-030433`, `td1-20260910-192457`); `freezingTime` / `lastAged` / `rotten` **C** |
 | anything at all, on a client copy that is not ticking | **RESOLVED, per arm, 2026-09-11 (slice 11, run `td3-20260911-001948`) — the discriminator is the 1.6 cooking gate, and the carrier is `Food.update`'s cooking-branch `sendItemStats`.** The probe the contested row itself named was run: a server-pinned vanilla `Base.Steak` at **`heat 1.2`, BELOW the gate**, read on both sides twice **12.54 s** apart. The **client's copy was frozen to the bit** (`1.2000000476837158` / `getCookingTime 0` at both reads) while the **server's decayed to the 1.0 floor** — the mirror image of pass 2's above-gate arm, and the same shape as pass 1's freeze. The pin's own push did arrive (`item.set` fires `sendItemStats` on its way out; both sides read the identical value at read 1), so the freeze is not "the client never saw it". **Grading: M per arm** — `n = 1` in each of the three arms, across three sessions — **mechanism C** (the jar text below). **What it REFINES rather than confirms:** `updateTemperature` runs unconditionally inside `Food.update`, so the honest statement about the below-gate arm is "**`Food.update` did not advance the client's held copy in this window**", not "the client cannot tick"; the hypothesis's "a client copy *can* tick" clause is narrowed, not proved. **Still open:** one item, one 12.54 s window, one fixture; frozen and non-cookable items are untested, and so is every other push path. **The operative rule is unchanged: a client-side reader of a live item field may be reading a push, not a simulation, and must not assume either.** Full reading: [teardown](../mods-survey/teardowns/autocook.md) § MP handling → The carrier. The three readings, kept because each is a separate arm: *Slice 09 (run `td1-20260910-192457`):* the client's copy of a server-spawned `Skittles.CuredPork` held `heat` and `cookingTime` **frozen across 11.1 s** (client 1.84703 while the server fell 1.79561 → 1.39397, same instance `#562521975`) — the push lands, the simulation does not. *Slice 10 (2026-09-10, run `td2-20260910-231655`, appendix A2, a **pass-1 follow-up** carried on a different session):* a server-pinned vanilla `Base.Steak` **did move** on the client — `heat` 2 → 1.697029948234558 and `cookingTime` 0 → 0.1182333305478096 over 10.5 s — **bit-identical to the server across a 0.5 s read offset** during which an independently ticking copy would have decayed further. **The mechanism that reconciles them (C, jar) — a hypothesis when it was written, and the thing the third arm then confirmed:** `Food.update` has no client guard and `updateTemperature` runs unconditionally, so a client copy *can* tick; and the push is `Food.update @86-@103 L377-L379` — `if (GameTime.getMinutes() != lastCookMinute) { if (GameServer.server != null) GameServer.sendItemStats(this); … }`, once per **game minute** (≈3.75 real s at `DayLength 4`) **while the cooking branch is live**, gated at `@49-@71 L372-L373` on `isCookable && !isFrozen() && heat > 1.6f`. The Steak never left that gate (2.0 → 1.697) so pushes kept the sides identical; the CuredPork **crossed** it, and the pushes stopped. *Slice 11 (2026-09-11, run `td3-20260911-001948`, `carrier`):* the same pin **below** the gate froze the client's copy while the server's moved — the third arm, and the one that makes the gate the measured discriminator rather than a candidate | **M** on all three readings (runs `td1-20260910-192457`, `td2-20260910-231655` `appendix.A2`, and `td3-20260911-001948` `carrier`), **M per arm** with `n = 1` in each; the mechanism stays **C** (jar) and the bounds above stay open |
+
+### Two facts that cross no wire at all (slice 12)
+
+Both are per-side facts about what each side *builds* — nothing is synced, so
+neither table above has a row for them, and both change how a mod is written.
+
+- **A second `item` block MERGES per key; it does not reset the item.** A
+  narrowed `item Orange` declaring only `Calories` left `hungChange` at
+  **−0.12** and `carbohydrates` at **16.27** — vanilla's values — while taking
+  the mod's `Calories = 400` (**M**, 2026-09-11, run `x121-20260911-030023`,
+  key `phases.M2b`; n = 1 item, both sides read). **The "`ResetExisting`
+  wholesale reset" reading is dead**, and the practical rule is the opposite of
+  what it implied: **restate only what you change**, because everything you omit
+  survives. A redefinition also **replaces rather than adds** — `module Base`
+  stayed at **722** foods across every redefinition boot (`phases.M1`), so an
+  item pass cannot inflate the corpus by accident. Both are
+  [`item-overrides.md`](item-overrides.md)'s rows; it owns the routes and the
+  replay order that decides which body lands last.
+- **A dedicated server resolves no display name at all — not even from a B42
+  `ItemName.json`.** The client resolved the JSON name; the **server** returned
+  the raw type for the same item, JSON present (**M**, same run, `phases.M4`).
+  So **never branch on a display name server-side**: it is a client-only value,
+  and any server-side gate keyed on one silently takes the wrong arm. The item
+  name is also unreachable through `getText` on either side (nine keys, two
+  sessions — `x124-20260911-035819` → `phases.O5`), so a translation-only mod
+  gates on an `IGUI_` / `UI_` key instead. [`anatomy.md`](anatomy.md) § 5 owns
+  the translation rows.
 
 Two timing facts from the same sessions, for anyone designing a probe or a
 heartbeat around item state: **the dedicated server's inventory-item tick runs
@@ -306,9 +386,51 @@ Consequences for the nutrition mod:
   **Answered, slice 11** ([teardown](../mods-survey/teardowns/autocook.md),
   run `td3-20260911-001948`): **version-wins**, with translations merged rather
   than shadowed. The statement, its grading and its bounds are KEEP 10.
+- ~~Do the three `updateWeight` direction flags agree across sides on an arm
+  where they *could* have differed?~~ **Answered, slice 12, 2026-09-11** (run
+  `x121-20260911-030023`, key `m8`): yes, on both non-trivial arms — `+1500`
+  kcal reads T/F/F and `−100` kcal reads F/F/T identically on both sides. The
+  trivial-arm reading slice 11 booked for this slice
+  (`AutoCook:allowSpice`'s gate, all three flags `false`) is superseded, and the
+  graded statement is the `setWeight` row of § Measured MP sync facts.
 - How the Girth stack namespaces its 228 command sites (slice-08 catalog,
   2026-09-10 — the "110+" this list used to carry predates that sweep;
   collision risk for our module names on the same bus).
+
+**Handed to slice 13 by slice 12** — each is one boot or one probe, and each is
+named here because slice 12 measured its neighbour and deliberately did not run
+it:
+
+- **The id-vs-script-path boot.** Script bodies replay in a sorted,
+  `Mods=`-independent order (M, `x125-20260911-042055`) whose sort key the jar
+  says is the **stored script path** (C) — but mod id, folder name, script path
+  and `mod.info` display name sort identically in every boot we ran. Settle it
+  with a mod whose id sorts last while its script file sorts first. *(13)*
+- **The `ItemType`-omitted partial block.** R2's shipped narrowing keeps
+  `ItemType` and `DisplayCategory`; what a block that omits `ItemType` does to
+  an existing item is untested. *(13)*
+- **The server→client *item*-modData direction.** Slice 12 measured both
+  player-modData directions (FILTER 10); item modData across the same hop is
+  unmeasured. *(13)*
+- **The client's own mod-list call site.** Everything in
+  [`anatomy.md`](anatomy.md) § 1–§ 4 was measured on the dedicated-server
+  `Mods=` path; the client-side `ChooseGameInfo.getModDetails` reached from the
+  mod selector was never exercised. *(13)*
+- **CleanUI × `triggerEvent`, both orders, in one boot — and it now carries a
+  second question.** CleanUI's live tree on 42.20.4 is `42.19/`, which does ship
+  the fork, so the collision is live and its runtime half stays **C**. Run it
+  together with the `pcall`-of-a-nested-`triggerEvent` shape: slice 12 measured
+  the argument-slot and nested-`pcall` shapes, not a raise crossing an event
+  dispatch. Gate the probe on the **server** — a raising probe hangs a `-debug`
+  client. *(13)*
+- **A folder whose *only* `mod.info` is `common/mod.info`, as a purpose-built
+  probe.** The requested-id lookup was measured on a folder carrying **both**
+  (`x123b-20260911-034500`); 4 installed mods have the `common/`-only shape and
+  only AutoCook has booted, the other three resting on the jar fallback. *(13)*
+- **What maps a mod's `media/lua/server/` files into the MP client's Lua
+  state.** KEEP 12's mechanism is untraced; the discriminating probe (one file
+  per `client|server|shared` folder, each writing its folder name into a global)
+  is named there. *(13)*
 
 ## Sources
 

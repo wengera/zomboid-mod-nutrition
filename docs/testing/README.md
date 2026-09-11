@@ -71,6 +71,25 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   Never `-safemode` (7× slower world load). The `admin` account (bootstrapped
   by the server's `-adminpassword`) runs with `-debug`, which lets the logo
   screen be skipped; other accounts sit through the ~20 s logo.
+- **`-debug` has a cost, and it is session-ending: the driven client parks in the
+  Lua debugger's modal break on the first mod Lua error that reaches
+  `KahluaUtil.fail`.** Measured on two independent boots (2026-09-11, run
+  `x127-20260911-052049`): the client reached `in_game`, printed one complete
+  trace, and then stopped — console dead at the last trace line, `ready` never
+  printed, the bus never answering a single command, the process still alive.
+  The route is `KahluaUtil.fail`'s `Core.debug` arm (`L95`), which prints
+  `Lua fail. Message: %s` (`L96`) and calls `UIManager.debugBreakpoint` (`L97`)
+  **before** the throw at `L100`; `debugBreakpoint` returns at once on a
+  `GameServer.server` (`L1183` — no server ever breaks) and otherwise enters the
+  modal `UIManager.sync.begin()` pump. Measured signature: client 1 × `:96` and
+  0 × `:100`, server 356 × `:100` and 0 × `:96` (**C** for the route, **M** for
+  the arms — [`../modding/lua-api.md`](../modding/lua-api.md) § 5 owns the rule
+  and its bounds). **What this means for a driver:** guarded code is safe — an
+  indexed-first call never raises, and the argument-slot `pcall(<nil>)` shape
+  never reaches `fail` at all (x126's client, same `-debug` launch, stayed alive
+  all session) — while an unguarded raise, *or a nested-`pcall` raise the mod
+  catches*, stalls the driven client. A **release** client is `Core.debug`-gated
+  and **unmeasured**.
 - **Join + character creation**: the `PZTestKit` harness mod (must be in
   the server's `Mods=` — the client reloads Lua with the server's list on
   join) reads `<cachedir>/Lua/pzt-join.txt`, presses CONNECT, and NEXTs
@@ -91,9 +110,17 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   **null** return is its own shape — `{key, side, miss: true, null: true}`
   with **no `text`** — since the slice-12 null guard, because
   `tostring(getText(key))` had been turning a null into the string `"nil"`
-  with `miss: false`, i.e. a false hit. The **server**
-  half is unproven until `x121` M4 reads it — a server that answers
-  `no getText() on this build` is the finding there, not a fault), and the
+  with `miss: false`, i.e. a false hit. **The server half is now measured**
+  (2026-09-11, run `x124-20260911-035819` → `phases.O5`): a dedicated server
+  **does** answer the command — `getText` exists there and the reply is an
+  ordinary `miss`, neither `null` nor `error`. What it is not is a route to an
+  item name: nine keys across `x121-20260911-030023` and `x124-20260911-035819`
+  missed on both sides, bare `Base.Apple` and prefixed forms alike, while the
+  same run read `getDisplayName()` off the instance — so gate a translation-only
+  mod on an `IGUI_` / `UI_` key, never on an item name
+  ([`../modding/anatomy.md`](../modding/anatomy.md) § 5 owns that rule). The null
+  guard has **never fired** in a committed run (0 `null: true` across both), so
+  it is untriggered, not confirmed), and the
   slice-04 test layer's `test.list` (registered names, sorted),
   `test.run <name> [user]` (ack `started` / `unknown` /
   `already running <x>` / the player-resolution error — only `started` leads
@@ -393,7 +420,13 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     called as `ItemUser.UseItem(item, …)` with no self, so it is the one Java
     member in the harness *not* reached through `TK.call` — presence is still
     established by indexing (`_G["ItemUser"]`, then `.UseItem`) before the
-    `pcall`, because "tried to call nil" escapes `pcall`. The route that
+    `pcall`. **Not because the raise escapes `pcall` — it does not** (measured
+    2026-09-11, run `x126-20260911-045205`: `pcall(<nil>)` returns
+    `false, "tried to call nil java.lang.RuntimeException"` on both sides). The
+    index is there because that reply **names nothing** — no global, no line, no
+    file — so "the member is absent" and "the member threw" would be the same
+    answer. The rule, both its halves and its bounds are
+    [`../modding/lua-api.md`](../modding/lua-api.md) § 5, which owns them. The route that
     actually runs is `item:setCurrentUses(currentUses − used)`, which is
     literally the line `UseItem @28 L37-38` executes and the **only** way
     crafting reaches hunger at all (no crafting class calls `setHungChange` /
@@ -444,8 +477,12 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     mismatch is as fatal as a nil call, so nothing here passes an argument to the
     member it reads. Each name lands in exactly one of three buckets, and that
     three-way sort is the point: **`missing`** = this build's object does not
-    expose the member at all (`TK.call` indexes before it calls, because Kahlua's
-    "tried to call nil" escapes `pcall` and would take the whole side off the bus);
+    expose the member at all (`TK.call` indexes before it calls — not because the
+    raise escapes `pcall`, which it does not, but because a caught nil call names
+    no member, and an UNGUARDED one aborts the rest of the handler body it sits
+    in, which here is the bus poll: measured `x126-20260911-045205` /
+    `x127-20260911-052049`, rule owned by
+    [`../modding/lua-api.md`](../modding/lua-api.md) § 5);
     **`nils`** = it *is* exposed and the call returned nil, which is a reading, not
     an absence; **`fields`** = everything else, a **map** keyed by getter name, so
     a name asked for twice is read twice, counted twice and appears once. "The mod
@@ -627,8 +664,13 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
     `_G` is Kahlua's own global table, so unlike every other command here there
     was nothing to confirm against the jar. **It never calls what it finds.** A
     function reports the string `"function"`; reading its *result* would mean
-    calling an unknown global at unknown arity, which is the uncatchable Kahlua
-    raise `TK.call` exists to avoid. Three things follow from how the walk is
+    calling an unknown global at unknown arity, which is the Kahlua raise
+    `TK.call` exists to avoid — **catchable, and still not worth making**: an
+    unguarded one aborts the rest of the handler body (`x127-20260911-052049`,
+    server VM) and on the `-debug` harness client parks the process in the Lua
+    debugger's modal break (same run, two boots), while a caught one names no
+    global ([`../modding/lua-api.md`](../modding/lua-api.md) § 5 owns the rule).
+    Three things follow from how the walk is
     written and matter when reading a reply: a hop is taken only when the node
     is a `table`, so a non-table node **ends** the walk (`failedAt` is the
     segment that could not be entered, `stoppedOn` the type that stopped it) and
@@ -669,6 +711,40 @@ per-run copy of the fixture and mutates neither it nor the workshop tree
   census. (Slice 10 did: `limit=5` on the server's mod grep reported four
   `overrides` lines where the log held thirteen — the simpleStatus teardown's
   § MP handling has the corrected reading.)
+- **`server_errors` is a CLASSIFIER's output, not a fault count — read the list
+  before quoting the number** (slice 12, runs `x126-20260911-045205` and
+  `x127-20260911-052049`). `ERROR_RX` (`testing/pzt/server.py:15`,
+  `ERROR|Exception|STACK TRACE|LuaError|lua error`) is applied at `:253` to every
+  non-indented server line that no `BASELINE_NOISE` pattern whitelists, and it
+  over-counts in two independent ways. **(i) Harness echo.** There is no
+  PZTK-echo pattern in `BASELINE_NOISE`, so a bus reply that merely *carries*
+  exception text is filed as a fault: x126's `server_error_count: 4` is four
+  verbatim `PZTK: cmd #N lua.global -> …` echoes of the driver's own
+  `tried to call nil java.lang.RuntimeException` reading — **zero** engine
+  faults. Any session whose readings quote an exception string inflates it the
+  same way. **(ii) Genuine dumps, counted per line.** x127's `892` is real engine
+  output but is not 892 events: a single Lua error contributes **ten** entries —
+  four `flushErrorMessage` heads, four bare `STACK TRACE` lines (`ERROR_RX`
+  matches those too) and two `Exception thrown` lines — so 89 fires × 10 ≈ 892.
+  No code change this slice; the rule is to read `server_errors` itself.
+- **A probe that deliberately raises always makes `pzt run` report FAIL**, since
+  the exit code needs zero non-baseline server errors — that is the harness
+  working, not the probe failing. Keep the run and grade off the artifact
+  (`x127-20260911-052049`, `acceptance_result`
+  `FAIL: 970 server error lines; lua errors on admin`).
+- **Cap the client wait in the profile when the probe can hang the client.** The
+  readiness wait *is* capped — `Client.wait_ready(timeout=300)`
+  (`testing/pzt/client.py:211`), fed from `cli.py:157` with the profile's
+  `[client] timeout` (`testing/pzt/profile.py:326`; default 300 s,
+  `DEFAULTS` at `:54`). `x12-raise.toml` left the default, so
+  `pzt run --profile x12-raise --hold 5` sat out the full 300 s plus teardown on
+  a client that was never going to answer — **384 s** for a five-second hold.
+  That is a profile fix, not a harness request.
+- **A client-side `[[verify]]` gate never runs when the client hangs.** `verify`
+  is asked after `client_ready`, so a probe that can stall the client must be
+  gated on the **server** side: x127's single client row never ran and the run
+  recorded `verify_error` (`TimeoutError: no ack for #1 lua.global within 30s`)
+  instead of a pass or a fail.
 
 ### Harness layout (`testing/PZTestKit/PZTestKit/`)
 
@@ -756,8 +832,12 @@ layer the tests are written against.
   (`scenario.cadence`), so a side without `getTimestampMs()` produces no `cadence`
   block at all. `bus.wait_result` blocks on the file.
 - **Same Java rules as the rest of the harness**: every Java member goes through
-  `TK.call` (Kahlua's "tried to call nil" escapes `pcall` and would kill
-  `EveryOneMinute` for the whole side), no `goto`, and never `%d` on a Lua number.
+  `TK.call` (an unguarded Kahlua "tried to call nil" aborts the rest of the
+  `EveryOneMinute` body it fires in — the handlers behind it still run, and
+  `pcall` does catch it, but names nothing: `x126-20260911-045205` /
+  `x127-20260911-052049`, rule in
+  [`../modding/lua-api.md`](../modding/lua-api.md) § 5), no `goto`, and never
+  `%d` on a Lua number.
 - **Shipped scenarios** (all under `server/scenarios/`, all server-side because
   the server owns `Nutrition`): `smoke_clock` — the scheduler's own test, ~20 game
   minutes, asserts only that the clock ran, that samples landed and that one

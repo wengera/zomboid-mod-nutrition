@@ -44,10 +44,16 @@ PZTestKit + `TKX_ItemOverride` + `TKX_Nutrient` + `TKX_EatHook` (the three TKX m
 `testing/experiments/`, not a workshop item) on `default` with **no `[sandbox]`** so DayLength stays
 the fixture's 4, whose three `[[verify]]` rows are one tier-(a) gate per mod — server
 `item.script TKX.FibreBar`, server `lua.global TKX_Nutrient.version`, client
-`lua.global TKX_EatHook.version` — each certain to pass IF the mod loaded at all. The `Mods=` order
-is LOAD order and is load-bearing here: `TKX_EatHook` is last, so its `item Watermelon` body is
-replayed after `TKX_ItemOverride`'s, and the `Calories` that results is the MEASUREMENT, never a
-gate; and **`x12-loader.toml`** — slice 12's sessions 2 and 3, PZTestKit + the two loader probes,
+`lua.global TKX_EatHook.version` — each certain to pass IF the mod loaded at all. The loader
+announces mods in `Mods=` order, **but script bodies do not replay in it**: they replay in sorted
+stored-script-path order with per-key last-wins, `Mods=`-independent (sessions 4 and 5,
+`x124-20260911-035819` / `x125-20260911-042055` — see `docs/modding/item-overrides.md`
+§ Load order between two mods). The `Calories` that results is the MEASUREMENT, never a gate.
+**Superseded comment, frozen with the artifacts:** this profile's own header comment
+(`x12-overrides.toml:2`, "`Mods=` order is LOAD order, and it is load-bearing here: `TKX_EatHook`
+is LAST …") is **wrong for script bodies** and is left unedited because it is the input `x121`
+was measured against — read it as the prediction the run falsified, and cite `x125-20260911-042055`
+for the rule; and **`x12-loader.toml`** — slice 12's sessions 2 and 3, PZTestKit + the two loader probes,
 `TKX_LoaderVersion` (folder `testing/experiments/tkx-loader-probe`, whose name matches neither id
 the folder declares — `mods.mod_id_of` picks the newest version dir's) and `TKX_CommonOnly` (a
 `42.20/` carrying only a `mod.info`, the whole payload under `common/`), on `default` with **no
@@ -67,7 +73,13 @@ client `lua.global TKX_EatHook.version`. `TKX_ZWatermelon` is deliberately UNGAT
 and no new item, the second `item Watermelon` body it does ship is the measurement, and the
 obvious-looking `item.script Base.Watermelon` row would pass with the mod absent because vanilla
 defines Watermelon. It is gated at tier (c) instead — folder copied, `mods_not_found` empty on both
-sides — which the driver records in the artifact; and **`x12-order2.toml`** — slice 12's session 5,
+sides — which the driver records in the artifact (`f_tier_c`). **Superseded comment, frozen with
+the artifact:** `x12-order.toml:11` reads the 999 arm as "alphabetical-by-id replay"; session 5
+showed the sort key is the **stored script path** (**C**, `ScriptManager$38.compare` /
+`ScriptManager.searchFolders`) and that id, folder name, script path and `mod.info` display name
+all sort identically in every boot we ran — so 999 licenses "sorted and `Mods=`-independent", not
+"by id". Cite `x125-20260911-042055` and `docs/modding/item-overrides.md` § Load order, not the
+comment; and **`x12-order2.toml`** — slice 12's session 5,
 the SAME four mods as `x12-order` in a different `Mods=` order: PZTestKit + `TKX_ItemOverride` +
 `TKX_ZWatermelon` + `TKX_EatHook` on `default` with **no `[sandbox]`** either, and the same two
 tier-(a) rows. It exists because sessions 1 and 4 each read a number that TWO rules predict —
