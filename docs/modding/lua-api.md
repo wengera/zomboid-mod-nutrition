@@ -93,7 +93,7 @@ Reached as `player:getNutrition()`; `getNutrition()` is declared on **`IsoPlayer
 |---|---|---|---|---|
 | `getCalories/setCalories`, and the `Carbohydrates` / `Lipids` / `Proteins` pairs | **server** | **yes, server→client** | pushed in `PlayerStatsPacket` at ~1 Hz and in `EatFoodPacket` at eat time. A client-side write is erased inside ~1 s; a server-side write reaches the client inside 3 s | M ([patterns.md](patterns.md) § Measured MP sync facts, runs `exp01-20260910-000351` / `exp03-20260910-045523`) |
 | `getWeight/setWeight` | **server** | yes downward, never upward | **and the client cannot derive it either**: a `GameClient.client` early-out at `updateWeight @317-@320 L198` sits ahead of both `setWeight @326 L199` and `applyTraitFromWeight @350`, so a client computes a weight delta and discards it | M (same runs) for the write/discard; C (jar) for the skip |
-| `isIncWeight` / `isIncWeightLot` / `isDecWeight` | computed on **both** sides | not packet fields — each side computes its own, and they **agree** | the three are written **ahead** of that skip (`updateWeight @0-@12 L138-L140` resets them, `@129-@131 L167` sets `incWeight`, `@186-@188 L178` and `@222-@224 L181` set `incWeightLot`, `@260-@262 L186` sets `decWeight`), so a client can derive a weight **direction** it cannot derive a weight. Slice 10 got agreement only in the **trivial** arm; `x121` ran the non-trivial ones and both sides agreed: **T/F/F** at calories 1500, **F/F/T** at −102.57 | M (`x121-20260911-030023`, JSON path `phases.M8.arms[]`, the `incWeight` and `decWeight` arms; the claims file labels this reading `m8`) |
+| `isIncWeight` / `isIncWeightLot` / `isDecWeight` | computed on **both** sides | not packet fields — each side computes its own, and they **agree** | the three are written **ahead** of that skip (`updateWeight @0-@12 L138-L140` resets them, `@129-@131 L167` sets `incWeight`, `@186-@188 L178` and `@222-@224 L181` set `incWeightLot`, `@260-@262 L186` sets `decWeight`), so a client can derive a weight **direction** it cannot derive a weight. Slice 10 got agreement only in the **trivial** arm; `x121` ran the non-trivial ones and both sides agreed: **T/F/F** at calories 1500, **F/F/T** at the −100 write (−102.57 server / −102.10 client) | M (`x121-20260911-030023`, JSON path `phases.M8.arms[]`, the `incWeight` and `decWeight` arms; the claims file labels this reading `m8`) |
 | `setCalories` clamping | server | n/a | the store clamps are calories −2200…3700 and −500…1000 per macro, but **nothing clamps at zero**: `nutrition.set calories -100` read back **−102.57 server / −102.10 client** 8 s later — each side has run its own decay ticks since the write, so read the pair as two readings of "not clamped", not as a sync figure. Negative stores are a normal state, not an error state | M (`x121-20260911-030023`, JSON path `phases.M8.arms[1]` — `reading.server.calories` / `reading.client.calories`, `clamped: false`; also `verdicts.M8.observed.decWeight_arm`) |
 | `updateWeight`'s cadence | server | n/a | per character update tick, **no timer gate**: `IsoPlayer.update @8` → `updateInternal1 @51 L2200` → `updateInternal2 @392-@402 L2306-L2307` (gated only on `SystemDisabler.doCharacterStats`) → `Nutrition.update @107 L81` → `updateWeight` | C (jar, re-read 2026-09-11; the same chain is recorded in that artifact at `m8.cadence`) |
 | anything else — a mod field, a hook, a replacement object | — | n/a | **absent.** No `getModData` on `Nutrition`, no generic accessor, no `setNutrition` anywhere on the jar | C (method list + `grep setNutrition`, 2026-09-11) |
@@ -221,7 +221,7 @@ B42's Lua is Kahlua, not PUC Lua. These are the rules every file in this repo is
   `.nested_err` / `.nested_tail`, `verdicts.P22_server`; **server VM only**, two passes). Quote
   the **whole** string, class name included.
 - **Why it catches (C, jar 2026-09-11).** `KahluaThread.call(I)I` loads the callee
-  (`@14-@23 L139`), branches (`@25 ifnonnull 40`) and **throws** (`@30-@39 L142`) — no "returns
+  (`@14-@23 L139`), branches (`@25-@27 ifnonnull 40`) and **throws** (`@30-@39 L142`) — no "returns
   false without raising" arm exists. `BaseLib.pcall @0-@10 L313` enters
   `KahluaThread.pcall(I)I`, whose try covers that `call` (`@80-@85 L1740`) **and** the nested
   `luaMainloop` it runs after pushing a frame (`@145`, `@155-@158 L162`) — which is why both
@@ -233,7 +233,8 @@ B42's Lua is Kahlua, not PUC Lua. These are the rules every file in this repo is
   `phases.reads.server.values.raw_tail` / `.behind` / `.before`, `second_pass.deltas.server`,
   server VM only; mechanism **C** (`Event.trigger`, § 1).
 - **The silence is about the *name*, and only one shape is quiet.** x126's argument-slot catch
-  printed nothing at all in either console — `names_the_global: false`
+  left the ENGINE silent in both consoles (the only `tried to call` hits are the harness echoing
+  the driver's own bus reply — x126 has no engine/echo split) — `names_the_global: false`
   (`verdicts.P21_<side>.observed.err`), 0 hits for the probe's global, for `attempted to call`
   and for `ExceptionLogger` (`greps.*`) — because that raise is `call`'s direct `athrow` and
   never reaches `KahluaUtil.fail`. Both x127 shapes are **logged in full** (73 engine hits each
@@ -252,7 +253,8 @@ B42's Lua is Kahlua, not PUC Lua. These are the rules every file in this repo is
 - **A `-debug` client does not survive one: it parks in the Lua debugger.** On two independent
   boots the harness client reached `in_game`, printed one complete trace, then stopped — console
   dead, `ready` never printed, bus never answering, process alive (**M**, x127, `client_ready`,
-  `summary.client_bus_answered`, `bus_dead.client`, `verdicts.P22_client` = `unmeasured`,
+  `summary.client_bus_answered`, `bus_dead.client`, `verdicts.P22_client` = `unmeasured`;
+  the second boot at `acceptance_reading.timeline_error` / `acceptance_grep_counts.client`;
   n = 2 boots). The route is `KahluaUtil.fail(String)` and the two sides took different arms of
   it: it tests `Core.debug && UIManager.defaultthread == LuaManager.thread` (`L95`), and on the
   true arm prints `Lua fail. Message: %s` (`L96`) and calls
@@ -402,7 +404,7 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
   nested_tail, raw_tail, behind, before}`, `second_pass.deltas.server`, `verdicts.P22_server`,
   `verdicts.P22_client` (`unmeasured`), `greps_final.<pattern>.<side>.{count, engine_count}`,
   `phases.engine_log_signature.per_side.*`, `client_ready`, `summary.client_bus_answered`,
-  `bus_dead.client`), at
+  `bus_dead.client`, `acceptance_reading.timeline_error`, `acceptance_grep_counts.client`), at
   [`testing/artifacts/x127-20260911-052049/platform-raise.json`](../../testing/artifacts/x127-20260911-052049/platform-raise.json).
   Do-not-cite, and obeyed here: every client-side *reading* of `x127` (its bus never answered),
   its `summary.sides_agree`, both runs' `server_error_count` as a fault count. The freeze's
