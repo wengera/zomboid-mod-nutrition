@@ -557,12 +557,16 @@ superseded.
    fields, not two. Two corrections to the framing above: the measured instance was **RCON-spawned,
    not crafted** (nothing on the bus executes a `craftRecipe`), so the `createOutputItems` half is
    still C — on that instance `customName` was present on the **client only**; and the packet
-   carries **43** fields, not the 39 slice 02 counted. Ev **M**.
+   puts **43** fields on the wire, of which **39 are item state** (the other four —
+   `containerId`, `id`, `isFluidContainer`, `isFood` — are addressing and presence flags, never
+   applied to the item), so slice 02's 39 stands and the field list is the contract either way
+   ([`../vanilla/food-item-model.md`](../vanilla/food-item-model.md) § MP behaviour reconciles
+   the two counts). Ev **M**.
 5. **`AutoCook` writes player modData on the client and never transmits it** (9 `getModData`, 0
    `transmitModData`). Whether its per-player cooking settings survive a relog on a dedicated
    server is unmeasured, and it is the cheapest MP question on the whole page. Ev C.
-6. ~~**Three dead or defective code paths in pick 1**~~, all latent, all worth one line in the
-   slice-09 teardown: `AdjustStates` and `AdjustStatesPemmican` (`recipe_meats.lua:26-32`) are empty
+6. ~~**Three dead or defective code paths in pick 1**, all latent, all worth one line in the
+   slice-09 teardown:~~ `AdjustStates` and `AdjustStatesPemmican` (`recipe_meats.lua:26-32`) are empty
    function bodies wired into two `craftRecipe onCreate` keys; `TryMeatLard` and `TryMeatCanned`
    (`:9-22`) are referenced by no shipped recipe; and `TryMeatCanned:19` writes
    `0.15 < sourceItem:getActualWeight() < 1`, which parses as `(0.15 < w) < 1` — a boolean compared

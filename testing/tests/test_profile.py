@@ -160,6 +160,18 @@ def test_harness_is_prepended_when_a_profile_forgets_it():
     assert p.items == {}
 
 
+def test_repr_is_the_one_line_the_plans_quote():
+    """`print(profile.load(<name>))` is an offline acceptance step in both the slice-07 plan and
+    the 09-11 teardown template, and each quotes this exact shape. Pin it: the check is
+    unperformable if the format drifts, and it drifted once already (the class had no __repr__
+    at all until `a16ad09`, so the step printed a default <pzt.profile.Profile object at 0x...>).
+    """
+    with workspace('fixture = "default"\n[[mods]]\nid = "PZTestKit"\n\n'
+                   '[[mods]]\nid = "Ghost"\ncopy = false\n'):
+        p = profile.load("p")
+    assert repr(p) == "<Profile p fixture=default mods=PZTestKit;Ghost sandbox={}>"
+
+
 def test_defaults_match_the_cli():
     with workspace('fixture = "default"\ndescription = "d"\n[[mods]]\nid = "PZTestKit"\n'):
         p = profile.load("p")

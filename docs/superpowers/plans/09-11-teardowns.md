@@ -29,9 +29,9 @@
 - **Mod ids are not folder names.** `pzt/mods.workshop_index()` keys on the id in `mod.info` (229 mods indexed). Measured now: item `3774789651`'s folder is `LongTermPreservation4220` while its `42.20/mod.info` declares `id=SKITTLE_LongTermPreservation4220`, so `index["LongTermPreservation4220"]` is `None` and only the declared id works in `Mods=`. `data/mod-inventory.json` **is** authoritative for ids at HEAD, and the rule is: `mod_id` is the **engine-resolved** id — `mod_inventory.resolve()` imports `mod_lint`'s `version_dirs` / `info_chain` / `read_info`, so it reads the newest `42[.x[.y]]/` folder's `mod.info` first, then `common/`, then the root — and it is **`""`** when the mod declares none anywhere (1 row of 230), never the folder name; the folder name is kept beside it as `mod_id_fallback`. LTP's row therefore reads `mod_id: "SKITTLE_LongTermPreservation4220"`, `name: "Long Term Preservation [42.20]"`, `author: "Skittles"`. **52 of the 230 rows drift** from their folder name, so never key a profile on `folder`.
 - **Harness.** Global `TK` in `testing/PZTestKit/PZTestKit/42/media/lua/{shared,server,client}/`; `TK.register(name, fn(argv, kv))`, `TK.result(name, tbl)` → `<cachedir>/Lua/pzt-results/<name>.json`, and **every Java member goes through `TK.call(obj, "method", …)` → `(present, value)`** because Kahlua's "tried to call nil" escapes `pcall` and kills the whole event handler. No `goto`; never `%d` on a Lua number. Command inventory: `docs/testing/README.md`.
 - **Wave-3 witness (slice 08's deliverable, shipped — consume it by name):** `witness.fields <player|item> <id> <getter,…>` and `witness.moddata [player[:<user>]|item:<id>|global:<name>] <key…>` (keys space-separated), registered in `shared/PZTestKit_Core.lua` so **both sides answer them**, documented in `docs/testing/README.md` § Command bus — which is the authority. **Both answer INLINE**, as a table on every path but the `argv[1]` usage gate. The client's older S6 round-trip was **renamed `witness.sync.moddata`** in the same slice to stop it shadowing the shared command on the client: that one, and its neighbours `witness.nutrition` / `witness.item`, still ack `"sent"`, send the question with `sendClientCommand`, and land the reply in `Events.OnServerCommand` where the client compares and writes `TK.result("witness_<kind>…")` (`client/PZTestKit_Client.lua:94-107,472-521`; `server/PZTestKit_Server.lua:394-430`). The Task-3 driver's `probe()` keeps its ack-then-result-doc branch for those, but against the two shipped commands the branch is **dormant** — they never ack `"sent"`.
-- **Actions available on the bus** (all in `docs/testing/README.md`): client `eat.action <type>` (queues the real timed action; completes server-side), `moddata.set <k> <v>` + `moddata.transmit`, `item.spawn`, `stats.get`; server `stats.get <user>`, `nutrition.get/set <user> …`, `item.get/set <user> <type> …`, `item.use`, `drink`, `items.count`, `fluid.script <id>`, `recipes.count`, `recipes.craft <name>`, `recipes.evolved <name>`, `sandbox.set`, `trait.set`, `perk.set`, `perk.xp <user> <PerkName>`; and on **both sides** `item.script <type>` and the two `witness.*` commands. (`item.script` was **client-only** when this plan was written — pass 1 mirrored it into `shared/` as `TK.scriptValues` in `37e411e`, and the reply now carries `side`. Reading it on both sides is what attributes a runtime desync to the packet rather than to a script mismatch: measured identical field for field, run `td1-20260910-192457`.) Items are spawned **server-side** with RCON `additem "<user>" "<fullType>" 1` (a client-side `AddItem` is invisible to the server — spike S6).
+- **Commands available on the bus** (all in `docs/testing/README.md`): client `eat.action <type>` (queues the real timed action; completes server-side), `moddata.set <k> <v>` + `moddata.transmit`, `item.spawn`, `stats.get`; server `stats.get <user>`, `nutrition.get/set <user> …`, `item.get/set <user> <type> …`, `item.use`, `drink`, `items.count`, `fluid.script <id>`, `recipes.count`, `recipes.craft <name>`, `recipes.evolved <name>`, `sandbox.set`, `trait.set`, `perk.set`, `perk.xp <user> <PerkName>`; and on **both sides** `item.script <type>` and the two `witness.*` commands. (`item.script` was **client-only** when this plan was written — pass 1 mirrored it into `shared/` as `TK.scriptValues` in `37e411e`, and the reply now carries `side`. Reading it on both sides is what attributes a runtime desync to the packet rather than to a script mismatch: measured identical field for field, run `td1-20260910-192457`.) Items are spawned **server-side** with RCON `additem "<user>" "<fullType>" 1` (a client-side `AddItem` is invisible to the server — spike S6).
 - **`recipes.craft <name>` READS a recipe script; it does not craft.** It answers the block's category, time, inputs and outputs off `media/scripts`, and **nothing on the shipped bus executes a `craftRecipe`** — there is no `CraftRecipeData` route. Consequence for every pass: a mod's `onCreate` / `onTest` / `OnCooked` **recipe** hooks are unreachable through a craft and stay **C** unless another route fires them. The routes that do execute something are: RCON `additem`, server `item.update` / `item.set` (which call `sendItemStats` and fire the `OnCooked`-class item hooks), `item.use`, `drink`, client `eat.action`, `moddata.set` + `moddata.transmit`, and `nutrition.set`.
-- **MP facts the teardown measures against** (`docs/modding/patterns.md` § Measured MP sync facts): the **server** owns `Nutrition`, hunger/thirst, weight and item aging; a client write to any of them is overwritten inside ~1.5 s by the 1 Hz `PlayerStatsPacket`; `player:getModData()` reaches the server **only** after `player:transmitModData()`; a client's `sendItemStats` is a no-op; `ItemStatsPacket` carries **43** item-state fields (the 39 of slice 02's count plus the four `setData` writes it missed; the field names are listed in the pass-1 teardown's § MP handling) and reuses cached packets, so a zero-valued field can arrive carrying the previous packet's value.
+- **MP facts the teardown measures against** (`docs/modding/patterns.md` § Measured MP sync facts): the **server** owns `Nutrition`, hunger/thirst, weight and item aging; a client write to any of them is overwritten inside ~1.5 s by the 1 Hz `PlayerStatsPacket`; `player:getModData()` reaches the server **only** after `player:transmitModData()`; a client's `sendItemStats` is a no-op; `ItemStatsPacket` **puts 43 fields on the wire, of which 39 are item state** — the other four are 2 addressing (`containerId`, `id`) and 2 presence flags (`isFluidContainer`, `isFood`), never applied to the item; see `docs/vanilla/food-item-model.md` § MP behaviour for the reconciliation and the pass-1 teardown's § MP handling for the names. The packet also reuses cached packets, so a zero-valued field can arrive carrying the previous packet's value.
 - **Item state on a dedicated server ticks about every 5 s, not every frame** (M, runs `td1-20260910-192457` / `td1b-20260910-202029`): `InventoryItem.calculateTimeMultiplier`'s server arm is real-time-delta driven and clamped at 6 s. Two consequences for any probe design here — a timed read must not assume per-frame item updates, and a **bus call cannot be made the cause** of a server-side item transition (the tick wins the race; each bus call costs ~1 s round trip and the game-minute gate reopens every ~3.7 real seconds at the fixture's `DayLength = 4`). The **client's** copy of a server-spawned item was measured not to tick at all over 12 s, so a client-side read is the last pushed value, not a live one (mechanism open).
 - **Cadence ceiling.** `Events.EveryOneMinute` ceilings around 10 dispatches/wall-second: keep **`24 × speed / day_minutes ≲ 8`**. The fixture's `DayLength = 4` is 90 game-minutes/day, so `--speed 30` sits exactly at 8.0; `DayLength = 1` (15 min) at `--speed 30` measured `ticks_per_world_min: 0.22`, `cadence_suspect: true` (`testing/artifacts/scenario-20260910-134012/scenario-smoke_clock.json`). **Teardown profiles therefore ship no `[sandbox]` block.**
 - **Lint gates.** `python tools/mod_lint.py <path|workshop-id>` (L0 layout; ERROR fails); `python tools/doc_lint.py <dirs>` — `docs/mods-survey/teardowns` is a **stamped dir** (`tools/doc_lint.py:8`), so each teardown needs `Verified against: 42.20.4` in the text, a non-empty `## Sources`, no `TODO`/`TBD`, and a C/M/W grade in every row of any table with an `Ev` header column. `python tools/doc_lint.py docs/mods-survey` reported **4 findings** when this plan was written — the two seeded teardowns (`beyondten.md`, `itemquality.md`) had neither stamp nor `## Sources`. **Pass 1 backfilled them (`f8c6ceb`), so passes 2 and 3 start from `0 finding(s)` and expect 0 after their own doc.**
@@ -54,7 +54,7 @@
 
 **Files:** Create `.superpowers/sdd/09-11-teardowns/<mod>-notes.md`.
 
-- [ ] **Step 1: Resolve the subject.** Read `docs/mods-survey/nutrition-mods.md` § the pick and the slice-08 rows of `docs/decisions.md`; take the **first pick in slice 08's stated order that has no `docs/mods-survey/teardowns/<mod>.md` yet**. Default when that list is missing, shorter than three, or ambiguous: the queue in `docs/mods-survey/approved-modlist.md` § Teardown queue, which is also the three open questions in `docs/modding/patterns.md` § Open pattern questions — **`SKITTLE_LongTermPreservation4220`** (item `3774789651`), **`simpleStatus`** (item `2867431511`), **`MoodleFramework`** (item `3396446795`). Write the resolved order into `docs/decisions.md` once (pass 1), then follow it.
+- [ ] **Step 1: Resolve the subject.** Read `docs/mods-survey/nutrition-mods.md` § the pick and the slice-08 rows of `docs/decisions.md`; take the **first pick in slice 08's stated order that has no `docs/mods-survey/teardowns/<mod>.md` yet**. Default when that list is missing, shorter than three, or ambiguous: the queue in `docs/mods-survey/approved-modlist.md` § Teardown queue — **`SKITTLE_LongTermPreservation4220`** (item `3774789651`), **`simpleStatus`** (item `2867431511`), **`AutoCook`** (item `3388721641`), which is the order `docs/decisions.md:106` records. (Before pass 1 this line also said the queue "is also the three open questions in `docs/modding/patterns.md` § Open pattern questions"; it no longer is — pass 1 struck the LTP question, so that list is now `simpleStatus`, `MoodleFramework` and the Girth-namespacing question.) Write the resolved order into `docs/decisions.md` once (pass 1), then follow it.
 - [ ] **Step 2: Identity (C).**
 
 ```bash
@@ -65,7 +65,7 @@ python -c "import sys; sys.path.insert(0,'testing'); from pzt import mods; \
   print(mods.mod_id_of(r'D:\SteamLibrary\steamapps\workshop\content\108600\<ITEM>\mods\<FOLDER>'))"
 ```
 
-  Expected: `mod_lint` exits 0 with at most INFO/WARN rows (measured today: `2867431511` → 1 INFO `folder-id`; `3774789651` → 1 INFO `folder-id`; `3396446795` → 1 WARN `mod-info-place: mod.info is 42.0/mod.info, not 42.20/mod.info`). `mod_id_of` prints the id that goes in the profile. An **ERROR** row is a stop: record it and go to the next pick (decision points).
+  Expected: `mod_lint` exits 0 with at most INFO/WARN rows. Measured **2026-09-10**, for the three mods the passes actually lint: `3774789651` (pass 1) → `1 finding(s): 0 ERROR, 0 WARN, 1 INFO`, `folder-id: folder 'LongTermPreservation4220' != id 'SKITTLE_LongTermPreservation4220'`; `2867431511` (pass 2) → `1 finding(s): 0 ERROR, 0 WARN, 1 INFO`, `folder-id: folder 'SimpleStatus' != id 'simpleStatus'`; `3388721641` (pass 3, **AutoCook**) → `1 finding(s): 0 ERROR, 1 WARN, 0 INFO`, `mod-info-place: mod.info is common/mod.info, not 42.13/mod.info (B42 reads the version folder first)`. `mod_id_of` prints the id that goes in the profile. An **ERROR** row is a stop: record it and go to the next pick (decision points).
 - [ ] **Step 3: Census and read (C).** `find <mod folder> -type f | sort`, `wc -l` on every `.lua`, then one sweep for the architecture signals:
 
 ```bash
@@ -124,89 +124,29 @@ workshop_id = "<ITEM>"
 
 - [ ] **Step 1: Pre-flight** — `python testing/pzt doctor` → Expected: no PZ java processes, ports 27261/27262/27015 free, fixture `default` present and build-matched, workshop index ~229, exit 0. Do **not** boot on a FAIL.
 - [ ] **Step 2: Acceptance run** — `python testing/pzt run --profile teardown-<mod> --hold 5` → Expected: a `profile name=teardown-<mod> fixture=default mods=PZTestKit;<MOD>` mark first, `server_started` ≈ 15 s, `client_ready` ≈ 35 s, every `verify … ok=True`, `RESULT: PASS`, exit 0, ≈ 1 min 15 s. Record the run id for the doc's Sources. A `verify` miss means the mod did not take effect: check `testing/runs/<run-id>/server/mods/` for the copied folder and grep `server-stdout.log` for `<MOD>` before changing anything.
-- [ ] **Step 3: Write the driver** — the s05 shape (`testing/experiments/s05_food_scan.py`), boot through the profile:
+- [ ] **Step 3: Write the driver** — **copy the shape of `testing/experiments/td1_longtermpreservation4220.py`** (pass 1's shipped driver, 541 lines, committed at `e3afaa0`; its follow-up micro-session `td1b_longtermpreservation4220.py` is the shape for a second, smaller round). Read it top to bottom before writing anything: it boots through the profile the same way the s05 shape does (`testing/experiments/s05_food_scan.py`), and it is the worked answer to every structural question this step used to pose as a skeleton.
+
+  **What a pass changes, and it is a short list:** the **subject** (`MOD`, `PROFILE`, `ITEM`, and the `td<N>` run-id prefix passed to `new_run_dir`); **`FIELDS`** — the comma-joined, whitespace-free getter token, with `FIELD_COUNT` updated to match; **the scopes** — `ITEM_SCOPE` / `PLAYER_SCOPE` and their two **per-scope** exclusion sets; and **the action** — the one bus call that is `t_action`, with the guard read placed *before* it.
+
+  **What the shipped driver has that this plan's old skeleton lacked** — take all of it:
+
+  - **Provenance in `out`:** `harness_lua_commit` and `harness_lua_dirty` (the harness Lua's own commit and whether it was dirty at run time) and `doctor_clean` (the pre-flight verdict), beside `commit` and `acceptance_run`. An artifact that cannot say which harness produced it cannot be re-read later.
+  - **Per-scope censuses with per-scope exclusion sets** (`census_row(reply, side, vanilla=...)`): the item set is `{customName}`, the player set is the four vanilla fitness keys plus `hotbar`. Applying the item set to a player census reports vanilla's own keys as findings.
+  - **Client-first snapshot order, with the reason in the docstring:** every server `item.set` / `item.update` fires `sendItemStats` on its way out, so the client half of a baseline must be taken before anything is pushed, and after the action the earliest client read is the one that bounds the mirror window.
+  - **A wall-bracketed `step()`** that records `wall_before` / `wall_after` / `took` around each sequenced bus call and lifts `serverWorldAge` / `gameMinute` out of the ack, so a game-minute rollover between two steps is measured rather than assumed.
+  - **`field_count == FIELD_COUNT` asserted on every witness reply** (`field_count_ok`), which is what catches a `FIELDS` token silently truncated by a stray space.
+  - **The re-ask-once guard:** `TK.writeKV` writes the ack file non-atomically, so a table reply can degrade to a raw string; a non-dict reply is re-asked exactly once and **both** readings are kept (`_probe.reasked`, `_probe.first_reply`).
+
+  Two fragments are reproduced here verbatim because they are the parts most easily got wrong — the dormant-branch note that explains why `probe()` looks over-built, and the teardown-and-copy shape that makes the artifact survive a wedged session:
 
 ```python
-"""Teardown N: <MOD> measured on a live dedicated server + a real client (slices 09-11).
-
-Paired snapshots of the SAME state on both sides around the mod's one key action, so the
-teardown's MP section is measured. Never raises through teardown; the artifact is copied
-byte-for-byte after the session."""
-import json, os, re, shutil, sys, time, traceback
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))   # testing/
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))                    # experiments/
-from _common import ask, git_say, hard_kill, save
-from pzt import fixture as fx, profile
-from pzt.paths import new_run_dir
-from pzt.session import Timeline, grep_file, make_client, make_server, teardown, verify
-
-MOD, USER, MIRROR_WAIT = "<MOD>", "admin", 3.0    # 3 s > the 1 Hz PlayerStatsPacket window
-FIELDS = "<getter,getter,...>"                     # COMMA-joined, one whitespace-free token
-KEYS   = "<scope> <modDataKey> <modDataKey>"       # SPACE-separated, behind an explicit scope --
-#   `witness.moddata` reads keys space-separated (`player:<user> k1 k2`, or for an item
-#   `item:<user>/<fullType> k1 k2`, or `*` for a census); a comma-joined list is ONE key named
-#   "k1,k2" and answers a plausible census of nothing. The two grammars differ -- do not share a
-#   join. Census exclusions before any cross-side comparison: `customName` (client-only, written
-#   by InventoryItem.load) and `Tooltip` (any script `Tooltip =` line becomes an item modData key
-#   through InventoryItem.setTooltip's getModData():rawset) -- and the exclusion set is PER SCOPE,
-#   never the item set applied to the player census.
-REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-prof = profile.load("teardown-<mod>")
-rec = fx.load(prof.fixture)
-run_id, run_dir = new_run_dir("td<N>")
-path = os.path.join(run_dir, "teardown-<mod>.json")
-tl, clients, t0 = Timeline(), [], time.time()
-server = make_server(run_dir, rec, mods=prof.mods, mod_sources=prof.sources,
-                     mod_skip=prof.skip, sandbox=prof.sandbox or None)
-out = {"run_id": run_id, "mod": MOD, "workshop_item": prof.items.get(MOD),
-       "profile": prof.report(), "commit": git_say("rev-parse", "--short", "HEAD"),
-       "fields": FIELDS, "moddata_keys": KEYS, "snapshots": [], "notes": []}
-
 def probe(side, cmd, args):
     """One witness read. `witness.fields` / `witness.moddata` answer INLINE (a table on every
     path but the argv[1] usage gate). The ack-then-result-doc branch below is the older
     client-witness shape -- `witness.sync.moddata`, `witness.nutrition`, `witness.item` -- and
     is DORMANT against these two; it is kept so a fallback to those needs no code change."""
-    t = time.time()
-    val = ask(side, cmd, args)
-    if isinstance(val, str) and val.strip().startswith("sent"):
-        name = "witness_fields" if cmd == "witness.fields" else "witness_moddata"
-        try:
-            return side.bus.wait_result(name, timeout=20, after=t)
-        except (RuntimeError, TimeoutError, OSError) as e:
-            return {"error": f"{type(e).__name__}: {e}", "ack": val}
-    return val
+    ...
 
-def snapshot(tag, c):
-    row = {"tag": tag, "wall": round(time.time() - t0, 2)}
-    for name, side in (("server", server), ("client", c)):
-        row[name] = {"fields": probe(side, "witness.fields", f"player {USER} {FIELDS}"),
-                     "moddata": probe(side, "witness.moddata", KEYS),
-                     "stats": ask(side, "stats.get", USER if name == "server" else "")}
-    out["snapshots"].append(row)
-    tl.mark("snapshot", tag=tag)
-    save(path, out, tl, server)          # evidence on disk before the next phase can wedge
-    return row
-
-try:
-    server.start()
-    c, _ = make_client(run_dir, USER, server, rec)
-    c.start(); clients.append(c); c.wait_ready()
-    tl.mark("session_ready")
-    out["build"], out["verify"] = server.build, verify(prof, server, clients, tl)
-    out["mod_log_lines"] = grep_file(server.log_path, re.compile(re.escape(MOD)), limit=5)
-    snapshot("baseline", c)                                  # MUST precede the first item.set:
-    #   every server item.update/item.set fires sendItemStats, which pushes the item's fields to
-    #   the client -- so a baseline taken after one is already contaminated on the client side.
-    # GUARD READ HERE, before the last set that opens the gate -- not after it. The server ticks
-    #   the item on its own ~5 s schedule, so the state you want to prove was "not yet done" has
-    #   to be read while it still is; and the ack of the last `item.set` is the action moment, not
-    #   the `item.update` that follows it (read that one's `before` to record who actually won).
-    out["action"] = <the one action from Task 1's menu>      # e.g. ask(c, "eat.action", "Base.Apple")
-    snapshot("t0", c)
-    time.sleep(MIRROR_WAIT)
-    snapshot("t+3s", c)
 except Exception as e:                   # noqa: BLE001 - keep the rows already collected
     out["error"], out["traceback"] = f"{type(e).__name__}: {e}", traceback.format_exc()[-3000:]
     tl.mark("error", detail=str(e)[:200])
@@ -223,7 +163,6 @@ finally:
             os.makedirs(os.path.dirname(dest), exist_ok=True); shutil.copyfile(path, dest)
         except Exception as e:           # noqa: BLE001 - teardown path, never raise
             print(f"could not copy to {dest}: {type(e).__name__}: {e}")
-print(json.dumps(out.get("snapshots", out.get("error")), indent=1)[:6000])
 ```
 
 - [ ] **Step 4: Run it** — `python testing/experiments/td<N>_<mod>.py` → Expected: ≈ 3 min, three snapshots each carrying a `server` and a `client` block, `wrote …/teardown-<mod>.json`, the artifact copied. Any world change the action made (`settimespeed`) is restored in the same `try` before teardown. Record the run id.
@@ -292,7 +231,7 @@ workshop_id = "2867431511"
 
 ## Expected decision points (defaults)
 
-- **Slice 08's picks are missing, fewer than three, or ambiguous** → the `approved-modlist.md` queue order: `SKITTLE_LongTermPreservation4220` (3774789651) → `simpleStatus` (2867431511) → `MoodleFramework` (3396446795). Log it once.
+- **Slice 08's picks are missing, fewer than three, or ambiguous** → the `approved-modlist.md` queue order, which is what `docs/decisions.md:106` records: `SKITTLE_LongTermPreservation4220` (3774789651) → `simpleStatus` (2867431511) → `AutoCook` (3388721641), with the fall-through `SkillRecoveryJournal` (2503622437) → `MoodleFramework` (3396446795) → `SomewhatTraitsCore` (3498347699). Log it once.
 - **A pick fails `mod_lint` with an ERROR, or is not installed** → skip to the next pick, record why in the catalog doc and `docs/decisions.md`; only if the queue runs out does the slice go `blocked` with the exact workshop id to subscribe.
 - **The mod declares `require=`** → add each dependency as its own `[[mods]]` entry **before** the subject and lint it too. A dependency that is not installed blocks that pick, not the slice: move to the next pick.
 - **Sandbox** → no `[sandbox]` block. `DayLength` stays the fixture's 4; if a teardown must run game-hours, use `--speed ≤ 30` and keep `24 × speed / day_minutes ≲ 8`.

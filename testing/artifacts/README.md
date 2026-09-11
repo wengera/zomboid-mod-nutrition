@@ -176,6 +176,18 @@ separate question, and `exp05-20260910-084109` is the run that shows why: its
 `meta.dataset_commit` names a commit the bytes it read were not in. That is a *do not cite*
 row in its block, not a skew bullet.
 
+**A skew of a third kind is coming, and this is where it will be disclosed.** `TK.json` renders
+every non-integral number with `string.format("%.6f")`, so every float on the bus — in every
+artifact above — is quantised to six decimals. The **first harness change of slice 10 widens that
+format** (`%.9g`, or the widest form Kahlua's own `string.format` accepts, measured on the bus
+first). That is a **rendering** change, not a measurement one: it changes the shape of every ack
+the harness emits and therefore of every artifact written after it, while everything written
+before it — `td1`, `td1b` and all seventeen older runs — stays exactly as recorded and stays
+readable at six decimals. When the change lands, it is disclosed here as its own paragraph naming
+the producing commit and the first artifact written under the new format, and in
+[`../../docs/testing/README.md`](../../docs/testing/README.md) § Command bus beside the number
+format itself. Until then, no artifact in this directory supports a bit-for-bit claim.
+
 **`exp01-20260910-000351/eat-smoke.json`** — produced by `testing/experiments/s01_eat_smoke.py`
 at commit `21af6d1`. Since `eb123fd` the script (and the harness command it drives) write two
 things this file therefore lacks:
@@ -947,8 +959,9 @@ after it, and it was not re-run; every number below is the file's own.
   artifact's own `profile` block, including the two source folders that reached
   `<run>/server/mods/`. Its acceptance run is named in `acceptance_run`:
   **`run-20260910-191842`** (`RESULT: PASS`, 3/3 probes, 70.6 s) — that run's own `report.json`
-  is *not* committed here; what survives of it is the three `verify` readings, repeated in this
-  file's `verify` key.
+  is *not* committed here. What survives of it is this file's own `verify` key: the session
+  **re-ran the same three probes itself** after `session_ready`, so those readings are this run's,
+  not copies of the acceptance run's. Cite them from here; the acceptance run id is provenance.
 - **Provenance — the mod.** Workshop item `3774789651`, folder `LongTermPreservation4220`,
   version folder `42.20/` (its only one), `42.20/mod.info` declaring
   `id=SKITTLE_LongTermPreservation4220`, `author=Skittles`, **no `require=`**, no sandbox
@@ -1010,9 +1023,13 @@ the first artifact anywhere carrying `lastCookMinute` and an `item.set` ack's `g
   cook run with `chef` **unset** (`xp_delta` **0**, against `td1`'s 2.5) and `lastCookMinute`
   read after the transition (`item_get_after_cook.lastCookMinute` −1).
 - **The bonus finding, and it is the load-bearing one.** `steps[set_lastCookMinute]` arrives with
-  `before.cooked` **true** and `before.lastCookMinute` **23** — the server's own tick had already
-  stamped a minute and transitioned, 907 ms before our write landed (the server console has both
-  to the millisecond). `heat > 1.6` plus `cookingTime > minutesToCook` suffice; the minute gate
+  **`cooked` true** and **`before_lastCookMinute` 23** — flat keys on the step row itself; the
+  nested `before` object one level deeper (`…ack.before`) carries the same two as `cooked` and
+  `lastCookMinute`, and either path reads the same. The server's own tick had already
+  stamped a minute and transitioned, 907 ms before our write landed — a figure that comes from the
+  **server console** under the gitignored `testing/runs/td1b-20260910-202029/`, not from this
+  file, which carries the ack's wall bracket (`wall_before 70.888` / `wall_after 72.4`) instead.
+  `heat > 1.6` plus `cookingTime > minutesToCook` suffice; the minute gate
   opens on its own within one game minute. This is what settles `td1`'s withdrawn causal claim by
   reproduction rather than by argument.
 - **Provenance — the mod and the profile** are the same as the block above (item `3774789651`,

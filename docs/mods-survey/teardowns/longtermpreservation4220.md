@@ -134,19 +134,29 @@ copy never reached the transition at all (§ MP handling). The nil-call behaviou
 
 **Where authority lives: entirely on the server, and the wire is vanilla's.** LTP has no
 networking of any kind (0 command-bus sites, 0 modData, 0 `sendItemStats` calls of its own). The
-engine pushes for it: `Food.update` calls `GameServer.sendItemStats(this)` at `@94-@101
-L378-379` (before the transition) and `@916-@923 L499-500` (after it), both behind
-`if (GameServer.server)` (C). So the mod's whole MP contract is **`ItemStatsPacket`'s 43
-fields**, and anything it writes outside that list is server-only state.
+engine pushes for it: **inside `Food.update`'s cooking block** there are two
+`GameServer.sendItemStats(this)` calls — `@94-@101 L378-379` (before the transition) and
+`@916-@923 L499-500` (after it) — and those two are the ones that carry LTP's writes.
+`Food.update` has a **third**, outside that block: `@1245-@1252 L535-536`, at the end of the
+tainted-water boiling branch where `cookingTime > 10` sets `isTainted = false` (`@1240-@1242
+L533`). All three are behind `if (GameServer.server)` (C). So the mod's whole MP contract is
+**`ItemStatsPacket`'s 39 item-state fields**, and anything it writes outside that list is
+server-only state.
 
-The 43 names, dumped from `ItemStatsPacket.write` on 42.20.4 (2026-09-10) — `actualWeight
+`ItemStatsPacket.setData` puts **43** fields on the wire, of which **39 are item state**. The
+other four are `containerId` and `id` (addressing) and `isFluidContainer` and `isFood` (presence
+flags), none of them ever applied to the item — the reconciliation
+[`../../vanilla/food-item-model.md`](../../vanilla/food-item-model.md) § MP behaviour already
+carries, and the count slice 02 published. The 43 names, dumped from `ItemStatsPacket.write` on
+42.20.4 (2026-09-10) — the four non-state ones are named again inside it — `actualWeight
 baseHunger boredomChange calories carbohydrates condition containerId cookingTime endChange
 extraItems fatigueChange fertilizedTime fluReduction fluidContainer foodSicknessChange heat
 hungChange id isAlcoholic isBurnt isCooked isCustomName isFertilized isFluidContainer isFood
 isFrozen isTainted isWet lipids minutesToBurn minutesToCook name painReduction
 poisonDetectionLevel poisonPower proteins spices stressChange thirstChange unhappyChange
-usedDelta uses wetCooldown`. **`isCookable`, `weight`, `customWeight`, `age`, `offAge`,
-`offAgeMax`, `lastAged`, `freezingTime` and `rotten` are absent** (C).
+usedDelta uses wetCooldown` — of which `containerId`, `id`, `isFluidContainer` and `isFood` are
+the four that are **not** item state. **`isCookable`, `weight`, `customWeight`, `age`, `offAge`,
+`offAgeMax`, `lastAged`, `freezingTime` and `rotten` are absent from all 43** (C).
 
 **Measured, both sides of one live dedicated server, same instance (`getID 562521975` on both,
 `same_instance true` at all three snapshots).** Values are the t+3s snapshot of
@@ -174,12 +184,15 @@ rule, `|server − client| ≤ 1e-6` is synced.
 | `getMinutesToCook` / `getMinutesToBurn` | 300 / 900 | same | yes | synced | M — `td1` |
 | `getHeat` | 1.79561 → **1.39397** over 11.1 s | **frozen at 1.84703** | yes | the client's copy is **not ticking** — it holds the value the post-transition push carried | M — `td1` |
 | `getAge` | 0 → 0.006526 | **stays 0** | **no** | control; agrees with the prior measurement that `age` never reaches a client | M — `td1`, prior `exp02-20260910-030433` |
-| Cooking XP (server, `Perks.Cooking`) | 0 → **2.5** with `chef` set; **0** with `chef` unset | n/a (an MP client grants none) | not an item field | the grant fired on the **server** — an independent confirmation of who ran the hook, and a sound discriminator in both directions | M — `td1` (`xp_delta 2.5`), `td1b` (`xp_delta 0`) |
+| Cooking XP (server, `Perks.Cooking`) | 0 → **2.5** with `chef` set; **0** with `chef` unset | n/a (an MP client grants none) | not an item field | the grant fired on the **server** — an independent confirmation of who ran the hook, and a sound discriminator in both directions. **2.5 is the credited delta, not the grant:** `Food.update @806-@812` calls `GameServer.addXp(chef, Perks.Cooking, 10.0f)`, and `IsoGameCharacter$XP.AddXP` puts a default fixture character (empty XP-boost map) on its **×0.25** arm — 10.0 × 0.25 = 2.5 (C for the ladder, M for the delta) | M — `td1` (`xp_delta 2.5`), `td1b` (`xp_delta 0`) |
 | item modData `Tooltip` | present | present | no (script-driven) | both sides instantiate it from `Tooltip = Tooltip_CuredMeat` (`items_dried.txt:34`); **not** evidence of a sync | M — `td1`, `td1b` |
 | item modData `customName` | absent (the server census is `Tooltip` alone) | present | no | vanilla deserialisation bookkeeping on the side that came off the wire; present on a **vanilla** control item too | M — `td1`, `td1b` |
 
 **The four headline desyncs are `offAge`, `offAgeMax`, `isCookable`, `isCustomWeight`.** They
-were predicted from the packet's field list and confirmed on three snapshots; the server half
+were predicted from the packet's field list and confirmed on the **two post-cook snapshots,
+11.1 s apart** (`snapshots[1].wall 84.019` → `[2] 95.11`) — the baseline snapshot, taken before
+the transition, is not desynced at all (`comparisons[0].desynced []`, which is what makes the
+other two readings a *change* rather than a standing difference); the server half
 reproduced on a second run (`td1b`: `offAge`/`offAgeMax` 1e9, `isCookable false`,
 `customWeight true`) — not re-graded, but reproduced. The session then found **two more the
 static read did not predict**: the weight row and the thirst row.
@@ -188,14 +201,20 @@ static read did not predict**: the weight row and the thirst row.
 `before.cooked` came back **`true`** (`td1`, `who_ran_it.before_cooked`), with `before` already
 carrying `offAge 1000000000`, `isCookable false`, `customWeight true` — so the hook had fired
 before the witness call, and the four `OnCookedTest` prints are in the **server** console in one
-frame, 1.71 s earlier (`server_hook_lines`, `f:643 st:800,113,605-607`). The client console is
-empty. Three readings the sessions forced on top of that, all of them corrections to what the
-static read assumed:
+frame, **1.71 s** earlier (`server_hook_lines`, `f:643 st:800,113,605-607`). That 1.71 s is a
+**console-derived** figure: the artifacts carry the wall times of the bus acks, while the frame
+stamp that dates the transition lives in the server console under the gitignored
+`testing/runs/td1-20260910-192457/`, so it is reproducible only on this machine. The client
+console is empty. Three readings the sessions forced on top of that, all of them corrections to
+what the static read assumed:
 
 - **The scripted `lastCookMinute -1` flip is not a precondition.** On `td1` the cook block had
   already been entered twice (1.33–1.67 game minutes apart), so the minute gate had reopened on
-  its own; on `td1b` the transition fired **907 ms before** the flip reached the server
-  (`steps[set_lastCookMinute]` arrives with `before.cooked true`, `before.lastCookMinute 23`).
+  its own; on `td1b` the transition fired **907 ms before** the flip reached the server — again a
+  figure read off the server console under the gitignored `testing/runs/td1b-20260910-202029/`,
+  against the ack's own wall time in the artifact. The committed keys are on the **step row**:
+  `steps[set_lastCookMinute]` carries `cooked: true` and `before_lastCookMinute: 23` as flat
+  keys (the nested `before` object lives one level deeper, on `…ack.before`, and reads the same).
   `heat > 1.6` plus `cookingTime > minutesToCook` suffice, and the minute gate opens by itself
   within one game minute. **M** — `td1`, `td1b`.
 - **The server's inventory-item tick runs about once every 5 s, not every frame.** Bounded three
@@ -207,13 +226,23 @@ static read assumed:
   accumulator reaches 10.0. **M** — `td1`, `td1b`. Consequence for any harness: a bus call cannot
   win a race against this tick, so a probe must not assume per-frame item updates.
 - **The client's copy of a server-spawned item did not reach `Food.update` at all.** Over the
-  same 12 s its `getHeat` (1.84703), `getCookingTime` (301.061554) and `getAge` (0) never moved
-  while the server's ran two or three ticks. The client arm of `calculateTimeMultiplier`
+  same **11.1 s** its `getHeat` (1.84703), `getCookingTime` (301.061554) and `getAge` (0) never
+  moved while the server's ran two or three ticks. The client arm of `calculateTimeMultiplier`
   (`GameTime.getMultiplier()`) would have accumulated on any tick at all, so "zero ticks" is the
-  reading. The **mechanism is open** — the call path `IsoGameCharacter.updateInternal @1911-@1923`
-  → `recursiveItemUpdater @0-@61` → `InventoryItem.update()` carries no side guard (C), so why it
-  did not run is unexplained. **M on the freeze**, open on the cause; it qualifies
+  reading. The **mechanism is open** — the call path
+  `IsoGameCharacter.updateInternal @1918-@1925 L9296` → `recursiveItemUpdater @0-@61` →
+  `InventoryItem.update()` carries no side guard (C). The only guard on that path is the
+  `isZombie` test immediately above it (`@1911-@1915 L9295`), which a player character fails, so
+  why it did not run is unexplained. (Offsets as `docs/superpowers/plans/02-notes.md:1038` gives
+  them; `testing/experiments/td1_longtermpreservation4220.py:18` still quotes the older
+  `@1911-@1923` span that merged the guard with the call — the driver is deliberately not edited
+  after its run.) **M on the freeze**, open on the cause; it qualifies
   `docs/superpowers/plans/02-notes.md:1038-1040`, which the static read leaned on.
+  **The next check, for slice 10's pass** (whose subject `simpleStatus` is a pure client reader):
+  take a client-side `witness.fields` of the item's *container* — is the instance the client is
+  answering about actually held by the local player's inventory object, or by a detached copy? —
+  and read the client's `heat` / `cookingTime` twice 10 s apart on an item the client itself
+  holds. Those two readings separate "never scheduled" from "scheduled on a different object".
 
 **The weight story, and the mod-authoring finding inside it.** Predicted: server ≈ 0.35 stored,
 client 0.35 recomputed, synced by two different arms of `Food.getActualWeight`. Measured: server
@@ -238,25 +267,42 @@ client 0.35 recomputed, synced by two different arms of `Food.getActualWeight`. 
   **nothing**, and `ItemStatsPacket.setData @472` fills the packet from
   `getActualWeightUnmodded()`, so the 0 is what travels. The client only reads 0.35 because it
   recomputes from the packet-carried `hungChange`.
-- **Open question, with the control that settles it.** Two hypotheses are still unseparated:
-  (i) the mod's translation table (`ItemName_Skittles.CuredPork = "Cured Pork"`,
-  `42.20/media/lua/shared/Translate/EN/ItemName_EN.txt:3`) is not consulted for
-  `InventoryItem.name`, or (ii) **any** item with no `DisplayName =` line behaves this way,
-  mod or not. n = 2 supports only "not dedicated-server-wide" and "this item's name does not
-  resolve". LTP cannot supply the discriminating control itself: it has **no live item carrying
-  `DisplayName =`** — both occurrences sit inside the `/* OBSOLETE */` block
-  (`items_dried.txt:377,395`) — so the control must be another mod's item that declares one, or
-  a vanilla item that does not. (The mod's only display-name code is commented out:
-  `recipe_meats.lua:50-51`.)
+- **Open question, with the control that settles it.** Three hypotheses are still unseparated:
+  (i) **no translation entry** — `Skittles.CuredPork` has no name in whatever table
+  `InventoryItem.name` is resolved from, so the name falls back to the full type; (ii) **the
+  B41-layout file is ignored** — LTP ships `42.20/media/lua/shared/Translate/EN/ItemName_EN.txt`
+  (`:3` = `ItemName_Skittles.CuredPork = "Cured Pork"`), which is the **B41** layout, while
+  42.20.4 ships translations as `ItemName.json` (`tools/food_scan.py:270-271`: "the B41
+  `ItemName_EN.txt` layout is gone"), so the mod's name may simply never be loaded on 42.20.4;
+  (iii) **mod translations are not consulted at all** for `InventoryItem.name` on a dedicated
+  server. n = 2 supports only "not dedicated-server-wide" and "this item's name does not
+  resolve".
+  **The control criterion, corrected.** It is *not* "an item with no `DisplayName =` line":
+  **no vanilla food has one** — 0 of the 1 005 records in
+  [`data/food-items.json`](../../../data/food-items.json) and 0 occurrences in vanilla
+  `media/scripts/generated/items/food.txt` (2026-09-10), so that criterion selects everything and
+  discriminates nothing. The discriminator is the **translation table**: six `module Base` foods
+  are absent from `media/lua/shared/Translate/EN/ItemName.json` (4 889 entries) and therefore
+  carry a null `display_name` in the dataset — `Base.FruitSaladClay` and
+  `Base.HotDrink{Copper,Gold,Metal,Silver,Tumbler}` — while `Base.Steak`, the control this pass
+  already read, **is** in `ItemName.json` as `"Steak"`. Reading `getDisplayName` on those six
+  beside `Base.Steak` separates (i)+(iii) from a mod-specific failure; LTP cannot supply the
+  control itself, having **no live item carrying `DisplayName =`** (both occurrences sit inside
+  the `/* OBSOLETE */` block, `items_dried.txt:377,395`), and neither remaining teardown pick has
+  any item block at all. **Slice 10's session runs the six-vs-`Steak` reads**; nothing here does.
+  (The mod's only display-name code is commented out: `recipe_meats.lua:50-51`.)
 
 **A vanilla defect found by accident: a cooked food's thirst halves on every server→client hop.**
+(Canonical graded row: [`../../modding/patterns.md`](../../modding/patterns.md) § Measured MP
+sync facts → *The other direction — server → client*, the `thirstChange` row. This section is a
+copy; that row owns the numbers.)
 The mod never touches thirst, yet after the transition the server reads **0.1** and the client
 **0.05**. `ItemStatsPacket.setData` sends `Food.getThirstChange()` — the *cooked ladder* getter
 (`burnt → /5`, `isCooked() → /2`, else raw; `@0-@30 L1866-L1875`) — at `@299`, and
 `applyItemStats @188/191` stores it with `setThirstChange`, i.e. **as the raw field**, so the
 receiver's own getter ladders it a second time. `hungChange` does not have this problem because
 `setData @254` reads the **raw** field. C for the mechanism, **M** for the observation. It is
-**one halving per hop and it converges**: a deliberate second `sendItemStats` push left the
+**one halving per server→client hop and it converges**: a deliberate second `sendItemStats` push left the
 client at 0.05 → 0.05 with the server unchanged at 0.1 (`td1b`, `thirst_hops.delta 0.0`);
 compounding would need a client→server item-stats hop, which
 [`../../modding/patterns.md`](../../modding/patterns.md) records as a silent no-op. Any mod that
@@ -306,14 +352,20 @@ the 1e-6 rule, so no verdict turns on it.
   (`recipe_cured.txt:78,110`) — the jarring recipes get vanilla's exact behaviour for free.
 - **`itemMapper` to collapse a 4-input / 4-output family into one recipe block**
   (`recipe_cured.txt:19,24,26-32`). Measured working: `getPossibleResultItems()` resolved
-  `item 1 mapper:meatType` to all four cured meats (**M** — acceptance run
-  `run-20260910-191842`, and `td1` `recipe_lookup`).
+  `item 1 mapper:meatType` to all four cured meats (**M** — `td1-20260910-192457`,
+  `recipe_lookup.bare.outputs[0].itemFullTypes`, the committed reading; the acceptance run
+  `run-20260910-191842` saw the same thing first, but its `report.json` is under the gitignored
+  `testing/runs/`, so it is provenance, not the citable evidence).
 - **Re-basing an age fraction onto a new window by re-reading the setter's own result**
   (`recipe_meats.lua:57-60`): compute the fraction against the old max, set the new max, then
   set the age from the *new* max. It reads like a double-read bug and is the correct idiom.
 - **Its own `module Skittles` for everything** (`items_dried.txt:1`, `recipe_cured.txt:1`,
-  `models_skittles.txt:1`), importing `Base`. **Zero** name collisions against vanilla's 5 092
-  `module Base` item names and against `data/recipes.json`'s 969 recipes (C, 2026-09-10) — the
+  `models_skittles.txt:1`), importing `Base`. **Zero** name collisions against vanilla's **5 092
+  distinct item names** — 5 105 `item` blocks across `media/scripts/generated/items`, 13 of them
+  redefinitions of a name declared earlier, and every one under `module Base`, which is the only
+  module vanilla declares (C, 2026-09-10; the live `items.count` total of **5 107** in
+  `td1`'s `verify[0].got` is those 5 092 plus LTP's own 15 blocks) — and against
+  `data/recipes.json`'s 969 recipes (C, 2026-09-10) — the
   clean shape for a content mod that adds rather than rebalances.
 - **Pinning shelf life in the script, not in Lua** (`DaysFresh = 53` /
   `DaysTotallyRotten = 60`, `items_dried.txt:23-24`): script values load identically on both
@@ -360,8 +412,10 @@ the 1e-6 rule, so no verdict turns on it.
    is **17 `{` against 18 `}`** and `:412`'s `}` closes nothing. The engine loaded all 15 blocks
    anyway: `items.count` answered `foodByModule {"Base": 722, "Skittles": 14}` at join — exactly
    the 15 live blocks minus `SaltRock` (`base:normal`, `items_dried.txt:348`) (**M** —
-   acceptance run `run-20260910-191842`, `report["verify"][0]["got"]`; reproduced on both
-   sessions). The parse abort this could have caused did not happen, and that tolerance is now a
+   `td1-20260910-192457`, `verify[0].got.foodByModule` and `items_census.foodByModule_Skittles`,
+   the committed readings; reproduced on `td1b`. The acceptance run `run-20260910-191842` read it
+   first, but its `report.json` lives under the gitignored `testing/runs/`, so it is provenance).
+   The parse abort this could have caused did not happen, and that tolerance is now a
    measured fact rather than an assumption. **Rule: it still should not ship — `parse_script` and
    the engine agreeing today is luck, not contract.**
 6. **`print()` in a shipped hook.** Four lines per cooked meat on the server console
@@ -381,13 +435,25 @@ the 1e-6 rule, so no verdict turns on it.
   2026-09-10), no `require=` in `mod.info`, and its one `require` is vanilla's own
   `Foraging/forageSystem`. The single ordering-sensitive surface is the forage-def
   registration, which vanilla's `onAddForageDefs` event already serialises.
-- **Patched API surface: zero.** It consumes three extension points (`onAddForageDefs`, the
-  script hook keys, the `RecipeCodeOnCreate` statics) and replaces nothing. Re-loading it is
-  idempotent by construction: `recipe_meats.lua` assigns 7 plain globals at file scope and holds
-  no state.
+- **Patched API surface: zero**, and the loader says so in its own words. Both artifacts'
+  `mod_log_lines` carry the same pair of `LOG : Mod` lines: `loading
+  SKITTLE_LongTermPreservation4220`, then `mod "SKITTLE_LongTermPreservation4220" overrides` —
+  the loader's **override census**, printed per mod as the name followed by the list of vanilla
+  files this mod shadows. Here the list is **empty**: the line ends at `overrides` (88 characters,
+  well inside the 200-character capture limit that truncates the three `NoSuchFileException`
+  lines beside it), so the engine agrees LTP shadows nothing (**M** — `td1`, `td1b`,
+  `mod_log_lines[1]`). It consumes three extension points (`onAddForageDefs`, the script hook
+  keys, the `RecipeCodeOnCreate` statics) and replaces nothing. Re-loading it is idempotent by
+  construction: `recipe_meats.lua` assigns 7 plain globals at file scope and holds no state.
 - **The `_G` namespace is the one real conflict risk** — see Pitfalls 3.
 - **No command bus and no UI surface**, so it cannot collide with the resident Girth stack's
-  110+ command sites or with CleanUI's 54 replaced UI files (C).
+  command sites or with CleanUI's client UI tree. Both counts are the slice-08 catalog's, dated
+  **2026-09-10**: **228** `sendClientCommand` / `OnClientCommand` / `sendServerCommand` sites
+  across the six Girth mods, 96 of them in `QuestSystem`
+  ([`../approved-modlist.md`](../approved-modlist.md) § the resident stack — the "110+" this doc
+  first carried was a pre-slice-08 figure); and CleanUI's live `42.19/` ships **54** client Lua
+  files, **33** of them at the same relative path as a vanilla `media/lua` file, i.e.
+  replacements (C, counted 2026-09-10). LTP's own surface is 0 on both.
 - **Overlap with our own item pass.** LTP adds **14 new food items with a full macro set** in
   `module Skittles` (117 nutrition-key writes, 2026-09-10 17:47). An item pass that rewrites
   `module Base` food definitions will **not** touch them, so on a server running both, 14 foods
@@ -407,7 +473,9 @@ the 1e-6 rule, so no verdict turns on it.
   one field where the **client** holds the intended value (0.35) and the **server** does not (0),
   so a client UI drawing weight is not misled while anything computing server-side is. A UI
   drawing shelf life, cookability or thirst is.
-- **Installation must land the folder under the declared id.** The harness's own placement was
+- **Installation does land the folder under the declared id** (that it *must* is an inference,
+  not a measurement — no run left a drifting folder unrenamed; see
+  [`../../testing/profiles.md`](../../testing/profiles.md) § Open questions 6). The harness's own placement was
   verified on this mod: the run's `mods/` listing is `["PZTestKit",
   "SKITTLE_LongTermPreservation4220"]`, no `LongTermPreservation4220/` present,
   `mod.info` found at the id path, and `Mods=PZTestKit;SKITTLE_LongTermPreservation4220`
@@ -420,8 +488,11 @@ the 1e-6 rule, so no verdict turns on it.
   `MakeCuredMeat` resolves against **neither** spelling the shipped lookup tries, because
   `ScriptBucketCollection.getScript` sends a dot-less name to `getModule("Base")` (C). The
   harness now falls back to a scan of all **977** craft recipes (2026-09-10) and resolves it
-  (**M** — `td1`, `recipe_lookup.bare.lookup.route "module-scan"`). Anything that looks up a
-  modded recipe by name must qualify it.
+  (**M** — `td1`, `recipe_lookup.bare.lookup.route "module-scan"`). That **977** is the live
+  count *with the mod loaded*: `data/recipes.json`'s **969** `craftRecipe` blocks (C, the vanilla
+  scan) plus LTP's own **8** (`recipe_cured.txt`) — the two numbers are the same census on either
+  side of the mod, not a disagreement. Anything that looks up a modded recipe by name must
+  qualify it.
 
 ## Verdict for our mod
 
@@ -460,8 +531,12 @@ accept that a server running both has 14 foods on upstream numbers — do not di
 client; full run directories stay local under the gitignored `testing/runs/`):
 
 - **`run-20260910-191842`** — acceptance, `pzt run --profile teardown-longtermpreservation4220
-  --hold 5`, `RESULT: PASS`, exit 0, 3/3 `verify ok=True`, 70.6 s. The `items.count` and
-  `recipes.craft` numbers quoted above are `report["verify"][0..1]["got"]`.
+  --hold 5`, `RESULT: PASS`, exit 0, 3/3 `verify ok=True`, 70.6 s. **Provenance, not evidence:**
+  its `report.json` is under the gitignored `testing/runs/` and so is not checkable from a clone
+  ([`docs/decisions.md`](../../decisions.md), the slice-01 row: an **M** must be). Every
+  `items.count` / `recipes.craft` number this doc grades **M** is cited from `td1`'s committed
+  artifact instead (`verify[0..1].got`, `items_census`, `recipe_lookup`), where the same three
+  probes were re-asked by the session itself.
 - **`td1-20260910-192457`** — the session. Artifact
   [`testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json`](../../../testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json)
   (71 165 B; 115.9 s wall; `server_error_count 0`), driver
@@ -496,10 +571,19 @@ client; full run directories stay local under the gitignored `testing/runs/`):
 [`data/workshop-catalog-details.json`](../../../data/workshop-catalog-details.json) — the
 `3774789651` result (fetched 2026-09-10 17:46, W);
 [`data/food-items.json`](../../../data/food-items.json) — the vanilla values of the recipe
-inputs; [`data/recipes.json`](../../../data/recipes.json) — the 969-recipe collision check.
+inputs, and the `display_name` column that supplies the six-item control set for the open
+question above; [`data/recipes.json`](../../../data/recipes.json) — the 969-recipe collision
+check.
+
+**Vanilla scripts and translations (C, read 2026-09-10):**
+`media/scripts/generated/items/` — 5 105 `item` blocks, 5 092 distinct names, all `module Base`,
+0 `DisplayName =` lines in `items/food.txt`;
+`media/lua/shared/Translate/EN/ItemName.json` — 4 889 entries, the table the six null
+`display_name` foods are absent from and `Base.Steak` is present in.
 
 **Engine (C, 42.20.4 jar dumps taken 2026-09-10):** `Food.update` (the cook block, the
-`OnCooked` dispatch `@627-@718`, the XP branch `@755-@789`, the two `sendItemStats` calls),
+`OnCooked` dispatch `@627-@718`, the XP branch `@755-@812`, and all three `sendItemStats` calls
+— `@94-@101`, `@916-@923` and `@1245-@1252` in the tainted-boil branch),
 `Food.getThirstChange @0-@30`, `Food.getActualWeight @208-@288`,
 `InventoryItem.getActualWeightUnmodded @0-@24`, `InventoryItem.getDisplayName @0-@4`,
 `InventoryItem.setTooltip @0-@13`, `InventoryItem.calculateTimeMultiplier`,
@@ -515,5 +599,6 @@ the eat path), [`../nutrition-mods.md`](../nutrition-mods.md) (the catalog rows 
 § The three picks, § Discrepancies rows 1 and 6, § Open questions 4 and 6),
 [`../approved-modlist.md`](../approved-modlist.md) (the corpus and the queue),
 [`../../testing/profiles.md`](../../testing/profiles.md) § Open questions 6 (the folder→id
-rename, closed by this pass's `folder_check`), and [`itemquality.md`](itemquality.md) (the same
+rename — the placement half closed **M** by this pass's `folder_check`, the "is it required"
+half left **C** with its control named), and [`itemquality.md`](itemquality.md) (the same
 unsynced-field failure, in a mod that meant to sync).

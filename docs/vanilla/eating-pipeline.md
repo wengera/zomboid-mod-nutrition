@@ -455,8 +455,9 @@ consistent with both readings, and the authority probes below settle it.
 **Cross-reference — what a client reads off a *cooked* item is not what the server reads.** The
 rows above are the **player** side (`Nutrition`, hunger/thirst). The **item** side has a vanilla
 distortion of its own: `ItemStatsPacket.setData` sends `Food.getThirstChange()`, the cooked-ladder
-getter, while the receiver stores it as the raw field, so a cooked food's thirst value halves on
-each server→client hop. Its graded, canonical row is
+getter, while the receiver stores it as the raw field, so a cooked food's thirst value halves
+**once per server→client hop, and converges** (there is no client→server item hop to compound
+it). Its graded, canonical row is
 [`../modding/patterns.md`](../modding/patterns.md) § Measured MP sync facts → *The other
 direction — server → client* (slice 09, runs `td1-20260910-192457` / `td1b-20260910-202029`); do
 not restate the numbers here.

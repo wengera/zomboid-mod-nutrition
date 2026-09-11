@@ -151,7 +151,12 @@ Three consequences the profile builder is built around:
 - **The folder is renamed to the id** — **M** since slice 09 (run `td1-20260910-192457`;
   the artifact's `folder_check`, § Open questions #6). `harness.install` copies a profile
   source to `<mods_dir>/<mod id>` while `mods.install` (the workshop fallback) keeps the source
-  folder's own name, and the game keys on `mod.info` either way. **52 of the 230 installed folders
+  folder's own name. **Whether a run would still load a mod left under its folder name is
+  untested** (§ Open questions #6): the workshop tree itself is full of drifting folders that the
+  game does load, which is evidence the loader keys on `mod.info` rather than on the directory
+  name — but nothing here has put a drifting folder into a `<mods_dir>` and started a server on
+  it, so the two claims are not in evidence together and this page asserts only the copy
+  behaviour. **52 of the 230 installed folders
   drift** from their declared id; `mod_lint`'s `folder-id` INFO counts **51** of them, having no
   id to compare against on the 52nd (`3782784855/Skill Recovery Journal` declares none anywhere).
   So this matters for most of the corpus slice 08 picks from, and the slice-07 acceptance mod
@@ -456,12 +461,12 @@ A profile is a **server-side** decision that the client inherits.
 5. **`[[verify]]` matches `expect` as a substring of the dumped JSON**, which is deliberately
    forgiving (it matches at any nesting) and therefore cannot express "not present" or a numeric
    comparison. A probe that needs either belongs in a scenario with a Python evaluator.
-6. ~~**Is the folder rename exercised?**~~ **Closed, M** — slice 09 (teardown pass 1), run
-   **`td1-20260910-192457`**; the same profile's acceptance run `run-20260910-191842` showed the
-   same listing, but its run directory is gitignored, so the committed artifact below is the
-   citable reading. `harness.install` places a profile source at `<mods_dir>/<mod id>`
-   while `mods.install` keeps the source folder's name — settled in code (**C**) and now
-   measured on the one subject that can answer **both** halves.
+6. ~~**Is the folder rename exercised?**~~ **First half closed M, second half C** — slice 09
+   (teardown pass 1), run **`td1-20260910-192457`**; the same profile's acceptance run
+   `run-20260910-191842` showed the same listing, but its run directory is gitignored, so the
+   committed artifact below is the citable reading. `harness.install` places a profile source at
+   `<mods_dir>/<mod id>` while `mods.install` keeps the source folder's name — settled in code
+   (**C**) and now measured for the placement half.
 
    The artifact's `folder_check` block, recorded verbatim from the session's own run directory
    ([`testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json`](../../testing/artifacts/td1-20260910-192457/teardown-longtermpreservation4220.json)):
@@ -474,18 +479,33 @@ A profile is a **server-side** decision that the client inherits.
    | `mod_info_at_id` | **`true`** (`…/SKITTLE_LongTermPreservation4220/42.20/mod.info`) | M |
    | `ini_mods_line` | `Mods=PZTestKit;SKITTLE_LongTermPreservation4220` | M |
 
-   **Both halves answered.** *Which name the copy lands under:* the declared id — the
+   **First half, M.** *Which name the copy lands under:* the declared id — the
    `workshop_id` branch of `profile.resolve_mod` files the workshop folder under
    `sources[mod_id]` and `harness.install` copies it to `<mods_dir>/<mod id>`, never through
-   `mods.install`'s name-keeping fallback. *Whether the rename is required:* yes —
-   `LongTermPreservation4220` → `SKITTLE_LongTermPreservation4220` differs by a whole prefix, so
-   a copy left under the folder name could not have been found by `Mods=`, and the mod
-   demonstrably loaded (server log `loading SKITTLE_LongTermPreservation4220`, the mod's 14 food
-   items counted at join, its recipes and item scripts answering on both sides). Predicted (C)
-   and measured (M) agree exactly. `simpleStatus` (the slice-10 subject) could only ever have
-   settled the first half, its folder differing from its id in **case alone** on a
-   case-insensitive filesystem — which is why slice 09's subject was the one that closed this
-   ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md) § Discrepancies row 6).
+   `mods.install`'s name-keeping fallback. The run's own directory says so: `listing` holds the
+   id, `source_folder_present` is **`false`**, and the mod demonstrably loaded (server log
+   `loading SKITTLE_LongTermPreservation4220`, the mod's 14 food items counted at join, its
+   recipes and item scripts answering on both sides).
+
+   **Second half, C — and it is an inference, not a reading.** *Whether the rename is
+   **required*** cannot be graded M off this run: `source_folder_present false` means **no run
+   produced the counterfactual**. The argument is from the loader's `Mods=` / `mod.info`
+   semantics — `Mods=` carries ids and `index["LongTermPreservation4220"]` is `None` — and it
+   sits *against* the fact in § How a profile places mods that 52 of the 230 installed workshop
+   folders drift from their id and load in normal play, which is evidence the loader resolves
+   through `mod.info` rather than the directory name. Both cannot be unconditionally true; what
+   is untested is whether a `<mods_dir>` entry (as opposed to a workshop-tree entry) is resolved
+   the same way.
+
+   **The control, for whoever wants the M.** One run that leaves a drifting folder
+   **unrenamed** in `<mods_dir>` and asks whether `Mods=<id>` still finds it. Slice 10's subject
+   supplies it cheaply: `simpleStatus`, folder `SimpleStatus`, installed through `mods.install`
+   (the name-keeping fallback) rather than the profile copy — `Mods=simpleStatus` against a
+   directory named `SimpleStatus`. On a case-insensitive filesystem that pair is degenerate for
+   the *lookup* question, so a stricter control renames a copy to something that differs by more
+   than case. **Recorded as the check; not run here.** Related:
+   ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md) § Discrepancies row 6)
+   explains why `simpleStatus` could never have answered the first half.
    Still true and unaffected: 52 of the 230 installed folders drift from their declared id (the
    lint's `folder-id` INFO counts 51, having no id to compare on the 52nd), so this path is
    exercised by most of the corpus.

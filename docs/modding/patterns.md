@@ -66,10 +66,16 @@ on; treat divergence as a decision point, not a free choice.**
    **Now measured end-to-end on a second mod**: a mod that writes an item field
    `ItemStatsPacket` does not carry depends on the **server copy alone**, and no
    amount of re-pushing repairs the client's. LongTermPreservation4220's
-   server-side `OnCooked` hook writes nine fields; the five in the packet arrive
-   intact and the four outside it (`offAge`, `offAgeMax`, `isCookable`,
-   `isCustomWeight`) leave the client permanently wrong — measured on both sides
-   of one live dedicated server, three snapshots
+   server-side `OnCooked` hook writes **eleven** fields
+   (`recipe_meats.lua:36-49`; the per-call table is in the teardown's
+   § Architecture): **six** the packet carries — the four macros, `hungChange`
+   and `actualWeight` — and **five** it does not: `isCookable`, `offAge`,
+   `offAgeMax`, `weight` and `customWeight`. The six arrive; of the five, the
+   four the client is left **permanently wrong** about are `offAge`,
+   `offAgeMax`, `isCookable` and `isCustomWeight` (`weight` is uncarried but not
+   desynced — both sides read 0.5, and "not carried" is not "desynced").
+   Measured on both sides of one live dedicated server, on the two post-cook
+   snapshots 11.1 s apart — the pre-cook baseline shows no desync at all
    ([teardown](../mods-survey/teardowns/longtermpreservation4220.md), run
    `td1-20260910-192457`). The corollary that bit *that* mod is sharper than the
    rule: writing an uncarried field (`setCustomWeight(true)`) also flipped which
@@ -100,11 +106,14 @@ on; treat divergence as a decision point, not a free choice.**
    `Food.getThirstChange()` — a value the cooked ladder has **already** been
    applied to — and the receiver stores it as the **raw** field, so a cooked
    item's thirst reads half on the client (0.2 → 0.1 on the wire → 0.05 on
-   read), one halving per hop. `hungChange` is sent raw and is fine. This is
-   vanilla's defect, not a mod's, and it lands on any mod that cooks anything
-   in MP. Rule: read a food's numbers from the side that owns them, and never
-   build our own math on a getter whose value is transformed again on the wire
-   — check `setData`'s getter, not the field name.
+   read), **one halving per server→client hop, and it converges** — there is no
+   client→server item hop to compound it. `hungChange` is sent raw and is fine.
+   This is vanilla's defect, not a mod's, and it lands on any mod that cooks
+   anything in MP. Rule: read a food's numbers from the side that owns them, and
+   never build our own math on a getter whose value is transformed again on the
+   wire — check `setData`'s getter, not the field name. **Canonical graded
+   row:** § Measured MP sync facts → *The other direction — server → client*,
+   the `thirstChange` row; this entry is a copy and that row owns the numbers.
 
 ## Measured MP sync facts (42.20.4, spike S6 — [testing/spikes.md](../testing/spikes.md))
 
@@ -131,12 +140,12 @@ within 1e-6, read on both sides through the same witness command.
 
 | Change made on the server (a `Food` item in a player's inventory) | Reaches the client? | Ev |
 |---|---|---|
-| `setCalories` / `setProteins` / `setLipids` / `setCarbohydrates` / `setHungChange` | **yes, intact** — all five are in `ItemStatsPacket`, `hungChange` as the **raw** field, so each side ladders it once and both read the same `getHungerChange` | M (run `td1-20260910-192457`) |
-| `setOffAge` / `setOffAgeMax` / `setIsCookable` / `setCustomWeight` | **never** — none is among the packet's 43 fields. The client kept `offAge 53` against the server's 1e9 and `isCookable true` against `false`, on three snapshots 12 s apart, and nothing later repairs it | M (same run) |
+| `setCalories` / `setProteins` / `setLipids` / `setCarbohydrates` / `setHungChange` | **yes, intact** — all five are in `ItemStatsPacket`, `hungChange` as the **raw** field, so each side ladders it once and both read the same `getHungerChange`. **Four** of the five are measured intact (calories 300→210, proteins 50→35, lipids 12→8.4, `hungChange` −0.6→−0.42); `getCarbohydrates` went 0 → 0 (×0.70 of zero), which carries no information, so *carbohydrates'* packet membership is **C**, read off `setData`, not measured | M (run `td1-20260910-192457`) for four; **C** for `carbohydrates` |
+| `setOffAge` / `setOffAgeMax` / `setIsCookable` / `setCustomWeight` | **never** — none is among the packet's 43 fields. The client kept `offAge 53` against the server's 1e9 and `isCookable true` against `false`, on the **two post-cook snapshots 11.1 s apart** (the pre-cook baseline is not desynced at all), and nothing later repairs it | M (same run) |
 | a cooked food's `thirstChange` | **yes, but halved.** `ItemStatsPacket.setData` sends `Food.getThirstChange()` — the *cooked ladder* getter — while `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field, so the receiver ladders it a second time: 0.2 → 0.1 on the wire → 0.05 on read. A **vanilla** defect, surfaced by any mod that cooks anything in MP. It is **one halving per server→client hop and it converges** (a second push left the client at 0.05 with the server unchanged at 0.1) — compounding would need a client→server item hop, which the table above records as a silent no-op | M (runs `td1-20260910-192457`, `td1b-20260910-202029`) |
-| `setActualWeight` | **the field travels** (`setData` fills it from `getActualWeightUnmodded()`), but read back the two sides disagreed 0 vs 0.35 — because `getActualWeightUnmodded` returns **0** whenever `getDisplayName().equals(getFullType())`, which was true on both sides for that mod item and false for a vanilla control (`Base.Steak`, 0.3 everywhere). Check a getter's guards before trusting a synced field | M (run `td1b-20260910-202029`) |
+| `setActualWeight` | **the field travels** (`setData` fills it from `getActualWeightUnmodded()`), but read back the two sides disagreed **0 vs 0.35**. The display-name guard alone does not explain it: `getActualWeightUnmodded` returns 0 whenever `getDisplayName().equals(getFullType())`, and that was true on **both** sides for that mod item (false for a vanilla control, `Base.Steak`, 0.3 everywhere) — a symmetric guard cannot produce an asymmetric reading. What splits the sides is `isCustomWeight` **choosing an arm**: the server, where the mod had just set it `true`, goes `Food.getActualWeight @288 L910` → the guarded `InventoryItem` route → **0**; the client, still `false`, goes `@215-@287 L902-L908` → script weight × hunger fraction → **0.35**. Check a getter's guards *and* which arm your own write moves it onto before trusting a synced field | **M** for the two values (run `td1b-20260910-202029`); **C** for the arms (jar, `Food.getActualWeight`) |
 | the aging fields — `age`, `offAge`, `offAgeMax` | **never** — `age` was measured not to cross in slice 02, and slice 09 moves `offAge`/`offAgeMax` from packet-read to measured. `freezingTime`, `lastAged` and `rotten` are absent from the packet too but have **not** been measured, so they stay **C** | M (runs `exp02-20260910-030433`, `td1-20260910-192457`); `freezingTime` / `lastAged` / `rotten` **C** |
-| anything at all, on a client copy that is not ticking | **the push lands, the simulation does not.** The client's copy of a server-spawned item held `heat` and `cookingTime` frozen across 12 s while the server's ran two or three ticks — so a client-side reader sees the last pushed value, not a live one. Mechanism open (the update path carries no side guard) | M on the freeze (run `td1-20260910-192457`); the cause is **C** and unexplained |
+| anything at all, on a client copy that is not ticking | **the push lands, the simulation does not.** The client's copy of a server-spawned item held `heat` and `cookingTime` frozen across 11.1 s while the server's ran two or three ticks — so a client-side reader sees the last pushed value, not a live one. Mechanism open (the update path carries no side guard) | M on the freeze (run `td1-20260910-192457`); the cause is **C** and unexplained |
 
 Two timing facts from the same sessions, for anyone designing a probe or a
 heartbeat around item state: **the dedicated server's inventory-item tick runs
@@ -153,8 +162,9 @@ Consequences for the nutrition mod:
   Editing a food item's fields client-side (e.g. per-item nutrient values)
   desyncs silently — the ItemQuality failure, now reproducible on demand.
   **"Broadcasts" is not a synonym for "both sides now agree"** (slice 09): the
-  broadcast carries 43 fields and is faithful for `hungChange`, lossy for
-  `thirstChange`, and silent about everything outside the list — see the
+  broadcast carries 43 fields (39 of them item state) and is faithful for
+  `hungChange`, lossy for `thirstChange`, and silent about everything outside
+  the list — see the
   server→client table above before assuming a server-side edit has landed.
 - **Per-player nutrient state lives in player modData and is
   `transmitModData()`-ed on change**, or lives server-side and is pushed with
@@ -189,8 +199,9 @@ Consequences for the nutrition mod:
 - What cadence does simpleStatus poll nutrition at, and does it read
   getNutrition() client-side only?
 - MoodleFramework API surface + MP behavior — adoption decision.
-- How the Girth stack namespaces its 110+ command sites (collision risk for
-  our module names on the same bus).
+- How the Girth stack namespaces its 228 command sites (slice-08 catalog,
+  2026-09-10 — the "110+" this list used to carry predates that sweep;
+  collision risk for our module names on the same bus).
 
 ## Sources
 
