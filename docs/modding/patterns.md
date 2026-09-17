@@ -9,7 +9,12 @@ LongTermPreservation4220 teardown); the modData-transmit wipe (FILTER 10), the
 client-copy row and the closed cadence question added 2026-09-10 (slice 10, the
 simpleStatus teardown); the measured `common/`-vs-version-folder merge rule
 (KEEP 10), FILTER 11, and the **per-arm resolution of that contested
-client-copy row** added 2026-09-11 (slice 11, the AutoCook teardown).
+client-copy row** added 2026-09-11 (slice 11, the AutoCook teardown); KEEP 12
+(a `server/` file runs in the MP client's Lua state), KEEP 10's second subject
+and empty-version-dir arm, FILTER 10's third subject and its **server→client**
+half, the settled weight-flag arms, the corrected FILTER 11 and § Two facts
+that cross no wire at all added 2026-09-11 (slice 12, the platform-reference
+sessions `x121`, `x122`, `x125`, `x126`, `x127`).
 
 Derived from the 230-mod inventory
 ([survey](../mods-survey/approved-modlist.md)) + line-level reads of
@@ -431,6 +436,24 @@ it:
   state.** KEEP 12's mechanism is untraced; the discriminating probe (one file
   per `client|server|shared` folder, each writing its folder name into a global)
   is named there. *(13)*
+- **What a mod Lua error does to a *release* client — and which raise fired the
+  break we saw.** The **cause** of the `-debug` client freeze is settled and
+  citable: `KahluaUtil.fail` takes its `Core.debug` arm at `L95`, prints at
+  `L96` and calls `UIManager.debugBreakpoint` at `L97` **before** the throw at
+  `L100`, and `debugBreakpoint` returns immediately on a `GameServer.server`
+  (`L1183`) but otherwise enters the modal `UIManager.sync.begin()` pump —
+  **C**, confirmed **M** by the signature `client 1 × :96 / 0 × :100` against
+  `server 356 × :100 / 0 × :96` (`x127-20260911-052049`, two boots).
+  [`lua-api.md`](lua-api.md) § 5 owns it. Two things are still open. (i) A
+  **release** client is `Core.debug`-gated and **unmeasured**; the check is the
+  same probe under a `debug = False` client, which is a harness launch-flag
+  change rather than a mod question. (ii) A **confound**: mod H registered two
+  raising handlers and only the first one's trace printed, so which of them
+  fired the break is not separated — one more session with the raises in
+  **separate mods** settles it. Split the follow-ups by raise **origin**
+  (`KahluaThread.call`'s direct `athrow`, which never reaches `fail` and never
+  froze anything — `x126-20260911-045205` — against `luaMainloop` → `fail`),
+  never by handler. *(13)*
 
 ## Sources
 
@@ -487,4 +510,28 @@ it:
   [../mods-survey/teardowns/autocook.md](../mods-survey/teardowns/autocook.md)
   § Architecture and § MP handling. The *do not cite* list for that run
   (including the `window_s` mismatch and the trivial weight-flag arm) is in
+  [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).
+- **KEEP 12, KEEP 10's second subject and empty-version-dir arm, FILTER 10's
+  third subject and its server→client half, the settled weight-flag arms, the
+  corrected FILTER 11 and § Two facts that cross no wire at all** (slice 12,
+  2026-09-11): five sessions on **our own** experiment mods, each artifact
+  committed beside its driver —
+  [`x121-20260911-030023`](../../testing/artifacts/x121-20260911-030023/platform-overrides.json)
+  (keys `phases.M2b`, `phases.M4`, `phases.M5a`, `phases.M5b`, `phases.M6`,
+  `phases.M7.mod_globals.client`, `phases.M9`, `m8`),
+  [`x122-20260911-032326`](../../testing/artifacts/x122-20260911-032326/platform-loader.json)
+  (`summary.L2_which`, `summary.L2_trees`, `phases.L2.reading.overrides_tails`,
+  `phases.L3.reading`),
+  [`x125-20260911-042055`](../../testing/artifacts/x125-20260911-042055/platform-order2.json)
+  (`phases.O1`, `verdicts.P20`),
+  [`x126-20260911-045205`](../../testing/artifacts/x126-20260911-045205/platform-pcall.json)
+  (`phases.reads.<side>.values`, `verdicts.P21_client` / `P21_server`) and
+  [`x127-20260911-052049`](../../testing/artifacts/x127-20260911-052049/platform-raise.json)
+  (`phases.reads.server.values`, `verdicts.P22_server`,
+  `phases.engine_log_signature.per_side`). The mechanisms, the jar sites and the
+  bounds are [`anatomy.md`](anatomy.md),
+  [`item-overrides.md`](item-overrides.md) and [`lua-api.md`](lua-api.md),
+  which own them; the *do not cite* table for each run — every `text.get`
+  reading of `x121`, `x126`'s `server_error_count`, every client-side reading of
+  `x127`, and the rest — is in
   [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md).

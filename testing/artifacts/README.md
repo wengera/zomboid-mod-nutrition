@@ -49,6 +49,13 @@ correct it.
 | `td1b-20260910-202029` | `teardown-longtermpreservation4220-followup.json` | `testing/experiments/td1b_longtermpreservation4220.py` | slice 09 pass 1, same three docs — the five follow-up answers: the display-name reads on both sides plus a **vanilla control**, the second thirst hop, the vanilla item-modData baseline, and the two null controls (`chef` unset, `lastCookMinute` after the cook) |
 | `td2-20260910-231655` | `teardown-simplestatus.json` | `testing/experiments/td2_simplestatus.py` | slice 10 pass 2: [`docs/mods-survey/teardowns/simplestatus.md`](../../docs/mods-survey/teardowns/simplestatus.md) (every `M` row of its § MP handling), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) § Measured MP sync facts (the modData-transmit wipe → FILTER 10, the `updateWeight` flag half, the client-copy row — **contested** on that date, **superseded 2026-09-11**: resolved per arm, see the `td3-20260911-001948` row below — and the vanilla display-name control) and its closed cadence question, [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 6 (metadata only — it does **not** answer the second half). **The first artifact written under the widened float rendering** (`291f977`) |
 | `td3-20260911-001948` | `teardown-autocook.json` | `testing/experiments/td3_autocook.py` | slice 11 pass 3: [`docs/mods-survey/teardowns/autocook.md`](../../docs/mods-survey/teardowns/autocook.md) (every `M` row of its § Architecture and § MP handling), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) KEEP 10 (the measured `common/`-vs-version-folder merge rule), FILTER 10's second subject, FILTER 11 and § Measured MP sync facts → *The other direction* (the client-copy row, **resolved per arm**), [`docs/mods-survey/nutrition-mods.md`](../../docs/mods-survey/nutrition-mods.md) § Open questions 1 and 3 (both closed), [`docs/modding/README.md`](../../docs/modding/README.md) § Hard-won platform facts, [`docs/testing/README.md`](../../docs/testing/README.md) § Command bus (`lua.global`) and § How a driven client is controlled → Observation (the client-console `2 × n` grep note) |
+| `x121-20260911-030023` | `platform-overrides.json` | `testing/experiments/x121_overrides.py` | slice 12 session 1: [`docs/modding/item-overrides.md`](../../docs/modding/item-overrides.md) (R1/R2's per-key merge, R4's eat hooks, R5's item modData), [`docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § 5 and § Inputs for the wall map, [`docs/modding/lua-api.md`](../../docs/modding/lua-api.md) § 1 and § MP behaviour, [`docs/modding/patterns.md`](../../docs/modding/patterns.md) KEEP 12, FILTER 10's third subject, § Measured MP sync facts (the `setWeight` row's two non-trivial arms) and § Two facts that cross no wire at all |
+| `x122-20260911-032326` | `platform-loader.json` | `testing/experiments/x122_loader.py` | slice 12 session 2: [`docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § 3, [`docs/modding/patterns.md`](../../docs/modding/patterns.md) KEEP 10 (its second subject and the empty-version-dir arm), [`docs/modding/README.md`](../../docs/modding/README.md) § Hard-won platform facts (the merge rule at n = 2) |
+| `x123-20260911-034426` | `platform-folder.json` | `testing/experiments/x123_folder.py` — **two boots in one driver and one file**: boot (a) is this run id (`boots.drift`), boot (b) is **`x123b-20260911-034500`** (`boots.common_id`), which has no folder of its own | slice 12 session 3: [`docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § 2 and § 4, [`docs/testing/profiles.md`](../../docs/testing/profiles.md) § Open questions 1 (**closed**) and § Open questions 6, second half (**closed**) |
+| `x124-20260911-035819` | `platform-order.json` | `testing/experiments/x124_order.py` | slice 12 session 4: [`docs/modding/item-overrides.md`](../../docs/modding/item-overrides.md) § Load order between two mods, [`docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § 5 (`getText` is not the route to an item name), [`docs/testing/README.md`](../../docs/testing/README.md) § Command bus (`text.get`'s server half) |
+| `x125-20260911-042055` | `platform-order2.json` | `testing/experiments/x125_order2.py` | slice 12 session 5: [`docs/modding/item-overrides.md`](../../docs/modding/item-overrides.md) § Load order between two mods (the rule that settles question 7), [`docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § Inputs for the wall map, [`../profiles/README.md`](../profiles/README.md) (both superseded profile comments) |
+| `x126-20260911-045205` | `platform-pcall.json` | `testing/experiments/x126_pcall.py` | slice 12 session 6: [`docs/modding/lua-api.md`](../../docs/modding/lua-api.md) § 5 (the rule's owner), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) FILTER 11, [`docs/testing/README.md`](../../docs/testing/README.md) (the four `TK.call` sites and § Observation) |
+| `x127-20260911-052049` | `platform-raise.json` | `testing/experiments/x127_raise.py` | slice 12 session 7: [`docs/modding/lua-api.md`](../../docs/modding/lua-api.md) § 5 (the unguarded half and the debug-client break), [`docs/modding/patterns.md`](../../docs/modding/patterns.md) FILTER 11 and § Open pattern questions, [`docs/testing/README.md`](../../docs/testing/README.md) § How a driven client is controlled and § Observation |
 
 ## Script/artifact skew
 
@@ -180,6 +187,34 @@ and the acceptance run was its smoke test. Two *driver* notes that are not skew 
 knowing before reading the file: `carrier.window_s` records the **requested** 10.0 s while the
 probe's own wall stamps give the **measured** 12.54 s, and the `t+3s` tag is a nominal name whose
 snapshot actually opened at transmit + 7.58 s. Both are in the block's *do not cite* table.
+
+The twenty-second through twenty-eighth — **`x121-20260911-030023`**, **`x122-20260911-032326`**,
+**`x123-20260911-034426`**, **`x124-20260911-035819`**, **`x125-20260911-042055`**,
+**`x126-20260911-045205`** and **`x127-20260911-052049`** — are slice 12's seven platform sessions,
+and **all seven are skew-free**. Each driver landed in the **same commit** as its artifact
+(`6afcb40`, `73e1fd6`, `ef1f678`, `f6c336e`, `6549e4a`, `72b6355`, `5d3f22d`) and **none was edited
+afterwards**: `git log -- testing/experiments/x12*.py` shows exactly one commit per driver. All
+seven ran on harness Lua at **`5d9633f`**, clean in the working tree, and every file records
+`commit` / `harness_lua_commit` / `harness_lua_dirty false` for itself; all but `x123` also record
+`doctor_clean true` and their `acceptance_run`. The slice's **only** harness change — the
+`text.get` move to `shared/` and its null guard — landed in its own commits **ahead of** the first
+session (`ad683fe`, then `5d9633f`), as the standing rule requires, and `x121`'s acceptance run
+`run-20260911-024303` was its smoke test.
+
+Three disclosures that are **not** skew but belong beside the list. (i) **`x121`'s first attempt
+aborted**, at run id `x121-20260911-025811`: the driver died in M1's grading call
+(`TypeError: Timeline.mark() got multiple values for argument 'phase'`) **before any verdict
+existed**, no reading of any kind was taken, the run directory was its own copy of the fixture, and
+the aborted artifact folder was deleted. The driver was fixed, `doctor` re-run clean and the
+session re-run — so the committed driver is the one that produced the committed file, and this is
+the opposite of skew. (ii) **`x123` skips `session.verify` by ruling** and says so in its own
+`verify_skipped` key: every `[[verify]]` row of profile `x12-loader` is client-side and that
+session attaches no client, so each row would have recorded `no client attached` — neither a pass
+nor a fail, and not evidence. (iii) a later **comment-only** harness commit (`fefe323`, the
+`TK.call` header note that carries x126/x127's correction into the code) moved **no executable
+path**, so the harness these seven were measured on is the harness at `5d9633f` in every sense that
+can change a number. The slice-12 blocks at the end of this file were written after all seven runs;
+they are reading guides, never edits to the files.
 
 One further disclosure, unchanged by the wave and about the harness mod rather than the CLI: a concurrent slice-06 fix round had
 `PZTestKit_Server.lua` and `PZTestKit_Server_Recipes.lua` modified in the working tree when these
@@ -1235,3 +1270,339 @@ provenance facts in the file (`commit`, `harness_lua_commit`, `harness_lua_dirty
 | `moddata_keys` | the three probes joined by a pipe separator for the reader | A **display** string, not a bus token — the probes were sent separately, and `notes[0]` says so. |
 | `verify`'s row 2 `missing` | `{}` | The `*` is skipped by the census's own `~= "*"` guard, so it never lands in `missing` and its absence there is **not** a hit. The number worth quoting is `keyCount` (**6**). |
 | anything about the cooking pipeline | — | **Nothing on the bus reaches it.** The only entry is a context-menu option whose handler runs on a right-click; no shipped command clicks, presses a key or calls `triggerEvent`. `chooseItem`, `filterFood`, `allowSpice`, `acceptIngredient` and all five diets stay **C** — `M4_globals` read four of the mod's functions and **called none**. |
+
+**`x121-20260911-030023/platform-overrides.json`** — produced by
+`testing/experiments/x121_overrides.py` at commit `6afcb40` (205.1 s wall, no `error` key,
+`server_error_count 0`, `client_lua_error false`; 159 955 bytes, sha256 `49efda95…9fab3e7`,
+byte-for-byte identical to the run copy). Slice 12's session 1 and the widest of the seven: nine
+phases (M1–M9) on **our own** three experiment mods, every reading taken client-first and paired.
+**Skew-free** — driver and artifact in one commit on harness Lua at `5d9633f`, clean, with
+`commit`, `harness_lua_commit`, `harness_lua_dirty false`, `doctor_clean true` and
+`acceptance_run run-20260911-024303` all in the file. `summary.field_count_ok` is `true` across
+**12** `witness.fields` checks.
+
+- **Provenance — the profile.** `testing/profiles/x12-overrides.toml`: `fixture = "default"`,
+  `Mods=PZTestKit;TKX_ItemOverride;TKX_Nutrient;TKX_EatHook`, **no `[sandbox]`** (DayLength stays
+  the fixture's 4, so a game minute is 3.75 real s), and **three** tier-(a) `[[verify]]` rows, one
+  per mod — server `item.script TKX.FibreBar`, server `lua.global TKX_Nutrient.version`, client
+  `lua.global TKX_EatHook.version`. All three read `ok=True` (`summary.verify_ok`).
+- **Provenance — the mods.** Three `path =` mods from `testing/experiments/`, not workshop items:
+  `TKX_ItemOverride` (A), `TKX_Nutrient` (C) and `TKX_EatHook` (B). They are installed only through
+  a profile and never sit in the fixture.
+- **The two headline readings are per-side facts, not wire facts.** `phases.M2b` (a narrowed
+  `item Orange` block keeps vanilla's `hungChange −0.12` and `carbohydrates 16.27` while taking the
+  mod's `Calories 400`) and `phases.M4` (the client resolves a B42 `ItemName.json` name; the
+  **dedicated server** resolves none at all) are things each side *builds* — nothing is synced, so
+  neither belongs in [`../../docs/modding/patterns.md`](../../docs/modding/patterns.md)'s sync
+  tables and both live in its § Two facts that cross no wire at all.
+- **`phases.M7.mod_globals.client` is the highest-consequence row and it is incidental.** A mod's
+  `media/lua/server/` file executed in the **client's** Lua state, on three independent witnesses
+  in one session (`TKX_Nutrient.side` reading `client`, the per-tick counter at 58 client / 38
+  server, and `TKX_EatHook.wrapped` true client-side). The run was not designed to find it, the
+  mechanism was **not traced**, and the discriminating probe (one file per `client|server|shared`
+  folder, each writing its folder name into a global) is named in patterns.md KEEP 12 and handed to
+  slice 13.
+- **`m8` is a two-arm probe, and the arms are the point.** `+1500` kcal read `T / F / F` and
+  `−100` kcal read `F / F / T` for `isIncWeight` / `isIncWeightLot` / `isDecWeight`, identically on
+  both sides — the arms slice 11 could not reach. Both arms were read back after a measured
+  **8.004 s** wait (`m8.wait_s 8.0`, `m8.cadence`), and `nutrition.set calories −100` was **not
+  clamped** (−102.5664 server, −102.10 client).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1`.** One session, build 42.20.4, fixture `default`, three mods we wrote, one character, one machine. Per-arm counts are smaller still: one item for the merge rule, one eat for `OnEat`, one transmit per direction. |
+| `phases.M4.text.client.*` / `phases.M4.text.server.*` — every `text.get` reading of this run | four keys, all `miss: true` | **Wrong key form, and no positive control.** The probe asked the **prefixed** form `ItemName_<type>`, and the vanilla control `ItemName_Base.Apple` missed too — so this run cannot separate "the key form is wrong" from "the route does not reach item names". The graded reading is `x124-20260911-035819` → `phases.O5`, which asked the **bare** form as well and still missed on both sides (nine keys across the two runs), with slice 10's client-side `IGUI_` hit (`291f977`) as the out-of-run control. The rule is [`../../docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § 5's. |
+| `verdicts.M7`, and P9's **server → client** item-modData direction | `as_predicted`, `TKX_fibre` true on both sides | **No hop was exercised.** Both sides already held `TKX_fibre` when the phase opened and `observed.itemWrites_server` is **0** — the verdict grades a *state*, not a crossing. The server→client **item**-modData direction is un-run and is named as slice 13's probe (patterns.md § Open pattern questions). |
+| `verdicts.M6.observed.join`, read as a route — "the join handshake carried it" | client keys at `client_since_ready 2.785` already include `TKX_fibre` | **The carrier was not measured.** The client held the key before the phase's transmit; nothing traced which packet put it there, and no control excluded the mod's own client-side write (its `server/` file runs client-side — see `phases.M7`). Cite `verdicts.M6.observed.after` and `client_only_after_less_rewrites` (`[]`) for the transmit's wipe-and-replace, and nothing at all for the earlier arrival. |
+| `verdicts.M6`'s **verdict string** | `trivial` | It grades **P8's premise** (a key present server-side only), which failed — not the direction. The measured statement is in `observed.after`: the client's table became the server's once `TKX_fibre_client`, the key the client's own mod rewrites every tick, is set aside. |
+| `getActualWeightUnmodded` in `phases.M4.items.*.witness.*.fields` | `0` on both sides | **Not a weight fact.** `Food.getActualWeightUnmodded` returns 0 whenever `getDisplayName()` is not the vanilla name — it is slice 09's display-name guard, read here only as part of the `witness.fields` set. Weight facts are `getActualWeight` and the `m8` flags. |
+| `phases.M3` / `verdicts.M3`, read as a general ordering rule | `getCalories 111`, verdict `falsified` | **A reading, not a rule.** 111 is the body of the mod *earlier* in `Mods=`, which kills "`Mods=`-last wins" and nothing else: four rival orderings survive it. The settled rule — sorted by the stored script path (C), `Mods=`-independent (M), last body wins per key (M) — is `x125-20260911-042055` and [`../../docs/modding/item-overrides.md`](../../docs/modding/item-overrides.md) § Load order between two mods. |
+| the `text.get` **null guard** (`5d9633f`), read as "confirmed" | 0 replies carrying `null: true` | **Untriggered, not confirmed.** No key in this run (or in `x124`) returned a Java null, so the guard's branch never executed. It is code that has not yet been exercised. |
+
+**`x122-20260911-032326/platform-loader.json`** — produced by
+`testing/experiments/x122_loader.py` at commit `73e1fd6` (75.6 s wall, no `error` key,
+`server_error_count 0`, `client_lua_error false`; 46 035 bytes, sha256 `628ace2e…2149adb`,
+byte-for-byte identical to the run copy). Slice 12's session 2: the `common/`-vs-version-dir merge
+rule re-run on a subject **we** control, plus the arm KEEP 10's bound used to exclude. **Skew-free**
+— driver and artifact in one commit on harness Lua at `5d9633f`, clean, with `doctor_clean true`
+and `acceptance_run run-20260911-031417` in the file. The log readings replicate across both boots
+(this session and the acceptance run).
+
+- **Provenance — the profile.** `testing/profiles/x12-loader.toml`: `fixture = "default"`,
+  `Mods=PZTestKit;TKX_LoaderVersion;TKX_CommonOnly`, **no `[sandbox]`**, one tier-(a) `[[verify]]`
+  row — client `lua.global TKX_LoaderVersionTree`, a file with **no `common/` counterpart**, so it
+  loads under either merge direction, which is what makes it a gate and not a discriminator.
+  `TKX_CommonOnly` is deliberately ungated: whether a version dir with no `media/` still lets
+  `common/` load is the measurement.
+- **Provenance — the mods.** `tkx-loader-probe` (mod D: a `42.20/` and a `common/`, each with its
+  own `mod.info` declaring a **different** id, and the same relative path
+  `media/lua/shared/TKX_Loader_Which.lua` in both trees) and `TKX_CommonOnly` (mod E: a `42.20/`
+  holding **only** a `mod.info`, the whole payload under `common/`). Both are `path =` mods from
+  `testing/experiments/` at commit `f36a860`.
+- **The two independent halves.** `summary.L2_which` (`version` on both sides) is the *resulting
+  Lua state*; `summary.L2_trees` (the `common/`-only and version-only markers **both** resolving)
+  says `common/` still ran. `phases.L2.reading.overrides_tails` is the *loader's own map*: one
+  `mod "<id>" overrides <relpath>` line per shadowed file **per Lua state** — server 1, client 2 —
+  with the tail a lower-cased relative path.
+- **The new arm is `phases.L3.reading`.** `loading TKX_CommonOnly` printed (server 96, client
+  86/166), the `common/media` payload global resolved on both sides and no `required mod … not
+  found` appeared. KEEP 10's bound therefore now reads "a version dir that ships colliding files,
+  **or none at all**". The arm still untested is a version dir that ships `media/` colliding with
+  *nothing*.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session** (two boots of the same profile), one build, one purpose-built mod pair. What is at n = 2 is the *merge direction*, and only because `td3-20260911-001948` measured it on a workshop mod first. |
+| `phases.L1` / `verdicts.L1`, as evidence about **id resolution** | `trivial`; `loading TKX_LoaderVersion` server 1 / client 2, `loading_common` 0 | **Degenerate by construction.** `Mods=` named `TKX_LoaderVersion` *and* the installed folder was named `TKX_LoaderVersion`, so the announce cannot separate "resolved through the version dir's `mod.info`" from "matched the folder name". `x123-20260911-034426` / `x123b-20260911-034500` are the boots that separate them. |
+| "`TKX_LoaderCommon` was registered into `modIdToDir`" | `summary.L1_loading.common_id_mentions` `{server: 0, client: 0}` | **Unobserved, not confirmed — in either direction.** Zero mentions of the `common/` id in either log says the engine never *printed* it. Nothing here reads engine state, so it is neither evidence that the id was registered nor that it was not. The addressability question is `x123b`'s. |
+| anything about **folder-name** resolution | — | Not exercised: this mod's folder name equals the version dir's id. `boots.drift` in `x123-20260911-034426` is the folder-drift reading. |
+| `server_error_count: 0` / `summary.lua_error_hits`, read as "the log holds no `ERROR` lines" | `0` | It means **0 non-baseline** lines. `testing/pzt/server.py`'s `BASELINE_NOISE` whitelists the media-walk lines, and the raw server log holds **68** lines matching `ERROR`. Quote "no non-baseline server errors". |
+| the `common/`-enumerated-first lines, read as the `activeFileMap` pass | the walk lines in `greps.loader_wide` | They are `AdvancedAnimator.loadModMedia`'s **media walk** frames, not the `activeFileMap` pass. The enumeration order of the map pass is a jar read (**C**, [`../../docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § 3), and the same caveat applies to `phases.L3` as to `phases.L2`: the outcome is proven, the mechanism is the jar. |
+| `greps.commononly_wide` counts, quoted per mod | substring `tkx_loadercommon` | The pattern also matches **`TKX_LoaderCommonTree`**, the probe's own global, so a count mixes the mod id with the marker. A later driver should use `tkx_loadercommon(?![a-z])`. Two more frozen-driver notes: `TAIL_RX`'s id class excludes digits, so an unparsed `overrides` line vanishes from `tails` silently (reconcile `len(tails)` against `count`), and `media_trees_walked` is a **sorted set** — walk order survives only in the `wide_hits` line numbers. The file holds **one** doctor snapshot, not one per boot. |
+
+**`x123-20260911-034426/platform-folder.json`** — produced by
+`testing/experiments/x123_folder.py` at commit `ef1f678` (68.4 s wall; 54 862 bytes, sha256
+`3e2246a7…a09daa4`, byte-for-byte identical to the run copy). Slice 12's session 3: the folder-drift
+counterfactual `docs/testing/profiles.md` § Open questions 6 had recorded as *not run*, plus the
+requested-id lookup of its § Open questions 1. **One driver, two boots, one file** — boot (a) is
+this run id (`boots.drift`), boot (b) is **`x123b-20260911-034500`** (`boots.common_id`) and has no
+folder of its own; `summary.run_ids` names both. **Skew-free** — driver and artifact in one commit
+on harness Lua at `5d9633f`, clean (`commit`, `harness_lua_commit`, `harness_lua_dirty false`,
+`session_2_run x122-20260911-032326`). **Server only: no client was attached to either boot.**
+
+- **Provenance — the profile.** `testing/profiles/x12-loader.toml` again (session 2's), with the
+  driver renaming the installed folder and rewriting the ini's `Mods=` line between boots:
+  (a) folder `TKX_DriftedFolder`, `Mods=PZTestKit;TKX_LoaderVersion;TKX_CommonOnly`;
+  (b) folder `TKX_DriftedFolder2`, `Mods=PZTestKit;TKX_LoaderCommon;TKX_CommonOnly`
+  (`summary.listings`, `summary.ini_mods_lines`). Both listings and both ini lines are in the file.
+- **`session.verify` is deliberately not called**, and the file says so in `verify_skipped`: every
+  `[[verify]]` row of `x12-loader` is client-side and this session attaches no client, so each row
+  would have recorded `no client attached` — neither a pass nor a fail. The bus readings carry the
+  equivalent weight on the side that exists (`ping` → `pong` in 1.51 s, `TK.version` 1, 10/10 echo
+  checks with no client attached, which is itself a harness fact).
+- **The pair is the evidence.** (a) loads under the **version dir's** id although the folder name
+  matches neither id — `loading TKX_LoaderVersion` at server log 94, the `overrides` line at 95,
+  `TKX_LoaderWhich == "version"`, both tree markers resolved. (b) **fails** under the
+  `common/mod.info` id — `required mod "TKX_LoaderCommon" not found` at server log **93**, zero
+  `loading` / `overrides` lines, all three probe globals unresolved. Write the operational form:
+  *for the requested-id lookup only the version dir's `mod.info` id is addressable; a folder
+  carrying both `mod.info` files answers to one id.*
+- **Id resolution is a pass that completes before any mod loads** — (b)'s WARN at log 93 precedes
+  the first `loading` line, while (a)'s `loading` lines follow `Mods=` order exactly. n = 2 boots.
+- **The top-level `server_errors` key is boot (b)'s**, whichever server was current at the last
+  save; the file says so in `server_errors_note`. **Per-boot `boots.*` is authoritative.**
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` probe per boot**, one build, the **dedicated-server** path (`Mods=` → `ZomboidFileSystem.loadModAndRequired`), server only. The **client's own mod-list call site** — `ChooseGameInfo.getModDetails` reached from the mod selector — was never exercised and is named as slice 13's check. |
+| `verdicts.P17`'s clauses 2 and 3 — the `overrides` line and the media mapping under the requested id | `parts` null; `observed.media_trees_walked.TKX_DriftedFolder2` `[]` | **Never exercised.** The boot failed at the requested-id lookup, so those clauses had nothing to run against. Four P17 clauses are null, not three. |
+| the empty `media_trees_walked` for the probe folder, read as "the folder was never scanned" | `[]` | **Entailed, not measured.** Media mapping happens only for mods that load, so an unloaded mod walks no tree by definition. This cannot separate "scanned and rejected" from "never scanned"; corroboration only. |
+| "every `mod.info` is registered" / "only one id is registered into `modIdToDir`" | — | **The run measures addressability, not the map.** Nothing here reads engine state. The measured statement is the operational one above; the mechanism (`ChooseGameInfo.readModInfoAux` parsing exactly one file) is **C**, in [`../../docs/modding/anatomy.md`](../../docs/modding/anatomy.md) § Code map. |
+| `subjects`, read as the declared ids | a file census per subject (paths, `commit`, `dirty`) | **It lists files, never ids.** The two declared ids are in `testing/experiments/tkx-loader-probe/common/mod.info` and `.../42.20/mod.info` at commit `f36a860`; cite those beside the reading. Future drivers should record the id per tree. |
+| the post-pair `doctor` / tree-clean claims | — | Not in this artifact. Only the pre-run state is recorded. |
+| a folder whose **only** `mod.info` is `common/mod.info` | — | **Untested here.** Both boots used a folder carrying **both** files. 4 installed mods have the `common/`-only shape and only AutoCook has booted (`td3-20260911-001948`); the purpose-built probe is slice 13's. |
+| `verdicts.P17`'s grading path, as a general instrument | `falsified` | Frozen-driver note: the grading at `x123_folder.py` ~:900 would have written `falsified` even if `a_found` were `None`. It did not fire here (boot (a) found the mod), but the latent defect is worth knowing before the driver is copied. |
+
+**`x124-20260911-035819/platform-order.json`** — produced by `testing/experiments/x124_order.py`
+at commit `f6c336e` (81.7 s wall, no `error` key, `server_error_count 0`, `client_lua_error false`;
+63 642 bytes, sha256 `097bfb10…d190c9a`, byte-for-byte identical to the run copy). Slice 12's
+session 4, added by the controller after session 1 read a number **two** rules predicted: which
+`item` body lands last when several mods redefine the same item, and — on the way past — whether
+`getText` reaches an item name on either side. **Skew-free** — driver and artifact in one commit on
+harness Lua at `5d9633f`, clean, `doctor_clean true`, `acceptance_run run-20260911-035203`.
+
+- **Provenance — the profile.** `testing/profiles/x12-order.toml`: `fixture = "default"`,
+  `Mods=PZTestKit;TKX_ZWatermelon;TKX_ItemOverride;TKX_EatHook`, **no `[sandbox]`**, two tier-(a)
+  `[[verify]]` rows (server `item.script TKX.FibreBar`, client `lua.global TKX_EatHook.version`),
+  both `ok=True`. `TKX_ZWatermelon` (mod F) is **ungated on purpose** — it ships no Lua and no new
+  item, and the obvious `item.script Base.Watermelon` row would pass with the mod absent because
+  vanilla defines Watermelon. It is gated at **tier (c)** instead, recorded in `f_tier_c`: folder
+  copied, `mods_not_found` empty on both sides, `loading TKX_ZWatermelon` at server log 94.
+- **The reading.** `Base.Watermelon` `getCalories` **999** on all three routes — client
+  `witness.fields`, server `item.get`, server `witness.fields` — with the four other macro keys
+  invariant on both sides (`summary.O1_watermelon_calories`, `summary.O1_invariant_ok`). The
+  loader's own `loading <id>` lines still walk `Mods=` order (94/96/99).
+- **What 999 kills, and what it does not.** `Mods=`-last-wins is falsified here and was already
+  falsified in `x121` (n = 2). What 999 **cannot** separate is alphabetical-by-id, by folder name,
+  by script path and first-in-`Mods=`-wins: `TKX_ZWatermelon` is simultaneously alphabetically last
+  and `Mods=`-first, so all four predict it. The discriminator is session 5
+  (`x125-20260911-042055`).
+- **`phases.O5` is the graded `text.get` reading of the slice.** Bare `Base.Apple`,
+  `TKX.FibreBarJson`, `TKX.FibreBarNamed` and the prefixed controls all returned a genuine miss
+  (`miss: true`, `text == key`, no `null`, no `error`) on **both** sides, while `x121` read
+  `getDisplayName() == "TKX Fibre Bar Json"` off the instance for the same item. A dedicated
+  server's `text.get` **answers** — the route exists there; it is simply not the route to an item
+  name.
+- **Three empty-tail `overrides` lines per Lua state** (server 95/97/100, client 85/87/90 and
+  169/171/174) — one per mod, all three of them `common/`-less, with `PZTestKit` (also
+  `common/`-less, loaded first) printing none. The mechanism is slice 11's re-reading
+  (`td3-20260911-001948`; `ZomboidFileSystem.loadMod` L754-L755 / L769-L770, `getRelativeFile`
+  returning `""`), not slice 09's first sighting.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session**, one build, three mod bodies, one item. |
+| `summary.O1_means` and `summary.O1_body_that_won.{client,server}.means` | "replay is ALPHABETICAL BY ID with per-key last-wins; `Mods=` position is irrelevant to which body lands last" | **The driver's own over-reading, frozen in the file.** Four rival rules predict 999 in this `Mods=` order (alphabetical by id, by folder name, by script path, and first-in-`Mods=`-wins), so this run selects none of them. The settled rule is "**sorted by the stored script path** (C), `Mods=`-independent (M, two permutations plus `x121`), last body wins per key (M)" — `x125-20260911-042055` and [`../../docs/modding/item-overrides.md`](../../docs/modding/item-overrides.md) § Load order between two mods. Do not write "question 7 settled" from this file. |
+| `summary.O2_script_file_order` / `summary.O2_script_file_hits`, read as a **replay** order | `["tkx_zwatermelon"]`; server 6 / client 8 hits | **Those are loader and `NoSuchFileException` lines that merely contain the mod id**, not script-path lines. `verdicts.O2` is `unmeasured` for that reason (its honest grade is `trivial` — zero true script-path lines), and the "8 hits" figure is a *reading-time* re-grep that includes the harness's own echoes; the boot-time count is 6. The one citable form is the negative: **the engine prints no script path at default verbosity** (direct grep, n = 3 sessions). |
+| any `phases.O5` reply, read as evidence about the **`ItemName` table** | nine keys, all `miss: true` across `x121` + `x124` | It is evidence about the **`getText` route**, not about whether the table is populated: `x121` read the JSON display name off the *instance* in the same build. And this run carries **no in-run positive control** — every key missed — so soundness rests on slice 10's client-side `IGUI_SS_BARTITLE_HAPPY` hit (`291f977`), a different session on an earlier harness shape. |
+| the empty-tail `overrides` lines, read as truncation or as a real collision | `mod "TKX_ZWatermelon" overrides ` and two more | **Neither.** They are the known empty-tail line: a `common/`-less mod's non-directory branch in `searchFolders` with `getRelativeFile` returning `""`. Cite it as a second and third instance, with slice 11's mechanism. |
+| `verdicts.P19` | `falsified` | The verdict word grades **the plan's prediction** that `getText` would reach the name, not the reading. The reading is `phases.O5` and it is a clean, bounded negative on both sides. |
+
+**`x125-20260911-042055/platform-order2.json`** — produced by
+`testing/experiments/x125_order2.py` at commit `6549e4a` (75.7 s wall, no `error` key,
+`server_error_count 0`, `client_lua_error false`; 67 727 bytes, sha256 `3b874318…a47695e`,
+byte-for-byte identical to the run copy). Slice 12's session 5, the **discriminator** session 4
+earned: the same three mod bodies in a different `Mods=` order, chosen so that the three surviving
+rules name three different numbers. **Skew-free** — driver and artifact in one commit on harness Lua
+at `5d9633f`, clean, `doctor_clean true`, `acceptance_run run-20260911-041437`.
+
+- **Provenance — the profile.** `testing/profiles/x12-order2.toml`:
+  `Mods=PZTestKit;TKX_ItemOverride;TKX_ZWatermelon;TKX_EatHook` — `TKX_ZWatermelon` in the **middle**
+  of `Mods=` and **last** alphabetically — `fixture = "default"`, **no `[sandbox]`**, the same two
+  tier-(a) rows as `x12-order`, both `ok=True`, with mod F ungated and gated at tier (c) by the
+  driver (`f_tier_c`).
+- **The design, stated in advance and in the file.** 999 ⇒ the body that sorts last; 111 ⇒
+  first-in-`Mods=` (a reverse-`Mods=` replay); 777 ⇒ `Mods=`-last (falsified twice already, so a 777
+  would have reopened the whole line). `candidates`, `prior` and `still_confounded` record all of it
+  before the reading.
+- **The reading.** `Base.Watermelon` `getCalories` **999** on all three routes, the four other macro
+  keys invariant on both sides (`summary.O1_watermelon_calories`, `verdicts.P20` `as_predicted`).
+  The loader's own `loading` lines still walk `Mods=` (server 94/97/99; client twice, 84/87/89 and
+  168/171/173) — `summary.loading_lines.matches_mods_order` is `true`, which is the point: the
+  announce order and the replay order are **different orders**.
+- **What is settled, and how to word it.** "Script bodies are replayed in a **sorted** order that is
+  **`Mods=`-independent**, with **last body wins per key**." The sort key is **C**, from the jar:
+  `ScriptManager$38.compare @67-@71 L1497` is `String.compareTo` on the full **stored path**
+  strings, and `ScriptManager.searchFolders @93-@114 L1208-L1209` stores
+  `getRelativeFile(uri, abs).toLowerCase(ENGLISH)` relative to the version dir or `common/` — **no
+  mod component in the key**; `L1500-L1502` sorts the vanilla and mod lists separately and
+  `addAll(vanilla, mods)`, so vanilla is always first. Two rivals die on the jar alone: a tie plus a
+  stable sort would have given `Mods=` order (777), and file size (2430 / 1293 / 640) would have
+  given 111 or 777.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session**, one build, the same three mod bodies as session 4 in a second permutation. |
+| `summary.O1_body_that_won.*.means`, `summary.O1_means` and `verdicts.P20.observed.means` | "ALPHABETICAL-LAST wins" / "the body replayed last is the one whose id sorts last" | **They name the wrong key.** Measurement cannot separate sort-by-**id** from sort-by-**folder name**, by **script path** or by **`mod.info` display name** — all four sort identically in every boot this library ran. The jar names the key and it is the **stored script path** (C, above). The id-vs-path boot (a mod whose id sorts last while its script file sorts first) is the named check, handed to slice 13. |
+| "`Mods=`-independent, n = 3 boots" | — | The independence clause rests on **two permutations of the same bodies** (the winner held `Mods=` slots 1 and 2) plus `x121`'s independent kills. Write "n = 2 permutations + x121". |
+| `verdicts.O2` / the script-path grep, read as a replay order | `trivial` | Same as `x124`: the engine prints no script-path lines. The citable form is the negative — "no script path is printed at default verbosity", direct grep, n = 3 sessions. |
+| `summary.O3_foodByModule`, read as a fourth redefinition boot | `Base` 722 / `TKX` 3 | The baseline is `exp05-20260910-084109`, not a redefinition boot. Write "722 in all three redefinition boots against the `exp05` baseline". |
+| `testing/profiles/x12-order.toml:11` ("999 ⇒ alphabetical-by-id") and `x12-overrides.toml:2` ("`Mods=` order is LOAD order, and it is load-bearing here") | — | **Frozen with their artifacts and falsified for script bodies.** They are the predictions the runs were measured against; the profiles are not edited. Cite this run and item-overrides.md § Load order, never the comments. [`../profiles/README.md`](../profiles/README.md) says so on both rows. |
+| `classify()`'s file/mod-id split, if this driver is copied | — | Frozen-driver notes: `x125_order2.py` ~:688 admits a mod-id-only line when the line also carries a `media/scripts` path (`is_file = bool(m) or in_scripts`) — it did not fire here; `grep_numbered` ~:427 classifies a 200-character truncation as a hit; and the re-classification of `x124`'s hits (0 true file hits) is true but is recorded in **no** artifact key. |
+
+**`x126-20260911-045205/platform-pcall.json`** — produced by `testing/experiments/x126_pcall.py`
+at commit `72b6355` (119.9 s wall, no `error` key, `client_lua_error false`; 54 212 bytes, sha256
+`ef67191e…88423cf`, byte-for-byte identical to the run copy). Slice 12's session 6, added by the
+controller to measure **this library's own standing rule** — "a Kahlua nil call escapes `pcall` and
+kills the whole handler" — which rested on `exp01-20260909-235420`, a run with no committed
+artifact, while the jar read the other way twice over. **Skew-free** — driver and artifact in one
+commit on harness Lua at `5d9633f`, clean, `doctor_clean true`,
+`acceptance_run run-20260911-044417`, and the file additionally records
+`harness_lua_commit_expected` / `harness_lua_commit_matches`.
+
+- **Provenance — the profile and the probe.** `testing/profiles/x12-pcall.toml`:
+  `fixture = "default"`, `Mods=PZTestKit;TKX_PcallProbe`, **no `[sandbox]`** (so `EveryOneMinute`
+  fires every 3.75 real s), one tier-(a) row — client `lua.global TKX_P.version`, assigned in the
+  table constructor on the file's first line, so it answers 1 the moment the file has run at all.
+  The **server side is ungated on purpose**: the probe is a single `shared/` file, so whether the
+  server VM runs it too is itself a reading (`TKX_P.side`). Mod G `TKX_PcallProbe` registers four
+  handlers on one event: a counter, `pcall` on a global that is never defined, a second counter
+  **behind** it, and `pcall(error, "boom")` as the control.
+- **The reading, two passes 12 s apart, both sides.** `ok` `"false"` and `err`
+  `"tried to call nil java.lang.RuntimeException"` — byte-identical per side — with `tail` advancing
+  (client 3, server 15) and `behind` equal to `tail` on pass 1. The control held (`ctrl_ok`
+  `"false"`, `ctrl_err` carrying `KahluaException boom`) and H0 fired (`before` 2 / 14). Real key
+  paths: **`phases.reads.<side>.values.*`** (or `summary.values.<side>`) and
+  **`verdicts.P21_client` / `verdicts.P21_server`** — not `readings.*` / `verdicts.P21`.
+- **So the first half of the rule is wrong, and the guard survives for a different reason.** The
+  quoted string is exactly what `pcall` **returns**. The jar confirms there is a real raise to catch
+  (`KahluaThread.call(I)I @14-@23 L139`, `@25 ifnonnull 40`, `@30-@39 L142` `new RuntimeException` /
+  `ldc 'tried to call nil'` / `athrow`; `pcall(I)I` invokes `call` at `@80-@85 L1740` inside its try
+  and the `Throwable` arm at `@189 L1758` builds `getMessage()` + `getClass().getName()`) — so "a
+  raise was caught" is the correct wording, and the **full** string, message *and* class name, is
+  what to quote. `TK.call` / `tkxCall` stay because the catch **names nothing**
+  (`names_the_global: false`; the engine logged nothing at all).
+- **Bound.** This probe measured `pcall(<nil function argument>)` — the shallow arm, originating in
+  `call(I)I @30-@39` **before** `pushNewCallFrame` and the nested `luaMainloop`. The nested shape
+  and the unguarded raise are session 7 (`x127-20260911-052049`).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session**, two passes, one build, one probe shape. |
+| `server_error_count: 4` and the four `server_errors` entries | 4 | **A harness classifier artefact — zero engine faults.** `ERROR_RX` (`testing/pzt/server.py:15`) is applied at `:253` to every non-indented server line no `BASELINE_NOISE` pattern whitelists, and there is no PZTK-echo pattern: all four entries are verbatim `PZTK: cmd #N lua.global -> …` echoes of **this driver's own bus replies**, which happen to carry the exception string it was reading. Any session whose readings quote an exception inflates the number the same way. Read `server_errors` itself. |
+| the engine's log silence, read as evidence about **unguarded** raises | 0 hits for `TKX_DefinitelyNil`, `attempted to call`, `ExceptionLogger` | **No unguarded raise occurred here.** Silence is a property of the *caught, argument-slot* shape. `x127-20260911-052049` measured the unguarded and nested shapes, and there the engine logs the raise **in full** (73 + 73 trace blocks). |
+| a pass's fields, read as an atomic snapshot | client `before` 2 < `tail` 3 on pass 1 | **Each `lua.global` field is its own bus round-trip.** A fire can land between two reads: on pass 2 `behind = tail + 1` on both sides (client 11/12, server 23/24). Compare **adjacent** fields (`behind` against `tail`), and read the per-side advances (`before`/`tail`/`behind`: client +9/+8/+9, server +8/+8/+9) rather than differencing across the passes. |
+| `err`, quoted as the message alone | `tried to call nil java.lang.RuntimeException` | Quote the **whole** string. It is `getMessage()` concatenated with `getClass().getName()`; this library's old rule quoted only the message half, which is part of why the two readings were ever confused. |
+| `summary.branch` / `verdicts.P21_*`, read as settling the rule's **second** half | `i_pcall_catches`, `as_predicted` | This run settles the first half only. "Kills the whole handler" was **unmeasured** until `x127`, where it turns out to be **right** for the handler's own body and **wrong** for the handlers behind it. |
+
+**`x127-20260911-052049/platform-raise.json`** — produced by `testing/experiments/x127_raise.py`
+at commit `5d3f22d` (355.1 s wall; 179 849 bytes, sha256 `52427aca…03c91e5`, byte-for-byte identical
+to the run copy). Slice 12's session 7, the follow-on `x126` earned: the **nested** `pcall` shape and
+the **unguarded** raise. **Skew-free** — driver and artifact in one commit on harness Lua at
+`5d9633f`, clean, `doctor_clean true`, `acceptance_run run-20260911-050339`. This is the only run of
+the slice whose acceptance result is a **FAIL**, and that is the harness working:
+`acceptance_result` is `FAIL: 970 server error lines; lua errors on admin`, because the exit code
+needs zero non-baseline server errors and the probe raises on purpose. Keep the run and grade off
+the artifact.
+
+- **Provenance — the profile and the probe.** `testing/profiles/x12-raise.toml`:
+  `fixture = "default"`, `Mods=PZTestKit;TKX_RaiseProbe`, **no `[sandbox]`**, one tier-(a) row —
+  client `lua.global TKX_R.version`. Mod H `TKX_RaiseProbe` is a single `shared/` file registering
+  four handlers on one event: a counter, the nested shape `pcall(function() SomeNil() end)`, an
+  **unguarded** `TKX_DefinitelyNilThree()` with a tail counter after it, and a counter registered
+  **behind** the raising handler.
+- **Server VM — the three readings.** The nested shape **catches**: `nested_ok "false"`,
+  `nested_err "Object tried to call nil in pcall java.lang.RuntimeException"`, `nested_tail`
+  advancing 54 → 71 — so `KahluaThread.pcall`'s try covers the nested `luaMainloop`, not only the
+  argument slot. The unguarded raise **aborts the rest of its own handler's body**: `raw_tail "0"`
+  on both passes after ~70 fires. The handlers registered **behind** it still run: `behind` 55 → 72,
+  in lockstep with `before` — `Event.trigger`'s per-callback `protectedCallVoid` inside
+  `catch (Throwable)` (**C**, `@194-@198 L41-L42`, `@216-@219 L31`), confirmed live. Real key paths:
+  `phases.reads.server.values.*`, `second_pass.reads.server.values.*`,
+  `second_pass.deltas.server`, `verdicts.P22_server`,
+  `phases.classification.server.{gates, readings.err}`; the two passes are **65 s** apart (server
+  pass 2 opened at wall 274.97 against 209.75, ≈ 17.4 game minutes, coherent with Δ17).
+- **Client VM — the freeze, and its cause is citable.** The `-debug` harness client reached
+  `in_game`, printed **one** complete trace, and then stopped: console dead at its last line,
+  `ready` never printed, the bus never answering a single command, the process still alive
+  (`client_ready`, `summary.client_bus_answered false`, `bus_dead.client true`). Identical on **two**
+  independent boots. The cause is **C confirmed by M**: `KahluaUtil.fail(String)` takes its
+  `Core.debug` arm at `L95`, prints `Lua fail. Message: %s` at `L96` and calls
+  `UIManager.debugBreakpoint` at `L97` — **before** the throw at `L100`; `debugBreakpoint` returns
+  at once on a `GameServer.server` (`L1183`, so no server ever breaks) and otherwise enters the
+  modal `UIManager.sync.begin()` pump. The measured signature is in
+  `phases.engine_log_signature.per_side`: **client 1 × `:96` and 0 × `:100`, server 356 × `:100` and
+  0 × `:96`** — the client's throw never ran. Negative control: `x126`'s same `-debug` launch never
+  touched `fail` (its raise is `call` L142's direct `athrow`) and stayed alive all session. So
+  guarded code is safe on a debug client; an unguarded raise, **or a nested-`pcall` raise the mod
+  catches**, is not.
+- **Both raises are logged in full.** 73 `in pcall` + 73 `in Add` engine hits, two `flushErrorMessage`
+  Lua dumps and a complete Java trace per raise. "Silent" applies **only** to `x126`'s argument-slot
+  shape, which never reaches `KahluaUtil.fail`. `luaMainloop` L763 → `fail` builds
+  `"… in " + closure.prototype.name`, which is why the message names `pcall` / `Add` and never the
+  global.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session** for the server readings (two passes), **n = 2 boots** for the client freeze; one build, one probe file, one raise family. |
+| every **client-side** reading | `phases.reads.client.*`, `summary.values.client` / `counters.client` (all `null`), `phases.classification.client.gates`, `verdicts.P22_client` `unmeasured`, `summary.h1_branch.client` / `h2_branch.client` `unmeasured` | **The client froze before it answered anything.** Zero hits for the H2 line say it never even reached the unguarded raise. Every client row of this session is `unmeasured`, and the verdict says so. |
+| `summary.sides_agree` | `false` | **One reading and one silence is not two readings.** The server answered and the client never did; there is nothing to agree or disagree with. |
+| `server_error_count: 892`, read as a fault **count** | 892 | Genuine engine output this time (0 harness echoes) — but the arithmetic is **10 entries per fire**: 4 `flushErrorMessage` heads, 4 bare `STACK TRACE` lines (`ERROR_RX` matches those too) and 2 `Exception thrown` lines, so 89 × 10 ≈ 892. Semantically it is "trace lines the probe caused", not events. The same caveat sits on `acceptance_result`'s `970`. |
+| `verify` / `verify_error`, read as a failed gate | `verify_ok []`, `verify_error "TimeoutError: no ack for #1 lua.global within 30s"` | **The gate never ran.** `verify` is asked after `client_ready`, and this client never became ready — so the single client-side row recorded a timeout instead of a pass or a fail. Gate a raising probe on the **server**. |
+| the freeze, read as **nested-`pcall`-specific**, or as "any Lua error freezes the debug client" | one trace, H1's | Both handlers route through `KahluaUtil.fail`, so the break is **shape-independent within that family** and H1 merely came first; and `x126` falsifies "any Lua error" outright. The live split is by raise **origin** — `call`'s direct `athrow` versus `luaMainloop` → `fail` — not by handler. The confound that remains is two raising handlers in one mod: one more session with the raises in **separate** mods settles which fired the break. |
+| **release**-client behaviour, and what sets `showLuaDebuggerOnError` | — | `Core.debug`-gated in the jar (**C**) and **unmeasured**. The follow-up is the same probe under a `debug=False` client — a harness launch-flag change, outside this slice's file scope and named in [`../../docs/modding/patterns.md`](../../docs/modding/patterns.md) § Open pattern questions. |
+| `probe.lines` as a pin into the probe file | `32` / `37` | Frozen line numbers: they re-point if `TKX_RaiseProbe.lua`'s header is edited. Re-locate by content. A second frozen-driver note: this session's `pzt run --hold 5` burned **384 s** because `x12-raise.toml` left `[client] timeout` at its 300 s default — a profile fix, not a harness defect (the wait **is** capped: `testing/pzt/client.py:211`, fed from `cli.py:157` and `profile.py:326`). |

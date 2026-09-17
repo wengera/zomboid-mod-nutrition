@@ -103,7 +103,11 @@ the jar reads the other way twice over (`KahluaThread.pcall`'s try covers the ne
 the table constructor on the file's first line, so it answers 1 the moment the file has run at all,
 whatever the handlers do. The other eight fields are the measurement and never gated, and the
 SERVER side is ungated on purpose: the file is `shared/`, so whether the server VM runs it too is
-itself a reading (`TKX_P.side`) rather than a boot requirement; and **`x12-raise.toml`** — slice
+itself a reading (`TKX_P.side`) rather than a boot requirement. **Outcome, for anyone reading this
+row later:** the rule's first half is **falsified** — `pcall(<nil>)` returns
+`false, "tried to call nil java.lang.RuntimeException"` on both sides
+(`x126-20260911-045205`); the guards stay because the catch names nothing. The rule and its bounds
+are `docs/modding/lua-api.md` § 5; and **`x12-raise.toml`** — slice
 12's session 7, the follow-on `x12-pcall` earned: PZTestKit + `TKX_RaiseProbe` (a single `shared/`
 file, `path = "testing/experiments/TKX_RaiseProbe"`) on `default` with **no `[sandbox]`** either.
 Session 6 measured `pcall(<nil>)` and found it **catches** on both sides — so nothing raised, and
@@ -116,6 +120,17 @@ the raise aborts its own handler's body and `Event.trigger` runs the rest of the
 tier-(a) row is client `lua.global TKX_R.version`, for the same constructor-line reason, and the
 server side is ungated for the same `shared/` reason; a raise in a mod's handler must not fail the
 boot, and if it does, that is the session's first reading rather than a profile error.
+**Two things this profile got wrong, kept here because the next raising probe should not repeat
+them.** (i) It left **`[client] timeout`** at its 300 s default, so `pzt run --profile x12-raise
+--hold 5` sat out the full wait plus teardown — **384 s** for a five-second hold — on a client that
+was never going to answer. The wait *is* capped per profile (`testing/pzt/profile.py`'s `[client]
+timeout` → `Client.wait_ready`); a probe that can hang the client should set it low. (ii) Its one
+`[[verify]]` row is **client**-side, and `verify` is asked only after `client_ready` — so when the
+client froze the row never ran at all and the session recorded a `verify_error` instead of a pass
+or a fail. **Gate a raising probe on the SERVER.** Both readings are in
+`docs/testing/README.md` § Observation; the freeze itself (the `-debug` client parks in the Lua
+debugger's modal break on the first mod Lua error that reaches `KahluaUtil.fail`) is
+`x127-20260911-052049` and is owned by `docs/modding/lua-api.md` § 5.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed

@@ -557,6 +557,17 @@ rows** have `mod_id != mod_id_fallback` — `mod_lint`'s `folder-id` INFO counts
 51 of them, because it cannot compare a folder against an id that does not
 exist.
 
+**Dated, and the live tree has since moved** (slice 12, 2026-09-11). Both counts
+above are this dataset's — the **2026-09-10 17:47** snapshot. At **2026-09-11
+04:47** Steam rewrote `3161951724/76chevyKseriesExpanded`'s `42.20/mod.info`,
+fixing an id typo, so a *live* sweep after that reads **51** drifting folders,
+not 52, and `python tools/mod_lint.py` reports `83 finding(s): 3 ERROR, 30 WARN,
+50 INFO` where this file's era reported `84 … 51 INFO`. Nothing in
+`data/mod-inventory.json` changes — it is a snapshot and is meant to be — but a
+count quoted from it must carry the snapshot stamp, never today's date. Both
+sweeps and the mtime evidence are in
+[`../docs/modding/anatomy.md`](../docs/modding/anatomy.md) § 7.
+
 **Everything except `bytes` describes the newest version folder only** — the
 one `layout` names — and that is a de-duplication rule, not a claim about what
 the game loads. A mod that ships the same scripts in `42.14/`, `42.20/` and

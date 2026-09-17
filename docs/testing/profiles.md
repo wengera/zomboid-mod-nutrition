@@ -1,6 +1,8 @@
 # Test profiles — one file per named combination under test
 
-**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-10 · slice 07 (T1).
+**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-10 · slice 07 (T1); § Open questions 1
+and the second half of § Open questions 6 **closed 2026-09-11** by slice 12's purpose-built
+loader boots.
 Evidence grades: **C** read from code (`file:line`, or `Class.method @addr Lline` for the jar),
 **M** measured on the live dedicated server (run id + artifact link), **W** wiki mirror (none is
 used here).
@@ -156,15 +158,19 @@ Three consequences the profile builder is built around:
   does (`profile.resolve_mod`, `profile.load`'s `sources[mod_id] = src`), and `harness.install`
   copies anything with a `src` to `<mods_dir>/<mod id>` — so no `[[mods]]` entry can reach the
   name-keeping fallback at all; `mods.install` belongs to the **plain, non-`--profile`** path
-  (`session.resolve_profile` passes no `mod_sources`). **Whether a run would still load a mod
-  left under its folder name is untested** (§ Open questions #6): the workshop tree itself is
-  full of drifting folders that the
-  game does load, which is evidence the loader keys on `mod.info` rather than on the directory
-  name — but nothing here has put a drifting folder into a `<mods_dir>` and started a server on
-  it, so the two claims are not in evidence together and this page asserts only the copy
-  behaviour. **52 of the 230 installed folders
-  drift** from their declared id; `mod_lint`'s `folder-id` INFO counts **51** of them, having no
-  id to compare against on the 52nd (`3782784855/Skill Recovery Journal` declares none anywhere).
+  (`session.resolve_profile` passes no `mod_sources`). **Whether a run would still load a mod left under
+  its folder name is now measured, and it would** — **M**, slice 12, 2026-09-11, run
+  `x123-20260911-034426` (§ Open questions #6): a probe folder renamed to match **neither** of
+  its declared ids loaded normally when `Mods=` named the version dir's `mod.info` id. So the
+  rename is a **convenience, not a requirement**, and the workshop tree's drifting folders load
+  for the reason the copy behaviour always suggested: the loader keys on the `mod.info` id, never
+  on the directory name. **52 of the 230 installed folders
+  drift** from their declared id, as `data/mod-inventory.json`'s **2026-09-10 17:47** snapshot
+  records them; `mod_lint`'s `folder-id` INFO counts **51** of them, having no id to compare
+  against on the 52nd (`3782784855/Skill Recovery Journal` declares none anywhere). *Date any
+  count from the live tree:* at **2026-09-11 04:47** Steam rewrote one item's `mod.info` and a
+  sweep after that reads **51** drifting folders
+  ([`../modding/anatomy.md`](../modding/anatomy.md) § 7 carries both stamps).
   So this matters for most of the corpus slice 08 picks from, and the slice-07 acceptance mod
   could not exercise it because its folder **equals** its id (`KeenPerception`). Slice 09's
   subject does — folder `LongTermPreservation4220`, id `SKITTLE_LongTermPreservation4220` — and
@@ -438,33 +444,54 @@ A profile is a **server-side** decision that the client inherits.
 
 ## Open questions
 
-1. **Does B42 read the newest version folder's `mod.info` first, then older ones?** The two
-   readers in this repo now agree that it does — `mod_lint.info_chain` and `pzt/mods.py:mod_id_of`
-   both take version folders newest-first by parsed tuple, then `common/`, then the root, and
-   `testing/tests/test_mods_resolution.py` holds them to it. What is *read from the engine* is
-   only the first half: `getModVersionDirName` picks the best `42[.x]/` for the running build
-   ([spikes.md](spikes.md):64). That the older folders are then tried in order is the model, not a
-   finding — which is why `mod-info-place` is a WARN. It matters on 6 installed mods, and on
-   `3774052732/SD_CC_TEST` a wrong model would change the mod's *id*. Slice 12's mod-anatomy doc
-   settles it from the engine.
+1. ~~**Does B42 read the newest version folder's `mod.info` first, then older ones?**~~
+   **CLOSED — M for the behaviour, C for the chain** (slice 12, 2026-09-11). Two boots of one
+   purpose-built probe folder carrying **two** `mod.info` files that declare **two different
+   ids**:
+   [`x123-20260911-034426`](../../testing/artifacts/x123-20260911-034426/platform-folder.json)
+   (`boots.drift`) and `x123b-20260911-034500` (`boots.common_id`, the same file).
 
-   **What the jar says, bounded (C, dumped 2026-09-11, slices 11 and 10's fix wave).** Two call
-   sites, and neither is version-first: (a) **discovery** — `ZomboidFileSystem.getAllModFoldersAux`
-   accepts a folder as a mod when `<mod>/common/mod.info` exists, **checked first** (`@124-151
-   L602`), *or* when `<mod>/<versionDir>/mod.info` does, resolving the two `media` roots only
-   afterwards (`@200-219 L607`, `@221-239 L608`); (b) **the id read** — `searchForModInfo` recurses
-   in **`File.list()` order** (`L708-L730`), neither version-first nor `common/`-first, and returns
-   the first `mod.info` **whose id matches the requested id** (not simply the first `mod.info`
-   found), registering every file it passes into `modIdToDir` (`L727`) and appending it to the
-   caller's list (`L728`). **The bound:** this is a jar read, not a reading of a running build, and
-   slice 11's subject could not discriminate (`AutoCook` ships exactly one `mod.info`), so **this
-   question stays open** and the three models — `mod_lint.info_chain` / `pzt.mods.mod_id_of`,
-   `getModVersionDirName`, and `searchForModInfo` — are still unreconciled. What the read *does*
-   settle is negative and now carries across the library: **any wording that says B42 reads the
-   version folder first, or that the first `mod.info` found wins, is wrong** — which is why
-   `mod_lint`'s WARN text was reworded to name its own model instead
-   ([`../mods-survey/teardowns/autocook.md`](../mods-survey/teardowns/autocook.md)
-   § Compatibility notes has the same read from the pass that took it).
+   **The answer, in operational form.** For the requested-id lookup **only the version dir's
+   `mod.info` id is addressable, and resolution is by id — never by folder name**. Boot (a) named
+   the **version dir's** id against a folder renamed to match neither id, and the mod loaded
+   (`loading TKX_LoaderVersion`, server log 94; the `overrides` line at 95; both tree markers
+   resolved). Boot (b) named the **`common/mod.info`** id against the same folder and the server
+   answered `required mod "TKX_LoaderCommon" not found` (server log 93) with zero `loading` lines
+   and all three probe globals unresolved. A folder carrying both files answers to **one** id.
+   Id resolution is also a pass that **completes before any mod loads** — boot (b)'s WARN precedes
+   the first `loading` line while boot (a)'s `loading` lines follow `Mods=` order exactly (**M**,
+   n = 2 boots).
+
+   **The chain is [`../modding/anatomy.md`](../modding/anatomy.md) § 2 and § Code map's, and is
+   not restated here.** In one line: `loadMods → loadModAndRequired → getAvailableModDetails →
+   getModDetails → readModInfo → readModInfoAux`, where `readModInfoAux` opens
+   `<versionDir>/mod.info` **if it exists** and `<commonDir>/mod.info` otherwise and parses
+   **that one file and nothing else**, while `getModDetails` registers **one id per folder**.
+
+   **The `searchForModInfo` reading this question used to carry is re-scoped to dead code, not
+   deleted.** `ZomboidFileSystem.searchForModInfo` — "registers every `mod.info` it passes and
+   returns the first whose id matches, in `File.list()` order" — is referenced on 42.20.4 by
+   nothing but its own recursive call, so it describes **no live call site**; it was a correct
+   reading of the method and a wrong reading of the platform (anatomy.md § Code map has the
+   whole-jar sweep). `getAllModFoldersAux`'s `common/mod.info`-first test stays true and stays
+   **discovery** — a gate, not the id read — which is why it never contradicted the version-first
+   answer.
+
+   **What follows for the lint.** `mod_lint.info_chain`'s model (newest version folder first,
+   then `common/`) is **vindicated for this lookup**; `mod-info-place` keeps its WARN and now
+   carries a bounded measured statement instead of an assumption (`tools/mod_lint.py`, reworded
+   at `df30c75`). The lint chain stays a **superset** of the engine's — it also tries older
+   version folders and the mod root — and over the installed corpus the two open the **same file
+   on 229 of 230** folders, differing only on `3396446795/MoodleFramework`, where both candidate
+   files declare the same id so **no id moves** (anatomy.md § Discrepancies 1).
+
+   **Still open, and both named as slice 13's.** (i) The **client's own mod-list call site**:
+   everything above was measured on the dedicated-server path (`Mods=` →
+   `ZomboidFileSystem.loadModAndRequired`), and `ChooseGameInfo.getModDetails` reached from the
+   in-game mod selector was never exercised. (ii) A folder whose **only** `mod.info` is
+   `common/mod.info`, as a purpose-built probe: **4** installed mods have that shape and only
+   `AutoCook` has booted (`td3-20260911-001948`), the other three resting on the jar fallback.
+
 2. ~~**`pzt scenario --profile` does not run the profile's `[[verify]]` probes.**~~ **Closed**
    (slice 07 final fix wave). `scenario.run` runs them once the client is ready, the same
    `session.verify` call `pzt run` makes; they land in `report["verify"]` and in the scenario
@@ -485,8 +512,21 @@ A profile is a **server-side** decision that the client inherits.
 5. **`[[verify]]` matches `expect` as a substring of the dumped JSON**, which is deliberately
    forgiving (it matches at any nesting) and therefore cannot express "not present" or a numeric
    comparison. A probe that needs either belongs in a scenario with a Python evaluator.
-6. ~~**Is the folder rename exercised?**~~ **First half closed M, second half C** — slice 09
-   (teardown pass 1), run **`td1-20260910-192457`**; the same profile's acceptance run
+6. ~~**Is the folder rename exercised?**~~ **CLOSED — both halves M.** The first half closed in
+   slice 09 (below); the **second half closed on 2026-09-11, slice 12**, run
+   **`x123-20260911-034426`**
+   ([`platform-folder.json`](../../testing/artifacts/x123-20260911-034426/platform-folder.json)
+   → `boots.drift`): the counterfactual the paragraphs below record as *not run* was run. A probe
+   folder installed as **`TKX_DriftedFolder`**, matching neither of the two ids it declares, was
+   named in `Mods=` by the **version dir's** `mod.info` id and **loaded normally** —
+   `loading TKX_LoaderVersion` at server log 94, the `overrides` line at 95,
+   `TKX_LoaderWhich == "version"`, both tree markers resolved, and both media roots walked under
+   the renamed folder (four `NoSuchFileException` lines). So **the rename is a convenience, not a
+   requirement**: resolution is by `mod.info` id, never by folder name, and the 52 drifting
+   workshop folders load for that reason. The differ-by-more-than-case subject the paragraph
+   below asks for is exactly what this probe was built to be. *(The rest of this entry is kept as
+   the record of how the question stood, and its "second half, C" grade is superseded by the run
+   above.)* Slice 09 (teardown pass 1), run **`td1-20260910-192457`**; the same profile's acceptance run
    `run-20260910-191842` showed the same listing, but its run directory is gitignored, so the
    committed artifact below is the citable reading. `harness.install` places a profile source at
    `<mods_dir>/<mod id>` while `mods.install` keeps the source folder's name — settled in code
@@ -592,6 +632,20 @@ A profile is a **server-side** decision that the client inherits.
   same profile's acceptance run is `run-20260910-191842` (PASS, 3/3 probes; not committed — its
   three `verify` readings survive in the session artifact). What the session was *for* is
   [`../mods-survey/teardowns/longtermpreservation4220.md`](../mods-survey/teardowns/longtermpreservation4220.md).
+- Measured runs (slice 12, 2026-09-11) — the two boots that **closed** § Open questions 1 and the
+  second half of § Open questions 6:
+  [`x123-20260911-034426`](../../testing/artifacts/x123-20260911-034426/platform-folder.json),
+  one driver and one file holding **both** boots — `boots.drift` (this run id: a folder renamed to
+  match neither of its two declared ids, `Mods=` naming the version dir's id → loads) and
+  `boots.common_id` (run id `x123b-20260911-034500`: the same folder, `Mods=` naming the
+  `common/mod.info` id → `required mod … not found`). Server only, no client attached, and
+  `session.verify` deliberately not called — the artifact's own `verify_skipped` key says why. The
+  jar chain both boots are read against is
+  [`../modding/anatomy.md`](../modding/anatomy.md) § 2 and § Code map; the provenance, the skew
+  statement and the *do not cite* table are
+  [`../../testing/artifacts/README.md`](../../testing/artifacts/README.md). The slice's other six
+  sessions (`x121`, `x122`, `x124`–`x127`) are profile subjects rather than profile evidence and
+  are listed in [`../../testing/profiles/README.md`](../../testing/profiles/README.md).
 - Spikes: [spikes.md](spikes.md) § T0 (the server's boot-time `SandboxVars` rewrite — a partial
   file is filled in with defaults and rewritten whole — and the warm boot of a restored fixture,
   13.4 s), § S1 (the ini's ports and RCON password survive that rewrite; its 57.2 s is a
