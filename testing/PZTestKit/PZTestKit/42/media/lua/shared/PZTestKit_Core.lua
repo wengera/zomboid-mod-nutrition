@@ -118,9 +118,21 @@ function TK.result(name, tbl)
 end
 
 -- ---- probing Java objects safely --------------------------------------------
--- Calling a method a Java object does not have raises Kahlua's "Tried to call nil", and in
--- PZ that is NOT recoverable with pcall: it escapes and kills the calling event handler
--- (measured, run exp01-20260909-235420 - the client stopped answering the bus entirely).
+-- Calling a method a Java object does not have raises Kahlua's "tried to call nil".
+-- `pcall` DOES catch that raise: it returns false plus the string
+-- "tried to call nil java.lang.RuntimeException" on both sides (measured 2026-09-11, run
+-- x126-20260911-045205). The older reading here - "it escapes pcall and kills the calling
+-- event handler", from exp01-20260909-235420, which left no committed artifact - is
+-- FALSIFIED in its first half and stays only as history.
+-- The index-first guard is kept anyway, for the two reasons the same sessions measured:
+--   * a CAUGHT nil call names nothing - no global, no file, no line, and the engine logs
+--     nothing - so "this build does not expose the member" and "the member threw" would be
+--     the same reply; the guard is what makes an absence visible (x126).
+--   * an UNGUARDED nil call aborts the rest of the handler body it fires in, which here is
+--     the bus poll, and on the -debug client it parks the process in the Lua debugger's
+--     modal break (x127-20260911-052049: server VM for the abort, two boots for the
+--     freeze). Handlers registered behind the raising one still run.
+-- The rule, both halves and their bounds: docs/modding/lua-api.md section 5.
 -- So probe by indexing first, exactly like the game's own ISItemEditPanel.lua:442.
 -- Returns (present, value).
 function TK.call(obj, name, ...)
@@ -210,9 +222,9 @@ TK.SCRIPT_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrates
 local SCRIPT_FIELD = { Calories = "calories", Carbohydrates = "carbohydrates",
                        Lipids = "lipids", Proteins = "proteins" }
 
--- `getScriptManager` is checked for nil BEFORE it is called: a nil global raises Kahlua's
--- uncatchable "tried to call nil" (see TK.call above) and would take the poll handler with
--- it rather than answer the bus. Both server files carry the same guard.
+-- `getScriptManager` is checked for nil BEFORE it is called: an unguarded nil-global call
+-- raises Kahlua's "tried to call nil" (see the note above TK.call) and aborts the rest of
+-- the poll handler's body rather than answer the bus. Both server files carry the same guard.
 local function scriptItem(fullType)
     if getScriptManager == nil then return nil, nil end
     local sm = getScriptManager()
@@ -553,7 +565,9 @@ end)
 -- ---- generic reflective witness (both sides, slice 08) -----------------------
 -- One command instead of a getter-specific one per mod: slices 09-11 probe fields nobody has
 -- named yet. Every read goes through TK.call, so a member this build does not expose lands in
--- `missing` instead of raising Kahlua's uncatchable "tried to call nil".
+-- `missing` instead of raising Kahlua's "tried to call nil" - a raise that pcall does catch
+-- but that names nothing, and that aborts the handler body when it is unguarded (see the
+-- note above TK.call).
 --
 -- witness.fields <player|item> <id> <getter,getter,...>
 --   <id> = username | "-" (the first online player) | fullType | "#<itemId>" | "<user>/<fullType>"
@@ -781,7 +795,7 @@ end)
 --
 -- It READS, and it never calls. A function is reported as the string "function" -- that it
 -- exists, and its type, never its result -- because calling an unknown global at unknown arity
--- is exactly the uncatchable Kahlua raise TK.call exists to avoid (the note at :120-125).
+-- is exactly the Kahlua raise TK.call exists to avoid (the note above TK.call).
 -- No Java surface at all: `_G` is Kahlua's own global table and the dotted walk is the game's
 -- own idiom -- `client/ISUI/ISXuiBuilder.lua:10-35` (`findFunction`) walks `_G` segment by
 -- segment, guarding each hop with `type(container[v]) == "table"`.
