@@ -7,6 +7,16 @@ later and nothing measured here was rewritten: slice 11 (2026-09-11, `td3-202609
 the below-gate probe this doc's appendix A2 named, and it **resolves** the client-copy question
 per arm (§ Two pass-1 follow-up controls).
 
+**Tree drift, noted 2026-09-17 (slice 13) — nothing below is re-cited.** Steam added a
+`42.20/` tree to workshop item `2867431511` on **2026-09-13**
+(`…/SimpleStatus/42.20/mod.info`, mtime 2026-09-13 16:53, read as read-only), so on 42.20.4
+the mod's **live** version folder is now `42.20/` — not the `42.16/` this teardown read and
+measured. Every `42.16/…` line cite below is therefore **drifted, not wrong when written**: it
+describes the tree as torn down on 2026-09-10, and the two copies are not the same file
+(`42.16/…/ISSSBar.lua` is 583 lines, `42.20/`'s is 589). Re-locate any such cite **by content**
+before quoting it elsewhere; the measured readings in this doc are unaffected, because the run
+they came from booted the `42.16/` tree.
+
 - **Workshop ID / mod ID(s):** item **`2867431511`**, one mod, declared id **`simpleStatus`**
   (`42.16/mod.info:2`). The **folder** is `SimpleStatus` — a **case-only** drift from the id,
   which `mod_lint` reports as `folder-id` INFO (exit 0, `0 ERROR / 0 WARN / 1 INFO`,

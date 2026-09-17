@@ -287,3 +287,78 @@ grep -n "slice 13\|wall map" docs/progress.md
 - `docs/modding/README.md` and `docs/modding/patterns.md` are updated in the same commit as the ledgers.
 - `testing/artifacts/README.md`: **conditionally, and only in the two cases that can arise.** (a) If the single live session of § Expected decision points was taken, its artifact gets a full Contents row (run id / file / driver / cited-by) plus any *do not cite* rows, in that session's own commit and named in the Task 5 commit's pathspec. (b) Otherwise the map mints no artifact and this file is **not** touched for new rows — but where the map cites an existing artifact heavily, append `slice 13 docs/modding/wall-map.md` to that row's **Cited by** cell and nothing else. Slice 13 never edits another row's evidence.
 - Commits: `Slice 13: moddability wall map` (Task 4) and `Slice 13: wall-map ripples and ledgers` (Task 5, whose pathspec gains `testing/artifacts/README.md` only when the case above applies), subject line only, no attribution, pathspec'd. **The slice does not push and does not flip the board.** Wave 4 continues with slice 14.
+---
+
+## Corrections applied (2026-09-17, Task 5)
+
+This plan's row inventory and experiment seeds were written **from the corpus before slice 12
+ran**, and the plan says so itself — *"This plan's row inventory is a prediction written
+from the corpus, not a finding"*, with *"the jar read disagrees with this plan's predicted
+verdict → the reading wins"* as its own expected decision point. The reading won **sixteen
+times**. **The plan text above is left as written**; this section is the authoritative delta.
+The reader-facing version is `docs/modding/wall-map.md` § Discrepancies; the evidence is in
+`.superpowers/sdd/13-wall-map/` — `jar-locks.md` (Task 1), `evidence-harvest.md` (Task 2),
+`gaps.md` (Task 3), gitignored and kept for review.
+
+### Seed rows overridden (§ Task 2 Step 3)
+
+| Plan row | Predicted | Shipped in the map | The reading that overrode it |
+|---|---|---|---|
+| **J3** (the item-pass row, § Task 2 Step 3 — not Task 1's § J3, which is the moodle surface) | **CAN** — "no checksum gate found" | **CANNOT** `-> X16` | there is one, and it is a **content** hash: `ScriptManager.Load @680 L1525` feeds **every loaded script file, mod files included** to `NetChecksum$Checksummer.addFile @0–@107 L39–L56` — `Files.readAllBytes`, an in-place compaction dropping every **CR** byte, one running MD5 — compared at `ChecksumPacket.parseServer @72–@84 L231`. A mismatch is a **disconnect** (`NetChecksum$Comparer.update @62–@85 L213–L215`) with a 60 s server-side AntiCheat arm, and a role holding `Capability.BypassLuaChecksum` clears it. **No arm has ever been measured** |
+| **D1** | **UNKNOWN** `-> X3`, with "do **not** carry this as CANNOT" | **CANNOT** (X3 struck) | registration is fine — the **level** is pinned at 0. `Moodle.Update()Z @0–@6 L93` presets the level to `MinMoodleLevel.ordinal()` and the 27 `if_acmpne` tests are **not** `else if`s, so an unmatched type falls through to the shared tail `@3291–@3293 L571`, which calls the **private** `updateMoodleLevel(0)` every tick; `moodleLevel` has no setter. Also **26** vanilla statics, not 27 |
+| **D2** | **CAN** `-> X2` — "`MoodleStat.get` + `setLowestThreshold`" | **CANNOT**, merged as D2+D3 | the five threshold setter pairs are public **and unreachable**: `MoodleStat` is absent from `LuaManager$Exposer.exposeAll()` (dumped in full, 3 055 lines — `Moodle`, `Moodles`, `MoodleType`, `Registry`, `MoodlesUI` are all there) and no exposed method returns one. X2 is re-scoped to a one-line `lua.global MoodleStat` exposure probe with two hit-controls |
+| **A5** | **UNKNOWN** `-> X6` — "script macro fields are not Lua-readable at all" | **CAN** (X6 struck) | the prediction confused the **script object's** macro getters (true) with **default modData** (a different table, readable): `Item.DoParam`'s default arm `@11805–@11895 L2992–L3003` `rawset`s the unrecognised key into `Item.defaultModData` and `Item.InstanceItem @3477 L1868` copies that table onto **every** instance — `item:getModData().Fibre` |
+| **B2** | **CANNOT** — "`OnEat` fires after every stat / nutrition / mood write" | **CAN WITH A WORKAROUND** | `OnEat` does fire late, but it is not the only seam: a **server-side Lua wrapper of `ISEatFoodAction.complete` runs before `Eat`** — `order == "complete onEat "`, `completes` 1 server / 0 client (`x121-20260911-030023` → `phases.M5.globals`) |
+| **B4** | **CANNOT** `-> X8` | **CANNOT** as B4+B5, graded **M** (X8 struck) | the plan's own strike rule fired: slice 12's M5 measured exactly this. `OnEat` fires on both sides (`calls` 1/1), but the client's call is `IsoGameCharacter.EatOnClient @0–@57 L5725–L5736`, which applies **no** numbers — a notification, not a double-apply; merged with B5, whose `LuaTimedActionNew.complete @31 L162` skips the Lua complete on a client |
+| **C5** | **CAN**, bounded — "the flags agreed only in the **trivial** arm" (`-> X9`'s sibling) | **CAN**, both non-trivial arms agree (X9a struck) | `x121` `m8` drove both: **+1500** kcal reads T/F/F and **−100** kcal reads F/F/T identically on both sides, and `nutrition.set calories −100` is **not clamped at 0**. The bound narrows rather than lifts: `incWeightLot: true` was never produced anywhere in the artifact `-> X25` |
+| **E10** | **CANNOT**, with the WIPE half at n = 1 | **CANNOT**, wipe half at **n = 2** | `x121` `phases.M9` planted a server-only key and it was gone **1.27 s** after the client transmit, which is the second subject the plan asked for (`td2-20260910-231655` was the first); the server→client replace stays n = 1 (`phases.M6`) |
+| **G5** | verdict **CANNOT**; mechanism "an unguarded Kahlua nil call … while `pcall` does catch it" was still being corrected as the plan was written | verdict **unchanged**; the mechanism is rewritten and two new rows carry it | `pcall` **catches** a nil call on both sides (`x126-20260911-045205`) — map row **I13**; unguarded, it aborts the rest of **its own handler's body** while the handlers behind it still run (`x127-20260911-052049`, server VM) — map row **I14**. And no log ever names the missing global, so a dormant call inside a shadowed `common/` copy is invisible until that tree becomes the live one |
+| **H3** | **UNKNOWN** `-> X1` | **CANNOT**, graded **M** (X1 struck) | `Translator.tryFillMapFromFile @4–@36 L357–L358` formats `%s/media/lua/shared/Translate/%s/%s.json` and **opens nothing else**; `x121` `phases.M4` read the B41-table item as `getDisplayName == getFullType` on **both** sides while its `ItemName.json` sibling in the same mod resolved on the client |
+| **I3** | **CAN** (version wins), bounded to a version dir that ships colliding files, n = 1 | **CAN** at **n = 2**, with the empty-version-dir arm | `x122-20260911-032326` (`summary.L2_which`, `L2_trees`, `phases.L3.reading`) is a second subject and adds the arm the bound did not have: a version dir holding **only** a `mod.info` costs the mod nothing. Still untested: a version dir shipping `media/` that collides with *nothing* `-> X22` |
+| **I4** | **UNKNOWN** `-> X11` — "`searchForModInfo L708-L735`, `File.list()` order" | **CAN** as I4+I5 (X11 struck) | `ZomboidFileSystem.searchForModInfo @0–@173 L708–L735` is **dead code**, referenced by nothing but its own recursive call. The live chain is `loadMods → … → readModInfoAux @32–@120 L184–L195`, which opens the **version dir's** `mod.info` if it exists, else `common/`'s, and parses that one file (`x123b-20260911-034500`). Bounded to the dedicated-server `Mods=` path `-> X21` |
+| **I5** | **UNKNOWN** `-> X12` | **CAN**, merged into I4+I5 (X12 struck) | `x123-20260911-034426` `boots.drift`: a folder matching **neither** declared id loaded under the version dir's id — which is why **51** drifting workshop folders load in normal play (dated 2026-09-11) |
+| **J1** | **CAN**, "grade from its artifact, else C + W", with a **wholesale reset** assumed | **CAN**, graded **M**, and the reset prediction **inverted** | `BaseScriptObject.reset()V @0 L194` is a **bare `return`**, so `LoadScripts`' per-body reset is inert and `Item.Load @22–@147 L1433–L1449` assigns **per key**: a partial block **merges** (`x121` `phases.M2.items."Base.Orange"`, `verdicts.M2b`) and a redefinition **replaces rather than adds** (`module Base` stayed at **722**). The whole item pass rests on this. The `ItemType`-omitted arm stays untested `-> X15` |
+| **J2** | **CAN WITH A WORKAROUND** — "the scale, not the mechanism, is the risk" | **CAN WITH A WORKAROUND**, workaround rewritten | the verdict stands, and the ledger's ruling stands with it — an **absent corpus precedent is never a `CANNOT`**, it is a residual risk. The row now names **six** live risks: no precedent (one collision across 230 mods, swept 2026-09-10 17:47), the same-relative-script-path drop (I10), the replay order (J4), the `HungerChange` / weight coupling and the `serverStop` guard a rebalanced value can trip (B6 `-> X33`), the byte-identical-script requirement (J3), and mod-added foods sitting outside a `module Base` pass |
+| **G1** | **CAN WITH A WORKAROUND** `-> X10` — "the mechanism is `CharacterTrait.register`", saved and synced | **CAN WITH A WORKAROUND** as G1+G6 (X10 merged into X4) | `register` is right but insufficient: **selectability comes from `CharacterTraitDefinition.addCharacterTraitDefinition`**, public static and Lua-exposed `@667` — the call `media/scripts/generated/characters/character_traits.txt` drives. "Synced" is downgraded to **untraced**: `CharacterTraits` declares `write`/`read`, `PlayerStatsPacket` does not carry them, and no packet that does has been traced `-> X4`. `register(String)` is also the **one public arm** (`registerBase` and `register(boolean,String)` are `private static`), and the `base:` namespace is banned |
+
+### Experiment ids
+
+- **Struck as already settled (7):** **X1** (H3), **X3** (D1 — struck *as a render
+  experiment*; D1 is CANNOT from the jar and only a load-order timing bound remains, which
+  needs no boot), **X6** (A5), **X8** (B4), **X9a** (C5's sibling), **X11** (I4), **X12** (I5).
+  The plan's **X9 carried two questions** and Task 2's fix round split it: **X9a** (the
+  weight-flag arms — struck) and **X9b** (the `EvolvedRecipe.useSpice` read — kept,
+  because it decides F5's residual risk).
+- **Re-scoped (4):** **X2** → a one-line `MoodleStat` exposure probe riding another
+  session; **X9b** → a 20-minute **desk read**, no boot; **X10** → merged into **X4**
+  (the effect question is answered from the jar; what is left is the sync question, which is
+  X4's); **X13** → the drink **wrapper** route only, since the hook-inventory half is
+  answered — `LuaHookManager.AddEvents @0–@40 L127–L135` declares 8 hooks, 6 are
+  ever fired, and **there is no `OnEat` twin**.
+- **New:** X14–X19 (Task 2) and X20–X33 (Task 3). **26 live ids**, every one with a
+  profile, a driver, a deciding reading, a cost and an **owner**.
+
+### Counts, cites and two falsified cold-start claims
+
+- **The inventory is 62 rows, not the 56 this plan and the task briefs quote.** 13 new rows
+  (A8, E12, G6, H5, H6, I9, I10, I11, I12, J4, J5 and the two Lua-layer rows) took it to **75**,
+  and the map ships **64** after eleven same-mechanism merges that keep **both** ids
+  (`A2+A7`, `B4+B5`, `C3+C6`, `D2+D3`, `E1+E2`, `E7+E12`, `F2+F3`, `G1+G6`, `H5+H6`, `I1+I6`,
+  `I4+I5`). Nothing was dropped.
+- The two Lua-layer rows are **I13** (`pcall` catches a nil call) and **I14** (the unguarded
+  raise). They are written `L1` / `L2` in the harvest to keep them apart from `lua-api.md`'s own
+  `L1`–`L16`, and the map assigns them area-I ids.
+- **The harness cite moved.** `testing/PZTestKit/PZTestKit/42/media/lua/client/
+  PZTestKit_Client.lua:436 (was :461 before ad683fe)` — quoted in § Task 1 J3 and in
+  seed row D1 — is now **`:440`** (`local eatenType = MoodleType and
+  MoodleType.FOOD_EATEN`), re-located by content 2026-09-17. It moved in slice 12's harness
+  comment residuals (`7dcb37a` / `96a777f`).
+- **§ Task 2 Step 4's ripple grep returns 22 hits**, re-run at `0da3372` on 2026-09-17: the
+  board row plus **21** ripple bullets, all 21 mapped — one (`:95`, the `-debug` client) to
+  § What the library cannot yet measure rather than to a row, and one (`:100`, the
+  `versionMin` / `versionMax` gate) forcing a **new** row, **I12**. The first pass counted 21
+  against a pre-close board; slice 12's close shifted the numbers and surfaced the 22nd.
+- **Two claims in § Cold-start context are falsified** and are corrected wherever they are
+  quoted: `searchForModInfo` does **not** "return the first `mod.info` whose id matches"
+  — it is dead code (I4+I5 above) — and "a Kahlua nil call is uncatchable" is wrong
+  in both halves (G5 above).

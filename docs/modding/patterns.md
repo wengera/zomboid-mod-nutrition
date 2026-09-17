@@ -106,9 +106,13 @@ on; treat divergence as a decision point, not a free choice.**
     a side.** A mod's `media/lua/server/` files **execute in the MP client's Lua
     state too** (measured 2026-09-11, run `x121-20260911-030023`, key
     `phases.M7.mod_globals.client`), on three independent witnesses in one
-    session: mod B's own `TKX_Nutrient.side` read `client` from a file under
-    `server/`, its per-tick counter advanced on the client (58 ticks against the
-    server's 38), and mod C's `ISEatFoodAction.complete` wrapper reported
+    session: mod B's own `TKX_Nutrient.side` read **`server` on the client**
+    — the write from its file under `server/` landed in the client's Lua
+    state, over the client-only file's own `client` (corrected 2026-09-17: this
+    line had the reading inverted; the artifact and [`anatomy.md`](anatomy.md)
+    § 6 are right) — its per-tick counter advanced on the client
+    (58 ticks against the server's 38), and mod C's
+    `ISEatFoodAction.complete` wrapper reported
     `TKX_EatHook.wrapped` **true** client-side while staying silent there. So
     "only my server file writes this" is false until the guard is written, and a
     `server/` file that mutates shared state, installs a wrapper or registers a
@@ -255,6 +259,17 @@ on; treat divergence as a decision point, not a free choice.**
 Established with the sync witness on a real dedicated server + real client;
 they sharpen KEEP 1–2 and FILTER 1.
 
+**Where the walls are** (slice 13, 2026-09-17): [`wall-map.md`](wall-map.md) classifies every
+capability a B42 nutrition mod needs against this build — 64 rows over ten design areas —
+and **cites this section rather than restating it**. Its area **E** rows are these two tables read
+as verdicts, and its § Discrepancies separates `ItemStatsPacket` (7 members, 43 fields,
+server → client) from `SyncItemFieldsPacket` (15 members, item modData, wipe-and-replace),
+which are **two packets**. One door it adds that no row here carries: an **unrecognised key inside
+a vanilla `item` block becomes default modData on every instance** — `Item.DoParam`'s default
+arm `rawset`s it into `Item.defaultModData` and `Item.InstanceItem` copies that table onto every
+instance — so a script-declared mod nutrient is readable from Lua as `item:getModData().Fibre`
+(**C**, jar, 2026-09-17; wall map **A5**, which the plan had predicted UNKNOWN).
+
 | Change made on the client | Reaches the server? | Ev |
 |---|---|---|
 | `player:getModData().k = v` | **no** — until `player:transmitModData()`, then yes. **And the transmit is a whole-table WIPE AND REPLACE, measured** (2026-09-10, run `td2-20260910-231655`): a key planted on the **server** only (`pzt_ss_server`) was **gone** from the server's census after one client `transmitModData()`, while the client's own key and an unrelated `hotbar` arrived — the server's key set became *exactly* the client's. Mechanism (C, jar): `ObjectModDataPacket.write @8-@52 L42-L44` serialises the whole table and `KahluaTableImpl.load @0-@6 L332-L333` **wipes before it rawsets**; an empty sender's table wipes the receiver outright (`parse @126-@139 L76-L77`), and `transmitModData` returns silently if the player's square is null (`IsoObject.transmitModData @0-@7 L4850-L4851`). So a client transmit destroys any player-modData key the server holds and that client's copy lacks — see FILTER 10 | M (spike S6) for the arrival; **M** (run `td2-20260910-231655`, `wipe_reading`) for the wipe |
@@ -387,6 +402,19 @@ Consequences for the nutrition mod:
   executes, so an adoption read is no longer blocked on the layout question
   ([`../mods-survey/nutrition-mods.md`](../mods-survey/nutrition-mods.md)
   § Open questions 3). The API surface and MP behaviour are still unread.
+  **Sharpened, slice 13 (2026-09-17): it is now the only moodle route there is.**
+  Registering a new `MoodleType` works — and the moodle is **pinned at level
+  0**, because `Moodle.Update`'s 27 type tests are not `else if`s and an
+  unmatched type falls through to a shared tail that calls the **private**
+  `updateMoodleLevel(0)` every tick; and retuning an existing moodle is
+  unreachable from Lua, because `MoodleStat` is absent from
+  `LuaManager$Exposer.exposeAll()` and no exposed method returns one (**C**,
+  [`wall-map.md`](wall-map.md) D1 and D2+D3). So this stops being an adoption
+  *comparison* and becomes the moodle question. The read is costed as **X29**:
+  ≈ 1 h of MF's own Lua first (its API surface is unread and a probe cannot be
+  written blind), then one ≈ 4 min session whose third leg — an MF moodle
+  reading a **non-zero** level in the client's `stats.get` — is the
+  consequential one, a zero there meaning the mod has no moodle route at all.
 - ~~How does a `common/` folder combine with the live `42.x/` folder?~~
   **Answered, slice 11** ([teardown](../mods-survey/teardowns/autocook.md),
   run `td3-20260911-001948`): **version-wins**, with translations merged rather
@@ -454,6 +482,27 @@ it:
   (`KahluaThread.call`'s direct `athrow`, which never reaches `fail` and never
   froze anything — `x126-20260911-045205` — against `luaMainloop` → `fail`),
   never by handler. *(13)*
+
+**Slice 13 classified all seven (2026-09-17) and re-opened none of them.** Each is
+now a row in [`wall-map.md`](wall-map.md) carrying a verdict, its bound and the
+costed experiment that would raise it: the id-vs-script-path key is **J4 CAN**
+`-> X19` — and the map adds why the boot slice 12 imagined cannot answer it, since
+four candidate keys (id, folder name, stored path, display name) need **four** mods,
+each built to win under exactly one; the `ItemType`-omitted block is **J1 CAN**
+`-> X15`; the server→client *item*-modData direction is **A6 CAN WITH A WORKAROUND**
+`-> X14`, with that run's `verdicts.M7` *do not cite*; the client's own mod-list call
+site and the `common/`-only `mod.info` folder are both **bounds on I4+I5 CAN**
+`-> X21`; `server/`-in-the-client-VM is **I9 CAN WITH A WORKAROUND** `-> X18`, the
+mechanism still untraced; and the release client is **I14**'s client half `-> X23`,
+which is a *harness* change before it is a mod question (`debug = false` threaded
+through the profile's client keys, plus the `TISLogoState` gate a release client stops
+on). **One of the seven is part-settled:** the CleanUI item's **load-order half is
+dissolved** — the `pcall` is a **file-local call-site wrapper**
+(`42.19/…/ISInventoryPaneContextMenu.lua:25`/`:28`/`:30`, both call sites inside
+`createMenu` `:326`–`:1253`, re-read 2026-09-17), not a global one, so nothing else
+in a profile forks that relative path and the two `Mods=` orders read identically by
+construction. What is left is one session on the **runtime** half `-> X26`, entered
+through `createMenu` itself: a bus `triggerEvent` provably **bypasses** the wrapper.
 
 ## Sources
 
