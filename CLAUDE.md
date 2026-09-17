@@ -1,6 +1,6 @@
 # CLAUDE.md — handoff for whoever picks this repo up next
 
-Last updated 2026-09-11 (end of the session that ran slices 08–12). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
+Last updated 2026-09-17 (slice 12 closed; slice 13 in progress). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
 
 ## 1. What this repo is
 
@@ -19,7 +19,7 @@ A **reference library** for a future Project Zomboid **Build 42** mod: a realism
 5. The plan of the slice you are resuming (`docs/superpowers/plans/NN-*.md`) and its SDD workspace (`.superpowers/sdd/<plan-basename>/progress.md` — the per-plan ledger; see § 5).
 6. `docs/modding/patterns.md` § Measured MP sync facts — the canonical measured facts; `docs/testing/README.md` — the harness and its command bus; `docs/testing/profiles.md` — how a mod goes under test.
 
-## 3. Status snapshot (2026-09-11)
+## 3. Status snapshot (2026-09-17)
 
 | Slice | What | State |
 |---|---|---|
@@ -27,20 +27,18 @@ A **reference library** for a future Project Zomboid **Build 42** mod: a realism
 | 07 | profiles / mod-under-test (`docs/testing/profiles.md`, `testing/pzt run --profile`) | done |
 | 08 | nutrition-mod catalog (`docs/mods-survey/nutrition-mods.md`, `data/mod-inventory.json`, `tools/mod_lint.py`) | done |
 | 09–11 | teardowns LTP / simpleStatus / AutoCook (`docs/mods-survey/teardowns/`) — wave 3 | done, pushed |
-| **12** | **Platform reference** — 8 experiment mods (`testing/experiments/TKX_*`), 11 profiles, **7 live sessions x121–x127**, three docs `docs/modding/{anatomy,item-overrides,lua-api}.md` | Tasks 1–9 + 6b/6c/6d/6e COMPLETE and reviewed; **Task 10 (ledgers) interrupted** — see § 4 |
-| **13** | Moddability wall map (`docs/modding/wall-map.md`) | workspace opened; Task 1 (jar read) interrupted before writing notes; Tasks 2–5 wait for 12 to close |
+| 12 | Platform reference — 8 experiment mods (`testing/experiments/TKX_*`), 11 profiles, **7 live sessions x121–x127**, three docs `docs/modding/{anatomy,item-overrides,lua-api}.md` | **done**, closed 2026-09-17 (`f36a860..17a683b`, close `75e277c`), pushed |
+| **13** | Moddability wall map (`docs/modding/wall-map.md`) | **in progress**: Task 1 (jar read, notes) complete; Task 2 (harvest, notes) in its fix round; Tasks 3–5 next — see § 4 |
 | 14 | Feasibility notes (`docs/feasibility/*.md`) | planned (`docs/superpowers/plans/14-feasibility-notes.md`), not started |
 
-Why it stopped: the **weekly Opus rate limit** (resets **Sep 16, 07:00 America/New_York**). Subagents are Opus by standing rule; nothing else broke.
+Earlier interruption (2026-09-11): the weekly Opus rate limit; resumed 2026-09-17. Subagents are Opus by standing rule.
 
 ## 4. Resume point — do exactly this
 
-1. `cd /c/Users/Angus/repos/project_zomboid && git status` — expect three **uncommitted, partial** edits left by the interrupted Task 10 (`docs/modding/patterns.md`, `docs/testing/README.md`, `testing/profiles/README.md`), also saved as `.superpowers/sdd/12-platform-reference/task-10-partial.diff`. Do not commit them blindly; the re-dispatched Task 10 keeps or redoes those hunks.
-2. Re-dispatch **slice 12 Task 10** (fresh Opus implementer): brief `.superpowers/sdd/12-platform-reference/task-10-brief.md` + `task-10-amendments.md` (items 1–18 — the amendments override the brief; they cover sessions 4–7, the corpus drift, the falsified Kahlua rule's sites, the harness notes). Its evidence sources are `session-{1..7}-claims.md` in that workspace — each has a **§ Corrections** appended by its review that supersedes the rows above it. Task 10 commits `Slice 12: ledgers` by pathspec, no push, no board flip.
-3. Review Task 10 (package = `git show` of its commit; fresh Opus reviewer; the lens is in § 6), fix round if needed.
-4. **Whole-slice review** of slice 12 (most capable model): manifest `.superpowers/sdd/12-platform-reference/review-whole-slice-manifest.md` (commit list + stats; the reviewer reads files at HEAD and the per-task packages `review-t*.diff`). Lens: the plan's seven acceptance checks, the twelve questions, every M row reproduces from its artifact key, every C claim reproduces on the jar, the do-not-cite tables, the ledgers, `pytest` green.
-5. Controller residuals (tiny doc fixes you apply yourself, one pathspec commit), then close: `python .superpowers/sdd/_tools/close12.py f36a860 <end-commit> "$(cat .superpowers/sdd/_tools/row12-outcome.txt)"` (flips row 12 to done and removes its resume note; edit the outcome text if the review changed a finding), commit `Slice 12: close (board)`, `git push`, update the memory file (§ 9).
-6. Then **slice 13**: re-dispatch its Task 1 (`.superpowers/sdd/13-wall-map/task-1-brief.md` + `task-1-amendments.md`; the implementer must read `slice-12-outcomes.md` first — it lists every plan-13 seed prediction slice 12 overturned), then Tasks 2–5 per the SDD loop; then **slice 14**; then the program close (slice 14's plan says what "done" means).
+1. `cd /c/Users/Angus/repos/project_zomboid && git status` (expect clean) and `git log --oneline -5`; read `.superpowers/sdd/13-wall-map/progress.md` (the slice-13 ledger: every dispatch, review and ruling so far) — the last line says which task is live.
+2. **Slice 13** runs entirely offline (no game boot). Its gitignored inputs are ready: `jar-locks.md` (Task 1, corrected), `evidence-harvest.md` (Task 2 — its fix round `task-2-fix-1-brief.md` applies the review's findings; a scoped re-review follows), `slice-12-outcomes.md` + `slice-12-bounds.md` (what slice 12 settled and the bounds a writer must not drop). Then Task 3 (`task-3-brief.md` + `task-3-amendments.md` → `gaps.md`), Task 4 (`task-4-brief.md` + `task-4-amendments.md` → `docs/modding/wall-map.md`, commit `Slice 13: moddability wall map`), Task 5 (`task-5-brief.md` + `task-5-amendments.md` → ledgers, `Slice 13: wall-map ripples and ledgers`, no push, no flip). Each task: fresh Opus implementer → review (the notes tasks are reviewed on the notes themselves; Task 4/5 on `git show` packages) → fix round → re-review.
+3. Whole-slice review of 13 (most capable model), residuals, then close: write a `close13.py` in `.superpowers/sdd/_tools/` on the `close12.py` model (row `| 13 | P2b · Moddability wall map | done | <date> | <start>..<end> | <outcome> |`, resume-note removal), commit `Slice 13: close (board)`, push, update this file's § 3 and the memory file.
+4. Then **slice 14** (`docs/superpowers/plans/14-feasibility-notes.md`; open its workspace with `scripts/sdd-workspace`, pre-flight scan, fold in slice 12's and 13's outcomes as the Task 1 input audit expects), then the program close (slice 14's plan defines "done").
 
 ## 5. The process — superpowers subagent-driven development (SDD)
 
