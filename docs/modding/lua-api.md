@@ -101,7 +101,7 @@ Reached as `player:getNutrition()`; `getNutrition()` is declared on **`IsoPlayer
 
 ### `Food` / `InventoryItem` — the `TK.ITEM_STATE` set and what the packet carries
 
-`TK.ITEM_STATE` (`testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua:146`) is
+`TK.ITEM_STATE` (`testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua:158`) is
 this library's working set: **28** keys, each a zero-argument getter reached through `TK.call`.
 The split that matters is whether `ItemStatsPacket.setData` reads that getter — anything it
 does not read is **server-only state the client will be permanently wrong about** after a

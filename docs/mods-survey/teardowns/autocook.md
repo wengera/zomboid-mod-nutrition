@@ -600,10 +600,16 @@ by this session.
      `Events.…Add` included. Mod order changes nothing about which file runs or whether the
      listener registers in time. Order would matter only if a **second** mod shipped the same path;
      none in our corpus does.
-  4. **What stays open is the runtime half**: whether that `pcall` would actually contain a Kahlua
-     nil call raised *inside* `triggerEvent`'s dispatch. Direct nil calls are **measured**
-     non-recoverable by `pcall` (`PZTestKit_Core.lua:118-122`, run `exp01-20260909-235420`); the
-     raised-inside-dispatch step is **C, inferred**. Two further consequences: with CleanUI
+  4. **The runtime half is settled the other way from what this read assumed**: `pcall`
+     **catches** a Kahlua nil call in both shapes — the direct one and the nested
+     `pcall(function() SomeNil() end)` one, with the lines after it still running — so that
+     `pcall` does contain the raise (corrected 2026-09-17, M — `x126-20260911-045205`, both
+     sides, for the direct shape; `x127-20260911-052049`, **server VM only**, two passes, for the
+     nested one; see [`../../modding/lua-api.md`](../../modding/lua-api.md) § 5, which owns
+     the rule and its bounds). What stays open is the **client** arm: x127 lost every client
+     reading, and on a `-debug` client even a *caught* nested raise routes through
+     `KahluaUtil.fail` and parks the process. No catch names the missing member either way, which
+     is why the console grep above stays the witness. Two further consequences: with CleanUI
      resident a raising listener shows as `[CleanUI] triggerEvent failed …` rather than a raw Lua
      error, so any driver's nil-call regex must add it; and CleanUI's copy is a 42.19 **fork** of a
      vanilla file, so it silently reverts any vanilla `createMenu` change since — for every mod on
