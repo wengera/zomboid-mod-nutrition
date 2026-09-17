@@ -483,7 +483,7 @@ it:
   froze anything — `x126-20260911-045205` — against `luaMainloop` → `fail`),
   never by handler. *(13)*
 
-**Slice 13 classified all seven (2026-09-17) and re-opened none of them.** Each is
+**Slice 13 classified all eight (2026-09-17) and re-opened none of them.** Each is
 now a row in [`wall-map.md`](wall-map.md) carrying a verdict, its bound and the
 costed experiment that would raise it: the id-vs-script-path key is **J4 CAN**
 `-> X19` — and the map adds why the boot slice 12 imagined cannot answer it, since
@@ -496,7 +496,7 @@ site and the `common/`-only `mod.info` folder are both **bounds on I4+I5 CAN**
 mechanism still untraced; and the release client is **I14**'s client half `-> X23`,
 which is a *harness* change before it is a mod question (`debug = false` threaded
 through the profile's client keys, plus the `TISLogoState` gate a release client stops
-on). **One of the seven is part-settled:** the CleanUI item's **load-order half is
+on). **One of the eight is part-settled:** the CleanUI item's **load-order half is
 dissolved** — the `pcall` is a **file-local call-site wrapper**
 (`42.19/…/ISInventoryPaneContextMenu.lua:25`/`:28`/`:30`, both call sites inside
 `createMenu` `:326`–`:1253`, re-read 2026-09-17), not a global one, so nothing else

@@ -584,10 +584,18 @@ Two different kinds of content fall outside it, and only one of them is dead:
   ([`docs/modding/README.md`](../docs/modding/README.md) "picks the highest
   `42.x` ≤ game build; `common/` shared",
   [`docs/modding/patterns.md`](../docs/modding/patterns.md) § 10,
-  `mod_lint.media_root`). Its content is simply **not counted here**, and this
-  dataset asserts no rule for how the two folders combine — the resolution
-  order is still open question 1 in
-  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0. **177 of the
+  `mod_lint.media_root`). Its content is simply **not counted here**. **The
+  merge rule is no longer open** (corrected 2026-09-17): it has been **measured**
+  since slice 11 and widened in slice 12 — the version dir's file wins a
+  same-relative-path collision, `common/` supplies the rest, both in one Lua
+  state (n = 2, plus the empty-version-dir arm) — so open question 1 in
+  [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0 is **closed**
+  ([`docs/modding/anatomy.md`](../docs/modding/anatomy.md) § 3,
+  [`docs/modding/wall-map.md`](../docs/modding/wall-map.md) I3). What that costs
+  **this** dataset is unchanged: `signals` / `stats` / `top_events` describe the
+  **live version folder only**, so a `common/`-heavy mod is under-read — for
+  AutoCook they miss 7 of 10 Lua files, 1 238 of 2 155 lines, its only event
+  registration, its only vanilla patch and its whole translation set. **177 of the
   230 rows have a `common/media` this scan did not read** (2026-09-10), so a
   zero in `stats` or `signals` is only trustworthy when `media_at` does *not*
   include `common/media` — that list is the guard. `live_media: false` marks

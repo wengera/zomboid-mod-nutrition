@@ -1297,11 +1297,11 @@ phases (M1–M9) on **our own** three experiment mods, every reading taken clien
   tables and both live in its § Two facts that cross no wire at all.
 - **`phases.M7.mod_globals.client` is the highest-consequence row and it is incidental.** A mod's
   `media/lua/server/` file executed in the **client's** Lua state, on three independent witnesses
-  in one session (`TKX_Nutrient.side` reading **`server` on the client** — the `server/`
-  file's write landing over the client-only file's own `client`; **corrected 2026-09-17,
-  slice 13**, this line had the reading inverted, and the artifact plus
-  `../../docs/modding/anatomy.md` § 6 are right — the per-tick counter at 58 client /
-  38 server, and `TKX_EatHook.wrapped` true client-side). The run was not designed to find it, the
+  in one session: (i) `TKX_Nutrient.side` reading **`server` on the client**, the `server/`
+  file's write landing over the client-only file's own `client`; (ii) the per-tick counter at
+  **58 client / 38 server**; and (iii) `TKX_EatHook.wrapped` **true client-side**. (**Corrected
+  2026-09-17, slice 13:** this line had witness (i) inverted; the artifact and
+  `../../docs/modding/anatomy.md` § 6 are right.) The run was not designed to find it, the
   mechanism was **not traced**, and the discriminating probe (one file per `client|server|shared`
   folder, each writing its folder name into a global) is named in patterns.md KEEP 12 and handed to
   slice 13.

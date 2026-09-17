@@ -294,8 +294,14 @@ grep -n "slice 13\|wall map" docs/progress.md
 This plan's row inventory and experiment seeds were written **from the corpus before slice 12
 ran**, and the plan says so itself — *"This plan's row inventory is a prediction written
 from the corpus, not a finding"*, with *"the jar read disagrees with this plan's predicted
-verdict → the reading wins"* as its own expected decision point. The reading won **sixteen
-times**. **The plan text above is left as written**; this section is the authoritative delta.
+verdict → the reading wins"* as its own expected decision point. The reading won **eighteen
+times** — the sixteen seed rows this section first listed, plus **F5** and **B7**, added
+2026-09-17 at the whole-slice review because `wall-map.md` § Discrepancies carries them and this
+table did not. **Twelve** of the eighteen are verdict-level overturns (fourteen row ids across
+§ Discrepancies' twelve rows); the other four — **B4**, **E10**, **I3** and **J2** — kept the
+verdict they were predicted with and gained a **bound or a grade**, written into their own cells in
+the map rather than into § Discrepancies. **The plan text above is left as written**; this section
+is the authoritative delta.
 The reader-facing version is `docs/modding/wall-map.md` § Discrepancies; the evidence is in
 `.superpowers/sdd/13-wall-map/` — `jar-locks.md` (Task 1), `evidence-harvest.md` (Task 2),
 `gaps.md` (Task 3), gitignored and kept for review.
@@ -319,6 +325,8 @@ The reader-facing version is `docs/modding/wall-map.md` § Discrepancies; the ev
 | **I5** | **UNKNOWN** `-> X12` | **CAN**, merged into I4+I5 (X12 struck) | `x123-20260911-034426` `boots.drift`: a folder matching **neither** declared id loaded under the version dir's id — which is why **51** drifting workshop folders load in normal play (dated 2026-09-11) |
 | **J1** | **CAN**, "grade from its artifact, else C + W", with a **wholesale reset** assumed | **CAN**, graded **M**, and the reset prediction **inverted** | `BaseScriptObject.reset()V @0 L194` is a **bare `return`**, so `LoadScripts`' per-body reset is inert and `Item.Load @22–@147 L1433–L1449` assigns **per key**: a partial block **merges** (`x121` `phases.M2.items."Base.Orange"`, `verdicts.M2b`) and a redefinition **replaces rather than adds** (`module Base` stayed at **722**). The whole item pass rests on this. The `ItemType`-omitted arm stays untested `-> X15` |
 | **J2** | **CAN WITH A WORKAROUND** — "the scale, not the mechanism, is the risk" | **CAN WITH A WORKAROUND**, workaround rewritten | the verdict stands, and the ledger's ruling stands with it — an **absent corpus precedent is never a `CANNOT`**, it is a residual risk. The row now names **six** live risks: no precedent (one collision across 230 mods, swept 2026-09-10 17:47), the same-relative-script-path drop (I10), the replay order (J4), the `HungerChange` / weight coupling and the `serverStop` guard a rebalanced value can trip (B6 `-> X33`), the byte-identical-script requirement (J3), and mod-added foods sitting outside a `module Base` pass |
+| **F5** *(added 2026-09-17, whole-slice review)* | **UNKNOWN** `-> X9` — "the `allowSpice` flag gate is on the wave-4 open list" | **CAN** (X9 split; **X9b** re-scoped to a desk read) | the vanilla surface is the **`Spice` script bool** (109 items) → `Item.spice` → `Food.setSpice` (`InstanceItem @675–@678 L1570`), which routes the ingredient down `EvolvedRecipe.addItem @582–@775 L336–L359`'s spice branch: no hunger, no macro transfer, no `MaxItems` charge, once per dish. The plan's "`allowSpice` flag gate" is **AutoCook's own Lua method**, not a vanilla one. What is left is the branch's effect beyond the herbal-tea sums `-> X9b` |
+| **B7** *(added 2026-09-17, whole-slice review)* | **UNKNOWN** `-> X13` — "no `OnEat` twin named anywhere; Task 1 Step 2's hook inventory decides" | **UNKNOWN** `-> X13`, the verdict unchanged and the mechanism closed | the hook inventory **is** closed: `LuaHookManager.AddEvents @0–@40 L127–L135` declares **8** hooks and **6** are ever fired — none of them `Eat`, `Drink`, `Consume`, `Digest` or `Nutrition`, and `UseItem` / `WeaponSwingHitPoint` are never triggered anywhere in the jar. So X13 is re-scoped to the drink **wrapper** route only, by analogy with B2 |
 | **G1** | **CAN WITH A WORKAROUND** `-> X10` — "the mechanism is `CharacterTrait.register`", saved and synced | **CAN WITH A WORKAROUND** as G1+G6 (X10 merged into X4) | `register` is right but insufficient: **selectability comes from `CharacterTraitDefinition.addCharacterTraitDefinition`**, public static and Lua-exposed `@667` — the call `media/scripts/generated/characters/character_traits.txt` drives. "Synced" is downgraded to **untraced**: `CharacterTraits` declares `write`/`read`, `PlayerStatsPacket` does not carry them, and no packet that does has been traced `-> X4`. `register(String)` is also the **one public arm** (`registerBase` and `register(boolean,String)` are `private static`), and the `base:` namespace is banned |
 
 ### Experiment ids
@@ -353,11 +361,18 @@ The reader-facing version is `docs/modding/wall-map.md` § Discrepancies; the ev
   seed row D1 — is now **`:440`** (`local eatenType = MoodleType and
   MoodleType.FOOD_EATEN`), re-located by content 2026-09-17. It moved in slice 12's harness
   comment residuals (`7dcb37a` / `96a777f`).
-- **§ Task 2 Step 4's ripple grep returns 22 hits**, re-run at `0da3372` on 2026-09-17: the
-  board row plus **21** ripple bullets, all 21 mapped — one (`:95`, the `-debug` client) to
-  § What the library cannot yet measure rather than to a row, and one (`:100`, the
-  `versionMin` / `versionMax` gate) forcing a **new** row, **I12**. The first pass counted 21
-  against a pre-close board; slice 12's close shifted the numbers and surfaced the 22nd.
+- **Task 2 Step 4 addressed 21 ripples to 13 and mapped all 21** — one (`:95`, the `-debug`
+  client) to § What the library cannot yet measure rather than to a row, and one (`:100`, the
+  `versionMin` / `versionMax` gate) forcing a **new** row, **I12**. The first pass mapped 20
+  against a pre-close board; slice 12's close appended the qualifying clause that surfaced the
+  21st, the `(from 01)` Kahlua ripple. **That 21 is `evidence-harvest.md` § Step 4's own count of
+  the ripples it addressed — it is not the output of the grep this plan writes**, and an earlier
+  draft of this section quoted it as "22 hits from § Task 2 Step 4's grep at `0da3372`", which does
+  not reproduce: that grep (`slice 13\|13's wall map\|wall map`) returns **6** lines at `0da3372`
+  and **11** at HEAD. The harvest widened it with `\|(from 12)` to reach the slice-12 ripples and
+  counted **22** lines at `55a9bbd` — the board row plus the 21 bullets — which is **27** at HEAD
+  now that slice 13's own ripples match the same pattern. Quote the harvest's mapping, never a hit
+  count (corrected 2026-09-17).
 - **Two claims in § Cold-start context are falsified** and are corrected wherever they are
   quoted: `searchForModInfo` does **not** "return the first `mod.info` whose id matches"
   — it is dead code (I4+I5 above) — and "a Kahlua nil call is uncatchable" is wrong
