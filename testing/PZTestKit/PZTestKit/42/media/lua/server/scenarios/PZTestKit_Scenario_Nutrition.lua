@@ -63,8 +63,9 @@ end
 -- read-back on the pin below. B42 moved the accessors to Stats:get(CharacterStat.X) -- on this
 -- jar `Stats` exposes only get(CharacterStat)F / set(CharacterStat,F)Z, so the legacy
 -- get<Name>() fallback is dead here and kept only for older builds. The enum is resolved BEFORE
--- the call because handing a nil enum to a live Java method is an argument mismatch, which pcall
--- does not catch either; `getStats` goes through TK.call for the same reason.
+-- the call because handing a nil enum to a live Java method is an arity or overload mismatch --
+-- it raises and pcall catches it (lua-api.md section 5 row 2); the guard keeps the reply
+-- informative. `getStats` goes through TK.call for the same reason.
 local function statOf(p, enumName, getter)
     local _, s = TK.call(p, "getStats")
     if s == nil then return nil end

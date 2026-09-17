@@ -359,8 +359,9 @@ TK.NUTRITION_SETTERS = { calories = "setCalories", carbs = "setCarbohydrates", l
 -- used by the body experiment at all -- this snapshot is a superset of it.
 --
 -- The OPTIONAL reads below go through TK.call, and each MoodleType / CharacterStat member is
--- nil-checked BEFORE it is passed in: handing a nil enum to a present Java method is an
--- argument mismatch, which Kahlua does not let pcall catch either (see TK.call). The reads
+-- nil-checked BEFORE it is passed in: handing a nil enum to a present Java method is an arity
+-- or overload mismatch -- it raises and pcall catches it (lua-api.md section 5 row 2); the
+-- guard keeps the reply informative (see TK.call). The reads
 -- that are NOT wrapped are so on purpose -- `TK.nutritionSnapshot`'s `p:getNutrition()` block,
 -- `TK.bodySnapshot`'s own `p:getStats()` (the handle every needs/endurance read below hangs
 -- off) and `getGameTime():getWorldAgeHours()` are called directly, because every rate in the
@@ -372,7 +373,8 @@ TK.MOODLES = { hungry = "HUNGRY", thirst = "THIRST", foodEaten = "FOOD_EATEN",
 -- space, 03-notes Q4). They are used as SET KEYS against the character's own trait list, never
 -- passed into a Java method: B42's `hasTrait` is called with a CharacterTrait everywhere in
 -- the game's own Lua (ISBuildAction.lua:269 and 70 more), so handing it a String would risk
--- exactly the argument mismatch Kahlua will not let pcall catch. `TK.traitNames` reads the
+-- exactly that trap -- an arity or overload mismatch raises and pcall catches it (lua-api.md
+-- section 5 row 2); the guard keeps the reply informative. `TK.traitNames` reads the
 -- list instead -- `getCharacterTraits():getKnownTraits()` plus `trait:getName()`, the same
 -- pair LastStandSetup.lua:126-128 uses to write a trait back out by name.
 TK.WEIGHT_TRAITS = { obese = "Obese", overweight = "Overweight", underweight = "Underweight",
@@ -463,12 +465,15 @@ end
 -- (ISAnimalContextMenu.lua:739, Tutorial/Steps.lua:548, server/ClientCommands.lua:897), which
 -- also pins the arity at two -- so that is the primary route and set<Name>() the fallback.
 -- The enum is read BEFORE the call and the route skipped when it is nil: handing a nil enum to
--- a present Java method is an argument mismatch, and Kahlua does not let pcall catch that
--- either. Returns (ok, how): `how` names the route that answered, or why none did.
+-- a present Java method is an arity or overload mismatch -- it raises and pcall catches it
+-- (lua-api.md section 5 row 2); the guard keeps the reply informative.
+-- Returns (ok, how): `how` names the route that answered, or why none did.
 -- getStats() itself goes through TK.call: it was the one unguarded Java member on this path,
 -- and on a subject without it (an entity the caller resolved wrongly, a build that moved the
--- accessor) "tried to call nil" would escape pcall and take the whole side's EveryOneMinute
--- with it, instead of returning a failed route the caller can log.
+-- accessor) it is a "tried to call nil" -- index-first guard: a caught nil call is silent and
+-- names nothing; an unguarded raise aborts the rest of this handler (x126/x127), which here is
+-- EveryOneMinute -- see docs/modding/lua-api.md section 5. Guarded, it returns a failed route
+-- the caller can log instead.
 TK.STAT_FIELDS = { hunger = { "HUNGER", "setHunger" }, thirst = { "THIRST", "setThirst" },
                    fatigue = { "FATIGUE", "setFatigue" }, endurance = { "ENDURANCE", "setEndurance" } }
 
@@ -651,8 +656,9 @@ local function subjectOf(kind, id)
     local target = what or id
     -- No id at all: `target` would go into getFirstTypeRecurse as a nil, and that member is
     -- OVERLOADED on this jar ((String) and (ItemKey)), so a nil is an ambiguous same-arity
-    -- dispatch -- the one failure pcall cannot catch (see TK.call's note above; measured: the
-    -- whole side drops off the bus). Refuse before the lookup instead.
+    -- dispatch -- an arity or overload mismatch raises and pcall catches it (lua-api.md
+    -- section 5 row 2); the guard keeps the reply informative. Refuse before the lookup
+    -- instead, so nothing has to pay for the dispatch at all.
     if target == nil then return nil, nil, "usage: <id> required for an item subject" end
     local wantId = string.match(tostring(target), "^#(%d+)$")
     if wantId == nil then

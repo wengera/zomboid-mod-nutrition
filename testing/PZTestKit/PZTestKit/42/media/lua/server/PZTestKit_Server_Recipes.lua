@@ -13,9 +13,10 @@
 -- the server's copy is the whole answer (the slice-05 `items.count` rule).
 --
 -- Kahlua rules, as everywhere in this harness: every Java member goes through `TK.call`
--- (which probes by indexing first -- "tried to call nil" is NOT catchable by pcall in PZ, see
--- the note above `TK.call` in the core), no `goto`, and `%d` on a float is fatal, so counts
--- are formatted with `%.0f`.
+-- (which probes by indexing first -- index-first guard: a caught nil call is silent and names
+-- nothing; an unguarded raise aborts the rest of this handler (x126/x127) -- see
+-- docs/modding/lua-api.md section 5, and the note above `TK.call` in the core), no `goto`, and
+-- `%d` on a float is fatal, so counts are formatted with `%.0f`.
 if not isServer() then return end
 
 -- `getScriptManager` is checked for nil BEFORE it is called, so the poll handler answers the

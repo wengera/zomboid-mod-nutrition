@@ -183,10 +183,12 @@ TK.register("sandbox.set", function(argv)
     if argv[2] == "true" or argv[2] == "false" then
         local value = argv[2] == "true"
         out.requested = value
-        -- pcall wraps the CALL, not the lookup: TK.call has already ruled out "call nil" (the
-        -- one failure pcall cannot catch), so what is left is an argument/type mismatch inside
-        -- SandboxOptions:set -- which pcall does catch, and which must fall through to the
-        -- per-option setter rather than kill the ack.
+        -- pcall wraps the CALL, not the lookup: TK.call has already ruled out "call nil" --
+        -- index-first guard: a caught nil call is silent and names nothing; an unguarded raise
+        -- aborts the rest of this handler (x126/x127) -- see docs/modding/lua-api.md section 5.
+        -- What is left is an argument/type mismatch inside SandboxOptions:set -- which pcall
+        -- does catch, and which must fall through to the per-option setter rather than kill
+        -- the ack.
         local ran, present = pcall(TK.call, opts, "set", name, value)
         if ran and present then
             out.route = "SandboxOptions:set(name,value)"
@@ -209,9 +211,11 @@ TK.register("sandbox.set", function(argv)
     end
     out.sandboxVarsAfter = SandboxVars and SandboxVars[name]
     if argv[2] == "push" or argv[3] == "push" then
-        -- Same reasoning as the `set` route above: TK.call rules out "call nil" (which pcall
-        -- cannot catch), so what pcall catches here is a failure INSIDE sendToServer -- and
-        -- that must be reported, not allowed to kill the ack after the flip already happened.
+        -- Same reasoning as the `set` route above: TK.call rules out "call nil" -- index-first
+        -- guard: a caught nil call is silent and names nothing; an unguarded raise aborts the
+        -- rest of this handler (x126/x127) -- see docs/modding/lua-api.md section 5. What pcall
+        -- catches here is a failure INSIDE sendToServer -- and that must be reported, not
+        -- allowed to kill the ack after the flip already happened.
         local ran, present = pcall(TK.call, opts, "sendToServer")
         if not ran then
             out.push, out.pushError = "sendToServer() raised", tostring(present)
@@ -330,8 +334,8 @@ TK.register("recipe.evolved", function(argv)
     local base = inv:getFirstTypeRecurse(baseType)
     if not base then return "no base item " .. tostring(baseType) .. " in inventory" end
     -- Perks.Cooking is read BEFORE the call and the read skipped when it is nil: handing a
-    -- nil enum to a present Java method is an argument mismatch, and Kahlua does not let
-    -- pcall catch that either (Core, TK.call).
+    -- nil enum to a present Java method is an arity or overload mismatch -- it raises and pcall
+    -- catches it (lua-api.md section 5 row 2); the guard keeps the reply informative.
     local cooking = Perks and Perks.Cooking
     local cookLvl = nil
     if cooking then local _, lvl = TK.call(p, "getPerkLevel", cooking); cookLvl = lvl end

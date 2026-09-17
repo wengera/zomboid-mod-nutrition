@@ -197,10 +197,11 @@ TK.register("sandbox.set", function(argv)
         else value = tonumber(argv[2]) end
         if value == nil then return "expected a number or true|false, got " .. tostring(argv[2]) end
         out.requested = value
-        -- pcall wraps the CALL, not the lookup: TK.call has already ruled out "call nil" (the
-        -- one failure pcall cannot catch), so what is left is an argument/type mismatch inside
-        -- SandboxOptions:set, which pcall does catch and which must fall through to the
-        -- per-option setter rather than kill the ack.
+        -- pcall wraps the CALL, not the lookup: TK.call has already ruled out "call nil" --
+        -- index-first guard: a caught nil call is silent and names nothing; an unguarded raise
+        -- aborts the rest of this handler (x126/x127) -- see docs/modding/lua-api.md section 5.
+        -- What is left is an argument/type mismatch inside SandboxOptions:set, which pcall does
+        -- catch and which must fall through to the per-option setter rather than kill the ack.
         local ran, present = pcall(TK.call, opts, "set", name, value)
         if ran and present then
             out.route = "SandboxOptions:set(name,value)"
@@ -229,11 +230,13 @@ end)
 -- <user> <TraitName> <add|remove>. The game's own route is
 -- `char:getCharacterTraits():add(CharacterTrait.X)` (ISPlayerStatsUI.lua:594, XpUpdate.lua:216),
 -- i.e. the ENUM, not the string -- so the field is resolved first and the call skipped when it
--- is nil (a nil argument into a live Java method is the mismatch pcall cannot catch).
+-- is nil: an arity or overload mismatch raises and pcall catches it (lua-api.md section 5
+-- row 2); the guard keeps the reply informative.
 -- Accepts either spelling: "HeartyAppetite" (the registered string) or "HEARTY_APPETITE" (the
 -- static field). The read-back is TK.traitNames, not hasTrait: `hasTrait` is called with a
 -- CharacterTrait throughout the game's own Lua, so the string it would need here is exactly
--- the argument mismatch that cannot be caught. Note the arg parser splits on whitespace, so
+-- that trap -- an arity or overload mismatch raises and pcall catches it (lua-api.md section 5
+-- row 2); the guard keeps the reply informative. Note the arg parser splits on whitespace, so
 -- "Very Underweight" is not addressable through this command -- it is not needed either, the
 -- band traits are driven by weight and read back through the same trait list.
 local TRAIT_FIELDS = { HeartyAppetite = "HEARTY_APPETITE", LightEater = "LIGHT_EATER",
@@ -306,8 +309,10 @@ TK.register("nutrition.applytraits", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
     -- Guarded like every other accessor here: a raw `p:getNutrition():getWeight()` on a build
-    -- that moved either method is an argument/index error Kahlua does not let pcall catch, and
-    -- it would take the whole command bus down rather than answering with a usable error.
+    -- that moved either method is a "tried to call nil" -- index-first guard: a caught nil call
+    -- is silent and names nothing; an unguarded raise aborts the rest of this handler
+    -- (x126/x127) -- see docs/modding/lua-api.md section 5. The guard is what lets this command
+    -- answer the bus with a usable error instead.
     local _, n = TK.call(p, "getNutrition")
     if n == nil then return "no IsoGameCharacter:getNutrition" end
     local out = {}
@@ -537,9 +542,10 @@ local FLUID_GETTERS = { "HungerChange", "ThirstChange", "Calories", "Carbohydrat
                         "Proteins", "FatigueChange", "StressChange", "UnhappyChange", "Alcohol",
                         "FluReduction", "PainReduction", "EnduranceChange", "FoodSicknessChange" }
 
--- `getScriptManager` is checked for nil BEFORE it is called. A nil global raises Kahlua's
--- "tried to call nil", which pcall does not catch here (see TK.call in the core) -- it would
--- take the whole poll handler with it instead of answering the bus with an error.
+-- `getScriptManager` is checked for nil BEFORE it is called, so the poll handler answers the
+-- bus with an error instead of raising -- index-first guard: a caught nil call is silent and
+-- names nothing; an unguarded raise aborts the rest of this handler (x126/x127) -- see
+-- docs/modding/lua-api.md section 5 (and TK.call in the core).
 local function scriptManager()
     if getScriptManager == nil then return nil end
     return getScriptManager()
@@ -886,12 +892,15 @@ TK.register("drink", function(argv)
 
     -- The call. Route 1 is the shipped action's own overload; route 2 is the FluidContainer
     -- one. `pcall` wraps the CALL, not the lookup -- TK.call has already ruled out "tried to
-    -- call nil", which pcall cannot catch -- so what is left is an argument/type mismatch
-    -- inside Kahlua's overload dispatch. pcall catches that in the shape it takes here: a
-    -- WRONG-TYPE but non-nil argument raises a catchable error. A NIL argument is the case it
-    -- cannot catch, the same failure mode as the nil member above; `subject` is `pick.item` /
-    -- `pick.fc`, both checked non-nil before either attempt, and `f` is a number by here, so
-    -- the wrap covers what it can be asked to. The fallback is
+    -- call nil" -- index-first guard: a caught nil call is silent and names nothing; an
+    -- unguarded raise aborts the rest of this handler (x126/x127) -- see
+    -- docs/modding/lua-api.md section 5. What is left is an argument/type mismatch inside
+    -- Kahlua's overload dispatch: an arity or overload mismatch raises and pcall catches it
+    -- (lua-api.md section 5 row 2); the guard keeps the reply informative. A WRONG-TYPE but
+    -- non-nil argument and a NIL into an overloaded member are both that same shape (the nil
+    -- one is unmeasured, section 5 row 2); `subject` is `pick.item` / `pick.fc`, both checked
+    -- non-nil before either attempt, and `f` is a number by here, so the wrap covers what it
+    -- can be asked to. The fallback is
     -- taken ONLY when route 1 cannot have applied anything: the member was absent, or it
     -- raised and left the container's amount untouched. Never after a partial application --
     -- a second call there would drink twice and the artifact would be a fiction.

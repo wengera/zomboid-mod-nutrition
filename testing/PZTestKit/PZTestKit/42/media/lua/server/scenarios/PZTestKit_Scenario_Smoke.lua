@@ -21,8 +21,9 @@ TK.test("smoke_clock", { timeoutMin = 30, run = function(t)
     t:log("smoke_clock: sampling calories every 5 game minutes")
     t:every(5, function()
         -- TK.call, not t.player:getNutrition():getCalories(): a missing Java member is
-        -- "tried to call nil", which pcall does not catch and which would kill EveryOneMinute
-        -- for the whole side (slice 01, exp01-20260909-235420).
+        -- "tried to call nil" -- index-first guard: a caught nil call is silent and names
+        -- nothing; an unguarded raise aborts the rest of this handler (x126/x127), which here
+        -- is EveryOneMinute -- see docs/modding/lua-api.md section 5.
         local _, n = TK.call(t.player, "getNutrition")
         local _, cal = TK.call(n, "getCalories")
         t:sample({ calories = cal })
