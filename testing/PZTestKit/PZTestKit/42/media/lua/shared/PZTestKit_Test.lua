@@ -16,7 +16,8 @@
 -- Loads after PZTestKit_Core.lua: Lua files in one folder load alphabetically, Core < Test.
 --
 -- Harness rules obeyed here (slice 01/02/03): Java members are probed with TK.call before they
--- are called (Kahlua's "tried to call nil" escapes pcall and kills the calling event handler);
+-- are called -- index-first guard: a caught nil call is silent and names nothing; an unguarded
+-- raise aborts the rest of this handler (x126/x127) -- see docs/modding/lua-api.md section 5;
 -- no `goto`; and no "%d" on a Lua number (every Lua number is a double and %d can raise) --
 -- "%.0f" everywhere.
 
@@ -25,10 +26,12 @@ TK.tests = TK.tests or { registry = {}, running = nil, clock = 0, due = {}, hook
 local T = TK.tests
 
 -- The one world read this layer takes -- at test start, on every sample and in the result doc.
--- It goes through TK.call for the harness's own reason (a Java member this build does not expose
--- is Kahlua's "tried to call nil", which escapes pcall, Core:97-100), and here the blast radius
--- is the worst in the mod: two of the three call sites run inside the EveryOneMinute handler, so
--- a bare failure would kill the scheduler for the WHOLE SIDE and the only symptom would be the
+-- It goes through TK.call for the harness's own reason -- a Java member this build does not
+-- expose is Kahlua's "tried to call nil"; index-first guard: a caught nil call is silent and
+-- names nothing; an unguarded raise aborts the rest of this handler (x126/x127) -- see
+-- docs/modding/lua-api.md section 5. Here the blast radius is the worst in the mod: two of the
+-- three call sites run inside the EveryOneMinute handler, so
+-- a bare failure would stop the scheduler for the WHOLE SIDE and the only symptom would be the
 -- runner's result timeout -- ten wall minutes later, with no result doc and no line to read. On
 -- a nil it logs once and returns nil instead: the sample keeps its other columns, the clock keeps
 -- ticking, and the Python side sees a missing worldAge (`scenario.cadence()` returns {}) rather
@@ -132,10 +135,11 @@ end
 -- first raise is asserted; the rest are logged, so a permanently broken predicate cannot flood
 -- `failures` with one line per game minute of the budget.
 --
--- What this pcall does NOT make safe: CALLING a Java member the build does not expose. That is
--- Kahlua's "tried to call nil", which escapes pcall entirely (Core:97-100, measured) and kills
--- EveryOneMinute for the whole side -- there is no clean failure to record. Predicates must
--- therefore reach Java through TK.call like everything else in the harness; the pcall is a net
+-- What this pcall catches but cannot EXPLAIN: CALLING a Java member the build does not expose.
+-- That is Kahlua's "tried to call nil" -- index-first guard: a caught nil call is silent and
+-- names nothing; an unguarded raise aborts the rest of this handler (x126/x127) -- see
+-- docs/modding/lua-api.md section 5. Predicates must therefore reach Java through TK.call like
+-- everything else in the harness; the pcall is a net
 -- for Lua-level mistakes only.
 function Ctx:eventually(pred, budgetMinutes, label)
     local deadline = T.clock + (budgetMinutes or 60)

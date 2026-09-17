@@ -125,8 +125,10 @@ end)
 -- (inherited by IsoPlayer) -- no new Java surface; `transmitModData()V` is on the same class.
 -- The write is a plain assignment, exactly like the client's shipped command: a KahluaTableImpl
 -- carries no metatable, so `md[k] = v` IS a raw set, and `rawset` is a global this build's Lua
--- never uses anywhere (0 hits in the game's own media/lua), which would make an absent one an
--- uncatchable "tried to call nil" on the server.
+-- never uses anywhere (0 hits in the game's own media/lua), which would make an absent one a
+-- "tried to call nil" on the server -- index-first guard: a caught nil call is silent and
+-- names nothing; an unguarded raise aborts the rest of this handler (x126/x127) -- see
+-- docs/modding/lua-api.md section 5.
 -- The VALUE is always a string (`argv[3]`, the bus splits on %S+), like the client's -- see
 -- docs/testing/README.md. There is no delete: writing nil through this path cannot be told from
 -- a missing argument, and nothing needs it.
@@ -1174,9 +1176,10 @@ TK.register("item.use", function(argv)
     --
     -- A STATIC, so it is called `ItemUser.UseItem(item, ...)` with no self and NOT through
     -- TK.call, which would hand the class table in as a seventh argument. Presence is still
-    -- established by INDEXING first (`_G["ItemUser"]`, then `.UseItem`), because "tried to
-    -- call nil" escapes pcall -- see TK.call; the pcall then covers what is left, an
-    -- argument/type mismatch inside Kahlua's overload dispatch.
+    -- established by INDEXING first (`_G["ItemUser"]`, then `.UseItem`) -- index-first guard:
+    -- a caught nil call is silent and names nothing; an unguarded raise aborts the rest of this
+    -- handler (x126/x127) -- see docs/modding/lua-api.md section 5. The pcall then covers what
+    -- is left, an argument/type mismatch inside Kahlua's overload dispatch.
     --
     -- READ OFF THE JAR before this command was written: `LuaManager$Exposer.shouldExpose
     -- @6-@14 L2833` is a strict `HashSet.contains` over the ~1000 classes `exposeAll()`

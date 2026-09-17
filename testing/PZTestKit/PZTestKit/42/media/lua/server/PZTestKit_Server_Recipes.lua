@@ -18,9 +18,11 @@
 -- are formatted with `%.0f`.
 if not isServer() then return end
 
--- `getScriptManager` is checked for nil BEFORE it is called: a nil global raises the same
--- uncatchable "tried to call nil" and would take the poll handler with it rather than answer
--- the bus with an error. Same helper as `PZTestKit_Server.lua`'s; duplicated rather than
+-- `getScriptManager` is checked for nil BEFORE it is called, so the poll handler answers the
+-- bus with an error instead of raising -- index-first guard: a caught nil call is silent and
+-- names nothing; an unguarded raise aborts the rest of this handler (x126/x127) -- see
+-- docs/modding/lua-api.md section 5. Same helper as `PZTestKit_Server.lua`'s; duplicated
+-- rather than
 -- shared so this file stays self-contained and a parallel edit to the other one cannot
 -- change what these commands do.
 local function scriptManager()
@@ -111,9 +113,12 @@ end
 --   * raised    -> `getterErrors`:   the member is there and the CALL failed. This is why the
 --                  pcall is here: `CraftRecipe.getTime` is overloaded (`()I` and
 --                  `(IsoGameCharacter)I`) and Kahlua's dispatch could pick the arity we did
---                  not ask for. `TK.call` has already ruled out the uncatchable "tried to call
---                  nil", so what is left is exactly the catchable argument/overload mismatch --
---                  and a raise must cost that one key, never the whole reply;
+--                  not ask for. `TK.call` has already ruled out "tried to call nil" --
+--                  index-first guard: a caught nil call is silent and names nothing; an
+--                  unguarded raise aborts the rest of this handler (x126/x127) -- see
+--                  docs/modding/lua-api.md section 5. What is left is exactly the
+--                  argument/overload mismatch, and a raise must cost that one key, never the
+--                  whole reply;
 --   * null      -> `nullGetters`:    the member answered, with nothing. Distinct from absent:
 --                  a recipe with no `category` line is not a build without `getCategory`.
 local function fields(o, getters)

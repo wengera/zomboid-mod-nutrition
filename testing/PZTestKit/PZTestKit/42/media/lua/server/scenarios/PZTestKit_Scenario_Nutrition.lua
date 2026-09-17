@@ -39,9 +39,11 @@
 -- test. The sampler also ENDS the run the moment it sees a corpse, so a future death costs one
 -- sample rather than six wall minutes of flat lines.
 --
--- Harness rules (slice 01/02/03): every Java member goes through TK.call -- Kahlua's "tried to
--- call nil" escapes pcall and would kill Events.EveryOneMinute for the whole side -- no `goto`,
--- and never "%d" on a Lua number (they are all doubles); "%.0f" or tostring instead.
+-- Harness rules (slice 01/02/03): every Java member goes through TK.call -- index-first guard:
+-- a caught nil call is silent and names nothing; an unguarded raise aborts the rest of this
+-- handler (x126/x127), which here is Events.EveryOneMinute -- see docs/modding/lua-api.md
+-- section 5. No `goto`, and never "%d" on a Lua number (they are all doubles); "%.0f" or
+-- tostring instead.
 
 local DAYS = 3
 local RUN_MIN = DAYS * 24 * 60          -- 4320 game minutes of scenario
