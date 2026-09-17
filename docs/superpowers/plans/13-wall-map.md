@@ -137,7 +137,7 @@ cd /c/Users/Angus/pz-b42
 | G2 | Change a vanilla appetite trait's multiplier | **CANNOT** · `getAppetiteMultiplier @13–@31 L10323-L10324` |
 | G3 | Add or remove a trait from Lua | **CAN** (server) · harness `trait.set`, M |
 | G4 | Rely on a weight-band trait client-side | **UNKNOWN -> X4** · body-stats open question 10; both trait lists were empty in the only run that could have shown it |
-| G5 | Call `HasTrait(String)` / `getTypeString()` | **CANNOT** (removed on 42.20.4) · C, slice 11; a Kahlua nil call is uncatchable and kills the `require` chain |
+| G5 | Call `HasTrait(String)` / `getTypeString()` | **CANNOT** (removed on 42.20.4) · C, slice 11; an unguarded Kahlua nil call aborts the rest of the handler body that reached it and names nothing, while `pcall` does catch it (corrected 2026-09-17 after slice 12 — see `.superpowers/sdd/13-wall-map/slice-12-outcomes.md`) |
 | H1 | Ship mod translations beside vanilla's | **CAN** · `Translator.tryFillMapFromMods @0-@97 L376-L391` **merges**, C; `td3` M3 is consistent but non-discriminating |
 | H2 | **Override** a vanilla translation key | **UNKNOWN -> X5** · the Translator merges rather than shadowing; `td3` M3 did not discriminate |
 | H3 | Use a B41-layout `ItemName_EN.txt` | **UNKNOWN -> X1** · display-name hypothesis (ii); the block was a write into the read-only mod tree, and `testing/experiments/` removed it. **Slice 12's M4 measures exactly this** — if the manifest shows it settled, this row becomes M citing that artifact and X1 is struck |

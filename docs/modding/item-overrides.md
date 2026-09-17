@@ -1,7 +1,8 @@
 # Item overrides — the five routes a mod has into a vanilla item's nutrition
 
-**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-11 · slice 12 (P2a). Measured on five
-experiment mods we wrote (`testing/experiments/TKX_*`), driven by five live sessions:
+**Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-11 · slice 12 (P2a). Measured on six of
+the slice's eight experiment mods we wrote (`testing/experiments/TKX_*` and `tkx-loader-probe`),
+driven by five live sessions:
 `x121-20260911-030023` (the routes), `x124-20260911-035819` and `x125-20260911-042055`
 (replay order), `x122-20260911-032326` and `x123-20260911-034426` (the loader).
 Evidence grades: **C** read from bytecode / Lua / scripts, **M** measured on the live dedicated

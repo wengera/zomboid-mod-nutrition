@@ -6,11 +6,12 @@ teardowns (`td1`/`td1b`, `td2`, `td3`), the harness's own Lua and the jar. Jar r
 re-taken on 42.20.4 the same day with `pz-b42/pz.sh`.
 
 **This file is CURATED, not an inventory.** A row exists here only because **this library has
-used it or measured it** — in the harness (`testing/PZTestKit/`), in the five slice-12
-experiment mods (`testing/experiments/TKX_*`), in a teardown of a shipped mod, or in a jar read
-taken for one of those. The full event roster lives on the wiki; the full command inventory
-lives in [`../testing/README.md`](../testing/README.md). What is here is the surface a B42
-nutrition mod actually stands on, with the side that owns each piece and whether it syncs.
+used it or measured it** — in the harness (`testing/PZTestKit/`), in the slice's eight
+experiment mods (`testing/experiments/TKX_*` and `tkx-loader-probe`), in a teardown of a shipped
+mod, or in a jar read taken for one of those. The full event roster lives on the wiki; the full
+command inventory lives in [`../testing/README.md`](../testing/README.md). What is here is the
+surface a B42 nutrition mod actually stands on, with the side that owns each piece and whether
+it syncs.
 
 **The three rules that shape everything below.** (1) `Nutrition`, hunger/thirst and item state
 are **server-authoritative** and arrive on the client as a **push**, so a client-side reader is
@@ -55,9 +56,9 @@ mod's 8 most-used events.
 | `OnTick` | **both** | every frame | the harness's server poll, deliberately throttled `ticks % 20` (`PZTestKit_Server.lua:1285-1289`); the expensive tier — corpus 70 / 15, and FILTER 5 keeps nutrition out of it | C |
 | `OnPlayerUpdate` | client | per player, per frame | **never registered by this library**; recorded because it is the corpus's most *widely* shared hook (55 / 39) and therefore the shared perf hotspot KEEP 8 tells us to stay off | C (corpus census 2026-09-10) |
 | `OnCreatePlayer` | **client only** | after Click-to-Start | simpleStatus builds its whole panel here (`42.16/media/lua/client/ss.main.lua:82`) and has no server counterpart at all, which is why it cannot be authoritative about anything | W (the [Lua_event mirror](../../references/wiki-mirrors/lua-event.md), page version 42.20.4, fetched **2026-09-10**, corroborating the client-only marking) + C (`td2-20260910-231655` teardown read) |
-| `OnInitGlobalModData` | both; **the server-side init point** | during world init, before players exist | simpleStatus's global-config pair `OnInitGlobalModData` / `OnReceiveGlobalModData` (`42.14/media/lua/server/ss.save.config.lua:30-53`); corpus 33 / 14. With `OnServerStarted` it is the pair that survives a dedicated server, because `OnCreatePlayer` / `OnGameStart` / `OnLoad` never fire there | W (same mirror + fetch date) + C |
-| `OnServerStarted` | **server only** | end of world init | mod C retries its `ISEatFoodAction.complete` install here; the harness logs a line (`PZTestKit_Server.lua:1292`); corpus 11 / 6 | W (same mirror + fetch date) + M — see the wrapper row below |
-| `OnGameBoot` | launch, both VMs | once at launch | mod C's third install site (`testing/experiments/TKX_EatHook/42.20/media/lua/server/TKX_EatHook_Server.lua:73`); corpus 38 / 16 | W (same mirror + fetch date) + M — see the wrapper row below |
+| `OnInitGlobalModData` | both; **the server-side init point** | during world init, before players exist | simpleStatus's global-config pair `OnInitGlobalModData` / `OnReceiveGlobalModData` (`42.14/media/lua/server/ss.save.config.lua:30-53`); corpus 33 / 14. With `OnServerStarted` it is the pair that survives a dedicated server, because `OnCreatePlayer` / `OnGameStart` / `OnLoad` never fire there | W (same mirror + fetch date, corroborating that it fires on **both** sides during world init and is one of the two hooks that survive a dedicated server) + C |
+| `OnServerStarted` | **server only** | end of world init | mod C retries its `ISEatFoodAction.complete` install here; the harness logs a line (`PZTestKit_Server.lua:1292`); corpus 11 / 6 | W (same mirror + fetch date, corroborating the **server-only** marking and its place at the end of world init) + M — see the wrapper row below |
+| `OnGameBoot` | launch, both VMs | once at launch | mod C's third install site (`testing/experiments/TKX_EatHook/42.20/media/lua/server/TKX_EatHook_Server.lua:73`); corpus 38 / 16 | W (same mirror + fetch date, corroborating that it fires once at launch in **both** VMs) + M — see the wrapper row below |
 | **Which install site actually wrapped** | both sides | — | `TKX_EatHook.wrapAt` read back **`"file"` on the client and on the server**: the file-scope `install("file")` (`…/TKX_EatHook_Server.lua:67`) won on both, and neither boot event's retry ever re-wrapped, because the sentinel `TKX_EatHook_Installed` (`:31`) made them no-ops. The retry is cover for **load order**, not the install | M (`x121-20260911-030023`, `phases.M5.globals.client.TKX_EatHook.wrapAt` and `.server.…`) |
 | `OnPreFillInventoryObjectContextMenu` | client | every inventory right-click | AutoCook's only real entry point, and it lives in `common/` (`common/…/AutoCook_RISCookMenuInsertion.lua:117`); vanilla fires it at `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua:374` with `(playerNum, context, items)` | C (`td3-20260911-001948` teardown read) |
 | `OnKeyPressed` | client | per key | simpleStatus forwards keys to its bar (`42.16/media/lua/client/ss.main.lua:83-87`) | C (`td2-20260910-231655` teardown read) |
@@ -439,11 +440,12 @@ not advance at all over a measured 12.54 s window (run `td3-20260911-001948`;
   `zombie.scripting.objects.Item` (the absences in § 6).
 - **This repo's own code, cited by path and line:**
   `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`,
-  `…/server/PZTestKit_Server.lua`, `…/client/PZTestKit_Client.lua`, and the five experiment
-  mods under `testing/experiments/TKX_*` — `TKX_ItemOverride`, `TKX_Nutrient`, `TKX_EatHook`
-  and `TKX_CommonOnly` added in `f36a860` and fixed in `de10855`; `TKX_ZWatermelon` added in
-  `f6c336e`. Harness commits touched by slice 12:
-  `ad683fe` (`text.get` moved to `shared/`) and `5d9633f` (its null guard).
+  `…/server/PZTestKit_Server.lua`, `…/client/PZTestKit_Client.lua`, and the slice's eight
+  experiment mods — seven under `testing/experiments/TKX_*` plus `tkx-loader-probe`:
+  `TKX_ItemOverride`, `TKX_Nutrient`, `TKX_EatHook`, `TKX_CommonOnly` and `tkx-loader-probe`
+  added in `f36a860` and fixed in `de10855`; `TKX_ZWatermelon` added in `f6c336e`;
+  `TKX_PcallProbe` in `72b6355`; `TKX_RaiseProbe` in `5d3f22d`. Harness commits touched by
+  slice 12: `ad683fe` (`text.get` moved to `shared/`) and `5d9633f` (its null guard).
 - **Wiki (W), corroboration only:**
   [`../../references/wiki-mirrors/lua-event.md`](../../references/wiki-mirrors/lua-event.md),
   PZwiki *Lua_event*, page version 42.20.4, **fetched 2026-09-10** — the boot order and the

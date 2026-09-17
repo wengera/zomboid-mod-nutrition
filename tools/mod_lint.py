@@ -22,16 +22,17 @@ the 230 installed folders, 29 (13 %) carry a WARN and 67 (29 %) a WARN or an INF
 | `folder-id`      | INFO  | folder name == `id` (informational only: the game keys on mod.info, not the folder) |
 
 Sweep of the 230 installed mod folders (42.20.4): **84 findings -- 3 ERROR, 30 WARN, 51 INFO**
-at 2026-09-10 13:47, reproduced at 14:40 and 15:09 the same day. Quote a sweep with its date -- the
-workshop tree is live and moved once mid-slice (85: 3/31/51 that morning, one `media` WARN more
-before Steam rewrote item `3490370700`). Every folder has a version dir. The 3 errors sit on 2
-mods: `3782784855/Skill Recovery Journal` ships only `42.20.1/media`, so `mod-info` and `id`
-both fail (and `workshop_index()` cannot see it -- 229 entries for 230 folders), and
-`3774052732/SD_CC_TEST` fails `id-agree` (`sd_cc_test` in `42/mod.info` and the root,
-`SD_CC_TEST_42` in `common/mod.info` -- all three are in the chain). 6 warn on
-`mod-info-place`, 24 on `media` (all of them ship `common/media` instead), 0 use `loadstring`,
-0 drift (the only out-of-chain files in the corpus are the five Frockin Splendor mods'
-`LEGACY/42.1x/mod.info`, and they agree), 51 folder names differ from the id.
+at 2026-09-10 13:47, reproduced at 14:40 and 15:09 the same day. Quote a sweep with its date --
+the workshop tree is live and moved twice mid-slice (85: 3/31/51 that morning, one `media` WARN
+more before Steam rewrote item `3490370700`; then 2026-09-11 04:47: 83 findings after the
+workshop change; the inventory dataset is a 2026-09-10 17:47 snapshot). Every folder has a
+version dir. The 3 errors sit on 2 mods: `3782784855/Skill Recovery Journal` ships only
+`42.20.1/media`, so `mod-info` and `id` both fail (and `workshop_index()` cannot see it -- 229
+entries for 230 folders), and `3774052732/SD_CC_TEST` fails `id-agree` (`sd_cc_test` in
+`42/mod.info` and the root, `SD_CC_TEST_42` in `common/mod.info` -- all three are in the chain).
+6 warn on `mod-info-place`, 24 on `media` (all of them ship `common/media` instead), 0 use
+`loadstring`, 0 drift (the only out-of-chain files in the corpus are the five Frockin Splendor
+mods' `LEGACY/42.1x/mod.info`, and they agree), 51 folder names differ from the id.
 
 "Skill Recovery Journal" is **two** workshop items and only one of them is broken:
 `2503622437` ships `42.20.1/mod.info` and lints clean; `3782784855` carries no `mod.info`

@@ -160,8 +160,9 @@ version-wins.**
 
 **The negative that would have shown the inverse is also measured, and it is bounded.** A
 common-wins state would have executed `common/…/AutoCook.lua:39`'s `player:HasTrait("Nutritionist")`
-— a member removed in 42.20.4 — and Kahlua's "tried to call nil" is uncatchable
-(`PZTestKit_Core.lua:118-122`, run `exp01-20260909-235420`). The console grep
+— a member removed in 42.20.4 — and an **unguarded** Kahlua "tried to call nil" aborts the rest
+of the handler body that reached it while naming nothing in any log (corrected 2026-09-17,
+x126/x127 — see [`../../modding/lua-api.md`](../../modding/lua-api.md) § 5). The console grep
 `tried to call nil|HasTrait|getTypeString` returned **0** on the client and **0** on the server
 (M — `nilcall_lines`). **What that proves is the whole WINDOW-BUILD path, not one line.**
 `ISCharacterCook:createChildren` calls `AutoCook.init` at `:17` and then, six lines later,
@@ -499,7 +500,9 @@ by this session.
    42.20.4** (`IsoGameCharacter` exposes only `hasTrait(CharacterTrait)`; neither
    `zombie/inventory/InventoryItem` nor `zombie/scripting/objects/Item` has `getTypeString`). They
    are harmless **only because the version folder wins**, which this session measured and which no
-   line of the mod asserts. A Kahlua nil call is uncatchable, so the failure mode is not a
+   line of the mod asserts. An unguarded Kahlua nil call aborts the rest of the handler body it
+   fires in (corrected 2026-09-17, x126/x127 — see
+   [`../../modding/lua-api.md`](../../modding/lua-api.md) § 5), so the failure mode is not a
    degraded feature — and it is **not** "dying at file load" either: none of the four calls sits
    at file scope, so what dies is the character-info window when it is **built**, inside
    `createPlayerData` at spawn (`ISCharacterCook:createChildren` reaches three of the four —

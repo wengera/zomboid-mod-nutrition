@@ -61,7 +61,7 @@ one `mod.info` carries the key.
 | `url` | 5 | display only | C |
 | `loadModBefore` / `loadModAfter` | 1 / 1 | **advisory, client UI only.** `getLoadBefore` / `getLoadAfter` are read only by `ModLoadOrderPanel.lua:52,68,222,258` and `ModOrderListBox.lua:50,60` — they arrange the selector's list. The server loads in literal `Mods=` order | C |
 | `tags`, `pzversion`, `texts`, `supports`, `zoomX/Y/S` | 15 / 10 / 1 / 1 / 1 | **not parsed at all.** No branch tests them | C |
-| the keys **we** declare | 7 mods, 8 ids (A–G; mod D declares two) | every slice-12 experiment mod ships exactly `name` + `id` + `description` + `modversion` + `versionMin` and nothing else; all seven ids resolved and every mod loaded | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `mods_not_found` empty; `testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.mods_not_found`) |
+| the keys **we** declare | 8 mods, 9 ids (A–H; mod D declares two) | every slice-12 experiment mod ships exactly `name` + `id` + `description` + `modversion` + `versionMin` and nothing else; every addressable id resolved and every mod loaded | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `mods_not_found` empty; `testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.mods_not_found`; `testing/artifacts/x127-20260911-052049/platform-raise.json` → `mods_not_found`) |
 
 **Load-order declarations, ranked by what the engine does with them:** `require=` is the only
 one the loader acts on (it loads dependencies first and gates availability). `loadModAfter=` /
@@ -247,19 +247,20 @@ fixing the id typo `76chevyKserieseExpanded` → `76chevyKseriesExpanded`, so a 
 reads `83 finding(s): 3 ERROR, 30 WARN, 50 INFO` and the drifted-folder count is 51, not 52
 (**C**, file mtime + re-sweep, 2026-09-11). Quote a sweep with its stamp: the tree is live.
 
-### The seven experiment mods
+### The eight experiment mods
 
-All seven live under `testing/experiments/`, are `versionMin=42.0.0`, and are test-profile only.
+All eight live under `testing/experiments/`, are `versionMin=42.0.0`, and are test-profile only.
 
 | Mod | Id(s) | Profile | Session(s) | What it measured | Ev |
 |---|---|---|---|---|---|
 | A | `TKX_ItemOverride` | `x12-overrides`, `x12-order`, `x12-order2` | 1, 4, 5 | script override shapes, three translation states, the Watermelon collision | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json`) |
-| B | `TKX_EatHook` | `x12-overrides`, `x12-order`, `x12-order2` | 1, 4, 5 | `OnEat` on both sides, the `ISEatFoodAction.complete()` wrapper, the second Watermelon body | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5a`, `phases.M5b`) |
-| C | `TKX_Nutrient` | `x12-overrides` | 1 | modData routes, and incidentally the `server/`-file finding of § 6 | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M6`, `phases.M7`, `phases.M9`) |
+| B | `TKX_Nutrient` | `x12-overrides` | 1 | modData routes, and incidentally the `server/`-file finding of § 6 | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M6`, `phases.M7`, `phases.M9`) |
+| C | `TKX_EatHook` | `x12-overrides`, `x12-order`, `x12-order2` | 1, 4, 5 | `OnEat` on both sides, the `ISEatFoodAction.complete()` wrapper, the second Watermelon body | M (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5.globals`, `verdicts.M5a` / `verdicts.M5b`) |
 | D | `TKX_LoaderVersion` (`42.20/`) and `TKX_LoaderCommon` (`common/`) | `x12-loader` | 2, 3 | the merge direction, the `overrides` tails, the folder drift, the requested-id discriminator | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `summary.L2_which`; `testing/artifacts/x123-20260911-034426/platform-folder.json` → `boots.drift`, `boots.common_id`) |
 | E | `TKX_CommonOnly` | `x12-loader` | 2, 3 | a version dir holding only a `mod.info` | M (`testing/artifacts/x122-20260911-032326/platform-loader.json` → `phases.L3.reading`) |
 | F | `TKX_ZWatermelon` | `x12-order`, `x12-order2` | 4, 5 | a Watermelon body whose id sorts last; gated at tier (c) | M (`testing/artifacts/x124-20260911-035819/platform-order.json` → `phases.O1`; `testing/artifacts/x125-20260911-042055/platform-order2.json` → `phases.O1`) |
 | G | `TKX_PcallProbe` | `x12-pcall` | 6 | whether `pcall` catches a Kahlua nil call, and whether the handler body and the handler registered behind it survive one | M (`testing/artifacts/x126-20260911-045205/platform-pcall.json` → `phases.reads.client.values`, `phases.reads.server.values`, `verdicts.P21_client` / `verdicts.P21_server`) |
+| H | `TKX_RaiseProbe` | `x12-raise` | 7 | whether an **unguarded** nil call aborts the rest of its own handler's body, whether the handlers registered behind it still run, and whether the nested `pcall(function() … end)` shape catches | M (`testing/artifacts/x127-20260911-052049/platform-raise.json` → `phases.reads.server.values`, `phases.engine_log_signature`, `verdicts.P22_server`) — **server VM only**: the `-debug` client parked in the Lua debugger and every client-side reading of that run is *do not cite* |
 
 ## Code map — the `Mods=` chain, re-derived
 
@@ -356,7 +357,7 @@ One line per entry area: what classifies it today, and what would settle the res
 | Area | Verdict | Evidence, and the next probe | Ev |
 |---|---|---|---|
 | New nutrient fields | **CAN WITH A WORKAROUND** | per-side modData holds without a transmit, and a server→client `transmitModData()` **wipes and replaces** the receiver's table (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M6`, `phases.M9`); FILTER 10 is the rule. Unsettled: the server→client **item**-modData direction — un-run | M |
-| Eat hooks | **CAN** | `OnEat` fires on both sides at fraction 1 (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5a`); `ISEatFoodAction.complete()` runs server-only and a Lua wrapper of it runs **before** `Eat`, installing silently on the client too (`phases.M5b`) | M |
+| Eat hooks | **CAN** | `OnEat` fires on both sides at fraction 1 (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M5.globals`, `verdicts.M5a`); `ISEatFoodAction.complete()` runs server-only and a Lua wrapper of it runs **before** `Eat`, installing silently on the client too (`phases.M5.globals`, `verdicts.M5b`) | M |
 | The weight formula | **CANNOT** client-side, **CAN** for direction | `Nutrition.updateWeight`'s `GameClient.client` skip sits before `setWeight` (C, re-quoted from [`../vanilla/body-stats.md`](../vanilla/body-stats.md) § MP behaviour, not re-dumped here); the three direction flags are set ahead of it and agreed across sides on both non-trivial arms (`testing/artifacts/x121-20260911-030023/platform-overrides.json` → `phases.M8.arms[*].reading` and `summary.M8_flags`). `nutrition.set calories −100` is **not clamped** (−102.5664 read back on the server, −102.10 on the client, same key) | M |
 | Moodles | **UNKNOWN** | MoodleFramework "whole on 42.20.4" is **C** derived from the merge rule — nothing has booted it, and it is the one corpus mod whose `mod.info` chain differs between the lint and the engine (§ Discrepancies 1). Probe: boot it under a profile and read one `MF_Config.lua` global | C |
 | Sync — item stats | **CAN** | the server→client table in [patterns.md](patterns.md) § Measured MP sync facts (runs `td1-20260910-192457`, `td1b-20260910-202029`): 43 fields, `hungChange` faithful, `thirstChange` halved per hop, aging fields absent | M |
@@ -410,7 +411,10 @@ One line per entry area: what classifies it today, and what would settle the res
   (the nil-`pcall` probe, cited in § Inputs for the wall map and mod G's row; the rule text is
   [lua-api.md](lua-api.md)'s and [patterns.md](patterns.md)'s — note the run's citable-claims
   file first named its keys as `readings.*` / `verdicts.P21`, which the artifact does not carry; its
-  § Corrections (2026-09-11) supersede them with the artifact's keys, `phases.reads.<side>.values` and `verdicts.P21_client` / `verdicts.P21_server`); and
+  § Corrections (2026-09-11) supersede them with the artifact's keys, `phases.reads.<side>.values` and `verdicts.P21_client` / `verdicts.P21_server`),
+  [`x127-20260911-052049`](../../testing/artifacts/x127-20260911-052049/platform-raise.json)
+  (the unguarded-raise probe, cited for mod H's row; **server VM only** — the `-debug` client
+  parked in the Lua debugger, so every client-side reading of that run is *do not cite*); and
   [`td3-20260911-001948`](../../testing/artifacts/td3-20260911-001948/teardown-autocook.json)
   → `loading_lines`, the one `common/`-only corpus mod that has booted (§ 2). **Not committed:**
   § 3's three empty `overrides` tails are read from `testing/runs/x124-20260911-035819/`'s

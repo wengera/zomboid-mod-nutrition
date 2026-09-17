@@ -106,9 +106,9 @@ on; treat divergence as a decision point, not a free choice.**
     a side.** A mod's `media/lua/server/` files **execute in the MP client's Lua
     state too** (measured 2026-09-11, run `x121-20260911-030023`, key
     `phases.M7.mod_globals.client`), on three independent witnesses in one
-    session: mod C's own `TKX_Nutrient.side` read `client` from a file under
+    session: mod B's own `TKX_Nutrient.side` read `client` from a file under
     `server/`, its per-tick counter advanced on the client (58 ticks against the
-    server's 38), and mod B's `ISEatFoodAction.complete` wrapper reported
+    server's 38), and mod C's `ISEatFoodAction.complete` wrapper reported
     `TKX_EatHook.wrapped` **true** client-side while staying silent there. So
     "only my server file writes this" is false until the guard is written, and a
     `server/` file that mutates shared state, installs a wrapper or registers a
@@ -291,14 +291,14 @@ neither table above has a row for them, and both change how a mod is written.
   narrowed `item Orange` declaring only `Calories` left `hungChange` at
   **−0.12** and `carbohydrates` at **16.27** — vanilla's values — while taking
   the mod's `Calories = 400` (**M**, 2026-09-11, run `x121-20260911-030023`,
-  key `phases.M2b`; n = 1 item, both sides read). **The "`ResetExisting`
-  wholesale reset" reading is dead**, and the practical rule is the opposite of
-  what it implied: **restate only what you change**, because everything you omit
-  survives. A redefinition also **replaces rather than adds** — `module Base`
-  stayed at **722** foods across every redefinition boot (`phases.M1`), so an
-  item pass cannot inflate the corpus by accident. Both are
-  [`item-overrides.md`](item-overrides.md)'s rows; it owns the routes and the
-  replay order that decides which body lands last.
+  key `phases.M2.items`, verdict `verdicts.M2b`; n = 1 item, both sides read).
+  **The "`ResetExisting` wholesale reset" reading is dead**, and the practical
+  rule is the opposite of what it implied: **restate only what you change**,
+  because everything you omit survives. A redefinition also **replaces rather
+  than adds** — `module Base` stayed at **722** foods across every redefinition
+  boot (`phases.M1`), so an item pass cannot inflate the corpus by accident.
+  Both are [`item-overrides.md`](item-overrides.md)'s rows; it owns the routes
+  and the replay order that decides which body lands last.
 - **A dedicated server resolves no display name at all — not even from a B42
   `ItemName.json`.** The client resolved the JSON name; the **server** returned
   the raw type for the same item, JSON present (**M**, same run, `phases.M4`).
@@ -517,8 +517,9 @@ it:
   2026-09-11): five sessions on **our own** experiment mods, each artifact
   committed beside its driver —
   [`x121-20260911-030023`](../../testing/artifacts/x121-20260911-030023/platform-overrides.json)
-  (keys `phases.M2b`, `phases.M4`, `phases.M5a`, `phases.M5b`, `phases.M6`,
-  `phases.M7.mod_globals.client`, `phases.M9`, `m8`),
+  (keys `phases.M2.items`, `phases.M4`, `phases.M5.globals`, `phases.M6`,
+  `phases.M7.mod_globals.client`, `phases.M9`, `m8`, with the verdicts
+  `verdicts.M2b` / `verdicts.M5a` / `verdicts.M5b`),
   [`x122-20260911-032326`](../../testing/artifacts/x122-20260911-032326/platform-loader.json)
   (`summary.L2_which`, `summary.L2_trees`, `phases.L2.reading.overrides_tails`,
   `phases.L3.reading`),
