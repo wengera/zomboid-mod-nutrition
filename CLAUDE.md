@@ -21,23 +21,15 @@ A **reference library** for a future Project Zomboid **Build 42** mod: a realism
 
 ## 3. Status snapshot (2026-09-17)
 
-| Slice | What | State |
-|---|---|---|
-| 01–06 | vanilla docs (`docs/vanilla/*.md`) + datasets (`data/*`) | done |
-| 07 | profiles / mod-under-test (`docs/testing/profiles.md`, `testing/pzt run --profile`) | done |
-| 08 | nutrition-mod catalog (`docs/mods-survey/nutrition-mods.md`, `data/mod-inventory.json`, `tools/mod_lint.py`) | done |
-| 09–11 | teardowns LTP / simpleStatus / AutoCook (`docs/mods-survey/teardowns/`) — wave 3 | done, pushed |
-| 12 | Platform reference — 8 experiment mods (`testing/experiments/TKX_*`), 11 profiles, **7 live sessions x121–x127**, three docs `docs/modding/{anatomy,item-overrides,lua-api}.md` | **done**, closed 2026-09-17 (`f36a860..17a683b`, close `75e277c`), pushed |
-| 13 | Moddability wall map (`docs/modding/wall-map.md` — 64 rows, 26 named experiments) | **done**, closed 2026-09-17 (`2019621..91fda27`, close `c3e60a0`), pushed |
-| **14** | Feasibility notes (`docs/feasibility/*.md`, six notes + index) | **in progress** — the last slice; see § 4 |
+Slices 01–13 are **done and pushed** (12 closed `f36a860..17a683b`, close `75e277c`; 13 closed `2019621..91fda27`, close `c3e60a0`). Slice 14 (feasibility notes) was **closed unrun**: its six design areas are written once as `docs/areas/` by the restructure. The research program is **closed at the tag `research-program-v1`** — everything the program produced (plans, specs, ledgers, the old doc tree) is reachable there forever.
 
-Earlier interruption (2026-09-11): the weekly Opus rate limit; resumed 2026-09-17. Subagents are Opus by standing rule.
+The repo is now being restructured into an agent-facing reference under `docs/superpowers/specs/2026-09-17-reference-restructure-design.md` (APPROVED 2026-09-17). Four phases: 0 close (done at the tag) · 1 the claims register, checker and generator (`docs/superpowers/plans/restructure-1-register.md`) · 2 `platform/` + `facts/` pages · 3 `areas/` + skills + roots · 4 the cut. Until Phase 4 lands, the old tree (`docs/vanilla`, `docs/modding`, `docs/mods-survey`, `docs/testing`) remains the readable reference and `docs/progress.md` / `docs/decisions.md` are frozen — do not extend them; rulings go in the plan's SDD ledger.
 
 ## 4. Resume point — do exactly this
 
-1. `cd /c/Users/Angus/repos/project_zomboid && git status` (expect clean) and `git log --oneline -5`; read `.superpowers/sdd/14-feasibility-notes/progress.md` (the slice-14 ledger — its last line names the live task) and `stale-cold-start.md` in that folder (every plan-14 cold-start fact that changed after the plan was written).
-2. **Slice 14** (`docs/superpowers/plans/14-feasibility-notes.md`) runs entirely offline: Task 1 (input audit + index, `task-1-brief.md` + `task-1-amendments.md`) → Task 2 alone (`mp-sync.md` then `new-nutrients.md`; `notes-common-amendments.md` + `task-2-brief.md`) → Tasks 3 and 4 in parallel after Task 2's review (disjoint notes) → Task 5 (the xref gate, `task-5-amendments.md`) → Task 6 (ledgers + `## Program close`, `task-6-amendments.md`; no push, no flip). Each task: fresh Opus implementer → review (packages from `git show`) → fix round → re-review. Inputs the notes must carry: `slice-12-bounds.md`, `slice-13-bounds.md` (both in the slice-14 workspace).
-3. Whole-slice review of 14, residuals, then the **program close**: write `close14.py` in `.superpowers/sdd/_tools/` on the `close13.py` model (row `| 14 | P5 · Feasibility notes | done | <date> | <start>..<end> | <outcome> |`), commit `Slice 14: close (board)`, push, update this file's § 3 (all 14 done) and the memory file, and declare the research program closed — the mod-design phase starts at `docs/feasibility/README.md` § Start here.
+1. Read the spec, then the plan in progress (`docs/superpowers/plans/restructure-1-register.md`; later plans are named `restructure-2-…`, `restructure-3-…`, `restructure-4-…`) and its SDD ledger `.superpowers/sdd/<plan-basename>/progress.md`.
+2. Run the plan with `superpowers:subagent-driven-development` exactly as § 5 describes. Tasks with a `Task <N>: complete` line are done; resume at the first without one.
+3. At each plan's close: run the gates in § 6, push, update this section and the memory file.
 
 ## 5. The process — superpowers subagent-driven development (SDD)
 
