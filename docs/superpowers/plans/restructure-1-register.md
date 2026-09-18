@@ -107,7 +107,7 @@ Expected: the tag lists; HEAD is the close commit. Report the commit hash; the c
 ### Task 2: Move `luabalance.py` into the tree
 
 **Files:**
-- Create: `tools/luabalance.py` (from `.superpowers/sdd/_tools/luabalance.py`, byte-identical)
+- Create: `tools/luabalance.py` (from `.superpowers/sdd/_tools/luabalance.py`, byte-identical except that the CLI body at the bottom is wrapped in `if __name__ == "__main__":` so the module imports cleanly — Ruling R6)
 - Create: `tools/tests/test_luabalance.py`
 - Modify: `tools/README.md` (a new `## Reference tooling` section before `## Planned (P4)`), `CLAUDE.md` § 7 (the balance-check path)
 
@@ -184,7 +184,7 @@ In `CLAUDE.md` § 7 replace `python .superpowers/sdd/_tools/luabalance.py <lua f
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "tools: luabalance.py moved into the tree with tests" -- tools/luabalance.py tools/tests/test_luabalance.py tools/README.md CLAUDE.md
+cd /c/Users/Angus/repos/project_zomboid && git add tools/luabalance.py tools/tests/test_luabalance.py tools/README.md CLAUDE.md && git commit -m "tools: luabalance.py moved into the tree with tests" -- tools/luabalance.py tools/tests/test_luabalance.py tools/README.md CLAUDE.md
 ```
 
 ---
@@ -480,7 +480,7 @@ Append to `tools/README.md` `## Reference tooling`:
 ```
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "tools: claimslib (register schema and grammars)" -- tools/claimslib.py tools/tests/test_claimslib.py tools/README.md
+cd /c/Users/Angus/repos/project_zomboid && git add tools/claimslib.py tools/tests/test_claimslib.py tools/README.md && git commit -m "tools: claimslib (register schema and grammars)" -- tools/claimslib.py tools/tests/test_claimslib.py tools/README.md
 ```
 
 ---
@@ -841,7 +841,7 @@ Append to `tools/README.md` `## Reference tooling`:
 ```
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "tools: claims_harvest (candidates, do-not-cite, merge)" -- tools/claims_harvest.py tools/tests/test_claims_harvest.py tools/README.md
+cd /c/Users/Angus/repos/project_zomboid && git add tools/claims_harvest.py tools/tests/test_claims_harvest.py tools/README.md && git commit -m "tools: claims_harvest (candidates, do-not-cite, merge)" -- tools/claims_harvest.py tools/tests/test_claims_harvest.py tools/README.md
 ```
 
 ---
@@ -1063,7 +1063,7 @@ Append to `tools/README.md` `## Reference tooling`:
 ```
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "tools: bus_inventory (harness command generator)" -- tools/bus_inventory.py tools/tests/test_bus_inventory.py tools/README.md
+cd /c/Users/Angus/repos/project_zomboid && git add tools/bus_inventory.py tools/tests/test_bus_inventory.py tools/README.md && git commit -m "tools: bus_inventory (harness command generator)" -- tools/bus_inventory.py tools/tests/test_bus_inventory.py tools/README.md
 ```
 
 ---
@@ -1232,7 +1232,7 @@ Run: `python -m pytest testing/tests/test_template.py -q` → `1 passed`. The dr
 - [ ] **Step 7: Commit**
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "Reference: experiments.md and jar-method-notes.md moved into the tree; run aliases; driver template" -- docs/reference/experiments.md docs/reference/jar-method-notes.md docs/reference/run-aliases.csv testing/experiments/_template.py testing/tests/test_template.py
+cd /c/Users/Angus/repos/project_zomboid && git add docs/reference/experiments.md docs/reference/jar-method-notes.md docs/reference/run-aliases.csv testing/experiments/_template.py testing/tests/test_template.py && git commit -m "Reference: experiments.md and jar-method-notes.md moved into the tree; run aliases; driver template" -- docs/reference/experiments.md docs/reference/jar-method-notes.md docs/reference/run-aliases.csv testing/experiments/_template.py testing/tests/test_template.py
 ```
 
 ---
@@ -1790,7 +1790,7 @@ Append to `tools/README.md` `## Reference tooling`:
 - [ ] **Step 6: Commit**
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "tools: claims_check (the register checker)" -- tools/claims_check.py tools/tests/test_claims_check.py tools/README.md
+cd /c/Users/Angus/repos/project_zomboid && git add tools/claims_check.py tools/tests/test_claims_check.py tools/README.md && git commit -m "tools: claims_check (the register checker)" -- tools/claims_check.py tools/tests/test_claims_check.py tools/README.md
 ```
 
 ---
@@ -2366,7 +2366,7 @@ Expected: both lints 0, `0 findings`, `in sync`, tests green (283 plus the new t
 - [ ] **Step 3: Commit, push, memory**
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git commit -m "Restructure 1: close" -- CLAUDE.md && git push origin main && git push origin research-program-v1 && git log --oneline -1 && git ls-remote --tags origin | grep research-program-v1
+cd /c/Users/Angus/repos/project_zomboid && git add CLAUDE.md && git push origin main && git push origin research-program-v1 && git log --oneline -1 && git ls-remote --tags origin | grep research-program-v1 && git commit -m "Restructure 1: close" -- CLAUDE.md && git push origin main && git push origin research-program-v1 && git log --oneline -1 && git ls-remote --tags origin | grep research-program-v1
 ```
 
 Then update the memory file's status paragraph (Phase 1 closed; the counts; NEXT = the Phase 2 plan) and the `MEMORY.md` index line.
@@ -2379,7 +2379,7 @@ The final reviewer (the most capable model available) reads the spec § Executio
 
 1. The tag `research-program-v1` exists and points at the program-close commit; `CLAUDE.md` § 3/§ 4 describe the restructure, not slice 14.
 2. `docs/reference/experiments.md` and `jar-method-notes.md` are verbatim moves (diff against the gitignored originals on this machine); `run-aliases.csv` names `x123b`.
-3. `tools/luabalance.py` is byte-identical to the gitignored original; every new tool has tests and a `tools/README.md` entry; `python -m pytest tools/tests testing/tests -q` is green at 283 + the new tests.
+3. `tools/luabalance.py` is byte-identical to the gitignored original except the `__main__` guard around its CLI body (Ruling R6); every new tool has tests and a `tools/README.md` entry; `python -m pytest tools/tests testing/tests -q` is green at 283 + the new tests.
 4. The harness diff is comments only (`git diff research-program-v1..HEAD -- testing/PZTestKit | grep '^[-+]' | grep -v '^[-+][-+]' | grep -v '^+\s*--'` prints nothing); 64 sites carry complete blocks; `harness-commands.md` is a fresh render.
 5. `claims.tsv`: `--register-only` clean; the totals in the bands of Task 21 Step 4; twenty sampled rows across groups are faithful to their sources (claim, numbers, pointer, bound, kind, owner); every `superseded` row has a live successor; every `unverified` row names its reason in `bound`; no `.superpowers/` source; every owner has an anchor in the anchor plan.
 6. `claims-coverage.md` accounts for every section of the 23 source files (its `### <file>` headings cover the list in the spec's harvest sources) — the Phase 1 half of acceptance check 7.
