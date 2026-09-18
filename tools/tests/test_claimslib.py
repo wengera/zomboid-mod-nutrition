@@ -133,3 +133,12 @@ def test_canonical_suffix_partial_row():
 
 def test_id_rx_needs_exactly_four_digits():
     assert cl.ID_RX.findall("cite #0001, not #00012 and not #12") == ["#0001"]
+
+def test_unbalanced_quote_raises():
+    try:
+        cl.parse_pointers('jar:A.b @1 L2 "; run:x-20260101-000000 f.json k')
+        assert False, "expected ValueError"
+    except ValueError:
+        pass
+    assert cl.parse_pointers('lua:a/B.lua:12 "local x = 1"; jar:A.b @1 L2') == [
+        ("lua", 'a/B.lua:12 "local x = 1"'), ("jar", "A.b @1 L2")]

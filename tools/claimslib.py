@@ -107,7 +107,10 @@ def parse_pointers(cell):
 
     The `;` separator is honoured only outside quoted anchor text, so a Lua anchor may
     contain one. An empty payload is a ValueError: a form with nothing after it is not
-    a pointer."""
+    a pointer, and so is an odd number of double quotes, which would swallow every later
+    pointer into the first one."""
+    if cell.count('"') % 2 == 1:
+        raise ValueError("pointer cell has an unbalanced double quote")
     out = []
     for part in [p.strip() for p in _split_outside_quotes(cell) if p.strip()]:
         form, sep, text = part.partition(":")
