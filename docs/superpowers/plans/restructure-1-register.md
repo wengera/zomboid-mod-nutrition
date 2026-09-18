@@ -456,8 +456,11 @@ def validate_row(row):
         errs.append("kind %r not in %s" % (row.get("kind"), KINDS))
     if not row.get("source", "").strip():
         errs.append("source is empty")
-    if row.get("status") != "superseded" and not OWNER_RX.match(row.get("owner", "")):
-        errs.append("owner %r is not <layer>/<page>.md#<anchor>" % row.get("owner"))
+    owner = row.get("owner", "").strip()
+    if owner and not OWNER_RX.match(owner):
+        errs.append("owner %r is not <layer>/<page>.md#<anchor>" % owner)
+    if not owner and row.get("status") != "superseded":
+        errs.append("owner is empty")
     return errs
 ```
 
