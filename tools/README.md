@@ -257,6 +257,15 @@ import patterns from there.
   § recipes and § evolved-recipes; the model, the refusals and the live
   cross-check are `docs/vanilla/recipes-dataset-notes.md`.
 
+## Reference tooling
+
+- `luabalance.py` — `python tools/luabalance.py <lua file> [...]`
+  Bracket / block-`end` balance read-through for harness Lua (slice-08 shape, moved
+  into the tree by the restructure). Strips comments and strings, then prints the
+  delta of `{}` `()` `[]`, the `end`-depth and the count of lines where the depth
+  went negative; exits 1 unless every file is `BALANCED`. Run it on every Lua file
+  a harness commit touches, on the HEAD copy first and then the working tree.
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
