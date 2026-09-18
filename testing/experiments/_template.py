@@ -187,9 +187,16 @@ def grade(phase, predicted, observed, verdict, falsifier, extra=None):
 
 
 prof = profile.load(PROFILE)
-rec = fx.load(prof.fixture)
-run_id, run_dir = new_run_dir("template")
-path = os.path.join(run_dir, ARTIFACT)
+# The fixture RECORD is gated too: `fixture.load` raises SystemExit when the fixture has no
+# `cache/server` blob on this machine (fixture.py:65-67), and `testing/fixtures/*/cache/` is
+# gitignored -- so an ungated read here would make the dry run, and its test, fail on a fresh
+# clone. `rec` is consumed only inside the session below, which never runs under DRY_RUN.
+rec = None if DRY_RUN else fx.load(prof.fixture)
+# No run dir either: a dry run that boots nothing has nothing to write, and `new_run_dir` would
+# leave an empty `testing/runs/template-<ts>/` behind on every test run. Both are used only
+# after the dry-run branch has printed and exited.
+run_id, run_dir = ("template-dry-run", None) if DRY_RUN else new_run_dir("template")
+path = None if DRY_RUN else os.path.join(run_dir, ARTIFACT)
 tl, clients, t0 = Timeline(), [], time.time()
 server = None if DRY_RUN else make_server(run_dir, rec, mods=prof.mods, mod_sources=prof.sources,
                                           mod_skip=prof.skip, sandbox=prof.sandbox or None)
