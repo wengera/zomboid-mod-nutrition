@@ -17,14 +17,25 @@ BLOCKS = (("G1a", 1, 200), ("G1b", 201, 450), ("G1c", 451, 600), ("G1d", 601, 80
           ("G3a", 1301, 1550), ("G3b", 1551, 1700), ("G4", 1701, 2000), ("post", 2001, 9999))
 GRADE_RANK = {"M": 3, "C": 2, "W": 1}
 
-ID_RX = re.compile(r"#\d{4}")
+ID_RX = re.compile(r"#\d{4}(?!\d)")
 ID_FULL_RX = re.compile(r"^#\d{4}$")
-_TAG_ITEM = r"#\d{4}(?:/[^\]\[,\s]+)*"
-TAG_RX = re.compile(r"\[(" + _TAG_ITEM + r"(?:,\s*" + _TAG_ITEM + r")*)\]")
+_ID_ITEM = r"#\d{4}(?!\d)(?:/[^\]\[,\s]+)*"
+_PROV_ITEM = r"T\d+\.\d+"
+_TAG_ITEM = r"(?:" + _ID_ITEM + r"|" + _PROV_ITEM + r")"
+# A tag bracket is a comma-separated list of items, each a claim id with its optional
+# suffixes or a provisional T<n>.<m>, and it must carry at least one real id: that keeps
+# `[T3.7]` alone a provisional marker while `[#0231/M, T3.7]` is a mixed tag.
+TAG_RX = re.compile(r"\[(?=[^\]\[]*#\d{4})(" + _TAG_ITEM + r"(?:,\s*" + _TAG_ITEM + r")*)\]")
 PROVISIONAL_RX = re.compile(r"\[T\d+\.\d+\]")
+PROVISIONAL_ID_RX = re.compile(r"^" + _PROV_ITEM + r"$")
+BRACKET_RX = re.compile(r"\[([^\]\[]*)\]")
 OWNER_RX = re.compile(r"^(areas|platform|facts|reference)/[A-Za-z0-9._/-]+\.md#[a-z0-9-]+$")
 BOUND_N_RX = re.compile(r"^n=\d+$")
+BOUND_SEP_RX = re.compile(r"[\s;,:]")
 ANCHOR_RX = re.compile(r'"[^"]+"')
+# lua / mod / repo pointers read `<path>:<line>[-<line>] "<anchor text>"` and nothing else.
+ANCHORED_PTR_RX = re.compile(r'^[^\s"]+:\d+(?:[-–]\d+)?\s+' + ANCHOR_RX.pattern + r"$")
+RUN_ID_RX = re.compile(r"^[a-z0-9]+-\d{8}-\d{6}(?:\s|$)")
 
 
 class RegisterError(Exception):
@@ -70,43 +81,73 @@ def write_register(path, rows):
         for r in rows:
             cells = [str(r.get(c, "")) for c in COLUMNS]
             for c in cells:
-                if "\t" in c or "\n" in c:
-                    raise RegisterError("%s: a cell contains a tab or newline: %r" % (r.get("id"), c[:60]))
+                if "\t" in c or "\n" in c or "\r" in c:
+                    raise RegisterError("%s: a cell contains a tab, CR or newline: %r" % (r.get("id"), c[:60]))
             f.write("\t".join(cells) + "\n")
 
 
+def _split_outside_quotes(cell, sep=";"):
+    """Split on `sep` only where it is not inside double-quoted anchor text."""
+    parts, buf, quoted = [], [], False
+    for ch in cell:
+        if ch == '"':
+            quoted = not quoted
+            buf.append(ch)
+        elif ch == sep and not quoted:
+            parts.append("".join(buf))
+            buf = []
+        else:
+            buf.append(ch)
+    parts.append("".join(buf))
+    return parts
+
+
 def parse_pointers(cell):
-    """'jar:X @1 L2; run:id file key' -> [('jar', 'X @1 L2'), ('run', 'id file key')]."""
+    """'jar:X @1 L2; run:id file key' -> [('jar', 'X @1 L2'), ('run', 'id file key')].
+
+    The `;` separator is honoured only outside quoted anchor text, so a Lua anchor may
+    contain one. An empty payload is a ValueError: a form with nothing after it is not
+    a pointer."""
     out = []
-    for part in [p.strip() for p in cell.split(";") if p.strip()]:
+    for part in [p.strip() for p in _split_outside_quotes(cell) if p.strip()]:
         form, sep, text = part.partition(":")
         form = form.strip()
         if not sep or form not in POINTER_FORMS:
             raise ValueError("unknown pointer form in %r" % part)
-        out.append((form, text.strip()))
+        text = text.strip()
+        if not text:
+            raise ValueError("pointer %r has an empty payload" % part)
+        out.append((form, text))
     return out
 
 
 def strongest_grade(forms):
-    grades = [POINTER_FORMS[f] for f in forms]
+    grades = []
+    for f in forms:
+        if f not in POINTER_FORMS:
+            raise ValueError("unknown pointer form %r" % f)
+        grades.append(POINTER_FORMS[f])
     return max(grades, key=lambda g: GRADE_RANK[g]) if grades else "C"
 
 
 def parse_bound(cell):
-    """('none', '') for empty; else (token, rest). Raises ValueError on an unknown first token."""
+    """('none', '') for empty; else (token, rest). Raises ValueError on an unknown first token.
+
+    The token may be closed by a space, `;`, `,` or `:`; `rest` is what follows with the
+    leading separators and spaces stripped."""
     cell = cell.strip()
     if not cell:
         return ("none", "")
-    head, _, rest = cell.partition(" ")
-    token = head.rstrip(":")
+    m = BOUND_SEP_RX.search(cell)
+    token, rest = (cell[:m.start()], cell[m.start():]) if m else (cell, "")
     if token in BOUND_TOKENS or BOUND_N_RX.match(token):
-        return (token, rest.strip())
-    raise ValueError("bound must start with a controlled token, got %r" % head)
+        return (token, rest.lstrip(" \t;,:").strip())
+    raise ValueError("bound must start with a controlled token, got %r" % token)
 
 
 def canonical_suffix(row):
     token, _ = parse_bound(row.get("bound", ""))
-    grade, status = row["grade"], row["status"]
+    grade, status = row.get("grade", "C"), row.get("status", "settled")
     if grade == "C" and token == "none" and status == "settled":
         return ""
     parts = [grade]
@@ -115,6 +156,21 @@ def canonical_suffix(row):
     if status != "settled":
         parts.append(status)
     return "/" + "/".join(parts)
+
+
+def is_provisional(cid):
+    """True for a provisional marker id like 'T3.7'."""
+    return bool(PROVISIONAL_ID_RX.match(cid))
+
+
+def find_provisional(text):
+    """Every provisional marker in `text`: `[T3.7]` alone and `T3.7` inside a mixed tag."""
+    out = []
+    for m in BRACKET_RX.finditer(text):
+        for item in [i.strip() for i in m.group(1).split(",")]:
+            if is_provisional(item):
+                out.append(item)
+    return out
 
 
 def split_tag(inner):
@@ -149,12 +205,16 @@ def validate_row(row):
         elif row.get("grade") in GRADES and strongest_grade([f for f, _ in ptrs]) != row["grade"]:
             errs.append("grade %s is not the strongest pointer grade" % row["grade"])
         for form, text in ptrs:
-            if form in ANCHORED_FORMS and not ANCHOR_RX.search(text):
-                errs.append("%s: pointer needs quoted anchor text: %r" % (form, text[:50]))
+            if form == "run" and not RUN_ID_RX.match(text):
+                errs.append("run: pointer must start with a run id: %r" % text[:50])
+            if form in ANCHORED_FORMS and not ANCHORED_PTR_RX.match(text):
+                errs.append('%s: pointer must read <path>:<line> "anchor text": %r' % (form, text[:50]))
     except ValueError as e:
         errs.append(str(e))
     try:
-        parse_bound(row.get("bound", ""))
+        token, _ = parse_bound(row.get("bound", ""))
+        if token == "inference" and row.get("grade") == "M":
+            errs.append("grade M on an inference bound: an inference is never measured")
     except ValueError as e:
         errs.append(str(e))
     if row.get("status") not in STATUSES:

@@ -67,3 +67,69 @@ def test_validate_row():
     errs = cl.validate_row(bad)
     assert any("grade" in e for e in errs) and any("kind" in e for e in errs)
     assert any("owner" in e for e in errs) and any("successor" in e for e in errs)
+
+# --- fix round 1: pointer, bound and tag grammar gaps ---
+
+def test_empty_pointer_payload_raises():
+    try:
+        cl.parse_pointers("jar:"); assert False, "expected ValueError"
+    except ValueError:
+        pass
+    try:
+        cl.parse_pointers("run: ; jar:A.b @1 L2"); assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+def test_validate_row_pointer_shapes():
+    no_run_id = cl.validate_row(dict(ROW, pointer="run:r1 f.json k"))
+    assert any("run" in e for e in no_run_id)
+    no_anchor = cl.validate_row(dict(ROW, grade="C", pointer='repo: "anchor"'))
+    assert any("repo" in e for e in no_anchor)
+    assert cl.validate_row(dict(ROW, grade="C", pointer='repo:tools/x.py:3 "x = 1"')) == []
+    assert cl.validate_row(dict(ROW, grade="C", pointer='lua:a/B.lua:12-14 "local x = 1"')) == []
+
+def test_semicolon_inside_anchor_text():
+    p = 'lua:media/lua/server/Foo.lua:42 "if isServer() then return end; local x = 1"'
+    assert cl.parse_pointers(p) == [("lua", 'media/lua/server/Foo.lua:42 "if isServer() then return end; local x = 1"')]
+    assert cl.validate_row(dict(ROW, grade="C", pointer=p)) == []
+    assert cl.parse_pointers("jar:A.b @1 L2; run:x-20260101-000000 f.json k") == [
+        ("jar", "A.b @1 L2"), ("run", "x-20260101-000000 f.json k")]
+
+def test_inference_is_never_measured():
+    errs = cl.validate_row(dict(ROW, bound="inference"))
+    assert any("inference" in e and "M" in e for e in errs)
+    assert cl.validate_row(dict(ROW, grade="C", pointer="jar:A.b @1 L2", bound="inference")) == []
+
+def test_write_register_rejects_cr():
+    with tempfile.TemporaryDirectory() as d:
+        p = os.path.join(d, "claims.tsv")
+        try:
+            cl.write_register(p, [dict(ROW, claim="carriage\rreturn")]); assert False, "expected RegisterError"
+        except cl.RegisterError:
+            pass
+
+def test_mixed_provisional_tag():
+    assert list(cl.iter_tags("x [#0231/M, T3.7] y")) == [(1, "#0231", "/M"), (1, "T3.7", "")]
+    assert cl.find_provisional("x [#0231/M, T3.7] y") == ["T3.7"]
+    assert cl.find_provisional("plain [T3.7] alone") == ["T3.7"]
+    assert cl.is_provisional("T3.7") and not cl.is_provisional("#0231")
+    assert list(cl.iter_tags("not tags [#12] or [T3]")) == []
+    assert cl.find_provisional("not a marker [T3] here") == []
+
+def test_bound_separators():
+    assert cl.parse_bound("n=1; count only") == ("n=1", "count only")
+    assert cl.parse_bound("one-fixture, dedicated server") == ("one-fixture", "dedicated server")
+    assert cl.parse_bound("arith. from the per-use rate") == ("arith.", "from the per-use rate")
+
+def test_strongest_grade_unknown_form_raises():
+    try:
+        cl.strongest_grade(["book"]); assert False, "expected ValueError"
+    except ValueError:
+        pass
+
+def test_canonical_suffix_partial_row():
+    assert cl.canonical_suffix({"bound": ""}) == ""
+    assert cl.canonical_suffix({"bound": "inference"}) == "/C/inference"
+
+def test_id_rx_needs_exactly_four_digits():
+    assert cl.ID_RX.findall("cite #0001, not #00012 and not #12") == ["#0001"]
