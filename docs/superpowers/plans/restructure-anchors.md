@@ -2,11 +2,13 @@
 
 Deliverable 0 of the harvest (spec § The target tree, "The anchor plan"). A row's `owner` is `<page>#<slug>` from this file. A harvester that needs an anchor this file lacks writes `<page>#<new-slug>` and lists it under `## Anchors proposed` in its coverage part; the merge task folds the proposals in here. From Phase 2 on, the page carries the anchors and this file is the writers' checklist.
 
+Thirty-two `## <page>` sections, in the target tree's order: 8 `areas/`, 8 `platform/`, 7 `facts/`, 6 `facts/other-mods/` (the catalog included), and `reference/wall-map.md`, `reference/datasets.md` and `reference/tools.md`.
+
 Rules: an anchor names one mechanism, one table or one reading; no anchor appears on two pages except the section anchors named below; `platform/overview.md` owns routing anchors only (no number of its own); a `facts/` page owns measured properties of the food, body or nutrition systems; an `areas/` page owns readings and options, never a mechanism; `reference/wall-map.md` owns exactly the 64 row ids.
 
-**Section anchors.** Every page under the page contract carries `#walls` (its `## Walls and bounds`, where a `bound` row and a mirror `contradiction` row land) and `#open` (its `## Open`). Three pages differ and say so in their section: `platform/overview.md` has no `#walls` (its boundary is `#coverage`), `areas/open-questions.md` has neither (the page is the open list), `reference/wall-map.md` has neither (it sits outside the contract). `#sandbox` is the anchor of a page's sandbox-option table and exists only where the page has one. `#procedure` is the anchor of a `## Procedure` section; a number under it carries no tag. The slugs that may therefore repeat across pages are `#walls`, `#open`, `#sandbox`, `#procedure` and the per-teardown set `#what-it-does`, `#architecture`, `#techniques`, `#pitfalls`, `#compat`, `#mp`. The page path disambiguates them and no two of them own the same claim.
+**Section anchors.** Every page under the page contract carries `#walls` (its `## Walls and bounds`, where a `bound` row and a mirror `contradiction` row land) and `#open` (its `## Open`). Five pages differ and say so in their section: `platform/overview.md` has no `#walls` (its boundary is `#coverage`), `areas/open-questions.md` has neither (the page is the open list), `reference/wall-map.md` has neither (it is the 64 verdict rows and nothing else), `reference/datasets.md` and `reference/tools.md` carry `#open` but no `#walls` (the section shape of the page contract does not reach them). `#sandbox` is the anchor of a page's sandbox-option table and exists only where the page has one. `#procedure` is the anchor of a `## Procedure` section; a number under it carries no tag. The slugs that may therefore repeat across pages are `#walls`, `#open`, `#sandbox`, `#procedure` and the per-teardown set `#what-it-does`, `#architecture`, `#techniques`, `#pitfalls`, `#compat`, `#mp`. The page path disambiguates them and no two of them own the same claim.
 
-**Outside this plan.** A row placed on a `docs/reference/` page other than `wall-map.md` (`datasets.md`, `artifacts.md`, `tools.md`, `experiments.md`, `jar-method-notes.md`, `harness-commands.md`) has no anchor list here: those pages sit outside the page contract. A harvester writes `reference/<page>.md#<slug>` and lists the slug under `## Anchors proposed`.
+**Reference owners.** A `reference/` page may own a row: the register's `owner` column names a page and an anchor, and the page contract governs section shape and prose caps, which is a separate question. `wall-map.md`, `datasets.md` and `tools.md` therefore have anchor lists here. The three remaining moved reads and the generated file — `artifacts.md`, `experiments.md`, `jar-method-notes.md`, `harness-commands.md` — do not: a harvester placing a row on one of them writes `reference/<page>.md#<slug>` and lists the slug under `## Anchors proposed`.
 
 ## areas/new-nutrients.md
 - `#store-options` — the options table for where a mod nutrient can live: character modData, item modData, global modData, a parallel Lua store, a script key; cost, wall and tags per row
@@ -67,10 +69,35 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#open` — the measurements the plan still owes and the runs that would settle them
 
 ## areas/open-questions.md
-> The page is the open list, so it carries neither `#walls` nor `#open`; a hole deliberately given no X id is a `bound` row on its wall-map row.
+> The page is the open list, so it carries neither `#walls` nor `#open`; a hole deliberately given no X id is a `bound` row on its wall-map row. The 26 `#x<n>` anchors below are the surviving named-experiment ids of `reference/experiments.md` § Named experiments, which holds each one's full spec.
 - `#index` — the index table: one line per open row with its id, question, owner page, `-> X<N>` and the check that settles it
 - `#decisions` — the decisions the design must take, each with the fact that forces it and no recommendation
-- `#experiment-contract` — the standing rules for a named experiment (owner, cost, riders, merges); the specs themselves are `reference/experiments.md`
+- `#x2` — the index line for X2 (is `MoodleStat` reachable from Kahlua at all): question, owner, the settling check as a pointer
+- `#x4` — the index line for X4 (does any packet carry character traits to a client): question, owner, the settling check as a pointer
+- `#x5` — the index line for X5 (does a mod JSON displace a vanilla translation key): question, owner, the settling check as a pointer
+- `#x7` — the index line for X7 (with vanilla nutrition off, which arm froze): question, owner, the settling check as a pointer
+- `#x9b` — the index line for X9b (what the spice branch does beyond the herbal-tea sums): question, owner, the settling check as a pointer
+- `#x13` — the index line for X13 (is the drink path interceptable the way the eat path is): question, owner, the settling check as a pointer
+- `#x14` — the index line for X14 (does item modData move server to client): question, owner, the settling check as a pointer
+- `#x15` — the index line for X15 (does a partial `item` block with `ItemType` omitted still merge): question, owner, the settling check as a pointer
+- `#x16` — the index line for X16 (does a one-byte script mismatch kick a joining client): question, owner, the settling check as a pointer
+- `#x17` — the index line for X17 (can Lua flip the nutrition sandbox option at runtime): question, owner, the settling check as a pointer
+- `#x18` — the index line for X18 (what maps a mod's `server/` file into the client's Lua state): question, owner, the settling check as a pointer
+- `#x19` — the index line for X19 (which string is the replay sort key): question, owner, the settling check as a pointer
+- `#x20` — the index line for X20 (do two mods at the same relative path both load): question, owner, the settling check as a pointer
+- `#x21` — the index line for X21 (does a `common/`-only `mod.info` resolve under the requested-id lookup): question, owner, the settling check as a pointer
+- `#x22` — the index line for X22 (does a colliding-with-nothing version dir load, and is a shadowed `common/` file inert): question, owner, the settling check as a pointer
+- `#x23` — the index line for X23 (how a release client behaves on an unguarded raise): question, owner, the settling check as a pointer
+- `#x24` — the index line for X24 (does `OnEat` fire once per eat or once per portion): question, owner, the settling check as a pointer
+- `#x25` — the index line for X25 (is the weight-lot flag ever true, and does the client copy agree): question, owner, the settling check as a pointer
+- `#x26` — the index line for X26 (does a resident mod's `pcall` wrapper change what an unguarded raise does): question, owner, the settling check as a pointer
+- `#x27` — the index line for X27 (does the per-body net-id reallocation ever put a stale id on the wire): question, owner, the settling check as a pointer
+- `#x28` — the index line for X28 (does modData survive a save and reload): question, owner, the settling check as a pointer
+- `#x29` — the index line for X29 (does MoodleFramework load whole and render a registered moodle): question, owner, the settling check as a pointer
+- `#x30` — the index line for X30 (does a file-scope globals assignment change the drain): question, owner, the settling check as a pointer
+- `#x31` — the index line for X31 (does a dotted `OnCooked` name fire, and on which side): question, owner, the settling check as a pointer
+- `#x32` — the index line for X32 (does a stat-tick handler returning true really skip the updaters): question, owner, the settling check as a pointer
+- `#x33` — the index line for X33 (does a cancelled eat under the partial-eating guard apply nothing at all): question, owner, the settling check as a pointer
 
 ## platform/overview.md
 > Routing anchors only: this page owns no number except the two rows below, and carries no `#walls` because its boundary is `#coverage`.
@@ -99,6 +126,7 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#open` — the anatomy rows no run has settled
 
 ## platform/loader-and-scripts.md
+> 16 anchors under a 400-line prose cap: if the Phase 2 writer needs the split, the file-map group (`#file-map`, `#lua-load-order`, `#path-collisions`, `#per-side-load`) moves to a sibling page and the register is retargeted by delta.
 - `#file-map` — `activeFileMap`: the two unconditional passes, the `overrides` line, one absolute path per relative path
 - `#lua-load-order` — `LoadDirBase`'s walk and vanilla-first dedupe, and how `require` resolves through the merged map
 - `#script-dsl` — the script grammar: `module` and `item` blocks, comment stripping, brace tolerance
@@ -154,12 +182,14 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#driven-client` — the driven client: what it is, what it runs with, and what it cannot be asked to do
 - `#bus` — the command-bus protocol: how a command is registered, called and answered
 - `#reading-a-reply` — the reply-reading rules: the three buckets, the empty-list shape, `resolved`, the limit BREAK, the `null` guard
-- `#probes` — probe design: per-scope exclusion sets, client-first pairs, `field_count` asserts, the re-ask-once guard
+- `#probes` — probe design: per-scope exclusion sets, client-first pairs, the re-ask-once guard; the witness contract and its `field_count` assert are `#witness`
+- `#witness` — the witness contract: `witness.fields` and `witness.moddata`, zero-argument getters only, the three buckets, the `field_count` assert a driver makes against a reply
 - `#scenarios` — the scenario layer and what a scenario may assume
 - `#cadence` — the cadence ceiling: what a driver may ask for per game-hour
 - `#time` — game time against real time, and the day-length setting every reading depends on
 - `#artifacts-discipline` — artifacts committed byte-identical, a driver never edited after its run, a do-not-cite key never quoted
 - `#driver-rules` — driver discipline: the house driver shape, predictions and verdicts, how a falsified or trivial reading is written
+- `#experiment-contract` — the standing rules for a named experiment (owner, cost, riders, merges); the specs themselves are `reference/experiments.md`
 - `#walls` — what the instrument cannot yet measure, each with the reason
 - `#procedure` — the numbered steps from profile to scenario to driver to evidence
 - `#open` — the harness rows no run has settled
@@ -206,7 +236,7 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#formula` — the aging formula and the rot thresholds, and that rot is a view of age rather than a mutation
 - `#containers` — fridge, freezer and frozen: what each multiplies and when electricity matters
 - `#spawn-age` — the age an item spawns with and the spawn-time rot roll
-- `#sealed` — sealed cans and the `ReplaceOnUse` and `ReplaceOnRotten` links
+- `#sealed` — sealed cans, the `ReplaceOnUse` and `ReplaceOnRotten` transitions, and the `ReplaceOn*` links a dataset cannot resolve
 - `#writes` — which side writes age and how often the server ticks an item
 - `#measured` — the measured aging rates per arm, as one table, each with the run it rests on
 - `#sandbox` — the rot sandbox options and their defaults
@@ -375,3 +405,27 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#j3` — row `J3` CANNOT: survive an MP script mismatch
 - `#j4` — row `J4` CAN: rely on the replay order
 - `#j5` — row `J5` CANNOT: assume a redefinition leaves the item's identity alone
+
+## reference/datasets.md
+> Outside the page contract's section shape, but an owner like any other page: it carries `#open` and no `#walls`.
+- `#columns` — the column authority for `data/*`: `nutrition_source`, `nutrition_basis` and what each value means, the per-litre fluid join, the `*_per_container` derivations, absent against zero, and which columns are derived rather than read
+- `#kinds` — the four `kind` buckets (`food`, `drainable`, `fluid_container`, `fluid`) and the first-match selection rule that assigns them
+- `#counts` — every dated dataset count: foods, drinkables, fluid containers, fluids, recipes, evolved recipes, and the scan stamp each one rests on
+- `#mod-inventory` — the corpus snapshot's columns, the `live_media` and `media_at` partial-view caveat on any zero, and the sweep stamp
+- `#workshop-rows` — the workshop search's row shape and what a not-installed row can and cannot be used for
+- `#schemas` — the CSV and JSON split per dataset, and which of the two is authoritative for a given field
+- `#fidelity-links` — pointers to the `facts/` rows that measured the datasets against the game; owns no number of its own
+- `#open` — the dataset questions a re-scan or a measurement would settle
+
+## reference/tools.md
+> Outside the page contract's section shape, but an owner like any other page: it carries `#open` and no `#walls`.
+- `#doc-lint` — `doc_lint.py`: the stamp rule, the `Ev`-grade rule, the placeholder rule, what it skips and where it still runs after the cut
+- `#mod-lint` — `mod_lint.py`: the nine rules with their engine standing, five error, three warn, one info, and which of them is a measured statement rather than a convention
+- `#mod-inventory-tool` — `mod_inventory.py`: what it walks, what it records per mod, and why every run is a dated snapshot
+- `#food-scan` — `food_scan.py`: the parser API, the comment-stripping rule, and the selection call the datasets rest on
+- `#recipe-scan` — `recipe_scan.py`: what it reads from the recipe and evolved-recipe scripts and what it leaves unresolved
+- `#workshop-search` — `workshop_search.py`: the query surface and the three row states a result can be in
+- `#wiki-mirror` — `wiki_mirror.py`: how a mirror is fetched, stamped and re-read, and what a mirror may be cited for
+- `#claims-tools` — `claimslib.py`, `claims_harvest.py`, `claims_check.py`, `bus_inventory.py` and `luabalance.py`: conventions, exit codes and when each must run; their rules are the spec's, not this page's
+- `#conventions` — the conventions every tool here shares: argument shape, exit codes, where output lands, and the dated-count rule
+- `#open` — the tool questions a later change would settle
