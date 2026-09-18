@@ -266,6 +266,11 @@ import patterns from there.
   went negative; exits 1 unless every file is `BALANCED`. Run it on every Lua file
   a harness commit touches, on the HEAD copy first and then the working tree.
 
+- `claimslib.py` — no CLI. The claims register schema (`COLUMNS`, `KINDS`, `STATUSES`,
+  `BOUND_TOKENS`, `POINTER_FORMS`, the id `BLOCKS`), TSV read/write, and the tag, pointer
+  and bound grammars shared by `claims_harvest.py` and `claims_check.py`. The spec is
+  `docs/superpowers/specs/2026-09-17-reference-restructure-design.md` § The claims register.
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
