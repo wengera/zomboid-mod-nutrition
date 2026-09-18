@@ -1,6 +1,6 @@
 # Reference restructure — design spec
 
-Date 2026-09-17 · Status: draft v2, after a three-angle review (agentic consumer, general platform, nutrition depth; reports in the gitignored `.superpowers/spec-review/2026-09-17-restructure/`) · Author: the controller session, from a brainstorm with Angus.
+Date 2026-09-17 · Status: APPROVED 2026-09-17 by Angus (the four open questions confirmed as written) — v2 after a three-angle review (agentic consumer, general platform, nutrition depth; reports in the gitignored `.superpowers/spec-review/2026-09-17-restructure/`) · Author: the controller session, from a brainstorm with Angus.
 
 ## Goal
 
