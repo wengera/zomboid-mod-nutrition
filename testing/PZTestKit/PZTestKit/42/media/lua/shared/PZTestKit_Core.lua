@@ -539,25 +539,46 @@ do
 end
 
 -- ---- commands available on both sides ---------------------------------------
+-- @args (none)
+-- @reply string
+-- @purpose Answers pong on whichever side received it -- the bus liveness probe.
 TK.register("ping", function() return "pong" end)
+-- @args (none)
+-- @reply string
+-- @purpose Reports the harness version and which side is answering, as v<TK.version> <side>.
 TK.register("version", function() return "v" .. tostring(TK.version) .. " " .. TK.side end)
+-- @args [<name>] [<note>]
+-- @reply string
+-- @purpose Writes pzt-results/<name>.json carrying <note> on the side answering; the parseable file is the ready marker.
 TK.register("result", function(argv)
     TK.result(argv[1] or "manual", { note = argv[2] })
     return "written"
 end)
+-- @args (none)
+-- @reply {ticks, lastSeq, version, side}
+-- @purpose Reports the poll counters, version and side of whichever side received it.
 TK.register("state", function()
     return { ticks = TK.ticks, lastSeq = TK.lastSeq, version = TK.version, side = TK.side }
 end)
+-- @args <file>
+-- @reply string
+-- @purpose Re-runs one Lua file through reloadLuaFile on the side answering and reports what the call returned.
 TK.register("lua.reload", function(argv)
     local r = reloadLuaFile(argv[1])
     return "reloadLuaFile(" .. tostring(argv[1]) .. ") -> " .. tostring(r)
 end)
+-- @args (none)
+-- @reply {worldAge, hour, minutes, mult, wall}
+-- @purpose One read of the game clock -- world age, hour, minute, multiplier and wall time -- on the side answering.
 TK.register("time.snapshot", function()
     local gt = getGameTime()
     return { worldAge = gt:getWorldAgeHours(), hour = gt:getHour(), minutes = gt:getMinutes(),
              mult = gt:getMultiplier(), wall = TK.now() }
 end)
 -- S3 probe: KeenPerception (workshop mod) removes the Keen Hearing <-> Deaf exclusivity.
+-- @args (none)
+-- @reply {keenHearingExcludesDeaf, keenHearingExcludesHardOfHearing, keenPerceptionLoaded} | string
+-- @purpose Reads Keen Hearing's mutually-exclusive trait set on the side answering: the S3 probe for whether KeenPerception is loaded.
 TK.register("trait.check", function()
     local kh = CharacterTraitDefinition.getCharacterTraitDefinition(CharacterTrait.KEEN_HEARING)
     if not kh then return "no KEEN_HEARING definition" end
@@ -683,6 +704,9 @@ local function subjectOf(kind, id)
     return nil, nil, "no item " .. tostring(target) .. " on " .. tostring(label)
 end
 
+-- @args <player|item> <id> <getter,...>
+-- @reply {side, subject, id, resolved, fields, missing, nils, worldAge, count [, truncatedAt]} | {side, subject, id, resolved, worldAge, error} | string
+-- @purpose Reads named zero-argument getters off a player or item by name on the side answering, sorting each name into fields, missing or nils.
 TK.register("witness.fields", function(argv)
     if argv[1] ~= "player" and argv[1] ~= "item" then
         return "usage: witness.fields <player|item> <id> <getter,...>"
@@ -718,6 +742,9 @@ end)
 local BARE_SCOPE = { item = true, global = true,
                      ["player:"] = true, ["item:"] = true, ["global:"] = true }
 
+-- @args [player[:<user>]|item:<id>|global:<name>] <key ...>
+-- @reply {side, scope, arg, values, missing, worldAge, resolved, keys, keyCount, count [, truncatedAt] [, error]} | string
+-- @purpose Censuses a player's, an item's or a global modData table and reads named keys from it (a dotted key walks nested tables) on the side answering.
 TK.register("witness.moddata", function(argv)
     local first = tostring(argv[1] or "")
     local scope, arg = string.match(first, "^(player):(.+)$")
@@ -828,6 +855,9 @@ end)
 -- `TK.version` is the control a session should send first: TK is a global on purpose (see :2),
 -- so it must resolve to the number 1 on BOTH sides, and a `resolved = false` there means the
 -- walk itself is broken rather than the asked-for global being absent.
+-- @args <name>[.<field>...]
+-- @reply {side, name, resolved, type, value} | {side, name, resolved, type, keyCount} | {side, name, resolved, failedAt [, stoppedOn]} | {side, name, resolved, error} | string
+-- @purpose Walks _G segment by segment and reports one Lua global's type and value -- never calling it -- on the side answering.
 TK.register("lua.global", function(argv)
     local name = argv[1]
     if name == nil then return "usage: lua.global <name>[.<field>...]" end
@@ -908,6 +938,9 @@ end)
 -- returning the key on a miss, but the server half is unproven and this build's server route
 -- is exactly what M4 measures -- so the shape it might answer with is recorded rather than
 -- assumed away.
+-- @args <translation key>
+-- @reply {key, text, miss, side} | {key, side, miss, null} | {key, side, error} | string
+-- @purpose Looks one translation key up through getText on the side answering; a miss returns the key itself and is reported as miss.
 TK.register("text.get", function(argv)
     local key = argv[1]
     if key == nil then return "usage: text.get <translation key>" end

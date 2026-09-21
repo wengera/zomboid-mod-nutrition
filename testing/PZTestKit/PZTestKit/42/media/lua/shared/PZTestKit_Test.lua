@@ -258,6 +258,9 @@ if not T.hooked and Events.EveryOneMinute then
 end
 
 -- ---- bus commands ------------------------------------------------------------
+-- @args (none)
+-- @reply [<name>, ...] the registered test names, sorted ({} when none are registered)
+-- @purpose Lists the slice-04 test layer's registered test names on the side answering.
 TK.register("test.list", function()
     local out = {}
     for k in pairs(T.registry) do out[#out + 1] = k end
@@ -267,8 +270,14 @@ end)
 
 -- test.run <name> [username]. The username defaults to spec.player and then "admin": on the
 -- server the test needs a live IsoPlayer and the only way to name one is the account.
+-- @args <name> [<username>]
+-- @reply string (started | unknown | already running <name> | the player-resolution error)
+-- @purpose Starts one registered test on the side answering; only started leads to a result doc.
 TK.register("test.run", function(argv) return start(argv[1], argv[2]) end)
 
+-- @args (none)
+-- @reply {running, name, clock, due, side, samples}
+-- @purpose Reports whether a test is running and where its game-minute scheduler stands, on the side answering.
 TK.register("test.status", function()
     return { running = T.running ~= nil, name = T.running and T.running.name or false,
              clock = T.clock, due = #T.due, side = TK.side,

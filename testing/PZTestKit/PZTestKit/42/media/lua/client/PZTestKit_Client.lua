@@ -72,10 +72,16 @@ local function checkReady()
 end
 
 -- ---- client commands ---------------------------------------------------------
+-- @args (none)
+-- @reply string
+-- @purpose Quits the client to desktop through the in-game route, so the server sees a proper disconnect.
 TK.register("quit", function()
     getCore():quitToDesktop()   -- the in-game quit: proper disconnect first
     return "quitting"
 end)
+-- @args (none)
+-- @reply {calories, weight, carbs, lipids, proteins, x, y, z, items}
+-- @purpose Client-side read of the local player's four macros, weight, position and inventory size.
 TK.register("player.stats", function()
     local p = getPlayer()
     local n = p:getNutrition()
@@ -83,10 +89,16 @@ TK.register("player.stats", function()
              lipids = n:getLipids(), proteins = n:getProteins(), x = p:getX(), y = p:getY(), z = p:getZ(),
              items = p:getInventory():getItems():size() }
 end)
+-- @args <key> <value>
+-- @reply string
+-- @purpose Writes one string key into the local player's modData on the client; the server twin takes <user> first.
 TK.register("moddata.set", function(argv)
     getPlayer():getModData()[argv[1]] = argv[2]
     return "set " .. tostring(argv[1])
 end)
+-- @args (none)
+-- @reply string
+-- @purpose Calls transmitModData() on the local player, pushing the client's whole modData table to the server.
 TK.register("moddata.transmit", function()
     getPlayer():transmitModData()
     return "transmitted"
@@ -96,14 +108,23 @@ end)
 -- the same name would silently shadow it on this side only. Nothing else about this command
 -- changed: `args.kind` is still "moddata", so the OnServerCommand handler below and the result
 -- file (witness_moddata_<key>.json) are untouched.
+-- @args <key>
+-- @reply string
+-- @purpose Asks the server from the client for its value of one player modData key; the comparison lands asynchronously in witness_moddata_<key>.json.
 TK.register("witness.sync.moddata", function(argv)
     sendClientCommand(getPlayer(), "PZTestKit", "witness", { kind = "moddata", key = argv[1] })
     return "sent"
 end)
+-- @args (none)
+-- @reply string
+-- @purpose Asks the server from the client for its copy of the local player's Nutrition block; the comparison arrives asynchronously as a result file.
 TK.register("witness.nutrition", function()
     sendClientCommand(getPlayer(), "PZTestKit", "witness", { kind = "nutrition" })
     return "sent"
 end)
+-- @args <fullType>
+-- @reply string
+-- @purpose Asks the server from the client for its copy of one inventory item by id; the field-by-field comparison arrives asynchronously as a result file.
 TK.register("witness.item", function(argv)
     local item = getPlayer():getInventory():getFirstTypeRecurse(argv[1])
     if not item then return "no item " .. tostring(argv[1]) end
@@ -111,12 +132,18 @@ TK.register("witness.item", function(argv)
     sendClientCommand(getPlayer(), "PZTestKit", "witness", { kind = "item", id = item:getID(), type = item:getFullType() })
     return "sent id=" .. tostring(item:getID())
 end)
+-- @args <fullType>
+-- @reply string
+-- @purpose Spawns one item into the local player's inventory on the client, where the server never hears of it (S6); the reply carries the new item id.
 TK.register("item.spawn", function(argv)
     local it = getPlayer():getInventory():AddItem(argv[1])
     return it and ("id=" .. tostring(it:getID())) or "failed"
 end)
 -- <type> <conditionMax> <condition> [modDataTag]: change fields locally, then push with the
 -- game's own item sync (sendItemStats). What the server ends up with is the S6 question.
+-- @args <fullType> <conditionMax> <condition> [<modDataTag>]
+-- @reply string
+-- @purpose Changes an item's condition and modData tag on the client and pushes them with sendItemStats; what the server keeps is the S6 question.
 TK.register("item.tamper", function(argv)
     local item = getPlayer():getInventory():getFirstTypeRecurse(argv[1])
     if not item then return "no item " .. tostring(argv[1]) end
@@ -130,7 +157,13 @@ end)
 -- ---- intake-pipeline commands (slice 01) -------------------------------------
 local function nutritionSnapshot(p) return TK.nutritionSnapshot(p) end
 
+-- @args (none)
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight}
+-- @purpose Client-side read of the local player's Nutrition block -- a mirror of the last 1 Hz PlayerStatsPacket, never a rate.
 TK.register("nutrition.get", function() return nutritionSnapshot(getPlayer()) end)
+-- @args <calories|carbs|lipids|proteins|weight> <value>
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight} | string
+-- @purpose Client-side write of one Nutrition field on the local player; the server owns Nutrition, so the write is expected to revert.
 TK.register("nutrition.set", function(argv)
     local n, v = getPlayer():getNutrition(), tonumber(argv[2])
     local m = TK.NUTRITION_SETTERS[argv[1]]
@@ -143,6 +176,9 @@ end)
 -- read-back in the same ack. Whether a client-side write SURVIVES is a separate question --
 -- the server owns Nutrition (task 3) -- so the experiment probes both sides before relying
 -- on either.
+-- @args <hunger|thirst|fatigue|endurance> <value> [<field> <value> ...]
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight, applied} | string
+-- @purpose Client-side write of one or more hunger/thirst/fatigue/endurance stats on the local player, with the snapshot read back in the same ack.
 TK.register("stats.set", function(argv)
     local p = getPlayer()
     if #argv < 2 then return "usage: stats.set <hunger|thirst|fatigue|endurance> <value> [...]" end
@@ -160,6 +196,9 @@ end)
 -- be client-local. `push` additionally tries sendToServer(): nil-checked and pcall-wrapped,
 -- but NOT admin-gated -- nothing here checks isAdmin(), so whether a non-admin's push is
 -- refused is the server's decision and is not established by this harness.
+-- @args <option> [true|false] [push]
+-- @reply {option, side, before, type, sandboxVarsBefore [, requested] [, route] [, setError] [, setValueError] [, error], after, sandboxVarsAfter [, push] [, pushError]} | string
+-- @purpose Reads or flips one sandbox option on the client, optionally pushing it with sendToServer; a plain flip is client-local.
 TK.register("sandbox.set", function(argv)
     local name = argv[1]
     if not name then return "usage: sandbox.set <option> [true|false] [push]" end
@@ -232,6 +271,9 @@ end)
 -- reply gaining `side` -- see the block above TK.scriptValues for the getter list and for why
 -- Calories / Carbohydrates / Lipids / Proteins come back absent on 42.20.4.
 local function scriptValues(fullType) return TK.scriptValues(fullType) end
+-- @args <fullType>
+-- @reply {fullType, via, side, access, HungerChange, ThirstChange, Calories, Carbohydrates, Lipids, Proteins, DaysFresh, DaysTotallyRotten, IsCookable, MinutesToCook, MinutesToBurn} | string
+-- @purpose Client-side read of one script item's live property getters; the server twin is a separate reading, since script data never syncs.
 TK.register("item.script", function(argv) return scriptValues(argv[1]) or ("no script item " .. tostring(argv[1])) end)
 
 -- Slice 02 moved the table into Core so the server half can return the same shape; the
@@ -252,6 +294,9 @@ end
 -- actually counts: when a caller runs item.state BEFORE eat (the matrix does), it is THIS call
 -- that finds-or-spawns the item, so a missed server-side spawn is answered here and eat's own
 -- `spawned` would read "found" either way. Dropping it made the provenance unfalsifiable.
+-- @args <fullType> [cooked|burnt|rotten|frozen|fresh]
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, spawned} | string
+-- @purpose Finds or spawns an item on the client, optionally forces one state onto it, and answers with the resulting item state.
 TK.register("item.state", function(argv)
     local it, spawned = findOrSpawn(argv[1])
     if not it then return "no item " .. tostring(argv[1]) end
@@ -276,6 +321,9 @@ end)
 -- <fullType> <days>: setAge on the CLIENT's copy. This measures nothing about aging -- the
 -- server owns that (02-notes Q8) -- it measures the five local Food getters as a pure
 -- function of age: isFresh/isRotten/getHungChange and the four macros.
+-- @args <fullType> <days>
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, spawned, requestedAge, before} | string
+-- @purpose Sets an item's age on the client's own copy, to read the local Food getters as a function of age; the server owns real aging.
 TK.register("item.age", function(argv)
     local it, spawned = findOrSpawn(argv[1])
     if not it then return "no item " .. tostring(argv[1]) end
@@ -291,6 +339,9 @@ end)
 -- <PerkName> <level> on the local player. The server's twin (`perk.set <user> …`) is the
 -- authoritative one and, measured, reaches this side by itself; this command is the fallback
 -- and the read-back. See TK.setPerk for why a client-only write does not survive in MP.
+-- @args <PerkName> <level>
+-- @reply {perk, requested, side, before, setPerkLevelDebug, afterSetPerkLevelDebug, setXPToLevel, after, route} | {error} | string
+-- @purpose Client-side write of a perk level on the local player: the fallback and read-back for the authoritative server twin.
 TK.register("perk.set", function(argv)
     local level = tonumber(argv[2])
     if not argv[1] or level == nil then return "usage: perk.set <PerkName> <level>" end
@@ -322,6 +373,9 @@ local function findEvolvedRecipe(name)
         .. " (first: " .. table.concat(seen, ",") .. ")"
 end
 
+-- @args <recipeName> <BaseType> <ingredientType> [<ingredientType> ...]
+-- @reply {recipe, baseType, cookingLevel, baseBefore, ingredients, recipeInfo, result} | string
+-- @purpose Runs the evolved-recipe addItem path on the client without the context menu, recording each ingredient's usability and the base item after it.
 TK.register("recipe.evolved", function(argv)
     local recipeName, baseType = argv[1], argv[2]
     if not recipeName or not baseType or not argv[3] then
@@ -401,6 +455,9 @@ end)
 
 -- Direct application: measures the intake arithmetic of IsoGameCharacter.Eat. In MP this is
 -- NOT the path a real eat takes (the server runs it) - see `eat.action` for that.
+-- @args <fullType> [<fraction>]
+-- @reply {fraction, spawned, signature, before, after, delta, script, itemBefore, itemAfter} | string
+-- @purpose Calls IsoGameCharacter.Eat directly on the client to measure the intake arithmetic; in MP this is not the path a real eat takes.
 TK.register("eat", function(argv)
     local p = getPlayer()
     local it, spawned = findOrSpawn(argv[1])   -- "client" = spawned here; see findOrSpawn
@@ -424,6 +481,9 @@ end)
 
 -- The real MP path: queue ISEatFoodAction, which the client mirrors to the server
 -- (NetTimedAction) and the SERVER completes. Result is asynchronous: poll nutrition.get.
+-- @args <fullType> [<fraction>]
+-- @reply {queued, fraction, spawned, itemId, itemBefore, validStart, maxTime, moodleFoodEaten, before} | string
+-- @purpose Queues the real ISEatFoodAction from the client, which the server completes; the outcome is asynchronous, so poll nutrition.get for it.
 TK.register("eat.action", function(argv)
     local p = getPlayer()
     local it, spawned = findOrSpawn(argv[1])   -- "client" spawns trip the server NPE; see findOrSpawn

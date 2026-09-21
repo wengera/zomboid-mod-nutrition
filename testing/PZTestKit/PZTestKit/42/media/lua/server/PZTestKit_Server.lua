@@ -1,12 +1,18 @@
 -- PZTestKit server side: command bus polling + authoritative "witness" replies (S6).
 if not isServer() then return end
 
+-- @args [<multiplier>]
+-- @reply string
+-- @purpose Sets the server's game-time multiplier and reports the value read back; the server-only fallback for settimespeed.
 TK.register("time.multiplier", function(argv)
     -- server-only fallback; the admin command (settimespeed) also broadcasts to clients
     getGameTime():setMultiplier(tonumber(argv[1]) or 1)
     return "mult=" .. tostring(getGameTime():getMultiplier())
 end)
 
+-- @args (none)
+-- @reply [<username>, ...] every online player's username ({} when none are online)
+-- @purpose Lists the usernames the server currently has online.
 TK.register("players", function()
     local list, names = getOnlinePlayers(), {}
     for i = 0, list:size() - 1 do names[#names + 1] = list:get(i):getUsername() end
@@ -25,12 +31,18 @@ local function findPlayer(username)
     return nil
 end
 
+-- @args <user>
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight} | string
+-- @purpose Server-side read of one named online player's Nutrition block -- the authoritative half of the client twin.
 TK.register("nutrition.get", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
     return TK.nutritionSnapshot(p)
 end)
 
+-- @args <user> <calories|carbs|lipids|proteins|weight> <value>
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight} | string
+-- @purpose Server-side write of one Nutrition field on a named player; the reply is the post-write snapshot.
 TK.register("nutrition.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -45,6 +57,9 @@ end)
 -- <user> <field> <value> [<field> <value> ...]. The twin of the client's stats.set: which of
 -- the two survives says who owns hunger/thirst, the same way the nutrition.set pair settled
 -- who owns Nutrition.
+-- @args <user> <hunger|thirst|fatigue|endurance> <value> [<field> <value> ...]
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight, applied} | string
+-- @purpose Server-side write of one or more hunger/thirst/fatigue/endurance stats on a named player; applied names the route each field took.
 TK.register("stats.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -66,6 +81,9 @@ end)
 -- teardown put it back to 0. setPerkLevelDebug's own sendPerks branch is client-side, so the
 -- carrier is some other server->client character sync, not this call; which one was not
 -- established. The client-side perk.set is therefore a fallback, not a required second half.
+-- @args <user> <PerkName> <level>
+-- @reply {perk, requested, side, before, setPerkLevelDebug, afterSetPerkLevelDebug, setXPToLevel, after, route} | {error} | string
+-- @purpose Authoritative server-side write of a perk level (setPerkLevelDebug plus getXp():setXPToLevel), with the read-back that says which route held.
 TK.register("perk.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -86,6 +104,9 @@ end)
 -- and answers the inner IsoGameCharacter$XP object, and the number comes from
 -- XP.getXP(PerkFactory$Perk)F on THAT object. There is no single getter for it, which is
 -- exactly why `witness.fields` (zero-argument getters only) cannot read it.
+-- @args <user> <PerkName>
+-- @reply {perk, user, side, xp, level, serverWorldAge [, error]} | {error, perk} | string
+-- @purpose Server-side read of a named player's raw perk XP beside the level -- the XP number perk.set never had.
 TK.register("perk.xp", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -132,6 +153,9 @@ end)
 -- The VALUE is always a string (`argv[3]`, the bus splits on %S+), like the client's -- see
 -- docs/testing/README.md. There is no delete: writing nil through this path cannot be told from
 -- a missing argument, and nothing needs it.
+-- @args <user> <key> <value>
+-- @reply {user, key, value, side, keyCount, keys, serverWorldAge} | string
+-- @purpose Server-side write of one string key into a named player's modData, answering with the resulting key census.
 TK.register("moddata.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -157,6 +181,9 @@ end)
 
 -- <user>. The atomic sample the rate fits are built from -- see TK.bodySnapshot for why it is
 -- one command rather than three.
+-- @args <user>
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight, endurance, fatigue, moodles, traits, traitList, traitRoute, maxWeight, foodTimer, standardFoodTime, asleep, running, sprinting, moving, worldAge, mult, wall} | string
+-- @purpose One atomic server-side body snapshot of a named player -- stats, moodles, nutrition, traits and the world clock in a single tick.
 TK.register("stats.get", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -172,6 +199,9 @@ end)
 -- true|false for booleans; both routes are tried, and the resulting multiplier is read back
 -- when the getter is exposed -- that read alone settles the inferred key->value mapping
 -- (1 -> 2.0 ... 5 -> 0.65, 03-notes "Open / uncertain" #1) without needing a rate measurement.
+-- @args <option> [<number>|true|false]
+-- @reply {option, side, before, type, sandboxVarsBefore, statsDecreaseMultiplierBefore [, requested] [, route] [, setError] [, setValueError] [, error], after, sandboxVarsAfter, statsDecreaseMultiplierAfter} | string
+-- @purpose Reads or flips one sandbox option in the live server config -- unlike the client twin this write is the running config -- and brackets it with the statsDecrease multiplier.
 TK.register("sandbox.set", function(argv)
     local name = argv[1]
     if not name then return "usage: sandbox.set <option> [<value>]" end
@@ -244,6 +274,9 @@ local TRAIT_FIELDS = { HeartyAppetite = "HEARTY_APPETITE", LightEater = "LIGHT_E
                        Obese = "OBESE", Overweight = "OVERWEIGHT", Underweight = "UNDERWEIGHT",
                        Emaciated = "EMACIATED" }
 
+-- @args <user> <TraitName> <add|remove>
+-- @reply {trait, field, op, before, enumFound, collection, route [, callError] [, error], after, traitList, held} | string
+-- @purpose Adds or removes one CharacterTrait on a named player from the server, with a trait-list read-back in held.
 TK.register("trait.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -283,6 +316,9 @@ end)
 -- (ClientCommands.lua:608). The asleep flag is what picks updateStats_Sleeping /
 -- updateCalories' 0.003 branch (03-notes Q1/Q2); whether it HOLDS on a dedicated server with
 -- a live client attached is a measurement, hence the read-back.
+-- @args <user> <true|false>
+-- @reply {requested, before, setAsleep [, error], after, held} | string
+-- @purpose Sets a named player's asleep flag on the server and reads it back -- the flag that picks the sleeping stat and calorie branches.
 TK.register("player.sleep", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -305,6 +341,9 @@ end)
 -- updateWeight calls (`updateWeight @329-@357 L200-L203`), so a fresh setWeight does not show
 -- up in hasTrait for a while; the band sweep measures that latency once and then forces the
 -- refresh here for the remaining rows.
+-- @args <user>
+-- @reply {weight [, error], applied, traits, traitList} | string
+-- @purpose Runs Nutrition.applyTraitFromWeight() on demand for a named player on the server and reports the weight-band traits that resulted.
 TK.register("nutrition.applytraits", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -334,6 +373,9 @@ end)
 -- <user> <value>. BodyDamage.healthFromFoodTimer, the FOOD_EATEN driver (03-notes Q5). Needed
 -- in both directions: primed to 0 before every hunger-rate window (the moodle silently zeroes
 -- the hunger rate) and read back during the FOOD_EATEN row.
+-- @args <user> <value>
+-- @reply {requested, before, set [, error], after} | string
+-- @purpose Writes BodyDamage.healthFromFoodTimer on a named player from the server, with a before/after read-back.
 TK.register("foodtimer.set", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
@@ -367,6 +409,9 @@ local function findItem(username, fullType)
     return it, nil, p
 end
 
+-- @args <user> <fullType>
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, serverWorldAge} | string
+-- @purpose Server-side read of one inventory item's whole state -- the side that owns aging and cooking, so the only real reading of either.
 TK.register("item.get", function(argv)
     local it, err = findItem(argv[1], argv[2])
     if not it then return err or "usage: item.get <user> <fullType>" end
@@ -401,6 +446,9 @@ local ITEM_SETTERS = {
     chef = { "setChef", "string" },
 }
 
+-- @args <user> <fullType> <age|burnt|calories|chef|cooked|cookingTime|freezingTime|heat|hungChange|lastCookMinute|offAge|offAgeMax> <value>
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, field, requested, before, sync, gameMinute, serverWorldAge} | string
+-- @purpose Server-side write of one Food/InventoryItem field followed by sendItemStats; the reply pairs the before and after states.
 TK.register("item.set", function(argv)
     local it, err = findItem(argv[1], argv[2])
     if not it then return err or "usage: item.set <user> <fullType> <field> <value>" end
@@ -451,6 +499,9 @@ end)
 -- One aging step on demand: Food.updateAge(true). The `true` is the SYNC gate, not the age
 -- gate -- it is what makes the server call sendItemStats afterwards (Q2). Whether that packet
 -- carries the new age to the client is the point of the MP phase.
+-- @args <user> <fullType>
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, before, dAge, serverWorldAge} | string
+-- @purpose Runs one Food.updateAge(true) aging step on the server and reports the age delta it produced.
 TK.register("item.age.tick", function(argv)
     local it, err = findItem(argv[1], argv[2])
     if not it then return err or "usage: item.age.tick <user> <fullType>" end
@@ -464,6 +515,9 @@ end)
 
 -- Food.freeze() = setFreezingTime(100), which is what actually flips `frozen`. setFrozen(true)
 -- alone is undone by the next updateFreezing tick (Q2), so it is not offered.
+-- @args <user> <fullType>
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, before} | string
+-- @purpose Calls Food.freeze() on a server-side item -- the only write that makes frozen stick -- and pushes it with sendItemStats.
 TK.register("item.freeze", function(argv)
     local it, err = findItem(argv[1], argv[2])
     if not it then return err or "usage: item.freeze <user> <fullType>" end
@@ -477,6 +531,9 @@ end)
 
 -- Food.update(): the cooking driver. With cookingTime already past minutesToCook and heat
 -- above 1.6 this is the transition without an appliance (Q4 precondition 4).
+-- @args <user> <fullType>
+-- @reply {fullType, cooked, burnt, rotten, frozen, age, hungChange, baseHunger, calories, carbs, lipids, proteins, id, uses, fresh, offAge, offAgeMax, freezingTime, cookingTime, heat, minutesToCook, minutesToBurn, thirstChange, hungerChange, isCookable, actualWeight, weight, customWeight, lastCookMinute, before, gameMinute, serverWorldAge} | string
+-- @purpose Runs InventoryItem.update() -- the cooking driver -- on the server and reports the item state either side of it.
 TK.register("item.update", function(argv)
     local it, err = findItem(argv[1], argv[2])
     if not it then return err or "usage: item.update <user> <fullType>" end
@@ -560,6 +617,9 @@ local function listOf(sm, method)
     return all, (type(n) == "number") and n or 0
 end
 
+-- @args (none)
+-- @reply {total, food, byType, foodByModule, fluidDefs [, fluidDefsError]} | string
+-- @purpose Server-side census of every loaded script item bucketed by item type: the live cross-check for tools/food_scan.py.
 TK.register("items.count", function()
     local sm = scriptManager()
     local all, n = listOf(sm, "getAllItems")
@@ -600,6 +660,9 @@ end)
 -- two replies differ only where the two sides genuinely differ; `side` in the reply says
 -- which is talking. The 09-11 plan's cold-start command inventory already listed
 -- `item.script <type>` under *server* -- until now that line was simply wrong.
+-- @args <fullType>
+-- @reply {fullType, via, side, access, HungerChange, ThirstChange, Calories, Carbohydrates, Lipids, Proteins, DaysFresh, DaysTotallyRotten, IsCookable, MinutesToCook, MinutesToBurn} | string
+-- @purpose Server-side read of one script item's live property getters; script data loads per side and never syncs, so this is not the client's reading.
 TK.register("item.script", function(argv)
     if getScriptManager == nil then return "no getScriptManager()" end
     local want = tostring(argv[1] or "")
@@ -629,6 +692,9 @@ end
 -- A getter this build does not expose is reported in `missingGetters` rather than left
 -- silently absent from the reply -- an absent key would otherwise be indistinguishable from a
 -- fluid that genuinely carries no such property.
+-- @args <fluidId>
+-- @reply {fluidType, fluidTypeRoute, displayName, hasPropertiesSet, HungerChange, ThirstChange, Calories, Carbohydrates, Lipids, Proteins, FatigueChange, StressChange, UnhappyChange, Alcohol, FluReduction, PainReduction, EnduranceChange, FoodSicknessChange [, missingGetters]} | string
+-- @purpose Server-side read of one fluid definition's live property getters: the drink-side cross-check for the scanned fluid data.
 TK.register("fluid.script", function(argv)
     local want = tostring(argv[1] or "")
     if want == "" then return "usage: fluid.script <fluidId>" end
@@ -803,6 +869,9 @@ local function pickFullest(cands)
     return best
 end
 
+-- @args <user> <fullType> [<fraction>]
+-- @reply {user, fullType, fraction, finder, selectionRule, candidates, selected, selectedFullType, primaryFluid, primaryFluidRoute, fluidDisplayName, containerProperties [, containerPropertiesError], predictedNutrition, predictedStats, worldAgeBefore, before [, predictedFoodTimer], route [, drinkFluidReturned] [, routeAttempts] [, error], after, worldAgeAfter, syncItemFields [, syncItemFieldsReturned] [, syncItemFieldsError], delta} | {error, candidates} | string
+-- @purpose Makes one server-side DrinkFluid call -- the shipped drink action minus the timed action -- and reports the container, nutrition and food timer either side of it.
 TK.register("drink", function(argv)
     local user, fullType = argv[1], argv[2]
     if not user or not fullType then return "usage: drink <user> <fullType> [fraction]" end
@@ -1087,6 +1156,9 @@ local function pickMostUses(cands)
     return best
 end
 
+-- @args <user> <fullType> <uses>
+-- @reply {user, fullType, requestedUses, finder, selectionRule, candidates, selected, selectedFullType, disappearOnUse, keepOnDeplete, worldAgeBefore, before, usedUses, targetUses, predictedFactor, predictedFactorBasis, predicted, route [, useItemReturned] [, routeAttempts] [, error], after, worldAgeAfter [, candidatesAfterError], candidatesAfter, delta} | {error, finder, candidates} | string
+-- @purpose Consumes N uses of a food on the server the way a craftRecipe input line without flags[ItemCount] does, and reports the macro scaling either side of the reduction.
 TK.register("item.use", function(argv)
     local user, fullType = argv[1], argv[2]
     if not user or not fullType or argv[3] == nil then

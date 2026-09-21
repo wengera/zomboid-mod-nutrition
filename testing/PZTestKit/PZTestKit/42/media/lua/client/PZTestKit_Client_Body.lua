@@ -20,6 +20,9 @@
 
 -- The client twin of the server's `stats.get <user>`: same shape, same TK.bodySnapshot, no
 -- username argument (a client only ever has its own player).
+-- @args (none)
+-- @reply {calories, carbs, lipids, proteins, weight, hunger, thirst, statsApi, incWeight, incWeightLot, decWeight, endurance, fatigue, moodles, traits, traitList, traitRoute, maxWeight, foodTimer, standardFoodTime, asleep, running, sprinting, moving, worldAge, mult, wall} | string
+-- @purpose One atomic client-side body snapshot of the local player -- a mirror of the last 1 Hz PlayerStatsPacket, never a rate.
 TK.register("stats.get", function()
     local p = getPlayer()
     if not p then return "no local player" end
@@ -38,6 +41,9 @@ end)
 -- It is one attempt by ruling: if the server-side snapshot does not report `moving` true
 -- while this runs, rows 3-6 are recorded n/a rather than chased. Nothing here is retried and
 -- nothing here is required by another row.
+-- @args <dx> <dy> [run]
+-- @reply {dx, dy, run, from [, error], target [, setRunning], queued [, queueError], clientRunning, clientMoving} | string
+-- @purpose Queues the game's own walk action to the square dx,dy away from the client, so the server's copy of the player actually moves.
 TK.register("player.walk", function(argv)
     local p = getPlayer()
     if not p then return "no local player" end
@@ -73,6 +79,9 @@ end)
 
 -- Stop whatever `player.walk` started, so a half-finished path cannot bleed into the next
 -- condition's idle window.
+-- @args (none)
+-- @reply {cleared [, clearError], setRunning, clientMoving} | string
+-- @purpose Clears the client's timed-action queue and unsets running, so a half-finished path cannot bleed into the next window.
 TK.register("player.stop", function()
     local p = getPlayer()
     if not p then return "no local player" end

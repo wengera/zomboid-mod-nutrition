@@ -225,6 +225,9 @@ local COUNT_ACCESSORS = { { "craft", "getAllCraftRecipes" },
                           { "legacy", "getAllRecipes" },
                           { "unique", "getAllUniqueRecipes" } }
 
+-- @args (none)
+-- @reply {craft, evolved, legacy, unique [, missingAccessors]} | string
+-- @purpose Server-side sizes of the four ScriptManager recipe inventories: the live cross-check for tools/recipe_scan.py.
 TK.register("recipes.count", function()
     local sm = scriptManager()
     if sm == nil then return "no getScriptManager()" end
@@ -255,6 +258,9 @@ end)
 local EVOLVED_GETTERS = { "getBaseItem", "getResultItem", "getMaxItems", "isCookable",
                           "getMinimumWater" }
 
+-- @args <name>
+-- @reply {getBaseItem, getResultItem, getMaxItems, isCookable, getMinimumWater [, missingGetters] [, getterErrors] [, nullGetters], name, lookup, items, ingredientCount, itemFullTypes [, itemsError] [, itemFullTypesAligned]} | string
+-- @purpose Server-side read of one EvolvedRecipe's five scalars and its whole possible-item list, with the name-lookup route it resolved through.
 TK.register("recipes.evolved", function(argv)
     local want = tostring(argv[1] or "")
     if want == "" then return "usage: recipes.evolved <name>" end
@@ -294,6 +300,9 @@ end)
 -- (`@0-@7 L257`). 55 shipped lines are sub-lines.
 local CRAFT_GETTERS = { "getCategory", "getTime", "getInputCount", "getOutputCount" }
 
+-- @args <name>
+-- @reply {getCategory, getTime, getInputCount, getOutputCount [, missingGetters] [, getterErrors] [, nullGetters], name, lookup, outputs [, outputsError], outputListSize} | string
+-- @purpose Server-side read of one CraftRecipe's four scalars plus one row per output line, with the name-lookup route it resolved through.
 TK.register("recipes.craft", function(argv)
     local want = tostring(argv[1] or "")
     if want == "" then return "usage: recipes.craft <name>" end
