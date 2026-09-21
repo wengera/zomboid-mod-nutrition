@@ -14,7 +14,12 @@ RUN_ID_RX = re.compile(r"\b[a-z0-9]+-2026\d{4}-\d{6}\b")
 GRADE_LETTER_RX = re.compile(r"\b([CMW])\b")
 GRADE_MARK_RX = re.compile(
     r"\bC \(arith\.?\)|\bC ?\+ ?M\b|\bM ?\+ ?C\b|\bW (?:vs\.?|\+) C\b|\bC \+ W\b|\*\*[CMW]\*\*"
-    r"|\bEv[: ]+[CMW]\b|\b[CMW] \((?:run|runs|spike|jar|inference|arith)|\bgraded? [CMW]\b")
+    r"|\bEv[: ]+[CMW]\b|\b[CMW] \((?:run|runs|spike|jar|inference|arith)|\bgraded? [CMW]\b"
+    # The repo's two commonest inline idioms: the grade opens a parenthesis and the qualifier
+    # follows the comma — `(M, \`exp01-…\`)`, `(C, 2026-09-10)`, `(C, jar)`, `(M, same run)` —
+    # or the grade closes one after the pointer: `(\`Eat @235 L5774\`, C)`, `(\`exp01-…\`, M)`.
+    # The qualifier is free text, so this does not demand a run id or a backtick after the comma.
+    r"|\((?:C ?\+ ?M|M ?\+ ?C|[CMW]), |, (?:C ?\+ ?M|M ?\+ ?C|[CMW])\)")
 HEADING_RX = re.compile(r"^(#{1,4})\s+(.*?)\s*$")
 CANDIDATE_COLUMNS = ("source", "line", "section", "kind_hint", "cells", "ev", "grades", "run_ids")
 DNC_COLUMNS = ("run", "key", "value", "why", "read_instead")
@@ -26,7 +31,14 @@ GROUP_ORDER = ("G1a", "G1b", "G1c", "G1d", "G2a", "G2b", "G2c", "G3a", "G3b", "G
 
 
 def _rel(path):
-    return os.path.relpath(path, REPO_ROOT).replace("\\", "/") if os.path.isabs(path) else path.replace("\\", "/")
+    if os.path.isabs(path):
+        try:
+            return os.path.relpath(path, REPO_ROOT).replace("\\", "/")
+        except ValueError:
+            # Windows: relpath raises across drives, and a doc may sit off the repo's drive
+            # (a TEMP on D:, a checkout mounted elsewhere). The absolute path is the answer then.
+            return path.replace("\\", "/")
+    return path.replace("\\", "/")
 
 
 def _clean(s):

@@ -90,6 +90,51 @@ def test_do_not_cite_blocks():
         assert rows[0]["read_instead"].startswith("read `rows.r12_weight_bands`")
         assert rows[3]["why"].startswith("everything measured here")
 
+IDIOM_DOC = """# Eating pipeline
+
+## Writes
+
+The bar moves +95 (M, `exp01-20260910-000351`).
+
+No nutrient write (`Eat @235–@251 L5774–L5776`, C).
+
+The run wrote it back (`exp01-20260910-003929`, M), so the server owns it.
+
+The same route holds at 1 Hz (C, 2026-09-10) and on the second boot (M, same run).
+
+Plain prose with no grade at all, a (parenthetical, aside) and an (X, Y) pair.
+"""
+
+def test_candidates_inline_grade_idioms():
+    """A grade letter set off by a comma inside a parenthesis is a grade: `(M, …)` and `(…, C)`.
+
+    The qualifier after the comma is free text in this repo — `(C, 2026-09-10)`, `(C, jar)`,
+    `(M, same run)` — so the rule deliberately does not require a run id or a backtick there;
+    demanding one drops 14 genuine graded lines in the harvest files, every one of the eight in
+    `docs/mods-survey/teardowns/simplestatus.md` among them. The cost of the looser rule is that
+    a non-grade `(M, the mod)` would also match, which is the right trade for a checklist: an
+    extra candidate is dropped by the harvester, a missed grade silently under-grades a row.
+    A letter that is not C/M/W never matches, so `(X, Y)` and `(parenthetical, aside)` do not.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        p = _write(d, "eating.md", IDIOM_DOC)
+        rows = ch.candidates([p])
+        assert [r["ev"] for r in rows] == ["(M,", ", C)", ", M)", "(C,"]
+        assert [r["grades"] for r in rows] == ["M", "C", "M", "C"]
+        assert all(r["kind_hint"] == "paragraph" and r["section"] == "Writes" for r in rows)
+        assert rows[0]["run_ids"] == "exp01-20260910-000351"
+
+def test_rel_survives_a_path_on_another_drive():
+    """`os.path.relpath` raises across Windows drives; a doc off the repo's drive must not crash.
+
+    On POSIX the same string is simply not absolute, so it takes the relative branch and the
+    answer is identical — the assertion holds on both platforms.
+    """
+    assert ch._rel("docs\\vanilla\\body-stats.md") == "docs/vanilla/body-stats.md"
+    assert ch._rel(os.path.join(ch.REPO_ROOT, "docs", "vanilla", "x.md")) == "docs/vanilla/x.md"
+    other = ("E:" if os.path.splitdrive(ch.REPO_ROOT)[0].upper() == "D:" else "D:") + "\\tmp\\doc.md"
+    assert ch._rel(other) == other.replace("\\", "/")
+
 PROSE_README = """# Artifacts
 
 #### `exp09-20260910-101010` — probe.json
