@@ -281,6 +281,14 @@ import patterns from there.
   `parts/claims-*.tsv` sorted by id (a duplicate id fails), writes the register, and stitches
   `parts/coverage-*.md` under a totals table.
 
+- `bus_inventory.py` — `python tools/bus_inventory.py [--lua-dir DIR] [--out FILE] [--check]`
+  Generates `docs/reference/harness-commands.md` (one row per `TK.register` site and side:
+  name · side · `file:line` · args · reply keys · purpose) from the `-- @args` / `-- @reply` /
+  `-- @purpose` comment block directly above each site; a site without all three fails the
+  run and is listed on stderr. `--check` exits 1 when the file on disk is not a fresh render.
+  A harness commit that adds or changes a command edits the block and regenerates in the
+  same commit (`claims_check.py` rule 5 enforces it).
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
