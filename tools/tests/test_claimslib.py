@@ -142,3 +142,12 @@ def test_unbalanced_quote_raises():
         pass
     assert cl.parse_pointers('lua:a/B.lua:12 "local x = 1"; jar:A.b @1 L2') == [
         ("lua", 'a/B.lua:12 "local x = 1"'), ("jar", "A.b @1 L2")]
+
+def test_web_pointer_form():
+    assert cl.parse_pointers("web:data/workshop-search.json 2026-09-10") == [
+        ("web", "data/workshop-search.json 2026-09-10")]
+    assert cl.POINTER_FORMS["web"] == "W" and "web" not in cl.ANCHORED_FORMS
+    assert cl.strongest_grade(["web"]) == "W" and cl.strongest_grade(["web", "jar"]) == "C"
+    row = dict(ROW, grade="W", pointer="web:data/workshop-search.json 2026-09-10",
+               bound="snapshot 2026-09-10 17:47")
+    assert cl.validate_row(row) == []

@@ -9,7 +9,10 @@ GRADES = ("C", "M", "W")
 STATUSES = ("settled", "open", "superseded", "unverified")
 KINDS = ("mechanism", "order", "table", "count", "verdict", "rule", "bound", "contradiction", "tool", "open")
 BOUND_TOKENS = ("none", "one-side", "C-only", "one-fixture", "arith.", "inference", "uncommitted", "snapshot")
-POINTER_FORMS = {"jar": "C", "run": "M", "wiki": "W", "lua": "C", "mod": "C", "repo": "C", "data": "C", "tool": "C"}
+# `web:<data file or page> <fetch date>` is a fetched non-wiki source (a workshop metadata
+# snapshot, a licence page); like `wiki:` it grades W and carries no anchor.
+POINTER_FORMS = {"jar": "C", "run": "M", "wiki": "W", "web": "W", "lua": "C", "mod": "C",
+                 "repo": "C", "data": "C", "tool": "C"}
 ANCHORED_FORMS = ("lua", "mod", "repo")           # these carry quoted anchor text
 LAYERS = ("areas", "platform", "facts", "reference")
 BLOCKS = (("G1a", 1, 200), ("G1b", 201, 450), ("G1c", 451, 600), ("G1d", 601, 800),
