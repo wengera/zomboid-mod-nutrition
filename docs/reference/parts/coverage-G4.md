@@ -43,7 +43,7 @@ the checklist and every section below is accounted for whether or not it had a c
   `Evidence grades:` legend lines).
 - § Summary — candidates 0 → rows #1789–#1793 (the five numbered summary claims).
 - § Reading the committed artifacts — candidates 0 → rows #1794, #1795 (both traps).
-- § The TOML schema — candidates 14 → rows #1796, #1797, #1810; the fifteen-key schema table is one
+- § The TOML schema — candidates 14 → rows #1796, #1797, #1810; the fourteen-row schema table is one
   `table` row (#1796) per the grain rule, with the precedence rule (#1797) and the sandbox-key
   validation (#1810) split out because they rest on different sites.
 - § How a `[[mods]]` entry becomes a folder — candidates 6 → rows #1798–#1800; the six-branch
@@ -98,7 +98,7 @@ the checklist and every section below is accounted for whether or not it had a c
   design-changing bullets (the `-nosteam`-works-cleanly bullet is included, not dropped); #1847,
   #1849, #1851 are `unverified` with an `uncommitted:` bound (the spike runs left no artifact
   folder, R17).
-- § S2 — Auto-join — candidates 0 → rows #1852–#1859; the fifteen-fact table is one `table` row
+- § S2 — Auto-join — candidates 0 → rows #1852–#1859; the sixteen-fact table is one `table` row
   (#1852) plus four singled-out rows; #1856, #1858 `unverified` / `uncommitted:`.
 - § T0 — provision / boot / attach split — candidates 0 → rows #1860–#1863; #1860, #1862
   `unverified` / `uncommitted:`.
@@ -333,7 +333,7 @@ The two anchors this harvest reached for and did **not** need: `facts/cooking-an
 `unverified` (20): #1847, #1849, #1851, #1856, #1858, #1860, #1862, #1864, #1868, #1869, #1870,
 #1871, #1873, #1875, #1876, #1877, #1878, #1975 — eighteen `spikes.md` readings whose run left no
 artifact folder, written with the spec's `uncommitted: <run-id>` bound (R17) — plus #1839 and #1976,
-the two `mod_lint` sweep counts no committed file records, bounded
+the two `mod_lint` sweep counts no surviving file records, bounded
 `snapshot 2026-09-10 13:47; the sweep output was not committed`.
 
 `open`: #1770 (which `mod.info` the harness's own two copies resolve to), #1815 (where the
