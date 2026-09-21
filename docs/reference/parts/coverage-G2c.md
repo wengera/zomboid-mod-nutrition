@@ -2,7 +2,15 @@
 
 Sources: `docs/modding/wall-map.md` (79 candidates), `docs/reference/experiments.md` (no candidate rows — its
 tables carry no `Ev` header, so the generator emits none; harvested in full by reading). Ids `#1121–#1299`
-of the `G2c` sub-block `#1121–#1300`; one id spare.
+of the `G2c` sub-block `#1121–#1300` (one id spare), plus the continuation slice `#2004–#2011` the controller
+minted for fix round 1 (R22).
+
+Pointer layer, after fix round 1: no `repo:` pointer reaches a tree the Phase 4 cut deletes (R20). The only
+`repo:docs/` paths left are `docs/modding/wall-map.md` — exempt under R21, because the cut moves it verbatim to
+`docs/reference/wall-map.md` — and `docs/reference/experiments.md` / `docs/reference/harness-commands.md`,
+which survive. Every fact previously cited to `docs/vanilla`, `docs/modding` (bar the map), `docs/mods-survey`
+or `docs/superpowers` now carries the underlying `jar:`, `lua:`, `run:`, `data:` or harness `repo:` evidence,
+and no claim states a bytecode offset — the pointer cell carries them.
 
 ### docs/modding/wall-map.md
 
@@ -24,11 +32,11 @@ of the `G2c` sub-block `#1121–#1300`; one id spare.
 - § The map → § B — Eat hooks — candidates 7 → rows #1128–#1134, #1189–#1192. Cited elsewhere, no row here:
   B1's client-to-server action chain and B3's whole mechanism (`eating-pipeline.md § MP behaviour`,
   `§ OnEat`, `item-overrides.md § R4`, harvested by G1/G2); B4+B5's `EatOnClient` and `LuaTimedActionNew.complete`
-  sites are folded into `#1131`'s claim; B7's 8-declared/6-fired hook inventory is folded into `#1133`'s claim,
-  which is `#1273`'s successor.
+  sites are `#2004` and `#2005` (fix round 1, I1 — folds in the first pass); B7's 8-declared/6-fired hook
+  inventory is folded into `#1133`'s claim, which is `#1273`'s successor.
 - § The map → § C — The weight formula — candidates 5 → rows #1135–#1139, #1193–#1197. Cited elsewhere, no row
   here: the weight bands and their edges (`body-stats.md § Weight bands`, harvested by G1/G2); C1's carbs-or-lipids
-  > 400 threshold is folded into `#1135`'s claim; C5's four flag-write offsets into `#1139`'s.
+  > 400 threshold is folded into `#1135`'s claim; C5's four flag-write sites are `#2006` (fix round 1, I1).
 - § The map → § D — Moodles — candidates 4 → rows #1140–#1143, #1198–#1199. Cited elsewhere, no row here:
   D4's three unmeasured MoodleFramework legs (`patterns.md § Open pattern questions`,
   `anatomy.md § Inputs for the wall map`, harvested by G1/G2) — carried as `#1142`'s bound; D1's registration
@@ -39,7 +47,10 @@ of the `G2c` sub-block `#1121–#1300`; one id spare.
   folder — recorded in `#1150`'s bound, which is why that row is graded C); E11's bus shape and the Girth stack's
   228 command sites (`patterns.md KEEP 2`, `lua-api.md § 4`); E4's zero-field case study
   (`food-item-model.md`, harvested by G1/G2 — `#1146`, `#1202`–`#1205` are this map's own jar and run reads);
-  E10's `KahluaTableImpl.load` wipe and the empty-table arm are folded into `#1152`'s claim.
+  E10's `KahluaTableImpl.load` wipe and the empty-table arm are folded into `#1152`'s claim. `#1148` (E6) is
+  `unverified` after fix round 1 (I3): its headline arm rests on td3-20260911-001948's `carrier` keys, which
+  are on the do-not-cite list, so the row carries the jar gate as well and its bound quotes that run's
+  whole-run restriction.
 - § The map → § F — The cooking pipeline — candidates 4 → rows #1154–#1157, #1208–#1211. Cited elsewhere, no
   row here: F1's registration prose (`lua-api.md § 3`); F5's whole mechanism
   (`food-item-model.md § Key reference`, `recipes-dataset-notes.md`, harvested by G1/G2), including the 2 522-row
@@ -57,12 +68,18 @@ of the `G2c` sub-block `#1121–#1300`; one id spare.
   I4+I5's id chain prose (`anatomy.md § 2`), I3's AutoCook census numbers
   (`autocook.md § Architecture → The census`) — all harvested by G1/G2; the census numbers are re-stated here
   only inside `#1218`, the dataset bound the map addresses to `data/README.md` as a ripple. I9's three witnesses
-  are folded into `#1174`'s claim; I13's `pcall` try-coverage into `#1178`'s.
+  are folded into `#1174`'s claim; I13's `pcall` try-coverage is `#2008` (fix round 1, I1). I14's file-scope
+  arm, `#1226`, is `superseded` (fix round 1, C1): the rule has no jar site in this map, is **cited to
+  `lua-api.md` § 5, harvested by G2a**, and its successor is written as `#1179`, the in-part row carrying the
+  same rule, because the checker rejects a cross-part successor under `--register-only`; **the merge should
+  retarget it to G2a's `#0948`** ("An unguarded nil call aborts the rest of the handler body it fires in"),
+  whose pointer `#1226` already copies.
 - § The map → § J — The item pass — candidates 5 → rows #1180–#1184, #1214, #1227–#1233. Cited elsewhere, no
-  row here: J2's route prose (`item-overrides.md § R2`, harvested by G1/G2); J1's append-and-inert-reset chain
-  and J3's checksum chain are folded into their verdict claims; J4's `searchFolders` lower-cased store into
-  `#1183`'s claim. Vanilla's own 13 `module Base` redefinitions are **dropped**: the map offers no pointer for
-  the count and the row would have rested on the claim sentence alone.
+  row here: J2's route prose (`item-overrides.md § R2`, harvested by G1/G2); J3's checksum chain is folded into
+  `#1182`'s verdict claim. J1's append-and-inert-reset chain is `#2007` and J4's `searchFolders` lower-cased
+  store is `#2009` (fix round 1, I1 — both were folds in the first pass). Vanilla's own 13 `module Base`
+  redefinitions are **dropped**: the map offers no pointer for the count and the row would have rested on the
+  claim sentence alone.
 - § MP behaviour — candidates 10 → rows #1236–#1245, one per surface, placed on `platform/mp-model.md`,
   `platform/loader-and-scripts.md`, `platform/mod-anatomy.md` and `facts/wire-packets.md` by the sync placement.
   `#1236` carries both of its runs as two pointers (`exp03-20260910-045523 r13_mp_regression.clientPolls` for the
@@ -81,12 +98,14 @@ of the `G2c` sub-block `#1121–#1300`; one id spare.
   null guard, "never fired (untriggered, not confirmed)", is `#1251`. Bullet 10's three legs (`#1255`) are also
   the bounds of `#1122` (A2+A7), `#1133` (B7) and `#1182` (J3), and their experiments are `#1294`, `#1279`
   and `#1282`.
-- § Discrepancies — candidates 0 → rows #1258–#1273. The two-packet comparison table is `#1258` (the mechanism)
-  plus `#1259` (the `docs/modding/README.md` § Hard-won platform facts bullet as `superseded`, successor `#1258`);
-  its per-cell numbers are `#1200` and `#1241`. The twelve "previously predicted → now" lines are `#1262–#1273`,
-  one `superseded` row each, pointer = the plan's seed row in
-  `docs/superpowers/plans/13-wall-map.md` § Corrections applied, successor = the current statement's row
-  (`#1269` carries three successors for the H3 · I4+I5 · F5 line and `#1267` two for the G5 split). The wiki-mirror
+- § Discrepancies — candidates 0 → rows #1258–#1273, #2010–#2011. The two-packet comparison table is `#1258`
+  (the mechanism) plus `#1259` (the `docs/modding/README.md` § Hard-won platform facts bullet as `superseded`,
+  successor `#1258`); its per-cell numbers are `#1200` and `#1241`. The twelve "previously predicted → now" lines
+  are `#1262–#1273`, one `superseded` row each, pointer = that line in `docs/modding/wall-map.md` § Discrepancies
+  under R21, successor = the current statement's row. The H3 · I4+I5 · F5 line is **split** (fix round 1, I2):
+  `#1269` keeps H3's prediction (successor `#1165`), `#2010` carries I4+I5's (successor `#1171`) and `#2011`
+  F5's (successor `#1157`), each pointing at its own clause of line 357; `#1267` still carries two successors
+  for the G5 split. The wiki-mirror
   bullets: `trait.md`'s String `hasTrait` is `#1260`, the one `contradiction` row; `mod-structure.md` agrees with
   the jar and is now M at n = 2 (`#1170`) — a grade history, rows: none; `mod-data.md`'s silence on
   `transmitModData` and `SyncItemFieldsPacket` is a partial-map note carried by `#1123`, `#1126` and `#1152` —
@@ -136,7 +155,8 @@ of the `G2c` sub-block `#1121–#1300`; one id spare.
 ## Anchors proposed
 
 None. Every `owner` written by this part is an anchor that already exists in
-`docs/superpowers/plans/restructure-anchors.md` (135 distinct owners used, all checked against the plan).
+`docs/superpowers/plans/restructure-anchors.md`, the eight continuation rows included (checked
+programmatically against the plan after fix round 1).
 
 Two controller amendments were applied and are worth restating for the merge:
 
@@ -149,23 +169,27 @@ Two controller amendments were applied and are worth restating for the merge:
 
 ## Totals
 
-179 rows, `#1121`–`#1299`, contiguous.
+187 rows: `#1121`–`#1299` contiguous, plus the continuation slice `#2004`–`#2011`, also contiguous.
 
-By kind: `verdict` 71 (64 wall-map rows + 7 superseded predictions written as verdicts) · `mechanism` 55 ·
+By kind: `verdict` 73 (64 wall-map rows + 9 superseded predictions written as verdicts) · `mechanism` 61 ·
 `bound` 15 · `count` 9 · `open` 26 · `rule` 2 · `contradiction` 1.
 
-By grade: `C` 113 · `M` 66 · `W` 0 (the one mirror row, `#1260`, carries a `wiki:` pointer beside a `jar:` one
+By grade: `C` 121 · `M` 66 · `W` 0 (the one mirror row, `#1260`, carries a `wiki:` pointer beside a `jar:` one
 and is graded by the strongest, C).
 
-By status: `settled` 136 · `open` 29 (26 named experiments + the three UNKNOWN verdicts `#1133`, `#1161`,
-`#1164`) · `superseded` 14 (12 from § Discrepancies' predictions table, plus `#1259` and `#1261`) ·
-`unverified` 0.
+By status: `settled` 140 · `open` 29 (26 named experiments + the three UNKNOWN verdicts `#1133`, `#1161`,
+`#1164`) · `superseded` 17 (12 from § Discrepancies' predictions table, its two splits `#2010` and `#2011`,
+`#1259`, `#1261` and `#1226`) · `unverified` 1 (`#1148`, E6).
 
 Candidates accounted for: 79 = 74 harvested (64 verdict rows + 10 MP-behaviour rows) + 2 collapsed into `#1257`
 + 3 dropped (2 grade-legend lines at L5–L6, 1 wiki-mirror fetch-date legend at L458) + 0 superseded + 0 unverified.
 `docs/reference/experiments.md` yields no generator candidates and was harvested by reading: 26 `open` rows and
 one `count` row, with every other section accounted for above as `rows: none` and its reason.
 
-Owner spread: `reference/wall-map.md` 64 · `platform/` 60 · `facts/` 27 · `areas/open-questions.md` 26 ·
+Owner spread: `reference/wall-map.md` 64 · `platform/` 66 · `facts/` 29 · `areas/open-questions.md` 26 ·
 `reference/datasets.md` 2 (the superseded rows carry the owner of the current statement's page, which rule 1
 never checks).
+
+Fix round 1 (2026-09-21) changed the pointer layer, not the row set: 58 pointer cells replaced, 8 rows added
+(`#2004`–`#2011`), 18 claims re-worded after the offsets came out, `#1148` re-graded `unverified` and `#1226`
+`superseded`. No row was deleted or renumbered.
