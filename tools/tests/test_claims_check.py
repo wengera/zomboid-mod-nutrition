@@ -225,6 +225,23 @@ def test_staged_runs_the_check_when_git_cannot_answer(monkeypatch):
         assert cc.main(["--root", d, "--staged"]) == 1
 
 
+# --- R17: a run that left no artifact is citable only on an unverified row bounded `uncommitted:`.
+
+def test_rule_pointer_admits_an_uncommitted_run_on_an_unverified_row():
+    ptr = "run:spike-20260909-143930 findings.json sync.client_to_server"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, grade="M", pointer=ptr, status="unverified", bound="uncommitted: spike-20260909-143930")])
+        assert not [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, grade="M", pointer=ptr)])                                  # settled: still a finding
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+        assert len(f) == 1 and "spike-20260909-143930" in f[0].detail and "has no folder" in f[0].detail
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, grade="M", pointer=ptr, status="unverified", bound="n=1")])  # wrong bound: still a finding
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+        assert len(f) == 1 and "has no folder" in f[0].detail
+
+
 # --- R13: rule 5's directory label is bus_inventory.label_for, the one the generator itself renders.
 
 def test_generator_label_matches_bus_inventory_label_for():

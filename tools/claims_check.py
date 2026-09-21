@@ -170,6 +170,21 @@ def rule_schema(rows, register_rel):
     return out
 
 
+def _uncommitted_run(row):
+    """The spec's form for an M claim whose only run left no artifact: `status unverified` with a
+    bound that starts `uncommitted: <run-id>`. Rule 3 admits a missing run folder only on such a
+    row (R17) — the row keeps the source's grade and pointer, and its owner lists it under
+    `## Open` with the re-measurement that settles it. A settled or open row citing a run with no
+    folder is still a finding, and so is an unverified row bounded any other way."""
+    if row.get("status") != "unverified":
+        return False
+    try:
+        token, _ = cl.parse_bound(row.get("bound", ""))
+    except ValueError:
+        return False                                # already a rule-0 finding from validate_row
+    return token == "uncommitted"
+
+
 def rule_pointer(rows, root, register_rel):
     out = []
     # do-not-cite.csv is `run,key,value,why,read_instead`; a prose restriction with no key has
@@ -191,7 +206,8 @@ def rule_pointer(rows, root, register_rel):
                 real = aliases[run]["run"] if run in aliases else run
                 rdir = os.path.join(root, "testing", "artifacts", real)
                 if not os.path.isdir(rdir):
-                    out.append(Finding(register_rel, n, "pointer", "%s: run %s has no folder under testing/artifacts/ (no alias either)" % (r["id"], run)))
+                    if not _uncommitted_run(r):
+                        out.append(Finding(register_rel, n, "pointer", "%s: run %s has no folder under testing/artifacts/ (no alias either)" % (r["id"], run)))
                     continue
                 if len(parts) >= 2 and parts[1].endswith(".json") and not os.path.exists(os.path.join(rdir, parts[1])):
                     out.append(Finding(register_rel, n, "pointer", "%s: %s has no file %s" % (r["id"], real, parts[1])))
