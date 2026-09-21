@@ -59,7 +59,7 @@ Rows 170 (#0801–#0970).
 By kind: mechanism 122 · open 15 · rule 8 · bound 7 · table 6 · count 4 · tool 4 · order 3 ·
 contradiction 1.
 
-By grade: C 97 · M 70 · W 3.
+By grade: C 98 · M 70 · W 2.
 
 By status: settled 150 · open 15 · superseded 3 (#0801 -> #0802; #0965 -> #0944, #0949;
 #0966 -> #0845) · unverified 2 (#0912, #0953).
