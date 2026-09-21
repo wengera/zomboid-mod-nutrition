@@ -156,6 +156,33 @@ def test_do_not_cite_prose_key_cell_is_a_star():
         assert rows[0]["why"] == "everything measured here, as a population — **`n = 1`.** One session, one fixture."
         assert rows[1]["read_instead"] == "read `keyCount` instead"
 
+BOUNDARY_README = """# Artifacts
+
+#### `exp10-20260910-111213` — probe.json
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| `a.b` | `1` | Wide because the band was sized by `before`; cite `a.c` instead. |
+| `a.d` | `2` | The three windows scatter, because 6 s is 1.5 kcal against a float32 store. |
+"""
+
+def test_do_not_cite_read_instead_starts_at_a_whole_word():
+    """`because` / `cause` / `clause` / `excuse` end in a remedial verb without starting one.
+
+    The verb needs a word boundary on both sides: the trailing one was always there, and without
+    the leading one the clause began mid-word. On `testing/artifacts/README.md` that mis-read 15
+    of the 54 populated `read_instead` cells — six of them (the `exp05b` drift-rates fan-out) have
+    a real remedial clause later in the same cell, which the mid-word match shadowed.
+    """
+    with tempfile.TemporaryDirectory() as d:
+        p = _write(d, "README.md", BOUNDARY_README)
+        rows = ch.do_not_cite(p)
+        assert [r["key"] for r in rows] == ["a.b", "a.d"]
+        assert rows[0]["read_instead"] == "cite `a.c` instead"
+        assert rows[1]["read_instead"] == ""
+
 def test_merge_sorts_and_rejects_duplicates():
     with tempfile.TemporaryDirectory() as d:
         parts = os.path.join(d, "parts"); os.makedirs(parts)

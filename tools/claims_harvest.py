@@ -25,8 +25,10 @@ CANDIDATE_COLUMNS = ("source", "line", "section", "kind_hint", "cells", "ev", "g
 DNC_COLUMNS = ("run", "key", "value", "why", "read_instead")
 DNC_MARK_RX = re.compile(r"^\*\*Do not cite from (?:this file|`([^`]+)`[^:]*):\*\*")
 # The remedial clause runs to the end of its sentence: a `.` only ends it when a space or the
-# end of the cell follows, so the dots inside a key like `rows.r12_weight_bands` are kept.
-READ_INSTEAD_RX = re.compile(r"((?:read|use|take|cite)\b(?:[^.;]|\.(?=\S))*)", re.I)
+# end of the cell follows, so the dots inside a key like `rows.r12_weight_bands` are kept. The
+# verb is bounded on BOTH sides — `because` / `cause` / `clause` / `excuse` end in one without
+# starting one, and a clause begun mid-word is never remedial.
+READ_INSTEAD_RX = re.compile(r"(\b(?:read|use|take|cite)\b(?:[^.;]|\.(?=\S))*)", re.I)
 GROUP_ORDER = ("G1a", "G1b", "G1c", "G1d", "G2a", "G2b", "G2c", "G3a", "G3b", "G4")
 
 
