@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+"""The claims checker (spec § The checker and the generator).
+
+Rules: schema (0) · owner (1) · tag (2) · pointer (3) · untagged (4, warning only) · generator (5)
+· skill (6) · example (7). --register-only runs 0 and 3; --partial lets 1 skip owner pages that do
+not exist yet; --fix-tags rewrites every tag's suffix from the register; --view LAYER and
+--section-map print register slices; --staged skips the run when nothing relevant is staged."""
+import argparse, collections, csv, os, re, subprocess, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import claimslib as cl
+
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+REGISTER = "docs/reference/claims.tsv"
+DNC = "docs/reference/do-not-cite.csv"
+ALIASES = "docs/reference/run-aliases.csv"
+HARNESS_MD = "docs/reference/harness-commands.md"
+LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
+LAYER_DIRS = ("docs/areas", "docs/platform", "docs/facts")
+# Rule 2 also reads the two reference pages that own register rows: `docs/reference/` is outside the
+# page contract, so rule 4 never runs there, but a row owned by one of these still needs its tag to
+# resolve and to carry the canonical suffix. Every other reference page is generated or an index.
+REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md")
+SKILLS_DIR = ".claude/skills"
+TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py")
+Finding = collections.namedtuple("Finding", "path line rule detail")
+WARN_RULES = ("untagged",)
+PROVISIONAL_MSG = "provisional tag %s (apply the delta, or --allow-provisional)"
+H2_RX = re.compile(r"^## (.+?)\s*$")
+CODE_SPAN_RX = re.compile(r"`[^`]*`")
+FILE_LINES_RX = re.compile(r"`?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?`?")
+
+
+def is_warning(f):
+    return f.rule in WARN_RULES
+
+
+def exit_code(findings):
+    return 1 if any(not is_warning(f) for f in findings) else 0
+
+
+def _rel(path, root):
+    return os.path.relpath(path, root).replace("\\", "/")
+
+
+def _read(path):
+    with open(path, encoding="utf-8", errors="replace", newline="") as f:
+        return f.read()
+
+
+def _md_files(root, dirs):
+    for d in dirs:
+        base = os.path.join(root, *d.split("/"))
+        for dp, _, fns in os.walk(base):
+            for fn in sorted(fns):
+                if fn.endswith(".md"):
+                    yield os.path.join(dp, fn)
+
+
+def _skill_files(root):
+    base = os.path.join(root, *SKILLS_DIR.split("/"))
+    return sorted(os.path.join(base, d, "SKILL.md") for d in os.listdir(base) if os.path.exists(os.path.join(base, d, "SKILL.md"))) if os.path.isdir(base) else []
+
+
+def _tagged_files(root):
+    """Every file rule 2 checks and --fix-tags rewrites: the three layers, the two reference
+    pages that own register rows (when they exist), and the skills."""
+    extra = [os.path.join(root, *r.split("/")) for r in REF_TAG_PAGES]
+    return list(_md_files(root, LAYER_DIRS)) + [p for p in extra if os.path.exists(p)] + _skill_files(root)
+
+
+def _sections(text):
+    """[(heading or '', [(lineno, line), ...])] split on '## ' headings; fences and tables kept as lines."""
+    out, cur, lines = [], ("", []), text.replace("\r\n", "\n").split("\n")
+    for n, line in enumerate(lines, 1):
+        m = H2_RX.match(line)
+        if m:
+            out.append(cur); cur = (m.group(1), [])
+        else:
+            cur[1].append((n, line))
+    out.append(cur)
+    return out
+
+
+def _load_csv(path, key):
+    if not os.path.exists(path):
+        return {}
+    with open(path, encoding="utf-8", newline="") as f:
+        return {r[key]: r for r in csv.DictReader(f)} if key else list(csv.DictReader(f))
+
+
+def rule_schema(rows, register_rel):
+    out, seen = [], {}
+    for n, r in enumerate(rows, 2):
+        for e in cl.validate_row(r):
+            out.append(Finding(register_rel, n, "schema", "%s: %s" % (r.get("id"), e)))
+        if r["id"] in seen:
+            out.append(Finding(register_rel, n, "schema", "%s: duplicate id (first at line %d)" % (r["id"], seen[r["id"]])))
+        seen.setdefault(r["id"], n)
+    ids = {r["id"] for r in rows}
+    for r in rows:
+        for s in [s.strip() for s in r.get("successor", "").split(",") if s.strip()]:
+            if s not in ids:
+                out.append(Finding(register_rel, seen.get(r["id"], 1), "schema", "%s: successor %s is not in the register" % (r["id"], s)))
+    by_block = collections.defaultdict(set)
+    for r in rows:
+        if cl.ID_FULL_RX.match(r["id"]):
+            by_block[cl.block_of(r["id"])].add(cl.id_int(r["id"]))
+    for name, lo, hi in cl.BLOCKS:
+        used = by_block.get(name)
+        if used:
+            expected = set(range(lo, lo + len(used)))
+            if used != expected:
+                missing = sorted(expected - used)[:5]
+                out.append(Finding(register_rel, 1, "schema", "block %s: ids are not contiguous from %s (gap at %s)"
+                                   % (name, cl.id_str(lo), ", ".join(cl.id_str(m) for m in missing))))
+    return out
+
+
+def rule_pointer(rows, root, register_rel):
+    out = []
+    # do-not-cite.csv is `run,key,value,why,read_instead`; a prose restriction with no key has
+    # `key = *`, and a `*` never equals a real pointer key, so the membership test needs no case.
+    dnc = {(r.get("run", ""), r.get("key", "")) for r in _load_csv(os.path.join(root, DNC), None) or []}
+    aliases = _load_csv(os.path.join(root, ALIASES), "alias")
+    for n, r in enumerate(rows, 2):
+        try:
+            ptrs = cl.parse_pointers(r["pointer"])
+        except ValueError:
+            continue    # rule 0 already reported it
+        for form, text in ptrs:
+            if form == "run":
+                parts = text.split()
+                run = parts[0] if parts else ""
+                real = aliases[run]["run"] if run in aliases else run
+                rdir = os.path.join(root, "testing", "artifacts", real)
+                if not os.path.isdir(rdir):
+                    out.append(Finding(register_rel, n, "pointer", "%s: run %s has no folder under testing/artifacts/ (no alias either)" % (r["id"], run)))
+                    continue
+                if len(parts) >= 2 and parts[1].endswith(".json") and not os.path.exists(os.path.join(rdir, parts[1])):
+                    out.append(Finding(register_rel, n, "pointer", "%s: %s has no file %s" % (r["id"], real, parts[1])))
+                key = " ".join(parts[2:]) if len(parts) >= 3 else ""
+                if (real, key) in dnc or (run, key) in dnc:
+                    out.append(Finding(register_rel, n, "pointer", "%s: %s %s is on the do-not-cite list" % (r["id"], real, key)))
+            elif form == "repo":
+                path = text.split('"')[0].strip().rsplit(":", 1)[0]
+                if not os.path.exists(os.path.join(root, *path.split("/"))):
+                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist" % (r["id"], path)))
+    return out
+
+
+def rule_owner(rows, root, partial):
+    out = []
+    for r in rows:
+        if r["status"] == "superseded" or not cl.OWNER_RX.match(r["owner"]):
+            continue
+        page = r["owner"].split("#")[0]
+        path = os.path.join(root, "docs", *page.split("/"))
+        if not os.path.exists(path):
+            if not partial:
+                out.append(Finding("docs/" + page, 1, "owner", "%s: owner page does not exist" % r["id"]))
+            continue
+        if r["id"] not in {cid for _, cid, _ in cl.iter_tags(_read(path))}:
+            out.append(Finding("docs/" + page, 1, "owner", "%s: owner page carries no tag for it" % r["id"]))
+    return out
+
+
+def rule_tag(rows, root, allow_provisional):
+    out, by_id = [], {r["id"]: r for r in rows}
+    for path in _tagged_files(root):
+        rel, text = _rel(path, root), _read(path)
+        prov = set()
+        for n, cid, suffix in cl.iter_tags(text):
+            if cl.is_provisional(cid):
+                # A `T<task>.<n>` item inside a mixed bracket is a marker, not a register id:
+                # it is a provisional finding, never "not in the register", and block_of /
+                # id_int are never called on it.
+                prov.add((n, cid))
+            elif cid not in by_id:
+                out.append(Finding(rel, n, "tag", "%s is not in the register" % cid))
+            else:
+                want = cl.canonical_suffix(by_id[cid])
+                if suffix != want:
+                    out.append(Finding(rel, n, "tag", "%s: suffix %r should be %r (run --fix-tags)" % (cid, suffix, want)))
+        if not allow_provisional:
+            # A lone `[T3.7]` is not a tag, so iter_tags never sees it; find_provisional reads
+            # every bracket shape. The set keeps a mixed bracket to one finding.
+            for n, line in enumerate(text.replace("\r\n", "\n").split("\n"), 1):
+                prov.update((n, pid) for pid in cl.find_provisional(line))
+            for n, pid in sorted(prov):
+                out.append(Finding(rel, n, "tag", PROVISIONAL_MSG % pid))
+    return out
+
+
+def rule_untagged(root):
+    out = []
+    for path in _md_files(root, LAYER_DIRS):     # never under docs/reference/ (spec § Open questions 4)
+        rel, fence = _rel(path, root), False
+        for heading, lines in _sections(_read(path)):
+            if heading.startswith("Procedure"):
+                continue
+            for n, line in lines:
+                if line.startswith("```"):
+                    fence = not fence; continue
+                if fence or line.startswith("|") or line.startswith("#") or line.startswith("Verified against") or not line.strip():
+                    continue
+                bare = CODE_SPAN_RX.sub("", line)
+                if re.search(r"\d", bare) and not cl.TAG_RX.search(line) and not cl.PROVISIONAL_RX.search(line):
+                    out.append(Finding(rel, n, "untagged", "a number without a tag: %s" % line.strip()[:70]))
+    return out
+
+
+def rule_generator(root, lua_dir):
+    import bus_inventory as bi
+    md = os.path.join(root, *HARNESS_MD.split("/"))
+    if not os.path.isdir(lua_dir):
+        return []
+    if not os.path.exists(md):
+        return [Finding(HARNESS_MD, 1, "generator", "missing; run python tools/bus_inventory.py")]
+    sites = bi.scan(lua_dir)
+    if any(s["missing"] for s in sites):
+        return [Finding(HARNESS_MD, 1, "generator", "%d TK.register sites lack a complete comment block" % sum(1 for s in sites if s["missing"]))]
+    # The header's directory label is made in exactly one place, so this rule and the generator's
+    # own --check can never disagree about it on a clean checkout.
+    if _read(md).replace("\r\n", "\n") != bi.render(sites, bi.label_for(lua_dir, root=root)):
+        return [Finding(HARNESS_MD, 1, "generator", "drift: not a fresh render; run python tools/bus_inventory.py")]
+    return []
+
+
+def _bullets(sections, heading):
+    for h, lines in sections:
+        if h.strip().lower() == heading:
+            return [(n, l[2:].strip()) for n, l in lines if l.startswith("- ")]
+    return []
+
+
+def rule_skill(root):
+    out = []
+    for path in _skill_files(root):
+        rel, secs = _rel(path, root), _sections(_read(path))
+        pages = [m.group(1) for _, l in _bullets(secs, "read first") for m in [re.search(r"(docs/[A-Za-z0-9_./-]+\.md)", l)] if m]
+        rules = set()
+        for page in pages:
+            p = os.path.join(root, *page.split("/"))
+            if os.path.exists(p):
+                rules |= {l for _, l in _bullets(_sections(_read(p)), "rules")}
+        for n, quoted in _bullets(secs, "rules quoted"):
+            if quoted not in rules:
+                out.append(Finding(rel, n, "skill", "quoted rule is not verbatim on a Read-first page: %s" % quoted[:70]))
+    return out
+
+
+def rule_example(root):
+    out = []
+    for path in _md_files(root, ("docs/platform",)):
+        rel = _rel(path, root)
+        for heading, lines in _sections(_read(path)):
+            if not heading.startswith("Worked examples"):
+                continue
+            for n, line in lines:
+                if line.startswith("|") and not re.match(r"^\|\s*:?-", line):
+                    cells = [c.strip() for c in line.strip("|").split("|")]
+                    if len(cells) >= 2 and cells[0].lower() != "shape":
+                        m = FILE_LINES_RX.search(cells[1])
+                        if not m or not os.path.exists(os.path.join(root, *m.group(1).split("/"))):
+                            out.append(Finding(rel, n, "example", "worked example path does not exist: %s" % cells[1]))
+    return out
+
+
+def fix_tags(root, register=None):
+    rows = cl.read_register(register or os.path.join(root, *REGISTER.split("/")))
+    by_id = {r["id"]: r for r in rows}
+    changed = 0
+    for path in _tagged_files(root):     # the same files rule 2 checks, or it would report drift --fix-tags cannot fix
+        text = _read(path)
+
+        def fix(m):
+            # A provisional item keeps its own text: it is not in the register and never will be
+            # until the controller applies the delta.
+            items = ["%s%s" % (cid, cl.canonical_suffix(by_id[cid]) if cid in by_id else suffix) for cid, suffix in cl.split_tag(m.group(1))]
+            return "[" + ", ".join(items) + "]"
+
+        new = cl.TAG_RX.sub(fix, text)
+        if new != text:
+            open(path, "w", encoding="utf-8", newline="").write(new); changed += 1
+    return changed
+
+
+def section_map(rows):
+    out = collections.defaultdict(list)
+    for r in rows:
+        for src in [s.strip() for s in r["source"].split(";") if s.strip()]:
+            out[src].append(r["id"])
+    return dict(out)
+
+
+def staged_paths(root):
+    r = subprocess.run(["git", "diff", "--cached", "--name-only"], cwd=root, capture_output=True, text=True)
+    return [p.strip() for p in r.stdout.splitlines() if p.strip()]
+
+
+def check(root=None, register=None, lua_dir=None, register_only=False, partial=False, allow_provisional=False):
+    root = root or REPO_ROOT
+    reg_path = register or os.path.join(root, *REGISTER.split("/"))
+    reg_rel = _rel(reg_path, root)
+    try:
+        rows = cl.read_register(reg_path)
+    except (cl.RegisterError, OSError) as e:
+        return [Finding(reg_rel, 1, "schema", str(e))]
+    findings = rule_schema(rows, reg_rel) + rule_pointer(rows, root, reg_rel)
+    if register_only:
+        return findings
+    lua = lua_dir or os.path.join(root, *LUA_DIR.split("/"))
+    findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional) + rule_untagged(root)
+    findings += rule_generator(root, lua) + rule_skill(root) + rule_example(root)
+    return findings
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--root", default=REPO_ROOT); ap.add_argument("--register"); ap.add_argument("--lua-dir")
+    ap.add_argument("--register-only", action="store_true"); ap.add_argument("--partial", action="store_true")
+    ap.add_argument("--staged", action="store_true"); ap.add_argument("--allow-provisional", action="store_true")
+    ap.add_argument("--fix-tags", action="store_true"); ap.add_argument("--view"); ap.add_argument("--section-map", action="store_true")
+    a = ap.parse_args(argv)
+    root = os.path.abspath(a.root)
+    if a.staged and not any(p.startswith(TRIGGERS) for p in staged_paths(root)):
+        print("nothing staged under the checker's trigger paths; skipped"); return 0
+    if a.fix_tags:
+        print("%d files rewritten" % fix_tags(root, a.register))
+    if a.view or a.section_map:
+        rows = cl.read_register(a.register or os.path.join(root, *REGISTER.split("/")))
+        if a.view:
+            for r in rows:
+                if r["owner"].startswith(a.view.rstrip("/") + "/"):
+                    print("\t".join(r[c] for c in cl.COLUMNS))
+        if a.section_map:
+            for src, ids in sorted(section_map(rows).items()):
+                print("%s -> %s" % (src, ", ".join(ids)))
+        return 0
+    findings = check(root, a.register, a.lua_dir, a.register_only, a.partial, a.allow_provisional)
+    for f in sorted(findings, key=lambda f: (f.path, f.line, f.rule)):
+        print("%s:%d: %s: %s%s" % (f.path, f.line, f.rule, f.detail, " (warning)" if is_warning(f) else ""))
+    n_err = sum(1 for f in findings if not is_warning(f)); n_warn = len(findings) - n_err
+    print("%d findings, %d warnings" % (n_err, n_warn))
+    return exit_code(findings)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

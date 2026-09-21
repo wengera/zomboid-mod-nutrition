@@ -289,6 +289,26 @@ import patterns from there.
   A harness commit that adds or changes a command edits the block and regenerates in the
   same commit (`claims_check.py` rule 5 enforces it).
 
+- `claims_check.py` — `python tools/claims_check.py [--register TSV] [--register-only] [--partial]
+  [--staged] [--allow-provisional] [--fix-tags] [--view LAYER] [--section-map] [--root DIR]`
+  The register checker (spec § The checker). Rules: `schema` (columns, grammars, duplicate ids,
+  contiguity from each id sub-block's first id, successors), `pointer` (`run:` folders exist or
+  are aliased in `run-aliases.csv`, keys are not in `do-not-cite.csv`, `repo:` paths exist),
+  `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
+  the two reference pages that own register rows (`datasets.md`, `tools.md`) and the skills resolves
+  and carries the canonical suffix; provisional `[T…]` tags fail),
+  `untagged` (warning only: a number without a tag outside fences, tables and `## Procedure`;
+  never under `docs/reference/`), `generator` (`harness-commands.md` is a fresh render of the
+  `bus_inventory.py` scan, labelled with its `label_for`), `skill` (every `## Rules quoted` line is
+  verbatim on a `## Read first` page), `example` (`## Worked examples` paths exist).
+  `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
+  `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
+  relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta
+  still owns; `--fix-tags` rewrites suffixes from the register across the files `tag` reads.
+  Exit 1 iff a non-warning finding. Run it before every commit that touches `docs/`,
+  `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or
+  `tools/bus_inventory.py`.
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
