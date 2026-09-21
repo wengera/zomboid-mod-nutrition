@@ -271,6 +271,16 @@ import patterns from there.
   and bound grammars shared by `claims_harvest.py` and `claims_check.py`. The spec is
   `docs/superpowers/specs/2026-09-17-reference-restructure-design.md` § The claims register.
 
+- `claims_harvest.py` — `python tools/claims_harvest.py candidates <md…> --out <tsv>` |
+  `do-not-cite <artifacts README> --out <csv>` | `merge [--parts DIR] [--register TSV] [--coverage MD]`.
+  `candidates` lists every body row of a table with an `Ev` column and every paragraph
+  line carrying a grade mark (outside code fences), with the section heading, the evidence
+  cell, the grade letters and run ids it names — the harvest checklist, not the register.
+  `do-not-cite` turns the README's **Do not cite** blocks into `run,key,value,why,read_instead`
+  rows (a prose restriction with no key has `key = *`). `merge` concatenates
+  `parts/claims-*.tsv` sorted by id (a duplicate id fails), writes the register, and stitches
+  `parts/coverage-*.md` under a totals table.
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
