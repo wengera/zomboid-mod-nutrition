@@ -37,13 +37,25 @@ None. Every `owner` written is an existing `page#slug` from `docs/superpowers/pl
 `platform/harness.md#` `time` (1), `sandbox` (1), `probes` (1);
 `facts/wire-packets.md#player-stats-packet` (3).
 
+## Handed to other groups
+
+Three statements this page makes are restatements it explicitly hands to another page, so they are **not** rows here and the merge reviewer should confirm each exists in **G1a** (`docs/vanilla/nutrition-core.md`):
+
+| Statement on this page | Where this page sends it | Expected owner |
+|---|---|---|
+| Calories clamp to `[−2200, 3700]` (`Nutrition.setCalories @1 L321, @12 L324`, C; measured in `exp01-20260910-003929`, M) — § Passive burn, "Store clamps still bind" | nutrition-core.md § Store clamps | `facts/nutrition-core.md#clamps` |
+| `Nutrition.caloriesMax` / `caloriesMin` are still maintained with no reader found — § Open questions item 13, "unchanged from the slice-01 open list" | the slice-01 open list | `facts/nutrition-core.md#open` |
+| `updateWeight` gains weight while calories exceed `1000 + (w−80)·40` — § Weight bands, the "Why 50 and 65 are C, not M" blockquote | the weight model | `facts/nutrition-core.md#weight-model` |
+
+The third is not lost here: it is written into the bound of #0531, where it explains why the 50 and 65 kg band edges are `C-only`. If G1a does not carry these, they have no row anywhere in the register.
+
 ## Totals
 
 - **Rows:** 147 (`#0451`–`#0597`). Three ids of the sub-block (`#0598`–`#0600`) are unused.
 - **By kind:** mechanism 114, contradiction 17, open 7, rule 3, bound 2, order 2, count 1, table 1.
 - **By grade:** C 103, M 44.
 - **By status:** settled 138, open 7, superseded 2.
-- **By bound token:** `C-only` 55, `n=1` 38, `none` 31, `arith.` 12, `snapshot` 7, `n=2` 1, `one-fixture` 1, `one-side` 1, `inference` 1.
+- **By bound token:** `C-only` 54, `n=1` 37, `none` 31, `arith.` 14, `snapshot` 7, `n=2` 1, `one-fixture` 1, `one-side` 1, `inference` 1.
 - **Candidates:** 182, all accounted for — **harvested 150**, **collapsed into a row already written 12** (§ Multipliers 3, § Hunger versus calories 2, § Weight bands 2, § What each level does 1, § The appetite… traits 1, § MP behaviour 1, § Measured 1, § Open questions 1), **dropped 20** (3 legend lines at the document head, the 16 § Code map rows as a pointer index, and the "the five band traits — see the tables above" cross-reference). 150 + 12 + 20 = 182. **Superseded 2** (#0532, #0590), **unverified 0** — no pointer on this page failed to re-locate, and every `run:` pointer's folder and file exist.
 - **Runs cited:** `exp03-20260910-045523` (`body.json`) on 42 rows and `scenario-20260910-052624` (`scenario-nutrition_3day_gain.json`) on 2. No do-not-cite key is used as a pointer; three of them (`summary.r8.hungerExactlyFlat`, `rows.r8_food_eaten.foodTimerDecayNote`, `summary.r12.allBandsMatch`) are quoted as reading restrictions in the bounds of #0524, #0527 and #0531.
 - **Lua and script pointers:** all 30 distinct `lua:` anchors were re-located by content against the 42.20.4 install before they were written.
