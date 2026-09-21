@@ -1,6 +1,7 @@
 # Coverage part — G3a, the five teardowns
 
-Sub-block `#1301–#1550`; rows written `#1301–#1543` (243), contiguous. Candidates: 228, generated
+Sub-block `#1301–#1550`; rows written `#1301–#1545` (245), contiguous. Fix round 1 changed 33
+rows in place and minted #1544 and #1545; no row was deleted or renumbered. Candidates: 228, generated
 2026-09-21 by `python tools/claims_harvest.py candidates docs/mods-survey/teardowns/{autocook,
 longtermpreservation4220,simplestatus,beyondten,itemquality}.md`. Every candidate is accounted for
 below as harvested, collapsed into a `table` row, superseded, dropped or unverified.
@@ -49,13 +50,14 @@ by a single `table` row (grain rule, procedure § 3); **dropped: legend** is the
   The eight numbered pitfalls are one row each; their **Rule:** imperatives are not written as
   separate `rule` rows here, because the same imperatives are the KEEP/FILTER entries of
   `docs/modding/patterns.md`, which is another group's source.
-- § Compatibility notes — candidates 1 → rows #1365–#1377; `:648` → #1373 + #1374 + #1375 (open)
+- § Compatibility notes — candidates 1 → rows #1365–#1377 and #1545 (`open`, minted in fix round 1
+  for the client arm of the protected-call reading); `:648` → #1373 + #1374 + #1375 (open)
   + #1376 (superseded).
 - § Verdict for our mod — candidates 1 → row #1378; `:689` → #1378.
 - § Sources — candidates 3 → rows: none (provenance); dropped: 3 (`:752`, `:754`, `:762`).
 
 Superseded in this file: #1370 (-> #1369), #1376 (-> #1373).
-Open in this file: #1348, #1375. Unverified: none.
+Open in this file: #1348, #1375, #1545. Unverified: none.
 
 ## docs/mods-survey/teardowns/longtermpreservation4220.md
 
@@ -80,7 +82,8 @@ Open in this file: #1348, #1375. Unverified: none.
   KEEP/FILTER rows as above.
 - § Compatibility notes — candidates 7 → rows #1449–#1464; `:527` → #1450 + #1451 (superseded),
   `:543`/`:544` → #1450 + #1452, `:557` → #1457 + #1459, `:583` → #1453 + #1454,
-  `:592`/`:593` → #1455 + #1456.
+  `:592`/`:593` → #1455 + #1456. `:543`/`:544` also carry the five-non-empty-tails consequence,
+  which is #1315's second source rather than a second row.
 - § Verdict for our mod — candidates 0 → rows: none (the section restates § Techniques and
   § Pitfalls with no fact of its own).
 - § Sources — candidates 7 → rows: none (provenance); dropped: 7 (`:637`, `:638`, `:681`, `:687`,
@@ -121,15 +124,20 @@ Open in this file: #1422, #1429, #1434, #1464. Unverified: none.
 - § Two pass-1 follow-up controls carried on this session — NOT simpleStatus findings —
   candidates 10 → rows #1423, #1427 and #1507 (all three carry both this file and the file they
   are cited into as `source`); collapsed into #1427: 4 (`:480`–`:483`, the A1 display-name table);
-  collapsed into #1423: 4 (`:502`–`:505`, the A2 two-read table); `:515` → #1423, `:537` → #1423.
+  collapsed into #1423 and #1544: 4 (`:502`–`:505`, the A2 two-read table — #1544 is its above-gate
+  arm, minted in fix round 1, and #1423 the three-arm resolution); `:515` → #1423, `:537` → #1423.
 - § Techniques worth stealing — candidates 0 → rows #1508–#1511.
-- § Pitfalls / anti-patterns — candidates 0 → rows #1512–#1518, one row per numbered pitfall.
-- § Compatibility notes — candidates 0 → rows #1519–#1523.
+- § Pitfalls / anti-patterns — candidates 0 → rows #1512–#1518, one row per numbered pitfall;
+  #1512 is the pitfall's rule sentence (the numbers it rested on are #1477's) and #1513 is
+  `superseded` by #1482 and #1497, which own the seven save sites and the neighbour-hazard rule.
+- § Compatibility notes — candidates 0 → rows #1519–#1523; #1520 is `superseded` by #1497, which
+  owns the transmit rule it restates.
 - § Verdict for our mod — candidates 0 → rows: none (the section restates § Techniques and
   § Pitfalls with no fact of its own).
 - § Sources — candidates 4 → rows: none (provenance); dropped: 4 (`:727`, `:780`, `:782`, `:788`).
 
-Superseded in this file: #1505 (-> #1504). Open: none. Unverified: none.
+Superseded in this file: #1505 (-> #1504), #1513 (-> #1482, #1497), #1520 (-> #1497).
+Open: none. Unverified: none.
 
 ## docs/mods-survey/teardowns/beyondten.md
 
@@ -173,6 +181,10 @@ Superseded: none. Open: none. Unverified: none.
 | `itemquality.md` | 3 | 2 | 1 |
 | **total** | **228** | **203** | **25** |
 
+The two rows minted in fix round 1, #1544 and #1545, carry no new candidate: #1544 is the
+above-gate arm of a candidate already collapsed into #1423, and #1545 is the open question
+`autocook.md` § Compatibility notes states beside candidate `:648`.
+
 Dropped, by reason: 6 legend lines (two per big teardown; the short pair's stamp paragraphs are
 folded into bounds instead of dropped), 16 `## Sources` provenance paragraphs, 1 reading that
 names neither side of its own question (`autocook.md:156`), and 2 identity/trait controls carried
@@ -181,19 +193,20 @@ pointer names a run with a folder under `testing/artifacts/`.
 
 ## Anchors proposed
 
-None. All 81 distinct `page#anchor` owners used by this part already exist in
+None. All 82 distinct `page#anchor` owners used by this part already exist in
 `docs/superpowers/plans/restructure-anchors.md`.
 
 ## Totals
 
-By kind: `mechanism` 181 · `rule` 25 · `bound` 10 · `table` 10 · `count` 8 · `open` 6 · `tool` 2 ·
-`order` 1 · `verdict` 0 · `contradiction` 0 — 243.
+By kind: `mechanism` 181 · `rule` 26 · `bound` 10 · `table` 10 · `count` 8 · `open` 7 · `tool` 2 ·
+`order` 1 · `verdict` 0 · `contradiction` 0 — 245.
 
-By grade: `C` 162 · `M` 78 · `W` 3 — 243.
+By grade: `C` 162 · `M` 80 · `W` 3 — 245. The three `W` rows are the Workshop licence-posture rows,
+whose pointer is the `web:` form (R18), not `wiki:`.
 
-By status: `settled` 228 · `superseded` 9 · `open` 6 · `unverified` 0 — 243.
+By status: `settled` 227 · `superseded` 11 · `open` 7 · `unverified` 0 — 245.
 
-By owner layer: `facts/` 174 (of which `facts/other-mods/` 132) · `platform/` 57 ·
-`reference/` 3 · `areas/` 0 · none (superseded rows) 9 — 243. No row is owned by an `areas/`
+By owner layer: `facts/` 172 (of which `facts/other-mods/` 130) · `platform/` 59 ·
+`reference/` 3 · `areas/` 0 · none (superseded rows) 11 — 245. No row is owned by an `areas/`
 page: a teardown states mechanisms and mod facts, and the nutrition-design reading of them is
 Phase 3's.
