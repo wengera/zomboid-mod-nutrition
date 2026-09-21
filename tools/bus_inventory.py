@@ -18,22 +18,50 @@ REGISTER_RX = re.compile(r'TK\.register\(\s*"([^"]+)"')
 KEY_RX = re.compile(r"^\s*--\s*@(args|reply|purpose)\s+(.*\S)\s*$")
 
 
+def label_for(lua_dir, root=REPO_ROOT):
+    """The header's directory label: `lua_dir` relative to `root`, forward-slashed.
+
+    Every caller must render the same header or `--check` (and `claims_check.py` rule 5) reports
+    drift on a clean checkout, so this is the one place the label is made: a relative `--lua-dir`
+    (`./x/`, a trailing slash) normalises to the label the absolute default gives, and the
+    separator is always `/`. On Windows `relpath` raises across drives (a harness copy on another
+    drive) — the absolute path is the answer then, the `claims_harvest._rel` pattern.
+    """
+    path = os.path.abspath(lua_dir)
+    try:
+        return os.path.relpath(path, os.path.abspath(root)).replace("\\", "/")
+    except ValueError:
+        return path.replace("\\", "/")
+
+
+def _is_comment(line):
+    return line.lstrip().startswith("--")
+
+
 def scan(lua_dir):
     sites = []
     for side in SIDES:
-        for path in sorted(glob.glob(os.path.join(lua_dir, side, "*.lua"))):
+        # `**` with recursive=True also matches zero directories, so the files directly under the
+        # side dir keep their old `file` cell; a command added under e.g. server/scenarios/ is a
+        # site like any other instead of being silently absent from the table and the report.
+        for path in sorted(glob.glob(os.path.join(lua_dir, side, "**", "*.lua"), recursive=True)):
             lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+            rel = os.path.relpath(path, lua_dir).replace("\\", "/")
             for i, line in enumerate(lines):
+                if _is_comment(line):
+                    continue  # a commented-out registration is not a site
                 m = REGISTER_RX.search(line)
                 if not m:
                     continue
                 block, j = {}, i - 1
-                while j >= 0 and lines[j].lstrip().startswith("--"):
+                # a commented-out registration ends the run too: its block belongs to it, not to
+                # the live site below it
+                while j >= 0 and _is_comment(lines[j]) and "TK.register(" not in lines[j]:
                     km = KEY_RX.match(lines[j])
                     if km and km.group(1) not in block:
                         block[km.group(1)] = km.group(2)
                     j -= 1
-                sites.append({"name": m.group(1), "side": side, "file": side + "/" + os.path.basename(path),
+                sites.append({"name": m.group(1), "side": side, "file": rel,
                               "line": i + 1, "args": block.get("args", ""), "reply": block.get("reply", ""),
                               "purpose": block.get("purpose", ""), "missing": [k for k in KEYS if k not in block]})
     return sites
@@ -56,7 +84,8 @@ def render(sites, label):
            "| name | side | file:line | args | reply keys | purpose |", "|---|---|---|---|---|---|"]
     for s in rows:
         out.append("| `%s` | %s | `%s:%d` | %s | %s | %s |" % (
-            s["name"], s["side"], s["file"], s["line"], _cell(s["args"]), _cell(s["reply"]), _cell(s["purpose"])))
+            _cell(s["name"]), s["side"], _cell(s["file"]), s["line"],
+            _cell(s["args"]), _cell(s["reply"]), _cell(s["purpose"])))
     return "\n".join(out) + "\n"
 
 
@@ -76,15 +105,14 @@ def main(argv=None):
             print("%s:%d %s (%s): missing %s" % (s["file"], s["line"], s["name"], s["side"], ", ".join(s["missing"])), file=sys.stderr)
         print("%d of %d sites lack a complete @args/@reply/@purpose block" % (len(missing), len(sites)), file=sys.stderr)
         return 1
-    label = os.path.relpath(a.lua_dir, REPO_ROOT).replace("\\", "/") if os.path.isabs(a.lua_dir) else a.lua_dir
-    text = render(sites, label)
+    text = render(sites, label_for(a.lua_dir))
     if a.check:
         on_disk = open(a.out, encoding="utf-8", newline="").read().replace("\r\n", "\n") if os.path.exists(a.out) else ""
         if on_disk != text:
             old, new = on_disk.splitlines(), text.splitlines()
             first = next((n for n, (x, y) in enumerate(zip(old, new), 1) if x != y), min(len(old), len(new)) + 1)
             print("drift: %s differs from a fresh render at line %d (%d lines on disk, %d rendered); run without --check to regenerate"
-                  % (a.out, first, len(old), len(new)))
+                  % (a.out, first, len(old), len(new)), file=sys.stderr)
             return 1
         print("in sync: %s (%d sites)" % (a.out, len(sites)))
         return 0
