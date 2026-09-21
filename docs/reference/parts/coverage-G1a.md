@@ -1,0 +1,45 @@
+# Claims coverage — G1a (the eating pipeline and the nutrition core)
+
+Sources: `docs/vanilla/eating-pipeline.md` (135 candidates) and `docs/vanilla/nutrition-core.md` (20 candidates); 155 candidates in all. Rows `#0001`-`#0191`. A row whose claim appears in more than one section is written once and carries every section in its `source` cell, so an id may appear on several lines below.
+
+### docs/vanilla/eating-pipeline.md
+
+- § (page head) Eating pipeline — food item → Stats and Nutrition — candidates 2 → rows: none; dropped: 2 (both are the evidence-grade legend, no claim about the game).
+- § Summary — candidates 0 → rows: none (the five numbered points restate rows harvested from the sections below: #0006, #0014, #0029, #0033, #0036, #0019, #0109, #0113, #0114, #0067).
+- § Model — candidates 0 → rows: none (heading only; its three subsections follow).
+- § Glossary — the five near-identical `Food` getters — candidates 1 → rows #0001-#0005 (the candidate is the section's Ev line; one row per getter, each stating that getter's job).
+- § The `Eat` algorithm — candidates 2 → rows #0006-#0012, #0020. The annotated bytecode block is the single `order` row #0006; the prose consequences are #0008 (nutrition before `OnEat` and before the consume), #0009 (`JustAteFood` the only use of `useUtensil`) and #0010 (`f0`, not `f`, in the custom-weight write); the Scale note is #0011 and its worked example #0012; the player-only guard is #0020, shared with the modifier table.
+- § Every modifier, in one table — candidates 67 → rows #0013-#0077 (65 rows, one per table row, in table order) plus 2 rows carried elsewhere: the script-to-stat scale row (line 218) is #0011 and the MP-client row (line 224) splits into #0117 and #0118, which the MP behaviour section also owns.
+- § Partial eating — candidates 4 → rows #0078-#0082, and #0057 (the fifteen-field `multiplyFoodValues` row, shared with the modifier table). The Crumb rules paragraph restates #0015, #0016 and #0059 and carries no row of its own.
+- § Drinks — candidates 2 → rows #0083-#0085. The measured `Base.HotDrink` thirst ladder is the bound of #0083 and of the state rows #0033-#0035.
+- § The sandbox `Nutrition` option — candidates 3 → rows #0086-#0091, and #0067 (the gate itself, shared with the modifier table). The `Nutrition.update` block is not a second `order` row: its claim is the gate, which #0067 states.
+- § `OnEat`, `EatType`, `Eattime` — candidates 4 → rows #0093-#0100, and #0073, #0074 (the `EatTime` and `popcan` duration overrides, shared with the modifier table). The `EatType` cell is split, one row per site it names.
+- § Eating time — and why slice 04 must not depend on it — candidates 2 → rows #0101 (the dead code at `:208-212`) and #0141 (the `settimespeed` open question), and #0049, #0071 (the utensil loop and the tick ladder, shared with the modifier table). The 232/464/696 and 171/342/513 ladders are the arithmetic of #0071 and carry no separate row.
+- § Code map — candidates 16 → rows #0102-#0107 new, plus #0108 from the `Nutrition.save`/`load` paragraph; the other 10 map cells are locators for rows already written: 408 → #0007, 409 → #0095, 410 → #0084, 412 → #0036, 413 → #0022 and #0023, 414 → #0067 and #0118, 416 → #0085, 417 → #0109, 418 → #0110, 419 → #0113 and #0116, 420 → #0114.
+- § MP behaviour — candidates 17 → rows #0109-#0131; superseded: #0126 (-> #0125, spike S6's reversed nutrition direction) and #0127 (-> #0118, the client-still-runs-`updateWeight` reading, the correction site being § Sources). Owners follow the amendment: field contracts on `facts/wire-packets.md`, mechanisms on `platform/mp-model.md`, the two mod-facing readings on `areas/mp-sync.md`, the hook rows on `platform/lua-platform.md#script-hooks`. The cooked-thirst cross-reference paragraph is deliberately not harvested: the page says do not restate it, and its canonical rows live with `docs/modding/patterns.md` § Measured MP sync facts (slice 09 runs).
+- § Inputs for the 3-day scenario (slice 04) — candidates 6 → rows: none; dropped: 6 (process, not claims about the game — harness and scenario inputs; every fact it restates is carried by rows from other sections: #0119, #0123, #0022, #0023, #0069, #0070, #0118, and its weight-model block and clamped ceilings are harvested from `nutrition-core.md` § Weight model).
+- § Discrepancies vs the wiki — candidates 6 → rows #0133-#0138 (one `contradiction` row per table row, claim on the code side, `wiki:` pointer for the mirror, owner `facts/eating-pipeline.md#walls`), plus #0132 from the section's opening paragraph (the mirror agreement on the weight formulas and the store ceilings; W, corroboration only).
+- § Open questions — candidates 2 → rows #0139-#0148 and #0190 (one `open` row per surviving numbered question), plus #0092 (the `SandboxOptions.set` push route, a C mechanism stated inside question 1) and #0010 (the `f0` mechanism stated inside question 4); dropped: 1 (question 12, a cross-reference recording that the passive-burn model is settled in `body-stats.md`).
+- § Sources — candidates 1 → rows: none; dropped: 1 (run bookkeeping). Its case-sensitivity caveat on the committed `log_grep` block is carried in the bounds of #0124 and #0131, and its "later work that corrects this document" note is the correction site of the superseded row #0127.
+
+### docs/vanilla/nutrition-core.md
+
+- § Weight model (`Nutrition.updateWeight`) — candidates 6 → rows #0149-#0155, and #0022, #0023 (the store clamps, shared with `eating-pipeline.md`). The five term rows of the table become #0149, #0152, #0153, #0151 and #0154; the block adds the trait bases (#0150); the weight-band paragraph is #0155. Each coded rate carries its own `arith.` ceilings in one row, as the group rule asks. The rounding-convention paragraph carries no row (a writing convention, not a claim).
+- § Verified on server (slice 04) — candidates 7 → rows #0156-#0179. The three-run table is #0158 (the failed unpinned run and its alive window), #0159 and #0160; the bullets become rate rows: the ramp-day factor #0162, the sawtooth factor #0163 (the 4-of-73 note is in its bound), the three-day resolution floor #0164, the 3700 ceiling #0165, the -2200 floor and its ramp #0166 and #0161, and the two cross-checks #0167 and #0168 with the carbohydrate floor crossing #0169. The check's own limits are the `bound` rows #0164, #0170 and #0171. The `setCalories` is not food finding becomes #0172-#0179; its narrative (how the first run was found and re-run) is not harvested, and the `BodyDamage.Update` THIRST == 4 attribution is left to `body-stats.md`, which holds its constants and jar citations — only the measured rate (#0173) and the day-length arithmetic (#0175) are rows here.
+- § Macro effects — the complete list (vanilla) — candidates 2 → rows #0180-#0186, and #0153 (the carbohydrate and lipid multipliers, shared with the weight model); superseded: #0182 (-> #0181, the recovery-mod thresholds recorded as live before slice 03 read the clamp).
+- § Open questions — candidates 0 → rows #0187-#0189 (the facts under the `Resolved in slice 03` heading: the thermoregulator's reach, the `StatsDecrease` mapping, the Nutritionist trait) and #0190 (the one live open question), plus #0067 and #0185, whose claims the `Resolved in slice 01` and `Resolved in slice 03` bullets restate. The narrative of what each slice resolved is not harvested.
+- § MP behavior — candidates 5 → rows #0191 new (what the server validates is unmeasured), and #0108, #0113, #0114, #0117, #0118, #0119, #0120, #0123, #0125, #0127, #0128, whose claims this section states in the same words as `eating-pipeline.md` § MP behaviour and which therefore carry both sources.
+- § Sources — candidates 0 → rows: none (bookkeeping).
+
+## Anchors proposed
+
+- `facts/wire-packets.md#eat-food-packet` — the `EatFoodPacket` field contract: that `write` embeds `Nutrition.save` and `parse` calls `Nutrition.load` on the receiver, overwriting its whole `Nutrition`, and that `processClient` and `processServer` apply no numbers of their own (rows #0113 and #0116). The anchor plan gives `facts/wire-packets.md` anchors for the item and player packets and for the modData packet, but none for the eat packet, whose field contract these two rows state.
+
+## Totals
+
+- Rows: 191 (`#0001`-`#0191`), contiguous.
+- By kind: mechanism 166, open 12, contradiction 6, rule 3, bound 3, order 1.
+- By grade: C 116, M 74, W 1.
+- By status: settled 176, open 12, superseded 3 (#0126 -> #0125, #0127 -> #0118, #0182 -> #0181); unverified 0.
+- Candidates accounted for: 155 = harvested 145 + dropped 10 (2 legend lines, 6 in § Inputs for the 3-day scenario as process, 1 § Sources bookkeeping line, 1 resolved cross-reference in § Open questions) + superseded 0 + unverified 0. The three `superseded` rows come from correction sites that are not themselves candidate lines.
+- Owners used: 48 anchors over 12 pages; 1 of them proposed above, the other 47 taken from `docs/superpowers/plans/restructure-anchors.md`.
