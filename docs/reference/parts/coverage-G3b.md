@@ -98,6 +98,17 @@ listed under both and is one row, not two.
   #1674; dropped: the "known adjacent from our sessions" list (damnlib, ChuckleberryFinn mods,
   Elyon Lib, MoodleFramework) names no measurement and no count.
 
+## Pointer forms used
+
+`data:` for a whole-file corpus count off `data/mod-inventory.json` · `mod:` for a shipped
+workshop file, tree-qualified and with each space written `%20` (R19; `#1584` is the only row
+that needs it) · `repo:` for this repository's tools and datasets · `jar:` for the five jar sites
+the source names under § Open questions 1 and the two `searchForModInfo` readings · `run:` for
+the five cited runs · **`web:`** for the two fetched Steam metadata snapshots
+(`data/workshop-search.json` 2026-09-10, `data/workshop-catalog-details.json` 2026-09-10 — 16
+pointers, grade W, R18) · `wiki:` for the two true mirrors only (`lua-event.md` on `#1620`,
+`mod-structure.md` on `#1659`).
+
 ## Anchors proposed
 
 None. Every `owner` this part writes is a `page#slug` already in
