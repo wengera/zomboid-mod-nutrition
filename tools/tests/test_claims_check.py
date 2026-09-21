@@ -270,6 +270,37 @@ def test_repo_pointers_into_the_deleted_trees_are_findings():
         assert not any("#0002" in x.detail for x in f)
 
 
+def test_wall_map_is_moved_by_the_cut_not_deleted():
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "docs/modding/wall-map.md", "# Wall map\n")
+        _write(d, "docs/modding/patterns.md", "# P\n")
+        _tree(d, [_row(1, pointer='repo:docs/modding/wall-map.md:12 "x"'),
+                  _row(2, pointer='repo:docs/modding/patterns.md:280 "x"')])
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+        assert len(f) == 1 and "#0002" in f[0].detail and "deleted at the cut" in f[0].detail
+
+
+# --- R22: a --register part may hold a continuation slice of a block that does not start at its lo.
+
+def test_schema_accepts_a_contiguous_continuation_slice():
+    def ids(ns):
+        return [_row(n, source="docs/vanilla/x.md § A", owner="facts/x.md#a") for n in ns]
+    with tempfile.TemporaryDirectory() as d:       # a later slice of the post block: contiguous
+        _tree(d, ids(range(2004, 2012)))
+        assert not [x for x in cc.check(d, register_only=True) if x.rule == "schema"]
+    with tempfile.TemporaryDirectory() as d:       # a later slice with a hole in it: still a gap
+        _tree(d, ids([2004, 2006]))
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "schema"]
+        assert len(f) == 1 and "#2005" in f[0].detail and "#2004" in f[0].detail and "gap" in f[0].detail
+    with tempfile.TemporaryDirectory() as d:       # the block's own first id: the strict rule
+        _tree(d, ids([2001, 2002, 2003]))
+        assert not [x for x in cc.check(d, register_only=True) if x.rule == "schema"]
+    with tempfile.TemporaryDirectory() as d:       # lo present with a hole after it: still a gap
+        _tree(d, ids([2001, 2003]))
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "schema"]
+        assert len(f) == 1 and "#2002" in f[0].detail
+
+
 # --- R13: rule 5's directory label is bus_inventory.label_for, the one the generator itself renders.
 
 def test_generator_label_matches_bus_inventory_label_for():

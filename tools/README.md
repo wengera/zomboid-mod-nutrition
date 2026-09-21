@@ -292,10 +292,12 @@ import patterns from there.
 - `claims_check.py` — `python tools/claims_check.py [--register TSV] [--register-only] [--partial]
   [--staged] [--allow-provisional] [--fix-tags] [--view LAYER] [--section-map] [--root DIR]`
   The register checker (spec § The checker). Rules: `schema` (columns, grammars, duplicate ids,
-  contiguity from each id sub-block's first id, successors), `pointer` (`run:` folders exist or
-  are aliased in `run-aliases.csv` — a `run:` pointer to an artifact-less run is allowed only on
-  an `unverified` or `superseded` row whose bound starts `uncommitted:` — keys are not in
-  `do-not-cite.csv`, `repo:` paths exist and name no tree the Phase 4 cut deletes),
+  contiguity from each id sub-block's first id — or the slice's own first id when a `--register`
+  part holds a continuation slice — within the block's last id, successors), `pointer` (`run:`
+  folders exist or are aliased in `run-aliases.csv` — a `run:` pointer to an artifact-less run
+  is allowed only on an `unverified` or `superseded` row whose bound starts `uncommitted:` —
+  keys are not in `do-not-cite.csv`, `repo:` paths exist and name no tree the Phase 4 cut
+  deletes, bar `docs/modding/wall-map.md`, which the cut moves),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
   the two reference pages that own register rows (`datasets.md`, `tools.md`) and the skills resolves
   and carries the canonical suffix; provisional `[T…]` tags fail),

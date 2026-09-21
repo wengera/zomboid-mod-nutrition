@@ -27,6 +27,9 @@ SKILLS_DIR = ".claude/skills"
 DOOMED_PATHS = ("docs/vanilla/", "docs/modding/", "docs/mods-survey/", "docs/testing/",
                 "docs/superpowers/", "docs/feasibility/",
                 "docs/progress.md", "docs/decisions.md", "docs/references.md")
+# Exempt: the cut moves this file verbatim to docs/reference/wall-map.md and rewrites the
+# register's pointers then, so a pointer into it is not a dangling cite (R21).
+DOOMED_EXEMPT = ("docs/modding/wall-map.md",)
 TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py")
 Finding = collections.namedtuple("Finding", "path line rule detail")
 WARN_RULES = ("untagged",)
@@ -160,24 +163,33 @@ def rule_schema(rows, register_rel):
         # The block's upper bound. Without this a harvest part that runs past its reserved
         # sub-block passes --register-only on its own and only collides with its neighbour at
         # the merge; `hi` is otherwise never read.
+        # Where the contiguity run is anchored. Normally the block's own first id — but with
+        # `--register <part>` a part may hold a *continuation* slice that legitimately starts later
+        # (the post block especially), so when the block's `lo` is absent the run is anchored at the
+        # slice's own first id and only its internal contiguity is required (R22). The merged
+        # register always holds `lo` for any block it uses, so the full rule applies at the merge.
+        first = lo if lo in used else min(used)
         over = sorted(n for n in used if n > hi)
         if over:
             out.append(Finding(register_rel, 1, "schema", "block %s: id %s is past the block's last id %s"
                                % (name, cl.id_str(over[0]), cl.id_str(hi))))
-        elif lo + len(used) - 1 > hi:
+        elif first + len(used) - 1 > hi:
             out.append(Finding(register_rel, 1, "schema", "block %s: %d ids do not fit between %s and %s; %s is past its last id"
-                               % (name, len(used), cl.id_str(lo), cl.id_str(hi), cl.id_str(hi + 1))))
+                               % (name, len(used), cl.id_str(first), cl.id_str(hi), cl.id_str(hi + 1))))
         else:
-            expected = set(range(lo, lo + len(used)))
+            expected = set(range(first, first + len(used)))
             if used != expected:
                 missing = sorted(expected - used)[:5]
                 out.append(Finding(register_rel, 1, "schema", "block %s: ids are not contiguous from %s (gap at %s)"
-                                   % (name, cl.id_str(lo), ", ".join(cl.id_str(m) for m in missing))))
+                                   % (name, cl.id_str(first), ", ".join(cl.id_str(m) for m in missing))))
     return out
 
 
 def _doomed(path):
-    """True for a repo path under a tree the Phase 4 cut deletes (R20)."""
+    """True for a repo path under a tree the Phase 4 cut deletes (R20), bar the files the cut moves
+    rather than deletes (R21) — those still go through the ordinary "does it exist" check."""
+    if path in DOOMED_EXEMPT:
+        return False
     return any(path.startswith(d) if d.endswith("/") else path == d for d in DOOMED_PATHS)
 
 
