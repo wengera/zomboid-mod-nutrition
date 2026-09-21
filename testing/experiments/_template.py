@@ -85,7 +85,7 @@ USER = "admin"
 # The acceptance run (`python testing/pzt run --profile <name>`) that smoke-tested the harness
 # for this session: RESULT, its [[verify]] rows, its server error count and its client Lua error
 # count are what say the bus was answering before any of the readings below were taken.
-ACCEPTANCE_RUN = "<the acceptance run id this driver was smoke-tested against>"
+ACCEPTANCE_RUN = "run-20260921-192527"
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
