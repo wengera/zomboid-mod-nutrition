@@ -1488,8 +1488,11 @@ every later phase reads.
 - `#1664` - its bound now discloses that its two offsets are transcribed from the slice-11
   dump recorded at `decisions.md:177` rather than re-dumped, and reconciles the row with the
   G2a dead-code rows: `#0803` reads `searchForModInfo` as unreachable on 42.20.4 and `#0819`
-  addresses the requested-id lookup to the version dir's `mod.info`, so the row's premise is
-  not the settled reading and the corpus cannot discriminate between the three models. Both
+  addresses the requested-id lookup to the version dir's `mod.info`, `#1220` reads it as dead
+  code and the wall-map row `#1271` that called it the id-read chain is superseded to `#1220`,
+  so the merge fix round re-scoped the claim to name the `searchForModInfo` body as dead and
+  the live `loadMods` to `readModInfoAux` chain as unread for that ordering; the corpus cannot
+  discriminate between the three models. Both
   rows stay live (amendments para 2: no G2a row settles the question `#1664` asks, because
   `#0877` keeps the client call site and `#0823` the `common/`-only shape open).
 - The G2c stand-in withdrawal (R27) needed nothing: `#1226` is its own settled C row after
@@ -1559,7 +1562,7 @@ page tags, so every such case is named below.
 - **#1414 -> #1044** - a script tooltip key becoming an item modData key on every side; `#1044`'s pointer nests in `#1414`'s. `#1414`'s second site (`jar:InventoryItem.setTooltip @0-@13`) was appended to `#1044` at fix round 1, so the kept row now carries the whole set.
 - **#1497 -> #1085** - a client transmit destroying a server-only player-modData key; `#1497`'s pointer is one of `#1085`'s two. `#1513` and `#1520` were re-pointed at `#1085`.
 - **#1544 -> #1109** - the above-gate client copy moving bit-identically to the server; `#1544`'s two keys are sub-keys of `#1109`'s `appendix.A2`.
-- **#1662 -> #1318** - the version-wins merge rule with the translation exception; `#1318`'s evidence root nests in `#1662`'s. Of `#1662`'s four extra jar sites, `jar:Translator.tryFillMapFromMods @0-@97 L376-L391` - the site of the translation exception both claims state - was appended to `#1318` at fix round 1; `getAbsolutePath` and `LuaManager.LoadDirBase` support sentences `#1318` does not make and stay on the superseded row.
+- **#1662 -> #1318** - the version-wins merge rule with the translation exception; `#1318`'s evidence root nests in `#1662`'s. Of `#1662`'s three extra jar sites, `jar:Translator.tryFillMapFromMods @0-@97 L376-L391` - the site of the translation exception both claims state - was appended to `#1318` at fix round 1; `getAbsolutePath` and `LuaManager.LoadDirBase` support sentences `#1318` does not make and stay on the superseded row.
 - **#1665 -> #1319** - MoodleFramework whole on 42.20.4 under the merge rule; `#1665`'s pointer is one of `#1319`'s two. `#1665`'s `inference` bound token is the more honest one; `#1319`'s bound says the same in words.
 - **#1719 -> #0846** - a dedicated server's translation route answering with an ordinary miss; the same run and file at different keys.
 - **#1894 -> #0666** - `endurance_change` divided by 100 for an item and not for a fluid; `#1894`'s pointer is one of `#0666`'s two. `reference/datasets.md#columns` loses its own row for the caveat and should tag `#0666`.
@@ -1593,7 +1596,7 @@ page tags, so every such case is named below.
 - **#0287 / #0732** (the rotten arm of `EvolvedRecipe.addItem`) - kept both - `#0732` is the `bound` row for what the dataset leaves out, not a restatement of the mechanism.
 - **#0572 / #1236** (the client hunger write reverting) - kept both - `#1236` states the once-a-second unconditional full snapshot that overwrites it and carries a second corroborating run (`exp01-20260910-003929`) that `#0572` does not.
 - **#1111 / #1206** (the cooking-branch carrier) - kept both - `#1111` also states that `Food.update` has no client guard and that `updateTemperature` runs unconditionally.
-- **#1423 / #1108, #1110** (the client-copy question resolved per arm) - kept both - `#1423` is the parent that resolves three sessions; `#1108` and `#1110` are the per-session readings. A parent is never folded into its child (R26).
+- **#1423 / #1108, #1109, #1110, #1206** (the client-copy question resolved per arm) - kept both - `#1423` is the parent stating that three sessions answer in three arms and no single verdict covers them (reworded in the merge fix round to carry none of its children's sentences); `#1108`, `#1109` and `#1110` are the per-arm readings and `#1206` the carrier conclusion. A parent is never folded into its child (R26).
 - **#1048 / #1318 / #1662** (the version-wins merge rule) - `#1662` folded into `#1318` (above); `#1048` kept beside it - it rests on `x122-20260911-032326`, which neither of the other two cites, so no pointer set nests. All three are owned by `platform/mod-anatomy.md#version-dirs` and the page should tag `#1048` and `#1318`.
 - **#1663 / #1318** (the merge rule's bound) - kept both - `#1663` is the standalone `bound` row on `platform/mod-anatomy.md#walls`; `#1318` carries the same limit in its `bound` cell. A limit and the rule it limits are different statements.
 - **#1506 / #1804** (the profile folder-rename question) - kept both - `#1506` is a bound on what a profile run's metadata can answer; `#1804` is the installer mechanism.
