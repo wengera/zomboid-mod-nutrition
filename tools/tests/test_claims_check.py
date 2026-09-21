@@ -163,6 +163,68 @@ def test_mixed_bracket_provisional_is_a_tag_finding_not_a_missing_id():
         assert not [x for x in cc.check(d, allow_provisional=True) if x.rule == "tag"]
 
 
+# --- fix round 1 -------------------------------------------------------------------------------
+
+def test_cli_survives_a_console_that_cannot_encode_page_text():
+    """Rules 4 and 6 quote page text verbatim; a cp1252 console must not abort the gate."""
+    page = "# P\nVerified against 42.20.4 (b0bbce05d5)\n\n## Key facts\n- one [#0001].\n\n## How it works\n\nThe drain is ≈ 0.016 per tick.\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="facts/p.md#a")], pages={"docs/facts/p.md": page})
+        env = dict(os.environ, PYTHONIOENCODING="cp1252")
+        r = subprocess.run([sys.executable, CLI, "--root", d], capture_output=True, text=True, encoding="utf-8", env=env)
+        assert r.returncode == 0, r.stderr
+        assert "1 warnings" in r.stdout and "≈" in r.stdout and "UnicodeEncodeError" not in r.stderr
+
+
+def test_worked_examples_are_checked_on_every_layer():
+    page = "# Areas\n\n## Rules\n- x [#0001].\n\n## Worked examples\n\n| shape | file:lines | what it shows |\n|---|---|---|\n| gone | `testing/experiments/nope.py:1-2` | nothing |\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="areas/mp-sync.md#rules")], pages={"docs/areas/mp-sync.md": page})
+        f = [x for x in cc.check(d) if x.rule == "example"]
+        assert len(f) == 1 and "nope.py" in f[0].detail
+
+
+def test_cli_reports_a_bad_register_instead_of_a_traceback():
+    with tempfile.TemporaryDirectory() as d:
+        for mode in ("--fix-tags", "--section-map", "--view"):
+            argv = [sys.executable, CLI, "--root", d, mode] + (["facts"] if mode == "--view" else [])
+            r = subprocess.run(argv, capture_output=True, text=True, encoding="utf-8")
+            assert r.returncode == 1, (mode, r.stdout, r.stderr)
+            assert "schema" in r.stdout and "Traceback" not in r.stderr, (mode, r.stderr)
+
+
+def test_malformed_aliases_file_is_a_finding_not_a_crash():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, grade="M", pointer="run:r-20260101-000000 f.json k")],
+              aliases="nickname,run\nfoo,r-20260101-000000\n")
+        f = cc.check(d, register_only=True)
+        assert any(x.rule == "pointer" and "run-aliases.csv" in x.detail and "alias" in x.detail for x in f)
+
+
+def test_schema_block_overflow_and_unblocked_id(monkeypatch):
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(0), _row(1)])
+        f = cc.check(d, register_only=True)
+        assert any(x.rule == "schema" and "#0000" in x.detail and "reserved id block" in x.detail for x in f)
+    monkeypatch.setattr(cl, "BLOCKS", (("tiny", 1, 2), ("far", 10, 9999)))
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1), _row(2), _row(3)])
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "schema"]
+        assert len(f) == 1 and "tiny" in f[0].detail and "#0003" in f[0].detail and "#0002" in f[0].detail
+
+
+def test_staged_runs_the_check_when_git_cannot_answer(monkeypatch):
+    with tempfile.TemporaryDirectory() as d:
+        assert cc.staged_paths(d) is None                                  # a non-git directory
+        _tree(d, [_row(1), _row(1)])                                       # duplicate id: the check must fail
+        monkeypatch.setattr(cc, "staged_paths", lambda root: ["README.md"])
+        assert cc.main(["--root", d, "--staged"]) == 0                     # nothing relevant staged
+        monkeypatch.setattr(cc, "staged_paths", lambda root: ["docs/facts/x.md"])
+        assert cc.main(["--root", d, "--staged"]) == 1
+        monkeypatch.setattr(cc, "staged_paths", lambda root: None)         # git failed: never skip
+        assert cc.main(["--root", d, "--staged"]) == 1
+
+
 # --- R13: rule 5's directory label is bus_inventory.label_for, the one the generator itself renders.
 
 def test_generator_label_matches_bus_inventory_label_for():
