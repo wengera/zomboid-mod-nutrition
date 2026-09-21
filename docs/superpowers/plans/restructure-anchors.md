@@ -229,6 +229,7 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#dead-setters` — the setters that write nothing on this build
 - `#script-keys` — the script keys and what the loader does with each, as one table
 - `#poison` — the poison fields and what reads them
+- `#dataset-fidelity` — the measured checks of `data/food-items.*` against the running game: the `ScriptManager` census on two boots, the ten spot checks by check type, the absent-against-zero read-backs, the fluid join and the three-drink per-litre probe
 - `#walls` — the item model's bounds and the mirror contradictions its numbers correct
 - `#open` — the item-model rows no run has settled
 
@@ -249,6 +250,7 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#evolved` — evolved-recipe summation: what a dish banks from each ingredient
 - `#evolved-join` — the resolution rules that decide which items an evolved recipe accepts
 - `#type-change` — the deltas a type change applies, as one table, and what cooking alone does not move
+- `#dataset-fidelity` — the measured checks of `data/recipes.*` and `data/evolved-recipes.*` against the running game: the craft, evolved and legacy census, the ten craft spot checks and their offline replay, and the five live evolved lists with their offline set-equality
 - `#walls` — cooking bounds and the mirror contradictions its numbers correct
 - `#open` — the cooking rows no run has settled
 
@@ -279,6 +281,7 @@ Rules: an anchor names one mechanism, one table or one reading; no anchor appear
 - `#item-stats-packet` — the item packet's field contract: which food getters it reads and which it omits
 - `#player-stats-packet` — the player packet's field contract: what it declares and what it never carries
 - `#moddata-packet` — the modData packet's type bytes: which Lua values survive the wire
+- `#eat-food-packet` — the eat packet's field contract: that `write` embeds `Nutrition.save` and `parse` calls `Nutrition.load` on the receiver, overwriting its whole `Nutrition`, and that neither handler applies numbers of its own
 - `#cooked-thirst` — the cooked-food thirst value the packet sends against the one the server applied
 - `#desyncs` — the measured desyncs, per field and per arm, each with the run it rests on
 - `#staircase` — the once-a-second staircase a client-side reader sees, and how to read one
