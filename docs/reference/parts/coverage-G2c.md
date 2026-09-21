@@ -69,11 +69,10 @@ and no claim states a bytecode offset — the pointer cell carries them.
   (`autocook.md § Architecture → The census`) — all harvested by G1/G2; the census numbers are re-stated here
   only inside `#1218`, the dataset bound the map addresses to `data/README.md` as a ripple. I9's three witnesses
   are folded into `#1174`'s claim; I13's `pcall` try-coverage is `#2008` (fix round 1, I1). I14's file-scope
-  arm, `#1226`, is `superseded` (fix round 1, C1): the rule has no jar site in this map, is **cited to
-  `lua-api.md` § 5, harvested by G2a**, and its successor is written as `#1179`, the in-part row carrying the
-  same rule, because the checker rejects a cross-part successor under `--register-only`; **the merge should
-  retarget it to G2a's `#0948`** ("An unguarded nil call aborts the rest of the handler body it fires in"),
-  whose pointer `#1226` already copies.
+  arm, `#1226`, is a `settled` C row of its own (fix round 2, R27): the map's I14 Residual cell marks the rule
+  "C, unmeasured", and the row now cites the loader site that establishes it — `LuaManager.RunLuaInternal`
+  runs a whole compiled file chunk inside one protected call and logs the failure arm — rather than a run that
+  measures the handler-body rule. It is not superseded and carries no successor.
 - § The map → § J — The item pass — candidates 5 → rows #1180–#1184, #1214, #1227–#1233. Cited elsewhere, no
   row here: J2's route prose (`item-overrides.md § R2`, harvested by G1/G2); J3's checksum chain is folded into
   `#1182`'s verdict claim. J1's append-and-inert-reset chain is `#2007` and J4's `searchFolders` lower-cased
@@ -174,12 +173,12 @@ Two controller amendments were applied and are worth restating for the merge:
 By kind: `verdict` 73 (64 wall-map rows + 9 superseded predictions written as verdicts) · `mechanism` 61 ·
 `bound` 15 · `count` 9 · `open` 26 · `rule` 2 · `contradiction` 1.
 
-By grade: `C` 121 · `M` 66 · `W` 0 (the one mirror row, `#1260`, carries a `wiki:` pointer beside a `jar:` one
+By grade: `C` 122 · `M` 65 · `W` 0 (the one mirror row, `#1260`, carries a `wiki:` pointer beside a `jar:` one
 and is graded by the strongest, C).
 
-By status: `settled` 140 · `open` 29 (26 named experiments + the three UNKNOWN verdicts `#1133`, `#1161`,
-`#1164`) · `superseded` 17 (12 from § Discrepancies' predictions table, its two splits `#2010` and `#2011`,
-`#1259`, `#1261` and `#1226`) · `unverified` 1 (`#1148`, E6).
+By status: `settled` 141 · `open` 29 (26 named experiments + the three UNKNOWN verdicts `#1133`, `#1161`,
+`#1164`) · `superseded` 16 (12 from § Discrepancies' predictions table, its two splits `#2010` and `#2011`,
+plus `#1259` and `#1261`) · `unverified` 1 (`#1148`, E6).
 
 Candidates accounted for: 79 = 74 harvested (64 verdict rows + 10 MP-behaviour rows) + 2 collapsed into `#1257`
 + 3 dropped (2 grade-legend lines at L5–L6, 1 wiki-mirror fetch-date legend at L458) + 0 superseded + 0 unverified.
@@ -191,5 +190,26 @@ Owner spread: `reference/wall-map.md` 64 · `platform/` 66 · `facts/` 29 · `ar
 never checks).
 
 Fix round 1 (2026-09-21) changed the pointer layer, not the row set: 58 pointer cells replaced, 8 rows added
-(`#2004`–`#2011`), 18 claims re-worded after the offsets came out, `#1148` re-graded `unverified` and `#1226`
-`superseded`. No row was deleted or renumbered.
+(`#2004`–`#2011`), 18 claims re-worded after the offsets came out and `#1148` re-graded `unverified`. No row
+was deleted or renumbered.
+
+Fix round 2 (2026-09-21) corrected the fix diff itself: `#2008` lost a pointer that does not exist in the jar,
+`#2007`'s third pointer moved from `ScriptManager` to `ScriptBucket`, `#1139` was re-worded so that the
+four-site count lives only on `#2006` (R26), `#1226` was restored as its own settled C row with a loader-site
+pointer (R27), and three pointers were re-aimed or re-located (`#1214`, `#1254`, `#1256`). Every jar offset
+written in this round was verified against a fresh `pz.sh dump` of 42.20.4 (`b0bbce05d5`).
+
+## Merge notes
+
+- **`#1226` — the file-scope raise rule has no cross-group duplicate.** A grep of
+  `docs/reference/parts/claims-G2a.tsv` for `file scope`, `file-scope`, `chunk` and `file-level` returns four
+  rows (`#0856`, `#0878`, `#0888`, `#0894`) and **none of them states the file-scope raise rule**; G2a's
+  `#0948` states the neighbouring *handler-body* rule, which this part carries as `#1179`. `#1226` and `#0948`
+  are therefore siblings, not duplicates, and neither supersedes the other.
+- **Pointers the Phase 4 cut rewrites (R21).** `repo:docs/modding/wall-map.md:<line>` on `#1257`, `#1259`,
+  `#1262`–`#1273`, `#2010` and `#2011` — 16 rows. The cut moves the file verbatim to
+  `docs/reference/wall-map.md`, so each of these paths is rewritten then, line numbers included.
+- **Pointers the Phase 4 move rewrites (R25).** `repo:testing/artifacts/README.md:<line>` on `#1254` (line 236)
+  and `#1261` (line 1298) — 2 rows. That file moves whole to `docs/reference/artifacts.md`.
+- **Surviving `repo:docs/` paths.** `docs/reference/experiments.md` (the 26 `open` rows plus `#1255`) and
+  `docs/reference/harness-commands.md` (`#1235`) are in the target tree already and need no rewrite.
