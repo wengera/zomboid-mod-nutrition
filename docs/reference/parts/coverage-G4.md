@@ -1,6 +1,6 @@
 # Coverage — G4 (testing, data, tools, ledgers and the working reads)
 
-Sub-block `#1701–#2000`; **273 rows written, `#1701`–`#1973`**, contiguous, 27 ids unused (see
+Sub-block `#1701–#2000`; **276 rows written, `#1701`–`#1976`**, contiguous, 24 ids unused (see
 § Handed to other groups). Candidates file: `.superpowers/sdd/restructure-1-register/candidates-G4.tsv`
 (**101 candidates**: `CLAUDE.md` 1, `data/README.md` 33, `docs/testing/README.md` 2,
 `docs/testing/profiles.md` 65; `pipeline-design.md`, `spikes.md`, `tools/README.md` and
@@ -14,9 +14,10 @@ the checklist and every section below is accounted for whether or not it had a c
 - § `pzt` — the orchestrator — candidates 1 → rows #1701–#1709; dropped: 1 (the M-row artifact
   sentence is the source of #1706, harvested, not dropped); the driven-client cost table is
   collapsed into #1701 as one `table` row.
-- § How a driven client is controlled — candidates 1 → rows #1710–#1716; dropped: 2 (the
-  `-safemode` world-load ratio and the logo-skip sentence are restated in `spikes.md` § S2 and
-  harvested there as #1858 / #1854).
+- § How a driven client is controlled — candidates 1 → rows #1710–#1716; dropped: 1 (the logo-skip
+  sentence is restated in `spikes.md` § S2 and harvested there as #1854). The `-safemode` ratio is
+  **not** dropped: it is #1711, whose 17 s / 120 s numbers come from `pipeline-design.md`
+  § Confirmed facts (this section states only "7× slower"), so that row names both sources.
 - § Command bus — candidates 0 → rows #1717–#1760. This is the group's densest section: the bus
   protocol, the four translation shapes, the per-command probe rules, the whole reflective-witness
   contract and the eight reply-reading rules. dropped: 6 (statements that only restate measured
@@ -29,8 +30,10 @@ the checklist and every section below is accounted for whether or not it had a c
 - § Observation — candidates 0 → rows #1762–#1769 (the doubled client grep, the limit-is-a-break
   rule, the two error-classifier over-counts, the deliberate-raise rule, the client-timeout rule and
   the client-side verify gate).
-- § Harness layout — candidates 0 → rows #1770 (open), #1771.
-- § Scenarios and the test layer — candidates 0 → rows #1772–#1787.
+- § Harness layout — candidates 0 → rows #1770 (open), #1771 (eight files: six core plus the two
+  scenario files the loader walks recursively).
+- § Scenarios and the test layer — candidates 0 → rows #1772–#1787, #1974 (the scheduler hooks the
+  once-a-minute event once, split out of #1775 in fix round 1).
 - § Server side — candidates 0 → rows #1788.
 - superseded: none minted here (see § Handed to other groups). unverified: none.
 
@@ -57,8 +60,13 @@ the checklist and every section below is accounted for whether or not it had a c
 - § The missing-mod failure mode — candidates 1 → rows #1817–#1822.
 - § L0 — `tools/mod_lint.py` — candidates 9 → rows #1836, #1837; the nine-rule table is one `table`
   row (#1836) per the grain rule.
-- § The installed corpus, swept — candidates 8 → rows #1838–#1841 (+ #1964, shared with CLAUDE.md
-  § 8); dropped: 1 (the two superseded plan figures are narrative about a plan's prediction).
+- § The installed corpus, swept — candidates 8 → rows #1838–#1841, #1976 (+ #1964, shared with
+  CLAUDE.md § 8); dropped: 1 (the two superseded plan figures are narrative about a plan's
+  prediction). unverified: #1839 (the per-rule breakdown) and #1976 (the 85 → 84 → 84 drift) — no
+  committed file records a `mod_lint` sweep's findings, so both carry the bound
+  `snapshot 2026-09-10 13:47; the sweep output was not committed`. #1838's 84 = 3/30/51 total **is**
+  recorded in a surviving file (`tools/README.md:61`) and stays settled; #1841 keeps the
+  subtree-rewrite half, which `data/README.md:647` records.
 - § MP behaviour — candidates 2 → rows #1823–#1827.
 - § Open questions — candidates 6 → rows #1828–#1835; OQ 1 and OQ 6 are closed in the source and
   their current statements are G2's (#0819, #0818), so only the profile-side halves are harvested
@@ -86,8 +94,10 @@ the checklist and every section below is accounted for whether or not it had a c
 
 ### docs/testing/spikes.md
 
-- § S1 — Boot loop — candidates 0 → rows #1847–#1851; #1847, #1849, #1851 are `unverified` with an
-  `uncommitted:` bound (the spike runs left no artifact folder, R17).
+- § S1 — Boot loop — candidates 0 → rows #1847–#1851; #1848 states the section's **five**
+  design-changing bullets (the `-nosteam`-works-cleanly bullet is included, not dropped); #1847,
+  #1849, #1851 are `unverified` with an `uncommitted:` bound (the spike runs left no artifact
+  folder, R17).
 - § S2 — Auto-join — candidates 0 → rows #1852–#1859; the fifteen-fact table is one `table` row
   (#1852) plus four singled-out rows; #1856, #1858 `unverified` / `uncommitted:`.
 - § T0 — provision / boot / attach split — candidates 0 → rows #1860–#1863; #1860, #1862
@@ -96,12 +106,14 @@ the checklist and every section below is accounted for whether or not it had a c
 - § S4 — Result channel — candidates 0 → rows #1866, #1867.
 - § S5 — Time acceleration in MP — candidates 0 → rows #1868–#1872; #1868–#1871 `unverified` /
   `uncommitted:`.
-- § S6 — Witness round-trip — candidates 0 → rows #1873–#1875; dropped: 3 (the client-side item
-  edits, the client-created item and the nutrition-direction correction are `duplicate of
-  docs/vanilla/eating-pipeline.md § MP behaviour` and `docs/modding/patterns.md` — #1092, #1093,
-  #1094); #1873 `unverified` / `uncommitted:`.
-- § S7 — reloadlua iteration — candidates 0 → rows #1876–#1880; #1876–#1878 `unverified` /
-  `uncommitted:`.
+- § S6 — Witness round-trip — candidates 0 → rows #1873–#1875; dropped: 2 (the client-side item
+  edits and the client-created item are `duplicate of docs/vanilla/eating-pipeline.md § MP
+  behaviour` — #1092, #1093). The section's **dated correction** ("direction corrected 2026-09-10")
+  is a correction site whose current statement is the G2b row #1094, so it is entry 28 under
+  § Handed to other groups rather than a drop. #1873 and #1875 `unverified` / `uncommitted:`.
+- § S7 — reloadlua iteration — candidates 0 → rows #1876–#1880, #1975 (the reload being server-local
+  with no packet to clients, split out of #1876 in fix round 1); #1876–#1878 and #1975 `unverified`
+  / `uncommitted:`.
 
 ### data/README.md
 
@@ -194,7 +206,15 @@ the checklist and every section below is accounted for whether or not it had a c
   the scratch parser it forced, and the refs subcommand not being a reverse-caller query).
 - § A worked query — candidates 0 → rows #1972 (the `$` escape and the not-at-the-bare-name class
   path).
-- § Summary — where the jar disagreed with plan 13 — candidates 0 → rows: none. All ten rows are
+- The brief's bus rule **"a client-spawned item trips a server NPE"** is likewise **not in any G4
+  source**: the harness's own decision about the client-side spawn fallback lives in
+  `docs/decisions.md` (2026-09-10, slice 01) and is process, not a bound on a claim, and no
+  `docs/testing/` section states the NPE. No row was written for it.
+- § Summary — where the jar disagreed with plan 13 — candidates 0 → rows #1971 (the refs
+  subcommand is not a reverse-caller query), whose source cell names this section because the
+  closing method-note paragraph (`jar-method-notes.md:56`) sits under this heading; #1970's
+  scratch-parser bound comes from the same paragraph, so that row names both sections. The
+  section's own ten-row table yields no rows: all ten are
   jar findings whose current statement another group owns: `getNutrition` on `IsoPlayer`
   `duplicate of` #0897; 26 moodle types and the private base registrar `duplicate of` #1140; the
   moodle-level pin `duplicate of` #1140; `MoodleStat` unexposed `duplicate of` #1141; the closed
@@ -224,8 +244,12 @@ the checklist and every section below is accounted for whether or not it had a c
   brief's rule ("imported as a `bound` row **only** where the wall map … does not already carry its
   successor") excludes all 35. They are `reference/wall-map.md` rows, group G3.
 - § 2 (the fuller slice-13 list) — rows: none, same reason, plus two trailing sentences: every
-  corpus count is a dated snapshot `duplicate of` #1964/#0867, and the ≈ 42 h ceiling → **#1973**,
-  the one row this file contributes.
+  corpus count is a dated snapshot `duplicate of` #1964/#0867, and the ≈ 42 h ceiling, which is
+  the one bullet of this file that yields a row — **#1973**.
+- **#1973's source cell names the tree file, not this workspace file.** A source cell names a file
+  in the tree, and `docs/reference/experiments.md` § Owners and the cost roll-up states the ≈ 42 h
+  figure at line 253, so that is the row's source and its pointer. The bounds list itself yields no
+  other row, and no G4 row's source cell names anything under `.superpowers/`.
 
 ---
 
@@ -233,7 +257,9 @@ the checklist and every section below is accounted for whether or not it had a c
 
 Amendment § 7 rules that *a dated-correction site whose successor row lives in another group is
 minted by the group that owns the successor* (the controller assigns a continuation id from
-`#2001+`). Every bullet of `not-settled.md` and `slice-12-bounds.md` has its successor in a
+`#2001+`). **28 entries from 27 bullets and correction sites** are recorded below: 26 ledger bullets
+(one of them, the `mod.info` resolution-order bullet, splitting into two entries) and the dated
+correction in `spikes.md` § S6. Every one has its successor in a
 **committed G2 part**, so none of them is G4's to mint: the checker's schema rule rejects a
 `successor` that is not in the part under test, and `--register-only` on `claims-G4.tsv` therefore
 cannot carry them. They are recorded here in full, matched by claim text against the committed
@@ -271,6 +297,7 @@ verified row by row; the three load-bearing cases are quoted in the report.
 | S12-14 | Corpus numbers are dated snapshots of a live tree — quote with the stamp | #0867 | Quote a corpus sweep with its stamp: the installed workshop tree is live and changes under a running slice. |
 | S12-15 | `Item.InitLoadPP`'s net-id reallocation and `fileName` re-stamp: C, unmeasured; stale net id unread | #1063 | Whether the fresh net id `Item.InitLoadPP` allocates per appended body ever puts a stale id on the wire is unread. |
 | S12-16 | Do-not-cite: every client-side reading of `x127`, its `summary.sides_agree`, both runs' `server_error_count` | #0869 | Every client-side reading of the unguarded-raise session is unusable: the debug client parked in the Lua debugger… |
+| S6 | `docs/testing/spikes.md` § S6, dated-correction site ("Nutrition direction, corrected 2026-09-10"): the spike read the 0.2-kcal agreement as the client computing and the server mirroring. Old evidence: `spike-20260909-143930` / `spike-20260909-144417`, the witness round-trip's nutrition row (no artifact folder committed) | #1094 | Nutrition is server-authoritative: a client `setCalories(3000)` never reached the server and was back to the server's value inside 3 s, while a server-side write reached the client inside 3 s… |
 
 The `server_error_count`-as-a-fault-count half of S12-16 is **not** handed on: it is carried in this
 part as #1764–#1766, which state the classifier rule and both of its over-counts.
@@ -290,27 +317,29 @@ The two anchors this harvest reached for and did **not** need: `facts/cooking-an
 
 ## Totals
 
-**273 rows, `#1701`–`#1973`.**
+**276 rows, `#1701`–`#1976`** (273 at `643bb0b`, plus #1974–#1976 minted in fix round 1).
 
 | by kind | n |  | by grade | n |  | by status | n |
 |---|---|---|---|---|---|---|---|
-| `mechanism` | 135 |  | C | 213 |  | `settled` | 254 |
-| `rule` | 59 |  | M | 52 |  | `unverified` | 16 |
+| `mechanism` | 137 |  | C | 214 |  | `settled` | 253 |
+| `rule` | 59 |  | M | 54 |  | `unverified` | 20 |
 | `table` | 24 |  | W | 8 |  | `open` | 3 |
 | `tool` | 22 |  |  |  |  | `superseded` | 0 |
 | `bound` | 19 |  |  |  |  |  |  |
-| `count` | 10 |  |  |  |  |  |  |
+| `count` | 11 |  |  |  |  |  |  |
 | `order` | 2 |  |  |  |  |  |  |
 | `open` | 2 |  |  |  |  |  |  |
 
-`unverified`: #1847, #1849, #1851, #1856, #1858, #1860, #1862, #1864, #1868, #1869, #1870, #1871,
-#1873, #1876, #1877, #1878 — all sixteen are `spikes.md` readings whose run left no artifact folder,
-written with the spec's `uncommitted: <run-id>` bound (R17).
+`unverified` (20): #1847, #1849, #1851, #1856, #1858, #1860, #1862, #1864, #1868, #1869, #1870,
+#1871, #1873, #1875, #1876, #1877, #1878, #1975 — eighteen `spikes.md` readings whose run left no
+artifact folder, written with the spec's `uncommitted: <run-id>` bound (R17) — plus #1839 and #1976,
+the two `mod_lint` sweep counts no committed file records, bounded
+`snapshot 2026-09-10 13:47; the sweep output was not committed`.
 
 `open`: #1770 (which `mod.info` the harness's own two copies resolve to), #1815 (where the
 `EveryOneMinute` ceiling sits between 8 and 10.08), #1830 (which sandbox options survive a restore).
 
-Owner pages: `platform/harness.md` 148 · `reference/datasets.md` 62 · `reference/tools.md` 25 ·
-`platform/overview.md` 11 · `platform/lua-platform.md` 8 · `platform/lessons.md` 6 ·
+Owner pages: `platform/harness.md` 149 · `reference/datasets.md` 62 · `reference/tools.md` 25 ·
+`platform/overview.md` 11 · `platform/lua-platform.md` 9 · `platform/lessons.md` 7 ·
 `platform/mod-anatomy.md` 5 · `platform/jar-research.md` 5 · `facts/eating-pipeline.md` 2 ·
 `facts/cooking-and-recipes.md` 1.
