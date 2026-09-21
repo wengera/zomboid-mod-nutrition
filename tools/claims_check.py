@@ -21,6 +21,12 @@ LAYER_DIRS = ("docs/areas", "docs/platform", "docs/facts")
 # resolve and to carry the canonical suffix. Every other reference page is generated or an index.
 REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md")
 SKILLS_DIR = ".claude/skills"
+# Trees the Phase 4 cut deletes. A `repo:` pointer into one of them is a dangling cite the moment
+# the cut lands, so rule 3 rejects it today, whether or not the file still exists (R20). A trailing
+# `/` is a prefix; the three bare files are matched whole.
+DOOMED_PATHS = ("docs/vanilla/", "docs/modding/", "docs/mods-survey/", "docs/testing/",
+                "docs/superpowers/", "docs/feasibility/",
+                "docs/progress.md", "docs/decisions.md", "docs/references.md")
 TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py")
 Finding = collections.namedtuple("Finding", "path line rule detail")
 WARN_RULES = ("untagged",)
@@ -170,13 +176,19 @@ def rule_schema(rows, register_rel):
     return out
 
 
+def _doomed(path):
+    """True for a repo path under a tree the Phase 4 cut deletes (R20)."""
+    return any(path.startswith(d) if d.endswith("/") else path == d for d in DOOMED_PATHS)
+
+
 def _uncommitted_run(row):
-    """The spec's form for an M claim whose only run left no artifact: `status unverified` with a
-    bound that starts `uncommitted: <run-id>`. Rule 3 admits a missing run folder only on such a
-    row (R17) — the row keeps the source's grade and pointer, and its owner lists it under
-    `## Open` with the re-measurement that settles it. A settled or open row citing a run with no
-    folder is still a finding, and so is an unverified row bounded any other way."""
-    if row.get("status") != "unverified":
+    """The spec's form for an M claim whose only run left no artifact: `status unverified` — or
+    `superseded`, which keeps the old evidence as the source wrote it — with a bound that starts
+    `uncommitted: <run-id>`. Rule 3 admits a missing run folder only on such a row (R17, widened by
+    R20) — the row keeps the source's grade and pointer, and its owner lists it under `## Open` with
+    the re-measurement that settles it. A settled or open row citing a run with no folder is still a
+    finding, and so is an unverified or superseded row bounded any other way."""
+    if row.get("status") not in ("unverified", "superseded"):
         return False
     try:
         token, _ = cl.parse_bound(row.get("bound", ""))
@@ -216,7 +228,10 @@ def rule_pointer(rows, root, register_rel):
                     out.append(Finding(register_rel, n, "pointer", "%s: %s %s is on the do-not-cite list" % (r["id"], real, key)))
             elif form == "repo":
                 path = text.split('"')[0].strip().rsplit(":", 1)[0]
-                if not os.path.exists(os.path.join(root, *path.split("/"))):
+                if _doomed(path):
+                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is deleted at the cut (Phase 4); "
+                                                                   "cite the underlying evidence" % (r["id"], path)))
+                elif not os.path.exists(os.path.join(root, *path.split("/"))):
                     out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist" % (r["id"], path)))
     return out
 

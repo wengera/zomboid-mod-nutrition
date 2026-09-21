@@ -294,8 +294,8 @@ import patterns from there.
   The register checker (spec § The checker). Rules: `schema` (columns, grammars, duplicate ids,
   contiguity from each id sub-block's first id, successors), `pointer` (`run:` folders exist or
   are aliased in `run-aliases.csv` — a `run:` pointer to an artifact-less run is allowed only on
-  an `unverified` row whose bound starts `uncommitted:` — keys are not in `do-not-cite.csv`,
-  `repo:` paths exist),
+  an `unverified` or `superseded` row whose bound starts `uncommitted:` — keys are not in
+  `do-not-cite.csv`, `repo:` paths exist and name no tree the Phase 4 cut deletes),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
   the two reference pages that own register rows (`datasets.md`, `tools.md`) and the skills resolves
   and carries the canonical suffix; provisional `[T…]` tags fail),

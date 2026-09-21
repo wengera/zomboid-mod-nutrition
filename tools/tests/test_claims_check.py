@@ -242,6 +242,34 @@ def test_rule_pointer_admits_an_uncommitted_run_on_an_unverified_row():
         assert len(f) == 1 and "has no folder" in f[0].detail
 
 
+def test_rule_pointer_admits_an_uncommitted_run_on_a_superseded_row():
+    ptr = "run:spike-20260909-143930 findings.json k"
+    bound = "uncommitted: spike-20260909-143930 the boot left no artifact"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, grade="M", pointer=ptr, status="superseded", successor="#0125", bound=bound)])
+        assert not [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, grade="M", pointer=ptr, bound=bound)])                      # settled: still a finding
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+        assert len(f) == 1 and "has no folder" in f[0].detail
+
+
+# --- R20: a repo: pointer may not name a tree the Phase 4 cut deletes.
+
+def test_repo_pointers_into_the_deleted_trees_are_findings():
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "docs/modding/patterns.md", "# P\n")            # present today, deleted at the cut
+        _write(d, "tools/x.py", "x = 1\n")
+        _tree(d, [_row(1, pointer='repo:docs/modding/patterns.md:280 "x"'),
+                  _row(2, pointer='repo:tools/x.py:3 "x"'),
+                  _row(3, pointer='repo:docs/progress.md:5 "x"')])  # absent today, still the cut message
+        f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
+        assert len(f) == 2 and all("deleted at the cut (Phase 4)" in x.detail for x in f)
+        assert any("#0001" in x.detail and "docs/modding/patterns.md" in x.detail for x in f)
+        assert any("#0003" in x.detail and "docs/progress.md" in x.detail for x in f)
+        assert not any("#0002" in x.detail for x in f)
+
+
 # --- R13: rule 5's directory label is bus_inventory.label_for, the one the generator itself renders.
 
 def test_generator_label_matches_bus_inventory_label_for():
