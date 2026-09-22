@@ -1,5 +1,5 @@
 # Nutrition core — calories, macros and weight
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the `Nutrition` object's five stores, the weight model that reads them, the clamps that bound them and the three-game-day server check of that model; intake belongs to `facts/eating-pipeline.md`, passive burn and the weight bands to `facts/body-and-weight.md`, and ownership of the weight quantity to `platform/mp-model.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the `Nutrition` object's stores, the weight model that reads them, the clamps that bound them and the three-game-day server check of that model; intake belongs to `facts/eating-pipeline.md`, passive burn and the weight bands to `facts/body-and-weight.md`, and ownership of the weight quantity to `platform/mp-model.md`.
 
 ## Key facts
 
@@ -18,7 +18,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the `Nutrition` ob
 
 ## How it works
 
-`Nutrition` is a per-player object of five floats — calories, carbohydrates, proteins, lipids and weight — reached from Lua as `player:getNutrition()`.
+`Nutrition` is a per-player object of floats — calories, carbohydrates, proteins, lipids and weight — reached from Lua as `player:getNutrition()`.
 Four setters write the four intake stores and clamp as they write, and one update method carries three arms: the macro drain, the calorie burn and the weight move.
 Nothing else on the object is reachable, because it is a closed value object with no mod-data table, no generic accessor and no registration call [#1121/C/C-only].
 A mod therefore puts its own nutrient beside these floats rather than inside them.
@@ -52,7 +52,7 @@ IsoPlayer.update @8
   -> Nutrition.updateWeight
 ```
 
-The model itself, as the method computes it:
+The model itself, as the method computes it [#0149/C/C-only, #0150/C/C-only, #0151/M/one-fixture, #0152/C/arith., #0153/C/arith., #0154/C/arith.]:
 
 ```
 gainThreshold = 1000 + (weight - 80) × 40        # w70: 600 · w80: 1000 · w90: 1400
@@ -130,7 +130,7 @@ Both signs of both clamps were probed once each on the server bus and landed exa
 
 The clamps are two-sided, and the negative side is a working range rather than an error state.
 Nothing clamps the calorie store at zero: a write of -100 read back -102.5664 on the server and -102.10 on the client, each side having run its own decay ticks since the write, so the pair is two readings of "not clamped" rather than a sync figure [#0901/M/n=1, #1102/M/n=1, #1197/M/n=1].
-Negative stores are a normal state, and the loss arm of the weight model is real rather than an artefact of a floor.
+Negative stores are a normal state, and the loss arm of the weight model is real rather than an artefact of a floor [#0901/M/n=1, #1102/M/n=1, #1197/M/n=1].
 
 A macro floor is reached in ordinary play rather than only under a deliberate write.
 Carbohydrates hit their -500 floor in the fed run at the game-hour 40.0 sample, against 39.7 predicted, the crossing resolved only to the hourly sample [#0169/M/one-fixture].
@@ -204,9 +204,9 @@ Proteins never touch weight and have no reachable effect in vanilla: the only re
 The clamp half of that reading is measured on both signs on the server bus, while the dead branches are a code reading [#0181/M/n=2].
 The live multipliers in the same recovery method are the weight-band traits, which are [facts/body-and-weight.md](body-and-weight.md#weight-traits).
 
-The fitness and strength experience gate in the same neighbourhood is keyed on the weight bands rather than on any macro, so it is not a protein reader either, and it belongs to [facts/body-and-weight.md](body-and-weight.md#weight-traits).
+The fitness and strength experience gate in the same neighbourhood is keyed on the weight bands rather than on any macro, so it is not a protein reader either, and it belongs to [facts/body-and-weight.md](body-and-weight.md#weight-traits) [#0184].
 
-The five floats are the whole of the object's serialised form, in a fixed order that `Nutrition.save` writes and `Nutrition.load` reads back ([#0108], [facts/wire-packets.md](wire-packets.md#player-stats-packet)).
+Those floats are the whole of the object's serialised form, in a fixed order that `Nutrition.save` writes and `Nutrition.load` reads back ([#0108], [facts/wire-packets.md](wire-packets.md#player-stats-packet)).
 A protein value therefore survives every round trip the object makes while still reaching no reader that can act on it, which is the shape of dead space rather than of a gap to be worked around.
 
 So the complete list of live consumers of the four intake stores is short.
@@ -218,7 +218,6 @@ It also means a mod cannot express a nutrient by leaning on an existing macro's 
 Every consequence a mod nutrient is to have must therefore be written by the mod, and the only vanilla behaviour it has to avoid disturbing is the gain multiplier pair.
 
 ## Walls and bounds
-
 <a id="walls"></a>
 
 The nutrition core is one of the most closed surfaces in the platform: the object cannot be extended or replaced, its constants are compiled in, and the one switch that reaches it turns the whole model off rather than tuning it.
@@ -236,7 +235,6 @@ Every reading here is a dedicated server with one client, one fixture and one ad
 Not covered: the character model, the animation system and the interface, which read the weight value and which this library never opened; and the two maintained calorie extremes, whose readers are the open row below.
 
 ## Open
-
 <a id="open"></a>
 
 - Whether `Nutrition.caloriesMax` and `caloriesMin` have any reader at all is unsettled: they are maintained but a jar-wide reader scan found none, so they are possibly interface or debug only — settled by a fresh jar-wide reader scan of both fields on this build, with the exposer dump beside it [#0190/C/snapshot/open].
