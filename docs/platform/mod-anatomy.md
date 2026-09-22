@@ -30,8 +30,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a mod folder 
 Because the parser tests `contains` rather than a prefix and strips with a string replace rather than a prefix cut, a value carrying an earlier branch's token is eaten by that branch — `url=https://x/name=1` is parsed as a `name` — and every occurrence of the token disappears from the stored value [#0806/C/C-only].
 `mod.info` keys are case-sensitive, which is why `modVersion=` is dropped [#0807/C/C-only].
 An unrecognised line is neither an error nor a log entry, so a misspelled key is invisible until whatever it was meant to buy turns out to be missing [#0804/C/C-only].
-Eight key spellings shipped by installed mods are not parsed at all because no branch tests them: `authors` (11 folders), `modVersion` and `version` (2 each), `tags` (15), `pzversion` (10), `texts`, `supports` and `zoomX/Y/S` (1 each) [#0815/C/snapshot].
-The `id` key is the only handle a mod has: `Mods=` entries, `require=` entries and `ChooseGameInfo.Mods` are all keyed on it, and `loadMod` prints `loading <id>` from it, with 229 of the 230 installed folders declaring one [#0808/M/n=1].
+Eight key spellings shipped by installed mods are not parsed at all because no branch tests them, in folder counts taken over the corpus on 2026-09-11: `authors` (11 folders), `modVersion` and `version` (2 each), `tags` (15), `pzversion` (10), `texts`, `supports` and `zoomX/Y/S` (1 each) [#0815/C/snapshot].
+The `id` key is the only handle a mod has: `Mods=` entries, `require=` entries and `ChooseGameInfo.Mods` are all keyed on it, and `loadMod` prints `loading <id>` from it, with 229 of the 230 installed folders counted on 2026-09-11 declaring one [#0808/M/n=1].
 Every experiment mod of this library ships exactly `name`, `id`, `description`, `modversion` and `versionMin` and nothing else, and across 8 mods declaring 9 ids every addressable id resolved and every mod loaded [#0816/M/n=1].
 
 The `mod.info` key census over 230 installed mod folders is 17 recognised keys with their per-key folder counts and what the loader does with each, counting every `mod.info` found under each folder including out-of-chain copies, as of 2026-09-11 [#0805/C/snapshot].
@@ -45,7 +45,7 @@ The `mod.info` key census over 230 installed mod folders is 17 recognised keys w
 | `icon` | 203 | display only |
 | `require` | 135 | **load order + availability.** `loadModAndRequired` loads every required id first; `Mod.isAvailableRequired` makes the *requiring* mod unavailable if any required id is missing or version-gated |
 | `author` / `authors` | 176 / 11 | `author` is parsed and displayed; **`authors` is not a key** — 11 folders ship it and it is dropped |
-| `versionMin` | 154 | **a hard gate, not a note.** `Mod.isAvailableSelf` returns false when `versionMin` is above the build, `getAvailableModDetails` then returns null, and the mod reports as `required mod "<id>" not found` |
+| `versionMin` | 154 | **a hard gate, not a note.** `Mod.isAvailableSelf` returns false when `versionMin > build`, `getAvailableModDetails` then returns null, and the mod reports as `required mod "<id>" not found` |
 | `versionMax` | 13 | same gate, other end |
 | `category` | 108 | display only (mod selector filter) |
 | `modversion` | 45 | display only. **`modVersion` and `version` are not keys** — 2 folders each, dropped |
@@ -91,13 +91,13 @@ Those lines are per-copied-mod baseline noise that every profile run carries, an
 A mod folder's id comes from exactly one file: `readModInfoAux` builds `<versionDir>/mod.info` and parses it if it exists, otherwise `<commonDir>/mod.info`, otherwise warns that it cannot find a `mod.info` in the mod dir and returns null — never the folder name, never the mod root, and never two files [#0802/C/C-only].
 `ChooseGameInfo.getModDetails` resolves an id through a negative cache, then a positive cache, then the id-to-dir map; when the map has no entry it lists every mod folder and reads one `mod.info` per folder, registering one id per folder and returning as soon as the id matches [#0873/C/C-only].
 On a duplicate id across two mod folders `ChooseGameInfo.readModInfo` keeps whichever folder comes earlier in the discovered folder list, so a local `mods/` copy never beats a workshop copy of the same id [#0875/C/C-only].
-The two caches sitting in front of that scan remember a miss as well as a hit, so an id that failed to resolve once is not re-scanned later in the same session [#0873/C/C-only].
+The two caches sitting in front of that scan remember a miss as well as a hit, so an id the negative cache already holds is answered from it rather than by another pass over the folder list [#0873/C/C-only].
 Nothing anywhere in the chain consults the folder's name, which is why a folder whose name has drifted is still addressable and an id that has drifted is not.
 Id resolution runs as a pass that completes before any mod loads: the failing boot's `not found` warning precedes the first `loading` line, and the succeeding boot's `loading` lines follow `Mods=` order exactly [#0820/M/n=2].
 For the requested-id lookup only the version dir's `mod.info` id is addressable: with the same folder and `Mods=` naming the `common/mod.info` id the boot printed `required mod "TKX_LoaderCommon" not found`, zero `loading` and `overrides` lines, all three probe globals unresolved and no media tree walked [#0819/M/n=1].
 That boot carried both `mod.info` files, so it measures addressability rather than the engine's id map, and a folder whose only `mod.info` is `common/mod.info` is untested as a purpose-built probe.
 A mod folder whose only `mod.info` is `common/mod.info` does nonetheless boot in normal play: one corpus mod printed three `loading AutoCook` lines, one on the server and two on the client [#0821/M/n=1].
-Four installed mods carry `common/mod.info` as their only `mod.info`, and three of them rest on the jar fallback alone: their `versionDir` names a directory that ships no `mod.info`, so `readModInfoAux` takes `<commonDir>/mod.info` [#0822/C/snapshot].
+Four installed mods, counted over the corpus on 2026-09-11, carry `common/mod.info` as their only `mod.info`, and three of them rest on the jar fallback alone: their `versionDir` names a directory that ships no `mod.info`, so `readModInfoAux` takes `<commonDir>/mod.info` [#0822/C/snapshot].
 `ZomboidFileSystem.searchForModInfo` is dead code, referenced by nothing but its own recursive call [#1220/C/C-only].
 It is unreachable on `42.20.4`: a whole-jar scan finds its name only in `ZomboidFileSystem`'s constant pool, a per-method reference sweep finds the only call inside the method itself, and even its leaf branch delegates to `ChooseGameInfo.readModInfo` on the file's parent [#0803/C/C-only].
 Its body, read for the record, returns the first `mod.info` whose id matches the requested id in directory-listing order rather than simply the first `mod.info` found, and every file it passes over is still registered into the id-to-directory map and appended to the caller's list [#1374].
@@ -217,14 +217,14 @@ The converse trap is the one that catches mods that believe a directory name is 
 ## Walls and bounds
 <a id="walls"></a>
 
-The drifted-folder boots cannot separate a folder that was never scanned from one that was scanned and rejected: the id-named folder was absent in both boots, and a mod that does not load already entails that its media roots were never mapped [#0838/M/n=2].
-The measured merge rule is bounded to a mod whose version directory resolves to a tree that ships colliding files; a version directory that is absent, empty or ships only files `common/` lacks is untested [#1663/M/n=1].
+The drifted-folder boots cannot separate a folder that was never scanned from one that was scanned and rejected: the id-named folder was absent in both boots, and a mod that does not load already entails that its media roots were never mapped, so the reading is corroboration only [#0838/M/n=2].
+The measured merge rule is bounded to a mod whose version directory resolves to a tree that ships colliding files; a version directory that is absent, empty or ships only files `common/` lacks is untested, and every prediction landed on its branch, so no falsifier was approached and the rule is validated as consistent with the mirror's rather than stress-tested [#1663/M/n=1].
 The mirror says each version folder has its own `mod.info`, true as a permission and misleading as a plan: only one of a mod folder's `mod.info` files is ever read, so shipping two with different ids makes the other id unaddressable [#0881/M].
 The mirror says the minor version is dropped, so `42.1.5` is treated as `42.1`; this repository's own `mod_lint.version_dirs` tuple-parses a three-part folder name and ranks `42.20.1` above `42.20` as itself [#1659].
 Neither of those two readings is the engine's, which scores the two names identically — see [the version dir](#version-dirs).
-The corpus holds two three-part version folders, both named `42.20.1` and both a copy of one mod, and on both the tool reading and the mirror reading choose the same folder, so nothing observable differs today [#1660/C/snapshot].
+The corpus holds two three-part version folders, both named `42.20.1` and both a Skill Recovery Journal copy, and on both the tool reading and the mirror reading choose the same folder, so nothing observable differs today [#1660/C/snapshot].
 A mod shipping both `42.20` and `42.20.1` would separate those two readings and none does, so the disagreement is latent rather than live [#1660/C/snapshot].
-Everything measured about the `mod.info` chain, the version dirs and the folder name was measured on the dedicated-server path, and the client's own mod-list call site has never booted — that bound is [an open row](#open).
+Everything measured about the `mod.info` chain, the version dirs and the folder name was measured on the dedicated-server path, and the client's own mod-list call site, which reaches `getModDetails` from the selector rather than from `loadMods`, has never booted — the question that bound leaves is [an open row](#open) [#0877/C/C-only/open].
 Every arm of the checksum gate is a code reading, which makes the packaging rule that rests on it a rule with no measurement behind it — see [the checksum gate](#checksum-gate).
 Not covered: the mod selector's own resolution path in the client UI, the Steam subscription and upload surface, the `pack=` and `tiledef=` asset pipelines, the animation and Lua arms of the checksum gate beyond the flag count the bypass clears, and any Lua route by which a mod reads the running build number — this library read none of them.
 
@@ -268,5 +268,5 @@ Not covered: the mod selector's own resolution path in the client UI, the Steam 
 - [`../facts/other-mods/autocook.md`](../facts/other-mods/autocook.md) — the `common/`-only corpus mod that supplies the measured merge rule.
 - [`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md) — the client-only mod whose translation tree the server still loads.
 - [`../areas/packaging.md`](../areas/packaging.md) — what this mod does about its own layout and the checksum gate.
-- [`../reference/experiments.md`](../reference/experiments.md) — `X5`, `X16`, `X21` and `X22`, the experiments the open rows name.
+- [`../reference/experiments.md`](../reference/experiments.md) — `X5` and `X21`, the experiments the open rows name.
 - [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows this page cites by id.
