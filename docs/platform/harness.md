@@ -19,7 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the instrument eve
 - Read the server error list rather than quoting its count: the pattern is applied to every non-indented server line that no baseline-noise pattern whitelists, so the number is a classifier's output and not a fault count [#1764].
 - Keep `24 × speed / day_minutes` at or below about eight game-minutes per wall second: at the fixture's ninety-minute day and a multiplier of thirty, which is exactly eight, three runs recorded 7.99, 7.99 and 8.00 world-minutes per wall second with exactly one tick per game minute [#1814/M/n=3].
 - Make every timing step a predicate with a budget and never a sleep: the world-ready barrier is a harness handshake rather than a timer [#1845].
-- Record the measured window rather than the requested sleep, and name a snapshot tag by its measured offset rather than its intended one: one driver's window field read 10.0 seconds where the reads' own wall stamps give 12.54, and its tag named for three seconds after a transmit actually opened 7.58 seconds after it [#1708/M/n=1].
+- Record the measured window rather than the requested sleep, and name a snapshot tag by its measured offset rather than its intended one: one driver's window field read 10.0 seconds where the reads' own wall stamps give 12.54, and its tag named for three seconds after a transmit actually opened 7.58 seconds after it, so that driver's own window and tag keys are do-not-cite for exactly this reason [#1708/M/n=1].
 - Copy every piece of measured evidence a document cites into a tracked per-run artifact folder as JSON, kept byte-identical: the full run directories with their logs stay local and untracked [#1705].
 - Treat a scenario verdict as the test and the evaluator and a clean session together: exit code 0 needs the harness test's own pass, the evaluator's agreement and no environment fault, each of which turns the result into a failure naming its count, marks the timeline and lands in the faults block of both the report and the committed artifact [#1785].
 - Read a run's exit code as a statement about the whole session and not only about the test: it is 0 only when the session had zero non-baseline server errors and no client Lua errors, the three fault reasons being a mod the game did not load, a non-baseline server error line and a client that logged a Lua error [#1702].
@@ -42,7 +42,7 @@ The orchestrator ships seven commands — provision, boot, attach, run, scenario
 | `doctor` | cold-start checks before booting anything: stray PZ `java.exe` (reported, never killed), ports 27261/27262/27015 free, fixture present and build-matched, workshop index reachable, pytest available; exit 1 on a FAIL | seconds |
 
 The orchestrator's own folder-to-id rename is the one harness behaviour that needs a regression subject chosen deliberately rather than taken from whatever is installed.
-A subject whose folder and declared id differ by a whole prefix answers both halves of the question, because the run's mods listing names it and a wrong name would fail to load [#1657].
+The subject the verdict picks is the long-term-preservation mod, whose folder `SKITTLE_LongTermPreservation4220` and declared id `LongTermPreservation4220` differ by a whole prefix: that answers both halves of the question, because the run's mods listing names it and a wrong name would fail to load [#1657].
 A case-only subject answers one half and cannot reach the other: the filesystem is case-preserving, so the listing after a run names whichever spelling the installer wrote, while path lookup is case-insensitive, so the mod loads either way and the run proves nothing about whether the rename is required [#1656].
 
 <a id="profiles"></a>
@@ -61,7 +61,7 @@ The schema is fourteen documented rows over seven tables — the fixture, a desc
 | `description` | string | `""` | Free text, carried into `report.json["profile"]` so an artifact says what the run was for |
 | `[[mods]]` `id` | string | — | The name that goes in `Mods=`. A harness id resolves to the repo folder; any other bare id is looked up in the workshop index |
 | `[[mods]]` `workshop_id` | string | — | Resolve from `<WORKSHOP_DIR>/<item>/mods/*`. An item shipping more than one mod needs `id` as well, and the error lists what it ships |
-| `[[mods]]` `path` | string | — | An explicit folder — absolute, or relative to the repo root. This is how a mod that is not on the workshop goes under test |
+| `[[mods]]` `path` | string | — | An explicit folder — absolute, or relative to the repo root. This is how a mod that is not on the workshop (ours, once it exists) goes under test |
 | `[[mods]]` `copy` | bool | `true` | `false` = named in `Mods=` and placed **nowhere**: the missing-mod path, reproducible with nothing installed. Needs an explicit `id`, since there is no `mod.info` to read the name from |
 | `[sandbox]` | table | `{}` | Top-level `SandboxVars` options merged into the restored fixture's file. A key that is not a settable option of *that* file is a hard error before boot, with the three closest names — **except on a machine that has no fixture cache**: the caches are gitignored per-machine blobs, so on a fresh clone `check_sandbox` finds no file, checks nothing and a typo survives to the run (which cannot start anyway, the fixture being unprovisioned) |
 | `[server]` `timeout` | int | `420` | Seconds to wait for `*** SERVER STARTED ****` |
@@ -75,7 +75,7 @@ The schema is fourteen documented rows over seven tables — the fixture, a desc
 The profile's own fixture wins over a typed fixture flag, and the conflict is printed rather than swallowed, because it is the fixture the sandbox keys were validated against; every other typed flag beats the profile, which beats the module defaults, and because the argument parser cannot report whether a flag was typed, the two entry points clear five flags' defaults to a null and that null is what not given means [#1797].
 The profile mark is the run's first timeline entry, before anything is launched, and it is the only place the log says that a later not-found mod was intended; the report then grows a profile block carrying what was asked for and what it resolved to, and a verification block, while a profile-less run's report keeps exactly its old keys [#1801/M/n=1].
 A profile cannot be attached to a running session: the attach command builds a server stub and never installs mods, so the flag is rejected by the argument parser rather than accepted and ignored [#1812].
-A profile naming a mod by the workshop item rather than by the mod id is a defect whenever the item ships more than one mod, and at least one installed item ships three [#1617/C/snapshot].
+A profile naming a mod by the workshop item rather than by the mod id is a defect whenever the item ships more than one mod, and at least one installed item shipped three in the 2026-09-10 corpus snapshot [#1617/C/snapshot].
 
 A mod entry resolves through six branches in a fixed order, and every miss raises before a process starts, naming the paths it looked at; for the folder and workshop branches the id comes from the folder's own mod-info file, with no id pointing the reader at the layout lint and a disagreeing id quoted both ways rather than picked between [#1799].
 
@@ -103,7 +103,7 @@ A profile run's mod-folder metadata is not an answer to the folder-rename questi
 The workshop-items line stays empty: the seeding code writes it from a list no profile fills, and the numeric id survives in the report as provenance only — what makes a run re-subscribable, not what makes it load; clients log a missing-setting warning for the empty value and it is baselined noise [#1805/C/C-only].
 Both sides are seeded from one source map, the client defaulting its mod sources and skip list to the server's so the two cannot drift, and after the acceptance run both the server's and the client's mods directories held exactly the two mods with the client's own enabled-mods file naming both in the same order [#1823/M/n=1].
 
-Four things close the missing-mod hole, in cost order, and only the third of them proves effect rather than arrival [#1818].
+Four things close the missing-mod hole, in cost order, and only the third of them proves effect rather than arrival; the design states the first net's cost and the other three costs are read off where each net sits in the run [#1818].
 
 | Net | What it does | What it costs |
 |---|---|---|
@@ -142,13 +142,13 @@ Of the 189 four-space assignment lines five are nested-table openers, which is w
 
 Five sandbox options carry the nutrition work, with the fixture's value and what each does; all five are settable from a profile and only the day length has been exercised by one [#1809/C/C-only].
 
-| Key | Fixture value | Why it matters |
-|---|---|---|
-| `Nutrition` | `true` | The one sandbox option gating nutrition at all, and it gates only `Nutrition.update()` |
-| `FoodRotSpeed` | `3` | Enum 1–5 scaling `age += ΔgameHours × FoodRotSpeed / 24` (3 = ×1.0, the default) |
-| `FridgeFactor` | `3` | Enum 1–6 scaling aging inside a *powered* fridge or freezer (3 = ×0.2, the default) |
-| `StatsDecrease` | `3` | Enum 1–5 on hunger and thirst drain (3 = ×1.0, the default) |
-| `DayLength` | `4` | How long a game day lasts in real minutes (`1` = 15 min, `4` = 1 h 30 m) — the clock every timed scenario is fitted against |
+| Key | Fixture value | Why it matters | Where it is documented |
+|---|---|---|---|
+| `Nutrition` | `true` | The one sandbox option gating nutrition at all, and it gates only `Nutrition.update()` | [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md) |
+| `FoodRotSpeed` | `3` | Enum 1–5 scaling `age += ΔgameHours × FoodRotSpeed / 24` (3 = ×1.0, the default) | [`../facts/food-item-model.md`](../facts/food-item-model.md) |
+| `FridgeFactor` | `3` | Enum 1–6 scaling aging inside a *powered* fridge or freezer (3 = ×0.2, the default) | [`../facts/food-item-model.md`](../facts/food-item-model.md) |
+| `StatsDecrease` | `3` | Enum 1–5 on hunger and thirst drain (3 = ×1.0, the default) | [`../facts/body-and-weight.md`](../facts/body-and-weight.md) |
+| `DayLength` | `4` | How long a game day lasts in real minutes (`1` = 15 min, `4` = 1 h 30 m) — the clock every timed scenario is fitted against | [the cadence ceiling](#cadence) |
 
 <a id="driven-client"></a>
 ### The driven client
@@ -172,7 +172,7 @@ The command bus is a pair of files in each side's cachedir: the orchestrator wri
 One protocol runs on both sides, carried by the same reader and writer pair, and the dedicated server polls the command file from the tick event and from the once-a-minute one [#1717].
 A result is written as one complete JSON object and that completeness is the ready signal, because the file writer's extension allowlist rules out marker files; the orchestrator collects them into the run report and a bus helper blocks on one, a partial write never parsing [#1761].
 The command bus answers with no client attached: a server ping answered in 1.51 seconds, the version control read 1, and all ten echo checks passed, over two boots on the server alone [#0933/M/n=2].
-The live registration set is 56 distinct names over 64 registration calls, eight names being registered twice, once per side; the generated table counts the sites and not the names [#1235/C/snapshot].
+The live registration set, counted on 2026-09-17, is 56 distinct names over 64 registration calls, eight names being registered twice, once per side; the generated table counts the sites and not the names [#1235/C/snapshot].
 That table — one row per name and side, with the arguments, the reply keys and the purpose of each — is [`harness-commands.md`](../reference/harness-commands.md), and it is generated from the registration sites rather than written by hand.
 
 The test layer answers three bus commands: a sorted list of registered names, a run command whose acknowledgement is one of started, unknown, already running with the running name, or a player-resolution error — and only started leads to a result document — and a status reply carrying the running flag, name, clock, due minute, side and sample count [#1722].
@@ -220,7 +220,7 @@ A container reading is presence and within-side stability only: the leading type
 <a id="probes"></a>
 ### Probe design
 
-For anything the server owns the client's reply is a mirror, so a probe's first decision is which side to ask.
+For anything the server owns the client's reply is a mirror, so a probe's first decision is which side to ask [#1826].
 Aging must be read on the server: an age probe on a client measures the client's stale copy, which is the finding rather than the number [#0359/M/n=1].
 Every intake probe is server-side because a multiplayer client never calls the drink routine at all: the net timed action skips the Lua completion on a client, so a client-side probe would read the once-a-second mirror rather than the store [#1729].
 A server-only script census is the whole answer, because a client census would count the same load-time objects [#0647/C/inference].
@@ -293,6 +293,7 @@ An interrupt is caught rather than propagated, tearing down as usual and still w
 A scenario runs the Python evaluator before it restores the time multiplier, because the evaluator is scenario code that can raise and a raise must not skip the speed restore, which sits in a cleanup block so a world change cannot outlive the run [#1704].
 
 ```
+boot and attach the subject client
 test.list on the chosen side
 RCON settimespeed <N>
 test.run <name> <user>
@@ -341,11 +342,11 @@ The elapsed field on the server-started and client-ready marks is the second: it
 The bus number format is a rendering property of the artifact and not a measurement one: integers still take the integral branch with its own cut-off, no key changes name or type, and the current path round-trips a non-integral double exactly where the older one quantised every float to six decimals and made cross-side comparison at the last bit impossible [#1754].
 No bit-level claim may rest on an artifact written before the harness commit `291f977`: the encoder rendered every non-integral number at six decimals, so a cross-side comparison from such a run is equal at the bus's resolution and never bit-equal, and the one-in-a-million tolerance the graded rows used is exactly the encoder's own resolution [#1965].
 Two teardown sessions were measured under that limit, so every float on their bus arrived rounded and no row from either artifact supports a bit-level claim; those two artifacts stay exactly as recorded, and every desync graded on them is whole-value, far above the comparison tolerance [#1435/M/n=1].
-The three scenario artifacts predate the thirst sample column and the evaluator's dead-subject verdict, neither of which has been exercised live, while the scenario's own die-early abort was in place for the second and third runs and never fired [#0171/C/snapshot].
+The three scenario artifacts, as the tree stood on 2026-09-10, predate the thirst sample column and the evaluator's dead-subject verdict, neither of which has been exercised live, while the scenario's own die-early abort was in place for the second and third runs and never fired [#0171/C/snapshot].
 The measured lifecycle run's artifact carries no fixture or build key of its own, which is known only from the fixture file [#0385/M/one-fixture].
 
 A driver is frozen once its run is committed, so a do-not-cite key is a permanent property of the artifact rather than something to be fixed.
-The drink probe's overall match flag is not evidence about the fluid arithmetic: all 54 fields of the primary drift-free reading matched and the three flagged rows are the outer corroboration bracket's calorie row on each drink, short of its band by 0.002 to 0.008 kcal because the band assumes an exactly proportional idle burn [#0661/M/n=3].
+The drink probe's overall match flag is not evidence about the fluid arithmetic: all 54 fields of the primary drift-free reading matched and the three flagged rows are the outer corroboration bracket's calorie row on each drink, short of its band by 0.002 to 0.008 kcal because the band assumes an exactly proportional idle burn — cite the `atomic` and `container` blocks instead of the overall flag or the mismatched-field count [#0661/M/n=3].
 The craft comparison's overall match flag is not evidence about the scanner: both run-time misses are the same field on two recipes, at 10 against 9 and at 3 against 2, and neither side lost an input [#0761/M/n=10].
 The salad observation flags are not evidence that the expansion is wrong: the expected number they were written against is the wrong number, and an expansion that reproduces the game must include the two drainables [#0765/M/n=2].
 
@@ -365,7 +366,7 @@ Every store the drink probe read was taken through the server bus, with the clie
 <a id="experiment-contract"></a>
 ### The standing contract for a named experiment
 
-A named experiment inherits the same contract whatever it measures: an existing profile or a new one in the acceptance profile's shape, a driver in the house shape with its provenance keys and its client-first paired reads, verification rows that are certain to pass if the mod loaded at all and never the reading that is the point of the session, and a gate placed on the side whose loading is not itself the question.
+A named experiment inherits the same contract whatever it measures: an existing profile or a new one in the acceptance profile's shape, a driver in the house shape with its provenance keys and its client-first paired reads, verification rows that are certain to pass if the mod loaded at all and never the reading that is the point of the session, and a gate placed on the side whose loading is not itself the question [T98.1].
 The specs themselves — one row per experiment, with the profile, the driver, the reading and the cost — are [`experiments.md`](../reference/experiments.md).
 
 The remaining experiment programme is a ceiling and not a commitment: about 42 hours is what the named experiments would cost if every one of them were run, and every corpus count inside it is a dated snapshot [#1973].
@@ -409,7 +410,7 @@ Three legs of the experiment map are stated but never measured: modData persiste
 
 The design's own risk register names seven risks and what is done about each [#1844].
 
-| Risk | What is done about it |
+| Risk | Mitigation |
 |---|---|
 | Client windows on a desktop (no true headless) | `-nosound -novoip`, small window (normal rendering — `-safemode` is ~7× slower to load); Windows session must stay unlocked; CI runs L0–L2 only |
 | First-join UI screens (account, character) | Golden fixture with pre-created accounts/characters — screens never render; lua fallback for the rare reset |
@@ -427,17 +428,17 @@ Not covered: a release client, a Linux dedicated-server image or any continuous-
 - Which `mod.info` copy this build reads first when the harness mod ships two identical files, one at the mod root and one in the version folder, is open — settled by a boot that names each copy's own id in turn against a purpose-built folder [#1770/C/C-only/open].
 - Which sandbox options survive a restore is open: only the day length has been set by a profile on a restored world and measured to apply, and the other four keys the mod work cares about are unexercised — settled by a profiled run that sets each of them on a restored world and reads it back [#1830/C/C-only/open].
 - That a fresh server started with a partial sandbox options file and filled the rest with defaults, so overrides need no template, is unverified: its only evidence is a provision whose artifact folder was never committed; re-measure by seeding a two-key options file on a fresh provision and reading the rewritten file back [#1860/M/uncommitted/unverified].
-- That safe mode was the root cause of the long join stall, animal definition loading stalling on the model loads it makes, is unverified: its only evidence is a spike whose artifact folder was never committed; re-measure by booting the same fixture client with and without the flag and timing the load phase from the client's own log [#1858/M/uncommitted/unverified].
+- That safe mode was the root cause of the eighty-second join stall — animal definition loading stalling on the five body-model loads it makes per animal type, the phase dropping from 81 seconds to under a second once the flag was removed and the whole launch-to-world time from about 148 seconds to 32 — is unverified: its only evidence is a spike whose artifact folder was never committed; re-measure by booting the same fixture client with and without the flag and timing the load phase from the client's own log [#1858/M/uncommitted/unverified].
 - That a bus reply carrying the null flag is inconclusive rather than a miss — it says the lookup route answered nothing at all, where a miss returns the key itself — is unverified: the guard has never fired across the two sessions that could have triggered it, so it is untriggered rather than confirmed; re-measure by a session that ships a key known to return a Java null [#0931/M/n=2/unverified].
 - That the round-trip witness takes about a second, the client sending to the server, the server's client-command handler answering with its own view and the client comparing and writing a result file, is unverified: its only evidence is a spike whose artifact folder was never committed; re-measure by a committed session that brackets one round trip on both sides [#1873/M/uncommitted/unverified].
-- The first-ever cold server start figures — the time to the server-started banner, the honoured remote console, the graceful shutdown, the clean-boot error-shaped line count and the cache footprint — are unverified: their only evidence is a spike whose artifact folder was never committed; re-measure by a committed provision on a fresh cachedir [#1847/M/uncommitted/unverified].
-- That a hardened repeat on a fresh cachedir starts in about a quarter of that time, the difference being a router-detection wait and cache warmth, is unverified for the same reason; re-measure by a committed boot with plug-and-play off [#1849/M/uncommitted/unverified].
-- That a warm start from a restored fixture world is no slower than a fresh one, and that loading its map metadata echoes the vanilla duplicate-room defect as four baselined lines, is unverified for the same reason; re-measure by a committed restore boot [#1851/M/uncommitted/unverified].
-- The restored-fixture phase breakdown to a ready player — server start, harness load, Lua reload, world load, bus round trip and the total including a hold — is unverified for the same reason; re-measure by a committed run with a hold on the same fixture [#1862/M/uncommitted/unverified].
-- That the time-multiplier getter is scaled rather than the argument that was passed, so the two sides' raw getter values are never comparable and only ratios are, is unverified: its only evidence is two spike runs whose artifact folder was never committed; re-measure by reading the getter on both sides either side of one multiplier change in a committed session [#1869/M/uncommitted/unverified].
-- That speed must always be changed through the broadcast admin command, a server-only call having left the client accelerated and the two clocks drifting apart within a minute, is unverified for the same reason; re-measure by a committed session that restores the multiplier both ways [#1870/M/uncommitted/unverified].
-- That a multiplier change re-syncs the client clock while steady state does not, the client's clock running backwards for the next window after a restore and ending a fraction of a game-hour apart, is unverified for the same reason; re-measure in the same committed session [#1871/M/uncommitted/unverified].
-- That the two sides' small calorie disagreement in the witness spike is the sampling skew of a once-a-second mirror against the measured drain is unverified: its only evidence is two spike runs whose artifact folder was never committed, and the drain rate it is read against comes from a later measurement; re-measure by a committed paired read at a known drain [#1875/M/uncommitted/unverified].
+- The first-ever cold server start figures — the server-started banner reached in 57.2 seconds over 1 856 log lines including first-run world and database creation, a remote console honoured from a pre-seeded configuration file and surviving the server's rewrite, a graceful shutdown on standard input with exit code 0 in eight seconds, 57 error-shaped lines in three signatures on a clean vanilla boot and a whole cache footprint of fifteen megabytes — are unverified: their only evidence is a spike whose artifact folder was never committed; re-measure by a committed provision on a fresh cachedir [#1847/M/uncommitted/unverified].
+- That a hardened repeat on a fresh cachedir starts in 13.6 seconds, the twelve-second difference being a router-detection wait removed by turning plug-and-play off and the rest cache warmth, so the realistic per-run boot cost is about fifteen seconds and not a minute, is unverified for the same reason; re-measure by a committed boot with plug-and-play off [#1849/M/uncommitted/unverified].
+- That a warm start from a restored fixture world takes 13.4 seconds, no slower than a fresh world, and that loading its map metadata echoes the vanilla duplicate-room defect as four invalid-room lines that are baselined, is unverified for the same reason; re-measure by a committed restore boot [#1851/M/uncommitted/unverified].
+- The restored-fixture phase breakdown — a ready player at 34.3 seconds and a total of 68.6 including a ten-second hold, with the server started at 13.4, the harness loaded 8.6 seconds after client launch, the Lua reload at 15.2, the world loaded at 32.3 and a bus round trip of 0.3 seconds — is unverified for the same reason; re-measure by a committed run with a hold on the same fixture [#1862/M/uncommitted/unverified].
+- That the time-multiplier getter is scaled rather than the argument that was passed, so the two sides' raw getter values are never comparable and only ratios are — the server's ratio reading 29.9 against the client's 143.8 — is unverified: its only evidence is two spike runs whose artifact folder was never committed; re-measure by reading the getter on both sides either side of one multiplier change in a committed session [#1869/M/uncommitted/unverified].
+- That speed must always be changed through the broadcast admin command, restoring with a server-only call having left the client accelerated while the two clocks drifted 3.4 game-hours apart within a minute with no correction, is unverified for the same reason; re-measure by a committed session that restores the multiplier both ways [#1870/M/uncommitted/unverified].
+- That a multiplier change re-syncs the client clock while steady state does not — after a restore the client's clock running backwards for the next window at minus 5.6 game-minutes per wall second, snapping back onto the server's clock it had overtaken, and ending 0.13 game-hours apart — is unverified for the same reason; re-measure in the same committed session [#1871/M/uncommitted/unverified].
+- That the two sides' 0.2-calorie disagreement in the witness spike is the sampling skew of a once-a-second mirror against a drain of about a quarter of a calorie a second is unverified: its only evidence is two spike runs whose artifact folder was never committed, and the drain rate it is read against comes from a later measurement; re-measure by a committed paired read at a known drain [#1875/M/uncommitted/unverified].
 - Decision: whether the mod's own timed tests run on the fixture's day length or on a shorter one — the cadence ceiling binds the day length and the speed multiplier together, so the two cannot be chosen independently, and the ceiling's own upper bound is open (see Walls and bounds).
 - Decision: whether the mod's own load-time checks are written as verification probes or as scenarios — a verification expectation is a substring of the dumped acknowledgement and cannot express absence or a numeric comparison, while a scenario carries a Python evaluator (see the profile section).
 - Decision: which side every test the mod ships reads its state from — the server's reading is the measurement for everything the server owns and the client's is a mirror, so a test that reads the client is testing the mirror (see probe design).
@@ -460,9 +461,9 @@ Not covered: a release client, a Linux dedicated-server image or any continuous-
 The doctor command is the cold-start gate before any boot: it reports a stray game Java process and never kills it, checks three ports are free, checks the fixture is present and build-matched, checks the workshop index is reachable and that the test runner is available, and exits 1 on a failure [#1703].
 The port check counts only listening and established local sockets, so a lingering closed connection does not false-fail it [#1703].
 
-What a reading costs depends on which of five layers it needs, and every layer's failure is a hard fail of the run [#1842].
+What a reading costs depends on which of five layers it needs, and every layer's failure is a hard fail of the run; the layer names and what each is are the design's own, while the last column reads back the cost and host it annotates each layer with [#1842].
 
-| Layer | What it is | Where it runs |
+| Layer | What it is | Cost and host |
 |---|---|---|
 | L0 static | lint and parse checks: `luacheck`/LuaLS stubs, the script-DSL parse, the `mod.info` and layout lint | seconds, CI |
 | L1 boot | the dedicated server boots with the mod to a clean console — no lua errors, no checksum or definition mismatch — and shuts down cleanly | ~1 min, CI |
@@ -487,4 +488,5 @@ What a reading costs depends on which of five layers it needs, and every layer's
 - [`jar-research.md`](jar-research.md) — the other instrument: how a claim is read from the decompiled jar.
 - [`nutrition-core.md`](../facts/nutrition-core.md) — what the two three-day scenarios measured.
 - [`testing-your-mod.md`](../areas/testing-your-mod.md) — how a mod under development is put under this harness.
+- [`lessons.md`](lessons.md#testing-discipline) — the observation rules a driver works under, among them that a grep limit is a break and not a window.
 - [`wall-map.md`](../reference/wall-map.md) — the capability map whose evidence limits this page's walls carry.
