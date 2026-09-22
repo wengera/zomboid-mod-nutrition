@@ -324,6 +324,13 @@ import patterns from there.
   the provisional tags on the named pages and re-canonicalises them; prints every change and any provisional
   tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row.
 
+- `page_lint.py` — `python tools/page_lint.py <page.md>… [--partial] [--register TSV] [--cap N]`. The page
+  contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
+  line, the section set and order per layer, the `<a id>` anchors against the register's owners, the
+  rule-line shape, the closing `Not covered:` line, the narrative markers, the prose cap (400; 500 on the four
+  pages the spec allows; under 150 warns), worked-example paths, relative links and their anchors
+  (`--partial` skips a page not written yet). Prints the prose count per page; exit 1 on a finding.
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
