@@ -89,11 +89,11 @@ add	T7.3	<child two>	C	jar:…	none	settled		mechanism	docs/vanilla/x.md § Y	fa
 ```bash
 cd /c/Users/Angus/repos/project_zomboid
 python tools/claims_check.py --partial --allow-provisional     # 0 findings (warnings are rule 4: aim for 0)
-python tools/claims_check.py --fix-tags                        # then re-run the line above
+# never run --fix-tags: it rewrites every tagged file in the tree and races the writers beside you; write each suffix by hand from --view (grade, bound token, status: [#0417/M/n=1], [#0417/C/open]; nothing for a settled C row with no bound) and let rule 2 tell you which one is stale
 python tools/page_lint.py docs/<layer>/<page>.md --partial     # 0 findings; note the prose count it prints
 ```
 
-Rule 1 fails when a row owned by your page is not tagged on it; rule 2 fails on a tag the register lacks or a stale suffix; the page lint fails on a missing section, a wrong section order, a missing anchor, a `## Rules` or `## Key facts` line without a tag, a `## Walls and bounds` without a closing `Not covered:` line, a narrative marker, a prose count over the cap, a `## Worked examples` path that does not exist, or a link whose target page or anchor is missing. Fix every finding; never commit with one. `python -m pytest tools/tests -q` is not needed for a page (no code).
+Rule 1 fails when a row owned by your page is not tagged on it; rule 2 fails on a tag the register lacks or a stale suffix (fix the suffix by hand; the controller runs `--fix-tags` once at the wave close); a link to a page a later phase writes (`../areas/…`, `../reference/wall-map.md`, `../reference/datasets.md`, `../reference/tools.md`) is allowed — `--partial` skips it now and the Phase 4 close resolves it; the page lint fails on a missing section, a wrong section order, a missing anchor, a `## Rules` or `## Key facts` line without a tag, a `## Walls and bounds` without a closing `Not covered:` line, a narrative marker, a prose count over the cap, a `## Worked examples` path that does not exist, or a link whose target page or anchor is missing. Fix every finding; never commit with one. `python -m pytest tools/tests -q` is not needed for a page (no code).
 
 ## 8. Commit
 
