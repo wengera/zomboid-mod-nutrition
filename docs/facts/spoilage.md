@@ -5,7 +5,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what moves a food 
 
 - `age` advances by the elapsed world hours times `getFoodRotSpeed()` divided by 24, so at the default rot speed of 1.0 one game day adds about one day of age [#0220/M/n=1].
 - A frozen item multiplies its elapsed aging hours by 0.0, so aging stops rather than slowing [#0222/M/n=1].
-- An item in a powered fridge or freezer multiplies its elapsed aging hours by `getFridgeFactor()` [#0223/C/C-only], whose sandbox default is 0.2 [#0224/C/C-only].
+- An item in a powered fridge or freezer multiplies its elapsed aging hours by `getFridgeFactor()`, whose sandbox default is 0.2 [#0223/C/C-only, #0224/C/C-only].
 - `freezingTime` rises by the elapsed world hours divided by 4 and times 100, so an item reaches 100 per cent frozen in four game hours [#0229].
 - `offAge` and `offAgeMax` default to 1000000000, the never-ages sentinel, at which `canAge()` is false [#0221].
 - Not one sealed can declares `DaysFresh`, so a sealed can never rots and is never removed [#0308/C/snapshot].
@@ -200,17 +200,17 @@ A mod can rewrite a crafted instance from that same cooked hook [#1154/M/n=1].
 
 With `ReplaceOnRotten` set, `updateRotting` ages the item every tick and, once it is rotten, creates the replacement, copies `age` and the condition states onto it and destroys the original [#0243].
 
-All 8 `ReplaceOnRotten` links conserve every macro — `Base.SugarBeetSyrupPot` to `Base.SugarBeetSugarPot` and the seven ice-cream melts are zero in all four macros and in hunger and thirst, with only `thirstChange` in `absentMacros` [#0755/C/arith.].
+All 8 `ReplaceOnRotten` links in the 2026-09-10 scan conserve every macro — `Base.SugarBeetSyrupPot` to `Base.SugarBeetSugarPot` and the seven ice-cream melts are zero in all four macros and in hunger and thirst, with only `thirstChange` in `absentMacros` [#0755/C/arith.].
 
 Every `ReplaceOnRotten` swap is server-only: `Food.updateRotting` returns immediately on a client and it is the method that both ages the item and creates the replacement, so a client never performs one of the 8 melts [#0757].
 
-110 `ReplaceOnUse` and 42 `ReplaceOnDeplete` links join the 3 cooked and 8 rotten ones; 12 of the 163 carry a delta, counting `Base.Pumpkin` to `Base.PumpkinSeed`, and the other 151 are refused by name — 114 as `no-nutrition` and 37 as `not-in-dataset` [#0756/C/snapshot].
+In the 2026-09-10 scan, 110 `ReplaceOnUse` and 42 `ReplaceOnDeplete` links join the 3 cooked and 8 rotten ones; 12 of the 163 carry a delta, counting `Base.Pumpkin` to `Base.PumpkinSeed`, and the other 151 are refused by name — 114 as `no-nutrition` and 37 as `not-in-dataset` [#0756/C/snapshot].
 
 The cooked links and what a type change moves belong to [cooking-and-recipes.md](cooking-and-recipes.md#type-change).
 The rotten and use links are stated here, because those two are driven by the rot path and the eat path this page owns.
 The refusals above are not all the same kind of refusal, and the dataset says which is which.
 
-37 `ReplaceOn*` links in the food scan do not resolve to a scanned id — 23 `ReplaceOnUse` and 14 `ReplaceOnDeplete` over 16 distinct targets, 15 of them real items outside the food set and one defined nowhere at all [#0607/C/snapshot].
+37 `ReplaceOn*` links in the 2026-09-10 food scan do not resolve to a scanned id — 23 `ReplaceOnUse` and 14 `ReplaceOnDeplete` over 16 distinct targets, 15 of them real items outside the food set and one defined nowhere at all [#0607/C/snapshot].
 
 `items/food.txt:6531` `item HotDrinkRed` writes `ReplaceOnUse = Base.MugRed`, no `item` block anywhere under `media/scripts` defines `MugRed`, and `EN/ItemName.json:3069` still carries its name — `42.20.4` translates an item it never defines [#0653/C/snapshot].
 
@@ -259,10 +259,10 @@ It is why a driver that polls an item faster than the tick reads the same value 
 <a id="measured"></a>
 ### The measured arms
 
-Every reading below is one item, `Base.Steak`, on the fixture default, with client-side age writes on a server-spawned item so that nothing is aging while the getters are read.
+Every reading below is one item, `Base.Steak`, on the fixture default, with client-side age writes on a server-spawned item.
 Each row names the bound it was taken under and the run it rests on.
 
-| Reading | Measured | Bound | Run | |
+| Reading | Measured | Bound | Run | Claim |
 |---|---|---|---|---|
 | the four macros against age | 220 kcal, 0 carbohydrates, 9.35 lipids and 31.62 proteins, identical at ages 0, 1.9, 2.1 and 4.1 | one item at four ages, read at the getter | `exp02-20260910-030433` | [#0246/M/n=1] |
 | stored hunger against read-time hunger | stored -0.4 at every age; read-time -0.4 fresh, -0.307692 stale, -0.181818 rotten | one item at four ages, client-side age writes | `exp02-20260910-030433` | [#0247/M/n=1] |
@@ -282,7 +282,7 @@ Four sandbox options reach the aging path.
 Two of them are multipliers, one bounds the grace period after the power fails, and one decides whether rotten food is ever deleted.
 Each reaches the aging code through a getter rather than being read as an option, so the enum mapping below is what a mod actually needs.
 
-| Option | Values | Default | What it does | |
+| Option | Values | Default | What it does | Claim |
 |---|---|---|---|---|
 | `FoodRotSpeed` | enum 1 to 5, mapping to 1.7, 1.4, 1.0, 0.7 and 0.4 | 3, and therefore 1.0 | multiplies the elapsed hours the age formula converts into days | [#0225/C/C-only] |
 | `FridgeFactor` | enum 1 to 6, mapping to 0.4, 0.3, 0.2, 0.1, 0.03 and 0.0 | 3, and therefore 0.2 | multiplies the elapsed hours inside a powered fridge or freezer | [#0224/C/C-only] |
@@ -307,7 +307,7 @@ A mod that assumes spoiled items eventually vanish is assuming a sandbox no pres
 - The mirror says that in the freezer compartment the spoil rate is reduced by 25 times; no factor of 25 appears anywhere on the aging path — a freezer applies the same fridge factor as a fridge while the item is unfrozen, and once `freezingTime` reaches 100 the rate is 0.0, stopped rather than divided [#0362/M/n=1].
 - The mirror says the spoil rate is reduced by 5 times in a fridge, repeated as increasing spoil time by 5 times; that is true only as the default — the fridge factor is a sandbox enum of 0.4, 0.3, 0.2, 0.1, 0.03 and 0.0 whose default 3 is that five times, it applies only on a powered grid, the `Outbreak` preset ships 4 for ten times, and unpowered food reverts to the full rate once the electricity-shutoff window closes [#0363/C/C-only].
 - The mirror says that as food begins to rot its effects become more negative, which reads as blanket; rot leaves all four macros untouched — 220 kcal, 0 carbohydrates, 9.35 lipids and 31.62 proteins identical at ages 0, 1.9, 2.1 and 4.1 — and only the read-time hunger, stress, boredom, unhappiness and the sickness roll degrade, while thirst and endurance have no rot branch at all [#0364/M/n=1].
-- The mirror's fridges table reads as a refrigeration roster; it groups tiles by category rather than by container type and carries no spoilage, power or temperature figure, and because the fridge test returns false for anything already a freezer, the cooled shelves and display counter tiles are its likeliest false positives [#0368/C/C-only].
+- The mirror's fridges table reads as a refrigeration roster and its own banner says tiles were removed during B42 unstable; it groups tiles by category rather than by container type and carries no spoilage, power or temperature figure, and because the fridge test returns false for anything already a freezer, the cooled shelves and display counter tiles are its likeliest false positives [#0368/C/C-only].
 - The container multipliers, the thaw rate and the single-player path are code readings with no measurement behind them; each is stated as such where it appears and carried in full under Open.
 
 Not covered: the compost and grab-world-item routes into aging were never opened and no single-player process was ever booted, no fridge, freezer, generator or stove object was ever placed, so every container multiplier here is a code reading, and no wiki mirror exists for spoilage itself — the four mirror rows above are the whole of the secondary corroboration this page has.
