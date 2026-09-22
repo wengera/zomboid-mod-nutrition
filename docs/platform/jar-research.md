@@ -4,7 +4,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how a question abo
 ## Rules
 
 - Read every jar answer as a statement about one build: each reading here was taken from one jar of build `42.20.4`, and a patch moves class names, offsets and line numbers together [#1968, #1969].
-- Re-locate a class, a member and an offset by re-reading the jar before you quote them: the dump in front of you is the only thing that ties a name to an offset and a line, and a name that was printed somewhere else is a lookup key rather than an address [#1972].
+- Re-locate a class, a member and an offset by re-reading the jar before you quote them: a name printed somewhere else is a lookup key and not an address, a class is not always at the bare name a traceback prints, and a wrong path answers like an empty class rather than like an error [#1972].
 - Write a jar cite as `Class.method @off L<n>`: a member list proves only that the member is declared, so the offset and the line are the part of the cite that says the body was read [#1970].
 - Prove an absence with a jar-wide grep before calling a member missing: the scan reads the raw bytes of every class entry, so a no-class-contains-that-literal answer is the absence of the identifier in any form, which is the strongest absence this toolchain can prove [#1968].
 - Treat a grep hit as a byte match and never as a call site: the scan hits method names, field names, class names, descriptors and string literals alike, so a hit list is the candidate set a reading narrows [#1968].
@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how a question abo
 - Find callers by grepping the method name and then scanning each hit class's own methods for the call: the toolchain has no reverse-caller index, so a caller set is a grep result narrowed by hand [#1971].
 - Escape the dollar sign of an inner class: the wrapper passes its argument on through the shell [#1972].
 - Resolve a class's package path before dumping it: a class is not always at the bare name a traceback prints, and a wrong path answers like an empty class rather than like an error [#1972].
-- Test a class against the exposer's class set before planning any Lua call on it, whatever the jar declares about the member: the exposer's constant-pool class set is the exposure test, and a class outside it is unreachable from Kahlua even when the engine's own code calls it — see [reaching a Java member](lua-platform.md#java-members) [#0963/C/C-only, #1740/C/C-only].
+- Test a class against the exposer's class set before planning any Lua call on it, whatever the jar declares about the member: membership in that constant-pool class set is the exposure test, and what it costs a mod is [reaching a Java member](lua-platform.md#java-members) [#0963/C/C-only, #1740/C/C-only].
 - Hand a question about timing to a live run rather than to the jar: a carrier can be read out of the bytecode while its cadence stays unread, as the multiplayer inventory re-send is [#0376/C/C-only/open].
 - Say which side a gated path runs on only after a run has touched it: a side gate is readable in the bytecode while whether the path ever runs on a given host is not, as the aging call is [#0374/C/C-only/open].
 
@@ -33,20 +33,20 @@ There is no decompiler anywhere in the chain: the reader parses the constant poo
 That is also why a claim is phrased as an instruction sequence — a branch, a constant, a call, an order — rather than as a paraphrase of source that nobody in this library has seen.
 
 Two things about the environment are worth knowing before the first command, because both bite before anything is read.
-The wrapper exists precisely so that neither the interpreter nor the jar path has to be spelled out at the call site, and a shell that resolves a different interpreter than the workspace expects will fail a subcommand before it opens the jar at all.
+The wrapper exists precisely so that neither the interpreter nor the jar path has to be spelled out at the call site, and it hard-codes the interpreter as an absolute path, so a shell that resolves a different interpreter breaks the direct call to the disassembler rather than the wrapper.
 The workspace's own notes are where those paths are kept current, and they are read first rather than reconstructed from a command line in an old document.
 
 `grep <string>` is the locator, and it is the only subcommand that can answer a question about the whole jar at once.
 The disassembler's grep is a byte scan over the raw bytes of every class entry in the jar, about 23.7 thousand of them, so it hits method names, field names, class names, descriptors and string literals alike — which makes a no-class-contains-that-literal answer a jar-wide absence of the identifier in any form, the strongest absence this toolchain can prove [#1968].
 What it does not tell you is where in the class the string sits, or whether the hit is a declaration, a call, a field type or a constant: a hit is a class to open next.
-The grep result cap defaults to `--max 60` and no reading in these notes hit it [#1969].
+The grep result cap defaults to `--max 60` and no reading in [the method notes](../reference/jar-method-notes.md) hit it [#1969].
 A cap that is reached truncates the list without saying so, so a list quoted as exhaustive is exhaustive only when the cap stood clear of it.
 A full-jar grep walks the whole class list and takes a while, and that cost is exactly what buys the exhaustiveness.
 A common word is narrowed by piping the hit list into a second filter on the package path rather than by raising the cap, because a cap raised to fit a noisy search hides nothing and proves nothing.
 A distinctive identifier is worth searching for in preference to a plausible one: the search is over bytes, so a long unique name answers cleanly where a short common one returns half the engine.
 
 `methods <class>` is the existence check: it prints the class's declared members with their descriptors.
-The methods subcommand lists every declared method regardless of access, discarding the access flags as it walks the method table — so the access flags in these notes were read with a scratch parser over the same constant-pool module, because private is the difference between a wall and a door for Lua [#1970].
+The methods subcommand lists every declared method regardless of access, discarding the access flags as it walks the method table — so the access flags in [the method notes](../reference/jar-method-notes.md) were read with a scratch parser over the same constant-pool module, because private is the difference between a wall and a door for Lua [#1970].
 What the member list does not tell you is the access, the body, the line numbers or which of several overloads the caller you care about uses.
 It is still the first thing to run on a class, because a member that is not in the list does not exist on this build and no amount of dumping will find it.
 The descriptors are what separate overloads, and they are the part of the listing a later dump is selected with, so a member list is read for its shapes and not only for its names.
@@ -85,6 +85,7 @@ Where a note and the jar disagree, the jar is the claim and the note is the thin
 An absence is the one kind of answer this toolchain can make exhaustive, and it is the answer most of this library's walls rest on.
 Because the scan reads raw bytes rather than a parsed class model, an absence is an absence of the identifier in every form a class file can hold it in — a declaration, a call, a descriptor or a string constant — and that is what makes it quotable as a wall rather than as a failure to find something [#1968].
 An absence claim therefore names the exact string that was searched for, because what a reader reproduces is the search and not the conclusion.
+It also depends on the hit list behind it having stood clear of the result cap, since a truncated list reads exactly like an exhaustive one [#1969].
 It is bounded in the other direction as well: the identifier is absent, which is not the same as the capability being absent under a name nobody guessed.
 
 Access is a second read, and it is the read that decides whether a member is a door.
@@ -117,7 +118,7 @@ The same trap closes on a class that was moved between builds: the old path stil
 
 Whether Lua can reach a Java member is not answered by the member list, and it is not answered by the access flags either.
 It is answered by the exposer: the class set the runtime registers for Kahlua is dumped and the class is either in that set or it is not.
-The item-user class exists on the jar but is not in the exposer's constant-pool class set, where the inventory item and the item container both are, so Kahlua cannot reach it — which is the exposure test for any Java class a mod wants to call ([#0963/C/C-only], [reaching a Java member](lua-platform.md#java-members)).
+The worked case is the item-user class, which the jar declares and the exposer's class set does not hold, and it is stated at [reaching a Java member](lua-platform.md#java-members) ([#0963/C/C-only]).
 The test is strict membership over the classes the exposer registers, which is why a class the engine's own code calls can still be out of reach from a mod [#1740/C/C-only].
 
 The dump this test runs against is the whole exposer, read end to end rather than searched, and the readings taken against it are collected in [the jar method notes](../reference/jar-method-notes.md).
@@ -137,8 +138,8 @@ Applying it is then a membership question against that dump, which is why an exp
 A class that clears the test is a candidate for a live check rather than a settled answer, and the next step for it is a call through [the harness](harness.md#probes) rather than another dump.
 
 ## Walls and bounds
-
 <a id="walls"></a>
+
 A jar read settles what a method does when it is called, and never how often it is called: a cadence is read as a constant or inferred from a caller, and only a run says whether the path runs at all on a given host.
 A carrier read out of the bytecode can be exhaustive while its cadence stays entirely unread, which is the shape the multiplayer inventory re-send is in [#0376/C/C-only/open].
 A side gate is readable — the branch that tests for a server or a client is right there in the dump — but which process actually reaches the gate on a real session is a question for a run, as the aging call shows [#0374/C/C-only/open].
@@ -156,8 +157,8 @@ A reading says what this build ships and never what the game will ship, so neith
 Not covered: this library never attached a debugger or an instrumentation agent to the running game, never read decompiled Java source rather than bytecode, and never opened the jar's sound, tile and sprite, vehicle, world-map or save-format classes at all — every Java claim here comes from a static bytecode read of the classes the nutrition and modding questions happened to reach.
 
 ## Open
-
 <a id="open"></a>
+
 This page's own rows are settled readings of the toolchain, so the open items below are the jar questions the library left unread; each is owned by the page that would answer it.
 
 - The spice branch of the evolved summation is unread: the overload set was never dumped — settled by dumping the overloads ([#0381/C/C-only/open], [areas/open-questions.md](../areas/open-questions.md)).
@@ -166,7 +167,6 @@ This page's own rows are settled readings of the toolchain, so the open items be
 - The multiplayer inventory re-send cadence is unread: the carrier is read and its cadence is not — settled by a timed client read rather than another dump ([#0376/C/C-only/open], [platform/mp-model.md#open](mp-model.md#open)).
 - The eat packet's recipient list is unresolved: the send call's target was not settled from the bytecode — settled by watching both clients of one eat ([#0144/C/open], [platform/mp-model.md#open](mp-model.md#open)).
 - Whether food ages at all on a single-player host is unsettled from the code alone: the side gate is readable and the question is not — settled by a single-player run ([#0374/C/C-only/open], [facts/spoilage.md#open](../facts/spoilage.md#open)).
-- The access flags this library quotes are re-readable rather than recorded: the parser that read them is session-scoped, so checking one means rebuilding that parser from the toolchain's own modules first [#1970].
 - A decision the design must take: the Java half of this library is reproducible only with a toolchain that is not in this repository, and either an equivalent reader is vendored or every re-check stays a manual step in a separate workspace.
 - A decision the design must take: an exposure verdict is a per-build answer, so the mod either pins the build it claims to support or re-runs the exposure test when the install patches.
 
@@ -223,8 +223,8 @@ jar:jar-wide grep loadstring                an absence proved over every class e
 ```
 
 ## Procedure
-
 <a id="procedure"></a>
+
 The disassembler is not part of this repository: it is a local workspace on this machine, its own `WORKSPACE.md` is the file to read before running anything there, and the jar and the game install it reads are read-only.
 The steps below turn a question into a claim that can be cited; each one is skipped only when the question does not need it, never because a previous answer looked obvious.
 
