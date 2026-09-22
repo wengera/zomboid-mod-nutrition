@@ -12,7 +12,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a food item i
 - A non-custom-weight food's displayed weight is derived from its remaining hunger fraction, so rewriting `HungerChange` moves the weight unless `CustomWeight = true` opts the item out [#1214/C/C-only].
 - The item-level script-key reference is 114 distinct keys: 78 over the 722 `base:food` blocks and 82 over the 150 `base:drainable` blocks, 46 of them shared [#0215/C/snapshot].
 - `Item.InstanceItem(String)` divides `HungerChange` and `ThirstChange` by 100 on the way onto the instance and inverts `CantBeFrozen` into a can-be-frozen setter [#0323].
-- Of the four poison keys the loader recognises, only `PoisonPower` is carried by anything that ships, on four `food.txt` blocks and no drainable block [#0317/C/snapshot].
+- Of the four poison keys the loader recognises, only `PoisonPower` is carried by anything that ships, on four `food.txt` blocks and no drainable block, counted 2026-09-10 [#0317/C/snapshot].
 - Eating a poisoned item adds `poisonPower * f` to POISON and `poisonPower * f / 6` to PAIN, halved with Iron Gut unless the item type is `Bleach` and doubled with Weak Stomach [#0050].
 - The game's own `ScriptManager` counts 722 `base:food` items, 150 `base:drainable` items and 61 fluid definitions, each equal to the shipped scan on two independent boots [#0608/M/n=2].
 - Ten spot-checked items match the live game field for field: 182 fields compared, 170 matched, 12 not applicable, 0 mismatched [#0609/M/n=10].
@@ -103,122 +103,122 @@ The division is why a script's hunger figure and an instance's never read the sa
 
 **The item-level script-key reference.** 114 distinct keys — 78 over the 722 `base:food` blocks of `food.txt` and 82 over the 150 `base:drainable` blocks of `drainable.txt`, 46 of them shared — each row giving the key's type, its occurrence count in each file, its Java field or getter and its runtime effect, read on `42.20.4`; the occurrence counts are a dated read of the two generated script files, 2026-09-10 [#0215/C/snapshot].
 
-| Key | Type | food | drain | Java field / getter | Runtime effect | Ev |
-|---|---|---:|---:|---|---|---|
-| `ActivatedItem` | bool | 0 | 17 | `Item.activatedItem` `@6608 L2551` | item can be switched on (torches) | C |
-| `AlcoholPower` | float | 0 | 2 | `Item.alcoholPower` `@7763 L2639` | drunkenness per use | C |
-| `AnimalFeedType` | string | 22 | 2 | `Item.animalFeedType` `@1412 L2104` | which animals will eat it | C |
-| `AttachmentType` | string | 0 | 2 | `Item.attachmentType` `@9468 L2774` | hotbar/attachment slot | C |
-| `BadCold` | bool | 61 | 0 | `Item.badCold` → `Food.setBadCold` (`InstanceItem @843 L1588`) | `getUnhappyChange +2` when `isBadCold && isCookable && isCooked && heat < 1.3` | C |
-| `BadInMicrowave` | bool | 115 | 0 | `Item.badInMicrowave` → `Food.setBadInMicrowave` (`InstanceItem @825 L1586`) | on the cook transition in a `microwave` container: `unhappyChange = 5`, `boredomChange = 5`, `cookedInMicrowave = 1` (`Food.update @719–@752 L472–L475`) | C |
-| `BoredomChange` | int | 5 | 0 | `Item.boredomChange` `@1553 L2116` | BOREDOM at eat time; +30 frozen / +20 burnt / +10 stale / +20 rotten (slice 01) | C |
-| `Calories` | float | 597 | 2 | `Item.calories` → `Food.setCalories` (`InstanceItem @772 L1581`) | stored unscaled; **no state modifier at any age** — the only nutrition modifier in the game is `Eat`'s ÷5 for burnt (slice 01) | C+M |
-| `CannedFood` | bool | 41 | 0 | `Item.cannedFood` — **no getter, not copied to the instance** | read only off the *script* object: `InventoryItem.getStringItemType()`, `ItemPickerJava.getLootType`, and the sealed-can spawn-rot exemption (`ItemPickerJava.rotItem @17–@28 L2247`) | C |
-| `CanStoreWater` | bool | 0 | 1 | `Item.canStoreWater` `@361 L2003` | legacy water flag (B42 uses fluid components) | C |
-| `cantBeConsolided` | bool | 0 | 54 | `Item.cantBeConsolided` `@9190 L2752` | blocks the "consolidate" UI action | C |
-| `CantBeFrozen` | bool | 51 | 2 | `Item.cantBeFrozen` → **inverted** `Food.setCanBeFrozen(!v)` (`InstanceItem @790–@804 L1583`) | gates `isFreezing()`/`isThawing()`; an item that cannot be frozen never accumulates `freezingTime` and so never gets the ×0 age rate | C |
-| `CantEat` | bool | 96 | 1 | `Item.cantEat` / `isCantEat()` | hides the Eat option; with `CannedFood` it also exempts the item from the 75 % spawn-rot roll | C |
-| `Carbohydrates` | float | 597 | 2 | `Item.carbohydrates` → `Food.setCarbohydrates` | as `Calories` | C+M |
-| `ChanceToSpawnDamaged` | int | 0 | 3 | `Item.chanceToSpawnDamaged` `@6311 L2529` | loot condition roll | C |
-| `ColorBlue` | int | 4 | 0 | `Item.colorBlue` `@8951 L2733` | item tint; copied onto an evolved-recipe result (`EvolvedRecipe.addItem @51–@107 L274–L277`) | C |
-| `ColorGreen` | int | 4 | 0 | `Item.colorGreen` `@8927 L2731` | as `ColorBlue` | C |
-| `ColorRed` | int | 4 | 0 | `Item.colorRed` `@8903 L2729` | as `ColorBlue` | C |
-| `ConditionLowerStandard` | float | 0 | 1 | `Item.conditionLowerNormal` `@9348 L2764` | wear rate | C |
-| `ConditionMax` | int | 12 | 10 | `Item.conditionMax` `@3607 L2309` | durability ceiling | C |
-| `ConsolidateOption` | string | 0 | 16 | `Item.consolidateOption` `@9516 L2778` | consolidate menu label | C |
-| `CookingSound` | string | 198 | 1 | `Item.cookingSound` `@1484 L2110` → `Food.getCookingSound()` | played while `shouldPlayCookingSound()` (client only, `@0–@7 L595–L597`) | C |
-| `CustomContextMenu` | string | 33 | 4 | `Item.customContextMenu` `@6983 L2579` | menu label override (`Drink` etc.) | C |
-| `CustomEatSound` | string | 119 | 1 | `Item.customEatSound` `@7631 L2629` | eat SFX | C |
-| `DangerousUncooked` | bool | 81 | 0 | `Item.dangerousUncooked` → `Food.setbDangerousUncooked` | 75 % poison roll (5 % with tag `EGG`) in `BodyDamage.JustAteFood @555–@676 L669–L696` (slice 01); propagates onto an evolved-recipe result and blocks a raw ingredient when the result is not cookable | C |
-| `DaysFresh` | int | 497 | 0 | `Item.daysFresh` → `Food.setOffAge` (`InstanceItem @601–@604 L1562`) | the **stale** threshold in days; absent ⇒ `offAge` stays `1000000000` | C+M |
-| `DaysTotallyRotten` | int | 497 | 0 | `Item.daysTotallyRotten` → `Food.setOffAgeMax` (`InstanceItem @610–@613 L1563`) | the **rotten** threshold in days; `1000000000` is the never-ages sentinel (`Food.canAge @1–@7 L2577`) | C+M |
-| `DisappearOnUse` | bool | 0 | 18 | `Item.disappearOnUse` `@5791 L2487` | destroy at 0 uses | C |
-| `DisplayCategory` | string | 722 | 150 | `Item.displayCategory` `@6794 L2565` | inventory grouping | C |
-| `DoubleClickRecipe` | string | 4 | 12 | `Item.doubleClickRecipe` `@11065 L2928` | recipe fired by double-click | C |
-| `Eattime` | int | 17 | 2 | `Item.eatTime` `@11686 L2982` | hard override of `maxTime` when `> 0` (`ISEatFoodAction.lua:247`, slice 01) | C |
-| `EatType` | string | 266 | 7 | `Item.eatType` `@10470 L2884` | animation set; `popcan` forces `maxTime = 160` (slice 01) | C |
-| `enduranceChange` | float | 1 | 0 | `Item.enduranceChange` `@1247 L2090` | ENDURANCE at eat time; ÷3 burnt, ÷2 stale, ×2 cooked, **no rot branch** (slice 01) | C |
-| `EquipSound` | string | 0 | 1 | `Item.equipSound` `@2641 L2216` | SFX | C |
-| `EvolvedRecipe` | list of `Name:use`, optionally suffixed `Cooked` after a pipe | 372 | 2 | `Item.evolvedRecipe` + `Item.itemRecipeMap` `@9916–@10247 L2820–L2865` | registers the item as an ingredient; `use` is hunger **points** (÷100 at `EvolvedRecipe.addItem @518–@545 L333`). Parse-time aliases: `RicePot`/`RicePan` → `Rice`, `PastaPot`/`PastaPan` → `Pasta`, `Roasted Vegetables` → `Stir fry` | C+M |
-| `EvolvedRecipeName` | string | 172 | 1 | `Item.evolvedRecipeName` `@9131 L2747` + `Translator.setDefaultItemEvolvedRecipeName` | the name this ingredient contributes to the generated dish name | C |
-| `fatigueChange` | float | 3 | 1 | `Item.fatigueChange` `@1223 L2088` | FATIGUE at eat time; a negative value also transfers to an evolved-recipe dish by `share` | C |
-| `FillFromDispenserSound` | string | 0 | 1 | `Item.fillFromDispenserSound` `@7655 L2631` | SFX | C |
-| `FillFromTapSound` | string | 0 | 1 | `Item.fillFromTapSound` `@7709 L2635` | SFX | C |
-| `FireFuelRatio` | float | 0 | 5 | `Item.fireFuelRatio` `@11761 L2988` | burn value as fuel | C |
-| `FishingLure` | bool | 41 | 0 | `Item.fishingLure` `@7115 L2589` | usable as bait | C |
-| `fluReduction` | int | 2 | 0 | `Item.fluReduction` `@8783 L2719` | `bodyDamage.coldReduction += fluReduction × f` (slice 01); summed for herbal-tea ingredients | C |
-| `FoodSicknessChange` | int | 8 | 4 | `Item.foodSicknessChange` `@8807 L2721` | cures FOOD_SICKNESS + POISON when negative, gated by the edible-buff timer (slice 01); capped at 12 on a herbal-tea dish | C |
-| `FoodType` | string | 362 | 2 | `Item.foodType` `@415 L2007` | evolved-recipe grouping in the context menu (`ISInventoryPaneContextMenu.getEvoItemCategories`) | C |
-| `GoodHot` | bool | 148 | 0 | `Item.goodHot` → `Food.setGoodHot` (`InstanceItem @834 L1587`) | `getUnhappyChange −2` when `isGoodHot && isCookable && isCooked && heat > 1.3` | C |
-| `HerbalistType` | string | 18 | 0 | `Item.herbalistType` `@5659 L2477` | herbalist knowledge gating | C |
-| `HungerChange` | float | 606 | 2 | `Item.hungerChange` `@1175 L2084` → `Food.hungChange` **÷ 100** (`InstanceItem @546–@595`) | the item's raw hunger relief; also seeds `baseHunger`. Never modified by age — the state ladder lives in `getHungerChange()` | C+M |
-| `Icon` | string | 720 | 150 | `Item.icon` (+ `itemName`, `normalTexture`, `worldTextureName`) `@532 L2017` | textures | C |
-| `IconColorMask` | string | 0 | 3 | `Item.iconColorMask` `@11113 L2932` | icon tinting mask | C |
-| `IconsForTexture` | list | 2 | 0 | `Item.iconsForTexture` `@10714 L2900` | per-texture icon set | C |
-| `InverseCoughProbability` | int | 6 | 1 | `Item.inverseCoughProbability` `@8831 L2723` | cold-cough suppression | C |
-| `InverseCoughProbabilitySmoker` | int | 6 | 1 | `Item.inverseCoughProbabilitySmoker` `@8855 L2725` | as above, smoker trait | C |
-| `IsCookable` | bool | 251 | 1 | `Item.isCookable` → `Food.setIsCookable` (`InstanceItem @619–@622 L1564`) | gates the whole cooking block (`Food.update @49–@60 L372`); **cleared to false** when a burnt item starts a fire (`@1147 L517`); an evolved dish gets it from the recipe's `Cookable` key instead | C+M |
-| `IsDung` | bool | 10 | 0 | `Item.isDung` `@3114 L2265` | fertiliser | C |
-| `IsWaterSource` | **dead key (not read by 42.20.4)** | 0 | 1 | — | no branch in `Item.DoParam`; the literal exists only in the *script generator* (`generation/builders/ItemBuilder.class`). Lands in `defaultModData`. Only on `item TestWaterMug` (`drainable.txt:83`) | C |
-| `ItemType` | string | 722 | 150 | `Item.itemType` (`ItemType.get(ResourceLocation.of(v))`) `@307 L1999` | picks the `InventoryItem` subclass in `InstanceItem` | C |
-| `KeepOnDeplete` | bool, **inverted** | 0 | 18 | `Item.disappearOnUse = !v` `@9241–@9266 L2756` | alias of `DisappearOnUse` with the sense flipped | C |
-| `LightDistance` | int | 0 | 17 | `Item.lightDistance` `@6716 L2559` | torch | C |
-| `LightStrength` | float | 0 | 17 | `Item.lightStrength` `@6662 L2555` | torch | C |
-| `Lipids` | float | 597 | 2 | `Item.lipids` → `Food.setLipids` | as `Calories`; the wiki's "Fat" column | C+M |
-| `MakeUpType` | string | 0 | 3 | `Item.makeUpType` `@9492 L2776` | cosmetics | C |
-| `MechanicsItem` | bool | 0 | 3 | `Item.mechanicsItem` `@996 L2067` | loot category | C |
-| `Medical` | bool | 1 | 7 | `Item.medical` `@948 L2063` | loot category | C |
-| `MetalValue` | float | 0 | 30 | `Item.metalValue` `@256 L1995` | scrapping | C |
-| `MinutesToBurn` | int | 246 | 0 | `Item.minutesToBurn` → `Food.setMinutesToBurn` | `cookingTime > minutesToBurn` ⇒ `burnt = true; setCooked(false)` (`Food.update @894–@913 L494–L496`) | C+M |
-| `MinutesToCook` | int | 249 | 0 | `Item.minutesToCook` → `Food.setMinutesToCook` (`InstanceItem @628–@632 L1565`) | `cookingTime > minutesToCook` ⇒ cook transition (`Food.update @186–@221 L397`) | C+M |
-| `OnCooked` | string | 11 | 0 | `Item.onCooked` → `Food.setOnCooked` (`InstanceItem @702–@705 L1573`) | Lua / `RecipeCodeOnCooked` hook on the cook transition (`Food.update @627–@718 L462–L467`); dotted names resolve as `table.field`. Only two values ship: `RecipeCodeOnCooked.cannedFood` (10 blocks) and `RecipeCodeOnCooked.nameCakePrep` (1) | C |
-| `OnCreate` | string | 21 | 4 | `Item.luaCreate` `@11017 L2924` | Lua hook at instantiation | C |
-| `OnEat` | string | 19 | 4 | `Item.onEat` → `Food.setOnEat` | Lua hook fired inside `Eat`, after nutrition and before consume (slice 01) | C |
-| `OpeningRecipe` | string | 18 | 0 | `Item.openingRecipe` `@11041 L2926` | the recipe that opens a sealed can | C |
-| `Packaged` | bool | 129 | 2 | `Item.packaged` → `Food.setPackaged` (`InstanceItem @781–@787 L1582`) | pure marker: `Food.isPackaged() @0 L2147` has **no Java caller and no vanilla Lua reader** | C |
-| `painReduction` | int | 2 | 0 | `Item.painReduction` `@8879 L2727` | `bodyDamage.painReduction += painReduction × f` (slice 01) | C |
-| `PoisonPower` | int | 4 | 0 | `Item.poisonPower` `@463–@477 L2011` → `Food.poisonPower` (`InstanceItem @531`) | POISON/PAIN at eat time (slice 01); drains **whole** into an evolved-recipe result (`EvolvedRecipe.addPoison @67–@107 L535–L539`) | C |
-| `PourType` | string | 49 | 23 | `Item.pourType` `@10494 L2886` | pour animation/SFX | C |
-| `primaryAnimMask` | string | 0 | 18 | `Item.primaryAnimMask` `@10302 L2870` | animation | C |
-| `Proteins` | float | 597 | 2 | `Item.proteins` → `Food.setProteins` | as `Calories` | C+M |
-| `RainFactor` | **dead key (not read by 42.20.4)** | 0 | 1 | — | no branch in `Item.DoParam`; recognised only by `FluidContainerScript` **inside a `component FluidContainer { … }` block**, never at item top level. Only on `item TestWaterMug` (`drainable.txt:84`) | C |
-| `ReduceInfectionPower` | float | 3 | 0 | `Item.reduceInfectionPower` `@7817 L2643` | wound-infection reduction; summed for herbal-tea ingredients (`EvolvedRecipe.addItem @679–@692 L344`) | C |
-| `RemoveNegativeEffectOnCooked` | bool | 5 | 0 | `Item.removeNegativeEffectOnCooked` → `Food.setRemoveNegativeEffectOnCooked` | on the cook transition zeroes `thirstChange`, `unhappyChange`, `boredomChange` **if positive** — permanent, one-shot, nutrition untouched (`Food.update @578–@626 L451–L459`) | C |
-| `RemoveUnhappinessWhenCooked` | bool | 36 | 0 | `Item.removeUnhappinessWhenCooked` `@1628 L2122` | on the cook transition `setUnhappyChange(0)` (`Food.update @418–@432 L424-L425`) — read off the **script** object, not the instance | C |
-| `ReplaceInPrimaryHand` | string | 0 | 6 | `Item.replaceInPrimaryHand` `@10422 L2880` | held-model swap | C |
-| `ReplaceInSecondHand` | string | 0 | 6 | `Item.replaceInSecondHand` `@10398 L2878` | held-model swap | C |
-| `ReplaceOnCooked` | list (`;`) | 3 | 0 | `Item.replaceOnCooked` `@6950 L2577` → `Food.setReplaceOnCooked` | on the cook transition **and only if not rotten**: each name is `AddItem`-ed with `copyConditionStatesFrom(this)`, the original is removed and `Food.update` **returns** — the item is replaced, never flagged cooked (`@224–@412 L398–L421`) | C |
-| `ReplaceOnDeplete` | string | 0 | 42 | `Item.replaceOnDeplete` `@1652 L2124` | drainable → empty container | C |
-| `ReplaceOnExtinguish` | string | 0 | 6 | `Item.replaceOnExtinguish` `@1673 L2126` | torch burnout | C |
-| `ReplaceOnRotten` | string | 8 | 0 | `Item.replaceOnRotten` → `Food.setReplaceOnRotten` (`InstanceItem @807–@813 L1584`) | makes `updateRotting` age the item **every tick** and, once rotten, create the replacement, copy `age` + condition states and destroy the original (`Food.updateRotting @20–@226 L662–L694`) | C |
-| `ReplaceOnUse` | string | 110 | 0 | `Item.replaceOnUse` `@3724 L2319` (instance `@657`) | leftover container when consumed; also the weight floor in `Eat`'s custom-weight branch (slice 01) | C |
-| `RequireInHandOrInventory` | list | 6 | 1 | `Item.requireInHandOrInventory` `@4961 L2423` | use precondition | C |
-| `Researchablerecipes` | list | 1 | 26 | `Item.addResearchableRecipe(…)` `@9651 L2792` | learnable-by-research recipes | C |
-| `ScaleWorldIcon` | float | 0 | 1 | `Item.scaleWorldIcon` `@1044 L2071` | world sprite scale | C |
-| `secondaryAnimMask` | string | 0 | 18 | `Item.secondaryAnimMask` `@10326 L2872` | animation | C |
-| `SoundMap` | list → HashMap | 40 | 34 | `Item.soundMap` `@5396 L2455` | per-event sound overrides | C |
-| `Spice` | bool | 109 | 2 | `Item.spice` → `Food.setSpice` (`InstanceItem @675–@678 L1570`) | takes the ingredient down the **spice branch** of `EvolvedRecipe.addItem @582–@775 L336–L359`: no hunger and no macro transfer, does not count against `MaxItems`, once per dish (`isSpiceAdded`) | C |
-| `StaticModel` | string | 532 | 73 | `Item.staticModel` `@10254 L2866` | model | C |
-| `StaticModelsByIndex` | list | 2 | 0 | `Item.staticModelsByIndex` `@11305 L2950` | per-index models | C |
-| `StressChange` | int | 28 | 3 | `Item.stressChange` `@1578 L2118` | STRESS at eat time; ÷4 burnt, ÷1.3 stale, ÷2 rotten, ×1.3 cooked (slice 01) | C |
-| `SurvivalGear` | bool | 2 | 22 | `Item.survivalGear` `@1020 L2069` | loot category | C |
-| `Tags` | list (`;`) → `Set<ItemTag>` | 401 | 118 | `Item.tags` (`ItemTag.get(ResourceLocation.of(v))`) `@4243 L2362` | drives `ALREADY_COOKED`, `NO_COOKING_XP`, `DRIED_FOOD`, `HERBAL_TEA`, `BOOSTS_FLU_RECOVERY`, `ALCOHOLIC_BEVERAGE`, `GOOD_FROZEN`, `EGG` — read in `Food.update`, `EvolvedRecipe.addItem` and `JustAteFood` | C |
-| `ThirstChange` | float | 112 | 0 | `Item.thirstChange` `@1199 L2086` → `Food.thirstChange` **÷ 100** | THIRST at eat time; ÷5 burnt beats ÷2 cooked and **rot does not touch it** (slice 01) | C |
-| `ticksPerEquipUse` | int | 0 | 3 | `Item.ticksPerEquipUse` `@5764 L2485` | drain rate while equipped | C |
-| `Tooltip` | string | 61 | 49 | `Item.tooltip` `@6770 L2563` | translated tooltip key | C |
-| `TorchCone` | bool | 0 | 17 | `Item.torchCone` `@6689 L2557` | light shape | C |
-| `TorchDot` | float | 0 | 6 | `Item.torchDot` `@5962 L2501` | light shape | C |
-| `UnequipSound` | string | 0 | 1 | `Item.unequipSound` `@2662 L2218` | SFX | C |
-| `UnhappyChange` | int | 292 | 2 | `Item.unhappyChange` `@1603 L2120` | UNHAPPINESS at eat time; +30 frozen / +20 burnt / +10 stale / +20 rotten, ±2 for `BadCold`/`GoodHot` (slice 01) | C |
-| `UseDelta` | float | 2 | 146 | `Item.useDelta` `@5938 L2499` | fraction consumed per use | C |
-| `UseWhileEquipped` | bool | 2 | 134 | `Item.useWhileEquipped` `@5710 L2481` | drains while held | C |
-| `UseWhileUnequipped` | bool | 0 | 1 | `Item.useWhileUnequipped` `@5737 L2483` | drains in the bag | C |
-| `UseWorldItem` | bool | 0 | 1 | `Item.useWorldItem` `@924 L2061` | usable from the ground | C |
-| `VehicleType` | int | 0 | 3 | `Item.vehicleType` `@9276 L2758` | vehicle part | C |
-| `Weight` | float | 722 | 150 | `Item.actualWeight` (and `weight`) `@1089 L2075` | encumbrance | C |
-| `WeightEmpty` | float | 2 | 9 | `Item.weightEmpty` `@1151 L2082` | weight when depleted | C |
-| `WorldStaticModel` | string | 718 | 150 | `Item.worldStaticModel` `@10278 L2868` | model | C |
-| `WorldStaticModelsByIndex` | list | 2 | 0 | `Item.worldStaticModelsByIndex` `@11374 L2956` | per-index models | C |
+| Key | Type | food | drain | Java field / getter | Runtime effect |
+|---|---|---:|---:|---|---|
+| `ActivatedItem` | bool | 0 | 17 | `Item.activatedItem` | item can be switched on (torches) |
+| `AlcoholPower` | float | 0 | 2 | `Item.alcoholPower` | drunkenness per use |
+| `AnimalFeedType` | string | 22 | 2 | `Item.animalFeedType` | which animals will eat it |
+| `AttachmentType` | string | 0 | 2 | `Item.attachmentType` | hotbar/attachment slot |
+| `BadCold` | bool | 61 | 0 | `Item.badCold` → `Food.setBadCold` | `getUnhappyChange +2` when `isBadCold && isCookable && isCooked && heat < 1.3` |
+| `BadInMicrowave` | bool | 115 | 0 | `Item.badInMicrowave` → `Food.setBadInMicrowave` | on the cook transition in a `microwave` container: `unhappyChange = 5`, `boredomChange = 5`, `cookedInMicrowave = 1` |
+| `BoredomChange` | int | 5 | 0 | `Item.boredomChange` | BOREDOM at eat time; +30 frozen / +20 burnt / +10 stale / +20 rotten |
+| `Calories` | float | 597 | 2 | `Item.calories` → `Food.setCalories` | stored unscaled; **no state modifier at any age** — the only nutrition modifier in the game is `Eat`'s ÷5 for burnt |
+| `CannedFood` | bool | 41 | 0 | `Item.cannedFood` — **no getter, not copied to the instance** | read only off the *script* object: `InventoryItem.getStringItemType()`, `ItemPickerJava.getLootType`, and the sealed-can spawn-rot exemption |
+| `CanStoreWater` | bool | 0 | 1 | `Item.canStoreWater` | legacy water flag (B42 uses fluid components) |
+| `cantBeConsolided` | bool | 0 | 54 | `Item.cantBeConsolided` | blocks the "consolidate" UI action |
+| `CantBeFrozen` | bool | 51 | 2 | `Item.cantBeFrozen` → **inverted** `Food.setCanBeFrozen(!v)` | gates `isFreezing()`/`isThawing()`; an item that cannot be frozen never accumulates `freezingTime` and so never gets the ×0 age rate |
+| `CantEat` | bool | 96 | 1 | `Item.cantEat` / `isCantEat()` | hides the Eat option; with `CannedFood` it also exempts the item from the 75 % spawn-rot roll |
+| `Carbohydrates` | float | 597 | 2 | `Item.carbohydrates` → `Food.setCarbohydrates` | as `Calories` |
+| `ChanceToSpawnDamaged` | int | 0 | 3 | `Item.chanceToSpawnDamaged` | loot condition roll |
+| `ColorBlue` | int | 4 | 0 | `Item.colorBlue` | item tint; copied onto an evolved-recipe result |
+| `ColorGreen` | int | 4 | 0 | `Item.colorGreen` | as `ColorBlue` |
+| `ColorRed` | int | 4 | 0 | `Item.colorRed` | as `ColorBlue` |
+| `ConditionLowerStandard` | float | 0 | 1 | `Item.conditionLowerNormal` | wear rate |
+| `ConditionMax` | int | 12 | 10 | `Item.conditionMax` | durability ceiling |
+| `ConsolidateOption` | string | 0 | 16 | `Item.consolidateOption` | consolidate menu label |
+| `CookingSound` | string | 198 | 1 | `Item.cookingSound` → `Food.getCookingSound()` | played while `shouldPlayCookingSound()` (client only) |
+| `CustomContextMenu` | string | 33 | 4 | `Item.customContextMenu` | menu label override (`Drink` etc.) |
+| `CustomEatSound` | string | 119 | 1 | `Item.customEatSound` | eat SFX |
+| `DangerousUncooked` | bool | 81 | 0 | `Item.dangerousUncooked` → `Food.setbDangerousUncooked` | 75 % poison roll (5 % with tag `EGG`) in `BodyDamage.JustAteFood`; propagates onto an evolved-recipe result and blocks a raw ingredient when the result is not cookable |
+| `DaysFresh` | int | 497 | 0 | `Item.daysFresh` → `Food.setOffAge` | the **stale** threshold in days; absent ⇒ `offAge` stays `1000000000` |
+| `DaysTotallyRotten` | int | 497 | 0 | `Item.daysTotallyRotten` → `Food.setOffAgeMax` | the **rotten** threshold in days; `1000000000` is the never-ages sentinel |
+| `DisappearOnUse` | bool | 0 | 18 | `Item.disappearOnUse` | destroy at 0 uses |
+| `DisplayCategory` | string | 722 | 150 | `Item.displayCategory` | inventory grouping |
+| `DoubleClickRecipe` | string | 4 | 12 | `Item.doubleClickRecipe` | recipe fired by double-click |
+| `Eattime` | int | 17 | 2 | `Item.eatTime` | hard override of `maxTime` when `> 0` |
+| `EatType` | string | 266 | 7 | `Item.eatType` | animation set; `popcan` forces `maxTime = 160` |
+| `enduranceChange` | float | 1 | 0 | `Item.enduranceChange` | ENDURANCE at eat time; ÷3 burnt, ÷2 stale, ×2 cooked, **no rot branch** |
+| `EquipSound` | string | 0 | 1 | `Item.equipSound` | SFX |
+| `EvolvedRecipe` | list of `Name:use`, optionally suffixed `Cooked` after a pipe | 372 | 2 | `Item.evolvedRecipe` + `Item.itemRecipeMap` | registers the item as an ingredient; `use` is hunger **points** (÷100 at `EvolvedRecipe.addItem`). Parse-time aliases: `RicePot`/`RicePan` → `Rice`, `PastaPot`/`PastaPan` → `Pasta`, `Roasted Vegetables` → `Stir fry` |
+| `EvolvedRecipeName` | string | 172 | 1 | `Item.evolvedRecipeName` + `Translator.setDefaultItemEvolvedRecipeName` | the name this ingredient contributes to the generated dish name |
+| `fatigueChange` | float | 3 | 1 | `Item.fatigueChange` | FATIGUE at eat time; a negative value also transfers to an evolved-recipe dish by `share` |
+| `FillFromDispenserSound` | string | 0 | 1 | `Item.fillFromDispenserSound` | SFX |
+| `FillFromTapSound` | string | 0 | 1 | `Item.fillFromTapSound` | SFX |
+| `FireFuelRatio` | float | 0 | 5 | `Item.fireFuelRatio` | burn value as fuel |
+| `FishingLure` | bool | 41 | 0 | `Item.fishingLure` | usable as bait |
+| `fluReduction` | int | 2 | 0 | `Item.fluReduction` | `bodyDamage.coldReduction += fluReduction × f`; summed for herbal-tea ingredients |
+| `FoodSicknessChange` | int | 8 | 4 | `Item.foodSicknessChange` | cures FOOD_SICKNESS + POISON when negative, gated by the edible-buff timer; capped at 12 on a herbal-tea dish |
+| `FoodType` | string | 362 | 2 | `Item.foodType` | evolved-recipe grouping in the context menu (`ISInventoryPaneContextMenu.getEvoItemCategories`) |
+| `GoodHot` | bool | 148 | 0 | `Item.goodHot` → `Food.setGoodHot` | `getUnhappyChange −2` when `isGoodHot && isCookable && isCooked && heat > 1.3` |
+| `HerbalistType` | string | 18 | 0 | `Item.herbalistType` | herbalist knowledge gating |
+| `HungerChange` | float | 606 | 2 | `Item.hungerChange` → `Food.hungChange` **÷ 100** | the item's raw hunger relief; also seeds `baseHunger`. Never modified by age — the state ladder lives in `getHungerChange()` |
+| `Icon` | string | 720 | 150 | `Item.icon` (+ `itemName`, `normalTexture`, `worldTextureName`) | textures |
+| `IconColorMask` | string | 0 | 3 | `Item.iconColorMask` | icon tinting mask |
+| `IconsForTexture` | list | 2 | 0 | `Item.iconsForTexture` | per-texture icon set |
+| `InverseCoughProbability` | int | 6 | 1 | `Item.inverseCoughProbability` | cold-cough suppression |
+| `InverseCoughProbabilitySmoker` | int | 6 | 1 | `Item.inverseCoughProbabilitySmoker` | as above, smoker trait |
+| `IsCookable` | bool | 251 | 1 | `Item.isCookable` → `Food.setIsCookable` | gates the whole cooking block; **cleared to false** when a burnt item starts a fire; an evolved dish gets it from the recipe's `Cookable` key instead |
+| `IsDung` | bool | 10 | 0 | `Item.isDung` | fertiliser |
+| `IsWaterSource` | **dead key (not read by 42.20.4)** | 0 | 1 | — | no branch in `Item.DoParam`; the literal exists only in the *script generator* (`generation/builders/ItemBuilder.class`). Lands in `defaultModData`. Only on `item TestWaterMug` |
+| `ItemType` | string | 722 | 150 | `Item.itemType` (`ItemType.get(ResourceLocation.of(v))`) | picks the `InventoryItem` subclass in `InstanceItem` |
+| `KeepOnDeplete` | bool, **inverted** | 0 | 18 | `Item.disappearOnUse = !v` | alias of `DisappearOnUse` with the sense flipped |
+| `LightDistance` | int | 0 | 17 | `Item.lightDistance` | torch |
+| `LightStrength` | float | 0 | 17 | `Item.lightStrength` | torch |
+| `Lipids` | float | 597 | 2 | `Item.lipids` → `Food.setLipids` | as `Calories`; the wiki's "Fat" column |
+| `MakeUpType` | string | 0 | 3 | `Item.makeUpType` | cosmetics |
+| `MechanicsItem` | bool | 0 | 3 | `Item.mechanicsItem` | loot category |
+| `Medical` | bool | 1 | 7 | `Item.medical` | loot category |
+| `MetalValue` | float | 0 | 30 | `Item.metalValue` | scrapping |
+| `MinutesToBurn` | int | 246 | 0 | `Item.minutesToBurn` → `Food.setMinutesToBurn` | `cookingTime > minutesToBurn` ⇒ `burnt = true; setCooked(false)` |
+| `MinutesToCook` | int | 249 | 0 | `Item.minutesToCook` → `Food.setMinutesToCook` | `cookingTime > minutesToCook` ⇒ cook transition |
+| `OnCooked` | string | 11 | 0 | `Item.onCooked` → `Food.setOnCooked` | Lua / `RecipeCodeOnCooked` hook on the cook transition; dotted names resolve as `table.field`. Only two values ship: `RecipeCodeOnCooked.cannedFood` (10 blocks) and `RecipeCodeOnCooked.nameCakePrep` (1) |
+| `OnCreate` | string | 21 | 4 | `Item.luaCreate` | Lua hook at instantiation |
+| `OnEat` | string | 19 | 4 | `Item.onEat` → `Food.setOnEat` | Lua hook fired inside `Eat`, after nutrition and before consume |
+| `OpeningRecipe` | string | 18 | 0 | `Item.openingRecipe` | the recipe that opens a sealed can |
+| `Packaged` | bool | 129 | 2 | `Item.packaged` → `Food.setPackaged` | pure marker: `Food.isPackaged()` has **no Java caller and no vanilla Lua reader** |
+| `painReduction` | int | 2 | 0 | `Item.painReduction` | `bodyDamage.painReduction += painReduction × f` |
+| `PoisonPower` | int | 4 | 0 | `Item.poisonPower` → `Food.poisonPower` | POISON/PAIN at eat time; drains **whole** into an evolved-recipe result |
+| `PourType` | string | 49 | 23 | `Item.pourType` | pour animation/SFX |
+| `primaryAnimMask` | string | 0 | 18 | `Item.primaryAnimMask` | animation |
+| `Proteins` | float | 597 | 2 | `Item.proteins` → `Food.setProteins` | as `Calories` |
+| `RainFactor` | **dead key (not read by 42.20.4)** | 0 | 1 | — | no branch in `Item.DoParam`; recognised only by `FluidContainerScript` **inside a `component FluidContainer { … }` block**, never at item top level. Only on `item TestWaterMug` |
+| `ReduceInfectionPower` | float | 3 | 0 | `Item.reduceInfectionPower` | wound-infection reduction; summed for herbal-tea ingredients |
+| `RemoveNegativeEffectOnCooked` | bool | 5 | 0 | `Item.removeNegativeEffectOnCooked` → `Food.setRemoveNegativeEffectOnCooked` | on the cook transition zeroes `thirstChange`, `unhappyChange`, `boredomChange` **if positive** — permanent, one-shot, nutrition untouched |
+| `RemoveUnhappinessWhenCooked` | bool | 36 | 0 | `Item.removeUnhappinessWhenCooked` | on the cook transition `setUnhappyChange(0)` — read off the **script** object, not the instance |
+| `ReplaceInPrimaryHand` | string | 0 | 6 | `Item.replaceInPrimaryHand` | held-model swap |
+| `ReplaceInSecondHand` | string | 0 | 6 | `Item.replaceInSecondHand` | held-model swap |
+| `ReplaceOnCooked` | list (`;`) | 3 | 0 | `Item.replaceOnCooked` → `Food.setReplaceOnCooked` | on the cook transition **and only if not rotten**: each name is `AddItem`-ed with `copyConditionStatesFrom(this)`, the original is removed and `Food.update` **returns** — the item is replaced, never flagged cooked |
+| `ReplaceOnDeplete` | string | 0 | 42 | `Item.replaceOnDeplete` | drainable → empty container |
+| `ReplaceOnExtinguish` | string | 0 | 6 | `Item.replaceOnExtinguish` | torch burnout |
+| `ReplaceOnRotten` | string | 8 | 0 | `Item.replaceOnRotten` → `Food.setReplaceOnRotten` | makes `updateRotting` age the item **every tick** and, once rotten, create the replacement, copy `age` + condition states and destroy the original |
+| `ReplaceOnUse` | string | 110 | 0 | `Item.replaceOnUse` | leftover container when consumed; also the weight floor in `Eat`'s custom-weight branch |
+| `RequireInHandOrInventory` | list | 6 | 1 | `Item.requireInHandOrInventory` | use precondition |
+| `Researchablerecipes` | list | 1 | 26 | `Item.addResearchableRecipe(…)` | learnable-by-research recipes |
+| `ScaleWorldIcon` | float | 0 | 1 | `Item.scaleWorldIcon` | world sprite scale |
+| `secondaryAnimMask` | string | 0 | 18 | `Item.secondaryAnimMask` | animation |
+| `SoundMap` | list → HashMap | 40 | 34 | `Item.soundMap` | per-event sound overrides |
+| `Spice` | bool | 109 | 2 | `Item.spice` → `Food.setSpice` | takes the ingredient down the **spice branch** of `EvolvedRecipe.addItem`: no hunger and no macro transfer, does not count against `MaxItems`, once per dish (`isSpiceAdded`) |
+| `StaticModel` | string | 532 | 73 | `Item.staticModel` | model |
+| `StaticModelsByIndex` | list | 2 | 0 | `Item.staticModelsByIndex` | per-index models |
+| `StressChange` | int | 28 | 3 | `Item.stressChange` | STRESS at eat time; ÷4 burnt, ÷1.3 stale, ÷2 rotten, ×1.3 cooked |
+| `SurvivalGear` | bool | 2 | 22 | `Item.survivalGear` | loot category |
+| `Tags` | list (`;`) → `Set<ItemTag>` | 401 | 118 | `Item.tags` (`ItemTag.get(ResourceLocation.of(v))`) | drives `ALREADY_COOKED`, `NO_COOKING_XP`, `DRIED_FOOD`, `HERBAL_TEA`, `BOOSTS_FLU_RECOVERY`, `ALCOHOLIC_BEVERAGE`, `GOOD_FROZEN`, `EGG` — read in `Food.update`, `EvolvedRecipe.addItem` and `JustAteFood` |
+| `ThirstChange` | float | 112 | 0 | `Item.thirstChange` → `Food.thirstChange` **÷ 100** | THIRST at eat time; ÷5 burnt beats ÷2 cooked and **rot does not touch it** |
+| `ticksPerEquipUse` | int | 0 | 3 | `Item.ticksPerEquipUse` | drain rate while equipped |
+| `Tooltip` | string | 61 | 49 | `Item.tooltip` | translated tooltip key |
+| `TorchCone` | bool | 0 | 17 | `Item.torchCone` | light shape |
+| `TorchDot` | float | 0 | 6 | `Item.torchDot` | light shape |
+| `UnequipSound` | string | 0 | 1 | `Item.unequipSound` | SFX |
+| `UnhappyChange` | int | 292 | 2 | `Item.unhappyChange` | UNHAPPINESS at eat time; +30 frozen / +20 burnt / +10 stale / +20 rotten, ±2 for `BadCold`/`GoodHot` |
+| `UseDelta` | float | 2 | 146 | `Item.useDelta` | fraction consumed per use |
+| `UseWhileEquipped` | bool | 2 | 134 | `Item.useWhileEquipped` | drains while held |
+| `UseWhileUnequipped` | bool | 0 | 1 | `Item.useWhileUnequipped` | drains in the bag |
+| `UseWorldItem` | bool | 0 | 1 | `Item.useWorldItem` | usable from the ground |
+| `VehicleType` | int | 0 | 3 | `Item.vehicleType` | vehicle part |
+| `Weight` | float | 722 | 150 | `Item.actualWeight` (and `weight`) | encumbrance |
+| `WeightEmpty` | float | 2 | 9 | `Item.weightEmpty` | weight when depleted |
+| `WorldStaticModel` | string | 718 | 150 | `Item.worldStaticModel` | model |
+| `WorldStaticModelsByIndex` | list | 2 | 0 | `Item.worldStaticModelsByIndex` | per-index models |
 
 The two count columns are occurrence counts in each of the two generated files, so a key with no occurrences in one of them is simply unused by that file's blocks.
 The runtime-effect column is what the engine does with a value, which is the column a rebalance reads; the per-item values themselves are the dataset.
@@ -247,7 +247,7 @@ Per-item values for every key in the table are the dataset rather than this page
 Four loader keys carry poison and only one of them is set by anything that ships, so three of the four are a mod-facing surface rather than a mechanic.
 Which of these fields the item packet carries to a client is [`wire-packets.md`](wire-packets.md#item-stats-packet).
 
-`PoisonPower` parses into the instance's poison power, is set by four `food.txt` blocks and no drainable block, and is read by the eat-time body-damage path, by the evolved summation and by `ItemStatsPacket` [#0317/C/snapshot].
+`PoisonPower` parses into the instance's poison power, is set by four `food.txt` blocks and no drainable block counted 2026-09-10, and is read by the eat-time body-damage path, by the evolved summation and by `ItemStatsPacket` [#0317/C/snapshot].
 It is the only one of the four that a shipped item actually sets.
 
 `Poison` parses into an instance field but `Food.isPoison()` has no Java and no vanilla-Lua caller — it is exposed to Kahlua only — and no shipped item sets the key [#0318/C/C-only].
