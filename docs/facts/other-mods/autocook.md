@@ -31,13 +31,13 @@ It drives vanilla's, one ingredient at a time, and stops when the recipe will ta
 What it changes is the number of clicks, which is why its whole player-facing surface is a context-menu option and a settings tab.
 
 Which ingredient Auto Cook picks is one of five cooking diets chosen from a new Cook tab in the character info window, and the same tab holds six settings persisted per character in player modData, a seventh being commented out [#1305/C/C-only].
-The diet is the only setting that decides anything about the meal; the rest cap duplicates, allow rot, or bound the spices.
-A player who never opens the Cook tab still gets the context-menu option, because the diet has a default the mod derives at load.
+The diet is the only setting that decides anything about the meal; the other five cap duplicates, allow rot, bound the spices, prefer variety and finish a started recipe.
+A player who never opens the Cook tab still gets the context-menu option, because the mod's init leaves a diet on the Lua global the menu reads rather than in modData ([#1329], [`#data-model`](#data-model)).
 The evolved-recipe lookup, the cookable test and the spice rule that all of it drives are vanilla's, and they are [`cooking-and-recipes.md#evolved`](../cooking-and-recipes.md#evolved).
 Nothing it does is a new mechanic; what it removes is the tedium of feeding an evolved recipe one item at a time.
 The mod leaves the recipe, the timings and the failure modes exactly where vanilla put them.
 That is what makes it safe to read as an exemplar: the parts worth copying are structural rather than behavioural.
-Both sentences above are read from the shipped Lua rather than exercised, for the reason given under [Open](#open).
+The menu walk and the settings tab above are read from the shipped Lua rather than exercised, for the reason given under [Open](#open) ([#1304/C/C-only], [#1305/C/C-only]).
 
 <a id="architecture"></a>
 ### How it is laid out and where it runs
@@ -118,14 +118,14 @@ Auto Cook's data model is one 8-row table dated 2026-09-10: one nested player-mo
 
 | Store | Key | Written by | Transmitted? |
 |---|---|---|---|
-| `IsoPlayer:getModData()` | **`AutoCook`** — a nested table, created **empty** | `AutoCook:init` | **never by this mod** (no `transmitModData` call anywhere in the item) |
+| `IsoPlayer:getModData()` | **`AutoCook`** — a nested table, created **empty** | `AutoCook:init` | **never by this mod** (0 `transmitModData`) |
 | … `.CookMode` | integer 1-5 | `onComboSelectCookMode` | never |
 | … `.MaxDuplicate`, `.MaxSpices` | integer | `onNumberInput`, only when `button ~= nil` | never |
 | … `.PrioritizeVariety`, `.UseRotten`, `.CompleteExistingMeal`, `.SmartSpices` | boolean | `onTickChange` | never |
 | … `.AutoCraftIngredients` | forced `false` **on every load after the first** — the write sits in `init`'s **`else`** branch, the "load from modData" path taken only when the key already exists | `AutoCook:init` | never |
 | `_G.AutoCook` | 23 file-scope scalars + the functions of three files | file scope, and the function definitions in both trees | n/a (a Lua global) |
 | sandbox options | **none** — no `sandbox-options.txt`, no `SandboxVars.` reference in either tree | — | — |
-| item / recipe scripts | **none** — no script item blocks, no `media/scripts` in any tree | — | — |
+| item / recipe scripts | **none** — `script_item_blocks: 0`, no `media/scripts` in any tree | — | — |
 
 Auto Cook's `AutoCraftIngredients` leaf is forced false only on the load-from-modData path, which `init` takes when the key already exists, so it is not written at all on a character's first load [#1326].
 A cold read that calls that write unconditional is wrong about the only load a new character ever performs.
@@ -133,7 +133,7 @@ On a fresh character Auto Cook's nested modData table is empty and all eight of 
 Auto Cook's live settings sit on its Lua global rather than in modData: `CookMode` read 1, `MaxSpices` read -1 and `Verbose` read false on the client, and a `CookMode` of 1 rather than 5 says the fixture character carries no Nutritionist trait [#1328/M/n=1].
 The reader that produced those values walks the global and never calls what it finds, so the functions it resolved were read and not invoked.
 The dotted leaves are the tab's own settings, and the global is the running copy of them.
-A handler writes the global and then copies it into modData, so the two diverge only where `init` writes the global alone.
+A settings handler writes the global first and then copies that value into modData, so the two diverge only where `init` writes the global alone ([TR.1], [#1329]).
 That is the one place a persisted value is lost, and it is a derived default rather than a player's choice.
 `AutoCook:init` creates the empty modData table on a first run and writes the Nutritionist default `CookMode` of 5 onto the Lua global only, never into modData, while on later runs it copies every persisted modData key onto the global — so the settings are per client rather than per character [#1329].
 The practical consequence is that a modData reading of this mod says it is installed and says nothing about how it is configured.
@@ -205,7 +205,7 @@ None of them breaks the mod as shipped; each is a price the layout or the langua
   All four were checked absent from the game's whole Lua tree on the day of the sweep, which is a statement about that tree and not about the workshop.
 - Auto Cook's `init` copies every persisted modData key onto a Lua global, so a second character on the same client inherits the first one's diet until its own `init` runs, and the Nutritionist default is written to the global only and is therefore re-derived every load and silently lost as a persisted value [#1362].
   The measured corollary is the empty table under [the data model](#data-model): a census of this mod reads as installed and unconfigured whatever the player picked before.
-- Auto Cook carries about fifty lines of crafting path behind a flag hard-disabled at file scope and re-forced in `init`, with its tick box commented out, and beside it four inert code defects: a method declared with no parameters but called with an argument, an `init` invoked with a dot on a method declared with a colon, and an unparenthesised `and`/`or` that means the recipe enabled test is never consulted on a non-debug client [#1363].
+- Auto Cook carries about fifty lines of crafting path behind a flag hard-disabled at file scope and re-forced in `init`, with its tick box commented out, and beside it three inert code defects: a method declared with no parameters but called with an argument, an `init` invoked with a dot on a method declared with a colon, and an unparenthesised `and`/`or` that means the recipe enabled test is never consulted on a non-debug client [#1363].
   All of it is cosmetic, and it is recorded only because it reads like a live feature.
 - Auto Cook ships two B41-layout translation text files carrying the same 38 strings as its live JSON pair, about 5 KB of inert weight that `42.20.4` never parses, because the `Translator` opens `.json` and nothing else [#1364].
   The cost is not the bytes but a maintainer editing the file the engine never opens.
@@ -240,7 +240,7 @@ Not covered: every other consumer of the evolved-recipe path outside this librar
 <a id="open"></a>
 
 - Auto Cook's cooking pipeline was never reached by any run: its only entry is a context-menu option whose handler runs on a right-click, and nothing on the shipped bus clicks, presses a key or calls a trigger, so the item chooser, the food filter, the spice gate, the acceptance test and all five diets stay code readings until the bus can drive a context menu [#1378/C/C-only].
-- Whether a pcall-wrapped event trigger changes what an unguarded raise does inside a dispatch — settled by a three-mod profile booted twice with the two mod orders, reading the loader's override tail, both mods' globals and the client console for both failure signatures; -> X26 ([#1292/C/open], [`areas/open-questions.md#x26`](../../areas/open-questions.md#x26)).
+- Whether a pcall-wrapped event trigger changes what an unguarded raise does inside a dispatch — settled by a three-mod profile booted twice with the two mod orders, reading the loader's override tail, both mods' globals and the client console for both failure signatures; -> `X26` ([#1292/C/open], [`areas/open-questions.md#x26`](../../areas/open-questions.md#x26)).
 - Whether the weight-direction flags this mod's spice gate reads can desync is the packet page's question rather than this one's ([#1348/C/inference/open], [`wire-packets.md#open`](../wire-packets.md#open)).
 - Decision: whether the nutrition mod keeps any per-character settings in player modData at all — whatever sits there is one neighbour's transmit away from the server, whatever the owning mod does [#1339/M/n=1].
 - Decision: whether the nutrition mod exposes its new nutrients to third-party choosers or leaves them invisible — a diet mod optimises against whatever macro set it can read, silently [#1377/C/snapshot].
