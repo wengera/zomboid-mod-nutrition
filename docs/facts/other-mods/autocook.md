@@ -133,7 +133,7 @@ On a fresh character Auto Cook's nested modData table is empty and all eight of 
 Auto Cook's live settings sit on its Lua global rather than in modData: `CookMode` read 1, `MaxSpices` read -1 and `Verbose` read false on the client, and a `CookMode` of 1 rather than 5 says the fixture character carries no Nutritionist trait [#1328/M/n=1].
 The reader that produced those values walks the global and never calls what it finds, so the functions it resolved were read and not invoked.
 The dotted leaves are the tab's own settings, and the global is the running copy of them.
-A settings handler writes the global first and then copies that value into modData, so the two diverge only where `init` writes the global alone ([TR.1], [#1329]).
+A settings handler writes the global first and then copies that value into modData, so the two diverge only where `init` writes the global alone ([#2042], [#1329]).
 That is the one place a persisted value is lost, and it is a derived default rather than a player's choice.
 `AutoCook:init` creates the empty modData table on a first run and writes the Nutritionist default `CookMode` of 5 onto the Lua global only, never into modData, while on later runs it copies every persisted modData key onto the global — so the settings are per client rather than per character [#1329].
 The practical consequence is that a modData reading of this mod says it is installed and says nothing about how it is configured.
