@@ -330,8 +330,11 @@ import patterns from there.
   contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
   line, the section set and order per layer, the `<a id>` anchors against the register's owners, the
   rule-line shape, the closing `Not covered:` line, the narrative markers, the prose cap (400; 500 on the four
-  pages the spec allows; under 150 warns), worked-example paths, relative links and their anchors
-  (`--partial` skips a page not written yet). Prints the prose count per page; exit 1 on a finding.
+  pages the spec allows; under 150 warns), worked-example paths (a cell with no `file:lines` is its own
+  finding), relative links and their anchors — the anchor half runs only for targets under `docs/areas`,
+  `docs/platform` and `docs/facts` (a `docs/reference/` page carries no `<a id>`), a fragment that is not a
+  lowercase slug is a finding, and `--partial` skips a target page not written yet. A `## ` line inside a
+  code fence never opens a section. Prints the prose count per page; exit 1 on a finding.
 
 ## Planned (P4)
 
