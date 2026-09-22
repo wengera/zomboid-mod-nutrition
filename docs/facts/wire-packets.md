@@ -54,7 +54,7 @@ Most of the food block is written conditionally, and that is the shape behind ev
 | `!= -1` | `poisonDetectionLevel` | 524288 |
 | `isFertilized` | `fertilizedTime` — a stale time then lands on a *non*-fertilized item | 33554432 |
 
-The flag column is the bit each field's presence sets in the packet's header, which is what a reader matching a capture would key on.
+The flag column is the bit each field's presence sets in the packet's header.
 The receiving half has no matching guard.
 The receiver applies unconditionally: the cooking-time setter is one of 31 food setters that run with no guard beyond the single is-food test, so whatever the field holds is written onto the item [#0339, #1203/C/C-only].
 Four groups of fields cannot carry a stale value, and it is worth knowing which: `extraItems` and `spices` are conditionally written but `parse` clears both before the flag test; `poisonPower`'s bit-header flag is added unconditionally; the seven pure booleans — frozen, tainted, cooked, burnt, alcoholic, custom-name and fertilized — are re-derived from the bit header on every parse; and `condition`, `uses`, `usedDelta`, `heat`, `name` and `actualWeight` are written outside the bit header altogether [#0344, #0345, #1205/C/C-only].
@@ -257,27 +257,27 @@ For a probe author the operative part is the ordering: read the client half firs
 | | lipids | −0.11462342739105225 | −0.054337941110134125 | 0.06028548628091812 | [0.0413128, 0.0732059] (r 0.01808) | **yes** |
 | | proteins | −0.08723551779985428 | −0.04135453701019287 | 0.04588098078966141 | [0.0314416, 0.0557142] (r 0.01376) | **yes** |
 | | weight | 80 | 80 | 0 | [−7.63e-06, +7.63e-06] (ρ 0, neither arm) | **yes**, bit-identical |
-| `t0` | calories | 1999.052978515625 | 1999.7698974609375 | 0.7169189453125 | [0.389378, 0.841732] | yes (ungraded: latency)  |
+| `t0` | calories | 1999.052978515625 | 1999.7698974609375 | 0.7169189453125 | [0.389378, 0.841732] | yes (ungraded: latency) |
 | | carbs | −0.9847724437713623 | −0.8281469941139221 | 0.15662544965744019 | [0.085176, 0.184128] | yes (ungraded) |
 | | lipids | −0.3179408013820648 | −0.26737314462661743 | 0.05056765675544739 | [0.0274997, 0.059447] | yes (ungraded) |
 | | proteins | −0.24197259545326233 | −0.20348750054836273 | 0.0384850949048996 | [0.020929, 0.0452429] | yes (ungraded) |
 | | weight | 80.00038421184581 | 80.00009155273438 | **−0.00029265911143738776** | [−0.00034942, −0.00015048] (ρ +1.0395e-4, gain ×1) | yes (ungraded) |
-| `t+3s` | calories | 1997.18310546875 | 1998.2333984375 | 1.05029296875 | [0.39271, 1.16661] | **yes**  |
+| `t+3s` | calories | 1997.18310546875 | 1998.2333984375 | 1.05029296875 | [0.39271, 1.16661] | **yes** |
 | | carbs | −1.3930763006210327 | −1.16377592086792 | 0.2293003797531128 | [0.085904, 0.255192] | **yes** |
 | | lipids | −0.449764609336853 | −0.37573328614234924 | 0.07403132319450378 | [0.0277347, 0.0823906] | **yes** |
 | | proteins | −0.3422987163066864 | −0.28595632314682007 | 0.05634239315986633 | [0.0211078, 0.0627043] | **yes** |
 | | weight | 80.00114177246815 | 80.00071716308594 | **−0.0004246093822075636** | [−0.00048089, −0.00015168] (ρ +1.0385e-4, gain ×1) | **yes** |
-| `t2+0s` | calories | 1994.6201171875 | 1995.414794921875 | 0.794677734375 | [0.390159, 0.970276] | yes (ungraded)  |
+| `t2+0s` | calories | 1994.6201171875 | 1995.414794921875 | 0.794677734375 | [0.390159, 0.970276] | yes (ungraded) |
 | | carbs | 799.7754516601562 | 799.9495239257812 | 0.174072265625 | [0.085344, 0.21224] | yes (ungraded) |
 | | lipids | −0.6303383708000183 | −0.574343204498291 | 0.055995166301727295 | [0.0275539, 0.0685232] | yes (ungraded) |
 | | proteins | −0.4797268807888031 | −0.4371109902858734 | 0.04261589050292969 | [0.0209702, 0.0521504] | yes (ungraded) |
 | | weight | 80.0030074610022 | 80.00204467773438 | **−0.0009627832678233972** | [−0.00118693, −0.00046658] (ρ +3.1116e-4, gain ×3) | yes (ungraded) |
-| `t2+3s` | calories | 1992.5694580078125 | 1993.6204833984375 | 1.051025390625 | [0.392219, 1.2934] | **yes**  |
+| `t2+3s` | calories | 1992.5694580078125 | 1993.6204833984375 | 1.051025390625 | [0.392219, 1.2934] | **yes** |
 | | carbs | 799.3273315429688 | 799.5572509765625 | 0.22991943359375 | [0.085792, 0.282912] | **yes** |
 | | lipids | −0.7747547030448914 | −0.7007291913032532 | 0.07402551174163818 | [0.0276986, 0.0913402] | **yes** |
 | | proteins | −0.5896369814872742 | −0.5332988500595093 | 0.05633813142776489 | [0.0210803, 0.0695155] | **yes** |
 | | weight | 80.0054916049794 | 80.00421905517578 | **−0.0012725498036161298** | [−0.001578, −0.00046858] (ρ +3.1084e-4, gain ×3) | **yes** |
-| `final` | calories | 1982.8211669921875 | 1983.617431640625 | 0.7962646484375 | [0.325958, 1.03523] | **yes**  |
+| `final` | calories | 1982.8211669921875 | 1983.617431640625 | 0.7962646484375 | [0.325958, 1.03523] | **yes** |
 | | carbs | 797.1956176757812 | 797.3696899414062 | 0.174072265625 | [0.071288, 0.226408] | **yes** |
 | | lipids | −1.4610061645507812 | −1.4050037860870361 | 0.05600237846374512 | [0.0230158, 0.0730974] | **yes** |
 | | proteins | −1.111916422843933 | −1.0692952871322632 | 0.04262113571166992 | [0.0175165, 0.0556317] | **yes** |
