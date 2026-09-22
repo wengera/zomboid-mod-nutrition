@@ -2244,7 +2244,7 @@ cd /c/Users/Angus/repos/project_zomboid && git add docs/reference/parts/claims-G
 **Files:**
 - Create: `docs/reference/claims.tsv`, `docs/reference/claims-coverage.md`
 - Modify: `docs/superpowers/plans/restructure-anchors.md` (the proposed anchors folded in)
-- Delete: `docs/reference/parts/` (all nine `claims-*.tsv` and nine `coverage-*.md`)
+- Delete: `docs/reference/parts/` (all ten `claims-*.tsv` and ten `coverage-*.md`)
 
 **Interfaces:**
 - Consumes: the nine committed parts (Tasks 11–20), `tools/claims_harvest.py merge`, `tools/claims_check.py`.
@@ -2293,7 +2293,7 @@ Read `## Totals` in `claims-coverage.md`: `verdict` = 64; `open` ≥ 26; `contra
 cd /c/Users/Angus/repos/project_zomboid && git rm -q -r docs/reference/parts && python tools/claims_check.py --register-only && python -m pytest tools/tests testing/tests -q 2>&1 | tail -1 && git add docs/reference/claims.tsv docs/reference/claims-coverage.md docs/superpowers/plans/restructure-anchors.md && git commit -m "Register: claims.tsv merged from the nine harvest parts; coverage table; anchor plan folded" -- docs/reference/claims.tsv docs/reference/claims-coverage.md docs/superpowers/plans/restructure-anchors.md docs/reference/parts
 ```
 
-Expected: `0 findings`, tests green, one commit that adds two files, modifies one and deletes eighteen.
+Expected: `0 findings`, tests green, one commit that adds two files, modifies one and deletes twenty.
 
 The reviewer of this task samples twenty rows across groups against their sources (as the procedure's § 8 says) and checks: the totals, the cross-group duplicate handling, every owner has an anchor, no `.superpowers/` source, the coverage file accounts for every source section of every old doc (compare its `### <file>` headings with the 23 source files).
 
@@ -2357,7 +2357,7 @@ No artifact is committed: an acceptance run is provenance, not evidence (`CLAUDE
 cd /c/Users/Angus/repos/project_zomboid && python tools/doc_lint.py docs/mods-survey docs/modding && python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md && python tools/claims_check.py --register-only && python tools/bus_inventory.py --check && python -m pytest tools/tests testing/tests -q 2>&1 | tail -1 && git status --short | wc -l
 ```
 
-Expected: both lints 0, `0 findings`, `in sync`, tests green (283 plus the new tests; write the number down), a clean tree.
+Expected: both lints 0, `0 findings`, `in sync`, tests green (347 at the final review, plus whatever this wave adds; write the number down), a clean tree.
 
 - [ ] **Step 2: `CLAUDE.md`**
 
@@ -2366,7 +2366,7 @@ Expected: both lints 0, `0 findings`, `in sync`, tests green (283 plus the new t
 - [ ] **Step 3: Commit, push, memory**
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git add CLAUDE.md && git push origin main && git push origin research-program-v1 && git log --oneline -1 && git ls-remote --tags origin | grep research-program-v1 && git commit -m "Restructure 1: close" -- CLAUDE.md && git push origin main && git push origin research-program-v1 && git log --oneline -1 && git ls-remote --tags origin | grep research-program-v1
+cd /c/Users/Angus/repos/project_zomboid && git add CLAUDE.md && git commit -m "Restructure 1: close" -- CLAUDE.md && git push origin main && git push origin research-program-v1 && git log --oneline -1 && git ls-remote --tags origin | grep research-program-v1
 ```
 
 Then update the memory file's status paragraph (Phase 1 closed; the counts; NEXT = the Phase 2 plan) and the `MEMORY.md` index line.
