@@ -247,7 +247,7 @@ Per-item values for every key in the table are the dataset rather than this page
 Four loader keys carry poison and only one of them is set by anything that ships, so three of the four are a mod-facing surface rather than a mechanic.
 Which of these fields the item packet carries to a client is [`wire-packets.md`](wire-packets.md#item-stats-packet).
 
-`PoisonPower` parses into the instance's poison power, is set by four `food.txt` blocks and no drainable block counted 2026-09-10, and is read by the eat-time body-damage path, by the evolved summation and by `ItemStatsPacket` [#0317/C/snapshot].
+`PoisonPower` parses into the instance's poison power, is set by four `food.txt` blocks and no drainable block, counted 2026-09-10, and is read by the eat-time body-damage path, by the evolved summation and by `ItemStatsPacket` [#0317/C/snapshot].
 It is the only one of the four that a shipped item actually sets.
 
 `Poison` parses into an instance field but `Food.isPoison()` has no Java and no vanilla-Lua caller — it is exposed to Kahlua only — and no shipped item sets the key [#0318/C/C-only].
