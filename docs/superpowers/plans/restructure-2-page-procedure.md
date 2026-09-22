@@ -56,7 +56,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: <one line: what th
 - **A `verdict` row** (a wall-map row) is cited by its register id from `## Walls and bounds` or from the prose; the map's row letter never appears.
 - **Names are not numbers.** A version or build number (`42.20.4`), a run id (`x121-20260911-030023`), an artifact key path, a jar offset, a workshop id or any identifier goes in a code span; rule 4 strips code spans before its digit test, so these never need a tag and never count as untagged numbers.
 - **Every number outside a code block and a tagged table carries a tag** (rule 4 warns on a digit without a tag; the page lint counts the warnings; the target is zero — a number that has no row is a delta, not an untagged sentence, and a number that is a version, a line count of your own page or a heading level is rewritten in words).
-- **Length.** 150–400 lines of prose (the task says 500 where the spec allows); tagged tables, index rows under `## Open`, code blocks, anchor lines and headings do not count. The page lint prints the count.
+- **One sentence per line.** Prose paragraphs are written one sentence per physical line (a paragraph is consecutive sentence lines; a blank line separates paragraphs). The tag then closes its own line, a diff shows one claim per hunk, and the page lint's prose count means what the spec's cap means.
+- **Length.** 150–400 lines of prose (the task says 500 where the spec allows) counted as sentence lines; tagged tables, index rows under `## Open`, code blocks, anchor lines and headings do not count. The page lint prints the count.
 
 ## 5. `## Walls and bounds` and `## Open`
 
