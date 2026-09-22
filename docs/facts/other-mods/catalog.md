@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what the installed
 - The corpus-wide lint sweep returned 84 findings — 3 ERROR, 30 WARN and 51 INFO — across the 230 mod folders, dated 2026-09-10 13:47 [#1570/C/snapshot].
 - Build status eliminates no candidate and only annotates one: all 19 nutrition-signalled mods resolve a version folder the `42.20.4` build reads and none lints ERROR [#1645/C/snapshot].
 - The resident Girth stack carries 228 `sendClientCommand`, `OnClientCommand` and `sendServerCommand` sites across its six mods, 96 of them in the quest-system mod, dated 2026-09-10 [#1459/C/snapshot, #1567/C/snapshot].
-- The corpus class distribution at that sweep is 175 light-lua systems, 31 other, 15 heavy-lua systems, 5 scripts-only content and 4 three-dimensional-plus-lua content mods [#1552/C/snapshot].
+- The corpus class distribution at that sweep is 175 light-lua systems, 31 other, 15 heavy-lua systems, 5 scripts-only content and 4 `content(3d+lua)` mods [#1552/C/snapshot].
 
 ## How it works
 
@@ -107,13 +107,13 @@ Sweep 2 is the script nutrition-definition table: 9 rows, one per mod writing a 
 The `Items` column is every `item` definition in those files, clothing and vehicles included, and is not a food count.
 Declaring a module is the capability to override, not an override: an override needs a name collision, which is why the table carries a measured collision count beside the module list.
 
-`script_item_blocks` and the parser's own block count are identical on all nine script-signalled mods at 15, 288, 308, 86, 14, 125, 32, 12 and 1 [#1596/C/snapshot].
+`script_item_blocks` and the parser's own block count are identical on all nine script-signalled mods at 15, 288, 308, 86, 14, 125, 32, 12 and 1, at the 2026-09-10 17:47 sweep [#1596/C/snapshot].
 Long Term Preservation's live tree holds 15 item definitions, 14 of them food and the fifteenth `SaltRock` at `ItemType base:normal`, and 117 nutrition key writes when read comment-stripped [#1647/C/snapshot].
 The 135 to 117 key delta on that mod is 14 plus 4: a 36-line obsolete comment block contains two whole item definitions carrying 7 keys each, and each of the four two-line commented pairs costs only its `DaysTotallyRotten`, because the key regex anchors to the start of a line and the line above starts with the comment opener [#1648/C/arith.].
 Reading comment-stripped rather than raw moves `ZVirusVaccine42BETA` from 102 item blocks to 86, the nine script-signalled mods' total from 899 to 881, and the corpus-wide key total from 6 648 to 6 630, two of that mod's script files being commented out whole [#1649/C/snapshot].
 
 A not-installed row is a page reading and nothing more, so nothing about such a mod's code is readable from here.
-The third sweep leaves the disk: it reads browse pages of the public Workshop, one page per term, against the `Build 42`-tagged ready-to-use section of the public Workshop, one browse page each.
+The third sweep leaves the disk: it reads browse pages of the public Workshop's `Build 42`-tagged ready-to-use section, one page per term.
 
 Sweep 3 is the public Workshop term table: 8 terms against the `Build 42`-tagged ready-to-use section, one browse page each, with the result count and the installed count per term, fetched 2026-09-10 16:26 [#1597/W/snapshot].
 
@@ -138,8 +138,8 @@ The Sweep 3 load-bearing table is 9 Workshop rows, each with its id, title, inst
 | `2932547723` | '93 Lincoln Town Car + Limo | yes (`93townCar`) | 14.655 MB | Jul 2 @ 11:40am | matched `diet` on its page text; not a nutrition mod |
 | `3759421894` | Big Bottles | yes (`BigBottles`) | 107.238 KB | Aug 1 @ 6:44am | matched `hydration`; a container-capacity tweak, no nutrition signal in the inventory |
 | `3765241705` | Beyond Ten - Level 15 Skills [B41/B42] | yes (`BeyondTen`) | 348.184 KB | Sep 4 @ 1:25pm | the only installed hit with a nutrition signal, and its teardown is already done |
-| `3736275816` | ApocalipseBR - Nutrition Sync Fix | no | 453.434 KB | May 31 @ 11:18am | **someone else hit the multiplayer nutrition-sync problem this library exists to characterise** and shipped a fix. Subscribing is the only way to read how |
-| `3796644824` | [NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation | no | 471.224 KB | *never* | **a third-party patch to pick 1**, four days old, claiming the preservation mod launders nutrition — a claim about a mod that is readable here |
+| `3736275816` | ApocalipseBR - Nutrition Sync Fix | no | 453.434 KB | May 31 @ 11:18am | **someone else hit the MP nutrition-sync problem this library exists to characterise** and shipped a fix. Subscribing is the only way to read how |
+| `3796644824` | [NUTRITION LAUNDERING PATCH + FEATURES] Long Term Preservation | no | 471.224 KB | *never* | **a third-party patch to pick 1**, four days old, claiming the preservation mod launders nutrition — a claim about a mod we *can* read |
 | `3690404044` | Nutrition Makes Sense | no | 1.042 MB | Aug 18 @ 5:01pm | the largest nutrition overhaul on the page, and the one with an add-on ecosystem |
 | `3785515388` | Reasonable Nutrition | no | 145.008 KB | Aug 26 @ 3:49pm | the cheapest comparison read if only one of these is ever subscribed |
 | `3782835400` | Realistic Nutrition | no | 636.708 KB | *never* | third of the three same-month nutrition overhauls |
@@ -196,7 +196,7 @@ The teardown-readiness table is 6 rows, one per profilable candidate, carrying i
 | `AutoCook` | `42.13/media` **and `common/media`** — every zero on this row is suspect | yes, but the copy must carry `common/` | whether the live folder alone is a working mod at all |
 | `SkillRecoveryJournal` | `42.19`, `42.20.1`, `common/media`, and a B41 root `media` | yes | its `sendClientCommand` / `OnClientCommand` bus under a second client |
 | `MoodleFramework` | `42.0`, `42.13`, `42.20`, `common/media` | yes | whether `MF_Config` is present at runtime on `42.20.4` |
-| `SomewhatTraitsCore` | `42.12`, `42.13`, `42.15`, and a B41 root `media` | yes — but the item ships **3** mods, so a profile must name the `id` | whether an `OnTick` server-side calorie write survives the push |
+| `SomewhatTraitsCore` | `42.12`, `42.13`, `42.15`, and a B41 root `media` | yes — but the item ships **3** mods, so a profile must name the `id` | whether an `OnTick` server-side calorie write survives the 1 Hz push |
 
 `AutoCook` is profilable only if the copy the harness makes carries `common/`, because every zero on its record is suspect while its `media_at` names both `42.13/media` and `common/media` [#1618/C/snapshot].
 `simpleStatus` initialises in `OnCreatePlayer` and ships no server-side counterpart, so by construction it cannot be authoritative about anything [#1619].
@@ -254,7 +254,7 @@ The API surface table is 24 rows, one per API class and candidate pair, each car
 `AutoCook`'s real vanilla-facing patch lives in `common/media/lua/client/ISCharacterInfoWindow_AddTab.lua`, outside the scanned live version folder [#1653].
 `AutoCook`'s 21 `global_write_vanilla` hits are all `function ISCharacterCook:…` definitions in the mod's own new `ISPanelJoypad` subclass, a name that exists nowhere in the game's `media/lua`, so the signal name overstates them as vanilla overrides [#1623/C/snapshot].
 `SomewhatTraitsCore` carries both patching signals: 56 `function IS…:` headers and 66 save-and-wrap `monkey_patch` sites [#1624/C/snapshot].
-None of the three teardown picks has a command bus of any kind: `sendServerCommand` is 0 for `simpleStatus`, `AutoCook` and `SKITTLE_LongTermPreservation4220` [#1625/C/snapshot].
+None of the three teardown picks has a command bus of any kind: `sendServerCommand` is 0 for `simpleStatus`, `AutoCook` and `SKITTLE_LongTermPreservation4220`, at the 2026-09-10 17:47 sweep [#1625/C/snapshot].
 `simpleStatus` is the only one of the three picks that calls `transmitModData`, and it does so immediately after writing its config key into player modData [#1626].
 `AutoCook` keeps 9 `getModData` settings per player on the client and never transmits them, so its per-player settings live only on the client that set them [#1627/C/snapshot].
 Long Term Preservation ships 15 live item blocks and 8 `craftRecipe` blocks [#1628/C/snapshot].
@@ -272,31 +272,31 @@ Several of them are floors rather than totals, because the signal behind them is
 They are grouped here as the shape of the corpus, then its nutrition surface, then its script conventions, then its discipline, and last its size and its hooks.
 
 The locally installed workshop corpus is 179 workshop items holding 230 mod folders, 229 of which declare an id the engine can index; `3782784855/Skill Recovery Journal` ships no `mod.info` anywhere and is invisible to the workshop index, at the 2026-09-10 17:47 sweep [#1551/C/snapshot].
-The corpus class distribution is 175 light-lua systems, 31 other, 15 heavy-lua systems, 5 scripts-only content and 4 three-dimensional-plus-lua content mods [#1552/C/snapshot].
+The corpus class distribution at the 2026-09-10 17:47 sweep is 175 light-lua systems, 31 other, 15 heavy-lua systems, 5 scripts-only content and 4 `content(3d+lua)` mods [#1552/C/snapshot].
 24 of the 31 other-class mods have no `media/` under the live version folder at all, so nothing was scanned rather than nothing shipped; all 24 ship a `common/media` and 12 of them also ship a `B41` root `media/` [#1553/C/snapshot].
 `STA_PryOpen` ships `42.18/media` and `42.19/media` beside a live `42.20/` folder that holds none [#1554/C/snapshot].
 177 of the 230 corpus rows ship a `common/media` [#1559/C/snapshot].
 Every `common/media` in the corpus was swept twice on 2026-09-10 for the ten script-nutrition keys and not one carries a single key, so no nutrition candidate is hidden by the live-folder scope, though the scope still bites on architecture, where AutoCook's entry points are in `common/` and nowhere else [#1561/C/snapshot].
 `3041122351/63Type2Van` writes its 7 nutrition keys only in a `B41` flat root `media/` the `42.20.4` build never reads, so its `B42` script signal is 0 and its `B41` signal is 7 [#1563/C/snapshot].
 
-19 of the 230 installed mod folders touch the nutrition surface: 11 call a nutrition API from Lua and 9 write a nutrition key in a shipped script, with exactly one mod on both lists [#1555/C/snapshot].
+19 of the 230 installed mod folders touch the nutrition surface at the 2026-09-10 17:47 sweep: 11 call a nutrition API from Lua and 9 write a nutrition key in a shipped script, with exactly one mod on both lists [#1555/C/snapshot].
 Of the 53 Lua nutrition hits across the corpus, 6 are writes, 8 are a getter or setter name in a reflection table rather than a call (BeyondTen 4, Economy 4), 3 sit inside comments (CleanUI 2, CustomGamepadUI 1) and the remaining 36 are live reads [#1579/C/snapshot].
 Long Term Preservation's `setHungChange(... x 0.70)` is a seventh macro write in the corpus that the `food_nutrition` regex does not match at all [#1580].
 Only two mods in the whole corpus write a nutrition macro and they write it on different objects — `SomewhatTraitsCore` on the player, Long Term Preservation on an item — so nine of the eleven Lua-signalled mods never write a macro at all [#1581/C/snapshot].
 
-Seven of the nine script-signalled mods declare `module Base`, only two of the seven define an item under it (`Horse` 1, `69mini` 32) and exactly one of those collides with a vanilla item name: `Horse` redefines `Base.Rope` [#1594/C/snapshot].
+Seven of the nine script-signalled mods declare `module Base` at the 2026-09-10 17:47 sweep, only two of the seven define an item under it (`Horse` 1, `69mini` 32) and exactly one of those collides with a vanilla item name: `Horse` redefines `Base.Rope` [#1594/C/snapshot].
 On `42.20.4` the installed corpus contains no vanilla food override at all: every nutrition-bearing script block in it adds a new item [#1595/C/snapshot].
 There is one item-name collision across the 230-mod installed corpus, so a `module Base` redefinition pass has no corpus precedent ([../../platform/loader-and-scripts.md](../../platform/loader-and-scripts.md#per-key-merge)) [#1229/C/snapshot].
 
-No mod in the 230-mod installed corpus uses `loadstring`, and the whole corpus survived the `42.20.x` security purge intact [#1222/C/snapshot, #1565/C/snapshot].
+No mod in the 230-mod installed corpus uses `loadstring` at the 2026-09-10 17:47 sweep, and the whole corpus survived the `42.20.x` security purge intact [#1222/C/snapshot, #1565/C/snapshot].
 No corpus row's layout is a flat `B41` one: all 230 resolve a `42[.x[.y]]/` or `common/` folder, while 153 rows still ship a bare root `media/` beside their live version folder that the scan does not read [#1566/C/snapshot].
 51 installed workshop folders whose name differs from the declared id load anyway, measured on the dedicated-server path at the 2026-09-11 reading [#1221/M/snapshot].
 154 installed mods declare `versionMin` and 13 declare `versionMax`, at the 2026-09-11 reading [#1223/C/snapshot].
 
-The six resident mods of the Girth stack — `QuestSystem`, `Economy`, `BaseQuests`, `SDQuests`, `GirthsTweaks` and `ItemQuality` — carry 228 `sendClientCommand`, `OnClientCommand` and `sendServerCommand` sites between them, 96 of them in `QuestSystem` alone [#1459/C/snapshot, #1567/C/snapshot].
+The six resident mods of the Girth stack — `QuestSystem`, `Economy`, `BaseQuests`, `SDQuests`, `GirthsTweaks` and `ItemQuality` — carry 228 `sendClientCommand`, `OnClientCommand` and `sendServerCommand` sites between them, 96 of them in `QuestSystem` alone, dated 2026-09-10 [#1459/C/snapshot, #1567/C/snapshot].
 CleanUI's live tree ships 54 Lua files — 51 under its client directory and 3 under its shared one — of which 33 sit at the same relative path as a vanilla Lua file and are therefore replacements [#1457/C/snapshot].
 
-The corpus event census reads `OnGameStart` 70 hooks over 25 mods, `OnTick` 70/15, `OnPlayerUpdate` 55/39, `OnClientCommand` 54/20, `OnServerCommand` 43/14, `OnGameBoot` 38/16, `OnInitGlobalModData` 33/14, `OnFillWorldObjectContextMenu` 28/12, `OnFillInventoryObjectContextMenu` 23/14, `EveryOneMinute` 22/10, `OnCreatePlayer` 17/14 and `OnServerStarted` 11/6, a floor rather than a total because it is summed over each record's top eight events [#1568/C/snapshot].
+The corpus event census, dated 2026-09-10, reads `OnGameStart` 70 hooks over 25 mods, `OnTick` 70/15, `OnPlayerUpdate` 55/39, `OnClientCommand` 54/20, `OnServerCommand` 43/14, `OnGameBoot` 38/16, `OnInitGlobalModData` 33/14, `OnFillWorldObjectContextMenu` 28/12, `OnFillInventoryObjectContextMenu` 23/14, `EveryOneMinute` 22/10, `OnCreatePlayer` 17/14 and `OnServerStarted` 11/6, a floor rather than a total because it is summed over each record's top eight events [#1568/C/snapshot].
 
 The heavy-lua landscape list ranks the corpus's 14 largest Lua mods by `lua_kb` at the 2026-09-10 sweep, from KnoxBuildworks at 1 389 KB down to BeyondTen at 170 KB, with each row's `net`, `mod_data`, `patch` or `pcall` count beside it [#1569/C/snapshot].
 
@@ -325,7 +325,7 @@ The corpus-wide mod-lint sweep returned 84 findings — 3 ERROR, 30 WARN and 51 
 <a id="walls"></a>
 
 - A hit count is not a behaviour: every claim on this page is a file read or a count of regex hits over shipped files, and the Workshop sweep is a trend-sorted top-30-per-term slice rather than a census [#1564].
-- A Workshop row that is not installed under the workshop root cannot be linted, profiled or measured from this repository, so it is graded W, and the only action that changes that is to subscribe to the id in Steam, let it download and re-run the mod-inventory tool [#1600].
+- A Workshop row that is not installed under the workshop root cannot be linted, profiled or measured from this repository, so everything recorded about it is a reading of its public page rather than of its files, and the only action that changes that is to subscribe to the id in Steam, let it download and re-run the mod-inventory tool [#1600].
 - 176 of the 179 installed workshop items are returned by none of the eight terms, and `3774789651` Long Term Preservation — the one installed mod carrying both nutrition signals — appears in none of the eight pages while a third-party patch to it does, so absence from this dataset is not evidence about a mod, at the 2026-09-10 16:26 fetch [#1604/W/snapshot].
 - The Workshop sweep's eight terms are the Workshop lead's own term list with realistic needs replaced by spoilage, seven of the eight original terms being swept as planned, at the same fetch [#1608/W/snapshot].
 - Three of this page's multiplayer consequences are reasoning from the platform rows rather than measurements of the mod they are attached to: the server-side calorie write that sticks [#1633/C/inference], the client mirror a status bar can never beat [#1634/C/inference] and the stale zero under a client-side recipe filter [#1636/C/inference].
