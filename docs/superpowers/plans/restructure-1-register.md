@@ -41,7 +41,7 @@
 | `docs/superpowers/plans/restructure-anchors.md` | the anchor plan (deliverable 0 of the harvest) | 8 |
 | `tools/claims_check.py`, `tools/tests/test_claims_check.py` | rules 0–7, `--register-only`, `--partial`, `--staged`, `--allow-provisional`, `--fix-tags`, `--view`, `--section-map` | 9 |
 | `docs/reference/do-not-cite.csv` | the do-not-cite keys, generated and hand-verified | 10 |
-| `docs/reference/parts/claims-<group>.tsv`, `docs/reference/parts/coverage-<group>.md` | nine harvest parts (G1a, G1b, G1c, G1d, G2a, G2b, G2c, G3a, G3b, G4) | 11–20 |
+| `docs/reference/parts/claims-<group>.tsv`, `docs/reference/parts/coverage-<group>.md` | ten harvest parts (G1a, G1b, G1c, G1d, G2a, G2b, G2c, G3a, G3b, G4) | 11–20 |
 | `docs/reference/claims.tsv`, `docs/reference/claims-coverage.md` | the merged register and coverage table; the anchor plan folded | 21 |
 | `tools/README.md` | entries for the five new tools | 2, 3, 4, 5, 9 |
 | (live) | the acceptance run | 22 |
@@ -2247,7 +2247,7 @@ cd /c/Users/Angus/repos/project_zomboid && git add docs/reference/parts/claims-G
 - Delete: `docs/reference/parts/` (all ten `claims-*.tsv` and ten `coverage-*.md`)
 
 **Interfaces:**
-- Consumes: the nine committed parts (Tasks 11–20), `tools/claims_harvest.py merge`, `tools/claims_check.py`.
+- Consumes: the ten committed parts (Tasks 11–20), `tools/claims_harvest.py merge`, `tools/claims_check.py`.
 - Produces: the register every later phase reads; the coverage table that is acceptance check 7's evidence and the `old section -> ids` map for the wall-map rewrite (Phase 4) and the page writers (Phases 2–3).
 
 - [ ] **Step 1: Merge**
@@ -2290,7 +2290,7 @@ Read `## Totals` in `claims-coverage.md`: `verdict` = 64; `open` ≥ 26; `contra
 - [ ] **Step 5: Delete the parts and commit**
 
 ```bash
-cd /c/Users/Angus/repos/project_zomboid && git rm -q -r docs/reference/parts && python tools/claims_check.py --register-only && python -m pytest tools/tests testing/tests -q 2>&1 | tail -1 && git add docs/reference/claims.tsv docs/reference/claims-coverage.md docs/superpowers/plans/restructure-anchors.md && git commit -m "Register: claims.tsv merged from the nine harvest parts; coverage table; anchor plan folded" -- docs/reference/claims.tsv docs/reference/claims-coverage.md docs/superpowers/plans/restructure-anchors.md docs/reference/parts
+cd /c/Users/Angus/repos/project_zomboid && git rm -q -r docs/reference/parts && python tools/claims_check.py --register-only && python -m pytest tools/tests testing/tests -q 2>&1 | tail -1 && git add docs/reference/claims.tsv docs/reference/claims-coverage.md docs/superpowers/plans/restructure-anchors.md && git commit -m "Register: claims.tsv merged from the ten harvest parts; coverage table; anchor plan folded" -- docs/reference/claims.tsv docs/reference/claims-coverage.md docs/superpowers/plans/restructure-anchors.md docs/reference/parts
 ```
 
 Expected: `0 findings`, tests green, one commit that adds two files, modifies one and deletes twenty.
