@@ -366,7 +366,7 @@ Every store the drink probe read was taken through the server bus, with the clie
 <a id="experiment-contract"></a>
 ### The standing contract for a named experiment
 
-A named experiment inherits the same contract whatever it measures: an existing profile or a new one in the acceptance profile's shape, a driver in the house shape with its provenance keys and its client-first paired reads, verification rows that are certain to pass if the mod loaded at all and never the reading that is the point of the session, and a gate placed on the side whose loading is not itself the question [T98.1].
+A named experiment inherits the same contract whatever it measures: an existing profile or a new one in the acceptance profile's shape, a driver in the house shape with its provenance keys and its client-first paired reads, verification rows that are certain to pass if the mod loaded at all and never the reading that is the point of the session, and a gate placed on the side whose loading is not itself the question [#2050].
 The specs themselves — one row per experiment, with the profile, the driver, the reading and the cost — are [`experiments.md`](../reference/experiments.md).
 
 The remaining experiment programme is a ceiling and not a commitment: about 42 hours is what the named experiments would cost if every one of them were run, and every corpus count inside it is a dated snapshot [#1973].
