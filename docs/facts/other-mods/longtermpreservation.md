@@ -29,11 +29,11 @@ The jarred meats are the part that most looks like a feature and least behaves l
 The pemmican, lard, mashed-berry and jam lines are ordinary content, and none of them carries a cook hook.
 Cooking a cured meat makes it non-perishable and 30 per cent less nutritious, and cooking a jar re-bases its age onto a 180-day window with a 150-day fresh point [#1384].
 Both of those changes fire at the cooking transition rather than at the craft.
-A player who crafts a cured meat and never cooks it therefore sees only the shelf life the item's own script declares, and none of the mod's Lua ever runs on it.
+A player who crafts a cured meat and never cooks it therefore sees only the shelf life the item's own script declares, and none of the mod's item-changing Lua ever runs on it.
 
 Those additions divide cleanly into two kinds, and the division is what the rest of this page turns on.
 The new items, their shelf lives, their macros and the recipes that produce them are declared in item and recipe scripts.
-The cooked-state changes are the only thing the mod expresses in Lua.
+The cooked-state changes are the only thing the mod expresses in Lua that changes an item.
 They are also the only thing that behaves differently on a dedicated server than it does with no server at all.
 Nothing the mod adds touches a player: there is no nutrition read, no moodle, no stat write and no interface element anywhere in it.
 A reader coming to it for a nutrition mod's sake should read it as a worked example of the script-versus-Lua boundary rather than as a nutrition design.
@@ -61,6 +61,7 @@ The mod's architecture is a six-row file table dated 2026-09-10: 89 Lua lines ov
 | `42.20/media/scripts/items/models_skittles.txt` | 16 | script | 2 `model` blocks |
 | `42.20/media/lua/shared/Translate/EN/{ItemName,Recipes,Tooltip}_EN.txt` | 18 / 11 / 6 | shared | 15 item names, 8 recipe names, 3 tooltips; 13 language trees in all |
 
+The line counts in that table are real last-line numbers, so a newline-counting tool reads one lower [#1385/C/snapshot].
 The shape of that table is the mod: a very small amount of Lua, a large amount of script, and a translation tree larger than both by file count.
 None of the translation tree is code, and none of it is loaded on a path that any of the mod's own logic depends on.
 All seven of the mod's Lua globals and every nutrition write it makes live in its server tree, its shared tree holds only the forage definition and the translations, and there is no client tree at all [#1386].
@@ -76,7 +77,7 @@ That is an unusually small surface, and it is deliberate rather than incidental.
 The script keys are the mod's whole dispatch table, and each one names a plain global function rather than a method on anything vanilla owns.
 Because those names are globals rather than methods, taking one over is a matter of defining the same name, which is the risk the pitfalls below state.
 The forage registration is the one ordering-sensitive surface it has, and the compatibility section says why that costs nothing.
-Its own item mapper collapses a four-input family into a single recipe block, and the engine's result lookup resolves the mapped outputs ([#1438/M/n=1], [`../../platform/loader-and-scripts.md#craft-recipe-grammar`](../../platform/loader-and-scripts.md#craft-recipe-grammar)).
+Its own item mapper collapses a whole input family into a single recipe block, and the engine's result lookup resolves the mapped outputs ([#1438/M/n=1], [`../../platform/loader-and-scripts.md#craft-recipe-grammar`](../../platform/loader-and-scripts.md#craft-recipe-grammar)).
 
 Long Term Preservation keeps no mod state of the usual kind: zero modData reads or writes, zero sandbox references, zero command-bus sites and zero player-nutrition reads across the whole live tree, so all of its state lives in one inventory item's own Java fields, written by the two cook hooks [#1389/C/snapshot].
 A census of one of its items is nevertheless not empty, because the script tooltip the item parser rawsets at instantiation is an item modData key on every side that builds the item ([#1044], [#1415/M/n=1], [`../../platform/loader-and-scripts.md#default-moddata`](../../platform/loader-and-scripts.md#default-moddata)).
@@ -101,19 +102,19 @@ The cured-meat cook hook is an 11-setter, four-print table dated 2026-09-10 in w
 
 Read down the carried column and the mod's multiplayer behaviour is decided before any session is run.
 Both hooks are ordinary Lua functions taking the item as their only argument, with no container walk, no side test and no player reference in either of them.
-The never-ages value the cured-meat hook writes is vanilla's own sentinel rather than a number the mod invented, which is why a cured meat stops aging outright instead of aging slowly.
+The never-ages value the cured-meat hook writes is vanilla's sentinel rather than a number the mod invented, which is why a cured meat stops aging outright instead of aging slowly.
 The prints interleaved through the setters are the mod's only diagnostic surface, and they are the reason a server console can be read for the transition at all.
 Between them the two hooks are the mod's entire write path, and every other file in it is declarative.
 The jar cook hook writes only an age maximum of 180, an age-off point of 150 and an age derived from the new maximum, and not one of those three fields is in the item packet, so the jarring half of the mod writes nothing a client can ever learn [#1391].
-The jar hook's double read of the age maximum is deliberate rather than a bug: computing the aged fraction against the old maximum, setting the new maximum, then setting the age from the new one preserves the fraction, so a jar at 10 per cent of its old life comes out at 18 days of a 180-day life [#1392/C/arith.].
+The jar hook's double read of the age maximum is deliberate rather than a bug: computing the aged fraction against the old maximum, setting the new maximum, then setting the age from the new one preserves the fraction, so a jar at 10 per cent of its old life comes out at 18 days of a 180-day life, that 18 being the fraction applied to the new window rather than a measured value [#1392/C/arith.].
 That idiom is stated as a key fact above, because it is the piece of this mod a nutrition mod would reuse unchanged.
 
 <a id="mp"></a>
 ### Multiplayer behaviour
 
 The mod does no networking of its own.
-It has no command bus, no modData and no push of its own, and the engine's two server-guarded item-stats pushes inside the cook block are what carry its writes ([#1395], [`../../platform/mp-model.md#routes-server-to-client`](../../platform/mp-model.md#routes-server-to-client)).
-Its whole multiplayer contract is therefore the item packet's field list, and the fields that list omits are exactly the fields the mod writes ([#1396], [#1398], [`../wire-packets.md#item-stats-packet`](../wire-packets.md#item-stats-packet)).
+It has no command bus, no modData and no push of its own, and the engine's server-guarded item-stats pushes inside the cook block are what carry its writes ([#1395], [`../../platform/mp-model.md#routes-server-to-client`](../../platform/mp-model.md#routes-server-to-client)).
+Its whole multiplayer contract is therefore the item packet's field list, and anything it writes outside that list is server-only state ([#1396], [#1398], [`../wire-packets.md#item-stats-packet`](../wire-packets.md#item-stats-packet)).
 Nothing about that contract is specific to this mod: it is what any mod that writes an item field from a server-side hook inherits.
 
 Its authority model is the simplest one available.
@@ -146,7 +147,7 @@ The scripted last-cook-minute flip is not a precondition of the transition ([#14
 The client's copy of the same item did not advance at all across the observed window, and whether a client's copy advances is answered per arm rather than once ([#1411/M/n=1], [#1421/M/n=1], [#1423/M/n=1], [`../../platform/mp-model.md#what-a-client-copy-is`](../../platform/mp-model.md#what-a-client-copy-is)).
 Age never reaches a client on any arm ([#1412/M/n=2], [`../spoilage.md#writes`](../spoilage.md#writes)).
 The server's own item tick is slow relative to a frame, which is why a frozen client reading is legible at all rather than a sampling artefact ([#1419/M/n=2]).
-Float rendering on the two sessions that measured this mod was limited to six decimals, so every difference recorded here is a whole-value one rather than a bit-level one ([#1435/M/n=1], [`../../platform/harness.md#artifacts-discipline`](../../platform/harness.md#artifacts-discipline)).
+Float rendering on the two sessions that measured this mod was rounded by the harness, so every difference recorded here is a whole-value one rather than a bit-level one ([#1435/M/n=1], [`../../platform/harness.md#artifacts-discipline`](../../platform/harness.md#artifacts-discipline)).
 
 For a nutrition mod the reading is direct.
 Any per-item value it invents sits in the same position as this mod's shelf life unless it is declared in an item script or carried across by the mod itself.
@@ -201,12 +202,12 @@ The licence posture is the one compatibility line that is not about code: its sc
 It has no command bus and no interface surface at all, so it cannot collide with the command sites of the resident quest stack or with the client tree of the resident interface mod ([#1459/C/snapshot], [#1457/C/snapshot], [`catalog.md#corpus-facts`](catalog.md#corpus-facts)).
 Looking one of its recipes up by name needs the module prefix, because a dot-less name resolves against neither spelling the shipped lookup tries ([#1455/M/n=1], [`../../platform/loader-and-scripts.md#name-resolution`](../../platform/loader-and-scripts.md#name-resolution)).
 The live craft-recipe count with the mod loaded is the vanilla census plus its own blocks, which the dataset page carries ([#1456/C/snapshot], [`../../reference/datasets.md`](../../reference/datasets.md)).
-The harness placed the mod under its declared id rather than under its folder name, and that the rename is required rather than merely usual stays an inference ([#1453/M/n=1], [#1464/C/inference/open]).
+The harness placed the mod under its declared id rather than under its folder name, and the rename is a convenience rather than a requirement: a folder whose name matches neither declared id loads unrenamed when the mod list names the version directory's id ([#1453/M/n=1], [#1832/M/n=1], [`../../platform/mod-anatomy.md#folder-name`](../../platform/mod-anatomy.md#folder-name)).
 The consequence for anything that reads this mod is practical: a bare recipe name of its own has to be resolved by scanning every craft recipe rather than by the shipped lookup.
 
 The walls this mod demonstrates are all of the closed kind.
 A mod cannot add a field to the item packet nor depend on a field it omits, cannot trust a cooked food's thirst change on a client, and cannot ship a food absent from the vanilla translation table without losing its unmodded weight to the display-name guard ([#1144/M/n=1], [#1147/M/n=1], [#1166/C/C-only]).
-The one open wall it rests on is that a crafted instance can be rewritten from the cook hook at all, which is what makes its cured meats possible in the first place ([#1154/M/n=1]).
+The one wall that opens for it is that a crafted instance can be rewritten from the cook hook at all, which is what makes its cured meats possible in the first place ([#1154/M/n=1]).
 Its own translation files are in the older layout, which is the reason its item names never resolve and the reason its weight guard fires ([#1165/M/n=1]).
 A mod that adds foods and wants their unmodded weight to be non-zero has to ship them in the layout the current build reads, and this one does not.
 That is a wall rather than a defect of the mod's: no arrangement of its Lua would have repaired it.
