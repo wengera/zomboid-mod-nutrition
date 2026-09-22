@@ -25,12 +25,12 @@ Beyond Ten is workshop item `3765241705`, mod id `BeyondTen` by Patryk, examined
 
 Beyond Ten leaves the native cap untouched and layers a parallel stat the Java engine does not know about: mastery experience is banked in character modData once native experience is full, and levels are derived on read from stored experience against per-level costs of the level-10 cost plus the level-9-to-10 step times the ranks above 10 [#1526/C/C-only].
 The engine is therefore never told that a skill went past its cap, and nothing on the Java side has to be patched to make room for the extension.
-Only two things exist at rest: a number banked in a table the engine already saves, and a pure function that turns that number into a level.
+Only two things exist at rest: a number banked in a table the engine already saves, and a pure function that turns that number into a level ([#1528/C/C-only], [`#mp`](#mp)).
 Everything else the mod shows the player is computed from those two on demand.
 
-Beyond Ten delivers its effects three ways: idempotent wrappers on two vanilla action methods, injection of an effective level into the local a vanilla Lua function read so that vanilla's own formulas scale for free, and event-time maths for wear negation and carry weight, the last of which registers as a modifier provider with a carry-weight framework when that framework is present rather than clobbering the field [#1527/C/C-only].
-The three differ in what they survive when the game changes underneath them.
-A wrapper survives any update that keeps the wrapped method's name and arity, an event-time computation survives any update that keeps the event, and an injection survives only while the vanilla function it targets keeps the local variable it writes into.
+Beyond Ten delivers its effects three ways: idempotent wrappers on two vanilla action methods, injection of an effective level into the local variable that a vanilla Lua function reads so that vanilla's own formulas scale for free, and event-time maths for wear negation and carry weight, the last of which registers as a modifier provider with a carry-weight framework when that framework is present rather than clobbering the field [#1527/C/C-only].
+The three rest on different things: a wrapped method, a vanilla function's local variable, and an event [#1527/C/C-only].
+The injection is the fragile one: it survives only while the vanilla function it targets keeps the local-variable pattern it writes into ([#1532/C/C-only], [`#pitfalls`](#pitfalls)).
 The guard that lets the wrappers be installed a second time without stacking is the first of the techniques above ([#1529/C/C-only], [`#techniques`](#techniques)).
 
 The part of this blueprint a nutrition mod takes whole is the resting shape: a reservoir in character modData, values derived on read from that reservoir, wrappers written so that a reload cannot double them, and compatibility by handshake rather than by last write.
