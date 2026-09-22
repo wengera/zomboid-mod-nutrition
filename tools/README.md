@@ -296,7 +296,9 @@ import patterns from there.
   part holds a continuation slice — within the block's last id, successors), `pointer` (`run:`
   folders exist or are aliased in `run-aliases.csv` — a `run:` pointer to an artifact-less run
   is allowed only on an `unverified` or `superseded` row whose bound starts `uncommitted:` —
-  keys are not in `do-not-cite.csv`, `repo:` paths exist and name no tree the Phase 4 cut
+  keys are neither listed in `do-not-cite.csv` nor a child of a listed key (`<listed>.<rest>`
+  or `<listed>[<index>` is restricted too; an ancestor of a listed key is not — R34), `repo:`
+  paths exist and name no tree the Phase 4 cut
   deletes, bar `docs/modding/wall-map.md`, which the cut moves),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
   the two reference pages that own register rows (`datasets.md`, `tools.md`) and the skills resolves

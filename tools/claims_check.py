@@ -209,11 +209,30 @@ def _uncommitted_run(row):
     return token == "uncommitted"
 
 
+def _restricted_key(key, listed):
+    """The do-not-cite key that restricts `key`, or None (Ruling R34).
+
+    A cited key is uncitable when it *equals* a listed key for that run, or when it is a **child**
+    of one — `<listed>.<rest>` or `<listed>[<index>` — because the restriction on a reading covers
+    every reading inside it. An **ancestor** of a listed key is not flagged here (a parent object
+    may hold citable siblings; narrowing that is a Phase 2 checker item). A `*` row is a whole-run
+    prose restriction, not a key path: it still only matches by equality, so it never fails a row
+    on its own and goes on being discharged by quoting its `why` into the row's bound. The most
+    specific listed key wins, so the finding names the closest restriction."""
+    if key in listed:
+        return key
+    hits = [k for k in listed if k and k != "*" and (key.startswith(k + ".") or key.startswith(k + "["))]
+    return min(hits, key=lambda k: (-len(k), k)) if hits else None
+
+
 def rule_pointer(rows, root, register_rel):
     out = []
     # do-not-cite.csv is `run,key,value,why,read_instead`; a prose restriction with no key has
-    # `key = *`, and a `*` never equals a real pointer key, so the membership test needs no case.
-    dnc = {(r.get("run", ""), r.get("key", "")) for r in _load_csv(os.path.join(root, DNC))}
+    # `key = *`. Keyed by run, because the test is no longer an exact `(run, key)` tuple: see
+    # _restricted_key for the child-key rule (R34).
+    dnc = collections.defaultdict(set)
+    for dr in _load_csv(os.path.join(root, DNC)):
+        dnc[dr.get("run", "")].add(dr.get("key", ""))
     aliases, unkeyed = _keyed(_load_csv(os.path.join(root, ALIASES)), "alias")
     if unkeyed:
         out.append(Finding(ALIASES, 1, "pointer", "%d row(s) in run-aliases.csv carry no 'alias' column and are "
@@ -236,8 +255,12 @@ def rule_pointer(rows, root, register_rel):
                 if len(parts) >= 2 and parts[1].endswith(".json") and not os.path.exists(os.path.join(rdir, parts[1])):
                     out.append(Finding(register_rel, n, "pointer", "%s: %s has no file %s" % (r["id"], real, parts[1])))
                 key = " ".join(parts[2:]) if len(parts) >= 3 else ""
-                if (real, key) in dnc or (run, key) in dnc:
-                    out.append(Finding(register_rel, n, "pointer", "%s: %s %s is on the do-not-cite list" % (r["id"], real, key)))
+                listed = _restricted_key(key, dnc[real]) or _restricted_key(key, dnc[run])
+                if listed:
+                    detail = "%s: %s %s is on the do-not-cite list" % (r["id"], real, key)
+                    if listed != key:
+                        detail += " (a child of the restricted key %s)" % listed
+                    out.append(Finding(register_rel, n, "pointer", detail))
             elif form == "repo":
                 path = text.split('"')[0].strip().rsplit(":", 1)[0]
                 if _doomed(path):

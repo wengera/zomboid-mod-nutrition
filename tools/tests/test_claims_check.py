@@ -59,6 +59,43 @@ def test_pointer_rule_runs_aliases_and_do_not_cite():
         assert any("anchor" in x.detail and "#0005" in x.detail for x in f)
 
 
+# The two child-key tests below share one tree: run x121 with `phases.M7` restricted and a `*`
+# whole-run prose row beside it (Ruling R34).
+_DNC_CHILD = ("run,key,value,why,read_instead\n"
+              "x121-20260911-030023,phases.M7,1,the gate straddles the window,\n"
+              "x121-20260911-030023,*,,the client console prints each block twice,\n")
+
+
+def _child_tree(d, rows):
+    os.makedirs(os.path.join(d, "testing", "artifacts", "x121-20260911-030023"))
+    open(os.path.join(d, "testing", "artifacts", "x121-20260911-030023", "x121.json"), "w").write("{}")
+    return _tree(d, rows, dnc=_DNC_CHILD)
+
+
+def test_do_not_cite_flags_a_child_of_a_restricted_key():
+    """R34: `phases.M7` is listed, so `phases.M7.before` — a reading inside it — is uncitable."""
+    with tempfile.TemporaryDirectory() as d:
+        _child_tree(d, [_row(1, grade="M", pointer="run:x121-20260911-030023 x121.json phases.M7.before"),
+                        _row(2, grade="M", pointer="run:x121-20260911-030023 x121.json phases.M7[0].after"),
+                        _row(3, grade="M", pointer="run:x121-20260911-030023 x121.json phases.M7")])
+        f = cc.check(d, register_only=True)
+        for cid in ("#0001", "#0002", "#0003"):
+            assert any("do-not-cite" in x.detail and cid in x.detail for x in f), cid
+        assert any("child of the restricted key phases.M7" in x.detail and "#0001" in x.detail for x in f)
+
+
+def test_do_not_cite_leaves_a_sibling_and_an_ancestor_alone():
+    """A sibling (`phases.M8`) and the ancestor (`phases`) of a restricted key still pass, and a
+    `*` whole-run row fails nothing on its own — it is discharged in the row's bound."""
+    with tempfile.TemporaryDirectory() as d:
+        _child_tree(d, [_row(1, grade="M", pointer="run:x121-20260911-030023 x121.json phases.M8"),
+                        _row(2, grade="M", pointer="run:x121-20260911-030023 x121.json phases.M70"),
+                        _row(3, grade="M", pointer="run:x121-20260911-030023 x121.json phases")])
+        f = cc.check(d, register_only=True)
+        assert not [x for x in f if "do-not-cite" in x.detail], [x.detail for x in f]
+        assert f == []
+
+
 def test_owner_tag_suffix_provisional_and_fix():
     page = "# Core\nVerified against 42.20.4 (b0bbce05d5) · 2026-09-17 · scope: x\n\n## Key facts\n- Update runs each tick [#0001].\n- Burn is 0.016 [#0002].\n- Unknown [#0099].\n- Draft [T2.1].\n\n## How it works\n\nThe store clamps at 3700 [#0003/M].\n"
     with tempfile.TemporaryDirectory() as d:
