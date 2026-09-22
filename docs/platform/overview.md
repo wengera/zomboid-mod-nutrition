@@ -234,7 +234,7 @@ Every wall-map row that rests on the live platform sessions took one of three br
 | the cooking interface | absent | planned as a vanilla page and never written |
 
 Each touched topic carries its own boundary row, so the boundary is in the register and not only on this page.
-The events roster's boundary is the curated-surface row stated above, and the other seven topics each carry a row of their own.
+The events roster carries its own boundary row beside the curated-surface bound stated above, and the other seven topics each carry a row of their own.
 The sandbox options a mod declares are touched by rows but have no page: the vanilla options this library read are stated on the pages they gate and the harness merges a profile's block into a fixture, while how a mod declares an option of its own, and whether Lua can flip one at runtime and have it replicate, is unread [#2043/C/one-side/open].
 The user-interface framework is touched by rows but has no page: the corpus teardowns read one framework mod's registration surface and one viewer mod's panel, while the interface toolkit itself, its widget set and its own event surface are unread [#2044/C/one-side/open].
 Timed actions are touched by rows but have no page: the eat and drink actions are read end to end and the multiplayer action manager's route into them is traced, while the action queue, its tick budget and how a mod adds an action of its own are unread [#2045/M/one-side/open].
@@ -242,6 +242,7 @@ The crafting pipeline is touched by rows but has no page: the craft-recipe gramm
 Server admin and the remote console are touched by rows but have no page: the console's transport, the one admin command this library drove and the one that throws are stated here, while the admin command set as a whole and what each does to a running world are unread [#2047/C/one-side/open].
 Build detection is touched by rows but has no page: the version keys and what the availability gate compares are stated on the anatomy page, while what a mod can detect about the running build from inside Lua is unread [#2048/C/one-side/open].
 Client-only mods are touched by rows but have no page: one workshop mod is torn down as a pure client-side viewer and a second as a client-only cooking helper, while the general cost of shipping one side only, and what still reaches the other side, is stated as anatomy rather than as a topic of its own [#2049/M/n=1/open].
+The event roster is touched by rows but has no page: the events this library hooked and measured are stated on the Lua platform and harness pages, while the full roster and which events fire on a dedicated server were never enumerated here [T97.1].
 
 Not every absence above is equal, and the table is read by status rather than by row.
 A `covered` row means a page collects the rows and states each with its grade and its bound, and that is the only status whose answer may be quoted as this library's.
