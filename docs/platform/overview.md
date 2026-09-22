@@ -26,7 +26,7 @@ Every mechanism below is owned by exactly one other page, which states it with i
 Four things decide the routing of any question about a mod on this build: which surface the mod would reach the game through, which Lua state the code would run in, which side owns the quantity it would change, and what the session the mod runs inside allows.
 The coverage table below closes the page by naming what this library never read at all, so that an absent answer is recognisable as absent rather than guessed.
 The reading order from a cold start is this page, then the page the routing table names, then whichever page that one hands off to; nothing below needs to be read in full.
-The four subsections are four ways of asking the same question, and a task will usually match one of them and none of the others.
+Those four questions are the first four subsections below, and a task will usually match one of them and none of the others; the fifth subsection is the routing table they resolve to.
 
 <a id="surfaces"></a>
 ### The four surfaces
@@ -59,7 +59,7 @@ The fifth thing a mod carries is the identity of the mod itself, which is neithe
 ### The two Lua states
 
 The server runs one Lua state and the client two, so a mod's file-scope side effects run twice on a client and every per-file loader line is printed twice there [#0878/M/n=1].
-The two client states are the main-menu one and the in-session one, both inside one process.
+The two client states are the main-menu one and the in-session one, both inside one process, and engine load output is printed once per state [#1762/M/n=1].
 A mod's `media/lua/server/` files execute in the multiplayer client's Lua state as well as the server's: on the client the shared table's side field read `server`, the per-side minute counter read 58 on the client against 38 on the server, and the eat-hook wrapper flag read true client-side [#0854/M/n=1].
 The folder under `media/lua/` is therefore a naming convention and not a deployment boundary, and the only reliable side test is a runtime one.
 That reading is incidental to the session that produced it and the mechanism behind it is untraced, so the mapping that puts a `server/` file into the client's state is stated as an observation and not as a code path [#0854/M/n=1].
@@ -92,7 +92,7 @@ Neither side owns the moodles: each recomputes them from its own stats, and they
 The server owns a food item's whole lifecycle, because the container hooks that fire on an add or a remove are gated on the process being a server ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0327].
 The server owns the cook transition, whose hook prints land in the server console with the client's empty ([`mp-model.md#ownership`](mp-model.md#ownership)) [#1417/M/n=1].
 A skill level crosses by character sync rather than by either item packet, so it is visible to the next client read with no wait ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0353/M/n=1].
-The server owns the session's mod list too, and the client inherits it on join, so its own enabled list matters only until the first join and a client-side mod the server does not name is not in the session [#1824].
+The server owns the session's mod list too, and what the client inherits on join is stated at [the session a mod runs inside](#process-model).
 
 Two consequences of that list decide most designs before any code is written.
 A mod's own numbers must be computed where the eat completes, which is the server, and a client-side implementation of the same maths has no path to run on.
@@ -146,11 +146,11 @@ Where two pages look adjacent, the third column says which side of the boundary 
 
 | Page | What it owns | Anchors a question lands on |
 |---|---|---|
-| [`mod-anatomy.md`](mod-anatomy.md) | what a mod folder is: `mod.info` and its keys, discovery, which file supplies the id, the version dir against `common/`, translations, the missing-mod and version-gate failures, the join, the checksum gate, a one-sided mod | `#mod-info-keys`, `#mod-discovery`, `#id-chain`, `#version-dirs`, `#translations`, `#missing-mod`, `#build-pinning`, `#join`, `#checksum-gate`, `#client-only-mods` |
+| [`mod-anatomy.md`](mod-anatomy.md) | what a mod folder is: `mod.info` and its keys, discovery, which file supplies the id, the version dir against `common/`, translations, the missing-mod and version-gate failures, the join, the checksum gate, a one-sided mod | `#mod-info-keys`, `#mod-discovery`, `#id-chain`, `#version-dirs`, `#translations`, `#load-order-declarations`, `#missing-mod`, `#build-pinning`, `#join`, `#checksum-gate`, `#client-only-mods` |
 | [`loader-and-scripts.md`](loader-and-scripts.md) | how a relative path becomes one file, how the Lua execution list is built, the `item` and `craftRecipe` grammars, and the block-level merge inside a script file | `#file-map`, `#lua-load-order`, `#script-dsl`, `#craft-recipe-grammar`, `#bucket-append`, `#per-key-merge`, `#sorted-replay`, `#path-collisions`, `#default-moddata`, `#per-side-load`, `#reload` |
-| [`lua-platform.md`](lua-platform.md) | the Lua a mod runs inside: the dialect's gaps, what a protected call catches, what an unguarded raise costs, how a Java member is reached, how the script hooks resolve, the event surface, the registries, the removed APIs | `#kahlua-limits`, `#pcall`, `#raises`, `#debug-break`, `#java-members`, `#script-hooks`, `#events`, `#registries`, `#removed-apis`, `#dev-loop` |
-| [`mp-model.md`](mp-model.md) | which side owns each quantity, the routes state can travel, when each packet fires, what the receiver holds in between, and what a client's copy is and is not | `#ownership`, `#routes-client-to-server`, `#routes-server-to-client`, `#packets`, `#cached-packet`, `#item-moddata`, `#player-moddata`, `#wipe-and-replace`, `#command-bus` |
-| [`harness.md`](harness.md) | the instrument every measured row here was taken with: the orchestrator, the profile, the sandbox block, the driven client, the bus and reply reading, probes, the witness, scenarios, cadence, artifact and driver discipline | `#pzt`, `#profiles`, `#sandbox`, `#driven-client`, `#bus`, `#reading-a-reply`, `#probes`, `#witness`, `#scenarios`, `#cadence`, `#driver-rules` |
+| [`lua-platform.md`](lua-platform.md) | the Lua a mod runs inside: the dialect's gaps, what a protected call catches, what an unguarded raise costs, how a Java member is reached, how the script hooks resolve, the event surface, the registries, the removed APIs | `#kahlua-limits`, `#pcall`, `#raises`, `#debug-break`, `#java-members`, `#script-hooks`, `#events`, `#hooks`, `#registries`, `#removed-apis`, `#file-io`, `#dev-loop` |
+| [`mp-model.md`](mp-model.md) | which side owns each quantity, the routes state can travel, when each packet fires, what the receiver holds in between, and what a client's copy is and is not | `#ownership`, `#routes-client-to-server`, `#routes-server-to-client`, `#packets`, `#cached-packet`, `#item-moddata`, `#player-moddata`, `#wipe-and-replace`, `#command-bus`, `#what-a-client-copy-is` |
+| [`harness.md`](harness.md) | the instrument every measured row here was taken with: the orchestrator, the profile, the sandbox block, the driven client, the bus and reply reading, probes, the witness, scenarios, cadence, artifact and driver discipline | `#pzt`, `#profiles`, `#sandbox`, `#driven-client`, `#bus`, `#reading-a-reply`, `#probes`, `#witness`, `#scenarios`, `#cadence`, `#time`, `#driver-rules` |
 | [`lessons.md`](lessons.md) | the standing rules this library leaves behind, with the page each rule rests on named beside it | `#rules`, `#anti-patterns`, `#testing-discipline`, `#corpus-drift`, `#measure-the-mechanism` |
 | [`jar-research.md`](jar-research.md) | how a question about the game's Java becomes a citable claim: the disassembler's subcommands, absence, callers, access flags, offsets, the exposer dump | `#reading-the-jar`, `#method`, `#exposed`, `#procedure` |
 | [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md) | what a food item or a fluid container delivers when it is eaten or drunk: the getters, the fraction, the modifier ladder, the leftover, the drink path, the duration, the sandbox gate | `#getters`, `#eat`, `#modifiers`, `#partial`, `#fluid-path`, `#eat-type`, `#duration`, `#sandbox` |
