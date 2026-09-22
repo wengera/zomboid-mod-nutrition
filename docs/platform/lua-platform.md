@@ -58,7 +58,7 @@ That silence is a property of the caught argument-slot shape and says nothing ab
 ### What an unguarded raise aborts
 
 An unguarded raise is bounded twice over: once by the dispatcher that wraps each callback, and once by the chunk a file scope runs inside.
-Every measured arm below was read in the server VM over two passes of one session on one probe file, because the client parked before it reached the unguarded handler.
+Every measured arm below was read in the server VM over two passes of one session on one probe file, because the client parked before it reached the unguarded handler [#0948/M/n=1, #0949/M/n=1, #0951/M/n=1, #0952/M/n=1].
 
 `Event.trigger` routes every callback through `LuaCaller.protectedCallVoid` inside a per-iteration catch of `Throwable` that logs the exception and continues the loop, so a raise in one handler cannot reach the handlers registered behind it [#0896/C/C-only].
 An unguarded nil call aborts the rest of the handler body it fires in: the tail counter after the raise stayed at zero on both passes after about seventy fires, in the server VM only [#0948/M/n=1].
@@ -121,7 +121,7 @@ An `OnEat` hook can still mutate `hungChange` or `calories`, and `multiplyFoodVa
 `IsoGameCharacter.EatOnClient` is that second call site: the hook-only twin the packet receiver uses, which type-checks, makes the identical `OnEat` call and returns true, writing no stats and no nutrition [#0095].
 So the client's call comes from the packet twin rather than from `Eat`, and because that twin applies no numbers the second firing is a notification and not a double-apply [#0923/C/C-only, #2004/C/C-only].
 An item block's eat hook fires once on each side: after a single whole-item eat the probe's call counter read one on the client and one on the server, at a consumed fraction of one [#0922/M/n=1, #1031/M/n=1].
-That single full-fraction eat cannot separate once per eat from once per portion, which is [an open row](#open) [#1031/M/n=1].
+That single full-fraction eat cannot separate once per eat from once per portion, and no session has put a partial eat beside it [#1031/M/n=1].
 An `OnEat` hook reads post-intake numbers on both sides: the calories read inside the hook were 890.4 on the client and 890.4 on the server for an eat that started from 786.86 [#1034/M/n=1].
 
 A Lua wrapper of `ISEatFoodAction:complete` installed from a mod's `server/` file runs server-only: the completion counter read 1 on the server and 0 on the client [#1032/M/n=1].
@@ -146,17 +146,17 @@ The curated event table carries 13 events with the side each fires on, its caden
 |---|---|---|---|
 | `OnClientCommand(module, command, player, args)` | **server** | once per `sendClientCommand` | the server arm of the harness bus; corpus 54 / 20 |
 | `OnServerCommand(module, command, args)` | **client** | once per `sendServerCommand` | the client arm, which is where the witness replies land; corpus 43 / 14 |
-| `EveryOneMinute` | **both** — measured | one game minute | the nutrient probe's whole drive train, one arm per tick, and the harness's belt-and-braces server poll; corpus 22 / 10 |
-| `EveryTenMinutes` | not exercised here | ten game minutes | named as the other slow tier and never registered by this library; it is below the corpus histogram's cut, so its absence there is a floor artefact rather than a zero |
-| `OnTick` | **both** | every frame | the harness's server poll, deliberately throttled; the expensive tier — corpus 70 / 15 |
-| `OnPlayerUpdate` | client | per player, per frame | never registered by this library; recorded because it is the corpus's most widely shared hook, 55 / 39, and therefore the shared performance hotspot to stay off |
-| `OnCreatePlayer` | **client only** | after Click-to-Start | a corpus mod builds its whole panel here and has no server counterpart at all, which is why it cannot be authoritative about anything |
-| `OnInitGlobalModData` | both; **the server-side init point** | during world init, before players exist | a corpus mod's global-config pair; corpus 33 / 14 |
-| `OnServerStarted` | **server only** | end of world init | the eat-hook probe retries its wrapper install here and the harness logs a line; corpus 11 / 6 |
+| `EveryOneMinute` | **both** — measured | one game minute | the nutrient probe's whole drive train, one arm per tick; over one session the counter read **58 client / 38 server**, because the client VM ran the `server/` file's handler as well as the `client/` one. Also the harness's belt-and-braces server poll; corpus 22 / 10 |
+| `EveryTenMinutes` | not exercised here | ten game minutes | named as the other slow tier and **never registered by this library**; it is below the corpus histogram's top-12 cut, so its absence there is a floor artifact, not a zero |
+| `OnTick` | **both** | every frame | the harness's server poll, deliberately throttled `ticks % 20`; the expensive tier — corpus 70 / 15 |
+| `OnPlayerUpdate` | client | per player, per frame | **never registered by this library**; recorded because it is the corpus's most *widely* shared hook (55 / 39) and therefore the shared perf hotspot to stay off |
+| `OnCreatePlayer` | **client only** | after Click-to-Start | simpleStatus builds its whole panel here and has no server counterpart at all, which is why it cannot be authoritative about anything |
+| `OnInitGlobalModData` | both; **the server-side init point** | during world init, before players exist | simpleStatus's global-config pair `OnInitGlobalModData` / `OnReceiveGlobalModData`; corpus 33 / 14. With `OnServerStarted` it is the pair that survives a dedicated server, because `OnCreatePlayer` / `OnGameStart` / `OnLoad` never fire there |
+| `OnServerStarted` | **server only** | end of world init | the eat-hook probe retries its `ISEatFoodAction.complete` install here; the harness logs a line; corpus 11 / 6 |
 | `OnGameBoot` | launch, both VMs | once at launch | the eat-hook probe's third install site; corpus 38 / 16 |
-| `OnPreFillInventoryObjectContextMenu` | client | every inventory right-click | a corpus mod's only real entry point, and it lives in `common/` |
-| `OnKeyPressed` | client | per key | a corpus mod forwards keys to its own bar |
-| `OnFETick` / `OnPostUIDraw` | client | per UI frame — `OnFETick` stops once the client leaves the main-screen state, `OnPostUIDraw` fires in every state | the harness's client poll registers both for exactly that reason, throttled |
+| `OnPreFillInventoryObjectContextMenu` | client | every inventory right-click | AutoCook's only real entry point, and it lives in `common/`; vanilla fires it at `media/lua/client/ISUI/ISInventoryPaneContextMenu.lua` with `(playerNum, context, items)` |
+| `OnKeyPressed` | client | per key | simpleStatus forwards keys to its bar |
+| `OnFETick` / `OnPostUIDraw` | client | per UI frame — `OnFETick` stops once the client leaves `MainScreenState`, `OnPostUIDraw` fires in **every** state | the harness's client poll registers **both** for exactly that reason, throttled `ticks % 30` |
 
 The real-time length of a game minute is a property of the fixture's day length rather than of the event, and it lives with [the harness](harness.md#time).
 
@@ -210,8 +210,8 @@ The character stats class carries neither a hunger getter nor a thirst getter on
 ### What Lua may read and write
 
 The Lua file writer is rooted at the cachedir's Lua folder, rejects relative-path escapes, accepts and creates subfolders, and checks the extension against a five-entry allowlist — so marker files are not possible and not needed, a file that parses as a complete JSON object being the ready signal; the mod file writer writes into the mod's own folder instead, which is not what run artefacts want [#1866/C/C-only].
-That is a bytecode reading on this build, and the same reader and writer pair is what carries the harness's own request and acknowledgement channel on both sides ([the bus](harness.md#bus)).
-The extension limit on one writer against its absence on the other is an unverified reading and sits in [`## Open`](#open).
+That is a bytecode reading on this build, and the same reader and writer pair is what carries the harness's own request and acknowledgement channel on both sides ([the bus](harness.md#bus)) [#1866/C/C-only].
+Whether the mod file writer carries an extension limit of its own is an unverified reading from a spike that committed no artefact, and it sits in [`## Open`](#open).
 
 <a id="dev-loop"></a>
 ### The in-session dev loop
@@ -222,7 +222,7 @@ The fast authoring loop is a single-file reload on the server plus an absolute-p
 The reload command matches its argument with a suffix test against the loaded-file list and runs that file and nothing else: no events are re-registered, so a file that adds a handler on load will add a second one, and any file meant to be reloaded must guard against double registration [#1880/C/C-only].
 That is a bytecode reading of the command on this build [#1880/C/C-only].
 A sentinel for a wrapped vanilla method must live outside any table the shared file re-creates: the mod's shared file re-creates its own state table by plain assignment on every load, so a reload of that file would wipe an inside sentinel while the old wrapper was still installed and the next install would wrap the wrapper [#0943/C/C-only].
-Four readings of what the reload itself does — that globals survive a server-side single-file reload, that the client-side reload global needs an absolute path, that reloading every file on a dedicated server is not usable, and that a server reload sends nothing to clients — come from a spike whose artefact was never committed, and they are stated once in [`## Open`](#open).
+Four readings of what the reload itself does — the survival of globals across a server-side single-file reload, the path form the client-side reload global needs, the usability of reloading every file on a dedicated server, and whether a server reload reaches clients at all — come from a spike whose artefact was never committed, and they are stated once in [`## Open`](#open).
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -239,7 +239,6 @@ Not covered: the Kahlua standard library beyond the members this library called,
 - Whether an unguarded nil call on a client aborts the body and spares the handlers behind it the way it does on a server — settled by a run that reaches an unguarded raise on a client that stays alive, which needs a client launched without the debug flag; -> X23 [#0959/M/n=2/open].
 - Whether the item block's creation hook fires as the bytecode says, and what it can seed at instantiation — settled by a session that instantiates a modded item through the game's own craft path with the hook registered; -> X31 [#0967/C/C-only/open].
 - Whether a resident mod's protected-call wrapper changes what an unguarded raise does on a client — settled by a three-mod profile booted twice with the two mod orders, reading the loader's override tail, the globals of both mods and the client console for both failure signatures; -> X26 [#1545/M/n=1/open].
-- Whether the eat hook fires once per eat or once per portion — settled by four quarter-eats on one instance against a single whole-item eat, with the per-side counters read between each; -> X24 [#1031/M/n=1].
 - Whether the moodle stat class's absence from Kahlua can be shown live rather than read off the exposer — settled by a global read of that class beside two controls that must answer in the same call; -> X2 [#1141/C/C-only].
 - The explanation of an earlier client outage as the raise aborting the bus-pump handler's body on every tick is unverified: that run predates the artifact convention and has no committed JSON, so it is reasoning from the measured abort rather than a measurement of the outage; re-measure by a session that parks a raising handler on the bus pump and reads the bus from the other side [#0953/C/uncommitted/unverified].
 - The extension limit on the Lua file writer against its absence on the mod file writer is unverified: the reading exists only in a spike's gitignored findings file with no committed artefact folder; re-measure by writing one file of each allowed and disallowed extension through both writers in a session that commits its artefact [#1120/M/uncommitted/unverified].
@@ -247,7 +246,7 @@ Not covered: the Kahlua standard library beyond the members this library called,
 - That the client-side reload global needs an absolute path is unverified for the same reason; re-measure by calling it with a bare file name and then with the client's own full path, reading the version constant after each [#1877/M/uncommitted/unverified].
 - That reloading every Lua file on a dedicated server is not usable is unverified for the same reason; re-measure by driving the reload-all command and counting the Lua error lines in the server log against a clean baseline [#1878/M/uncommitted/unverified].
 - That a server-side single-file reload is server-local with no packet to clients is unverified for the same reason; re-measure by reloading on the server and reading the client's copy of the same constant [#1975/M/uncommitted/unverified].
-- The design must choose where an intake correction sits, because the server-side completion wrapper runs before `Eat` and the eat hook runs after every write [#1033/M/n=1, #0093].
+- The design must choose where an intake correction sits, because the server-side completion wrapper runs before `Eat` while the eat hook runs at the point [the order of writes inside `Eat`](../facts/eating-pipeline.md#eat) puts it [#1033/M/n=1, #0093].
 - The design must choose whether a per-item nutrient value is seeded at instantiation or read from the script on demand, because the creation hook is unexercised while the script object answers nothing about macros [#0967/C/C-only/open, #1011/M/n=1].
 - The design must choose whether mod moodles are attempted at all, because registration reaches every character while the level never rises and the thresholds cannot be reached [#1140/C/C-only, #1141/C/C-only].
 - The design must choose whether a new trait carries any effect in Lua, because the definition call makes it selectable and saved while nothing in the registry gives it a Java effect [#1212/C/C-only, #1158/C/C-only].
