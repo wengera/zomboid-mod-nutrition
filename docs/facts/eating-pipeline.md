@@ -230,7 +230,7 @@ An item pass that rewrites hunger values across every food can land a value unde
 <a id="fluid-path"></a>
 ### The drink path and the per-litre chain
 
-A B42 drink is not a `Food` item: it is a `base:normal` item carrying a `component FluidContainer` joined to a `fluid` definition in `generated/fluids*.txt`, and `media/scripts/fluids/` does not exist — read on 2026-09-10 [#0603/C/snapshot].
+A B42 drink is not a `Food` item: it is a `base:normal` item carrying a `component FluidContainer` joined to a `fluid` definition in `generated/fluids*.txt`, and `media/scripts/fluids/` does not exist — read from the script tree on the stamped build, not measured [#0603/C/snapshot].
 Its numbers therefore come from the fluid, through the container, and they are per litre at the start of the chain and per container at the end of it.
 
 The chain has five steps.
@@ -258,7 +258,7 @@ Drinking therefore completes on the server and sends only the player-stats sync,
 That packet's own field contract is [`../facts/wire-packets.md#player-stats-packet`](../facts/wire-packets.md#player-stats-packet).
 
 Five traps sit on this path, and four of them are asymmetries with the eat path.
-An endurance change is divided by 100 for an item but not for a fluid, and no shipped fluid writes a non-zero one, so a modded fluid's endurance value would be off by a hundredfold — read on 2026-09-10 [#0666/C/snapshot].
+An endurance change is divided by 100 for an item but not for a fluid, and no shipped fluid writes a non-zero one, so a modded fluid's endurance value would be off by a hundredfold — read from the script tree on the stamped build, not measured [#0666/C/snapshot].
 A fluid's `unhappyChange` is applied twice when the container is drunk, once to BOREDOM and once to UNHAPPINESS, so one drink moves both moodles by the container's whole aggregate: minus 3 on a full 0.3-litre cola can and minus 10 on a 0.2-litre juice box, the doubling being in the application rather than in the number [#0667/M/n=2].
 `foodSicknessChange` has the opposite sign convention on the two paths, the drink path requiring a value above 0 and the eat path one below 0, and all 61 fluids write 0 [#0668/C/snapshot].
 The fraction is unclamped in `DrinkFluid`, and the nutrition block multiplies before any clamp, so a fraction outside the range 0 to 1 would deliver nutrition the container never gave up [#0669].
@@ -337,7 +337,7 @@ The one thing the option cannot do is stop a store from filling, which is why a 
 <a id="walls"></a>
 
 Every measured number on this page comes from the dedicated-server path with one client attached, on the fixture's defaults.
-The eat matrix is one fixture across five items and five states, the partial-eat arms are one item each, and the drink probe read the server only.
+The eat matrix is one fixture across five items and five states, the partial-eat arms are one item each, and the drink probe read the server only [#0102/M/one-fixture, #0018/M/one-fixture, #0081/M/one-fixture, #0671/C/one-side/open].
 Single player is never claimed anywhere on this page.
 Where a row rests on one item or one session, its line says so, and widening it takes another run rather than another reading.
 The nutrition mirror's gain and loss formulas and its calorie and macro ceilings match the jar and the measured clamps, so the mirror corroborates those two points and nothing else, its page being nine minors stale [#0132/M/one-fixture].
