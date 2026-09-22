@@ -71,17 +71,17 @@ You never edit the register. Where a sentence needs a row the register lacks, or
 op	id	claim	grade	pointer	bound	status	successor	kind	source	owner	reason
 add	T7.1	<one sentence>	C	jar:…	none	settled		mechanism	docs/vanilla/x.md § Y	facts/x.md#anchor	<why the register lacks it>
 retarget	#0417									facts/x.md#other	<why this anchor, not the old one>
-status	#0512					open				<why open, not settled>
-split	#0600											<why two claims>
-add	T7.2	<child one>	…								split of #0600
-add	T7.3	<child two>	…								split of #0600
+status	#0512				uncommitted: x121-20260911-030023; <the restriction>	unverified					<why unverified, not settled>
+split	#0600										<why two claims>
+add	T7.2	<child one>	C	jar:…	none	settled		mechanism	docs/vanilla/x.md § Y	facts/x.md#anchor	split of #0600
+add	T7.3	<child two>	C	jar:…	none	settled		mechanism	docs/vanilla/x.md § Y	facts/x.md#anchor	split of #0600
 ```
 
 - `add`: a claim the register lacks — only a claim the old doc states with evidence (a pointer you re-located); the restructure mints no new measurements. The controller mints the next free id and rewrites your `[T7.1]` to it.
 - `retarget`: a row whose right anchor is another anchor of your page, or another page (say which page and why; a cross-page retarget is the controller's call).
-- `status`: `settled -> open` (the old doc marks it unsettled and the harvest did not), `settled -> unverified` (its only evidence is restricted), with the bound clause in `reason`.
+- `status`: `settled -> open` (the old doc marks it unsettled and the harvest did not), `settled -> unverified` (its only evidence is restricted). The new `bound` goes in the `bound` column (an `unverified` row citing an artifact-less run needs a bound starting `uncommitted: <run-id>`, or the pointer rule fails); `reason` carries the why. Every line has exactly twelve cells — a tab for every empty column.
 - `split`: one row that states two falsifiable claims; the parent goes `superseded` with the two `add` lines as successors; on the page you tag the children's provisional ids.
-- The controller applies the delta with `python tools/claims_delta.py apply <delta> --pages docs/<layer>/<page>.md` in a `Register: task N delta` commit before your review; the reviewer sees real tags. Until then your local checks run with `--allow-provisional`.
+- The controller applies the delta with `python tools/claims_delta.py apply <delta> --pages docs/<layer>/<page>.md` in a `Register: task N delta` commit before your review; the reviewer sees real tags. Until then your local checks run with `--allow-provisional`. A delta never names a row that is already `superseded` (the tool refuses it); a `retarget` to another page is applied only if the controller agrees, so say why in `reason`.
 
 ## 7. Validate before you commit
 
