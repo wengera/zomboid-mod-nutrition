@@ -136,8 +136,8 @@ The cooked flag, the cooking time and the two minute fields stay synced througho
 The desyncs are a change rather than a standing difference, because the snapshot taken before the transition is not desynced at all ([#1416/M/n=1]).
 
 The shape of that list is worth stating on its own, because it is not the shape a reader expects.
-The fields that travel are the ones the mod multiplies, and the fields that do not travel are the ones the mod sets outright.
-Nothing distinguishes the two groups except membership of the packet, and membership of the packet is fixed by the engine.
+In this hook the fields that travel happen to be the ones it multiplies and the fields that do not are the ones it sets outright, and nothing connects those two properties.
+Membership of the packet is what distinguishes the groups, and membership of the packet is fixed by the engine.
 A mod cannot tell from its own code which of its writes will arrive, which is why the packet's list has to be read before a hook is written rather than after.
 
 Who ran the hook is not in doubt.
@@ -202,7 +202,7 @@ It has no command bus and no interface surface at all, so it cannot collide with
 Looking one of its recipes up by name needs the module prefix, because a dot-less name resolves against neither spelling the shipped lookup tries ([#1455/M/n=1], [`../../platform/loader-and-scripts.md#name-resolution`](../../platform/loader-and-scripts.md#name-resolution)).
 The live craft-recipe count with the mod loaded is the vanilla census plus its own blocks, which the dataset page carries ([#1456/C/snapshot], [`../../reference/datasets.md`](../../reference/datasets.md)).
 The harness placed the mod under its declared id rather than under its folder name, and that the rename is required rather than merely usual stays an inference ([#1453/M/n=1], [#1464/C/inference/open]).
-The consequence for anything that reads this mod is practical: a tool scanning by bare recipe name misses its recipes, and a profile naming them unqualified fails.
+The consequence for anything that reads this mod is practical: a bare recipe name of its own has to be resolved by scanning every craft recipe rather than by the shipped lookup.
 
 The walls this mod demonstrates are all of the closed kind.
 A mod cannot add a field to the item packet nor depend on a field it omits, cannot trust a cooked food's thirst change on a client, and cannot ship a food absent from the vanilla translation table without losing its unmodded weight to the display-name guard ([#1144/M/n=1], [#1147/M/n=1], [#1166/C/C-only]).
