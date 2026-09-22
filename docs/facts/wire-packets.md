@@ -47,18 +47,18 @@ Most of the food block is written conditionally, and that is the shape behind ev
 
 | Guard in `write` (skipping it leaves the field stale) | Field(s) | Flag |
 |---|---|---|
-| `!= 0f` | `cookingTime` (`L261–263`), `minutesToCook` (`L265–267`), `minutesToBurn` (`L269–271`), `hungChange` (`L273–275`) | 16, 32, 64, 128 |
-| all four `== 0f` | `calories`, `proteins`, `lipids`, `carbohydrates` — one block, any one non-zero writes all four (`L277–282`) | 256 |
-| `!= 0f` | `thirstChange` (`L284–286`), `painReduction` (`L292–294`), `endChange` (`L296–298`), `stressChange` (`L304–306`), `fatigueChange` (`L308–310`), `unhappyChange` (`L312–314`), `boredomChange` (`L316–318`), `baseHunger` (`L329–331`) | 512, 2048, 4096, 16384, 32768, 65536, 131072, 2097152 |
-| `!= 0` (int) | `fluReduction` (`L288–290`), `foodSicknessChange` (`L300–302`) | 1024, 8192 |
-| `!= -1` | `poisonDetectionLevel` (`L322–324`) | 524288 |
-| `isFertilized` | `fertilizedTime` (`L347–349`) — a stale time then lands on a *non*-fertilized item | 33554432 |
+| `!= 0f` | `cookingTime`, `minutesToCook`, `minutesToBurn`, `hungChange` | 16, 32, 64, 128 |
+| all four `== 0f` | `calories`, `proteins`, `lipids`, `carbohydrates` — one block, any one non-zero writes all four | 256 |
+| `!= 0f` | `thirstChange`, `painReduction`, `endChange`, `stressChange`, `fatigueChange`, `unhappyChange`, `boredomChange`, `baseHunger` | 512, 2048, 4096, 16384, 32768, 65536, 131072, 2097152 |
+| `!= 0` (int) | `fluReduction`, `foodSicknessChange` | 1024, 8192 |
+| `!= -1` | `poisonDetectionLevel` | 524288 |
+| `isFertilized` | `fertilizedTime` — a stale time then lands on a *non*-fertilized item | 33554432 |
 
+The flag column is the bit each field's presence sets in the packet's header, which is what a reader matching a capture would key on.
 The receiving half has no matching guard.
 The receiver applies unconditionally: the cooking-time setter is one of 31 food setters that run with no guard beyond the single is-food test, so whatever the field holds is written onto the item [#0339, #1203/C/C-only].
 Four groups of fields cannot carry a stale value, and it is worth knowing which: `extraItems` and `spices` are conditionally written but `parse` clears both before the flag test; `poisonPower`'s bit-header flag is added unconditionally; the seven pure booleans — frozen, tainted, cooked, burnt, alcoholic, custom-name and fertilized — are re-derived from the bit header on every parse; and `condition`, `uses`, `usedDelta`, `heat`, `name` and `actualWeight` are written outside the bit header altogether [#0344, #0345, #1205/C/C-only].
-What makes the stale read possible at all — one cached packet object per type, with no reset — is [`platform/mp-model.md#cached-packet`](../platform/mp-model.md#cached-packet).
-The sending side is not where the problem lives: the data setter refreshes every field off the item before each send, so a stale value never originates there.
+What makes the stale read possible at all — one cached packet object per type with no reset, against a data setter that refreshes every field off the item before each send, so that the stale value lives on the receiving object and never originates on the sending one — is [`platform/mp-model.md#cached-packet`](../platform/mp-model.md#cached-packet).
 The practical shape is easy to state and easy to forget: a field a mod leaves at zero is a field the mod has no control over on the client.
 
 The field list is 43 names dumped from the packet's write method on 2026-09-10, covering the condition, the heat, the cooking time, the four macros, the raw hunger and thirst fields, the burn and cook minute fields, the fluid and food presence flags and the addressing pair [#1397/C/snapshot]:
@@ -81,14 +81,15 @@ The harness reads zero-argument getters rather than fields, so the two lists dif
 Against the harness's own working set the split is therefore sharper, because every key in it is something a probe can actually read on both sides.
 That set is 28 keys, each a zero-argument getter, and what matters is whether the packet's data setter reads that getter: 16 of the 28 are read and 11 are omitted, with the item id carried as addressing rather than as state [#0903/C/C-only].
 
-| `TK.ITEM_STATE` keys | In `ItemStatsPacket.setData`? | Ev |
-|---|---|---|
-| `cooked` `burnt` `frozen` `hungChange` `baseHunger` `calories` `carbs` `lipids` `proteins` `uses` `cookingTime` `heat` `minutesToCook` `minutesToBurn` | **yes** — `setData` reads `isCooked`, `isBurnt`, `isFrozen`, `getHungChange`, `getBaseHunger`, `getCalories`, `getCarbohydrates`, `getLipids`, `getProteins`, `getCurrentUsesFloat`, `getCookingTime`, `getHeat`/`getItemHeat`, `getMinutesToCook`, `getMinutesToBurn` | C (jar, the `setData` getter list read 2026-09-11); **M** for `calories`, `burnt`, `cookingTime`, `heat` (run `exp02-20260910-030433`) and for four of the five fields `setData` sends for the macro block — calories, proteins, lipids and `hungChange` — server→client (run `td1-20260910-192457`); `carbohydrates` went 0 → 0, which carries no information, so its packet membership stays C |
-| `thirstChange` | **yes, but lossy** — `setData` sends `getThirstChange()`, the *cooked-ladder* getter, and `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field: 0.2 → 0.1 on the wire → 0.05 on read. One halving per server→client hop; it converges | M (runs `td1-20260910-192457`, `td1b-20260910-202029`; FILTER 9) |
-| `actualWeight` | **yes, by a different getter** — `setData` fills the field from `getActualWeightUnmodded()`, not `getActualWeight()`, so which value arrives depends on a guard the sender may have moved | M (run `td1b-20260910-202029`); C (jar, `Food.getActualWeight`) |
-| `rotten` `age` `fresh` `offAge` `offAgeMax` `freezingTime` `hungerChange` `isCookable` `weight` `customWeight` `lastCookMinute` | **no.** `age` and `offAge`/`offAgeMax` are measured not to cross; `isCookable`/`isCustomWeight` are measured to stay wrong on the client; `hungerChange` is a read-time ladder getter, not a field (the packet carries the raw `hungChange` instead); `rotten` and `fresh` derive from `age` | M for `age`, `offAge`, `offAgeMax`, `isCookable`, `isCustomWeight` (runs `exp02-20260910-030433`, `td1-20260910-192457`); C for the rest (the `setData` getter list) |
-| `id` | **carried, as addressing** — not state. `setData` reads the field `InventoryItem.id` (`@67`) straight into the packet's own `id` (`@70`), which is how the receiving side finds the instance the rest of the payload is about; it is not a value a mod should treat as synced item state | C (jar, `ItemStatsPacket.setData @65-@70 L162`, read 2026-09-11) |
+| `TK.ITEM_STATE` keys | In `ItemStatsPacket.setData`? |
+|---|---|
+| `cooked` `burnt` `frozen` `hungChange` `baseHunger` `calories` `carbs` `lipids` `proteins` `uses` `cookingTime` `heat` `minutesToCook` `minutesToBurn` | **yes** — `setData` reads `isCooked`, `isBurnt`, `isFrozen`, `getHungChange`, `getBaseHunger`, `getCalories`, `getCarbohydrates`, `getLipids`, `getProteins`, `getCurrentUsesFloat`, `getCookingTime`, `getHeat`/`getItemHeat`, `getMinutesToCook`, `getMinutesToBurn` |
+| `thirstChange` | **yes, but lossy** — `setData` sends `getThirstChange()`, the *cooked-ladder* getter, and `applyItemStats` stores it with `setThirstChange`, i.e. as the **raw** field: 0.2 → 0.1 on the wire → 0.05 on read. One halving per server→client hop; it converges |
+| `actualWeight` | **yes, by a different getter** — `setData` fills the field from `getActualWeightUnmodded()`, not `getActualWeight()`, so which value arrives depends on a guard the sender may have moved |
+| `rotten` `age` `fresh` `offAge` `offAgeMax` `freezingTime` `hungerChange` `isCookable` `weight` `customWeight` `lastCookMinute` | **no.** `age` and `offAge`/`offAgeMax` are measured not to cross; `isCookable`/`isCustomWeight` are measured to stay wrong on the client; `hungerChange` is a read-time ladder getter, not a field (the packet carries the raw `hungChange` instead); `rotten` and `fresh` derive from `age` |
+| `id` | **carried, as addressing** — not state. `setData` reads the field `InventoryItem.id` straight into the packet's own `id`, which is how the receiving side finds the instance the rest of the payload is about; it is not a value a mod should treat as synced item state |
 
+The table is the membership split alone; the grade and the run behind each of its rows are carried by the register row its caption cites.
 The data setter reads 14 of those getters directly — the cooked, burnt and frozen flags, the raw hunger change, the base hunger, the four macros, the current uses, the cooking time, the heat and the two cook and burn minute counts — and four of them are measured to cross, as are four of the five fields of the macro block, while the carbohydrate field moved from zero to zero, carries no information, and stays a code reading [#0904/M/n=1].
 Eleven item-state keys are absent from the packet — the rotten, fresh and cookable flags, the age and the two off-age bounds, the freezing time, the read-time hunger change, the plain and custom weights and the last cook minute — and five of them are measured not to cross or to stay wrong on the client: the age, the two off-age bounds, the cookable flag and the custom-weight flag [#0907/M/n=1].
 The rotten and fresh flags derive from the age and the read-time hunger change is a ladder getter rather than a field, so those three are code readings rather than measurements.
@@ -109,20 +110,22 @@ It is also the control that makes the thirst row below legible: the same session
 Per field, graded by what was put to the test — a field carries information only when the two sides were first made to differ on it — the contract is twelve fields and field groups with their owning side and whether the packet carries each: `age`, `offAge`, `offAgeMax`, `freezingTime`, `lastAged` and the rotten field never travel, while `calories`, `burnt`, `cookingTime`, `heat`, `cooked`, `frozen`, the four macros and the mood deltas do [#0347/M/n=1].
 Only five of its twelve rows were made to differ in a run; the rest are code readings, and the measured arms of those five are the table at [the desyncs](#desyncs).
 
-| Field | Owning side | In `ItemStatsPacket`? | Evidence | Ev |
-|---|---|---|---|---|
-| `age` | server (only the server runs `updateAge`) | **no** | server 3.250943 → client **0** after an explicit `sendItemStats`; server 3.251331 → client **0** after `updateAge(true)` (the syncing form); server +1.00777 → client **0** over a full accelerated game day; server 3.5 → client **0** in the ownership phase | **M** `exp02-20260910-030433` |
-| `calories` | server | **yes** | `item.set … calories 999` server-side → client read back **999** | **M** `exp02-20260910-030433` |
-| `burnt` | server | **yes** | client received `false → true` after the burn transition | **M** `exp02-20260910-030433` |
-| `cookingTime` | server | **yes** | client received `0 → 71.061172` | **M** `exp02-20260910-030433` |
-| `heat` | server | **yes** | client received `1 → 1.83512` | **M** `exp02-20260910-030433` |
-| `cooked` | server | yes (in the field list) | **not measured** — both sides read `false`, and a match is uninformative | C |
-| `offAge`, `offAgeMax`, `freezingTime`, `lastAged` | server | **no** (absent from the field list) | code reading of `ItemStatsPacket.setData` / `applyItemStats` only; no run has made them differ | C |
-| `frozen` | server | yes (the boolean is in the list; the 0–100 `freezingTime` behind it is not) | code reading only | C |
-| `hungChange`, `baseHunger`, `carbohydrates`, `proteins`, `lipids`, `thirstChange` | server | yes | code reading only — never made to differ in any run | C |
-| `minutesToCook`, `minutesToBurn`, `poisonPower`, `poisonDetectionLevel`, `extraItems`, `spices`, `condition`, `uses` | server | yes | code reading only | C |
-| `rotten` (the field) | — | no | irrelevant: nothing reads it on either side (`isRotten()` derives from `age`) | C |
-| Cooking **perk level** (drives the evolved-recipe summation) | server | n/a (character sync, not `ItemStatsPacket`) | a server-side `setPerkLevelDebug` went `0 → 10` and the *very next* bus command — a client read — already reported `10`, with no sleep between; the teardown repeated it downward (`10 → 0`). The client-side call was a no-op both times | **M** `exp02-20260910-030433` |
+| Field | Owning side | In `ItemStatsPacket`? |
+|---|---|---|
+| `age` | server (only the server runs `updateAge`) | **no** |
+| `calories` | server | **yes** |
+| `burnt` | server | **yes** |
+| `cookingTime` | server | **yes** |
+| `heat` | server | **yes** |
+| `cooked` | server | yes (in the field list) |
+| `offAge`, `offAgeMax`, `freezingTime`, `lastAged` | server | **no** (absent from the field list) |
+| `frozen` | server | yes (the boolean is in the list; the 0–100 `freezingTime` behind it is not) |
+| `hungChange`, `baseHunger`, `carbohydrates`, `proteins`, `lipids`, `thirstChange` | server | yes |
+| `minutesToCook`, `minutesToBurn`, `poisonPower`, `poisonDetectionLevel`, `extraItems`, `spices`, `condition`, `uses` | server | yes |
+| `rotten` (the field) | — | no |
+| Cooking **perk level** (drives the evolved-recipe summation) | server | n/a (character sync, not `ItemStatsPacket`) |
+
+The table is the contract, not the evidence: each row says who owns the field and whether the packet carries it, and nothing more.
 
 <a id="player-stats-packet"></a>
 ### The player packet's field contract
@@ -187,8 +190,7 @@ The order of writes inside `Eat`, and the rest of the intake path, is [`eating-p
 
 Every other value on the item packet is sent and stored through matching accessors, which is why this one field earns an anchor of its own.
 One field is sent through a different getter from the one the receiver stores into, and the mismatch is measurable.
-The item packet sends the cooked-ladder thirst getter, which halves a cooked food's value, and the receiver stores it with the raw setter, so the receiving side's own getter ladders it a second time [#1408].
-The hunger field does not have this problem because the packet reads the raw field, which is the contrast that makes the thirst row a defect rather than a convention.
+The item packet sends the cooked-ladder thirst getter, which halves a cooked food's value, and the receiver stores it with the raw setter, so the receiving side's own getter ladders it a second time, while the hunger field does not have this problem because the packet reads the raw field — the contrast that makes the thirst row a defect rather than a convention [#1408].
 The result is one halving per server-to-client hop: 0.2 becomes 0.1 on the wire and reads 0.05 on the client [#1038/M/n=2].
 
 Measured on a cook transition, the server read 0.1 and the client 0.05 — a difference of 0.05 on a field the mod under test never touches, which makes it a vanilla defect surfaced by any mod that cooks anything in multiplayer [#1407/M/n=1].
@@ -207,6 +209,7 @@ Where two rows cover the same field on different arms, both are kept for that re
 Two distinctions run through the table and are easy to collapse.
 Not carried is not the same as desynced — a field the packet omits can still read the same on both sides, because neither side ever changed it.
 And agreement under an arm where both sides answer the same by construction is not evidence that anything is synced or recomputed.
+The Run column names the artifact each row rests on, and it is the run that row's own register pointer names.
 
 | Field | Arm | Reading | Run |
 |---|---|---|---|
@@ -229,14 +232,13 @@ And agreement under an arm where both sides answer the same by construction is n
 | `weight` (the plain getter) | a cook transition | uncarried and not desynced: both sides read 0.5, which is why the observable desyncs on that item are four rather than five [#1406/M/n=1] | `td1-20260910-192457` |
 | `isCooked`, `cookingTime`, `minutesToCook`, `minutesToBurn` | a cook transition | synced: the client's cooked true is the packet's rather than its own, and the cooking time read 301.061554 on both sides rather than the flat 301 that was pinned, because the server's own tick had added heat over 1.5 times 0.05 [#1410/M/n=1] | `td1-20260910-192457` |
 | the four uncarried fields | the pre-cook baseline against the two post-cook snapshots | a change rather than a standing difference: the baseline snapshot is not desynced at all, and the server half of the four reproduced on a second run [#1416/M/n=1] | `td1-20260910-192457` |
-| `isIncWeight`, `isIncWeightLot`, `isDecWeight` | six snapshots across two gain arms | agree on both sides at every snapshot and match the arm the server's own macros predict at each one, so a client-side suffix derived from them is correct on a multiplayer client; both sides' trait lists were empty throughout, so the flags' dependency on both sides computing the same gain threshold is untested [#1490/M/n=1] | `td2-20260910-231655` |
+| `isIncWeight`, `isIncWeightLot`, `isDecWeight` | six snapshots, the baseline in the neither arm and five across two gain arms | agree on both sides at every snapshot and match the arm the server's own macros predict at each one, so a client-side suffix derived from them is correct on a multiplayer client; both sides' trait lists were empty throughout, so the flags' dependency on both sides computing the same gain threshold is untested [#1490/M/n=1] | `td2-20260910-231655` |
 | the same three flags | four snapshots inside the neither arm | read false on both sides throughout, but under the weight update's neither arm only: at weight 80 the gain threshold is 1000 and the loss threshold 0, and calories ran 798.45 down to 782.90 strictly between them, an arm in which both sides answer false whether or not the client recomputes anything [#1347/M/n=1] | `td3-20260911-001948` |
 
 <a id="staircase"></a>
 ### The staircase a client-side reader sees
 
-A client-side reader of the nutrition store is a staircase that steps only when a packet lands, while the server is a ramp, because the nutrition update jumps past its three explicit macro decays and the calorie update on a client arm [#1483].
-A cross-side gap is therefore a timing reading rather than float noise, and equal is the wrong verdict to look for.
+A client-side reader of the nutrition store is a staircase that steps only when a packet lands, while the server is a ramp, because the nutrition update jumps past its three explicit macro decays and the calorie update on a client arm, so a cross-side gap is a timing reading rather than float noise and equal is the wrong verdict to look for [#1483].
 Weight is the exception that proves the mechanism: its cross-side gap is negative at every post-action snapshot, the opposite sign to the macros', which is the weight update's client skip measured rather than read, because the client never recomputes weight and its staircase sits below a rising server [#1484/M/n=1].
 That weight arm was exercised on the gain side only, so the loss arm and its opposite-signed band are untested.
 
@@ -248,39 +250,40 @@ A reading outside its band is a finding rather than a reason to re-run.
 The construction is what lets a client-side reader be graded at all, since the two sides are never sampled at the same instant.
 For a probe author the operative part is the ordering: read the client half first at every tag, so the skew has a known sign.
 
-| tag | field | server | client | gap | band | in band | Ev |
-|---|---|---|---|---|---|---|---|
-| `baseline` | calories | 798.3768920898438 | 799.2306518554688 | 0.853759765625 | [0.58496, 1.036544] (r 0.256) | **yes** | M — `td2-20260910-231655`, `grades[0].macros` |
-| | carbs | −0.35502830147743225 | −0.16830335557460785 | 0.1867249459028244 | [0.12796, 0.226744] (r 0.056) | **yes** | M — same key |
-| | lipids | −0.11462342739105225 | −0.054337941110134125 | 0.06028548628091812 | [0.0413128, 0.0732059] (r 0.01808) | **yes** | M — same key |
-| | proteins | −0.08723551779985428 | −0.04135453701019287 | 0.04588098078966141 | [0.0314416, 0.0557142] (r 0.01376) | **yes** | M — same key |
-| | weight | 80 | 80 | 0 | [−7.63e-06, +7.63e-06] (ρ 0, neither arm) | **yes**, bit-identical | M — same key |
-| `t0` | calories | 1999.052978515625 | 1999.7698974609375 | 0.7169189453125 | [0.389378, 0.841732] | yes (ungraded: latency) | M — `grades[1].macros` |
-| | carbs | −0.9847724437713623 | −0.8281469941139221 | 0.15662544965744019 | [0.085176, 0.184128] | yes (ungraded) | M — same key |
-| | lipids | −0.3179408013820648 | −0.26737314462661743 | 0.05056765675544739 | [0.0274997, 0.059447] | yes (ungraded) | M — same key |
-| | proteins | −0.24197259545326233 | −0.20348750054836273 | 0.0384850949048996 | [0.020929, 0.0452429] | yes (ungraded) | M — same key |
-| | weight | 80.00038421184581 | 80.00009155273438 | **−0.00029265911143738776** | [−0.00034942, −0.00015048] (ρ +1.0395e-4, gain ×1) | yes (ungraded) | M — same key |
-| `t+3s` | calories | 1997.18310546875 | 1998.2333984375 | 1.05029296875 | [0.39271, 1.16661] | **yes** | M — `grades[2].macros` |
-| | carbs | −1.3930763006210327 | −1.16377592086792 | 0.2293003797531128 | [0.085904, 0.255192] | **yes** | M — same key |
-| | lipids | −0.449764609336853 | −0.37573328614234924 | 0.07403132319450378 | [0.0277347, 0.0823906] | **yes** | M — same key |
-| | proteins | −0.3422987163066864 | −0.28595632314682007 | 0.05634239315986633 | [0.0211078, 0.0627043] | **yes** | M — same key |
-| | weight | 80.00114177246815 | 80.00071716308594 | **−0.0004246093822075636** | [−0.00048089, −0.00015168] (ρ +1.0385e-4, gain ×1) | **yes** | M — same key |
-| `t2+0s` | calories | 1994.6201171875 | 1995.414794921875 | 0.794677734375 | [0.390159, 0.970276] | yes (ungraded) | M — `grades[3].macros` |
-| | carbs | 799.7754516601562 | 799.9495239257812 | 0.174072265625 | [0.085344, 0.21224] | yes (ungraded) | M — same key |
-| | lipids | −0.6303383708000183 | −0.574343204498291 | 0.055995166301727295 | [0.0275539, 0.0685232] | yes (ungraded) | M — same key |
-| | proteins | −0.4797268807888031 | −0.4371109902858734 | 0.04261589050292969 | [0.0209702, 0.0521504] | yes (ungraded) | M — same key |
-| | weight | 80.0030074610022 | 80.00204467773438 | **−0.0009627832678233972** | [−0.00118693, −0.00046658] (ρ +3.1116e-4, gain ×3) | yes (ungraded) | M — same key |
-| `t2+3s` | calories | 1992.5694580078125 | 1993.6204833984375 | 1.051025390625 | [0.392219, 1.2934] | **yes** | M — `grades[4].macros` |
-| | carbs | 799.3273315429688 | 799.5572509765625 | 0.22991943359375 | [0.085792, 0.282912] | **yes** | M — same key |
-| | lipids | −0.7747547030448914 | −0.7007291913032532 | 0.07402551174163818 | [0.0276986, 0.0913402] | **yes** | M — same key |
-| | proteins | −0.5896369814872742 | −0.5332988500595093 | 0.05633813142776489 | [0.0210803, 0.0695155] | **yes** | M — same key |
-| | weight | 80.0054916049794 | 80.00421905517578 | **−0.0012725498036161298** | [−0.001578, −0.00046858] (ρ +3.1084e-4, gain ×3) | **yes** | M — same key |
-| `final` | calories | 1982.8211669921875 | 1983.617431640625 | 0.7962646484375 | [0.325958, 1.03523] | **yes** | M — `grades[5].macros` |
-| | carbs | 797.1956176757812 | 797.3696899414062 | 0.174072265625 | [0.071288, 0.226408] | **yes** | M — same key |
-| | lipids | −1.4610061645507812 | −1.4050037860870361 | 0.05600237846374512 | [0.0230158, 0.0730974] | **yes** | M — same key |
-| | proteins | −1.111916422843933 | −1.0692952871322632 | 0.04262113571166992 | [0.0175165, 0.0556317] | **yes** | M — same key |
-| | weight | 80.01726107890681 | 80.01630401611328 | **−0.0009570627935318043** | [−0.00125821, −0.00038614] (ρ +3.0932e-4, gain ×3) | **yes** | M — same key |
+| tag | field | server | client | gap | band | in band |
+|---|---|---|---|---|---|---|
+| `baseline` | calories | 798.3768920898438 | 799.2306518554688 | 0.853759765625 | [0.58496, 1.036544] (r 0.256) | **yes** |
+| | carbs | −0.35502830147743225 | −0.16830335557460785 | 0.1867249459028244 | [0.12796, 0.226744] (r 0.056) | **yes** |
+| | lipids | −0.11462342739105225 | −0.054337941110134125 | 0.06028548628091812 | [0.0413128, 0.0732059] (r 0.01808) | **yes** |
+| | proteins | −0.08723551779985428 | −0.04135453701019287 | 0.04588098078966141 | [0.0314416, 0.0557142] (r 0.01376) | **yes** |
+| | weight | 80 | 80 | 0 | [−7.63e-06, +7.63e-06] (ρ 0, neither arm) | **yes**, bit-identical |
+| `t0` | calories | 1999.052978515625 | 1999.7698974609375 | 0.7169189453125 | [0.389378, 0.841732] | yes (ungraded: latency)  |
+| | carbs | −0.9847724437713623 | −0.8281469941139221 | 0.15662544965744019 | [0.085176, 0.184128] | yes (ungraded) |
+| | lipids | −0.3179408013820648 | −0.26737314462661743 | 0.05056765675544739 | [0.0274997, 0.059447] | yes (ungraded) |
+| | proteins | −0.24197259545326233 | −0.20348750054836273 | 0.0384850949048996 | [0.020929, 0.0452429] | yes (ungraded) |
+| | weight | 80.00038421184581 | 80.00009155273438 | **−0.00029265911143738776** | [−0.00034942, −0.00015048] (ρ +1.0395e-4, gain ×1) | yes (ungraded) |
+| `t+3s` | calories | 1997.18310546875 | 1998.2333984375 | 1.05029296875 | [0.39271, 1.16661] | **yes**  |
+| | carbs | −1.3930763006210327 | −1.16377592086792 | 0.2293003797531128 | [0.085904, 0.255192] | **yes** |
+| | lipids | −0.449764609336853 | −0.37573328614234924 | 0.07403132319450378 | [0.0277347, 0.0823906] | **yes** |
+| | proteins | −0.3422987163066864 | −0.28595632314682007 | 0.05634239315986633 | [0.0211078, 0.0627043] | **yes** |
+| | weight | 80.00114177246815 | 80.00071716308594 | **−0.0004246093822075636** | [−0.00048089, −0.00015168] (ρ +1.0385e-4, gain ×1) | **yes** |
+| `t2+0s` | calories | 1994.6201171875 | 1995.414794921875 | 0.794677734375 | [0.390159, 0.970276] | yes (ungraded)  |
+| | carbs | 799.7754516601562 | 799.9495239257812 | 0.174072265625 | [0.085344, 0.21224] | yes (ungraded) |
+| | lipids | −0.6303383708000183 | −0.574343204498291 | 0.055995166301727295 | [0.0275539, 0.0685232] | yes (ungraded) |
+| | proteins | −0.4797268807888031 | −0.4371109902858734 | 0.04261589050292969 | [0.0209702, 0.0521504] | yes (ungraded) |
+| | weight | 80.0030074610022 | 80.00204467773438 | **−0.0009627832678233972** | [−0.00118693, −0.00046658] (ρ +3.1116e-4, gain ×3) | yes (ungraded) |
+| `t2+3s` | calories | 1992.5694580078125 | 1993.6204833984375 | 1.051025390625 | [0.392219, 1.2934] | **yes**  |
+| | carbs | 799.3273315429688 | 799.5572509765625 | 0.22991943359375 | [0.085792, 0.282912] | **yes** |
+| | lipids | −0.7747547030448914 | −0.7007291913032532 | 0.07402551174163818 | [0.0276986, 0.0913402] | **yes** |
+| | proteins | −0.5896369814872742 | −0.5332988500595093 | 0.05633813142776489 | [0.0210803, 0.0695155] | **yes** |
+| | weight | 80.0054916049794 | 80.00421905517578 | **−0.0012725498036161298** | [−0.001578, −0.00046858] (ρ +3.1084e-4, gain ×3) | **yes** |
+| `final` | calories | 1982.8211669921875 | 1983.617431640625 | 0.7962646484375 | [0.325958, 1.03523] | **yes**  |
+| | carbs | 797.1956176757812 | 797.3696899414062 | 0.174072265625 | [0.071288, 0.226408] | **yes** |
+| | lipids | −1.4610061645507812 | −1.4050037860870361 | 0.05600237846374512 | [0.0230158, 0.0730974] | **yes** |
+| | proteins | −1.111916422843933 | −1.0692952871322632 | 0.04262113571166992 | [0.0175165, 0.0556317] | **yes** |
+| | weight | 80.01726107890681 | 80.01630401611328 | **−0.0009570627935318043** | [−0.00125821, −0.00038614] (ρ +3.0932e-4, gain ×3) | **yes** |
 
+The table is the comparison alone; every cell in it comes from the run the caption's row names.
 Every macro gap at every one of the six snapshots landed inside its band, including the two the settle rule declined to grade, so the five numbers a client-side reader of this shape draws are the server's, late by under a second, and there is no unsynced-field authority hazard in reading them [#1486/M/n=1].
 The falsifier was never approached, so the rule is validated as consistent with a once-a-second push rather than as tight.
 What a client's copy of a server-owned object is and is not — a push, not a simulation — is [`platform/mp-model.md#what-a-client-copy-is`](../platform/mp-model.md#what-a-client-copy-is).
