@@ -6,8 +6,10 @@ row owned by the page has its anchor on the page; no duplicate); a `## Rules` li
 with a tag, a `## Key facts` line ends with a tag; `## Walls and bounds` ends with a "Not covered:"
 line; no narrative marker outside code spans; the prose line count against the cap (over the cap
 fails; under 150 warns; tables, fences, headings, anchor lines and `## Open` index rows do not count);
-every `## Worked examples` path exists; every relative link resolves to a page and, when it names one,
-an anchor (--partial skips a missing page). Exit 1 on a finding; a warning never fails.
+every `## Worked examples` path exists; every relative link resolves to a page and, when it carries a
+fragment, that fragment is a lowercase slug and — on a page of the three layers, the only ones the
+contract gives `<a id>` anchors — an anchor on it (--partial skips a missing page). Exit 1 on a finding;
+a warning never fails.
 
 Usage: python tools/page_lint.py <page.md> [...] [--partial] [--register TSV] [--cap N] [--root DIR]"""
 import argparse, collections, os, re, sys
@@ -22,8 +24,12 @@ STAMP_RX = re.compile(r"^Verified against 42\.20\.4 \(b0bbce05d5\) · \d{4}-\d{2
 NARRATIVE_RX = re.compile(r"\b(previously|corrected 20|resolved (in|by) slice|RESOLVED 20|CONTESTED|the review found|this slice)(?![A-Za-z])")
 CODE_SPAN_RX = re.compile(r"`[^`]*`")
 ANCHOR_RX = re.compile(r'^<a id="([a-z0-9-]+)"></a>\s*$')
-LINK_RX = re.compile(r"\]\(([^)\s#]*)(#[a-z0-9-]+)?\)")
+# Any fragment, not only a well-formed one: a link whose fragment the contract would reject must
+# still have its target checked, and the fragment shape is a finding of its own.
+LINK_RX = re.compile(r"\]\(([^)\s#]*)(#[^)\s]*)?\)")
+FRAGMENT_RX = re.compile(r"^[a-z0-9-]+$")
 FILE_LINES_RX = re.compile(r"([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?")
+TABLE_SEP_RX = re.compile(r"^\|\s*:?-")
 # A trailing `?` marks an optional section; the order is the contract's.
 SECTIONS = {
     "platform": ["Rules", "How it works", "Walls and bounds", "Open", "Worked examples?", "Procedure?", "See also"],
@@ -31,6 +37,9 @@ SECTIONS = {
     "areas": ["Rules", "How it works", "Options", "Walls and bounds", "Open", "Worked examples?", "See also"],
 }
 PAGE_SECTIONS = {"platform/overview.md": ["Rules", "How it works", "Coverage", "Open", "Worked examples?", "See also"]}
+# Only these layers are under the page contract, so only they carry `<a id>` anchors: a link into
+# docs/reference/ or an old doc is checked for its page, never for its fragment.
+CONTRACT_LAYERS = ("areas", "platform", "facts")
 CAPS = {"platform/harness.md": 500, "platform/mod-anatomy.md": 500, "platform/lua-platform.md": 500, "platform/mp-model.md": 500}
 DEFAULT_CAP, FLOOR = 400, 150
 WARN_RULES = ("prose-floor",)
@@ -43,13 +52,19 @@ def _read(path):
 
 
 def _sections(lines):
-    """[(heading or '', [(n, line), ...])] split on `## ` headings; the preamble has heading ''."""
-    out, cur = [], ("", [])
+    """[(heading or '', [(n, line), ...])] split on `## ` headings; the preamble has heading ''.
+
+    A `## ` line inside a fence is quoted markdown, not a heading: it stays in the section it is
+    written in, so a page that quotes the contract does not grow a phantom section (and does not
+    lose the tail of the section the quote sits in)."""
+    out, cur, fence = [], ("", []), False
     for n, line in enumerate(lines, 1):
-        if line.startswith("## "):
+        if line.startswith("```"):
+            fence = not fence
+        elif line.startswith("## ") and not fence:
             out.append(cur); cur = (line[3:].strip(), [])
-        else:
-            cur[1].append((n, line))
+            continue
+        cur[1].append((n, line))
     out.append(cur)
     return out
 
@@ -102,6 +117,13 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
     fence = False
     prose = 0
     for heading, body in secs:
+        # A table's header row is the row a separator row follows, whatever its first cell reads.
+        header_rows = set()
+        if heading == "Worked examples":
+            for i, (n, line) in enumerate(body):
+                nxt = body[i + 1][1].strip() if i + 1 < len(body) else ""
+                if line.strip().startswith("|") and TABLE_SEP_RX.match(nxt):
+                    header_rows.add(n)
         for n, line in body:
             if line.startswith("```"):
                 fence = not fence; continue
@@ -116,22 +138,29 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
             bare = CODE_SPAN_RX.sub("", line)
             if NARRATIVE_RX.search(bare):
                 out.append(Finding(rel, n, "narrative", "narrative marker: %s" % stripped[:60]))
-            if heading == "Worked examples" and stripped.startswith("|") and not re.match(r"^\|\s*:?-", stripped):
+            if (heading == "Worked examples" and stripped.startswith("|")
+                    and not TABLE_SEP_RX.match(stripped) and n not in header_rows):
                 cells = [c.strip() for c in stripped.strip("|").split("|")]
-                if len(cells) >= 2 and cells[0].lower() != "shape":
+                if len(cells) >= 2:
                     m = FILE_LINES_RX.search(cells[1])
-                    if not m or not os.path.exists(os.path.join(root, *m.group(1).split("/"))):
+                    if not m:
+                        out.append(Finding(rel, n, "example", "no file:lines cell: %s" % cells[1]))
+                    elif not os.path.exists(os.path.join(root, *m.group(1).split("/"))):
                         out.append(Finding(rel, n, "example", "worked example path does not exist: %s" % cells[1]))
             for m in LINK_RX.finditer(line):
                 target, anchor = m.group(1), m.group(2)
                 if target.startswith(("http://", "https://")) or (not target and not anchor):
                     continue
+                if anchor and not FRAGMENT_RX.match(anchor[1:]):
+                    out.append(Finding(rel, n, "link", "fragment must be a lowercase slug: %s%s" % (target, anchor)))
+                    anchor = None
                 tpath = os.path.normpath(os.path.join(os.path.dirname(path), target)) if target else path
                 if not os.path.exists(tpath):
                     if not partial:
                         out.append(Finding(rel, n, "link", "link target does not exist: %s" % target))
                     continue
-                if anchor and tpath.endswith(".md") and ('<a id="%s">' % anchor[1:]) not in _read(tpath):
+                if (anchor and tpath.endswith(".md") and _page_key(tpath, root).split("/")[0] in CONTRACT_LAYERS
+                        and ('<a id="%s">' % anchor[1:]) not in _read(tpath)):
                     out.append(Finding(rel, n, "link", "link anchor not found: %s%s" % (target, anchor)))
             if (not stripped or stripped.startswith("#") or stripped.startswith("|") or ANCHOR_RX.match(stripped)
                     or heading == "Open" or (heading == "" and n <= 2)):
@@ -140,7 +169,8 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
         if heading == "Walls and bounds":
             tail = [l for _, l in body if l.strip()]
             if not tail or not tail[-1].startswith("Not covered:"):
-                out.append(Finding(rel, body[-1][0] if body else 1, "walls", "'## Walls and bounds' must end with a 'Not covered:' line"))
+                out.append(Finding(rel, body[-1][0] if body else 1, "walls", "'## Walls and bounds' must end with a"
+                                   " 'Not covered:' line (a stray <a id> above the next heading counts as the last line)"))
     limit = cap or CAPS.get(key, DEFAULT_CAP)
     if prose > limit:
         out.append(Finding(rel, 1, "prose", "%d prose lines, cap %d" % (prose, limit)))

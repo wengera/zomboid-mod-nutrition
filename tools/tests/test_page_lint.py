@@ -116,6 +116,48 @@ def test_prose_cap_and_worked_example_path(tmp_path):
     assert "prose-floor" in _rules(_lint(root, "wire.md")[0])
 
 
+def test_a_reference_link_is_checked_for_its_page_only(tmp_path):
+    wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
+    page = GOOD.replace("- [wire](../facts/wire.md#staircase)", "- [wire](../facts/wire.md#staircase)\n- [x](../reference/experiments.md#named-experiments)")
+    gone = GOOD.replace("- [wire](../facts/wire.md#staircase)", "- [wire](../facts/wire.md#staircase)\n- [x](../reference/nope.md#named-experiments)")
+    root = _tree(tmp_path, {"spoilage.md": page, "a.md": gone, "wire.md": wire})
+    (root / "docs" / "reference" / "experiments.md").write_text("# Experiments\n\n## Named experiments\n", encoding="utf-8", newline="\n")
+    assert "link" not in _rules(_lint(root, "spoilage.md")[0])
+    assert "link" in _rules(_lint(root, "a.md")[0])
+
+
+def test_a_fenced_heading_is_not_a_section(tmp_path):
+    quoted = GOOD.replace("- One bound [#0002/M/n=1].\n", "- One bound [#0002/M/n=1].\n\n```markdown\n## Rules\n- Do the thing [#0001].\n```\n\n")
+    wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
+    root = _tree(tmp_path, {"spoilage.md": quoted, "wire.md": wire})
+    assert _rules(_lint(root, "spoilage.md")[0]) == ["prose-floor"]
+
+
+def test_a_fragment_that_is_not_a_slug_is_a_finding(tmp_path):
+    wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
+    page = GOOD.replace("- [wire](../facts/wire.md#staircase)", "- [x](../platform/nope.md#Ownership)")
+    root = _tree(tmp_path, {"spoilage.md": page, "wire.md": wire})
+    details = [f.detail for f in _lint(root, "spoilage.md")[0] if f.rule == "link"]
+    assert any("fragment must be a lowercase slug" in d for d in details)
+    assert any("link target does not exist: ../platform/nope.md" in d for d in details)
+
+
+def test_the_worked_example_header_is_the_row_before_the_separator(tmp_path):
+    wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
+    page = GOOD.replace("## See also", "## Worked examples\n| pattern | where | what it shows |\n|---|---|---|\n| a probe | the driver | nothing |\n\n## See also")
+    root = _tree(tmp_path, {"spoilage.md": page, "wire.md": wire})
+    example = [f for f in _lint(root, "spoilage.md")[0] if f.rule == "example"]
+    assert len(example) == 1 and "no file:lines cell" in example[0].detail
+
+
+def test_the_walls_detail_names_the_stray_anchor(tmp_path):
+    wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
+    stray = GOOD.replace("## Open\n<a id=\"open\"></a>\n", "<a id=\"open\"></a>\n## Open\n")
+    root = _tree(tmp_path, {"spoilage.md": stray, "wire.md": wire})
+    walls = [f for f in _lint(root, "spoilage.md")[0] if f.rule == "walls"]
+    assert len(walls) == 1 and "stray <a id> above the next heading" in walls[0].detail
+
+
 def test_cli_exit_codes(tmp_path):
     wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
     root = _tree(tmp_path, {"spoilage.md": GOOD, "wire.md": wire})
