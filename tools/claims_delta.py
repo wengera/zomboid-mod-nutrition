@@ -8,7 +8,10 @@ id for it and rewrites that provisional tag in every page named with --pages. `s
 parent id and is followed by exactly two `add` lines, which become the parent's successors; the parent
 goes superseded and its tag on the pages is rewritten to the two children. `retarget` changes the
 row's owner. `status` changes the row's status (and its successor when superseded; its bound when
-the delta gives one). Nothing is ever deleted; an invalid delta aborts before anything is written.
+the delta gives one). Nothing is ever deleted; an invalid delta aborts before anything is written,
+and an op against a row that is already superseded is refused, so a lineage is never overwritten.
+Tag rewriting is textual, exactly as `claims_check --fix-tags` is: a tag bracket inside a code span
+or a fenced block is rewritten with the rest, so a provisional id quoted in a code span is applied too.
 
 Usage: python tools/claims_delta.py apply <delta.tsv> --pages <page.md> [...] [--register TSV] [--dry-run]"""
 import argparse, os, sys
@@ -63,6 +66,16 @@ def _mint(d, new_rows, tag_map, note=""):
     return row, "%s -> %s%s" % (d["id"], row["id"], note)
 
 
+def _target(op, cid, by):
+    """The row an op names: a missing row is an error, and so is one whose lineage is already closed."""
+    row = by.get(cid)
+    if row is None:
+        raise DeltaError("%s %s: no such row" % (op, cid))
+    if row.get("status") == "superseded":
+        raise DeltaError("%s %s: row is already superseded (successor %s)" % (op, cid, row.get("successor", "")))
+    return row
+
+
 def plan(rows, deltas):
     """(new_rows, tag_map, changes) with nothing written; raises DeltaError on the first bad delta."""
     new_rows = [dict(r) for r in rows]
@@ -76,9 +89,7 @@ def plan(rows, deltas):
             changes.append(msg)
             i += 1
         elif d["op"] == "split":
-            parent = by.get(d["id"])
-            if parent is None:
-                raise DeltaError("split %s: no such row" % d["id"])
+            parent = _target("split", d["id"], by)
             kids = deltas[i + 1:i + 3]
             if len(kids) != 2 or any(k["op"] != "add" for k in kids):
                 raise DeltaError("split %s: must be followed by exactly two add lines" % d["id"])
@@ -93,18 +104,14 @@ def plan(rows, deltas):
             changes.append("%s superseded -> %s" % (d["id"], parent["successor"]))
             i += 3
         elif d["op"] == "retarget":
-            row = by.get(d["id"])
-            if row is None:
-                raise DeltaError("retarget %s: no such row" % d["id"])
+            row = _target("retarget", d["id"], by)
             if not cl.OWNER_RX.match(d["owner"]):
                 raise DeltaError("retarget %s: owner %r is not <layer>/<page>.md#<anchor>" % (d["id"], d["owner"]))
             changes.append("%s owner %s -> %s" % (d["id"], row["owner"], d["owner"]))
             row["owner"] = d["owner"]
             i += 1
         else:
-            row = by.get(d["id"])
-            if row is None:
-                raise DeltaError("status %s: no such row" % d["id"])
+            row = _target("status", d["id"], by)
             if d["status"] not in cl.STATUSES:
                 raise DeltaError("status %s: %r not in %s" % (d["id"], d["status"], cl.STATUSES))
             row["status"] = d["status"]
@@ -152,6 +159,19 @@ def apply(delta_path, pages, register=REGISTER, dry_run=False):
     return changes, sorted(rewritten)
 
 
+def _owner_page(owner):
+    return owner.split("#", 1)[0]
+
+
+def _named(pages, owner_page):
+    """True when one of the --pages paths is that owner page (`facts/x.md` matches `docs/facts/x.md`)."""
+    for p in pages:
+        q = p.replace("\\", "/")
+        if q == owner_page or q.endswith("/" + owner_page):
+            return True
+    return False
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -160,12 +180,17 @@ def main(argv=None):
     a.add_argument("--register", default=REGISTER); a.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
     try:
+        deltas = read_delta(args.delta)
         changes, pages = apply(args.delta, args.pages, register=args.register, dry_run=args.dry_run)
     except (DeltaError, cl.RegisterError, OSError) as e:
         print("error: %s" % e)
         return 1
     for c in changes:
         print(c)
+    for d in deltas:
+        page = _owner_page(d["owner"])
+        if d["op"] == "retarget" and not _named(args.pages, page):
+            print("NOTE: %s now owned by %s, which is not among --pages" % (d["id"], page))
     print("pages rewritten: %s" % (", ".join(pages) if pages else "none") + (" (dry run)" if args.dry_run else ""))
     for p in args.pages:
         with open(p, encoding="utf-8", newline="") as f:

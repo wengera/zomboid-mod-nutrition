@@ -113,3 +113,36 @@ def test_leftover_provisional_tags_are_reported(tmp_path, capsys):
     rc = cd.main(["apply", _delta(tmp_path, [_add("T7.1")]), "--pages", page, "--register", reg])
     out = capsys.readouterr().out
     assert rc == 0 and "T7.1 -> #0004" in out and "WARNING: provisional tags left" in out and "T7.9" in out
+
+
+def test_ops_on_a_superseded_row_are_refused(tmp_path):
+    reg = _register(tmp_path)
+    rows = cl.read_register(reg)
+    rows[2]["status"], rows[2]["successor"] = "superseded", "#0001, #0002"
+    cl.write_register(reg, rows)
+    before = open(reg, encoding="utf-8").read()
+    text = "Parent [#0003]. Kids [T7.1] [T7.2].\n"
+    page = _page(tmp_path, text)
+    cases = [["\t".join(["split", "#0003", "", "", "", "", "", "", "", "", "", "two claims"]), _add("T7.1", "Three a."), _add("T7.2", "Three b.")],
+             ["\t".join(["status", "#0003", "", "", "", "", "open", "", "", "", "", "unsettled"])],
+             ["\t".join(["retarget", "#0003", "", "", "", "", "", "", "", "", "facts/x.md#z", "moved"])]]
+    for lines in cases:
+        with pytest.raises(cd.DeltaError) as e:
+            cd.apply(_delta(tmp_path, lines), [page], register=reg)
+        assert "already superseded" in str(e.value) and "#0001, #0002" in str(e.value)
+        assert open(reg, encoding="utf-8").read() == before
+        assert open(page, encoding="utf-8").read() == text
+
+
+def test_a_retarget_off_the_named_pages_is_noted(tmp_path, capsys):
+    reg = _register(tmp_path)
+    owned = tmp_path / "docs" / "facts" / "x.md"
+    owned.parent.mkdir(parents=True)
+    owned.write_text("Text [#0001] [#0003].\n", encoding="utf-8")
+    lines = ["\t".join(["retarget", "#0001", "", "", "", "", "", "", "", "", "facts/x.md#z", "same page"]),
+             "\t".join(["retarget", "#0003", "", "", "", "", "", "", "", "", "facts/other.md#z", "another page"])]
+    rc = cd.main(["apply", _delta(tmp_path, lines), "--pages", str(owned), "--register", reg])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "NOTE: #0003 now owned by facts/other.md, which is not among --pages" in out
+    assert "#0001 now owned by" not in out
