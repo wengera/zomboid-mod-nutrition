@@ -171,7 +171,7 @@ Player modData does not cross sides at all until something calls that transmit, 
 The call is a whole-table wipe and replace rather than a per-key update, in both directions ([#1091], [#1496/M/n=1], [mp-model.md](../../platform/mp-model.md#wipe-and-replace)).
 The mod's own payload survives it intact, because every leaf is one of the types the modData packet carries ([#1495], [wire-packets.md](../wire-packets.md#moddata-packet)).
 The loss falls on a neighbour instead: keep server-authoritative per-player state out of player modData, or guarantee the client's copy is complete before any client transmits ([#1085/M/n=2], [lessons.md](../../platform/lessons.md#anti-patterns)).
-The asymmetry is the point — the mod that loses data is never the mod that called the transmit, and nothing warns either of them [#1085/M/n=2].
+The asymmetry is the point — the mod that loses data is never the mod that called the transmit [#1085/M/n=2].
 A harness can read what this mod's numbers are but not what the mod does with them, because its panel state never leaves the client until a human moves it.
 The outbound half is therefore established through the vanilla call the mod makes rather than through the mod's own handlers.
 
