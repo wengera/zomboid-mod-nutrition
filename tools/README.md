@@ -290,7 +290,8 @@ import patterns from there.
   same commit (`claims_check.py` rule 5 enforces it).
 
 - `claims_check.py` — `python tools/claims_check.py [--register TSV] [--register-only] [--partial]
-  [--staged] [--allow-provisional] [--fix-tags] [--view LAYER] [--section-map] [--root DIR]`
+  [--staged] [--allow-provisional] [--fix-tags] [--view LAYER|LAYER/PAGE.md]
+  [--section-map] [--root DIR]`
   The register checker (spec § The checker). Rules: `schema` (columns, grammars, duplicate ids,
   contiguity from each id sub-block's first id — or the slice's own first id when a `--register`
   part holds a continuation slice — within the block's last id, successors), `pointer` (`run:`
@@ -310,10 +311,18 @@ import patterns from there.
   `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
   `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
   relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta
-  still owns; `--fix-tags` rewrites suffixes from the register across the files `tag` reads.
+  still owns; `--fix-tags` rewrites suffixes from the register across the files `tag` reads;
+  `--view LAYER` prints a layer's rows, `--view LAYER/PAGE.md` one page's.
   Exit 1 iff a non-warning finding. Run it before every commit that touches `docs/`,
   `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or
   `tools/bus_inventory.py`.
+
+- `claims_delta.py` — `python tools/claims_delta.py apply <delta.tsv> --pages <page.md>… [--register TSV] [--dry-run]`.
+  The controller's tool for a page task's delta file (spec § The claims register, "Deltas in Phases 2 and 3";
+  the file shape is `docs/superpowers/plans/restructure-2-page-procedure.md` § 6): mints the next free id for
+  each `add`, supersedes a `split` parent with its two children, retargets an owner, changes a status; rewrites
+  the provisional tags on the named pages and re-canonicalises them; prints every change and any provisional
+  tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row.
 
 ## Planned (P4)
 

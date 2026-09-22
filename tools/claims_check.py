@@ -3,7 +3,7 @@
 
 Rules: schema (0) · owner (1) · tag (2) · pointer (3) · untagged (4, warning only) · generator (5)
 · skill (6) · example (7). --register-only runs 0 and 3; --partial lets 1 skip owner pages that do
-not exist yet; --fix-tags rewrites every tag's suffix from the register; --view LAYER and
+not exist yet; --fix-tags rewrites every tag's suffix from the register; --view LAYER|LAYER/PAGE.md and
 --section-map print register slices; --staged skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -476,8 +476,10 @@ def main(argv=None):
         if a.fix_tags:
             print("%d files rewritten" % fix_tags(root, rows=rows))
         if a.view:
+            v = a.view.rstrip("/")
+            prefix = v + "#" if v.endswith(".md") else v + "/"
             for r in rows:
-                if r["owner"].startswith(a.view.rstrip("/") + "/"):
+                if r["owner"].startswith(prefix):
                     print("\t".join(r[c] for c in cl.COLUMNS))
         if a.section_map:
             for src, ids in sorted(section_map(rows).items()):

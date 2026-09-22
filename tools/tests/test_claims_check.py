@@ -351,3 +351,17 @@ def test_generator_label_matches_bus_inventory_label_for():
         assert label == "lua"
         _write(d, "docs/reference/harness-commands.md", bi.render(bi.scan(lua_dir), label))
         assert not [x for x in cc.check(d, lua_dir=lua_dir) if x.rule == "generator"]
+
+
+def test_view_accepts_a_page_path(tmp_path, capsys):
+    reg = tmp_path / "claims.tsv"
+    rows = [dict(zip(cl.COLUMNS, ["#0001", "A.", "C", "jar:A.b @1 L2", "", "settled", "", "mechanism", "s", "facts/x.md#a"])),
+            dict(zip(cl.COLUMNS, ["#0002", "B.", "C", "jar:A.c @1 L2", "", "settled", "", "mechanism", "s", "facts/xy.md#a"])),
+            dict(zip(cl.COLUMNS, ["#0003", "C.", "C", "jar:A.d @1 L2", "", "settled", "", "mechanism", "s", "platform/x.md#a"]))]
+    cl.write_register(str(reg), rows)
+    cc.main(["--register", str(reg), "--view", "facts/x.md"])
+    out = capsys.readouterr().out
+    assert "#0001" in out and "#0002" not in out and "#0003" not in out
+    cc.main(["--register", str(reg), "--view", "facts"])
+    out = capsys.readouterr().out
+    assert "#0001" in out and "#0002" in out and "#0003" not in out
