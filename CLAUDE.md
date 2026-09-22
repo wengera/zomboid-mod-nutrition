@@ -1,6 +1,6 @@
 # CLAUDE.md — handoff for whoever picks this repo up next
 
-Last updated 2026-09-17 (research program closed at `research-program-v1`; restructure Phase 1 in progress). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
+Last updated 2026-09-21 (research program closed at `research-program-v1`; restructure Phase 1 closed; Phase 2 is next). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
 
 ## 1. What this repo is
 
@@ -19,16 +19,18 @@ A **reference library** for a future Project Zomboid **Build 42** mod: a realism
 5. The plan of the slice you are resuming (`docs/superpowers/plans/NN-*.md`) and its SDD workspace (`.superpowers/sdd/<plan-basename>/progress.md` — the per-plan ledger; see § 5).
 6. `docs/modding/patterns.md` § Measured MP sync facts — the canonical measured facts; `docs/testing/README.md` — the harness and its command bus; `docs/testing/profiles.md` — how a mod goes under test.
 
-## 3. Status snapshot (2026-09-17)
+## 3. Status snapshot (2026-09-21)
 
 Slices 01–13 are **done and pushed** (12 closed `f36a860..17a683b`, close `75e277c`; 13 closed `2019621..91fda27`, close `c3e60a0`). Slice 14 (feasibility notes) was **closed unrun**: its six design areas are written once as `docs/areas/` by the restructure. The research program is **closed at the tag `research-program-v1`** — everything the program produced (plans, specs, ledgers, the old doc tree) is reachable there forever.
 
 The repo is now being restructured into an agent-facing reference under `docs/superpowers/specs/2026-09-17-reference-restructure-design.md` (APPROVED 2026-09-17). Four phases: 0 close (done at the tag) · 1 the claims register, checker and generator (`docs/superpowers/plans/restructure-1-register.md`) · 2 `platform/` + `facts/` pages · 3 `areas/` + skills + roots · 4 the cut. Until Phase 4 lands, the old tree (`docs/vanilla`, `docs/modding`, `docs/mods-survey`, `docs/testing`) remains the readable reference and `docs/progress.md` / `docs/decisions.md` are frozen — do not extend them; rulings go in the plan's SDD ledger.
 
+Restructure Phase 1 closed 2026-09-21 (`79c7969..c37d007`, plus the close commit that follows): `docs/reference/claims.tsv` (1,862 rows: mechanism 1126, rule 162, count 144, bound 101, verdict 83, open 110, table 56, tool 35, contradiction 34, order 13), `claims-coverage.md`, `do-not-cite.csv`, `run-aliases.csv`, `experiments.md`, `jar-method-notes.md`, `harness-commands.md` (generated; 64 sites); `tools/{claimslib,claims_harvest,claims_check,bus_inventory,luabalance}.py`; the driver template; the anchor plan `docs/superpowers/plans/restructure-anchors.md`; acceptance run `run-20260921-192527`. The SDD ledger `.superpowers/sdd/restructure-1-register/progress.md` (kept) records rulings R1–R37; `deferred-minors.md` beside it lists what the final review deferred to Phases 2–4.
+
 ## 4. Resume point — do exactly this
 
-1. Read the spec, then the plan in progress (`docs/superpowers/plans/restructure-1-register.md`; later plans are named `restructure-2-…`, `restructure-3-…`, `restructure-4-…`) and its SDD ledger `.superpowers/sdd/<plan-basename>/progress.md`.
-2. Run the plan with `superpowers:subagent-driven-development` exactly as § 5 describes. Tasks with a `Task <N>: complete` line are done; resume at the first without one.
+1. Next: write the Phase 2 plan (`docs/superpowers/plans/restructure-2-platform-facts.md`) with `superpowers:writing-plans` from the spec § Execution Phase 2, the anchor plan and `python tools/claims_check.py --view platform` / `--view facts`; then execute it with SDD (§ 5). The register is read-only for page writers: a new or changed claim is a delta the controller mints (spec § The claims register).
+2. Run every plan with `superpowers:subagent-driven-development` exactly as § 5 describes; its ledger is `.superpowers/sdd/<plan-basename>/progress.md`. Tasks with a `Task <N>: complete` line are done; resume at the first without one.
 3. At each plan's close: run the gates in § 6, push, update this section and the memory file.
 
 ## 5. The process — superpowers subagent-driven development (SDD)
@@ -47,7 +49,7 @@ Invoke the skill **`superpowers:subagent-driven-development`** at the start of e
 ## 6. Evidence standard (what every reviewer enforces)
 
 - Grades **C** (code/jar read, `Class.method @offset L<line>` or `path:line`, tree-qualified `common/` vs `42.x/` for mods), **M** (measured: run id + `testing/artifacts/<run-id>/<file>.json` key), **W** (wiki mirror + fetch date, corroboration only). Every claim row in `docs/vanilla`, `docs/modding`, `docs/feasibility`, `docs/mods-survey/teardowns` carries one; `tools/doc_lint.py` enforces the stamp `Verified against: 42.20.4`, a non-empty `## Sources`, no placeholder markers, and a standalone C/M/W letter in every row of any table with an `Ev` header (`M4` fails; `M (run …)` passes).
-- Gates before any commit that touches docs: `python tools/doc_lint.py docs/mods-survey docs/modding` → 0; `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0; `python -m pytest tools/tests testing/tests -q` green (283 at last count; never let it drop).
+- Gates before any commit that touches docs: `python tools/doc_lint.py docs/mods-survey docs/modding` → 0; `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0; `python -m pytest tools/tests testing/tests -q` green (349 at last count; never let it drop); `python tools/claims_check.py --staged` before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or `tools/bus_inventory.py` (`--register-only` until the first page exists); `python tools/bus_inventory.py --check` after any harness edit.
 - Every `~:NN` line cite is **re-located by content** before it is quoted (files move constantly). Every count is dated. Bounds are written down (n, one fixture, one build, dedicated-server path); a bound that is dropped is a defect.
 - Artifacts are committed byte-identical to the run copy with a row in `testing/artifacts/README.md`; a driver is never edited after its run (a post-run edit is a skew note); readings that come back trivial / unmeasured / falsified are written as such — never re-run to make a number prettier.
 - **Do-not-cite tables** in `testing/artifacts/README.md`: a key with a row is not citable; a key without one is.
