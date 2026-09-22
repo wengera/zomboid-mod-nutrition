@@ -18,7 +18,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the standing rules
 - Guard every `media/lua/server/` file with a runtime `isServer()` test rather than trusting the folder: a mod's `server/` files execute in the multiplayer client's Lua state too, so "only my server file writes this" is false until the guard is there, and the side test is itself nil-checked because the global may be absent [#0855/M/n=1, #1075/M/n=1].
 - Read the dataset or a server-side instance for what an item or a recipe is rather than a client-side instance's zero, and put anything that changes what eating, drinking or crafting delivers on the server: script data is the load-time definition both sides start from, while a client's copy of an instance is free to be wrong about a field the packet skipped [#0651].
 - Never branch on an item display name server-side: a dedicated server has none [#0848/M/n=1].
-- Gate a translation-dependent feature on an interface key and never on an item name: nine keys across two sessions missed on both sides, bare and prefixed forms alike, while the same run read the display name straight off the instance [#1720/M/n=2].
+- Gate a translation-dependent feature on an interface key and never on an item name: the text router carries no item-name prefix ([`mod-anatomy.md`](mod-anatomy.md#translations)), and nine keys across two sessions missed on both sides, bare and prefixed forms alike, while the same run read the display name straight off the instance [#1720/M/n=2].
 - Define a script hook's target as a bare global function rather than a local or a table member, and put the file in `shared/` so both states define it: the name resolves as a global, and a hook that must run on one side only branches inside itself, because the file's folder will not do it [#0927/C/C-only].
 - Reach every Java member by indexing first and calling second: a nil call never says which member was nil, aborts the body it sits in when unguarded and is session-ending on a debug client, and every Lua file in the experiment mods carries its own guard so that a mod never depends on the harness being installed [#0935/C/C-only].
 - Gate a raising probe on the server side and set its profile's client timeout low: a debug client parks on the first unguarded mod Lua error [#1963/M/n=2].
@@ -66,7 +66,7 @@ The third group is cost, and both lines are about paying it in the wrong place.
 - Put the item pass's data in script files or lazily loaded modules rather than in Lua tables parsed at boot: data-as-Lua at scale pays its whole cost at load [#1081/C/snapshot].
 
 Both cost lines are about when the bill arrives rather than how large it is.
-A per-frame hook that early-outs on a cheap test costs a comparison per frame; the same work without the early-out costs its whole body at frame rate, on a hook the corpus already crowds.
+The per-frame tier is already the crowded one before this mod's own work is added to it, which is what the hook-tier count says and is the whole of the cost argument here [#1080/C/snapshot].
 A table of item data parsed at boot costs its whole size before the first player joins, where the same data in a script file is read by the loader that was going to walk the script tree anyway.
 Nutrient decay is a slow quantity by construction, so it belongs on a slow hook, and nothing on this mod's critical path needs a reading more often than the minute tier gives it.
 
@@ -114,7 +114,7 @@ A client-side reader of a server-owned store steps when a packet lands where the
 A client-side console grep sees each engine load line once per Lua state, so a client limit is sized against twice the predicted count ([`harness.md`](harness.md#reading-a-reply)).
 Every named experiment inherits the same six clauses of profile, driver, provenance and verdict discipline, and a rider on an existing session is preferred to a session of its own ([`harness.md`](harness.md#experiment-contract), [`../reference/experiments.md`](../reference/experiments.md)).
 A probe built to raise makes the run report failure by construction, which is the harness working rather than the probe failing, so the grade comes off the artifact and not off the console line ([`harness.md`](harness.md#driver-rules)).
-The one rule that belongs to both this page and that one is the last of the imperatives above: a probe that can stall a client is gated on the server and given a short client timeout, because a stalled client also takes every client-side gate down with it [#1963/M/n=2].
+The one rule that belongs to both this page and that one is the last of the imperatives above, the server-side gate and the low client timeout a raising probe is given [#1963/M/n=2].
 
 <a id="corpus-drift"></a>
 ### The corpus moves while you are counting it
@@ -133,11 +133,11 @@ A corpus rule such as the hook-tier line or the error-handling line is a stateme
 A recount is then a new reading with a new date rather than a confirmation of the old one, and the two disagreeing is information about the tree rather than a defect in either.
 The same discipline is what keeps a corpus rule from hardening into folklore: the pattern is common among the mods that survived on that tree, which is evidence about what works and not proof that the alternative fails.
 It also bounds how long a rule on this page is worth anything without a fresh look, since the game ships monthly patches and the tree follows them.
-The stamp at the head of this page is that shelf life written down, and a build bump is the event that expires every measured line under it.
+The stamp at the head of this page carries the same discipline one level up, naming the build and the day the lines under it were read on [#1964/C/snapshot].
 
 Line cites into a workshop mod drift the same way, and they drift without becoming wrong.
 
-- Every version-folder line cite in the client-only mod's teardown names the tree as it stood on 2026-09-10, and Steam added a newer tree to the item on 2026-09-13 whose copy of the panel file is 589 lines against the read copy's 583, so those cites are drifted rather than wrong and must be re-located by content before being quoted elsewhere; the measured readings are unaffected, because the run booted the older tree [#1466/C/snapshot].
+- Every version-folder line cite in the client-only mod's teardown ([`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md)) names the tree as it stood on 2026-09-10, and Steam added a newer tree to the item on 2026-09-13 whose copy of the panel file is 589 lines against the read copy's 583, so those cites are drifted rather than wrong and must be re-located by content before being quoted elsewhere; the measured readings are unaffected, because the run booted the older tree [#1466/C/snapshot].
 
 Re-locating a cite by content rather than by line number is the standing practice that follows from it, and it applies to this repository's own files as much as to the corpus.
 A line number is the least durable part of any cite, which is why every pointer in this library carries the text it names as well as the place it sat.
@@ -161,7 +161,7 @@ The instrument rules under [what a reading may claim](#testing-discipline) are t
 
 So the practice is to name the mechanism before taking the number.
 Read the packet's field list rather than the field's name; read the getter that `setData` calls rather than the key it writes; read which file the loader mapped rather than which file the mod ships; read the dataset rather than a live instance whose zero may be a packet's omission ([#0651], [#1086/M/n=1]).
-Each of those is a question with a code answer, and each of them can be settled before a server is booted, which is what makes the jar read the cheapest instrument in this library.
+Each of those is a question with a code answer that can be settled before a server is booted, which is why the rows those four readings rest on are jar and script reads rather than runs [#0651, #1086/M/n=1].
 The measurement then has something to falsify rather than something to report, and a reading that disagrees with the mechanism is worth more than one that agrees with it.
 Where the mechanism cannot be read, the rule is written with the bound that the mechanism is untraced, which is what the whole of [Walls and bounds](#walls) below records.
 An untraced mechanism is not a missing rule: the guard on a `server/` file is obeyed on the strength of the measurement alone, and the bound says only that a build bump could change the reason without changing the behaviour.
@@ -196,7 +196,7 @@ Not covered: this page reads the corpus by static sweep and by line-level reads 
 - That the item-name table is loaded and working and is simply not addressable from Lua's `getText` is unverified: every reply in the phase that asked missed, so the run carries no in-run positive control, and the route's soundness rests on an earlier session's client-side `IGUI_` hit taken on a different harness shape; re-measure by re-running the key phase with a key known to hit in the same session [#0849/M/n=2/unverified].
 - That a corpus sweep must be quoted with its stamp is unverified as measured: the evidence is two sweeps twenty minutes apart whose output was never committed; re-measure by running the layout sweep into a committed artifact before and after a known workshop rewrite [#0867/C/snapshot/unverified].
 - The post-rewrite sweep count is unverified: at 04:47 on 2026-09-11 Steam rewrote one workshop mod's version-dir `mod.info`, fixing an id typo, so a sweep taken after that reads 83 findings — 3 errors, 30 warnings and 50 informational — and the drifted-folder count is 51 rather than 52, but the sweep output was never committed; re-measure by re-running the layout sweep into a dated committed artifact [#0866/C/snapshot/unverified].
-- The within-afternoon sweep movement is unverified: a lint sweep of the installed corpus moved twice in one afternoon — 85 findings at about 13:00, 84 at 13:47 and 84 again at 14:40 — the single difference being one item whose media folder moved out of the common folder into its version folder, and no sweep output was committed; re-measure by committing each sweep's output with its timestamp [#1976/C/snapshot/unverified].
+- The within-afternoon sweep movement is unverified: a lint sweep of the installed corpus moved twice in one afternoon on 2026-09-10 — 85 findings at about 13:00, 84 at 13:47 and 84 again at 14:40 — the single difference being one item whose media folder moved out of the common folder into its version folder, and no sweep output was committed; re-measure by committing each sweep's output with its timestamp [#1976/C/snapshot/unverified].
 - Decision the rows force: whether this mod renders through `MoodleFramework` or through its own panels, given that a framework already owning a contested value is registered with rather than written over, and that a resident interface mod redraws the status surfaces on the target server [#1070/C/snapshot, #1083/C/snapshot].
 - Decision the rows force: whether any per-player nutrient state lives in player modData at all, given that whichever side calls `transmitModData` replaces the receiver's whole table and the losing mod is never the calling one [#1085/M/n=2].
 - Decision the rows force: which tier the nutrient decay tick runs on, given that the minute hooks are the slow tier, that a shared per-frame hook already carries the most registrations, and that `OnTick` is the expensive tier [#1071/C/snapshot, #1080/C/snapshot].
