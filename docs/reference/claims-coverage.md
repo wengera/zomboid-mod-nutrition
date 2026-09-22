@@ -4,7 +4,7 @@ Per old source section: the candidates harvested into register rows, superseded,
 
 ## Totals
 
-Counted from `docs/reference/claims.tsv` as this commit leaves it: the generated tables counted the ten parts, before the R24 minting and the duplicate folds below.
+Counted from `docs/reference/claims.tsv` as this commit leaves it: the generated tables counted the ten parts, before the R24 minting and the duplicate folds below. The grade and status tables were recounted on 2026-09-21 after the final fix wave moved sixteen rows to `unverified` (R34's restricted-key resolutions and R37's uncommitted `mod_lint` sweeps) and one row from `M` to `C`; the per-group `## Totals` further down are each part's own count at its harvest and are not restated.
 
 | kind | rows |
 |---|---|
@@ -21,16 +21,16 @@ Counted from `docs/reference/claims.tsv` as this commit leaves it: the generated
 
 | grade | rows |
 |---|---|
-| C | 1259 |
-| M | 577 |
+| C | 1260 |
+| M | 576 |
 | W | 26 |
 
 | status | rows |
 |---|---|
 | open | 110 |
-| settled | 1609 |
+| settled | 1593 |
 | superseded | 114 |
-| unverified | 29 |
+| unverified | 45 |
 
 | block | rows |
 |---|---|
@@ -79,6 +79,10 @@ Sources: `docs/vanilla/eating-pipeline.md` (135 candidates) and `docs/vanilla/nu
 - § Open questions — candidates 0 → rows #0187-#0189 (the facts under the `Resolved in slice 03` heading: the thermoregulator's reach, the `StatsDecrease` mapping, the Nutritionist trait) and #0190 (the one live open question), plus #0067 and #0185, whose claims the `Resolved in slice 01` and `Resolved in slice 03` bullets restate. The narrative of what each slice resolved is not harvested.
 - § MP behavior — candidates 5 → rows #0191 new (what the server validates is unmeasured), and #0108, #0113, #0114, #0117, #0118, #0119, #0120, #0123, #0125, #0127, #0128, whose claims this section states in the same words as `eating-pipeline.md` § MP behaviour and which therefore carry both sources.
 - § Sources — candidates 0 → rows: none (bookkeeping).
+
+### docs/vanilla/README.md
+
+- candidates 0 → rows: none (no graded content; confirmed with `claims_harvest.py candidates`).
 
 ## Anchors proposed
 
@@ -871,6 +875,10 @@ Superseded: none. Open: none. Unverified: none.
   header bullet's four) → #1543; dropped: 1 (`:78`, provenance).
 
 Superseded: none. Open: none. Unverified: none.
+
+## docs/mods-survey/teardown-template.md
+
+- candidates 0 → rows: none (no graded content; confirmed with `claims_harvest.py candidates`).
 
 ## Candidate reconciliation
 
