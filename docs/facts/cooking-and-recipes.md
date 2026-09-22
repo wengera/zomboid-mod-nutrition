@@ -92,7 +92,7 @@ The cook transition awards 10.0 Cooking experience, skipped for the no-cooking-e
 
 That grant lands on the server: the credited delta was 2.5 with a chef set and 0 with it unset, because a default character's empty experience-boost map puts the 10.0 on the quarter arm, a ladder read from the code rather than measured [#1413/M/n=1].
 
-The scripted last-cook-minute flip is not a precondition of the transition: across two sessions the cooking block had already been entered twice 1.33 to 1.67 game minutes apart on one and the transition fired 907 ms before the flip reached the server on the other, so heat above the gate plus a cooking time past minutes-to-cook suffice and the minute gate reopens by itself within one game minute [#1418/M/n=2].
+The scripted last-cook-minute flip is not a precondition of the transition: across two sessions the cooking block had already been entered twice 1.33 to 1.67 game minutes apart on one and the transition fired 907 ms before the flip reached the server on the other, so heat above the gate plus a cooking time past minutes-to-cook suffice and the minute gate reopens by itself within one game minute; the write is sent after the transition on the second run, so the pair proves the flip unnecessary and nothing else [#1418/M/n=2].
 
 A kitchen fire needs the item burnt with `cookingTime` at least 50 and at least twice `minutesToCook` plus half `minutesToBurn`, then rolls a framerate-adjusted 1 in 200 per minute on a powered non-campfire grid, starting a fire of strength 500000 and clearing the item's cookable flag [#0272].
 
@@ -255,9 +255,9 @@ The five parse-time aliases are really used on 5 key parts — `RicePan` three t
 
 An `EvolvedRecipe` key that matches no recipe name and no template throws `InvalidParameterException` [#0281].
 
-The `evolvedrecipe` block takes twelve keys: `BaseItem`, `Name`, `ResultItem`, `Cookable` on 44 blocks, `MaxItems`, `AddIngredientIfCooked` on 37, `AddIngredientSound` on 11, `CanAddSpicesEmpty` on 42, `Template` and `MinimumWater` on 20 [#0282/C/snapshot].
+The `evolvedrecipe` block takes twelve keys: `BaseItem`, `Name`, `ResultItem`, `Cookable` on 44 blocks, `MaxItems`, `AddIngredientIfCooked` on 37, `AddIngredientSound` on 11, `CanAddSpicesEmpty` on 42, `Template`, and `MinimumWater` on 20 [#0282/C/snapshot].
 
-The remaining two, `IsHidden` and `AllowFrozenItem`, are recognised by the loader and used by no block, counted over the 62 blocks on the 2026-09-10 scan [#0282/C/snapshot].
+The remaining two, `IsHidden` and `AllowFrozenItem`, are recognised by the loader and used by no block, counted over the 62 blocks on the 2026-09-10 scan — the 62 in `evolvedrecipes.txt` plus `AddBaitToChum`, written in a fishing recipe file, being the 63 evolved recipes the game loads [#0282/C/snapshot, #0679/M/n=1].
 
 An ingredient is refused when its `use` is -1, when it is burnt, when it is rotten and the chef is below Cooking 7, when it is frozen and the recipe does not set `AllowFrozenItem`, when it is dangerous uncooked and uncooked and the result is not cookable, when it is not a spice and the extra-item list has reached `MaxItems`, or when `MinimumWater` exceeds the water in the base's fluid container [#0300].
 
@@ -334,7 +334,7 @@ The 3 rows counted as calories-absent-on-every-side, marked ‡, are cigarette r
 
 15 of the 31 resolvable rows are non-zero in calories, and everything else reading 0 is conservation — 1 Watermelon at 1 355 kcal equals 10 WatermelonSliced at 135.5 [#0750/C/snapshot].
 
-Ten of the 31 depend on the uses-not-items rule for their delta — seven of them exact `InheritFood` splits that read 0 under it, the eighth split reading 0 either way — leaving 21 that do not [#0773/C/snapshot].
+Ten of the 31 depend on the uses-not-items rule for their delta — seven of them exact `InheritFood` splits that read 0 under it; the eighth split reads 0 either way and is among the 21 that do not [#0773/C/snapshot].
 
 None of the three `ReplaceOnCooked` links moves a macro: `Base.BaguetteDough` to `Base.Baguette` at a hunger delta of −8.0, `Base.BreadSlices` to `Base.Toast` at +2.0 and `Base.PancakesCraft` to `Base.Pancakes` at +4.0, each firing on the cook transition and only if the item is not rotten [#0752/C/arith.].
 
@@ -397,7 +397,7 @@ Not covered: the cooking UI and the right-click path that reaches it, the crafti
 
 - No reader for `AddIngredientIfCooked`, which 37 recipe blocks use, was traced beyond the ingredient-usability check — settled by dumping the readers of that key from the jar [#0380/C/C-only/open].
 - Reaching `ItemUser.UseItem`'s removal branch needs a real `ISHandcraftAction` craft rather than an item command, so everything the dataset says about a `mode:destroy` line annihilating the rest of an item is still open to measurement — settled by a live craft on the named harness command; -> X31 [#0778/C/C-only/open].
-- The 33 drying recipes write a `variable` range on both sides while a separate jar reading puts `isVariableAmount` as never firing in vanilla and pins the variable input ratio at 1.0; both cannot be right — settled by one live craft probe reading the input count and the input's amount and maximum amount [#0779/C/snapshot/open].
+- The 33 drying recipes write a `variable` range on both sides while a separate jar reading puts `isVariableAmount` as never firing in vanilla and pins the variable input ratio at 1.0; both cannot be right, though nothing in the dataset depends on the answer, every one of the 33 being refused with a variable-amount reason — settled by one live craft probe reading the input count and the input's amount and maximum amount [#0779/C/snapshot/open].
 - The rotten branch of the evolved summation is not computed per row, and a mod that cares about cooking with rotten stock needs it plus the instance's rotten flag, which is not script data — settled by computing the arm per row and reading the flag off the instance [#0780/C/open].
 - A second partial-use row would widen the measured base of the per-use rule, which rests on `Base.Icecream` alone — settled by `Base.Salt` at 1 of 10 uses, a two-minute probe on the existing command [#0782/C/n=1/open].
 - What the `OnCreate` hooks of the 37 output-less recipes do to nutrition, if anything, is unread: the dataset records the hook name and refuses the delta — settled by executing one of them on the game's own craft path; -> X31 [#0784/C/snapshot/open].
