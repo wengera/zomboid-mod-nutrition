@@ -323,7 +323,8 @@ import patterns from there.
   each `add`, supersedes a `split` parent with its two children, retargets an owner, changes a status; rewrites
   the provisional tags on the named pages and re-canonicalises them; prints every change and any provisional
   tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row. Not idempotent: preview
-  with `--dry-run`, then apply exactly once — a second apply mints a second row for the same `add`.
+  with `--dry-run`, then apply exactly once — a second apply mints a second row for the same `add`. A delta naming a row that is already
+  `superseded` is refused, and a `retarget` whose new owner page is not among `--pages` is noted.
 
 - `page_lint.py` — `python tools/page_lint.py <page.md>… [--partial] [--register TSV] [--cap N]`. The page
   contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
