@@ -4,8 +4,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how a relative pat
 ## Rules
 
 - Restate only the keys a pass changes: a repeated `item` block appends a body and the reset before it is a bare return, so every key a later body omits keeps the value an earlier body gave it [#2007/C/C-only, #1006/M/n=1].
-- Give every script file a mod-unique relative path: the file map holds one absolute path per relative path and the script walk drops a repeat, so the loser's blocks are never parsed [#1046, #1047/C/C-only].
-- Give every Lua file a mod-unique relative path too: a mod file at a vanilla relative path runs in vanilla's slot, before every mod's own block, wherever the mod sits in `Mods=` [#0852/C/C-only].
+- Give every script file a mod-unique relative path: the file map holds one absolute path per relative path and the script walk drops a repeat, so the loser's blocks are never parsed — a code reading, since no session has shipped the same relative script path from two mods [#1046, #1047/C/C-only].
+- Give every Lua file a mod-unique relative path too: a mod file at a vanilla relative path runs in vanilla's slot, before every mod's own block, wherever the mod sits in `Mods=` — also a code reading, since no boot has exercised a vanilla-path replacement [#0852/C/C-only].
 - Never assume a `require` reaches your own copy: it resolves through the same merged map, with no per-mod search path, to whatever absolute path that map currently holds [#0853/C/C-only].
 - Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Keep `template_` out of a script file's basename: the replay comparator pre-sorts every `template_`-prefixed basename ahead of every other file before it compares paths at all [#1233/C/C-only].
@@ -31,8 +31,8 @@ That direction — which of a mod's two trees supplies a file — is [the versio
 `activeFileMap` holds one absolute path per relative path, filled by those two unconditional puts, and the script walk drops any relative path it has already seen [#1046].
 `getAbsolutePath` is that map's `get` of the lower-cased relative path and nothing else, and the map is pre-seeded with vanilla's whole media tree before any mod loads, so only paths under `media/` can shadow vanilla while a mod's tree-root files enter the map from the `common/` pass and can be shadowed only by that mod's own version dir [#1312].
 The map is therefore the whole of path resolution: there is no search order to appeal to after it, and a file that lost its key is not read from anywhere.
-Every key in it is lower-cased, so two files whose relative paths differ only in case are one key and one of them is unreachable.
-A mod's own tree-root files — its `mod.info`, its icon and its poster — share the map with everything else, and only that mod's own version dir can shadow the `common/` copy of one; the print's gate drops a `mod.info` and a poster tail and lets an icon tail through.
+Every key in it is lower-cased, so two files whose relative paths differ only in case are one key and one of them is unreachable — a consequence read from the lower-cased key rather than a collision any run has produced.
+A mod's own tree-root files — its `mod.info`, its icon and its poster — share the map with everything else, and only that mod's own version dir can shadow the `common/` copy of one; the print's gate names no tail but `mod.info` and `poster.png`.
 
 Before each overwriting put the loader prints one line per shadowed file in the form `mod "<id>" overrides <relative path>`, from a format constant through the mod debug channel, gated on the key already existing and on the path not ending `mod.info` or `poster.png` [#1311].
 Measured, the loader prints one `mod "<id>" overrides <relpath>` line per shadowed file per Lua state, the tail being the lower-cased relative path: one line on the server and two on the client for a single shadowed file [#0829/M/n=1].
@@ -56,8 +56,8 @@ A doubled relative path therefore executes once, from the file the map holds, wh
 A mod file at a vanilla relative path replaces vanilla's body in vanilla's slot: the path is deduped at vanilla's position in the list while the file that executes is whatever the file map holds, so the replacement runs before every mod's own block rather than where the mod sits in `Mods=` [#0852/C/C-only].
 `require` resolves against the same merged file map: there is no per-mod search path, and a `require` hits the one absolute path the map currently holds for that relative path [#0853/C/C-only].
 Both readings are of the code, and no boot has exercised a vanilla-path replacement.
-The two facts together make shadowing a Lua file a door and a trap at once: a mod that wants to change vanilla's behaviour early has a reliable way in, and two mods that both want the same file cannot compose, because the map is path-granular and the loser's whole file is gone rather than the part it disagreed about.
-There is also no partial replacement to reach for: whatever entry the map holds is the entire body that executes at that path.
+The two facts together make shadowing a Lua file a door and a trap at once: a mod that wants to change vanilla's behaviour early has a reliable way in, and two mods that both want the same file cannot compose, because the map is path-granular and the loser's whole file is gone rather than the part it disagreed about [#1176/C/C-only].
+There is also no partial replacement to reach for: whatever entry the map holds is the entire body that executes at that path [#1176/C/C-only].
 
 A mod's file-scope assignment to `ZomboidGlobals` lands because the mod tree executes inside `LoadDirBase` ahead of `Load()`, on the client through `GameWindow.init` and on a dedicated server through `GameServer.doMinimumInit`, while an assignment from an event handler, `OnGameStart`, `OnInitGlobalModData` or a bus command is inert — the one exception being `OnGameBoot` on the dedicated server, one instruction before `Load` [#1216/C/C-only].
 That branch is read from the code and unmeasured: no run has assigned one of those globals and read the drain back.
@@ -93,8 +93,8 @@ item <N | variable[<min>:<max>]> [<Type;Type>] | tags[<t;t>] | mapper:<name> | [
 ```
 
 A bracketed list splits on semicolons and an entry may carry a per-alternative count, a leading minus marks a fluid sub-line that the loader attaches to the input above it rather than adding to the input list, and an output `mapper:<name>` resolves to every key of that mapper except the literal `default`.
-Above the IO lines a block may set the keys a mod is most likely to reach for: `time`, `Tags` and `category`, the `timedAction` it runs under, `xpAward` and `SkillRequired`, the learn gates `NeedToBeLearn`, `AutoLearnAll` and `AutoLearnAny`, the script-hook keys `OnCreate` and `OnTest`, plus `AllowBatchCraft`, `MetaRecipe`, `Tooltip`, `recipeGroup` and `Icon`.
-A block may also ship no `outputs` at all, or an empty one, and mutate an input through `OnCreate` instead of yielding an item.
+Above the IO lines a block may set the keys a mod is most likely to reach for: `time`, `Tags` and `category`, the `timedAction` it runs under, `xpAward` and `SkillRequired`, the learn gates `NeedToBeLearn`, `AutoLearnAll` and `AutoLearnAny`, the script-hook keys `OnCreate` and `OnTest`, plus `AllowBatchCraft`, `MetaRecipe`, `Tooltip`, `overlayStyle`, `recipeGroup` and `Icon` — a selection of the top-level keys rather than a census of them.
+A block may also ship no `outputs` at all, or an empty one, and mutate an input through `OnCreate` instead of yielding an item, which is what the recipes that yield nothing do [#0686/C/snapshot].
 
 An item mapper collapses a four-input, four-output family into one recipe block, and the engine's possible-result-items lookup resolved the mapped output slot to all four cured meats [#1438/M/n=1].
 That is the grammar's one real compression: a family of inputs and a family of outputs paired by name, declared once, with the engine resolving the mapped slot at lookup time.
