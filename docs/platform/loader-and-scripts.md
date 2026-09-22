@@ -205,8 +205,8 @@ A tool that wants to find a modded name without knowing its module has to fall b
 <a id="per-side-load"></a>
 ### Script data loads per side
 
-Both sides load the same script definitions from the same files and no packet carries one: the item packet read field by field carries instance state only, with no script key among its 39 applied fields [#0646/C/inference].
-That half is read from the code rather than measured, and the no-packet claim is an inference from one packet's field list rather than a sweep of the whole protocol; the field list itself is [the item packet](../facts/wire-packets.md#item-stats-packet).
+Both sides load the same script definitions from the same files and no packet carries one: the item packet read field by field carries instance state only, with no script key among the fields it applies [#0646/C/inference].
+That half is read from the code rather than measured, and the no-packet claim is an inference from one packet's field list rather than a sweep of the whole protocol; the field list is the item packet's contract on [wire-packets.md](../facts/wire-packets.md#item-stats-packet).
 A mod that changes a script key changes it on whichever side loaded the mod, with no runtime reconciliation, because definitions are load-time state [#0648/C/inference].
 
 Script data is loaded per side and never synced, so the two sides' definitions of an item are two readings rather than one: reached through the script manager's item getter with the game's own find call as the fallback, the two sides agreed field for field on a mod item [#0919/M/n=1].
