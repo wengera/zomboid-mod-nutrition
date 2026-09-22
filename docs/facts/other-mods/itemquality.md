@@ -40,17 +40,17 @@ That last point is a statement about the engine rather than about this mod, and 
 ### What a dedicated server does to it
 
 ItemQuality's root problem is that its buffs write Java item fields the engine does not serialise or sync: the item-field sync packet carries condition, head condition, sharpness and modData but not the condition maximum, and the condition setter clamps to the receiver's maximum, so a server copy on the script maximum clamps a buffed 18 down to 13 and echoes it back [#1537/C/C-only].
-Which of the two item packets carries which fields, and what each of them does to the receiver, is not restated here ([#1119], [`../wire-packets.md#item-stats-packet`](../wire-packets.md#item-stats-packet)); nor is the one thing the mod's state has going for it, that item modData moves wholesale in either direction ([#1241/M/one-side], [`../../platform/mp-model.md#item-moddata`](../../platform/mp-model.md#item-moddata)).
+Which item packet carries which fields, and what each of them does to the receiver, is not restated here ([#1119], [`../wire-packets.md#item-stats-packet`](../wire-packets.md#item-stats-packet)); nor is the one thing the mod's state has going for it, that item modData moves wholesale in either direction, of which the client-to-server direction is measured and the server-to-client one is not ([#1241/M/one-side], [`../../platform/mp-model.md#item-moddata`](../../platform/mp-model.md#item-moddata)).
 Read against those rows the failure is not a bug in the mod at all: a value the packet has no field for cannot cross, and a value the receiver clamps cannot stay.
 
-ItemQuality's mitigation is to mark the affected fields non-persistent and reapply them client-side on events, which works for fields only the client reads, such as damage and reach where combat resolves client-side, and fails for server-echoed fields such as condition; the durability case holds for headed weapons because the head condition maximum is a persisted attribute [#1538/C/C-only].
+ItemQuality's mitigation is to mark the affected fields non-persistent and reapply them client-side on events, which works for fields only the client reads, such as damage and reach where combat resolves client-side, and fails for server-echoed fields such as condition; the durability case works for headed weapons because the head condition maximum is a persisted attribute [#1538/C/C-only].
 The line that mitigation draws is the useful part of this teardown.
 A client-side reapply wins exactly where the server holds no competing value, and loses everywhere the server holds one and pushes it — which makes "does the server own a number for this field?" the question to ask of every per-item value a nutrition mod invents.
 
 ## Walls and bounds
 
 Every line on this page is read from the installed mod's Lua and from an investigation held in another repository, and no run in the artifact tree evidences any of it.
-The mod updates roughly daily, so each line is a reading of the files as they stood on the day they were read, and each of its code pointers was re-located by content rather than by line number before being carried here.
+The mod updates roughly daily, so each line is a reading of the files as they stood on the day they were read, and each of its code pointers was re-located by content rather than by line number.
 
 <a id="pitfalls"></a>
 ### Pitfalls
