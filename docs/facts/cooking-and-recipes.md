@@ -376,7 +376,7 @@ That a recipe whose IO is a drink completes server-side is an inference read fro
 
 The mirror says every ingredient adds minus five boredom and unhappiness the first time and that three of the same negates the bonus; the code zeroes an evolved dish's boredom once in phase A and never touches it again, moves only its unhappiness as the unmodified value less five less five per duplicate clamped at plus 25 with an over-stuffing term, and stops the bonus on the second identical copy with the penalty starting on the third [#0365/C/C-only].
 
-The mirror gives a roster of about 35 rows with no template mechanism; 42.20.4 loads 62 evolved-recipe blocks and an item's recipe key attaches both to the matching recipe and to every recipe whose template equals that key [#0366/C/C-only].
+The mirror gives a roster of about 35 rows with no template mechanism; `generated/evolvedrecipes.txt` holds 62 evolved-recipe blocks, the 63rd being `AddBaitToChum` in the fishing recipe file as [the evolved join](#evolved-join) states, and an item's recipe key attaches both to the matching recipe and to every recipe whose template equals that key [#0366/C/C-only].
 
 The mirror says an evolved recipe inherits the age of its base ingredient only; the age is proportional instead, phase A setting the new age to the new `offAgeMax` times the old age over the old `offAgeMax` and only when both items have real thresholds, with ingredients contributing no age at all [#0367/C/C-only].
 
