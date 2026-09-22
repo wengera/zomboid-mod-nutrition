@@ -26,7 +26,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what the body does
 Every body-side rate is stated per game-world second, of which a game day holds 86 400, and the two rate idioms in the code — `Nutrition`'s `getGameWorldSecondsSinceLastUpdate()` and `IsoGameCharacter`'s `getMultiplier()` times `getDeltaMinutesPerDay()` — reduce to the same quantity because `GameTime.multiplierBias` is 1.0 [#0451].
 Two quantities on this page do not carry the second factor and therefore scale with the day length instead: the severe-moodle health terms and the health-from-food timer, both stated at their own anchors.
 
-A rate quoted per real second belongs to the time-speed setting and not to the model, so every figure below is stated in game time and a reading taken at an accelerated speed is directly comparable with a baseline one [#0451].
+A rate quoted per real second belongs to the time-speed setting and not to the model, so every rate figure below is stated in game time and the two wall-clock readings say so; a reading taken at an accelerated speed is then directly comparable with a baseline one [#0451].
 
 <a id="passive-burn"></a>
 ### Passive burn
@@ -50,7 +50,7 @@ else if (isAsleep())                        {            cal -= 0.003f * mod * e
 else                                        {            cal -= 0.016f * mod * energy * w * dt; } // @295 L118
 ```
 
-The five branches, their rate at 80 kg and the per-game-day figure each implies, with the weight ratio the character's weight over 80 and the external modifier 8.0 while swiping or climbing and otherwise the queued action's `caloriesModifier`; only the idle branch is measured, at 0.259 kcal per second at time speed 1 and 0.256 in an earlier run [#0070/M/one-fixture].
+The five branches, their rate at 80 kg and the per-game-day figure each implies, with the weight ratio the character's weight over 80 and the external modifier 8.0 while swiping or climbing and otherwise the queued action's `caloriesModifier`; only the idle branch is measured, at 0.259 kcal per real second at time speed 1 — the coded rate times the fixture's 16.0 game-seconds per real second — and 0.256 in an earlier run [#0070/M/one-fixture].
 
 | Branch | kcal per game-second at 80 kg | kcal per game-day | external modifier reaches it | thermoregulator energy reaches it | Row |
 |---|---|---|---|---|---|
@@ -168,7 +168,7 @@ So a zero-calorie item with a large hunger value suppresses hunger growth exactl
 
 The Lua-visible moodle names are the static field names `MoodleType.HUNGRY`, `MoodleType.THIRST` — not `THIRSTY` — and `MoodleType.FOOD_EATEN`; their display strings are `Hungry`, `Thirst` and `FoodEaten`, and levels are `MoodleLevel` ordinals 0 to 4 from Min to Max, which `Moodles.getMoodleLevel` returns as an int [#0505/M/n=1].
 There is no weight moodle: nothing weight-related is registered, and `HeavyLoad` is inventory encumbrance measured on the carry-weight ratio [#0506].
-Only 20 of the 26 moodle types carry a `MoodleStat` at all, read on this build [#1199/C/C-only].
+Only 20 of the 26 moodle types carry a `MoodleStat` at all, read from the type's member list on 2026-09-17 [#1199/C/C-only].
 `Moodle.Update` evaluates thresholds with a plain greater-than in ascending order so the last match wins; the `HUNGRY` block is gated on the character's health being non-zero and the `THIRST` block carries no health gate [#0507].
 Retuning one of these thresholds at runtime needs the stat object, and reaching it from Lua is the Lua platform page's wall ([../platform/lua-platform.md#registries](../platform/lua-platform.md#registries)).
 Each side recomputes its own moodles from its own copy of the stats, so a moodle read on a client can lag a server write ([../platform/mp-model.md#what-a-client-copy-is](../platform/mp-model.md#what-a-client-copy-is)).
@@ -230,7 +230,7 @@ The fill path itself is unmeasured: `JustAteFood` fills the timer from the absol
 | Very Underweight | above 50 up to and including 65 | 60 |
 | Emaciated | 50 kg or less | 50 |
 
-The 100, 85, 75 and 80 kg edges are measured on the dedicated-server path, and the 45, 55, 95 and 105 kg interiors too; the 50 and 65 kg edges are read from the code only, because both probes read back 50.000099 and 65.000099 — the server had already nudged the weight past the boundary before the comparison ran, the gain arm firing while calories exceed 1000 plus 40 times weight minus 80, which is minus 200 at 50 kg and 400 at 65 kg, both below the 500 kcal the probe had primed [#0531/M/n=1].
+The 100, 85, 75 and 80 kg edges are measured on the dedicated-server path, and the 45, 55, 95 and 105 kg interiors too; the 50 and 65 kg edges are read from the code only, because both probes read back 50.000099 and 65.000099 — the server had already nudged the weight past the boundary before the comparison ran, the gain arm firing below the threshold that [nutrition-core.md#weight-model](nutrition-core.md#weight-model) gives, which works out at minus 200 at 50 kg and 400 at 65 kg, both below the 500 kcal the probe had primed [#0531/M/n=1].
 The refresh runs only once every 2000 `updateWeight` calls, so a weight change is not reflected in the band traits until the counter rolls; the figure is read from the bytecode and the counter's phase was unknown at the probe, so the measurement bounds the period below rather than measuring it [#0534/C/C-only].
 Unforced, the refresh did not fire within 60 s of dedicated-server time: with weight moved from 80 to 105 and no forced refresh, 29 polls over 59.8 s all read the Obese trait false at a weight of 105 [#0535/M/n=1].
 `getNutrition():applyTraitFromWeight()` is public, Lua-reachable and applies the band trait instantly; it is the route every measured band reading used [#0536/M/n=1].
@@ -250,7 +250,7 @@ Every effect of the weight-band traits outside `Nutrition` is these 14 jar reade
 | `IsoPlayer.updateInternal2` | run speed, applied only when the speed factor is already above 1, that is running or sprinting | ×0.85 | ×0.99 | — | — | — |
 | `IsoPlayer.updateInternal2` | run speed, raw weight gate — the only direct weight read outside `Nutrition` | `weight > 120` → ×0.97 | | | | |
 | `IsoPlayer.updateEndurance` | endurance-drain multiplier while running, sprinting or dragging (base 1.4, Athletic 0.8, then ×2.3) | — | 2.9 | — | — | — |
-| `IsoPlayer.updateEndurance` | the same multiplier in the heavy-load walking branch (base 1.4, then ×3.0) | — | 2.9 | — | — | — |
+| `IsoPlayer.updateEndurance` | the same multiplier in the heavy-load (`HEAVY_LOAD > 2`) walking branch (base 1.4, then ×3.0) | — | 2.9 | — | — | — |
 | `IsoGameCharacter.getRecoveryMod` | endurance and muscle recovery multiplier, after the Fitness curve 0.7→1.6 | ×0.4 | ×0.7 | — | ×0.7 | ×0.3 |
 | `getClimbingFailChanceFloat` | climb-success score, higher is safer; Obese and Overweight are `else if` | −25 | −15 | — | — | — |
 | `getClimbRopeSpeed` | rope-climb tier, an int clamped 0–10; `else if` | −2 | −1 | — | — | — |
@@ -265,7 +265,7 @@ Every effect of the weight-band traits outside `Nutrition` is these 14 jar reade
 A mod that keys an effect on a weight band inherits all of those readers unchanged, because only one of them reads the weight itself — the run-speed gate above 120 kg — and the rest test the trait [#0541/C/C-only].
 
 The five weight-band trait scripts carry no stat modifiers, only a starting Fitness XP offset: minus 2 for Obese, minus 1 for Overweight, minus 1 for Underweight, minus 2 for Very Underweight and none at all for Emaciated [#0539/C/C-only].
-Besides the trait classes, `Nutrition` and the script generator, the five band trait fields are read in only five classes in the jar — `IsoGameCharacter`, `IsoPlayer`, `IsoMovingObject`, `ClimbOverFenceState` and `ClimbSheetRopeState` — and the last only prints them for debug [#0540/C/snapshot].
+Besides the trait classes, `Nutrition` and the script generator, the five band trait fields are read in only five classes in the jar — `IsoGameCharacter`, `IsoPlayer`, `IsoMovingObject`, `ClimbOverFenceState` and `ClimbSheetRopeState` — and the last only prints them for debug, in a jar-wide scan dated 2026-09-10 [#0540/C/snapshot].
 The weight-trait multipliers inside `getRecoveryMod` are live: Obese times 0.4, Overweight times 0.7, Very Underweight times 0.7 and Emaciated times 0.3 — unlike the macro branches of the same method, which are dead code ([nutrition-core.md#macro-effects](nutrition-core.md#macro-effects)) [#0183].
 Fitness and Strength XP gating is weight-trait based rather than protein based: Emaciated, Obese and Very Underweight block at Fitness 6 or more, and Overweight at 9 or more [#0184].
 `Nutrition.canAddFitnessXp` blocks at Fitness 9 or above for any weight trouble, so Overweight blocks too; at Fitness 6 to 8 only Emaciated, Obese and Very Underweight block; below Fitness 6 nothing blocks [#0538/C/C-only].
@@ -275,7 +275,7 @@ Four of those readers are worth a design note because their numbers do not run t
 Obese carries no endurance penalty: `updateEndurance` branches on Overweight only and the two traits are mutually exclusive, so an obese character drains endurance at the base 1.4 rate while a merely overweight one drains at 2.9 [#0542/C/C-only].
 Overweight at 1.10 and Obese at 1.05 on grapple effectiveness are the only positive weight-trait modifiers in the game; the underweight side is penalised at 0.8 and 0.6 [#0543/C/C-only].
 Very Underweight is added twice in both the window-lunge score and the vault-fall chance, 20 then 10 for a total of 30, which makes it worse than Obese at both [#0544/C/C-only].
-Emaciated is absent from most of these readers — no run-speed, endurance, climb, rope or bump-trip term and no script XP boost — and appears only in the recovery multiplier, grapple effectiveness, fall damage and the Fitness XP gate [#0545/C/snapshot].
+Emaciated is absent from most of these readers — no run-speed, endurance, climb, rope or bump-trip term and no script XP boost — and appears only in the recovery multiplier, grapple effectiveness, fall damage and the Fitness XP gate, on the same jar scan dated 2026-09-10 [#0545/C/snapshot].
 
 A client cannot derive the band, but it can derive the direction: the three weight-direction flags `isIncWeight`, `isIncWeightLot` and `isDecWeight` are all set ahead of `updateWeight`'s client skip, so a client does compute them [#1098].
 Driven to plus 1500 kcal the three flags read true, false, false on both sides, and driven to minus 100 kcal they read false, false, true on both sides, each matching the arm recomputed from that snapshot's own macros — two arms driven on purpose, so this is measured on the arms that could have disagreed [#1100/M/n=1].
@@ -343,8 +343,8 @@ Not covered: the temperature model behind the thermoregulator's primary and seco
 - Whether the 1.2 running thirst factor ever fires on a dedicated server is unknown: it is gated on the character being the local player instance, which on a headless server is probably never true, so running may not raise thirst in multiplayer at all — settled by the same running branch the burn constants need [#0593/C/C-only/open].
 - The real range of the thermoregulator's energy multiplier is unknown: the primary and secondary totals are written by a node loop that was not traced, so the size of the cold-weather burn bonus is unbounded here, and the reading near 1.005 seen in the run is one uncontrolled fixture — settled by a temperature-controlled pair of idle windows [#0594/C/C-only/open].
 - Whether split-screen players 2 to 4 accrue hunger or thirst locally is unverified: in single-player the wake-state and thirst updaters run only for the local player instance — settled by a split-screen boot, which no run in this library has exercised [#0596/C/C-only/open].
-- The write order of `applyWeightFromTraits` is not exercised: its branches are sequential ifs, so a character carrying two weight traits — blocked in the UI, but reachable by a mod — would end at the last matching branch [#0597/C/C-only/open].
-- The 50 kg and 65 kg band edges rest on the code alone, because the server nudged the weight past each boundary before the comparison ran; priming calories below the gain threshold for those weights measures them [#0531/M/n=1].
+- The write order of `applyWeightFromTraits` is not exercised: its branches are sequential ifs, so a character carrying two weight traits — blocked in the UI, but reachable by a mod — would end at the last matching branch — settled by a probe that adds two band traits from Lua and reads the written weight back [#0597/C/C-only/open].
+- Not settled: the 50 kg and 65 kg band edges rest on the code alone, because the server nudged the weight past each boundary before the comparison ran; priming calories below the gain threshold for those weights measures them [#0531/M/n=1].
 - None of the rows above carries a named experiment id; the costed experiments are in [../reference/experiments.md](../reference/experiments.md).
 - Decision: whether the mod's own nutrient stores are driven from hunger, from calories or from neither — the two vanilla stores have no coupling in either direction [#0500, #0501].
 - Decision: whether a weight band is evaluated server-side or derived on the client from the three weight-direction flags, which a client does compute [#1098] — the band trait itself lags the weight by up to 2000 weight updates [#0534/C/C-only].
