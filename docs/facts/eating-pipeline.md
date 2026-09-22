@@ -15,7 +15,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a food item o
 - The remainder of a part-eaten item is scaled by `multiplyFoodValues(1 - f)`, which multiplies fifteen stored fields and truncates three of them to int [#0057/M/one-fixture].
 - `Eat` never writes `Nutrition.weight`: its nutrition block writes the four nutrient setters and nothing else [#0061/M/one-fixture].
 - A fluid's `Properties` are the effect of one litre, the container multiplies them by the litres it holds, and drinking spends that aggregate times the fraction drunk [#0630, #0633].
-- Measured on the drink path, a full 0.3-litre can wrote 120.000031 calories and 31.200001 grams of carbohydrate, the same can at half wrote 60.0 and 15.6, and a 0.2-litre carton wrote 80.0 and 23.999996 [#1892/M/n=1].
+- Measured on the drink path, a full 0.3-litre can wrote 120.000031 calories and 31.200001 grams of carbohydrate, the same can at half wrote 60.0 and 15.6 [#1892/M/n=1].
 - The sandbox `Nutrition` option gates only `Nutrition.update()` — the macro drain, the calorie burn and weight — and leaves the `Eat` and `DrinkFluid` store writes untouched [#0067].
 - An eat costs 232 ticks per loop for food and 171 for a drink-type item, and the real multiplayer path lands on the client about 5.5 s after the action is queued [#0071/M/one-fixture, #1189/M/n=1].
 
@@ -240,7 +240,7 @@ The container multiplies the fluid's `Properties` by the litres it holds, so `ge
 Those litres are a full container's: the initial amount defaults to `Capacity` when the script writes none, the `:share` suffix multiplies it and the add clamps to the capacity [#0632/C/snapshot].
 Drinking then spends that litres-weighted aggregate times the fraction drunk [#0633].
 
-The chain is measured and not only read: a full 0.3-litre can wrote 120.000031 calories, 31.200001 grams of carbohydrate, minus 0.036 hunger and minus 0.090 thirst — the per-container columns exactly, with the hundredfold division applied to the two stat columns on the way to the stats object — while the same can at half wrote 60.0 and 15.6 and was left holding 0.15 litres, and a 0.2-litre carton wrote 80.0 and 23.999996 [#1892/M/n=1].
+The chain is measured and not only read: a full 0.3-litre can wrote 120.000031 calories, 31.200001 grams of carbohydrate, minus 0.036 hunger and minus 0.090 thirst — the per-container columns exactly, with the hundredfold division applied to the two stat columns on the way to the stats object — while the same can at half wrote 60.0 and 15.6 and was left holding 0.15 litres [#1892/M/n=1].
 The fraction is a share of the container's current contents and not of its capacity, so on a full can a fraction of one empties it and a half halves it, but a second half takes half of what is left [#1733/C/C-only].
 
 Some containers spawn part-filled rather than full.
