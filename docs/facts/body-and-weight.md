@@ -26,7 +26,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what the body does
 Every body-side rate is stated per game-world second, of which a game day holds 86 400, and the two rate idioms in the code — `Nutrition`'s `getGameWorldSecondsSinceLastUpdate()` and `IsoGameCharacter`'s `getMultiplier()` times `getDeltaMinutesPerDay()` — reduce to the same quantity because `GameTime.multiplierBias` is 1.0 [#0451].
 Two quantities on this page do not carry the second factor and therefore scale with the day length instead: the severe-moodle health terms and the health-from-food timer, both stated at their own anchors.
 
-A rate quoted per real second belongs to the time-speed setting and not to the model, so every rate figure below is stated in game time and the two wall-clock readings say so; a reading taken at an accelerated speed is then directly comparable with a baseline one [#0451].
+A rate quoted per real second belongs to the time-speed setting and not to the model, so every rate figure below is stated in game time and the wall-clock readings say so; a reading taken at an accelerated speed is then directly comparable with a baseline one [#0451].
 
 <a id="passive-burn"></a>
 ### Passive burn
@@ -50,7 +50,7 @@ else if (isAsleep())                        {            cal -= 0.003f * mod * e
 else                                        {            cal -= 0.016f * mod * energy * w * dt; } // @295 L118
 ```
 
-The five branches, their rate at 80 kg and the per-game-day figure each implies, with the weight ratio the character's weight over 80 and the external modifier 8.0 while swiping or climbing and otherwise the queued action's `caloriesModifier`; only the idle branch is measured, at 0.259 kcal per real second at time speed 1 — the coded rate times the fixture's 16.0 game-seconds per real second — and 0.256 in an earlier run [#0070/M/one-fixture].
+The five branches, their rate at 80 kg and the per-game-day figure each implies, with the weight ratio the character's weight over 80 and the external modifier 8.0 while swiping or climbing and otherwise the queued action's `caloriesModifier`; only the idle branch is measured, and that reading is a wall-clock one taken on a fixture whose clock runs 16.0 game-seconds to the real second: 0.259 kcal per real second at time speed 1, and 0.256 in an earlier run [#0070/M/one-fixture].
 
 | Branch | kcal per game-second at 80 kg | kcal per game-day | external modifier reaches it | thermoregulator energy reaches it | Row |
 |---|---|---|---|---|---|
@@ -230,7 +230,7 @@ The fill path itself is unmeasured: `JustAteFood` fills the timer from the absol
 | Very Underweight | above 50 up to and including 65 | 60 |
 | Emaciated | 50 kg or less | 50 |
 
-The 100, 85, 75 and 80 kg edges are measured on the dedicated-server path, and the 45, 55, 95 and 105 kg interiors too; the 50 and 65 kg edges are read from the code only, because both probes read back 50.000099 and 65.000099 — the server had already nudged the weight past the boundary before the comparison ran, the gain arm firing below the threshold that [nutrition-core.md#weight-model](nutrition-core.md#weight-model) gives, which works out at minus 200 at 50 kg and 400 at 65 kg, both below the 500 kcal the probe had primed [#0531/M/n=1].
+The 100, 85, 75 and 80 kg edges are measured on the dedicated-server path, and the 45, 55, 95 and 105 kg interiors too; the 50 and 65 kg edges are read from the code only, because both probes read back 50.000099 and 65.000099 — the server had already nudged the weight past the boundary before the comparison ran, the gain arm firing because the primed store exceeded the threshold that [nutrition-core.md#weight-model](nutrition-core.md#weight-model) gives, which is minus 200 at 50 kg and 400 at 65 kg, both below the 500 kcal the probe had primed [#0531/M/n=1].
 The refresh runs only once every 2000 `updateWeight` calls, so a weight change is not reflected in the band traits until the counter rolls; the figure is read from the bytecode and the counter's phase was unknown at the probe, so the measurement bounds the period below rather than measuring it [#0534/C/C-only].
 Unforced, the refresh did not fire within 60 s of dedicated-server time: with weight moved from 80 to 105 and no forced refresh, 29 polls over 59.8 s all read the Obese trait false at a weight of 105 [#0535/M/n=1].
 `getNutrition():applyTraitFromWeight()` is public, Lua-reachable and applies the band trait instantly; it is the route every measured band reading used [#0536/M/n=1].
