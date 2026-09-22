@@ -56,7 +56,7 @@ That is the property a nutrition overhaul's own interface should copy deliberate
 <a id="architecture"></a>
 ### Architecture
 
-Simple Status is workshop item `2867431511`, one mod, declaring the id `simpleStatus` in a folder named `SimpleStatus` — a case-only drift that resolves on Windows because path lookup is case-insensitive, which is exactly why this subject cannot settle the folder-rename question — and it declares no author, no minimum version, no build version and no dependency in any of the five reachable mod.info files [#1465/C/snapshot].
+Simple Status is workshop item `2867431511`, one mod, declaring the id `simpleStatus` in a folder named `SimpleStatus` — a case-only drift that resolves on Windows because path lookup is case-insensitive, which is exactly why this subject cannot settle the folder-rename question — and it declares no author, no minimum version, no build version and no dependency in any of the five reachable mod.info files, all of it read cold from the one installed item [#1465/C/snapshot].
 An empty dependency list is worth noting for what it removes: nothing has to be installed beside it, and nothing about load order follows from its declaration.
 A case-only difference between folder and id is a live hazard on a case-sensitive filesystem and invisible on the one this library reads from, which is why it is recorded as a drift rather than as a defect.
 
@@ -65,6 +65,7 @@ The single download stamp is why nothing about the mod's own release history can
 The empty common directory earns a line of its own: it exists, the info chain skips it, and it costs the loader nothing.
 
 The mod's architecture is an 8-row file table dated 2026-09-10: 7 client Lua files totalling 1 580 lines, of which the stat definitions are 708 and the panel 583, plus 13 language trees carrying 52 translation keys each, and no script directory in any of its five media trees [#1473/C/snapshot].
+Every one of those seven Lua files ends with a newline, so every line count above is real, while the `mod.info` does not, so a newline-counting tool answers 6 for its 7 lines [#1473/C/snapshot].
 Paths in the table are relative to the item's `mods/SimpleStatus/` directory.
 
 | File | Lines | Side | Role |
@@ -134,6 +135,7 @@ The server file and the global config store were dropped at `42.15/`, one versio
 Anyone probing this mod for its config has to know which store the version folder under test uses, and has to know that a census of the global one cannot answer either way.
 The history also shows the mod moving off a global store and onto a per-player one, which is the direction per-player state should move in general.
 Each version folder is a whole tree rather than a delta, and only the live one is read ([mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs)).
+Which folder is the live one is itself dated: the workshop corpus drifts under this library, and the item has gained a newer version tree since this reading ([#1466/C/snapshot], [lessons.md](../../platform/lessons.md#corpus-drift)).
 The retired folders are therefore inert on disk, and a probe that reads them is reading something the game never loads.
 It also means the mod's own history is a sequence of complete rewrites rather than a migration, and nothing in it upgrades a stored config from the older store to the newer one.
 
@@ -169,7 +171,7 @@ Player modData does not cross sides at all until something calls that transmit, 
 The call is a whole-table wipe and replace rather than a per-key update, in both directions ([#1091], [#1496/M/n=1], [mp-model.md](../../platform/mp-model.md#wipe-and-replace)).
 The mod's own payload survives it intact, because every leaf is one of the types the modData packet carries ([#1495], [wire-packets.md](../wire-packets.md#moddata-packet)).
 The loss falls on a neighbour instead: keep server-authoritative per-player state out of player modData, or guarantee the client's copy is complete before any client transmits ([#1085/M/n=2], [lessons.md](../../platform/lessons.md#anti-patterns)).
-The asymmetry is the point — the mod that loses data is never the mod that called the transmit, and nothing warns either of them.
+The asymmetry is the point — the mod that loses data is never the mod that called the transmit, and nothing warns either of them [#1085/M/n=2].
 A harness can read what this mod's numbers are but not what the mod does with them, because its panel state never leaves the client until a human moves it.
 The outbound half is therefore established through the vanilla call the mod makes rather than through the mod's own handlers.
 
@@ -235,8 +237,8 @@ Not covered: the flat `B41` root tree was never read and no single-player proces
 
 Nothing on this page is unsettled on its own evidence; what follows is the dependency the mod's sharpest claim rests on, and the decisions its facts force on a nutrition overhaul.
 
-- Whether the weight-band traits reach a multiplayer client at all is untraced, and that is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#0595/C/C-only/open].
-- The design must decide whether it re-bases the vanilla macro scale, because this bar's display bands and its two multiplier captions are hard-coded and go wrong silently on every client that has it installed [#1514, #1522].
+- Whether the weight-band traits reach a multiplayer client at all is untraced, and that is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#0595/C/C-only/open, #1490/M/n=1].
+- The design must decide whether it re-bases the vanilla macro scale, because this bar's display bands and its multiplier captions are hard-coded and go wrong silently on every client that has it installed [#1514, #1522].
 - The design must decide where its own per-player nutrient state lives, because any player-modData key the server holds and the client's copy does not is destroyed by this mod's next bar drag [#1482].
 - The design must decide whether its own interface caches what it draws, because a store that changes once a second read at frame cadence is the shape this mod demonstrates [#1477/C/C-only, #1512/C/C-only].
 - The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered and that it breaks the caller it is offered to [#1516].
