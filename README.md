@@ -50,7 +50,7 @@ The wall map and the artifacts register move into `docs/reference/` at the cut, 
 - A tag names a row of [`docs/reference/claims.tsv`](docs/reference/claims.tsv): a writer types `[#0417]` and the checker writes the suffix — the grade, then the bound token, then the status when the row is not settled — as `[#0417/M/n=1]` or `[#0417/C/open]`.
 - Several ids share one bracket, `[#0417/M, #0512]`; a settled `C` row with no bound carries no suffix.
 - Every register row has `id claim grade pointer bound status successor kind source owner`: the pointer is the evidence, and the owner is the page anchor that states the claim.
-- `C` is read in the jar, the Lua or a script file; `M` is measured on a live run and points at an artifact key; `W` is a wiki mirror and only corroborates.
+- `C` is read in code or data — the jar, game or mod Lua and scripts, this repository's code, a dataset; `M` is measured on a live run and points at an artifact key; `W` is a wiki mirror or a fetched web page and only corroborates.
 - `python tools/claims_check.py` checks the register's schema and pointers and every tag on the pages against its row.
 
 ## Coverage
