@@ -28,7 +28,7 @@ docs/areas/                the nutrition lens: one page per design area, and the
 docs/platform/             general modding knowledge, entered at overview.md
 docs/facts/                the vanilla food and nutrition mechanics
 docs/facts/other-mods/     the workshop corpus catalogue and the teardowns
-docs/reference/            the register and its coverage, experiments, jar notes, harness commands, datasets, tools
+docs/reference/            the register and its coverage, the do-not-cite list, experiments, jar notes, harness commands, datasets, tools
 references/wiki-mirrors/   the mirrored wiki pages, each dated and digested
 data/                      the generated datasets: food items, recipes, evolved recipes, the workshop corpus
 tools/                     the register checker and delta applier, the page lint, the scanners and exporters
@@ -42,12 +42,12 @@ testing/artifacts/         the committed run artifacts
 testing/tests/             the harness tests
 ```
 
-The wall map and the artifacts register move into `docs/reference/` at the cut, as `wall-map.md` and `artifacts.md`.
+The wall map (`docs/modding/wall-map.md`) and the artifacts register (`testing/artifacts/README.md`) move into `docs/reference/` at the cut, as `wall-map.md` and `artifacts.md`.
 `docs/vanilla/`, `docs/modding/`, `docs/mods-survey/` and `docs/testing/` are the pre-restructure docs: readable until the cut, and forever at the tag `research-program-v1`.
 
 ## Tags
 
-- A tag names a row of [`docs/reference/claims.tsv`](docs/reference/claims.tsv): a writer types `[#0417]` and the checker writes the suffix — the grade, then the bound token, then the status when the row is not settled — as `[#0417/M/n=1]` or `[#0417/C/open]`.
+- A tag names a row of [`docs/reference/claims.tsv`](docs/reference/claims.tsv): a writer types `[#0417]` and `python tools/claims_check.py --fix-tags` writes the suffix — the grade, then the bound token when it is not `none`, then the status when the row is not settled — as `[#0417/M/n=1]` or `[#0417/C/open]`.
 - Several ids share one bracket, `[#0417/M, #0512]`; a settled `C` row with no bound carries no suffix.
 - Every register row has `id claim grade pointer bound status successor kind source owner`: the pointer is the evidence, and the owner is the page anchor that states the claim.
 - `C` is read in code or data — the jar, game or mod Lua and scripts, this repository's code, a dataset; `M` is measured on a live run and points at an artifact key; `W` is a wiki mirror or a fetched web page and only corroborates.
@@ -55,11 +55,11 @@ The wall map and the artifacts register move into `docs/reference/` at the cut, 
 
 ## Coverage
 
-`docs/platform/` is not a modding manual: [its coverage section](docs/platform/overview.md#coverage) marks each topic covered, touched or absent, and an absent topic has no page and no claim here, never a wall inferred from silence.
+`docs/platform/` is not a modding manual: [its coverage section](docs/platform/overview.md#coverage) marks each topic covered, touched or absent, and an absent topic has no page, no rule and no claim here, never a wall inferred from silence.
 
 ## Sources
 
-The wiki pages this reference depends on are mirrored in [`references/wiki-mirrors/`](references/wiki-mirrors/README.md), each with its source, fetch date and page version in the header and a hand-written digest; the mirrors are attributed and carry the wiki's CC BY-NC-SA licence.
+The wiki pages this reference depends on are mirrored in [`references/wiki-mirrors/`](references/wiki-mirrors/README.md), each with its source, fetch date and page version in the header and a hand-written digest, except the row marked not mirrored; the mirrors are attributed and carry the wiki's CC BY-NC-SA licence.
 
 | Page | Mirror | Why |
 |---|---|---|
