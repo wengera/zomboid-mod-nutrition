@@ -1,0 +1,23 @@
+---
+name: nutrition-new-nutrients
+description: Adding a mod nutrient the vanilla macros lack (fibre, vitamins, a parallel diet stat) and choosing its store — character, item or global modData, `getModData`, `OnInitGlobalModData`, an unrecognised key in a `module Base` `item` block that lands in default modData — then its route (`transmitModData`, the command bus, the player-stats packet), what it survives, the `Nutrition` sandbox option, the vanilla macro clamps and drain, the Obese, Overweight, Underweight and Emaciated band traits, a moodle for it, and its cadence on `EveryOneMinute`, `EveryTenMinutes`, `OnPlayerUpdate` or `OnTick`.
+---
+## Read first
+- docs/areas/new-nutrients.md
+- docs/platform/mp-model.md
+- docs/facts/wire-packets.md
+
+## Rules quoted
+- Keep every durable mod value in character, item or global modData: live Java fields are unsynced cache, and only modData saves and syncs on engine paths [#1064/C/snapshot].
+- Keep a mod nutrient out of the vanilla macro stores: every setter clamps its store silently and the hard-coded drain moves it every tick, so a value parked there is cut and moved by vanilla rather than held [#0023/M/n=2, #1193/C/C-only, #2056/C/inference].
+- Reach a new nutrient through an unrecognised key inside the vanilla `item` block: the parser's default arm rawsets it into the item's default modData and every instance receives a copy [#1089, #1187/C/C-only].
+- Own every key on an item whose modData carries a mod nutrient: the item-field sync wipes the receiver's whole table before it copies the sender's keys, so a key the syncing side lacks is gone — a wipe measured in the client-to-server direction only [#1126/M/one-side, #2057/C/inference].
+- Keep server-authoritative per-player state out of player modData, or guarantee the client's copy is complete before anything on that client transmits: one client transmit makes the server's copy of that player's table exactly the client's [#1042/M/n=2, #1496/M/n=1].
+- Batch every key one side owns into a single transmit: the call moves the whole table rather than the changed key, so a second transmit cannot repair what the first one dropped [#1638/M/n=1, #1091].
+- Set the `Nutrition` sandbox option in the server's sandbox config: the nutrition update reads the option live every tick, a runtime flip from Lua is untried, and the Lua mirror of the option goes stale [#1127/C/C-only, #2058/C/inference].
+- Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
+
+## Also
+- docs/facts/nutrition-core.md#clamps — the vanilla stores, their clamps and the weight model a nutrient's effect can reach.
+- docs/areas/mp-sync.md — the route the nutrient's state travels (skill `nutrition-mp-sync`).
+- docs/areas/open-questions.md — the open rows and experiments this area waits on.
