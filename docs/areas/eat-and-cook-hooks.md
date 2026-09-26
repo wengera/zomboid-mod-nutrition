@@ -36,7 +36,7 @@ A client-side write to hunger, thirst, calories or the macros is erased by the n
 A mod can therefore run its intake math where the eat runs, on the server, and a number any hook writes into those stores on the client does not outlive the next push [#1128/M/n=1, #0568/M/n=2].
 
 Which side calls each of the four hooks is the Lua platform page's reading, and the design needs only its consequence ([lua-platform.md#script-hooks](../platform/lua-platform.md#script-hooks)).
-The eat hook runs on both sides, and its client arm is a notification rather than a second intake, because the client's call comes from the packet twin, which applies no numbers [#2004/C/C-only].
+The eat hook runs on both sides, and its client arm is a notification rather than a second intake [#2004/C/C-only].
 One handler therefore cannot fire once in multiplayer, and a client-side wrapper of the completion cannot run at all, which makes both a wall rather than a choice [#1131/M/n=1].
 Whether the eat packet reaches every client or only the eater is open, so a client arm that drives a display tests which character it was handed ([#0130], [#0144/C/open]).
 The completion wrapper installed from a `server/` file acts on the server only, and it installs on the client too, where it stays silent [#0928/M/n=1].
@@ -52,13 +52,12 @@ A cook hook needs the branch as much as an eat hook does: the cook dispatch is n
 A client arm is read-only in effect, and it is not useless.
 It reads the same post-intake numbers the server's arm reads, because the eat packet's parse has loaded the server's store into the client before the twin fires the hook ([#1034/M/n=1], [#0116], [wire-packets.md#eat-food-packet](../facts/wire-packets.md#eat-food-packet)).
 It can drive a display or a prediction from that mirror.
-It can keep the mod's own fields, which the player-stats push never overwrites, at the price of drifting from the vanilla numbers the server keeps recomputing [#0129/M/n=1].
+Keeping the mod's own fields there breaks the server-arm rule, and the cost is drift rather than loss: the player-stats push, by its field list, never overwrites those fields, and they drift from the vanilla numbers the server keeps recomputing [#0129/M/n=1].
 It cannot change what an eat delivers, because the packet's handlers apply no numbers of their own [#0116].
 It cannot push an item field to the server either, because every arm of the item-stats send runs from server to client [#1150/C/C-only].
 A mod that needs the client's input on an intake therefore sends it over the command bus and lets the server's arm act on it ([#0932], [mp-model.md#command-bus](../platform/mp-model.md#command-bus)).
 
-The creation hook's side follows the instantiation, so an item spawned on the server runs it on the server [#0926/C/C-only].
-A consumable spawned on the client is already a mistake for a separate reason: an eat of a client-spawned food ends in a sync error on the server ([#0124/M/n=1], [mp-model.md#packets](../platform/mp-model.md#packets)).
+A consumable spawned on the client is a mistake whatever its creation hook does: an eat of a client-spawned food ends in a sync error on the server ([#0124/M/n=1], [mp-model.md#packets](../platform/mp-model.md#packets)).
 Whatever a creation hook or a cook hook writes into an item field reaches the other side only if the item-stats packet carries that field ([#1036], [wire-packets.md#item-stats-packet](../facts/wire-packets.md#item-stats-packet)).
 
 For every hook on this page the side reading comes to one sentence: the numbers go on the server arm, and the client arm, where one exists, reads.
@@ -90,7 +89,7 @@ Its return value is ignored, so it cannot veto or shorten the eat it reports [#0
 It can still reach the leftover: a mutation of the item's remaining hunger or calories is what the leftover scaling then multiplies, read off the order of the two calls and never measured [#0094/C/inference].
 The eat hook can therefore change what is left of the item and correct the store after the fact, and it cannot change what the eat itself delivered.
 The server's packet sends have already left when it fires, so a correction written there reaches the client on the next once-a-second player-stats push rather than in the eat packet ([#0006], [#0114], [wire-packets.md#player-stats-packet](../facts/wire-packets.md#player-stats-packet)).
-The eat packet carries the whole store the eat wrote, so a store write made in the wrapper ahead of the original rides that packet with the eat itself, while a post-intake write waits for the push ([#0113], [#0114]).
+The eat packet carries the whole nutrition store the eat wrote, so a nutrition write made in the wrapper ahead of the original rides that packet with the eat itself, while a post-intake write waits for the push ([#0113], [#0114]).
 Every post-intake seat also sees the stores after their clamps have discarded any overshoot, so the part of an eat a clamp threw away shows only against a pre-intake reading, which the wrapper is the one seat to take ([#0021/M/one-fixture], [#0022/M/n=2], [#0023/M/n=2], [nutrition-core.md#clamps](../facts/nutrition-core.md#clamps)).
 
 A wrapper that calls the original and then acts again takes a third seat, later than the eat hook.
@@ -110,7 +109,7 @@ It resolves on the server through the net action's stop and the eat action's ser
 The eat hook on a cancelled eat is therefore handed a share derived from how far the action ran, rescaled like any other [#0111, #0093].
 That route never passes through the completion step, so a completion wrapper does not see a cancel, while the eat hook, which fires inside `Eat`, sits on both routes [#0111, #0006].
 A mod can handle a partial or cancelled eat on that server-side route [#1132/C/C-only].
-Two guards on the server-stop step make a cancelled eat apply nothing at all — no stats, no nutrition, no leftover scaling and no consumption — for one named item and for any item whose state-modified hunger change sits under the magnitude the guard tests [#0112].
+Two guards on the server-stop step make a cancelled eat apply nothing at all — no stats, no nutrition, no leftover scaling and no consumption — for one named item and for any item whose state-modified hunger change sits at or under the magnitude the guard tests [#0112].
 Under either guard no eat-side seat fires, because `Eat` is never called, and whether the guard really applies nothing is [open](#open) [#0112, #1299/C/open].
 
 A drink from a fluid container sits outside all of these seats.
@@ -134,8 +133,9 @@ The transition itself moves no stored nutrition: cooking and burning leave an it
 Cooking as such moves no calories anywhere in the recipe data either [#0742/C/snapshot].
 A mod that wants cooking to change what an item delivers therefore has two places to say it: the cook hook, rewriting the instance at the transition, or a script that turns the item into a different one when it cooks.
 A mod can rewrite a crafted instance from the cook hook, whose registration and firing are read rather than driven end to end [#1154/M/n=1].
-One corpus mod's server-side cook hook did exactly that at the transition, printing in the server console ([#1208/M/n=1], [the teardown](../facts/other-mods/longtermpreservation.md#architecture)).
-What the client then learned was the packet's field list: the macros and the raw hunger field that hook scaled arrived intact, while the age-window bounds and the cookable flag never did ([#1105/M/n=1], [#1037/M/n=1], [wire-packets.md#desyncs](../facts/wire-packets.md#desyncs)).
+One corpus mod's server-side cook hook does exactly that at the transition, printing in the server console ([#1208/M/n=1], [the teardown](../facts/other-mods/longtermpreservation.md#architecture)).
+What the client then learns is the packet's field list: the calories, the proteins, the lipids and the raw hunger field that hook scales arrive intact, while the age-window bounds and the cookable flag never arrive ([#1105/M/n=1], [#1037/M/n=1], [wire-packets.md#desyncs](../facts/wire-packets.md#desyncs)).
+The carbohydrates are in that packet by a read of its fields rather than by measurement, because the measured item carries zero carbohydrates on both sides of the rewrite [#1105/M/n=1].
 A cook hook can therefore change a cooked item's nutrition on both sides, and anything else it writes has to be a field the packet carries or a value the design leaves on the server [#1074/M/n=1].
 
 A type change is the one thing the cook transition itself does to nutrition, and it happens ahead of the hook rather than under it.
@@ -174,7 +174,7 @@ That mod is also a downstream reader a nutrition mod must not starve: it ranks i
 | a `server/` wrapper of `ISEatFoodAction.complete` — acts on the server only, ahead of `Eat`, so it sees the store and the item before any intake and can still change what `Eat` then reads, or skip the eat whole | a sentinel held outside the shared table, a nil-checked side guard and the original called every time; its own copy of the fraction rescale if it needs the share the eat will take; it never sees a cancelled eat | cannot stop part of an eat, only skip the original; one eat at full fraction measured | [#1129/M/n=1, #1033/M/n=1] |
 | `OnEat` — fires on both sides, the client arm a notification; runs after every stat and nutrient write and before the item is consumed, so it can correct the store after the fact and change the leftover, never the intake | a second write on top of vanilla's, a side branch inside the handler, and a correction that reaches the client one push late; it sits on both the completed and the cancelled route | cannot fire once in multiplayer, and its return value is ignored; once per eat or once per portion is unsettled | [#1130/M/n=1, #1131/M/n=1] |
 | `OnCooked` — reached by the side that runs the cook transition, the server on the measured path; fires after the cooked flag is set, so it can rewrite the cooked instance's nutrition | only the fields the item packet carries reach the client; a side branch inside, since the dispatch is not side-gated; a swapped item never reaches it | the pipeline has never been driven end to end, and the heat gate, the tick and the perk scaling around it are Java | [#1154/M/n=1, #1155/M/n=1] |
-| `OnCreate` — runs once, at instantiation, on whichever side instantiates, so it can seed an item before anything reads it | a bare global like the eat hook's target; what it seeds crosses only as the item packet carries it | never fired in any session, and nothing on the bus executes a craft to reach it | [#0926/C/C-only, #0967/C/C-only/open] |
+| `OnCreate` — runs once, at instantiation, on whichever side instantiates, so it can seed an item before anything reads it | a bare global like the eat hook's target; what it seeds into an item field crosses only as the item packet carries it | never fired in any session, and nothing on the bus executes a craft to reach it | [#0926/C/C-only, #0967/C/C-only/open] |
 
 Which seat carries the mod's intake correction and which carries its cooking rewrite, given that only the wrapper sees pre-intake values, only the eat hook sits on both the completed and the cancelled route, and only the cook hook sits on the cook transition?
 
@@ -200,13 +200,14 @@ Not covered: the thirst-relief path beyond its named hook, the context-menu and 
 
 - Whether the eat hook fires once per eat or once per portion — settled by quarter eats on one item beside a whole eat on a fresh one, each proved complete by store reads on both sides; it decides whether an eat-hook correction may count one call per eat action; -> X24 ([#0929/M/n=1/open], [#1290/C/open], [open-questions.md#x24](open-questions.md#x24)).
 - Whether a dotted cook-hook name fires, on which side, and whether the cooking pipeline can be driven end to end — settled by a cook-transition session with a dotted target and by a harness craft command that reaches a crafted instance; it decides whether cook-side code may live in a table and whether any cooking-side seat is more than a reading; -> X31 ([#1297/C/open], [open-questions.md#x31](open-questions.md#x31)).
-- Whether the item-block creation hook fires as the bytecode reads, and what it can seed at instantiation — settled by the same craft session with the hook registered; it decides whether per-item nutrient values are seeded at instantiation or read from the script on demand; -> X31 ([#0967/C/C-only/open], [lua-platform.md#open](../platform/lua-platform.md#open)).
-- What the creation hooks of the output-less recipes do to nutrition — settled by executing one of them on the game's own craft path; it decides whether those recipes need a nutrition delta of their own; -> X31 ([#0784/C/snapshot/open], [cooking-and-recipes.md#open](../facts/cooking-and-recipes.md#open)).
+- Whether the item-block creation hook fires as the bytecode reads, and what it can seed at instantiation — settled by the same craft session with the hook registered; it decides whether per-item nutrient values are seeded at instantiation or read from the script on demand; -> X31 ([#0967/C/C-only/open], [lua-platform.md#open](../platform/lua-platform.md#open), [open-questions.md#x31](open-questions.md#x31)).
+- What the creation hooks of the output-less recipes do to nutrition — settled by executing one of them on the game's own craft path; it decides whether those recipes need a nutrition delta of their own; -> X31 ([#0784/C/snapshot/open], [cooking-and-recipes.md#open](../facts/cooking-and-recipes.md#open), [open-questions.md#x31](open-questions.md#x31)).
 - Whether a cancelled eat of an item under the server-stop guard really applies nothing at all — settled by cancelling such an eat partway with store and stat reads on both sides; it decides whether a correction ever needs the cancel route for those items, and whether an item pass may land a hunger value under the guard; -> X33 ([#1299/C/open], [open-questions.md#x33](open-questions.md#x33)).
 - What the spice branch does beyond the herbal-tea sums — settled by a desk read of the spice method and the ingredient usability check; it decides whether spice stays a script bool or needs a cooking-side seat; -> X9b ([#0381/C/C-only/open], [#1278/C/open], [open-questions.md#x9b](open-questions.md#x9b)).
+- Whether the eat packet reaches every client or only the eater — settled by dumping the packet send overload that takes a player, a packet type and an argument array; it decides whether a client arm fires for other players' eats as well as its own, which the arm's test of the character it was handed covers either way; no `X` id ([#0144/C/open], [mp-model.md#open](../platform/mp-model.md#open)).
 - Decision: whether the intake correction sits in the completion wrapper, before `Eat` writes, or in the eat hook, after it — only the wrapper sees pre-intake values, while the eat hook's store already holds the eat ([#1033/M/n=1], [#0008]).
 - Decision: whether the correction must also cover a cancelled eat — a cancel reaches `Eat` through the server-stop step and never through the completion step [#0111].
-- Decision: whether a cooked item's nutrition comes from a cook hook on the instance or from a replacement item's script — the swap returns before the hook runs, and a hook's writes reach the client only where the item packet carries them ([#0266], [#1036]).
+- Decision: whether a cooked item's nutrition comes from a cook hook on the instance or from a replacement item's script — the swap returns before the hook runs, and a hook's item-field writes reach the client only where the item packet carries them ([#0266], [#1036]).
 - Decision: whether fluid drinks stay outside the intake correction until the drink path is measured — the fluid path has no eat hook and no eat packet [#0084/C/C-only].
 
 ## See also
