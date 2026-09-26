@@ -41,6 +41,7 @@ PROVISIONAL_MSG = "provisional tag %s (apply the delta, or --allow-provisional)"
 H2_RX = re.compile(r"^## (.+?)\s*$")
 CODE_SPAN_RX = re.compile(r"`[^`]*`")
 LINK_TARGET_RX = re.compile(r"\]\([^)\s]*\)")
+ANCHOR_LINE_RX = re.compile(r'^\s*<a id="[A-Za-z0-9_-]+"></a>\s*$')
 RULES_DIRS = ("docs/areas", "docs/platform")
 FILE_LINES_RX = re.compile(r"`?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?`?")
 
@@ -331,6 +332,8 @@ def rule_untagged(root):
                 if line.startswith("```"):
                     fence = not fence; continue
                 if fence or line.startswith("|") or line.startswith("#") or line.startswith("Verified against") or not line.strip():
+                    continue
+                if ANCHOR_LINE_RX.match(line):     # a bare <a id="x13"></a> line: the slug is a name, never a number
                     continue
                 bare = LINK_TARGET_RX.sub("]", CODE_SPAN_RX.sub("", line))     # the link text stays; its target goes
                 if re.search(r"\d", bare) and not cl.TAG_RX.search(line) and not cl.PROVISIONAL_RX.search(line):
