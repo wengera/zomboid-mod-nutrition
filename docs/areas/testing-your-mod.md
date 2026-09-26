@@ -26,7 +26,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: this mod's test pl
 
 This page is the test plan of a mod that does not exist yet: which profiles it will ship, what its scenarios and verification rows are for, which inputs a multi-day nutrition run fixes, which named experiments it owns, how a cross-side reading is graded and which sandbox values its evidence rests on.
 The instrument is [`../platform/harness.md`](../platform/harness.md), which owns every mechanism named below, and the commands a profile, a scenario or a driver can call are the generated table [`../reference/harness-commands.md`](../reference/harness-commands.md).
-This page restates neither; what it adds is the reading for this mod — which of those mechanisms the plan leans on, with which inputs, and what each run can and cannot prove.
+Where a mechanism appears below it is one tagged sentence cited to its owner; what this page adds is the reading for this mod — which of those mechanisms the plan leans on, with which inputs, and what each run can and cannot prove.
 The page owns one rule and no fact, and every claim below is cited to the row that owns it.
 Every measured row it cites was taken on the dedicated-server path with one driven client, and single player is never claimed [#1256/C/one-fixture].
 
@@ -55,7 +55,7 @@ The plan names four profiles, each pinning the golden fixture and the harness, a
 | profile | mod list | sandbox block | what it proves | tags |
 |---|---|---|---|---|
 | the mod's acceptance profile | the harness and the mod | none, so every option is the fixture's | that the mod arrived on both sides and its files ran in both Lua states | [#1793, #1825/M/n=1] |
-| the mod's scenario profile | the harness and the mod | the day length the pacing decision sets, and nothing else | the mod's numbers over game days, beside baselines taken at the fixture's settings | [#1253/C/one-fixture, #1814/M/n=3] |
+| the mod's scenario profile | the harness and the mod | none, or the day length if the pacing decision moves it | the mod's numbers over game days, beside the baseline pair run on the same profile | [#1253/C/one-fixture, #1814/M/n=3, #2071/C/inference] |
 | the vanilla-off profile, written only if the design switches vanilla nutrition off | the harness and the mod | the nutrition option off, set in the block and never at runtime | which of the update's arms the option actually freezes, beside the scenario profile's baseline | [#1127/C/C-only, #1277/C/open] |
 | the stack profile | the harness, the mod and each resident neighbour, every one by its engine-resolved id | none | that the mod's gates still pass beside the mods a live server runs | [#1558, #1617/C/snapshot] |
 
@@ -139,7 +139,7 @@ The pacing is fixed before the run too, because the scheduler's clock is game mi
 Which of the three clocks carries a run is the decision the options table below puts, and whichever it is, the day length and the multiplier stay inside the cadence ceiling together [#1814/M/n=3].
 Every sample carries the game minute, the world age and the wall clock, and rates are fitted against the world age, so the multiplier cancels out of every rate a scenario reports [#1778, #0452/M/one-fixture].
 
-The shipped nutrition runs pin hunger and thirst after every sample, and the reason is a death rather than tidiness [#1782].
+The shipped nutrition runs pin hunger and thirst after every sample, and the reason is a death rather than tidiness [#1782, #0158/M/one-fixture].
 Anything that fills the calorie store must manage hunger and thirst too: unattended, the level-4 thirst drain kills in about 35 game-hours on a 90-minute day and about 38 on the 60-minute default [#0179/M/one-fixture].
 The first figure rests on one measured run and the second is arithmetic on it [#0179/M/one-fixture].
 The calorie setter never touches hunger or thirst, so a scenario that doses calories leaves both clocks running [#0172/M/one-fixture].
@@ -160,7 +160,7 @@ The first day of a fed run is a ramp from an empty store, so a per-day rate read
 Four named experiments are this page's to run, because the design cannot be finished without them.
 Three settle the wall map's unknown verdicts — whether a client can rely on a band trait, whether a mod may override a vanilla translation key, and whether the drink path can be hooked [#1161/C/C-only/open, #1164/C/C-only/open, #1133/C/C-only/open].
 The fourth tests the only moodle route left, none of whose legs has been measured [#1142/C/C-only].
-The other named experiments decide how the mod is built rather than whether a part of it can be, and [experiments.md § Owners and the cost roll-up](../reference/experiments.md) assigns them to the build-out.
+The other named experiments go to the build-out or to a standalone slice, as [experiments.md § Owners and the cost roll-up](../reference/experiments.md) assigns them, and the build-out's decide how the mod is built rather than whether a part of it can be.
 Each spec is [`experiments.md`](../reference/experiments.md) and each open row the four carry is indexed on [`open-questions.md`](open-questions.md); this page restates neither.
 
 | experiment | what it settles | what makes the reading discriminate | what it costs | tags |
@@ -171,7 +171,7 @@ Each spec is [`experiments.md`](../reference/experiments.md) and each open row t
 | [X29](open-questions.md#x29) | whether the moodle framework loads whole, whether its configuration file runs, and whether a moodle registered through it renders above its lowest level | each leg has its own reading, and a registered moodle held at its lowest level on the client would mean no moodle route at all | a desk read of the framework's own Lua first, because its interface is unread and a probe cannot be written blind, then a single session | [#1295/C/open, #0884/C/C-only/open, #1115/M/n=1/open] |
 
 The minutes, sessions and write-up ceiling behind the cost column are [experiments.md § Owners and the cost roll-up](../reference/experiments.md), and the whole named programme is a ceiling rather than a commitment [#1973].
-The trait experiment decides what a client may do with a band: until it lands, a client-side display or derivation that reads one reads an input no traced packet fills, which is why band logic stays on the server ([#1161/C/C-only/open], [mp-sync.md#authority](mp-sync.md#authority)).
+The trait experiment decides what a client may do with a band: until it lands, a client-side display or derivation that reads one reads an input no traced packet fills, which is why anything keyed on a band is evaluated on the server or fed a value the mod sends itself ([#1161/C/C-only/open, #1104/C/inference], [mp-sync.md#authority](mp-sync.md#authority)).
 The translation experiment decides whether the rebalance may rename a vanilla food, the one question the translation merge leaves open [#1164/C/C-only/open].
 The drink experiment decides whether an intake correction can reach fluid drinks at all, since the fluid path has no eat hook ([#1133/C/C-only/open], [eat-and-cook-hooks.md#hook-options](eat-and-cook-hooks.md#hook-options)).
 The framework experiment is the consequential one: a registered moodle held at its lowest level on the client would leave the mod no moodle route of any kind ([#1115/M/n=1/open], [ui-and-moodles.md#moodle-route](ui-and-moodles.md#moodle-route)).
@@ -223,8 +223,6 @@ The values themselves are stated on the owner pages, so every cell here is an op
 | `StatsDecrease` | hunger, thirst and fatigue, never calories [#0553] | the fixture's default [#1809/C/C-only] | one body-side run set every value through the live setter [#0483/M/n=1, #0556/M/n=1] | [body-and-weight.md#sandbox](../facts/body-and-weight.md#sandbox) |
 | `FoodRotSpeed` | the elapsed hours the age formula converts into days [#0225/C/C-only] | the fixture's default [#1809/C/C-only] | none [#1830/C/C-only/open] | [spoilage.md#sandbox](../facts/spoilage.md#sandbox) |
 | `FridgeFactor` | aging inside a powered fridge or freezer [#0224/C/C-only] | the fixture's default [#1809/C/C-only] | none [#1830/C/C-only/open] | [spoilage.md#sandbox](../facts/spoilage.md#sandbox) |
-| `ElecShutModifier` | the unpowered fridge and freezer grace [#0227/C/snapshot] | unread: no row reads the fixture's value | none | [spoilage.md#sandbox](../facts/spoilage.md#sandbox) |
-| `DaysForRottenFoodRemoval` | whether rotten food is ever deleted [#0233/C/snapshot, #0244] | unread: no row reads the fixture's value | none | [spoilage.md#sandbox](../facts/spoilage.md#sandbox) |
 | `DayLength` | the clock every timed scenario is fitted against [#1809/C/C-only] | the fixture's [#1253/C/one-fixture, #0893/C/arith.] | the acceptance run's profile and two scheduler self-tests set a shorter day [#1807/M/n=1, #1813/M/n=1, #1816/M/n=1] | [harness.md#sandbox](../platform/harness.md#sandbox) |
 | `Zombies` | the world's zombie population, fixed when the world is generated [#1811/C/inference] | the fixture's, none [#1701, #1807/M/n=1] | none: a change needs a fresh fixture [#1811/C/inference] | [harness.md#pzt](../platform/harness.md#pzt) |
 
@@ -259,10 +257,10 @@ At which pacing does each of this mod's timed scenarios run — real time, a sho
 - The driven client is a debug client, and the first mod Lua error parks it in the debugger's modal break, so a raising path in this mod can be driven on the server side only, and a release client is unmeasured [#1246/M/n=2].
 - Every client-side reading of a session whose debug client parked is unusable, so such a session is a server reading only [#0869/M/n=2].
 - No client-side scenario has ever run: the client runner is wired and every registered scenario lives under the server folder [#1784].
-- Persistence cannot be tested yet: modData across a save and reload is stated and never measured, and no run has restarted a world ([#1255/C/C-only], [open-questions.md#x28](open-questions.md#x28)).
+- Persistence cannot be tested yet: `modData` across a save and reload is stated and never measured, and no run has restarted a world ([#1255/C/C-only], [open-questions.md#x28](open-questions.md#x28)).
 - The trait sync path is untraced: no packet carrying the trait list has been traced, and every run that could have shown one held empty lists on both sides ([#1161/C/C-only/open, #0968/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
-- The translation override is unmeasured: the translator merges rather than shadows, and no run has shipped a key that redefines a vanilla one ([#1164/C/C-only/open], [open-questions.md#x5](open-questions.md#x5)).
-- The drink path's interceptability is unmeasured: the fluid path has no eat-hook twin and the Lua drink-driver path has never been driven ([#1133/C/C-only/open, #1255/C/C-only], [open-questions.md#x13](open-questions.md#x13)).
+- The translation override is unmeasured: the translator merges rather than shadows, and no run has shipped a key that redefines a vanilla one ([#1164/C/C-only/open, #1276/C/open], [open-questions.md#x5](open-questions.md#x5)).
+- The drink path's interceptability is unmeasured: the fluid path has no eat-hook twin and the Lua drink-driver path has never been driven ([#1133/C/C-only/open, #1279/C/open, #1255/C/C-only], [open-questions.md#x13](open-questions.md#x13)).
 - No measured moodle route exists: the framework is the only route left and none of its legs has been booted ([#1142/C/C-only, #1295/C/open], [open-questions.md#x29](open-questions.md#x29)).
 - Nothing on the bus executes a craft, so a crafted food's nutrition is read from the code and its create hooks stay unmeasured [#1248/C/C-only].
 - No bus command synthesises a click or a key press, so a panel of this mod's own keeps its state invisible to the bus until a human clicks [#1498/M/n=1].
@@ -279,11 +277,11 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - Whether the drink path is interceptable the way the eat path is — settled by a harness command that queues the real drink action, then one session counting a server-side wrapper's fires on each side against the shipped drink command as the control; -> X13 ([#1279/C/open, #1133/C/C-only/open], [open-questions.md#x13](open-questions.md#x13)).
 - Whether the moodle framework loads whole, runs its configuration file and renders a registered moodle above its lowest level — settled by a desk read of its Lua, then one session reading its globals on both sides and the client's moodle block; -> X29 ([#1295/C/open, #0884/C/C-only/open, #1115/M/n=1/open], [open-questions.md#x29](open-questions.md#x29)).
 - With vanilla nutrition switched off, which of the update's three arms actually freezes — settled by the baseline pair run on the vanilla-off profile against its own baselines; the build-out owns it, and this plan needs it only if the design switches the option off; -> X7 ([#1277/C/open], [open-questions.md#x7](open-questions.md#x7)).
-- Whether modData survives a save and reload — settled by a boot, a write, a teardown and a second boot on the same run directory beside a control that must miss the key; the build-out owns it; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
-- Which sandbox options survive a restore — settled by a profiled run that sets each nutrition option on a restored world and reads it back, the two rot options whose fixture values no row records among them; no `X` id ([#1830/C/C-only/open], [harness.md#open](../platform/harness.md#open)).
+- Whether `modData` survives a save and reload — settled by a boot, a write, a teardown and a second boot on the same run directory beside a control that must miss the key; the build-out owns it; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
+- Which sandbox options survive a restore — settled by a profiled run that sets each nutrition option on a restored world and reads it back; no `X` id ([#1830/C/C-only/open], [harness.md#open](../platform/harness.md#open)).
 - Where the cadence ceiling really sits above the known-safe demand — settled by scheduler self-tests that step the demand past it and read the fitted tick rate; no `X` id ([#1815/M/n=1/open], [harness.md#walls](../platform/harness.md#walls)).
 - The thirst sample column and the evaluator's dead-subject verdict have never run on a live session — settled by the next pinned three-day run's committed artifact; no `X` id [#0171/C/snapshot].
-- That the time multiplier must always be changed through the broadcast admin command, and how a multiplier change re-syncs the client's clock, are unverified, and their owner states them with their bounds ([#1869/M/uncommitted/unverified, #1870/M/uncommitted/unverified, #1871/M/uncommitted/unverified], [harness.md#open](../platform/harness.md#open)).
+- That the multiplier getter is scaled rather than the argument passed, that the time multiplier must always be changed through the broadcast admin command, and how a multiplier change re-syncs the client's clock are unverified, and their owner states them with their bounds ([#1869/M/uncommitted/unverified, #1870/M/uncommitted/unverified, #1871/M/uncommitted/unverified], [harness.md#open](../platform/harness.md#open)).
 - That a small cross-side calorie gap in the witness spike is the sampling skew of a once-a-second mirror is unverified, and its owner states it with its bound ([#1875/M/uncommitted/unverified], [harness.md#open](../platform/harness.md#open)).
 - Decision: at which pacing the mod's timed scenarios run — forced by the cadence ceiling binding the day length and the multiplier together while every baseline sits at the fixture's day length [#1814/M/n=3, #1253/C/one-fixture].
 - Decision: whether the mod's load checks are verification rows or scenarios — forced by a verification expectation being a substring that cannot express absence or a numeric comparison [#1828].
