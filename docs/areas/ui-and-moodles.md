@@ -4,7 +4,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: the nutrition-desi
 ## Rules
 
 - Cache a nutrition value at the push cadence rather than the frame cadence: the source changes once a second while an uncached panel reads it up to four times per macro bar and ten times per weight bar every frame, the counts read off one viewer's render loop and the cadence measured in one session [#1114/M/n=1].
-- Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, T8.1].
+- Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
 - Register with a framework that already owns a contested value rather than writing that value last: cooperative detection avoids last-write-wins between two mods that both own carry weight or moodles [#1070/C/snapshot].
 - Render through `MoodleFramework` or the mod's own panels rather than patching the widgets a resident interface mod already patches: `CleanUI` redraws the status surfaces on this server [#1083/C/snapshot].
 - Test a Java class against the exposer's class set before you plan on it: the exposure test is a strict membership test, so a class the jar carries and the exposer does not register is unreachable [#0963/C/C-only].
