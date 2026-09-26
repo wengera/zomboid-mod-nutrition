@@ -17,7 +17,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: which side owns ea
 - Take a client-side moodle read at least one push after a server-side stat write: the moodle recompute has no side guard, so the client recomputes from a mirror that can lag by a push [#0570/C/C-only].
 - Read a server-side modData key count beside its wall offset, never on its own: the four vanilla fitness and strength keys are written server-side lazily, so an early census and a late one disagree without anything having changed [#1338/M/n=2].
 - Test a modData census for emptiness with the key count rather than the key list: even an item whose mod writes no keys at all reads a custom-name key on the side that deserialised it [#1415/M/n=1].
-- Assume both copies of a mod's `server/` file run: a value written there lands in the client's own player-modData table as well, so a census that expects one writer reads two [#0910/M/n=1].
+- Assume both copies of a mod's `server/` file run: an item-modData write in that file came from the client's Lua state while the server's own tick skipped on its guard, so a census of writers records the side [#0910/M/n=1].
 
 ## How it works
 
