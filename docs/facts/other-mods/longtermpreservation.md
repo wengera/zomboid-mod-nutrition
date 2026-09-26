@@ -217,7 +217,7 @@ Not covered: no single-player session was ever booted and no relog or save round
 ## Open
 <a id="open"></a>
 
-- Two questions this mod raises are unanswered here: whether a relog or a save round-trip repairs a client's copy of the uncarried fields, and whether a client copy that still believes a cured meat is cookable would call the mod's undefined cook hook if it ever ticked; the first is carried on the packet page and the second on the Lua platform page ([#1434/C/inference/open], [#1394/C/C-only]).
+- Two questions this mod raises are unanswered here: whether a relog or a save round-trip repairs a client's copy of the uncarried fields, and whether a client copy that still believes a cured meat is cookable would dispatch the mod's cook hook in the client's Lua state if it ever ticked; the first is carried on the packet page and the second on the Lua platform page ([#1434/C/inference/open], [#1394/C/C-only]).
 - The design must decide whether any per-item value it computes ever lives in an engine item field, because the fields this mod's hooks write outside the packet's list never reach a client and no re-push repairs them [#1442].
 - The design must decide whether a derived value belongs in an engine field or in modData read back on demand, because this mod's derived weight is discarded by a getter guard on the authoritative side [#1443].
 - The design must decide whether it namespaces every Lua global it defines, because this mod's generic unqualified names are collision-free only against a dated sweep of the installed corpus [#1444/C/snapshot].

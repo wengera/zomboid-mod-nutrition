@@ -134,7 +134,7 @@ The retry is cover for load order rather than for the install [#0894/M/n=1].
 
 The cook hook is not server-gated in the dispatch itself but is reached only by the side that runs the cook transition: on both teardown sessions every hook print was in the server console and the client's was empty, because the client's copy never reached the transition [#0925/M/n=1].
 The dispatch there is a code reading and the side is the measurement, taken once per run over one item and one cook transition each [#0925/M/n=1].
-A client that did drive its own copy of a modded item to the cook transition would call a nil Lua function, and neither session reached that state, so the behaviour stays unmeasured [#1394/C/C-only].
+A client that did drive its own copy of a modded item to the cook transition would dispatch the hook in the client's Lua state as well, where a mod's `server/` file also runs, and neither session reached that state, so the behaviour stays unmeasured [#1394/C/C-only].
 One corpus mod's server-side cook hook rewrote 11 fields on the crafted instance, printing in the server console — the worked case of the hook doing real work ([the teardown](../facts/other-mods/longtermpreservation.md#architecture)) [#1208/M/n=1].
 
 <a id="events"></a>
