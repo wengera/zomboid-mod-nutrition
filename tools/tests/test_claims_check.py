@@ -422,13 +422,7 @@ def test_rules_dup_accepts_a_verbatim_copy_beside_sibling_rules_on_the_same_row(
 
 
 def test_untagged_ignores_a_bare_anchor_line():
-    page = "# A
-
-## How it works
-<a id=\"x13\"></a>
-### X13
-A question with no digit.
-"
+    page = "# A\n\n## How it works\n<a id=\"x13\"></a>\n### X13\nA question with no digit.\n"
     with tempfile.TemporaryDirectory() as d:
         _tree(d, [_row(1, owner="areas/a.md#x13")], pages={"docs/areas/a.md": page})
         assert not [x for x in cc.check(d, partial=True) if x.rule == "untagged"]
