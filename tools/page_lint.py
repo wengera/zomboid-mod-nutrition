@@ -180,7 +180,7 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
                     if not partial:
                         out.append(Finding(rel, n, "link", "link target does not exist: %s" % target))
                     continue
-                if (anchor and tpath.endswith(".md") and _page_key(tpath, root).split("/")[0] in CONTRACT_LAYERS
+                if (anchor and tpath.endswith(".md") and (_page_key(tpath, root).split("/")[0] in CONTRACT_LAYERS or _page_key(tpath, root) in REFERENCE_PAGES)
                         and ('<a id="%s">' % anchor[1:]) not in _read(tpath)):
                     out.append(Finding(rel, n, "link", "link anchor not found: %s%s" % (target, anchor)))
             if (not stripped or stripped.startswith("#") or stripped.startswith("|") or ANCHOR_RX.match(stripped)
