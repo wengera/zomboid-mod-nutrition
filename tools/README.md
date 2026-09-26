@@ -308,10 +308,13 @@ import patterns from there.
   a digit inside a markdown link target is not a number, though the link text still counts;
   never under `docs/reference/`), `generator` (`harness-commands.md` is a fresh render of the
   `bus_inventory.py` scan, labelled with its `label_for`), `skill` (every `## Rules quoted` line is
-  verbatim on a `## Read first` page), `example` (`## Worked examples` paths exist), `rules-dup`
-  (rule 9: the `## Rules` lines under `docs/areas` and `docs/platform`, grouped by tag-id set, must
-  be byte-identical across pages; a group on one page is never compared, since two rules there that
-  cite the same claim are two rules, not a drifted copy).
+  verbatim on a `## Read first` page), `example` (`## Worked examples` paths exist), fix-tags and
+  views (rule 8: `--fix-tags` writes each tag's suffix from the register; `--view LAYER|LAYER/PAGE.md`
+  prints a register slice), `rules-dup` (rule 9: for each pair of pages under `docs/areas` and
+  `docs/platform` and each tag-id set both carry on a `## Rules` line, a finding fires only when the
+  two pages share no byte-identical line for that set, once per page on its first line of that set;
+  a page's several rules on one set are never compared with each other, so a verbatim copy of one
+  rule is clean beside the other rules its source page carries on the same set).
   `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
   `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
   relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta

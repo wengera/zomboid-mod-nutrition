@@ -405,3 +405,17 @@ def test_rules_dup_ignores_distinct_rules_sharing_a_tag_on_one_page():
     with tempfile.TemporaryDirectory() as d:
         _tree(d, [_row(1, owner="platform/p.md#y")], pages={"docs/platform/p.md": plat})
         assert not [x for x in cc.check(d, partial=True) if x.rule == "rules-dup"]
+
+
+def test_rules_dup_accepts_a_verbatim_copy_beside_sibling_rules_on_the_same_row():
+    plat = "# P\n\n## Rules\n- Write a cite with an offset: a member list proves only a declaration [#0001].\n- Never read access off the member list: it discards the flags [#0001].\n\n## How it works\n"
+    area = "# A\n\n## Rules\n- Keep one line here: it is not about the cite [#0002].\n- Never read access off the member list: it discards the flags [#0001].\n\n## How it works\n"
+    drifted = "# A\n\n## Rules\n- Keep one line here: it is not about the cite [#0002].\n- Never read access off a member list: it drops the flags [#0001].\n\n## How it works\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="platform/p.md#y"), _row(2, owner="areas/a.md#x")],
+              pages={"docs/platform/p.md": plat, "docs/areas/a.md": area})
+        assert not [x for x in cc.check(d, partial=True) if x.rule == "rules-dup"]
+        _write(d, "docs/areas/a.md", drifted)
+        f = [x for x in cc.check(d, partial=True) if x.rule == "rules-dup"]
+        assert len(f) == 2 and {x.path for x in f} == {"docs/areas/a.md", "docs/platform/p.md"}
+        assert all("#0001" in x.detail for x in f)

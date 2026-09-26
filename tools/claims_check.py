@@ -2,12 +2,13 @@
 """The claims checker (spec § The checker and the generator).
 
 Rules: schema (0) · owner (1) · tag (2) · pointer (3) · untagged (4, warning only; a digit inside a
-markdown link target is not a number) · generator (5) · skill (6) · example (7) · rules-dup (9: the
-`## Rules` lines under docs/areas and docs/platform, grouped by tag-id set, must be byte-identical
-across pages).
---register-only runs 0 and 3; --partial lets 1 skip owner pages that do not exist yet; --fix-tags
-rewrites every tag's suffix from the register; --view LAYER|LAYER/PAGE.md and --section-map print
-register slices; --staged skips the run when nothing relevant is staged."""
+markdown link target is not a number) · generator (5) · skill (6) · example (7) · fix-tags and views
+(8: --fix-tags writes each tag's suffix from the register; --view LAYER|LAYER/PAGE.md prints a
+register slice) · rules-dup (9: for each pair of pages under docs/areas and docs/platform and each
+tag-id set both carry on a `## Rules` line, a finding fires only when the two pages share no
+byte-identical line for that set; a page's several rules on one set are never compared with each
+other). --register-only runs 0 and 3; --partial lets 1 skip owner pages that do not exist yet;
+--section-map prints the source-section map; --staged skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import claimslib as cl
@@ -363,23 +364,31 @@ def _bullets(sections, heading):
 
 def rule_rules_dup(root):
     """Spec § The page contract: a rule that belongs to two areas appears on both pages only as the
-    byte-identical line with the same tags; the checker diffs them. Lines are grouped by their
-    tag-id set across docs/areas and docs/platform; a group that spans two or more pages and holds
-    two different texts is a finding on every line of the group. A group on one page is never
-    compared: two rules there that cite the same claim are two rules, not a copy that drifted."""
-    groups = {}
+    byte-identical line with the same tags; the checker diffs them (Ruling R14). For each pair of
+    pages under docs/areas and docs/platform, and each tag-id set both pages carry on a `## Rules`
+    line, a finding fires only when the two pages share no byte-identical line for that set: one
+    finding per page, on its first line of that set, naming the other page's first line. A page's
+    several distinct rules on one set are never compared with each other, and a verbatim copy of one
+    rule is clean beside the other rules its source page carries on the same set."""
+    pages = {}
     for path in _md_files(root, RULES_DIRS):
-        rel = _rel(path, root)
+        by_ids = {}
         for n, line in _bullets(_sections(_read(path)), "rules"):
             ids = tuple(sorted({cid for _, cid, _ in cl.iter_tags(line)}))
             if ids:
-                groups.setdefault(ids, []).append((rel, n, line))
-    out = []
-    for ids, lines in groups.items():
-        if len({r for r, _, _ in lines}) > 1 and len({l for _, _, l in lines}) > 1:
-            for rel, n, _ in lines:
-                others = ", ".join("%s:%d" % (r, m) for r, m, _ in lines if (r, m) != (rel, n))
-                out.append(Finding(rel, n, "rules-dup", "a rule with tags %s differs from %s" % (" ".join(ids), others)))
+                by_ids.setdefault(ids, []).append((n, line))
+        if by_ids:
+            pages[_rel(path, root)] = by_ids
+    out, rels = [], sorted(pages)
+    for i, a in enumerate(rels):
+        for b in rels[i + 1:]:
+            for ids in sorted(set(pages[a]) & set(pages[b])):
+                la, lb = pages[a][ids], pages[b][ids]
+                if {t for _, t in la} & {t for _, t in lb}:
+                    continue
+                tags = " ".join(ids)
+                out.append(Finding(a, la[0][0], "rules-dup", "a rule with tags %s has no byte-identical line on %s:%d" % (tags, b, lb[0][0])))
+                out.append(Finding(b, lb[0][0], "rules-dup", "a rule with tags %s has no byte-identical line on %s:%d" % (tags, a, la[0][0])))
     return out
 
 
