@@ -26,7 +26,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: this mod's test pl
 
 This page is the test plan of a mod that does not exist yet: which profiles it will ship, what its scenarios and verification rows are for, which inputs a multi-day nutrition run fixes, which named experiments it owns, how a cross-side reading is graded and which sandbox values its evidence rests on.
 The instrument is [`../platform/harness.md`](../platform/harness.md), which owns every mechanism named below, and the commands a profile, a scenario or a driver can call are the generated table [`../reference/harness-commands.md`](../reference/harness-commands.md).
-Where a mechanism appears below it is one tagged sentence cited to its owner; what this page adds is the reading for this mod — which of those mechanisms the plan leans on, with which inputs, and what each run can and cannot prove.
+Where a mechanism appears below it is stated in one tagged sentence cited to its owner, and an untagged sentence beside it is this page's reading for this mod — which of those mechanisms the plan leans on, with which inputs, and what each run can and cannot prove.
 The page owns one rule and no fact, and every claim below is cited to the row that owns it.
 Every measured row it cites was taken on the dedicated-server path with one driven client, and single player is never claimed [#1256/C/one-fixture].
 
