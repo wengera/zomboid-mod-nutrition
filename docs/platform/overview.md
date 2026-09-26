@@ -242,7 +242,7 @@ The crafting pipeline is touched by rows but has no page: the craft-recipe gramm
 Server admin and the remote console are touched by rows but have no page: the console's transport, the one admin command this library drove and the one that throws are stated here, while the admin command set as a whole and what each does to a running world are unread [#2047/C/one-side/open].
 Build detection is touched by rows but has no page: the version keys and what the availability gate compares are stated on the anatomy page, while what a mod can detect about the running build from inside Lua is unread [#2048/C/one-side/open].
 Client-only mods are touched by rows but have no page: one workshop mod is torn down as a pure client-side viewer and a second as a client-only cooking helper, while the general cost of shipping one side only, and what still reaches the other side, is stated as anatomy rather than as a topic of its own [#2049/M/n=1/open].
-The event roster is touched by rows but has no page: the events this library hooked and measured are stated on the Lua platform and harness pages, while the full roster and which events fire on a dedicated server were never enumerated here [T97.1].
+The events roster is touched by rows but has no page: the events this library hooked and measured are stated on the Lua platform and harness pages, while the full roster and which events fire on a dedicated server were never enumerated here [#2051/C/open].
 
 Not every absence above is equal, and the table is read by status rather than by row.
 A `covered` row means a page collects the rows and states each with its grade and its bound, and that is the only status whose answer may be quoted as this library's.
