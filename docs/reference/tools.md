@@ -14,7 +14,7 @@ The splitter is deliberately simple, so a cell that needs a pipe is rewritten, w
 Every directory the stamp, sources and grades rules read lies in a tree the cut deletes, so after the cut the rules left with files to read are the placeholder ban across the tree and the mirror-header rule over `references/wiki-mirrors/`.
 
 <a id="mod-lint"></a>
-## `mod_lint.py` — the layout lint (L0)
+## `mod_lint.py` — the layout lint (`L0`)
 
 `python tools/mod_lint.py [<mod folder>|<workshop id> ...] [--workshop-dir D]` lints one mod folder, every mod a workshop item ships when the target is all digits, or every mod under the workshop root when no target is named, and prints one `mod: LEVEL: rule: detail` line per finding, then a count line.
 The layout lint runs nine static rules over a mod folder — five errors, three warnings and one informational — exits 1 only when an error fired, resolves the mod-info file newest version folder first then older ones then the common folder then the mod root, and is deliberately standalone so the tools directory stays runnable without the game [#1836]:
@@ -31,9 +31,9 @@ The layout lint runs nine static rules over a mod folder — five errors, three 
 | `loadstring` | ERROR | no `\bloadstring\s*\(` in any `.lua` under the folder (removed from the engine in 42.20.x) |
 | `folder-id` | INFO | folder name == the resolved `id` |
 
-The lint's version folders sort by parsed tuple and not by string, and the orchestrator's own resolver sorts the same way, with a test holding the two together on every layout the corpus ships; a string sort of the resolver's glob picks a different file on six installed mods, all six declaring the same id in both, which is what the agreement rule exists to stop being luck [#1837].
+The lint's version folders sort by parsed tuple and not by string, and the orchestrator's own resolver sorts the same way, with a test holding the two together on every layout the corpus ships; a string sort of the resolver's glob would pick a different file on six installed mods, all six declaring the same id in both, which is what the agreement rule exists to stop being luck [#1837].
 
-`tools/mod_lint.py` runs nine L0 rules before any server boots — five errors, three warnings and one informational — and their standing against the engine, as read on 2026-09-11, is this [#0857/C/snapshot]:
+`tools/mod_lint.py` runs nine `L0` rules before any server boots — five errors, three warnings and one informational — and their standing against the engine, as read on 2026-09-11, is this [#0857/C/snapshot]:
 
 | Rule | Level | Standing |
 |---|---|---|
@@ -83,7 +83,7 @@ The food scanner holds the shared script parser and it is nesting-aware, so a co
 The shared block reader makes a `Block` of `kind`, `name`, `module`, `file`, `line`, `props` (last write wins, as the loader does), `entries` (every `Key = Value` in file order, so a repeated key survives), `lines` and `blocks`, and on the `42.20.4` scripts `entries` carries 3 512 repeated prop lines `props` cannot see — 145 `fluid =` lines over 68 `Fluids` blocks and 34 `SoundMap` lines in `drainable.txt` [#0642/C/snapshot].
 A block header is decided by lookahead — a non-`Key = Value` line whose next logical line is an opening brace, with `kind` the first token and `name` the rest — which is what parses the 156 shipped blocks carrying a multi-word or numeric name; all 34 683 blocks of the `42.20.4` script tree then parse with 0 anonymous opens [#0643/C/snapshot].
 The `42.20.4` fluid files write float literals on int-typed keys — 141 values such as `UnhappyChange = -10.0` and `StressChange = 0.0` — and the scanner's `coerce` returns `int` for an integral literal, so one `KEY_TYPES` entry stays one Python type [#0657/C/snapshot].
-The parser reads a file comment-stripped: `_strip_comments` blanks block and line comments before any line is read and keeps the line count, so a recorded line number stays true, and the inventory imports the same stripper ([§ mod_inventory](#mod-inventory-tool)).
+The parser reads a file comment-stripped: `_strip_comments` blanks block and line comments before any line is read and keeps the line count, so a recorded line number stays true, and the inventory imports the same stripper ([§ `mod_inventory`](#mod-inventory-tool)).
 The parser half of the module is shared with the recipe scanner and the dataset half is the food scanner's own, so a change to the parser is read against the module docstring first.
 
 <a id="recipe-scan"></a>
@@ -108,7 +108,7 @@ The join key is the workshop id and never the mod id, because a Workshop page ha
 The compressed flag is mandatory on every fetch — without it the transfer hands back compressed bytes and every pattern misses, 5 876 unreadable bytes against about 686 000 readable — and the browse page is rendered client-side with per-deploy obfuscated class names, so the only things read off it are the item link and the thumbnail's alternative text, while the item page is the older server-rendered template whose two-or-three statistic divisions are what make a never-updated item a fact rather than a gap [#1953].
 A result row is in one of three states, held in one field: `fetched`, `not_requested` or `failed`, and its `error` is a fetch failure and never a decision ([#1938/C/snapshot], [datasets.md#workshop-rows](datasets.md#workshop-rows)).
 An item-page read can come back as the generic Workshop landing page with a success code and neither of the two markers the parser needs, which is the failure state the row-status field exists for, so every fetch is checked for both markers, retried once and then recorded as failed [#1940/C/snapshot].
-The completeness counter `counts.details_incomplete` is the guard against a naive parser recording such a page as an item that ships no statistics, and it stays at zero [#1940/C/snapshot].
+The completeness counter `counts.details_incomplete` is the guard against a naive parser recording such a page as an item that ships no statistics, and must stay at zero [#1940/C/snapshot].
 The retry budget is per failure mode and not per URL — one retry after five seconds on a transport error or an empty body, and one more after five seconds when the body came back as a template the parser cannot read — so a URL that fails both ways costs up to three fetches and ten seconds of sleeping [#1956].
 Nothing retries a third time and no failure raises: it is recorded on the row [#1956].
 The details pass asks only for a declared subset because a read may not land, and a later top-up pass fills not-requested rows without re-sweeping — a re-sweep would change the trend-sorted row set and the fetch stamp with it [#1942/C/snapshot].
@@ -123,7 +123,7 @@ How many item pages a session may read is not modelled, and the tool quotes no f
 The mirror tool fetches each wiki page as raw wikitext with a browser user agent, because a plain fetcher is refused, and writes a mirror carrying a four-key provenance header — source, fetch date, the wiki's own page version or an unstamped marker, and the licence — then a digest stub and the raw text in a fence; the placeholder rule keeps an un-digested mirror visible until it is digested by hand [#1946].
 A mirror is re-read through its hand-written digest, which says what the page claims that the library uses or contradicts and what to verify in code first, and through the raw wikitext beneath it, which is kept verbatim so no fact is lost to summarising.
 A mirror is cited through a `wiki:` pointer naming its path and its fetch date or page version, grades `W`, and is cited for corroboration only: where a mirror and the code disagree, the code wins and the disagreement is a `contradiction` row on the page that owns the mechanism.
-The mirrors README records every absent page and every redirect with its date, so an absent page is not re-fetched blindly.
+The mirrors README records every absent page with its date and every redirect with its target, so an absent page is not re-fetched blindly.
 No wiki mirror exists for food spoilage: as fetched on 2026-09-10, the food-spoilage page returns a 404 and the refrigerator and freezer pages both redirect to the appliances page, whose section is headed fridges as of `42.8.0` [#0370/W/snapshot].
 
 <a id="claims-tools"></a>
@@ -147,9 +147,9 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - The `status` is `settled`, `open`, `unverified` or `superseded`, and a superseded row names its successor and is never tagged on a page.
 - The `bound` cell opens with a controlled token — `none`, `n=<count>`, `one-side`, `C-only`, `one-fixture`, `arith.`, `inference`, `uncommitted` or `snapshot` — and the rest of the cell states the restriction in words; an `inference` bound is never graded `M`.
 - The `owner` is `<layer>/<page>.md#<anchor>`, and the owner page carries the row's tag at that anchor.
-- A tag is the id in brackets followed by a suffix written from the row — the grade, then the bound token unless it is `none`, then the status unless it is `settled` — so a settled `C` row with no bound carries its id alone, a measurement on one run carries `/M/n=1`, and an open code read with a snapshot bound carries `/C/snapshot/open`.
+- A tag is the id in brackets followed by a suffix written from the row — the grade, then the bound token unless it is `none`, then the status unless it is `settled` — so a measurement on one run carries `/M/n=1` and an open code read with a snapshot bound carries `/C/snapshot/open`; the exception is a settled `C` row with no bound, which carries no suffix at all.
 - A pointer cell holds one or more pointers, each `<form>:<payload>`, separated by `;` wherever the `;` is not inside quoted anchor text, and a row's grade is the strongest grade among its pointers' forms, `M` over `C` over `W`.
-- `jar:<Class>.<method> @<offset>-@<offset> L<line>-L<line>` is a read of the decompiled game jar and grades `C`.
+- `jar:<Class>.<method> @<offset>[-@<offset>] L<line>[-L<line>]` is a read of the decompiled game jar and grades `C`.
 - `run:<run-id> <artifact file> <key>` is a measured reading and grades `M`: the run's folder exists under `testing/artifacts/` or is aliased in `docs/reference/run-aliases.csv`, and the key is neither listed in `docs/reference/do-not-cite.csv` nor a child of a listed key.
 - A `run:` pointer to a run that left no artifact folder is admitted only on an `unverified` or `superseded` row whose bound opens `uncommitted: <run-id>`.
 - `wiki:<mirror path> <fetch date or page version>` is a wiki mirror and grades `W`, with no anchor text.
@@ -169,7 +169,7 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 ## Conventions
 
 Every tool here is standard-library-only Python in the same parser style as the jar toolchain's own scanners, which were proven against the generated-script grammar including capitalised script directories and version-folder resolution [#1962].
-Each runs from the repository root as `python tools/<name>.py`, takes its targets as positional arguments and its options as long flags, and prints its findings or its census to standard output.
+Each command-line tool runs from the repository root as `python tools/<name>.py`, takes its targets, where it has any, as positional arguments and its options as long flags, and prints its findings or its census to standard output; the claims harvest and delta tools take a subcommand first, and `claimslib.py` has no command line.
 A lint exits `1` when a finding fired and `0` otherwise, and a warning never fails a run; `mod_lint.py` fails on an error only, never on a warning or an informational finding.
 A scanner writes its datasets under `data/`, a generator writes under `docs/reference/`, and `wiki_mirror.py` writes under `references/wiki-mirrors/`; the game install and the workshop tree are read and never written.
 A count read off a live tree — the workshop corpus or the public Workshop — is quoted with the date of the sweep that produced it and never with the day it is quoted, and a count read off the install's scripts carries the build it was read from.
