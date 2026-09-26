@@ -1,2 +1,3 @@
 testing/experiments/TKX_ItemOverride/42.20/media/lua/shared/Translate/EN/ItemName_EN.txt text eol=crlf
 docs/reference/** text eol=lf
+.claude/** text eol=lf
