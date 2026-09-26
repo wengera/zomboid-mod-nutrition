@@ -357,7 +357,7 @@ The two run-time misses are one field: the scanner now reads `inputCount` as the
 
 `getPossibleItems()` returned 189, 189, 56, 193 and 42 items for `Salad`, `SaladClay`, `ConeIcecream`, `Soup` and `AddBaitToChum` on that same boot [#0726/M/n=5].
 
-Each of those five live ingredient lists is set-equal to the dataset's ingredient list for that recipe, with 0 extra and 0 missing in both directions, an offline computation against the committed artifact rather than a verdict the run itself carried [#0727/C/arith.].
+Each of those five live ingredient lists is set-equal to the dataset's ingredient list for that recipe, with 0 extra and 0 missing in both directions, an offline computation against the committed artifact rather than a verdict the run itself carried [#0727/M/arith.].
 
 ## Walls and bounds
 <a id="walls"></a>
