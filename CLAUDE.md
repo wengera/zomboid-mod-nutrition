@@ -1,6 +1,6 @@
 # CLAUDE.md — handoff for whoever picks this repo up next
 
-Last updated 2026-09-21 (research program closed at `research-program-v1`; restructure Phase 1 closed; Phase 2 is next). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
+Last updated 2026-09-26 (research program closed at `research-program-v1`; restructure Phases 1 and 2 closed; Phase 3 is next). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
 
 ## 1. What this repo is
 
@@ -19,7 +19,7 @@ A **reference library** for a future Project Zomboid **Build 42** mod: a realism
 5. The plan of the slice you are resuming (`docs/superpowers/plans/NN-*.md`) and its SDD workspace (`.superpowers/sdd/<plan-basename>/progress.md` — the per-plan ledger; see § 5).
 6. `docs/modding/patterns.md` § Measured MP sync facts — the canonical measured facts; `docs/testing/README.md` — the harness and its command bus; `docs/testing/profiles.md` — how a mod goes under test.
 
-## 3. Status snapshot (2026-09-21)
+## 3. Status snapshot (2026-09-26)
 
 Slices 01–13 are **done and pushed** (12 closed `f36a860..17a683b`, close `75e277c`; 13 closed `2019621..91fda27`, close `c3e60a0`). Slice 14 (feasibility notes) was **closed unrun**: its six design areas are written once as `docs/areas/` by the restructure. The research program is **closed at the tag `research-program-v1`** — everything the program produced (plans, specs, ledgers, the old doc tree) is reachable there forever.
 
@@ -27,9 +27,11 @@ The repo is now being restructured into an agent-facing reference under `docs/su
 
 Restructure Phase 1 closed 2026-09-21 (`79c7969..c37d007`, plus the close commit that follows): `docs/reference/claims.tsv` (1,862 rows: mechanism 1126, rule 162, count 144, bound 101, verdict 83, open 110, table 56, tool 35, contradiction 34, order 13), `claims-coverage.md`, `do-not-cite.csv`, `run-aliases.csv`, `experiments.md`, `jar-method-notes.md`, `harness-commands.md` (generated; 64 sites); `tools/{claimslib,claims_harvest,claims_check,bus_inventory,luabalance}.py`; the driver template; the anchor plan `docs/superpowers/plans/restructure-anchors.md`; acceptance run `run-20260921-192527`. The SDD ledger `.superpowers/sdd/restructure-1-register/progress.md` (kept) records rulings R1–R37; `deferred-minors.md` beside it lists what the final review deferred to Phases 2–4.
 
+Restructure Phase 2 closed 2026-09-26 (`e8ebc2c..81407e9`, plus the close commit that follows): `docs/platform/` (8 pages) and `docs/facts/` (7 pages plus `other-mods/` 6) written from the register under the page contract, 3,088 prose lines in all, every page lint-clean under `--partial`; `tools/claims_delta.py` (the delta applier) and `tools/page_lint.py` (the contract as rules); 9 delta commits and 6 register corrections and 4 owner-retarget commits applied by the controller, 12 rows minted (`#2040`–`#2051`); the register at 1,874 rows. The SDD ledger `.superpowers/sdd/restructure-2-platform-facts/progress.md` (kept) records rulings R1–R16; `deferred-minors-2.md` beside it lists what the final review deferred to Phases 3–4.
+
 ## 4. Resume point — do exactly this
 
-1. Next: write the Phase 2 plan (`docs/superpowers/plans/restructure-2-platform-facts.md`) with `superpowers:writing-plans` from the spec § Execution Phase 2, the anchor plan and `python tools/claims_check.py --view platform` / `--view facts`; then execute it with SDD (§ 5). The register is read-only for page writers: a new or changed claim is a delta the controller mints (spec § The claims register).
+1. Next: write the Phase 3 plan (`docs/superpowers/plans/restructure-3-areas-skills-roots.md`) with `superpowers:writing-plans` from the spec § Execution Phase 3 (the seven area pages and `open-questions.md`, the ten skills, the root `README.md`, `STRATEGY.md` trimmed, `CLAUDE.md` rewritten per § What the rewritten `CLAUDE.md` carries, `reference/datasets.md` and `reference/tools.md`), the anchor plan, `python tools/claims_check.py --view areas` and the Phase 2 page procedure (`restructure-2-page-procedure.md`, which the area pages inherit with `## Options`); then execute it with SDD (§ 5). The register is read-only for page writers: a new or changed claim is a delta the controller applies with `tools/claims_delta.py` (spec § The claims register).
 2. Run every plan with `superpowers:subagent-driven-development` exactly as § 5 describes; its ledger is `.superpowers/sdd/<plan-basename>/progress.md`. Tasks with a `Task <N>: complete` line are done; resume at the first without one.
 3. At each plan's close: run the gates in § 6, push, update this section and the memory file.
 
@@ -49,7 +51,7 @@ Invoke the skill **`superpowers:subagent-driven-development`** at the start of e
 ## 6. Evidence standard (what every reviewer enforces)
 
 - Grades **C** (code/jar read, `Class.method @offset L<line>` or `path:line`, tree-qualified `common/` vs `42.x/` for mods), **M** (measured: run id + `testing/artifacts/<run-id>/<file>.json` key), **W** (wiki mirror + fetch date, corroboration only). Every claim row in `docs/vanilla`, `docs/modding`, `docs/feasibility`, `docs/mods-survey/teardowns` carries one; `tools/doc_lint.py` enforces the stamp `Verified against: 42.20.4`, a non-empty `## Sources`, no placeholder markers, and a standalone C/M/W letter in every row of any table with an `Ev` header (`M4` fails; `M (run …)` passes).
-- Gates before any commit that touches docs: `python tools/doc_lint.py docs/mods-survey docs/modding` → 0; `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0; `python -m pytest tools/tests testing/tests -q` green (349 at last count; never let it drop); `python tools/claims_check.py --staged` before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or `tools/bus_inventory.py` (`--register-only` until the first page exists); `python tools/bus_inventory.py --check` after any harness edit.
+- Gates before any commit that touches docs: `python tools/doc_lint.py docs/mods-survey docs/modding` → 0; `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0; `python -m pytest tools/tests testing/tests -q` green (373 at last count; never let it drop); `python tools/claims_check.py --staged` before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or `tools/bus_inventory.py`; `python tools/bus_inventory.py --check` after any harness edit; `python tools/page_lint.py <the pages touched> --partial` before any commit that touches `docs/platform`, `docs/facts` or `docs/areas` (without `--partial` from the Phase 4 close on).
 - Every `~:NN` line cite is **re-located by content** before it is quoted (files move constantly). Every count is dated. Bounds are written down (n, one fixture, one build, dedicated-server path); a bound that is dropped is a defect.
 - Artifacts are committed byte-identical to the run copy with a row in `testing/artifacts/README.md`; a driver is never edited after its run (a post-run edit is a skew note); readings that come back trivial / unmeasured / falsified are written as such — never re-run to make a number prettier.
 - **Do-not-cite tables** in `testing/artifacts/README.md`: a key with a row is not citable; a key without one is.
