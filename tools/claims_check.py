@@ -40,7 +40,7 @@ WARN_RULES = ("untagged",)
 PROVISIONAL_MSG = "provisional tag %s (apply the delta, or --allow-provisional)"
 H2_RX = re.compile(r"^## (.+?)\s*$")
 CODE_SPAN_RX = re.compile(r"`[^`]*`")
-LINK_TARGET_RX = re.compile(r"\]\([^)]*\)")
+LINK_TARGET_RX = re.compile(r"\]\([^)\s]*\)")
 RULES_DIRS = ("docs/areas", "docs/platform")
 FILE_LINES_RX = re.compile(r"`?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?`?")
 
