@@ -305,9 +305,13 @@ import patterns from there.
   the two reference pages that own register rows (`datasets.md`, `tools.md`) and the skills resolves
   and carries the canonical suffix; provisional `[T…]` tags fail),
   `untagged` (warning only: a number without a tag outside fences, tables and `## Procedure`;
+  a digit inside a markdown link target is not a number, though the link text still counts;
   never under `docs/reference/`), `generator` (`harness-commands.md` is a fresh render of the
   `bus_inventory.py` scan, labelled with its `label_for`), `skill` (every `## Rules quoted` line is
-  verbatim on a `## Read first` page), `example` (`## Worked examples` paths exist).
+  verbatim on a `## Read first` page), `example` (`## Worked examples` paths exist), `rules-dup`
+  (rule 9: the `## Rules` lines under `docs/areas` and `docs/platform`, grouped by tag-id set, must
+  be byte-identical across pages; a group on one page is never compared, since two rules there that
+  cite the same claim are two rules, not a drifted copy).
   `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
   `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
   relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta
@@ -330,11 +334,17 @@ import patterns from there.
   contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
   line, the section set and order per layer, the `<a id>` anchors against the register's owners, the
   rule-line shape, the closing `Not covered:` line, the narrative markers, the prose cap (400; 500 on the four
-  pages the spec allows; under 150 warns), worked-example paths (a cell with no `file:lines` is its own
-  finding), relative links and their anchors — the anchor half runs only for targets under `docs/areas`,
+  pages the spec allows; under 150 warns, except on `facts/other-mods/` pages and
+  `areas/open-questions.md`), worked-example paths (a cell with no `file:lines` is its own finding),
+  relative links and their anchors — the anchor half runs only for targets under `docs/areas`,
   `docs/platform` and `docs/facts` (a `docs/reference/` page carries no `<a id>`), a fragment that is not a
-  lowercase slug is a finding, and `--partial` skips a target page not written yet. A `## ` line inside a
-  code fence never opens a section. Prints the prose count per page; exit 1 on a finding.
+  lowercase slug (`a-z`, `0-9`, `-`, `_`) is a finding, and `--partial` skips a target page not written yet.
+  A `## ` line inside a code fence never opens a section. Two pages have their own profile:
+  `areas/open-questions.md` takes the sections `Index`, `Decisions`, `Experiments`, `See also`, reports
+  `open-index` for any `open` register row with no tag on the page, and has no prose floor; the reference
+  profile (`reference/datasets.md`, `reference/tools.md`) checks the stamp, the anchors against the
+  register, the links and the narrative markers only (no section set, rule lines, walls, worked examples,
+  cap or floor) and prints `(no cap)`. Prints the prose count per page; exit 1 on a finding.
 
 ## Planned (P4)
 

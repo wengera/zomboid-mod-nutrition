@@ -365,3 +365,43 @@ def test_view_accepts_a_page_path(tmp_path, capsys):
     cc.main(["--register", str(reg), "--view", "facts"])
     out = capsys.readouterr().out
     assert "#0001" in out and "#0002" in out and "#0003" not in out
+
+
+def test_rules_dup_requires_byte_identical_lines_across_pages():
+    area = "# A\n\n## Rules\n- Mutate on the server: the client copy is a mirror [#0001].\n- Guard the file: it runs on both sides [#0002].\n\n## How it works\n"
+    plat = "# P\n\n## Rules\n- Mutate on the server: the client copy is a mirror [#0001].\n- Guard every file: it runs on both sides [#0002].\n\n## How it works\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="areas/a.md#x"), _row(2, owner="platform/p.md#y")],
+              pages={"docs/areas/a.md": area, "docs/platform/p.md": plat})
+        f = [x for x in cc.check(d, partial=True) if x.rule == "rules-dup"]
+        assert len(f) == 2 and all("#0002" in x.detail for x in f)
+        assert {x.path for x in f} == {"docs/areas/a.md", "docs/platform/p.md"}
+
+
+def test_rules_dup_ignores_lines_with_different_tag_sets_and_facts_pages():
+    area = "# A\n\n## Rules\n- Mutate on the server: the client copy is a mirror [#0001].\n\n## How it works\n"
+    plat = "# P\n\n## Rules\n- Mutate on the server: the client copy is a mirror [#0001, #0002].\n\n## How it works\n"
+    fact = "# F\n\n## Key facts\n- Mutate on the server now [#0001].\n\n## How it works\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="areas/a.md#x"), _row(2, owner="platform/p.md#y")],
+              pages={"docs/areas/a.md": area, "docs/platform/p.md": plat, "docs/facts/f.md": fact})
+        assert not [x for x in cc.check(d, partial=True) if x.rule == "rules-dup"]
+
+
+def test_untagged_ignores_digits_inside_a_link_target():
+    page = "# A\n\n## How it works\nThe rows sit at [the map](../reference/wall-map.md#a2-a7) for reading.\nThree rows [sit here](#a2).\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="areas/a.md#x")], pages={"docs/areas/a.md": page})
+        f = [x for x in cc.check(d, partial=True) if x.rule == "untagged"]
+        assert not f
+        page2 = "# A\n\n## How it works\nThe 3 rows [sit here](#a2).\n"
+        _write(d, "docs/areas/a.md", page2)
+        f = [x for x in cc.check(d, partial=True) if x.rule == "untagged"]
+        assert len(f) == 1
+
+
+def test_rules_dup_ignores_distinct_rules_sharing_a_tag_on_one_page():
+    plat = "# P\n\n## Rules\n- Write a cite with an offset: a member list proves only a declaration [#0001].\n- Never read access off the member list: it discards the flags [#0001].\n\n## How it works\n"
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1, owner="platform/p.md#y")], pages={"docs/platform/p.md": plat})
+        assert not [x for x in cc.check(d, partial=True) if x.rule == "rules-dup"]

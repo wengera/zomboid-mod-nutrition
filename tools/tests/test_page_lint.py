@@ -164,3 +164,77 @@ def test_cli_exit_codes(tmp_path):
     reg = str(root / "docs" / "reference" / "claims.tsv")
     assert pl.main([str(root / "docs" / "facts" / "spoilage.md"), "--root", str(root), "--register", reg]) == 0
     assert pl.main([str(root / "docs" / "facts" / "spoilage.md"), "--root", str(root), "--register", reg, "--cap", "3"]) == 1
+
+
+OPEN_ROWS = [
+    dict(zip(cl.COLUMNS, ["#0001", "Rot.", "C", "jar:A.b @1 L2", "", "settled", "", "mechanism", "s", "facts/spoilage.md#formula"])),
+    dict(zip(cl.COLUMNS, ["#0002", "Is it open?", "C", "jar:A.b @1 L2", "", "open", "", "open", "s", "areas/open-questions.md#x2"])),
+    dict(zip(cl.COLUMNS, ["#0003", "Also open.", "C", "jar:A.b @1 L2", "", "open", "", "open", "s", "facts/spoilage.md#open"])),
+]
+OPENQ = """# Open questions
+%s
+
+## Index
+<a id="index"></a>
+| id | question | owner | X | settled by |
+|---|---|---|---|---|
+| [#0002/C/open] | Is it open? | this page | X2 | a boot |
+| [#0003/C/open] | Also open. | [spoilage](../facts/spoilage.md#open) | — | a read |
+
+## Decisions
+<a id="decisions"></a>
+- Whether to do it — forced by the fact ([spoilage.md#open](../facts/spoilage.md#open)).
+
+## Experiments
+<a id="x2"></a>
+### X2 — is it open
+- Is it open? [#0002/C/open].
+
+## See also
+- [experiments](../reference/experiments.md)
+""" % STAMP
+
+
+def test_open_questions_has_its_own_sections_and_indexes_every_open_row(tmp_path):
+    root = _tree(tmp_path, {}, rows=OPEN_ROWS)
+    (root / "docs" / "areas").mkdir(parents=True)
+    (root / "docs" / "facts" / "spoilage.md").write_text("# S\n" + STAMP + "\n\n## Open\n<a id=\"open\"></a>\n", encoding="utf-8")
+    p = root / "docs" / "areas" / "open-questions.md"
+    p.write_text(OPENQ, encoding="utf-8")
+    findings, prose = pl.lint(str(p), root=str(root), partial=True)
+    assert [f.rule for f in findings] == []          # no section, walls, rule-line or floor finding
+    p.write_text(OPENQ.replace("| [#0003/C/open] | Also open. | [spoilage](../facts/spoilage.md#open) | — | a read |\n", ""), encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert [f.rule for f in findings] == ["open-index"] and "#0003" in findings[0].detail
+
+
+def test_reference_profile_checks_stamp_anchors_links_and_nothing_else(tmp_path):
+    rows = [dict(zip(cl.COLUMNS, ["#0001", "A count.", "C", "data:data/x.json 2026-09-10", "snapshot 2026-09-10", "settled", "", "count", "s", "reference/datasets.md#counts"]))]
+    root = _tree(tmp_path, {}, rows=rows)
+    p = root / "docs" / "reference" / "datasets.md"
+    p.write_text("# Datasets\n" + STAMP + "\n\n<a id=\"counts\"></a>\n## Counts\nOne count in the 2026-09-10 scan [#0001/C/snapshot].\n\n<a id=\"open\"></a>\n## Open\n- nothing.\n", encoding="utf-8")
+    findings, prose = pl.lint(str(p), root=str(root), partial=True)
+    assert findings == [] and prose >= 1
+    p.write_text("# Datasets\n" + STAMP + "\n\n## Counts\nOne count [#0001/C/snapshot].\nIt was previously wrong.\n", encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert sorted(f.rule for f in findings) == ["anchor", "narrative"]
+
+
+def test_fragment_may_contain_an_underscore(tmp_path):
+    root = _tree(tmp_path, {"good.md": GOOD.replace("(../facts/wire.md#staircase)", "(../reference/experiments.md#x9b_spice)")})
+    (root / "docs" / "reference" / "experiments.md").write_text("# E\n", encoding="utf-8")
+    findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
+    assert not [f for f in findings if f.rule == "link"]
+
+
+def test_no_prose_floor_for_mod_pages_and_the_open_index(tmp_path):
+    root = _tree(tmp_path, {})
+    (root / "docs" / "facts" / "other-mods").mkdir(parents=True)
+    p = root / "docs" / "facts" / "other-mods" / "x.md"
+    p.write_text(GOOD.replace("# Spoilage", "# X"), encoding="utf-8")
+    findings, _ = pl.lint(str(p), root=str(root), partial=True)
+    assert not [f for f in findings if f.rule == "prose-floor"]
+    q = root / "docs" / "facts" / "y.md"
+    q.write_text(GOOD, encoding="utf-8")
+    findings, _ = pl.lint(str(q), root=str(root), partial=True)
+    assert [f for f in findings if f.rule == "prose-floor"]

@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 """The claims checker (spec § The checker and the generator).
 
-Rules: schema (0) · owner (1) · tag (2) · pointer (3) · untagged (4, warning only) · generator (5)
-· skill (6) · example (7). --register-only runs 0 and 3; --partial lets 1 skip owner pages that do
-not exist yet; --fix-tags rewrites every tag's suffix from the register; --view LAYER|LAYER/PAGE.md and
---section-map print register slices; --staged skips the run when nothing relevant is staged."""
+Rules: schema (0) · owner (1) · tag (2) · pointer (3) · untagged (4, warning only; a digit inside a
+markdown link target is not a number) · generator (5) · skill (6) · example (7) · rules-dup (9: the
+`## Rules` lines under docs/areas and docs/platform, grouped by tag-id set, must be byte-identical
+across pages).
+--register-only runs 0 and 3; --partial lets 1 skip owner pages that do not exist yet; --fix-tags
+rewrites every tag's suffix from the register; --view LAYER|LAYER/PAGE.md and --section-map print
+register slices; --staged skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import claimslib as cl
@@ -36,6 +39,8 @@ WARN_RULES = ("untagged",)
 PROVISIONAL_MSG = "provisional tag %s (apply the delta, or --allow-provisional)"
 H2_RX = re.compile(r"^## (.+?)\s*$")
 CODE_SPAN_RX = re.compile(r"`[^`]*`")
+LINK_TARGET_RX = re.compile(r"\]\([^)]*\)")
+RULES_DIRS = ("docs/areas", "docs/platform")
 FILE_LINES_RX = re.compile(r"`?([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?`?")
 
 
@@ -326,7 +331,7 @@ def rule_untagged(root):
                     fence = not fence; continue
                 if fence or line.startswith("|") or line.startswith("#") or line.startswith("Verified against") or not line.strip():
                     continue
-                bare = CODE_SPAN_RX.sub("", line)
+                bare = LINK_TARGET_RX.sub("]", CODE_SPAN_RX.sub("", line))     # the link text stays; its target goes
                 if re.search(r"\d", bare) and not cl.TAG_RX.search(line) and not cl.PROVISIONAL_RX.search(line):
                     out.append(Finding(rel, n, "untagged", "a number without a tag: %s" % line.strip()[:70]))
     return out
@@ -354,6 +359,28 @@ def _bullets(sections, heading):
         if h.strip().lower() == heading:
             return [(n, l[2:].strip()) for n, l in lines if l.startswith("- ")]
     return []
+
+
+def rule_rules_dup(root):
+    """Spec § The page contract: a rule that belongs to two areas appears on both pages only as the
+    byte-identical line with the same tags; the checker diffs them. Lines are grouped by their
+    tag-id set across docs/areas and docs/platform; a group that spans two or more pages and holds
+    two different texts is a finding on every line of the group. A group on one page is never
+    compared: two rules there that cite the same claim are two rules, not a copy that drifted."""
+    groups = {}
+    for path in _md_files(root, RULES_DIRS):
+        rel = _rel(path, root)
+        for n, line in _bullets(_sections(_read(path)), "rules"):
+            ids = tuple(sorted({cid for _, cid, _ in cl.iter_tags(line)}))
+            if ids:
+                groups.setdefault(ids, []).append((rel, n, line))
+    out = []
+    for ids, lines in groups.items():
+        if len({r for r, _, _ in lines}) > 1 and len({l for _, _, l in lines}) > 1:
+            for rel, n, _ in lines:
+                others = ", ".join("%s:%d" % (r, m) for r, m, _ in lines if (r, m) != (rel, n))
+                out.append(Finding(rel, n, "rules-dup", "a rule with tags %s differs from %s" % (" ".join(ids), others)))
+    return out
 
 
 def rule_skill(root):
@@ -450,7 +477,7 @@ def check(root=None, register=None, lua_dir=None, register_only=False, partial=F
         return findings
     lua = lua_dir or os.path.join(root, *LUA_DIR.split("/"))
     findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional) + rule_untagged(root)
-    findings += rule_generator(root, lua) + rule_skill(root) + rule_example(root)
+    findings += rule_generator(root, lua) + rule_skill(root) + rule_example(root) + rule_rules_dup(root)
     return findings
 
 

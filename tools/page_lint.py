@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""The page lint: the page contract (spec § The page contract) for docs/areas, docs/platform, docs/facts.
+"""The page lint: the page contract (spec § The page contract) for docs/areas, docs/platform, docs/facts,
+and a reference profile for the two tagged reference pages.
 
-Per page: the stamp line; the section set and order for its layer; the <a id> anchors (every register
-row owned by the page has its anchor on the page; no duplicate); a `## Rules` line has a colon and ends
-with a tag, a `## Key facts` line ends with a tag; `## Walls and bounds` ends with a "Not covered:"
-line; no narrative marker outside code spans; the prose line count against the cap (over the cap
-fails; under 150 warns; tables, fences, headings, anchor lines and `## Open` index rows do not count);
-every `## Worked examples` path exists; every relative link resolves to a page and, when it carries a
-fragment, that fragment is a lowercase slug and — on a page of the three layers, the only ones the
-contract gives `<a id>` anchors — an anchor on it (--partial skips a missing page). Exit 1 on a finding;
-a warning never fails.
+Per page: the stamp line; the section set and order for its layer (two pages carry their own set:
+platform/overview.md, and areas/open-questions.md with Index, Decisions, Experiments, See also); the
+<a id> anchors (every register row owned by the page has its anchor on the page; no duplicate); a
+`## Rules` line has a colon and ends with a tag, a `## Key facts` line ends with a tag; `## Walls and
+bounds` ends with a "Not covered:" line; no narrative marker outside code spans; the prose line count
+against the cap (over the cap fails; under 150 warns, except on facts/other-mods/ pages, whose Key
+facts are one line per technique, and on areas/open-questions.md, whose index is rows; tables, fences,
+headings, anchor lines and `## Open` index rows do not count); every `## Worked examples` path exists;
+every relative link resolves to a page and, when it carries a fragment, that fragment is a lowercase
+slug (`a-z`, `0-9`, `-`, `_`) and — on a page of the three layers, the only ones the contract gives
+`<a id>` anchors — an anchor on it (--partial skips a missing page). On areas/open-questions.md every
+`open` register row must carry a tag somewhere on the page (open-index). The reference profile
+(reference/datasets.md, reference/tools.md: tagged owners outside the contract's section shape) checks
+the stamp, the anchors, the narrative markers and the links only: no section set, rule lines, walls,
+worked examples, cap or floor. Exit 1 on a finding; a warning never fails.
 
 Usage: python tools/page_lint.py <page.md> [...] [--partial] [--register TSV] [--cap N] [--root DIR]"""
 import argparse, collections, os, re, sys
@@ -27,7 +34,7 @@ ANCHOR_RX = re.compile(r'^<a id="([a-z0-9-]+)"></a>\s*$')
 # Any fragment, not only a well-formed one: a link whose fragment the contract would reject must
 # still have its target checked, and the fragment shape is a finding of its own.
 LINK_RX = re.compile(r"\]\(([^)\s#]*)(#[^)\s]*)?\)")
-FRAGMENT_RX = re.compile(r"^[a-z0-9-]+$")
+FRAGMENT_RX = re.compile(r"^[a-z0-9_-]+$")
 FILE_LINES_RX = re.compile(r"([A-Za-z0-9_./-]+\.[A-Za-z0-9]+):\d+(?:[-–]\d+)?")
 TABLE_SEP_RX = re.compile(r"^\|\s*:?-")
 # A trailing `?` marks an optional section; the order is the contract's.
@@ -36,7 +43,13 @@ SECTIONS = {
     "facts": ["Key facts", "How it works", "Walls and bounds", "Open", "Worked examples?", "See also"],
     "areas": ["Rules", "How it works", "Options", "Walls and bounds", "Open", "Worked examples?", "See also"],
 }
-PAGE_SECTIONS = {"platform/overview.md": ["Rules", "How it works", "Coverage", "Open", "Worked examples?", "See also"]}
+PAGE_SECTIONS = {
+    "platform/overview.md": ["Rules", "How it works", "Coverage", "Open", "Worked examples?", "See also"],
+    "areas/open-questions.md": ["Index", "Decisions", "Experiments", "See also"],
+}
+REFERENCE_PAGES = ("reference/datasets.md", "reference/tools.md")   # tagged owners outside the contract's section shape
+NO_FLOOR = ("facts/other-mods/", "areas/open-questions.md")           # the mod pages' Key facts are one line per technique; the index is rows
+OPEN_INDEX = "areas/open-questions.md"
 # Only these layers are under the page contract, so only they carry `<a id>` anchors: a link into
 # docs/reference/ or an old doc is checked for its page, never for its fragment.
 CONTRACT_LAYERS = ("areas", "platform", "facts")
@@ -78,27 +91,29 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
     rel = os.path.relpath(path, root).replace("\\", "/")
     key = _page_key(path, root)
     layer = key.split("/")[0]
+    reference = key in REFERENCE_PAGES
     text = _read(path)
     lines = text.split("\n")
     out = []
     # stamp
     if len(lines) < 2 or not STAMP_RX.match(lines[1]):
         out.append(Finding(rel, 2, "stamp", "line 2 must read 'Verified against 42.20.4 (b0bbce05d5) · <date> · scope: <one line>'"))
-    # sections
-    spec = PAGE_SECTIONS.get(key) or SECTIONS.get(layer, SECTIONS["facts"])
-    names = [s.rstrip("?") for s in spec]
-    required = [s for s in spec if not s.endswith("?")]
+    # sections (a reference page has no contract section shape)
     secs = _sections(lines)
-    present = [h for h, _ in secs if h]
-    for h in present:
-        if h not in names:
-            out.append(Finding(rel, 1, "section", "unknown section '## %s' for %s" % (h, layer)))
-    for r in required:
-        if r not in present:
-            out.append(Finding(rel, 1, "section", "missing section '## %s'" % r))
-    order = [h for h in present if h in names]
-    if order != sorted(order, key=names.index):
-        out.append(Finding(rel, 1, "section", "sections out of order: %s" % " > ".join(order)))
+    if not reference:
+        spec = PAGE_SECTIONS.get(key) or SECTIONS.get(layer, SECTIONS["facts"])
+        names = [s.rstrip("?") for s in spec]
+        required = [s for s in spec if not s.endswith("?")]
+        present = [h for h, _ in secs if h]
+        for h in present:
+            if h not in names:
+                out.append(Finding(rel, 1, "section", "unknown section '## %s' for %s" % (h, layer)))
+        for r in required:
+            if r not in present:
+                out.append(Finding(rel, 1, "section", "missing section '## %s'" % r))
+        order = [h for h in present if h in names]
+        if order != sorted(order, key=names.index):
+            out.append(Finding(rel, 1, "section", "sections out of order: %s" % " > ".join(order)))
     # anchors
     seen = {}
     for n, line in enumerate(lines, 1):
@@ -108,11 +123,17 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
                 out.append(Finding(rel, n, "anchor", "duplicate anchor #%s (first at line %d)" % (m.group(1), seen[m.group(1)])))
             seen.setdefault(m.group(1), n)
     reg_path = register or os.path.join(root, *REGISTER.split("/"))
-    if os.path.exists(reg_path):
-        for r in cl.read_register(reg_path):
-            page, _, anchor = r["owner"].partition("#")
-            if page == key and r["status"] != "superseded" and anchor and anchor not in seen:
-                out.append(Finding(rel, 1, "anchor", "%s is owned by #%s but the page has no <a id=\"%s\">" % (r["id"], anchor, anchor)))
+    rows = cl.read_register(reg_path) if os.path.exists(reg_path) else []
+    for r in rows:
+        page, _, anchor = r["owner"].partition("#")
+        if page == key and r["status"] != "superseded" and anchor and anchor not in seen:
+            out.append(Finding(rel, 1, "anchor", "%s is owned by #%s but the page has no <a id=\"%s\">" % (r["id"], anchor, anchor)))
+    # the open index: every open row, whichever page owns it, carries a tag on this page
+    if key == OPEN_INDEX:
+        tagged = {cid for _, cid, _ in cl.iter_tags(text)}
+        for r in rows:
+            if r["status"] == "open" and r["id"] not in tagged:
+                out.append(Finding(rel, 1, "open-index", "%s (%s) is open but not indexed on this page" % (r["id"], r["owner"])))
     # section bodies
     fence = False
     prose = 0
@@ -130,7 +151,7 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
             if fence:
                 continue
             stripped = line.strip()
-            if heading in ("Rules", "Key facts") and stripped.startswith("- "):
+            if not reference and heading in ("Rules", "Key facts") and stripped.startswith("- "):
                 if not re.search(r"\[#\d{4}[^\]]*\]\.?\s*$", stripped):
                     out.append(Finding(rel, n, "rule-line", "a %s line must end with its tag: %s" % (heading, stripped[:60])))
                 elif heading == "Rules" and ": " not in stripped:
@@ -138,7 +159,7 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
             bare = CODE_SPAN_RX.sub("", line)
             if NARRATIVE_RX.search(bare):
                 out.append(Finding(rel, n, "narrative", "narrative marker: %s" % stripped[:60]))
-            if (heading == "Worked examples" and stripped.startswith("|")
+            if (not reference and heading == "Worked examples" and stripped.startswith("|")
                     and not TABLE_SEP_RX.match(stripped) and n not in header_rows):
                 cells = [c.strip() for c in stripped.strip("|").split("|")]
                 if len(cells) >= 2:
@@ -166,15 +187,17 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
                     or heading == "Open" or (heading == "" and n <= 2)):
                 continue
             prose += 1
-        if heading == "Walls and bounds":
+        if not reference and heading == "Walls and bounds":
             tail = [l for _, l in body if l.strip()]
             if not tail or not tail[-1].startswith("Not covered:"):
                 out.append(Finding(rel, body[-1][0] if body else 1, "walls", "'## Walls and bounds' must end with a"
                                    " 'Not covered:' line (a stray <a id> above the next heading counts as the last line)"))
+    if reference:
+        return out, prose                     # counted, never capped or floored
     limit = cap or CAPS.get(key, DEFAULT_CAP)
     if prose > limit:
         out.append(Finding(rel, 1, "prose", "%d prose lines, cap %d" % (prose, limit)))
-    elif prose < FLOOR:
+    elif prose < FLOOR and not key.startswith(NO_FLOOR):
         out.append(Finding(rel, 1, "prose-floor", "%d prose lines, under the 150 the contract expects" % prose))
     return out, prose
 
@@ -192,7 +215,9 @@ def main(argv=None):
     for p in a.pages:
         f, prose = lint(os.path.abspath(p), root=os.path.abspath(a.root), register=a.register, partial=a.partial, cap=a.cap)
         findings += f
-        print("%s: prose %d lines (cap %d)" % (os.path.relpath(p, a.root).replace("\\", "/"), prose, a.cap or CAPS.get(_page_key(os.path.abspath(p), os.path.abspath(a.root)), DEFAULT_CAP)))
+        key = _page_key(os.path.abspath(p), os.path.abspath(a.root))
+        limit = "no cap" if key in REFERENCE_PAGES else "cap %d" % (a.cap or CAPS.get(key, DEFAULT_CAP))
+        print("%s: prose %d lines (%s)" % (os.path.relpath(p, a.root).replace("\\", "/"), prose, limit))
     for f in sorted(findings, key=lambda f: (f.path, f.line, f.rule)):
         print("%s:%d: %s: %s%s" % (f.path, f.line, f.rule, f.detail, " (warning)" if f.rule in WARN_RULES else ""))
     n_err = sum(1 for f in findings if f.rule not in WARN_RULES)
