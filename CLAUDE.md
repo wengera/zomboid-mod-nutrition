@@ -1,83 +1,122 @@
-# CLAUDE.md — handoff for whoever picks this repo up next
+# CLAUDE.md — the agent handoff and router
 
-Last updated 2026-09-26 (research program closed at `research-program-v1`; restructure Phases 1 and 2 closed; Phase 3 is next). Everything an agent needs to resume seamlessly is here or one hop away. Read this file top to bottom before touching anything.
+Read §§ 1–3 before touching anything, § 5 before any live run, § 6 before running a plan, and § 9 for where the work stands.
 
 ## 1. What this repo is
 
-A **reference library** for a future Project Zomboid **Build 42** mod: a realism nutrition overhaul with new mod-side nutrients and a full food-item rebalance, **multiplayer-first**. The library is the deliverable of this phase; mod design comes after it. Everything here is *evidence*: what the game does (measured on a live server + client, or read from the decompiled jar), what other mods do, and what a mod can and cannot change.
+This repository is an agent-facing reference for modding Project Zomboid Build 42; its first consumer is a realism nutrition mod — nutrients tracked mod-side beyond the vanilla macros, a rebalance of the vanilla food items, multiplayer first.
+[docs/areas/](docs/areas/) is the nutrition lens, [docs/platform/](docs/platform/) general modding knowledge, [docs/facts/](docs/facts/) the measured vanilla food and nutrition mechanics, and [docs/reference/](docs/reference/) the claims register with the datasets, tools, experiments, jar notes and generated harness commands.
+Every claim on a page carries a tag naming its row in [the register](docs/reference/claims.tsv), and the row carries the grade and the pointer to its evidence; [README.md](README.md) is the map and the tag grammar, [STRATEGY.md](STRATEGY.md) the charter.
+The pages state what the game does and what a mod can and cannot change; the mod's design is not in this tree, and a root file names pages, never claims.
 
-- Owner: Angus (`asdobson@proton.me`). Remote: `https://github.com/wengera/zomboid-mod-nutrition.git`, branch `main`, pushes work.
-- Ground truth: the local **42.20.4** install (jar `b0bbce05d5`) at `D:\SteamLibrary\steamapps\common\ProjectZomboid` and the workshop folder `D:\SteamLibrary\steamapps\workshop\content\108600` — both **read-only, always**.
-- Jar toolchain: `C:\Users\Angus\pz-b42` — read its `WORKSPACE.md` first; `./pz.sh grep|methods|refs|dump <class> [method]` is how every Java claim is verified.
+Route a task by its shape and read the pages in the order given; stop when the task is answered.
 
-## 2. Read these first, in this order
+| Task shape | Pages, in reading order | Skill |
+|---|---|---|
+| add a mod nutrient | [areas/new-nutrients](docs/areas/new-nutrients.md) → [platform/mp-model](docs/platform/mp-model.md) → [facts/wire-packets](docs/facts/wire-packets.md) | `nutrition-new-nutrients` |
+| override a vanilla food | [areas/item-pass](docs/areas/item-pass.md) → [platform/loader-and-scripts](docs/platform/loader-and-scripts.md) → [facts/food-item-model](docs/facts/food-item-model.md) | `nutrition-item-pass` |
+| hook eating or cooking | [areas/eat-and-cook-hooks](docs/areas/eat-and-cook-hooks.md) → [platform/lua-platform#script-hooks](docs/platform/lua-platform.md#script-hooks) → [facts/eating-pipeline](docs/facts/eating-pipeline.md) | `nutrition-eat-and-cook-hooks` |
+| sync mod state | [areas/mp-sync](docs/areas/mp-sync.md) → [platform/mp-model](docs/platform/mp-model.md) → [facts/wire-packets](docs/facts/wire-packets.md) | `nutrition-mp-sync` |
+| show a value or a moodle | [areas/ui-and-moodles](docs/areas/ui-and-moodles.md) → [platform/lua-platform#registries](docs/platform/lua-platform.md#registries) | `nutrition-ui-and-moodles` |
+| package or ship | [areas/packaging](docs/areas/packaging.md) → [platform/mod-anatomy](docs/platform/mod-anatomy.md) | `nutrition-packaging` |
+| test a mod live | [areas/testing-your-mod](docs/areas/testing-your-mod.md) → [platform/harness](docs/platform/harness.md) → [reference/harness-commands](docs/reference/harness-commands.md) | `nutrition-testing-your-mod` |
+| run or change the harness | [platform/harness](docs/platform/harness.md) → [reference/harness-commands](docs/reference/harness-commands.md) → § 5 | `pz-mod-testing` |
+| answer from the jar | [platform/jar-research](docs/platform/jar-research.md) → [reference/jar-method-notes](docs/reference/jar-method-notes.md) | `pz-jar-research` |
+| a PZ modding task outside nutrition | [platform/overview#coverage](docs/platform/overview.md#coverage) → the platform page its [routing table](docs/platform/overview.md#routing) names | `pz-modding-platform` |
+| a vanilla food, body, spoilage or cooking number | [platform/overview#routing](docs/platform/overview.md#routing) → the facts page it names | — |
+| what another mod already does | [facts/other-mods/catalog](docs/facts/other-mods/catalog.md) → that mod's own page | — |
+| a standing rule or an anti-pattern | [platform/lessons](docs/platform/lessons.md) | — |
+| a dataset column | [reference/datasets](docs/reference/datasets.md) | — |
+| a tool | [reference/tools](docs/reference/tools.md) | — |
+| what is still open | [areas/open-questions](docs/areas/open-questions.md) → [reference/experiments](docs/reference/experiments.md) | — |
 
-1. `STRATEGY.md` — the charter: goals, method rules, the P1–P5 pillars.
-2. `docs/progress.md` — the **board** (one row per slice, status, commit range, outcome), § Resume notes, § Ripples (findings addressed to later slices — not optional).
-3. `docs/decisions.md` — the **ledger** of every ruling (five-cell rows; ~200 rows; no index yet).
-4. `docs/superpowers/specs/2026-09-09-research-slices-design.md` — the research program spec: 14 question-driven slices in waves, the eight-part plan template, the unattended protocol, the evidence standard, the tooling per wave.
-5. The plan of the slice you are resuming (`docs/superpowers/plans/NN-*.md`) and its SDD workspace (`.superpowers/sdd/<plan-basename>/progress.md` — the per-plan ledger; see § 5).
-6. `docs/modding/patterns.md` § Measured MP sync facts — the canonical measured facts; `docs/testing/README.md` — the harness and its command bus; `docs/testing/profiles.md` — how a mod goes under test.
+The skills under `.claude/skills/` route the same way: each description fires on its row's task shape, and its `## Read first` opens that row's pages.
 
-## 3. Status snapshot (2026-09-26)
+## 2. Ground truth
 
-Slices 01–13 are **done and pushed** (12 closed `f36a860..17a683b`, close `75e277c`; 13 closed `2019621..91fda27`, close `c3e60a0`). Slice 14 (feasibility notes) was **closed unrun**: its six design areas are written once as `docs/areas/` by the restructure. The research program is **closed at the tag `research-program-v1`** — everything the program produced (plans, specs, ledgers, the old doc tree) is reachable there forever.
+- **Build:** `42.20.4` · jar `b0bbce05d5`; a claim holds on this build and is re-read on any other.
+- The local install `D:\SteamLibrary\steamapps\common\ProjectZomboid` and the workshop folder `D:\SteamLibrary\steamapps\workshop\content\108600` are read-only, always.
+- The jar toolchain lives at `C:\Users\Angus\pz-b42`: read its `WORKSPACE.md` first, treat it as read-only from here, and verify every Java claim through `./pz.sh grep|methods|refs|dump <class> [method]`; [platform/jar-research](docs/platform/jar-research.md) turns a reading into a citable claim.
+- The library is dedicated-server multiplayer evidence; single-player is never claimed.
+- Owner: Angus. Remote: `https://github.com/wengera/zomboid-mod-nutrition.git`, branch `main`; pushes work from this checkout.
 
-The repo is now being restructured into an agent-facing reference under `docs/superpowers/specs/2026-09-17-reference-restructure-design.md` (APPROVED 2026-09-17). Four phases: 0 close (done at the tag) · 1 the claims register, checker and generator (`docs/superpowers/plans/restructure-1-register.md`) · 2 `platform/` + `facts/` pages · 3 `areas/` + skills + roots · 4 the cut. Until Phase 4 lands, the old tree (`docs/vanilla`, `docs/modding`, `docs/mods-survey`, `docs/testing`) remains the readable reference and `docs/progress.md` / `docs/decisions.md` are frozen — do not extend them; rulings go in the plan's SDD ledger.
+## 3. Gates before any commit
 
-Restructure Phase 1 closed 2026-09-21 (`79c7969..c37d007`, plus the close commit that follows): `docs/reference/claims.tsv` (1,862 rows: mechanism 1126, rule 162, count 144, bound 101, verdict 83, open 110, table 56, tool 35, contradiction 34, order 13), `claims-coverage.md`, `do-not-cite.csv`, `run-aliases.csv`, `experiments.md`, `jar-method-notes.md`, `harness-commands.md` (generated; 64 sites); `tools/{claimslib,claims_harvest,claims_check,bus_inventory,luabalance}.py`; the driver template; the anchor plan `docs/superpowers/plans/restructure-anchors.md`; acceptance run `run-20260921-192527`. The SDD ledger `.superpowers/sdd/restructure-1-register/progress.md` (kept) records rulings R1–R37; `deferred-minors.md` beside it lists what the final review deferred to Phases 2–4.
+Run every gate a commit's paths trigger; each ends at zero findings or green.
 
-Restructure Phase 2 closed 2026-09-26 (`e8ebc2c..81407e9`, plus the close commit that follows): `docs/platform/` (8 pages) and `docs/facts/` (7 pages plus `other-mods/` 6) written from the register under the page contract, 3,088 prose lines in all, every page lint-clean under `--partial`; `tools/claims_delta.py` (the delta applier) and `tools/page_lint.py` (the contract as rules); 9 delta commits and 6 register corrections and 4 owner-retarget commits applied by the controller, 12 rows minted (`#2040`–`#2051`); the register at 1,874 rows. The SDD ledger `.superpowers/sdd/restructure-2-platform-facts/progress.md` (kept) records rulings R1–R16; `deferred-minors-2.md` beside it lists what the final review deferred to Phases 3–4.
+- `python tools/claims_check.py --staged` → 0 findings before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or `tools/bus_inventory.py` (it says so and skips when nothing staged is under those paths); add `--partial` until the cut, because the wall map's rows have no owner page before it moves.
+- `python tools/page_lint.py <the pages touched> --partial` → 0 before any commit that touches a page under `docs/areas/`, `docs/platform/` or `docs/facts/`, or `docs/reference/datasets.md` or `docs/reference/tools.md`; without `--partial` from the cut on.
+- `python tools/bus_inventory.py --check` → in sync after any harness edit.
+- `python tools/doc_lint.py docs/reference/wall-map.md` → 0 from the cut on (the wall map moves to that path at the cut); until then `python tools/doc_lint.py docs/mods-survey docs/modding` → 0 and `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0.
+- `python -m pytest tools/tests testing/tests -q` green: 383 passed on 2026-09-26, and the count never drops.
 
-## 4. Resume point — do exactly this
+## 4. Extending the reference
 
-1. Next: write the Phase 3 plan (`docs/superpowers/plans/restructure-3-areas-skills-roots.md`) with `superpowers:writing-plans` from the spec § Execution Phase 3 (the seven area pages and `open-questions.md`, the ten skills, the root `README.md`, `STRATEGY.md` trimmed, `CLAUDE.md` rewritten per § What the rewritten `CLAUDE.md` carries, `reference/datasets.md` and `reference/tools.md`), the anchor plan, `python tools/claims_check.py --view areas` and the Phase 2 page procedure (`restructure-2-page-procedure.md`, which the area pages inherit with `## Options`); then execute it with SDD (§ 5). The register is read-only for page writers: a new or changed claim is a delta the controller applies with `tools/claims_delta.py` (spec § The claims register).
-2. Run every plan with `superpowers:subagent-driven-development` exactly as § 5 describes; its ledger is `.superpowers/sdd/<plan-basename>/progress.md`. Tasks with a `Task <N>: complete` line are done; resume at the first without one.
-3. At each plan's close: run the gates in § 6, push, update this section and the memory file.
+A claim is minted in the commit that lands its evidence, never later.
 
-## 5. The process — superpowers subagent-driven development (SDD)
+1. **A new measurement:** the run's JSON is copied byte-identical to `testing/artifacts/<run-id>/` with a row in the artifacts register (run id · file · what it measured · its reading guide) and its keys in `docs/reference/do-not-cite.csv` (empty allowed; a listed key is never cited); the same commit adds the register rows and the tagged sentences on their owner pages, green under the checker.
+2. **Ids:** the next unused id; the checker fails a duplicate or a gap; a parallel SDD wave reserves an id block per task in its ledger before dispatch.
+3. **Settling an open row:** the row keeps its id and goes `open -> settled` with its pointer and bound filled; the owner sentence is rewritten to the settled form, its line leaves `docs/areas/open-questions.md`, and its rows in `docs/reference/experiments.md` and the wall map's experiment table are marked `run <run-id>`; a reading that comes back unmeasured or trivial stays `open` with the run named in `bound`.
+4. **Superseding:** a claim a run overturns keeps its id and goes `superseded` with `successor`; every page tagging it moves to the successor in the same commit.
+5. **A harness change** (a new `TK.register`, a changed reply) lands in its own commit with its comment block, `tools/luabalance.py` green and `tools/bus_inventory.py` regenerating `docs/reference/harness-commands.md`, before the run that uses it.
+6. **A rule line edit** re-syncs the skills that quote it in the same commit; the checker fails otherwise.
+7. **Who runs the checker:** the committer, `--staged`, before every commit that touches its trigger paths (§ 3); an SDD reviewer re-runs it on the review package.
 
-Invoke the skill **`superpowers:subagent-driven-development`** at the start of every session that executes a plan (and `superpowers:writing-plans` when a plan must be written; `superpowers:brainstorming` for any new design; `superpowers:verification-before-completion` before claiming anything done). The loop, as this project runs it:
+## 5. Harness rules
 
-- **Workspace per plan:** `.superpowers/sdd/<plan-basename>/` (gitignored, **kept** for review — never delete). Created by the skill's `scripts/sdd-workspace PLAN_FILE`; task briefs by `scripts/task-brief PLAN_FILE N` (the skill lives at `C:\Users\Angus\.claude\plugins\cache\superpowers-marketplace\superpowers\6.3.0\skills\subagent-driven-development\`).
-- **Ledger** `progress.md` in the workspace: first line names the plan; every dispatch, report, review, ruling. Rulings are written `Ruling: <what> — <why> — cost if wrong: <…>`. After compaction, trust the ledger and `git log`, not memory.
-- **Per task:** the controller writes `task-N-amendments.md` (what the brief cannot know: interfaces from earlier tasks, corrections, file ownership) → dispatches a **fresh Opus implementer** with the brief + amendments + a report path (`task-N-report.md`; the implementer returns only status / commit / one-line verification / concerns) → builds a **review package** (`review-tN.diff` = `git show -U8` of the task's own commits, artifact JSON excluded) → dispatches a fresh Opus reviewer (read-only; spec compliance + quality; C/M/W lens) → fix rounds are **fresh implementers** with a `task-N-fix-K-brief.md` (SendMessage is unavailable here) → scoped re-review → the controller applies tiny residuals directly → `Task N: complete` in the ledger.
-- **Whole-pass review** at the end, one consolidated fix wave, re-review, residuals, then the **close**: the controller flips the board row with a `closeNN.py` (`.superpowers/sdd/_tools/`), removes the resume note, commits `Slice NN: close (board)`, pushes, updates memory. The board flip and `closeNN.py` applied to research slices only; a restructure plan closes per § 4 item 3 (gates, push, § 3/§ 4, memory) and never edits the frozen `docs/progress.md`.
-- **Parallelism:** implementers only on **disjoint files**; reviewers are read-only and may overlap anything; a reviewer running beside an implementer reads committed content via `git show <commit>:<path>`. **One live game session at a time, program-wide.**
-- **Commits:** brief subject lines, **no Claude attribution**, **pathspec commits** (`git commit -m "…" -- <paths>`), **never `--amend`** (an amend once rewrote another implementer's commit — decisions ledger). Slices do not push and do not flip their board row; the controller does at the close.
-- **Rulings, not questions:** the user's standing instruction is to proceed to completion and ledger decisions for review; ask only for destructive or out-of-worktree actions.
-- **Claims files:** for sessions, the controller distils each review into `session-N-claims.md` (claims with grade, bound, artifact key; a DO-NOT-CITE list); doc tasks cite from those, not from raw reports. Reviewer corrections are appended as `## Corrections` and supersede.
+The instrument is [platform/harness](docs/platform/harness.md) (the run procedure is its [`## Procedure`](docs/platform/harness.md#procedure)); the command table is [reference/harness-commands](docs/reference/harness-commands.md).
 
-## 6. Evidence standard (what every reviewer enforces)
+- `python testing/pzt doctor` before every boot.
+- One live game session at a time, repository-wide.
+- Never `-safemode`.
+- A harness change lands before the run that uses it, in its own commit, with the balance check (`python tools/luabalance.py <lua files>`, the HEAD copies first, then the working tree) and the command table regenerated (`python tools/bus_inventory.py`); the next acceptance run is its smoke test.
+- A driver (`testing/experiments/*.py`) is never edited after its run; a post-run edit is a skew note.
+- A reading that comes back trivial, unmeasured or falsified is written as such and never re-run to make a number prettier.
+- Artifacts are committed byte-identical to the run copy, each with a row in the artifacts register (`testing/artifacts/README.md`, which moves to `docs/reference/artifacts.md` at the cut).
+- A raising probe is gated on the server side with its profile's `[client] timeout` set low, and `pzt run` is expected to fail: the grade comes off the artifact.
+- A stray `ProjectZomboid64.exe` predating a session is Angus's own client: never kill it (`doctor` checks game Java only).
+- Fixture caches (`testing/fixtures/default/cache/`) and run folders (`testing/runs/`) are per-machine and gitignored.
+- Kahlua rules for every harness and experiment Lua file: no `goto`, no `%d` on floats, no `#` on Java lists.
+- The experiment mods (`testing/experiments/TKX_*`) are installed only through test profiles, never into the fixture.
+- Standing rule: live-server experiments and trial and error are encouraged, and the harness is improved as the work goes whenever that makes a measurement better — before the run, under the rules above.
 
-- Grades **C** (code/jar read, `Class.method @offset L<line>` or `path:line`, tree-qualified `common/` vs `42.x/` for mods), **M** (measured: run id + `testing/artifacts/<run-id>/<file>.json` key), **W** (wiki mirror + fetch date, corroboration only). Every claim row in `docs/vanilla`, `docs/modding`, `docs/feasibility`, `docs/mods-survey/teardowns` carries one; `tools/doc_lint.py` enforces the stamp `Verified against: 42.20.4`, a non-empty `## Sources`, no placeholder markers, and a standalone C/M/W letter in every row of any table with an `Ev` header (`M4` fails; `M (run …)` passes).
-- Gates before any commit that touches docs: `python tools/doc_lint.py docs/mods-survey docs/modding` → 0; `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0; `python -m pytest tools/tests testing/tests -q` green (373 at last count; never let it drop); `python tools/claims_check.py --staged` before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or `tools/bus_inventory.py`; `python tools/bus_inventory.py --check` after any harness edit; `python tools/page_lint.py <the pages touched> --partial` before any commit that touches `docs/platform`, `docs/facts` or `docs/areas` (without `--partial` from the Phase 4 close on).
-- Every `~:NN` line cite is **re-located by content** before it is quoted (files move constantly). Every count is dated. Bounds are written down (n, one fixture, one build, dedicated-server path); a bound that is dropped is a defect.
-- Artifacts are committed byte-identical to the run copy with a row in `testing/artifacts/README.md`; a driver is never edited after its run (a post-run edit is a skew note); readings that come back trivial / unmeasured / falsified are written as such — never re-run to make a number prettier.
-- **Do-not-cite tables** in `testing/artifacts/README.md`: a key with a row is not citable; a key without one is.
+## 6. Process
 
-## 7. Tooling
+- Every plan runs with `superpowers:subagent-driven-development`; `superpowers:writing-plans` writes a plan, `superpowers:brainstorming` opens any new design, and `superpowers:verification-before-completion` precedes any claim that work is done.
+- Fable leads on the main thread; every implementer and reviewer is a fresh Opus subagent (`model: "opus"`, always specified); if Opus is rate-limited, wait for the reset or ask Angus which model to substitute — never downgrade silently.
+- The skill lives at `C:\Users\Angus\.claude\plugins\cache\superpowers-marketplace\superpowers\6.3.0\skills\subagent-driven-development\`: `scripts/sdd-workspace PLAN_FILE` creates the plan's workspace, `scripts/task-brief PLAN_FILE N` writes a task brief, and `scripts/review-package PLAN_FILE BASE HEAD` builds a review diff for a contiguous range.
+- Per-plan ledgers `.superpowers/sdd/<plan-basename>/progress.md` (gitignored) are the only ledgers: kept, never deleted, whatever the skill's cleanup step says. The first line names the plan; every dispatch, report, review and ruling is a line in it; after compaction trust the ledger and `git log`, not memory; a task with a `Task <N>: complete` line is done, and work resumes at the first task without one.
+- Per task: the controller writes `task-N-amendments.md` (what the brief cannot know) → a fresh implementer writes `task-N-report.md` and returns only status, commit, one line of verification and concerns → the review package is `review-tN.diff`, `git show -U8` of the task's own commits with artifact JSON excluded → a fresh read-only reviewer checks spec compliance and quality → each fix round is a fresh implementer with `task-N-fix-K-brief.md` → a scoped re-review → the controller applies tiny residuals → `Task N: complete`.
+- A plan closes after a whole-pass review, one consolidated fix wave and its re-review: the controller runs § 3, pushes, and updates this file and the memory file (§ 8).
+- Rulings are written `Ruling: <what> — <why> — cost if wrong: <…>`. A ruling about the platform becomes a rule on [platform/lessons](docs/platform/lessons.md) with its mechanism row; a ruling about how this repository works becomes a rule in this file; a ruling a later agent must know is never only a ledger row.
+- Commits are pathspec commits (`git commit -m "…" -- <paths>`), never `--amend`, with no Claude attribution and a succinct subject line; implementers never push — the controller pushes at a plan's close.
+- Proceed to completion and ledger each decision for review instead of asking; ask only before a destructive action or one outside this worktree.
+- Implementers run in parallel only on disjoint files; reviewers are read-only, may overlap anything, and read an implementer's committed content with `git show <commit>:<path>`; research subagents are sent off as the work goes.
+- The register is read-only for page writers: a new or changed claim is a delta file the controller applies with `tools/claims_delta.py`, and a writer never runs `claims_check.py --fix-tags` (the controller runs it once per wave close).
 
-- **`pzt`** (`testing/pzt/`): `python testing/pzt doctor` (no java up, ports free, fixture matched — run before every boot), `python testing/pzt run --profile <name> --hold N` (acceptance run), scenarios, `session.verify`. Profiles in `testing/profiles/*.toml` (`fixture`, `[[mods]]` with `id` + `workshop_id` or `path`, `[sandbox]` merged, `[[verify]]` bus probes whose `expect` is a substring of `json.dumps(ack)`, `[client] timeout`). Never `-safemode`.
-- **Harness mod `PZTestKit`** (`testing/PZTestKit/PZTestKit/42/media/lua/{shared,server,client}/`): global `TK`, `TK.register(name, fn)`, every Java member through `TK.call` (index-first guard — kept as practice: a caught nil call is silent). The command inventory is `docs/testing/README.md` § Command bus (server `nutrition.*`, `stats.get`, `item.*`, `moddata.set`, `recipes.*` readers, `items.count`; client `eat.action`, `moddata.transmit`; shared `witness.fields`, `witness.moddata`, `lua.global`, `text.get`, `item.script`). **Kahlua rules:** no `goto`, no `%d` on floats, no `#` on Java lists. Harness changes land **before** a live run in their own commit with the README inventory line and the **balance check** (`python tools/luabalance.py <lua files>` — bracket deltas + `end`-depth, HEAD copies first, then the working tree); the next acceptance run is the smoke test. Standing rule: iterate on the harness as you go when it makes a measurement better.
-- **Drivers** (`testing/experiments/*.py`): the house shape is `td3_autocook.py` / `x121_overrides.py` — provenance keys (`commit`, `harness_lua_commit`, `harness_lua_dirty`, `doctor_clean`, `acceptance_run`), client-first paired reads, wall-bracketed steps with measured offsets, `field_count` asserts, the re-ask-once guard, per-scope modData exclusion sets, client grep limits ≥ 2 × predicted (the client console prints each mod's block twice), predictions/observations/verdicts (`as_predicted | falsified | trivial | unmeasured`), try/except/finally that always saves the artifact.
-- **Lint/data tools:** `tools/doc_lint.py`, `tools/mod_lint.py` (mod.info/layout rules; `mod-info-place` is a bounded measured statement since slice 12), `tools/mod_inventory.py`, `tools/food_scan.py`, `tools/recipe_scan.py`, `tools/workshop_search.py`; datasets under `data/` with `data/README.md`.
-- **Experiment mods** (`testing/experiments/TKX_*`, mod ids `TKX_*`): A ItemOverride, B Nutrient, C EatHook, D `tkx-loader-probe` (two mod.infos), E CommonOnly, F ZWatermelon, G PcallProbe, H RaiseProbe — installed only through test profiles, never in the fixture.
+## 7. Environment gotchas
 
-## 8. Environment gotchas (all bit us)
+- The Bash tool's cwd resets between calls: `cd /c/Users/Angus/repos/project_zomboid` in every call, or edits land in the home directory.
+- Long Bash heredocs with apostrophes fail to parse: write briefs and long files with the Write tool, and keep Bash-embedded Python apostrophe-free.
+- CRLF survivors in the working tree: `docs/progress.md`, `docs/decisions.md`, `docs/modding/patterns.md`, `docs/testing/README.md`, `tools/README.md` (CRLF with a few LF lines), `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua`, `tools/mod_lint.py`, `tools/tests/test_mod_lint.py`, `testing/fixtures/default/fixture.json` and the `references/wiki-mirrors/` pages; edit them with `newline=''` handling and preserve the endings, and check any other file with `file <path>` first.
+- `core.autocrlf=true` here; `.gitattributes` pins the `TKX_ItemOverride` translation file to CRLF and `docs/reference/**` and `.claude/**` to LF.
+- A stray `ProjectZomboid64.exe` predating a session is Angus's own client, never killed (§ 5).
+- The harness client runs `-debug`, so an unguarded mod Lua error parks it in the debugger: [the raising-probe rule](docs/platform/lessons.md#rules).
+- The workshop corpus drifts under a running session, so every count is dated: [the corpus-drift rule](docs/platform/lessons.md#corpus-drift).
 
-- The Bash tool's **cwd resets** between calls — `cd /c/Users/Angus/repos/project_zomboid` in every call, or edits land in the home dir.
-- Long Bash heredocs with apostrophes fail to parse — write briefs and long files with the **Write** tool; keep Bash-embedded Python apostrophe-free.
-- `docs/progress.md`, `docs/decisions.md`, `docs/modding/patterns.md`, `docs/testing/README.md` and several READMEs are **CRLF**; edit with `newline=''` handling and preserve. `core.autocrlf=true` here; `.gitattributes` pins the B41-layout test translation file to CRLF.
-- The harness client runs `-debug`: an **unguarded mod Lua error parks it in the Lua debugger's modal break** (x127) — a raising probe must be gated on the server side and its profile's `[client] timeout` set low.
-- A stray `ProjectZomboid64.exe` predating a session is the user's own client — never kill it; `doctor` checks java only.
-- The workshop corpus **drifts** (Steam rewrote a mod.info mid-slice): `data/mod-inventory.json` is a dated snapshot (2026-09-10 17:47); date every count.
-- Subagents: Opus (`model: "opus"`), always specified; the lead is Fable. If Opus is rate-limited, wait for the reset or ask Angus which model to substitute — do not silently downgrade.
+## 8. Memory
 
-## 9. Memory and the user's standing rules
+The memory file is `C:\Users\Angus\.claude\projects\C--Users-Angus\memory\pz-nutrition-mod-project.md`, indexed by the `MEMORY.md` beside it; update both at every plan's close. Angus's standing rules sit beside it in `git-commit-style.md` and `pz-harness-iteration.md`.
 
-Standing rules from Angus, verbatim in spirit: commits with no Claude attribution and succinct messages; Opus for all subagents, Fable on the main thread; experiments and trial-and-error on the live server are encouraged; proceed to completion and ledger decisions for review instead of asking; fire off subagents for research as you go; iterate to improve the harness as you go when it makes sense.
+## 9. Restructure status and resume point
 
-## 10. Key measured facts (pointers, not restatements)
+Transitional: this section is removed at the Phase 4 close.
 
-`docs/modding/patterns.md` § Measured MP sync facts + KEEP/FILTER rows own the canonical prose. Headlines from slice 12 (`docs/modding/{anatomy,item-overrides,lua-api}.md`): a partial `item` block **merges per key** (the script reset is a no-op); script bodies replay **sorted by stored script path**, independent of `Mods=` position, last body wins per key; the live `mod.info` chain reads the version dir's file first (`searchForModInfo` is dead code) — one id per folder, folder name irrelevant; an empty version dir costs nothing; a dedicated server resolves no display name and `getText` never reaches item names; `OnEat` fires on both sides and a server-side wrapper of `ISEatFoodAction.complete` runs before `Eat`; a mod's `server/` Lua also runs in the MP client VM (guard with `isServer()`); `transmitModData` replaces server→client and wipes client→server; the weight flags agree on both non-trivial arms; `pcall` **catches** a Kahlua nil call (the old "uncatchable" rule is falsified), an unguarded raise aborts only its own handler on the server. Open items for 13/14: `.superpowers/sdd/wave-4/not-settled.md` and `.superpowers/sdd/13-wall-map/slice-12-outcomes.md`.
+- The research program closed at the tag `research-program-v1`; the restructure runs under the spec `docs/superpowers/specs/2026-09-17-reference-restructure-design.md`, which is the authority until the cut.
+- Phase 1 (the claims register, the checker, the generator) closed: `79c7969..c37d007`, close `77e923f`; ledger `.superpowers/sdd/restructure-1-register/progress.md`.
+- Phase 2 (`docs/platform/` and `docs/facts/`) closed: `e8ebc2c..81407e9`, close `74bb475`; ledger `.superpowers/sdd/restructure-2-platform-facts/progress.md`.
+- Phase 3 (`docs/areas/`, the skills, the roots, the datasets and tools pages) closed: `<Phase 3 range>`; ledger `.superpowers/sdd/restructure-3-areas-skills-roots/progress.md`.
+- Phase 4 next: write `docs/superpowers/plans/restructure-4-cut.md` with `superpowers:writing-plans` from the spec § Execution Phase 4 — the wall-map move with its `Ev`-cell rewrite from the `old section -> ids` map (`python tools/claims_check.py --section-map`), `artifacts.md` moved whole with `Cited by` regenerated, the wiki-mirror contradiction table, the deletion of the old docs, ledgers and plans by pathspec in one commit, the acceptance run, every lint without `--partial`, the fresh-session skill test, the push — taking the Phase 4 obligations in `.superpowers/sdd/restructure-3-areas-skills-roots/deferred-minors-3.md` as inputs; then run it as § 6 describes.
+- The wall map (`docs/modding/wall-map.md`) and the artifacts register (`testing/artifacts/README.md`) move into `docs/reference/` at the cut, as `wall-map.md` and `artifacts.md`.
+- `docs/vanilla/`, `docs/modding/`, `docs/mods-survey/` and `docs/testing/` are the pre-restructure docs: readable until the cut, and forever at the tag `research-program-v1`.
+- `docs/progress.md` and `docs/decisions.md` are frozen: never extend them; rulings go in the plan's ledger.
