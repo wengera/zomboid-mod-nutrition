@@ -11,7 +11,7 @@ The lint's rule scoping and reported paths are relative to the repository root a
 The lint's table splitter strips and splits a row on the pipe character with no escape handling, so an escaped pipe inside a cell still splits the row and shifts every later cell one place, which in a table with an evidence column either fails a correctly graded row or grades the wrong cell [#1949].
 The splitter is deliberately simple, so a cell that needs a pipe is rewritten, with the alternatives named in prose, rather than escaped [#1949].
 `docs/mods-survey/` is deliberately not in `doc_lint`'s stamped directories and only `docs/mods-survey/teardowns` is, so `nutrition-mods.md` is written to the stamped standard by hand and checked with a one-off invocation that widens the stamped set for that one file [#1675].
-Every directory the stamp, sources and grades rules read lies in a tree the cut deletes, so after the cut the rules left with files to read are the placeholder ban across the tree and the mirror-header rule over `references/wiki-mirrors/`.
+After the cut the stamp, sources and grades rules read one file, `docs/reference/wall-map.md` (the tool's stamped file, beside its stamped directories that no longer exist), while the placeholder ban runs across the tree and the mirror-header rule over `references/wiki-mirrors/`.
 
 <a id="mod-lint"></a>
 ## `mod_lint.py` — the layout lint (`L0`)

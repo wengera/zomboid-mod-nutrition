@@ -272,7 +272,7 @@ import patterns from there.
 - `claimslib.py` — no CLI. The claims register schema (`COLUMNS`, `KINDS`, `STATUSES`,
   `BOUND_TOKENS`, `POINTER_FORMS`, the id `BLOCKS`), TSV read/write, and the tag, pointer
   and bound grammars shared by `claims_harvest.py` and `claims_check.py`. The spec is
-  `2026-09-17-reference-restructure-design.md` (the restructure spec, at the tag `research-program-v1`) § The claims register.
+  `2026-09-17-reference-restructure-design.md` (the restructure spec, readable at the parent of the cut commit) § The claims register.
 
 - `claims_harvest.py` — `python tools/claims_harvest.py candidates <md…> --out <tsv>` |
   `do-not-cite <artifacts README> --out <csv>` | `merge [--parts DIR] [--register TSV] [--coverage MD]`.
@@ -319,8 +319,8 @@ import patterns from there.
   paths exist and name none of the pre-restructure docs or plans (the docs are
   at the tag `research-program-v1`),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
-  the three reference pages that own register rows (`datasets.md`, `tools.md`, and `wall-map.md` once
-  it moves to `docs/reference/` at the cut) and the skills resolves
+  the three reference pages that own register rows (`datasets.md`, `tools.md`, and `wall-map.md`)
+  and the skills resolves
   and carries the canonical suffix; provisional `[T…]` tags fail),
   `untagged` (warning only: a number without a tag outside fences, tables and `## Procedure`;
   a digit inside a markdown link target is not a number, though the link text still counts;
@@ -348,7 +348,7 @@ import patterns from there.
 
 - `claims_delta.py` — `python tools/claims_delta.py apply <delta.tsv> --pages <page.md>… [--register TSV] [--dry-run]`.
   The controller's tool for a page task's delta file (spec § The claims register, "Deltas in Phases 2 and 3";
-  the file shape is `restructure-2-page-procedure.md` (the Phase 2 page procedure, at the Phase 2 close `74bb475`) § 6): mints the next free id for
+  the file shape is `restructure-2-page-procedure.md` (the Phase 2 page procedure, readable at the parent of the cut commit) § 6): mints the next free id for
   each `add`, supersedes a `split` parent with its two children, retargets an owner, changes a status; rewrites
   the provisional tags on the named pages and re-canonicalises them; prints every change and any provisional
   tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row. Not idempotent: preview
