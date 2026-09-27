@@ -24,7 +24,7 @@ import patterns from there.
   `Verified against: 42.20.4`), `placeholder` (`TODO`/`TBD`/
   `_digest pending_`), `sources` (in those same docs, a `## Sources` heading
   with at least one non-blank line before the next `## ` heading), `grades`
-  (every body row of a table with an `Ev` column has a C/M/W evidence grade),
+  (every body row of a table with an `Ev` column opens its `Ev` cell with a C/M/W grade, optionally bold; a letter inside a later tag does not count),
   `mirror-header` (the four header keys above, on every mirror). Skips
   `docs/superpowers/` and `docs/progress.md` (constants the code still carries,
   both gone from the tree), `.superpowers/` (SDD scratch) and
