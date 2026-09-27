@@ -6,6 +6,7 @@ Finding = collections.namedtuple("Finding", "path line rule detail")
 STAMP_RX = re.compile(r"Verified against: 42\.20\.4")
 PLACEHOLDER_RX = re.compile(r"\bTODO\b|\bTBD\b|_digest pending_")
 STAMPED_DIRS = ("docs/vanilla", "docs/modding", "docs/feasibility", "docs/mods-survey/teardowns")
+STAMPED_FILES = ("docs/reference/wall-map.md",)   # the wall map keeps the stamp and Ev-grade rules at its new path (spec § The checker and the generator)
 SKIP_DIRS = ("docs/superpowers", ".superpowers")
 SKIP_FILES = ("docs/progress.md", "README.md")
 MIRROR_KEYS = ("**Source:**", "**Fetched:**", "**Wiki page version:**", "**License:**")
@@ -41,7 +42,7 @@ def lint_file(path, repo_root=None):
     text = open(path, encoding="utf-8", errors="replace").read()
     lines = text.splitlines()
     out = []
-    stamped = any(_under(rel, d) for d in STAMPED_DIRS)
+    stamped = any(_under(rel, d) for d in STAMPED_DIRS) or rel in STAMPED_FILES
     if stamped and not STAMP_RX.search(text):
         out.append(Finding(rel, 1, "stamp", "missing 'Verified against: 42.20.4'"))
     for n, line in enumerate(lines, 1):

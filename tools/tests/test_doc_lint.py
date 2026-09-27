@@ -90,3 +90,12 @@ def test_cli_exits_zero_on_a_clean_tree():
                            encoding="utf-8", errors="replace")
         assert r.stdout.strip() == "0 finding(s)", r.stdout
         assert r.returncode == 0
+
+
+def test_wall_map_is_stamped_at_its_reference_path():
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "docs/reference/wall-map.md", "# W" + chr(10) + chr(10) + "| Item | Ev |" + chr(10) + "|---|---|" + chr(10) + "| a | |" + chr(10))
+        rules = {f.rule for f in doc_lint.lint([d], d)}
+        assert {"stamp", "grades"} <= rules
+        _write(d, "docs/reference/other.md", "# O" + chr(10))
+        assert not [f for f in doc_lint.lint([d], d) if f.path.endswith("other.md")]
