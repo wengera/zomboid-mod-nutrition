@@ -42,7 +42,7 @@ DOOMED_PATHS = ("docs/vanilla/", "docs/modding/", "docs/mods-survey/", "docs/tes
 # Exempt: the cut moves this file verbatim to docs/reference/wall-map.md and rewrites the
 # register's pointers then, so a pointer into it is not a dangling cite (R21).
 DOOMED_EXEMPT = ("docs/modding/wall-map.md",)
-TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py")
+TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py", "references/wiki-mirrors/")
 Finding = collections.namedtuple("Finding", "path line rule detail")
 WARN_RULES = ("untagged",)
 PROVISIONAL_MSG = "provisional tag %s (apply the delta, or --allow-provisional)"
