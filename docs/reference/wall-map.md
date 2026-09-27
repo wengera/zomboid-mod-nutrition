@@ -1,7 +1,7 @@
 # The moddability wall map — what a B42 nutrition mod can and cannot do
 
 **Verified against: 42.20.4 (`b0bbce05d5`)** · 2026-09-17 · slice 13 (P2b), classified **offline**
-from slices 01–12: the jar re-read today, `docs/vanilla/*`, the three teardowns, and slice 12's
+from slices 01–12: the jar re-read today, the pre-restructure vanilla docs (at the tag `research-program-v1`), the three teardowns, and slice 12's
 seven live sessions `x121`–`x127`. Grades: **C** read from bytecode / Lua / scripts, **M** measured
 on the live dedicated server + client (run id given), **W** wiki mirror (corroboration only).
 
