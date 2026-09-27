@@ -49,7 +49,7 @@ Five containers list several different fluids and the row carries only the first
 A pick-random container's nutrition is one of several fills and not the whole truth: the component draws one of the listed fluids when the random flag (`PickRandomFluid`) is set and fills with every listed fluid when it is not, nine containers set it, five of those list several different fluids, and the row carries only the first one's nutrition — so anything that averages or worst-cases a spawn must do it from the whole fluid set the row keeps, not from the row [#1898/C/C-only].
 That is a jar read on `42.20.4`, and the other four multi-line containers repeat a single id and so have nothing to pick between [#1898/C/C-only].
 
-An absent script key is the empty string in the CSV and `null` in the JSON, never a zero, and a script that really writes zero still prints zero; absence is load-bearing, because the engine's own defaults are not zero for every key [#1883, #0618].
+An absent script key is the empty string in the CSV and `null` in the JSON, never a zero, and a script that really writes zero still prints zero; absence is load-bearing, because the engine's own defaults are not zero for every key [#0618, #0619/M/n=1].
 The JSON also distinguishes `null` (a row that is not a container) from an empty list (a container listing no fluid), where the CSV writes an empty cell for both [#0618].
 An absent `Properties` key means the engine uses zero and not unknown, because the fluid definition registers all fifteen properties at zero on construction — but the dataset still reports it empty, because no line in the file wrote it; a fluid with no `Properties` block at all gets a null properties object and contributes nothing to anything, a jar read on `42.20.4` [#1896/C/C-only].
 
@@ -68,7 +68,7 @@ An input amount is a count of uses and not of items unless the line carries an i
 The rule's measured half is the use probe that [cooking-and-recipes.md](../facts/cooking-and-recipes.md#uses) owns [#1901].
 A recipe's `nutrition_delta` is the sum of the outputs times their own script macros minus the sum of what each consumed input line really spends, per macro, over calories, carbohydrates, lipids, proteins, `hungerChange` and `thirstChange` [#0698].
 A delta term is taken only from a row whose `nutrition_basis` is `per_item`: a `per_litre` row contributes `fluid-sourced` and an empty basis `no-nutrition`, so the dataset never adds a per-litre number to a per-item one [#0717].
-A drink and a row with no nutrition key are refused by name in `deltaReason` and never converted, so the two units are never added together, and the refusal is recorded per recipe with the blocker that fired [#1902].
+A drink and a row with no nutrition key are refused by name in `deltaReason` and never converted, so the two units are never added together, and the refusal is recorded per recipe with the blocker that fired [#0717, #0715/C/snapshot].
 Fluid IO lines are recorded verbatim and excluded from the macro delta because a fluid's nutrition is per litre, and the 53 recipes carrying fluid IO are flagged `fluidIO`, in the 2026-09-10 scan [#0697/C/snapshot].
 
 A delta is refused rather than guessed: the record carries `delta: null` and a machine-readable `deltaReason` naming the offending lines verbatim, the blocker kinds being `tags-only`, `multi-type`, `wildcard`, `variable-amount`, mapper-shaped outputs, `no-outputs`, `not-in-dataset`, `no-nutrition` and `fluid-sourced`; 938 of the 969 recipes are refused and 31 resolve, in the 2026-09-10 scan [#0715/C/snapshot].
@@ -122,7 +122,7 @@ Every count below is stated with the stamp of the scan it rests on, and a re-sca
 
 `data/food-items.json` holds 1 005 item records and 61 fluid records, built from 18 shipped files under `media/scripts/generated/`, in the 2026-09-10 scan of `42.20.4` (jar `b0bbce05d5`) [#0602/C/snapshot].
 A `module Base` food pass covers 722 `base:food` items, or 1 005 records once drainables and fluid containers are counted — one census of `42.20.4` on 2026-09-10, with mod-added foods outside a `module Base` pass [#1228/M/n=1].
-`media/scripts/generated/items/food.txt` holds 722 `base:food` blocks over 15 525 lines and `drainable.txt` holds 150 `base:drainable` blocks over 2 420 lines, as shipped and read 2026-09-10 [#0216/C/snapshot].
+`media/scripts/generated/items/food.txt` holds 722 `base:food` blocks over 15 525 lines and `drainable.txt` holds 150 `base:drainable` blocks over 2 420 lines, as shipped and read 2026-09-10 [#0611/C/snapshot, #0612/C/snapshot].
 290 rows carry no nutrition value in the 2026-09-10 scan, ten more than the 280 that name no source: the extra ten are `per_litre` rows joined to a fluid whose `Properties` block is absent or holds only `alcohol` [#0625/C/snapshot].
 The 133 containers are 63 single-fluid, 9 pick-random and 61 empty in the 2026-09-10 scan, and `fluid_fill_litres` equals `fluid_capacity` on all 72 filled rows because every `:share` suffix in the files is 1.0 bar `Base.BucketWaterDebug`'s `Water:10.0`, which the capacity clamp takes back to its 10 L capacity [#0627/C/snapshot].
 On `42.20.4` `food.txt` carries 41 blocks with `CannedFood` true, 21 of them sealed with `CantEat` also true and 20 openable or opened, 127 blocks with `Packaged` true and 2 with it false plus 2 more in `drainable.txt`, and 10 blocks whose `OnCooked` is the home-canning code, re-counted directly from `food.txt` on 2026-09-10 [#0312/C/snapshot].
@@ -194,8 +194,8 @@ Two of the 21 rows pair two keys each — the name with the author and the works
 The inventory carries no `meta` block and no build stamp, unlike the four generated datasets, because it describes a live tree; the sweep date in its documentation is the stamp, and a count quoted from it must carry that stamp and never today's date [#1915/C/snapshot].
 Regenerating it takes about two seconds and is byte-stable, the same tree in giving the same bytes out, as of the 2026-09-10 17:47 sweep [#1915/C/snapshot].
 Seven of the inventory's rows carry different file counts in the 2026-09-10 sweep than in the 2026-09-09 one: two because the resolver reads the newest version folder and those rows' newest folder is not the one an older rule picked, and five because Steam rewrote those items' files between the sweeps [#1916/C/snapshot].
-`workshop_item_mtime` is a download stamp and not an update stamp: Steam rewrites the mod folder inside an item without touching the item folder, so the item folder of `3490370700` still read 2026-08-12 while its mod folder was rewritten at 13:47 on 2026-09-10, and the corpus range 2026-08-12 to 2026-09-04 is the shape of one subscriber's download history, a three-week window [#1571/C/snapshot, #1924/C/snapshot].
-A real last-updated date comes from the Workshop page instead, which [Workshop rows](#workshop-rows) records for the catalogued items [#1571/C/snapshot, #1924/C/snapshot].
+`workshop_item_mtime` is a download stamp and not an update stamp: Steam rewrites the mod folder inside an item without touching the item folder, so the item folder of `3490370700` still read 2026-08-12 while its mod folder was rewritten at 13:47 on 2026-09-10, and the corpus range 2026-08-12 to 2026-09-04 is the shape of one subscriber's download history, a three-week window [#1571/C/snapshot].
+A real last-updated date comes from the Workshop page instead, which [Workshop rows](#workshop-rows) records for the catalogued items [#1571/C/snapshot].
 
 ### Identity
 
