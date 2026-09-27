@@ -72,6 +72,17 @@ Read on the jar 2026-09-27 after Angus chose the full-takeover architecture:
 
 Consequence for the design: architecture C is feasible and bounded. The handler runs for players (and any other `IsoLivingCharacter` that is not a zombie or an animal) on the server, it must reproduce exactly seven updaters, and its global, all-or-nothing nature is a compatibility wall with any other mod that registers the same hook, which the packaging page will state.
 
+## N6 — the stat hook runs after the player's own endurance update in the same tick, so the takeover owns endurance by overwriting it
+
+Read on the jar 2026-09-27 after `wave2-science-endurance-fitness.md` raised gate E1 (that `Hook.CalculateStats` may not stop the real endurance model):
+
+- `IsoGameCharacter.calculateStats @60–@63 L10208` calls `IsoGameCharacter.updateEndurance`, whose whole body is `Stats.setLastEndurance(get(ENDURANCE))` and a reset under the unlimited-endurance cheat (`@0–@35 L10360–L10364`). The real endurance model is `IsoPlayer.updateEndurance` (`@0–@13 L3427–L3428` returns for an animal or when `GameClient.client` is set, so it is server-side for players), a separate method the hook never sees.
+- `IsoPlayer.updateInternal2` calls `IsoPlayer.updateEndurance` at `@938 L2408` (or `updateEnduranceWhileInVehicle @931 L2406`) and returns true at `@941–@942 L2410`; that branch follows the server-gated `updateMovementRates @913–@920 L2402–L2403` and is the path a dedicated server takes for a player, since `OnPlayerUpdate @1141 L2438` sits past the return in the local-player path. A second `updateEndurance` call at `@2139 L2661` is in that later local path.
+- `IsoPlayer.update @8 L2184` calls only `updateInternal1`; `IsoPlayer.updateInternal1 @51 L2200` calls `updateInternal2` first and then, when it returned true, `invokespecial IsoLivingCharacter.update @71 L2206`, which is `IsoGameCharacter.update @9` → `IsoGameCharacter.updateInternal @1555 L9230` → `calculateStats` (gated on `SystemDisabler.doCharacterStats @1548 L9229`) → the hook. `Nutrition.update @402 L2307` and `Fitness.update @409 L2310` run inside `updateInternal2`, before the hook as well.
+- Order within one server tick for a player, therefore: vanilla `updateEndurance` (and `Nutrition.update`, `Fitness.update`) → the `CalculateStats` hook → the rest of the frame → `OnTick` → `NetworkPlayerManager.update` (the 1 Hz push; lifecycle report § D).
+
+Consequence for the design: the hook cannot stop the vanilla endurance model, and does not need to. A takeover handler that writes `ENDURANCE` from the mod's own state each tick is the last write before the push; vanilla's next-tick update perturbs that value by one tick's drain or regeneration and the handler overwrites it again, so the model must integrate from its own stored endurance, never from the stat it reads back. `Stats.setLastEndurance` is public and the handler calls it, since the hook skips the base stub that maintained it. The live verification is the takeover experiment already listed in the spec § 8; E1 is closed on the code.
+
 ## Open items the controller is holding
 
 - Which side evaluates the Strength protein branch for a multiplayer player (client-side `AddXP` then `SyncXp` up, or a server-side grant) — decide from `jar-perks-strength.md` § B before the effects subsystem is specified.
