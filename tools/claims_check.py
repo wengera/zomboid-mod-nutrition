@@ -7,8 +7,12 @@ markdown link target is not a number) · generator (5) · skill (6) · example (
 register slice) · rules-dup (9: for each pair of pages under docs/areas and docs/platform and each
 tag-id set both carry on a `## Rules` line, a finding fires only when the two pages share no
 byte-identical line for that set; a page's several rules on one set are never compared with each
-other). --register-only runs 0 and 3; --partial lets 1 skip owner pages that do not exist yet;
---section-map prints the source-section map; --staged skips the run when nothing relevant is staged."""
+other) · refgen (10: the two generated sections must be fresh renders of the register —
+docs/reference/artifacts.md's `Cited by` column, skipped while that page does not exist, and the
+`## Contradictions` section of references/wiki-mirrors/README.md, skipped while the README carries
+no reference_gen markers; see tools/reference_gen.py). --register-only runs 0 and 3; --partial lets
+1 skip owner pages that do not exist yet; --section-map prints the source-section map; --staged
+skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import claimslib as cl
@@ -20,10 +24,14 @@ ALIASES = "docs/reference/run-aliases.csv"
 HARNESS_MD = "docs/reference/harness-commands.md"
 LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
 LAYER_DIRS = ("docs/areas", "docs/platform", "docs/facts")
-# Rule 2 also reads the two reference pages that own register rows: `docs/reference/` is outside the
+# Rule 2 also reads the three reference pages that own register rows: `docs/reference/` is outside the
 # page contract, so rule 4 never runs there, but a row owned by one of these still needs its tag to
-# resolve and to carry the canonical suffix. Every other reference page is generated or an index.
-REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md")
+# resolve and to carry the canonical suffix. The wall map is read once it exists at its new path (it
+# moves there at the cut). Every other reference page is generated or an index.
+REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md", "docs/reference/wall-map.md")
+# Rule 10's inputs: the two files whose sections tools/reference_gen.py generates.
+ARTIFACTS_MD = "docs/reference/artifacts.md"
+MIRRORS_README = "references/wiki-mirrors/README.md"
 SKILLS_DIR = ".claude/skills"
 # Trees the Phase 4 cut deletes. A `repo:` pointer into one of them is a dangling cite the moment
 # the cut lands, so rule 3 rejects it today, whether or not the file still exists (R20). A trailing
@@ -78,7 +86,7 @@ def _skill_files(root):
 
 
 def _tagged_files(root):
-    """Every file rule 2 checks and --fix-tags rewrites: the three layers, the two reference
+    """Every file rule 2 checks and --fix-tags rewrites: the three layers, the three reference
     pages that own register rows (when they exist), and the skills."""
     extra = [os.path.join(root, *r.split("/")) for r in REF_TAG_PAGES]
     return list(_md_files(root, LAYER_DIRS)) + [p for p in extra if os.path.exists(p)] + _skill_files(root)
@@ -358,6 +366,25 @@ def rule_generator(root, lua_dir):
     return []
 
 
+def rule_refgen(root, rows):
+    """Rule 10: each generated section of the reference is a fresh render of the register (spec
+    § The target tree). The artifacts register's `Cited by` column is checked once the page exists
+    at docs/reference/artifacts.md; the wiki mirrors' `## Contradictions` section once the README
+    carries its markers — before that there is nothing generated to drift, and the explicit
+    `reference_gen.py contradictions --check` reports the missing section."""
+    import reference_gen as rg
+    out = []
+    page = os.path.join(root, *ARTIFACTS_MD.split("/"))
+    if os.path.exists(page):
+        for d in rg.cited_by_check(page, rows, os.path.join(root, *ALIASES.split("/"))):
+            out.append(Finding(ARTIFACTS_MD, 1, "refgen", d))
+    readme = os.path.join(root, *MIRRORS_README.split("/"))
+    if os.path.exists(readme) and rg.has_markers(_read(readme)):
+        for d in rg.contradictions_check(readme, rows):
+            out.append(Finding(MIRRORS_README, 1, "refgen", d))
+    return out
+
+
 def _bullets(sections, heading):
     for h, lines in sections:
         if h.strip().lower() == heading:
@@ -489,7 +516,7 @@ def check(root=None, register=None, lua_dir=None, register_only=False, partial=F
         return findings
     lua = lua_dir or os.path.join(root, *LUA_DIR.split("/"))
     findings += rule_owner(rows, root, partial) + rule_tag(rows, root, allow_provisional) + rule_untagged(root)
-    findings += rule_generator(root, lua) + rule_skill(root) + rule_example(root) + rule_rules_dup(root)
+    findings += rule_generator(root, lua) + rule_refgen(root, rows) + rule_skill(root) + rule_example(root) + rule_rules_dup(root)
     return findings
 
 

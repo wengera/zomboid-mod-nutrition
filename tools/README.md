@@ -289,6 +289,20 @@ import patterns from there.
   A harness commit that adds or changes a command edits the block and regenerates in the
   same commit (`claims_check.py` rule 5 enforces it).
 
+- `reference_gen.py` — `python tools/reference_gen.py cited-by [--page docs/reference/artifacts.md] [--write | --check]` |
+  `contradictions [--readme references/wiki-mirrors/README.md] [--write | --check]`.
+  The reference's two generated sections, rendered from the register. `cited-by` fills the `Cited by`
+  cell of every `## Contents` row of the artifacts register with the owner pages of the live rows whose
+  pointer carries `run:<that run id>` (a row citing an alias in `run-aliases.csv` counts for the alias's
+  line and its real run's), sorted and deduplicated, as links relative to `docs/reference/`; `—` when no
+  row cites the run. `contradictions` writes a `## Contradictions` section: one table per mirror in the
+  README's `## Mirrors` order (`| Row | The code says | The mirror says | Owner |`: the row's full tag, its
+  claim, its bound's words after `mirror wrong:`, its owner page) from the live `contradiction` rows whose
+  `wiki:` pointer names that mirror, between the markers `<!-- reference_gen: contradictions start -->`
+  and `<!-- reference_gen: contradictions end -->` (appended at the end of the README when absent).
+  `--write` rewrites only those cells or that section; `--check` exits 1 naming each drift (`section
+  missing` on a README with no markers) and is `claims_check.py` rule 10; with neither it prints the render.
+
 - `claims_check.py` — `python tools/claims_check.py [--register TSV] [--register-only] [--partial]
   [--staged] [--allow-provisional] [--fix-tags] [--view LAYER|LAYER/PAGE.md]
   [--section-map] [--root DIR]`
@@ -302,7 +316,8 @@ import patterns from there.
   paths exist and name no tree the Phase 4 cut
   deletes, bar `docs/modding/wall-map.md`, which the cut moves),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
-  the two reference pages that own register rows (`datasets.md`, `tools.md`) and the skills resolves
+  the three reference pages that own register rows (`datasets.md`, `tools.md`, and `wall-map.md` once
+  it moves to `docs/reference/` at the cut) and the skills resolves
   and carries the canonical suffix; provisional `[T…]` tags fail),
   `untagged` (warning only: a number without a tag outside fences, tables and `## Procedure`;
   a digit inside a markdown link target is not a number, though the link text still counts;
@@ -314,7 +329,11 @@ import patterns from there.
   `docs/platform` and each tag-id set both carry on a `## Rules` line, a finding fires only when the
   two pages share no byte-identical line for that set, once per page on its first line of that set;
   a page's several rules on one set are never compared with each other, so a verbatim copy of one
-  rule is clean beside the other rules its source page carries on the same set).
+  rule is clean beside the other rules its source page carries on the same set), `refgen` (rule 10:
+  the two generated sections are fresh renders of `reference_gen.py` — the `Cited by` column of
+  `docs/reference/artifacts.md`, skipped while that page does not exist, and the `## Contradictions`
+  section of `references/wiki-mirrors/README.md`, skipped while the README carries no markers; a
+  drift is a finding on the file).
   `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
   `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
   relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta
@@ -340,7 +359,9 @@ import patterns from there.
   pages the spec allows; under 150 warns, except on `facts/other-mods/` pages and
   `areas/open-questions.md`), worked-example paths (a cell with no `file:lines` is its own finding),
   relative links and their anchors — the anchor half runs only for targets under `docs/areas`,
-  `docs/platform` and `docs/facts` (`datasets.md` and `tools.md` carry `<a id>` anchors and are fragment-checked; other `docs/reference/` pages are not), a fragment that is not a
+  `docs/platform` and `docs/facts` (`datasets.md`, `tools.md` and `wall-map.md` carry `<a id>` anchors and are fragment-checked;
+  `wall-map.md` is a link target only, never a page this lint is passed, since `doc_lint.py` owns it; other
+  `docs/reference/` pages are not), a fragment that is not a
   lowercase slug (`a-z`, `0-9`, `-`, `_`) is a finding, and `--partial` skips a target page not written yet.
   A `## ` line inside a code fence never opens a section. Two pages have their own profile:
   `areas/open-questions.md` takes the sections `Index`, `Decisions`, `Experiments`, `See also`, reports

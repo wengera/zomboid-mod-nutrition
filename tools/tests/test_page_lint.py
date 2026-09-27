@@ -249,3 +249,14 @@ def test_fragment_into_a_tagged_reference_page_is_checked(tmp_path):
     (root / "docs" / "facts" / "good.md").write_text(GOOD.replace("(../facts/wire.md#staircase)", "(../reference/datasets.md#missing)"), encoding="utf-8")
     findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
     assert [f for f in findings if f.rule == "link" and "#missing" in f.detail]
+
+
+def test_fragment_into_the_wall_map_is_checked(tmp_path):
+    root = _tree(tmp_path, {"good.md": GOOD.replace("(../facts/wire.md#staircase)", "(../reference/wall-map.md#g4)")})
+    wm = root / "docs" / "reference" / "wall-map.md"
+    wm.write_text("# W" + chr(10) + '<a id="g4"></a>' + chr(10), encoding="utf-8")
+    findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
+    assert not [f for f in findings if f.rule == "link"]
+    wm.write_text("# W" + chr(10), encoding="utf-8")
+    findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
+    assert [f for f in findings if f.rule == "link" and "#g4" in f.detail]

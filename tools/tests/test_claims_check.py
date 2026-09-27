@@ -426,3 +426,13 @@ def test_untagged_ignores_a_bare_anchor_line():
     with tempfile.TemporaryDirectory() as d:
         _tree(d, [_row(1, owner="areas/a.md#x13")], pages={"docs/areas/a.md": page})
         assert not [x for x in cc.check(d, partial=True) if x.rule == "untagged"]
+
+
+def test_refgen_rule_reports_drift_in_the_artifacts_register():
+    page = "# A\n\n## Contents\n\n| Run id | File | Experiment | Cited by |\n|---|---|---|---|\n| `exp01-20260910-000351` | `f.json` | `x.py` | stale |\n"
+    with tempfile.TemporaryDirectory() as d:
+        os.makedirs(os.path.join(d, "testing", "artifacts", "exp01-20260910-000351"))
+        _tree(d, [_row(1, grade="M", pointer="run:exp01-20260910-000351 f.json k", bound="n=1")],
+              pages={"docs/reference/artifacts.md": page, "docs/facts/nutrition-core.md": "# N\n\n## How it works\n<a id=\"update\"></a>\n### U\nx [#0001/M/n=1].\n"})
+        f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
+        assert len(f) == 1 and "exp01-20260910-000351" in f[0].detail
