@@ -340,7 +340,7 @@ import patterns from there.
   pages the spec allows; under 150 warns, except on `facts/other-mods/` pages and
   `areas/open-questions.md`), worked-example paths (a cell with no `file:lines` is its own finding),
   relative links and their anchors — the anchor half runs only for targets under `docs/areas`,
-  `docs/platform` and `docs/facts` (a `docs/reference/` page carries no `<a id>`), a fragment that is not a
+  `docs/platform` and `docs/facts` (`datasets.md` and `tools.md` carry `<a id>` anchors and are fragment-checked; other `docs/reference/` pages are not), a fragment that is not a
   lowercase slug (`a-z`, `0-9`, `-`, `_`) is a finding, and `--partial` skips a target page not written yet.
   A `## ` line inside a code fence never opens a section. Two pages have their own profile:
   `areas/open-questions.md` takes the sections `Index`, `Decisions`, `Experiments`, `See also`, reports

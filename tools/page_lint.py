@@ -10,7 +10,7 @@ bounds` ends with a "Not covered:" line; no narrative marker outside code spans;
 against the cap (over the cap fails; under 150 warns, except on facts/other-mods/ pages, whose Key
 facts are one line per technique, and on areas/open-questions.md, whose index is rows; tables, fences,
 headings, anchor lines and `## Open` index rows do not count); every `## Worked examples` path exists;
-every relative link resolves to a page and, when it carries a fragment, that fragment is a lowercase
+every relative link resolves to a page and, when it carries a fragment into a contract page or one of the two tagged reference pages (datasets.md, tools.md), that fragment is a lowercase
 slug (`a-z`, `0-9`, `-`, `_`) and — on a page of the three layers, the only ones the contract gives
 `<a id>` anchors — an anchor on it (--partial skips a missing page). On areas/open-questions.md every
 `open` register row must carry a tag somewhere on the page (open-index). The reference profile
@@ -51,7 +51,8 @@ REFERENCE_PAGES = ("reference/datasets.md", "reference/tools.md")   # tagged own
 NO_FLOOR = ("facts/other-mods/", "areas/open-questions.md")           # the mod pages' Key facts are one line per technique; the index is rows
 OPEN_INDEX = "areas/open-questions.md"
 # Only these layers are under the page contract, so only they carry `<a id>` anchors: a link into
-# docs/reference/ or an old doc is checked for its page, never for its fragment.
+# docs/reference/ or an old doc is checked for its page only, except the two tagged reference pages (REFERENCE_PAGES),
+# whose <a id> anchors are checked like a contract page's.
 CONTRACT_LAYERS = ("areas", "platform", "facts")
 CAPS = {"platform/harness.md": 500, "platform/mod-anatomy.md": 500, "platform/lua-platform.md": 500, "platform/mp-model.md": 500}
 DEFAULT_CAP, FLOOR = 400, 150

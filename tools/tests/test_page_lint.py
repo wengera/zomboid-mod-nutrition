@@ -238,3 +238,14 @@ def test_no_prose_floor_for_mod_pages_and_the_open_index(tmp_path):
     q.write_text(GOOD, encoding="utf-8")
     findings, _ = pl.lint(str(q), root=str(root), partial=True)
     assert [f for f in findings if f.rule == "prose-floor"]
+
+
+def test_fragment_into_a_tagged_reference_page_is_checked(tmp_path):
+    root = _tree(tmp_path, {"good.md": GOOD.replace("(../facts/wire.md#staircase)", "(../reference/datasets.md#counts)")})
+    ds = root / "docs" / "reference" / "datasets.md"
+    ds.write_text("# D" + chr(10) + STAMP + chr(10) + chr(10) + '<a id="counts"></a>' + chr(10) + "## Counts" + chr(10), encoding="utf-8")
+    findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
+    assert not [f for f in findings if f.rule == "link"]
+    (root / "docs" / "facts" / "good.md").write_text(GOOD.replace("(../facts/wire.md#staircase)", "(../reference/datasets.md#missing)"), encoding="utf-8")
+    findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
+    assert [f for f in findings if f.rule == "link" and "#missing" in f.detail]
