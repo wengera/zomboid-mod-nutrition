@@ -11,7 +11,7 @@
 - Weight bands: Very High >= 100, High 85-99.9, normal 75.1-84.9, Low 65.1-75, Very Low 50.1-65, Emaciated <= 50, plus damage ("degeneration") at 35; default start 80, and any band but normal caps fitness XP at level 6.
 - Gain: calories must clear `base + (weight - 80) * 40`, base 1000 (700 with Slow Metabolism under 90, 1800 with Fast Metabolism over 70); then `dWeight = factor * min(1, calories/4000) * gameSeconds`, factor 1.3e-5, x2 above 400 and x3 above 700 carbs-or-fats.
 - Loss: below `(weight - 70) * 30` (capped at 0), `dWeight = 8.5e-6 * min(1, calories/2500) * gameSeconds`. Store ceilings: calories 3700 / -2200; carbohydrates, proteins and fats 1000 / -500 each.
-- `docs/superpowers/plans/01-notes.md` Q5 re-read `Nutrition.updateWeight()` off the 42.20.4 jar and found this gain/loss model unchanged, so the formulas are safe to cite even though the page stamp is nine minors stale.
+- `01-notes.md` (at the tag `research-program-v1`) Q5 re-read `Nutrition.updateWeight()` off the 42.20.4 jar and found this gain/loss model unchanged, so the formulas are safe to cite even though the page stamp is nine minors stale.
 - Claims proteins between 50 and 300 give a x1.5 Strength XP multiplier and below -300 a x0.7 penalty, self-dated "Build 34.5" — verify against `zombie.characters.BodyDamage.Nutrition` and the XP award path before repeating.
 - Presents the weight sim as always-on and never mentions the sandbox `Nutrition` option, which 01-notes.md Q5 shows gates `Nutrition.update()` and nothing else: with it off, `Eat` still fills the stores while drain, calorie burn and weight all stop — verify against `SandboxOptions`/`Nutrition.update()`.
 

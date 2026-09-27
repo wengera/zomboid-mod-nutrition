@@ -8,7 +8,7 @@
 ## Digest
 
 - Tile catalogue of every B42 appliance object, one sortable table per family (Communication, Cooking appliances, Fridges, Washing machines, Other); each row gives encumbrance, footprint in tiles, whether it is a crafting surface, and the skill plus tool needed to pick it up or disassemble it. Stamped 42.8.0.
-- The Fridges table is why this page is mirrored, but it carries no spoilage, power or temperature figure at all — it is hardware only. For the multiplier go to `fridge.md` or `docs/superpowers/plans/02-notes.md` Q2, not here.
+- The Fridges table is why this page is mirrored, but it carries no spoilage, power or temperature figure at all — it is hardware only. For the multiplier go to `fridge.md` or `02-notes.md` (at the tag `research-program-v1`) Q2, not here.
 - Refrigeration roster, 15 objects: nine residential/industrial fridges (40.0 encumbrance, 1 tile, except the 2-tile Large Fridge), Mini Fridge 10.0, Built-in Trailer Fridge 10.0, the 2-tile Popsicle Freezer, Chest Freezer 20.0, and two 3-tile shop fixtures — Generic Cooled Shelves and White Display Counter.
 - Base-building detail worth having: the metal fridges need no skill to pick up but Welding plus a torch and mask to break down, while the shop coolers and the trailer fridge want Electrical or Carpentry with a screwdriver or hammer.
 - Claims fridge-ness by category rather than by container type — verify each tile against `ItemContainer.isFridge()`/`isFreezer()` (type string `fridge`/`freezer`, else a parent `IsoObject` carrying `IsoPropertyType.IS_FRIDGE`); `isFridge()` returns false for anything already a freezer, and the two cooled shop fixtures are the likeliest false positives in this list.

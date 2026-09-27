@@ -8,7 +8,7 @@
 ## Digest
 
 - Bot-generated lookup table — encumbrance, hunger, calories, carbohydrates, proteins, fat and item ID for every food. Stamped 42.20.0; no prose beyond the legend, so it is a data cross-check, not a mechanics source.
-- Spot-check holds: Apple reads hunger -16, 95 kcal, 25.13 carbs, 0.47 protein, 0.31 fat, `Base.Apple` — the same numbers `docs/superpowers/plans/01-notes.md` reads from `media/scripts/generated/items/food.txt:8658`.
+- Spot-check holds: Apple reads hunger -16, 95 kcal, 25.13 carbs, 0.47 protein, 0.31 fat, `Base.Apple` — the same numbers `01-notes.md` (at the tag `research-program-v1`) reads from `media/scripts/generated/items/food.txt:8658`.
 - Mixes two conventions in one row: hunger is the raw script value, but `Item.InstanceItem` divides `HungerChange` by 100 before storing it (-16 -> -0.16), while calories and the three macros are stored unscaled — use the hunger column for identity, not arithmetic.
 - Rows are per item and state-free. Right for the macros (`Food.getCalories` and siblings are bare getfields; no cooked/burnt/rotten/frozen modifier exists) but wrong for hunger, which `Food.getHungerChange` scales x1.3 cooked, /3 burnt, /2.2 rotten — verify against `zombie.inventory.types.Food` (01-notes.md Q2).
 - Column is labelled "Fat" while the script key and the Java field are `Lipids`; keep that mapping explicit when we generate our own dataset in P4.
