@@ -22,9 +22,9 @@ import patterns from there.
   names, all four gone from the tree, so today the one stamped doc is
   `docs/reference/wall-map.md` — carry
   `Verified against: 42.20.4`), `placeholder` (`TODO`/`TBD`/
-  `_digest pending_`), `sources` (in those same docs, a `## Sources` heading
+  `_digest pending_`), `sources` (stamped docs only: a `## Sources` heading
   with at least one non-blank line before the next `## ` heading), `grades`
-  (every body row of a table with an `Ev` column opens its `Ev` cell with a C/M/W grade, optionally bold; a letter inside a later tag does not count),
+  (stamped docs only: every body row of a table with an `Ev` column opens its `Ev` cell with a C/M/W grade, optionally bold; a letter inside a later tag does not count),
   `mirror-header` (the four header keys above, on every mirror). Skips
   `docs/superpowers/` and `docs/progress.md` (constants the code still carries,
   both gone from the tree), `.superpowers/` (SDD scratch) and
@@ -121,7 +121,7 @@ import patterns from there.
   no `common/media` in the corpus carries a nutrition key, so nothing is hidden
   from the catalog.) Every field, the counts above and the
   `workshop_item_mtime` caveat are documented in
-  [`data/README.md`](../data/README.md) § mod-inventory. Stdlib only bar
+  [`docs/reference/datasets.md#mod-inventory`](../docs/reference/datasets.md#mod-inventory). Stdlib only bar
   `mod_lint` beside it; the workshop tree is read, never written.
 
 - `workshop_search.py` — `python tools/workshop_search.py [--details]
@@ -185,8 +185,8 @@ import patterns from there.
   **eight of the nine mods** in
   [`../docs/facts/other-mods/catalog.md#status`](../docs/facts/other-mods/catalog.md#status).
   Run once, 2026-09-10 17:46: **9 requested, 9 fetched, 0 failed**;
-  columns and the readings in [`data/README.md`](../data/README.md)
-  § workshop-catalog-details.
+  columns and the readings in
+  [`docs/reference/datasets.md#workshop-rows`](../docs/reference/datasets.md#workshop-rows).
   **Flag combinations that cannot mean what they say are usage errors**, not
   quiet no-ops — `--details-ids` without `--details`, `--fill-ids` without
   `--include-not-requested` (a bare fill repairs failures only), `--fill` beside
@@ -203,8 +203,8 @@ import patterns from there.
   (`subscribe to <id> in Steam, let it download, re-run tools/mod_inventory.py`):
   it cannot be linted, profiled, booted or measured from this repo, so teardown
   picks come only from the installed corpus. Columns, `meta` and the
-  load-bearing rows are documented in [`data/README.md`](../data/README.md)
-  § workshop-search.
+  load-bearing rows are documented in
+  [`docs/reference/datasets.md#workshop-rows`](../docs/reference/datasets.md#workshop-rows).
 
 - `food_scan.py` — `python tools/food_scan.py`
   Parses the 42.20.4 scripts under `media/scripts/generated/` and writes
@@ -221,7 +221,7 @@ import patterns from there.
   `lua/shared/Translate/EN/{ItemName,Fluids}.json`; every join miss is
   recorded in `meta` rather than papered over, and an absent script key is
   empty in the CSV and `null` in the JSON — never `0`. Columns, the selection
-  rule and `meta` are documented in `data/README.md`.
+  rule and `meta` are documented in [`docs/reference/datasets.md#columns`](../docs/reference/datasets.md#columns), [`#kinds`](../docs/reference/datasets.md#kinds) and [`#schemas`](../docs/reference/datasets.md#schemas).
   It also holds the **shared script-DSL parser** — nesting-aware, so a
   component's keys never flatten onto the item that owns it:
   `parse_script(text, path)`, `iter_blocks`, `walk` (the same walk, yielding
@@ -256,8 +256,8 @@ import patterns from there.
   rules a consumer has to know: an input amount is a count of **uses** unless
   the line carries `flags[ItemCount]`, and a delta term is only taken from a
   `nutrition_basis = per_item` row. Both output pairs are byte-stable across
-  runs. Columns, the JSON shapes and `meta` are documented in `data/README.md`
-  § recipes and § evolved-recipes; the model, the refusals and the live
+  runs. Columns, the JSON shapes and `meta` are documented in
+  [`docs/reference/datasets.md#schemas`](../docs/reference/datasets.md#schemas) § Recipes and § Evolved recipes; the model, the refusals and the live
   cross-check are [`docs/facts/cooking-and-recipes.md#dataset-fidelity`](../docs/facts/cooking-and-recipes.md#dataset-fidelity).
 
 ## Reference tooling
@@ -334,9 +334,9 @@ import patterns from there.
   a page's several rules on one set are never compared with each other, so a verbatim copy of one
   rule is clean beside the other rules its source page carries on the same set), `refgen` (rule 10:
   the two generated sections are fresh renders of `reference_gen.py` — the `Cited by` column of
-  `docs/reference/artifacts.md`, skipped while that page does not exist, and the `## Contradictions`
-  section of `references/wiki-mirrors/README.md`, skipped while the README carries no markers; a
-  drift is a finding on the file).
+  `docs/reference/artifacts.md` and the `## Contradictions` section of
+  `references/wiki-mirrors/README.md`; a drift, an absent file or a README without its markers
+  is a finding on the file).
   `--register-only` = schema + pointer (Phase 1; every harvest part is checked this way);
   `--partial` lets `owner` skip pages not yet written (Phases 2–3); `--staged` skips when nothing
   relevant is staged; `--allow-provisional` tolerates a `[T<task>.<n>]` tag an unapplied delta
