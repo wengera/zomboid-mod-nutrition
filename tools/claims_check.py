@@ -8,9 +8,9 @@ register slice) · rules-dup (9: for each pair of pages under docs/areas and doc
 tag-id set both carry on a `## Rules` line, a finding fires only when the two pages share no
 byte-identical line for that set; a page's several rules on one set are never compared with each
 other) · refgen (10: the two generated sections must be fresh renders of the register —
-docs/reference/artifacts.md's `Cited by` column, skipped while that page does not exist, and the
-`## Contradictions` section of references/wiki-mirrors/README.md, skipped while the README carries
-no reference_gen markers; see tools/reference_gen.py). --register-only runs 0 and 3; --partial lets
+docs/reference/artifacts.md's `Cited by` column and the `## Contradictions` section of
+references/wiki-mirrors/README.md; an absent page or a README without its reference_gen markers is a
+finding; see tools/reference_gen.py). --register-only runs 0 and 3; --partial lets
 1 skip owner pages that do not exist yet; --section-map prints the source-section map; --staged
 skips the run when nothing relevant is staged."""
 import argparse, collections, csv, os, re, subprocess, sys
@@ -26,22 +26,18 @@ LUA_DIR = "testing/PZTestKit/PZTestKit/42/media/lua"
 LAYER_DIRS = ("docs/areas", "docs/platform", "docs/facts")
 # Rule 2 also reads the three reference pages that own register rows: `docs/reference/` is outside the
 # page contract, so rule 4 never runs there, but a row owned by one of these still needs its tag to
-# resolve and to carry the canonical suffix. The wall map is read once it exists at its new path (it
-# moves there at the cut). Every other reference page is generated or an index.
+# resolve and to carry the canonical suffix. Every other reference page is generated or an index.
 REF_TAG_PAGES = ("docs/reference/datasets.md", "docs/reference/tools.md", "docs/reference/wall-map.md")
 # Rule 10's inputs: the two files whose sections tools/reference_gen.py generates.
 ARTIFACTS_MD = "docs/reference/artifacts.md"
 MIRRORS_README = "references/wiki-mirrors/README.md"
 SKILLS_DIR = ".claude/skills"
-# Trees the Phase 4 cut deletes. A `repo:` pointer into one of them is a dangling cite the moment
-# the cut lands, so rule 3 rejects it today, whether or not the file still exists (R20). A trailing
-# `/` is a prefix; the three bare files are matched whole.
+# The pre-restructure trees, readable only at the tag research-program-v1. A `repo:` pointer into one
+# of them is a dangling cite, so rule 3 rejects it whether or not a stray file sits at that path (R20).
+# A trailing `/` is a prefix; the three bare files are matched whole.
 DOOMED_PATHS = ("docs/vanilla/", "docs/modding/", "docs/mods-survey/", "docs/testing/",
                 "docs/superpowers/", "docs/feasibility/",
                 "docs/progress.md", "docs/decisions.md", "docs/references.md")
-# Exempt: the cut moves this file verbatim to docs/reference/wall-map.md and rewrites the
-# register's pointers then, so a pointer into it is not a dangling cite (R21).
-DOOMED_EXEMPT = ("docs/modding/wall-map.md",)
 TRIGGERS = ("docs/", ".claude/skills/", "testing/PZTestKit/", "testing/artifacts/", "testing/experiments/", "tools/bus_inventory.py", "tools/reference_gen.py", "references/wiki-mirrors/")
 Finding = collections.namedtuple("Finding", "path line rule detail")
 WARN_RULES = ("untagged",)
@@ -201,10 +197,8 @@ def rule_schema(rows, register_rel):
 
 
 def _doomed(path):
-    """True for a repo path under a tree the Phase 4 cut deletes (R20), bar the files the cut moves
-    rather than deletes (R21) — those still go through the ordinary "does it exist" check."""
-    if path in DOOMED_EXEMPT:
-        return False
+    """True for a repo path under a pre-restructure tree (R20); any other path goes through the
+    ordinary "does it exist" check."""
     return any(path.startswith(d) if d.endswith("/") else path == d for d in DOOMED_PATHS)
 
 
@@ -279,8 +273,8 @@ def rule_pointer(rows, root, register_rel):
             elif form == "repo":
                 path = text.split('"')[0].strip().rsplit(":", 1)[0]
                 if _doomed(path):
-                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is deleted at the cut (Phase 4); "
-                                                                   "cite the underlying evidence" % (r["id"], path)))
+                    out.append(Finding(register_rel, n, "pointer", "%s: repo path %s is a pre-restructure path (at the tag "
+                                                                   "research-program-v1); cite the underlying evidence" % (r["id"], path)))
                 elif not os.path.exists(os.path.join(root, *path.split("/"))):
                     out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist" % (r["id"], path)))
     return out
@@ -368,18 +362,24 @@ def rule_generator(root, lua_dir):
 
 def rule_refgen(root, rows):
     """Rule 10: each generated section of the reference is a fresh render of the register (spec
-    § The target tree). The artifacts register's `Cited by` column is checked once the page exists
-    at docs/reference/artifacts.md; the wiki mirrors' `## Contradictions` section once the README
-    carries its markers — before that there is nothing generated to drift, and the explicit
-    `reference_gen.py contradictions --check` reports the missing section."""
+    § The target tree): the artifacts register's `Cited by` column in docs/reference/artifacts.md
+    and the wiki mirrors' `## Contradictions` section in references/wiki-mirrors/README.md. Both
+    inputs are mandatory: an absent file is a finding, and so is a README without its markers
+    (`contradictions_check` reports the missing section)."""
     import reference_gen as rg
     out = []
     page = os.path.join(root, *ARTIFACTS_MD.split("/"))
-    if os.path.exists(page):
+    if not os.path.exists(page):
+        out.append(Finding(ARTIFACTS_MD, 1, "refgen", "missing: the artifacts register does not exist, "
+                                                      "so its Cited by column cannot be checked"))
+    else:
         for d in rg.cited_by_check(page, rows, os.path.join(root, *ALIASES.split("/"))):
             out.append(Finding(ARTIFACTS_MD, 1, "refgen", d))
     readme = os.path.join(root, *MIRRORS_README.split("/"))
-    if os.path.exists(readme) and rg.has_markers(_read(readme)):
+    if not os.path.exists(readme):
+        out.append(Finding(MIRRORS_README, 1, "refgen", "missing: the wiki mirrors README does not exist, "
+                                                        "so its Contradictions section cannot be checked"))
+    else:
         for d in rg.contradictions_check(readme, rows):
             out.append(Finding(MIRRORS_README, 1, "refgen", d))
     return out

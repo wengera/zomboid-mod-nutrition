@@ -2,6 +2,7 @@ import os, subprocess, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import claims_check as cc
 import claimslib as cl
+import reference_gen as rg
 
 CLI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "claims_check.py")
 
@@ -18,9 +19,20 @@ def _row(i, **kw):
     r.update(kw); return r
 
 
+# Rule 10's two inputs as an empty tree has them: an artifacts register with no runs and a mirrors
+# README whose Contradictions section is the register's render. A test's own pages override them.
+ARTIFACTS_EMPTY = "# Artifacts\n\n## Contents\n\n| Run id | File | Experiment | Cited by |\n|---|---|---|---|\n"
+
+
+def _refgen_inputs(d, rows):
+    _write(d, cc.ARTIFACTS_MD, ARTIFACTS_EMPTY)
+    rg.contradictions_write(_write(d, cc.MIRRORS_README, "# Mirrors\n"), rows)
+
+
 def _tree(d, rows, pages=None, skills=None, dnc="run,key,value,why,read_instead\n", aliases="alias,run,file,key\n"):
     cl.write_register(_write(d, "docs/reference/claims.tsv", ""), rows)
     _write(d, "docs/reference/do-not-cite.csv", dnc); _write(d, "docs/reference/run-aliases.csv", aliases)
+    _refgen_inputs(d, rows)
     for rel, text in (pages or {}).items():
         _write(d, rel, text)
     for rel, text in (skills or {}).items():
@@ -291,30 +303,31 @@ def test_rule_pointer_admits_an_uncommitted_run_on_a_superseded_row():
         assert len(f) == 1 and "has no folder" in f[0].detail
 
 
-# --- R20: a repo: pointer may not name a tree the Phase 4 cut deletes.
+# --- R20: a repo: pointer may not name a pre-restructure tree.
 
 def test_repo_pointers_into_the_deleted_trees_are_findings():
     with tempfile.TemporaryDirectory() as d:
-        _write(d, "docs/modding/patterns.md", "# P\n")            # present today, deleted at the cut
+        _write(d, "docs/modding/patterns.md", "# P\n")            # a stray file at an old path
         _write(d, "tools/x.py", "x = 1\n")
         _tree(d, [_row(1, pointer='repo:docs/modding/patterns.md:280 "x"'),
                   _row(2, pointer='repo:tools/x.py:3 "x"'),
-                  _row(3, pointer='repo:docs/progress.md:5 "x"')])  # absent today, still the cut message
+                  _row(3, pointer='repo:docs/progress.md:5 "x"')])  # absent, the same message
         f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
-        assert len(f) == 2 and all("deleted at the cut (Phase 4)" in x.detail for x in f)
+        assert len(f) == 2 and all("is a pre-restructure path (at the tag research-program-v1); "
+                                   "cite the underlying evidence" in x.detail for x in f)
         assert any("#0001" in x.detail and "docs/modding/patterns.md" in x.detail for x in f)
         assert any("#0003" in x.detail and "docs/progress.md" in x.detail for x in f)
         assert not any("#0002" in x.detail for x in f)
 
 
-def test_wall_map_is_moved_by_the_cut_not_deleted():
+def test_the_wall_map_is_cited_at_its_reference_path_only():
     with tempfile.TemporaryDirectory() as d:
-        _write(d, "docs/modding/wall-map.md", "# Wall map\n")
-        _write(d, "docs/modding/patterns.md", "# P\n")
+        _write(d, "docs/modding/wall-map.md", "# Wall map\n")          # its pre-restructure path
+        _write(d, "docs/reference/wall-map.md", "# Wall map\n")
         _tree(d, [_row(1, pointer='repo:docs/modding/wall-map.md:12 "x"'),
-                  _row(2, pointer='repo:docs/modding/patterns.md:280 "x"')])
+                  _row(2, pointer='repo:docs/reference/wall-map.md:12 "x"')])
         f = [x for x in cc.check(d, register_only=True) if x.rule == "pointer"]
-        assert len(f) == 1 and "#0002" in f[0].detail and "deleted at the cut" in f[0].detail
+        assert len(f) == 1 and "#0001" in f[0].detail and "pre-restructure path" in f[0].detail
 
 
 # --- R22: a --register part may hold a continuation slice of a block that does not start at its lo.
@@ -436,3 +449,27 @@ def test_refgen_rule_reports_drift_in_the_artifacts_register():
               pages={"docs/reference/artifacts.md": page, "docs/facts/nutrition-core.md": "# N\n\n## How it works\n<a id=\"update\"></a>\n### U\nx [#0001/M/n=1].\n"})
         f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
         assert len(f) == 1 and "exp01-20260910-000351" in f[0].detail
+
+
+NUTRITION_PAGE = "# N\n\n## How it works\n<a id=\"update\"></a>\n### U\nx [#0001].\n"
+
+
+def test_refgen_rule_requires_the_artifacts_register():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1)], pages={"docs/facts/nutrition-core.md": NUTRITION_PAGE})
+        assert not [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
+        os.remove(os.path.join(d, *cc.ARTIFACTS_MD.split("/")))
+        f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
+        assert len(f) == 1 and f[0].path == cc.ARTIFACTS_MD and "missing" in f[0].detail
+        assert cc.exit_code(f) == 1
+
+
+def test_refgen_rule_requires_the_mirrors_readme_and_its_markers():
+    with tempfile.TemporaryDirectory() as d:
+        _tree(d, [_row(1)], pages={"docs/facts/nutrition-core.md": NUTRITION_PAGE,
+                                   cc.MIRRORS_README: "# Mirrors\n\nNo generated section here.\n"})
+        f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
+        assert len(f) == 1 and f[0].path == cc.MIRRORS_README and "section missing" in f[0].detail
+        os.remove(os.path.join(d, *cc.MIRRORS_README.split("/")))
+        f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
+        assert len(f) == 1 and f[0].path == cc.MIRRORS_README and "missing" in f[0].detail
