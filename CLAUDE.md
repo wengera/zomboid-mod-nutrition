@@ -50,7 +50,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
 - `python tools/reference_gen.py cited-by --check` and `python tools/reference_gen.py contradictions --check` → in sync: the artifacts register's `Cited by` column and the mirrors' `## Contradictions` section are rendered from the register, the checker's rule 10 runs both (so `claims_check.py --staged` covers a commit touching the register, `docs/reference/artifacts.md` or `references/wiki-mirrors/`), and `--write` in place of `--check` regenerates them.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
-- `python -m pytest tools/tests testing/tests -q` green: 391 passed on 2026-09-26, and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 393 passed on 2026-09-26, and the count never drops.
 
 ## 4. Extending the reference
 
