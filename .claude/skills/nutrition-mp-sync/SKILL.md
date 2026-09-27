@@ -1,6 +1,6 @@
 ---
 name: nutrition-mp-sync
-description: Syncing a nutrition mod's state between a dedicated server and its clients — who owns each stat, the command bus from `sendClientCommand` to `OnClientCommand` to `sendServerCommand`, player, item and global modData with `transmitModData` and its wipe-and-replace, the player-stats packet, `ItemStatsPacket`, `SyncItemFieldsPacket` and `syncItemFields()`, `isServer()` guards on `media/lua/server/` files, client prediction and mirrors, the band traits a client never receives, and addressing an item by id in a bus round trip.
+description: Syncing a nutrition mod's state between a dedicated server and its clients — who owns each stat, the command bus from `sendClientCommand` to `OnClientCommand` to `sendServerCommand`, player, item and global modData with `transmitModData` and its wipe-and-replace, the player-stats packet, `ItemStatsPacket`, `SyncItemFieldsPacket` and `syncItemFields()`, `isServer()` guards on `media/lua/server/` files, client prediction and mirrors, the band traits the player-stats packet does not carry, and addressing an item by id in a bus round trip.
 ---
 ## Read first
 - docs/areas/mp-sync.md

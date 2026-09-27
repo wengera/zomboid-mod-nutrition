@@ -14,7 +14,7 @@ description: Answering a question only the decompiled `projectzomboid.jar` settl
 - Check the result cap before reading a hit list as complete: the cap has a default and a truncated list looks exactly like an exhaustive one [#1969].
 - Never read access off the member list: the methods subcommand lists every declared method regardless of access and discards the flags as it walks the method table [#1970].
 - Read `refs` as the outbound references of one method: it takes a class and a method and lists the constant-pool references inside that method, which is not a reverse-caller query [#1971].
-- Hand a question about timing to a live run rather than to the jar: a carrier can be read out of the bytecode while its cadence stays unread, as the multiplayer inventory re-send is [#0376/C/C-only/open].
+- Test a class against the exposer's class set before planning any Lua call on it, whatever the jar declares about the member: membership in that constant-pool class set is the exposure test, and what it costs a mod is [reaching a Java member](lua-platform.md#java-members) [#0963/C/C-only, #1740/C/C-only].
 
 ## Also
 - docs/platform/lua-platform.md#java-members — the exposure test and what reaching a Java member costs a mod once the jar has named it.

@@ -1,6 +1,6 @@
 ---
 name: nutrition-item-pass
-description: Rebalancing vanilla food items — a partial `module Base` `item` block per record of `data/food-items.json` re-basing `Calories`, `Carbohydrates`, `Proteins`, `Lipids`, `HungerChange` or `ThirstChange`, the per-key merge, the replay sorted by script path rather than `Mods=`, `template_` and mod-unique script basenames, script value types and `InvalidParameterException`, script units against instance getters, drinks and their fluids, `ItemStatsPacket` fields, the script checksum, or declaring the mod's own foods in its own module.
+description: Rebalancing vanilla food items — a partial `module Base` `item` block per record of `data/food-items.json` re-basing `Calories`, `Carbohydrates`, `Proteins`, `Lipids`, `HungerChange` or `ThirstChange`, the per-key merge, the replay sorted by script path rather than `Mods=`, `template_` and mod-unique script basenames, script value types and `InvalidParameterException`, script units against instance getters, drinks and their fluids, the script checksum, or declaring the mod's own foods in its own module.
 ---
 ## Read first
 - docs/areas/item-pass.md

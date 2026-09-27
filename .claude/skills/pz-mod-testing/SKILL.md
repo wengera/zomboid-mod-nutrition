@@ -14,7 +14,7 @@ paths: ["testing/**"]
 - Write every `[[verify]]` row as a gate certain to pass if the mod loaded at all, never as the reading the session exists for: an expectation is a substring of the dumped acknowledgement, so it cannot express absence or a numeric comparison [#1828, #2069/C/inference].
 - Gate a probe that can stall the client on the server side: verification is asked only after the client is ready, so a stalled session's client row never runs and the run records a verification error instead of a pass or a fail [#1769/M/n=1].
 - Put every Java member call behind the index-first guard: a guarded call never raises and the argument-slot protected call never reaches the failure helper, while an unguarded raise, or a nested protected-call raise the mod catches, stalls the driven client [#1714/M/n=1].
-- Take the measurement on the side that owns the quantity: for nutrition, hunger and thirst, item aging and perks the server's reading is the measurement and the client's is a once-a-second mirror [#1826].
+- Cap the client wait in the profile whenever a probe can hang the client: the readiness wait is capped from the profile's client timeout, whose default is 300 seconds, and a profile that leaves the default sits out the full wait plus teardown — 384 seconds for a five-second hold — on a client that was never going to answer [#1768].
 - Make every timing step a predicate with a budget and never a sleep: the world-ready barrier is a harness handshake rather than a timer [#1845].
 - Copy every piece of measured evidence a document cites into a tracked per-run artifact folder as JSON, kept byte-identical: the full run directories with their logs stay local and untracked [#1705].
 

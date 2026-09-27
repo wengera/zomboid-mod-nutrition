@@ -8,9 +8,9 @@ description: Showing nutrition to a player — a client panel and how often it r
 - docs/platform/mod-anatomy.md
 
 ## Rules quoted
+- Cache a nutrition value at the push cadence rather than the frame cadence: the source changes once a second while an uncached panel reads it up to four times per macro bar and ten times per weight bar every frame, the counts read off one viewer's render loop and the arrivals measured in one session [#1114/M/n=1].
 - Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
 - Render through `MoodleFramework` or the mod's own panels rather than patching the widgets a resident interface mod already patches: `CleanUI` redraws the status surfaces on this server [#1083/C/snapshot].
-- Take a client-side moodle read at least one push after a server-side stat write: the moodle recompute has no side guard, so the client recomputes from a mirror that can lag by a push [#0570/C/C-only].
 - Evaluate anything keyed on the Obese, Overweight, Underweight or Emaciated band server-side, or feed it an explicitly transmitted value: the band traits are not in the player-stats packet and no other packet was traced carrying the trait list [#1104/C/inference].
 - Compare a trait by the registry object and never by its name: the name getter answers lowercased, so a string comparison against the registry spelling reads false on a trait that is demonstrably applied [#0550/M/n=1].
 - Read a food's numbers from the side that owns them and never build mod math on a getter whose value is transformed again on the wire: the item packet sends a cooked food's derived thirst getter and the receiver stores it as the raw field [#1084/M/n=2].

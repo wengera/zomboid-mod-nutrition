@@ -1,6 +1,6 @@
 ---
 name: nutrition-new-nutrients
-description: Adding a mod nutrient the vanilla macros lack (fibre, vitamins, a parallel diet stat) and choosing its store — character, item or global modData, `getModData`, `OnInitGlobalModData`, an unrecognised key in a `module Base` `item` block that lands in default modData — then its route (`transmitModData`, the command bus, the player-stats packet), what it survives, the `Nutrition` sandbox option, the vanilla macro clamps and drain, the Obese, Overweight, Underweight and Emaciated band traits, a moodle for it, and its cadence on `EveryOneMinute`, `EveryTenMinutes`, `OnPlayerUpdate` or `OnTick`.
+description: Adding a mod nutrient the vanilla macros lack (fibre, vitamins, a parallel diet stat) and choosing its store — character, item or global modData, `getModData`, `OnInitGlobalModData`, an unrecognised key in a `module Base` `item` block that lands in default modData — which route that store forces and what it survives, the vanilla macro clamps and drain it must stay out of, the `Nutrition` sandbox option, the consumer the mod writes for it, and its cadence on `EveryOneMinute`, `EveryTenMinutes`, `OnPlayerUpdate` or `OnTick`.
 ---
 ## Read first
 - docs/areas/new-nutrients.md
@@ -15,9 +15,9 @@ description: Adding a mod nutrient the vanilla macros lack (fibre, vitamins, a p
 - Keep server-authoritative per-player state out of player modData, or guarantee the client's copy is complete before anything on that client transmits: one client transmit makes the server's copy of that player's table exactly the client's [#1042/M/n=2, #1496/M/n=1].
 - Batch every key one side owns into a single transmit: the call moves the whole table rather than the changed key, so a second transmit cannot repair what the first one dropped [#1638/M/n=1, #1091].
 - Set the `Nutrition` sandbox option in the server's sandbox config: the nutrition update reads the option live every tick, a runtime flip from Lua is untried, and the Lua mirror of the option goes stale [#1127/C/C-only, #2058/C/inference].
-- Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
+- Put slow simulation such as nutrient decay on `EveryOneMinute` or `EveryTenMinutes`, use `OnPlayerUpdate` only for per-frame needs behind a cheap early-out, and avoid `OnTick`: 38 mods already share `OnPlayerUpdate` and `OnTick` is the expensive tier [#1071/C/snapshot].
 
 ## Also
 - docs/facts/nutrition-core.md#clamps — the vanilla stores, their clamps and the weight model a nutrient's effect can reach.
 - docs/areas/mp-sync.md — the route the nutrient's state travels (skill `nutrition-mp-sync`).
-- docs/areas/open-questions.md — the open rows and experiments this area waits on.
+- docs/areas/ui-and-moodles.md#moodle-route — a moodle or a panel as the nutrient's display, and the registry route to avoid (skill `nutrition-ui-and-moodles`).
