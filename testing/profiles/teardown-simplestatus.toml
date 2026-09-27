@@ -14,7 +14,7 @@ run = { hold = 20 }
 # keypress at :540 in SSBar:handleKey — all landing on ISSSBar.lua:34) and no bus command can
 # click or press a key, so `witness.moddata player:admin SimpleStatusConfig` reads `missing`
 # whether the mod loaded or not, while the global-scoped form is created by ModData.getOrCreate and
-# would answer either way (docs/testing/README.md § witness); and both events the mod registers
+# would answer either way (docs/platform/harness.md#walls); and both events the mod registers
 # (ss.main.lua:82-83) are CLIENT-only and write nothing readable.
 #
 # What DID exist was a reachable piece of the mod's own state with no shipped reader: its 52

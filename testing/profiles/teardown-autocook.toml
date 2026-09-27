@@ -49,7 +49,7 @@ verify = [                    # bare keys must precede the first table header (T
   # getModData() sites per tree and 0 transmitModData, so the server census is not expected to
   # carry the key at baseline (that asymmetry is a measurement for Task 3, not a gate). The row
   # needs the client to be past createPlayerData — verify probes run after client_ready on both
-  # entry points (docs/testing/profiles.md § `[[verify]]`), which is after OnCreatePlayer; if it
+  # entry points (docs/platform/harness.md#profiles), which is after OnCreatePlayer; if it
   # proves flaky on the run, demote it to a timed driver read and keep row 1 as the gate. The `*`
   # is skipped by the census's own `~= "*"` guard, so it never lands in `missing` and is not a
   # miss: the number worth recording is `keyCount`, at report["verify"][1]["got"]["keyCount"].

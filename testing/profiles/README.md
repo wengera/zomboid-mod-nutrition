@@ -16,7 +16,7 @@ a run that looks green while the thing under test was never loaded. Eleven profi
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
 is fine for `pzt run`, which does not touch the clock, but it breaks the game-minute cadence under
 `pzt scenario --speed` — keep `24 × speed / day_minutes ≲ 8`, so on a 15-minute day that is
-`--speed 5`, not 30 (`docs/testing/profiles.md` § The cadence ceiling); and **`missing-mod.toml`** — the regression for the
+`--speed 5`, not 30 ([`docs/platform/harness.md#cadence`](../../docs/platform/harness.md#cadence)); and **`missing-mod.toml`** — the regression for the
 failure mode, a mod named in `Mods=` that `copy = false` deliberately places nowhere, which must
 FAIL before a client is ever launched; and **`teardown-longtermpreservation4220.toml`** — slice 09's
 teardown subject, PZTestKit + `SKITTLE_LongTermPreservation4220` (workshop `3774789651`, folder
@@ -47,8 +47,8 @@ the fixture's 4, whose three `[[verify]]` rows are one tier-(a) gate per mod —
 `lua.global TKX_EatHook.version` — each certain to pass IF the mod loaded at all. The loader
 announces mods in `Mods=` order, **but script bodies do not replay in it**: they replay in sorted
 stored-script-path order with per-key last-wins, `Mods=`-independent (sessions 4 and 5,
-`x124-20260911-035819` / `x125-20260911-042055` — see `docs/modding/item-overrides.md`
-§ Load order between two mods). The `Calories` that results is the MEASUREMENT, never a gate.
+`x124-20260911-035819` / `x125-20260911-042055` — see
+[`docs/platform/loader-and-scripts.md#sorted-replay`](../../docs/platform/loader-and-scripts.md#sorted-replay)). The `Calories` that results is the MEASUREMENT, never a gate.
 **Superseded comment, frozen with the artifacts:** this profile's own header comment
 (`x12-overrides.toml:2`, "`Mods=` order is LOAD order, and it is load-bearing here: `TKX_EatHook`
 is LAST …") is **wrong for script bodies** and is left unedited because it is the input `x121`
@@ -78,7 +78,7 @@ the artifact:** `x12-order.toml:11` reads the 999 arm as "alphabetical-by-id rep
 showed the sort key is the **stored script path** (**C**, `ScriptManager$38.compare` /
 `ScriptManager.searchFolders`) and that id, folder name, script path and `mod.info` display name
 all sort identically in every boot we ran — so 999 licenses "sorted and `Mods=`-independent", not
-"by id". Cite `x125-20260911-042055` and `docs/modding/item-overrides.md` § Load order, not the
+"by id". Cite `x125-20260911-042055` and [`docs/platform/loader-and-scripts.md#sorted-replay`](../../docs/platform/loader-and-scripts.md#sorted-replay), not the
 comment; and **`x12-order2.toml`** — slice 12's session 5,
 the SAME four mods as `x12-order` in a different `Mods=` order: PZTestKit + `TKX_ItemOverride` +
 `TKX_ZWatermelon` + `TKX_EatHook` on `default` with **no `[sandbox]`** either, and the same two
@@ -107,7 +107,7 @@ itself a reading (`TKX_P.side`) rather than a boot requirement. **Outcome, for a
 row later:** the rule's first half is **falsified** — `pcall(<nil>)` returns
 `false, "tried to call nil java.lang.RuntimeException"` on both sides
 (`x126-20260911-045205`); the guards stay because the catch names nothing. The rule and its bounds
-are `docs/modding/lua-api.md` § 5; and **`x12-raise.toml`** — slice
+are [`docs/platform/lua-platform.md#pcall`](../../docs/platform/lua-platform.md#pcall); and **`x12-raise.toml`** — slice
 12's session 7, the follow-on `x12-pcall` earned: PZTestKit + `TKX_RaiseProbe` (a single `shared/`
 file, `path = "testing/experiments/TKX_RaiseProbe"`) on `default` with **no `[sandbox]`** either.
 Session 6 measured `pcall(<nil>)` and found it **catches** on both sides — so nothing raised, and
@@ -128,13 +128,13 @@ timeout` → `Client.wait_ready`); a probe that can hang the client should set i
 `[[verify]]` row is **client**-side, and `verify` is asked only after `client_ready` — so when the
 client froze the row never ran at all and the session recorded a `verify_error` instead of a pass
 or a fail. **Gate a raising probe on the SERVER.** Both readings are in
-`docs/testing/README.md` § Observation; the freeze itself (the `-debug` client parks in the Lua
+[`docs/platform/harness.md#profiles`](../../docs/platform/harness.md#profiles); the freeze itself (the `-debug` client parks in the Lua
 debugger's modal break on the first mod Lua error that reaches `KahluaUtil.fail`) is
-`x127-20260911-052049` and is owned by `docs/modding/lua-api.md` § 5.
+`x127-20260911-052049` and is owned by [`docs/platform/lua-platform.md#debug-break`](../../docs/platform/lua-platform.md#debug-break).
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
 `--fixture` (it is the fixture its `[sandbox]` keys were validated against), and an explicit CLI
 flag wins over the profile's `run`/`server`/`client` settings. The full schema is the module
 docstring of `testing/pzt/profile.py`; the model, the `-nosteam` copy rule, the missing-mod path
-and what was measured are in [`docs/testing/profiles.md`](../../docs/testing/profiles.md).
+and what was measured are in [`docs/platform/harness.md#profiles`](../../docs/platform/harness.md#profiles).
