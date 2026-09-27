@@ -28,7 +28,7 @@ docs/areas/                the nutrition lens: one page per design area, and the
 docs/platform/             general modding knowledge, entered at overview.md
 docs/facts/                the vanilla food and nutrition mechanics
 docs/facts/other-mods/     the workshop corpus catalogue and the teardowns
-docs/reference/            the register and its coverage, the do-not-cite list, experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md)
+docs/reference/            the register and its coverage, the do-not-cite list, the run aliases (run-aliases.csv), experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md)
 references/wiki-mirrors/   the mirrored wiki pages, each dated and digested
 data/                      the generated datasets: food items, recipes, evolved recipes, the workshop corpus
 tools/                     the register checker and delta applier, the page lint, the scanners and exporters
