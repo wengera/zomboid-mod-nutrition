@@ -15,7 +15,7 @@ Read in this order:
 - [`docs/areas/`](docs/areas/) is the nutrition lens: one page per design area of the mod, each with its rules, its options, its walls and what stays open, and the open questions gathered in one index.
 - [`docs/platform/`](docs/platform/) is general modding knowledge — mod anatomy, the loader, the Lua platform, the multiplayer model, the harness, jar research and the lessons — entered at [`overview.md`](docs/platform/overview.md).
 - [`docs/facts/`](docs/facts/) holds the measured mechanics of the vanilla food and nutrition systems, with [`other-mods/`](docs/facts/other-mods/) for the workshop corpus and its teardowns.
-- [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md) and [the generated harness commands](docs/reference/harness-commands.md).
+- [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md), [the generated harness commands](docs/reference/harness-commands.md), [the wall map](docs/reference/wall-map.md) and [the artifacts register](docs/reference/artifacts.md).
 
 ## The tree
 
@@ -28,7 +28,7 @@ docs/areas/                the nutrition lens: one page per design area, and the
 docs/platform/             general modding knowledge, entered at overview.md
 docs/facts/                the vanilla food and nutrition mechanics
 docs/facts/other-mods/     the workshop corpus catalogue and the teardowns
-docs/reference/            the register and its coverage, the do-not-cite list, experiments, jar notes, harness commands, datasets, tools
+docs/reference/            the register and its coverage, the do-not-cite list, experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md)
 references/wiki-mirrors/   the mirrored wiki pages, each dated and digested
 data/                      the generated datasets: food items, recipes, evolved recipes, the workshop corpus
 tools/                     the register checker and delta applier, the page lint, the scanners and exporters
@@ -42,14 +42,12 @@ testing/artifacts/         the committed run artifacts
 testing/tests/             the harness tests
 ```
 
-The wall map (`docs/modding/wall-map.md`) and the artifacts register (`testing/artifacts/README.md`) move into `docs/reference/` at the cut, as `wall-map.md` and `artifacts.md`.
-`docs/vanilla/`, `docs/modding/`, `docs/mods-survey/` and `docs/testing/` are the pre-restructure docs: readable until the cut, and forever at the tag `research-program-v1`.
-
 ## Tags
 
 - A tag names a row of [`docs/reference/claims.tsv`](docs/reference/claims.tsv): a writer types `[#0417]` and `python tools/claims_check.py --fix-tags` writes the suffix — the grade, then the bound token when it is not `none`, then the status when the row is not settled — as `[#0417/M/n=1]` or `[#0417/C/open]`.
 - Several ids share one bracket, `[#0417/M, #0512]`; a settled `C` row with no bound carries no suffix.
 - Every register row has `id claim grade pointer bound status successor kind source owner`: the pointer is the evidence, and the owner is the page anchor that states the claim.
+- A `source` cell is harvest provenance: it names the doc a row was harvested from, and a pre-restructure doc it names is readable at the tag `research-program-v1`; the restructure's own spec and plans are readable at the parent of the cut commit `9dfc74b`.
 - `C` is read in code or data — the jar, game or mod Lua and scripts, this repository's code, a dataset; `M` is measured on a live run and points at an artifact key; `W` is a wiki mirror or a fetched web page and only corroborates.
 - `python tools/claims_check.py` checks the register's schema and pointers and every tag on the pages against its row.
 
@@ -59,7 +57,7 @@ The wall map (`docs/modding/wall-map.md`) and the artifacts register (`testing/a
 
 ## Sources
 
-The wiki pages this reference depends on are mirrored in [`references/wiki-mirrors/`](references/wiki-mirrors/README.md), each with its source, fetch date and page version in the header and a hand-written digest, except the row marked not mirrored; the mirrors are attributed and carry the wiki's CC BY-NC-SA licence.
+The wiki pages this reference depends on are mirrored in [`references/wiki-mirrors/`](references/wiki-mirrors/README.md), each with its source, fetch date and page version in the header and a hand-written digest; the one page not mirrored is digested on the page its row names; the mirrors are attributed and carry the wiki's CC BY-NC-SA licence.
 
 | Page | Mirror | Why |
 |---|---|---|
@@ -69,7 +67,7 @@ The wiki pages this reference depends on are mirrored in [`references/wiki-mirro
 | [Mod data](https://pzwiki.net/wiki/Mod_data) | [`mod-data.md`](references/wiki-mirrors/mod-data.md) | object and global modData, the store for mod-side stats, and what the page says about sync |
 | [Networking](https://pzwiki.net/wiki/Networking) | [`networking.md`](references/wiki-mirrors/networking.md) | the command-bus vocabulary and the side gates |
 | [Startup parameters](https://pzwiki.net/wiki/Startup_parameters) | [`startup-parameters.md`](references/wiki-mirrors/startup-parameters.md) | the client and server arguments the harness launches with |
-| [Testing mods in multiplayer](https://pzwiki.net/wiki/Testing_mods_in_multiplayer) | not mirrored | the manual multiplayer test procedure the harness automates |
+| [Testing mods in multiplayer](https://pzwiki.net/wiki/Testing_mods_in_multiplayer) | digested in [`docs/platform/harness.md`](docs/platform/harness.md) | the manual multiplayer test procedure the harness automates |
 | [Nutrition](https://pzwiki.net/wiki/Nutrition) | [`nutrition.md`](references/wiki-mirrors/nutrition.md) | the weight model: bands, thresholds, rates and macro ceilings |
 | [Nutritional values](https://pzwiki.net/wiki/Nutritional_values) | [`nutritional-values.md`](references/wiki-mirrors/nutritional-values.md) | the per-item calorie and macro table, a cross-check for the datasets |
 | [Food](https://pzwiki.net/wiki/Food) | [`food.md`](references/wiki-mirrors/food.md) | the food overview, the rot and cook states, per-item hunger, thirst and mood |
