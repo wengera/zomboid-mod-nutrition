@@ -18,16 +18,19 @@ import patterns from there.
   Targets are files or directories (directories are walked); the default is
   the whole repo. Prints `path:line: rule: detail` per finding, then a count;
   exits 1 if any. Rules: `stamp` (docs under `docs/vanilla`, `docs/modding`,
-  `docs/feasibility`, `docs/mods-survey/teardowns` carry
+  `docs/feasibility`, `docs/mods-survey/teardowns` — directories the code still
+  names, all four gone from the tree, so today the one stamped doc is
+  `docs/reference/wall-map.md` — carry
   `Verified against: 42.20.4`), `placeholder` (`TODO`/`TBD`/
   `_digest pending_`), `sources` (in those same docs, a `## Sources` heading
   with at least one non-blank line before the next `## ` heading), `grades`
   (every body row of a table with an `Ev` column has a C/M/W evidence grade),
   `mirror-header` (the four header keys above, on every mirror). Skips
-  `docs/superpowers/`, `.superpowers/` (SDD scratch), `docs/progress.md` and
+  `docs/superpowers/` and `docs/progress.md` (constants the code still carries,
+  both gone from the tree), `.superpowers/` (SDD scratch) and
   every `README.md`.
   Rule scoping and reported paths are relative to the **repo root**, not to
-  the target, so `python tools/doc_lint.py docs/vanilla/nutrition-core.md`
+  the target, so `python tools/doc_lint.py docs/reference/wall-map.md`
   reports the same findings the full scan does for that file — narrowing the
   target can never silently switch a rule off. `--root DIR` points that root
   somewhere else (the tests lint a temp tree that way); module API:
@@ -49,7 +52,7 @@ import patterns from there.
   fired** (WARN and INFO exit 0). **Nine rules** — five ERROR (`version-dir`,
   `mod-info`, `id`, `id-agree`, `loadstring`), three WARN (`mod-info-place`,
   `id-drift`, `media`) and one INFO (`folder-id`). The table, with what each one
-  checks as coded, lives in [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0
+  checks as coded, lives in [`docs/reference/tools.md#mod-lint`](../docs/reference/tools.md#mod-lint)
   and in the module docstring; it is not restated here. Version folders sort by
   parsed tuple, not by string, so `42.20.1 > 42.20 > 42.9 > 42`, and
   `pzt.mods.mod_id_of` resolves the same way (`testing/tests/test_mods_resolution.py`
@@ -61,7 +64,7 @@ import patterns from there.
   runnable without the game. The installed 230-folder corpus scored **84 findings
   (3 ERROR, 30 WARN, 51 INFO) at 2026-09-10 13:47**, ~13 s cold; the tree is
   live, so quote a sweep with its date — the rows and the drift since the first
-  sweep are in [`docs/testing/profiles.md`](../docs/testing/profiles.md) § L0.
+  sweep are in [`docs/reference/tools.md#mod-lint`](../docs/reference/tools.md#mod-lint).
 
 - `mod_inventory.py` — `python tools/mod_inventory.py`
   Sweeps the same workshop root as `mod_lint` and writes
@@ -93,8 +96,8 @@ import patterns from there.
   definition out — Long Term Preservation 17 → **15** items and 135 → **117**
   keys, `ZVirusVaccine42BETA` 102 → **86** — and nothing else (881 rather than
   899 across the nine script-signal mods, 2026-09-10 17:47;
-  [`../docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
-  § Discrepancies row 1). One caveat remains before the
+  [`../docs/facts/other-mods/catalog.md#sweep`](../docs/facts/other-mods/catalog.md#sweep)).
+  One caveat remains before the
   field is read as food: it counts **every** item definition, clothing and
   vehicles included (288 for `Horse`), so food is counted by hand off the
   `Type = Food` blocks. `sandbox_options` reads all three roots a build could
@@ -180,8 +183,8 @@ import patterns from there.
   because a mod no term returns is unreachable by the other two — `--details-ids`
   rejects it by name and `--fill` has no row to fill — which is the case for
   **eight of the nine mods** in
-  [`../docs/mods-survey/nutrition-mods.md`](../docs/mods-survey/nutrition-mods.md)
-  § B42 status. Run once, 2026-09-10 17:46: **9 requested, 9 fetched, 0 failed**;
+  [`../docs/facts/other-mods/catalog.md#status`](../docs/facts/other-mods/catalog.md#status).
+  Run once, 2026-09-10 17:46: **9 requested, 9 fetched, 0 failed**;
   columns and the readings in [`data/README.md`](../data/README.md)
   § workshop-catalog-details.
   **Flag combinations that cannot mean what they say are usage errors**, not
@@ -229,7 +232,7 @@ import patterns from there.
   `entries`, every `Key = Value` line, beside `props`, which is
   last-write-wins, so a repeated key survives), `coerce` / `coerce_props`,
   `canonical_key`, `is_known_key`, `KEY_TYPES` (the 114 keys of
-  `docs/vanilla/food-item-model.md`), `load_translations`. `recipe_scan.py`
+  [`docs/facts/food-item-model.md#script-keys`](../docs/facts/food-item-model.md#script-keys)), `load_translations`. `recipe_scan.py`
   imports it; read the module docstring before changing it.
 
 - `recipe_scan.py` — `python tools/recipe_scan.py --out-dir data`
@@ -255,7 +258,7 @@ import patterns from there.
   `nutrition_basis = per_item` row. Both output pairs are byte-stable across
   runs. Columns, the JSON shapes and `meta` are documented in `data/README.md`
   § recipes and § evolved-recipes; the model, the refusals and the live
-  cross-check are `docs/vanilla/recipes-dataset-notes.md`.
+  cross-check are [`docs/facts/cooking-and-recipes.md#dataset-fidelity`](../docs/facts/cooking-and-recipes.md#dataset-fidelity).
 
 ## Reference tooling
 
@@ -269,7 +272,7 @@ import patterns from there.
 - `claimslib.py` — no CLI. The claims register schema (`COLUMNS`, `KINDS`, `STATUSES`,
   `BOUND_TOKENS`, `POINTER_FORMS`, the id `BLOCKS`), TSV read/write, and the tag, pointer
   and bound grammars shared by `claims_harvest.py` and `claims_check.py`. The spec is
-  `docs/superpowers/specs/2026-09-17-reference-restructure-design.md` § The claims register.
+  `2026-09-17-reference-restructure-design.md` (the restructure spec, at the tag `research-program-v1`) § The claims register.
 
 - `claims_harvest.py` — `python tools/claims_harvest.py candidates <md…> --out <tsv>` |
   `do-not-cite <artifacts README> --out <csv>` | `merge [--parts DIR] [--register TSV] [--coverage MD]`.
@@ -313,8 +316,8 @@ import patterns from there.
   is allowed only on an `unverified` or `superseded` row whose bound starts `uncommitted:` —
   keys are neither listed in `do-not-cite.csv` nor a child of a listed key (`<listed>.<rest>`
   or `<listed>[<index>` is restricted too; an ancestor of a listed key is not — R34), `repo:`
-  paths exist and name no tree the Phase 4 cut
-  deletes, bar `docs/modding/wall-map.md`, which the cut moves),
+  paths exist and name none of the pre-restructure docs or plans (the docs are
+  at the tag `research-program-v1`),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
   the three reference pages that own register rows (`datasets.md`, `tools.md`, and `wall-map.md` once
   it moves to `docs/reference/` at the cut) and the skills resolves
@@ -345,7 +348,7 @@ import patterns from there.
 
 - `claims_delta.py` — `python tools/claims_delta.py apply <delta.tsv> --pages <page.md>… [--register TSV] [--dry-run]`.
   The controller's tool for a page task's delta file (spec § The claims register, "Deltas in Phases 2 and 3";
-  the file shape is `docs/superpowers/plans/restructure-2-page-procedure.md` § 6): mints the next free id for
+  the file shape is `restructure-2-page-procedure.md` (the Phase 2 page procedure, at the Phase 2 close `74bb475`) § 6): mints the next free id for
   each `add`, supersedes a `split` parent with its two children, retargets an owner, changes a status; rewrites
   the provisional tags on the named pages and re-canonicalises them; prints every change and any provisional
   tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row. Not idempotent: preview
