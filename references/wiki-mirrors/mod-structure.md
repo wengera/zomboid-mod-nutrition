@@ -16,7 +16,7 @@
   version (**overwrites** common files which are present in it)."* This is the merge rule our
   own datasets deliberately do not assert; it is **W**, unconfirmed against 42.20.4 code or a
   run, and it is open question 1 of
-  [`docs/mods-survey/nutrition-mods.md`](../../docs/mods-survey/nutrition-mods.md).
+  [`platform/mod-anatomy.md#version-dirs`](../../docs/platform/mod-anatomy.md#version-dirs).
 - **Minor versions are dropped from the folder name**: `42.1.5` is treated as `42.1`, `42.0.5`
   as `42.0`, `42` as `42.0`. Our `tools/mod_lint.py` `version_dirs()` instead tuple-sorts three
   part names as themselves, which is a live discrepancy on the one corpus mod that ships a

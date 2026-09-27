@@ -11,7 +11,7 @@
   logic for player damage, item stats etc. This means you need to set any of these from the
   server side instead of the client side and then use sync functions." That is the wiki's own
   statement of the rule this library measured independently for `Nutrition`, hunger and thirst
-  ([vanilla/eating-pipeline.md](../../docs/vanilla/eating-pipeline.md) § MP behaviour).
+  ([platform/mp-model.md#ownership](../../docs/platform/mp-model.md#ownership)).
 - **Environment gates.** `isClient()` / `isServer()` — both false means singleplayer; the
   file-top `if isClient() then return end` idiom skips a whole file, and `lua/client/`,
   `lua/server/`, `lua/shared/` placement is the declarative form of the same thing.
