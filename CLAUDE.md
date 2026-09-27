@@ -93,6 +93,10 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Proceed to completion and ledger each decision for review instead of asking; ask only before a destructive action or one outside this worktree.
 - Implementers run in parallel only on disjoint files; reviewers are read-only, may overlap anything, and read an implementer's committed content with `git show <commit>:<path>`; research subagents are sent off as the work goes.
 - The register is read-only for page writers: a new or changed claim is a delta file the controller applies with `tools/claims_delta.py`, and a writer never runs `claims_check.py --fix-tags` (the controller runs it once per wave close).
+- An added `rule` row (an area page's own imperative) rests on register rows: its pointer is a C pointer copied from a row it rests on, its bound reads `inference; a reading of <ids>`, and its page line carries the resting row's tag beside its own.
+- A rule copied from a page that states it outside `## Rules` is copied byte-identically and diffed by hand at review, because the checker's `rules-dup` rule reads `## Rules` lines only.
+- A skill's quoted rule line keeps the row's numbers; the skill's own text carries none.
+- A register `source` cell is harvest provenance and is never renumbered when the doc it names is rewritten.
 
 ## 7. Environment gotchas
 
