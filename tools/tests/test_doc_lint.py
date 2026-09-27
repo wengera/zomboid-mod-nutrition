@@ -99,3 +99,10 @@ def test_wall_map_is_stamped_at_its_reference_path():
         assert {"stamp", "grades"} <= rules
         _write(d, "docs/reference/other.md", "# O" + chr(10))
         assert not [f for f in doc_lint.lint([d], d) if f.path.endswith("other.md")]
+
+
+def test_grade_must_open_the_ev_cell_not_hide_in_a_tag():
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "docs/reference/wall-map.md", "# W"+chr(10)+chr(10)+"Verified against: 42.20.4 (b0bbce05d5)"+chr(10)+chr(10)+"| Item | Ev |"+chr(10)+"|---|---|"+chr(10)+"| a | x [#0001/C] |"+chr(10)+"| b | M · 12 · run [#0002/M] |"+chr(10)+"| c | **C** · 03 |"+chr(10)+chr(10)+"## Sources"+chr(10)+chr(10)+"- jar"+chr(10))
+        f = [x for x in doc_lint.lint([d], d) if x.rule == "grades"]
+        assert len(f) == 1 and f[0].line == 7

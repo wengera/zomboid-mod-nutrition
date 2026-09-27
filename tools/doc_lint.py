@@ -59,7 +59,8 @@ def lint_file(path, repo_root=None):
             if "Ev" in header:
                 col = header.index("Ev")
                 for ln, cells in rows:
-                    if col >= len(cells) or not re.search(r"\b[CMW]\b", cells[col]):
+                    # The grade opens the cell (optionally bold); a letter inside a later tag suffix does not count.
+                    if col >= len(cells) or not re.match(r"\s*(\*\*)?[CMW](\*\*)?(?![A-Za-z0-9])", cells[col]):
                         out.append(Finding(rel, ln + 1, "grades", "row without C/M/W evidence grade"))
     if _under(rel, MIRROR_DIR):
         for key in MIRROR_KEYS:
