@@ -156,7 +156,7 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - `web:<data file or page> <fetch date>` is a fetched source that is not the wiki, such as a Workshop metadata snapshot or a licence page, and grades `W`, with no anchor text.
 - `lua:<path>:<line>[-<line>] "<anchor text>"` is a file of the game install named by its path relative to the install's `media/` directory, so a Lua file reads `lua:lua/shared/…` and a script reads `lua:scripts/generated/…`, and it grades `C`.
 - `mod:<workshop id>/mods/<ModName>/<tree>/<path>:<line> "<anchor>"` is an installed workshop mod's file as it lies on disk under the workshop root, `<tree>` being the version folder or `common` the file sits in, and it grades `C`.
-- `repo:<path>:<line> "<anchor text>"` is a file in this repository and grades `C`: the path exists and names no tree the cut deletes, bar `docs/modding/wall-map.md`, which the cut moves.
+- `repo:<path>:<line> "<anchor text>"` is a file in this repository and grades `C`: the path exists and names no tree the cut deletes, bar [`wall-map.md`](wall-map.md), which the cut moves.
 - `tool:<path>:<line>` is a tool's own code at a line, in this repository or in the jar toolchain (`pz-b42/`), and grades `C`, with no anchor text.
 - `data:<what was read> <date>` is a scan whose output is the evidence and grades `C`, in one of the three readings below.
 - The anchor text of a `lua:`, `mod:` or `repo:` pointer is a quoted fragment of the cited line, so a cite whose line number drifts is re-located by content, and a `;` inside the quotes never splits the cell.

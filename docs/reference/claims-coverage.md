@@ -102,7 +102,7 @@ Sources: `docs/vanilla/eating-pipeline.md` (135 candidates) and `docs/vanilla/nu
 # Coverage part — G1b (`docs/vanilla/food-item-model.md`)
 
 Sub-block `#0201–#0450`; written `#0201–#0385` (185 rows, 65 ids left). Candidates file:
-`.superpowers/sdd/restructure-1-register/candidates-G1b.tsv` (275 candidates: 239 table rows, 36 graded paragraphs).
+`candidates-G1b.tsv` in the harvest workspace, kept locally outside the tree (275 candidates: 239 table rows, 36 graded paragraphs).
 
 ### docs/vanilla/food-item-model.md
 
@@ -187,7 +187,7 @@ Candidates accounted for: **275** = 124 harvested to rows of their own + 114 col
 # Coverage — G1c (body stats)
 
 Part files: `docs/reference/parts/claims-G1c.tsv` (147 rows, `#0451`–`#0597`, sub-block `#0451`–`#0600`).
-Candidates: `.superpowers/sdd/restructure-1-register/candidates-G1c.tsv`, 182 rows (144 evidence-table rows, 38 graded paragraphs).
+Candidates: `candidates-G1c.tsv` in the harvest workspace (kept locally, outside the tree), 182 rows (144 evidence-table rows, 38 graded paragraphs).
 
 ### docs/vanilla/body-stats.md
 
@@ -250,7 +250,7 @@ The third is not lost here: it is written into the bound of #0531, where it expl
 
 # Coverage part G1d — the food and recipe datasets
 
-Sources: `docs/vanilla/food-dataset-notes.md` (80 candidates) and `docs/vanilla/recipes-dataset-notes.md` (147 candidates); 227 candidates in all, from `.superpowers/sdd/restructure-1-register/candidates-G1d.tsv`. Rows `#0601`–`#0785`, contiguous.
+Sources: `docs/vanilla/food-dataset-notes.md` (80 candidates) and `docs/vanilla/recipes-dataset-notes.md` (147 candidates); 227 candidates in all, from `candidates-G1d.tsv` in the harvest workspace (kept locally, outside the tree). Rows `#0601`–`#0785`, contiguous.
 
 A row that carries two `source` cells appears on both sections' lines; it is one row and is counted once in `## Totals`. "collapsed into" means the candidate's content is carried by a row minted elsewhere (a dataset table collapsed to one `table` row, a code-map pointer folded into the mechanism row it points at, a question-table answer folded into the section that answers it).
 
@@ -331,7 +331,7 @@ Candidates accounted for: 227 candidate sites = 142 harvested + 63 collapsed int
 # Coverage — G2a (`docs/modding/anatomy.md`, `docs/modding/lua-api.md`)
 
 Sub-block `#0801–#1000`; written `#0801–#0970` (170 rows, contiguous). Candidates: 158
-(`.superpowers/sdd/restructure-1-register/candidates-G2a.tsv`, 87 in `anatomy.md`, 71 in
+(`candidates-G2a.tsv` in the harvest workspace, kept locally outside the tree; 87 in `anatomy.md`, 71 in
 `lua-api.md`). A row whose `source` names more than one section is listed under each of them —
 a claim that appears in several places is one row with several sources, never a second row.
 `§ header` is the prose above the first `##` heading.
@@ -400,7 +400,7 @@ By status: settled 150 · open 15 · superseded 3 (#0801 -> #0802; #0965 -> #094
 
 Sub-block `#1001–#1120`, all 120 ids used, plus the continuation slice `#2001–#2003` the
 controller minted in fix round 1 under R22 — 123 rows in all. Candidates file:
-`.superpowers/sdd/restructure-1-register/candidates-G2b.tsv` (95 candidates: 68 from
+`candidates-G2b.tsv` in the harvest workspace, kept locally outside the tree (95 candidates: 68 from
 `item-overrides.md`, 23 from `patterns.md`, 4 from `README.md`).
 
 "Collapsed into" means the candidate states a claim another row already carries; that row's
@@ -1084,7 +1084,7 @@ at; no `table` was exploded into rows.
 # Coverage — G4 (testing, data, tools, ledgers and the working reads)
 
 Sub-block `#1701–#2000`; **276 rows written, `#1701`–`#1976`**, contiguous, 24 ids unused (see
-§ Handed to other groups). Candidates file: `.superpowers/sdd/restructure-1-register/candidates-G4.tsv`
+§ Handed to other groups). Candidates file: `candidates-G4.tsv` in the harvest workspace, kept locally outside the tree
 (**101 candidates**: `CLAUDE.md` 1, `data/README.md` 33, `docs/testing/README.md` 2,
 `docs/testing/profiles.md` 65; `pipeline-design.md`, `spikes.md`, `tools/README.md` and
 `jar-method-notes.md` yield none — the tool under-counts this group, so the sources read in full are
@@ -1308,19 +1308,19 @@ the checklist and every section below is accounted for whether or not it had a c
 - The brief's fifth tool item, "`dump` on a large class is slow", **is not in the source** — the
   notes state the `--max 60` cap and nothing about dump cost — so no row was written for it.
 
-### .superpowers/sdd/wave-4/not-settled.md
+### not-settled.md (a consumed working read)
 
 - 13 lines, 11 bullets. **10 are superseded by a committed G2 row** and are listed in § Handed to
   other groups with their successors; **1 is dropped as process** (the plan template taking inline
   corrections three passes running, and the `## Corrections applied` section that answers it).
 - rows minted here: none. See § Handed to other groups for why.
 
-### .superpowers/sdd/13-wall-map/slice-12-bounds.md
+### slice-12-bounds.md (a consumed working read)
 
 - 16 numbered bullets. **All 16 are superseded by a committed G2 row** (several by two) and are
   listed in § Handed to other groups. rows minted here: none.
 
-### .superpowers/sdd/14-feasibility-notes/slice-13-bounds.md
+### slice-13-bounds.md (a consumed working read)
 
 - § 1 (the wall-map bound list, 35 entries) — rows: none. Every entry names a wall-map row and cites
   *the map's own `Ev` / Residual-risk cells*, so the wall map already carries the successor and the
@@ -1332,7 +1332,7 @@ the checklist and every section below is accounted for whether or not it had a c
 - **#1973's source cell names the tree file, not this workspace file.** A source cell names a file
   in the tree, and `docs/reference/experiments.md` § Owners and the cost roll-up states the ≈ 42 h
   figure at line 253, so that is the row's source and its pointer. The bounds list itself yields no
-  other row, and no G4 row's source cell names anything under `.superpowers/`.
+  other row, and no G4 row's source cell names anything in the harvest workspace (kept locally, outside the tree).
 
 ---
 
@@ -1453,7 +1453,7 @@ every later phase reads.
   below superseded `#1196`.
 - **Their `source` cells name this file, not the workspace ledger.** The 27 ledger entries
   come from two gitignored files (`not-settled.md`, `slice-12-bounds.md`); a `source` cell
-  never names a path under `.superpowers/` (the spec's acceptance check 8 - every register
+  never names a path in the harvest workspace, kept locally outside the tree (the spec's acceptance check 8 - every register
   source resolves from a fresh clone - and the precedent G4 set for `#1973`). Each therefore
   reads `docs/reference/claims-coverage.md § Handed to other groups (<entry>)`, which is
   where the old statement is recorded verbatim once this file is committed. `#2039` names
@@ -1618,7 +1618,7 @@ page tags, so every such case is named below.
 ### How the pairs were found
 
 Three passes over the merged register, cross-block only
-(`.superpowers/sdd/restructure-1-register/merge-duplicates.py`): identical normalised claim
+(`merge-duplicates.py`, in the harvest workspace, kept locally outside the tree): identical normalised claim
 text (**0 groups**, as the controller's dry-merge scan also found); identical pointer set; and
 nesting pointer sets, with a fourth pass comparing evidence roots (run + file, jar method) so a
 keyless row meets the keyed one. Candidates were ranked by claim-word overlap and every pair
