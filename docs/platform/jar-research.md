@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how a question abo
 - Find callers by grepping the method name and then scanning each hit class's own methods for the call: the toolchain has no reverse-caller index, so a caller set is a grep result narrowed by hand [#1971].
 - Escape the dollar sign of an inner class: the wrapper passes its argument on through the shell [#1972].
 - Resolve a class's package path before dumping it: a class is not always at the bare name a traceback prints, and a wrong path answers like an empty class rather than like an error [#1972].
-- Test a class against the exposer's class set before planning any Lua call on it, whatever the jar declares about the member: membership in that constant-pool class set is the exposure test, and what it costs a mod is [reaching a Java member](lua-platform.md#java-members) [#0963/C/C-only, #1740/C/C-only].
+- Test a class against the exposer's class set before planning any Lua call on it, whatever the jar declares about the member: membership in that constant-pool class set is the exposure test, and what it costs a mod is reaching a Java member [#0963/C/C-only, #1740/C/C-only].
 - Hand a question about timing to a live run rather than to the jar: a carrier can be read out of the bytecode while its cadence stays unread, as the multiplayer inventory re-send is [#0376/C/C-only/open].
 - Say which side a gated path runs on only after a run has touched it: a side gate is readable in the bytecode while whether the path ever runs on a given host is not, as the aging call is [#0374/C/C-only/open].
 
