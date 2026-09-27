@@ -341,7 +341,7 @@ import patterns from there.
   `--view LAYER` prints a layer's rows, `--view LAYER/PAGE.md` one page's.
   Exit 1 iff a non-warning finding. Run it before every commit that touches `docs/`,
   `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/` or
-  `tools/bus_inventory.py`.
+  `tools/bus_inventory.py`, `tools/reference_gen.py` or `references/wiki-mirrors/`.
 
 - `claims_delta.py` — `python tools/claims_delta.py apply <delta.tsv> --pages <page.md>… [--register TSV] [--dry-run]`.
   The controller's tool for a page task's delta file (spec § The claims register, "Deltas in Phases 2 and 3";
