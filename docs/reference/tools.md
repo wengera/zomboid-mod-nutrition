@@ -10,8 +10,7 @@ The stamp it requires is the line `Verified against: 42.20.4`, which is not the 
 The lint's rule scoping and reported paths are relative to the repository root and not to the target, so narrowing the target can never silently switch a rule off [#1948].
 The lint's table splitter strips and splits a row on the pipe character with no escape handling, so an escaped pipe inside a cell still splits the row and shifts every later cell one place, which in a table with an evidence column either fails a correctly graded row or grades the wrong cell [#1949].
 The splitter is deliberately simple, so a cell that needs a pipe is rewritten, with the alternatives named in prose, rather than escaped [#1949].
-`docs/mods-survey/` is deliberately not in `doc_lint`'s stamped directories and only `docs/mods-survey/teardowns` is, so `nutrition-mods.md` is written to the stamped standard by hand and checked with a one-off invocation that widens the stamped set for that one file [#1675].
-After the cut the stamp, sources and grades rules read one file, `docs/reference/wall-map.md` (the tool's stamped file, beside its stamped directories that no longer exist), while the placeholder ban runs across the tree and the mirror-header rule over `references/wiki-mirrors/`.
+`doc_lint` stamps one file, `docs/reference/wall-map.md`, beside stamped-directory constants whose directories are gone from the tree, and its `sources` and `grades` rules run on stamped files only [#1675].
 
 <a id="mod-lint"></a>
 ## `mod_lint.py` — the layout lint (`L0`)
@@ -156,7 +155,7 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - `web:<data file or page> <fetch date>` is a fetched source that is not the wiki, such as a Workshop metadata snapshot or a licence page, and grades `W`, with no anchor text.
 - `lua:<path>:<line>[-<line>] "<anchor text>"` is a file of the game install named by its path relative to the install's `media/` directory, so a Lua file reads `lua:lua/shared/…` and a script reads `lua:scripts/generated/…`, and it grades `C`.
 - `mod:<workshop id>/mods/<ModName>/<tree>/<path>:<line> "<anchor>"` is an installed workshop mod's file as it lies on disk under the workshop root, `<tree>` being the version folder or `common` the file sits in, and it grades `C`.
-- `repo:<path>:<line> "<anchor text>"` is a file in this repository and grades `C`: the path exists and names no tree the cut deletes, bar [`wall-map.md`](wall-map.md), which the cut moves.
+- `repo:<path>:<line> "<anchor text>"` is a file in this repository and grades `C`: the path exists and names none of the pre-restructure docs (readable at the tag `research-program-v1`).
 - `tool:<path>:<line>` is a tool's own code at a line, in this repository or in the jar toolchain (`pz-b42/`), and grades `C`, with no anchor text.
 - `data:<what was read> <date>` is a scan whose output is the evidence and grades `C`, in one of the three readings below.
 - The anchor text of a `lua:`, `mod:` or `repo:` pointer is a quoted fragment of the cited line, so a cite whose line number drifts is re-located by content, and a `;` inside the quotes never splits the cell.
