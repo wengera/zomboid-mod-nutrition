@@ -48,7 +48,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/page_lint.py <the pages touched> --partial` → 0 before any commit that touches a page under `docs/areas/`, `docs/platform/` or `docs/facts/`, or `docs/reference/datasets.md` or `docs/reference/tools.md`; without `--partial` from the cut on.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
 - `python tools/doc_lint.py docs/reference/wall-map.md` → 0 from the cut on (the wall map moves to that path at the cut); until then `python tools/doc_lint.py docs/mods-survey docs/modding` → 0 and `python tools/doc_lint.py docs/vanilla docs/modding docs/testing references docs/mods-survey/nutrition-mods.md` → 0.
-- `python -m pytest tools/tests testing/tests -q` green: 383 passed on 2026-09-26, and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 384 passed on 2026-09-26, and the count never drops.
 
 ## 4. Extending the reference
 
@@ -119,7 +119,7 @@ Transitional: this section is removed at the Phase 4 close.
 - The research program closed at the tag `research-program-v1`; the restructure runs under the spec `docs/superpowers/specs/2026-09-17-reference-restructure-design.md`, which is the authority until the cut.
 - Phase 1 (the claims register, the checker, the generator) closed: `79c7969..c37d007`, close `77e923f`; ledger `.superpowers/sdd/restructure-1-register/progress.md`.
 - Phase 2 (`docs/platform/` and `docs/facts/`) closed: `e8ebc2c..81407e9`, close `74bb475`; ledger `.superpowers/sdd/restructure-2-platform-facts/progress.md`.
-- Phase 3 (`docs/areas/`, the skills, the roots, the datasets and tools pages) closed: `<Phase 3 range>`; ledger `.superpowers/sdd/restructure-3-areas-skills-roots/progress.md`.
+- Phase 3 (`docs/areas/`, the skills, the roots, the datasets and tools pages) closed: `5a40669..8924cae`, close commit `Restructure 3: close`; ledger `.superpowers/sdd/restructure-3-areas-skills-roots/progress.md`.
 - Phase 4 next: write `docs/superpowers/plans/restructure-4-cut.md` with `superpowers:writing-plans` from the spec § Execution Phase 4 — the wall-map move with its `Ev`-cell rewrite from the `old section -> ids` map (`python tools/claims_check.py --section-map`), `artifacts.md` moved whole with `Cited by` regenerated, the wiki-mirror contradiction table, the deletion of the old docs, ledgers and plans by pathspec in one commit, the acceptance run, every lint without `--partial`, the fresh-session skill test, the push — taking the Phase 4 obligations in `.superpowers/sdd/restructure-3-areas-skills-roots/deferred-minors-3.md` as inputs; then run it as § 6 describes.
 - The wall map (`docs/modding/wall-map.md`) and the artifacts register (`testing/artifacts/README.md`) move into `docs/reference/` at the cut, as `wall-map.md` and `artifacts.md`.
 - `docs/vanilla/`, `docs/modding/`, `docs/mods-survey/` and `docs/testing/` are the pre-restructure docs: readable until the cut, and forever at the tag `research-program-v1`.
