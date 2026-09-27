@@ -160,7 +160,7 @@ The first day of a fed run is a ramp from an empty store, so a per-day rate read
 Four named experiments are this page's to run, because the design cannot be finished without them.
 Three settle the wall map's unknown verdicts — whether a client can rely on a band trait, whether a mod may override a vanilla translation key, and whether the drink path can be hooked [#1161/C/C-only/open, #1164/C/C-only/open, #1133/C/C-only/open].
 The fourth tests the only moodle route left, none of whose legs has been measured [#1142/C/C-only].
-The other named experiments go to the build-out or to a standalone slice, as [experiments.md § Owners and the cost roll-up](../reference/experiments.md) assigns them, and the build-out's decide how the mod is built rather than whether a part of it can be.
+The other named experiments go to the build-out or stand alone, as [experiments.md § Owners and the cost roll-up](../reference/experiments.md) assigns them, and the build-out's decide how the mod is built rather than whether a part of it can be.
 Each spec is [`experiments.md`](../reference/experiments.md) and each open row the four carry is indexed on [`open-questions.md`](open-questions.md); this page restates neither.
 
 | experiment | what it settles | what makes the reading discriminate | what it costs | tags |

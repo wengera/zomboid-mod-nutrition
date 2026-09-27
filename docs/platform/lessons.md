@@ -122,7 +122,7 @@ The one rule that belongs to both this page and that one is the last of the impe
 The installed workshop tree is not a fixed object, and nothing in this repository writes to it.
 Two things drift independently and both matter: the set of folders on disk, and the contents of any one of them.
 
-- Quote a corpus sweep with its stamp: the installed workshop tree is live and changes under a running slice [#1964/C/snapshot].
+- Quote a corpus sweep with its stamp: the installed workshop tree is live and changes under a running session [#1964/C/snapshot].
 - Steam rewrites the subtree inside a workshop item rather than every folder node: one item's own folder still carried an August modification time while the mod folder inside it had been rewritten at 13:47 on 2026-09-10 [#1841/C/snapshot].
 
 The second line is why a modification time on the item folder is not a staleness check: the folder that moved is one level down, and an item whose own node looks months old may hold a tree rewritten minutes ago.

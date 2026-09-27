@@ -71,7 +71,7 @@ The block is cited here by its tag and never carried; what follows is where each
 The completion wrapper, ahead of its call of the original, is the one seat that sees pre-intake values: the store as it stood before the eat, and the item before `Eat` reads or changes it ([#1033/M/n=1], [#1129/M/n=1]).
 Whatever it writes into the item or the store before that call is what `Eat` then reads, a reading of the order that no session has exercised [#0006, #1129/M/n=1].
 It cannot stop the eat except by not calling the original, which skips the whole eat rather than any part of it [#1129/M/n=1].
-The share the eat will actually take is not yet known there, because the rescale to a share of the whole item happens inside `Eat` ([#0014/M/one-fixture], [eating-pipeline.md#modifiers](../facts/eating-pipeline.md#modifiers)).
+The share the eat will actually take is not yet known there, because the rescale of the menu's share of the whole item into a share of what is left happens inside `Eat` ([#0014/M/one-fixture], [eating-pipeline.md#modifiers](../facts/eating-pipeline.md#modifiers)).
 A wrapper that needs that share has to reproduce the rescale, and the same arithmetic is already duplicated in Lua twice, so a wrapper's copy is one more site to keep in step ([#0082], [eating-pipeline.md#partial](../facts/eating-pipeline.md#partial)).
 
 Between the wrapper and the eat hook there is no Lua seat at all.

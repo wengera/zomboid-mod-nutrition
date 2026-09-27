@@ -4,7 +4,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a food item o
 ## Key facts
 
 - One method does all of it: `IsoGameCharacter.Eat` clamps and rescales the fraction, writes the five stats, then the four nutrients, then pain and cold reduction and the food-sickness cure, then `JustAteFood`, then the server's sends, then the `OnEat` hook, and consumes or rescales the item last [#0006].
-- The fraction is not the menu fraction: when `baseHunger` and `hungChange` are both non-zero it is re-expressed as `clamp01(baseHunger * f / hungChange)`, a share of the whole item rather than of what is left [#0014/M/one-fixture].
+- The fraction is not the menu fraction: when `baseHunger` and `hungChange` are both non-zero the menu's share of the whole item is re-expressed as a share of what is left, `clamp01(baseHunger * f / hungChange)` [#0014/M/one-fixture].
 - Nutrition is written before the `OnEat` hook fires and before the item is consumed, so a hook sees the post-intake store and the pre-consume item [#0008].
 - A burnt item's four nutrients are divided by 5 on the way into the store [#0019/M/one-fixture].
 - That divisor is the only nutrition modifier in the game: calories, carbohydrates, lipids and proteins are bare field reads with no cooked, burnt, rotten or frozen branch [#0036/M/one-fixture].

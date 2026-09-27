@@ -3,7 +3,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: which food and nut
 
 ## Key facts
 
-- The item-stats packet carries 43 fields — two addressing, two presence flags and 39 item-state values — and that set is the whole of what a write to an item can reach the other side through [#0334, #1036, #1396].
+- The item-stats packet carries 43 fields — two addressing, two presence flags and 39 item-state values — and that set is the whole of what a write to an item's own fields can reach the other side through [#0334, #1036, #1396].
 - The receiver applies 40 of those 43: the two addressing fields never land, and `uses` is written but dropped for anything that is not a drainable combo [#0336].
 - Twenty of the value fields are written only behind a bit-header flag, and `parse` mirrors each guard, so a skipped field is not read at all [#0338/C/C-only].
 - Eleven of the 28 item-state getters this library reads are absent from the packet, and five of the eleven are measured not to cross or to stay wrong on the client [#0907/M/n=1].
