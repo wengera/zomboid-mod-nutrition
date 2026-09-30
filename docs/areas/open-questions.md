@@ -126,13 +126,13 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2048/C/one-side/open] | Build detection is touched by rows but has no page: the version keys and what the availability gate compares are stated on the anatomy page, while what a mod can detect about the running build from inside Lua is unread. | [overview.md](../platform/overview.md#coverage) | — | a read of what Lua can learn about the running build |
 | [#2049/M/n=1/open] | Client-only mods are touched by rows but have no page: one workshop mod is torn down as a pure client-side viewer and a second as a client-only cooking helper, while the general cost of shipping one side only, and what still reaches the other side, is stated as anatomy rather than as a topic of its own. | [overview.md](../platform/overview.md#coverage) | — | a read of what a one-sided mod still reaches on the other side |
 | [#2051/C/one-side/open] | The events roster is touched by rows but has no page: the events this library hooked and measured are stated on `platform/lua-platform.md` and `platform/harness.md`, while the full roster and which events fire on a dedicated server were never enumerated here. | [overview.md](../platform/overview.md#coverage) | — | enumerating the full events roster and which events fire on a dedicated server |
-| [T3.1] | Does a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas track vanilla's stat trajectory, stat by stat, over several game-hours on a live server? | [open-questions.md](#x34) | X34 | two boots of one fixture, with no handler and with the reproducing handler, sampling the seven stats hourly against a per-stat band |
-| [T3.2] | Is a `CalculateStats` handler's endurance write the last before the player-stats push, as the tick order reads? | [open-questions.md](#x35) | X35 | a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed |
-| [T3.3] | Does `Fitness.update` tick on the server for a connected player? | [open-questions.md](#x36) | X36 | a seeded exercise, then two game-days without one, reading the server's regularity for the predicted fall |
-| [T3.4] | Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? | [open-questions.md](#x39) | X39 | server-side counters on the three events after a console grant as the control, then melee hits and an exercise |
-| [T3.5] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
-| [T3.6] | Does a second registrant of `Hook.CalculateStats` change what the first one causes? | [open-questions.md](#x46) | X46 | thirst across one handler, that handler with a second, the second alone, and no handler |
-| [T3.7] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
+| [#2081/C/open] | Does a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas track vanilla's stat trajectory, stat by stat, over several game-hours on a live server? | [open-questions.md](#x34) | X34 | two boots of one fixture, with no handler and with the reproducing handler, sampling the seven stats hourly against a per-stat band |
+| [#2082/C/open] | Is a `CalculateStats` handler's endurance write the last before the player-stats push, as the tick order reads? | [open-questions.md](#x35) | X35 | a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed |
+| [#2083/C/open] | Does `Fitness.update` tick on the server for a connected player? | [open-questions.md](#x36) | X36 | a seeded exercise, then two game-days without one, reading the server's regularity for the predicted fall |
+| [#2084/C/open] | Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? | [open-questions.md](#x39) | X39 | server-side counters on the three events after a console grant as the control, then melee hits and an exercise |
+| [#2085/C/open] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
+| [#2086/C/open] | Does a second registrant of `Hook.CalculateStats` change what the first one causes? | [open-questions.md](#x46) | X46 | thirst across one handler, that handler with a second, the second alone, and no handler |
+| [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
 
 ## Decisions
 <a id="decisions"></a>
@@ -364,43 +364,43 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x34"></a>
 ### X34 — Does a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas track vanilla's stat trajectory, stat by stat, over several game-hours on a live server?
-- Whether a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas tracks vanilla's stat trajectory, stat by stat, over several game-hours on a live server is open [T3.1].
+- Whether a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas tracks vanilla's stat trajectory, stat by stat, over several game-hours on a live server is open [#2081/C/open].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: two boots of one restored fixture, one with no handler registered and one with the reproducing handler, sampling the seven stats hourly on the server against a per-stat band — [experiments.md § Named experiments](../reference/experiments.md), row `X34`.
 
 <a id="x35"></a>
 ### X35 — Is the handler's endurance write the last before the push, as the tick order reads?
-- Whether a `CalculateStats` handler's endurance write is the last write before the player-stats push, as the tick order reads, is open [T3.2].
+- Whether a `CalculateStats` handler's endurance write is the last write before the player-stats push, as the tick order reads, is open [#2082/C/open].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: a handler writing a sentinel endurance each tick, read in client-first pairs at rest and while running, beside an arm with the handler removed — [experiments.md § Named experiments](../reference/experiments.md), row `X35`.
 
 <a id="x36"></a>
 ### X36 — Does `Fitness.update` tick on the server for a connected player?
-- Whether `Fitness.update` ticks on the server for a connected player is open [T3.3].
+- Whether `Fitness.update` ticks on the server for a connected player is open [#2083/C/open].
 - Waiting on it: [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: a seeded exercise, then two game-days with no exercise, reading the server's regularity for the fall the decay predicts — [experiments.md § Named experiments](../reference/experiments.md), row `X36`.
 
 <a id="x39"></a>
 ### X39 — Do the server-side experience events fire per grant — `AddXP`, `LevelPerk`, `OnWeaponHitXp` — for a connected player's melee hits and exercise?
-- Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise is open [T3.4].
+- Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise is open [#2084/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open), [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: server-side counters on the three events, read after a console experience grant as the positive control and then after melee hits and an exercise — [experiments.md § Named experiments](../reference/experiments.md), row `X39`.
 
 <a id="x40"></a>
 ### X40 — What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it?
-- What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [T3.5].
+- What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [#2085/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
 
 <a id="x46"></a>
 ### X46 — Does a second registrant of `Hook.CalculateStats` change what the first one causes?
-- Whether a second registrant of `Hook.CalculateStats` changes what the first one causes is open [T3.6].
+- Whether a second registrant of `Hook.CalculateStats` changes what the first one causes is open [#2086/C/open].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open).
 - Settled by: thirst read across one handler, the same handler with a second beside it, the second handler alone, and no handler registered — [experiments.md § Named experiments](../reference/experiments.md), row `X46`.
 
 <a id="x48"></a>
 ### X48 — Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value?
-- Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value, is open [T3.7].
+- Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value, is open [#2087/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience each hit grants — [experiments.md § Named experiments](../reference/experiments.md), row `X48`.
 
