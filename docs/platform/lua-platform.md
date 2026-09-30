@@ -1,5 +1,5 @@
 # The Lua platform
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the Lua a mod runs inside on this build — the Kahlua dialect's gaps, what a protected call catches and what an unguarded raise costs on each side, how a Java member is reached, how the three script-side hooks resolve and which side calls each, the event and `Hook.*` surfaces, the moodle and trait registries, the APIs removed on this build, file IO and the in-session reload loop; which file runs at all, the packet field lists and the order of writes inside `Eat` are handed off.
+Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the Lua a mod runs inside on this build — the Kahlua dialect's gaps, what a protected call catches and what an unguarded raise costs on each side, how a Java member is reached, how the three script-side hooks resolve and which side calls each, the event and `Hook.*` surfaces, the moodle and trait registries, the APIs removed on this build, file IO and the in-session reload loop; which file runs at all, the packet field lists and the order of writes inside `Eat` are handed off.
 
 ## Rules
 
@@ -105,6 +105,9 @@ The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` keys are n
 The same absence holds on both sides and on mod items as well as vanilla ones: the instantiation path reads those fields straight into the food instance, and the dialect publishes methods, so per-item macro numbers must come off an instance or out of the script text [#0920/M/n=1].
 That was read over four items on two sides in one session, re-confirming two earlier ones [#0920/M/n=1].
 The script object is a poor witness for macros in particular: it answers the seven shelf-life and cooking keys while reporting the four macro keys absent on both sides, so only an instance getter discriminates [#1011/M/n=1].
+The exposer's class set holds `Thermoregulator`, `Thermoregulator$ThermalNode`, `Metabolics`, `Fitness`, `BodyDamage`, `Stats`, `CharacterStat`, `IsoGameCharacter`, `IsoPlayer`, `Moodles`, `MoodleType`, `CharacterTraits`, `SandboxOptions`, `ServerOptions`, `GameTime` and `Nutrition`, and does not hold `MoodleStat`, `ZomboidGlobals`, `LuaHookManager` or `PlayerCheats`, read end to end from one dump of the exposer [T7.44].
+So the stat, body and option classes a nutrition mod reads are all reachable, while the Java holder of the rate constants and the hook manager are not.
+`ILuaGameCharacter` is an interface the character class implements and is absent from the exposer's class set, so it is a curated signal of the intended Lua API rather than the exposure gate [T7.45].
 
 <a id="script-hooks"></a>
 ### The three script-side hooks
@@ -166,6 +169,9 @@ The three client-only boot events `OnCreatePlayer`, `OnGameStart` and `OnLoad` n
 The aging call fires the container-update event only when the process is not a server, and a client never runs the aging call, so in multiplayer that event never fires for a rot transition and a mod cannot hang rot logic on it [#0358].
 Each severe-moodle health term that comes out positive also fires `OnPlayerGetDamage` with the character, the moodle label `HUNGRY` or `THIRST`, and the amount ([the moodle effects](../facts/body-and-weight.md#moodles)) [#0517/C/C-only].
 That event is a bytecode reading and has not been caught on the live server [#0517/C/C-only].
+`OnPlayerMove` has exactly two triggers: the player's second-stage update, gated to single player by requiring both network flags clear, and the remote-player update inside its server arm, which runs on a dedicated server only [T7.41].
+On a multiplayer client it never fires for the local player, because the remote-player update returns false unless the player is remote [T7.42].
+There is no `OnAddXP` event on this build: the jar carries no such literal, and the experience event is registered as `AddXP` [T7.43].
 
 <a id="hooks"></a>
 ### The `Hook.*` surface
@@ -175,6 +181,19 @@ The named-hook surface is the engine's own trigger table, separate from the scri
 A Lua `CalculateStats` hook that returns true skips every stat updater for that tick, read from the bytecode and not exercised on the live server [#0469/C/C-only].
 The auto-drink path fires the Lua hook named `AutoDrink`, also read from the bytecode and not measured [#0482/C/C-only].
 Neither of those two is an intake hook, and the nearest question — whether the drink path can be wrapped the way the eat path is — is [a wall](#walls).
+
+The engine registers eight hooks into the Lua `Hook` table at boot — `AutoDrink`, `UseItem`, `Attack`, `CalculateStats`, `ContextualAction`, `WeaponHitCharacter`, `WeaponSwing` and `WeaponSwingHitPoint` — and gives each an `Add` and a `Remove` function [T7.33].
+A hook's Lua face is a table with exactly those two keys, and the trigger object declares no accessor for its callback list, so a mod cannot count or list a hook's registrants from Lua [T7.38].
+Vanilla Lua registers handlers on three of the eight: `AutoDrink`, `ContextualAction` and `Attack` [T7.39].
+Whether any shipped Lua file names the stat hook at all is [an unverified reading](#open).
+The trigger discards every callback's return value and answers true whenever the callback list is non-empty, so registering any `Hook.CalculateStats` handler suppresses the whole vanilla stat update, whatever the handler does or returns [T7.34].
+The hook lookup hands that answer back unchanged, so once one handler is registered a second mod's handler cannot restore the updaters [T7.36].
+The seven updaters that registration skips, and what each does besides writing its stat, are [the character-stat updaters](../facts/character-stats.md#updaters).
+The stat update returns at once for an animal, ahead of the fatigue reset and the hook, so a handler never runs for an animal [T7.35].
+A zombie's stat update is an empty method, so a zombie never reaches the hook either [T7.37].
+The server's fatigue reset runs before the hook, so no handler can stop it ([the tick order](../facts/character-stats.md#tick-order)) [T7.12].
+The player's stat update calls the character's only when the game-client flag is clear, so on a multiplayer client the vanilla stat update, its fatigue reset and the hook never run for a player, and a takeover is server-side by construction [T7.32].
+Every sentence of this paragraph is a reading of the bytecode, and whether a registrant skips the updaters on a live server whatever it returns is an open experiment [#2100/C/open].
 
 <a id="registries"></a>
 ### The moodle and trait registries
@@ -191,7 +210,7 @@ A mod that registers the same id twice therefore leaves the registry in a state 
 
 `CharacterTraitDefinition.addCharacterTraitDefinition(CharacterTrait, uiName, cost, description, free, disabledInMultiplayer)` is public static and Lua-exposed, alongside `addGrantedTrait`, `addGrantedRecipe`, `addXPBoost(Perk,int)`, `addMutuallyExclusive`, `setTexture` and `setDisabledInMultiplayer`; it is what the generated character-trait script drives, and the last argument is optional [#1212/C/C-only].
 Registering the trait object is therefore only half of adding a trait: selectability comes from that definition call, the trait carries no Java effect of its own and its sync path is untraced [#1158/C/C-only].
-Whether a mod can rely on a weight-band trait client-side is open for that same reason [#1161/C/C-only/open].
+Whether a mod can rely on a weight-band trait client-side is [the wall map's trait verdict](../reference/wall-map.md#g4).
 `CharacterTrait`'s `getName()` returns the trait name lowercased, so adding the Hearty Appetite trait puts `heartyappetite` into `getKnownTraits()` and a weight in the Obese band puts `obese` there: a name comparison against the registry spelling reads false on a trait that is demonstrably applied [#0550/M/n=1].
 On this build `hasTrait` takes a `CharacterTrait` enum rather than a String, and all 71 call sites in `media/lua` pass the enum, which is a grep plus inference rather than a live call [#0551/C/C-only].
 
@@ -246,6 +265,7 @@ Not covered: the Kahlua standard library beyond the members this library called,
 - That the client-side reload global needs an absolute path is unverified for the same reason; re-measure by calling it with a bare file name and then with the client's own full path, reading the version constant after each [#1877/M/uncommitted/unverified].
 - That reloading every Lua file on a dedicated server is not usable is unverified for the same reason; re-measure by driving the reload-all command and counting the Lua error lines in the server log against a clean baseline [#1878/M/uncommitted/unverified].
 - That a server-side single-file reload is server-local with no packet to clients is unverified for the same reason; re-measure by reloading on the server and reading the client's copy of the same constant [#1975/M/uncommitted/unverified].
+- That no shipped Lua file registers or names the `CalculateStats` hook is unverified: it rests on a hand scan of the install's Lua whose output is not a committed dataset; re-measure by a committed scan of the install's Lua for the hook's name [T7.40].
 - The design must choose where an intake correction sits, because the server-side completion wrapper runs before `Eat` while the eat hook runs at the point [the order of writes inside `Eat`](../facts/eating-pipeline.md#eat) puts it [#1033/M/n=1, #0093].
 - The design must choose whether a per-item nutrient value is seeded at instantiation or read from the script on demand, because the creation hook is unexercised while the script object answers nothing about macros [#0967/C/C-only/open, #1011/M/n=1].
 - The design must choose whether mod moodles are attempted at all, because registration reaches every character while the level never rises and the thresholds cannot be reached [#1140/C/C-only, #1141/C/C-only].
@@ -278,6 +298,7 @@ Not covered: the Kahlua standard library beyond the members this library called,
 - [`jar-research.md`](jar-research.md#exposed) — how the exposer dump is taken and what the exposure test does not cover.
 - [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md#eat) — the order of writes inside `Eat`, which the eat hook sits in.
 - [`../facts/body-and-weight.md`](../facts/body-and-weight.md#moodles) — what a moodle level does once it is set.
+- [`../facts/character-stats.md`](../facts/character-stats.md#updaters) — the stat registry, the seven updaters the stat hook skips, and where the hook sits in a player's update.
 - [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md#corpus-facts) — the full corpus event census behind the counts above.
 - [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows cited from the walls.
 - [`../reference/experiments.md`](../reference/experiments.md) — the named experiments the open rows point at.
