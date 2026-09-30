@@ -146,3 +146,29 @@ def test_a_retarget_off_the_named_pages_is_noted(tmp_path, capsys):
     assert rc == 0
     assert "NOTE: #0003 now owned by facts/other.md, which is not among --pages" in out
     assert "#0001 now owned by" not in out
+
+
+def test_supersede_replaces_the_parent_with_one_child(tmp_path):
+    reg = _register(tmp_path)
+    page = _page(tmp_path, "Parent [#0003]. Child [T7.1].\n")
+    lines = ["\t".join(["supersede", "#0003", "", "", "", "", "", "", "", "", "", "falsified"]), _add("T7.1", "Three, corrected.")]
+    changes, _ = cd.apply(_delta(tmp_path, lines), [page], register=reg)
+    rows = {r["id"]: r for r in cl.read_register(reg)}
+    assert rows["#0003"]["status"] == "superseded" and rows["#0003"]["successor"] == "#0004"
+    assert rows["#0004"]["claim"] == "Three, corrected."
+    assert open(page, encoding="utf-8").read() == "Parent [#0004]. Child [#0004].\n"
+    assert "#0003 superseded -> #0004" in changes
+
+
+def test_supersede_needs_exactly_one_add_and_writes_nothing_otherwise(tmp_path):
+    reg = _register(tmp_path)
+    before = open(reg, encoding="utf-8").read()
+    lines = ["\t".join(["supersede", "#0003", "", "", "", "", "", "", "", "", "", "x"]),
+             "\t".join(["retarget", "#0001", "", "", "", "", "", "", "", "", "facts/x.md#z", "moved"])]
+    with pytest.raises(cd.DeltaError, match="exactly one add line"):
+        cd.apply(_delta(tmp_path, lines), [], register=reg)
+    assert open(reg, encoding="utf-8").read() == before
+    lines = ["\t".join(["supersede", "#0003", "", "", "", "", "", "", "", "", "", "x"])]
+    with pytest.raises(cd.DeltaError, match="exactly one add line"):
+        cd.apply(_delta(tmp_path, lines), [], register=reg)
+    assert open(reg, encoding="utf-8").read() == before

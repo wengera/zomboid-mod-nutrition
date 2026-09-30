@@ -19,9 +19,10 @@ the stamp, the anchors, the narrative markers and the links only: no section set
 worked examples, cap or floor. reference/wall-map.md is in REFERENCE_PAGES so that a fragment into it
 is checked like one into datasets.md or tools.md; it is a link target only, never a page this lint is
 passed (doc_lint owns it), though the reference profile would run on it if it were. Exit 1 on a
-finding; a warning never fails.
+finding; a warning never fails. `--allow-provisional` lets a `## Rules` or `## Key facts` line end in a
+provisional `[T<task>.<n>]` tag while a wave's deltas are unapplied.
 
-Usage: python tools/page_lint.py <page.md> [...] [--partial] [--register TSV] [--cap N] [--root DIR]"""
+Usage: python tools/page_lint.py <page.md> [...] [--partial] [--allow-provisional] [--register TSV] [--cap N] [--root DIR]"""
 import argparse, collections, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import claimslib as cl
@@ -92,7 +93,7 @@ def _page_key(path, root):
     return rel[len("docs/"):] if rel.startswith("docs/") else rel
 
 
-def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
+def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None, allow_provisional=False):
     rel = os.path.relpath(path, root).replace("\\", "/")
     key = _page_key(path, root)
     layer = key.split("/")[0]
@@ -140,6 +141,7 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
             if r["status"] == "open" and r["id"] not in tagged:
                 out.append(Finding(rel, 1, "open-index", "%s (%s) is open but not indexed on this page" % (r["id"], r["owner"])))
     # section bodies
+    rule_tag_rx = r"\[(?:#\d{4}|T\d+\.\d+)[^\]]*\]\.?\s*$" if allow_provisional else r"\[#\d{4}[^\]]*\]\.?\s*$"
     fence = False
     prose = 0
     for heading, body in secs:
@@ -157,7 +159,7 @@ def lint(path, root=REPO_ROOT, register=None, partial=False, cap=None):
                 continue
             stripped = line.strip()
             if not reference and heading in ("Rules", "Key facts") and stripped.startswith("- "):
-                if not re.search(r"\[#\d{4}[^\]]*\]\.?\s*$", stripped):
+                if not re.search(rule_tag_rx, stripped):
                     out.append(Finding(rel, n, "rule-line", "a %s line must end with its tag: %s" % (heading, stripped[:60])))
                 elif heading == "Rules" and ": " not in stripped:
                     out.append(Finding(rel, n, "rule-line", "a rule line is '<imperative>: <reason> [#tag]': %s" % stripped[:60]))
@@ -211,6 +213,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("pages", nargs="+"); ap.add_argument("--root", default=REPO_ROOT); ap.add_argument("--register")
     ap.add_argument("--partial", action="store_true"); ap.add_argument("--cap", type=int)
+    ap.add_argument("--allow-provisional", action="store_true")
     a = ap.parse_args(argv)
     try:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -218,7 +221,8 @@ def main(argv=None):
         pass
     findings = []
     for p in a.pages:
-        f, prose = lint(os.path.abspath(p), root=os.path.abspath(a.root), register=a.register, partial=a.partial, cap=a.cap)
+        f, prose = lint(os.path.abspath(p), root=os.path.abspath(a.root), register=a.register, partial=a.partial, cap=a.cap,
+                        allow_provisional=a.allow_provisional)
         findings += f
         key = _page_key(os.path.abspath(p), os.path.abspath(a.root))
         limit = "no cap" if key in REFERENCE_PAGES else "cap %d" % (a.cap or CAPS.get(key, DEFAULT_CAP))

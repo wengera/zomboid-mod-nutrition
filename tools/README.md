@@ -354,8 +354,10 @@ import patterns from there.
   tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row. Not idempotent: preview
   with `--dry-run`, then apply exactly once — a second apply mints a second row for the same `add`. A delta naming a row that is already
   `superseded` is refused, and a `retarget` whose new owner page is not among `--pages` is noted.
+  `supersede <id>` followed by one `add` line makes that line the row's single successor (the two-child form
+  is `split`); a successor that already exists is `status` with a `successor` cell.
 
-- `page_lint.py` — `python tools/page_lint.py <page.md>… [--partial] [--register TSV] [--cap N]`. The page
+- `page_lint.py` — `python tools/page_lint.py <page.md>… [--partial] [--allow-provisional] [--register TSV] [--cap N]`. The page
   contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
   line, the section set and order per layer, the `<a id>` anchors against the register's owners, the
   rule-line shape, the closing `Not covered:` line, the narrative markers, the prose cap (400; 500 on the four
@@ -372,6 +374,7 @@ import patterns from there.
   profile (`reference/datasets.md`, `reference/tools.md`) checks the stamp, the anchors against the
   register, the links and the narrative markers only (no section set, rule lines, walls, worked examples,
   cap or floor) and prints `(no cap)`. Prints the prose count per page; exit 1 on a finding.
+  `--allow-provisional` admits a provisional tag on a rule or key-fact line.
 
 ## Planned (P4)
 

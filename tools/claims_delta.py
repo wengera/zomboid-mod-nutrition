@@ -6,7 +6,10 @@ A delta file is tab-separated with the header
 and one delta per line. `add` names a provisional id `T<task>.<n>`: apply mints the next free register
 id for it and rewrites that provisional tag in every page named with --pages. `split` names a real
 parent id and is followed by exactly two `add` lines, which become the parent's successors; the parent
-goes superseded and its tag on the pages is rewritten to the two children. `retarget` changes the
+goes superseded and its tag on the pages is rewritten to the two children. `supersede` names a real
+parent id and is followed by exactly one `add` line, which becomes the parent's single successor; the
+parent goes superseded and its tag on the pages is rewritten to the child. A supersession onto a row
+that already exists is `status` with a real successor, which rewrites no tag. `retarget` changes the
 row's owner. `status` changes the row's status (and its successor when superseded; its bound when
 the delta gives one). Nothing is ever deleted; an invalid delta aborts before anything is written,
 and an op against a row that is already superseded is refused, so a lineage is never overwritten.
@@ -21,7 +24,7 @@ import claimslib as cl
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 REGISTER = os.path.join(REPO_ROOT, "docs", "reference", "claims.tsv")
 DELTA_COLUMNS = ("op",) + cl.COLUMNS + ("reason",)
-OPS = ("add", "retarget", "status", "split")
+OPS = ("add", "retarget", "status", "split", "supersede")
 
 
 class DeltaError(Exception):
@@ -103,6 +106,18 @@ def plan(rows, deltas):
             tag_map[d["id"]] = parent["successor"]
             changes.append("%s superseded -> %s" % (d["id"], parent["successor"]))
             i += 3
+        elif d["op"] == "supersede":
+            parent = _target("supersede", d["id"], by)
+            kid = deltas[i + 1:i + 2]
+            if len(kid) != 1 or kid[0]["op"] != "add":
+                raise DeltaError("supersede %s: must be followed by exactly one add line" % d["id"])
+            row, msg = _mint(kid[0], new_rows, tag_map, " (successor of %s)" % d["id"])
+            by[row["id"]] = row
+            changes.append(msg)
+            parent["status"], parent["successor"] = "superseded", row["id"]
+            tag_map[d["id"]] = row["id"]
+            changes.append("%s superseded -> %s" % (d["id"], row["id"]))
+            i += 2
         elif d["op"] == "retarget":
             row = _target("retarget", d["id"], by)
             if not cl.OWNER_RX.match(d["owner"]):

@@ -260,3 +260,11 @@ def test_fragment_into_the_wall_map_is_checked(tmp_path):
     wm.write_text("# W" + chr(10), encoding="utf-8")
     findings, _ = pl.lint(str(root / "docs" / "facts" / "good.md"), root=str(root), partial=True)
     assert [f for f in findings if f.rule == "link" and "#g4" in f.detail]
+
+
+def test_a_provisional_tag_on_a_key_fact_line_passes_only_under_allow_provisional(tmp_path):
+    page = GOOD.replace("- Rot is a view of age [#0001].", "- Rot is a view of age [#0001].\n- Strength experience is scaled by the protein store [T4.3].")
+    wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
+    root = _tree(tmp_path, {"spoilage.md": page, "wire.md": wire})
+    assert "rule-line" in _rules(_lint(root, "spoilage.md")[0])
+    assert "rule-line" not in _rules(_lint(root, "spoilage.md", allow_provisional=True)[0])
