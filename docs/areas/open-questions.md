@@ -130,8 +130,8 @@ The owner cell links the section that states the row; the X cell names the exper
 | [T3.2] | Is a `CalculateStats` handler's endurance write the last before the player-stats push, as the tick order reads? | [open-questions.md](#x35) | X35 | a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed |
 | [T3.3] | Does `Fitness.update` tick on the server for a connected player? | [open-questions.md](#x36) | X36 | a seeded exercise, then two game-days without one, reading the server's regularity for the predicted fall |
 | [T3.4] | Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? | [open-questions.md](#x39) | X39 | server-side counters on the three events after a console grant as the control, then melee hits and an exercise |
-| [T3.5] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts beside a console-grant control, timing the logged trips |
-| [T3.6] | Does a second registrant of `Hook.CalculateStats` change what the first one causes? | [open-questions.md](#x46) | X46 | thirst across one handler, that handler with a second, and no handler |
+| [T3.5] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
+| [T3.6] | Does a second registrant of `Hook.CalculateStats` change what the first one causes? | [open-questions.md](#x46) | X46 | thirst across one handler, that handler with a second, the second alone, and no handler |
 | [T3.7] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
 
 ## Decisions
@@ -396,7 +396,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 ### X46 — Does a second registrant of `Hook.CalculateStats` change what the first one causes?
 - Whether a second registrant of `Hook.CalculateStats` changes what the first one causes is open [T3.6].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open).
-- Settled by: thirst read across one handler, the same handler with a second beside it, and no handler registered — [experiments.md § Named experiments](../reference/experiments.md), row `X46`.
+- Settled by: thirst read across one handler, the same handler with a second beside it, the second handler alone, and no handler registered — [experiments.md § Named experiments](../reference/experiments.md), row `X46`.
 
 <a id="x48"></a>
 ### X48 — Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value?
