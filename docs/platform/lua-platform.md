@@ -193,7 +193,7 @@ The stat update returns at once for an animal, ahead of the fatigue reset and th
 A zombie's stat update is an empty method, so a zombie never reaches the hook either [T7.37].
 The server's fatigue reset runs before the hook, so no handler can stop it ([the tick order](../facts/character-stats.md#tick-order)) [T7.12].
 The player's stat update calls the character's only when the game-client flag is clear, so on a multiplayer client the vanilla stat update, its fatigue reset and the hook never run for a player, and a takeover is server-side by construction [T7.32].
-Every sentence of this paragraph is a reading of the bytecode, and whether a registrant skips the updaters on a live server whatever it returns is an open experiment [#2100/C/open].
+Every jar sentence of this paragraph is a reading of the bytecode, and whether a registrant skips the updaters on a live server whatever it returns is an open experiment [#2100/C/open].
 
 <a id="registries"></a>
 ### The moodle and trait registries

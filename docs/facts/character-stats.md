@@ -58,8 +58,8 @@ Endurance runs on `[0,1]` with a default of 1 at index 3, and fatigue on `[0,1]`
 `Stats.set` passes every write through the stat's own clamp before storing it and returns whether the stored value changed [T7.4].
 The bounds the clamp enforces cannot themselves be moved, which is [a wall](#walls).
 
-Registration is public and static, so a mod can mint a stat of its own, but the fixed order is not rebuilt for it.
-A stat a mod registers is absent from `ORDERED_STATS` and therefore from every save and every sync: both save forms and the per-stat write walk that array, and the stats packet's mask for a non-member is zero [T7.7].
+A mod can mint a stat of its own through the registration static stated at [the walls](#walls), but the fixed order is not rebuilt for it.
+A stat a mod registers is absent from `ORDERED_STATS` and therefore from every save and every sync: both save forms and the per-stat write walk that array, and the stats packet's mask is `1 << index` for a member and zero for a non-member [T7.7].
 Such a stat is still reset with the others, because the reset-all method iterates the whole registry rather than the fixed order [T7.8].
 Registering an id that already exists is [a wall](#walls) as well.
 Three endurance helpers on `Stats` are hard-coded: the recharging flag is a constant false, and the warning and danger thresholds are constants of 0.5 and 0.25 [T7.9].
@@ -75,26 +75,27 @@ Thirst's and hunger's rates, their trait multipliers and their gates are stated 
 The character's endurance updater does nothing but stamp the last-endurance value from the current endurance and, under the unlimited-endurance cheat, reset endurance to its default of 1 [T7.11].
 It is not the endurance model: the player's model is a separate method the hook never sees, placed in [the tick order](#tick-order).
 
-The tripping updater's only write is the tripping rotation angle, advanced by `0.06` per call while the character is tripping, and no class of the jar outside `Stats` holds that angle's literal [T7.21].
+The tripping updater's only write is the tripping rotation angle, advanced by `0.06` per call while the character is tripping, and nothing in the jar outside `Stats` reads that angle [T7.21].
 
 The thirst updater adds thirst only when the process is a server, or is not a client and the character is the local player instance, and it skips the add while the character's player is in ghost mode [T7.25].
-A takeover that drops the thirst updater drops that ghost-mode gate with it, since nothing else on the path carries it.
+A takeover that drops the thirst updater drops that ghost-mode gate with it, because the gate lives inside one of the seven updaters the hook skips [T7.13] [T7.25].
+The thirst updater also calls the auto-drink method on every call, after and outside that gate, and is its only call site in the jar, so a registered handler also stops auto-drinking and the `AutoDrink` hook it fires; the method is public on an exposed class, so a takeover can call it itself [T7.46].
 
 The stress updater carries no side gate of its own beyond an animal return and relies on the player's stat update for its side; it adds the sound stress at the character's square unless the character is Deaf, with no game-time factor, and adds the bite-or-scratch term once when any part is bitten and once more when any part is scratched [T7.16].
 It adds the same term once more while the character is infected or fake-infected, and a Hemophobic character adds a term scaled by the character's total blood [T7.26].
-It is also the only anger decay on the path, while the awake arm of the wake-state updater advances the idle-square timer and resets idleness whenever the character is in combat [T7.22].
+It is also the only anger write among the seven, while the awake arm of the wake-state updater advances the idle-square timer and resets idleness whenever the character is in combat [T7.22].
 Its four constants come from the Lua globals table the loader reads: the sound multiplier `0.00002`, the bite-or-scratch term `0.00005`, the Hemophobic term `0.0000003333` and the anger decrease `0.0001` [T7.27].
 
 The stress updater as read, one call [T7.16] [T7.26] [T7.22] [T7.27]:
 
 ```text
-animal                   -> return
-not Deaf                 -> STRESS += soundStress(square) × StressFromSoundsMultiplier
-parts bitten > 0         -> STRESS += StressFromBiteOrScratch × multiplier × deltaMinutesPerDay
-parts scratched > 0      -> STRESS += StressFromBiteOrScratch × multiplier × deltaMinutesPerDay
-infected or fake-infected-> STRESS += StressFromBiteOrScratch × multiplier × deltaMinutesPerDay
-Hemophobic               -> STRESS += totalBlood × StressFromHemophobic × (multiplier ÷ 0.8) × deltaMinutesPerDay
-always                   -> ANGER  -= AngerDecrease × multiplier × deltaMinutesPerDay
+animal                    -> return
+not Deaf                  -> STRESS += soundStress(square) × StressFromSoundsMultiplier
+parts bitten > 0          -> STRESS += StressFromBiteOrScratch × multiplier × deltaMinutesPerDay
+parts scratched > 0       -> STRESS += StressFromBiteOrScratch × multiplier × deltaMinutesPerDay
+infected or fake-infected -> STRESS += StressFromBiteOrScratch × multiplier × deltaMinutesPerDay
+Hemophobic                -> STRESS += totalBlood × StressFromHemophobic × (multiplier ÷ 0.8) × deltaMinutesPerDay
+always                    -> ANGER  -= AngerDecrease × multiplier × deltaMinutesPerDay
 ```
 
 The wake-state updater runs its awake or sleeping path only when the process is a server, or is not a client and the character is the local player instance, so neither path runs on a multiplayer client [T7.15].
@@ -108,7 +109,7 @@ It does not drive the exercise system, which is the separate `Fitness` object wi
 The updater is private, so Lua cannot call it to refresh the stat [T7.18].
 
 The moodle update carries no side gate, so each side recomputes its own moodles from its own copy of the stats [T7.17].
-A server-side stat write therefore reaches the client's moodle levels once the client's stats copy has it, with no moodle traffic of its own.
+A server-side stat write therefore reaches the client's moodle levels once the client's stats copy has it, through [the player-stats push](../platform/mp-model.md#packets).
 
 <a id="tick-order"></a>
 ### One server update of a player, up to the hook
@@ -159,7 +160,7 @@ Not covered: the sound-stress source function and the awake path's stress decay,
 - Whether a handler's endurance write is the last before the player-stats push, as the tick order reads — settled by a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed; -> [X35](../areas/open-questions.md#x35) [#2082/C/open].
 - Whether a second registrant of the hook changes what the first one causes — settled by thirst across one handler, that handler with a second, the second alone, and no handler; -> [X46](../areas/open-questions.md#x46) [#2086/C/open].
 - Decision: whether a takeover handler integrates endurance from its own stored value or from the stat it reads back — the player's endurance model runs outside the hook, earlier in the same update [T7.31], on the side [the ownership section](../platform/mp-model.md#ownership) states.
-- Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [T7.11], the anger decay and the idle-square timer [T7.22], the time-of-sleep advance [T7.23], the thirst ghost-mode gate [T7.25] and the fitness stat's refresh [T7.19].
+- Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [T7.11], the anger decay and the idle-square timer [T7.22], the time-of-sleep advance [T7.23], the thirst ghost-mode gate [T7.25], the auto-drink call [T7.46] and the fitness stat's refresh [T7.19].
 - Decision: whether the mod keeps a nutrient in a stat it registers or in its own store — a registered stat answers `get` and `set` and is never saved or synced [T7.7].
 
 ## See also
