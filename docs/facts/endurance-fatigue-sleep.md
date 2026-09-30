@@ -19,7 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: what moves a playe
 
 ## How it works
 
-Endurance and fatigue are two registered stats on `[0,1]`; their bounds, their defaults and the stat API a mod writes them through are [character-stats.md](../facts/character-stats.md#registry).
+Endurance and fatigue are two registered stats; their bounds, their defaults and the stat API a mod writes them through are [character-stats.md](../facts/character-stats.md#registry).
 Every path on this page writes one of the two stats, reads one of them, or reads a moodle level computed from one of them.
 The whole waking endurance model sits in one private method, `IsoPlayer.updateEndurance`, which returns for an animal and on a game client; the side gate and its owner are [mp-model.md](../platform/mp-model.md#ownership).
 Where each updater runs in the frame, and where the server's fatigue reset sits relative to the `CalculateStats` hook, is [character-stats.md](../facts/character-stats.md#tick-order).
@@ -81,7 +81,7 @@ Walking drains endurance only above heavy-load level 2, at `runningEnduranceRedu
 The walking rate is the running constant whatever the gait, so a loaded walk is priced off the running rate rather than off a walking rate of its own.
 
 The endurance model has no day-length term.
-No arm of `IsoPlayer.updateEndurance` or of the sitting and vehicle regenerators multiplies by `GameTime.getDeltaMinutesPerDay()`, so waking endurance rates are per update times the game-time multiplier alone and do not scale with the day length, while the awake fatigue accumulation does [T8.7].
+No arm of `IsoPlayer.updateEndurance` or of the sitting and vehicle regenerators multiplies by `GameTime.getDeltaMinutesPerDay()`, so waking endurance rates are per update, at most times the game-time multiplier, and do not scale with the day length, while the awake fatigue accumulation does [T8.7].
 The one exception is the asleep regeneration arm, stated at [the regeneration anchor](#regen).
 A server that lengthens its day therefore stretches fatigue across the longer day while endurance drains and refills at the same per-update pace.
 
@@ -133,7 +133,7 @@ A mod moves `getRecoveryMod` only through the Fitness perk or the weight-band tr
 ### Event writers
 
 The per-update model is not the only writer.
-Endurance has three event writers outside the updaters: one per melee swing, one per vault over a fence and one per exercise repetition, each landing between two updates [T8.19].
+Endurance has three event writers outside the per-update model: one per melee swing, one per vault over a fence and one per exercise repetition [T8.19].
 
 The per-swing drain, `CombatManager.processWeaponEndurance`, decoded [T8.16]:
 
@@ -153,11 +153,8 @@ chr.getStats().remove(ENDURANCE, d * t);                           // @92 L1202
 
 A melee swing with a weapon whose `UseEndurance` is set drains endurance by `(effectiveWeight × 0.18 × weapon fatigue mod × character fatigue mod × EnduranceMod × 0.3 + two-hand term) × 0.04`, times 1.2 for Asthmatic, where the two-hand term is `effectiveWeight ÷ 1.5 ÷ 10` for a two-handed weapon not held in both hands [T8.16].
 A weapon's own fatigue modifier is 0.8 once the matching Blunt, Axe or Spear perk reaches level 8, and 1.0 otherwise [T8.17].
-The character's fatigue modifier is a separate Fitness ladder, `getFatigueMod`, which enters the swing and nothing on this page's per-update model.
-The weapon's `EnduranceMod` is a script-item property, so a mod changes a weapon's swing cost through its item script without touching Java.
 
 `IsoGameCharacter.exert(float)` is `public` on an exposed class and removes that amount of endurance, times 0.9 for Jogger [T8.18].
-It is the cleanest endurance drain a mod can call: one argument, one trait scaler, no gate on side or state.
 Like every write to the stat, it holds only on the side that owns the stat; the owner is [mp-model.md](../platform/mp-model.md#ownership).
 
 Food and fluids write both stats too: `Eat` adds each item's endurance and fatigue changes, and that write and its order are [eating-pipeline.md](../facts/eating-pipeline.md#eat).
@@ -265,8 +262,9 @@ A moodle level has no setter of its own, as [Walls and bounds](#walls) states, s
 <a id="setters"></a>
 ### The setters a mod has
 
-Apart from the god-mode, ghost-mode and fire-mode toggles, the only setters on the character whose names carry `Mod`, `Modifier`, `Multiplier` or `Speed` are `setSpeedMod`, `setStaggerTimeMod`, `setLevelUpMultiplier`, `setPathSpeed`, `setSneakLimpSpeedScale`, `setLastFallSpeed`, `IsoPlayer.setMoveSpeed`, `IsoPlayer.setCombatSpeed` and `IsoPlayer.setFitnessSpeed`, and all nine are `public` [T8.36].
+The only setters on the character that take one float and are named for a speed, a modifier or a multiplier are `setSpeedMod`, `setStaggerTimeMod`, `setLevelUpMultiplier`, `setPathSpeed`, `setSneakLimpSpeedScale`, `setLastFallSpeed`, `IsoPlayer.setMoveSpeed` and `IsoPlayer.setCombatSpeed`, and the no-argument `IsoPlayer.setFitnessSpeed` is the ninth speed setter; all nine are `public` [T8.36].
 None of the nine is an endurance, fatigue or recovery lever, and what each speed setter reaches is [perception-speed.md](../facts/perception-speed.md#speed).
+The setters a mod might expect for regeneration, recovery, pacing and fatigue do not exist; they are listed under [Walls and bounds](#walls).
 `setRunSpeedModifier` and `setEnduranceMod` exist only on script items, clothing and weapons, never on the character [T8.38].
 The weapon one is the `EnduranceMod` the per-swing drain multiplies by.
 
@@ -292,7 +290,7 @@ Not covered: the cadence of the injuries packet that carries the rebuilt speed f
 - Does a `CalculateStats` handler that reproduces the skipped updaters, endurance and awake fatigue among them, track vanilla's stat trajectory stat by stat over several game-hours on a live server — settled by two boots of one fixture, one with and one without the handler; -> [X34](../areas/open-questions.md#x34) [#2081/C/open]
 - Is a `CalculateStats` handler's endurance write the last write before the player-stats push, as the tick order reads — settled by a handler writing a sentinel endurance each tick, read in client-first pairs; -> [X35](../areas/open-questions.md#x35) [#2082/C/open]
 - Decision: where a mod moves endurance recovery — `getRecoveryMod` multiplies every regeneration arm but has no setter, so the levers are the Fitness perk, the weight-band traits, the `EndRegen` option, or a replacement of the whole stat tick through the hook the two experiments above test [T8.8] [T8.37].
-- Decision: whether fatigue is modelled at all on a server that does not both allow and need sleep, where the server pins it every update ahead of any mod code (see [character-stats.md](../facts/character-stats.md#tick-order)).
+- Decision: whether fatigue is modelled at all on a server that does not both allow and need sleep, where the server pins it every update ahead of the `CalculateStats` hook (see [character-stats.md](../facts/character-stats.md#tick-order)).
 - Decision: whether the mod's endurance costs ride the per-update model, the three event writers, or both — the event writers land between updates, so a per-update replacement that ignores them loses the swing, vault and exercise costs [T8.19].
 
 ## See also
