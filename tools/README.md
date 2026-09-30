@@ -66,7 +66,7 @@ import patterns from there.
   live, so quote a sweep with its date — the rows and the drift since the first
   sweep are in [`docs/reference/tools.md#mod-lint`](../docs/reference/tools.md#mod-lint).
 
-- `mod_inventory.py` — `python tools/mod_inventory.py`
+- `mod_inventory.py` — `python tools/mod_inventory.py [--out PATH] [--dry-run]`
   Sweeps the same workshop root as `mod_lint` and writes
   `data/mod-inventory.json` — one record per mod folder, **230 across 179
   workshop items at 2026-09-10 17:47**, ~2 s, byte-stable (LF, utf-8, on every
@@ -123,6 +123,16 @@ import patterns from there.
   `workshop_item_mtime` caveat are documented in
   [`docs/reference/datasets.md#mod-inventory`](../docs/reference/datasets.md#mod-inventory). Stdlib only bar
   `mod_lint` beside it; the workshop tree is read, never written.
+  `--out` names the file the sweep writes (default `data/mod-inventory.json`,
+  the 2026-09-10 snapshot the register cites, so a re-sweep that is to be cited
+  goes to a new dated file such as `data/mod-inventory-2026-09-28.json`), and
+  `--dry-run` sweeps and prints the summary and writes nothing; `--help` writes
+  nothing either. Each record also carries `surfaces`, the census of fourteen
+  named vanilla surfaces (`SURFACES`: the stat hook, hook registrations, eat,
+  drink, tooltip and character-info wraps, MoodleFramework, trait, health,
+  carry, stat and perk writes, player-field syncs, sandbox declarations) with
+  each hit surface's count and first `path:line`, and the summary ends with one
+  line per surface counting the mods that hit it.
 
 - `workshop_search.py` — `python tools/workshop_search.py [--details]
   [--details-ids IDS] [--details-pause S] [--fill [--include-not-requested]

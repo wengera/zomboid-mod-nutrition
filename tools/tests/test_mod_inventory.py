@@ -8,11 +8,12 @@ it stands in for; the `skipUnless` block at the bottom pins the real folders sli
 is written against.
 """
 import datetime, json, os, sys, tempfile, unittest
+import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import mod_inventory
 
-# No CLI test here, unlike test_mod_lint.py: `mod_inventory.main()` writes the committed
-# data/mod-inventory.json, and a test run must not silently rewrite repo data.
+# The one CLI test patches `sweep` and `write_out` out: `mod_inventory.main()` defaults to the
+# committed data/mod-inventory.json, and a test run must not silently rewrite repo data.
 
 ITEM_SCRIPT = """\
 module Base
@@ -416,3 +417,30 @@ def test_a_rescan_of_the_same_folder_is_byte_identical():
     `None` here, since no item folder is passed)."""
     one, two = mod_inventory.scan_mod(LTP), mod_inventory.scan_mod(LTP)
     assert json.dumps(one, sort_keys=True) == json.dumps(two, sort_keys=True)
+
+
+def test_surfaces_record_hits_first_site_and_sandbox_prefixes():
+    with tempfile.TemporaryDirectory() as d:
+        mod = _mod(d, "3624538051/mods/QualityCooking", {
+            "42/mod.info": "id=QualityCooking\nname=QC\n",
+            "42/media/lua/server/Roll.lua": "-- a\n-- b\nlocal orig = ISEatFoodAction.complete\n-- d\nHook.AutoDrink.Add(f)\n",
+            "42/media/sandbox-options.txt": "VERSION = 1,\noption QC.EndRegen = {\n}\noption QC.Other {\n}\n"})
+        rec = mod_inventory.scan_mod(mod)
+        assert rec["surfaces"]["eat_wrap"] == {"hits": 1, "first": "42/media/lua/server/Roll.lua:3"}
+        assert rec["surfaces"]["hook_any"] == {"hits": 1, "first": "42/media/lua/server/Roll.lua:5"}
+        assert "stat_hook" not in rec["surfaces"]
+        assert rec["surfaces"]["sandbox_decl"] == {"hits": 2, "prefixes": ["QC"]}
+
+
+def test_main_takes_out_and_dry_run_and_never_writes_on_help(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(mod_inventory, "sweep", lambda: [])
+    monkeypatch.setattr(mod_inventory, "write_out", lambda path, rows: calls.append(path))
+    mod_inventory.main(["--out", str(tmp_path / "x.json")])
+    assert calls == [str(tmp_path / "x.json")]
+    calls.clear()
+    mod_inventory.main(["--dry-run"])
+    assert calls == []
+    with pytest.raises(SystemExit):
+        mod_inventory.main(["--help"])
+    assert calls == []

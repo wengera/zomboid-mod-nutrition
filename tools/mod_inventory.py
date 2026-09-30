@@ -4,8 +4,9 @@
 Per workshop item -> per mod: identity (the `mod.info` the *game* resolves), B42 layout
 quality, content footprint (lua/scripts/models/maps), lua architecture signals (events,
 networking, modData, monkey-patching, error hygiene, red flags like loadstring) and script
-signals (nutrition keys, item blocks, the module a mod writes into). Output:
-data/mod-inventory.json + console summary.
+signals (nutrition keys, item blocks, the module a mod writes into), plus a surface census
+(`SURFACES`: which vanilla surfaces a mod hooks, wraps or writes, with its first site). Output:
+`--out PATH` (default data/mod-inventory.json) + console summary; `--dry-run` writes nothing.
 
 **Identity is not this tool's question to answer.** `mod_lint` already resolves it -- newest
 `42[.x[.y]]/` folder first, then `common/`, then the mod root -- so `resolve()` below imports
@@ -44,7 +45,7 @@ Stdlib only, no import of `testing/pzt`. Ground truth:
 D:/SteamLibrary/steamapps/workshop/content/108600, read and never written. It is a live tree
 (Steam rewrote item 3490370700 mid-slice on 2026-09-10) -- quote a count with its date.
 """
-import collections, datetime, json, os, re, sys
+import argparse, collections, datetime, json, os, re, sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mod_lint  # version_dirs / info_chain / read_info / media_root
@@ -103,6 +104,30 @@ SCRIPT_KEYS = re.compile(r"^\s*(Calories|Carbohydrates|Lipids|Proteins|HungerCha
 # the widening recovers 491 real items and adds no false positive anywhere.
 SCRIPT_ITEM = re.compile(r"^[ \t]*item[ \t]+(\w[\w.-]*)[ \t]*\{?[ \t]*$", re.M)
 SCRIPT_MODULE = re.compile(r"^\s*module\s+(\S+)", re.M)
+
+# The surface census: which vanilla surfaces a mod hooks, wraps or writes. Each record's
+# `surfaces` maps a surface that hit to `{"hits": n, "first": "<path from the mod folder>:<line>"}`;
+# a surface with no hit is an absent key, and like every count here it reads `<live>/media`
+# alone, so a missing key is an absence only where `media_at` lists no `common/media`. All but
+# the last run over the live tree's `.lua` files; `sandbox_decl` runs over the live
+# `media/sandbox-options.txt` instead and records `{"hits": <option lines>, "prefixes":
+# [<distinct dotted prefixes, sorted>]}`. These are pattern hits, not behaviour.
+SURFACES = {
+    "stat_hook":        re.compile(r"Hook\.CalculateStats|\bCalculateStats\b|LuaHookManager|TriggerHook"),
+    "hook_any":         re.compile(r"Hook\.[A-Z]\w*\.(?:Add|Remove)"),
+    "eat_wrap":         re.compile(r"ISEatFoodAction[.:](?:complete|eat|start|serverStop|isValid|getDuration|perform)\b"),
+    "drink_wrap":       re.compile(r"ISDrinkFluidAction|ISDrinkFromBottle|\bupdateEat\b"),
+    "tooltip_wrap":     re.compile(r"ISToolTipInv[.:]render"),
+    "charinfo_wrap":    re.compile(r"ISCharacterInfoWindow[.:]\w+|ISLayoutManager\.RegisterWindow"),
+    "moodle_framework": re.compile(r"\bMF\.(?:createMoodle|getMoodle)|MoodlesUI"),
+    "trait_write":      re.compile(r"applyTraitFromWeight|getNutrition\(\):set\w+|CharacterTrait\.(?:NIGHT_VISION|SHORT_SIGHTED|EAGLE_EYED|KEEN_HEARING|INSOMNIAC)"),
+    "health_write":     re.compile(r"ReduceGeneralHealth|setOverallBodyHealth|setCatchACold|setWoundInfectionLevel|setInfectionGrowthRate|setAimingDelay|CharacterStat\.TEMPERATURE"),
+    "carry_write":      re.compile(r"setMaxWeightBase|setMaxWeightDelta"),
+    "stat_write":       re.compile(r"getStats\(\):(?:set|add)\w*\(|stats:(?:set|add)\w*\(|CharacterStat\.(?:ENDURANCE|FATIGUE|HUNGER|THIRST|STRESS)"),
+    "sync_fields":      re.compile(r"sendSyncPlayerFields|syncPlayerStats|syncBodyPart"),
+    "perk_write":       re.compile(r"setPerkLevelDebug|\blevel0\b|LoseLevel|LevelPerk\("),
+    "sandbox_decl":     re.compile(r"^\s*option\s+([A-Za-z0-9_]+)\.", re.M),
+}
 
 
 def resolve(mod_dir):
@@ -177,6 +202,7 @@ def scan_mod(mod_dir, item_dir=None):
     script_modules = set()
     script_items = 0
     lua_bytes = 0
+    surf = {}
     # Sorted like `mod_lint._scan`'s walk: `stats` is a total either way, but `top_events` ties
     # and `script_modules` insertion order would otherwise depend on how the filesystem
     # enumerates a folder, and the committed dataset has to be byte-reproducible.
@@ -203,6 +229,15 @@ def scan_mod(mod_dir, item_dir=None):
                         if name == "events_add":
                             for ev in hits:
                                 events[ev] += 1
+                rel = os.path.relpath(full, mod_dir).replace("\\", "/")
+                for name, rx in SURFACES.items():
+                    if name == "sandbox_decl":
+                        continue
+                    for m in rx.finditer(txt):
+                        if name not in surf:
+                            line = txt.count("\n", 0, m.start()) + 1
+                            surf[name] = {"hits": 0, "first": f"{rel}:{line}"}
+                        surf[name]["hits"] += 1
             elif fl.endswith(".txt") and "/scripts" in p:
                 stats["script_files"] += 1
                 try:
@@ -230,6 +265,14 @@ def scan_mod(mod_dir, item_dir=None):
     # `3404074048`, `3645980077`, four mods in `3662913642`, `3671176591`, `3763759011`,
     # `3772533498`, `3789019583`, measured 2026-09-10), and a false "no options" is the
     # dangerous direction for a profile: it reads sandbox options off this field.
+    # `sandbox_decl` reads the live folder's file only, like every other surface.
+    try:
+        decl = SURFACES["sandbox_decl"].findall(
+            open(os.path.join(media, "sandbox-options.txt"), encoding="utf-8", errors="replace").read())
+    except OSError:
+        decl = []
+    if decl:
+        surf["sandbox_decl"] = {"hits": len(decl), "prefixes": sorted(set(decl))}
     has_sandbox = any(os.path.isfile(os.path.join(root, "media", "sandbox-options.txt"))
                       for root in (live, mod_dir, os.path.join(mod_dir, "common")))
     mtime = os.path.getmtime(item_dir) if item_dir else None
@@ -260,6 +303,8 @@ def scan_mod(mod_dir, item_dir=None):
         "workshop_item_mtime": None if mtime is None else
             datetime.datetime.fromtimestamp(mtime).isoformat(timespec="seconds"),
         "sandbox_options": has_sandbox,
+        # In `SURFACES` order, whatever order the files hit in.
+        "surfaces": {k: surf[k] for k in SURFACES if k in surf},
     }
 
 def classify(m):
@@ -277,7 +322,8 @@ def classify(m):
         return "systems(light-lua)"
     return "other"
 
-def main():
+def sweep():
+    """Walk every workshop item under `ROOT` and return one classified record per mod folder."""
     out = []
     for wid in sorted(os.listdir(ROOT)):
         wdir = os.path.join(ROOT, wid, "mods")
@@ -292,14 +338,33 @@ def main():
             m["folder"] = modname
             m["class"] = classify(m)
             out.append(m)
+    return out
 
+
+def write_out(path, rows):
     # Explicit encoding and newline: text mode would write the platform's line ending, so the
     # same tree over the same corpus produced different bytes on Windows than anywhere else.
     # LF and utf-8 make "regenerate and diff" mean the same thing on every machine.
-    with open(OUT, "w", encoding="utf-8", newline="\n") as fh:
-        json.dump(out, fh, indent=1)
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        json.dump(rows, fh, indent=1)
 
-    print(f"{len(out)} mods across {len({m['workshop_id'] for m in out})} workshop items -> {OUT}\n")
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="Inventory every installed workshop mod.")
+    # The default is the 2026-09-10 snapshot the register cites: a re-sweep that is to be
+    # cited goes to a new dated file, so a cited snapshot is never overwritten.
+    ap.add_argument("--out", default=OUT, help="output JSON path (default: data/mod-inventory.json)")
+    ap.add_argument("--dry-run", action="store_true", help="sweep and print the summary, write nothing")
+    args = ap.parse_args(argv)
+    stamp = datetime.datetime.now()  # the sweep's start: the stamp a cited count carries
+    out = sweep()
+    if args.dry_run:
+        dest = "(dry run, nothing written)"
+    else:
+        write_out(args.out, out)
+        dest = args.out
+    print(f"swept {stamp:%Y-%m-%d %H:%M}")
+    print(f"{len(out)} mods across {len({m['workshop_id'] for m in out})} workshop items -> {dest}\n")
     by_class = collections.Counter(m["class"] for m in out)
     for k, v in by_class.most_common():
         print(f"  {v:3} {k}")
@@ -344,6 +409,10 @@ def main():
     for m in sorted(drift, key=lambda x: x["mod_id_fallback"].lower()):
         print(f"  {m['workshop_id']}/{m['mod_id_fallback']} -> "
               f"{m['mod_id'] or '(no mod.info id -- invisible to the workshop index)'}")
+    # The surface census: how many mods hit each surface at least once.
+    print("\nSurfaces (mods hitting each, <live>/media only):")
+    for name in SURFACES:
+        print(f"  {sum(1 for m in out if name in m['surfaces']):>4} {name}")
 
 if __name__ == "__main__":
     # Mod folder names and mod.info values are author-supplied; the default Windows console

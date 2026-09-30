@@ -240,6 +240,12 @@ Over the corpus in the 2026-09-10 17:47 sweep, the end-of-line anchor removes 16
 The nine script-signal mods define 881 items between them in the 2026-09-10 17:47 sweep, and that figure must be quoted as items defined rather than food items, because it counts definitions in every script file [#1931/C/snapshot].
 Read without comment-stripping the figure is 899, and the hyphen widening leaves it unchanged, in the 2026-09-10 17:47 sweep [#1931/C/snapshot].
 
+### The 2026-09-28 dataset
+
+`data/mod-inventory-2026-09-28.json` is a second dated snapshot beside the first, written by the same tool with `--out`: 234 records across 182 workshop items in the 2026-09-30 05:48 sweep, against the 2026-09-10 17:47 sweep's 230 and 179, the difference being the corpus drifting [T2.1].
+Its records carry one key the first snapshot lacks, `surfaces`, a census of fourteen named patterns (`stat_hook`, `hook_any`, `eat_wrap`, `drink_wrap`, `tooltip_wrap`, `charinfo_wrap`, `moodle_framework`, `trait_write`, `health_write`, `carry_write`, `stat_write`, `sync_fields`, `perk_write`, `sandbox_decl`): each surface that hits maps to its hit count and its first site as a path from the mod folder with a line number, `sandbox_decl` maps instead to its count of option lines in the live `media/sandbox-options.txt` and their distinct prefixes, sorted, and a surface with no hit is an absent key — counted, like every field, under the live `media/` alone, so an absent key is an absence only where `media_at` lists no `common/media`, and a hit is a pattern hit and not behaviour [T2.2].
+A dated `data:` pointer resolves in the file its stamp names, so a re-sweep that is to be cited goes to a new dated file and never overwrites a cited snapshot, and `data/mod-inventory.json` stays the 2026-09-10 17:47 snapshot its rows cite [#1914/C/snapshot, T2.1, T2.3].
+
 <a id="workshop-rows"></a>
 ## Workshop rows
 
