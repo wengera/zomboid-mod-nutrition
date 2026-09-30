@@ -1,5 +1,5 @@
 # The harness
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the instrument every measured row in this library was taken with — the `pzt` orchestrator, the profile, the sandbox block, the driven client, the command bus and how a reply is read, probe and witness design, scenarios, cadence and game time, artifact and driver discipline; the command inventory itself is generated into `reference/harness-commands.md` and the named experiment specs are `reference/experiments.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the instrument every measured row in this library was taken with — the `pzt` orchestrator, the profile, the sandbox block, the driven client, the command bus and how a reply is read, probe and witness design, scenarios, cadence and game time, artifact and driver discipline; the command inventory itself is generated into `reference/harness-commands.md` and the named experiment specs are `reference/experiments.md`.
 
 ## Rules
 
@@ -139,6 +139,7 @@ A profile's sandbox value survives the server's own boot-time rewrite beside the
 | `diff` against the fixture | — | **one hunk, one line** (the seeded one) |
 
 Of the 189 four-space assignment lines five are nested-table openers, which is why the settable-option list a profile is validated against returns 184, and both counts are stable across the merge; a profile naming a nested option or a table opener is rejected rather than silently doing nothing [#1808/M/n=1].
+A profile's sandbox block cannot set a mod's own option: the key pattern matches only a four-space top-level key and excludes a nested-table opener, so the settable list never names a mod option or its prefix, validation rejects a profile naming one, and the merge would append a dotted key as `MyMod.Opt = 3,`, which is not valid Lua inside the table ([sandbox-options.md](sandbox-options.md#server-file)) [T12.37].
 
 Five sandbox options carry the nutrition work, with the fixture's value and what each does; all five are settable from a profile and only the day length has been exercised by one [#1809/C/C-only].
 
