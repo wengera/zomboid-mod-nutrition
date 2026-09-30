@@ -291,7 +291,7 @@ Not covered: the cadence of the injuries packet that carries the rebuilt speed f
 - Is a `CalculateStats` handler's endurance write the last write before the player-stats push, as the tick order reads — settled by a handler writing a sentinel endurance each tick, read in client-first pairs; -> [X35](../areas/open-questions.md#x35) [#2082/C/open]
 - Decision: where a mod moves endurance recovery — `getRecoveryMod` multiplies every regeneration arm but has no setter, so the levers are the Fitness perk, the weight-band traits, the `EndRegen` option, or a replacement of the whole stat tick through the hook the two experiments above test [T8.8] [T8.37].
 - Decision: whether fatigue is modelled at all on a server that does not both allow and need sleep, where the server pins it every update ahead of the `CalculateStats` hook (see [character-stats.md](../facts/character-stats.md#tick-order)).
-- Decision: whether the mod's endurance costs ride the per-update model, the three event writers, or both — the event writers land between updates, so a per-update replacement that ignores them loses the swing, vault and exercise costs [T8.19].
+- Decision: whether the mod's endurance costs ride the per-update model, the three event writers, or both — the event writers sit outside the per-update model, so a per-update replacement that ignores them loses the swing, vault and exercise costs [T8.19].
 
 ## See also
 
