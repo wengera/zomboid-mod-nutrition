@@ -10,7 +10,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the Strength and F
 - A Strength amount is multiplied by 1.5 while the protein store is strictly between 50 and 300 and by 0.7 while it is below −300, with no sandbox guard [T5.12].
 - The two-, three- and four-argument `AddXP` overloads do nothing on a dedicated server, because each returns unless the player is local and no player is local on a server [T5.5].
 - The `addXp(player, perk, amount)` global routes to `GameServer.addXp` on a server and does nothing at all on a multiplayer client [T5.30].
-- The Lua event `AddXP` fires only where `GameClient.client` is null, so never on a multiplayer client [T5.25].
+- The Lua event `AddXP` fires only where `GameClient.client` is false, so never on a multiplayer client [T5.25].
 - Strength multiplies melee damage by 0.80 at level 1 rising 0.05 a level to 1.25 at level 10, and by 0.75 at level 0 [T5.35].
 - Carry capacity is the base maximum weight times the Strength weight multiplier, less the moodle penalty, floored at 0, then times the player's `maxWeightDelta` [#0513/M/n=1, T5.42].
 - `setMaxWeightBase` and `setMaxWeightDelta` have no caller in the jar and are re-read on every recompute, so a mod can own carry capacity without moving the level [T5.43].
@@ -62,10 +62,11 @@ The five-argument overload forwards straight to the six-argument one, which hold
 The six-argument body reads only its second and fourth booleans: the second gates the whole trait, multiplier and sandbox block and the fourth gates the halo text, while the first and third are never read [T5.7].
 The sixth overload, `AddXP(HandWeapon, int)`, is declared with a bare `return` for a body [T5.8].
 
-From the Fitness gate on, the six-argument body runs these steps in this order, and each gate returns before any experience is written [T5.7] [T5.9] [T5.11] [T5.12] [T5.14] [T5.22] [T5.23] [T5.25]:
+The six-argument body runs these steps in this order, and each gate returns before any experience is written [T5.61] [T5.7] [T5.9] [T5.11] [T5.12] [T5.14] [T5.22] [T5.23] [T5.25]:
 
 ```
 IsoGameCharacter$XP.AddXP(perk, amount, b1, b2, b3, b4)
+  @0–@10       isAsleep()                                   -> return, the amount dropped
   @63–@106     Fitness, IsoPlayer, !canAddFitnessXp()       -> return, the amount dropped
   @107–@171    Strength, IsoPlayer, 50 < proteins < 300     -> amount *= 1.5
   @172–@190    Strength, IsoPlayer, proteins < -300         -> amount *= 0.7
@@ -76,9 +77,10 @@ IsoGameCharacter$XP.AddXP(perk, amount, b1, b2, b3, b4)
   @1119–@1193  crossing totalXpForLevel(level) downward     -> LoseLevel, looping
   @1196–@1250  Fitness, IsoPlayer                           -> FITNESS stat = level / 5 - 1
   @1271        b4 true                                      -> halo text
-  @1346–@1364  GameClient.client == null                    -> Lua event AddXP(chr, perk, amount)
+  @1346–@1364  GameClient.client false                      -> Lua event AddXP(chr, perk, amount)
 ```
 
+The first gate is sleep: the body returns before anything else when the character `isAsleep()`, so every amount to a sleeping character is dropped, whatever the perk and whatever the caller [T5.61].
 The Fitness gate: when the perk is `Perks.Fitness` and the character is an `IsoPlayer`, a false `Nutrition.canAddFitnessXp()` returns before any multiplier, so the whole amount is dropped, a negative one included [T5.11].
 The gate names the Fitness perk alone, so no Strength amount is ever dropped by it [T5.11].
 The predicate's thresholds, which read the weight-band traits, are stated at [body-and-weight.md#weight-traits](body-and-weight.md#weight-traits).
@@ -111,7 +113,7 @@ Outside a load of the whole experience object, a perk level is written by four m
 `level0` has no caller anywhere in the jar, and `setPerkLevelDebug`'s only Java callers are two debug windows that bind it to a slider, so both exist for Lua and the debug tools [T5.17].
 `LevelPerk(perk)` raises the level by one and clamps it to 10 [T5.18].
 It throws on `Perks.MAX` and on a nil perk [T5.18].
-`LoseLevel(perk)` lowers the level by one, floored at 0 [T5.27].
+`LoseLevel(perk)` lowers the level by one, with the floor and the event it fires stated under [#events](#events).
 
 `setPerkLevelDebug(perk, n)` writes `PerkInfo.level`, minting the entry when the perk has none, and does nothing else [T5.19].
 It neither reads nor writes experience and fires no `LevelPerk` event, and its only push is `GameClient.sendPerks`, taken on a client alone [T5.19].
@@ -131,9 +133,9 @@ Each such step fires the level event with a gained flag of false and so rewrites
 <a id="events"></a>
 ### The two events and the grant route
 
-`AddXP` fires the Lua event `AddXP` only when `GameClient.client` is null, so it never fires on a multiplayer client and does fire on a dedicated server [T5.25].
+`AddXP` fires the Lua event `AddXP` only when `GameClient.client` is false, so it never fires on a multiplayer client and does fire on a dedicated server [T5.25].
 Its arguments are the character, the perk and the amount as a `Float`, the amount being the final one, after every multiplier and the clamp [T5.26].
-The `LevelPerk` event fires after the level write from `LevelPerk` with a gained flag of true and from `LoseLevel` with false, and neither carries a side gate [T5.27].
+`LoseLevel` lowers the level by one, floored at 0, and the `LevelPerk` event fires after the level write from `LevelPerk` with a gained flag of true and from `LoseLevel` with false, and neither carries a side gate [T5.27].
 `LevelPerk` fires it with four arguments — the character, the perk, the new level as an `Integer` and a `Boolean` — from both of its branches, and the fourth argument is the constant true whatever the method's own boolean parameter [T5.28].
 The event's listener in the server file `XpUpdate.lua` does four jobs: it re-checks the auto-learned craft recipes, rewrites the Strength band traits, rewrites the Fitness band traits, and learns the Farming, Mechanics and Electricity recipes at high levels [T5.29].
 A level written without firing the event leaves all four stale [T5.29].
@@ -145,7 +147,7 @@ It then routes to `GameServer.addXp` when `GameServer.server` is set and does no
 `canModifyPlayerStats` passes when the connection's role holds `CanModifyPlayerStatsInThePlayerStatsUI` or when the connection owns that player, so a server-side grant to a connected player's own character always passes [T5.34].
 Past its gates, `GameServer.addXp` calls the six-argument `AddXP` with the no-multiplier flag inverted into the second boolean, the third set and the halo flag fourth, so it never meets the local-player gate [T5.32].
 It then refreshes the anti-cheat's experience snapshot through `updateXpChecker` [T5.32].
-A grant through `addXp` on the server therefore fires the `AddXP` event there, and the `LevelPerk` event too when it crosses a threshold [T5.25] [T5.30].
+A grant through `addXp` on the server therefore fires the `AddXP` event there unless the character is asleep, and the `LevelPerk` event too when it crosses a threshold [T5.61] [T5.25] [T5.30].
 
 <a id="readers"></a>
 ### The Java readers of the two levels
@@ -191,7 +193,7 @@ The moodle penalty's terms are stated at [body-and-weight.md#moodles](body-and-w
 `setMaxWeightBase(int)` and `setMaxWeightDelta(float)` are public, have no caller anywhere in the jar, and are re-read on every recompute, and `maxWeightDelta` itself is confined to `IsoPlayer` [T5.43].
 A mod can therefore own carry capacity through those two setters without touching the perk level; neither setter is exercised from Lua on a live server [T5.43].
 The STRONG, WEAK, FEEBLE and STOUT traits reach `maxWeightDelta` only in the two `IsoPlayer` constructors, as 1.5, 0.75, 0.9 and 1.25 [T5.44].
-A Strength level change that swaps those traits therefore never refreshes the delta, and a mod that owns it fights nothing in vanilla [T5.44].
+A Strength level change that swaps those traits therefore never refreshes the delta, and a mod that owns it fights nothing in the jar [T5.44].
 A Lua write to `setMaxWeight` lasts only until the next body-damage update, because the recompute calls the same setter [T5.45].
 `setUnlimitedCarry` removes the limit but is contested: the save load, the role setter and both arms of the extra-info packet write it [T5.46].
 
@@ -200,7 +202,7 @@ A Lua write to `setMaxWeight` lasts only until the next body-damage update, beca
 
 On the server, `AntiCheatXPUpdate.isPerkXpGrowthRateTooHigh` flags a perk whose experience rose by more than `1000 × getMaxPerkXpMultiplier × getMaxPerkXpBoostMultiplier` since the last check [T5.47].
 When it trips it logs the perk, the growth and both multipliers as a multiplayer error [T5.47].
-The bound is per perk and per check, so a steady trickle of small grants never trips it however large their sum over a day [T5.47].
+The bound is per perk and per check, so a steady trickle of small grants never trips it as long as each interval's growth stays under the bound [T5.47].
 The boost multiplier resolves to 1.0, 1.33, 1.66 or 0.25 by the perk's boost [T5.49].
 Its Fast Learner widening applies only to perks outside the physical category, so it never widens Strength or Fitness [T5.49].
 `AntiCheatXPUpdate.update` returns true at once when the check is disabled, and otherwise walks the connection's players and fails on the first one that trips [T5.50].
@@ -211,7 +213,7 @@ The check's interval, which is the bound's denominator, and the server option th
 <a id="skill-rust"></a>
 ### Skill rust
 
-The engine has no Java skill-rust or experience-decay mechanism: the Strength and Fitness decay is the ten-minute pass of the server file `XpUpdate.lua`, which walks the online players when `isServer()` is true [T5.51].
+The engine has no Java skill-rust or experience-decay mechanism: the Strength and Fitness decay is the ten-minute pass of the server file `XpUpdate.lua`, which walks the online players when `isServer()` is true and the local players otherwise [T5.51].
 For each perk it credits −1 experience each time the rust timer, once above 20000, enters a new 1200-unit bucket, but only while the perk's experience is above 0, and then runs the level check under [#level-writes](#level-writes) [T5.51].
 It resets the timer to 0 once the timer passes 31000 [T5.51].
 The pass's state is four keys in the player's modData — `strengthUpTimer`, `strengthMod`, `fitnessUpTimer` and `fitnessMod` — each timer defaulting to −50000 and each bucket to 0 [T5.52].
@@ -219,7 +221,8 @@ The pass's state is four keys in the player's modData — `strengthUpTimer`, `st
 So rust removes one experience point per step, on a timer that rises by 10 per ten in-game minutes [T5.54].
 From a timer at 0, where the reset leaves it, rust begins after about 13.9 in-game days with no gain in that perk, and from the −50000 default and floor after about 48.6 [T5.55].
 Every positive Strength or Fitness amount on the `AddXP` event subtracts 3000 from that perk's timer, floored at −50000 [T5.56].
-Because the `AddXP` event never fires on a multiplayer client, a connected player's timers move on the server alone [T5.25] [T5.56].
+Because the `AddXP` event never fires on a multiplayer client, the 3000 subtraction runs on the server alone [T5.25] [T5.56].
+The pass's local-players arm runs in any Lua state that loads the file, so a connected client's own copy of the timers may rise without the subtraction and run `LoseLevel` on its copy of the level; whether the pass fires in a connected client's state is unmeasured [T5.51].
 
 <a id="trait-remap"></a>
 ### The band-trait remap
@@ -235,7 +238,7 @@ A load of the experience object replaces the character-trait list along with the
 ## Walls and bounds
 <a id="walls"></a>
 
-Every row on this page is a reading of the jar or of the install's shipped Lua for build `42.20.4`, and none of it is exercised on a live server.
+Every row this page owns is a reading of the jar or of the install's shipped Lua for build `42.20.4`, and none of it is exercised on a live server.
 The engine has no lean-mass, fat-mass or aerobic-capacity field and no effective-strength concept: no setter overrides a Strength-derived modifier, and no Strength or Fitness level setter exists besides the generic perk methods [T5.59].
 `remoteStrLvl` and `remoteFitLvl` are public fields with no getter, so Lua cannot read either; the first's one reader is the crit-chance term against another player and the second has no reader at all [T5.60].
 The Fitness stat's own refresher is private and cannot be called from Lua, as [character-stats.md#updaters](character-stats.md#updaters) states.
@@ -249,6 +252,7 @@ Not covered: the body of `AddXPHaloText`; the wire encoding of a perk id inside 
 - Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? — settled by server-side event counters against a console grant; -> [X39](../areas/open-questions.md#x39) [#2084/C/open]
 - What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? — settled by a desk read of what enables the check and timed server-side bursts either side of the bound; -> [X40](../areas/open-questions.md#x40) [#2085/C/open]
 - Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? — settled by melee hits with the protein store raised on one side at a time; -> [X48](../areas/open-questions.md#x48) [#2087/C/open]
+- That no vanilla Lua file calls `setMaxWeightDelta` or `setMaxWeightBase` is unverified: a hand scan of the install; re-measure by a committed install scan [T5.62].
 - Decision: which overload a dedicated server reaches for a connected player's combat experience decides where the protein branch and the Fitness gate evaluate — every server-side grant reaches the six-argument body through `GameServer.addXp`, while no client-side overload reaches it at all [T5.5] [T5.32].
 - Decision: how large a single server-side grant the mod issues, given that a flagged check can kick or ban and the option that enables the check is unread [T5.47] [T5.48].
 - Decision: whether the mod owns the vanilla protein store, given that the Strength branch reads it directly and fires on vanilla's number otherwise [T5.12].
