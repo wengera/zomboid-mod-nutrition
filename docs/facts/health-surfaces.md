@@ -7,7 +7,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: what a mod can dri
 - The regeneration tier reaches its constant through a `tableswitch` decoded as low `0`, high `3`, default at the asleep block, so tier 3 adds nothing and a sleeper takes the sleeping addition [T10.11].
 - Every severe-moodle health loss is built from one public constant, `healthReductionFromSevereBadMoodles`, defaulting to `0.0165` [T10.13].
 - The severe-moodle drain has six terms — hunger over `50`, thirst over `10`, two sickness arms, bleeding and heavy load — summed into one `ReduceGeneralHealth` call per tick [T10.14].
-- Health changes through `ReduceGeneralHealth` and `AddGeneralHealth`; a direct `setOverallBodyHealth` write is recomputed away on the next server tick [T10.2].
+- Health changes through `ReduceGeneralHealth` and `AddGeneralHealth`; a direct `setOverallBodyHealth` write is recomputed away on the next server tick unless it is exactly zero [T10.2] [T10.1].
 - The engine kills with `ReduceGeneralHealth(110.0f)`, and a character at or below zero health is killed by `die()` on the server only [T10.6] [T10.7].
 - The poison health drain is `0.0035 × min(POISON / 10, 3)` per multiplier unit, so it caps at `0.0105` [T10.16].
 - A splinted fracture heals at `5e-5 × splintFactor` per multiplier unit against `5e-6` unsplinted, ten times faster per unit of splint factor [T10.25].
@@ -17,7 +17,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: what a mod can dri
 
 ## How it works
 
-Every method on this page runs inside `BodyDamage.Update` or `BodyPart.DamageUpdate`, whose side gates are stated at [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership); the stats they read and write are registered at [character-stats.md#registry](character-stats.md#registry).
+The tick methods on this page run inside `BodyDamage.Update` or `BodyPart.DamageUpdate`, whose side gates are stated at [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership); the stats they read and write are registered at [character-stats.md#registry](character-stats.md#registry).
 A multiplier unit is one `GameTime.getMultiplier()` step; how a step converts to game time is stated at [body-and-weight.md#time-unit](body-and-weight.md#time-unit).
 
 <a id="health-api"></a>
@@ -27,6 +27,7 @@ Overall body health is not a store of its own: it is recomputed from the parts [
 The formula is `100 − min(100, Σ (100 − part health) × getDamageModifyer(i) + getDamageFromPills())`, and the per-part damage modifiers inside it are not read [T10.3].
 `calculateOverallHealth` runs at the end of every `BodyDamage.Update` and writes its result through `setOverallBodyHealth`, which is itself a raw, unclamped field write [T10.2].
 A mod that calls `setOverallBodyHealth` directly therefore sees its value replaced by the part sum on the next server tick [T10.2].
+The exception is a write of exactly zero: it meets the exact-zero stop before the recompute, so it persists, and `isDead` then kills the character on the server [T10.1] [T10.2] [T10.7].
 
 The two supported routes spread an amount over the parts instead [T10.4] [T10.5].
 `ReduceGeneralHealth(f)` returns at once for an argument at or below zero [T10.4].
@@ -37,13 +38,13 @@ A heal therefore concentrates on the damaged parts, while a loss lands on every 
 
 The tick stops when overall body health is exactly zero [T10.1].
 At that value `BodyDamage.Update` returns before its regeneration, the severe-moodle drain, poison, pain, infection, the per-part update and the overall-health recompute [T10.1].
-A negative overall health does not trigger the stop, so a reduction that overshoots zero keeps the body simulating [T10.1].
+A negative value, which only a raw `setOverallBodyHealth` write can produce, does not trigger the stop [T10.1] [T10.3].
 
 Death needs no new API [T10.7].
 A character is dead when its own `health` field or its overall body health is at or below zero [T10.7].
 `IsoGameCharacter.updateInternal` then calls `die()`, and only when the process is a server [T10.7].
 The engine's own fatal move is `ReduceGeneralHealth(110.0f)`, used on both lethal arms of the zombie-infection path — at once under the mortality option's first value, and when the mortality clock completes [T10.6].
-`110` overshoots the whole body, so the exact-zero stop never catches it [T10.6] [T10.1].
+The recompute caps the damage sum at `100`, so after that call overall health reads exactly zero and the next tick stops at once [T10.6] [T10.3] [T10.1].
 
 `IsoGameCharacter.setHealth` writes the character's separate `health` field [T10.8].
 It refuses only the exact value zero, and only while the character is invulnerable; any other value, negative or above the usual range, is stored unclamped [T10.8].
@@ -59,38 +60,49 @@ One debug switch sits above the whole model [T10.10].
 <a id="regeneration"></a>
 ### Regeneration
 
-Regeneration is one accumulator per tick, handed to `AddGeneralHealth` once [T10.11].
+Regeneration is one accumulator per tick, fed by the health-from-food term, the tier addition and the sleeping addition, and handed to `AddGeneralHealth` once [T10.11] [T10.44].
 A tier index is built from the `HUNGRY`, `SICK` and `THIRST` moodle levels, and a `tableswitch` maps it to one of four constants [T10.11].
 The switch decodes with low `0`, high `3` and its default at the asleep block; a sleeping character's tier of `-1` falls to that default and takes the sleeping addition instead of any awake constant [T10.11].
-The decoded switch, with the tier build above it, is this [T10.11]:
+The decoded switch, with the food term and the tier build above it and the sleeping arm below it, is this [T10.11] [T10.44]:
 
 ```java
 // BodyDamage.Update, the regeneration block
-float add = 0;                                               // @549  L2267
-int tier = 0;                                                // @591  L2274
-if (HUNGRY == 2 || SICK == 2 || THIRST == 2) tier = 1;       // @645  L2280
-if (HUNGRY == 3 || SICK == 3 || THIRST == 3) tier = 2;       // @699  L2287
-if (HUNGRY == 4 || THIRST == 4)             tier = 3;        // @736  L2293  (SICK absent)
-if (isAsleep())                             tier = -1;       // @749  L2297
-switch (tier) {                  // @754 tableswitch low 0 high 3, default -> @839
+float add = 0;                                                   // @549  L2267
+if (getHealthFromFoodTimer() > 0) {                              // @551  L2269
+  add += getHealthFromFood() * mult;                             // @560  L2270
+  setHealthFromFoodTimer(getHealthFromFoodTimer() - 1 * mult);   // @574  L2271
+}
+int tier = 0;                                                    // @591  L2274
+if (HUNGRY == 2 || SICK == 2 || THIRST == 2) tier = 1;           // @645  L2280
+if (HUNGRY == 3 || SICK == 3 || THIRST == 3) tier = 2;           // @699  L2287
+if (HUNGRY == 4 || THIRST == 4)             tier = 3;            // @736  L2293  (SICK absent)
+if (isAsleep())                             tier = -1;           // @749  L2297
+switch (tier) {                      // @754 tableswitch low 0 high 3, default -> @839
   case 0: add += getStandardHealthAddition()       * mult; break;  // @784 L2303
   case 1: add += getReducedHealthAddition()        * mult; break;  // @801 L2306
   case 2: add += getSeverlyReducedHealthAddition() * mult; break;  // @818 L2309
   case 3: add += 0;                                                // @835 L2312
 }
-if (isAsleep()) add += getSleepingHealthAddition() * mult;         // @875 L2320 (server arm)
-if (HUNGRY == 4 || THIRST == 4) add = 0;                           // @923 L2323
-AddGeneralHealth(add);                                             // @925 L2328
+if (isAsleep()) {                                                // @839  L2316  (ifeq -> @925)
+  if (GameClient.client)
+    add += 15 * getGameWorldSecondsSinceLastUpdate() / 3600;     // @849  L2317-L2318
+  else
+    add += getSleepingHealthAddition() * mult;                   // @875  L2320
+  if (HUNGRY == 4 || THIRST == 4) add = 0;                       // @889  L2322-L2323
+}
+AddGeneralHealth(add);                                           // @925  L2328
 ```
 
 Each test is an equality on a moodle level, run in ascending order, so the highest matching level wins [T10.11].
 The sleeping addition is zeroed by a level-4 hunger or thirst [#0515/C/C-only].
+While `healthFromFoodTimer` is above zero the same accumulator also takes `getHealthFromFood() × mult`, `healthFromFood` defaulting to `0.015`, and the timer falls by one multiplier unit per tick [T10.44].
+That zero-out sits inside the asleep branch, so a sleeper at level-4 hunger or thirst loses the food term with the rest while an awake character keeps it [T10.44].
 How the tiers read against the hunger and thirst moodles is stated at [body-and-weight.md#moodles](body-and-weight.md#moodles), which cites this decoded switch.
 
 The four constants live on the character's own `BodyDamage` and are set in its constructor [T10.12].
 Their defaults are `0.002` standard, `0.0013` reduced, `0.0008` severely reduced and `0.02` sleeping [T10.12].
 Each has a public getter and setter on an exposed class, so a mod can retune the whole ladder for one character without touching another's [T10.12].
-`BodyDamage` has no regeneration multiplier of its own: the ladder is moved by writing the four constants [T10.12] [T10.41].
+`BodyDamage` has no `setHealthAdditionModifier`: the ladder is moved by writing the four constants [T10.12] [T10.41].
 
 The severe-moodle constant sits beside them [T10.13].
 `healthReductionFromSevereBadMoodles` defaults to `0.0165` and has a public getter and setter [T10.13].
@@ -170,7 +182,7 @@ It is a private field written only in the `BodyPart` constructor, and no class i
 
 Healing in this model is the wound timers counting down [T10.24].
 A bandaged scratch's `scratchTime`, for one, loses `1.5e-4` per multiplier unit, and a further `1e-4` while plantain is applied [T10.24].
-When a timer reaches zero its wound stops doing damage [T10.24].
+When a timer reaches zero its wound stops doing damage [T10.22].
 Every timer, and the plantain, comfrey, garlic and splint factors, has a public setter on the exposed `BodyPart`, and those setters are a mod's only healing-rate handles [T10.24].
 A slower heal is written by moving a timer back up, and a faster one by moving it down; no rate setter exists to do it instead [T10.24] [T10.41].
 
@@ -187,9 +199,10 @@ A server-side write to any per-part field reaches the owning client only through
 <a id="mood-surface"></a>
 ### The mood surface
 
-The mood stats are registered stats with their own ranges, listed at [character-stats.md#registry](character-stats.md#registry); the vanilla updaters that drive them run inside `calculateStats`, which a `CalculateStats` hook returning true skips [#0469/C/C-only].
+The mood stats are registered stats with their own ranges, listed at [character-stats.md#registry](character-stats.md#registry).
+Stress and the wake-state updaters run inside `calculateStats`, which a `CalculateStats` hook returning true skips [#0469/C/C-only]; panic, boredom, pain and sickness are driven inside `BodyDamage.Update`, which that hook does not reach [T10.10] [T10.43].
 What a player sees of them is the moodle each stat feeds, and `MoodleStat` fixes where each moodle level begins [T10.27].
-`MoodleStat` registers 20 moodle stats, each as a minimum plus four level thresholds; the mood moodles' thresholds are these [T10.27]:
+`MoodleStat` registers each moodle stat as a minimum plus four level thresholds; the mood moodles' thresholds are these [T10.27]:
 
 | moodle | stat scale | level 1 | level 2 | level 3 | level 4 |
 |---|---|---|---|---|---|
@@ -208,10 +221,9 @@ One ladder is not monotonic [T10.28].
 The `HYPOTHERMIA` moodle's third threshold is `9.0`, below its first at `30` and its second at `70`, as shipped [T10.28].
 How `Moodle.Update` resolves a ladder in that shape is not read [T10.28].
 
-The thresholds cannot be retuned from Lua [T10.29].
-`MoodleStat` does not appear anywhere in the `LuaManager$Exposer.exposeAll()` class set, so a mod never reaches its public threshold setters [T10.29].
-The same wall is the register's verdict at [../reference/wall-map.md#d2-d3](../reference/wall-map.md#d2-d3) [#1141/C/C-only].
-A mod moves a moodle only by moving the stat behind it [T10.29].
+The thresholds cannot be retuned from Lua [#1141/C/C-only].
+`MoodleStat` does not appear anywhere in the `LuaManager$Exposer.exposeAll()` class set, so a mod never reaches its public threshold setters, the wall stated at [../reference/wall-map.md#d2-d3](../reference/wall-map.md#d2-d3) [#1141/C/C-only].
+A mod moves a moodle only by moving the stat behind it [#1141/C/C-only].
 
 Drunkenness is not named as such [T10.30].
 It is `CharacterStat.INTOXICATION` on a `0` to `100` scale, read by the `DRUNK` moodle, and `DRUNKENNESS` and `DrunkennessLevel` are absent from every class entry in the jar [T10.30].
@@ -223,7 +235,7 @@ Body temperature is a registered stat, not a `BodyDamage` field [T10.31].
 `CharacterStat.TEMPERATURE` runs from `20` to `40` with a default of `37`, and `setTemperature` exists in the jar only on `Clothing`, `IsoHeatSource` and `Item` [T10.31].
 
 That stat is the one way into the thermal core from Lua [T10.32].
-`Thermoregulator.updateHeatDeltas` first clamps the core node to `20` to `42` degrees [T10.32].
+`Thermoregulator.updateHeatDeltas` adds the core heat delta to the core node and then clamps it to `20` to `42` degrees [T10.32].
 It then reads `CharacterStat.TEMPERATURE`, and when the stat and the core differ by more than `0.001` it lerps the core halfway toward the stat [T10.32].
 Last, it writes the core back into the stat [T10.32].
 A server-side write to the stat therefore moves the core halfway on the next update, after which the stat is driven from the core again [T10.32].
@@ -259,14 +271,14 @@ What the thermoregulator's totals do to calorie burn, thirst and fatigue is stat
 - The engine has no `FoodSicknessLevel`, `getInfectionLevel`, `FakeInfectionLevel`, `getWoundHealingRate`, `setHealthAdditionModifier` or `FEAR` character stat: the first five are absent from every class entry, and `FEAR` occurs only in a book class and bundled native-access classes [T10.41].
 - The engine has no unconscious or fainting state: `Unconscious`, `setUnconscious`, `Fainted` and `setFainted` are each absent from every class entry, so a mod can set the sleep and knock-down flags and nothing in the jar says a state follows [T10.42].
 - `BodyDamage.Update` runs the thermoregulator and then nine sub-updaters in a fixed order — dragging-corpse, wetness, cold, boredom, strength, panic state, temperature state, discomfort and illness — before regeneration and the drain, and their bodies are unread, so which of them overwrites a stat a mod writes between ticks is not established [T10.43].
-- `damageScaler` has no setter and the moodle thresholds are unreachable from Lua, stated at [#wounds](#wounds) and [#mood-surface](#mood-surface) [T10.21] [T10.29].
+- `damageScaler` has no setter and the moodle thresholds are unreachable from Lua, stated at [#wounds](#wounds) and [#mood-surface](#mood-surface) [#1141/C/C-only] [T10.21].
 - No thermal node, insulation or thermal-resistance value has a setter; the temperature stat is the only door [T10.35] [T10.32].
 Not covered: the nine sub-updater bodies (`UpdatePanicState` and `UpdateBoredom` among them, where panic and boredom are driven), `BodyPartType.getDamageModifyer` and `getPainModifyer`, `CombatManager.applyDamage`, the `generate*` wound and fracture methods, `getGeneralWoundInfectionLevel` and `getApparentInfectionLevel`, `Kill`, `dieNetwork` and `addOnDiedListener`, the carrier of `IsoGameCharacter.health` to a client, the thermoregulator's own formulas beyond the fat, energy and fluid terms, and `ThermalNode.calculateInsulation`.
 
 ## Open
 <a id="open"></a>
 
-- Whether a mod kills through `ReduceGeneralHealth(110)` or through `setHealth(0)` is a decision: the first is the engine's own fatal move and overshoots the exact-zero stop, while the second writes a separate field whose route to a client is unread [T10.6] [T10.8].
+- Whether a mod kills through `ReduceGeneralHealth(110)` or through `setHealth(0)` is a decision: the first is the engine's own fatal move, while the second writes a separate field whose route to a client is unread [T10.6] [T10.8].
 - Whether a healing-rate effect moves the four regeneration constants, the per-part timers, or both is a decision: the constants scale whole-body regeneration per character, and the timers are the only per-wound lever [T10.12] [T10.24].
 - Whether a bleeding effect scales `bleedingTime` or adds bleeds is a decision the squared total forces: a multiplier on the time is felt as roughly its square [T10.23].
 - Whether a temperature effect writes `CharacterStat.TEMPERATURE` every update or accepts the halfway step of one write is a decision the lerp forces [T10.32].
