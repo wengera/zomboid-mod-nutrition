@@ -134,7 +134,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [T4.1] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
 | [T4.2] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
 | [T4.3] | With the vanilla nutrition option off and no mod weight write, does body weight drift? | [open-questions.md](#x41) | X41 | three accelerated game-days of hourly server weight with the option off, beside the same run with it on |
-| [T4.4] | Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence? | [open-questions.md](#x42) | X42 | server calorie slopes with the trait held at weights below, above and inside its band, against the trait absent |
+| [T4.4] | Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence? | [open-questions.md](#x42) | X42 | server calorie slopes with the trait held at weights below, above and inside its band, each against the trait absent at the same weight |
 | [T4.5] | Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server? | [open-questions.md](#x43) | X43 | a desk re-read of the live tree, then, if the multiplier is wired, its grant at three server-set protein values |
 | [T4.6] | Do simpleStatus's bars track the vanilla macro stores on a client? | [open-questions.md](#x44) | X44 | a probe copying the bars' text beside the client's store after a server write, timing the arrival |
 | [T4.7] | Do QualityCooking and BeyondTen each load beside a probe mod on this server? | [open-questions.md](#x45a) | X45a | one co-boot reading each mod's own marker on both sides beside the probe's |
@@ -425,7 +425,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 ### X42 — Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence?
 - Whether SomewhatTraitsCore's adaptive-metabolism calorie write reaches the calorie store under a co-boot, and at what cadence, is open [T4.4].
 - Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
-- Settled by: server calorie slopes with the trait held at weights below, above and inside its band, against an arm with the trait absent — [experiments.md § Named experiments](../reference/experiments.md), row `X42`.
+- Settled by: server calorie slopes with the trait held at weights below, above and inside its band, each against a trait-absent arm at the same weight — [experiments.md § Named experiments](../reference/experiments.md), row `X42`.
 
 <a id="x43"></a>
 ### X43 — Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server?
