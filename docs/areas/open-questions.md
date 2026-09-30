@@ -81,7 +81,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1161/C/C-only/open] | Whether a mod can rely on a weight-band trait client-side is unknown: `applyTraitFromWeight` never runs client-side and `PlayerStatsPacket` does not carry `CharacterTraits`, yet `CharacterTraits` does declare `write` and `read`, so some packet presumably carries them and that path was never traced. | [wall-map.md](../reference/wall-map.md#g4) | X4 | driving a character into a band on the server and reading the client's trait list |
 | [#1164/C/C-only/open] | Whether a mod can override a vanilla translation key is unknown: the Translator merges rather than shadows, so an override is exactly the case the merge does not obviously serve. | [wall-map.md](../reference/wall-map.md#h2) | X5 | a mod redefining one vanilla item-name key beside a new interface key that must hit in the same run |
 | [#1274/C/open] | Is `MoodleStat` reachable from Kahlua at all, given that C is a jar-proven absence? | [open-questions.md](#x2) | X2 | a global read of `MoodleStat` beside two exposed controls that must answer in the same call |
-| [#1275/C/open] | Does any packet carry `CharacterTraits` to a client, and does a registered mod trait behave the same? | [open-questions.md](#x4) | X4 | a non-empty server trait list read on the client across at least two pushes, then the same for a registered trait |
 | [#1276/C/open] | Does a mod JSON displace a vanilla translation key, or does the merge keep vanilla's? | [open-questions.md](#x5) | X5 | a mod redefining one vanilla item-name key and one vanilla interface key beside a new interface key that must hit |
 | [#1277/C/open] | With vanilla nutrition switched off, which of the three arms actually froze? | [open-questions.md](#x7) | X7 | the two three-day scenarios run with the option off against their own baselines, each arm shown to freeze on its own |
 | [#1278/C/open] | What does the spice branch do beyond the herbal-tea sums? | [open-questions.md](#x9b) | X9b | a desk read of the spice method's two overloads and the ingredient usability check |
@@ -104,7 +103,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1295/C/open] | Does MoodleFramework load whole on 42.20.4, does `MF_Config.lua` execute, and does a moodle registered through it render? | [open-questions.md](#x29) | X29 | a desk read of the framework's Lua, then one session reading its globals on both sides and the client's moodle block |
 | [#1296/C/open] | Does a file-scope `ZomboidGlobals.HungerIncrease` assignment from a mod actually change the drain? | [open-questions.md](#x30) | X30 | a file-scope and a game-start assignment read against the server's drain rate and the fixture's baseline rate |
 | [#1297/C/open] | Does a dotted `OnCooked` name fire, on which side, and can the cooking pipeline be driven end to end at all? | [open-questions.md](#x31) | X31 | a cook-transition session with a dotted target, then a harness craft command that reaches a crafted instance |
-| [#1298/C/open] | Does a Lua `CalculateStats` handler returning true really skip the seven updaters, and does it fire on both sides? | [open-questions.md](#x32) | X32 | a flag-gated handler returning true, reading thirst against the macro drain across an off and an on arm |
 | [#1299/C/open] | Does a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really apply nothing at all? | [open-questions.md](#x33) | X33 | a completed eat, a cancelled eat of a normal item and a cancelled eat of an item driven under the guard |
 | [#1348/C/inference/open] | Whether the two weight-direction flags Auto Cook's smart-spice gate reads can desync is unsettled; settling it needs a session that drives calories above 1000 or below 0 and re-reads both sides. | [wire-packets.md](../facts/wire-packets.md#open) | — | a session that drives calories above 1000 or below 0 and re-reads both sides |
 | [#1375/C/C-only/open] | Which mod.info supplies a mod's id when the mod ships more than one is not settled; Auto Cook ships exactly one and cannot discriminate, so no id-read order may be stated on its strength. | [mod-anatomy.md](../platform/mod-anatomy.md#open) | X21 | a purpose-built folder whose only `mod.info` is `common/mod.info` |
@@ -133,6 +131,19 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2085/C/open] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
 | [#2086/C/open] | Does a second registrant of `Hook.CalculateStats` change what the first one causes? | [open-questions.md](#x46) | X46 | thirst across one handler, that handler with a second, the second alone, and no handler |
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
+| [T4.1] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
+| [T4.2] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
+| [T4.3] | With the vanilla nutrition option off and no mod weight write, does body weight drift? | [open-questions.md](#x41) | X41 | three accelerated game-days of hourly server weight with the option off, beside the same run with it on |
+| [T4.4] | Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence? | [open-questions.md](#x42) | X42 | server calorie slopes with the trait held at weights below, above and inside its band, against the trait absent |
+| [T4.5] | Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server? | [open-questions.md](#x43) | X43 | a desk re-read of the live tree, then, if the multiplier is wired, its grant at three server-set protein values |
+| [T4.6] | Do simpleStatus's bars track the vanilla macro stores on a client? | [open-questions.md](#x44) | X44 | a probe copying the bars' text beside the client's store after a server write, timing the arrival |
+| [T4.7] | Do QualityCooking and BeyondTen each load beside a probe mod on this server? | [open-questions.md](#x45a) | X45a | one co-boot reading each mod's own marker on both sides beside the probe's |
+| [T4.8] | Does QualityCooking's eat wrap compose with a second wrap of the same method, and which is outermost? | [open-questions.md](#x45b) | X45b | a code read, then one eat through a sentinel probe wrap beside QualityCooking's, against a boot without it |
+| [T4.9] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
+| [T4.10] | How often does the server write `global_mod_data.bin`? | [open-questions.md](#x49a) | X49a | the file's modification times and the save log line with and without a write, beside a console save |
+| [T4.11] | Does a global modData value written a minute before a hard server stop survive a restart? | [open-questions.md](#x49b) | X49b | a write, a hard stop and a boot on the same run directory, beside a boot on the restored fixture that must miss it |
+| [T4.12] | Does a server-side `sendSyncPlayerFields(player, 2)` after a trait write reach the client's trait list, does a client-side read see the new trait within the push cadence, and does a registered mod trait behave the same? | [open-questions.md](#x4) | X4 | a trait written on the server, the client's list read before and after a server-side trait push, then the same for a registered trait |
+| [T4.13] | Does any registered `Hook.CalculateStats` handler, whatever it returns, skip the seven updaters on the server, and does the hook fire on both sides? | [open-questions.md](#x32) | X32 | a handler added and removed through the hook's own add and remove, reading thirst against the macro drain with and without a registrant |
 
 ## Decisions
 <a id="decisions"></a>
@@ -191,12 +202,12 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: a global read of `MoodleStat` beside two exposed controls that must answer in the same call, riding any session with a client — [experiments.md § Named experiments](../reference/experiments.md), row `X2`.
 
 <a id="x4"></a>
-### X4 — Does any packet carry `CharacterTraits` to a client, and does a registered mod trait behave the same?
-- Whether any packet carries `CharacterTraits` to a client, and whether a registered mod trait behaves the same, is open [#1275/C/open].
+### X4 — Does a server-side `sendSyncPlayerFields(player, 2)` after a trait write reach the client's trait list, does a client-side read see the new trait within the push cadence, and does a registered mod trait behave the same?
+- Whether a server-side `sendSyncPlayerFields(player, 2)` after a trait write reaches the client's trait list, whether a client-side read sees the new trait within the push cadence, and whether a registered mod trait behaves the same is open [T4.12].
 - The weight-band traits are not in the player-stats packet, nothing else has been traced, and both sides' trait lists read empty in every run so far, so an agreement between them is not an answer [#0968/C/C-only/open].
 - It also settles [#0595/C/C-only/open] on [mp-model.md](../platform/mp-model.md#open) and [#1161/C/C-only/open] on [wall-map.md](../reference/wall-map.md#g4).
-- Waiting on it: [new-nutrients.md](new-nutrients.md#open), [mp-sync.md](mp-sync.md#open), [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
-- Settled by: making the server's trait list non-empty first, then reading the client's across at least two pushes, client first, and the same for a trait the mod registers — [experiments.md § Named experiments](../reference/experiments.md), row `X4`.
+- Waiting on it: [mp-sync.md](mp-sync.md#open), [new-nutrients.md](new-nutrients.md#open), [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
+- Settled by: a trait written on the server, then the client's list read in client-first pairs before and after a server-side trait push, the pre-push read as the control, and the same for a trait the mod registers — [experiments.md § Named experiments](../reference/experiments.md), row `X4`.
 
 <a id="x5"></a>
 ### X5 — Does a mod JSON displace a vanilla translation key, or does the merge keep vanilla's?
@@ -352,9 +363,9 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: a cook-transition session with a dotted target, then a harness craft command that reaches a crafted instance with the creation hook registered — [experiments.md § Named experiments](../reference/experiments.md), row `X31`.
 
 <a id="x32"></a>
-### X32 — Does a Lua `CalculateStats` handler returning true really skip the seven updaters, and does it fire on both sides?
-- Whether a Lua `CalculateStats` handler returning true really skips the seven updaters, and whether it fires on both sides, is open [#1298/C/open].
-- Settled by: a flag-gated handler returning true, reading thirst against the macro drain across an off and an on arm, with the handler's call count on both sides — [experiments.md § Named experiments](../reference/experiments.md), row `X32`.
+### X32 — Does any registered `Hook.CalculateStats` handler, whatever it returns, skip the seven updaters on the server, and does the hook fire on both sides?
+- Whether any registered `Hook.CalculateStats` handler, whatever it returns, skips the seven updaters on the server, and whether the hook fires on both sides, is open [T4.13].
+- Settled by: a handler added and removed through `Hook.CalculateStats.Add` and `.Remove`, reading thirst against the macro drain with the handler registered and with none, with the handler's call count on both sides — [experiments.md § Named experiments](../reference/experiments.md), row `X32`.
 
 <a id="x33"></a>
 ### X33 — Does a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really apply nothing at all?
@@ -380,6 +391,18 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Waiting on it: [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: a seeded exercise, then two game-days with no exercise, reading the server's regularity for the fall the decay predicts — [experiments.md § Named experiments](../reference/experiments.md), row `X36`.
 
+<a id="x37"></a>
+### X37 — Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default?
+- Whether the thermoregulator's metabolic-rate classification tracks a server-side player's state or sits at its default is open [T4.1].
+- Waiting on it: [body-and-weight.md](../facts/body-and-weight.md#open).
+- Settled by: server reads of the metabolic rate while the driven client idles, walks and runs, the idle read as the control, against the class values the jar names for each state — [experiments.md § Named experiments](../reference/experiments.md), row `X37`.
+
+<a id="x38"></a>
+### X38 — Is the current timed action, and its calorie modifier, readable server-side?
+- Whether the current timed action and its calorie modifier are readable server-side is open [T4.2].
+- Waiting on it: [body-effects.md](body-effects.md#open).
+- Settled by: the server's action list read idle and through a client-driven eat, then through a book read whose calorie modifier differs from the eat's — [experiments.md § Named experiments](../reference/experiments.md), row `X38`.
+
 <a id="x39"></a>
 ### X39 — Do the server-side experience events fire per grant — `AddXP`, `LevelPerk`, `OnWeaponHitXp` — for a connected player's melee hits and exercise?
 - Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise is open [#2084/C/open].
@@ -392,17 +415,71 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
 
+<a id="x41"></a>
+### X41 — With the vanilla nutrition option off and no mod weight write, does body weight drift?
+- Whether body weight drifts with the vanilla nutrition option off and no mod weight write is open [T4.3].
+- Waiting on it: [body-and-weight.md](../facts/body-and-weight.md#open).
+- Settled by: three accelerated game-days of hourly server weight with the option off and no mod loaded, beside the same run with the option on as the control — [experiments.md § Named experiments](../reference/experiments.md), row `X41`.
+
+<a id="x42"></a>
+### X42 — Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence?
+- Whether SomewhatTraitsCore's adaptive-metabolism calorie write reaches the calorie store under a co-boot, and at what cadence, is open [T4.4].
+- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
+- Settled by: server calorie slopes with the trait held at weights below, above and inside its band, against an arm with the trait absent — [experiments.md § Named experiments](../reference/experiments.md), row `X42`.
+
+<a id="x43"></a>
+### X43 — Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server?
+- Whether SkillRecoveryJournal's protein-gated exercise multiplier reads the vanilla protein store's value on the server is open [T4.5].
+- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
+- Settled by: a desk re-read of the live tree for a wired multiplier, then its own grant at three server-set protein values, each arm the others' control — [experiments.md § Named experiments](../reference/experiments.md), row `X43`.
+
+<a id="x44"></a>
+### X44 — Do simpleStatus's bars track the vanilla macro stores on a client?
+- Whether simpleStatus's bars track the vanilla macro stores on a client is open [T4.6].
+- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
+- Settled by: a probe copying the bars' own text beside the client's macro store after a server write, pair by pair, timing the arrival against the push — [experiments.md § Named experiments](../reference/experiments.md), row `X44`.
+
+<a id="x45a"></a>
+### X45a — Do QualityCooking and BeyondTen each load beside a probe mod on this server?
+- Whether QualityCooking and BeyondTen each load beside a probe mod on this server is open [T4.7].
+- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
+- Settled by: one co-boot reading each mod's own marker on both sides, beside the probe mod's marker as the control — [experiments.md § Named experiments](../reference/experiments.md), row `X45a`.
+
+<a id="x45b"></a>
+### X45b — Does QualityCooking's eat wrap compose with a second wrap of the same method, and which is outermost?
+- Whether QualityCooking's eat wrap composes with a second wrap of the same method, and which wrap is outermost, is open [T4.8].
+- Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open).
+- Settled by: a code read of QualityCooking, then one eat through a sentinel probe wrap beside its wrap, against the same eat on a boot without it — [experiments.md § Named experiments](../reference/experiments.md), row `X45b`.
+
 <a id="x46"></a>
 ### X46 — Does a second registrant of `Hook.CalculateStats` change what the first one causes?
 - Whether a second registrant of `Hook.CalculateStats` changes what the first one causes is open [#2086/C/open].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open).
 - Settled by: thirst read across one handler, the same handler with a second beside it, the second handler alone, and no handler registered — [experiments.md § Named experiments](../reference/experiments.md), row `X46`.
 
+<a id="x47"></a>
+### X47 — Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold?
+- Whether a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window holds is open [T4.9].
+- Waiting on it: [perception-speed.md](../facts/perception-speed.md#open).
+- Settled by: a client write sampled in Lua every quarter second for four seconds, walking and standing, against the packet's cadence — [experiments.md § Named experiments](../reference/experiments.md), row `X47`.
+
 <a id="x48"></a>
 ### X48 — Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value?
 - Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value, is open [#2087/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience each hit grants — [experiments.md § Named experiments](../reference/experiments.md), row `X48`.
+
+<a id="x49a"></a>
+### X49a — How often does the server write `global_mod_data.bin`?
+- How often the server writes `global_mod_data.bin` is open [T4.10].
+- Waiting on it: [server-lifecycle.md](../platform/server-lifecycle.md#open), [mp-sync.md](mp-sync.md#open).
+- Settled by: the file's modification times and the save log line over ten game-minutes after a write and transmit and over ten with no write, beside a console save as the control — [experiments.md § Named experiments](../reference/experiments.md), row `X49a`.
+
+<a id="x49b"></a>
+### X49b — Does a global modData value written a minute before a hard server stop survive a restart?
+- Whether a global modData value written a minute before a hard server stop survives a restart is open [T4.11].
+- Waiting on it: [server-lifecycle.md](../platform/server-lifecycle.md#open), [mp-sync.md](mp-sync.md#open).
+- Settled by: a write, a hard stop a game-minute later and a second boot on the same run directory, beside a boot on the restored fixture that must miss the key — [experiments.md § Named experiments](../reference/experiments.md), row `X49b`.
 
 ## See also
 
