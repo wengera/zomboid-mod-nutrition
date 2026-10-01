@@ -170,8 +170,9 @@ The same file's move handler grants 1 Fitness XP on its dice roll while the play
 The dice roll's odds per side are stated at [perks-and-strength](../facts/perks-and-strength.md#events).
 The same file registers an `OnWeaponHitTree` handler that grants 2 Strength XP for a hit on a tree with any weapon but bare hands [T6.43].
 Taking a wooden plank off a barricade grants 2 Strength XP in `ISUnbarricadeAction:complete`, beside 2 Woodwork XP without the multiplier [T6.44].
-Dismantling a moveable grants 5 XP of its material's perk, 10 for a medium object and 15 for a large one, while the character's level in that perk is below the `LevelForDismantleXPCutoff` sandbox value [T6.45].
-The `Stone` material's perk is Strength, so dismantling a stone object with a hammer is a Strength grant [T6.45].
+Dismantling a moveable grants XP of its material's perk — 5 for a small object, 10 for a medium one, the size an object without a `ScrapSize` gets, and 15 for a large one — only while the character's level in that perk is below the `LevelForDismantleXPCutoff` sandbox value, a check skipped for Electricity [T6.45].
+That option defaults to 0 in the engine and in all four shipped presets, so on a default server the dismantle grant never fires [T6.45].
+The `Stone` material's perk is Strength, so with the cutoff raised, dismantling a stone object with a hammer is a Strength grant [T6.45].
 Every one of these goes through the `addXp` global, the same route as the melee grants [T6.42] [T6.43] [T6.44] [T6.45].
 
 **The stomp.**
