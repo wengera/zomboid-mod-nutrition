@@ -1,5 +1,5 @@
 # Food item model
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a food item is — its state axes, the setters that write nothing, the item-level script keys, the poison fields, and how far the shipped food dataset matches the running game; aging rates, thresholds and containers are `facts/spoilage.md`, intake arithmetic is `facts/eating-pipeline.md`, and what crosses the wire is `facts/wire-packets.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item is — its state axes and the lists and modData an instance carries, the setters that write nothing, the item-level script keys, the fluid blocks, the poison fields, and how far the shipped food dataset matches the running game; aging rates, thresholds and containers are `facts/spoilage.md`, intake arithmetic is `facts/eating-pipeline.md`, and what crosses the wire is `facts/wire-packets.md`.
 
 ## Key facts
 
@@ -21,7 +21,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a food item i
 
 ## How it works
 
-This page is in five parts: the axes an item's state moves on, the setters that do not move them, the keys that seed them, the poison fields, and how far the shipped dataset agrees with the running game.
+This page is in six parts: the axes an item's state moves on, the setters that do not move them, the keys that seed them, the fluid blocks a drink's numbers come from, the poison fields, and how far the shipped dataset agrees with the running game.
 Everything here is the model one item carries in memory; what a client's copy of that model is allowed to be is [`wire-packets.md`](wire-packets.md#desyncs).
 
 <a id="state-axes"></a>
@@ -58,6 +58,16 @@ A second guard sits in front of the unmodded-weight getter.
 That zero is the display-name guard rather than a weight reading, and it was taken on one session across items written for the test.
 What it costs a mod is under [Walls and bounds](#walls).
 Weight is the axis a nutrition rebalance moves without meaning to, which is why it sits here rather than with the body model.
+
+Beyond the axes an instance carries state that no script key seeds: two lists of item types and its own modData table.
+`InventoryItem.extraItems` is saved behind header bit `32` as an `int` count and one item-registry `short` per entry, and loaded back through `WorldDictionary.getItemTypeFromID`, so an evolved dish keeps its ingredient list across a save [T19.24].
+`Food.spices` is saved behind header bit `256` as a one-byte count and one written string per entry, and loaded back the same way [T19.25].
+What fills the two lists is [`cooking-and-recipes.md`](cooking-and-recipes.md#evolved)'s.
+
+`InventoryItem.getModData()` is public on an exposed class and lazily creates the instance's own table, while `hasModData()` answers false for a table that exists but is empty, so calling the getter to test for mod data always finds a table [T19.26].
+Every instance receives a deep, recursive copy of its type's default modData rather than a shared reference: `InstanceItem` calls `copyModData`, which wipes the instance table and runs `LuaManager.copyTable`, which copies a nested table through a recursive call, so a write to one instance's key reaches neither the type default nor a sibling instance [T19.27].
+`Food.multiplyFoodValues`, which shrinks what is left of a part-eaten or part-spent item, touches no modData, no `extraItems` and no `spices`: its whole body is fifteen setter calls, each a field times the factor, and a return [T19.28].
+A value a mod keeps in an instance's modData therefore stays whole while the item's own nutrition shrinks around it [T19.28].
 
 <a id="dead-setters"></a>
 ### The setters that write nothing
@@ -232,14 +242,40 @@ A key that parses into nowhere looks, in the table, exactly like a key that work
 `RainFactor` has no branch in `Item.DoParam` and is recognised only by `FluidContainerScript` inside a `component FluidContainer` block, never at item top level, so at item level it lands in `defaultModData`, and it is carried by the same one shipped item [#0218/C/snapshot].
 Both land there by the loader's default arm, which writes an unrecognised key into the item's default modData rather than dropping it or throwing ([#0212], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#default-moddata)).
 That arm is also the route a mod nutrient can ride into a vanilla block.
+`Item.DoParam`'s default arm rawsets an unrecognised `item` key into the script's `defaultModData` under its trimmed name, as a `Double` when the trimmed value parses as one and as the raw value string otherwise [T19.31].
+Each instance then gets its own deep copy of that table, as [the state axes](#state-axes) state.
 
 `Eattime` is the script-parser spelling of the eat-duration key, it has no Java consumer, and its only use is the Lua duration override [#0100/C/snapshot].
 The spelling is the trap: the getter is camel-cased and the key is not.
 What the eat action does with the value is [`eating-pipeline.md`](eating-pipeline.md#eat-type).
 
+One shipped item writes the item endurance key: of the 1 005 food, drainable and fluid-container rows only `Base.Ginseng` carries it, as `enduranceChange = 2.0`, which `Item.DoParam` accepts through a case-insensitive match [T19.33].
+The table's `enduranceChange` row is that one block, and what `Eat` does with the value is [`eating-pipeline.md`](eating-pipeline.md#eat)'s.
+
+A mod that wants a type's own numbers at run time can read some of them off the script and not others.
+A type's script hunger is recoverable from Lua: `Item.InstanceItem` writes both `hungChange` and `baseHunger` as the script's `HungerChange` over 100, and `Item.getHungerChange()` is a public bare read of the script field [T19.29].
+A type's script macros are not readable through `getScriptItem()`: `Item.calories`, `carbohydrates`, `lipids` and `proteins` are private and `Item` declares no getter for any of them, so a per-type macro is read off a fresh instance made through the `instanceItem` global [T19.30].
+`InventoryItemFactory` is absent from the exposer's class set, so a mod reaches item construction through the `instanceItem` global, whose `String` overload calls `InventoryItemFactory.CreateItem` [T19.32].
+
 A mod restating one of these keys does not replace the item's block.
 The restatement merges per key with the last body winning ([#1006/M/n=1], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#per-key-merge)), and the bodies replay sorted by stored script path rather than by load order ([#1055/M/n=2], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#sorted-replay)).
 Per-item values for every key in the table are the dataset rather than this page: [`datasets.md`](../reference/datasets.md).
+
+<a id="fluid-blocks"></a>
+### The fluid blocks
+
+A drink's numbers live on a `fluid` script block rather than on its item, and that block's parser is stricter than the item loader in the one way that matters to a mod value.
+
+A `fluid` block has no default arm: an unrecognised value key or sub-block is logged as a `DebugType.General` error and, when `Core.debug` is set, throws `FluidDefinition error.`, and nothing stores it [T19.34].
+A fluid's `properties` block has no default arm either: an unrecognised property key is logged as an error, throws under `Core.debug`, and is not stored [T19.35].
+So the item block's route for a mod key has no counterpart on a fluid, and a per-fluid mod value lives in a table the mod owns [T19.34] [T19.35].
+
+`Fluid.getFluidTypeString()` is never null: both `Fluid` constructors set it, from the enum's name for a built-in type and from the given name for a modded one, unlike the script object's same-named getter, so it is the key a per-fluid table the mod owns can use [T19.36].
+The script object's getter, which leaves every built-in definition unnamed, is [`eating-pipeline.md`](eating-pipeline.md#fluid-path)'s [#0654/M/n=2].
+
+A container's mix is iterated from Lua through `createFluidSample()` and the sample's `size`, `getFluid(i)`, `getPercentage(i)` and `getAmount`, because `FluidContainer` declares no `getFluids()` and keeps its fluid list private, and `FluidInstance` is absent from the exposer's class set [T19.37].
+`FluidContainer.getRatioForFluid` returns one fluid's proportion of the mix and `getSpecificFluidAmount` its litres, both walking the private fluid list and both 0 when the fluid is absent [T19.38].
+What a drink does with a container's numbers is [`eating-pipeline.md`](eating-pipeline.md#fluid-path)'s.
 
 <a id="poison"></a>
 ### The poison fields
@@ -329,13 +365,17 @@ A mod can run the per-key merge across every `base:food` item only with a workar
 
 A mod can put a custom key inside a vanilla `item` block, because the loader's default arm writes an unrecognised key into the item's default modData [#1125/C/C-only].
 
+The engine has no default arm on a `fluid` block or on its `properties` block, so a mod key there is an error and, under `Core.debug`, a throw [T19.34] [T19.35].
+
+No script getter reads a type's four macros, so a per-type macro costs a fresh instance [T19.30].
+
 The dead-setter and one-caller readings are whole-jar reverse-reference scans over the jar and the vanilla Lua tree, so a reader living outside both — another mod, or a call from a UI script — would not appear in any of them.
 
 Every measured reading on this page comes from the default fixture on a single build, and the repeated ones repeat within one run or across two boots rather than across fixtures or worlds.
 
 The contradiction above is the only mirror row this page corrects; the mirror's aging, fridge and freezer claims are [`spoilage.md`](spoilage.md#walls).
 
-Not covered: the item model was read for food, drainables and fluid containers only — the other item types that share the same loader, the fluid-container census inside the running game, the spawn-fill draw a part-filled container takes, and any item-name table other than the shipped English one were never read.
+Not covered: the item model was read for food, drainables and fluid containers only — the other item types that share the same loader, the fluid-container census inside the running game, the spawn-fill draw a part-filled container takes, the single-argument `Item.DoParam(String)` overload a valueless key takes, the fluid sample pool's size and its failure mode when a sample is never released, the fluid container's own save and sync routines, and any item-name table other than the shipped English one were never read.
 
 ## Open
 <a id="open"></a>
@@ -346,6 +386,8 @@ Not covered: the item model was read for food, drainables and fluid containers o
 - The design must decide whether a rebalanced food sets `CustomWeight = true`: a non-custom-weight food's displayed weight derives from its remaining hunger fraction, so every rewritten hunger value moves a weight as well [#1214/C/C-only].
 - The design must decide whether every mod-added food ships a translation entry: an untranslated item's unmodded weight reads zero and that zero is what the wire carries [#1027/M/n=1, #1166/C/C-only].
 - The design must decide whether a mod nutrient rides an unrecognised key inside the vanilla `item` block or lives in a store of its own: the loader's default arm accepts the key and puts it in the item's default modData rather than rejecting the block ([#0212], [#1125/C/C-only]).
+- The design must decide how a per-instance mod value follows a part-eaten or part-spent item, given that the leftover multiply never touches modData [T19.28].
+- The design must decide where a per-fluid mod value lives, given that a fluid block stores no unrecognised key and only the fluid object's type string is never null [T19.34] [T19.36].
 
 ## See also
 

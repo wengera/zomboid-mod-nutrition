@@ -1,5 +1,5 @@
 # Cooking and recipes
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the cook and burn transitions, what a craft recipe's inputs really cost, the evolved-recipe summation and the join that feeds it, the nutrition delta of a type change, and how far the two recipe datasets were checked against the running game; the script grammar is handed to `platform/loader-and-scripts.md`, the eat-time ladders to `facts/eating-pipeline.md` and rot to `facts/spoilage.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the cook and burn transitions, what a craft recipe's inputs really cost, the evolved-recipe summation, what a dish carries and the join that feeds it, the craft split and the craft `OnCreate`, the butchering scale, the nutrition delta of a type change, and how far the two recipe datasets were checked against the running game; the script grammar is handed to `platform/loader-and-scripts.md`, the eat-time ladders to `facts/eating-pipeline.md` and rot to `facts/spoilage.md`.
 
 ## Key facts
 
@@ -220,6 +220,30 @@ Those totals are summed from the measured per-item values of that one dish with 
 
 The timed action's call of the recipe's add-item method is the only Lua-to-Java bridge into the summation [#0325].
 
+`ISAddItemInRecipe:complete` calls `recipe:addItem(baseItem, usedItem, character)` and then, when `isServer()`, `sendItemStats` on the dish and on the used item while it still has a container, so a server-side wrapper of `complete` holds the ingredient instance, the base and the chef before the call and the finished dish after it [T19.9].
+
+`EvolvedRecipe.addItem` calls no Lua function and fires no event: its whole body holds one Kahlua reference, the `HandWeapon` rawset below, and no `LuaManager` call, and no class in the jar contains `OnEvolvedRecipe` or `OnAddItemInRecipe` [T19.8].
+That wrapper is therefore the one place a mod sees an ingredient instance and the dish it feeds side by side [#0325, T19.9].
+
+What the dish carries out of the summation is two lists of item types and its result type's own modData, and nothing that records an ingredient's share.
+
+An evolved dish's ingredient list is `InventoryItem.extraItems`, an `ArrayList` of ingredient full types with no amount, created on the first add and appended once per add; `getExtraItemsWeight` feeds each entry to the item factory, which is why the entries are full types [T19.1].
+
+`EvolvedRecipe.addItem` appends the used item's full type to the dish's `extraItems` after the whole macro transfer [T19.2].
+
+A spice added to a food dish is appended to a second list, `Food.spices`, also as a full type, and the spice branch returns before the ingredient append, so a spice never enters the dish's `extraItems` [T19.3].
+What the spice branch does beyond that append and the herbal-tea sums is still open [#0381/C/C-only/open].
+
+The dish records each ingredient's type and, because every add appends, the number of times it was added, and records nothing about the hunger it contributed: the per-ingredient hunger `use / 100` is consumed into the dish's hunger and stored nowhere, and no class in the jar contains `extraItemsAmount`, `extraItemAmount`, `extraItemUses`, `extraItemsHunger` or `ingredientAmount` [T19.4].
+
+`extraItems` holds `getFullType()` strings while `EvolvedRecipe.getItemsList()` is keyed by `getType()`, so joining a dish's list to the recipe's `use` values needs the module stripped from each entry [T19.5].
+What a server-side reader can rebuild from the list is a nominal share per ingredient type, not the share the chef's level, the ingredient's remaining hunger and the clamp actually produced [T19.4].
+How both lists are saved is [food-item-model.md](food-item-model.md#state-axes)'s, and which packet carries them to a client is [wire-packets.md](wire-packets.md#item-stats-packet)'s.
+
+`EvolvedRecipe.addItem` writes exactly one item-modData key, and only when the base item is a `HandWeapon`: the base's condition over its maximum condition, rawset as a number under a key built from the base's type [T19.6].
+
+An evolved dish is a fresh instance built from the recipe's result type, so it carries that type's default modData and nothing from the base item's or the ingredients' modData, and a mod value in an ingredient's modData does not reach the dish [T19.7].
+
 The Cooking perk level that scales it is server-owned, so a client-side perk write silently runs the recipe at the server's level and both `skillBonus` and `share` are the server's whatever the client UI shows [#0759/M/n=1].
 
 `data/evolved-recipes.json` applies the whole non-rotten path of that block per recipe-and-ingredient row at Cooking 0 and Cooking 10, carrying every term of the hunger, `hungerAfterSkill`, `share`, `skillBonus`, four-macro and thirst arithmetic in `at0` and `at10` rather than only the results [#0728].
@@ -344,6 +368,51 @@ The cook transition, and with it every `ReplaceOnCooked` swap, is driven by serv
 
 The `ReplaceOnRotten` melts and the `ReplaceOnUse` and `ReplaceOnDeplete` links are [facts/spoilage.md](spoilage.md#sealed)'s, and their counts and deltas are not repeated here.
 
+<a id="craft-split"></a>
+### The craft split and the craft `OnCreate`
+
+A craft recipe moves nutrition between instances on two arms: the `InheritFood` split, which divides one input across the outputs, and the `OnCreate` summations, which add inputs into one output.
+Neither arm carries item modData from an input to an output, so a mod value crosses a craft only where the mod's own `OnCreate` writes it.
+
+The craft split is `InputFlag.InheritFood`, which `CraftRecipeData.createOutputItems` reads through `getFirstInputItemWithFlag`, and no class in the jar contains `PassNutritionThroughFood`, `PassNutrition` or `NutritionThroughFood` [T19.10].
+
+When both the output and the `InheritFood` input are `Food`, `createOutputItems` calls `output.copyFoodFromSplit(input, OutputScript.getIntAmount())`, which copies nutrition at one over the output amount and then the frozen, cooked and burnt, temperature, poison and age states and the input's ingredient and spice lists, and copies no modData [T19.11].
+The ratio is the recipe's output count rather than a draw, so it is exactly recoverable from the recipe [T19.11].
+
+`Food.copyNutritionFromRatio` writes nine fields, each the source's value times the ratio — `baseHunger`, `hungChange`, carbohydrates, lipids, proteins, calories, `unhappyChange`, `thirstChange` and `boredomChange` — and touches no modData and no item list [T19.12].
+
+It reads thirst through the state-modified `getThirstChange()` and writes it through the raw setter, so a split of a cooked food stores its thirst already halved and the cooked output halves it again when it is read [T19.13].
+
+`Food.copyExtraItems` appends each of the input's ingredient entries onto the output's list and passes a non-empty spice list to `Food.setSpices`, which builds a fresh `ArrayList` from it or clears and refills the output's own, so a split output and its input hold separate spice lists [T19.14].
+What a split costs its input, and why its calorie delta reads zero, is under [recipe IO](#uses).
+
+Craft output creation refuses to run for real on a client: `CraftRecipeData.createOutputsInternal` throws a `RuntimeException` reading `Cannot call with testOnly==false on client.` when its test-only flag is false and the process is a client [T19.15].
+
+The craft `OnCreate` hook receives the `CraftRecipeData` object and the character through `LuaManager.caller.protectedCallVoid`, and the entity craft path calls it only after `createOutputs` succeeds, inside a `CraftLogicSystem.stop` that returns at once on a client [T19.16].
+
+`CraftRecipeData` exposes the consumed and created instances to Lua through `getAllConsumedItems`, `getAllRecordedConsumedItems`, `getFirstInputItemWithFlag` and `getAllCreatedItems`, all public on a class in the exposer's set, the consumed list walking each item input's applied items [T19.17].
+
+The shipped hand-craft action calls the recipe's `OnCreate`, then destroys and spends the used items, and then, when exactly one item was created, writes a map from each consumed item's full type to its count into that item's modData [T19.18].
+That is the shape a mod value can take across a split: an `OnCreate` function reads the consumed instances off the recipe data and writes its own keys onto the created ones [T19.17] [T19.18].
+
+A second craft summation runs in Java: `RecipeCodeOnCreate.copyFoodValuesFromList` sums the consumed foods' `baseHunger` and four macros, skipping a spice unless it is fish roe, and writes the sums over the first created item's `baseHunger`, `hungChange` and macros, touching no modData; the omelette's `OnCreate` calls it over the consumed eggs [T19.19].
+It sums each input's full-portion `baseHunger` rather than what is left of it, while the macros it sums are the input's current ones [T19.19].
+
+<a id="butchering"></a>
+### Butchered meat and its scale
+
+Meat from a carcass is the one food here whose instance nutrition is not its script's: the butchering path rescales it per animal, with a random draw on each field.
+
+`IsoAnimal.modifyMeat` is `public static` and sets `hungChange` to `baseHunger` times its two factors times a `Rand.Next(0.9, 1.1)` draw, sets `baseHunger` from the state-modified hunger getter, and scales calories, lipids and proteins each by the two factors and an independent draw, leaving carbohydrates untouched [T19.20].
+
+No Java class outside `IsoAnimal` contains `modifyMeat`, and both butchering call sites in the shipped `ButcheringUtil.lua` call the Lua function `ButcheringUtil.modifyMeat` rather than the Java method [T19.21].
+
+The live butchering scale is therefore Lua: `ButcheringUtil.modifyMeat` takes a ratio of animal size times the part's meat ratio times its hunger boost and applies it to hunger and all four macros, each field with its own `ZombRandFloat(0.9, 1.1)` draw, then sets `baseHunger` from the scaled hunger [T19.22].
+
+Because each field carries an independent draw, a meat instance yields the butcher scale only per field: a factor recovered from one field lies within 10 per cent either side of the shared ratio, and factors recovered from two fields can disagree by up to 1.1 over 0.9, about 1.22 — the arithmetic is the part a re-reader redoes [T19.23].
+Nothing in that function records the shared ratio on the meat item [T19.22].
+Recovering a per-field factor needs the type's unscaled value, which Lua reads as [food-item-model.md](food-item-model.md#script-keys) states.
+
 <a id="dataset-fidelity"></a>
 ### The datasets against the running game
 
@@ -390,7 +459,12 @@ A mod can control spice behaviour through the `Spice` script bool, whose effect 
 
 A cooked food's `thirstChange` cannot be trusted client-side; the per-hop arithmetic is [facts/wire-packets.md](wire-packets.md#cooked-thirst)'s [#1147/M/n=1].
 
-Not covered: the cooking UI and the right-click path that reaches it, the crafting timed action end to end, cooking XP beyond the single grant in `Food.update`, `component CraftRecipe` blocks that build entities rather than items, and fluid nutrition, which is per litre and excluded from every delta on this page.
+The engine has no per-entry amount on a dish's ingredient list, no Lua event inside the evolved summation and no `PassNutritionThroughFood` flag, so a per-ingredient share and a hook on the add exist only where a mod writes them [T19.4] [T19.8] [T19.10].
+
+No vanilla arm carries item modData from an input to an output: the evolved summation, the craft split and the Java craft summation all leave it behind [T19.7] [T19.11] [T19.19].
+
+
+Not covered: the cooking UI and the right-click path that reaches it, the crafting timed action end to end, cooking XP beyond the single grant in `Food.update`, `component CraftRecipe` blocks that build entities rather than items, the drying and furnace callers of the craft `OnCreate` dispatch, whether a consumed input's macros are already spent when `OnCreate` runs, which side runs the add-item and hand-craft actions on a dedicated server, and fluid nutrition, which is per litre and excluded from every delta on this page.
 
 ## Open
 <a id="open"></a>
@@ -406,6 +480,9 @@ Not covered: the cooking UI and the right-click path that reaches it, the crafti
 - Decision: whether the mod flattens the perk curve, given that macros per unit of dish hunger are 1.168 at Cooking 9 against 1.16667 at Cooking 10, so a rebalance that assumes monotonic perk scaling is wrong [#0294/C/arith., #1211/M/n=1].
 - Decision: whether the mod corrects the three vanilla script inconsistencies among the 31 resolvable rows, given `open_mac_and_cheese` at 2 800 kcal created, `MakeMeatPatty` at 312 created and the four corn mills at 496 destroyed apiece [#0744/C/arith., #0745/M/arith., #0746/C/arith.].
 - Decision: whether the mod declares macro keys on the targets that carry none, given that the corn mills' 496 kcal loss is an absent-macro substitution rather than a measured zero [#0746/C/arith.].
+- Decision: whether a dish's mod nutrients are rebuilt at eat time from its ingredient types and the recipe's nominal `use` values, or written onto the dish by a server-side wrapper of the add-item action that still holds the ingredient instance, given that the dish records types and counts and no shares [T19.4] [T19.9].
+- Decision: whether a split or crafted output's mod nutrients are carried by the mod's own `OnCreate`, given that no vanilla craft arm copies item modData [T19.11] [T19.17].
+- Decision: whether butchered meat's mod nutrients scale by a hunger-derived or a calorie-derived factor, given that the two can disagree by up to about 1.22 on one item [T19.23].
 
 ## See also
 
