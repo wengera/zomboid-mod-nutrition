@@ -12,12 +12,11 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the rendered and t
 - Hearing range has a base of 3.5 tiles, 2.0 when Deaf, +3.0 for Keen Hearing and −1.0 for Hard of Hearing [T9.17].
 - Base movement speed is 0.8 less 0.15 per Endurance moodle level and 0.15 per Heavy Load moodle level [T9.22].
 - No nutrition quantity, macro or body weight enters the base-speed or the walk-speed computation [T9.24].
-- The server computes walk and run speed and a multiplayer client copies them rather than computing its own [T9.43].
 - Combat speed loses 0.07 per Endurance and per Heavy Load moodle level and is clamped to [0.8, 1.6] before the heavy two-hander bonus [T9.33].
-- Combat speed is computed by the attacking client for its local player and travels client to server in the hit packets [T9.31] [T9.32].
+- Combat speed is computed by the attacking client for its local player and by the server for everyone, and travels client to server in the hit packets [T9.31] [T9.32].
 - After each shot the aiming delay is rewritten as its current value plus the weapon's recoil and aiming-time terms, clamped between 0 and the weapon's aiming time [T9.35].
-- A client's local player starts a shove or an attack only while its melee delay is at or below 0 [T9.30].
-- Critical chance against a remote player moves by (weight − 80)/2 of the target's body weight around an 80.0 pivot [T9.36].
+- A player object whose `remote` flag is clear starts a shove, a grapple or an aimed attack only while its melee delay is at or below 0 [T9.30].
+- On an attacking client, critical chance against a remote player moves by (weight − 80)/2 of the target's body weight around an 80.0 pivot [T9.36].
 
 ## How it works
 
@@ -34,7 +33,6 @@ A fatigue stat at its maximum costs a further 36 degrees of view cone [T9.2].
 A Drunk moodle level of 2 or more costs 0.36 times the intoxication stat in view-cone degrees [T9.3].
 A Panic moodle at level 4 exactly costs 36 degrees of view cone [T9.4].
 Lower Panic levels cost nothing, so the Panic term is a step at the top of the moodle, not a slope.
-Room darkness and the inverted luma then subtract a lighting term that moves with the scene and not with any character stat.
 The view cone is clamped to [18, 180] degrees before the trait bonuses and to [18, 360] after the worn-item multiplier [T9.5].
 The Eagle Eyed trait adds 36 times daylight strength to the view cone, so it is worth nothing at night [T9.6].
 The Night Vision trait adds the mirror-image term, stated under [night vision](#night-vision).
@@ -52,9 +50,9 @@ The client then recomputes its own cone from those inputs on its next frame.
 The fatigue and intoxication stats reach the client on the player-stats packet, whose field contract is at [wire-packets.md](wire-packets.md#player-stats-packet).
 
 Besides position and view direction, the Java side hands the native lighting a few perception inputs per player.
-The only sight-distance input the engine hands the native lighting is the boolean `hasTrait(SHORT_SIGHTED)`, alongside the view cone, the effective fatigue and the detection range [T9.12].
-View distance is therefore not a number a mod can set: the one lever on it is whether the character has the Short Sighted trait.
-What the native code makes of that boolean as a distance is outside the bytecode, and it is carried under [Open](#open).
+The engine hands the native lighting the view cone, the effective fatigue, the detection range in a local the jar's debug information names `perceptionDistance`, and the boolean `hasTrait(SHORT_SIGHTED)` [T9.12].
+Two of those bear on distance: the Short Sighted boolean and the detection-range float, which is the hearing range stated under [hearing](#hearing) and so moves with the hearing traits, the worn items' hearing values, fatigue and intoxication.
+What the native code makes of either as a distance is outside the bytecode, and it is carried under [Open](#open).
 Effective fatigue, the value the native lighting receives, is `max(0, fatigue − 0.6) × 2.5` [T9.13].
 It is zero until the fatigue stat passes the threshold inside that expression, so moderate tiredness never reaches the native side through this input.
 
@@ -68,9 +66,7 @@ The blur and the reveal rate read the camera character, so both are effects on t
 <a id="server-visibility"></a>
 ### The server's visibility cone
 
-The server runs its own perception model whose cone is a cosine threshold built from fatigue, intoxication, Panic and Eagle Eyed, and which is 1.0 for a player in a vehicle [T9.14].
-It is computed per line-of-sight pass by `IsoGameCharacter.calculateVisibilityData` and is not a packet field.
-The server's LOS thread hands the result to `IsoGridSquare.CalcVisibility`, square by square.
+The server runs its own perception model, `IsoGameCharacter.calculateVisibilityData`, whose cone is a cosine threshold built from fatigue, intoxication, Panic and Eagle Eyed, and which is 1.0 for a player in a vehicle [T9.14].
 In the server's visibility test a square takes the in-cone branch when the look-direction dot product does not exceed the cone threshold, so a higher cone value is a wider cone [T9.15].
 The vehicle value is the widest the test admits: a player in a vehicle sees all the way round.
 The hearing-reveal arm of the server's visibility test is gated behind a not-a-server check while the method's only caller is the server's own LOS thread, so that arm is not reached on any traced path [T9.16].
@@ -87,7 +83,6 @@ A server-side write of fatigue or intoxication moves the server cone at once and
 The engine has no quantity called dark vision; the absence is listed under [walls](#walls).
 The engine's dark-vision mechanism is the trait `CharacterTrait.NIGHT_VISION`, which adds 36 times (1 minus daylight strength) degrees to the view cone [T9.7].
 The bonus is largest in full darkness and falls to nothing at full daylight, the reverse of Eagle Eyed's term.
-The vehicle arm of the cone applies the same trait term.
 `CharacterTrait.NIGHT_VISION` also raises the player's render ambient to a floor of 0.20 whenever the computed ambient is below it, independently of the view cone [T9.49].
 So the trait brightens a dark scene as well as widening the cone in it.
 Night-vision goggles are a render flag with no packet: the setter's only reader is the per-player render-settings path [T9.37].
@@ -100,7 +95,6 @@ The trait is the lever that reaches the client; how a trait change travels is un
 Hearing range is one public getter, `IsoGameCharacter.getDetectionRange`, with a base of 3.5 tiles, 2.0 when Deaf, +3.0 for Keen Hearing and −1.0 for Hard of Hearing [T9.17].
 Hearing range is then scaled by the worn-item hearing multiplier above a floor of 2.0 and reduced by the raw fatigue stat and by 0.01 times intoxication [T9.18].
 The fatigue term is the raw stat, not the effective fatigue the lighting receives, so every increment of tiredness narrows hearing.
-The worn-item hearing multiplier is built the same way as the vision one, by dividing by each worn item's script `hearingModifier`.
 Hearing range is used as a tile radius inside which a zombie counts as spotted without line of sight, unless the player is asleep [T9.19].
 The native lighting receives it as well, as one of those perception inputs.
 
@@ -112,17 +106,13 @@ A mod that wants to move a player's hearing moves the inputs of the detection ra
 <a id="speed"></a>
 ### Movement speed
 
-A multiplayer client does not own its walk speed.
-The server computes walk and run speed and copies them into the network AI object, and a multiplayer client reads them back out of it instead of computing its own [T9.43].
-On the client the copy is the whole of the computation: the network run float becomes `WalkSpeed` when running or sprinting and the walk float otherwise, and the method returns.
-The two floats travel in the player-injuries packet, whose field list is the injuries-packet section of [wire-packets.md](wire-packets.md).
-Its sender, its gate and its cadence are in the sync-globals section of [mp-model.md](../platform/mp-model.md).
+A multiplayer client does not own its walk speed: which side computes it and which side copies it is stated at [mp-model.md](../platform/mp-model.md#ownership).
+Which packet carries the walk and run floats, and its field list, is stated in the injuries-packet section of [wire-packets.md](wire-packets.md).
+Who sends that packet, gated how and how often, is stated in the sync-globals section of [mp-model.md](../platform/mp-model.md).
 The formula below is therefore the server's, and the client sees its result one push later.
 
 The base movement speed subtracts 0.15 per Endurance moodle level and 0.15 per Heavy Load moodle level from a 0.8 base [T9.22].
 Base movement speed also answers to torso and neck injuries at −0.1 each with +0.05 for a bandage, to left-thigh pain above 20, to worn and held bags, to wet natural ground and to sand [T9.23].
-The bag term and the run-speed modifier then combine into a full-speed modifier, which scales the base.
-The walk-speed step applies that modifier, the Sprinting perk, foot injury, the thermoregulator's movement modifier and the tree slow factor, and writes the `WalkSpeed` and `RunSpeed` animation variables.
 No nutrition quantity enters the movement-speed chain: neither the base-speed nor the walk-speed method names a nutrition object, a macro or body weight [T9.24].
 The body-state inputs are the Endurance and Heavy Load moodles, injuries, pain, footwear and the thermoregulator.
 A nutrition effect on speed therefore reaches the chain only through one of those, most directly the Endurance moodle, whose stat is described at [endurance-fatigue-sleep.md](endurance-fatigue-sleep.md#drain).
@@ -141,7 +131,7 @@ A player therefore sees a speed penalty on a garment that the engine does not ch
 
 The server also keeps a coarse speed class and a running timer.
 On the server, `IsoPlayer.currentSpeed` is set from the network movement flag to 1.5 when sprinting, 1.0 when running, 0.5 when walking and 0.0 when still [T9.44].
-On a dedicated server `updateMovementRates` runs only on the remote-player pass, behind the server flag; its ungated call serves a client's local player on a path that asserts it is not the server [T9.45].
+`updateMovementRates` is called behind the server flag on the pass a `remote` player object takes and ungated on the pass a non-`remote` one takes, and the server sets `remote` on every connecting player, so a dedicated server runs it on the server-flag pass [T9.45].
 `IsoPlayer.runningTime` adds the thirty-frames-per-second multiplier each update while the player runs or sprints with non-zero deferred movement and resets to 0 otherwise, so it is a consecutive-running timer and not a daily total [T9.46].
 `IsoPlayer` declares no `getCurrentSpeed()` and no accessor for `runningTime`; both are public fields [T9.47].
 Whether Lua can read either field on an exposed class is a question the bytecode does not settle.
@@ -158,18 +148,16 @@ Combat speed travels client to server inside the hit packets, read from the send
 The attacking client is therefore authoritative for its own swing speed.
 A server-side write reaches a player's swing only through the inputs the client reads when it computes the value.
 Combat speed answers to the Endurance and Heavy Load moodle levels at −0.07 per level each and is clamped to [0.8, 1.6] before the heavy two-hander bonus [T9.33].
-Its other terms are the weapon's base speed, the two-hander and axe factors, the weapon perk, the Fitness perk, a random factor, the combat modifier, arm injuries and the thermoregulator's combat modifier.
 A mod that drives the Endurance moodle moves swing speed with no combat code of its own.
 Neither knockback nor the combat-speed modifier is writable from Lua: `knockbackAttackMod` is a public field with no accessor and `combatSpeedModifier` is a private field rewritten from clothing on every speed update [T9.48].
 
 Melee delay is a gate, not a multiplier.
-Melee delay is read on a client's local-player attack path: the player update starts a shove or an attack only while `getMeleeDelay()` is at or below 0, and the swing state's `SetMeleeDelay` animation event writes it [T9.30].
-The path that reads it asserts it is not the server, so the gate lives on the attacking client.
-A server-side write of melee delay therefore acts on the gate only if the value reaches the attacking client.
+Melee delay is read on the pass a player object takes when its `remote` flag is clear: the player update starts a shove, a grapple or an aimed attack only while `getMeleeDelay()` is at or below 0, the swing state's `SetMeleeDelay` animation event writes it, and the server sets `remote` on every connecting player, so a dedicated server never reads the gate for a connected player [T9.30].
+A server-side write of melee delay therefore acts on the gate only if the value reaches the client that reads it.
 
 The aiming delay is the reaction surface a mod can set, and the hit-chance computation reads it twice through `max(0, …)` [T9.34].
 After each shot the combat manager rewrites the aiming delay as its current value plus the weapon's recoil and aiming-time terms, clamped between 0 and the primary weapon's aiming time, so a mod's written delay survives only as the base of that sum and never above that ceiling [T9.35].
-A mod that scales the aiming delay therefore re-applies its scale after every shot.
+The post-shot sum is not the delay's only writer: a per-update aiming step also writes it, and that step is listed under [walls](#walls) as not covered.
 Vanilla's rack-firearm action writes the aiming delay additively, adding a term scaled by the gun's aiming time and the Reloading perk to the current delay [T9.50].
 A mod's own write composes with that call as long as it, too, adds to the current value rather than replacing it.
 
@@ -180,16 +168,15 @@ The weight read is the attacking client's copy of the target, so it follows what
 <a id="dynamic-traits"></a>
 ### Perception traits
 
-The engine reads perception through a handful of traits by name, and the trait list is the one perception lever that reaches both the client's rendering and the server's model.
-Short Sighted drives the native sight-distance boolean, the blur, the reveal rate and the weapon sight range, all stated under [the rendered cone](#vision-cone).
+The engine reads perception through a handful of traits by name, and the trait list is a perception lever that reaches both the client's rendering and the server's model.
+Short Sighted drives the native Short Sighted boolean, the blur, the reveal rate and the weapon sight range, all stated under [the rendered cone](#vision-cone).
 Eagle Eyed widens both cones, raises the reveal rate and lengthens weapon sight.
 Night Vision widens the rendered cone in the dark and raises the ambient floor, stated under [night vision](#night-vision).
 Deaf, Keen Hearing and Hard of Hearing set the hearing base, stated under [hearing](#hearing).
 
-Vanilla Lua keys `CharacterTrait.SHORT_SIGHTED` and `CharacterTrait.NIGHT_VISION` in character-creation tables, the trait clothing selection and the new-game spawn items, so a runtime grant of either adds no clothing and no item [T9.51].
-A trait a mod adds at run time therefore changes perception and nothing in the inventory.
-A trait added or removed on the server reaches the affected player's client through the trait block of the player-fields packet.
-That block's field contract is in the player-fields section of [wire-packets.md](wire-packets.md), and its sender, its gate and its recipient are in the sync-globals section of [mp-model.md](../platform/mp-model.md).
+Vanilla Lua keys `CharacterTrait.SHORT_SIGHTED` in the trait clothing-selection table and `CharacterTrait.NIGHT_VISION` in the spawn-items key-ring table, which `SpawnItems` applies on `OnNewGame` [T9.51].
+Whether any other vanilla Lua grants clothing or an item for either trait is carried under [Open](#open).
+Which packet carries a server-side trait change to a client, and to whom, is stated in the player-fields section of [wire-packets.md](wire-packets.md) and the sync-globals section of [mp-model.md](../platform/mp-model.md).
 The weight-band traits share the same trait map, described at [body-and-weight.md](body-and-weight.md#weight-traits).
 Each trait effect runs where its reader runs: the rendered cone, the blur, the reveal rate and the ambient floor on the client, the visibility cone on the server, and the detection range on whichever side asks for it.
 
@@ -197,23 +184,23 @@ Each trait effect runs where its reader runs: the rendered cone, the blur, the r
 <a id="walls"></a>
 
 - `LightingJNI` is absent from the exposer's class set, so no mod Lua can call the view-cone computation or the native lighting bridge [T9.11].
-- The engine has no perceived-distance, sight-range, perception, dark-vision or reaction-time identifier anywhere in the jar [T9.41].
+- The jar contains no `getPerception`, `setPerception`, `getPerceivedDistance`, `getSightRange`, `DarkVision`, `darkVision` or `reactionTime` literal, so it has no member under any of those names [T9.41].
 - The engine has no setter for hearing range, the view cone or the worn-item vision and hearing modifiers [T9.42].
 - The worn-item vision and hearing modifiers are script values, so a mod moves them only through its own item scripts, not by a run-time write.
-- The rendered cone is a client computation and the melee-delay gate a client read, so a server-side mod reaches either only through inputs the client receives.
-- Every mechanism on this page is a reading of one build's bytecode or files; none was exercised on a live server, and each side verdict is a readable branch rather than an observed one.
+- The rendered cone is computed only on a client, and a dedicated server never reads the melee-delay gate for a connected player, so a server-side mod reaches either only through inputs the client receives [T9.10] [T9.30].
 
-Not covered: the native side of the lighting bridge, and so what distance the Short Sighted boolean stands for; how the animation data turns `WalkSpeed`, `RunSpeed`, `StrafeSpeed`, `FitnessSpeed` and `CombatSpeed` into a movement rate or a swing duration; the thermoregulator's movement and combat modifiers, read only as call sites; the injury-speed helpers, the idle and in-trees speeds and the slow factor, named in the chain but never dumped; how often the player update, the lighting update and the server LOS thread run on a live session; the rest of `IsoPlayer.updateLOS` and the client visibility polygon; the render view distance and the climate view distance; the contents of the trait registry; and whether any vanilla or workshop Lua calls the inert speed members.
+Not covered: the native side of the lighting bridge, and so what distance the Short Sighted boolean or the detection range stands for; how the animation data turns `WalkSpeed`, `RunSpeed`, `StrafeSpeed`, `FitnessSpeed` and `CombatSpeed` into a movement rate or a swing duration; the thermoregulator's movement and combat modifiers, read only as call sites; the injury-speed helpers, the idle and in-trees speeds and the slow factor, named in the chain but never dumped; how often the player update, the lighting update and the server LOS thread run on a live session; the rest of `IsoPlayer.updateLOS` and the client visibility polygon; the render view distance and the climate view distance; the contents of the trait registry; vanilla foraging's run-time reads of both traits, through its skill definitions in `Foraging/forageSkills.lua` and its trait loop in `Foraging/forageSystem.lua`, and what they change; the per-update melee-delay decay in `IsoGameCharacter.updateInternal`, which lowers the delay by `0.625 ×` the game-time multiplier; the per-update aiming step `IsoGameCharacter.updateAimingDelay`, which lowers the aiming delay by `0.625 ×` the multiplier while aiming and resets it when not aiming; which player objects a client leaves with `remote` clear; and whether any vanilla or workshop Lua calls the inert speed members.
 
 ## Open
 <a id="open"></a>
 
 - Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? — settled by a client write sampled in Lua every quarter second for four seconds, walking and standing, against the packet's cadence; -> [X47](../areas/open-questions.md#x47) [#2096/C/open].
-- The design must decide whether a sight-distance effect goes through the Short Sighted trait at all, because that boolean is the only sight-distance input the native lighting receives and the distance it stands for is outside the bytecode [T9.12].
+- That no vanilla Lua outside the two creation tables grants clothing or an item keyed on Short Sighted or Night Vision, so that a runtime grant of either adds none, is unverified: it rests on a hand grep of the install's `media/lua`, not a committed dataset; re-measure by a committed sweep of vanilla Lua for both trait constants and both trait names [T9.52].
+- The design must decide which distance input a sight effect goes through, the Short Sighted boolean or the detection-range float the engine labels `perceptionDistance`, because both reach the native lighting and what the native side does with either is outside the bytecode [T9.12].
 - The design must decide whether its perception effect is a dark-only effect, because the Night Vision term falls to nothing at full daylight [T9.7].
 - The design must decide how a speed effect reaches the chain, because no nutrition term enters it and every modifier write is reset on the next speed update [T9.24] [T9.25].
-- The design must decide on which side a swing-speed effect is applied, because the attacking client computes combat speed and the server only receives it [T9.31] [T9.32].
-- The design must decide whether a reaction effect re-applies itself after every shot, because the combat manager rewrites the aiming delay then [T9.35].
+- The design must decide on which side a swing-speed effect is applied, because the attacking client computes its own player's combat speed and sends it to the server [T9.31] [T9.32].
+- The design must decide how a reaction effect keeps its aiming-delay scale, because the combat manager rewrites the delay after each shot [T9.35].
 - The design must decide whether it syncs a trait of its own for a perception effect, because how a receiving side resolves a trait name it has not registered is unread; the trait block's contract is in the player-fields section of [wire-packets.md](wire-packets.md).
 
 ## See also
@@ -221,6 +208,7 @@ Not covered: the native side of the lighting bridge, and so what distance the Sh
 - [endurance-fatigue-sleep.md](endurance-fatigue-sleep.md#drain) — the endurance stat behind the Endurance moodle that both speed formulas read.
 - [perks-and-strength.md](perks-and-strength.md) — the perk levels combat speed and weapon sight read.
 - [body-and-weight.md](body-and-weight.md#weight-traits) — the weight-band traits and the body weight critical chance reads.
+- [../platform/mp-model.md](../platform/mp-model.md#ownership) — which side computes walk and run speed and which side copies it.
 - [wire-packets.md](wire-packets.md) — the injuries-packet section: the field list of the packet that carries walk and run speed.
 - [wire-packets.md](wire-packets.md) — the player-fields section: the trait block a server-side trait change travels in.
 - [../platform/mp-model.md](../platform/mp-model.md) — the sync-globals section: who sends the injuries and trait pushes, gated how and how often.
