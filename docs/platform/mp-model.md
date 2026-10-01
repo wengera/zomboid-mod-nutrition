@@ -171,14 +171,15 @@ Each mask's meaning, bit by bit, is the field contract on [the player-stats pack
 
 A server send addressed to a player reaches that player's own connection only, does nothing off a server and does nothing when the player has no connection, and the three sync globals, the timed experience, injuries and damage pushes and the eat packet all send that way, so each refreshes the affected player's own client and no other client's copy of that player [T16.9].
 The eat packet in particular goes to the eater's connection alone, so its traffic cost is one client per eat.
-A label another player sees on that character is therefore a separate question from the one the player sees: no timed push, none of the three sync globals and not the eat packet answers it, and the one vanilla server send that reaches other clients' copies of a player is the relay of an authorized client's experience object under [the packets](#packets).
+A label another player sees on that character is therefore a separate question from the one the player sees: no player-addressed timed push, none of the three sync globals and not the eat packet answers it, and the one vanilla server send that hands another client a player's trait list is the relay of an authorized client's experience object under [the packets](#packets).
+The body-damage diff channel below also reaches another player's client, the one watching, but it carries health, pain and infection and never the trait list.
 
 Beside the stats snapshot the server runs timed pushes of its own, among them the ones below and a health push whose contents this page does not read, and a mod can read what they deliver but change neither their cadence nor their contents.
 On a server the network player manager pushes the experience packet, the player's whole experience object, to each fully connected player's own connection on the same 1000 ms limit as the stats snapshot, skipping a connection mid-disconnect [T16.14].
 That is the push that carries the trait list every second, as [ownership](#ownership) states.
 On a server the network player manager pushes the player-injuries packet and, on the same tick, the player-damage packet to each fully connected player's own connection on a 2000 ms limit [T16.15].
 What the injuries packet carries is the [injuries-packet contract](../facts/wire-packets.md#injuries-packet), and [ownership](#ownership) says why a client's speed comes from a push rather than from its own computation.
-`BodyDamageSync` is a server-only injury diff channel keyed on a pair of players: its update and its start both return off a server, and each updater sends at most once per 500 ms and only when overall health against the last-sent value truncated to an int, the pain moodle level, the zombie-infection stat or the fake-infection flag differs [T16.16].
+`BodyDamageSync` is a server-only injury diff channel keyed on a pair of players: its update and its start both return off a server, and each updater sends at most once per 500 ms and only when overall health against the last-sent value truncated to an int, the pain moodle level, the zombie-infection stat or the fake-infection flag differs, and it sends to the other player's connection, the one that asked to watch [T16.16].
 What the experience and body-part packets carry is [the experience packet](../facts/wire-packets.md#experience-packet) and [the body-part packet](../facts/wire-packets.md#body-part-packet).
 
 <a id="cached-packet"></a>
@@ -325,7 +326,7 @@ Not covered: the transport layer beneath every packet on this page, the save and
 - Decision: which side the mod's own nutrient maths runs on — the eat completes on the server, so a client-side implementation has no path to run on [#0110, #0109].
 - Decision: whether the mod's client-side display reads the vanilla stores or a mod-owned mirror — a client write to a vanilla store is erased by the next snapshot while a write to a mod-owned field is not erased and drifts instead [#0568/M/n=2, #1637].
 - Decision: whether the mod pushes the trait block after each of its own trait writes or relies on the once-a-second experience push — both are code readings, and both reach only the affected player's own client [T16.1] [T16.9].
-- Decision: whether any other player needs to see a mod-driven trait or band on a character — no timed push and none of the three sync globals reaches a client other than the one it is about [T16.9].
+- Decision: whether any other player needs to see a mod-driven trait or band on a character — no player-addressed timed push and none of the three sync globals reaches a client other than the one it is about [T16.9].
 - Decision: whether the mod keys anything on the experience or level-up events for grants an authorized client syncs up — those grants fire neither event on the server, and an ordinary player's client cannot sync one up at all [T16.20] [T16.18].
 
 ## Worked examples
