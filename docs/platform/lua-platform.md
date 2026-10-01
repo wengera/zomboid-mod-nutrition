@@ -101,9 +101,9 @@ Hunger and thirst are read from Lua through `getStats():get(CharacterStat.HUNGER
 Vanilla offers no extension point on the nutrition object itself: its whole method list is 26 members — the five stores, the three direction flags, the update, calorie and weight updaters, the two trait appliers, the weight-trouble and fitness-XP tests, and save and load — with no mod-data accessor and no generic accessor, and no class on the jar carries a nutrition setter literal, so Lua cannot substitute a different object for the one the engine constructs [#0889/C/C-only].
 Reading a perk's experience takes two calls and never one: the character's experience getter is zero-argument and answers an inner experience object, and the number comes from that object's per-perk getter — which is why a zero-argument getter witness cannot read it and the harness carries a dedicated command; the level itself reaches the client within one bus round trip [#0918/M/n=1].
 The round-trip half is one session and one character; the two-call shape is a method-list reading [#0918/M/n=1].
-The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` keys are not reachable from Lua: they are private fields on `Item` with no getter, and all four came back absent through the `get`, `is` and field routes on one probed item, reached through the script manager's own lookup [#2733/M/one-fixture].
-The same absence holds on both sides and on mod items as well as vanilla ones: the instantiation path reads those private fields straight into the food instance, and the dialect publishes methods, so per-item macro numbers must come off an instance or out of the script text [#2732/M/n=1].
+The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` values are unreadable from Lua on the script object on both sides: the script item carries no getter for any of the four, they are private fields that the instantiation path reads straight into the food instance, and the `get`, `is` and field routes all come back absent for all four keys on mod items as well as vanilla ones, so per-item macro numbers must come off an instance or out of the script text [#2732/M/n=1].
 That was read over four items on two sides in one session, re-confirming two earlier ones [#2732/M/n=1].
+The one reflective route to a private field is debug-only, as [the Java UI surface](client-ui.md#java-surface) states.
 The script object is a poor witness for macros in particular: it answers the seven shelf-life and cooking keys while reporting the four macro keys absent on both sides, so only an instance getter discriminates [#1011/M/n=1].
 The exposer's class set holds `Thermoregulator`, `Thermoregulator$ThermalNode`, `Metabolics`, `Fitness`, `BodyDamage`, `Stats`, `CharacterStat`, `IsoGameCharacter`, `IsoPlayer`, `Moodles`, `MoodleType`, `CharacterTraits`, `SandboxOptions`, `ServerOptions`, `GameTime` and `Nutrition`, and does not hold `MoodleStat`, `ZomboidGlobals`, `LuaHookManager` or `PlayerCheats`, read end to end from one dump of the exposer [#2248/C/C-only].
 So the stat, body and option classes a nutrition mod reads are all reachable, while the Java holder of the rate constants and the hook manager are not.
@@ -176,10 +176,10 @@ There is no `OnAddXP` event on this build: the jar carries no such literal, and 
 <a id="hooks"></a>
 ### The `Hook.*` surface
 
-The named-hook surface is the engine's own trigger table, separate from the script keys and from the event roster above, and what a hook returns can replace vanilla work rather than merely observe it.
+The named-hook surface is the engine's own trigger table, separate from the script keys and from the event roster above, and registering a handler on a hook can replace vanilla work rather than merely observe it.
 
-A registered `CalculateStats` handler replaces vanilla work rather than observing it, whatever it returns, as the trigger reading below states [#2238/C/C-only].
-The auto-drink path fires the Lua hook named `AutoDrink`, also read from the bytecode and not measured [#0482/C/C-only].
+A registered `CalculateStats` handler replaces vanilla work rather than observing it, whatever it returns, as the trigger reading below states.
+The auto-drink path fires the Lua hook named `AutoDrink`, read from the bytecode and not measured [#0482/C/C-only].
 Neither of those two is an intake hook, and the nearest question — whether the drink path can be wrapped the way the eat path is — is [a wall](#walls).
 
 The engine registers eight hooks into the Lua `Hook` table at boot — `AutoDrink`, `UseItem`, `Attack`, `CalculateStats`, `ContextualAction`, `WeaponHitCharacter`, `WeaponSwing` and `WeaponSwingHitPoint` — and gives each an `Add` and a `Remove` function [#2237/C/C-only].
@@ -209,7 +209,7 @@ What each of those two declarations is worth to a mod is [a wall](#walls) rather
 A mod that registers the same id twice therefore leaves the registry in a state no later call repairs [#1198/C/C-only].
 
 `CharacterTraitDefinition.addCharacterTraitDefinition(CharacterTrait, uiName, cost, description, free, disabledInMultiplayer)` is public static and Lua-exposed, alongside `addGrantedTrait`, `addGrantedRecipe`, `addXPBoost(Perk,int)`, `addMutuallyExclusive`, `setTexture` and `setDisabledInMultiplayer`; it is what the generated character-trait script drives, and the last argument is optional [#1212/C/C-only].
-Registering the trait object is therefore only half of adding a trait: selectability comes from that definition call, the trait carries no Java effect of its own and its sync path is untraced [#1158/C/C-only].
+Registering the trait object is therefore only half of adding a trait: selectability comes from that definition call, the trait carries no Java effect of its own, and its list reaches the owning client on the player-fields packet's trait block and on the once-a-second experience packet, a path read from the code and not exercised for a mod trait [#1158/C/C-only] [#2595/C/C-only].
 Whether a mod can rely on a weight-band trait client-side is [the wall map's trait verdict](../reference/wall-map.md#g4).
 `CharacterTrait`'s `getName()` returns the trait name lowercased, so adding the Hearty Appetite trait puts `heartyappetite` into `getKnownTraits()` and a weight in the Obese band puts `obese` there: a name comparison against the registry spelling reads false on a trait that is demonstrably applied [#0550/M/n=1].
 On this build `hasTrait` takes a `CharacterTrait` enum rather than a String, and all 71 call sites in `media/lua` pass the enum, which is a grep plus inference rather than a live call [#0551/C/C-only].

@@ -142,7 +142,7 @@ Line cites into a workshop mod drift the same way, and they drift without becomi
 
 - Every version-folder line cite in the client-only mod's teardown ([`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md)) names the tree as it stood on 2026-09-10, and Steam added a newer tree to the item on 2026-09-13 whose copy of the panel file is 589 lines against the read copy's 583, so those cites are drifted rather than wrong and must be re-located by content before being quoted elsewhere; the measured readings are unaffected, because the run booted the older tree [#1466/C/snapshot].
 
-The same item has since gained the tree this build resolves, so the teardown's version-folder cites name a tree that is no longer the live one ([#2523/C/snapshot], [simplestatus.md#architecture](../facts/other-mods/simplestatus.md#architecture)).
+The tree added on that date is the `42.20` one this build resolves, so the teardown's version-folder cites name a tree that is no longer the live one ([#2523/C/snapshot], [simplestatus.md#architecture](../facts/other-mods/simplestatus.md#architecture)).
 Re-locating a cite by content rather than by line number is the standing practice that follows from it, written as a rule [above](#rules), and it applies to this repository's own files as much as to the corpus.
 A line number is the least durable part of any cite, which is why every pointer in this library carries the text it names as well as the place it sat.
 A drifted cite is also not a falsified reading: a run that booted the older tree measured the older tree, and what moved is the address rather than the answer.

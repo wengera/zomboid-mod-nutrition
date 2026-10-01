@@ -154,6 +154,10 @@ Vanilla's own sender of that direction is an admin tool: the player-stats admin 
 Because the experience object carries the trait list, an accepted send replaces the server's copy of the character's traits with the client's, and the relay hands the same list to every other client; a mod that calls `SyncXp` from an ordinary player's client gets the anti-cheat report and no write.
 The server-to-client direction of the same packet is the timed push under [the sync globals](#sync-globals).
 
+A second packet hands a player's experience object, and with it the trait list, to the other clients.
+The connected-player packet carries a player's whole experience object, trait list first, to other clients: its write puts the experience object in only when the packet is not a reply and its parse loads it only into a non-local player, the server sends it at a join from the joining player to every connection and from every other live player to the joiner and on a client's player-data request for a player that client may see, and the reply flag is set for the player's own connection unless the player is queued for a delayed disconnect, so the owning client's copy carries no experience object [T28.1].
+Neither send follows a trait write, so another client's copy of a character's traits is as fresh as the last join, data request or authorized relay that reached it.
+
 <a id="sync-globals"></a>
 ### The sync globals: how server Lua causes a push, and which client it reaches
 
@@ -171,7 +175,7 @@ Each mask's meaning, bit by bit, is the field contract on [the player-stats pack
 
 A server send addressed to a player reaches that player's own connection only, does nothing off a server and does nothing when the player has no connection, and the three sync globals, the timed experience, injuries and damage pushes and the eat packet all send that way, so each refreshes the affected player's own client and no other client's copy of that player [#2603/C/C-only].
 The eat packet in particular goes to the eater's connection alone, so its traffic cost is one client per eat.
-A label another player sees on that character is therefore a separate question from the one the player sees: no player-addressed timed push, none of the three sync globals and not the eat packet answers it, and another client receives a player's trait list only on the relay of an authorized client's experience object under [the packets](#packets) and on the connected-player packet the server writes at a join or on a client's player-data request, neither of which a trait write triggers.
+A label another player sees on that character is therefore a separate question from the one the player sees: no player-addressed timed push, none of the three sync globals and not the eat packet answers it, and another client receives a player's trait list only on the relay of an authorized client's experience object and on the connected-player packet the server sends at a join or on a client's player-data request, both under [the packets](#packets), neither of which a trait write triggers.
 The body-damage diff channel below also reaches another player's client, the one watching, but it carries health, pain and infection and never the trait list.
 
 Beside the stats snapshot the server runs timed pushes of its own, among them the ones below and a health push whose contents this page does not read, and a mod can read what they deliver but change neither their cadence nor their contents.
