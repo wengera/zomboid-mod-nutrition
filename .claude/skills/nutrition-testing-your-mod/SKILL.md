@@ -16,6 +16,7 @@ description: Planning or grading the nutrition mod's own tests — its profiles 
 - Run this mod's nutrition scenarios on the fixture's sandbox values, or pay for a fresh baseline beside any value moved: every nutrition reading in this library was taken on one fixture at one day length, so a moved option makes a new baseline rather than a comparison [#1253/C/one-fixture, #2071/C/inference].
 - Read a sandbox option back off the run before a reading depends on it: only the day length has been set by a profile on a restored world and read back, while the other options the nutrition work names are settable and unexercised [#1809/C/C-only, #2072/C/inference].
 - Grade a cross-side nutrition reading against a band built from its snapshot's own read skew, with the client half read first, and never against equality: a client-side reader is a staircase that steps when a packet lands while the server ramps, so a cross-side gap is a timing reading [#1483, #2070/C/inference].
+- Never read a food tooltip's nutrition block on a driven client as evidence of the Nutritionist gate: the block has a debug arm beside the trait arm, and the harness adds the debug flag to the admin account's client, so the block can show on a character holding neither Nutritionist trait [#2493/C/C-only, #1710, T25.1].
 
 ## Also
 - docs/reference/experiments.md — the specs of the owned experiments, their owners and the cost roll-up.

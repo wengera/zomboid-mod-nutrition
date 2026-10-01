@@ -1,7 +1,8 @@
 # Packaging
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: the nutrition-design reading of how this mod ships — its folder shape, what it does about the join checksum, the mods that will sit beside it on a live server, the compatibility approaches open to it and how long any of this stays true; the id chain, the version dirs, the checksum gate and the missing-mod failure are `platform/mod-anatomy.md`, the file map and the path collisions `platform/loader-and-scripts.md`, and every corpus count `facts/other-mods/catalog.md`
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-design reading of how this mod ships — its folder shape, what it does about the join checksum, the mods that will sit beside it on a live server and the seats it shares with them, the compatibility approaches open to it and how long any of this stays true; the id chain, the version dirs, the checksum gate and the missing-mod failure are `platform/mod-anatomy.md`, the file map and the path collisions `platform/loader-and-scripts.md`, and every corpus count `facts/other-mods/catalog.md`
 
 ## Rules
+<a id="rules"></a>
 
 - Declare one id per mod folder and put it in the build's version dir: the loader parses that one `mod.info` and never the folder name, so a second `mod.info` with another id is unaddressable [#0802/C/C-only, #0881/M].
 - Ship `common/` beside the version dir and keep only the build-specific files in the version dir: the version dir's file wins a same-relative-path collision and `common/` supplies everything the version dir does not ship [#1318/M/n=1].
@@ -20,14 +21,17 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: the nutrition-desi
 - Declare `require=` on the mod whose item a shipped block names, in whichever mod ships the block: with that mod absent the append arm is never taken and the block declares a new partial item instead of overriding one — a code reading no run has exercised — while a failed `require=` leaves the requiring mod unloaded instead [#1002, #0811/C/C-only, #2076/C/inference].
 - Name each version dir for the build its files were verified on and no later: the resolver takes the highest name at or below the running build, so a dir named for a later build is never read while one named for the verified build keeps running, unverified, on every later build until a newer-named dir ships [#0825/C/C-only, #2075/C/inference].
 - Read a mod's `mod.info` rather than the loader's error text when a mod does not load: a failed `versionMin` or `versionMax` gate, a missing `require=` and a folder that is not there all print the same not-found line [#0872/C/C-only, #0812/C/C-only].
+- Name in the mod's description every installed mod whose numbers its model makes inert or contradicts: a resident already writes the player's calories on the server every tick, residents wrap the eat action on both sides, and a viewer drawing a re-based macro against hard-coded bands goes wrong silently, so the description is where an operator learns which of them this mod overrides [#1588, #2566/C/snapshot, #1522, T25.2].
+- Print one self-report line at boot naming the mod's version and the optional frameworks it detected: an absent, a version-gated and an unsatisfied mod all print one not-found line and the server drops the id and boots on, so nothing else in the log says which build of this mod ran or what it found beside it [#0871/C/C-only, #0872/C/C-only, #2547/C/inference, T25.3].
+- Detect an optional framework with a type test on its global at `OnGameBoot` or later, never with `require`: the framework defines its global at file-load time, a test at the mod's own file scope can run before the framework's file, and a `require` of the framework's file finds nothing when the framework is absent [#2547/C/inference, T25.4].
 
 ## How it works
 
 A nutrition overhaul ships as one mod folder on the Workshop, and every mechanism that folder meets is owned by another page.
 The id chain, the version dirs, the missing-mod failure and the checksum gate are [the anatomy page](../platform/mod-anatomy.md), and the file map and the path collisions are [the loader page](../platform/loader-and-scripts.md).
 This page is the reading of those mechanisms for one mod that has to join a server it does not control, beside mods it did not write, on a build that will not stay current.
-It owns no row and no number: every claim below is cited to the row that owns it, and the untagged sentences are this mod's reading of those rows.
-It is in four parts — the folder, the checksum, the neighbours and the shelf life — and the compatibility approaches the neighbours leave open are under [Options](#compat-options).
+It owns its rules and no fact or number: every claim below is cited to the row that owns it, and the untagged sentences are this mod's reading of those rows.
+It is in five parts — the folder, the checksum, the neighbours, the seats it shares with them and the shelf life — and the compatibility approaches the neighbours leave open are under [Options](#compat-options).
 Every run it cites was taken on the dedicated-server path, and every corpus reading is a dated snapshot of an installed tree ([lessons.md#corpus-drift](../platform/lessons.md#corpus-drift)).
 
 <a id="layout"></a>
@@ -121,7 +125,7 @@ Every reading below is a static read of shipped files on a dated sweep, and none
 | `AutoCook` | client-side reads of the player's nutrition that choose spices and filter ingredients, and a `mod.info` in `common/` only | a rebalance changes what it chooses and nothing it defines; its manifest is the shape the id-chain probe targets | [#1585], [#1377/C/snapshot], [#1613/C/snapshot] |
 | `SKITTLE_LongTermPreservation4220` | foods in its own module, some feeding vanilla evolved recipes, and a server-side cook hook that scales a crafted instance's macros | its foods sit outside a base-module pass, and a block naming one is an override only while it loads | [#1461/C/snapshot], [#1587], [#1030/M/n=1] |
 | `SomewhatTraitsCore` | the corpus's only player macro write, a server-side per-tick calorie adjustment behind a trait | a second writer of the player's calories on the same side, which no packaging lever separates | [#1588] |
-| `SkillRecoveryJournal` | a protein-scaled exercise multiplier it ships in `shared/`, so on both sides | a consumer of a vanilla number this mod may re-base | [#1584] |
+| `SkillRecoveryJournal` | a protein-scaled exercise multiplier shipped in `shared/` under an upstream not-yet-implemented marker, its other copy block-commented, so shipped rather than live; and a journal tooltip that calls its own fork of vanilla's render instead of the tooltip chain | nothing from the multiplier while it stays unwired, which [X43](open-questions.md#x43) re-reads; a tooltip wrap of this mod's is bypassed on the journal's tooltip | [#1584], [#2092/C/open], [#2568/C/snapshot] |
 | `MoodleFramework` | server-approved, and whole on this build under the merge rule | the rendering route [the UI page](ui-and-moodles.md) weighs | [#1070/C/snapshot], [#1319/C/snapshot] |
 | `Horse` | the script-signalled set's one vanilla-name collision, a redefinition of a base item that is not a food | nothing: the pass and it name no item in common | [#1594/C/snapshot] |
 
@@ -134,7 +138,8 @@ Four more surfaces are shared with residents, and packaging acts on none of them
 The bus namespace is the cheapest to keep apart, with a module name nobody else uses ([#1153/C/C-only], [mp-sync.md#failure-modes](mp-sync.md#failure-modes)).
 The player's modData table is not, because a client-only viewer rewrites the server's whole copy of it from its own input handlers, and the route that survives that is [the MP sync page's](mp-sync.md#sync-options) [#1482].
 The calorie store is shared with a trait mod that writes it on the server every tick, and whether this mod writes over it or registers with it is [the nutrient page's](new-nutrients.md) question ([#1588], [#1070/C/snapshot]).
-The viewers — a status bar, a cooking automation and a skill mod's exercise multiplier — define nothing this mod could contradict and read everything it moves, so a rebalance reaches them unannounced ([#1522], [#1377/C/snapshot], [#1584]).
+The viewers — a status bar and a cooking automation — define nothing this mod could contradict and read everything it moves, so a rebalance reaches them unannounced ([#1522], [#1377/C/snapshot]).
+A skill mod's protein ladder would join them only once its author wires it, since the shipped ladder sits under a not-yet-implemented marker with its other copy block-commented [#1584].
 
 A neighbour's failure reaches this mod only as far as the dispatch that carries it.
 An unguarded raise aborts the rest of the raising handler's body while the handlers behind it keep running, so this mod's own handlers on the same event survive a neighbour's raise, while a call this mod makes into a neighbour's code needs a protected call of its own — measured on the server's Lua state only [#1179/M/n=1].
@@ -147,6 +152,31 @@ Two resident Workshop items ship several mods each, so a server names a mod by i
 Three kinds of neighbour are absent from the installed tree altogether: a public fix for the multiplayer nutrition-sync problem, a third-party patch to the preservation mod, and the page of public nutrition overhauls the nutrition search term returns ([#1605/W/snapshot], [#1606/W/snapshot], [#1599/W/snapshot]).
 A row that is not installed cannot be linted, profiled or measured, so what any of them replaces, shadows or transmits is unread until someone subscribes to it and re-runs the inventory [#1600].
 The decisions they block are listed under [Open](#open).
+
+<a id="sharing-a-server"></a>
+### Sharing a server
+
+Past files and ids, the residents meet this mod at seats the loader never arbitrates: the stat hook, the eat action, an optional framework and the sandbox option names.
+Each reading below is a static read of the installed tree on its dated sweep, and none of it was booted beside this mod ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
+
+The stat hook is unclaimed on the dated sweep: no live version folder in the installed corpus references it or the hook manager, and the corpus's only hook call is the interface mod's pair on the auto-drink hook, carried over from vanilla [#2558/C/snapshot].
+That reading covers the installed tree alone, so a public item that claims the hook and is not installed stays unread, as [the catalog's open lines](../facts/other-mods/catalog.md#open) carry.
+
+The eat action is already shared: every resident that touches its methods wraps them, `QualityCooking` on the server, `EmergencyVomitB42` on the client and `SomewhatTraitsCore` in shared code, and only `EmergencyVomitB42`'s wraps sit behind an idempotency sentinel [#2566/C/snapshot].
+`QualityCooking`'s server wrap saves the original completion into a local and redefines the method unconditionally [#2562/C/snapshot].
+A wrapper this mod adds to the same completion joins a chain whose order is the load order, and which seat in the eat it needs is [the hook page's](eat-and-cook-hooks.md#seat-in-the-order) reading.
+None of those wraps is a file collision, so no packaging lever separates them, and the description is the one place that tells an operator they share a seat.
+
+An optional framework is detected, never required.
+`MoodleFramework` defines its global at file-load time, so a type test on that global and its creation function at `OnGameBoot` or later finds it, while a `require` of its file finds nothing when the framework is absent [#2547/C/inference].
+A test at this mod's own file scope can run before the framework's file does, which is why the test waits for the event ([loader-and-scripts.md#lua-load-order](../platform/loader-and-scripts.md#lua-load-order)).
+Detecting by type keeps the framework out of `require=`, so a server without it still loads this mod, and the self-report line the rules ask for is where an operator reads which way the detection went.
+
+The mod's own sandbox options ship in one declaration file, in the version dir or in `common/`, and the loader reads exactly one of the two per mod [#2422/C/C-only].
+A file at the mod root's own `media/` is never read on this build [#2423/C/C-only].
+The declaration file therefore follows the layout's split: it sits in `common/` while it holds for every build, and moves whole into a version dir the day one build needs its own, because a version dir's copy is the only one that build reads.
+Its option names are shared with every other mod on the server, and the engine does not reject a duplicate: two mods declaring the same prefix and short name collide silently [#2437/C/C-only].
+The prefix is a namespace the mod picks as it picks its bus module name, one no resident uses ([sandbox-options.md#declaration](../platform/sandbox-options.md#declaration)).
 
 <a id="shelf-life"></a>
 ### The stamp is a shelf life
@@ -248,6 +278,9 @@ Not covered: the Steam Workshop upload, subscription and update surface, includi
 - [`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md#compat) — the client-only viewer a rebalance miscalibrates.
 - [`../facts/other-mods/longtermpreservation.md`](../facts/other-mods/longtermpreservation.md#compat) — the resident whose own-module foods sit outside the pass.
 - [`../reference/tools.md`](../reference/tools.md#mod-lint) — the layout lint that checks this mod's folder before any boot.
+- [`../platform/sandbox-options.md`](../platform/sandbox-options.md#declaration) — the declaration file's location and the option names the mod shares with every other mod.
+- [`../facts/other-mods/moodleframework.md`](../facts/other-mods/moodleframework.md#techniques) — the framework a type test detects.
+- [`eat-and-cook-hooks.md`](eat-and-cook-hooks.md#seat-in-the-order) — the eat seat the residents' wraps already share.
 - [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows the walls cite by id.
 - [`item-pass.md`](item-pass.md) — the script files this page packages, and the checksum they ship under.
 - [`mp-sync.md`](mp-sync.md) — the shared surfaces packaging cannot separate: the bus, the player's table and the routes between them.

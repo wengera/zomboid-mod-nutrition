@@ -1,7 +1,8 @@
 # Testing your mod — the plan this mod runs under the harness
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: this mod's test plan as a reading of the harness — the profiles it will ship, its scenarios and verification rows, the inputs a multi-day nutrition scenario fixes, the four named experiments it owns, how a cross-side reading is graded and the sandbox values its evidence rests on; every mechanism is `platform/harness.md`, the command table `reference/harness-commands.md` and the experiment specs `reference/experiments.md`
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: this mod's test plan as a reading of the harness — the profiles it will ship, its scenarios and verification rows, the inputs a multi-day nutrition scenario fixes, the four named experiments it owns, how a cross-side reading is graded, what a tooltip probe can read and the sandbox values its evidence rests on, the mod's own options among them; every mechanism is `platform/harness.md`, the command table `reference/harness-commands.md` and the experiment specs `reference/experiments.md`
 
 ## Rules
+<a id="rules"></a>
 
 - Never read a green run as evidence that a mod loaded: the game answers a mod it cannot find with a warning and a clean boot, so the run fails fast at the server-started mark and the bus probes are what prove effect [#1793].
 - Name a profile's mod by the engine-resolved id: that is the `id=` of the `mod.info` the build actually reads — the newest `42[.x[.y]]/` folder first, then `common/`, then the mod root — and never the folder name [#1558].
@@ -18,6 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: this mod's test pl
 - Run this mod's nutrition scenarios on the fixture's sandbox values, or pay for a fresh baseline beside any value moved: every nutrition reading in this library was taken on one fixture at one day length, so a moved option makes a new baseline rather than a comparison [#1253/C/one-fixture, #2071/C/inference].
 - Read a sandbox option back off the run before a reading depends on it: only the day length has been set by a profile on a restored world and read back, while the other options the nutrition work names are settable and unexercised [#1809/C/C-only, #2072/C/inference].
 - Grade a cross-side nutrition reading against a band built from its snapshot's own read skew, with the client half read first, and never against equality: a client-side reader is a staircase that steps when a packet lands while the server ramps, so a cross-side gap is a timing reading [#1483, #2070/C/inference].
+- Never read a food tooltip's nutrition block on a driven client as evidence of the Nutritionist gate: the block has a debug arm beside the trait arm, and the harness adds the debug flag to the admin account's client, so the block can show on a character holding neither Nutritionist trait [#2493/C/C-only, #1710, T25.1].
 - Record the measured window rather than the requested sleep, and name a snapshot tag by its measured offset rather than its intended one: one driver's window field read 10.0 seconds where the reads' own wall stamps give 12.54, and its tag named for three seconds after a transmit actually opened 7.58 seconds after it, so that driver's own window and tag keys are do-not-cite for exactly this reason [#1708/M/n=1].
 - Treat a scenario verdict as the test and the evaluator and a clean session together: exit code 0 needs the harness test's own pass, the evaluator's agreement and no environment fault, each of which turns the result into a failure naming its count, marks the timeline and lands in the faults block of both the report and the committed artifact [#1785].
 - Copy every piece of measured evidence a document cites into a tracked per-run artifact folder as JSON, kept byte-identical: the full run directories with their logs stay local and untracked [#1705].
@@ -27,7 +29,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: this mod's test pl
 This page is the test plan of a mod that does not exist yet: which profiles it will ship, what its scenarios and verification rows are for, which inputs a multi-day nutrition run fixes, which named experiments it owns, how a cross-side reading is graded and which sandbox values its evidence rests on.
 The instrument is [`../platform/harness.md`](../platform/harness.md), which owns every mechanism named below, and the commands a profile, a scenario or a driver can call are the generated table [`../reference/harness-commands.md`](../reference/harness-commands.md).
 Where a mechanism appears below it is stated in one tagged sentence cited to its owner, and an untagged sentence beside it is this page's reading for this mod — which of those mechanisms the plan leans on, with which inputs, and what each run can and cannot prove.
-The page owns one rule and no fact, and every claim below is cited to the row that owns it.
+The page owns rules and no fact, and every claim below is cited to the row that owns it.
 Every measured row it cites was taken on the dedicated-server path with one driven client, and single player is never claimed [#1256/C/one-fixture].
 
 <a id="mod-profiles"></a>
@@ -158,23 +160,24 @@ The first day of a fed run is a ramp from an empty store, so a per-day rate read
 ### The experiments this mod owns
 
 Four named experiments are this page's to run, because the design cannot be finished without them.
-Three settle the wall map's unknown verdicts — whether a client can rely on a band trait, whether a mod may override a vanilla translation key, and whether the drink path can be hooked [#1161/C/C-only/open, #1164/C/C-only/open, #1133/C/C-only/open].
-The fourth tests the only moodle route left, none of whose legs has been measured [#1142/C/C-only].
+Two settle the wall map's unknown verdicts — whether a mod may override a vanilla translation key, and whether the drink path can be hooked [#1164/C/C-only/open, #1133/C/C-only/open].
+The third measures the trait route the wall map reads from the code: whether a server push after a trait write reaches the client's trait list within its cadence, and whether a trait the mod registers behaves the same ([#2099/C/open], [wall-map.md#g4](../reference/wall-map.md#g4)).
+The fourth tests the moodle framework, the widget route the wall map leaves a moodle beside a widget of the mod's own, none of whose legs has been measured ([#1295/C/open], [wall-map.md#d4](../reference/wall-map.md#d4)).
 The other named experiments go to the build-out or stand alone, as [experiments.md § Owners and the cost roll-up](../reference/experiments.md) assigns them, and the build-out's decide how the mod is built rather than whether a part of it can be.
 Each spec is [`experiments.md`](../reference/experiments.md) and each open row the four carry is indexed on [`open-questions.md`](open-questions.md); this page restates neither.
 
 | experiment | what it settles | what makes the reading discriminate | what it costs | tags |
 |---|---|---|---|---|
-| [X4](open-questions.md#x4) | whether any packet carries the character's traits to a client, and whether a trait the mod registers behaves the same | the server's trait list is made non-empty first, because every earlier run held empty lists on both sides | a single session with a new trait mod, sharing its boot with the weight-lot ladder and running its band edges last | [#1275/C/superseded, #0968/C/C-only/open, #1291/C/open] |
+| [X4](open-questions.md#x4) | whether a server push after a trait write reaches the client's trait list, whether a client read sees the new trait within the push cadence, and whether a trait the mod registers behaves the same | the server's trait list is made non-empty first, because no run has yet held a non-empty list on either side, and the client's list is read before the push as the control | a single session with a new trait mod and a harness addition that pushes the trait list, sharing its boot with the weight-lot ladder and running its band edges last | [#2099/C/open, #2595/C/C-only, #1291/C/open] |
 | [X5](open-questions.md#x5) | whether a mod translation file displaces a vanilla key or the merge keeps vanilla's | a new interface key the mod ships must hit in the same run, and the server arm is a control because a dedicated server resolves no display name | a single short session with a new translation mod | [#1276/C/open, #1250/M/one-side, #0848/M/n=1] |
 | [X13](open-questions.md#x13) | whether a server-side wrapper of the drink action fires, and on which side | the shipped drink command moves the stores in the same session, so a silent wrapper reads as a silent Lua route rather than a silent fluid path | a harness addition that queues the real drink action, landed in its own commit, then a single session | [#1279/C/open, #1255/C/C-only] |
-| [X29](open-questions.md#x29) | whether the moodle framework loads whole, whether its configuration file runs, and whether a moodle registered through it renders above its lowest level | each leg has its own reading, and a registered moodle held at its lowest level on the client would mean no moodle route at all | a desk read of the framework's own Lua first, because its interface is unread and a probe cannot be written blind, then a single session | [#1295/C/open, #0884/C/C-only/open, #1115/M/n=1/open] |
+| [X29](open-questions.md#x29) | whether the moodle framework loads whole, whether its configuration file runs, and whether a moodle registered through it renders above its lowest level | each leg has its own reading, and a registered moodle held at its lowest level on the client would close the framework route and leave the mod a widget of its own | a desk read of the framework's own Lua first, because its interface is unread and a probe cannot be written blind, then a single session | [#1295/C/open, #0884/C/C-only/open, #1115/M/n=1/open] |
 
 The minutes, sessions and write-up ceiling behind the cost column are [experiments.md § Owners and the cost roll-up](../reference/experiments.md), and the whole named programme is a ceiling rather than a commitment [#1973].
 The trait experiment decides what a client may do with a band: until it lands, a client-side display or derivation that reads one reads an input no traced packet fills, which is why anything keyed on a band is evaluated on the server or fed a value the mod sends itself ([#1161/C/C-only/open, #1104/C/inference], [mp-sync.md#authority](mp-sync.md#authority)).
 The translation experiment decides whether the rebalance may rename a vanilla food, the one question the translation merge leaves open [#1164/C/C-only/open].
 The drink experiment decides whether an intake correction can reach fluid drinks at all, since the fluid path has no eat hook ([#1133/C/C-only/open], [eat-and-cook-hooks.md#hook-options](eat-and-cook-hooks.md#hook-options)).
-The framework experiment is the consequential one: a registered moodle held at its lowest level on the client would leave the mod no moodle route of any kind ([#1115/M/n=1/open], [ui-and-moodles.md#moodle-route](ui-and-moodles.md#moodle-route)).
+The framework experiment decides whether the mod draws its moodle through the framework or through a widget of its own: a registered moodle held at its lowest level on the client would leave the mod its own widget alone ([#1115/M/n=1/open], [ui-and-moodles.md#moodle-route](ui-and-moodles.md#moodle-route)).
 Each runs under the standing contract — a profile in the acceptance profile's shape, a driver in the house shape with client-first paired reads, and gates that never measure [#2050].
 The drink experiment's harness addition lands before its session in a commit of its own, with the command table regenerated and the next acceptance run as its smoke test ([#1279/C/open], [harness.md#procedure](../platform/harness.md#procedure)).
 Until each lands, its area page states it as a wall, and this page carries the same four under [Walls and bounds](#walls).
@@ -199,12 +202,19 @@ Weight also crosses the wire narrowed to a float, so the two sides' weights are 
 A mod value the client derives from the store inherits the same staircase, and it is graded with the same band.
 
 A reading discriminates only when the two sides were first made to differ.
-Both sides' trait lists were empty in every run that could have shown a trait crossing, so their agreement answered nothing [#0968/C/C-only/open].
+No run has yet held a non-empty trait list on either side, so the two sides' agreement in every run that could have shown a trait crossing answered nothing [#2595/C/C-only].
 Every experiment this page owns names the control that makes its sides differ, and a reading that comes back trivial, unmeasured or falsified is written as such rather than re-run ([harness.md#driver-rules](../platform/harness.md#driver-rules)).
 
 Two reply shapes are stale or side-relative by construction and are never graded as desyncs.
 The nutrition setter's own acknowledgement carries the weight-direction flags one tick stale, because the weight update has not run again yet [#1492/M/n=1].
 A container's string ends in a per-process identity hash, so comparing it across sides reads as a desync that is not one [#1507/C/n=1].
+
+A probe that reads a food tooltip meets two hazards before it reads anything about the mod.
+The food tooltip's nutrition block shows under a debug arm as well as under the Nutritionist trait, so a debug client can draw it on a character holding neither trait [#2493/C/C-only].
+The harness adds the debug flag to the admin account's client, which is the client every probe drives [#1710].
+A tooltip probe therefore reads the trait gate only on a client launched without the flag, and the plan's tooltip readings are about the mod's own band, never about the vanilla block's gate.
+On the stack profile the tooltip's render is also the end of a wrap chain that several resident mods build with no sentinel, one of them calling its own fork of vanilla's render instead of the chain [#2568/C/snapshot].
+What a tooltip probe draws there is that chain's output, so the mod's own band is graded on the acceptance profile and the stack profile asks only that the band still appears.
 
 The number format bounds every comparison's resolution.
 No bit-level claim may rest on an artifact written before the harness commit `291f977`, whose encoder rendered every non-integral number at six decimals [#1965].
@@ -234,6 +244,8 @@ That is why the vanilla-off profile sets the option in its sandbox block, which 
 The block merges into the restored file rather than replacing it, so an option a profile leaves out keeps the fixture's value [#1806].
 An option the world generator consumed is not retroactive, so an option that shapes the world is changed by provisioning a fresh fixture rather than by a profile [#1811/C/inference].
 Nested options are out of the sandbox block's reach, and the answer there is again a fresh fixture [#1831].
+The mod's own options are out of its reach too, because the block's key pattern takes only a top-level key and never names a mod option or its prefix [#2458/C/C-only].
+How a test sets one is therefore a decision under [Open](#open), and the remedies are [sandbox-options.md#open](../platform/sandbox-options.md#open)'s.
 
 ## Options
 
@@ -258,13 +270,16 @@ At which pacing does each of this mod's timed scenarios run — real time, a sho
 - Every client-side reading of a session whose debug client parked is unusable, so such a session is a server reading only [#0869/M/n=2].
 - No client-side scenario has ever run: the client runner is wired and every registered scenario lives under the server folder [#1784].
 - Persistence cannot be tested yet: `modData` across a save and reload is stated and never measured, and no run has restarted a world ([#1255/C/C-only], [open-questions.md#x28](open-questions.md#x28)).
-- The trait sync path is untraced: no packet carrying the trait list has been traced, and every run that could have shown one held empty lists on both sides ([#1161/C/C-only/open, #0968/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
+- The trait route is read from the code and its arrival is unmeasured: the trait list reaches the owning client on the experience packet and on the player-fields packet's trait block, and no run has yet held a non-empty list on either side ([#2595/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
 - The translation override is unmeasured: the translator merges rather than shadows, and no run has shipped a key that redefines a vanilla one ([#1164/C/C-only/open, #1276/C/open], [open-questions.md#x5](open-questions.md#x5)).
 - The drink path's interceptability is unmeasured: the fluid path has no eat-hook twin and the Lua drink-driver path has never been driven ([#1133/C/C-only/open, #1279/C/open, #1255/C/C-only], [open-questions.md#x13](open-questions.md#x13)).
-- No measured moodle route exists: the framework is the only route left and none of its legs has been booted ([#1142/C/C-only, #1295/C/open], [open-questions.md#x29](open-questions.md#x29)).
+- No measured moodle route exists: the open route is a Lua-drawn widget, the framework's or the mod's own, and none of the framework's legs has been booted ([#1295/C/open], [wall-map.md#d4](../reference/wall-map.md#d4), [open-questions.md#x29](open-questions.md#x29)).
 - Nothing on the bus executes a craft, so a crafted food's nutrition is read from the code and its create hooks stay unmeasured [#1248/C/C-only].
 - No bus command synthesises a click or a key press, so a panel of this mod's own keeps its state invisible to the bus until a human clicks [#1498/M/n=1].
 - A sandbox option that is nested, or that the world generator consumed, is out of a profile's reach, and changing one means a fresh fixture ([#1831], [#1811/C/inference]).
+- A profile's sandbox block cannot set the mod's own options: its key pattern matches only a top-level key and excludes a nested-table opener, so the settable list never names a mod option or its prefix [#2458/C/C-only].
+- A tooltip probe on the driven client reads a debug client's tooltip, whose nutrition block can show without the Nutritionist trait ([#2493/C/C-only], [#1710]).
+- A tooltip probe on the stack profile reads the end of a sentinel-free wrap chain the resident mods build, one of whose links bypasses the chain with its own fork of vanilla's render, so it never reads the mod's wrap alone [#2568/C/snapshot].
 - No bit-level claim may rest on an artifact written before the harness commit `291f977` [#1254/C/snapshot].
 
 Not covered: a second machine or any continuous-integration host, a Linux dedicated server, a release client, a session with two driven clients, a save-and-reload cycle, and any session a person drives rather than the bus — every reading this plan can take is one Windows machine driving one dedicated server and at most one debug client.
@@ -272,7 +287,7 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 ## Open
 <a id="open"></a>
 
-- Whether any packet carries the character's traits to a client, and whether a trait the mod registers behaves the same — settled by making the server's trait list non-empty first and reading the client's across at least two pushes, client first; -> X4 ([#1275/C/superseded, #0968/C/C-only/open, #1161/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
+- Whether a server push after a trait write reaches the client's trait list, whether a client read sees the new trait within the push cadence, and whether a trait the mod registers behaves the same — settled by making the server's trait list non-empty first and reading the client's in client-first pairs before and after a server-side trait push, the pre-push read as the control; -> X4 ([#2099/C/open, #2595/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
 - Whether a mod translation file displaces a vanilla key or the merge keeps vanilla's — settled by a mod that redefines one vanilla item-name key beside a new interface key that must hit in the same run; -> X5 ([#1276/C/open, #1164/C/C-only/open], [open-questions.md#x5](open-questions.md#x5)).
 - Whether the drink path is interceptable the way the eat path is — settled by a harness command that queues the real drink action, then one session counting a server-side wrapper's fires on each side against the shipped drink command as the control; -> X13 ([#1279/C/open, #1133/C/C-only/open], [open-questions.md#x13](open-questions.md#x13)).
 - Whether the moodle framework loads whole, runs its configuration file and renders a registered moodle above its lowest level — settled by a desk read of its Lua, then one session reading its globals on both sides and the client's moodle block; -> X29 ([#1295/C/open, #0884/C/C-only/open, #1115/M/n=1/open], [open-questions.md#x29](open-questions.md#x29)).
@@ -287,7 +302,8 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - Decision: whether the mod's load checks are verification rows or scenarios — forced by a verification expectation being a substring that cannot express absence or a numeric comparison [#1828].
 - Decision: whether the mod ships a client-side scenario for its display copy — forced by the client runner being wired with nothing to run and by every client read of a live store being a staircase [#1784, #1483].
 - Decision: whether any scenario moves a sandbox option off the fixture's value — forced by only the day length having been set by a profile, so a moved option buys a new baseline [#1809/C/C-only, #1253/C/one-fixture].
-- Decision: in which order the four owned experiments are bought — forced by the framework experiment needing a desk read and the drink experiment a harness addition before their sessions, while the other two need neither [#1295/C/open, #1279/C/open].
+- Decision: in which order the four owned experiments are bought — forced by the framework experiment needing a desk read and the trait and drink experiments each a harness addition before their sessions, while the translation experiment needs neither [#1295/C/open, #1279/C/open, #2099/C/open].
+- Decision: how this mod's tests set its own sandbox options — a harness merge that writes a profile's nested block into the mod's table in the server file, a two-pass run that boots once so the server writes the block and then merges into it, or a live set over the bus after boot, which reaches no consumer that reads at server start — forced by the profile block's top-level-only key pattern [#2458/C/C-only]; the harness change lands before any run that sets a mod option.
 - Decision: whether a scenario pins the thirst clock or reads the death as its result — forced by an unattended thirst drain killing the subject partway through a multi-day run [#0179/M/one-fixture].
 
 ## See also
@@ -300,6 +316,9 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - [`../facts/body-and-weight.md`](../facts/body-and-weight.md#hunger-thirst) — the thirst clock that kills an unattended subject, and the body-side sandbox option.
 - [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md#sandbox) — the nutrition option and what a runtime flip of it does.
 - [`../facts/spoilage.md`](../facts/spoilage.md#sandbox) — the rot options the roll-up carries.
+- [`../platform/sandbox-options.md`](../platform/sandbox-options.md#open) — the mod's own options and the remedies for setting one from a test.
+- [`../platform/client-ui.md`](../platform/client-ui.md#tooltip) — the tooltip a probe reads and its debug arm.
+- [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md#api-surface) — the resident wraps a stack-profile tooltip probe reads through.
 - [`mp-sync.md`](mp-sync.md) — which side owns each quantity this plan grades.
 - [`ui-and-moodles.md`](ui-and-moodles.md) — the display surfaces the trait, translation and framework experiments decide.
 - [`eat-and-cook-hooks.md`](eat-and-cook-hooks.md) — the intake seats the drink experiment decides for fluids.
