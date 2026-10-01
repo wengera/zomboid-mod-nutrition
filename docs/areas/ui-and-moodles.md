@@ -70,7 +70,7 @@ The framework sits on the target server's approved list, which is what the platf
 The second is its layout: its newest version folder ships a single file, and its configuration file lives only in an older tree and in `common/` [#1614].
 That the framework loads whole on this build follows from the merge rule applied to that layout, so it is a derivation and not a boot [#1319/C/snapshot].
 The moodle file that executes calls helpers only the configuration file defines, so the merge rule is what supplies a hard runtime dependency [#2541/C/C-only].
-Its two older moodle files call engine members this build lacks, and a release that stops shipping both newer version folders would put one of them back in play, invisibly to a consumer [#2543/C/C-only].
+Its older moodle files call an engine member this build lacks, and a release that stops shipping the newer version folders would put one of them back in play, invisibly to a consumer [#2543/C/C-only].
 It is also the one mod in the corpus whose `mod.info` chain differs between the layout lint and the engine, although the two files they open declare the same id [#0824/C/snapshot].
 The third is its guards: it contains no protected call anywhere, so every call a consumer makes into it is guarded by the consumer's own protected call or by nothing [#2546/C/C-only].
 The fourth is the one that matters most: whether one of its moodles shows on a live client has never been measured, so the route is read from the code end to end ([#1295/C/open], [open-questions.md#x29](open-questions.md#x29)).
@@ -98,7 +98,7 @@ A reader that reads every frame therefore reads one value over and over until th
 A mod can neither observe nor suppress the player-stats write, so a client-side reader cannot tie a redraw to the write and can only poll [#1149/M/n=1].
 
 The one viewer mod this library tore down, `simpleStatus`, shows why the rule rests on the source rather than on the viewer.
-Its resolved copy advances a frame counter and prepares its bars, the only code that calls a bar's value function, only on every tenth frame, drawing the prepared values on every frame between [#2524/C/C-only].
+Its resolved copy advances a frame counter and prepares its bars, the only code that calls a bar's value function, only on a fixed fraction of frames, drawing the prepared values on every frame between [#2524/C/C-only].
 So the reads it makes follow its own frame counter and not the store's changes: a throttled render loop still calls an uncached value function many times between two pushes [#2525/C/inference].
 That count is a property of one version's render loop, and another version or another viewer reads at a count of its own.
 Cache a nutrition value at the push cadence rather than the frame cadence, because the source changes once a second and the measured arrivals show it, while a viewer's read count is the viewer's own and drifts with its version [T20.1].
@@ -138,14 +138,14 @@ Traits are applied server-side, the engine's own weight-band refresh running onl
 The experience push runs on the same once-a-second limit as the stats snapshot, so the timed route alone leaves a client's list at most about a second behind the server's [#2608/C/C-only].
 Both carriers replace the receiver's list rather than merge into it, so after either lands the client holds the server's list, a removal included ([#2617/C/C-only], [#2620/C/C-only], [wire-packets.md#player-fields-packet](../facts/wire-packets.md#player-fields-packet), [wire-packets.md#experience-packet](../facts/wire-packets.md#experience-packet)).
 The engine fires no event and sends no packet when a trait is written [#2601/C/C-only].
-No Java code sends the trait bit, and the one vanilla Lua sender is the book read, so a mod that wants a trait it writes on the server shown before the next timed push sends the block itself ([#2604/C/C-only], [#2606/C/C-only], [mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)).
+No Java code sends the trait bit, and vanilla sends it on a finished book read, so a mod that wants a trait it writes on the server shown before the next timed push sends the block itself ([#2604/C/C-only], [#2606/C/C-only], [mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)).
 `sendSyncPlayerFields` does nothing off a server and returns silently for a player with no online id, so a call is no proof that the client's list moved [#2602/C/C-only].
 Every one of these pushes is addressed to the player's own connection, so none of them refreshes another client's copy of that character, and a label one player sees on another rests on a different route [#2603/C/C-only].
 A client cannot push a trait the other way on an ordinary connection: the vanilla stats panel's experience upload, which carries the trait list, is loaded by the server only from a connection whose role holds the stats-panel capability ([#2615/C/C-only], [#2612/C/C-only]).
 On the client, the character screen rebuilds its trait icons whenever the list it reads differs from the icons it holds, so a pushed trait appears there without a refresh [#2504/C/C-only].
 All of this is read from the bytecode and the files: no run has yet held a non-empty trait list on either side, so the route is traced and unmeasured ([#2595/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4)).
 The live measurement is [X4](open-questions.md#x4)'s [#2099/C/open].
-A band label drawn from the client's own list is therefore the owning player's alone, as fresh as the last push of either carrier, and the rule on pushing the trait block after a server-side write is [mp-sync.md](mp-sync.md)'s.
+A band label drawn from the client's own list is therefore the owning player's alone, as fresh as the last push of either carrier, and the rule on pushing the trait block after a server-side write is [mp-sync.md](mp-sync.md#rules)'s.
 
 <a id="honest-but-wrong"></a>
 ### A number can be honest and still wrong
@@ -202,7 +202,7 @@ A moodle is drawn from a level, by the engine or by a widget, and it is the only
 A client panel is code the mod owns end to end, drawn on the client from whatever the client holds, which is the shape the torn-down viewer takes [#1469].
 Tooltip text is keyed per item: `Tooltip` is one of the item-level keys the script reference lists, and that reference's runtime-effect column gives it as a translated tooltip key ([#0215/C/snapshot], [food-item-model.md#script-keys](../facts/food-item-model.md#script-keys)).
 A script tooltip line also becomes an item-modData key on every side that builds the item, so the text surface is not free of the modData surface ([#1044], [loader-and-scripts.md#default-moddata](../platform/loader-and-scripts.md#default-moddata)).
-The vanilla food tooltip already carries a nutrition block, shown only to a character holding either Nutritionist trait, and that tooltip is the trait's one reader in the jar ([#0546/C/snapshot], [#0547/C/C-only]).
+The vanilla food tooltip already carries a nutrition block, which either Nutritionist trait opens and which is the trait's one reader in the jar ([#0546/C/snapshot], [#0547/C/C-only]), and the same block also opens under the debug tooltip option and on a packaged food whose label the viewer can read [#2645/C/C-only].
 The tooltip body is built in Java and Lua only hosts the drawing, so a mod adds a line of its own by wrapping the tooltip panel's render, the shape [the tooltip option](#tooltip-line) costs ([#2490/C/C-only], [client-ui.md#tooltip](../platform/client-ui.md#tooltip)).
 Translation text resolves on the client alone: a mod's keys merge beside vanilla's, and a dedicated server resolves no display name at all ([#1163/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
 The text router carries no item-name prefix, so a feature that must know whether a translation loaded is gated on an interface key rather than on an item name [#1720/M/n=2].
@@ -214,8 +214,8 @@ Each row below names what the surface costs and the wall it runs into, with the 
 
 | option | what it costs | which wall it hits | tags |
 |---|---|---|---|
-| a moodle through `MoodleFramework` | a runtime dependency on a third-party client-only widget library with no transport, so the value comes over the mod's own bus to a client handler that sets it; the consumer guards every call, detects the framework by a type test and inherits its version-folder hazard; vanilla's moodle consumers ([body-and-weight.md#moodles](../facts/body-and-weight.md#moodles)) name only vanilla's own types | a mod's own registered type is pinned at its lowest level and vanilla's thresholds are unreachable, so a moodle is a widget beside the stack, the framework's or the mod's own; no run has seen a framework moodle render (`X29`) | [#1140/C/C-only], [#1141/C/C-only], [#2531/C/C-only], [#2537/C/C-only], [#2540/C/inference], [#2543/C/C-only], [#1295/C/open], [#0513/M/n=1] |
-| a client panel | the whole panel is client code the mod owns: it caches at the push cadence, fetches any mod-owned value over the command bus or a transmitted table, and shares the screen with a resident interface mod | a client reads a pushed mirror and cannot observe the player-stats write; a cooked food's thirst reads halved on a client; the band traits reach only the owning client, on the experience packet and a trait-block push, a route read from the code and not measured (`X4`) | [#1147/M/n=1], [#1149/M/n=1], [#2595/C/C-only], [T20.1] |
+| a moodle through `MoodleFramework` | a runtime dependency on a third-party client-only widget library with no transport, so the value comes over the mod's own bus to a client handler that sets it; the consumer guards every call, detects the framework by a type test and inherits its version-folder hazard; vanilla's moodle consumers ([body-and-weight.md#moodles](../facts/body-and-weight.md#moodles)) name only vanilla's own types | a mod's own registered type is pinned at its lowest level and vanilla's thresholds are unreachable, so a moodle is a widget beside the stack, the framework's or the mod's own; no run has seen a framework moodle render (`X29`) | [#1140/C/C-only], [#1141/C/C-only], [#2531/C/C-only], [#2537/C/C-only], [#2540/C/inference], [#2543/C/C-only], [#2546/C/C-only], [#2547/C/inference], [#1295/C/open], [#0513/M/n=1] |
+| a client panel | the whole panel is client code the mod owns: it caches at the push cadence, fetches any mod-owned value over the command bus or a transmitted table, and shares the screen with a resident interface mod | a client reads a pushed mirror and cannot observe the player-stats write; a cooked food's thirst reads halved on a client; the band traits reach the owning client on server pushes addressed to it alone, the experience packet and a trait-block push, and another client only on an authorized client's relay, a route read from the code and not measured (`X4`) | [#1147/M/n=1], [#1149/M/n=1], [#2595/C/C-only], [#2603/C/C-only], [#2612/C/C-only], [T20.1] |
 | tooltip and translation text | text keyed per item or per interface key and resolved on the client alone; a script tooltip line becomes an item-modData key on every instance | a mod's keys merge rather than shadow, so whether one can redefine a vanilla key is unmeasured (`X5`); a dedicated server resolves no display name; a new food without a translation entry ships a zero weight | [#1163/M/n=1], [#1164/C/C-only/open], [#1166/C/C-only], [#1167/M/n=1], [#1044] |
 
 Which surface carries each nutrient the design shows: a moodle widget on a route no run has confirmed, a client panel the mod owns end to end, or keyed text that only a client resolves?
@@ -240,14 +240,14 @@ The crafting slot's tooltip is a second route with its own wrap point, so a line
 The tooltip's height is fixed by Java before any Lua sees it, so a mod's band is drawn and framed below the engine's box, as the two tooltip rules on [client-ui.md](../platform/client-ui.md#tooltip) say [#2491/C/C-only].
 The render does nothing while a context menu is open, so a wrap that draws after it repeats that test [#2496/C/C-only].
 The resident interface mod leaves this route intact: its own inventory files still construct the vanilla tooltip panel, so a wrap of that panel's render survives it, while under it a stack's tooltip describes one representative item ([#2499/C/C-only], [#2500/C/C-only]).
-The vanilla nutrition block in that tooltip shows for either Nutritionist trait or on a client launched with the debug flag, so the mod's band sits beside a block some players see and others do not [#2493/C/C-only].
+The vanilla nutrition block in that tooltip opens under the debug tooltip option, on a packaged food whose label the viewer can read, or for either Nutritionist trait, so the mod's band sits beside a block some players see on some foods and not on others [#2645/C/C-only].
 
 <a id="character-info-tab"></a>
 ### A tab in the character-info window
 
 A per-character nutrition panel can live as a tab beside the skills and health tabs instead of as a floating window.
 A mod adds one by wrapping the window's child construction at file scope to add a view, because the window is built on player creation [#2501/C/C-only].
-The window has no tab registry: its tabs are hard-coded in three places, so a mod tab costs method wraps where a registry would cost a call [#2513/C/C-only].
+The window has no tab registry: its tabs are hard-coded in several places, so a mod tab costs method wraps where a registry would cost a call [#2513/C/C-only].
 A tab's name is its translated string and the same string is its toggle argument [#2503/C/C-only].
 A mod tab never writes its name into the saved layout key, which vanilla resolves through a table with no entry for a mod tab [#2502/C/C-only].
 The tab rule is [client-ui.md](../platform/client-ui.md#character-info)'s, and the worked tab is [autocook.md](../facts/other-mods/autocook.md#architecture)'s.
@@ -274,7 +274,7 @@ The cost is a widget the mod writes whole; the wall is the one every moodle rout
 - A mod cannot trust a cooked food's thirst value read on a client, and neither can a display that draws it ([#1147/M/n=1], [wire-packets.md#cooked-thirst](../facts/wire-packets.md#cooked-thirst)).
 - A mod cannot observe or suppress the player-stats write, so no panel can tie a redraw to the write ([#1149/M/n=1]).
 - A trait a mod adds is selectable and saved but carries no effect of its own, so anything it should show or do is written in Lua ([#1158/C/C-only]).
-- A band trait reaches the owning player's client only, on the timed experience push and on a trait-block push that server Lua or a book read sends, and no run has held a non-empty trait list, so the route is traced from the code and unmeasured ([#2595/C/C-only], [#2603/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
+- A band trait reaches the owning player's client on server pushes addressed to it alone, the timed experience push and a trait-block push that server Lua or a book read sends, and another client only on an authorized client's experience relay, and no run has held a non-empty trait list, so the route is traced from the code and unmeasured ([#2595/C/C-only], [#2603/C/C-only], [#2612/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
 - A mod cannot test a trait by its string name, because the string form is removed on this build ([#1162/C/C-only]).
 - The character-info window has no tab registry, so a mod tab is a set of method wraps ([#2513/C/C-only], [client-ui.md#character-info](../platform/client-ui.md#character-info)).
 - Translations are client-only: a mod's keys merge beside vanilla's and a dedicated server resolves no display name ([#1163/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
