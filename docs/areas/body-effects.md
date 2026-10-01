@@ -9,15 +9,15 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Never set a Strength or Fitness level above the one its experience implies: the rust pass lowers such a level one step per rust step, each step fires the level event whose listener rewrites the band traits, and neither the level setter nor the experience setter writes the other store [T24.3] [#2124/C/C-only] [#2127/C/C-only] [#2119/C/C-only] [#2103/C/C-only].
 - Re-assert a clamped level and the traits the mod owns on a server schedule: the rust pass and the level event's listener move them on vanilla's own tiers, the weight refresh strips and re-adds the weight-band traits, and an accepted experience sync loads the sender's whole level and trait lists over the server's [T24.4] [#2158/C/C-only] [#2157/C/C-only] [#2642/C/C-only] [#2620/C/C-only] [#2612/C/C-only].
 - Grant Strength or Fitness experience on the server through the `addXp` global, never to a sleeping character, and keep each check's growth under the anti-cheat bound: the short `AddXP` overloads do nothing on a dedicated server, the global does nothing on a client, a sleeping character's amount is dropped whole, and a tripped check can kick or ban the player [T24.5] [#2130/C/C-only] [#2105/C/C-only] [#2161/C/C-only] [#2147/C/C-only] [#2148/C/C-only].
-- Move carry capacity through `setMaxWeightDelta` and leave the base where it is: the delta multiplies the finished capacity after the Strength term, the moodle penalty and the floor on every recompute, nothing in the jar writes it after the player's constructor, and a direct maximum-weight write lasts only until the next body-damage update [T24.6] [#2143/C/C-only] [#2142/C/C-only] [#2144/C/C-only] [#2145/C/C-only].
-- Give a mod effect a trait of its own rather than a vanilla band trait: the level event's listener removes all four of a perk's band traits before it adds one, and the weight refresh removes all five weight-band traits before it adds one, so a band trait granted for any other reason is gone at the next of either [T24.7] [#2157/C/C-only] [#2642/C/C-only].
+- Move carry capacity on the server through `setMaxWeightDelta` and leave the base where it is: only the server's body-damage tick recomputes capacity, the delta multiplies the finished capacity after the Strength term, the moodle penalty and the floor on every recompute, nothing in the jar writes it after the player's constructor, a direct maximum-weight write lasts only until the next body-damage update, and the client learns the result from the damage packet's maximum weight [T24.6] [#2143/C/C-only] [#2142/C/C-only] [#2144/C/C-only] [#2145/C/C-only] [#2597/C/C-only] [T24.15] [#2609/C/C-only].
+- Give a mod effect a trait of its own rather than a vanilla band trait: the level event's listener removes every band trait of the perk before it adds one, and the weight refresh removes every weight-band trait before it adds one, so a band trait granted for any other reason is gone at the next of either [T24.7] [#2157/C/C-only] [#2642/C/C-only].
 - Change health through `ReduceGeneralHealth` and `AddGeneralHealth`, never `setOverallBodyHealth`: overall health is recomputed from the parts at the end of every server body-damage tick, so a direct write is replaced on the next tick unless it is exactly zero, which stops the tick and kills [T24.8] [#2344/C/C-only] [#2343/C/C-only] [#2346/C/C-only] [#2347/C/C-only] [#2349/C/C-only].
-- Retune healing through the four regeneration constants and the wound timers, never the injury speed modifiers: the constants and the timers are the healing handles that carry setters, the four speed modifiers are read only by the injury speed term, and no healing-rate setter exists [T24.9] [#2354/C/C-only] [#2366/C/C-only] [#2368/C/C-only] [#2382/C/C-only].
-- Drive the thermal core through `CharacterStat.TEMPERATURE`, rewritten on every update if the value is to hold: the stat is the one Lua door into the core, every step of the thermal update is private, no thermal node has a setter, and one write moves the core only halfway on the next update [T24.10] [#2373/C/C-only] [#2374/C/C-only] [#2375/C/C-only] [#2376/C/C-only].
+- Retune healing through the regeneration constants and the wound timers, never the injury speed modifiers: the constants and the timers are the healing handles that carry setters, the injury speed modifiers are read only by the injury speed term, and no healing-rate setter exists [T24.9] [#2354/C/C-only] [#2366/C/C-only] [#2368/C/C-only] [#2382/C/C-only].
+- Drive the thermal core through `CharacterStat.TEMPERATURE`, rewritten on every update if the value is to hold: the stat is the one Lua door into the core, every step of the thermal update is private, no thermal node has a setter, and one write moves the core only one lerp step toward it on the next update [T24.10] [#2373/C/C-only] [#2374/C/C-only] [#2375/C/C-only] [#2376/C/C-only].
 - Grant night vision or short sight through the Night Vision and Short Sighted traits rather than through the cone or the lighting bridge: the rendered cone is computed only on the client from inputs that include the trait list, the native bridge is unexposed, and neither the cone nor hearing range has a setter [T24.11] [#2298/C/C-only] [#2303/C/C-only] [#2301/C/C-only] [#2302/C/C-only] [#2333/C/C-only].
 - Add to the aiming delay rather than replace it, and expect it rewritten after every shot: the combat manager rewrites it per shot as the current value plus the weapon's terms, clamped to the weapon's aiming time, and vanilla's rack action adds to the current value [T24.12] [#2326/C/C-only] [#2340/C/C-only].
 - Move a player's speed through the inputs of the speed formula, the endurance stat behind the Endurance moodle first, never through a speed setter or a modifier field: the modifier fields are reset on every speed update, `setSpeedMod` and move speed reach no player path, base speed is cut per level of the Endurance and Heavy Load moodles, and no moodle level has a setter [T24.13] [#2289/C/C-only] [#2318/C/C-only] [#2319/C/C-only] [#2313/C/C-only] [#2285/C/C-only].
-- Read a player's activity from the thermoregulator's metabolic rate, with endurance and carried load held still or accounted for, never from a counter: the engine keeps no distance, running-time total, step, rep or training-load counter, while the metabolic target is raised to a class floor by attacking, moving and exercising and above it by low endurance and by carried weight, read from the bytecode and not measured on a server [T24.14] [#2633/C/C-only] [#2649/C/C-only] [#2197/C/C-only] [#2198/C/C-only] [#2200/C/C-only].
+- Read a player's activity from the thermoregulator's metabolic rate, with endurance and carried load held still or accounted for, never from a counter: the engine keeps no distance, running-time total, step, rep or training-load counter, while the metabolic target is raised to a class floor by attacking, moving and exercising, can sit above a low class when endurance is low, and rises with carried weight, read from the bytecode and not measured on a server [T24.14] [#2633/C/C-only] [#2649/C/C-only] [#2197/C/C-only] [#2198/C/C-only] [#2200/C/C-only].
 
 ## How it works
 
@@ -57,7 +57,7 @@ The endurance consequence is [the rule](#rules) on integrating endurance from th
 A handler that reads endurance back and integrates from it double-counts whatever vanilla's model already removed or restored that tick [#2235/C/C-only].
 A handler that keeps its own endurance figure and writes it as the last word avoids that, and whether its write really is the last before the push is an experiment, not a reading (see [Open](#open)).
 Endurance and fatigue both live on a fixed range that no setter widens, and every `Stats` write passes the stat's own clamp [#2208/C/C-only] [#2209/C/C-only].
-A mod quantity that needs a wider range therefore lives in the mod's own store and is mapped onto the stat, never stored in it.
+A mod quantity wider than that range therefore cannot be held in the stat itself [#2209/C/C-only].
 
 The seven updaters do more than write their stats, and [the rule](#rules) on the seven side effects names what a handler loses with them.
 The character's endurance updater stamps the last-endurance value and honours the unlimited-endurance cheat [#2215/C/C-only].
@@ -70,8 +70,8 @@ A Fitness experience grant also rewrites that stat at the end of the grant, so t
 The tripping updater's angle has no reader outside `Stats`, and the morale literal reaches no moodle, speed or combat term, so those two can be dropped at no visible cost [#2225/C/C-only] [#2228/C/C-only].
 
 The seven formulas a handler reproduces are reachable from [the updaters](../facts/character-stats.md#updaters), which hands thirst and hunger to [the hunger and thirst rates](../facts/body-and-weight.md#hunger-thirst) and endurance and fatigue to [the endurance drain](../facts/endurance-fatigue-sleep.md#drain) and [the fatigue accumulation](../facts/endurance-fatigue-sleep.md#fatigue).
-The thirst updater's add is server-gated and skips a player in ghost mode, so a handler that reproduces it carries both gates or drops them knowingly [#0560/M/n=1].
-Whether a reproducing handler tracks vanilla's trajectory stat by stat is an experiment, listed under [Open](#open), and no handler has run on a live server.
+The thirst updater's add is server-gated and skips a player in ghost mode, so a reproduction without both gates adds thirst where vanilla adds none [#0560/M/n=1].
+Whether a reproducing handler tracks vanilla's trajectory stat by stat is an experiment, listed under [Open](#open).
 The other shape, leaving the updaters running and correcting after them, is one of the options below rather than a lever of its own.
 
 A stat the mod registers is no shortcut around any of this.
@@ -92,7 +92,7 @@ Vanilla moves the levels on its own schedules, and every schedule is a writer th
 The experience system raises and lowers a level only on crossings of a threshold, so a level a mod lowers is neither walked back up nor pushed further down by it [#2122/C/C-only] [#2123/C/C-only].
 The one absolute test is Lua: the rust pass lowers a Strength or Fitness level whose experience sits below its stored level's requirement, one step at a time on its own tier [#2124/C/C-only].
 Each such step fires the level event with a gained flag of false [#2127/C/C-only].
-The event's listener rewrites the band traits and re-checks the recipes, so a level that moves without the event leaves all four of its jobs stale [#2129/C/C-only].
+The event's listener rewrites the band traits and re-checks the recipes, so a level that moves without the event leaves every one of its jobs stale [#2129/C/C-only].
 Both handlers that move a level or its traits outside Java are registered by one server file, so the level a mod's clamp reads can move on the rust pass's tier as well as on a grant [#2158/C/C-only].
 So a mod that raises a level writes the experience with it, as [the rules](#rules) say, or the rust pass pulls the level back down.
 The rule that a debug level write must re-run the band remap itself is [the lessons'](../platform/lessons.md#rules), not this page's.
@@ -104,7 +104,8 @@ The server's grant reaches the six-argument body past the local-player gate and 
 That body drops every amount to a sleeping character before anything else, whatever the perk [#2161/C/C-only].
 It discards a non-negative amount once the perk's experience has reached the top level's total, so a mod's grant past the cap does nothing [#2109/C/C-only].
 The `AddXP` event fires only off a multiplayer client, so on a dedicated server it fires on the server for every grant that reaches the store, as read from the bytecode [#2125/C/C-only].
-A server-side listener on that event is therefore the place a mod sees every grant, its own and vanilla's, and the place it can trim one.
+The event fires at the end of the body, with the final amount, after the experience write and after any threshold crossing has already called `LevelPerk`, so a server-side listener sees each grant, its own and vanilla's, only once the level has moved [#2125/C/C-only] [#2126/C/C-only] [#2122/C/C-only].
+A clamp therefore acts on the experience and the level together, through the setters and the level methods that hold each store, rather than by trimming a grant in that listener [#2103/C/C-only] [#2117/C/C-only].
 
 The anti-cheat bounds how fast a mod may move experience.
 On the server a perk whose experience rose by more than the bound between two checks is flagged, per perk and per check [#2147/C/C-only].
@@ -130,12 +131,15 @@ The base and delta setters are public, have no caller anywhere in the jar and ar
 The Strength band traits reach the delta only in the player's two constructors, so a later level change that swaps those traits never refreshes it [#2144/C/C-only].
 A Lua write to the maximum weight itself lasts only until the next body-damage update, because the recompute calls the same setter [#2145/C/C-only].
 The unlimited-carry flag removes the limit but is written by the save load, the role setter and both arms of a packet, so it is contested [#2146/C/C-only].
+The recompute is the server's, because the body-damage tick returns at once for a live player on a client [#2597/C/C-only].
+The damage packet carries the player's maximum weight after the player id, written from `getMaxWeight` and applied on the receiver through `setMaxWeight` when the packet is consistent [T24.15].
+The server pushes that packet to each player's own connection on its timed injuries tick, so a client learns a new capacity on that push and not at the recompute [#2609/C/C-only].
 
 The rule on carry capacity follows from where each setter sits in the formula.
 The base is multiplied by the Strength term and then has the penalty subtracted, so a base write is entangled with the level a mod may also be moving [#2142/C/C-only].
 The delta multiplies after the floor, so it scales the finished capacity and nothing reads it but the recompute [#2142/C/C-only] [#2143/C/C-only].
 That no vanilla Lua calls either setter is unverified, because it rests on a hand scan of the install, as [the perks page](../facts/perks-and-strength.md#open) records.
-A second mod that owns carry capacity collides with this one on the same field, and cooperative registration with such a mod is a rule of [the display area](ui-and-moodles.md).
+A second mod that owns carry capacity collides with this one on the same field, and cooperative registration with such a mod is a rule of [the lessons](../platform/lessons.md#rules).
 Where the carry penalty reaches speed, it does so through the Heavy Load moodle, under [perception](#perception).
 
 <a id="traits"></a>
@@ -151,8 +155,8 @@ Every one of those sends reaches the affected player's own connection and no oth
 The push itself, and when a mod sends it, is the rule of [the sync area](mp-sync.md#rules), linked rather than restated here.
 
 Two vanilla writers strip band traits on their own schedule.
-The level event's listener removes all four of a perk's band traits before it adds the one the level names, and the middle level gets none [#2157/C/C-only].
-The weight refresh removes exactly the five weight-band traits, adds back the one the weight names and pushes nothing [#2642/C/C-only].
+The level event's listener removes every band trait of the perk before it adds the one the level names, and the middle level gets none [#2157/C/C-only].
+The weight refresh removes exactly the weight-band traits and no other, adds back the one the weight names and pushes nothing [#2642/C/C-only].
 That refresh runs only when a counter of weight updates rolls over, so the band trait lags the weight unless something forces it [#0534/C/C-only].
 A band trait granted for any other reason is therefore gone at the next level event or the next refresh, which is why [the rules](#rules) give a mod effect a trait of its own.
 A mod's own trait is outside both sets, so neither writer touches it.
@@ -163,7 +167,7 @@ Every effect such a trait has must be written in Lua, because no Java effect sit
 A trait is compared by the registry object, never by its name, which is a rule of [the Lua platform](../platform/lua-platform.md).
 The character screen rebuilds its trait icon row whenever the client's trait list differs from the icons it holds, so a server-side trait write shows there once the list arrives [#2504/C/C-only].
 Whether a weight-band trait can be relied on client-side is [the wall map's trait verdict](../reference/wall-map.md#g4).
-Anything keyed on a weight band is evaluated server-side, by [the band rule](mp-sync.md#rules) the sync area carries.
+Where a mod evaluates a band-keyed effect is [the band rule](mp-sync.md#rules).
 
 <a id="health"></a>
 ### Health
@@ -185,10 +189,10 @@ The character's separate `health` field has its own setter, which refuses only a
 Every nonzero drain term reports itself to Lua through `OnPlayerGetDamage`, so a mod can listen to the drain rather than poll it [#2357/C/C-only].
 
 Healing is a set of handles, not a rate.
-The four regeneration constants have public setters per character, so a mod retunes the whole regeneration ladder for one character [#2354/C/C-only].
+The regeneration constants have public setters per character, so a mod retunes the whole regeneration ladder for one character [#2354/C/C-only].
 The single severe-moodle constant scales every severe-moodle health-loss term together [#2355/C/C-only].
 Wound healing is the wound timers counting down, and the timers and the poultice and splint factors are the per-wound handles with setters [#2366/C/C-only].
-The four injury speed modifiers on a body part look like healing rates and are read only by the injury speed term [#2368/C/C-only].
+The injury speed modifiers on a body part look like healing rates and are read only by the injury speed term [#2368/C/C-only].
 The engine has no healing-rate setter and no health-addition modifier [#2382/C/C-only].
 So healing is retuned through the constants and the timers, as [the rules](#rules) say.
 A part's wound-damage scale is fixed for its life [#2363/C/C-only].
@@ -206,8 +210,8 @@ The decoded regeneration switch and the drain table are [the health surfaces](..
 
 A diet that changes how warm a body runs reaches the thermal model through one door.
 Body temperature is a registered stat, not a body-damage field [#2372/C/C-only].
-The thermal update lerps the core halfway toward that stat whenever the two differ, then writes the core back into the stat [#2373/C/C-only].
-A server-side write therefore moves the core halfway on the next update, after which the stat is driven from the core again [#2373/C/C-only].
+The thermal update lerps the core toward that stat whenever the two differ, then writes the core back into the stat [#2373/C/C-only].
+A server-side write therefore moves the core one lerp step on the next update, after which the stat is driven from the core again [#2373/C/C-only].
 A held temperature is therefore a stat rewritten every update, as [the rules](#rules) say.
 Every step of the thermal update is private, and only the whole update is public [#2374/C/C-only].
 The public writable surface beside save and load is a process-wide simulation multiplier, the two metabolic-target setters and the reset [#2375/C/C-only].
@@ -255,7 +259,7 @@ No moodle level has a setter, so a mod moves the Endurance moodle by moving endu
 A diet therefore slows a body by spending its endurance or loading its back, as [the rules](#rules) say.
 
 Combat is split between the sides.
-Combat speed is computed by the attacking client for its own player and by the server for everyone else, and it travels client to server in the hit packets [#2322/C/C-only] [#2323/C/C-only].
+Combat speed is computed by the attacking client for its own player and by the server for everyone on the server, and it travels client to server in the hit packets [#2322/C/C-only] [#2323/C/C-only].
 It answers to the Endurance and Heavy Load moodle levels, so a mod that drives the Endurance moodle moves swing speed with no combat code [#2324/C/C-only].
 Knockback and the combat-speed modifier are not writable from Lua [#2338/C/C-only].
 Melee delay is a gate read only on the pass a non-remote player takes, so a dedicated server never reads it for a connected player [#2321/C/C-only].
@@ -271,7 +275,7 @@ A diet model needs to know how hard the body is working, and the engine offers o
 `Metabolics` is an enum of activity classes in MET, exposed to Lua with getters and converters [#2631/C/C-only].
 The thermoregulator's metabolic-rate update starts from the default class and raises its target to the class each state names: attacking, sprinting, running, sneaking, walking and exercising [#2633/C/C-only].
 Each class is a floor rather than an assignment, so the highest class that applies sets the target [#2633/C/C-only].
-The target is then raised again by low endurance and by carried weight, so a tired or loaded character's target sits above its class [#2649/C/C-only].
+The target is then raised twice more: a tired character's target can sit above a class below the endurance floor, and a loaded character's target rises by a carry factor [#2649/C/C-only].
 The exercise floor is a flat class, and a per-exercise class reaches the thermoregulator only through the exercise action's per-frame target write [#2634/C/C-only].
 The character declares no metabolic-rate getter; the rate is read through the thermoregulator's public getters [#2635/C/C-only].
 The classes and their values are [the metabolic-rate classes](../facts/body-and-weight.md#metabolic-rate).
@@ -316,7 +320,8 @@ A level clamp writes the perk level and leaves the experience where it is [#2119
 It fires no level event when it goes through the debug setter, so the band traits stay as the last real change set them [#2119/C/C-only] [#2129/C/C-only].
 It is pulled back down by the rust pass whenever it sits above its experience [#2124/C/C-only].
 An experience clamp holds the experience below a level's threshold and lets vanilla's crossing tests move the level [#2122/C/C-only] [#2123/C/C-only].
-It keeps the level event and its listener in step, at the price of trimming every grant that would cross the threshold, which a server-side `AddXP` listener sees [#2125/C/C-only].
+It keeps the level event and its listener in step only for grants the mod sizes before it issues them [#2122/C/C-only].
+A vanilla grant that crosses the threshold has already raised the level and fired the level event by the time a server-side `AddXP` listener sees it, so the mod walks that level back with its experience after the fact [#2126/C/C-only] [#2127/C/C-only].
 Both reach the client whole on the timed experience push [#2608/C/C-only].
 Which store the design treats as the truth decides which vanilla writer it fights.
 
@@ -341,7 +346,6 @@ Which one a body effect uses decides whether the mod ships a runtime dependency.
 - No stat's bounds can be moved, so endurance and fatigue stay on their fixed range [#2209/C/C-only].
 - The stat hook is a global compatibility wall: registration suppresses the updaters for every character that reaches the hook, its answer ignores what any handler returns, a second registrant cannot undo it, and no mod can read who registered [#2238/C/C-only] [#2240/C/C-only] [#2242/C/C-only].
 - The wall map's verdict on skipping the stat tick is [its stat-tick row](../reference/wall-map.md#b8).
-- None of the levers above has been exercised on a live server by this library: the rows they rest on are readings of the bytecode or the shipped Lua for build `42.20.4`, and the few measured rows cited concern stat ownership and the carry penalty.
 Not covered: the nine body-damage sub-updaters' bodies, and so which of them overwrites a stat a mod writes between ticks; what the native lighting makes of the Short Sighted boolean and the detection range as distances; the per-update aiming step and the per-update melee-delay decay; the injury-speed helpers; the thermoregulator's own temperature formulas beyond the fat, energy and fluid terms; whether Lua can call the stat-registration static; the anti-cheat's scheduler and enabling option; and the sleep, knock-down and unconscious states as effects.
 
 ## Open
@@ -361,7 +365,7 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 - Decision: takeover or overlay for the stats a diet moves — a takeover suppresses all seven updaters for every player and cannot be undone by another mod, while an overlay leaves vanilla's rates running [#2238/C/C-only] [#2240/C/C-only].
 - Decision: which store is the truth for a clamped Strength or Fitness — the level and the experience are separate stores, and each is moved by a different vanilla writer [#2101/C/C-only] [#2124/C/C-only].
 - Decision: how large a single server-side grant the mod issues — a tripped anti-cheat check can kick or ban and its interval is unread [#2147/C/C-only] [#2148/C/C-only].
-- Decision: whether a warmth effect writes the temperature stat every update or accepts the halfway step of one write [#2373/C/C-only].
+- Decision: whether a warmth effect writes the temperature stat every update or accepts the single lerp step of one write [#2373/C/C-only].
 - Decision: which distance input a sight effect goes through, the Short Sighted boolean or the detection range — both reach the native lighting, whose use of either is outside the bytecode [#2303/C/C-only].
 - Decision: whether an activity-scaled quantity reads the metabolic-rate classes or classifies the player itself — the classes are floors raised by endurance and load, and none of it is measured on a server [#2633/C/C-only] [#2649/C/C-only].
 
