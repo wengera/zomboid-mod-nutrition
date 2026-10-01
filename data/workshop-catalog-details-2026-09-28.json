@@ -1,0 +1,126 @@
+{
+ "meta": {
+  "build": "42.20.4 (b0bbce05d5)",
+  "generated": "2026-09-30",
+  "fetched": "2026-09-30 14:11",
+  "tool": "tools/workshop_search.py --catalog-ids",
+  "source_url_pattern": {
+   "item": "https://steamcommunity.com/sharedfiles/filedetails/?id={id}"
+  },
+  "catalog_ids": [
+   "3690404044",
+   "3785515388",
+   "3782835400",
+   "3078272807",
+   "3736275816",
+   "2997722072",
+   "3415375593",
+   "2914075159",
+   "3694097672"
+  ],
+  "counts": {
+   "requested": 9,
+   "fetched": 9,
+   "failed": 0,
+   "incomplete": 0
+  },
+  "notes": [
+   "Item pages only -- no browse pass, so there are no terms and no result set; meta.fetched is the stamp of this pass and each row carries the fetched_at of its own read.",
+   "These ids are named by docs/mods-survey/nutrition-mods.md, not found by a search. Eight of the nine are returned by none of the eight sweep terms, which is why they cannot be reached with --details-ids or --fill.",
+   "details_status is the row's own answer: fetched (an item page was read: size and posted are real, updated is real or genuinely absent) or failed (asked for and unreadable -- error says why). Nothing here is not_requested: every row was asked for.",
+   "A Workshop page is graded W wherever it is quoted. It says when the author last uploaded, which is the one thing workshop_item_mtime (a download stamp) cannot answer; it says nothing about what the mod does."
+  ]
+ },
+ "results": [
+  {
+   "workshop_id": "3690404044",
+   "title": "Nutrition Makes Sense [2.0]",
+   "size": "883.676 KB",
+   "posted": "22 Mar @ 4:57pm",
+   "updated": "26 Sep @ 9:09am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:10"
+  },
+  {
+   "workshop_id": "3785515388",
+   "title": "Reasonable Nutrition",
+   "size": "145.008 KB",
+   "posted": "17 Aug @ 7:44pm",
+   "updated": "26 Aug @ 3:49pm",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:10"
+  },
+  {
+   "workshop_id": "3782835400",
+   "title": "Realistic Nutrition",
+   "size": "636.708 KB",
+   "posted": "13 Aug @ 10:59am",
+   "updated": null,
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:10"
+  },
+  {
+   "workshop_id": "3078272807",
+   "title": "Nutrition Tweaker Enhanced",
+   "size": "503.836 KB",
+   "posted": "10 Nov, 2023 @ 2:19am",
+   "updated": "22 Jul, 2025 @ 1:35pm",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:10"
+  },
+  {
+   "workshop_id": "3736275816",
+   "title": "ApocalipseBR - Nutrition Sync Fix",
+   "size": "453.434 KB",
+   "posted": "31 May @ 7:55am",
+   "updated": "31 May @ 11:18am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:10"
+  },
+  {
+   "workshop_id": "2997722072",
+   "title": "StatsAPI",
+   "size": "133.814 KB",
+   "posted": "2 Jul, 2023 @ 1:13am",
+   "updated": "18 Nov, 2024 @ 3:29pm",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:11"
+  },
+  {
+   "workshop_id": "3415375593",
+   "title": "Stat Tweaks Lib",
+   "size": "87.724 KB",
+   "posted": "26 Jan, 2025 @ 2:42pm",
+   "updated": "1 Feb, 2025 @ 6:55am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:11"
+  },
+  {
+   "workshop_id": "2914075159",
+   "title": "Evolving Traits World (ETW) + More Traits continuation",
+   "size": "7.285 MB",
+   "posted": "7 Jan, 2023 @ 12:53am",
+   "updated": "28 Sep @ 9:17am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:11"
+  },
+  {
+   "workshop_id": "3694097672",
+   "title": "Tooltiplib - Tooltip Framework for Modders",
+   "size": "375.475 KB",
+   "posted": "28 Mar @ 7:40am",
+   "updated": "26 Aug @ 4:40am",
+   "details_status": "fetched",
+   "error": null,
+   "fetched_at": "2026-09-30 14:11"
+  }
+ ]
+}
