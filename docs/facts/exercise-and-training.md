@@ -1,5 +1,5 @@
 # Exercise and training
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the `Fitness` object (its ten-minute tick, regularity, the per-rep XP, endurance and soreness), the exercise action's path to the server, and every engine grant of Strength or Fitness XP a swing, a hit or a rep reaches; the XP pipeline, the events and skill rust are handed to perks-and-strength, the endurance model to endurance-fatigue-sleep, the packets to mp-model and wire-packets.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the `Fitness` object (its ten-minute tick, regularity, the per-rep XP, endurance and soreness), the exercise action's path to the server, and every shipped grant of Strength or Fitness XP, Java and Lua; the XP pipeline, the events and skill rust are handed to perks-and-strength, the endurance model to endurance-fatigue-sleep, the packets to mp-model and wire-packets.
 
 ## Key facts
 
@@ -7,7 +7,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the `Fitness` obje
 - Each rep adds `0.08 × ln(5) / ln(fitnessLvl/5 + 4)` to the exercise's regularity, clamped to `[0, 100]` [T6.6].
 - That rise is about 0.0929 per rep at Fitness 0, 0.08 at Fitness 5 and 0.0719 at Fitness 10 [T6.7].
 - Regularity falls by 0.002 per ten-minute tick only once more than 86 400 000 ms of game time have passed since the exercise was last done [T6.4].
-- Past that one-day grace the fall is 0.288 regularity per in-game day, against roughly 0.08 gained per rep [T6.5].
+- Past that one-day grace the fall is 0.288 regularity per in-game day, against roughly 0.08 gained per rep [T6.5] [T6.7].
 - A rep's Strength XP is `+4` per `arms` and `+2` per `chest` term, its Fitness XP `+4` per `legs` and `+2` per `abs` term, in the exercise's stiffness list [T6.9].
 - The level scaling of that XP uses integer division, so its factor is exactly 1.0 at every level from 6 to 10 [T6.10].
 - On a dedicated server the rep's XP goes through `GameServer.addXp` truncated to an integer, and on a multiplayer client the rep grants nothing [T6.11].
@@ -23,8 +23,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the `Fitness` obje
 <a id="fitness-object"></a>
 ### The `Fitness` object
 
-Every player carries one `Fitness` object, reached from Lua through `IsoPlayer.getFitness()`, which is public, and the class is in the exposer's class set, so a mod can drive regularity, stiffness and the current exercise from Lua [T6.41].
-The class is registered with the Lua exposer and a jar-wide search for its path finds the exposer among its hits [T6.21].
+Every player carries one `Fitness` object, reached from Lua through the public `IsoPlayer.getFitness()`, and the class is registered with the Lua exposer [T6.21].
 Of its declared methods, `decreaseRegularity`, `increasePain` and `updateExeTimer` are private and every other method is public; its seventeen fields are all private [T6.20].
 So a mod reaches the regularity map, the stiffness timers and the current exercise through getters and setters, and cannot call the decay, the pain step or the timer stamp directly [T6.20].
 
@@ -42,12 +41,11 @@ Each tick first calls `decreaseRegularity`, then counts every soreness countdown
 Regularity is a per-exercise number held in a map keyed by the exercise type [T6.6].
 `Fitness.incRegularity` computes `0.08 × ln(5) / ln(fitnessLvl/5 + 4)`, the level divided as a float, adds it to the current exercise's entry and clamps the result to `[0, 100]` [T6.6].
 A higher Fitness level earns regularity more slowly: about 0.0929 per rep at level 0, exactly 0.08 at level 5 and about 0.0719 at level 10 [T6.7].
-Regularity rises by that amount per exercise repetition, clamped to `[0,100]`, and falls by 0.002 per ten-game-minute update for any exercise not done in the last in-game day, with no floor on the decay path [T6.40].
-`Fitness.decreaseRegularity` walks the map and, for a type that has a last-done stamp, subtracts 0.002 only when more than 86 400 000 ms of game time have passed since that stamp [T6.4].
+`Fitness.decreaseRegularity` walks the map and, for a type that has a last-done stamp, subtracts 0.002 only when more than 86 400 000 ms of game time have passed since that stamp, with no lower clamp on that path [T6.4].
 A type with no stamp never decays, and a type done within the last in-game day holds its value [T6.4].
 Past the grace the decay is 0.002 times the 144 ten-minute ticks of a day, 0.288 per in-game day; the arithmetic is the part a re-reader redoes [T6.5].
 Vanilla regularity is therefore a slow signal, its daily decay a few reps' worth of gain [T6.5] [T6.7].
-The decay path has no lower clamp, so a long idle stretch takes regularity below 0 until the next rep's clamp lifts it back [T6.40] [T6.6].
+The decay path has no lower clamp, so a long idle stretch takes regularity below 0 until the next rep's clamp lifts it back [T6.4] [T6.6].
 `Fitness.getRegularity(type)` returns 0 for an absent key rather than throwing, so any exercise name can be read on any player without a guard [T6.19].
 
 **One rep.**
@@ -87,12 +85,12 @@ How the rest of the endurance model drains and restores the stat is stated at [e
 **Soreness.**
 `Fitness.incFutureStiffness` seeds a countdown of 72 for each group in the exercise's stiffness list that is neither counting down nor already applying pain [T6.14].
 The per-rep soreness increment starts at 0.5 and is scaled by `(120 − regularity) / 170`, so a trained exercise seeds less soreness than an untrained one [T6.14].
-`Fitness.update` decrements every countdown by one per tick and moves a group to the pain list when its countdown reaches zero [T6.14].
+`Fitness.update` decrements every countdown by one per tick and moves a group to the pain list when its countdown reaches zero [T6.1].
 The countdown is keyed by the body group and not by the exercise, so two exercises that load `arms` share one countdown [T6.14].
 The countdowns and the pain state are read through `getCurrentExeStiffnessTimer(part)`, `getCurrentExeStiffnessInc(part)` and `onGoingStiffness()`, all public [T6.20].
 The 72 steps at one step per ten-minute update put the soreness 12 in-game hours after the rep that seeded it; the arithmetic is the part a re-reader redoes [T6.15].
 A later rep of the same group within that window does not reseed the countdown, because the seed is skipped for a group already counting down [T6.14].
-Once a group is on the pain list, each tick calls `Fitness.increasePain` for it and takes one step off its accumulated increment [T6.16].
+Once a group is on the pain list, each tick calls `Fitness.increasePain` for it and takes one step off its accumulated increment, dropping the group once the increment reaches zero [T6.1] [T6.16].
 `Fitness.increasePain` adds 2.5 to `BodyPart.getStiffness()` on every part of the group: `ForeArm_L` through `UpperArm_R` for `arms`, `UpperLeg_L` through `LowerLeg_R` for `legs`, `Torso_Upper` for `chest` and `Torso_Lower` for `abs` [T6.16].
 The muscle-strain adders that write the same body-part stiffness are stated at [perks-and-strength](../facts/perks-and-strength.md#readers).
 
@@ -100,7 +98,7 @@ The muscle-strain adders that write the same body-part stiffness are stated at [
 `Fitness.init` reads the Kahlua global `FitnessExercises`, takes its `exercisesType` sub-table and builds one exercise object per key [T6.17].
 It returns at once when the map is already populated, and when either table is missing, so it is idempotent and safe for a mod to call [T6.17].
 A mod that adds rows to `FitnessExercises.exercisesType` before the first `init` therefore adds exercises the Java object will know [T6.17].
-The table `init` reads is the global of the Lua state the call runs in, so on a dedicated server it is the server's own copy of the table [T6.17].
+The table `init` reads is the global of the Lua state the call runs in, so on a dedicated server it is the server's own copy of the table, a reading of the call and not a measurement [T6.17].
 Each exercise object reads four keys off its Lua row: `type`, `metabolics`, a comma-separated `stiffness` string split into a list, and `xpMod`, which defaults to 1 and is overridden only when the row's value is above 0 [T6.18].
 All four fields are package-private with no getters, so Lua holds the exercise object from `getCurrentExe()` but cannot read its fields [T6.18].
 The body groups a rep loads are therefore read off the Lua table the mod can see, or off the soreness countdown `getCurrentExeStiffnessTimer(part)` returns, not off the Java object [T6.18] [T6.20].
@@ -108,7 +106,7 @@ The body groups a rep loads are therefore read off the Lua table the mod can see
 <a id="exercise-path"></a>
 ### How a rep reaches the server
 
-A rep is driven from the network, not from the server's own clock.
+A rep runs on the server, through the server's emulated animation loop or the state packet's handler [T6.24] [T6.22].
 The only Java call to `Fitness.exerciseRepeat` is in `StatePacket.processServer`, reached when the packet's stage is `Execute`, its state is `FitnessState`, and the character is an `IsoPlayer` currently in that state [T6.22].
 A multiplayer client never calls `exerciseRepeat` through Java, and the server calls it once per state packet that meets those four tests [T6.22].
 
@@ -140,8 +138,7 @@ The client, meanwhile, grants nothing, writes no endurance and fires only the an
 <a id="training-signals"></a>
 ### Training signals: every grant of Strength or Fitness XP
 
-Exercise awards Strength XP from the arms and chest terms and Fitness XP from the legs and abs terms, through `GameServer.addXp` on a server and through nothing at all on a multiplayer client [T6.39].
-Outside exercise, the Java grants of those two perks sit in three more methods: `IsoGameCharacter.hitConsequences`, its `IsoPlayer` override and `IsoPlayer.updateInternal2`; no Java method grants either perk for the swing itself, the two hit grants being keyed on the victim's response, and the swing grants are all Lua [T6.28].
+Beside the rep grant stated at [the fitness object](#fitness-object), the Java grants of those two perks sit in three more methods: `IsoGameCharacter.hitConsequences`, its `IsoPlayer` override and `IsoPlayer.updateInternal2`; no Java method grants either perk for the swing itself, the two hit grants being keyed on the victim's response, and the swing grants are all Lua [T6.28].
 
 **The hit grants.**
 `IsoGameCharacter.hitConsequences` grants the attacker 2.0 Strength XP when the victim survives a non-ranged hit from a weapon whose `isKnockBackOnNoDeath()` is true [T6.29].
@@ -151,7 +148,7 @@ Both hit grants are literal amounts, so neither depends on the weapon's damage [
 
 **The exhaustion roll.**
 `IsoPlayer.updateInternal2` grants 1.0 Fitness XP on a `1/(300 × InvMultiplier)` roll, gated on `GameClient.client` being clear, while endurance is below `getEnduranceDangerWarning()` [T6.30].
-The roll sits in the branch taken when the player has not just moved under its own control, so it is a grant for standing exhausted, not for moving [T6.30].
+The roll sits in the branch taken when the player has not just made a move under its own control [T6.30].
 It goes through `GameServer.addXp` on a server and `XP.AddXP` in single player [T6.30].
 
 **The melee trigger.**
@@ -166,7 +163,16 @@ The shipped handler grants melee Strength XP equal to `owner:getLastHitCount()` 
 Both require a non-ranged weapon, and the Strength grant also requires a hit count above zero [T6.33].
 So a sweep that hits several zombies grants Strength equal to the number of targets that swing reached, through the attacker's own last-hit count rather than the event argument [T6.32] [T6.33].
 The handler lives in a `server/` file, so on a dedicated server it runs on the server and grants through the `addXp` global, stated at [perks-and-strength](../facts/perks-and-strength.md#events) [T6.31] [T6.33].
-The movement grants of the same file — Fitness and Strength from running and from load — are stated at [perks-and-strength](../facts/perks-and-strength.md#events), and `OnPlayerMove`'s triggers at [lua-platform](../platform/lua-platform.md#events).
+The load Strength grant of the same file's move handler is stated at [perks-and-strength](../facts/perks-and-strength.md#events), and `OnPlayerMove`'s triggers at [lua-platform](../platform/lua-platform.md#events).
+
+**The other shipped grants.**
+The same file's move handler grants 1 Fitness XP on its dice roll while the player is running or sprinting and endurance is above the endurance warning [T6.42].
+The dice roll's odds per side are stated at [perks-and-strength](../facts/perks-and-strength.md#events).
+The same file registers an `OnWeaponHitTree` handler that grants 2 Strength XP for a hit on a tree with any weapon but bare hands [T6.43].
+Taking a wooden plank off a barricade grants 2 Strength XP in `ISUnbarricadeAction:complete`, beside 2 Woodwork XP without the multiplier [T6.44].
+Dismantling a moveable grants 5 XP of its material's perk, 10 for a medium object and 15 for a large one, while the character's level in that perk is below the `LevelForDismantleXPCutoff` sandbox value [T6.45].
+The `Stone` material's perk is Strength, so dismantling a stone object with a hammer is a Strength grant [T6.45].
+Every one of these goes through the `addXp` global, the same route as the melee grants [T6.42] [T6.43] [T6.44] [T6.45].
 
 **The stomp.**
 A stomp is the `isAimAtFloor() && isDoShove()` branch of `attackCollisionCheck`, whose damage is `Rand.Next(0.7, 1.0) + 0.2 × Strength level` before the shoe modifiers [T6.34].
@@ -200,7 +206,7 @@ Not covered: `Fitness.save` and `Fitness.load` (which maps survive a save), the 
 
 - Whether `Fitness.update` ticks on the server for a connected player, so that regularity decays and soreness lands there — settled by a seeded exercise and two idle game-days, reading the server's regularity for the predicted fall; -> [X36](../areas/open-questions.md#x36) [#2083/C/open]
 - Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise — settled by server-side counters on the three events after a console grant, melee hits and an exercise; -> [X39](../areas/open-questions.md#x39) [#2084/C/open]
-- A decision the design takes: whether a training model reads the engine's per-exercise regularity or keeps its own, given that regularity decays only after a one-day grace, by 0.288 a day, with no floor [T6.5] [T6.40].
+- A decision the design takes: whether a training model reads the engine's per-exercise regularity or keeps its own, given that regularity decays only after a one-day grace, by 0.288 a day, with no floor [T6.5] [T6.4].
 - A decision the design takes: whether a resistance dose counts reps through the server-side grant or through the fitness object, given that the grant is truncated to an integer and a multiplayer client grants nothing [T6.11].
 - A decision the design takes: whether melee training reads the event argument or the attacker's hit count, given that both triggers pass `1` [T6.32].
 
