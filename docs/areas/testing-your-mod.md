@@ -19,7 +19,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: this mod's test pl
 - Run this mod's nutrition scenarios on the fixture's sandbox values, or pay for a fresh baseline beside any value moved: every nutrition reading in this library was taken on one fixture at one day length, so a moved option makes a new baseline rather than a comparison [#1253/C/one-fixture, #2071/C/inference].
 - Read a sandbox option back off the run before a reading depends on it: only the day length has been set by a profile on a restored world and read back, while the other options the nutrition work names are settable and unexercised [#1809/C/C-only, #2072/C/inference].
 - Grade a cross-side nutrition reading against a band built from its snapshot's own read skew, with the client half read first, and never against equality: a client-side reader is a staircase that steps when a packet lands while the server ramps, so a cross-side gap is a timing reading [#1483, #2070/C/inference].
-- Never read a food tooltip's nutrition block on a driven client as evidence of the Nutritionist gate: the block has a debug arm beside the trait arm, and the harness adds the debug flag to the admin account's client, so the block can show on a character holding neither Nutritionist trait [#2493/C/C-only, #1710, T25.1].
+- Never read a food tooltip's nutrition block as evidence of the Nutritionist gate unless the client runs without the debug flag and the food carries no label the viewer can read: the block also opens under the debug tooltip option and on a packaged food whose label the viewer can read, and the harness adds the debug flag to the admin account's client, so the block can show on a character holding neither Nutritionist trait [#2645/C/C-only, #1710, T25.1].
 - Record the measured window rather than the requested sleep, and name a snapshot tag by its measured offset rather than its intended one: one driver's window field read 10.0 seconds where the reads' own wall stamps give 12.54, and its tag named for three seconds after a transmit actually opened 7.58 seconds after it, so that driver's own window and tag keys are do-not-cite for exactly this reason [#1708/M/n=1].
 - Treat a scenario verdict as the test and the evaluator and a clean session together: exit code 0 needs the harness test's own pass, the evaluator's agreement and no environment fault, each of which turns the result into a failure naming its count, marks the timeline and lands in the faults block of both the report and the committed artifact [#1785].
 - Copy every piece of measured evidence a document cites into a tracked per-run artifact folder as JSON, kept byte-identical: the full run directories with their logs stay local and untracked [#1705].
@@ -210,9 +210,9 @@ The nutrition setter's own acknowledgement carries the weight-direction flags on
 A container's string ends in a per-process identity hash, so comparing it across sides reads as a desync that is not one [#1507/C/n=1].
 
 A probe that reads a food tooltip meets two hazards before it reads anything about the mod.
-The food tooltip's nutrition block shows under a debug arm as well as under the Nutritionist trait, so a debug client can draw it on a character holding neither trait [#2493/C/C-only].
-The harness adds the debug flag to the admin account's client, which is the client every probe drives [#1710].
-A tooltip probe therefore reads the trait gate only on a client launched without the flag, and the plan's tooltip readings are about the mod's own band, never about the vanilla block's gate.
+The food tooltip's nutrition block opens on any of three gates — the debug tooltip option in debug mode, a packaged food whose label the viewer can read, and the Nutritionist traits — so it can show on a character holding neither trait [#2645/C/C-only].
+The harness adds the debug flag to the admin account's client, the default account a profile attaches ([#1710], [harness.md#profiles](../platform/harness.md#profiles)).
+A tooltip probe therefore reads the trait gate only on a client launched without the flag and on a food with no label the viewer can read, and the plan's tooltip readings are about the mod's own band, never about the vanilla block's gate.
 On the stack profile the tooltip's render is also the end of a wrap chain that several resident mods build with no sentinel, one of them calling its own fork of vanilla's render instead of the chain [#2568/C/snapshot].
 What a tooltip probe draws there is that chain's output, so the mod's own band is graded on the acceptance profile and the stack profile asks only that the band still appears.
 
@@ -278,7 +278,7 @@ At which pacing does each of this mod's timed scenarios run — real time, a sho
 - No bus command synthesises a click or a key press, so a panel of this mod's own keeps its state invisible to the bus until a human clicks [#1498/M/n=1].
 - A sandbox option that is nested, or that the world generator consumed, is out of a profile's reach, and changing one means a fresh fixture ([#1831], [#1811/C/inference]).
 - A profile's sandbox block cannot set the mod's own options: its key pattern matches only a top-level key and excludes a nested-table opener, so the settable list never names a mod option or its prefix [#2458/C/C-only].
-- A tooltip probe on the driven client reads a debug client's tooltip, whose nutrition block can show without the Nutritionist trait ([#2493/C/C-only], [#1710]).
+- A tooltip probe on the driven client reads a debug client's tooltip, whose nutrition block can show without the Nutritionist trait, and on any client a packaged food with a readable label shows the block too ([#2645/C/C-only], [#1710]).
 - A tooltip probe on the stack profile reads the end of a sentinel-free wrap chain the resident mods build, one of whose links bypasses the chain with its own fork of vanilla's render, so it never reads the mod's wrap alone [#2568/C/snapshot].
 - No bit-level claim may rest on an artifact written before the harness commit `291f977` [#1254/C/snapshot].
 
@@ -317,7 +317,7 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - [`../facts/eating-pipeline.md`](../facts/eating-pipeline.md#sandbox) — the nutrition option and what a runtime flip of it does.
 - [`../facts/spoilage.md`](../facts/spoilage.md#sandbox) — the rot options the roll-up carries.
 - [`../platform/sandbox-options.md`](../platform/sandbox-options.md#open) — the mod's own options and the remedies for setting one from a test.
-- [`../platform/client-ui.md`](../platform/client-ui.md#tooltip) — the tooltip a probe reads and its debug arm.
+- [`../platform/client-ui.md`](../platform/client-ui.md#tooltip) — the tooltip a probe reads and the gates on its nutrition block.
 - [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md#api-surface) — the resident wraps a stack-profile tooltip probe reads through.
 - [`mp-sync.md`](mp-sync.md) — which side owns each quantity this plan grades.
 - [`ui-and-moodles.md`](ui-and-moodles.md) — the display surfaces the trait, translation and framework experiments decide.

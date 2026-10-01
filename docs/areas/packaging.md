@@ -22,8 +22,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Name each version dir for the build its files were verified on and no later: the resolver takes the highest name at or below the running build, so a dir named for a later build is never read while one named for the verified build keeps running, unverified, on every later build until a newer-named dir ships [#0825/C/C-only, #2075/C/inference].
 - Read a mod's `mod.info` rather than the loader's error text when a mod does not load: a failed `versionMin` or `versionMax` gate, a missing `require=` and a folder that is not there all print the same not-found line [#0872/C/C-only, #0812/C/C-only].
 - Name in the mod's description every installed mod whose numbers its model makes inert or contradicts: a resident already writes the player's calories on the server every tick, residents wrap the eat action on both sides, and a viewer drawing a re-based macro against hard-coded bands goes wrong silently, so the description is where an operator learns which of them this mod overrides [#1588, #2566/C/snapshot, #1522, T25.2].
-- Print one self-report line at boot naming the mod's version and the optional frameworks it detected: an absent, a version-gated and an unsatisfied mod all print one not-found line and the server drops the id and boots on, so nothing else in the log says which build of this mod ran or what it found beside it [#0871/C/C-only, #0872/C/C-only, #2547/C/inference, T25.3].
-- Detect an optional framework with a type test on its global at `OnGameBoot` or later, never with `require`: the framework defines its global at file-load time, a test at the mod's own file scope can run before the framework's file, and a `require` of the framework's file finds nothing when the framework is absent [#2547/C/inference, T25.4].
+- Print one self-report line at boot naming the mod's version and the optional frameworks it detected: an absent, a version-gated and an unsatisfied mod all print one not-found line and the server drops the id and boots clean, so no line the loader prints names the mod's own version or what it found beside it [#0871/C/C-only, #1793, #0872/C/C-only, #2547/C/inference, T25.3].
+- Detect an optional framework with a type test on its global at `OnGameBoot` or later, never with `require`: the framework defines its global at file-load time, so the type test reads its presence without going through the loader, while a `require` of its file goes through the loader and, with the framework absent, logs a warning and returns nothing on every server that runs without it [#2547/C/inference, T25.4].
 
 ## How it works
 
@@ -157,7 +157,7 @@ The decisions they block are listed under [Open](#open).
 ### Sharing a server
 
 Past files and ids, the residents meet this mod at seats the loader never arbitrates: the stat hook, the eat action, an optional framework and the sandbox option names.
-Each reading below is a static read of the installed tree on its dated sweep, and none of it was booted beside this mod ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
+The residents' readings below are static reads of the installed tree on its dated sweep, the engine's are reads of the bytecode, and none of it was booted beside this mod ([catalog.md#walls](../facts/other-mods/catalog.md#walls)).
 
 The stat hook is unclaimed on the dated sweep: no live version folder in the installed corpus references it or the hook manager, and the corpus's only hook call is the interface mod's pair on the auto-drink hook, carried over from vanilla [#2558/C/snapshot].
 That reading covers the installed tree alone, so a public item that claims the hook and is not installed stays unread, as [the catalog's open lines](../facts/other-mods/catalog.md#open) carry.
