@@ -69,9 +69,9 @@ The weight computation itself runs on both sides, because there is no side guard
 The write and the band-trait refresh are server-only: the game-client check sits before the weight setter, before the refresh counter's increment and before the trait application, so a client computes a weight and throws it away [#0559/M/n=1].
 A client can therefore neither set nor derive body weight: `Nutrition.updateWeight` runs on the client but a `GameClient.client` skip sits before `setWeight` and before `applyTraitFromWeight`, so the client computes a weight delta, discards it and never applies the weight-band traits [#1097/M/n=1].
 Anything a mod keys on the Obese, Overweight, Underweight or Emaciated band must be evaluated server-side or fed an explicitly transmitted value, because the band traits are not in the player-stats packet and no other packet was traced carrying the trait list [#1104/C/inference].
-A character's trait list reaches that player's own client on two server pushes: the once-a-second experience packet, whose experience object is written trait list first and loaded on the receiver by a reset-then-add, and the player-fields packet's trait block, mask bit `2`, which server Lua sends through `sendSyncPlayerFields(player, 2)` and vanilla sends on a finished book read [T16.1].
+Traits are applied server-side, the engine's own weight-band trait refresh running only off a game client, and a character's trait list reaches that player's own client on two server pushes: the once-a-second experience packet, whose experience object is written trait list first and loaded on the receiver by a reset-then-add, and the player-fields packet's trait block, mask bit `2`, which server Lua sends through `sendSyncPlayerFields(player, 2)` and vanilla sends on a finished book read [T16.1].
 Both pushes are read from the code and neither is exercised on a live server, and no run has yet held a non-empty trait list on either side.
-Who sends each push, gated how and to whom, is under [the sync globals](#sync-globals); the field contract of both blocks is [wire-packets.md](../facts/wire-packets.md).
+Who sends each push, gated how and to whom, is under [the sync globals](#sync-globals); the field contract of both blocks is [the experience packet](../facts/wire-packets.md#experience-packet) and [the player-fields packet](../facts/wire-packets.md#player-fields-packet).
 A trait write itself is silent, as the wall below states, so a client's copy of the list is only as fresh as the last of those two pushes.
 
 Two quantities have no owner at all.
@@ -146,12 +146,12 @@ The one visible failure is a packet arriving about an item the receiver does not
 
 The player-stats sync packet is server-to-client only in practice: it declares no server-side process step and its parse has no side gate, but every send of it goes through the player-addressed send, which does nothing off a server [T16.17].
 
-The experience packet runs in both directions, and the client-to-server direction is the one a mod should know is there.
-The only client-to-server write path for perk experience is the `SyncXp(player)` Lua global, whose server handler loads the client's experience object and relays the packet to every other fully connected client [T16.18].
+The experience packet runs in both directions, and its client-to-server direction is an admin route rather than a player one.
+The only client-to-server write path for perk experience is the `SyncXp(player)` Lua global, and the server accepts it only from a connection whose role has the `CanModifyPlayerStatsInThePlayerStatsUI` capability: from any other connection the packet is dropped before its parse and reported to the capability anti-cheat, while an accepted one is loaded into the server's experience object and relayed to every other fully connected client [T16.18].
 That global sends only when the process is a game client, so on a server it does nothing [T16.19].
-An experience grant a client syncs up with `SyncXp` fires neither the `AddXP` nor the `LevelPerk` event on the server, because the packet's parse writes through the experience object's load and never through its add-experience step [T16.20].
-Vanilla's own sender of that direction is an admin tool: the player-stats admin panel sends the whole experience object, levels and traits included, from the client to the server on every trait add or remove [T16.21].
-Because the experience object carries the trait list, that send replaces the server's copy of the character's traits with the client's, and the relay hands the same list to every other client.
+An experience grant an authorized client syncs up with `SyncXp` fires neither the `AddXP` nor the `LevelPerk` event on the server, because the packet's parse writes through the experience object's load and never through its add-experience step [T16.20].
+Vanilla's own sender of that direction is an admin tool: the player-stats admin panel sends the whole experience object, levels and traits included, from the client to the server on every trait add or remove, and the server loads it only from a connection with the stats-panel capability [T16.21].
+Because the experience object carries the trait list, an accepted send replaces the server's copy of the character's traits with the client's, and the relay hands the same list to every other client; a mod that calls `SyncXp` from an ordinary player's client gets the anti-cheat report and no write.
 The server-to-client direction of the same packet is the timed push under [the sync globals](#sync-globals).
 
 <a id="sync-globals"></a>
@@ -165,20 +165,21 @@ The exercise repetition pushes the player-fields packet with mask `32` after eve
 Vanilla Lua pushes the trait bit on a finished book read: the read action's completion step calls `sendSyncPlayerFields` with mask `0x07`, recipes, traits and read books together, and the global's server gate makes the send the server's [T16.12].
 So a mod that writes a trait on the server and wants the client's copy refreshed before the next timed push calls the global with mask `2` itself; no engine path does it on the mod's behalf.
 
-Two sibling Lua globals also let server Lua push a player's state now: `syncPlayerStats(player, mask)` sends the player-stats sync packet on a server for a player in the world, and `syncBodyPart(part, mask)` sends the body-part packet on a server for a part whose owner is a player and is that packet's only sender; vanilla calls the first from the bottle-drink, medical and farming actions and the second from the medical actions and the client-command handler with every bit set [T16.13].
+Two sibling Lua globals also let server Lua push a player's state now: `syncPlayerStats(player, mask)` sends the player-stats sync packet on a server for a player in the world, and `syncBodyPart(part, mask)` sends the body-part packet on a server for a part whose owner is a player and is that packet's only sender; vanilla's callers include the bottle-drink, medical, bush-removal and farming actions for the first, and the medical and plough actions and the client-command handler, with the mask `0xFFFFFFFFFFF`, for the second [T16.13].
 The bottle-drink caller is itself unreachable from the game's own menus [#0670/C/snapshot].
-Each mask's meaning, bit by bit, is the field contract on [wire-packets.md](../facts/wire-packets.md).
+Each mask's meaning, bit by bit, is the field contract on [the player-stats packet](../facts/wire-packets.md#player-stats-packet), [the player-fields packet](../facts/wire-packets.md#player-fields-packet) and [the body-part packet](../facts/wire-packets.md#body-part-packet).
 
-A server send addressed to a player reaches that player's own connection only, does nothing off a server and does nothing when the player has no connection, and all three sync globals send that way, so a push refreshes the affected player's client and no other client's copy of that player [T16.9].
-A label another player sees on that character is therefore a separate question from the one the player sees, and no server push on this page answers it.
+A server send addressed to a player reaches that player's own connection only, does nothing off a server and does nothing when the player has no connection, and the three sync globals, the timed experience, injuries and damage pushes and the eat packet all send that way, so each refreshes the affected player's own client and no other client's copy of that player [T16.9].
+The eat packet in particular goes to the eater's connection alone, so its traffic cost is one client per eat.
+A label another player sees on that character is therefore a separate question from the one the player sees: no timed push, none of the three sync globals and not the eat packet answers it, and the one vanilla server send that reaches other clients' copies of a player is the relay of an authorized client's experience object under [the packets](#packets).
 
-Beside the stats snapshot, the server runs three timed pushes of its own, and a mod can read what they deliver but change neither their cadence nor their contents.
+Beside the stats snapshot the server runs timed pushes of its own, among them the ones below and a health push whose contents this page does not read, and a mod can read what they deliver but change neither their cadence nor their contents.
 On a server the network player manager pushes the experience packet, the player's whole experience object, to each fully connected player's own connection on the same 1000 ms limit as the stats snapshot, skipping a connection mid-disconnect [T16.14].
 That is the push that carries the trait list every second, as [ownership](#ownership) states.
-On a server the network player manager pushes the player-injuries packet to each fully connected player's own connection on a 2000 ms limit [T16.15].
-That packet is how a client's walk and run speed arrive, so a client's copy of either is the server's value as of the last injuries push.
+On a server the network player manager pushes the player-injuries packet and, on the same tick, the player-damage packet to each fully connected player's own connection on a 2000 ms limit [T16.15].
+What the injuries packet carries is the [injuries-packet contract](../facts/wire-packets.md#injuries-packet), and [ownership](#ownership) says why a client's speed comes from a push rather than from its own computation.
 `BodyDamageSync` is a server-only injury diff channel keyed on a pair of players: its update and its start both return off a server, and each updater sends at most once per 500 ms and only when overall health against the last-sent value truncated to an int, the pain moodle level, the zombie-infection stat or the fake-infection flag differs [T16.16].
-What the experience, injuries and body-part packets carry is [wire-packets.md](../facts/wire-packets.md).
+What the experience and body-part packets carry is [the experience packet](../facts/wire-packets.md#experience-packet) and [the body-part packet](../facts/wire-packets.md#body-part-packet).
 
 <a id="cached-packet"></a>
 ### The cached packet object, and what a stale field reads as
@@ -301,7 +302,6 @@ Not covered: the transport layer beneath every packet on this page, the save and
 ## Open
 <a id="open"></a>
 
-- Whether the eat packet is broadcast to every client or sent only to the eater — settled by dumping the packet send overload that takes a player, a packet type and an argument array; the receiver writes into the addressed player's nutrition either way, but the traffic cost differs; no `X` id [#0144/C/open].
 - Whether a mod may call the latent client-to-server eat route — settled by calling the game client's eat-food method from a mod and reading both sides; its caller scan found none in the jar or in the game's own Lua; no `X` id [#0145/C/snapshot/open].
 - What the server validates on an incoming nutrition write — settled by a probe that distinguishes rejection from overwrite; every probe so far shows a client write being overwritten by the next push, which is a different mechanism from validation; no `X` id [#0191/M/n=1/open].
 - How often a multiplayer server re-sends inventory items, and therefore how often a client's freshness display refreshes — settled by tracing the cadence of the item-list receiver, whose carrier exists but whose cadence was not read; no `X` id [#0376/C/C-only/open].
@@ -325,8 +325,8 @@ Not covered: the transport layer beneath every packet on this page, the save and
 - Decision: which side the mod's own nutrient maths runs on — the eat completes on the server, so a client-side implementation has no path to run on [#0110, #0109].
 - Decision: whether the mod's client-side display reads the vanilla stores or a mod-owned mirror — a client write to a vanilla store is erased by the next snapshot while a write to a mod-owned field is not erased and drifts instead [#0568/M/n=2, #1637].
 - Decision: whether the mod pushes the trait block after each of its own trait writes or relies on the once-a-second experience push — both are code readings, and both reach only the affected player's own client [T16.1] [T16.9].
-- Decision: whether any other player needs to see a mod-driven trait or band on a character — no server push reaches a client other than the one it is about [T16.9].
-- Decision: whether the mod keys anything on the experience or level-up events for grants a client syncs up — those grants fire neither event on the server [T16.20].
+- Decision: whether any other player needs to see a mod-driven trait or band on a character — no timed push and none of the three sync globals reaches a client other than the one it is about [T16.9].
+- Decision: whether the mod keys anything on the experience or level-up events for grants an authorized client syncs up — those grants fire neither event on the server, and an ordinary player's client cannot sync one up at all [T16.20] [T16.18].
 
 ## Worked examples
 
