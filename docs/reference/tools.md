@@ -156,7 +156,7 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - `wiki:<mirror path> <fetch date or page version>` is a wiki mirror and grades `W`, with no anchor text.
 - `web:<data file or page> <fetch date>` is a fetched source that is not the wiki, such as a Workshop metadata snapshot or a licence page, and grades `W`, with no anchor text.
 - `lua:<path>:<line>[-<line>] "<anchor text>"` is a file of the game install named by its path relative to the install's `media/` directory, so a Lua file reads `lua:lua/shared/…` and a script reads `lua:scripts/generated/…`, and it grades `C`.
-- `mod:<workshop id>/mods/<ModName>/<tree>/<path>:<line> "<anchor>"` is an installed workshop mod's file as it lies on disk under the workshop root, `<tree>` being the version folder or `common` the file sits in, and it grades `C`.
+- `mod:<workshop id>/mods/<ModName>/<tree>/<path>:<line> "<anchor>"` is an installed workshop mod's file as it lies on disk under the workshop root, `<tree>` being the version folder or `common` the file sits in, and it grades `C`; a file at the mod root, such as a `HowTo.txt` beside `mods/`, omits the `<tree>` segment.
 - `repo:<path>:<line> "<anchor text>"` is a file in this repository and grades `C`: the path exists and names none of the pre-restructure docs (readable at the tag `research-program-v1`).
 - `tool:<path>:<line>` is a tool's own code at a line, in this repository or in the jar toolchain (`pz-b42/`), and grades `C`, with no anchor text.
 - `data:<what was read> <date>` is a scan whose output is the evidence and grades `C`, in one of the four readings below.
@@ -165,7 +165,7 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - The first reading of `data:` is a committed dataset with the date of the scan that wrote it, such as `data:data/mod-inventory.json swept 2026-09-10 17:47`.
 - The second reading of `data:` is a read of the read-only install's corpus, which keeps its `media/` prefix where a `lua:` path drops it, such as `data:media/scripts/generated/fluids.txt 2026-09-10`, or of the jar as a file, `data:projectzomboid.jar 2026-09-10`.
 - The third reading of `data:` is a tool sweep whose output was not committed, written `data:tools/<tool>.py <what was swept>, <date>`, which cannot be re-read, so a claim that rests on it is `unverified`.
-- The fourth reading of `data:` is a hand scan of the read-only install, written `data:media/<dir> grep <literal>, <date>`, which cannot be re-read, so a claim that rests on it is `unverified`.
+- The fourth reading of `data:` is a hand scan of the read-only install, written `data:media/<dir> grep <literal>, <date>`, or of the read-only workshop tree, written `data:workshop/content/108600 grep <literal>, <date>`, one pointer per literal; neither can be re-read, so a claim that rests on one is `unverified` and its bound opens `snapshot <date>;`.
 
 <a id="conventions"></a>
 ## Conventions

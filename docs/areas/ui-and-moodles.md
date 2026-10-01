@@ -60,7 +60,7 @@ That last unknown is why the moodle route is [a wall](#walls) on this page rathe
 Whatever the framework draws, the level it draws has to be computed on a side that holds the nutrient.
 A nutrient the mod keeps on the server reaches a client only over a route the mod runs itself, because the player-stats push carries vanilla's fields and never a mod's own [#0129/M/n=1].
 Where the framework computes a registered moodle's level, and whether it computes it on both sides the way vanilla does, is part of the same unread interface.
-A mod moodle is also not among the types vanilla's consequences read: the carry-capacity, regeneration and health consumers name vanilla's own types ([#0513/M/n=1, #0514/C/inference, #0516], [body-and-weight.md#moodles](../facts/body-and-weight.md#moodles)), and whether a mod-registered type carries any Java effect at all is open [#0970/C/C-only/open].
+A mod moodle is also not among the types vanilla's consequences read: the carry-capacity, regeneration and health consumers name vanilla's own types ([#0513/M/n=1, #0514/C/C-only, #0516], [body-and-weight.md#moodles](../facts/body-and-weight.md#moodles)), and whether a mod-registered type carries any Java effect at all is open [#0970/C/C-only/open].
 A framework moodle is therefore a display, and anything the nutrient does to the body is written in Lua beside it, exactly as a mod trait's effect has to be [#1158/C/C-only].
 Whether the framework itself goes through the vanilla registry, and so meets the same pinned level and the same duplicate-id hazard, belongs to the same unread interface ([#1140/C/C-only], [#1198/C/C-only]).
 
@@ -79,11 +79,11 @@ A reader that reads every frame therefore reads one value over and over until th
 A mod can neither observe nor suppress the player-stats write, so a client-side reader cannot tie a redraw to the write and can only poll [#1149/M/n=1].
 
 The one viewer mod this library tore down, `simpleStatus`, reads in exactly that way.
-Its prerender prepares every bar unconditionally, and each bar's value is read once and then read again by the closures that label and colour it, with no cache anywhere on the path [#1477/C/C-only].
+Its prerender prepares every bar unconditionally, and each bar's value is read once and then read again by the closures that label and colour it, with no cache anywhere on the path [#1477/C/C-only/superseded].
 Nothing memoises, so the number of reads grows with the visible bars rather than with the number of changes.
 Cache a nutrition value at the push cadence rather than the frame cadence, because the source changes once a second while an uncached interface reads it up to four times per macro bar and ten times per weight bar every frame, so about 59 of every 60 of those reads return the value the frame before already had [#1114/M/n=1].
 The counts are a reading of that mod's code and the arrivals were measured in one session, so the rule is exact about what a per-frame read repeats and silent about what the repetition costs [#1114/M/n=1].
-No shipped command measures frame time or Lua call counts, so the saving the rule buys is a count of avoided reads rather than a measured cost [#1477/C/C-only].
+No shipped command measures frame time or Lua call counts, so the saving the rule buys is a count of avoided reads rather than a measured cost [#1477/C/C-only/superseded].
 
 Caching at the push cadence means reading the store about as often as it can change and drawing the cached value in between.
 It does not mean reading at the instant a packet lands, which no hook offers, so a cached reader trails the server by up to one push plus its own refresh interval.
@@ -200,7 +200,7 @@ Which surface carries each nutrient the design shows: a framework moodle on a ro
 - A mod cannot name its items through the older text-table layout ([#1165/M/n=1]).
 - A mod cannot ship a food absent from the translation table without every client receiving its weight as zero ([#1166/C/C-only]).
 - A mod cannot resolve or branch on an item name anywhere but the client's display-name getter ([#1167/M/n=1]).
-- The read-cadence rule is one viewer's render loop read from its code against arrivals measured in one session, and no command measures frame time, so it bounds a count of reads rather than a cost ([#1114/M/n=1], [#1477/C/C-only]).
+- The read-cadence rule is one viewer's render loop read from its code against arrivals measured in one session, and no command measures frame time, so it bounds a count of reads rather than a cost ([#1114/M/n=1], [#1477/C/C-only/superseded]).
 - Every client-side reading this page cites was taken on a dedicated server with one client, one fixture and one character, and single-player is never claimed ([#1256/C/one-fixture]).
 
 Not covered: the engine's own interface toolkit, its widget set and its event surface; the vanilla food tooltip's layout beyond its one trait gate; `MoodleFramework`'s own Lua; the character screen's trait display; controller and split-screen input; and any measurement of frame time or draw cost — this library read none of them.
@@ -209,7 +209,7 @@ Not covered: the engine's own interface toolkit, its widget set and its event su
 <a id="open"></a>
 
 - Whether `MoodleFramework` loads whole on this build, whether its configuration file executes and whether a moodle registered through it renders above its lowest level — settled by a desk read of its own Lua that names its registration call, then one session reading its globals on both sides and the client's moodle block; -> X29 ([#1295/C/open, #0884/C/C-only/open, #1115/M/n=1/open], [open-questions.md#x29](open-questions.md#x29)).
-- Whether any packet carries the character's traits to a client, and whether a trait the mod registers behaves the same — settled by making the server's trait list non-empty and reading the client's across at least two pushes, client first; -> X4 ([#1275/C/superseded, #0968/C/C-only/open, #1161/C/C-only/open, #0595/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
+- Whether any packet carries the character's traits to a client, and whether a trait the mod registers behaves the same — settled by making the server's trait list non-empty and reading the client's across at least two pushes, client first; -> X4 ([#1275/C/superseded, #0968/C/C-only/open, #1161/C/C-only/open, #0595/C/C-only/superseded], [open-questions.md#x4](open-questions.md#x4)).
 - Whether a mod's translation file displaces a vanilla key or the merge keeps vanilla's — settled by a mod that redefines one vanilla item-name key and one vanilla interface key beside a new interface key that must hit in the same run; -> X5 ([#1276/C/open, #1164/C/C-only/open], [open-questions.md#x5](open-questions.md#x5)).
 - Whether the moodle stat class is reachable from Kahlua at all — settled by a global read of that class beside two exposed controls that must answer in the same call; -> X2 ([#1274/C/open], [open-questions.md#x2](open-questions.md#x2)).
 - Whether a mod-registered moodle type carries any Java effect — settled by a session that registers one and reads what its level drives, which no named experiment runs; the register files the row under X2 ([#0970/C/C-only/open], [open-questions.md#x2](open-questions.md#x2)).

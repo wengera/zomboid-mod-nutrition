@@ -139,7 +139,7 @@ A profile's sandbox value survives the server's own boot-time rewrite beside the
 | `diff` against the fixture | — | **one hunk, one line** (the seeded one) |
 
 Of the 189 four-space assignment lines five are nested-table openers, which is why the settable-option list a profile is validated against returns 184, and both counts are stable across the merge; a profile naming a nested option or a table opener is rejected rather than silently doing nothing [#1808/M/n=1].
-A profile's sandbox block cannot set a mod's own option: the key pattern matches only a four-space top-level key and excludes a nested-table opener, so the settable list never names a mod option or its prefix, and were validation bypassed, the merge would append a quoted dotted key as `MyMod.Opt = 3,`, which is not valid Lua inside the table ([sandbox-options.md](sandbox-options.md#server-file)) [T12.37].
+A profile's sandbox block cannot set a mod's own option: the key pattern matches only a four-space top-level key and excludes a nested-table opener, so the settable list never names a mod option or its prefix, and were validation bypassed, the merge would append a quoted dotted key as `MyMod.Opt = 3,`, which is not valid Lua inside the table ([sandbox-options.md](sandbox-options.md#server-file)) [#2458/C/C-only].
 
 Five sandbox options carry the nutrition work, with the fixture's value and what each does; all five are settable from a profile and only the day length has been exercised by one [#1809/C/C-only].
 

@@ -50,8 +50,8 @@ else if (isAsleep())                        {            cal -= 0.003f * mod * e
 else                                        {            cal -= 0.016f * mod * energy * w * dt; } // @295 L118
 ```
 
-The modifier is written in that order and then overwritten: the first queued action's `caloriesModifier`, then 8.0 in the swipe, fence-climb and window-climb states, then 1.0, 1.3 or 0.6 on the three moving branches, so a timed action's modifier and the climb override reach the burn only while the character is not moving [T18.6].
-Every branch is scaled by the character's weight over 80, and the thermoregulator's energy multiplier enters the asleep and idle branches only [T18.7].
+The modifier is written in that order and then overwritten: the first queued action's `caloriesModifier`, then 8.0 in the swipe, fence-climb and window-climb states, then 1.0, 1.3 or 0.6 on the three moving branches, so a timed action's modifier and the climb override reach the burn only while the character is not moving [#2636/C/C-only].
+Every branch is scaled by the character's weight over 80, and the thermoregulator's energy multiplier enters the asleep and idle branches only [#2637/C/C-only].
 
 The five branches, their rate at 80 kg and the per-game-day figure each implies, with the weight ratio the character's weight over 80 and the external modifier 8.0 while swiping or climbing and otherwise the queued action's `caloriesModifier`; only the idle branch is measured, and that reading is a wall-clock one taken on a fixture whose clock runs 16.0 game-seconds to the real second: 0.259 kcal per real second at time speed 1, and 0.256 in an earlier run [#0070/M/one-fixture].
 
@@ -76,12 +76,12 @@ Idle burn re-measured at a second cadence gives minus 1 408.1, minus 1 385.0 and
 
 The thermoregulator's energy multiplier and the swipe, climb and timed-action modifier reach the asleep and idle branches only: the energy term is loaded in those two branches and nowhere else, so cold raises resting burn and does nothing to moving burn, and all three moving branches overwrite the modifier before using it, so the swipe and climb constant of 8.0 and every timed action's `caloriesModifier` are rest-only in practice [#0187/C/C-only, #0462].
 `caloriesModifier` defaults to 1 on `ISBaseTimedAction` and takes 30 assignments in the install's Lua with six distinct values, counted once on 2026-09-10: 0.5 for reading, researching and resting, 2 for dismantling, 3 for `ISFitnessAction`, 4 for building stages, painting, wallpapering, harvesting, shovelling and fixing, 5 for plowing, cleaning blood and graffiti and filling graves, and 8 for `ISBuildAction`, plastering, barricading, chopping trees and breaking glass [#0463/C/snapshot].
-The values span 0.5, on reading, researching and resting, to 8, on building, plastering, shovelling ground, lighting a kindling fire, barricading, chopping trees, destroying, pickaxing ground cover and clearing broken glass, around the default of 1 [T18.8].
+The values span 0.5, on reading, researching and resting, to 8, on building, plastering, shovelling ground, lighting a kindling fire, barricading, chopping trees, destroying, pickaxing ground cover and clearing broken glass, around the default of 1 [#2638/C/C-only].
 
 A server-side reader of the modifier has three facts to work with.
-`BaseAction` is not in the exposer's class set while `LuaTimedActionNew` is, so the Java field is not reachable from Lua, and a Lua-created action's modifier is the `caloriesModifier` key of the table its `getTable` returns [T18.10].
-The action's type name is `getMetaType`, which returns the `Type` string of the action table's metatable, or the empty string when there is no table or no metatable [T18.9].
-`ISTimedActionQueue` is defined in a client file a dedicated server does not load, so the server's view of a character's actions is the Java stack `getCharacterActions()`, the same stack the burn reads; whether that stack holds a connected client's action is not measured [T18.11].
+`BaseAction` is not in the exposer's class set while `LuaTimedActionNew` is, so the Java field is not reachable from Lua, and a Lua-created action's modifier is the `caloriesModifier` key of the table its `getTable` returns [#2640/C/C-only].
+The action's type name is `getMetaType`, which returns the `Type` string of the action table's metatable, or the empty string when there is no table or no metatable [#2639/C/C-only].
+`ISTimedActionQueue` is defined in a client file a dedicated server does not load, so the server's view of a character's actions is the Java stack `getCharacterActions()`, the same stack the burn reads; whether that stack holds a connected client's action is not measured [#2641/C/C-only].
 
 Alongside the calorie burn, `Nutrition.update` drains carbohydrates by 0.0035, lipids by 0.00113 and proteins by 0.00086 per game-world second; only the carbohydrate rate is fitted, at 0.00347 per game-second over a control window, 99.0 per cent of the coded rate [#0069/M/one-fixture].
 Over three game-days the carbohydrate drain measured minus 302.4 per game-day against the coded rate times a game-day, exact in both whole traces and in the first run's alive window [#0168/M/one-fixture].
@@ -92,10 +92,10 @@ The store this burn drains is clamped at both ends, so an idle starving characte
 <a id="metabolic-rate"></a>
 ### The metabolic-rate classes
 
-The engine carries its own activity scale: `Metabolics` is a 24-value enum of activity classes in MET, in the exposer's class set, with the getters `getMet`, `getWm2`, `getW` and `getBtuHr` and the static converters `MetToWm2`, `MetToW` and `MetToBtuHr` [T18.1].
-The exposure is read from the exposer's constant pool rather than from a read of the exposer dump end to end [T18.1].
+The engine carries its own activity scale: `Metabolics` is a 24-value enum of activity classes in MET, in the exposer's class set, with the getters `getMet`, `getWm2`, `getW` and `getBtuHr` and the static converters `MetToWm2`, `MetToW` and `MetToBtuHr` [#2631/C/C-only].
+The exposure is read from the exposer's constant pool rather than from a read of the exposer dump end to end [#2631/C/C-only].
 
-The 24 classes and their values in MET, as the enum's static initialiser writes them [T18.2]:
+The 24 classes and their values in MET, as the enum's static initialiser writes them [#2632/C/C-only]:
 
 | Class | MET | Class | MET |
 |---|---|---|---|
@@ -112,13 +112,13 @@ The 24 classes and their values in MET, as the enum's static initialiser writes 
 | `DefaultExercise` | 3.0 | `Running15kmh` | 9.5 |
 | `Walking5kmh` | 3.1 | `MAX` | 10.3 |
 
-`Thermoregulator.updateMetabolicRate` starts every update from `Default` and raises its target through a setter that keeps the larger value and caps it at `MAX`: a weapon-type-keyed class while attacking, `Running15kmh` while moving and sprinting, `Running10kmh` while moving and running, `Walking2kmh` while moving and sneaking, `Walking5kmh` while moving with `currentSpeed` above 0, and `Fitness` while an exercise is current [T18.3].
-Each class is therefore a floor rather than an assignment: the exercise class never lowers a sprinting target, and among the classes the highest one that applies sets the floor the next two terms start from [T18.3].
-The target is then raised twice more through the same setter: to at least `clamp01(1 - endurance)` times `DefaultExercise` times the thermoregulator's `getEnergy()`, so a tired character's target can sit above a class below that floor, which tops out at `DefaultExercise` times the energy, and then by the factor `1 + 0.35 × clamp01(carried weight / max weight)²`, so a loaded character's target rises up to 1.35 times, capped at `MAX` [T18.19].
-So the target can differ from the class when the character is tired or loaded, and a reading of the rate against a class has to hold endurance and load still or account for both [T18.19].
-The exercise class is the flat `Metabolics.Fitness` at 6.0, never the exercise's own `metabolics`; a per-exercise class such as `FitnessHeavy` at 9.0 reaches the thermoregulator through `ISFitnessAction:update`'s per-frame `setMetabolicTarget`, the timed action [exercise-and-training.md#exercise-path](exercise-and-training.md#exercise-path) describes [T18.4].
-`IsoGameCharacter` declares no metabolic-rate getter, only the two `setMetabolicTarget` overloads, so the rate is read through `getBodyDamage():getThermoregulator()`, whose `getMetabolicRate`, `getMetabolicTarget` and `getMetabolicRateReal` are public [T18.5].
-The classification is read from the bytecode and never measured, and whether a connected player's thermoregulator is classified on the server at all is open below [T18.3].
+`Thermoregulator.updateMetabolicRate` starts every update from `Default` and raises its target through a setter that keeps the larger value and caps it at `MAX`: a weapon-type-keyed class while attacking, `Running15kmh` while moving and sprinting, `Running10kmh` while moving and running, `Walking2kmh` while moving and sneaking, `Walking5kmh` while moving with `currentSpeed` above 0, and `Fitness` while an exercise is current [#2633/C/C-only].
+Each class is therefore a floor rather than an assignment: the exercise class never lowers a sprinting target, and among the classes the highest one that applies sets the floor the next two terms start from [#2633/C/C-only].
+The target is then raised twice more through the same setter: to at least `clamp01(1 - endurance)` times `DefaultExercise` times the thermoregulator's `getEnergy()`, so a tired character's target can sit above a class below that floor, which tops out at `DefaultExercise` times the energy, and then by the factor `1 + 0.35 × clamp01(carried weight / max weight)²`, so a loaded character's target rises up to 1.35 times, capped at `MAX` [#2649/C/C-only].
+So the target can differ from the class when the character is tired or loaded, and a reading of the rate against a class has to hold endurance and load still or account for both [#2649/C/C-only].
+The exercise class is the flat `Metabolics.Fitness` at 6.0, never the exercise's own `metabolics`; a per-exercise class such as `FitnessHeavy` at 9.0 reaches the thermoregulator through `ISFitnessAction:update`'s per-frame `setMetabolicTarget`, the timed action [exercise-and-training.md#exercise-path](exercise-and-training.md#exercise-path) describes [#2634/C/C-only].
+`IsoGameCharacter` declares no metabolic-rate getter, only the two `setMetabolicTarget` overloads, so the rate is read through `getBodyDamage():getThermoregulator()`, whose `getMetabolicRate`, `getMetabolicTarget` and `getMetabolicRateReal` are public [#2635/C/C-only].
+The classification is read from the bytecode and never measured, and whether a connected player's thermoregulator is classified on the server at all is open below [#2633/C/C-only].
 
 <a id="hunger-thirst"></a>
 ### Hunger and thirst
@@ -229,7 +229,7 @@ What each level does:
 | Consumer | Effect | Row |
 |---|---|---|
 | `BodyDamage.UpdateStrength` | carry capacity: a `HUNGRY` level 2 adds 1 and levels 3 and 4 add 2, `THIRST` behaves identically, `SICK` 2, 3 and 4 add 1, 2 and 3, and bleeding and injured contribute likewise; the total is subtracted from the base max weight times the weight modifier and floored at 0 | [#0513/M/n=1] |
-| `BodyDamage.Update` | the health-regeneration tier: `HUNGRY`, `SICK` or `THIRST` at level 2 gives tier 1, level 3 gives tier 2, `HUNGRY` or `THIRST` at level 4 gives tier 3 with `SICK` 4 absent from this branch, and being asleep gives tier minus 1; each tier selects one of the regeneration constants at [health-surfaces.md#regeneration](health-surfaces.md#regeneration) through the decoded switch stated there | [#0514/C/inference] |
+| `BodyDamage.Update` | the health-regeneration tier: `HUNGRY`, `SICK` or `THIRST` at level 2 gives tier 1, level 3 gives tier 2, `HUNGRY` or `THIRST` at level 4 gives tier 3 with `SICK` 4 absent from this branch, and being asleep gives tier minus 1; each tier selects one of the regeneration constants at [health-surfaces.md#regeneration](health-surfaces.md#regeneration) through the decoded switch stated there | [#0514/C/C-only] |
 | `BodyDamage.Update` | while asleep, a `HUNGRY` or `THIRST` level of 4 zeroes the 0.02 sleeping health addition | [#0515/C/C-only] |
 | `BodyDamage.Update` | the severe-moodle health loss: at `HUNGRY` level 4 the constant over 50, that is 0.0165 over 50 or 3.3e-4 per multiplier unit, and at `THIRST` level 4 the same constant over 10, 1.65e-3 per multiplier unit and five times the hunger one; both are added into one reduction total, which `ReduceGeneralHealth` applies whole to overall body health because the per-part division by max and by the damage modifier cancels against the overall-health sum | [#0516] |
 | `BodyDamage.Update` | a `FOOD_EATEN` level above 0 speeds poison decay by 1.5e-4 times the level on top of the normal poison-level decrease | [#0520/C/C-only] |
@@ -238,7 +238,7 @@ What each level does:
 
 The zeroed sleeping health addition, the poison-decay term and the two eat blocks are read from the code and were not measured [#0515/C/C-only, #0520/C/C-only, #0521/C/C-only, #0522/C/C-only].
 The carry-capacity ladder is measured: `getMaxWeight` read 12, 12, 11, 10 and 10 across levels 0 to 4 on the hunger and the thirst moodle independently [#0513/M/n=1].
-The tier-to-constant mapping of the regeneration branch is a reading of the bytecode's switch, decoded at [health-surfaces.md#regeneration](health-surfaces.md#regeneration), and no tier was measured [#0514/C/inference].
+The tier-to-constant mapping of the regeneration branch is a reading of the bytecode's switch, decoded at [health-surfaces.md#regeneration](health-surfaces.md#regeneration), and no tier was measured [#0514/C/C-only].
 The severe-moodle health terms carry the game-time multiplier without the delta-minutes-per-day factor, so in game time they scale with the day length over 30: the `THIRST` level 4 term costs 11.88 health per game-hour on the 60-minute default day and 17.82 on a 90-minute one, and the `HUNGRY` level 4 term 2.376 and 3.564 respectively [#0518/C/arith.].
 The thirst term is the measured one, at 17.820029 health per game-hour against a predicted 17.820000, a ratio of 1.000002, fitted as a least-squares slope over one run's health samples on a 90-minute-day fixture with the hunger moodle never above level 3 [#0519/M/arith.].
 That run's hunger peaked at 0.699892 against a strict greater-than-0.70 threshold, so `HUNGRY` never rose above level 3 [#0174/M/one-fixture].
@@ -307,8 +307,8 @@ A mod that keys an effect on a weight band inherits all of those readers unchang
 The five weight-band trait scripts carry no stat modifiers, only a starting Fitness XP offset: minus 2 for Obese, minus 1 for Overweight, minus 1 for Underweight, minus 2 for Very Underweight and none at all for Emaciated [#0539/C/C-only].
 Besides the trait classes, `Nutrition` and the script generator, the five band trait fields are read in only five classes in the jar — `IsoGameCharacter`, `IsoPlayer`, `IsoMovingObject`, `ClimbOverFenceState` and `ClimbSheetRopeState` — and the last only prints them for debug, in a jar-wide scan dated 2026-09-10 [#0540/C/snapshot].
 The weight-trait multipliers inside `getRecoveryMod` are live: Obese times 0.4, Overweight times 0.7, Very Underweight times 0.7 and Emaciated times 0.3 — unlike the macro branches of the same method, which are dead code ([nutrition-core.md#macro-effects](nutrition-core.md#macro-effects)) [#0183].
-Fitness experience is gated by the weight-band traits and Strength experience is not: `XP.AddXP` returns before adding any Fitness experience when `canAddFitnessXp` is false, while a Strength gain passes no band test and is scaled by the protein store instead, whose branch is [perks-and-strength.md#xp-grants](perks-and-strength.md#xp-grants) [T18.16].
-`Nutrition.canAddFitnessXp` returns false, and so blocks Fitness experience, at Fitness 9 or above with any weight trouble, so Overweight blocks too; at Fitness 6 to 8 only under Emaciated, Obese or Very Underweight; and never below Fitness 6 [T18.17].
+Fitness experience is gated by the weight-band traits and Strength experience is not: `XP.AddXP` returns before adding any Fitness experience when `canAddFitnessXp` is false, while a Strength gain passes no band test and is scaled by the protein store instead, whose branch is [perks-and-strength.md#xp-grants](perks-and-strength.md#xp-grants) [#2646/C/C-only].
+`Nutrition.canAddFitnessXp` returns false, and so blocks Fitness experience, at Fitness 9 or above with any weight trouble, so Overweight blocks too; at Fitness 6 to 8 only under Emaciated, Obese or Very Underweight; and never below Fitness 6 [#2647/C/C-only].
 `characterHaveWeightTrouble` tests `VERY_UNDERWEIGHT` twice and `UNDERWEIGHT` never, so plain Underweight is not weight trouble and, through `canAddFitnessXp`, never blocks XP at any Fitness level [#0185, #0537/C/C-only].
 
 Four of those readers are worth a design note because their numbers do not run the way the band names suggest.
@@ -321,8 +321,8 @@ A client cannot derive the band, but it can derive the direction: the three weig
 Driven to plus 1500 kcal the three flags read true, false, false on both sides, and driven to minus 100 kcal they read false, false, true on both sides, each matching the arm recomputed from that snapshot's own macros — two arms driven on purpose, so this is measured on the arms that could have disagreed [#1100/M/n=1].
 On the arm where all three flags are false they agree across sides at all six snapshots of an earlier session, on a character whose trait lists came back empty on both sides, so that reading carries no information about a character that holds a band trait [#1099/M/n=1].
 Unforced, `applyTraitFromWeight` runs only once every 2000 `updateWeight` calls and did not fire within 60 s of dedicated-server time, while called directly from Lua the traits apply instantly — so a trait-keyed effect reads a band that lags the weight unless the mod forces the refresh [#1194/M/n=1].
-The refresh itself is a full replace of the band and silent: `applyTraitFromWeight` removes exactly the five band traits and no other, adds back the one the weight's band names, adds none in the open interval between 75 and 85 kg, and pushes nothing — no packet, no player-fields send and no dirty flag [T18.12].
-So a band trait another mod grants for its own reason is gone at the next call, and a client sees the new band only on a later push of the trait list, which [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership) traces [T18.12].
+The refresh itself is a full replace of the band and silent: `applyTraitFromWeight` removes exactly the five band traits and no other, adds back the one the weight's band names, adds none in the open interval between 75 and 85 kg, and pushes nothing — no packet, no player-fields send and no dirty flag [#2642/C/C-only].
+So a band trait another mod grants for its own reason is gone at the next call, and a client sees the new band only on a later push of the trait list, which [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership) traces [#2642/C/C-only].
 
 <a id="traits"></a>
 ### The other traits in the nutrition path
@@ -348,8 +348,8 @@ The jar exposes only a trait test taking a trait object and one taking a trait a
 All five `StatsDecrease` mappings were read directly off the live server rather than inferred, and at the extremes the measured hunger and thirst rates scale exactly as the multiplier predicts — hunger 0.9996 at setting 1 and 1.0002 at setting 5, thirst 1.0000 at both — while the calorie ratio stays at 1.0054 and 1.0050, unchanged [#0483/M/n=1, #0484/M/n=1].
 `StatsDecrease` is the only sandbox option that touches hunger or thirst: a scan of `SandboxOptions`' method list dated 2026-09-10 for hunger, thirst, stat, nutrition, food and multiplier returns only `getStatsDecreaseMultiplier`, `getEnduranceRegenMultiplier` and two loot multipliers [#0554/C/snapshot].
 What the `Nutrition` option gates it gates whole, and what it leaves running it leaves running: intake is [eating-pipeline.md#sandbox](eating-pipeline.md#sandbox) [#0555].
-With the option off the character screen's weight arrow stops moving: vanilla writes the three weight-trend flags it reads only inside `updateWeight`, which the option's early return skips, so the arrow holds the last update's direction [T18.14].
-The food tooltip's nutrition block opens on any of three gates — the debug `tooltipInfo` option in debug mode, a packaged food whose label the viewer can read (not Illiterate, not too dark to read, and the item carrying no `NoLabel` modData), or the viewer's Nutritionist traits — and `Food.DoTooltip` references no sandbox option anywhere, so the block shows the same with the option on or off [T18.15].
+With the option off the character screen's weight arrow stops moving: vanilla writes the three weight-trend flags it reads only inside `updateWeight`, which the option's early return skips, so the arrow holds the last update's direction [#2644/C/C-only].
+The food tooltip's nutrition block opens on any of three gates — the debug `tooltipInfo` option in debug mode, a packaged food whose label the viewer can read (not Illiterate, not too dark to read, and the item carrying no `NoLabel` modData), or the viewer's Nutritionist traits — and `Food.DoTooltip` references no sandbox option anywhere, so the block shows the same with the option on or off [#2645/C/C-only].
 Whether anything outside `Nutrition.update` moves weight while the option is off is open below.
 So a server that wants hunger and thirst to move more slowly has one dial, and a server that wants the calorie burn to move more slowly has none [#0553, #0554/C/snapshot].
 
@@ -390,15 +390,15 @@ Not covered: the temperature model behind the thermoregulator's primary and seco
 - Whether split-screen players 2 to 4 accrue hunger or thirst locally is unverified: in single-player the wake-state and thirst updaters run only for the local player instance — settled by a split-screen boot, which no run in this library has exercised [#0596/C/C-only/open].
 - The write order of `applyWeightFromTraits` is not exercised: its branches are sequential ifs, so a character carrying two weight traits — blocked in the UI, but reachable by a mod — would end at the last matching branch — settled by a probe that adds two band traits from Lua and reads the written weight back [#0597/C/C-only/open].
 - Not settled: the 50 kg and 65 kg band edges rest on the code alone, because the server nudged the weight past each boundary before the comparison ran; priming calories below the gain threshold for those weights measures them [#0531/M/n=1].
-- Whether the thermoregulator's metabolic-rate classification tracks a connected player's state on the server or sits at its default — settled by server reads of the metabolic rate while the client idles, walks and runs, against the class each state names, with endurance and carried load held still or accounted for, because both raise the target above its class [T18.19]; -> [X37](../areas/open-questions.md#x37) [#2088/C/open].
+- Whether the thermoregulator's metabolic-rate classification tracks a connected player's state on the server or sits at its default — settled by server reads of the metabolic rate while the client idles, walks and runs, against the class each state names, with endurance and carried load held still or accounted for, because both raise the target above its class [#2649/C/C-only]; -> [X37](../areas/open-questions.md#x37) [#2088/C/open].
 - Whether body weight drifts with the vanilla `Nutrition` option off and no mod weight write — settled by three accelerated game-days of hourly server weight with the option off, beside the same run with it on; -> [X41](../areas/open-questions.md#x41) [#2090/C/open].
 - The rows above without a named experiment are costed in [../reference/experiments.md](../reference/experiments.md).
 - Decision: whether the mod's own nutrient stores are driven from hunger, from calories or from neither — the two vanilla stores have no coupling in either direction [#0500, #0501].
 - Decision: whether a weight band is evaluated server-side or derived on the client from the three weight-direction flags, which a client does compute [#1098] — the band trait itself lags the weight by up to 2000 weight updates [#0534/C/C-only].
 - Decision: whether hunger and thirst are retuned through the sandbox multiplier or the updaters are replaced — `StatsDecrease` scales hunger, thirst and fatigue together and never calories [#0553].
 - Decision: whether a trait-keyed effect reads a vanilla band trait at all, given that its name comes back lowercased and no string overload of the trait test exists [#0582/M/n=1, #1260/C/C-only].
-- Decision: whether an activity-scaled mod quantity reads the engine's metabolic-rate classes or classifies the player itself — the classes are floors raised within one update, endurance and carried load raise the target above them, and none of it is measured on a server [T18.3] [T18.19].
-- Decision: whether the mod refreshes the band traits after its own weight write, given that each refresh removes all five band traits, re-adds one and pushes nothing [T18.12].
+- Decision: whether an activity-scaled mod quantity reads the engine's metabolic-rate classes or classifies the player itself — the classes are floors raised within one update, endurance and carried load raise the target above them, and none of it is measured on a server [#2633/C/C-only] [#2649/C/C-only].
+- Decision: whether the mod refreshes the band traits after its own weight write, given that each refresh removes all five band traits, re-adds one and pushes nothing [#2642/C/C-only].
 
 ## See also
 

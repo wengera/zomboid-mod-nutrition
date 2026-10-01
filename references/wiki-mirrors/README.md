@@ -70,7 +70,6 @@ Generated from [the claims register](../../docs/reference/claims.tsv) by `python
 | Row | The code says | The mirror says | Owner |
 |---|---|---|---|
 | [#0136] | The sandbox `Nutrition` option gates `Nutrition.update()` — drain, burn and weight — while intake continues unguarded. | the weight simulation is always on and the sandbox Nutrition option is never mentioned (nutrition.md, 42.11.0) | [`facts/eating-pipeline.md`](../../docs/facts/eating-pipeline.md#walls) |
-| [#0137] | Protein has no Strength-XP effect on this build: its only verified effect is `IsoGameCharacter.getRecoveryMod`, and the Fitness and Strength XP gate `canAddFitnessXp` is weight-trait based. | proteins 50 to 300 give 1.5 times Strength XP and below -300 give 0.7 times, self-dated Build 34.5 (nutrition.md, 42.11.0) | [`facts/eating-pipeline.md`](../../docs/facts/eating-pipeline.md#walls) |
 
 ### nutritional-values.md
 
@@ -92,7 +91,6 @@ Generated from [the claims register](../../docs/reference/claims.tsv) by `python
 
 | Row | The code says | The mirror says | Owner |
 |---|---|---|---|
-| [#0138] | `Eat` reads calories and macros as bare fields with no skill term anywhere on the intake path, so any cooking-skill effect must be baked into the crafted item at recipe-build time. | cooking increases the nutrition of evolved recipes (cooking.md, 42.18.0); the recipe-build side is unverified here and is an input to slices 02 and 06 | [`facts/eating-pipeline.md`](../../docs/facts/eating-pipeline.md#walls) |
 | [#0367/C/C-only] | An evolved dish's age is proportional rather than inherited: phase A sets the new age to the new `offAgeMax` times the old age over the old `offAgeMax` and only when both items have real thresholds, and ingredients contribute no age at all. | an evolved recipe inherits the age of its base ingredient only | [`facts/cooking-and-recipes.md`](../../docs/facts/cooking-and-recipes.md#walls) |
 
 ### appliances.md
@@ -156,6 +154,12 @@ Generated from [the claims register](../../docs/reference/claims.tsv) by `python
 |---|---|---|---|
 | [#0587/C/C-only] | The endurance-drain multiplier is composed from a base of 1.4, Overweight 2.9, Athletic 0.8 and a 2.3 stage before pacing and hyperthermia, and the only per-level Fitness curve read in that area is on recovery, running 0.7 to 1.6. | the Fitness page gives a per-level endurance loss curve from 90 to 43 per cent, though its own footnote hedges that column; its recovery column matches the jar exactly | [`facts/body-and-weight.md`](../../docs/facts/body-and-weight.md#walls) |
 | [#0588/C/C-only] | Fitness applies no term to landing impact: the landing handler's only trait terms are the weight ones, and Fitness enters the vault-fall chance as a subtraction inside a random roll and the bump-trip score additively inside a clamp of 1 to 80, neither of which is a percentage. | the Fitness page states that Fitness reduces damage taken from long falls and gives a flat 2 per cent per level trip reduction | [`facts/body-and-weight.md`](../../docs/facts/body-and-weight.md#walls) |
+
+### lua-event.md
+
+| Row | The code says | The mirror says | Owner |
+|---|---|---|---|
+| [#2421/C/C-only] | The wiki mirror marks `OnNewGame` client-only, in its load-order line and in its event list, while the jar fires it on a dedicated server from `CreatePlayerPacket.processServer` with the new `IsoPlayer`. | `OnNewGame` (client only) in the load order and `OnNewGame - Client only` in the event list (lua-event.md:17 and :86, page version 42.20.4) | [`platform/server-lifecycle.md`](../../docs/platform/server-lifecycle.md#walls) |
 
 ### mod-structure.md
 

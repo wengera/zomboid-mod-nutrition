@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the field contract
 - A zero-valued conditionally-written field arrives carrying the last packet's value: an apple synced after a steak reached the client holding the steak's cooking time of 71.119644 [#0346/M/n=1].
 - A client-side write of vanilla nutrient numbers onto the player is overwritten within a second by the 1 Hz push, while a write to the mod's own fields survives and desyncs instead [#0129/M/n=1].
 - The eat packet overwrites the receiver's whole `Nutrition`, and neither of its two handlers applies any numbers of its own [#0113, #0116].
-- Three character packets replace the receiver's copy rather than merging into it: the player-fields trait block resets the trait list before re-adding the sender's, the experience packet reloads traits, per-perk experience, perk levels and multipliers wholesale, and a sync-stats packet with mask `-1` reloads the whole `Nutrition` object [T17.2] [T17.5] [T17.12].
+- Three character packets replace the receiver's copy rather than merging into it: the player-fields trait block resets the trait list before re-adding the sender's, the experience packet reloads traits, per-perk experience, perk levels and multipliers wholesale, and a sync-stats packet with mask `-1` reloads the whole `Nutrition` object [#2617/C/C-only] [#2620/C/C-only] [#2627/C/C-only].
 - The modData packet drops any pair whose type byte is minus one, so strings, doubles, nested tables and booleans travel while functions and Java objects do not [#1495].
 
 ## How it works
@@ -63,10 +63,10 @@ Four groups of fields cannot carry a stale value, and it is worth knowing which:
 What makes the stale read possible at all — one cached packet object per type with no reset, against a data setter that refreshes every field off the item before each send, so that the stale value lives on the receiving object and never originates on the sending one — is [`platform/mp-model.md#cached-packet`](../platform/mp-model.md#cached-packet).
 The practical shape is easy to state and easy to forget: a field a mod leaves at zero is a field the mod has no control over on the client.
 
-Two of the conditionally-written fields are lists rather than numbers, and they are the only place the packet carries what a dish was made of [T17.15].
-`ItemStatsPacket` carries a food's `extraItems` and `spices` lists: `setData` copies both off the food, `write` puts each on the wire only when it is non-empty, `extraItems` behind flag `4194304` and `spices` behind flag `8388608`, as a one-byte count followed by one UTF string per entry, `parse` clears its copy of each list before the flag test, and `applyItemStats` replaces the food's own list with the packet's [T17.15].
-`SyncItemFieldsPacket` carries neither list: a jar-wide grep for `extraItems` returns only `InventoryItem`, `ItemStatsPacket` and `EvolvedRecipe`, and one for `spices` adds only `Food`, so the item-stats packet is the only packet class that names either [T17.16].
-A `syncItemFields()` call therefore leaves a dish's ingredient and spice lists where they were on the client, and of the two item packets only the item-stats send moves them; the item's saved blob is a separate carrier this page does not read [T17.16].
+Two of the conditionally-written fields are lists rather than numbers, and they are the only place the packet carries what a dish was made of [#2629/C/C-only].
+`ItemStatsPacket` carries a food's `extraItems` and `spices` lists: `setData` copies both off the food, `write` puts each on the wire only when it is non-empty, `extraItems` behind flag `4194304` and `spices` behind flag `8388608`, as a one-byte count followed by one UTF string per entry, `parse` clears its copy of each list before the flag test, and `applyItemStats` replaces the food's own list with the packet's [#2629/C/C-only].
+`SyncItemFieldsPacket` carries neither list: a jar-wide grep for `extraItems` returns only `InventoryItem`, `ItemStatsPacket` and `EvolvedRecipe`, and one for `spices` adds only `Food`, so the item-stats packet is the only packet class that names either [#2630/C/C-only].
+A `syncItemFields()` call therefore leaves a dish's ingredient and spice lists where they were on the client, and of the two item packets only the item-stats send moves them; the item's saved blob is a separate carrier this page does not read [#2630/C/C-only].
 
 The field list is 43 names dumped from the packet's write method on 2026-09-10, covering the condition, the heat, the cooking time, the four macros, the raw hunger and thirst fields, the burn and cook minute fields, the fluid and food presence flags and the addressing pair [#1397/C/snapshot]:
 
@@ -162,14 +162,14 @@ The registry's order, and why a stat a mod registers is outside it, is [`charact
 A mod that writes any registered stat on a client is therefore writing into a value the next snapshot replaces, whether or not that mod's own field is involved.
 The packet carries neither moodles, which each side recomputes, nor `CharacterTraits` [#0567].
 The three weight-direction flags are not in it either, and the client agrees anyway because the engine recomputes them: the character update calls the nutrition update gated only on the character-stats switch, whose client arm calls the weight update, and the weight update sets all three flags before its client skip reaches the weight write [#1489].
-Neither player-stats packet carries a perk level or an experience value: `PlayerStatsPacket.write` writes the player id, the stats, the nutrition save, the time since the last smoke and the body-damage main fields, `SyncPlayerStatsPacket.write` writes the player id, the mask and either the nutrition save or the masked stat floats, and no method of either class references a perk or XP member [T17.14].
+Neither player-stats packet carries a perk level or an experience value: `PlayerStatsPacket.write` writes the player id, the stats, the nutrition save, the time since the last smoke and the body-damage main fields, `SyncPlayerStatsPacket.write` writes the player id, the mask and either the nutrition save or the masked stat floats, and no method of either class references a perk or XP member [#2628/C/C-only].
 Perk levels and experience travel on their own packets, which are [the experience packet](#experience-packet) below.
 
 The other nutrition-bearing send on the eat path carries none of this.
 The `SyncPlayerStats` packet that `Eat` sends carries no nutrition bits: its mask is THIRST, HUNGER, ENDURANCE, STRESS, FATIGUE and PAIN, alongside `GameServer.sendSyncPlayerFields(player, 8)` [#0115].
-That packet has two forms keyed on its int mask, and only one of them is a nutrition carrier [T17.12].
-With the mask at `-1`, `SyncPlayerStatsPacket.write` embeds `Nutrition.save` and `parse` calls `Nutrition.load`, replacing the receiver's whole `Nutrition` object — calories, proteins, lipids, carbohydrates and weight — and with any other mask it writes and reads one float per set bit, bit `i` selecting the stat at index `i` of `CharacterStat.ORDERED_STATS` [T17.12].
-The `-1` form is the eat packet's payload under another packet type, so it lands through the same clamping setters, and a per-bit form never touches the nutrition store [#0108, #0113, T17.12].
+That packet has two forms keyed on its int mask, and only one of them is a nutrition carrier [#2627/C/C-only].
+With the mask at `-1`, `SyncPlayerStatsPacket.write` embeds `Nutrition.save` and `parse` calls `Nutrition.load`, replacing the receiver's whole `Nutrition` object — calories, proteins, lipids, carbohydrates and weight — and with any other mask it writes and reads one float per set bit, bit `i` selecting the stat at index `i` of `CharacterStat.ORDERED_STATS` [#2627/C/C-only].
+The `-1` form is the eat packet's payload under another packet type, so it lands through the same clamping setters, and a per-bit form never touches the nutrition store [#0108, #0113, #2627/C/C-only].
 The mask value of each stat is [`character-stats.md#registry`](character-stats.md#registry); who may send either form, and when, is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
 
 The consequence for a mod is a fork with no third branch.
@@ -180,9 +180,9 @@ Which side owns each quantity, and what the other side holds instead, is [`platf
 <a id="player-fields-packet"></a>
 ### The player-fields packet's six blocks
 
-The player-fields packet is a set of six optional blocks behind one mask byte, and the byte decides what a push carries [T17.1].
-It carries a character's trait list, which the experience packet below carries too, and five other blocks beside it, so the bit a sender picks decides what the receiver has refreshed and what it keeps [T17.1].
-`SyncPlayerFieldsPacket.write` puts the player id and the mask byte on the wire and then, for each of the byte's six low bits that is set, in ascending order, writes one block through `writeParam`; `parseParam` mirrors the same switch, so the receiver reads exactly the blocks the sender wrote and in the same order, and the table gives each bit, what the sender writes and what the receiver does with it [T17.1]:
+The player-fields packet is a set of six optional blocks behind one mask byte, and the byte decides what a push carries [#2616/C/C-only].
+It carries a character's trait list, which the experience packet below carries too, and five other blocks beside it, so the bit a sender picks decides what the receiver has refreshed and what it keeps [#2616/C/C-only].
+`SyncPlayerFieldsPacket.write` puts the player id and the mask byte on the wire and then, for each of the byte's six low bits that is set, in ascending order, writes one block through `writeParam`; `parseParam` mirrors the same switch, so the receiver reads exactly the blocks the sender wrote and in the same order, and the table gives each bit, what the sender writes and what the receiver does with it [#2616/C/C-only]:
 
 | Bit | Block | Sender writes | Receiver |
 |---|---|---|---|
@@ -194,18 +194,18 @@ It carries a character's trait list, which the experience packet below carries t
 | `32` | fitness | `Fitness.save` | `Fitness.load` |
 
 The last column is where the blocks part company.
-The recipe and book blocks merge into what the receiver already holds, so a push never removes a recipe or a book from the far side [T17.1].
+The recipe and book blocks merge into what the receiver already holds, so a push never removes a recipe or a book from the far side [#2616/C/C-only].
 The trait block does the opposite.
-The trait block is a full replace keyed on registry locations: `CharacterTraits.write` puts a count and then each known trait's `CHARACTER_TRAIT` registry location as a string, and `CharacterTraits.read` first calls `reset`, which clears the known-trait list and sets every entry of the trait map false, and then adds each trait it reads, so the receiver's list becomes the sender's [T17.2].
-A trait the receiver holds and the sender lacks is therefore gone after the push, and a push of an empty list empties the receiver's [T17.2].
+The trait block is a full replace keyed on registry locations: `CharacterTraits.write` puts a count and then each known trait's `CHARACTER_TRAIT` registry location as a string, and `CharacterTraits.read` first calls `reset`, which clears the known-trait list and sets every entry of the trait map false, and then adds each trait it reads, so the receiver's list becomes the sender's [#2617/C/C-only].
+A trait the receiver holds and the sender lacks is therefore gone after the push, and a push of an empty list empties the receiver's [#2617/C/C-only].
 
-Bit `8` carries the body's cold, infection and timer state, and not its health [T17.3].
-`BodyDamage.saveMainFields` writes exactly eleven fields, in order the cold-catch value, the has-a-cold flag, the cold strength, the sneeze-or-cough timer as an int, the reduce-fake-infection flag, the health-from-food timer, the pain reduction, the cold reduction, the infection time, the infection mortality duration and the cold damage stage, and neither overall health nor any per-part field is among them [T17.3].
+Bit `8` carries the body's cold, infection and timer state, and not its health [#2618/C/C-only].
+`BodyDamage.saveMainFields` writes exactly eleven fields, in order the cold-catch value, the has-a-cold flag, the cold strength, the sneeze-or-cough timer as an int, the reduce-fake-infection flag, the health-from-food timer, the pain reduction, the cold reduction, the infection time, the infection mortality duration and the cold damage stage, and neither overall health nor any per-part field is among them [#2618/C/C-only].
 The same eleven fields are the last block of the once-a-second player-stats packet, as its code block above shows [#0114, #0564].
-A client's copy of the health-from-food timer is therefore, as read from the code and not measured, as fresh as the last of those two pushes, unless something on the client recomputes it, which this page does not read [T17.3].
-Per-part state travels on [the body-part packet](#body-part-packet), never in this block [T17.3].
+A client's copy of the health-from-food timer is therefore, as read from the code and not measured, as fresh as the last of those two pushes, unless something on the client recomputes it, which this page does not read [#2618/C/C-only].
+Per-part state travels on [the body-part packet](#body-part-packet), never in this block [#2618/C/C-only].
 
-Bit `32` is the whole fitness object: `writeParam` hands the buffer to `Fitness.save` and `parseParam` hands it to `Fitness.load` with the version argument `249` [T17.4].
+Bit `32` is the whole fitness object: `writeParam` hands the buffer to `Fitness.save` and `parseParam` hands it to `Fitness.load` with the version argument `249` [#2619/C/C-only].
 What the fitness object holds is [`exercise-and-training.md#fitness-object`](exercise-and-training.md#fitness-object).
 Which Java calls and which Lua globals send which bits, under what gate and to whom, is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals); this section is only the blocks.
 
@@ -213,32 +213,32 @@ Which Java calls and which Lua globals send which bits, under what gate and to w
 ### The experience packet and the perk-level packet
 
 The experience packet and the perk-level packet both carry skill state, and they write into different places on the receiver.
-The experience packet replaces the whole skill state, and the perk-level packet writes three side fields and never touches the perk list [T17.5] [T17.8].
+The experience packet replaces the whole skill state, and the perk-level packet writes three side fields and never touches the perk list [#2620/C/C-only] [#2623/C/C-only].
 
-`PlayerXpPacket.write` serialises the player's whole `XP` object with `XP.save`, `parse` reads it straight back with `XP.load` at version `249` unless the packet is inconsistent or the player is dead, and `processServer` does nothing but call `sendToClients` [T17.7].
-The payload is therefore the whole experience save, in this order: the character's traits, the total experience as a float, the global level and last level as ints, the per-perk experience map as a count then each perk with its float experience, the per-perk level list as a count then each perk with its int level, and the multiplier map as a count then each perk with its float multiplier and its minimum and maximum level as bytes, all of which the receiver loads straight over its own copy [T17.6].
-`XP.load` replaces rather than merges: it calls `CharacterTraits.load`, which resets the trait list before adding each name it reads, then clears the per-perk experience map, clears `perkList` and rebuilds one `PerkInfo` per wire entry, and clears the multiplier map before refilling it, skipping any entry whose perk does not resolve [T17.5].
-After the packet lands, the receiver's levels, per-perk experience, multipliers and traits are the sender's, whatever the receiver held a moment before, except that an entry whose perk does not resolve is dropped and the total experience is reset to the global level's threshold when the loaded total exceeds the next level's [T17.5].
-That includes the trait list, so the experience packet is a second carrier of the same list the player-fields trait block carries, and it replaces it the same way [T17.5] [T17.6].
+`PlayerXpPacket.write` serialises the player's whole `XP` object with `XP.save`, `parse` reads it straight back with `XP.load` at version `249` unless the packet is inconsistent or the player is dead, and `processServer` does nothing but call `sendToClients` [#2622/C/C-only].
+The payload is therefore the whole experience save, in this order: the character's traits, the total experience as a float, the global level and last level as ints, the per-perk experience map as a count then each perk with its float experience, the per-perk level list as a count then each perk with its int level, and the multiplier map as a count then each perk with its float multiplier and its minimum and maximum level as bytes, all of which the receiver loads straight over its own copy [#2621/C/C-only].
+`XP.load` replaces rather than merges: it calls `CharacterTraits.load`, which resets the trait list before adding each name it reads, then clears the per-perk experience map, clears `perkList` and rebuilds one `PerkInfo` per wire entry, and clears the multiplier map before refilling it, skipping any entry whose perk does not resolve [#2620/C/C-only].
+After the packet lands, the receiver's levels, per-perk experience, multipliers and traits are the sender's, whatever the receiver held a moment before, except that an entry whose perk does not resolve is dropped and the total experience is reset to the global level's threshold when the loaded total exceeds the next level's [#2620/C/C-only].
+That includes the trait list, so the experience packet is a second carrier of the same list the player-fields trait block carries, and it replaces it the same way [#2620/C/C-only] [#2621/C/C-only].
 Where those stores live, and which vanilla code writes them, is [`perks-and-strength.md#stores`](perks-and-strength.md#stores).
 
-The `SyncPerks` packet carries only the Sneak, Strength and Fitness levels as three ints, after the player index as a byte on the client's send and after the online id as a short on the server's relay, and both receivers write them into `remoteSneakLvl`, `remoteStrLvl` and `remoteFitLvl` rather than into the perk list, the client receiver returning for a local player [T17.8].
-So the perk-level packet never writes the perk list, and the three remote fields are the only thing it changes [T17.8].
+The `SyncPerks` packet carries only the Sneak, Strength and Fitness levels as three ints, after the player index as a byte on the client's send and after the online id as a short on the server's relay, and both receivers write them into `remoteSneakLvl`, `remoteStrLvl` and `remoteFitLvl` rather than into the perk list, the client receiver returning for a local player [#2623/C/C-only].
+So the perk-level packet never writes the perk list, and the three remote fields are the only thing it changes [#2623/C/C-only].
 Who sends each of the two, and how often, is [`platform/mp-model.md#packets`](../platform/mp-model.md#packets).
 
 <a id="injuries-packet"></a>
 ### The injuries packet's five floats
 
-The injuries packet carries the movement speeds and nothing else [T17.9].
-`PlayerInjuriesPacket` carries five floats after the player id: the `IdleSpeed`, `StrafeSpeed` and `WalkInjury` animation variables, read off the player by the sender with fallbacks `0.01`, `1` and `0`, and the network AI's `walkSpeed` and `runSpeed`, and `parse` sets the three variables and the two network-AI fields in that order when the packet is consistent [T17.9].
-None of the five is a stat, a perk or a nutrition value, so a mod that slows a character through a stat reaches the client's animation through whatever the server's speed code then writes into these fields, and through no other packet that names walk speed under that name, the grep bound [the walls](#walls) state [T17.9] [T17.10].
+The injuries packet carries the movement speeds and nothing else [#2624/C/C-only].
+`PlayerInjuriesPacket` carries five floats after the player id: the `IdleSpeed`, `StrafeSpeed` and `WalkInjury` animation variables, read off the player by the sender with fallbacks `0.01`, `1` and `0`, and the network AI's `walkSpeed` and `runSpeed`, and `parse` sets the three variables and the two network-AI fields in that order when the packet is consistent [#2624/C/C-only].
+None of the five is a stat, a perk or a nutrition value, so a mod that slows a character through a stat reaches the client's animation through whatever the server's speed code then writes into these fields, and through no other packet that names walk speed under that name, the grep bound [the walls](#walls) state [#2624/C/C-only] [#2625/C/C-only].
 How the walk and run speeds are computed, and what feeds them, is [`perception-speed.md#speed`](perception-speed.md#speed); when the packet is sent is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
 
 <a id="body-part-packet"></a>
 ### The body-part packet's field mask
 
-The body-part packet carries per-part state one part at a time, and it selects its fields with a mask as wide as a long [T17.11].
-`BodyPartSyncPacket` carries one body part: the player id, the part's index as a byte and a 64-bit field mask as a long, then for each of the mask's 42 low bits that is set the field `BodyPart.syncWrite` writes for key bit-plus-one; the switch covers keys 1 to 41, so 41 fields are selectable and key 1, mask value 1, is the part's health; the receiver's `parse` walks the same 42 bits and hands each set one to `BodyPart.sync`; the block gives every key, its mask bit and the type it puts on the wire [T17.11]:
+The body-part packet carries per-part state one part at a time, and it selects its fields with a mask as wide as a long [#2626/C/C-only].
+`BodyPartSyncPacket` carries one body part: the player id, the part's index as a byte and a 64-bit field mask as a long, then for each of the mask's 42 low bits that is set the field `BodyPart.syncWrite` writes for key bit-plus-one; the switch covers keys 1 to 41, so 41 fields are selectable and key 1, mask value 1, is the part's health; the receiver's `parse` walks the same 42 bits and hands each set one to `BodyPart.sync`; the block gives every key, its mask bit and the type it puts on the wire [#2626/C/C-only]:
 
 ```
 key bit  field                 type     key bit  field                 type
@@ -265,9 +265,9 @@ key bit  field                 type     key bit  field                 type
  21  20  stitchTime            float
 ```
 
-The mask value of a key is `1 << bit`, so the part's health alone is mask `1` and every field at once is the low 41 bits set [T17.11].
-A field outside the mask is not on the wire, and the receiver leaves its own copy of that field as it was [T17.11].
-The packet carries no body-wide value, overall health is in neither this packet nor the main-field block, and the cold and infection timers and the pain and cold reductions travel in that block, above [T17.11] [T17.3].
+The mask value of a key is `1 << bit`, so the part's health alone is mask `1` and every field at once is the low 41 bits set [#2626/C/C-only].
+A field outside the mask is not on the wire, and the receiver leaves its own copy of that field as it was [#2626/C/C-only].
+The packet carries no body-wide value, overall health is in neither this packet nor the main-field block, and the cold and infection timers and the pain and cold reductions travel in that block, above [#2626/C/C-only] [#2618/C/C-only].
 What each per-part field means to the body's own update is [`health-surfaces.md#wounds`](health-surfaces.md#wounds); who may send this packet is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals).
 
 <a id="moddata-packet"></a>
@@ -408,7 +408,7 @@ What a client's copy of a server-owned object is and is not — a push, not a si
 - A mod cannot push a player stat from the client, nor observe or suppress the player-stats write [#1149/M/n=1].
 - A mod cannot push an item field from the client either, because every arm of the item-stats send is a server-to-client fan-out [#1150/C/C-only].
 - A new item absent from the translation table ships a zero weight to every client [#1166/C/C-only].
-- The engine has no packet other than the injuries packet that names walk speed: a jar-wide grep for `walkSpeed` returns `PlayerInjuriesPacket` as the only packet class, beside `IsoGameCharacter`, `IsoPlayer`, `NetworkPlayerAI` and the two fake-client classes; the grep is literal, so a packet carrying the speed under another name is not excluded [T17.10].
+- The engine has no packet other than the injuries packet that names walk speed: a jar-wide grep for `walkSpeed` returns `PlayerInjuriesPacket` as the only packet class, beside `IsoGameCharacter`, `IsoPlayer`, `NetworkPlayerAI` and the two fake-client classes; the grep is literal, so a packet carrying the speed under another name is not excluded [#2625/C/C-only].
 - Every per-arm reading on this page is taken on the dedicated-server path with one real client, one fixture, and one item or one character per arm; where an arm was read on two runs the register row says so, and no arm is repeated across builds.
 - Floats arrive over the command bus rounded to six decimals, so no reading here supports a bit-for-bit claim except the two whose rows state one.
 - No arm on this page was taken with more than one client attached, so nothing here speaks to what a second client's copy holds.
@@ -427,8 +427,8 @@ Not covered: the full item-serialisation carriers, which are the only route an i
 - Decision: whether a client-side reader may display a cooked food's thirst value at all, or must re-derive it from the script — the value it reads is halved once per hop [#1038/M/n=2].
 - Decision: whether the mod re-derives freshness on the client or hides it there — the aging fields are server-owned and never cross [#1242/M/n=1].
 - Decision: whether a translation entry is a hard requirement of every new mod item — without one the wire's weight field is zero on every client [#1028].
-- Decision: whether the mod pushes the trait block after its own trait writes, and with which other bits — a push replaces the client's whole trait list rather than adding to it [T17.2].
-- Decision: whether a client-side reader of perk levels reads a remote player's perk list or the three remote level fields — the perk-level packet never writes the perk list and writes the remote fields alone [T17.8].
+- Decision: whether the mod pushes the trait block after its own trait writes, and with which other bits — a push replaces the client's whole trait list rather than adding to it [#2617/C/C-only].
+- Decision: whether a client-side reader of perk levels reads a remote player's perk list or the three remote level fields — the perk-level packet never writes the perk list and writes the remote fields alone [#2623/C/C-only].
 
 ## See also
 

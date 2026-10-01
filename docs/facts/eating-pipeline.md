@@ -259,11 +259,11 @@ Its Lua driver calls it incrementally during the action, consuming only the diff
 Drinking therefore completes on the server and sends only the player-stats sync, with no eat packet on this path, so a drink's calories reach a client only on the once-a-second player-stats packet [#0649].
 
 What one call moves can be read off the container on either side of it.
-One `DrinkFluid(FluidContainer, f, useUtensil)` call writes the four macros before any fluid is removed and takes its stats from what removing the container's amount times `f` returns, and its whole body holds no modData reference and no Lua call [#0064/C/C-only, #0065/C/C-only, T19.39].
-`FluidConsume`, the object the removal returns, extends `SealedFluidProperties` and declares only an amount and a poison effect of its own, so it carries the removed aggregate's nutrition with no per-fluid breakdown and the mix has to be sampled before the removal [T19.40].
-`ISDrinkFluidAction:updateEat` holds the drink action's one `DrinkFluid` call, `complete` reaches it unguarded, and it calls `syncItemFields()` right after each `DrinkFluid`; the gap it consumes and the `update` and animation-event gates are the incremental driver above [#0085/C/C-only, T19.41].
-Drinking straight from a world water source takes a second `DrinkFluid` route: `ISTakeWaterAction`, queued with no item, moves the litres into a temporary container and calls `DrinkFluid` on it with a fraction of 1 before disposing of the container [T19.42].
-A wrapper of the drink action's `updateEat` that samples the container's litres and mix before calling through and its litres after sees each sip once, and never sees a drink from a world source [T19.41] [T19.42].
+One `DrinkFluid(FluidContainer, f, useUtensil)` call writes the four macros before any fluid is removed and takes its stats from what removing the container's amount times `f` returns, and its whole body holds no modData reference and no Lua call [#0064/C/C-only, #0065/C/C-only, #2687/C/C-only].
+`FluidConsume`, the object the removal returns, extends `SealedFluidProperties` and declares only an amount and a poison effect of its own, so it carries the removed aggregate's nutrition with no per-fluid breakdown and the mix has to be sampled before the removal [#2688/C/C-only].
+`ISDrinkFluidAction:updateEat` holds the drink action's one `DrinkFluid` call, `complete` reaches it unguarded, and it calls `syncItemFields()` right after each `DrinkFluid`; the gap it consumes and the `update` and animation-event gates are the incremental driver above [#0085/C/C-only, #2689/C/C-only].
+Drinking straight from a world water source takes a second `DrinkFluid` route: `ISTakeWaterAction`, queued with no item, moves the litres into a temporary container and calls `DrinkFluid` on it with a fraction of 1 before disposing of the container [#2690/C/C-only].
+A wrapper of the drink action's `updateEat` that samples the container's litres and mix before calling through and its litres after sees each sip once, and never sees a drink from a world source [#2689/C/C-only] [#2690/C/C-only].
 How a container's mix is read from Lua, and why a per-fluid mod value cannot ride the fluid block, are [`../facts/food-item-model.md#fluid-blocks`](../facts/food-item-model.md#fluid-blocks)'s.
 That packet's own field contract is [`../facts/wire-packets.md#player-stats-packet`](../facts/wire-packets.md#player-stats-packet).
 
@@ -357,7 +357,7 @@ The nutrition mirror's gain and loss formulas and its calorie and macro ceilings
 - The mirror's nutritional-values rows are state-free; that holds for the macros but not for hunger, which is scaled by 1.3 cooked, a third burnt, 1.3 stale and 2.2 rotten, and the mirror's hunger column is the raw script value rather than an arithmetic one [#0135/M/one-fixture].
 - The mirror says the weight simulation is always on and never mentions the sandbox option; the option gates the update tick — drain, burn and weight — while intake continues unguarded [#0136].
 - Protein does reach one vanilla consumer on this build, the Strength experience grant, stated at [perks-and-strength.md#xp-grants](perks-and-strength.md#xp-grants); its only other reader outside the weight model is the recovery modifier, stated at [nutrition-core.md#macro-effects](nutrition-core.md#macro-effects).
-- `Eat` has no skill term on the intake path; the Cooking skill raises an evolved dish's macros at build time through the summation's skill bonus and leaves its hunger unchanged, so the mirror's claim that cooking increases the nutrition of evolved recipes holds for the macros and not for hunger, as [cooking-and-recipes.md](cooking-and-recipes.md#evolved) measures [T19.44].
+- `Eat` has no skill term on the intake path; the Cooking skill raises an evolved dish's macros at build time through the summation's skill bonus and leaves its hunger unchanged, so the mirror's claim that cooking increases the nutrition of evolved recipes holds for the macros and not for hunger, as [cooking-and-recipes.md](cooking-and-recipes.md#evolved) measures [#2691/M/n=1].
 
 The walls these mechanisms close are stated once each on the wall map.
 A mod can run its intake math where `Eat` runs, which is the server ([#1128/M/n=1]).
@@ -382,7 +382,7 @@ Not covered: the food-to-health loop and the sickness rolls beyond their call si
 - Decision: whether a rebalanced hunger value is allowed to land under the magnitude the cancel guard tests — a cancelled eat of such an item applies nothing at all ([#0112], [`../platform/mp-model.md#ownership`](../platform/mp-model.md#ownership)).
 - Decision: whether the mod ships expecting the sandbox `Nutrition` option on or off — with it off the stores keep filling to their clamps and nothing burns them [#0089/C/inference].
 - Decision: whether the mod's own nutrient numbers for a container are per litre or per container — a fluid's properties are per litre and the container multiplies them by the litres it holds [#0630].
-- Decision: whether the mod's drink accounting wraps the drink action's `updateEat` alone or also the world-water route, since drinking from a world source never passes through the drink action [T19.42].
+- Decision: whether the mod's drink accounting wraps the drink action's `updateEat` alone or also the world-water route, since drinking from a world source never passes through the drink action [#2690/C/C-only].
 
 ## See also
 

@@ -41,7 +41,7 @@ Every nutrient this mod adds is therefore computed on the server, whatever store
 The vanilla stores the mod reads have one owner each, and it is always the server.
 The nutrition object is the server's, and a multiplayer client holds a mirror of it [#0125/M/one-fixture].
 A client does not run the drain at all, because the nutrition update skips the macro decay and the calorie update on a game client [#0117].
-Hunger and thirst tick on the server only, and endurance and fatigue are the server's in the same way [#0560/M/n=1, #0561, #0562/C/C-only].
+Hunger and thirst tick on the server only, and endurance and fatigue are the server's in the same way [#0560/M/n=1, #0561/C/superseded, #0562/C/C-only].
 A client-side write to any of those stores is erased by the next player-stats snapshot, which is what gives each of them exactly one owner ([#0568/M/n=2], [mp-model.md#routes-client-to-server](../platform/mp-model.md#routes-client-to-server)).
 A mod that retunes the hunger and thirst constants has to do it on the server for the same reason: the updater that reads them runs there [#0569/C/C-only].
 Each eat's own packet overwrites the receiver's whole nutrition object as well, so a client-side change to that store survives no eat [#0113].
@@ -52,7 +52,7 @@ Weight is the one vanilla quantity whose ownership splits by field, and a nutrit
 The server owns the value and the client never computes it: the weight update skips before the setter on a client, while the three direction flags are written ahead of that skip and stay readable client-side [#1238/M/n=1].
 Those flags are not packet fields, and each side's own computation of them agreed with the other's on both non-trivial arms [#0900/M/n=1].
 The client may therefore show which way the weight is moving, and may never show a weight of its own [#1139/M/n=1, #1138/M/n=1].
-The band traits are applied on the server, and no packet has been traced carrying them to a client [#1239/C/C-only].
+The band traits are applied on the server, and no packet has been traced carrying them to a client [#1239/C/C-only/superseded].
 Anything this mod keys on a band is therefore evaluated on the server or fed a value the mod sends itself [#1104/C/inference].
 Whether a client can rely on a band trait at all is an open verdict rather than a wall, and it is listed under [Open](#open) [#1161/C/C-only/open].
 
@@ -89,7 +89,7 @@ The ownership reading, one line per quantity:
 | the intake: an eat and a cancelled eat | server | a notification that applies no numbers | [#0110, #0111, #0116] |
 | the vanilla nutrition store and the player stats | server | a mirror the next player-stats snapshot overwrites | [#0125/M/one-fixture, #0568/M/n=2] |
 | weight | server | the three direction flags, computed on each side, and never a weight of its own | [#1238/M/n=1, #0900/M/n=1] |
-| the weight-band traits | server | nothing traced | [#1239/C/C-only, #1161/C/C-only/open] |
+| the weight-band traits | server | nothing traced | [#1239/C/C-only/superseded, #1161/C/C-only/open] |
 | item state in the item packet | server | the last push, stale in any zero-valued conditional field | [#1240/C/C-only, #0343] |
 | item aging | server | nothing: the fields never cross | [#1242/M/n=1] |
 | a per-item mod value in the item script | neither: both sides load it | the same value | [#1124/M/n=1] |
@@ -202,7 +202,7 @@ Not covered: the transport beneath every packet, the save and load round trip th
 - Whether item modData moves server to client through the item-fields sync — settled by a run in which the writing mod's `server/` file is guarded so only the server's Lua state writes, a pre-sync client read that must miss, then a forced sync and a census of both sides; until then a server-owned per-item value in item modData is an unmeasured direction; -> X14 ([#0885/M/n=1/open, #1040/M/one-side/open, #1280/C/open], [open-questions.md#x14](open-questions.md#x14)).
 - Whether the per-body net-id reallocation of an item whose script body several mods append ever puts a stale id on the wire — settled by reading the item id on both sides after a multi-bodied redefinition, the single-bodied item being the control; until then the id-keyed bus round trip is read for a single-bodied item only; -> X27 ([#1063/C/C-only/open, #1293/C/open], [open-questions.md#x27](open-questions.md#x27)).
 - Whether modData survives a save and reload — settled by a boot, a write, a teardown and a second boot on the same run directory, against a control boot of the golden fixture that must miss the key, read in both the player and the item scope; the durability every route above leans on is a code reading until then; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
-- Whether the weight-band traits reach a multiplayer client at all — settled by driving a character into a band on the server and reading the client's trait list; until then a band is an input a client-side derivation cannot trust; -> X4 ([#0968/C/C-only/open, #1275/C/superseded, #0595/C/C-only/open, #1161/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
+- Whether the weight-band traits reach a multiplayer client at all — settled by driving a character into a band on the server and reading the client's trait list; until then a band is an input a client-side derivation cannot trust; -> X4 ([#0968/C/C-only/open, #1275/C/superseded, #0595/C/C-only/superseded, #1161/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
 - Whether a mod may call the latent client-to-server eat route, a route for the vanilla store that no caller uses — settled by calling the game client's eat-food method from a mod and reading both sides; no `X` id ([#0145/C/snapshot/open], [mp-model.md#open](../platform/mp-model.md#open)).
 - What the server validates on an incoming nutrition write — settled by a probe that separates rejection from overwrite; each probe in the library shows the next push overwriting a client write, which is the ownership this page reads rather than a validation; no `X` id ([#0191/M/n=1/open], [mp-model.md#open](../platform/mp-model.md#open)).
 - Whether a relog or a save round trip repairs a client's copy of the uncarried item fields — settled by a relog read of a cooked item on both sides; no `X` id ([#1434/C/inference/open], [wire-packets.md#open](../facts/wire-packets.md#open)).

@@ -60,7 +60,7 @@ Simple Status is workshop item `2867431511`, one mod, declaring the id `simpleSt
 An empty dependency list is worth noting for what it removes: nothing has to be installed beside it, and nothing about load order follows from its declaration.
 A case-only difference between folder and id is a live hazard on a case-sensitive filesystem and invisible on the one this library reads from, which is why it is recorded as a drift rather than as a defect.
 
-The item has five version folders — `42`, `42.14`, `42.15`, `42.16` and `42.20` — beside a common directory with no media tree and a root-level `B41` media tree, `42.20.4` resolves the `42.20/` tree, whose client Lua files number 7, and the item totals 1 379 005 bytes, swept on 2026-09-30 [T13.57].
+The item has five version folders — `42`, `42.14`, `42.15`, `42.16` and `42.20` — beside a common directory with no media tree and a root-level `B41` media tree, `42.20.4` resolves the `42.20/` tree, whose client Lua files number 7, and the item totals 1 379 005 bytes, swept on 2026-09-30 [#2523/C/snapshot].
 The engine loads the newest version folder the build admits ([mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs)), so every other folder is inert on disk, and the version folders below are the only release history the item carries.
 The empty common directory earns a line of its own: it exists, the info chain skips it, and it costs the loader nothing.
 
@@ -98,11 +98,11 @@ That shape is why adding a stat is a one-line registration.
 The mod's global footprint is one name, and grepped across the whole installed 230-mod workshop corpus the only files assigning it are this mod's own five copies of the file that declares it, with no other installed mod so much as mentioning the name [#1476/C/snapshot].
 One global that nobody else touches is the whole of its namespace risk.
 A corpus grep is a dated sweep, so the finding is that nothing installed on that date touched the name rather than that nothing ever will.
-The resolved `42.20/` copy's one global carries a registration API a consumer mod can call instead of writing a panel: `SimpleStatus:addStat(name, stat, reverse_stat)` requires `stat.valueFn(player)` and refuses a duplicate or malformed stat with a console message, and `SimpleStatus:addCharacterStat(name, key, opts)` builds that value function from a `CharacterStat.REGISTRY` lookup [T13.60].
+The resolved `42.20/` copy's one global carries a registration API a consumer mod can call instead of writing a panel: `SimpleStatus:addStat(name, stat, reverse_stat)` requires `stat.valueFn(player)` and refuses a duplicate or malformed stat with a console message, and `SimpleStatus:addCharacterStat(name, key, opts)` builds that value function from a `CharacterStat.REGISTRY` lookup [#2526/C/C-only].
 A nutrient a mod registers as a character stat could therefore reach this panel through the second call, and whether a consumer should lean on it at all is an [Open](#open) decision.
-On the resolved `42.20/` tree `SimpleStatus:addStat` registers a reverse stat into the reverse table, its value list and the reverse lookup at the call, so a stat registered as the alternate view of an existing one reaches the player-creation toggle list and the settings menu, and the bar builder skips only that alternate, leaving the primary on the bar; the registration window is the extender's one remaining constraint [T13.64].
+On the resolved `42.20/` tree `SimpleStatus:addStat` registers a reverse stat into the reverse table, its value list and the reverse lookup at the call, so a stat registered as the alternate view of an existing one reaches the player-creation toggle list and the settings menu, and the bar builder skips only that alternate, leaving the primary on the bar; the registration window is the extender's one remaining constraint [#2530/C/C-only].
 
-In the resolved `42.20/` copy the panel's prerender advances a frame counter and calls the bar preparation — the only code that calls a bar's value, percentage, text and colour functions — only when the counter is a multiple of 10, resets the counter and adjusts the window size when it reaches 60, and draws the bars from the prepared values on every frame [T13.58].
+In the resolved `42.20/` copy the panel's prerender advances a frame counter and calls the bar preparation — the only code that calls a bar's value, percentage, text and colour functions — only when the counter is a multiple of 10, resets the counter and adjusts the window size when it reaches 60, and draws the bars from the prepared values on every frame [#2524/C/C-only].
 The throttle is a frame count and not a clock: a faster render reads more often, and nothing on the path is keyed to the arrival of the store it reads.
 That reading is taken from the code: no shipped command measures frame time or Lua call counts, so what is recorded is a code shape and not a cost.
 The waste that remains scales with the number of visible bars rather than with the number of stats defined, so hiding a bar is still the one thing a player can do to lower it.
@@ -169,7 +169,7 @@ Each half of the split rests on one session and one subject, on a character and 
 
 Outbound, the mod's whole multiplayer contract is one transmit call fired from seven UI-input-driven sites, each of which rewrites the server's whole copy of that player's modData from the client's [#1482].
 Every one of those sites is a mouse or key handler, so nothing but a human at a keyboard can fire them and no harness command can synthesise one.
-The drag release is one of the mod's save sites: the panel's mouse-up handler returns at once when the panel is locked and otherwise records the new position and calls the save, which writes the whole config key into player modData and transmits it, so every completed drag of an unlocked panel replaces the server's copy of that player's modData once [T13.61].
+The drag release is one of the mod's save sites: the panel's mouse-up handler returns at once when the panel is locked and otherwise records the new position and calls the save, which writes the whole config key into player modData and transmits it, so every completed drag of an unlocked panel replaces the server's copy of that player's modData once [#2527/C/C-only].
 Player modData does not cross sides at all until something calls that transmit, which is why this mod's config key reaches the server while a mod that never transmits keeps its settings on the client that set them ([#1637], [mp-model.md](../../platform/mp-model.md#player-moddata)).
 The call is a whole-table wipe and replace rather than a per-key update, in both directions ([#1091], [#1496/M/n=1], [mp-model.md](../../platform/mp-model.md#wipe-and-replace)).
 The mod's own payload survives it intact, because every leaf is one of the types the modData packet carries ([#1495], [wire-packets.md](../wire-packets.md#moddata-packet)).
@@ -186,7 +186,7 @@ The outbound half is therefore established through the vanilla call the mod make
 Each line below is a cost the mod pays, stated as the mechanism that causes it rather than as a review of the mod.
 None is a wall a neighbour runs into; they are shapes not to copy, and the one cost that does fall on a neighbour is under [Multiplayer behaviour](#mp) rather than here.
 
-Cache anything read from a pushed store at the push cadence rather than the frame cadence: a source that changes once a second is read many times a second by an uncached value function, whatever the render loop's own tick [T13.59] [T13.58].
+Cache anything read from a pushed store at the push cadence rather than the frame cadence: a source that changes once a second is read many times a second by an uncached value function, whatever the render loop's own tick [#2525/C/inference] [#2524/C/C-only].
 That rule is a code reading of this mod's own render loop set against the measured arrival of its source, and the cost it names is client-side only.
 The resolved copy's frame-count throttle lowers the read count without tying it to the push, so a panel that draws more numbers than this one keys its cache to the arrival instead.
 
@@ -238,9 +238,9 @@ One file count on this page is unverified; what follows is that count, the depen
 - Whether the weight-band traits reach a multiplayer client, and by which packet, is [mp-model.md](../../platform/mp-model.md)'s question, and it is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#1490/M/n=1].
 - The design must decide whether it re-bases the vanilla macro scale, because this bar's display bands and its multiplier captions are hard-coded and go wrong silently on every client that has it installed [#1514, #1522].
 - The design must decide where its own per-player nutrient state lives, because any player-modData key the server holds and the client's copy does not is destroyed by this mod's next bar drag [#1482].
-- The design must decide at what cadence its own interface reads what it draws, because this mod's resolved copy throttles its reads to a frame count rather than to the push its store arrives on [T13.58] [T13.59].
-- The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered, that the resolved tree keeps its reverse indexes at registration, and that the mod declares no author and no licence [T13.60] [T13.64].
-- That the resolved `42.20/` tree holds one mod.info, 7 Lua files, 13 JSON files and 41 PNG files is unverified: the count of the item's file list is not a committed dataset; re-measure by extending the inventory census to record per-tree file counts and reading this item's row [T13.63].
+- The design must decide at what cadence its own interface reads what it draws, because this mod's resolved copy throttles its reads to a frame count rather than to the push its store arrives on [#2524/C/C-only] [#2525/C/inference].
+- The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered, that the resolved tree keeps its reverse indexes at registration, and that the mod declares no author and no licence [#2526/C/C-only] [#2530/C/C-only].
+- That the resolved `42.20/` tree holds one mod.info, 7 Lua files, 13 JSON files and 41 PNG files is unverified: the count of the item's file list is not a committed dataset; re-measure by extending the inventory census to record per-tree file counts and reading this item's row [#2529/C/snapshot/unverified].
 
 ## See also
 

@@ -17,7 +17,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what the installed
 - Build status eliminates no candidate and only annotates one: all 19 nutrition-signalled mods resolve a version folder the `42.20.4` build reads and none lints ERROR [#1645/C/snapshot].
 - The resident Girth stack carries 228 `sendClientCommand`, `OnClientCommand` and `sendServerCommand` sites across its six mods, 96 of them in the quest-system mod, dated 2026-09-10 [#1459/C/snapshot, #1567/C/snapshot].
 - The corpus class distribution at that sweep is 175 light-lua systems, 31 other, 15 heavy-lua systems, 5 scripts-only content and 4 `content(3d+lua)` mods [#1552/C/snapshot].
-- At the 2026-09-30 05:48 sweep the installed corpus is 182 workshop items holding 234 mod folders, and no live version folder in it references the stat hook [T15.2] [T15.1].
+- At the 2026-09-30 05:48 sweep the installed corpus is 182 workshop items holding 234 mod folders, and no live version folder in it references the stat hook [#2559/C/snapshot] [#2558/C/snapshot].
 
 ## How it works
 
@@ -156,9 +156,9 @@ A fourth sweep re-reads the installed tree with the same live-folder scope and a
 A surface a mod ships only under `common/media` reads as absent in that census, so every such site on this page is cited from its file and never counted.
 The census is a count of pattern hits and never a reading of behaviour; each sentence that names a hit was read off the file it names.
 
-The installed corpus at the 2026-09-30 05:48 sweep is 182 workshop items holding 234 mod folders, against 179 and 230 at the 2026-09-10 17:47 sweep: four mods are new, named by mod id (`QualityCooking`, `NewMusic` in the folder `Talis New Music`, `SDMusic`, `SDMixtape`), none is gone, and four mods now resolve a `42.20` live folder (`isoContainers`, `simpleStatus`, `KI5campers`, `70chevelle`) [T15.2].
-Workshop item `3624538051` holds six mod folders at the 2026-09-30 05:48 sweep — `BaseQuests`, `Economy`, `ItemQuality`, `QualityCooking`, `QualityEnhancements` and `QuestSystem` — and `QualityCooking` is the one absent at the 2026-09-10 17:47 sweep [T15.3].
-`simpleStatus` resolves `42.20` as its live folder at the 2026-09-30 05:48 sweep, reading its `mod.info` from `42.20/mod.info`, so a line cite into its `42.16` tree names a folder the build no longer runs [T15.4].
+The installed corpus at the 2026-09-30 05:48 sweep is 182 workshop items holding 234 mod folders, against 179 and 230 at the 2026-09-10 17:47 sweep: four mods are new, named by mod id (`QualityCooking`, `NewMusic` in the folder `Talis New Music`, `SDMusic`, `SDMixtape`), none is gone, and four mods now resolve a `42.20` live folder (`isoContainers`, `simpleStatus`, `KI5campers`, `70chevelle`) [#2559/C/snapshot].
+Workshop item `3624538051` holds six mod folders at the 2026-09-30 05:48 sweep — `BaseQuests`, `Economy`, `ItemQuality`, `QualityCooking`, `QualityEnhancements` and `QuestSystem` — and `QualityCooking` is the one absent at the 2026-09-10 17:47 sweep [#2560/C/snapshot].
+`simpleStatus` resolves `42.20` as its live folder at the 2026-09-30 05:48 sweep, reading its `mod.info` from `42.20/mod.info`, so a line cite into its `42.16` tree names a folder the build no longer runs [#2561/C/snapshot].
 
 <a id="status"></a>
 ### Build status per candidate
@@ -226,21 +226,21 @@ A pure content mod scores zero on multiplayer behaviour worth measuring, which i
 
 #### The public Workshop on 2026-09-30
 
-One catalog pass read the Workshop item pages below ([datasets.md](../../reference/datasets.md#workshop-rows)) [T15.37].
+One catalog pass read the Workshop item pages below ([datasets.md](../../reference/datasets.md#workshop-rows)) [#2594/W/snapshot].
 By their titles, the first group below is nutrition mods and the second is stat libraries, a trait system and a tooltip framework.
 Each sentence below carries only what an item page holds — a title, a file size and two stamps quoted as the page writes them, the year omitted for the current one — and nothing about what the mod's code does.
 The laundering patch to Long Term Preservation keeps its earlier dated page reading [#1606/W/snapshot].
 
-Workshop item `3690404044`, `Nutrition Makes Sense [2.0]`, is 883.676 KB, posted `22 Mar @ 4:57pm` and updated `26 Sep @ 9:09am`, at the 2026-09-30 14:10 fetch [T15.28].
-Workshop item `3785515388`, Reasonable Nutrition, is 145.008 KB, posted `17 Aug @ 7:44pm` and updated `26 Aug @ 3:49pm`, at the 2026-09-30 14:10 fetch [T15.29].
-Workshop item `3782835400`, Realistic Nutrition, is 636.708 KB, posted `13 Aug @ 10:59am` and never updated, at the 2026-09-30 14:10 fetch [T15.30].
-Workshop item `3078272807`, Nutrition Tweaker Enhanced, is 503.836 KB, posted `10 Nov, 2023 @ 2:19am` and updated `22 Jul, 2025 @ 1:35pm`, at the 2026-09-30 14:10 fetch [T15.31].
-Workshop item `3736275816`, ApocalipseBR - Nutrition Sync Fix, is 453.434 KB, posted `31 May @ 7:55am` and updated `31 May @ 11:18am` at the 2026-09-30 14:10 fetch, and its page states — quoted faithful in substance, not byte-exact — that a client's calorie counter overwrites the server's on each eat, so players only gain weight [T15.32].
-That stated mechanism is contradicted by the measured client write, which never reaches the server and is erased by the next player stats packet [#0119/M/n=1] [#0568/M/n=2], and public threads report the multiplayer weight drift in both directions on different builds [T15.32].
-Workshop item `2997722072`, StatsAPI, is 133.814 KB, posted `2 Jul, 2023 @ 1:13am` and updated `18 Nov, 2024 @ 3:29pm`, at the 2026-09-30 14:11 fetch [T15.33].
-Workshop item `3415375593`, Stat Tweaks Lib, is 87.724 KB, posted `26 Jan, 2025 @ 2:42pm` and updated `1 Feb, 2025 @ 6:55am`, at the 2026-09-30 14:11 fetch [T15.34].
-Workshop item `2914075159`, Evolving Traits World (ETW) + More Traits continuation, is 7.285 MB, posted `7 Jan, 2023 @ 12:53am` and updated `28 Sep @ 9:17am`, at the 2026-09-30 14:11 fetch [T15.35].
-Workshop item `3694097672`, Tooltiplib - Tooltip Framework for Modders, is 375.475 KB, posted `28 Mar @ 7:40am` and updated `26 Aug @ 4:40am`, at the 2026-09-30 14:11 fetch [T15.36].
+Workshop item `3690404044`, `Nutrition Makes Sense [2.0]`, is 883.676 KB, posted `22 Mar @ 4:57pm` and updated `26 Sep @ 9:09am`, at the 2026-09-30 14:10 fetch [#2585/W/snapshot].
+Workshop item `3785515388`, Reasonable Nutrition, is 145.008 KB, posted `17 Aug @ 7:44pm` and updated `26 Aug @ 3:49pm`, at the 2026-09-30 14:10 fetch [#2586/W/snapshot].
+Workshop item `3782835400`, Realistic Nutrition, is 636.708 KB, posted `13 Aug @ 10:59am` and never updated, at the 2026-09-30 14:10 fetch [#2587/W/snapshot].
+Workshop item `3078272807`, Nutrition Tweaker Enhanced, is 503.836 KB, posted `10 Nov, 2023 @ 2:19am` and updated `22 Jul, 2025 @ 1:35pm`, at the 2026-09-30 14:10 fetch [#2588/W/snapshot].
+Workshop item `3736275816`, ApocalipseBR - Nutrition Sync Fix, is 453.434 KB, posted `31 May @ 7:55am` and updated `31 May @ 11:18am` at the 2026-09-30 14:10 fetch, and its page states — quoted faithful in substance, not byte-exact — that a client's calorie counter overwrites the server's on each eat, so players only gain weight [#2589/W/snapshot].
+That stated mechanism is contradicted by the measured client write, which never reaches the server and is erased by the next player stats packet [#0119/M/n=1] [#0568/M/n=2], and public threads report the multiplayer weight drift in both directions on different builds [#2589/W/snapshot].
+Workshop item `2997722072`, StatsAPI, is 133.814 KB, posted `2 Jul, 2023 @ 1:13am` and updated `18 Nov, 2024 @ 3:29pm`, at the 2026-09-30 14:11 fetch [#2590/W/snapshot].
+Workshop item `3415375593`, Stat Tweaks Lib, is 87.724 KB, posted `26 Jan, 2025 @ 2:42pm` and updated `1 Feb, 2025 @ 6:55am`, at the 2026-09-30 14:11 fetch [#2591/W/snapshot].
+Workshop item `2914075159`, Evolving Traits World (ETW) + More Traits continuation, is 7.285 MB, posted `7 Jan, 2023 @ 12:53am` and updated `28 Sep @ 9:17am`, at the 2026-09-30 14:11 fetch [#2592/W/snapshot].
+Workshop item `3694097672`, Tooltiplib - Tooltip Framework for Modders, is 375.475 KB, posted `28 Mar @ 7:40am` and updated `26 Aug @ 4:40am`, at the 2026-09-30 14:11 fetch [#2593/W/snapshot].
 
 <a id="api-surface"></a>
 ### The API surface the corpus uses
@@ -296,21 +296,21 @@ The three teardown picks ship no sandbox options at all, while `SkillRecoveryJou
 The census turns the API surface around: instead of asking what one candidate reaches for, it asks which mods reach each surface a nutrition mod must share.
 Each line below is a census count with its stamp, and where the count names a site, the site was read off its file.
 
-No `.lua` file in the live version folders of the 234 installed mod folders references `CalculateStats`, `Hook.CalculateStats`, `LuaHookManager` or `TriggerHook`, and the only `Hook.<name>.Add` or `.Remove` call in them is CleanUI's pair on `Hook.AutoDrink`, carried over from vanilla's context menu, at the 2026-09-30 05:48 sweep [T15.1].
+No `.lua` file in the live version folders of the 234 installed mod folders references `CalculateStats`, `Hook.CalculateStats`, `LuaHookManager` or `TriggerHook`, and the only `Hook.<name>.Add` or `.Remove` call in them is CleanUI's pair on `Hook.AutoDrink`, carried over from vanilla's context menu, at the 2026-09-30 05:48 sweep [#2558/C/snapshot].
 
-Three mods hit the `ISEatFoodAction` method surface in the live version folders at the 2026-09-30 05:48 sweep and all three wrap it — `QualityCooking` (`complete` and `eat`, server), `EmergencyVomitB42` (`start`, `complete` and `eat`, client) and `SomewhatTraitsCore` (`getDuration`, shared) — and `EmergencyVomitB42`'s wraps alone sit behind an idempotency sentinel, a flag stored on the action class and tested before it redefines anything [T15.9].
-No live version folder names `ISEatFoodAction.serverStop`, `ISEatFoodAction.isValid` or `updateEat` at the 2026-09-30 05:48 sweep: the eat-method and drink surfaces match those names, and every hit on them reads another method or the action's class name [T15.10].
-The carry setters `setMaxWeightBase` and `setMaxWeightDelta` have 2 hits in the live version folders at the 2026-09-30 05:48 sweep, both `QualityCooking`'s `setMaxWeightBase` in its minute ticker, the second restoring a cached pre-buff base on expiry, so `setMaxWeightDelta` has none [T15.8].
+Three mods hit the `ISEatFoodAction` method surface in the live version folders at the 2026-09-30 05:48 sweep and all three wrap it — `QualityCooking` (`complete` and `eat`, server), `EmergencyVomitB42` (`start`, `complete` and `eat`, client) and `SomewhatTraitsCore` (`getDuration`, shared) — and `EmergencyVomitB42`'s wraps alone sit behind an idempotency sentinel, a flag stored on the action class and tested before it redefines anything [#2566/C/snapshot].
+No live version folder names `ISEatFoodAction.serverStop`, `ISEatFoodAction.isValid` or `updateEat` at the 2026-09-30 05:48 sweep: the eat-method and drink surfaces match those names, and every hit on them reads another method or the action's class name [#2567/C/snapshot].
+The carry setters `setMaxWeightBase` and `setMaxWeightDelta` have 2 hits in the live version folders at the 2026-09-30 05:48 sweep, both `QualityCooking`'s `setMaxWeightBase` in its minute ticker, the second restoring a cached pre-buff base on expiry, so `setMaxWeightDelta` has none [#2565/C/snapshot].
 
-`ISToolTipInv:render` is wrapped in five mods' live version folders at the 2026-09-30 05:48 sweep — `SkillRecoveryJournal`, `KATTAJ1_ClothesCore`, `ItemQuality`, `QuestSystem` and `GirthsTweaks`, the last in two files — and by `sd-teleporter` from `common/media`, each a save-and-replace with no idempotency sentinel, and `SkillRecoveryJournal`'s journal-tooltip path calls its own forked copy of vanilla's render instead of the saved chain [T15.11].
-No live version folder references `ISCharacterInfoWindow` or `ISLayoutManager.RegisterWindow` at the 2026-09-30 05:48 sweep; `AutoCook` wraps the window's `createChildren`, `onTabTornOff` and `SaveLayout` and calls `RegisterWindow` on a `charinfowindow.<tab>` name from a `common/media` file, and vanilla's character info window registers six `charinfowindow` layout names in one file [T15.12].
+`ISToolTipInv:render` is wrapped in five mods' live version folders at the 2026-09-30 05:48 sweep — `SkillRecoveryJournal`, `KATTAJ1_ClothesCore`, `ItemQuality`, `QuestSystem` and `GirthsTweaks`, the last in two files — and by `sd-teleporter` from `common/media`, each a save-and-replace with no idempotency sentinel, and `SkillRecoveryJournal`'s journal-tooltip path calls its own forked copy of vanilla's render instead of the saved chain [#2568/C/snapshot].
+No live version folder references `ISCharacterInfoWindow` or `ISLayoutManager.RegisterWindow` at the 2026-09-30 05:48 sweep; `AutoCook` wraps the window's `createChildren`, `onTabTornOff` and `SaveLayout` and calls `RegisterWindow` on a `charinfowindow.<tab>` name from a `common/media` file, and vanilla's character info window registers six `charinfowindow` layout names in one file [#2569/C/snapshot].
 
-Four mods' live version folders hit `sendSyncPlayerFields`, `syncPlayerStats` or `syncBodyPart` at the 2026-09-30 05:48 sweep, and the two `sendSyncPlayerFields` hits are `SkillRecoveryJournal`'s, sending bit `0x00000001` behind an `isServer()` test and a member nil-check, while vanilla's own Lua sends `0x00000001`, `0x00000007` and `0x00000010` [T15.18].
-No live version folder calls `applyTraitFromWeight` or any `getNutrition():set` method at the 2026-09-30 05:48 sweep: the five mods hitting that trait surface all hit it on a `CharacterTrait` constant [T15.13].
+Four mods' live version folders hit `sendSyncPlayerFields`, `syncPlayerStats` or `syncBodyPart` at the 2026-09-30 05:48 sweep, and the two `sendSyncPlayerFields` hits are `SkillRecoveryJournal`'s, sending bit `0x00000001` behind an `isServer()` test and a member nil-check, while vanilla's own Lua sends `0x00000001`, `0x00000007` and `0x00000010` [#2575/C/snapshot].
+No live version folder calls `applyTraitFromWeight` or any `getNutrition():set` method at the 2026-09-30 05:48 sweep: the five mods hitting that trait surface all hit it on a `CharacterTrait` constant [#2570/C/snapshot].
 
-39 mods' live version folders ship a `sandbox-options.txt` declaring prefixed options at the 2026-09-30 05:48 sweep, carrying 29 distinct option prefixes, `NR` not among them, and `GirthsTweaks` declares two prefixes (`GirthsTweaks` and `MPSleep`) in one file [T15.19].
-`QualityCooking` scales its buffs by the vanilla `SandboxVars.StatsDecrease` and `SandboxVars.EndRegen` options, and `GirthsTweaks` branches its multiplayer sleep on the vanilla `SandboxVars.DayLength` [T15.20].
-`SDQuests` declares `OnEat = SDQBoneHurtingJuice_OnEat` on an item in its live scripts, and the target is a bare global function in a `lua/shared/` file [T15.22].
+39 mods' live version folders ship a `sandbox-options.txt` declaring prefixed options at the 2026-09-30 05:48 sweep, carrying 29 distinct option prefixes, `NR` not among them, and `GirthsTweaks` declares two prefixes (`GirthsTweaks` and `MPSleep`) in one file [#2576/C/snapshot].
+`QualityCooking` scales its buffs by the vanilla `SandboxVars.StatsDecrease` and `SandboxVars.EndRegen` options, and `GirthsTweaks` branches its multiplayer sleep on the vanilla `SandboxVars.DayLength` [#2577/C/snapshot].
+`SDQuests` declares `OnEat = SDQBoneHurtingJuice_OnEat` on an item in its live scripts, and the target is a bare global function in a `lua/shared/` file [#2579/C/snapshot].
 
 <a id="corpus-facts"></a>
 ### Corpus-level facts
@@ -375,21 +375,21 @@ The corpus-wide mod-lint sweep returned 84 findings — 3 ERROR, 30 WARN and 51 
 
 The newest resident, `QualityCooking`, sits on the eat seat, the stat writes and the carry base at once, and every one of its sites is a server file.
 
-`QualityCooking` wraps both `ISEatFoodAction.complete` and `ISEatFoodAction.eat` in a `lua/server/` file, each by saving the original into a local and redefining the method unconditionally, with no idempotency sentinel [T15.5].
-Inside that eat wrap `QualityCooking` reads the eaten food's four macros (`BuffMath.Macros(food, fraction)`) to allocate its buff points, so it consumes every value a vanilla-food re-base moves [T15.6].
-Its `EveryOneMinute` handler, registered in a `lua/server/` file behind a not-`isClient()` test, adds to `CharacterStat.ENDURANCE`, `FATIGUE` and `HUNGER` through `stats:add` scaled by `ZomboidGlobals.ImobileEnduranceIncrease`, `FatigueIncrease` and `HungerIncrease`, and its live folder carries 10 `stat_write` surface hits at the 2026-09-30 05:48 sweep [T15.7].
+`QualityCooking` wraps both `ISEatFoodAction.complete` and `ISEatFoodAction.eat` in a `lua/server/` file, each by saving the original into a local and redefining the method unconditionally, with no idempotency sentinel [#2562/C/snapshot].
+Inside that eat wrap `QualityCooking` reads the eaten food's four macros (`BuffMath.Macros(food, fraction)`) to allocate its buff points, so it consumes every value a vanilla-food re-base moves [#2563/C/snapshot].
+Its `EveryOneMinute` handler, registered in a `lua/server/` file behind a not-`isClient()` test, adds to `CharacterStat.ENDURANCE`, `FATIGUE` and `HUNGER` through `stats:add` scaled by `ZomboidGlobals.ImobileEnduranceIncrease`, `FatigueIncrease` and `HungerIncrease`, and its live folder carries 10 `stat_write` surface hits at the 2026-09-30 05:48 sweep [#2564/C/snapshot].
 
-`SomewhatTraitsCore`'s live `42.15` folder carries 34 `stat_write` surface hits at the 2026-09-30 05:48 sweep, every one in its server file, where `stats:add` and `stats:remove` write endurance, fatigue, stress, unhappiness, boredom and intoxication, and the same file writes player calories through `nutrition:setCalories` [T15.25].
-Its shadowed `42.12` folder, which the build does not run, ships a larger client implementation writing `setPanic`, `setBoredomLevel`, `setUnhappynessLevel` and `setPanicReductionValue(0.0)` [T15.26].
-`GirthsTweaks` sets `CharacterStat.FATIGUE` to zero on its multiplayer sleep path and later restores fatigue and endurance absolutely from values stashed in player modData, in a `lua/server/` file [T15.27].
+`SomewhatTraitsCore`'s live `42.15` folder carries 34 `stat_write` surface hits at the 2026-09-30 05:48 sweep, every one in its server file, where `stats:add` and `stats:remove` write endurance, fatigue, stress, unhappiness, boredom and intoxication, and the same file writes player calories through `nutrition:setCalories` [#2582/C/snapshot].
+Its shadowed `42.12` folder, which the build does not run, ships a larger client implementation writing `setPanic`, `setBoredomLevel`, `setUnhappynessLevel` and `setPanicReductionValue(0.0)` [#2583/C/snapshot].
+`GirthsTweaks` sets `CharacterStat.FATIGUE` to zero on its multiplayer sleep path and later restores fatigue and endurance absolutely from values stashed in player modData, in a `lua/server/` file [#2584/C/snapshot].
 
-Five mods' live version folders name `CharacterTrait.NIGHT_VISION`, `SHORT_SIGHTED`, `EAGLE_EYED`, `KEEN_HEARING` or `INSOMNIAC` at the 2026-09-30 05:48 sweep, and the only runtime trait add or remove among those hits is `GirthsTweaks` removing `INSOMNIAC` from a player in a server file and in a client file [T15.16].
-`SWMisc_Patches` removes the `Perks.Fitness` XP boost from the vanilla Underweight and Overweight trait definitions at load, in a `lua/shared/` file [T15.17].
-`ReduceGeneralHealth`, `setOverallBodyHealth`, `setCatchACold`, `setWoundInfectionLevel`, `setInfectionGrowthRate`, `setAimingDelay` and `CharacterStat.TEMPERATURE` have zero hits in the corpus's live version folders at the 2026-09-30 05:48 sweep [T15.15].
-`1VCESTANDARD`'s live `42.19` script `VCEcontainers.txt` redefines the vanilla item `Bag_HydrationBackpack` under `module Base`, a fluid-container record it writes as `ItemType base:container` with no nutrition key [T15.21].
+Five mods' live version folders name `CharacterTrait.NIGHT_VISION`, `SHORT_SIGHTED`, `EAGLE_EYED`, `KEEN_HEARING` or `INSOMNIAC` at the 2026-09-30 05:48 sweep, and the only runtime trait add or remove among those hits is `GirthsTweaks` removing `INSOMNIAC` from a player in a server file and in a client file [#2573/C/snapshot].
+`SWMisc_Patches` removes the `Perks.Fitness` XP boost from the vanilla Underweight and Overweight trait definitions at load, in a `lua/shared/` file [#2574/C/snapshot].
+`ReduceGeneralHealth`, `setOverallBodyHealth`, `setCatchACold`, `setWoundInfectionLevel`, `setInfectionGrowthRate`, `setAimingDelay` and `CharacterStat.TEMPERATURE` have zero hits in the corpus's live version folders at the 2026-09-30 05:48 sweep [#2572/C/snapshot].
+`1VCESTANDARD`'s live `42.19` script `VCEcontainers.txt` redefines the vanilla item `Bag_HydrationBackpack` under `module Base`, a fluid-container record it writes as `ItemType base:container` with no nutrition key [#2578/C/snapshot].
 
-Summed over each record's eight most-registered events in the live version folders, the corpus registers `OnTick` 84 times over 17 mods, `OnPlayerUpdate` 55 over 39, `EveryOneMinute` 23 over 10 and `EveryTenMinutes` 5 over 3 at the 2026-09-30 05:48 sweep, a floor rather than a total, while the untruncated `OnPlayerUpdate` signal reads 61 over 43 [T15.23].
-24 of those `OnTick` registrations are `SomewhatTraitsCore`'s at the 2026-09-30 05:48 sweep, every one in its `lua/server/SWTraitsCore_server.lua` [T15.24].
+Summed over each record's eight most-registered events in the live version folders, the corpus registers `OnTick` 84 times over 17 mods, `OnPlayerUpdate` 55 over 39, `EveryOneMinute` 23 over 10 and `EveryTenMinutes` 5 over 3 at the 2026-09-30 05:48 sweep, a floor rather than a total, while the untruncated `OnPlayerUpdate` signal reads 61 over 43 [#2580/C/snapshot].
+24 of those `OnTick` registrations are `SomewhatTraitsCore`'s at the 2026-09-30 05:48 sweep, every one in its `lua/server/SWTraitsCore_server.lua` [#2581/C/snapshot].
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -419,13 +419,13 @@ Not covered: no mod here was booted for this catalog — every reading is of a s
 - Whether SkillRecoveryJournal's protein-gated exercise multiplier reads the vanilla protein store's value on the server is open — settled by a desk re-read of its live tree for a wired multiplier, then its own grant at three server-set protein values; -> [X43](../../areas/open-questions.md#x43) [#2092/C/open].
 - Whether simpleStatus's bars track the vanilla macro stores on a client is open — settled by a probe copying the bars' text beside the client's macro store after a server write; -> [X44](../../areas/open-questions.md#x44) [#2093/C/open].
 - Whether QualityCooking and BeyondTen each load beside a probe mod on this server is open — settled by one co-boot reading each mod's own marker on both sides; -> [X45a](../../areas/open-questions.md#x45a) [#2094/C/open].
-- That vanilla's `media/lua` calls `applyTraitFromWeight` nowhere is unverified: it rests on a hand scan of the install rather than a committed dataset; re-measure by a committed sweep of the install's Lua for that name [T15.14].
-- The design must decide whether QualityCooking's code is read line by line before its own eat wrapper is written, because QualityCooking wraps the same eat completion on the server with no sentinel [T15.5] and reads the eaten macros inside that wrap [T15.6].
+- That vanilla's `media/lua` calls `applyTraitFromWeight` nowhere is unverified: it rests on a hand scan of the install rather than a committed dataset; re-measure by a committed sweep of the install's Lua for that name [#2571/C/snapshot/unverified].
+- The design must decide whether QualityCooking's code is read line by line before its own eat wrapper is written, because QualityCooking wraps the same eat completion on the server with no sentinel [#2562/C/snapshot] and reads the eaten macros inside that wrap [#2563/C/snapshot].
 - The design must decide whether BeyondTen's code is read before any Strength or Fitness write, because BeyondTen extends every trainable skill past the native cap ([beyondten.md](beyondten.md#what-it-does)) [#1525/C/C-only].
-- The design must decide whether Evolving Traits World's code is read before any runtime trait write, because the one runtime trait removal the census's trait names find runs on both sides [T15.16] and Evolving Traits World [T15.35] is a Workshop item this tree cannot read [#1600].
-- The design must decide whether Tooltiplib's code is read before a tooltip wrap is written, because the tooltip render is already a sentinel-free wrap chain [T15.11] and Tooltiplib [T15.36] is a Workshop item this tree cannot read [#1600].
-- The design must decide whether Nutrition Makes Sense, StatsAPI and Stat Tweaks Lib are read before release, because the stat hook is unclaimed only in the installed corpus [T15.1] and those three [T15.28] [T15.33] [T15.34] are Workshop items this tree cannot read [#1600].
-- The design must decide whether the ApocalipseBR sync fix is read before release, because its page states a sync mechanism the library's measurements contradict [T15.32].
+- The design must decide whether Evolving Traits World's code is read before any runtime trait write, because the one runtime trait removal the census's trait names find runs on both sides [#2573/C/snapshot] and Evolving Traits World [#2592/W/snapshot] is a Workshop item this tree cannot read [#1600].
+- The design must decide whether Tooltiplib's code is read before a tooltip wrap is written, because the tooltip render is already a sentinel-free wrap chain [#2568/C/snapshot] and Tooltiplib [#2593/W/snapshot] is a Workshop item this tree cannot read [#1600].
+- The design must decide whether Nutrition Makes Sense, StatsAPI and Stat Tweaks Lib are read before release, because the stat hook is unclaimed only in the installed corpus [#2558/C/snapshot] and those three [#2585/W/snapshot] [#2590/W/snapshot] [#2591/W/snapshot] are Workshop items this tree cannot read [#1600].
+- The design must decide whether the ApocalipseBR sync fix is read before release, because its page states a sync mechanism the library's measurements contradict [#2589/W/snapshot].
 
 ## See also
 

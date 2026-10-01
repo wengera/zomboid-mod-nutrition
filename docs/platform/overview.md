@@ -85,7 +85,7 @@ The server owns the eat: a multiplayer client never reaches the eat action's com
 The server owns the nutrition object, and a multiplayer client holds a mirror of it ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0125/M/one-fixture].
 The server owns the calorie store and the three macro stores, which reach the client as a push ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0898/M/n=1].
 The server owns hunger and thirst, and a client write to either is erased by the next snapshot ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0123/M/n=1].
-The server owns endurance ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0561].
+The server owns endurance ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0561/C/superseded].
 The server owns fatigue ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0562/C/C-only].
 The server owns the body-weight write and the weight-band trait refresh, while the computation itself runs on both sides and the client throws its result away ([`mp-model.md#ownership`](mp-model.md#ownership)) [#0559/M/n=1].
 Neither side owns the moodles: each recomputes them from its own stats, and they are absent from the player-stats packet ([`mp-model.md#ownership`](mp-model.md#ownership)) [#1245/C/C-only].

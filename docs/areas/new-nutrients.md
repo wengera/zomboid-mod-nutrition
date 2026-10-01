@@ -39,7 +39,7 @@ A parallel store passes through none of these setters, so it has no range at all
 
 Nor does vanilla leave anything for a mod nutrient to plug into.
 Calories are the only driver of weight, and carbohydrates and lipids act on it only as multipliers of the gain rate [#0180].
-Proteins never touch weight and reach no effect anywhere in vanilla, the one reader outside the weight model sitting behind thresholds the clamps make unreachable [#0181/M/n=2].
+Proteins never touch weight and reach no effect anywhere in vanilla, the one reader outside the weight model sitting behind thresholds the clamps make unreachable [#0181/M/n=2/superseded].
 Everything past those two consumers is therefore dead space, a reading stated with its row at [the effect-path options](#effect-paths).
 The same fact cuts the other way: nothing in vanilla will act on a mod nutrient, so every consequence it is to have is a path the mod writes, and [the effect-path options](#effect-paths) are the places such a path can attach.
 Hunger and calories do not feed each other in either direction, so a mod store can be driven from calories, from hunger or from neither without disturbing a vanilla coupling [#0500, #0501, #0503].
