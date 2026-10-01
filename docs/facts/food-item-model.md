@@ -66,7 +66,7 @@ What fills the two lists is [`cooking-and-recipes.md`](cooking-and-recipes.md#ev
 
 `InventoryItem.getModData()` is public on an exposed class and lazily creates the instance's own table, while `hasModData()` answers false for a table that exists but is empty, so calling the getter to test for mod data always finds a table [T19.26].
 Every instance receives a deep, recursive copy of its type's default modData rather than a shared reference: `InstanceItem` calls `copyModData`, which wipes the instance table and runs `LuaManager.copyTable`, which copies a nested table through a recursive call, so a write to one instance's key reaches neither the type default nor a sibling instance [T19.27].
-`Food.multiplyFoodValues`, which shrinks what is left of a part-eaten or part-spent item, touches no modData, no `extraItems` and no `spices`: its whole body is fifteen setter calls, each a field times the factor, and a return [T19.28].
+`Food.multiplyFoodValues`, which shrinks what is left of a part-eaten or part-spent item, touches no modData, no `extraItems` and no `spices`: its whole body is one setter call per scaled field, each the field times the factor, and a return [T19.28].
 A value a mod keeps in an instance's modData therefore stays whole while the item's own nutrition shrinks around it [T19.28].
 
 <a id="dead-setters"></a>
@@ -242,14 +242,13 @@ A key that parses into nowhere looks, in the table, exactly like a key that work
 `RainFactor` has no branch in `Item.DoParam` and is recognised only by `FluidContainerScript` inside a `component FluidContainer` block, never at item top level, so at item level it lands in `defaultModData`, and it is carried by the same one shipped item [#0218/C/snapshot].
 Both land there by the loader's default arm, which writes an unrecognised key into the item's default modData rather than dropping it or throwing ([#0212], [`loader-and-scripts.md`](../platform/loader-and-scripts.md#default-moddata)).
 That arm is also the route a mod nutrient can ride into a vanilla block.
-`Item.DoParam`'s default arm rawsets an unrecognised `item` key into the script's `defaultModData` under its trimmed name, as a `Double` when the trimmed value parses as one and as the raw value string otherwise [T19.31].
 Each instance then gets its own deep copy of that table, as [the state axes](#state-axes) state.
 
 `Eattime` is the script-parser spelling of the eat-duration key, it has no Java consumer, and its only use is the Lua duration override [#0100/C/snapshot].
 The spelling is the trap: the getter is camel-cased and the key is not.
 What the eat action does with the value is [`eating-pipeline.md`](eating-pipeline.md#eat-type).
 
-One shipped item writes the item endurance key: of the 1 005 food, drainable and fluid-container rows only `Base.Ginseng` carries it, as `enduranceChange = 2.0`, which `Item.DoParam` accepts through a case-insensitive match [T19.33].
+One shipped item writes the item endurance key: of the food dataset's item records, counted 2026-09-10, only `Base.Ginseng` carries it, as `enduranceChange = 2.0`, which `Item.DoParam` accepts through a case-insensitive match [T19.33].
 The table's `enduranceChange` row is that one block, and what `Eat` does with the value is [`eating-pipeline.md`](eating-pipeline.md#eat)'s.
 
 A mod that wants a type's own numbers at run time can read some of them off the script and not others.

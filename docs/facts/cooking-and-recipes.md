@@ -244,7 +244,7 @@ How both lists are saved is [food-item-model.md](food-item-model.md#state-axes)'
 
 An evolved dish is a fresh instance built from the recipe's result type, so it carries that type's default modData and nothing from the base item's or the ingredients' modData, and a mod value in an ingredient's modData does not reach the dish [T19.7].
 
-The Cooking perk level that scales it is server-owned, so a client-side perk write silently runs the recipe at the server's level and both `skillBonus` and `share` are the server's whatever the client UI shows [#0759/M/n=1].
+The Cooking perk level that scales the summation is server-owned, so a client-side perk write silently runs the recipe at the server's level and both `skillBonus` and `share` are the server's whatever the client UI shows [#0759/M/n=1].
 
 `data/evolved-recipes.json` applies the whole non-rotten path of that block per recipe-and-ingredient row at Cooking 0 and Cooking 10, carrying every term of the hunger, `hungerAfterSkill`, `share`, `skillBonus`, four-macro and thirst arithmetic in `at0` and `at10` rather than only the results [#0728].
 
@@ -376,12 +376,12 @@ Neither arm carries item modData from an input to an output, so a mod value cros
 
 The craft split is `InputFlag.InheritFood`, which `CraftRecipeData.createOutputItems` reads through `getFirstInputItemWithFlag`, and no class in the jar contains `PassNutritionThroughFood`, `PassNutrition` or `NutritionThroughFood` [T19.10].
 
-When both the output and the `InheritFood` input are `Food`, `createOutputItems` calls `output.copyFoodFromSplit(input, OutputScript.getIntAmount())`, which copies nutrition at one over the output amount and then the frozen, cooked and burnt, temperature, poison and age states and the input's ingredient and spice lists, and copies no modData [T19.11].
+When both the output and the `InheritFood` input are `Food`, `createOutputItems` calls `output.copyFoodFromSplit(input, OutputScript.getIntAmount())`, which copies nutrition at one over the output amount and then the frozen, cooked and burnt, temperature, poison and age states and the input's ingredient and spice lists, and copies no modData [#0706/C/snapshot, T19.11].
 The ratio is the recipe's output count rather than a draw, so it is exactly recoverable from the recipe [T19.11].
 
 `Food.copyNutritionFromRatio` writes nine fields, each the source's value times the ratio — `baseHunger`, `hungChange`, carbohydrates, lipids, proteins, calories, `unhappyChange`, `thirstChange` and `boredomChange` — and touches no modData and no item list [T19.12].
 
-It reads thirst through the state-modified `getThirstChange()` and writes it through the raw setter, so a split of a cooked food stores its thirst already halved and the cooked output halves it again when it is read [T19.13].
+It reads thirst through the state-modified `getThirstChange()` and writes it through the raw setter, so a split of a cooked food stores its thirst already halved and the cooked output halves it again when it is read [#0034/M/one-fixture, T19.13].
 
 `Food.copyExtraItems` appends each of the input's ingredient entries onto the output's list and passes a non-empty spice list to `Food.setSpices`, which builds a fresh `ArrayList` from it or clears and refills the output's own, so a split output and its input hold separate spice lists [T19.14].
 What a split costs its input, and why its calorie delta reads zero, is under [recipe IO](#uses).
@@ -462,7 +462,6 @@ A cooked food's `thirstChange` cannot be trusted client-side; the per-hop arithm
 The engine has no per-entry amount on a dish's ingredient list, no Lua event inside the evolved summation and no `PassNutritionThroughFood` flag, so a per-ingredient share and a hook on the add exist only where a mod writes them [T19.4] [T19.8] [T19.10].
 
 No vanilla arm carries item modData from an input to an output: the evolved summation, the craft split and the Java craft summation all leave it behind [T19.7] [T19.11] [T19.19].
-
 
 Not covered: the cooking UI and the right-click path that reaches it, the crafting timed action end to end, cooking XP beyond the single grant in `Food.update`, `component CraftRecipe` blocks that build entities rather than items, the drying and furnace callers of the craft `OnCreate` dispatch, whether a consumed input's macros are already spent when `OnCreate` runs, which side runs the add-item and hand-craft actions on a dedicated server, and fluid nutrition, which is per litre and excluded from every delta on this page.
 
