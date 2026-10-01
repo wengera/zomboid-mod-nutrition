@@ -11,7 +11,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the registered cha
 - On a server the fatigue stat is reset to its default on every call unless sleep is both allowed and needed, and the reset runs before the hook, so no handler can stop it [#2216/C/C-only].
 - The character's endurance updater and the player's are two separate private methods, and the one the stat update reaches only stamps the last-endurance value and honours the unlimited-endurance cheat [#2214/C/C-only] [#2215/C/C-only].
 - The player's endurance model runs earlier in the same update than the hook, so the hook cannot suppress it and a handler's endurance write lands after vanilla's for that tick [#2235/C/C-only].
-- The thirst updater adds thirst only on a server, or off a client for the local player, and skips the add while the player is in ghost mode [#0560].
+- The thirst updater adds thirst only on a server, or off a client for the local player, and skips the add while the player is in ghost mode [#0560/M/n=1].
 - The fitness updater writes the `FITNESS` stat as the Fitness perk level divided by `5`, minus `1`, and is private [#2223/C/C-only] [#2222/C/C-only].
 - On a multiplayer client the player's stat update returns before calling the character's, so the fatigue reset, the hook and the seven updaters run only on the server for players [#2236/C/C-only].
 - Each side recomputes its own moodles from its own copy of the stats [#0563].
@@ -77,8 +77,8 @@ It is not the endurance model: the player's model is a separate method the hook 
 
 The tripping updater's only write is the tripping rotation angle, advanced by `0.06` per call while the character is tripping, and nothing in the jar outside `Stats` reads that angle [#2225/C/C-only].
 
-The thirst updater adds thirst only when the process is a server, or is not a client and the character is the local player instance, and it skips the add while the character's player is in ghost mode [#0560].
-A takeover that drops the thirst updater drops that ghost-mode gate with it, because the gate lives inside one of the seven updaters the hook skips [#2217/C/C-only] [#0560].
+The thirst updater adds thirst only when the process is a server, or is not a client and the character is the local player instance, and it skips the add while the character's player is in ghost mode [#0560/M/n=1].
+A takeover that drops the thirst updater drops that ghost-mode gate with it, because the gate lives inside one of the seven updaters the hook skips [#2217/C/C-only] [#0560/M/n=1].
 The thirst updater also calls the auto-drink method on every call, after and outside that gate, and is its only call site in the jar, so a registered handler also stops auto-drinking and the `AutoDrink` hook it fires; the method is public on an exposed class, so a takeover can call it itself [#2250/C/C-only].
 
 The stress updater carries no side gate of its own beyond an animal return and relies on the player's stat update for its side; it adds the sound stress at the character's square unless the character is Deaf, with no game-time factor, and adds the bite-or-scratch term once when any part is bitten and once more when any part is scratched [#2220/C/C-only].
@@ -160,7 +160,7 @@ Not covered: the sound-stress source function and the awake path's stress decay,
 - Whether a handler's endurance write is the last before the player-stats push, as the tick order reads — settled by a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed; -> [X35](../areas/open-questions.md#x35) [#2082/C/open].
 - Whether a second registrant of the hook changes what the first one causes — settled by thirst across one handler, that handler with a second, the second alone, and no handler; -> [X46](../areas/open-questions.md#x46) [#2086/C/open].
 - Decision: whether a takeover handler integrates endurance from its own stored value or from the stat it reads back — the player's endurance model runs outside the hook, earlier in the same update [#2235/C/C-only], on the side [the ownership section](../platform/mp-model.md#ownership) states.
-- Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [#2215/C/C-only], the anger decay and the idle-square timer [#2226/C/C-only], the time-of-sleep advance [#2227/C/C-only], the thirst ghost-mode gate [#0560], the auto-drink call [#2250/C/C-only] and the fitness stat's refresh [#2223/C/C-only].
+- Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [#2215/C/C-only], the anger decay and the idle-square timer [#2226/C/C-only], the time-of-sleep advance [#2227/C/C-only], the thirst ghost-mode gate [#0560/M/n=1], the auto-drink call [#2250/C/C-only] and the fitness stat's refresh [#2223/C/C-only].
 - Decision: whether the mod keeps a nutrient in a stat it registers or in its own store — a registered stat answers `get` and `set` and is never saved or synced [#2211/C/C-only].
 
 ## See also

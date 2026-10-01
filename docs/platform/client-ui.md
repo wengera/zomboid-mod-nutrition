@@ -123,7 +123,7 @@ The tooltip's height is set by Java from its own laid-out content plus `padBotto
 `InventoryItem.DoTooltipEmbedded` skips its layout render, `endLayout` and `setHeight` tail when a `Layout` is passed in, which is how the engine composes a sub-item's rows inside one tooltip box [#2492/C/C-only].
 
 The food block a nutrition mod will sit beside has its own gate.
-The food tooltip's nutrition block has three gates, any one of which shows it: the debug arm (`Core.debug` with the `tooltipInfo` debug option), a packaged food whose label the viewer can read (not Illiterate, not too dark to read, no `NoLabel` modData), and the character holding `CharacterTrait.NUTRITIONIST` or `NUTRITIONIST2`, so a client launched with the debug flag can show the block without the trait [#2645].
+The food tooltip's nutrition block has three gates, any one of which shows it: the debug arm (`Core.debug` with the `tooltipInfo` debug option), a packaged food whose label the viewer can read (not Illiterate, not too dark to read, no `NoLabel` modData), and the character holding `CharacterTrait.NUTRITIONIST` or `NUTRITIONIST2`, so a client launched with the debug flag can show the block without the trait [#2645/C/C-only].
 The trait's own standing as display-only is [body-and-weight.md](../facts/body-and-weight.md#traits)'s [#0546/C/snapshot].
 A test that reads the tooltip on a harness client, which runs with the debug flag, can therefore see the block on a character with no Nutritionist trait.
 
