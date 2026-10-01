@@ -1,7 +1,8 @@
 # MP sync — the routes this mod's state travels
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: which side this mod owns each quantity on, the three routes its own state can travel between a dedicated server and its clients, how each route fails on a live server and what no route offers; the packet mechanisms are `platform/mp-model.md` and the field contracts `facts/wire-packets.md`
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: which side this mod owns each quantity on, the three routes its own state can travel between a dedicated server and its clients, how each route fails on a live server, the pushes server Lua can cause and which client each reaches, global modData as the world's store, and what no route offers; the packet mechanisms are `platform/mp-model.md` and the field contracts `facts/wire-packets.md`
 
 ## Rules
+<a id="rules"></a>
 
 - Run anything that changes what eating delivers where `Eat` runs, on the server, and carry its state by server mutation over the command bus, a parallel player-modData store transmitted on change, or client-only semantics: a multiplayer client never reaches `Eat`, so nothing it computes lands in the vanilla store the eat writes [#0128/C/inference, #0109].
 - Write every player stat on the server: a client-side write to hunger, thirst, endurance, fatigue, calories, the macros or weight is erased by the next player-stats packet, so every one of them has exactly one owner [#0568/M/n=2].
@@ -18,13 +19,16 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: which side this mo
 - Address an item in a bus round trip by its id and never by its display name: the id names the same instance on both sides of a single-bodied item, while a dedicated server resolves no display name at all [#1145/M/n=1, #2054/C/inference].
 - Give the mod's command-bus module a name no other mod on the server uses: the bus is one namespace shared with every other mod's command sites on that server [#1153/C/C-only, #2055/C/inference].
 - Guard every `media/lua/server/` file with a runtime `isServer()` test rather than trusting the folder: a mod's `server/` files execute in the multiplayer client's Lua state too, so "only my server file writes this" is false until the guard is there, and the side test is itself nil-checked because the global may be absent [#0855/M/n=1, #1075/M/n=1].
+- Push the trait block with `sendSyncPlayerFields(player, 2)` after any server-side trait write, and expect only the affected player's own client to receive it: a trait write fires no event and sends no packet, the once-a-second experience push also refreshes that client's trait list so the mod's own push buys freshness within that second rather than being the only route, and every player-addressed server send reaches that player's connection alone, all read from the code and not exercised on a live server [T21.1] [#2601/C/C-only] [#2595/C/C-only] [#2608/C/C-only] [#2603/C/C-only].
+- Re-read a client's copy of a server-written value only after the push that carries it has landed: the engine refreshes each block on its own timed push, the experience object on the stats snapshot's cadence and injuries and damage on a slower one, while `syncPlayerStats`, `syncBodyPart` and `sendSyncPlayerFields` push now to that player's own client and a call is no proof of delivery, so a read taken before the carrying push sees the previous value [T21.2] [#2608/C/C-only] [#2609/C/C-only] [#2607/C/C-only] [#2602/C/C-only] [#2603/C/C-only].
+- Send a mod-owned value to the client over the mod's own command bus, never through a framework that has no transport: a client-side library such as `MoodleFramework` sends, receives and transmits nothing and keeps its values in a per-client table, so a server-authoritative value reaches it only when the mod's own `sendServerCommand` delivers it to a client handler that hands it over [T21.3] [#2540/C/inference] [#2537/C/C-only] [#2538/C/C-only] [#1153/C/C-only].
 
 ## How it works
 
 A nutrition overhaul on a dedicated server asks the same question of every quantity it touches: which side computes it, which route carries it to the other side, and what the other side holds between arrivals.
 The mechanisms that answer it are [`../platform/mp-model.md`](../platform/mp-model.md), and the payload of every packet involved is [`../facts/wire-packets.md`](../facts/wire-packets.md); this page restates neither.
 What it adds is the reading for this mod: where each quantity has to live, which of the three routes a mod can choose each of its own values rides, and how each route fails once real clients and other mods share the server.
-The page owns one rule and no fact: every claim below is cited to the row that owns it, and the untagged sentences are this mod's reading of those rows.
+The page owns its rules and no fact: every claim below is cited to the row that owns it, and the untagged sentences are this mod's reading of those rows.
 Every measured row it cites was read on the dedicated-server path with one real client attached, and single player is never claimed.
 
 <a id="authority"></a>
@@ -41,7 +45,7 @@ Every nutrient this mod adds is therefore computed on the server, whatever store
 The vanilla stores the mod reads have one owner each, and it is always the server.
 The nutrition object is the server's, and a multiplayer client holds a mirror of it [#0125/M/one-fixture].
 A client does not run the drain at all, because the nutrition update skips the macro decay and the calorie update on a game client [#0117].
-Hunger and thirst tick on the server only, and endurance and fatigue are the server's in the same way [#0560/M/n=1, #0561/C/superseded, #0562/C/C-only].
+Hunger and thirst tick on the server only, and endurance and fatigue are the server's in the same way [#0560/M/n=1, #2596/C/C-only, #0562/C/C-only].
 A client-side write to any of those stores is erased by the next player-stats snapshot, which is what gives each of them exactly one owner ([#0568/M/n=2], [mp-model.md#routes-client-to-server](../platform/mp-model.md#routes-client-to-server)).
 A mod that retunes the hunger and thirst constants has to do it on the server for the same reason: the updater that reads them runs there [#0569/C/C-only].
 Each eat's own packet overwrites the receiver's whole nutrition object as well, so a client-side change to that store survives no eat [#0113].
@@ -52,9 +56,9 @@ Weight is the one vanilla quantity whose ownership splits by field, and a nutrit
 The server owns the value and the client never computes it: the weight update skips before the setter on a client, while the three direction flags are written ahead of that skip and stay readable client-side [#1238/M/n=1].
 Those flags are not packet fields, and each side's own computation of them agreed with the other's on both non-trivial arms [#0900/M/n=1].
 The client may therefore show which way the weight is moving, and may never show a weight of its own [#1139/M/n=1, #1138/M/n=1].
-The band traits are applied on the server, and no packet has been traced carrying them to a client [#1239/C/C-only/superseded].
+The band traits are applied on the server, and the trait list reaches that player's own client on two server pushes, the once-a-second experience packet and the player-fields packet's trait block, both read from the code and neither exercised on a live server [#2595/C/C-only].
 Anything this mod keys on a band is therefore evaluated on the server or fed a value the mod sends itself [#1104/C/inference].
-Whether a client can rely on a band trait at all is an open verdict rather than a wall, and it is listed under [Open](#open) [#1161/C/C-only/open].
+Whether a client-side read sees a trait the server has just written, within the cadence of those pushes, is unmeasured, and no run has held a non-empty trait list on either side, so the wall map's [verdict on a client-side band trait](../reference/wall-map.md#g4) stays open and the question is listed under [Open](#open).
 
 On the item side the server owns the whole lifecycle.
 The container hooks that fire as an item enters or leaves a container are server-gated, and the cook transition runs on the server [#0327, #1417/M/n=1].
@@ -69,7 +73,9 @@ The mod's own per-player store has no vanilla owner, so the design assigns one.
 Character, item and global modData are the only durable mod state the engine saves, which makes one of them the store whichever route carries its copies [#1122/C/C-only].
 Player modData is a table both sides hold a copy of, and it does not cross until something transmits it [#0913/M/n=1].
 The server is the only side that can own that store, because the intake that changes it completes there.
-A server-side table or global modData is set up on the global-mod-data init hook or the server-started hook, the pair read as surviving a dedicated server where the player-creation, game-start and load hooks never fire [#0895/C/one-side].
+A server-side table or global modData is set up on the global-mod-data init hook or the server-started hook, the pair read as surviving a dedicated server where `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire [#0895/C/one-side].
+`OnNewGame` does fire on a dedicated server, with the new `IsoPlayer`, for every character a client creates, so a player's row in that table is seeded there ([#2387/C/C-only], [server-lifecycle.md#creation](../platform/server-lifecycle.md#creation)).
+A world-scoped table is created whenever it is missing rather than only when the world is new, as [Global modData](#global-moddata) states.
 The client's copy is then a display mirror, and how that mirror is refreshed is exactly the choice the options table puts.
 A mirror refreshed on the mod's own command is late by one round trip, while a mirror refreshed by a server-side transmit is as current as the server's last call, and any transmit from that client in the meantime writes the client's copy back over the server's [#1042/M/n=2].
 
@@ -89,7 +95,7 @@ The ownership reading, one line per quantity:
 | the intake: an eat and a cancelled eat | server | a notification that applies no numbers | [#0110, #0111, #0116] |
 | the vanilla nutrition store and the player stats | server | a mirror the next player-stats snapshot overwrites | [#0125/M/one-fixture, #0568/M/n=2] |
 | weight | server | the three direction flags, computed on each side, and never a weight of its own | [#1238/M/n=1, #0900/M/n=1] |
-| the weight-band traits | server | nothing traced | [#1239/C/C-only/superseded, #1161/C/C-only/open] |
+| the weight-band traits | server | the trait list as of the last experience push or trait-block push, read from the code and never measured | [#2595/C/C-only] |
 | item state in the item packet | server | the last push, stale in any zero-valued conditional field | [#1240/C/C-only, #0343] |
 | item aging | server | nothing: the fields never cross | [#1242/M/n=1] |
 | a per-item mod value in the item script | neither: both sides load it | the same value | [#1124/M/n=1] |
@@ -156,6 +162,49 @@ Item modData fails before any mod writes to it: the two sides' tables differ on 
 A census that tests an item's table for emptiness therefore counts keys and excludes that key always, and the tooltip key for any item whose script declares one [#1415/M/n=1].
 The item-fields sync that carries item modData is measured in the client-to-server direction only, so the direction a server-owned per-item value would need is a question under [Open](#open) [#1241/M/one-side].
 
+<a id="server-pushes"></a>
+### Pushes server Lua can cause
+
+A mod's server code does not have to wait for the engine's timers to refresh a player's client: three Lua globals push a player's state at the moment they are called, and how each is gated is [mp-model.md](../platform/mp-model.md#sync-globals)'s.
+`sendSyncPlayerFields(player, mask)` sends the player-fields packet, does nothing off a server, and returns silently for a player with no online id, so a call is no proof that the client received anything [#2602/C/C-only].
+`syncPlayerStats(player, mask)` sends the player-stats sync packet and `syncBodyPart(part, mask)` the body-part packet, each only on a server [#2607/C/C-only].
+What each bit of each mask selects is the field contract of [the player-fields packet](../facts/wire-packets.md#player-fields-packet), [the player-stats packet](../facts/wire-packets.md#player-stats-packet) and [the body-part packet](../facts/wire-packets.md#body-part-packet), and this mod reads it there.
+
+All three reach one client.
+A server send addressed to a player reaches that player's own connection only, and the three globals, the engine's timed per-player pushes and the eat packet all send that way, so each refreshes the affected player's own client and no other client's copy of that player [#2603/C/C-only].
+A value this mod shows on another player's character therefore needs a send the mod addresses to each client that draws it, because none of these pushes reaches a second client.
+The one engine channel that does reach a second client is the injury diff a watching player asks for, and it carries health, pain and infection and never the trait list or any nutrition value [#2610/C/C-only].
+
+The trait bit is the push a nutrition mod is most likely to need, because the band traits are the server's.
+No Java code sends it: the server's player-fields send has three Java callers, the Lua global, the eat with mask `8` and the exercise repetition with mask `32` [#2604/C/C-only].
+Among vanilla Lua's callers of the global, a finished book read sends the trait bit, with recipes and read books, in mask `0x07` [#2606/C/C-only].
+A trait write itself fires no event and sends no packet, so a trait the server adds or removes reaches the client only on the next push that carries the list [#2601/C/C-only].
+The experience push is one such push, refreshing the owning client's whole trait list on the stats snapshot's cadence, so a mod's own trait-bit push buys freshness inside that interval and is not the only route ([#2608/C/C-only], [#2595/C/C-only]).
+Both trait routes are read from the code and not exercised on a live server; whether a client-side read sees a server-written trait in time is the trait-push question under [Open](#open).
+
+Beside the globals the server runs timed pushes of its own, which a mod can read and can neither retime nor reshape.
+The experience object goes to each fully connected player's own connection on the stats snapshot's cadence [#2608/C/C-only].
+Injuries and damage go together on a slower limit of their own [#2609/C/C-only].
+A client-side reader of any of these values therefore holds the last push's copy, and a read taken straight after a server-side write sees the value before it until the carrying push lands.
+
+The client-to-server direction is narrower.
+The one client route for experience, and with it the trait list, is `SyncXp`, which the server accepts only from a connection whose role holds the `CanModifyPlayerStatsInThePlayerStatsUI` capability, so an ordinary player's client cannot push its own traits [#2612/C/C-only].
+Every authoritative write this mod makes to a player's state is therefore made on the server and announced by one of the pushes above or by the mod's own bus.
+
+<a id="global-moddata"></a>
+### Global modData as a per-world store
+
+Global modData is the one durable store this mod can key on the world rather than on a character or an item, and its mechanism is [server-lifecycle.md](../platform/server-lifecycle.md#global-moddata)'s.
+It lives in one file per save, and on a dedicated server one save is one world, so a table there outlives every connection [#2397/C/C-only].
+`OnInitGlobalModData` passes whether the world is new, not whether the table is, and fires after the file has loaded, so a mod added to an existing world finds its own table absent [#2396/C/C-only].
+The store's rules are [server-lifecycle.md](../platform/server-lifecycle.md)'s and are not restated here; the one that decides where this mod's table comes from creates it whenever it is missing, with `ModData.getOrCreate`, and never only when the world is new [#2417/C/inference].
+
+`ModData.transmit(name)` on the server sends the whole named table to every connection, with no per-player target, so a table keyed by username and transmitted is every player's values on every client [#2398/C/C-only].
+A per-player mirror of this mod's nutrient store cannot ride a transmitted global table without reaching every client, and the per-player push a mod controls is the bus's server send ([mp-model.md#command-bus](../platform/mp-model.md#command-bus)).
+On the receiving side `OnReceiveGlobalModData` hands over a freshly loaded table, or `false` when the packet carries none, and installs nothing itself, so a client copy exists only where the mod's own handler installs it [#2399/C/C-only].
+A client's request for a table fires a server event that names no player, so a server handler cannot tell which client asked [#2406/C/C-only].
+How often the server writes the file, and whether a value written shortly before a hard stop survives a restart, are open, so the store's durability between saves is a question under [Open](#open).
+
 ## Options
 
 <a id="sync-options"></a>
@@ -191,25 +240,31 @@ Which route does each quantity this mod owns travel on: the command bus, a playe
 - A per-item mod value reaches the client only with a workaround — a script value, item modData, or a bus round trip keyed on the item id [#1145/M/n=1].
 - Server-only logic stays on the server only with a workaround, a runtime side test, because a mod's `server/` files also run in the client's Lua state [#1174/M/n=1].
 - The command bus is the one route with no wall of its own: it has no wipe and no packet dependency [#1153/C/C-only].
+- No push server Lua can cause reaches a second client's copy of a player: every player-addressed server send goes to that player's own connection [#2603/C/C-only].
+- The engine has no trait-change event: a trait write fires nothing and sends nothing, so a trait reaches a client only on a push [#2601/C/C-only].
+- No ordinary player's client can push its own experience or traits to the server: the one route is capability-gated [#2612/C/C-only].
 - Every measured reading this page cites was taken on the dedicated-server path with one real client, one fixture, and one character or one item per arm, and none of them speaks for single player.
-- No arm was taken with more than one client attached, so nothing here says what a second client's copy holds, or whether a push reaches every client or only the one it concerns.
+- No arm was taken with more than one client attached, so nothing here measures what a second client's copy holds; which client each push reaches is a code reading, under [Pushes server Lua can cause](#server-pushes).
 
-Not covered: the transport beneath every packet, the save and load round trip that an item's serialised blob and every modData table travel on, global modData's own transmit, every packet outside the food, nutrition, item-fields and player-modData set, and anything a listen server or a second attached client would change.
+Not covered: the transport beneath every packet, the save and load round trip that an item's serialised blob and every modData table travel on, the contents of the engine's timed health push, every packet outside the food, nutrition, item-fields, player-modData, player-fields, experience, body-part and global-modData set, and anything a listen server or a second attached client would change.
 
 ## Open
 <a id="open"></a>
 
 - Whether item modData moves server to client through the item-fields sync — settled by a run in which the writing mod's `server/` file is guarded so only the server's Lua state writes, a pre-sync client read that must miss, then a forced sync and a census of both sides; until then a server-owned per-item value in item modData is an unmeasured direction; -> X14 ([#0885/M/n=1/open, #1040/M/one-side/open, #1280/C/open], [open-questions.md#x14](open-questions.md#x14)).
 - Whether the per-body net-id reallocation of an item whose script body several mods append ever puts a stale id on the wire — settled by reading the item id on both sides after a multi-bodied redefinition, the single-bodied item being the control; until then the id-keyed bus round trip is read for a single-bodied item only; -> X27 ([#1063/C/C-only/open, #1293/C/open], [open-questions.md#x27](open-questions.md#x27)).
-- Whether modData survives a save and reload — settled by a boot, a write, a teardown and a second boot on the same run directory, against a control boot of the golden fixture that must miss the key, read in both the player and the item scope; the durability every route above leans on is a code reading until then; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
-- Whether the weight-band traits reach a multiplayer client at all — settled by driving a character into a band on the server and reading the client's trait list; until then a band is an input a client-side derivation cannot trust; -> X4 ([#0968/C/C-only/open, #1275/C/superseded, #0595/C/C-only/superseded, #1161/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
+- Whether modData survives a save and reload — settled by a boot, a write, a teardown and a second boot on the same run directory, against a control boot of the golden fixture that must miss the key, read in the player and the global scope; the durability every route above leans on is a code reading until then; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
+- How often the server writes the global modData file — settled by the file's modification times and the save log line after a write and transmit and with no write, beside a console save as the control; until then how much of a global table a crash can lose is unknown; -> X49a ([#2097/C/open], [open-questions.md#x49a](open-questions.md#x49a)).
+- Whether a global modData value written a minute before a hard server stop survives a restart — settled by a write, a hard stop and a second boot on the same run directory, beside a boot on the restored fixture that must miss the key; until then a world-scoped value written between saves is not known to be durable; -> X49b ([#2098/C/open], [open-questions.md#x49b](open-questions.md#x49b)).
+- Whether a server-side `sendSyncPlayerFields(player, 2)` after a trait write reaches the client's trait list, whether a client-side read sees the new trait within the push cadence, and whether a registered mod trait behaves the same — settled by a trait written on the server and the client's list read before and after the push, the pre-push read as the control, then the same for a registered trait; until then the two trait routes are a code reading, no run has held a non-empty trait list on either side, and the wall map's [verdict on a client-side band trait](../reference/wall-map.md#g4) stays open; -> X4 ([#2099/C/open, #2595/C/C-only], [open-questions.md#x4](open-questions.md#x4)).
 - Whether a mod may call the latent client-to-server eat route, a route for the vanilla store that no caller uses — settled by calling the game client's eat-food method from a mod and reading both sides; no `X` id ([#0145/C/snapshot/open], [mp-model.md#open](../platform/mp-model.md#open)).
 - What the server validates on an incoming nutrition write — settled by a probe that separates rejection from overwrite; each probe in the library shows the next push overwriting a client write, which is the ownership this page reads rather than a validation; no `X` id ([#0191/M/n=1/open], [mp-model.md#open](../platform/mp-model.md#open)).
 - Whether a relog or a save round trip repairs a client's copy of the uncarried item fields — settled by a relog read of a cooked item on both sides; no `X` id ([#1434/C/inference/open], [wire-packets.md#open](../facts/wire-packets.md#open)).
 - The wall that a mod cannot trust a live item field's client copy to tick is unverified: its reading rests on a restricted artifact key and one item in one window, and the multiplayer page's open list states the restriction ([#1148/M/n=1/unverified], [mp-model.md#open](../platform/mp-model.md#open)).
 - Decision: which route each quantity this mod owns travels on — forced by the three routes failing three different ways: the transmit replaces a whole table on another mod's call, a script value is fixed per type at load and checksummed at the join, and the bus stores nothing [#1151/M/n=2, #1182/C/C-only, #1153/C/C-only].
 - Decision: where the authoritative copy of the mod's per-player store lives — a server-side table or global modData mirrored down over the bus, or player modData kept complete on the client before any transmit — forced by one client transmit making the server's copy exactly the client's [#1042/M/n=2, #1088/M/n=1].
-- Decision: whether any value the client displays is derived on the client or always sent from the server — forced by the band traits being in no traced packet and by the cooked-thirst halving [#1161/C/C-only/open, #1038/M/n=2].
+- Decision: whether any value the client displays is derived on the client or always sent from the server — forced by the band traits reaching the client only on server pushes read from the code and never measured, and by the cooked-thirst halving [#2595/C/C-only, #1038/M/n=2].
+- Decision: whether any of this mod's state lives in global modData, and whether such a table is ever transmitted — forced by a server-side transmit sending the whole named table to every connection with no per-player target [#2398/C/C-only].
 - Decision: whether a per-item mod value is fixed per type in the script or carried per instance — forced by a script value being identical on both sides for free while the item-modData route is measured in one direction only [#1124/M/n=1, #1241/M/one-side].
 - Decision: whether the design leans on modData surviving a restart before the persistence run lands — forced by persistence being read from the code and never measured [#1122/C/C-only].
 - Decision: whether item round trips are keyed on the item id before the net-id run lands — forced by the per-body reallocation being unread for an item several mods append to [#1063/C/C-only/open].
@@ -217,6 +272,7 @@ Not covered: the transport beneath every packet, the save and load round trip th
 ## See also
 
 - [`../platform/mp-model.md`](../platform/mp-model.md) — the ownership rows, the routes, the packets, the cached packet object, the wipe and the command bus that every reading here cites.
+- [`../platform/server-lifecycle.md`](../platform/server-lifecycle.md) — global modData, its file, its events and the store rules this page links rather than restates.
 - [`../facts/wire-packets.md`](../facts/wire-packets.md) — the field contract of each packet, the measured desyncs, the staircase and the cooked-thirst halving.
 - [`../platform/lessons.md`](../platform/lessons.md) — the sync rules this page copies, and the authority filters that come with them.
 - [`../platform/lua-platform.md`](../platform/lua-platform.md) — which side each hook fires on, and what an unguarded raise inside a bus handler aborts.
