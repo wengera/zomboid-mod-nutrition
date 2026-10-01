@@ -1,10 +1,10 @@
 # Nutrition core — calories, macros and weight
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the `Nutrition` object's stores, the weight model that reads them, the clamps that bound them and the three-game-day server check of that model; intake belongs to `facts/eating-pipeline.md`, passive burn and the weight bands to `facts/body-and-weight.md`, and ownership of the weight quantity to `platform/mp-model.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the `Nutrition` object's stores, the weight model that reads them and the client command that writes weight, the clamps that bound them and the three-game-day server check of that model; intake belongs to `facts/eating-pipeline.md`, passive burn and the weight bands to `facts/body-and-weight.md`, and ownership of the weight quantity to `platform/mp-model.md`.
 
 ## Key facts
 
 - Calories are the only driver of weight, and carbohydrates and lipids act on it only as multipliers of the gain rate [#0180].
-- Proteins never touch weight and have no reachable effect anywhere in vanilla [#0181/M/n=2].
+- Proteins never touch weight; outside the weight model their recovery branches below -1000 and -1500 are dead under the -500 clamp, and their one live reader is the Strength experience branch [T18.18].
 - `Nutrition.setCalories` clamps the calorie store to the range -2200 to 3700 [#0022/M/n=2].
 - `Nutrition.setCarbohydrates`, `setProteins` and `setLipids` each clamp their store to the range -500 to 1000 [#0023/M/n=2].
 - Nothing clamps a store at zero: a calorie write of -100 reads back -102.5664 on the server and -102.10 on the client [#0901/M/n=1, #1102/M/n=1, #1197/M/n=1].
@@ -119,6 +119,10 @@ That ordering is why a client can derive a weight direction it cannot derive a w
 For a mod this is the one piece of the weight model a client-side reader may use directly: the direction is derived locally on both sides from the same stores, while the quantity has to arrive from the server.
 Reading the flags costs nothing and needs no transport, which makes them the cheapest signal available to a user interface that wants to show which way a character is heading.
 
+The weight value also has a writer outside the model that any client can reach.
+Vanilla's `player` `setWeight` client command sets any online player's weight on the server through `getPlayerByOnlineID(args.id)` and `getNutrition():setWeight(args.weight)`, with no admin or capability check in its handler, in the `OnClientCommand` dispatch or in the Java receiver, and the player-stats admin panel sends it [T18.13].
+The model then carries on from whatever value that command leaves, so a weight a mod writes on the server can be replaced between two of its own writes by a client that sends the command; this is read from the files and the bytecode and not exercised on a live server [T18.13].
+
 <a id="clamps"></a>
 ### The store clamps
 
@@ -200,22 +204,22 @@ That is what turns a formula read off bytecode into a statement about a live ser
 ### What each macro does once stored
 
 Calories are the only driver of weight, and carbohydrates and lipids act on it only as multipliers of the gain rate [#0180].
-Proteins never touch weight and have no reachable effect in vanilla: the only reader outside the weight model is `getRecoveryMod`, whose lipid and protein branches below -1000 (times 0.5) and below -1500 (times 0.2) can never fire because the setters clamp both stores at -500 [#0181/M/n=2].
-The clamp half of that reading is measured on both signs on the server bus, while the dead branches are a code reading [#0181/M/n=2].
+Proteins never touch weight; their two readers outside the weight model are `getRecoveryMod`, whose lipid and protein branches below -1000 (times 0.5) and below -1500 (times 0.2) can never fire because the setters clamp both stores at -500, and the Strength branch of `XP.AddXP`, which is live because its thresholds lie inside the clamp range and is stated at [perks-and-strength.md#xp-grants](perks-and-strength.md#xp-grants) [T18.18].
+The clamp half of that reading is measured on both signs on the server bus, while the dead recovery branches and the live Strength branch are a code reading [T18.18].
 The live multipliers in the same recovery method are the weight-band traits, which are [facts/body-and-weight.md](body-and-weight.md#weight-traits).
 
-The fitness and strength experience gate in the same neighbourhood is keyed on the weight bands rather than on any macro, so it is not a protein reader either, and it belongs to [facts/body-and-weight.md](body-and-weight.md#weight-traits) [#0184].
+The Fitness experience gate in the same neighbourhood is keyed on the weight-band traits rather than on any macro, so it is not a protein reader, and it belongs to [facts/body-and-weight.md](body-and-weight.md#weight-traits).
 
 Those floats are the whole of the object's serialised form, in a fixed order that `Nutrition.save` writes and `Nutrition.load` reads back ([#0108], [facts/wire-packets.md](wire-packets.md#player-stats-packet)).
-A protein value therefore survives every round trip the object makes while still reaching no reader that can act on it, which is the shape of dead space rather than of a gap to be worked around.
+A protein value therefore survives every round trip the object makes, and the one reader that acts on it is the Strength experience branch.
 
 So the complete list of live consumers of the four intake stores is short.
-Calories drive the weight direction and the weight rate; carbohydrates and lipids scale the gain rate and nothing else; proteins are written, drained, clamped, saved and read by nobody who can act on them.
+Calories drive the weight direction and the weight rate; carbohydrates and lipids scale the gain rate and nothing else; proteins are written, drained, clamped and saved, and act only by scaling Strength experience.
 
 The consequence for a nutrition mod is the emptiness rather than the numbers.
-Protein surplus, the carbohydrate store as an energy pool, and any notion of diet quality are dead space in this build, which is why a parallel nutrient store has no vanilla consumer to collide with.
-It also means a mod cannot express a nutrient by leaning on an existing macro's effects, because outside the gain multipliers there are none to lean on.
-Every consequence a mod nutrient is to have must therefore be written by the mod, and the only vanilla behaviour it has to avoid disturbing is the gain multiplier pair.
+The carbohydrate store as an energy pool and any notion of diet quality are dead space in this build, and a protein surplus has exactly one vanilla consumer, Strength experience gain, so a parallel nutrient store collides with vanilla only where it moves the vanilla protein store.
+It also means a mod cannot express a nutrient by leaning on an existing macro's effects, because outside the gain multipliers and the Strength branch there are none to lean on.
+Every consequence a mod nutrient is to have must therefore be written by the mod, and the vanilla behaviour it has to avoid disturbing is the gain multiplier pair and, where it writes the protein store, the Strength branch.
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -241,11 +245,14 @@ Not covered: the character model, the animation system and the interface, which 
 - Decision the design must take: whether the mod reproduces vanilla's three arms in Lua behind the sandbox gate or lives beside them, forced by the gate taking the drain, the burn and the weight arm together while intake carries on unguarded ([#0067], [facts/eating-pipeline.md](eating-pipeline.md#sandbox)).
 - Decision the design must take: whether a mod nutrient is stored with the same two-sided clamp shape as vanilla's, forced by the clamps above being two-sided and by negative stores being an ordinary state rather than an error state.
 - Decision the design must take: whether the mod's own weight model keeps a macro multiplier at all, forced by vanilla's multiplier branches never having been entered by a run and so carrying no measured behaviour to match.
+- Decision the design must take: whether the mod's weight model accepts a weight written through vanilla's `setWeight` client command or overrides it, forced by that command writing any online player's weight with no check [T18.13].
+- Decision the design must take: whether the mod writes the vanilla protein store from its own protein model, forced by the Strength experience branch reading that store directly [T18.18].
 
 ## See also
 
 - [facts/eating-pipeline.md](eating-pipeline.md) — how food fills these four stores, the modifier ladder it passes through, and the sandbox option that gates the update.
 - [facts/body-and-weight.md](body-and-weight.md) — the passive burn branches that move the calorie store, the weight bands the weight value falls into, and what each band trait does.
+- [facts/perks-and-strength.md](perks-and-strength.md#xp-grants) — the experience grants, the protein branch on Strength experience and the Fitness gate's caller.
 - [platform/mp-model.md](../platform/mp-model.md) — which side owns each quantity, the push that carries it, and what a client's copy is.
 - [facts/wire-packets.md](wire-packets.md) — the field contracts of the packets that carry these stores, and the measured desyncs.
 - [reference/experiments.md](../reference/experiments.md) — the named experiments the open row above points at, with the profile, driver and discriminating reading each one needs.
