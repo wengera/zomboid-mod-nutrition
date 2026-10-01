@@ -18,7 +18,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Change the eat path or the read-time getters, never the item, to make rot cost calories: an item's stored macros are a pure function of its script values and how much of it has been eaten — a reading of the aging write set rather than a measurement [#0255/C/inference].
 - Declare a mod's own items in the mod's own module when the mod adds rather than rebalances: a new name collides with nothing and grows the pool by exactly what it declares [#1020/M/n=1].
 - Read per-item macro values off an instance getter or out of the script text: the script object carries no macro getter, its four macro fields are private, and the dialect publishes methods rather than fields [#1011/M/n=1, #2732/M/n=1].
-- Build a fresh instance through the `instanceItem` global to read a type's vanilla macros when no instance is at hand: the global reaches the item factory, which the exposer leaves out [#2679/C/C-only, #2680/C/C-only, #2697/C/inference].
+- Build a fresh instance through the `instanceItem` global to read a type's vanilla macros when no instance is at hand: the global reaches the item factory, which the exposer leaves out [#2679/C/C-only, #2680/C/C-only, #2741/C/inference].
 
 ## How it works
 

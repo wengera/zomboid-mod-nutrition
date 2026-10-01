@@ -155,7 +155,7 @@ Because the experience object carries the trait list, an accepted send replaces 
 The server-to-client direction of the same packet is the timed push under [the sync globals](#sync-globals).
 
 A second packet hands a player's experience object, and with it the trait list, to the other clients.
-The connected-player packet carries a player's whole experience object, trait list first, to other clients: its write puts the experience object in only when the packet is not a reply and its parse loads it only into a non-local player, the server sends it at a join from the joining player to every connection and from every other live player to the joiner and on a client's player-data request for a player that client may see, and the reply flag is set for the player's own connection unless the player is queued for a delayed disconnect, so the owning client's copy carries no experience object [T28.1].
+The connected-player packet carries a player's whole experience object, trait list first, to other clients: its write puts the experience object in only when the packet is not a reply and its parse loads it only into a non-local player, the server sends it at a join from the joining player to every connection and from every other live player to the joiner and on a client's player-data request for a player that client may see, and the reply flag is set for the player's own connection unless the player is queued for a delayed disconnect, so the owning client's copy carries no experience object [#2734/C/C-only].
 Neither send follows a trait write, so another client's copy of a character's traits is as fresh as the last join, data request or authorized relay that reached it.
 
 <a id="sync-globals"></a>
