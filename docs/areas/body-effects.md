@@ -104,7 +104,7 @@ The server's grant reaches the six-argument body past the local-player gate and 
 That body drops every amount to a sleeping character before anything else, whatever the perk [#2161/C/C-only].
 It discards a non-negative amount once the perk's experience has reached the top level's total, so a mod's grant past the cap does nothing [#2109/C/C-only].
 The `AddXP` event fires only off a multiplayer client, so on a dedicated server it fires on the server for every grant that reaches the store, as read from the bytecode [#2125/C/C-only].
-The event fires at the end of the body, with the final amount, after the experience write and after any threshold crossing has already called `LevelPerk`, so a server-side listener sees each grant, its own and vanilla's, only once the level has moved [#2125/C/C-only] [#2126/C/C-only] [#2122/C/C-only].
+The event fires at the end of the body, with the final amount, after the experience write and after any threshold crossing has already called `LevelPerk`, so a server-side listener sees each grant, its own and vanilla's, only after any level change it caused has happened [#2125/C/C-only] [#2126/C/C-only] [#2122/C/C-only].
 A clamp therefore acts on the experience and the level together, through the setters and the level methods that hold each store, rather than by trimming a grant in that listener [#2103/C/C-only] [#2117/C/C-only].
 
 The anti-cheat bounds how fast a mod may move experience.
