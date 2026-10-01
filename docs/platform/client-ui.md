@@ -3,10 +3,10 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the client-side in
 
 ## Rules
 
-- Wrap `ISToolTipInv.render` once, behind a sentinel held in a global of its own, and repeat the context-menu test before drawing after the original: the tooltip body is built in Java inside one render method and that method draws nothing while a context menu is flagged visible [T13.50] [T13.24] [T13.30].
+- Wrap `ISToolTipInv.render` once and repeat the context-menu test before drawing after the original: the tooltip body is built in Java inside one render method and that method draws nothing while a context menu is flagged visible [T13.50] [T13.24] [T13.30].
 - Set the height of the band you add and paint its frame before you draw below Java's box: the panel's height is set from Java's measured tooltip and its background is painted from that height before the draw pass, so a line drawn below it after the original returns has no background [T13.51] [T13.24] [T13.25].
 - Register a mod window through `ISLayoutManager.RegisterWindow` with `ISCollapsableWindow` as its funcs: the layout manager restores the window at registration and saves it into `layout.ini`, and the collapsable window already supplies the restore and save pair [T13.52] [T13.7] [T13.8].
-- Call `PZAPI.ModOptions:load()` yourself, once and inside a protected call, before you read an option: vanilla loads `ModOptions.ini` only as the main screen is built, so a value read earlier is the default [T13.53] [T13.16].
+- Call `PZAPI.ModOptions:load()` yourself, once and after creating your page, before you read an option: vanilla loads `ModOptions.ini` only as the main screen is built and a load applies a saved value only to a page that already exists, so a value read earlier is the default [T13.53] [T13.16] [T13.62].
 - Insert a keybind row at file scope or on `OnGameBoot`, before `OnMainMenuEnter`: `loadKeys` reads the `keyBinding` table when the main screen is built, and a row added after that build is not a known key until the next one [T13.54] [T13.12] [T13.13].
 - Add a character-info tab by wrapping `createChildren` at file scope, and never write the tab's name into `layout.current`: the window is built on player creation, and vanilla's restore resolves `layout.current` through a table that has no entry for a mod tab [T13.55] [T13.35] [T13.36].
 - Load a texture in a client file behind a nil check: `getTexture` returns nil on a dedicated server with no server GUI and on any load failure [T13.56] [T13.23].
@@ -28,8 +28,6 @@ The Lua widget set is a tree of derives rooted at `ISUIElement`, and a mod's pan
 
 `ISCollapsableWindow` is an `ISPanel` derive that supplies a title bar, a close button, an info button, a pin and collapse pair and two resize widgets, and its mouse-down and mouse-move overrides drag it with no `moveWithMouse` test, so a panel derived from it is movable and collapsible without code of its own [T13.1].
 That makes "movable and collapsible" something a mod inherits rather than writes.
-Its constructor leaves the window pinned open, and an unpinned window collapses to its title bar on its own once the mouse has been away for a while.
-The info button stays hidden until a caller gives the window an info text, which is how vanilla's character window shows a tab's help.
 
 `ISPanel` does not drag unless `moveWithMouse` is set: its constructor sets the flag false, and its mouse-down handler then returns the element's want-mouse-events flag instead of starting a drag [T13.2].
 A bare panel that should move therefore sets the flag itself, and a panel that should stay put leaves it alone.
@@ -37,7 +35,6 @@ A lockable panel toggles the same flag, which is all a lock amounts to.
 A panel derived from the collapsable window has no such flag to set, so a lock on it means overriding the window's own mouse handlers.
 
 An `ISUIElement`'s `update`, `prerender` and `render` are empty Lua stubs that the Java element calls through its Lua table when the UI manager renders it, and the UI manager renders only the elements on its list, so `removeFromUIManager` is the complete early-out for a hidden panel, which is how the character-info window closes so that `update` is not called [T13.3].
-Hiding a panel with `setVisible(false)` alone keeps it on the list, and `ISPanel`'s own close does exactly that, so a closed panel that only hides keeps paying for its callbacks.
 A panel that is off for most of a session should leave the list on close and rejoin it on open.
 
 `createChildren` runs inside `instantiate`, and `instantiate` is first reached from `addToUIManager`, `setVisible` or `getIsVisible` on an element that has no Java object yet, so a derive's children are built at that first call rather than at construction [T13.4].
@@ -50,8 +47,8 @@ Either route ends in the same object: a window on the UI manager's list whose ca
 A mod that needs one panel per local player builds one per player number and keeps each on its own viewport through the element's per-player render filter.
 
 A second toolkit is resident on this server beside vanilla's.
-`CleanUI` hard-requires `NeatUI_Framework`, a second client-only UI toolkit resident on this machine: 11 client Lua files defining a `NeatTool` global of 3-patch, 9-patch, percentage and text draw helpers, three `ISUIElement` scroll-view derives, and an `ISUIElement` compatibility shim that defines `getCentreX` and `getSelfCenterX` only where they are absent [T13.6].
-The shim is the part that reaches a mod: it adds two methods to the vanilla base class every panel derives from, though only where the build lacks them.
+`CleanUI` hard-requires `NeatUI_Framework`, a second client-only UI toolkit resident on this machine: 11 client Lua files defining a `NeatTool` global of 3-patch, 9-patch, percentage and text draw helpers, three `ISUIElement` scroll-view derives, and an `ISUIElement` compatibility shim that guards ten centre helpers, of which `getCentreX`, `getCentreY` and `getSelfCenterY` are the three the vanilla `42.20` `ISUIElement` lacks and the shim therefore adds [T13.6].
+The shim is the part that reaches a mod: on this build those three methods appear on the vanilla base class every panel derives from whenever `CleanUI` is loaded, and a mod that calls one of them works only beside it.
 The helpers are free to call but are a dependency on a workshop item, which a mod that ships to servers without `CleanUI` cannot assume.
 
 <a id="layout"></a>
@@ -62,18 +59,17 @@ The alternative a resident viewer uses, writing its position into player modData
 
 `ISLayoutManager.RegisterWindow(name, funcs, target)` stores the window under its name and restores its saved layout at once, outside the tutorial game mode, has no unregister, and `ISLayoutManager`'s own reader and writer are what open `layout.ini` [T13.7].
 Window names are flat strings shared with every vanilla window, so a mod's name carries a vendor prefix.
-Vanilla's character windows register for the first local player only, so a split-screen second player's character windows keep no saved geometry.
 
 `ISCollapsableWindow` implements the `RestoreLayout` and `SaveLayout` pair the layout manager calls, saving position, size and visibility through the default window functions plus a pin key that also restores the collapsed state, so a collapsable window registers with `ISCollapsableWindow` itself as its funcs, as vanilla's torn-off character-info tabs do [T13.8].
-A restore that finds a saved visible window adds it back to the UI manager, so a panel meant to start hidden must expect the layout manager to show it.
 
 `layout.ini` is sectioned by screen resolution: the reader files each window line under a `[WxH]` header, and restore and save both match the section to the current screen width and height, so a window's saved geometry does not carry across a resolution change [T13.9].
 A player who moves between a laptop and a monitor keeps two positions for the same panel, one per resolution, which is usually what they want.
 
-`layout.ini` is written only by `ISLayoutManager.OnPostSave`, which is registered on `Events.OnPostSave`, and both `OnPostSave` trigger sites in `IngameState.updateInternal` end the session: the clean-exit branch after the exit save, and the method's exception handler, which saves, fires the event and disconnects a client with `crash`; so window geometry persisted this way is written when a session ends through one of those routes, never during play, and a killed process loses it [T13.10].
+`ISLayoutManager` writes `layout.ini` from its `OnPostSave` handler, registered on `Events.OnPostSave`, and every `OnPostSave` trigger site in the jar ends the session: `GameWindow.exit` fires it twice after the exit save, and `IngameState.updateInternal` fires it in its clean-exit branch and in its exception handler, which saves, fires the event and disconnects a client with `crash`; so window geometry persisted this way is written when a session ends, never during play, and a killed process loses it [T13.10].
 On a client with `GameClient.clientSave` set, `GameWindow.save` saves the world map and the visited map, triggers `OnSave` and returns before the save body that writes the world [T13.11].
 So the layout file is the cheap, local and late route: nothing crosses the wire, nothing is written during play, and a crash between two clean exits forgets every move made in that session.
 Player modData is the immediate and remote route, and its cost is the transmit hazard described on [mp-model.md](mp-model.md#wipe-and-replace).
+The geometry rule at the top of this page follows from these rows, and the choice between the two routes is a decision under [Open](#open).
 The two routes are not exclusive: a mod can register with the layout manager for the position and keep only what must survive a crash in player modData.
 Neither route is authoritative over anything but the panel's own placement, so neither touches the numbers the panel draws.
 
@@ -92,19 +88,20 @@ A stale `keysB42.ini` line for a key no `keyBinding` row defines any more is ign
 Uninstalling a mod therefore leaves its saved binding behind in the file, harmless and unread.
 
 `PZAPI.ModOptions` is a shipped vanilla Lua API whose option pages take a keybind option through `Options:addKeyBind(id, name, key, tooltip)`, and it has no Java half: the literal `ModOptions` is in no class of the jar [T13.15].
-Beside the key it carries the whole options widget set — titles, descriptions, tick boxes, combo boxes, sliders, colour pickers, text entries and buttons — each returning an option table with a getter and a setter.
-Vanilla loads `ModOptions.ini` through `PZAPI.ModOptions:load()` from `MainOptions:addModOptionsPanel`, which `MainOptions:create` runs when at least one mod page exists, as the main screen is built on `OnMainMenuEnter` and on `OnGameStart`, so until that build, or a mod's own call of `load()`, every option reads the default its page was created with; `CleanUI` makes that call itself, once, inside a protected call [T13.16].
+Vanilla loads `ModOptions.ini` through `PZAPI.ModOptions:load()` from `MainOptions:addModOptionsPanel`, which `MainOptions:create` runs when at least one mod page exists, as the main screen is built on `OnMainMenuEnter` and on `OnGameStart`; `load()` applies a saved line only to a page and option already created, and `CleanUI` makes its own call of `load()`, once, inside a protected call [T13.16].
+Until one of those loads runs, every option reads the default its page was created with; that no other vanilla Lua loads the file is unverified ([Open](#open)).
 A page created after that build is missing from the options screen until the next one, which is a second reason to create the page at file scope.
 `PZAPI.ModOptions:load()` keeps every `ModOptions.ini` line whose page or option id it does not recognise and `save()` writes those lines back after the known options, so an absent mod's settings survive a session without it; `save` writes each kept line with no line terminator of its own, so a single kept line round-trips intact and two or more come back joined on one line [T13.17].
 A mod that is switched off for a session and back on can therefore lose its saved values when another absent mod's lines share the file.
-A `PZAPI.ModOptions` keybind is drawn on the mod options page as a row flagged `isModBind`, which keeps it out of the `keysB42.ini` rewrite `MainOptions:create` makes and out of the keybinding page's column centring, while the save on Apply writes every row, mod binds included, under their label text, where the reader then ignores them because no `keyBinding` row carries that name [T13.18].
-The mod-options value lives in `ModOptions.ini`; the stray `keysB42.ini` line is a side effect of the Apply save and nothing reads it back.
+A `PZAPI.ModOptions` keybind is drawn on the mod options page as a row flagged `isModBind`, which keeps it out of the `keysB42.ini` rewrite `MainOptions:create` makes and out of the keybinding page's column centring, while the save on Apply writes every row, mod binds included, under their label text and adds a core binding under that text for the session, and the file reader then ignores those lines because no `keyBinding` row carries that name [T13.18].
+The mod-options value lives in `ModOptions.ini`; the stray `keysB42.ini` line is a side effect of the Apply save and nothing reads it back from the file.
 
 `getCore():isKey(name, key)` is the vanilla idiom for testing a bound key in a handler, and it matches the binding's alternate key as well as its main key, which a comparison against `getCore():getKey(name)` does not [T13.19].
 A `PZAPI.ModOptions` keybind is not a core binding by name, so its handler compares the key code against the option's `getValue()` instead.
 No installed workshop item is a third-party mod-options framework: no mod id, name or folder in the census names one, so `PZAPI.ModOptions` is the only options API a mod can rely on here [T13.20].
 A panel that wants raw key events on the element itself calls `setWantKeyEvents(true)` and defines `onKeyPress`, `onKeyRepeat` and `onKeyRelease`, the Lua names the Java `UIElement` looks up on its table and calls; every vanilla toggle key instead goes through `Events.OnKeyPressed` [T13.21].
 The event route reaches the handler whether or not the panel has focus, which is what a show-and-hide key needs.
+The keybind and options rules at the top of this page follow from the build timing and the load behaviour above.
 A handler on that event runs for every key press in the session, so it returns at once on any key that is not its own.
 
 <a id="textures"></a>
@@ -112,9 +109,9 @@ A handler on that event runs for every key press in the session, so it returns a
 
 `getTexture(name)` is one call to `Texture.getSharedTexture` with the name as given, and vanilla and mods alike pass a path rooted at `media/`, so a mod's own PNG under its `media/ui` is reached as `getTexture("media/ui/<file>.png")` [T13.22].
 `Texture.getSharedTexture` returns nil rather than raising on a dedicated server with no server GUI and on any exception while loading, which it logs, so a texture load belongs in a client file behind a nil check [T13.23].
+The texture rule at the top of this page follows from that nil return.
 A chain of fallbacks — the mod's own icon, then a vendor default, then a placeholder — is the shape the resident viewer uses, each step behind the same nil check.
 Texture paths share one namespace with vanilla's and every other mod's, so a mod's images sit under a vendor subfolder of `media/ui`.
-A texture loaded once and kept on the panel costs one lookup per session, while a lookup inside render repeats the string work every frame, which the resident viewer avoids by caching each bar's texture on its first draw.
 Fonts are the `UIFont` enum constants, and text is measured through `getTextManager()`; a measure taken at file scope is the value for the font size at load, and a later change to the font-size option does not move it.
 
 <a id="tooltip"></a>
@@ -124,7 +121,6 @@ The tooltip is the most constrained surface on this page, because the engine dra
 The whole inventory-item tooltip body is built in Java: `ISToolTipInv:render` calls the item's `DoTooltip` twice, once under `setMeasureOnly(true)` to size the panel and once to draw, sets the panel's height from the measured tooltip and paints the background from that height between the two, and `InventoryItem.DoTooltip` is a single call into `DoTooltipEmbedded` [T13.24].
 The tooltip's height is set by Java from its own laid-out content plus `padBottom` before any Lua sees it, and a width under 150 is forced up to 150 [T13.25].
 `InventoryItem.DoTooltipEmbedded` skips its layout render, `endLayout` and `setHeight` tail when a `Layout` is passed in, which is how the engine composes a sub-item's rows inside one tooltip box [T13.26].
-The layout the food rows are written into is created and consumed inside that Java call, so a mod's lines go in a band of its own beside the Java box rather than inside it.
 
 The food block a nutrition mod will sit beside has its own gate.
 The food tooltip's nutrition block has three gates, any one of which shows it: the debug arm (`Core.debug` with the `tooltipInfo` debug option), an internal flag, and the character holding `CharacterTrait.NUTRITIONIST` or `NUTRITIONIST2`, so a client launched with the debug flag can show the block without the trait [T13.27].
@@ -137,6 +133,7 @@ The crafting item-slot tooltip is a second, separate route with its own panel cl
 A wrap that skips the test paints its band over an open context menu with no tooltip behind it.
 The sentinel that keeps the wrap single belongs in a global of its own, for the reason [lua-platform.md](lua-platform.md#dev-loop) gives [#0943/C/C-only].
 The wrap reaches `self.item`, the Java tooltip object `self.tooltip`, the character it was given and the whole `ISPanel` draw surface, which is everything a line of mod text needs.
+The two tooltip rules at the top of this page follow from the Java-built body, the fixed height and the context-menu test above.
 Everything a nutrition mod wants to say about a food therefore goes through one wrapped method and one band below the engine's box.
 The band's text is the mod's own, so it carries the mod's own numbers rather than echoing the engine's.
 
@@ -145,7 +142,7 @@ The resident interface mod leaves this route alone.
 `CleanUI`'s own `ISInventoryPane.lua` and `ISInventoryPaneContextMenu.lua` still construct `ISToolTipInv`, so a wrap of `ISToolTipInv`'s render survives `CleanUI` while a wrap of `ISInventoryPane`'s tooltip method would be replaced by `CleanUI`'s copy [T13.33].
 Under `CleanUI` a multi-item stack's tooltip is built from one representative display item plus `tooltip:setWeightOfStack(w)`, so a tooltip wrap sees a display item and not the group, and `CleanUI` skips the rebuild while the item and the stack weight are unchanged [T13.34].
 A per-item line therefore describes the representative item, and a line meant to sum a stack has to read the stack weight the tooltip carries rather than walk a group it never sees.
-That `CleanUI` also ships no copy of any vanilla base class this page relies on is unverified ([Open](#open)).
+That `CleanUI` also ships no file named after any vanilla class this page relies on is unverified ([Open](#open)).
 
 <a id="character-info"></a>
 ### The character-info window
@@ -156,6 +153,7 @@ A mod adds a character-info tab by wrapping `ISCharacterInfoWindow`'s `createChi
 A mod tab must not write its own name into `layout.current`, because vanilla's `RestoreLayout` passes that key through `xpSystemText[...]` to `activateView` whenever it is not a floating vanilla tab, and `xpSystemText` carries no entry for a name vanilla does not own [T13.36].
 `ISTabPanel` keys `getView` and `activateView` on a tab's displayed name, and the character-info window's `toggleView` looks the view up by that name, so a mod tab's name is a translated string and the same string is the toggle argument [T13.37].
 A key that opens the mod tab therefore passes the translated name, exactly as vanilla's own panel keys pass theirs.
+The tab rule at the top of this page follows from the build timing and the restore lookup above.
 The wrap is not idempotent on its own: a second run of the file stacks a second wrapper and a second tab, so the install sits behind a sentinel like any other wrap.
 A tab costs three method wraps where a registry would cost one call, which is the price of the missing registry under [Walls and bounds](#walls).
 The tab's panel is an ordinary derive, usually of `ISPanelJoypad` so a controller can reach it, built at the tab's own size.
@@ -188,7 +186,7 @@ Three Java UI classes matter to a mod: the base element every Lua widget wraps, 
 `zombie.ui.MoodlesUI` is a public final `UIElement` subclass in the exposer's class set, its `getInstance()` is public static, `clientW` and `clientH` are public fields and `UIElement`'s `getX`, `getY`, `getWidth` and `getHeight` are public, so the vanilla moodle stack's box is readable as an anchor for a mod's own icon column though the class offers no mutator [T13.43].
 The exposer test itself is [lua-platform.md](lua-platform.md#java-members)'s [#0963/C/C-only].
 `ObjectTooltip` is a public final `UIElement` subclass whose `padLeft`, `padTop`, `padRight` and `padBottom` are public int fields and whose public drawing surface is `DrawText`, `DrawTextCentre`, `DrawTextRight`, `DrawValueRight`, `DrawValueRightNoPlus`, `DrawTextureScaled`, `DrawTextureScaledAspect`, `DrawProgressBar`, `adjustWidth`, `beginLayout`, `endLayout`, `getLineSpacing` and `getFont` [T13.45].
-A public field is not a Lua door on this build: the library's one measured attempt to read Java fields from Lua found the dialect publishes methods rather than fields [#0920/M/n=1].
+A public field is not a Lua door on this build: the dialect publishes a Java object's methods and not its fields [#0920/M/n=1].
 So the tidy tooltip route — raising `padBottom` before the measure pass so the background covers the mod's band — rests on a field write Lua may not be able to make, and a mod plans on its own framed band instead.
 `UIElement.render`'s two early-return tests both read the parent — its `maxDrawHeight` and its `renderClippedChildren` flag — so a top-level element on the UI manager's list, which has no parent, is never culled by them [T13.46].
 A band drawn below a top-level tooltip panel is therefore not culled by the element's own render, though nothing here proves it lands on screen.
@@ -201,18 +199,19 @@ Any other Java UI class a mod wants is reached the same way: test it against the
 - `ISCharacterInfoWindow` has no tab registry: its five tabs are hard-coded in `createChildren`, again in `RestoreLayout`'s floating table and again in `SaveLayout`'s five parent tests [T13.47].
 - `ISHealthPanel` and `ISCharacterScreen` expose no extension point: `ISHealthPanel`'s only handler-list method, `checkItems(handlers)`, takes a list `doBodyPartContextMenu` builds locally [T13.48].
 - The engine has no keybind registration and no mod-key option: `getOptionModsKey` and `registerKeyBind` are in no class of the jar, and `Core`'s key surface is `getKey`, `getAltKey`, `isKey`, two `getKeyBinding` overloads, `addKeyBinding` and `reinitKeyMaps` [T13.49].
-- No vanilla route draws a mod's own moodle or status icon, and the routes that remain are [ui-and-moodles.md](../areas/ui-and-moodles.md#moodle-route)'s.
+- The routes by which a mod can show a moodle or a status icon are [ui-and-moodles.md](../areas/ui-and-moodles.md#moodle-route)'s.
 
 Not covered: nothing on this page was booted, so the panel, tooltip-band and tab shapes are read from the code and untested; the joypad half of every surface (`ISPanelJoypad`'s navigation, controller focus, the character window's bumper cycling and the controller path through the tooltip); the Xui skin layer and whether a skin changes the tooltip route; the rest of the inventory pane's own tooltip method in vanilla and in `CleanUI`; the keybinding page beyond `loadKeys` — the duplicate-bind dialog, the key-setting dialog and the old key-file migration; whether a mod can register a character stat; a live font-size change and how a panel re-lays itself out; split screen; and any measurement of frame time, draw cost or Lua call counts, which no shipped command takes.
 
 ## Open
 <a id="open"></a>
 
-- That `CleanUI` ships no `ISToolTipInv.lua` and no copy of any `ISUI` base class, `ISTabPanel`, `ISLayoutManager`, `ISCharacterInfoWindow` or `ISHealthPanel`, and that its `42.19` tree occupies 43 vanilla relative paths, all inventory, loot, fixing or translation files, is unverified: the scan of the workshop tree is not a committed dataset; re-measure by extending the inventory census to record each mod's vanilla-path files and reading `CleanUI`'s row [T13.32].
-- That no vanilla Lua file reads or writes a Java instance field such as `ObjectTooltip.padBottom` is unverified: the scan of the install's Lua is not a committed dataset; re-measure by a committed grep of `media/lua`, and settle the write itself with a probe that sets the field from Lua and reads the tooltip height back [T13.44].
+- That no tree of `CleanUI` ships a file named `ISToolTipInv.lua`, `ISUIElement.lua`, `ISPanel.lua`, `ISPanelJoypad.lua`, `ISCollapsableWindow.lua`, `ISTabPanel.lua`, `ISLayoutManager.lua`, `ISCharacterInfoWindow.lua` or `ISHealthPanel.lua` is unverified: the scan of the workshop tree is not a committed dataset; re-measure by extending the inventory census to record each mod's file list and reading `CleanUI`'s row [T13.32].
+- That no vanilla Lua file accesses a `padBottom` field on any object, the literal `.padBottom` being absent from the install's Lua, is unverified: the scan is not a committed dataset; re-measure by a committed grep of `media/lua`, and settle the write itself with a probe that sets the field from Lua and reads the tooltip height back [T13.44].
+- That no vanilla Lua other than `MainOptions:addModOptionsPanel` calls `PZAPI.ModOptions:load()` is unverified: the scan of the install's Lua is not a committed dataset; re-measure by a committed grep of `media/lua` for `ModOptions:load` [T13.62].
 - Whether a mod translation displaces a vanilla key, the question behind any tab name or option label a mod reuses — settled by a mod that redefines one vanilla key beside a new one; -> [X5](../areas/open-questions.md#x5) [#1276/C/open].
 - Whether `MoodleFramework` loads, executes its config and renders a registered moodle, which decides whether a mod's status icons need a column of their own anchored on the vanilla stack — settled by booting it with a registered moodle and reading the client's moodle level; -> [X29](../areas/open-questions.md#x29) [#1295/C/open].
-- The design must choose where a panel's geometry lives, because `layout.ini` is written only when a session ends cleanly or through the exception handler while player modData crosses the wire on every save [T13.10].
+- The design must choose where a panel's geometry lives, because `layout.ini` is written only when a session ends [T13.10], while player modData crosses the wire on every save ([mp-model.md](mp-model.md#wipe-and-replace)).
 - The design must choose how its tooltip lines reach the screen, because the tooltip's height is fixed by Java before Lua runs and the in-box padding route rests on a field write Lua may not make [T13.25].
 
 ## See also

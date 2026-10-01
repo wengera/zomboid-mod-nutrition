@@ -60,7 +60,7 @@ Simple Status is workshop item `2867431511`, one mod, declaring the id `simpleSt
 An empty dependency list is worth noting for what it removes: nothing has to be installed beside it, and nothing about load order follows from its declaration.
 A case-only difference between folder and id is a live hazard on a case-sensitive filesystem and invisible on the one this library reads from, which is why it is recorded as a drift rather than as a defect.
 
-The item has five version folders — `42`, `42.14`, `42.15`, `42.16` and `42.20` — beside an empty common directory and a root-level `B41` media tree of 47 files, and `42.20.4` resolves the `42.20/` tree, which holds 62 files: one mod.info, 7 client Lua, 13 translation JSON and 41 PNG; the item totals 360 files and 1 379 005 bytes, swept on 2026-09-30 [T13.57].
+The item has five version folders — `42`, `42.14`, `42.15`, `42.16` and `42.20` — beside a common directory with no media tree and a root-level `B41` media tree, `42.20.4` resolves the `42.20/` tree, whose client Lua files number 7, and the item totals 1 379 005 bytes, swept on 2026-09-30 [T13.57].
 The engine loads the newest version folder the build admits ([mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs)), so every other folder is inert on disk, and the version folders below are the only release history the item carries.
 The empty common directory earns a line of its own: it exists, the info chain skips it, and it costs the loader nothing.
 
@@ -93,19 +93,18 @@ Two dispatchers and a derive are the whole of its coupling to the game, and both
 The panel itself is an ordinary derived widget: it initialises, it prerenders, it handles mouse release and right-mouse release, and each of those is an override that calls its parent before doing anything of its own.
 Everything else on the class belongs to the mod, which is why the whole render path can be followed without leaving its two largest files.
 The stat definitions are the mod's data rather than its code: each stat is a table of a value function, a percentage function, a text function and a colour function, and the bar builder walks the list and calls them.
-That shape is why adding a stat looks like a one-line registration, and it is also why the registration nevertheless fails.
+That shape is why adding a stat is a one-line registration.
 
 The mod's global footprint is one name, and grepped across the whole installed 230-mod workshop corpus the only files assigning it are this mod's own five copies of the file that declares it, with no other installed mod so much as mentioning the name [#1476/C/snapshot].
 One global that nobody else touches is the whole of its namespace risk.
 A corpus grep is a dated sweep, so the finding is that nothing installed on that date touched the name rather than that nothing ever will.
 The resolved `42.20/` copy's one global carries a registration API a consumer mod can call instead of writing a panel: `SimpleStatus:addStat(name, stat, reverse_stat)` requires `stat.valueFn(player)` and refuses a duplicate or malformed stat with a console message, and `SimpleStatus:addCharacterStat(name, key, opts)` builds that value function from a `CharacterStat.REGISTRY` lookup [T13.60].
 A nutrient a mod registers as a character stat could therefore reach this panel through the second call, and whether a consumer should lean on it at all is an [Open](#open) decision.
+On the resolved `42.20/` tree `SimpleStatus:addStat` registers a reverse stat into the reverse table, its value list and the reverse lookup at the call, so a stat registered as the alternate view of an existing one reaches the player-creation toggle list and the settings menu, and the bar builder skips only that alternate, leaving the primary on the bar; the registration window is the extender's one remaining constraint [T13.64].
 
 In the resolved `42.20/` copy the panel's prerender advances a frame counter and calls the bar preparation — the only code that calls a bar's value, percentage, text and colour functions — only when the counter is a multiple of 10, resets the counter and adjusts the window size when it reaches 60, and draws the bars from the prepared values on every frame [T13.58].
-The option handlers also call the preparation directly, so a settings change shows at once rather than at the next prepared frame.
 The throttle is a frame count and not a clock: a faster render reads more often, and nothing on the path is keyed to the arrival of the store it reads.
 That reading is taken from the code: no shipped command measures frame time or Lua call counts, so what is recorded is a code shape and not a cost.
-A bar's translated title and its texture are resolved once and kept on the shared stat table, so the per-frame draw repeats neither lookup.
 The waste that remains scales with the number of visible bars rather than with the number of stats defined, so hiding a bar is still the one thing a player can do to lower it.
 
 The mod's persisted state is one player-modData key holding a flat table of scalars, a 6-row leaf table dated 2026-09-10 that expands to 45 leaves — 6 named ones, 36 per-stat shown flags and 3 toggle flags — beside no sandbox options, no command bus and no global modData in the live tree [#1478/C/snapshot].
@@ -200,11 +199,6 @@ The mod does environment-dependent work at file-load time, unguarded: its option
 The API is vanilla on the build this library reads, so the failure is latent rather than live — which is exactly the kind of dependency that surfaces on somebody else's build.
 The blast radius is the whole mod rather than the option, because the failure happens before either event is registered.
 
-The mod's registration API silently breaks its caller: it writes into a reverse table whose derived index was already built at file-load time, so a reverse stat registered later never reaches that index, gets no context-menu toggle and no toggle entry, and worse, the bar builder skips any name present as a key in the reverse table, so the primary stat the extender paired it with disappears from the bar [#1516].
-An extension point whose derived indexes are built once at load only works before its own file has finished loading, which is not a window a caller can occupy.
-The failure is silent in both halves: nothing raises, and the visible symptom lands on the wrong stat.
-An extender would see a stat disappear and have no reason to suspect its own registration call.
-
 Three dead branches read like live code: one settings-menu site indexes the toggle table by the reverse name while its two partner sites key it by the primary name so it never fires, one local is assigned from modData and never read, and a wholly commented-out compatibility function is still called; a seventh oddity is not a defect — one type string is spelled correctly while seven others carry a misspelling, inert because the only test reads the last eight characters [#1517/C/snapshot].
 They are recorded because they read as defects to anyone reading the file, not because any of them changes what the mod does.
 A reader auditing the mod spends time on all of them before concluding that none matters, which is the cost dead code imposes on a neighbour.
@@ -221,8 +215,8 @@ Nothing of it is copied into this library; only its patterns are taken.
 An absent licence is not a permissive one, and an absent author leaves nobody to ask.
 
 Load order is irrelevant to the mod itself — no dependency line, no monkey-patching, no script blocks, no global collision in the corpus and both its events vanilla dispatchers — and its only order-sensitive surface is outbound: a mod extending it must register after its declaring file has run and before the player-creation event, because the bar builder snapshots the stat list at player creation [#1519].
-That window is narrow, undocumented by the mod, and the registration defect above sits inside it.
-A mod that wants a bar of its own therefore has two problems at once, and only one of them is timing.
+That window is narrow and undocumented by the mod.
+A mod that wants a bar of its own therefore has a timing problem to solve and, on the resolved tree, nothing else on the registration side ([Architecture](#architecture)).
 
 The mod replaces no vanilla UI file — it adds a panel of its own to the UI manager — so a UI-replacing neighbour has nothing to fight over, and the only shared resources are screen space and two default key binds, both user-rebindable [#1521].
 A UI mod that adds rather than replaces is the shape that survives a crowded load order, and it is the shape a nutrition overhaul's own panel should take.
@@ -232,20 +226,21 @@ A neighbour built on the command bus has nothing to collide with either, because
 The mod is a viewer of exactly the numbers an item-pass rebalance moves: the five getters it draws are the five fields such a pass changes, so any change to the vanilla macro numbers is immediately visible to users through its bar with no cooperation needed and no way to annotate it, and because its display bands are hard-coded, re-basing the macro scale makes its colours and its two multiplier captions wrong silently on every client that has it installed [#1522].
 This is a neighbour whose calibration a nutrition overhaul can invalidate without touching a line of it, and the invalidation is silent on both sides.
 The visibility cuts the other way too: a rebalance that stays inside vanilla's existing bands is legible to every user of this bar for free.
-Depending on the mod is not on the table: it declares no author and no licence, its one extension point is defective, and a client-only viewer gives a nutrition overhaul nothing it cannot draw itself.
+Depending on the mod is not on the table: it declares no author and no licence, and a client-only viewer gives a nutrition overhaul nothing it cannot draw itself.
 
 Not covered: the flat `B41` root tree was never read and no single-player process was ever booted; no shipped command measures frame time or Lua call counts, so the render loop's cost is a code shape read off the resolved copy rather than a measurement; no bus command can synthesise a click or a key press, so none of the mod's save sites was ever fired from the bus and its persisted config was never observed populated on either side; and the workshop tree drifts under Steam's own updates, so every census here is the dated sweep it names rather than today's disk.
 
 ## Open
 <a id="open"></a>
 
-Nothing on this page is unsettled on its own evidence; what follows is the dependency the mod's sharpest claim rests on, and the decisions its facts force on a nutrition overhaul.
+One file count on this page is unverified; what follows is that count, the dependency the mod's sharpest claim rests on, and the decisions its facts force on a nutrition overhaul.
 
 - Whether the weight-band traits reach a multiplayer client, and by which packet, is [mp-model.md](../../platform/mp-model.md)'s question, and it is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#1490/M/n=1].
 - The design must decide whether it re-bases the vanilla macro scale, because this bar's display bands and its multiplier captions are hard-coded and go wrong silently on every client that has it installed [#1514, #1522].
 - The design must decide where its own per-player nutrient state lives, because any player-modData key the server holds and the client's copy does not is destroyed by this mod's next bar drag [#1482].
 - The design must decide at what cadence its own interface reads what it draws, because this mod's resolved copy throttles its reads to a frame count rather than to the push its store arrives on [T13.58] [T13.59].
-- The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered and that it breaks the caller it is offered to [#1516].
+- The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered, that the resolved tree keeps its reverse indexes at registration, and that the mod declares no author and no licence [T13.60] [T13.64].
+- That the resolved `42.20/` tree holds one mod.info, 7 Lua files, 13 JSON files and 41 PNG files is unverified: the count of the item's file list is not a committed dataset; re-measure by extending the inventory census to record per-tree file counts and reading this item's row [T13.63].
 
 ## See also
 
