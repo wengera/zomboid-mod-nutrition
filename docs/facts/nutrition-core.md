@@ -228,7 +228,7 @@ The nutrition core is one of the most closed surfaces in the platform: the objec
 What follows is that set of restrictions as facts, each with the mechanism that closes it.
 
 No class in the jar contains the literal `setNutrition` in any identifier form, so the `Nutrition` object cannot be substituted [#1185/C/C-only].
-`Nutrition.update` is not among the seven updaters a `CalculateStats` handler skips: it hangs off `BodyDamage.Update` at `updateInternal`, so a true return does not stop the macro drain [#2744/C/C-only].
+`Nutrition.update` is not among the seven updaters a `CalculateStats` handler skips: it hangs off `BodyDamage.Update` at `updateInternal`, so registering a handler does not stop the macro drain [#2744/C/C-only].
 The thresholds and rates inside the weight update are fixed on this build, and the only nutrition-side lever is the sandbox boolean, whose consequence is that the weight and trait coupling goes with it [#1127/C/C-only].
 A client cannot own the weight quantity at all, so anything keyed on a weight band is evaluated on the server or fed an explicitly transmitted value ([#1097/M/n=1], [platform/mp-model.md](../platform/mp-model.md#ownership)).
 The whole weight model is measured across one narrow slice of the weight axis, with no weight-band or appetite trait held and no control run with the sandbox gate off, and the bound is stated with the check itself at [the server check](#verified).
