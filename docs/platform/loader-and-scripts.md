@@ -1,5 +1,5 @@
 # Loader and scripts
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how a relative path becomes one file, how the Lua execution list is built, what the `item` and `craftRecipe` grammars are, and the block-level merge inside a script file — bucket append, per-key merge, sorted replay, path collisions, default modData, item identity, name resolution, per-side loading and reload; the file-level merge between a version dir and `common/`, translations and the checksum gate are `mod-anatomy.md`, and the item key reference is `facts/food-item-model.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: how a relative path becomes one file, how the Lua execution list is built, what the `item` and `craftRecipe` grammars are, and the block-level merge inside a script file — bucket append, per-key merge, sorted replay, path collisions, default modData, item identity, name resolution, per-side loading and reload; the file-level merge between a version dir and `common/`, translations and the checksum gate are `mod-anatomy.md`, and the item key reference is `facts/food-item-model.md`.
 
 ## Rules
 
@@ -10,8 +10,8 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: how a relative pat
 - Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Keep `template_` out of a script file's basename: the replay comparator pre-sorts every `template_`-prefixed basename ahead of every other file before it compares paths at all [#1233/C/C-only].
 - Assign a mod's own file-scope Lua globals at file scope: the mod tree executes inside `LoadDirBase` ahead of the engine's own `Load`, and an assignment from an event handler or a bus command afterwards is inert [#1216/C/C-only].
-- Put a per-item value in the item script rather than in Lua: script data loads per side and never crosses the wire, so the two sides agree for free [#1058/M/n=2].
-- Reach a new nutrient through an unrecognised key inside the vanilla `item` block: the parser's default arm rawsets it into the item's default modData and every instance receives a copy [#1089, #1187/C/C-only].
+- Put a per-type value in the item script, or in a Lua table keyed by full type where no script key reaches, rather than in per-instance Lua state: script data loads per side and never crosses the wire, so the two sides agree for free [#1058/M/n=2, #2682/C/C-only].
+- Reach a new nutrient on an item through an unrecognised key inside the vanilla `item` block, and on a drink's fluid through a Lua table keyed by the fluid's type string: the parser's default arm rawsets the key into the item's default modData and every instance receives a deep copy, while a `fluid` block has no default arm and stores no unrecognised key [#1089, #1187/C/C-only, #2676/C/C-only, #2682/C/C-only, #2684/C/C-only].
 - Spell a script value for the type its key parses as: an int, a float, a bool where only the literal `true` is true, a semicolon-split list or a bare string [#0214].
 - Keep every value on a known key well formed: a malformed value raises `InvalidParameterException` and aborts the load, and a line with no equals sign dies on the split [#1188/C/C-only].
 - Qualify a modded script name with its module at every lookup: a dot-less name is sent to the base module and resolves against neither spelling the shipped lookup tries [#1455/M/n=1].

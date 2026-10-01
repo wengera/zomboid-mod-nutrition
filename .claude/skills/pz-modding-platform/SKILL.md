@@ -9,6 +9,9 @@ description: Writing, debugging or reviewing a Project Zomboid mod that is not a
   - docs/platform/loader-and-scripts.md — the file map, script blocks, load and replay order
   - docs/platform/lua-platform.md — the dialect, `pcall`, Java members, hooks, events, registries
   - docs/platform/mp-model.md — ownership, packets, modData routes, the command bus
+  - docs/platform/server-lifecycle.md — a join, a creation, a death and a disconnect on the server, player ids, the player and world stores, the tick order
+  - docs/platform/sandbox-options.md — a mod's own sandbox options: the declaration file, the `SandboxVars` mirror, the join sync, a runtime change
+  - docs/platform/client-ui.md — the panel toolkit, layout, keybinds, textures, the tooltip, the character-info window, the UI events
 - docs/platform/lessons.md
 
 ## Coverage
@@ -31,3 +34,4 @@ Every verdict is dedicated-server multiplayer; single-player is never claimed.
 - docs/platform/jar-research.md — the next source when no page carries the topic (skill `pz-jar-research`).
 - docs/platform/harness.md — proving on a live server that the mod loaded and does what it claims (skill `pz-mod-testing`).
 - docs/reference/tools.md#mod-lint — the layout lint to run on the mod folder before any boot.
+- docs/platform/overview.md#coverage — which topics have a page, the server lifecycle, the sandbox options and the client UI among them, and which are only touched or absent.

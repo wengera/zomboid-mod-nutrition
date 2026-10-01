@@ -13,8 +13,8 @@ Read in this order:
 
 - [`CLAUDE.md`](CLAUDE.md) routes a task to the pages that answer it, in reading order, and carries the gates and the process.
 - [`docs/areas/`](docs/areas/) is the nutrition lens: one page per design area of the mod, each with its rules, its options, its walls and what stays open, and the open questions gathered in one index.
-- [`docs/platform/`](docs/platform/) is general modding knowledge — mod anatomy, the loader, the Lua platform, the multiplayer model, the harness, jar research and the lessons — entered at [`overview.md`](docs/platform/overview.md).
-- [`docs/facts/`](docs/facts/) holds the measured mechanics of the vanilla food and nutrition systems, with [`other-mods/`](docs/facts/other-mods/) for the workshop corpus and its teardowns.
+- [`docs/platform/`](docs/platform/) is general modding knowledge — mod anatomy, the loader, the Lua platform, the multiplayer model, the server lifecycle, sandbox options, the client UI, the harness, jar research and the lessons — entered at [`overview.md`](docs/platform/overview.md).
+- [`docs/facts/`](docs/facts/) holds the measured mechanics of the vanilla food and nutrition systems and of the body they act on — the character stats, endurance, fatigue and sleep, perks and strength, exercise, perception and speed, and health — with [`other-mods/`](docs/facts/other-mods/) for the workshop corpus and its teardowns.
 - [`docs/reference/`](docs/reference/) holds [the register](docs/reference/claims.tsv), [the datasets](docs/reference/datasets.md), [the tools](docs/reference/tools.md), [the experiments](docs/reference/experiments.md), [the generated harness commands](docs/reference/harness-commands.md), [the wall map](docs/reference/wall-map.md) and [the artifacts register](docs/reference/artifacts.md).
 
 ## The tree
@@ -25,8 +25,8 @@ STRATEGY.md                the charter: the mod, the deliverable, the method rul
 CLAUDE.md                  the agent handoff: task router, ground truth, gates, process
 .claude/skills/            the project skills that route a task into the pages
 docs/areas/                the nutrition lens: one page per design area, and the open questions
-docs/platform/             general modding knowledge, entered at overview.md
-docs/facts/                the vanilla food and nutrition mechanics
+docs/platform/             general modding knowledge, entered at overview.md: anatomy, loader, Lua, MP model, server lifecycle, sandbox options, client UI, harness, jar research, lessons
+docs/facts/                the vanilla food, nutrition and body mechanics: stats, endurance and sleep, perks, exercise, perception, health
 docs/facts/other-mods/     the workshop corpus catalogue and the teardowns
 docs/reference/            the register and its coverage, the do-not-cite list, the run aliases (run-aliases.csv), experiments, jar notes, harness commands, datasets, tools, the wall map (wall-map.md), the artifacts register (artifacts.md)
 references/wiki-mirrors/   the mirrored wiki pages, each dated and digested

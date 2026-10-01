@@ -1,5 +1,5 @@
 # Lessons
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the standing rules this library leaves behind — what the approved corpus converges on, what it does that this mod will not, what a measurement of this game is allowed to claim, and how fast the corpus itself moves underneath a count; every mechanism a rule rests on lives on the page this one cites for it.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the standing rules this library leaves behind — what the approved corpus converges on, what it does that this mod will not, what a measurement of this game is allowed to claim, and how fast the corpus itself moves underneath a count; every mechanism a rule rests on lives on the page this one cites for it.
 
 ## Rules
 <a id="rules"></a>
@@ -22,6 +22,9 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: the standing rules
 - Define a script hook's target as a bare global function rather than a local or a table member, and put the file in `shared/` so both states define it: the name resolves as a global, and a hook that must run on one side only branches inside itself, because the file's folder will not do it [#0927/C/C-only].
 - Reach every Java member by indexing first and calling second: a nil call never says which member was nil, aborts the body it sits in when unguarded and is session-ending on a debug client, and every Lua file in the experiment mods carries its own guard so that a mod never depends on the harness being installed [#0935/C/C-only].
 - Gate a raising probe on the server side and set its profile's client timeout low: a debug client parks on the first unguarded mod Lua error [#1963/M/n=2].
+- Never register the stat hook unless your handler reproduces every updater it skips, [their side effects](../areas/body-effects.md#rules) included, and cannot raise: registration is all-or-nothing for every player on the server, the handler's return is discarded, a second registrant cannot restore the updaters, and a raise inside it leaves the stats frozen [T27.2] [#2238/C/C-only] [#2240/C/C-only] [#2236/C/C-only] [#0896/C/C-only].
+- Re-apply the band traits a Strength or Fitness level implies yourself after writing that level through `setPerkLevelDebug`: the debug setter writes the level and nothing else, so neither the level event nor the listener that remaps the band traits on it runs [T27.3] [#2119/C/C-only] [#2127/C/C-only] [#2157/C/C-only].
+- Re-locate a workshop mod's version-folder line cite by its quoted text before quoting it, and name the tree it was read in: Steam adds version trees to an installed item under the library, so the tree this build resolves moves and a line number read in an older tree is drifted rather than wrong [T27.4] [#2523/C/snapshot] [#1466/C/snapshot] [#1964/C/snapshot].
 
 ## How it works
 
@@ -139,7 +142,8 @@ Line cites into a workshop mod drift the same way, and they drift without becomi
 
 - Every version-folder line cite in the client-only mod's teardown ([`../facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md)) names the tree as it stood on 2026-09-10, and Steam added a newer tree to the item on 2026-09-13 whose copy of the panel file is 589 lines against the read copy's 583, so those cites are drifted rather than wrong and must be re-located by content before being quoted elsewhere; the measured readings are unaffected, because the run booted the older tree [#1466/C/snapshot].
 
-Re-locating a cite by content rather than by line number is the standing practice that follows from it, and it applies to this repository's own files as much as to the corpus.
+The same item has since gained the tree this build resolves, so the teardown's version-folder cites name a tree that is no longer the live one ([#2523/C/snapshot], [simplestatus.md#architecture](../facts/other-mods/simplestatus.md#architecture)).
+Re-locating a cite by content rather than by line number is the standing practice that follows from it, written as a rule [above](#rules), and it applies to this repository's own files as much as to the corpus.
 A line number is the least durable part of any cite, which is why every pointer in this library carries the text it names as well as the place it sat.
 A drifted cite is also not a falsified reading: a run that booted the older tree measured the older tree, and what moved is the address rather than the answer.
 The sweep counts themselves are the part of this section that no committed artifact backs, and they are listed under [Open](#open) rather than quoted as facts here.
@@ -179,6 +183,7 @@ The layout rule is bounded to a version directory that ships colliding files, or
 The script-first rule rests on one session: one build, one fixture, one mod, one item, one player and one cook transition [#1074/M/n=1].
 The `server/` guard rests on one session, the reading was incidental to a run aimed at other questions, and the mechanism is untraced — no loader pass has been read that maps a `server/` file into the client's state [#0855/M/n=1, #1075/M/n=1].
 The debug-break rule is two boots of one build on one raise family, and a release client is unmeasured [#1963/M/n=2].
+The stat-hook rule and the debug-setter rule are code readings: the trigger, the hook lookup, the client gate and the debug setter are read from the bytecode and none is exercised on a live server, and whether a registrant skips the updaters whatever it returns is [an open experiment](../areas/open-questions.md#x32) [#2238/C/C-only, #2119/C/C-only, #2100/C/open].
 The hook-target rule and the index-first rule are code readings rather than measurements: the global-name resolution and the guard's three reasons are read out of the engine, and the practice exists so that the failure is never exercised [#0927/C/C-only, #0935/C/C-only].
 The uncarried-field rule and the shadowed-`common/` rule each rest on one session on one mod, on the dedicated-server path [#1076/M/n=1, #1086/M/n=1].
 The transmit rule stands at two sessions for the client-to-server direction against one for the other, and its call-site half is a code read that no bus command could exercise, because each site needs an interface click [#1085/M/n=2].
@@ -220,5 +225,7 @@ Not covered: this page reads the corpus by static sweep and by line-level reads 
 - [`../facts/other-mods/beyondten.md`](../facts/other-mods/beyondten.md) — the exemplar for idempotent patching, derived-on-read values and cooperative detection.
 - [`../areas/packaging.md`](../areas/packaging.md) — where the layout and neighbour rules become this mod's own decisions.
 - [`../areas/mp-sync.md`](../areas/mp-sync.md) — where the authority rules become a chosen route.
+- [`../areas/body-effects.md`](../areas/body-effects.md) — where the stat-hook rule and the debug-setter rule become levers a nutrition mod pulls.
+- [`../facts/perks-and-strength.md`](../facts/perks-and-strength.md#trait-remap) — the level writes, the level event and the band-trait remap the debug-setter rule rests on.
 - [`../reference/experiments.md`](../reference/experiments.md) — the standing experiment contract the testing discipline inherits.
 - [`../reference/wall-map.md`](../reference/wall-map.md) — the verdict rows the walls of the pages this one cites are drawn from.

@@ -1,5 +1,5 @@
 # Health surfaces
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: what a mod can drive in the body-damage model — overall and per-part health, regeneration, the severe-moodle drain, poison and infection, pain, wounds and healing, the mood moodles and the thermal door; the stat registry, the updaters, the side gates and the packets are handed off.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a mod can drive in the body-damage model — overall and per-part health, regeneration, the severe-moodle drain, poison and infection, pain, wounds and healing, the mood moodles and the thermal door; the stat registry, the updaters, the side gates and the packets are handed off.
 
 ## Key facts
 
@@ -200,7 +200,7 @@ A server-side write to any per-part field reaches the owning client only through
 ### The mood surface
 
 The mood stats are registered stats with their own ranges, listed at [character-stats.md#registry](character-stats.md#registry).
-Stress and the wake-state updaters run inside `calculateStats`, which a `CalculateStats` hook returning true skips [#0469/C/C-only]; panic, boredom, pain and sickness are driven inside `BodyDamage.Update`, which that hook does not reach [#2352/C/C-only] [#2384/C/C-only].
+Stress and the wake-state updaters run inside `calculateStats`, which any registered `CalculateStats` handler skips whatever it returns [#2238/C/C-only]; panic, boredom, pain and sickness are driven inside `BodyDamage.Update`, which that hook does not reach [#2352/C/C-only] [#2384/C/C-only].
 What a player sees of them is the moodle each stat feeds, and `MoodleStat` fixes where each moodle level begins [#2369/C/C-only].
 `MoodleStat` registers each moodle stat as a minimum plus four level thresholds; the mood moodles' thresholds are these [#2369/C/C-only]:
 

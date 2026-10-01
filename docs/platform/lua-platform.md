@@ -1,5 +1,5 @@
 # The Lua platform
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the Lua a mod runs inside on this build — the Kahlua dialect's gaps, what a protected call catches and what an unguarded raise costs on each side, how a Java member is reached, how the three script-side hooks resolve and which side calls each, the event and `Hook.*` surfaces, the moodle and trait registries, the APIs removed on this build, file IO and the in-session reload loop; which file runs at all, the packet field lists and the order of writes inside `Eat` are handed off.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the Lua a mod runs inside on this build — the Kahlua dialect's gaps, what a protected call catches and what an unguarded raise costs on each side, how a Java member is reached, how the three script-side hooks resolve and which side calls each, the event and `Hook.*` surfaces, the moodle and trait registries, the APIs removed on this build, file IO and the in-session reload loop; which file runs at all, the packet field lists and the order of writes inside `Eat` are handed off.
 
 ## Rules
 
@@ -14,7 +14,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the Lua a mod runs
 - Walk a Java list by its size and its per-index getter from zero: the length operator does not work on one and the pairs iterator raises on any Java-backed object [#0940/C/C-only, #0941/C/C-only].
 - Format a number through a fixed-point branch rather than an integer conversion, and write every file without `goto`: the dialect raises on the first and does not have the second [#0939, #0938].
 - Test a Java class against the exposer's class set before you plan on it: the exposure test is a strict membership test, so a class the jar carries and the exposer does not register is unreachable [#0963/C/C-only].
-- Read per-item macro values off an instance getter or out of the script text: the script object carries no macro getter, and the dialect publishes methods rather than fields [#0920/M/n=1, #1011/M/n=1].
+- Read per-item macro values off an instance getter or out of the script text: the script object carries no macro getter, its four macro fields are private, and the dialect publishes methods rather than fields [#1011/M/n=1, T27.6].
 - Hold a wrapper's sentinel in a global of its own: the shared file re-creates its state table by plain assignment on every load, so a sentinel kept inside it is wiped while the old wrapper is still installed and the next install wraps the wrapper [#0943/C/C-only].
 - Guard any file you mean to reload against double registration: the reload command re-runs that one file and re-registers nothing, so a file that adds a handler on load adds a second one [#1880/C/C-only].
 - Write run output through the Lua file writer rather than the mod file writer: the Lua writer is rooted at the cachedir's Lua folder and takes a five-entry extension allowlist that includes JSON, which is what lets a complete parse be the ready signal [#1866/C/C-only].
@@ -101,9 +101,9 @@ Hunger and thirst are read from Lua through `getStats():get(CharacterStat.HUNGER
 Vanilla offers no extension point on the nutrition object itself: its whole method list is 26 members — the five stores, the three direction flags, the update, calorie and weight updaters, the two trait appliers, the weight-trouble and fitness-XP tests, and save and load — with no mod-data accessor and no generic accessor, and no class on the jar carries a nutrition setter literal, so Lua cannot substitute a different object for the one the engine constructs [#0889/C/C-only].
 Reading a perk's experience takes two calls and never one: the character's experience getter is zero-argument and answers an inner experience object, and the number comes from that object's per-perk getter — which is why a zero-argument getter witness cannot read it and the harness carries a dedicated command; the level itself reaches the client within one bus round trip [#0918/M/n=1].
 The round-trip half is one session and one character; the two-call shape is a method-list reading [#0918/M/n=1].
-The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` keys are not reachable from Lua: they are public fields on `Item` with no getter, and all four came back absent through the `get`, `is` and field routes on one probed item, reached through the script manager's own lookup [#0107/M/one-fixture].
-The same absence holds on both sides and on mod items as well as vanilla ones: the instantiation path reads those fields straight into the food instance, and the dialect publishes methods, so per-item macro numbers must come off an instance or out of the script text [#0920/M/n=1].
-That was read over four items on two sides in one session, re-confirming two earlier ones [#0920/M/n=1].
+The script-level `Calories`, `Carbohydrates`, `Lipids` and `Proteins` keys are not reachable from Lua: they are private fields on `Item` with no getter, and all four came back absent through the `get`, `is` and field routes on one probed item, reached through the script manager's own lookup [T27.7].
+The same absence holds on both sides and on mod items as well as vanilla ones: the instantiation path reads those private fields straight into the food instance, and the dialect publishes methods, so per-item macro numbers must come off an instance or out of the script text [T27.6].
+That was read over four items on two sides in one session, re-confirming two earlier ones [T27.6].
 The script object is a poor witness for macros in particular: it answers the seven shelf-life and cooking keys while reporting the four macro keys absent on both sides, so only an instance getter discriminates [#1011/M/n=1].
 The exposer's class set holds `Thermoregulator`, `Thermoregulator$ThermalNode`, `Metabolics`, `Fitness`, `BodyDamage`, `Stats`, `CharacterStat`, `IsoGameCharacter`, `IsoPlayer`, `Moodles`, `MoodleType`, `CharacterTraits`, `SandboxOptions`, `ServerOptions`, `GameTime` and `Nutrition`, and does not hold `MoodleStat`, `ZomboidGlobals`, `LuaHookManager` or `PlayerCheats`, read end to end from one dump of the exposer [#2248/C/C-only].
 So the stat, body and option classes a nutrition mod reads are all reachable, while the Java holder of the rate constants and the hook manager are not.
@@ -178,7 +178,7 @@ There is no `OnAddXP` event on this build: the jar carries no such literal, and 
 
 The named-hook surface is the engine's own trigger table, separate from the script keys and from the event roster above, and what a hook returns can replace vanilla work rather than merely observe it.
 
-A Lua `CalculateStats` hook that returns true skips every stat updater for that tick, read from the bytecode and not exercised on the live server [#0469/C/C-only].
+A registered `CalculateStats` handler replaces vanilla work rather than observing it, whatever it returns, as the trigger reading below states [#2238/C/C-only].
 The auto-drink path fires the Lua hook named `AutoDrink`, also read from the bytecode and not measured [#0482/C/C-only].
 Neither of those two is an intake hook, and the nearest question — whether the drink path can be wrapped the way the eat path is — is [a wall](#walls).
 

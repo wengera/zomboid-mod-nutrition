@@ -16,9 +16,13 @@ Route a task by its shape and read the pages in the order given; stop when the t
 | add a mod nutrient | [areas/new-nutrients](docs/areas/new-nutrients.md) → [platform/mp-model](docs/platform/mp-model.md) → [facts/wire-packets](docs/facts/wire-packets.md) | `nutrition-new-nutrients` |
 | override a vanilla food | [areas/item-pass](docs/areas/item-pass.md) → [platform/loader-and-scripts](docs/platform/loader-and-scripts.md) → [facts/food-item-model](docs/facts/food-item-model.md) | `nutrition-item-pass` |
 | hook eating or cooking | [areas/eat-and-cook-hooks](docs/areas/eat-and-cook-hooks.md) → [platform/lua-platform#script-hooks](docs/platform/lua-platform.md#script-hooks) → [facts/eating-pipeline](docs/facts/eating-pipeline.md) | `nutrition-eat-and-cook-hooks` |
+| drive a stat, a perk level, a trait, health or carry capacity from mod state | [areas/body-effects](docs/areas/body-effects.md) → [facts/character-stats](docs/facts/character-stats.md) → [facts/body-and-weight](docs/facts/body-and-weight.md) → [facts/perks-and-strength](docs/facts/perks-and-strength.md) → [platform/lua-platform#hooks](docs/platform/lua-platform.md#hooks) | `nutrition-body-effects` |
 | sync mod state | [areas/mp-sync](docs/areas/mp-sync.md) → [platform/mp-model](docs/platform/mp-model.md) → [facts/wire-packets](docs/facts/wire-packets.md) | `nutrition-mp-sync` |
+| the server's player lifecycle or global modData | [platform/server-lifecycle](docs/platform/server-lifecycle.md) → [areas/mp-sync](docs/areas/mp-sync.md) | `nutrition-mp-sync` |
 | show a value or a moodle | [areas/ui-and-moodles](docs/areas/ui-and-moodles.md) → [platform/lua-platform#registries](docs/platform/lua-platform.md#registries) | `nutrition-ui-and-moodles` |
+| build a panel, a keybind, a tooltip line or a character-info tab | [platform/client-ui](docs/platform/client-ui.md) → [areas/ui-and-moodles](docs/areas/ui-and-moodles.md) | `nutrition-ui-and-moodles` |
 | package or ship | [areas/packaging](docs/areas/packaging.md) → [platform/mod-anatomy](docs/platform/mod-anatomy.md) | `nutrition-packaging` |
+| declare or read a sandbox option | [platform/sandbox-options](docs/platform/sandbox-options.md) → [areas/testing-your-mod](docs/areas/testing-your-mod.md) | `pz-modding-platform` |
 | test a mod live | [areas/testing-your-mod](docs/areas/testing-your-mod.md) → [platform/harness](docs/platform/harness.md) → [reference/harness-commands](docs/reference/harness-commands.md) | `nutrition-testing-your-mod` |
 | run or change the harness | [platform/harness](docs/platform/harness.md) → [reference/harness-commands](docs/reference/harness-commands.md) → § 5 | `pz-mod-testing` |
 | answer from the jar | [platform/jar-research](docs/platform/jar-research.md) → [reference/jar-method-notes](docs/reference/jar-method-notes.md) | `pz-jar-research` |
@@ -50,7 +54,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
 - `python tools/reference_gen.py cited-by --check` and `python tools/reference_gen.py contradictions --check` → in sync: the artifacts register's `Cited by` column and the mirrors' `## Contradictions` section are rendered from the register, the checker's rule 10 runs both (so `claims_check.py --staged` covers a commit touching the register, `docs/reference/artifacts.md` or `references/wiki-mirrors/`), and `--write` in place of `--check` regenerates them.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
-- `python -m pytest tools/tests testing/tests -q` green: 393 passed on 2026-09-26, and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 398 passed on 2026-10-01, and the count never drops.
 
 ## 4. Extending the reference
 
