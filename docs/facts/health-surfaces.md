@@ -61,7 +61,7 @@ One debug switch sits above the whole model [#2352/C/C-only].
 ### Regeneration
 
 Regeneration is one accumulator per tick, fed by the health-from-food term, the tier addition and the sleeping addition, and handed to `AddGeneralHealth` once [#2353/C/C-only] [#2385/C/C-only].
-A tier index is built from the `HUNGRY`, `SICK` and `THIRST` moodle levels, and a `tableswitch` maps it to one of four constants [#2353/C/C-only].
+A tier index is built from the `HUNGRY`, `SICK` and `THIRST` moodle levels, and a `tableswitch` maps it to one of four constants [#2353/C/C-only] [#2721/C/C-only].
 The switch decodes with low `0`, high `3` and its default at the asleep block; a sleeping character's tier of `-1` falls to that default and takes the sleeping addition instead of any awake constant [#2353/C/C-only].
 The decoded switch, with the food term and the tier build above it and the sleeping arm below it, is this [#2353/C/C-only] [#2385/C/C-only]:
 
@@ -93,7 +93,7 @@ if (isAsleep()) {                                                // @839  L2316 
 AddGeneralHealth(add);                                           // @925  L2328
 ```
 
-Each test is an equality on a moodle level, run in ascending order, so the highest matching level wins [#2353/C/C-only].
+Each test is an equality on a moodle level, run in ascending order, so the highest matching level wins [#2353/C/C-only] [#2721/C/C-only].
 The sleeping addition is zeroed by a level-4 hunger or thirst [#0515/C/C-only].
 While `healthFromFoodTimer` is above zero the same accumulator also takes `getHealthFromFood() × mult`, `healthFromFood` defaulting to `0.015`, and the timer falls by one multiplier unit per tick [#2385/C/C-only].
 That zero-out sits inside the asleep branch, so a sleeper at level-4 hunger or thirst loses the food term with the rest while an awake character keeps it [#2385/C/C-only].

@@ -186,7 +186,7 @@ The outbound half is therefore established through the vanilla call the mod make
 Each line below is a cost the mod pays, stated as the mechanism that causes it rather than as a review of the mod.
 None is a wall a neighbour runs into; they are shapes not to copy, and the one cost that does fall on a neighbour is under [Multiplayer behaviour](#mp) rather than here.
 
-Cache anything read from a pushed store at the push cadence rather than the frame cadence: a source that changes once a second is read many times a second by an uncached value function, whatever the render loop's own tick [#2525/C/inference] [#2524/C/C-only].
+Cache anything read from a pushed store at the push cadence rather than the frame cadence: a source that changes once a second is read many times a second by an uncached value function, whatever the render loop's own tick [#2725/C/inference] [#2524/C/C-only].
 That rule is a code reading of this mod's own render loop set against the measured arrival of its source, and the cost it names is client-side only.
 The resolved copy's frame-count throttle lowers the read count without tying it to the push, so a panel that draws more numbers than this one keys its cache to the arrival instead.
 
@@ -238,7 +238,7 @@ One file count on this page is unverified; what follows is that count, the depen
 - Whether the weight-band traits reach a multiplayer client, and by which packet, is [mp-model.md](../../platform/mp-model.md)'s question, and it is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#1490/M/n=1].
 - The design must decide whether it re-bases the vanilla macro scale, because this bar's display bands and its multiplier captions are hard-coded and go wrong silently on every client that has it installed [#1514, #1522].
 - The design must decide where its own per-player nutrient state lives, because any player-modData key the server holds and the client's copy does not is destroyed by this mod's next bar drag [#1482].
-- The design must decide at what cadence its own interface reads what it draws, because this mod's resolved copy throttles its reads to a frame count rather than to the push its store arrives on [#2524/C/C-only] [#2525/C/inference].
+- The design must decide at what cadence its own interface reads what it draws, because this mod's resolved copy throttles its reads to a frame count rather than to the push its store arrives on [#2524/C/C-only] [#2725/C/inference].
 - The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered, that the resolved tree keeps its reverse indexes at registration, and that the mod declares no author and no licence [#2526/C/C-only] [#2530/C/C-only].
 - That the resolved `42.20/` tree holds one mod.info, 7 Lua files, 13 JSON files and 41 PNG files is unverified: the count of the item's file list is not a committed dataset; re-measure by extending the inventory census to record per-tree file counts and reading this item's row [#2529/C/snapshot/unverified].
 

@@ -16,7 +16,7 @@ description: Rebalancing vanilla food items — a partial `module Base` `item` b
 - Keep every value on a known key well formed: a malformed value raises `InvalidParameterException` and aborts the load, and a line with no equals sign dies on the split [#1188/C/C-only].
 - Write every re-based value in the script's own units: the dataset carries hunger and thirst raw, as the script writes them, while an instance divides them by a hundred, and a drink row's nutrition is its fluid's per-litre figure rather than a key on the container's own block [#0323, #0626/C/snapshot, #1893, #2068/C/inference].
 - Ship byte-identical script files on both sides of a multiplayer session: the gate hashes file content with every CR byte dropped, so a mismatch is a disconnect rather than a silent degrade [#1182/C/C-only, #1231/C/C-only].
-- Build a fresh instance through the `instanceItem` global to read a type's vanilla macros when no instance is at hand, never the script item `getScriptItem()` returns: the script item keeps its four macro fields private and declares no getter for any of them, and the global reaches the item factory, which the exposer leaves out [#2679/C/C-only, #2680/C/C-only, T22.2].
+- Build a fresh instance through the `instanceItem` global to read a type's vanilla macros when no instance is at hand, never the script item `getScriptItem()` returns: the script item keeps its four macro fields private and declares no getter for any of them, and the global reaches the item factory, which the exposer leaves out [#2679/C/C-only, #2680/C/C-only, #2697/C/inference].
 
 ## Also
 - docs/facts/eating-pipeline.md#modifiers — what an eat does with a re-based value, and the scale between a script and an instance.

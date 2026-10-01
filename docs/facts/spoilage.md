@@ -173,7 +173,7 @@ It is the absence of a shelf life, plus a pair of script keys that the spawn-rot
 Three different markers look as though they mean sealed and only two of them do anything.
 A mod that picks the wrong one silently gets the wrong set of items.
 
-`Packaged` is copied onto the instance and readable as `Food.isPackaged()`, which has no Java caller in the jar and no vanilla Lua reader, so it is a pure marker for scripts and mods [#0306/C/C-only].
+`Packaged` is copied onto the instance and readable as `Food.isPackaged()`, which has no Java caller in the jar and no vanilla Lua reader, so it is a pure marker for scripts and mods [#2726/C/C-only].
 
 That reading is a whole-jar reverse-reference scan plus a grep of the vanilla Lua tree, so a reader outside those two places would not show.
 

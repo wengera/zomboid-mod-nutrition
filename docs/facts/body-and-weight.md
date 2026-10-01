@@ -75,7 +75,7 @@ The weight term is measured across the band: the ratios against 80 kg came back 
 Idle burn re-measured at a second cadence gives minus 1 408.1, minus 1 385.0 and minus 1 399.7 kcal per game-day across three server runs against minus 1 402.5, minus 1 379.5 and minus 1 390.2 predicted at each run's interval-mean weight, within 0.4 to 0.7 per cent — cross-checks fitted off the same samples rather than assertions [#0167/M/one-fixture].
 
 The thermoregulator's energy multiplier and the swipe, climb and timed-action modifier reach the asleep and idle branches only: the energy term is loaded in those two branches and nowhere else, so cold raises resting burn and does nothing to moving burn, and all three moving branches overwrite the modifier before using it, so the swipe and climb constant of 8.0 and every timed action's `caloriesModifier` are rest-only in practice [#0187/C/C-only, #0462].
-`caloriesModifier` defaults to 1 on `ISBaseTimedAction` and takes 30 assignments in the install's Lua with six distinct values, counted once on 2026-09-10: 0.5 for reading, researching and resting, 2 for dismantling, 3 for `ISFitnessAction`, 4 for building stages, painting, wallpapering, harvesting, shovelling and fixing, 5 for plowing, cleaning blood and graffiti and filling graves, and 8 for `ISBuildAction`, plastering, barricading, chopping trees and breaking glass [#0463/C/snapshot].
+`caloriesModifier` defaults to 1 on `ISBaseTimedAction` and takes 30 assignments in the install's Lua with six distinct values, counted once on 2026-09-10: 0.5 for reading, researching and resting, 2 for dismantling, 3 for `ISFitnessAction`, 4 for building stages, painting, wallpapering, harvesting, shovelling and fixing, 5 for plowing, cleaning blood and graffiti and filling graves, and 8 for `ISBuildAction`, plastering, barricading, chopping trees and breaking glass [#2720/C/snapshot].
 The values span 0.5, on reading, researching and resting, to 8, on building, plastering, shovelling ground, lighting a kindling fire, barricading, chopping trees, destroying, pickaxing ground cover and clearing broken glass, around the default of 1 [#2638/C/C-only].
 
 A server-side reader of the modifier has three facts to work with.
@@ -229,7 +229,7 @@ What each level does:
 | Consumer | Effect | Row |
 |---|---|---|
 | `BodyDamage.UpdateStrength` | carry capacity: a `HUNGRY` level 2 adds 1 and levels 3 and 4 add 2, `THIRST` behaves identically, `SICK` 2, 3 and 4 add 1, 2 and 3, and bleeding and injured contribute likewise; the total is subtracted from the base max weight times the weight modifier and floored at 0 | [#0513/M/n=1] |
-| `BodyDamage.Update` | the health-regeneration tier: `HUNGRY`, `SICK` or `THIRST` at level 2 gives tier 1, level 3 gives tier 2, `HUNGRY` or `THIRST` at level 4 gives tier 3 with `SICK` 4 absent from this branch, and being asleep gives tier minus 1; each tier selects one of the regeneration constants at [health-surfaces.md#regeneration](health-surfaces.md#regeneration) through the decoded switch stated there | [#0514/C/C-only] |
+| `BodyDamage.Update` | the health-regeneration tier: `HUNGRY`, `SICK` or `THIRST` at level 2 gives tier 1, level 3 gives tier 2, `HUNGRY` or `THIRST` at level 4 gives tier 3 with `SICK` 4 absent from this branch, and being asleep gives tier minus 1; each tier selects one of the regeneration constants at [health-surfaces.md#regeneration](health-surfaces.md#regeneration) through the decoded switch stated there | [#2721/C/C-only] |
 | `BodyDamage.Update` | while asleep, a `HUNGRY` or `THIRST` level of 4 zeroes the 0.02 sleeping health addition | [#0515/C/C-only] |
 | `BodyDamage.Update` | the severe-moodle health loss: at `HUNGRY` level 4 the constant over 50, that is 0.0165 over 50 or 3.3e-4 per multiplier unit, and at `THIRST` level 4 the same constant over 10, 1.65e-3 per multiplier unit and five times the hunger one; both are added into one reduction total, which `ReduceGeneralHealth` applies whole to overall body health because the per-part division by max and by the damage modifier cancels against the overall-health sum | [#0516] |
 | `BodyDamage.Update` | a `FOOD_EATEN` level above 0 speeds poison decay by 1.5e-4 times the level on top of the normal poison-level decrease | [#0520/C/C-only] |
@@ -238,7 +238,7 @@ What each level does:
 
 The zeroed sleeping health addition, the poison-decay term and the two eat blocks are read from the code and were not measured [#0515/C/C-only, #0520/C/C-only, #0521/C/C-only, #0522/C/C-only].
 The carry-capacity ladder is measured: `getMaxWeight` read 12, 12, 11, 10 and 10 across levels 0 to 4 on the hunger and the thirst moodle independently [#0513/M/n=1].
-The tier-to-constant mapping of the regeneration branch is a reading of the bytecode's switch, decoded at [health-surfaces.md#regeneration](health-surfaces.md#regeneration), and no tier was measured [#0514/C/C-only].
+The tier-to-constant mapping of the regeneration branch is a reading of the bytecode's switch, decoded at [health-surfaces.md#regeneration](health-surfaces.md#regeneration), and no tier was measured [#2721/C/C-only].
 The severe-moodle health terms carry the game-time multiplier without the delta-minutes-per-day factor, so in game time they scale with the day length over 30: the `THIRST` level 4 term costs 11.88 health per game-hour on the 60-minute default day and 17.82 on a 90-minute one, and the `HUNGRY` level 4 term 2.376 and 3.564 respectively [#0518/C/arith.].
 The thirst term is the measured one, at 17.820029 health per game-hour against a predicted 17.820000, a ratio of 1.000002, fitted as a least-squares slope over one run's health samples on a 90-minute-day fixture with the hunger moodle never above level 3 [#0519/M/arith.].
 That run's hunger peaked at 0.699892 against a strict greater-than-0.70 threshold, so `HUNGRY` never rose above level 3 [#0174/M/one-fixture].
@@ -321,8 +321,8 @@ A client cannot derive the band, but it can derive the direction: the three weig
 Driven to plus 1500 kcal the three flags read true, false, false on both sides, and driven to minus 100 kcal they read false, false, true on both sides, each matching the arm recomputed from that snapshot's own macros — two arms driven on purpose, so this is measured on the arms that could have disagreed [#1100/M/n=1].
 On the arm where all three flags are false they agree across sides at all six snapshots of an earlier session, on a character whose trait lists came back empty on both sides, so that reading carries no information about a character that holds a band trait [#1099/M/n=1].
 Unforced, `applyTraitFromWeight` runs only once every 2000 `updateWeight` calls and did not fire within 60 s of dedicated-server time, while called directly from Lua the traits apply instantly — so a trait-keyed effect reads a band that lags the weight unless the mod forces the refresh [#1194/M/n=1].
-The refresh itself is a full replace of the band and silent: `applyTraitFromWeight` removes exactly the five band traits and no other, adds back the one the weight's band names, adds none in the open interval between 75 and 85 kg, and pushes nothing — no packet, no player-fields send and no dirty flag [#2642/C/C-only].
-So a band trait another mod grants for its own reason is gone at the next call, and a client sees the new band only on a later push of the trait list, which [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership) traces [#2642/C/C-only].
+The refresh itself is a full replace of the band and silent: `applyTraitFromWeight` removes exactly the five band traits and no other, adds back the one the weight's band names, adds none in the open interval between 75 and 85 kg, and pushes nothing — no packet, no player-fields send and no dirty flag [#2722/C/C-only].
+So a band trait another mod grants for its own reason is gone at the next call, and a client sees the new band only on a later push of the trait list, which [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership) traces [#2722/C/C-only].
 
 <a id="traits"></a>
 ### The other traits in the nutrition path
@@ -398,7 +398,7 @@ Not covered: the temperature model behind the thermoregulator's primary and seco
 - Decision: whether hunger and thirst are retuned through the sandbox multiplier or the updaters are replaced — `StatsDecrease` scales hunger, thirst and fatigue together and never calories [#0553].
 - Decision: whether a trait-keyed effect reads a vanilla band trait at all, given that its name comes back lowercased and no string overload of the trait test exists [#0582/M/n=1, #1260/C/C-only].
 - Decision: whether an activity-scaled mod quantity reads the engine's metabolic-rate classes or classifies the player itself — the classes are floors raised within one update, endurance and carried load raise the target above them, and none of it is measured on a server [#2633/C/C-only] [#2649/C/C-only].
-- Decision: whether the mod refreshes the band traits after its own weight write, given that each refresh removes all five band traits, re-adds one and pushes nothing [#2642/C/C-only].
+- Decision: whether the mod refreshes the band traits after its own weight write, given that each refresh removes all five band traits, re-adds one and pushes nothing [#2722/C/C-only].
 
 ## See also
 

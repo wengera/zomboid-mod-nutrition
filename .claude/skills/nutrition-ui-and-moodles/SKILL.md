@@ -8,7 +8,7 @@ description: Showing nutrition to a player — a client panel and how often it r
 - docs/platform/mod-anatomy.md
 
 ## Rules quoted
-- Cache a nutrition value at the push cadence rather than the frame cadence: the source changes once a second and the measured arrivals show it, while a viewer's read count is the viewer's own and drifts with its version, the arrivals measured in one session [T20.1] [#2524/C/C-only].
+- Cache a nutrition value at the push cadence rather than the frame cadence: the source changes once a second and the measured arrivals show it, while a viewer's read count is the viewer's own and drifts with its version, the arrivals measured in one session [#2692/M/n=1] [#2524/C/C-only].
 - Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
 - Render through `MoodleFramework` or the mod's own panels rather than patching the widgets a resident interface mod already patches: `CleanUI` redraws the status surfaces on this server [#1083/C/snapshot].
 - Evaluate anything keyed on the Obese, Overweight, Underweight or Emaciated band server-side, or feed it an explicitly transmitted value: the band traits are not in the player-stats packet and no other packet was traced carrying the trait list [#1104/C/inference].
