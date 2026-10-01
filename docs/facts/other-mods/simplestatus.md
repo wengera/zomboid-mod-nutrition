@@ -1,5 +1,5 @@
 # Simple Status — the read side of the nutrition store
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: one workshop mod torn down as a pure client-side viewer of the player's status numbers — what it draws, how it is built, the techniques it demonstrates, the costs it pays and the one call it makes that crosses the wire; the packets it consumes belong to [wire-packets.md](../wire-packets.md#player-stats-packet) and the transmit wipe to [mp-model.md](../../platform/mp-model.md#wipe-and-replace).
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: one workshop mod torn down as a pure client-side viewer of the player's status numbers — what it draws, how it is built, the techniques it demonstrates, the costs it pays and the one call it makes that crosses the wire; the packets it consumes belong to [wire-packets.md](../wire-packets.md#player-stats-packet) and the transmit wipe to [mp-model.md](../../platform/mp-model.md#wipe-and-replace).
 
 ## Key facts
 <a id="techniques"></a>
@@ -14,7 +14,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: one workshop mod t
 
 Simple Status is a workshop mod that draws the player's status numbers in a panel of bars, and it is in this library because it is the read side of the same store an item-pass rebalance writes.
 It holds no state of the game's, defines no item and runs no code on a dedicated server.
-That makes it a clean specimen of three things at once: the shape of a mod that consumes extension points instead of patching, the cost of reading a server-pushed store at frame cadence, and the blast radius of the one vanilla call it makes that reaches across the wire.
+That makes it a clean specimen of three things at once: the shape of a mod that consumes extension points instead of patching, the cost of reading a server-pushed store on a frame-count timer rather than at the push, and the blast radius of the one vanilla call it makes that reaches across the wire.
 
 A viewer is a useful subject precisely because it cannot be wrong about the game.
 It can only be late, or be reading a field the wire does not carry, or be drawing a number against a scale somebody else chose.
@@ -60,13 +60,14 @@ Simple Status is workshop item `2867431511`, one mod, declaring the id `simpleSt
 An empty dependency list is worth noting for what it removes: nothing has to be installed beside it, and nothing about load order follows from its declaration.
 A case-only difference between folder and id is a live hazard on a case-sensitive filesystem and invisible on the one this library reads from, which is why it is recorded as a drift rather than as a defect.
 
-The live tree is the newest of four version folders and holds 62 files — one mod.info, 7 client Lua, 13 translation JSON and 41 PNG — beside an empty common directory the info chain skips and a root-level `B41` media tree of 47 files that `42.20.4` never reads; all 298 files of the item carry one download mtime and it is 1 132 005 bytes [#1467/C/snapshot].
-The single download stamp is why nothing about the mod's own release history can be read off the disk, and why the version folders below are the only history there is.
+The item has five version folders — `42`, `42.14`, `42.15`, `42.16` and `42.20` — beside an empty common directory and a root-level `B41` media tree of 47 files, and `42.20.4` resolves the `42.20/` tree, which holds 62 files: one mod.info, 7 client Lua, 13 translation JSON and 41 PNG; the item totals 360 files and 1 379 005 bytes, swept on 2026-09-30 [T13.57].
+The engine loads the newest version folder the build admits ([mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs)), so every other folder is inert on disk, and the version folders below are the only release history the item carries.
 The empty common directory earns a line of its own: it exists, the info chain skips it, and it costs the loader nothing.
 
 The mod's architecture is an 8-row file table dated 2026-09-10: 7 client Lua files totalling 1 580 lines, of which the stat definitions are 708 and the panel 583, plus 13 language trees carrying 52 translation keys each, and no script directory in any of its five media trees [#1473/C/snapshot].
 Every one of those seven Lua files ends with a newline, so every line count above is real, while the `mod.info` does not, so a newline-counting tool answers 6 for its 7 lines [#1473/C/snapshot].
 Paths in the table are relative to the item's `mods/SimpleStatus/` directory.
+The table reads the `42.16/` tree, which is on disk beside the resolved `42.20/` tree and is not the one the engine loads.
 
 | File | Lines | Side | Role |
 |---|---:|---|---|
@@ -97,13 +98,15 @@ That shape is why adding a stat looks like a one-line registration, and it is al
 The mod's global footprint is one name, and grepped across the whole installed 230-mod workshop corpus the only files assigning it are this mod's own five copies of the file that declares it, with no other installed mod so much as mentioning the name [#1476/C/snapshot].
 One global that nobody else touches is the whole of its namespace risk.
 A corpus grep is a dated sweep, so the finding is that nothing installed on that date touched the name rather than that nothing ever will.
+The resolved `42.20/` copy's one global carries a registration API a consumer mod can call instead of writing a panel: `SimpleStatus:addStat(name, stat, reverse_stat)` requires `stat.valueFn(player)` and refuses a duplicate or malformed stat with a console message, and `SimpleStatus:addCharacterStat(name, key, opts)` builds that value function from a `CharacterStat.REGISTRY` lookup [T13.60].
+A nutrient a mod registers as a character stat could therefore reach this panel through the second call, and whether a consumer should lean on it at all is an [Open](#open) decision.
 
-The render loop is per frame and uncached: the panel's prerender calls the bar preparation unconditionally, which calls each bar's value function once and then three more closures that re-enter it, so a single frame issues up to four nutrition round trips per visible nutrition bar and ten for the weight bar, whose text function adds seven direct calls of its own for the three direction flags — against a store that only changes once a second [#1477/C/C-only].
-The only timer in the panel throttles a window-size adjustment rather than the value read, so there is no cache anywhere on the path.
-That reading is taken from the code: no shipped command measures frame time or Lua call counts, so what is recorded is a call count and not a cost.
-Reading a pushed store at frame cadence is not incorrect, only wasteful, and the waste scales with the number of visible bars rather than with the number of stats defined.
-The re-entry is the part worth noticing: the closures that colour and label a bar call the same value function the builder has already called, and none of them is passed the value it produced.
-Nothing anywhere on the path memoises, so the only thing that lowers the count is hiding a bar.
+In the resolved `42.20/` copy the panel's prerender advances a frame counter and calls the bar preparation — the only code that calls a bar's value, percentage, text and colour functions — only when the counter is a multiple of 10, resets the counter and adjusts the window size when it reaches 60, and draws the bars from the prepared values on every frame [T13.58].
+The option handlers also call the preparation directly, so a settings change shows at once rather than at the next prepared frame.
+The throttle is a frame count and not a clock: a faster render reads more often, and nothing on the path is keyed to the arrival of the store it reads.
+That reading is taken from the code: no shipped command measures frame time or Lua call counts, so what is recorded is a code shape and not a cost.
+A bar's translated title and its texture are resolved once and kept on the shared stat table, so the per-frame draw repeats neither lookup.
+The waste that remains scales with the number of visible bars rather than with the number of stats defined, so hiding a bar is still the one thing a player can do to lower it.
 
 The mod's persisted state is one player-modData key holding a flat table of scalars, a 6-row leaf table dated 2026-09-10 that expands to 45 leaves — 6 named ones, 36 per-stat shown flags and 3 toggle flags — beside no sandbox options, no command bus and no global modData in the live tree [#1478/C/snapshot].
 
@@ -129,13 +132,13 @@ The mod's version history is a 4-row table dated 2026-09-10 running from a flat 
 | root `media/` (`B41` flat) | 7 (incl. `ss.json.lua`, 388 lines) | 1 820 | — (`B41` tree, unread) |
 | `42/`, `42.14/` | 9 (incl. `client/ss.events.lua` **and `server/ss.save.config.lua`**) | 1 671 | **global** `ModData.getOrCreate("SimpleStatusConfig")` + `ModData.transmit`, with an `OnInitGlobalModData` / `OnReceiveGlobalModData` pair in the server file and the client half in `ss.events.lua` and `ISSSBar.lua` |
 | `42.15/` | 7 | 1 582 | **per-player** `player:getModData()` — the server file and `ss.events.lua` both gone |
-| **`42.16/` (live)** | 7 | **1 580** | per-player; adds a 13th (`PT`) translation tree |
+| **`42.16/`** (the tree the file table reads) | 7 | **1 580** | per-player; adds a 13th (`PT`) translation tree |
 
 The server file and the global config store were dropped at `42.15/`, one version folder before the live tree, so the config name exists in two incompatible stores across the mod's history — a global table keyed by username and a per-player modData key — and a census of the global one is non-discriminating in both directions, because the create-or-get call creates the table for the census itself and the retired server half only ever created it empty [#1480].
 Anyone probing this mod for its config has to know which store the version folder under test uses, and has to know that a census of the global one cannot answer either way.
 The history also shows the mod moving off a global store and onto a per-player one, which is the direction per-player state should move in general.
 Each version folder is a whole tree rather than a delta, and only the live one is read ([mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs)).
-Which folder is the live one is itself dated: the workshop corpus drifts under this library, and the item has gained a newer version tree since this reading ([#1466/C/snapshot], [lessons.md](../../platform/lessons.md#corpus-drift)).
+Which folder is the live one is itself dated: the workshop corpus drifts under this library, and the file and history tables above name the `42.16/` tree, which the resolved `42.20/` tree stands beside ([#1466/C/snapshot], [lessons.md](../../platform/lessons.md#corpus-drift)).
 The retired folders are therefore inert on disk, and a probe that reads them is reading something the game never loads.
 It also means the mod's own history is a sequence of complete rewrites rather than a migration, and nothing in it upgrades a stored config from the older store to the newer one.
 
@@ -167,6 +170,7 @@ Each half of the split rests on one session and one subject, on a character and 
 
 Outbound, the mod's whole multiplayer contract is one transmit call fired from seven UI-input-driven sites, each of which rewrites the server's whole copy of that player's modData from the client's [#1482].
 Every one of those sites is a mouse or key handler, so nothing but a human at a keyboard can fire them and no harness command can synthesise one.
+The drag release is one of the mod's save sites: the panel's mouse-up handler returns at once when the panel is locked and otherwise records the new position and calls the save, which writes the whole config key into player modData and transmits it, so every completed drag of an unlocked panel replaces the server's copy of that player's modData once [T13.61].
 Player modData does not cross sides at all until something calls that transmit, which is why this mod's config key reaches the server while a mod that never transmits keeps its settings on the client that set them ([#1637], [mp-model.md](../../platform/mp-model.md#player-moddata)).
 The call is a whole-table wipe and replace rather than a per-key update, in both directions ([#1091], [#1496/M/n=1], [mp-model.md](../../platform/mp-model.md#wipe-and-replace)).
 The mod's own payload survives it intact, because every leaf is one of the types the modData packet carries ([#1495], [wire-packets.md](../wire-packets.md#moddata-packet)).
@@ -183,9 +187,9 @@ The outbound half is therefore established through the vanilla call the mod make
 Each line below is a cost the mod pays, stated as the mechanism that causes it rather than as a review of the mod.
 None is a wall a neighbour runs into; they are shapes not to copy, and the one cost that does fall on a neighbour is under [Multiplayer behaviour](#mp) rather than here.
 
-Cache anything read from a pushed store at the push cadence rather than the frame cadence: a 1 Hz source read at 60 Hz is 59 wasted reads out of 60 [#1512/C/C-only].
-That bound is a code reading of this mod's own render loop set against the measured cadence of its source, and the cost is client-side only.
-A panel that draws more numbers than this one must not copy the shape.
+Cache anything read from a pushed store at the push cadence rather than the frame cadence: a source that changes once a second is read many times a second by an uncached value function, whatever the render loop's own tick [T13.59] [T13.58].
+That rule is a code reading of this mod's own render loop set against the measured arrival of its source, and the cost it names is client-side only.
+The resolved copy's frame-count throttle lowers the read count without tying it to the push, so a panel that draws more numbers than this one keys its cache to the arrival instead.
 
 The mod hard-codes display bands that encode vanilla's balance — calories at -2000, 1000 and 3500, carbohydrates and lipids at -500, 0 and 1000, proteins breaking at -300, 50, 300 and 700 with multiplier captions between 50 and 300 and at or below -300 — so if those numbers move the colours lie, silently [#1514].
 A reader mod's thresholds are a copy of somebody else's balance, and nothing in the engine tells it when that balance changes.
@@ -230,17 +234,17 @@ This is a neighbour whose calibration a nutrition overhaul can invalidate withou
 The visibility cuts the other way too: a rebalance that stays inside vanilla's existing bands is legible to every user of this bar for free.
 Depending on the mod is not on the table: it declares no author and no licence, its one extension point is defective, and a client-only viewer gives a nutrition overhaul nothing it cannot draw itself.
 
-Not covered: the flat `B41` root tree was never read and no single-player process was ever booted; no shipped command measures frame time or Lua call counts, so the render loop's cost is a call count read off the code rather than a measurement; no bus command can synthesise a click or a key press, so none of the mod's save sites was ever fired from the bus and its persisted config was never observed populated on either side; and the workshop tree drifts under Steam's own updates, so every census here is the dated sweep it names rather than today's disk.
+Not covered: the flat `B41` root tree was never read and no single-player process was ever booted; no shipped command measures frame time or Lua call counts, so the render loop's cost is a code shape read off the resolved copy rather than a measurement; no bus command can synthesise a click or a key press, so none of the mod's save sites was ever fired from the bus and its persisted config was never observed populated on either side; and the workshop tree drifts under Steam's own updates, so every census here is the dated sweep it names rather than today's disk.
 
 ## Open
 <a id="open"></a>
 
 Nothing on this page is unsettled on its own evidence; what follows is the dependency the mod's sharpest claim rests on, and the decisions its facts force on a nutrition overhaul.
 
-- Whether the weight-band traits reach a multiplayer client at all is untraced, and that is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#0595/C/C-only/open, #1490/M/n=1].
+- Whether the weight-band traits reach a multiplayer client, and by which packet, is [mp-model.md](../../platform/mp-model.md)'s question, and it is the one hidden input under the weight bar's direction suffix — the flags were measured to agree on a character holding no band trait [#1490/M/n=1].
 - The design must decide whether it re-bases the vanilla macro scale, because this bar's display bands and its multiplier captions are hard-coded and go wrong silently on every client that has it installed [#1514, #1522].
 - The design must decide where its own per-player nutrient state lives, because any player-modData key the server holds and the client's copy does not is destroyed by this mod's next bar drag [#1482].
-- The design must decide whether its own interface caches what it draws, because a store that changes once a second read at frame cadence is the shape this mod demonstrates [#1477/C/C-only, #1512/C/C-only].
+- The design must decide at what cadence its own interface reads what it draws, because this mod's resolved copy throttles its reads to a frame count rather than to the push its store arrives on [T13.58] [T13.59].
 - The design must decide whether it treats this mod's registration API as an extension point at all, given that it is the only one offered and that it breaks the caller it is offered to [#1516].
 
 ## See also
