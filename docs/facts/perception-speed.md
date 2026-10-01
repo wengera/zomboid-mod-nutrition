@@ -117,7 +117,7 @@ No nutrition quantity enters the movement-speed chain: neither the base-speed no
 The body-state inputs are the Endurance and Heavy Load moodles, injuries, pain, footwear and the thermoregulator.
 A nutrition effect on speed therefore reaches the chain only through one of those, most directly the Endurance moodle, whose stat is described at [endurance-fatigue-sleep.md](endurance-fatigue-sleep.md#drain).
 
-The speed-modifier update resets the run, walk and combat modifiers to 1.0 on every call, so any external write to them survives only until the next call [#2316/C/C-only].
+The speed-modifier update resets the run, walk and combat modifiers to 1.0 on every call, so any external write to them survives only until the next call [#2289].
 The same update rebuilds the combat modifier from worn clothing and bags.
 Missing or destroyed footwear multiplies both the run and the walk modifier by 0.85 [#2317/C/C-only].
 A shoe kept at zero condition counts as missing here, so a worn-out pair costs the same as bare feet.
@@ -198,7 +198,7 @@ Not covered: the native side of the lighting bridge, and so what distance the Sh
 - That no vanilla Lua outside the two creation tables grants clothing or an item keyed on Short Sighted or Night Vision, so that a runtime grant of either adds none, is unverified: it rests on a hand grep of the install's `media/lua`, not a committed dataset; re-measure by a committed sweep of vanilla Lua for both trait constants and both trait names [#2342/C/snapshot/unverified].
 - The design must decide which distance input a sight effect goes through, the Short Sighted boolean or the detection-range float the engine labels `perceptionDistance`, because both reach the native lighting and what the native side does with either is outside the bytecode [#2303/C/C-only].
 - The design must decide whether its perception effect is a dark-only effect, because the Night Vision term falls to nothing at full daylight [#2298/C/C-only].
-- The design must decide how a speed effect reaches the chain, because no nutrition term enters it and every modifier write is reset on the next speed update [#2315/C/C-only] [#2316/C/C-only].
+- The design must decide how a speed effect reaches the chain, because no nutrition term enters it and every modifier write is reset on the next speed update [#2315/C/C-only] [#2289].
 - The design must decide on which side a swing-speed effect is applied, because the attacking client computes its own player's combat speed and sends it to the server [#2322/C/C-only] [#2323/C/C-only].
 - The design must decide how a reaction effect keeps its aiming-delay scale, because the combat manager rewrites the delay after each shot [#2326/C/C-only].
 - The design must decide whether it syncs a trait of its own for a perception effect, because how a receiving side resolves a trait name it has not registered is unread; the trait block's contract is in the player-fields section of [wire-packets.md](wire-packets.md#player-fields-packet).

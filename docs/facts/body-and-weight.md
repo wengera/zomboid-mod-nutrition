@@ -50,8 +50,8 @@ else if (isAsleep())                        {            cal -= 0.003f * mod * e
 else                                        {            cal -= 0.016f * mod * energy * w * dt; } // @295 L118
 ```
 
-The modifier is written in that order and then overwritten: the first queued action's `caloriesModifier`, then 8.0 in the swipe, fence-climb and window-climb states, then 1.0, 1.3 or 0.6 on the three moving branches, so a timed action's modifier and the climb override reach the burn only while the character is not moving [#2636/C/C-only].
-Every branch is scaled by the character's weight over 80, and the thermoregulator's energy multiplier enters the asleep and idle branches only [#2637/C/C-only].
+The modifier is written in that order and then overwritten: the first queued action's `caloriesModifier`, then 8.0 in the swipe, fence-climb and window-climb states, then 1.0, 1.3 or 0.6 on the three moving branches, so a timed action's modifier and the climb override reach the burn only while the character is not moving [#0462] [#0453] [#0070].
+Every branch is scaled by the character's weight over 80, and the thermoregulator's energy multiplier enters the asleep and idle branches only [#0187] [#0453].
 
 The five branches, their rate at 80 kg and the per-game-day figure each implies, with the weight ratio the character's weight over 80 and the external modifier 8.0 while swiping or climbing and otherwise the queued action's `caloriesModifier`; only the idle branch is measured, and that reading is a wall-clock one taken on a fixture whose clock runs 16.0 game-seconds to the real second: 0.259 kcal per real second at time speed 1, and 0.256 in an earlier run [#0070/M/one-fixture].
 
@@ -307,7 +307,7 @@ A mod that keys an effect on a weight band inherits all of those readers unchang
 The five weight-band trait scripts carry no stat modifiers, only a starting Fitness XP offset: minus 2 for Obese, minus 1 for Overweight, minus 1 for Underweight, minus 2 for Very Underweight and none at all for Emaciated [#0539/C/C-only].
 Besides the trait classes, `Nutrition` and the script generator, the five band trait fields are read in only five classes in the jar — `IsoGameCharacter`, `IsoPlayer`, `IsoMovingObject`, `ClimbOverFenceState` and `ClimbSheetRopeState` — and the last only prints them for debug, in a jar-wide scan dated 2026-09-10 [#0540/C/snapshot].
 The weight-trait multipliers inside `getRecoveryMod` are live: Obese times 0.4, Overweight times 0.7, Very Underweight times 0.7 and Emaciated times 0.3 — unlike the macro branches of the same method, which are dead code ([nutrition-core.md#macro-effects](nutrition-core.md#macro-effects)) [#0183].
-Fitness experience is gated by the weight-band traits and Strength experience is not: `XP.AddXP` returns before adding any Fitness experience when `canAddFitnessXp` is false, while a Strength gain passes no band test and is scaled by the protein store instead, whose branch is [perks-and-strength.md#xp-grants](perks-and-strength.md#xp-grants) [#2646/C/C-only].
+Fitness experience is gated by the weight-band traits and Strength experience is not: `XP.AddXP` returns before adding any Fitness experience when `canAddFitnessXp` is false, while a Strength gain passes no band test and is scaled by the protein store instead, whose branch is [perks-and-strength.md#xp-grants](perks-and-strength.md#xp-grants) [#2111] [#2112].
 `Nutrition.canAddFitnessXp` returns false, and so blocks Fitness experience, at Fitness 9 or above with any weight trouble, so Overweight blocks too; at Fitness 6 to 8 only under Emaciated, Obese or Very Underweight; and never below Fitness 6 [#2647/C/C-only].
 `characterHaveWeightTrouble` tests `VERY_UNDERWEIGHT` twice and `UNDERWEIGHT` never, so plain Underweight is not weight trouble and, through `canAddFitnessXp`, never blocks XP at any Fitness level [#0185, #0537/C/C-only].
 

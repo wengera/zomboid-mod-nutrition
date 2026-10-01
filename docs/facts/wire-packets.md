@@ -205,7 +205,7 @@ The same eleven fields are the last block of the once-a-second player-stats pack
 A client's copy of the health-from-food timer is therefore, as read from the code and not measured, as fresh as the last of those two pushes, unless something on the client recomputes it, which this page does not read [#2618/C/C-only].
 Per-part state travels on [the body-part packet](#body-part-packet), never in this block [#2618/C/C-only].
 
-Bit `32` is the whole fitness object: `writeParam` hands the buffer to `Fitness.save` and `parseParam` hands it to `Fitness.load` with the version argument `249` [#2619/C/C-only].
+Bit `32` is the whole fitness object: `writeParam` hands the buffer to `Fitness.save` and `parseParam` hands it to `Fitness.load` [#2616].
 What the fitness object holds is [`exercise-and-training.md#fitness-object`](exercise-and-training.md#fitness-object).
 Which Java calls and which Lua globals send which bits, under what gate and to whom, is [`platform/mp-model.md#sync-globals`](../platform/mp-model.md#sync-globals); this section is only the blocks.
 
