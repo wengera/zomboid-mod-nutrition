@@ -136,7 +136,7 @@ The order of the join decides what a mod's Lua sees [T12.21].
 On a joining client `Finish()` calls `receiveServerOptions`, which runs the whole of `Core.ResetLua` [T12.21].
 That reset covers the mod load, the custom-option registration, `SandboxVars.lua`, every mod Lua file at file scope, and the `OnGameBoot`, `OnMainMenuEnter` and `OnResetLua` events [T12.21].
 Only after it does `Finish()` call `receiveSandboxOptions`, whose `toLua()` writes the server's values into `SandboxVars` [T12.21].
-On a dedicated server all three `LuaManager.LoadDirBase` passes run before the server reads its sandbox file and before its `toLua()` [T12.22].
+On a dedicated server the custom options register before all three `LuaManager.LoadDirBase` passes, which run before the server reads its sandbox file and before its `toLua()` [T12.22].
 Mod Lua file scope therefore precedes the operator's values on the server too [T12.22].
 A mod Lua file that reads a sandbox value at file scope gets the mod's declared default on the server and on every joining client, never the operator's setting [T12.23].
 `OnGameBoot` fires after the values land on a dedicated server and before them on a joining client, so it is not a symmetric read point [T12.25].
@@ -161,7 +161,7 @@ An admin's `sendToServer` sends the whole option list, and the server applies it
 Each client then applies the buffer and calls its own `toLua()` [T12.28].
 One apply therefore updates `SandboxVars` on the server and on every connected client, mod options included [T12.28].
 The packet type requires `Capability.SandboxOptions` [T12.29].
-The packet authorization check passes a connection only when its role holds the packet's required capability, so a connection without that capability is refused [T12.29].
+The server's packet dispatch runs a packet's handler only when the authorization check passes, which it does only when the connection's role holds the packet's required capability, so a sandbox-options packet from a connection without that capability reaches no handler [T12.29].
 Nothing announces the change to Lua, because the engine has no event for it ([Walls and bounds](#walls)) [T12.30].
 A mod that cached a value therefore keeps the old one until it reads again, and a captured sub-table is the one reference the apply refreshes in place [T12.30] [T12.24].
 Whether the Lua mirror follows an admin push on a live server is the measurement [Open](#open) names.
