@@ -11,7 +11,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: one workshop mod t
 - Configuration waits for the widget: `MF.getMoodle` answers nil until the framework's own player-creation handler has built it, so the consumer configures and first sets its moodle from a player-creation handler of its own registered after its `MF.createMoodle` call [T14.18].
 - The consumer ships every asset: a sized icon under `media/ui/<size>/` or the unsized fallback, optional per-level icons and up to sixteen tooltip keys per moodle, while the plate and the border are vanilla's own textures [T14.21].
 - The tooltip keys follow vanilla's `Moodles.json` shape with bare keys and not the `B41` `Moodles_EN { }` table the mod's own instructions show; that the `B41` layout fails for moodle keys is not measured, the failure being measured for item names only [T14.22] [#1025/M/n=1].
-- The vanilla moodle stack and the framework both draw through a `UIElement` in the UI manager, so any mod can take the framework's route without it, deriving an `ISUIElement`, adding it to the UI manager and drawing in `render()`, at the cost of the framework's stack offset; vanilla Lua also draws text from the `OnPreUIDraw` event with no widget, and both readings are of the code, never drawn [T14.25].
+- The vanilla moodle stack and the framework both draw through a `UIElement` in the UI manager, so any mod can take the framework's route without it, deriving an `ISUIElement`, adding it to the UI manager and drawing in `render()`, without sharing the framework's stack offset; vanilla Lua also draws text from the `OnPreUIDraw` event with no widget, and both readings are of the code, never drawn [T14.25].
 
 ## How it works
 
@@ -45,7 +45,7 @@ A design that wants the level itself to be authoritative has to send a value the
 ### Architecture
 
 MoodleFramework is workshop item `3396446795`, one mod declaring the id `MoodleFramework`, shipped as the folders `42.0/`, `42.13/`, `42.20/` and `common/` [#1319/C/snapshot].
-Its `mod.info` sits in `42.0/` and `common/`, and its config file has no copy in the newer folders [#1614].
+Its `mod.info` sits in `42.0/`, and its config file has no copy in the newer folders [#1614].
 That layout makes the layout lint and the engine open different `mod.info` files for it, though both declare the same id [#0824/C/snapshot].
 On `42.20.4` the resolver keeps one version folder, the highest at or below the running build [#0825/C/C-only], and the loader then lets that folder's files win a same-path collision while `common/` supplies everything the folder does not ship [#1310].
 Under that rule the mod is whole: the `42.20/` moodle file overwrites `common/`'s, and the config file, having no version-folder counterpart, survives and executes [#1319/C/snapshot].
