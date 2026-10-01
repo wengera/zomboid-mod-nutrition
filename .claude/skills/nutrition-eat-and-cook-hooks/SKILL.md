@@ -1,6 +1,6 @@
 ---
 name: nutrition-eat-and-cook-hooks
-description: Hooking eating, drinking or cooking — an `OnEat`, `OnCooked` or `OnCreate` script hook as a bare global in a `shared/` file, a server-side wrapper of `ISEatFoodAction.complete` that runs before `Eat`, `isServer` and `isClient` side branches, an intake correction written after the eat, a cancelled eat, `DrinkFluid` and fluid containers, a `ReplaceOnCooked` item, the order of writes in the eat, and what a hook's writes can reach the client through.
+description: Hooking eating, drinking or cooking — an `OnEat`, `OnCooked` or `OnCreate` script hook as a bare global in a `shared/` file, a server-side wrapper of `ISEatFoodAction.complete` that runs before `Eat`, `isServer` and `isClient` side branches, an intake correction written after the eat, a cancelled eat, `DrinkFluid` and fluid containers, a drink wrap of `ISDrinkFluidAction:updateEat` beside `ISTakeWaterAction`, a craft recipe's `OnCreate`, an evolved dish's `extraItems` ingredient list, a `ReplaceOnCooked` item, the order of writes in the eat, and what a hook's writes can reach the client through.
 ---
 ## Read first
 - docs/areas/eat-and-cook-hooks.md
@@ -12,6 +12,7 @@ description: Hooking eating, drinking or cooking — an `OnEat`, `OnCooked` or `
 - Name a script hook's target as a bare global function: the eat path resolves the script's name through the Lua manager's function-object lookup, which never finds a local or a table member [#0921/C/C-only].
 - Define that global in a `shared/` file and branch on the side inside it: the folder decides nothing, and the eat hook fires on both sides [#0922/M/n=1, #1031/M/n=1].
 - Sit in a server-side wrapper of the eat action's completion when the mod needs the item before `Eat` touches it: the wrapper must hold its sentinel outside any table the shared file re-creates, guard on a nil-checked `isServer()` because the mod's `server/` file also runs in the client VM, and call the original unless it means to skip `Eat` entirely [#1190/M/n=1, #1033/M/n=1].
+- Wrap an eat or drink method behind a sentinel and call the saved original on every path that does not mean to skip the method: the eat action's completion already carries a corpus mod's sentinel-free save-and-replace on the server, so a wrapper that does not chain silently drops whatever was saved beneath it [#0943/C/C-only, #2566/C/snapshot, #2562/C/snapshot, T23.1].
 - Never put mod logic in a client-side wrapper of a timed action's completion: the Lua complete is skipped on a client, so the wrapper installs and then stays silent [#2005/C/C-only].
 - Write an `OnEat` correction as a delta on the store the eat has already filled, never as a second intake: the hook fires after every stat and nutrient write, so vanilla's numbers are already in [#0008, #2062/C/inference].
 - Expect no eat-side seat to see a drink from a fluid container: the fluid path has no eat hook and no eat packet, and a wrapper of the drink action has never been driven [#0084/C/C-only, #1133/C/C-only/open, #2065/C/inference].
