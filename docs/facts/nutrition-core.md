@@ -119,8 +119,8 @@ That ordering is why a client can derive a weight direction it cannot derive a w
 For a mod this is the one piece of the weight model a client-side reader may use directly: the direction is derived locally on both sides from the same stores, while the quantity has to arrive from the server.
 Reading the flags costs nothing and needs no transport, which makes them the cheapest signal available to a user interface that wants to show which way a character is heading.
 
-The weight value also has a writer outside the model that any client can reach.
-Vanilla's `player` `setWeight` client command sets any online player's weight on the server through `getPlayerByOnlineID(args.id)` and `getNutrition():setWeight(args.weight)`, with no admin or capability check in its handler, in the `OnClientCommand` dispatch or in the Java receiver, and the player-stats admin panel sends it [T18.13].
+The weight value also has a writer outside the model that any logged-in client can reach.
+Vanilla's `player` `setWeight` client command, whose packet type requires only the login capability every connected client holds, sets any online player's weight on the server through `getPlayerByOnlineID(args.id)` and `getNutrition():setWeight(args.weight)`, with no admin check in its handler, in the `OnClientCommand` dispatch or in the Java receiver, and the player-stats admin panel sends it [T18.13].
 The model then carries on from whatever value that command leaves, so a weight a mod writes on the server can be replaced between two of its own writes by a client that sends the command; this is read from the files and the bytecode and not exercised on a live server [T18.13].
 
 <a id="clamps"></a>
@@ -217,7 +217,7 @@ So the complete list of live consumers of the four intake stores is short.
 Calories drive the weight direction and the weight rate; carbohydrates and lipids scale the gain rate and nothing else; proteins are written, drained, clamped and saved, and act only by scaling Strength experience.
 
 The consequence for a nutrition mod is the emptiness rather than the numbers.
-The carbohydrate store as an energy pool and any notion of diet quality are dead space in this build, and a protein surplus has exactly one vanilla consumer, Strength experience gain, so a parallel nutrient store collides with vanilla only where it moves the vanilla protein store.
+The carbohydrate store as an energy pool and any notion of diet quality are dead space in this build, and a protein surplus has exactly one vanilla consumer, Strength experience gain, so a parallel nutrient store collides with vanilla only where it moves the vanilla protein store [T18.18].
 It also means a mod cannot express a nutrient by leaning on an existing macro's effects, because outside the gain multipliers and the Strength branch there are none to lean on.
 Every consequence a mod nutrient is to have must therefore be written by the mod, and the vanilla behaviour it has to avoid disturbing is the gain multiplier pair and, where it writes the protein store, the Strength branch.
 
@@ -245,7 +245,7 @@ Not covered: the character model, the animation system and the interface, which 
 - Decision the design must take: whether the mod reproduces vanilla's three arms in Lua behind the sandbox gate or lives beside them, forced by the gate taking the drain, the burn and the weight arm together while intake carries on unguarded ([#0067], [facts/eating-pipeline.md](eating-pipeline.md#sandbox)).
 - Decision the design must take: whether a mod nutrient is stored with the same two-sided clamp shape as vanilla's, forced by the clamps above being two-sided and by negative stores being an ordinary state rather than an error state.
 - Decision the design must take: whether the mod's own weight model keeps a macro multiplier at all, forced by vanilla's multiplier branches never having been entered by a run and so carrying no measured behaviour to match.
-- Decision the design must take: whether the mod's weight model accepts a weight written through vanilla's `setWeight` client command or overrides it, forced by that command writing any online player's weight with no check [T18.13].
+- Decision the design must take: whether the mod's weight model accepts a weight written through vanilla's `setWeight` client command or overrides it, forced by that command writing any online player's weight for any logged-in client with no admin check [T18.13].
 - Decision the design must take: whether the mod writes the vanilla protein store from its own protein model, forced by the Strength experience branch reading that store directly [T18.18].
 
 ## See also
