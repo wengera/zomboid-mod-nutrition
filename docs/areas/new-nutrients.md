@@ -1,5 +1,5 @@
 # New nutrients
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: where a mod nutrient can live, which wire route each store forces, what each store survives and where the nutrient's effect can attach; the ownership, routes and packets are `platform/mp-model.md` and `facts/wire-packets.md`, the vanilla stores `facts/nutrition-core.md`, the registries `platform/lua-platform.md`, and the verdicts `reference/wall-map.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: where a mod nutrient can live, which wire route each store forces, what each store survives and where the nutrient's effect can attach; the ownership, routes and packets are `platform/mp-model.md` and `facts/wire-packets.md`, the vanilla stores `facts/nutrition-core.md`, the registries `platform/lua-platform.md`, and the verdicts `reference/wall-map.md`.
 
 ## Rules
 
@@ -15,7 +15,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: where a mod nutrie
 - Route every mod-owned mutation through the command bus: a client send, a server-side handler that validates and mutates, and a server send back is the one route a mod controls end to end [#0932].
 - Run the mod's intake math where the eat completes: a multiplayer client never reaches the eat action's completion step, so nothing a mod hangs off the client side of that path ever runs [#0109, #0110].
 - Write every player stat on the server: a client-side write to hunger, thirst, endurance, fatigue, calories, the macros or weight is erased by the next player-stats packet, so every one of them has exactly one owner [#0568/M/n=2].
-- Give every mod nutrient a consumer the mod writes itself: protein surplus, the carbohydrate store as an energy pool and any notion of diet quality are dead space in vanilla, so a parallel nutrient stat has no vanilla consumer to collide with and none that acts on it [#0186/C/inference].
+- Give every mod nutrient a consumer the mod writes itself: the protein store has one vanilla consumer, the Strength experience grant, which raises Strength experience while the store is strictly between 50 and 300 and lowers it below −300, so a parallel protein store that leaves the vanilla store on its drain leaves that bonus and that penalty on vanilla's number, while the carbohydrate store as an energy pool and any notion of diet quality stay dead space [#2112/C/C-only, #1136/C/C-only, T22.1].
 - Set the `Nutrition` sandbox option in the server's sandbox config: the nutrition update reads the option live every tick, a runtime flip from Lua is untried, and the Lua mirror of the option goes stale [#1127/C/C-only, #2058/C/inference].
 - Reproduce in Lua on the server every arm of the nutrition update the mod still wants once that option is off: the option takes the macro drain, the calorie burn and the weight update together on the code's reading, which arm actually freezes is unmeasured, and vanilla's coupling of weight to the band traits goes with them [#1136/C/C-only, #2059/C/inference].
 - Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
@@ -39,8 +39,8 @@ A parallel store passes through none of these setters, so it has no range at all
 
 Nor does vanilla leave anything for a mod nutrient to plug into.
 Calories are the only driver of weight, and carbohydrates and lipids act on it only as multipliers of the gain rate [#0180].
-Proteins never touch weight and reach no effect anywhere in vanilla, the one reader outside the weight model sitting behind thresholds the clamps make unreachable [#0181/M/n=2/superseded].
-Everything past those two consumers is therefore dead space, a reading stated with its row at [the effect-path options](#effect-paths).
+Proteins never touch weight, and of their two readers outside the weight model one sits behind thresholds the clamps make unreachable while the other, the Strength experience grant, is live [#2648/M/n=2].
+Everything past weight and that grant is therefore dead space, a reading stated with its row at [the effect-path options](#effect-paths).
 The same fact cuts the other way: nothing in vanilla will act on a mod nutrient, so every consequence it is to have is a path the mod writes, and [the effect-path options](#effect-paths) are the places such a path can attach.
 Hunger and calories do not feed each other in either direction, so a mod store can be driven from calories, from hunger or from neither without disturbing a vanilla coupling [#0500, #0501, #0503].
 
@@ -84,7 +84,8 @@ The route this store forces is a single owner per item: every key on the item ha
 Where a per-item value is the same for every instance of a type, the script carries it with no route at all, and where it varies per instance and must reach a client, the bus keyed on the item's id addresses the same instance on both sides [#1145/M/n=1].
 
 Global modData is the store this library has read least.
-It is saved like the other two modData scopes [#1122/C/C-only], and its init hook is one of the pair that survives a dedicated server, where the player-creation, game-start and load hooks never fire [#0895/C/one-side].
+It is saved like the other two modData scopes [#1122/C/C-only], and its init hook is one of the pair that survives a dedicated server, where `OnCreatePlayer`, `OnGameStart` and `OnLoad` never fire [#0895/C/one-side].
+A new character still has a server-side hook: `OnNewGame` fires on a dedicated server when a client creates a character, with the new player as its argument [#2387/C/C-only].
 No run here has moved a global table between sides.
 The one corpus instance read kept its config in a global table through a create-or-get call and the global transmit, with an init handler and a receive handler beside them, and later versions of the same mod moved that config into per-player modData [#1479/C/snapshot].
 A census of such a table cannot tell a populated store from an absent one, because the create-or-get call makes the very table the census then reads [#1480].
@@ -180,14 +181,27 @@ Which store holds each mod nutrient's authoritative value, and which store, if a
 <a id="effect-paths"></a>
 ### Where a mod nutrient's effect can attach
 
-Protein surplus, the carbohydrate store as an energy pool and any notion of diet quality are dead space in vanilla, so a parallel nutrient stat has no vanilla consumer to collide with [#0186/C/inference].
+The protein store has one live vanilla consumer, the Strength experience grant, so a parallel protein store that leaves the vanilla store on its drain leaves that grant's bonus and penalty on vanilla's number, while the carbohydrate store as an energy pool and any notion of diet quality stay dead space ([#2112/C/C-only, #1136/C/C-only, T22.1], [perks-and-strength.md#xp-grants](../facts/perks-and-strength.md#xp-grants)).
 Nothing in vanilla reads a mod nutrient either, so its effect is a path the mod attaches to a vanilla surface.
 The corpus shows why the maths behind that path sits in a tick of the mod's own: a value injected into a vanilla function's local variable breaks silently on a game update [#1078/C/snapshot, #1532/C/C-only].
+
+An effect that scales with exertion has an activity input in the engine already: the thermoregulator's metabolic target, set from a fixed enum of activity classes in MET [#2631/C/C-only].
+Each class is a floor rather than an assignment, the highest class that applies setting it [#2633/C/C-only].
+The target is then raised again by tiredness and by carried load, so it can sit above the class the character's activity names [#2649/C/C-only].
+The character declares no getter for it, so it is read through the body damage's thermoregulator [#2635/C/C-only].
+The classes, their values and both raises are stated at [body-and-weight.md#metabolic-rate](../facts/body-and-weight.md#metabolic-rate), read from the bytecode and never measured, and whether the server classifies a connected player's activity at all is open there [#2633/C/C-only].
+
+Per-type nutrient data has a cheaper home than a script key on every food block.
+A script key does not stay on the type: every instance receives a deep copy of its type's default modData, so the key is copied onto every instance of the food in the world and rides that instance's item modData from then on [#2676/C/C-only].
+A drink cannot carry one at all, because a `fluid` block has no default arm and stores no unrecognised key [#2682/C/C-only].
+Per-type nutrient data therefore belongs in one Lua table keyed by full type, with drinks in a per-fluid table keyed by the fluid's type string, which is never null [#2684/C/C-only].
+The vanilla macros such a table is built against come off a fresh instance, because the script item answers no macro getter ([#2679/C/C-only], [item-pass.md#minimal-block](item-pass.md#minimal-block)).
+
 Four surfaces can take an effect, and the table orders them by the wall map rows their tags cite.
 
 | option | what it costs | which wall it hits | tags |
 |---|---|---|---|
-| the weight model | the one vanilla surface with live consumers: a mod nutrient moves it by writing weight or the calorie store on the server, and the band traits it drives apply at once when forced from Lua; owning the model means switching vanilla nutrition off at the sandbox and reproducing every arm the mod still wants | the thresholds and rates are compiled in; the switch takes the drain, the burn and the weight arm together; a client never computes weight, and whether a band trait reaches it is untraced | [#1127/C/C-only, #1135/C/C-only, #1136/C/C-only, #1137/M/n=1, #1138/M/n=1, #1161/C/C-only/open] |
+| the weight model | the one vanilla surface with live consumers: a mod nutrient moves it by writing weight or the calorie store on the server, and the band traits it drives apply at once when forced from Lua; owning the model means switching vanilla nutrition off at the sandbox and reproducing every arm the mod still wants | the thresholds and rates are compiled in; the switch takes the drain, the burn and the weight arm together; a client never computes weight, and a band trait reaches it only on the server's pushes to that player, which no run has measured | [#1127/C/C-only, #1135/C/C-only, #1136/C/C-only, #1137/M/n=1, #1138/M/n=1, #2595/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4) |
 | the eat hooks | the intake math runs where the eat completes, on the server; a server-side wrapper of the completion sees the item before `Eat`, and `OnEat` can correct the numbers after vanilla has written them | the wrapper can stop `Eat` only by skipping it; `OnEat` fires on both sides with no numbers on the client's call, so one handler runs on each side; a cancelled eat under the partial-eat guard applies nothing | [#1128/M/n=1, #1129/M/n=1, #1130/M/n=1, #1131/M/n=1, #1132/C/C-only] |
 | the moodle surface | each side recomputes moodles from its own stats, so a moodle needs no sync; the one route to a new moodle is adopting `MoodleFramework` and registering through its API | a moodle type a mod registers on the engine is held at its lowest level every tick; an existing moodle's thresholds are unreachable from Lua; none of `MoodleFramework`'s legs is measured on this build | [#1140/C/C-only, #1141/C/C-only, #1142/C/C-only, #1143/C/C-only] |
 | the item pass | the effect is expressed through the values a food already delivers: one minimal `module Base` block per item merges per key and leaves every untouched key to upstream | every shipped script file must match byte for byte on both sides; rewriting hunger is not weight-neutral and can land under the partial-eat guard; mod-added foods fall outside the pass | [#1180/M/n=1, #1181/M/n=1, #1182/C/C-only] |
@@ -204,7 +218,7 @@ Which surface does each mod nutrient's effect attach to, and which vanilla quant
 - A moodle type a mod registers on the engine reaches every character and is never driven above its lowest level, so registration gives a mod nutrient no moodle ([#1140/C/C-only], [lua-platform.md#registries](../platform/lua-platform.md#registries)).
 - An existing moodle's thresholds cannot be reached from Lua, because the class that holds them is not exposed and no exposed method returns one ([#1141/C/C-only, #2040/C/C-only], [lua-platform.md#registries](../platform/lua-platform.md#registries)).
 - `MoodleFramework` is the only moodle surface left, and its wholeness on this build, its API and its multiplayer behaviour are all unmeasured [#1142/C/C-only].
-- The trait sync path is untraced: no packet has been traced carrying the character trait list to a client and every run that could have shown it held empty lists on both sides, so a nutrient effect expressed through a band trait or a new mod trait cannot be assumed to reach a client ([#0968/C/C-only/open, #1158/C/C-only], [open-questions.md#x4](open-questions.md#x4)).
+- A band trait or a new mod trait reaches only its own player's client, on two server pushes — the once-a-second experience packet and the player-fields packet's trait block — and no run has yet held a non-empty trait list on either side, so a nutrient effect expressed through a trait rests on a code reading until the trait-push experiment runs ([#2595/C/C-only, #1158/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
 - A client's copy of a mod nutrient is the last value that reached it and never a simulation of the server's: a client write to a mod field is corrected by no packet and simply desyncs, a reading of the packet's field list rather than a measurement ([#0129/M/n=1], [mp-model.md#what-a-client-copy-is](../platform/mp-model.md#what-a-client-copy-is)).
 - A client derives a weight direction and never a weight: it discards the weight it computes and never applies a band trait, while the direction flags are written ahead of that skip [#1138/M/n=1, #1139/M/n=1].
 - No nutrient formula can be generated at runtime: the dynamic string compiler is unreachable from Lua, so every code path exists as a file on disk at load time [#1172/C/C-only].
@@ -220,7 +234,7 @@ Not covered: the save and load path itself, which no run has exercised; the glob
 - Whether modData survives a save and reload, in the player scope and the global scope alike — settled by writing a key in each scope, booting a second server on the same run directory and reading it back beside a control that restores the fixture and must miss it; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
 - Whether item modData moves from server to client — settled by a server-only key write, a client-first census that must miss it, a forced item push and a second census; -> X14 ([#1040/M/one-side/open, #0885/M/n=1/open, #1280/C/open], [open-questions.md#x14](open-questions.md#x14)).
 - Whether a second mod's partial block lands against an already-populated default modData, and whether a block with `ItemType` omitted still merges — settled by one boot reading the base food pool count and the instance getters; -> X15 ([#1281/C/open, #1018/C/one-fixture/open], [open-questions.md#x15](open-questions.md#x15)).
-- Whether any packet carries character traits to a client, and whether a mod-registered trait behaves the same — settled by making the server's trait list non-empty first and reading the client's across two pushes; -> X4 ([#1275/C/superseded, #0968/C/C-only/open, #1161/C/C-only/open], [open-questions.md#x4](open-questions.md#x4)).
+- Whether a server-side `sendSyncPlayerFields(player, 2)` after a trait write reaches the client's trait list, whether a client read sees the new trait within the push cadence, and whether a mod-registered trait behaves the same — settled by making the server's trait list non-empty first and reading the client's in client-first pairs before and after a server-side trait push, the pre-push read as the control; -> X4 ([#2099/C/open], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
 - Whether the weight-lot flag is ever true, and whether the client's derived copy agrees when it is — settled by a calorie ladder whose rungs are read off the jar first; -> X25 ([#1291/C/open], [open-questions.md#x25](open-questions.md#x25)).
 - With vanilla nutrition switched off, which of the three arms actually froze — settled by the two existing three-day scenarios run with the option off against their own baselines, each arm shown to freeze on its own; -> X7 ([#1277/C/open], [open-questions.md#x7](open-questions.md#x7)).
 - Whether Lua can flip the nutrition option at runtime, whether the flip replicates and whether the drain stops — settled by a harness route to the option's config setter and a session reading the Java option, the Lua mirror and the drain beside a no-flip control; -> X17 ([#1283/C/open, #0139/M/n=1/open, #0140/C/open], [open-questions.md#x17](open-questions.md#x17)).
@@ -230,14 +244,16 @@ Not covered: the save and load path itself, which no run has exercised; the glob
 - Decision: whether each mod nutrient decays, and on which clock — forced by vanilla's drain being compiled into the nutrition update and reaching no store but its own macro stores [#1193/C/C-only].
 - Decision: whether a per-item nutrient is a per-type script value or per-instance state — forced by a script key agreeing on both sides for free while item modData moves whole and is measured in one direction [#1124/M/n=1, #1126/M/one-side].
 - Decision: whether a per-item nutrient must follow an item through a type change — forced by the replacement being built from its own script, with the swap naming the condition states and the age, and not item modData, as what it copies [#0266, #0243].
-- Decision: whether any mod nutrient acts through vanilla's weight model or through a model of the mod's own — forced by the model's one switch taking the drain, the burn and the weight arm together [#1136/C/C-only], and by the dead space leaving nothing else in vanilla to act through [#0186/C/inference].
+- Decision: whether any mod nutrient acts through vanilla's weight model or through a model of the mod's own — forced by the model's one switch taking the drain, the burn and the weight arm together [#1136/C/C-only], and by the Strength grant on the protein store being the one other vanilla consumer, with the carbohydrate store and diet quality dead space [#2112/C/C-only, T22.1].
 
 ## See also
 
 - [`../platform/mp-model.md`](../platform/mp-model.md) — ownership, the shapes mod state travels in, wipe-and-replace and the command bus, which the route reading above is taken from.
 - [`../facts/wire-packets.md`](../facts/wire-packets.md) — what each packet carries and omits, and every desync measured per field.
 - [`../facts/nutrition-core.md`](../facts/nutrition-core.md#clamps) — the vanilla stores, their clamps and the weight model a nutrient's effect can reach.
-- [`../facts/body-and-weight.md`](../facts/body-and-weight.md#weight-traits) — the band traits the weight model drives, and the vanilla moodles.
+- [`../facts/body-and-weight.md`](../facts/body-and-weight.md#weight-traits) — the band traits the weight model drives, the metabolic-rate classes, and the vanilla moodles.
+- [`../facts/perks-and-strength.md`](../facts/perks-and-strength.md#xp-grants) — the Strength experience grant, the protein store's one live vanilla consumer.
+- [`../facts/food-item-model.md`](../facts/food-item-model.md#fluid-blocks) — the per-instance modData copy and the fluid block that stores no mod key.
 - [`../platform/lua-platform.md`](../platform/lua-platform.md#registries) — the moodle and trait registries, and what a registration does not give.
 - [`../platform/loader-and-scripts.md`](../platform/loader-and-scripts.md#default-moddata) — the default modData arm a script key rides, and the per-side script load.
 - [`../facts/other-mods/beyondten.md`](../facts/other-mods/beyondten.md#architecture) — the parallel-stat blueprint banked in character modData and derived on read.
