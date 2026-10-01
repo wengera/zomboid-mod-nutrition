@@ -2,6 +2,7 @@
 Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-design reading of overriding vanilla foods — the routes into a vanilla item's nutrition, the minimal override block, which records a `module Base` pass covers and the pass's own risks; the merge, the replay and the path collisions are `platform/loader-and-scripts.md`, the keys are `facts/food-item-model.md`, what an eat does with a value is `facts/eating-pipeline.md`, and every count is `reference/datasets.md`.
 
 ## Rules
+<a id="rules"></a>
 
 - Restate only the keys the pass re-bases in a partial item block: every key the block omits keeps its vanilla value, which is what lets a pass over every record of `data/food-items.json` ship minimal blocks and leave icons, models, evolved recipes and spoilage tracking upstream — measured on one float macro of one food [#1017/M/n=1].
 - Ship one `module Base` block per item: per-key last-wins makes the pass robust to the replay order for every key it does not touch and contested only on the keys two mods both declare [#1057/M/n=1].
@@ -17,7 +18,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Change the eat path or the read-time getters, never the item, to make rot cost calories: an item's stored macros are a pure function of its script values and how much of it has been eaten — a reading of the aging write set rather than a measurement [#0255/C/inference].
 - Declare a mod's own items in the mod's own module when the mod adds rather than rebalances: a new name collides with nothing and grows the pool by exactly what it declares [#1020/M/n=1].
 - Read per-item macro values off an instance getter or out of the script text: the script object carries no macro getter, and the dialect publishes methods rather than fields [#0920/M/n=1, #1011/M/n=1].
-- Read a per-type macro off a fresh instance made through the `instanceItem` global, never through `getScriptItem()`: the script item keeps its four macro fields private and declares no getter for any of them, and the item factory is not exposed, so the global is the one route to an instance [#2679/C/C-only, #2680/C/C-only, T22.2].
+- Build a fresh instance through the `instanceItem` global to read a type's vanilla macros when no instance is at hand, never the script item `getScriptItem()` returns: the script item keeps its four macro fields private and declares no getter for any of them, and the global reaches the item factory, which the exposer leaves out [#2679/C/C-only, #2680/C/C-only, T22.2].
 
 ## How it works
 
@@ -188,7 +189,7 @@ At the 2026-09-10 17:47 corpus sweep, across the nine `script_nutrition` mods of
 The corpus drifts under Steam, so that count holds for its sweep; the collision census behind it is the catalog's and the vanilla name count the dataset page's ([#1229/C/snapshot], [#1572/C/snapshot], [catalog.md#corpus-facts](../facts/other-mods/catalog.md#corpus-facts)).
 The dataset stores hunger and thirst in script units on every row, so its figures go into a block as they stand while an instance read has to be scaled back up before it goes in ([#1893], [#0011/M/one-fixture], [datasets.md#columns](../reference/datasets.md#columns)).
 A drink row's nutrition columns are its fluid's per-litre figures joined onto the container rather than keys on the container's block, so a pass that reads a drink row as an item's own values writes the wrong unit onto the wrong block ([#1881], [#0626/C/snapshot]).
-A `fluid` block has no default arm: a mod key written into one is logged as an error, throws when `Core.debug` is set and is stored nowhere, so a drink has no script route for a value of the mod's own ([#2682/C/C-only], [food-item-model.md#fluid-blocks](../facts/food-item-model.md#fluid-blocks)).
+A `fluid` block has no default arm: a mod key written into one is logged as an error, throws when `Core.debug` is set and is stored nowhere, so a drink's fluid has no script route for a value of the mod's own ([#2682/C/C-only], [food-item-model.md#fluid-blocks](../facts/food-item-model.md#fluid-blocks)).
 An empty cell is an absent key and never a zero, and an absent key takes the engine's own default, so a generator that fills blanks with zeros changes items it meant to restate ([#0618], [#0619/M/n=1]).
 Rewriting `HungerChange` is not weight-neutral: a non-custom-weight food's displayed weight derives from its remaining hunger fraction, and `CustomWeight = true` opts out ([#1214/C/C-only], [food-item-model.md#state-axes](../facts/food-item-model.md#state-axes)).
 Opting out is not free for an item whose display name does not resolve: the flag routes the weight getter through the display-name guard, and a dedicated server resolves no mod item's display name, translation file or not ([#1443], [#1167/M/n=1]).
