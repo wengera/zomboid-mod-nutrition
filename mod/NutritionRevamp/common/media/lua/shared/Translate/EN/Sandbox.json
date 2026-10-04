@@ -1,0 +1,12 @@
+{
+    "Sandbox_NutritionRevamp": "Nutrition Revamp",
+    "Sandbox_NR_Mode": "Stat update mode",
+    "Sandbox_NR_Mode_tooltip": "Takeover: the mod replaces the vanilla stat update on the server through the CalculateStats hook. Overlay: the vanilla update runs and the mod writes after it. Choose Overlay when another mod claims the hook.",
+    "Sandbox_NR_ModeValues_option1": "Takeover",
+    "Sandbox_NR_ModeValues_option2": "Overlay",
+    "Sandbox_NR_LogLevel": "Server log detail",
+    "Sandbox_NR_LogLevel_tooltip": "How much Nutrition Revamp prints to the server console.",
+    "Sandbox_NR_LogLevelValues_option1": "Quiet",
+    "Sandbox_NR_LogLevelValues_option2": "Normal",
+    "Sandbox_NR_LogLevelValues_option3": "Verbose"
+}

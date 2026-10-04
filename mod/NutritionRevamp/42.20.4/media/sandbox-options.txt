@@ -1,0 +1,16 @@
+VERSION = 1,
+
+/* NutritionRevamp sandbox options, prefix NR. The reader erases newlines: every key = value
+   pair ends in a comma, the last before a brace included. Comment with block comments only. */
+
+option NR.Mode
+{
+    type = enum, numValues = 2, default = 1,
+    page = NutritionRevamp, translation = NR_Mode, valueTranslation = NR_ModeValues,
+}
+
+option NR.LogLevel
+{
+    type = enum, numValues = 3, default = 2,
+    page = NutritionRevamp, translation = NR_LogLevel, valueTranslation = NR_LogLevelValues,
+}
