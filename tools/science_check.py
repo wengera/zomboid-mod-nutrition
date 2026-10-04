@@ -74,7 +74,10 @@ def check_scan(root, paths, rows):
     skip = {os.path.normcase(os.path.abspath(os.path.join(root, *REGISTER.split("/")))),
             os.path.normcase(os.path.abspath(os.path.join(root, *PAGE.split("/"))))}
     out = []
-    for p in _scan_files(paths):
+    for p in paths:
+        if not os.path.exists(p):
+            out.append(Finding(_rel(p, root), 1, "scan", "scan path %s does not exist" % p))
+    for p in _scan_files([p for p in paths if os.path.exists(p)]):
         if os.path.normcase(os.path.abspath(p)) in skip:
             continue
         with open(p, encoding="utf-8", errors="replace") as f:
@@ -87,13 +90,34 @@ def check_scan(root, paths, rows):
     return out
 
 
-def check(root=REPO_ROOT, register=None, scan=None):
+def _staged_blob(root):
+    """The staged text of the register, or None when it is not staged or git cannot say."""
+    try:
+        r = subprocess.run(["git", "show", ":" + REGISTER], cwd=root, capture_output=True)
+    except OSError:
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def check(root=REPO_ROOT, register=None, scan=None, staged=False):
     path = register or os.path.join(root, *REGISTER.split("/"))
     rel = _rel(path, root)
+    tmp = None
+    if staged and not register:
+        blob = _staged_blob(root)
+        if blob is not None:
+            import tempfile
+            fd, tmp = tempfile.mkstemp(suffix=".tsv")
+            with os.fdopen(fd, "wb") as f:
+                f.write(blob)
+            path = tmp
     try:
         numbered = _rows_with_lines(path)
     except (sl.RegisterError, OSError) as e:
-        return [Finding(rel, 1, "schema", str(e))]
+        return [Finding(rel, getattr(e, "line", 1), "schema", str(e).replace(path, rel))]
+    finally:
+        if tmp:
+            os.remove(tmp)
     out = check_rows(rel, numbered)
     if scan:
         out += check_scan(root, scan, [r for _, r in numbered])
@@ -104,7 +128,7 @@ def check_part(path):
     try:
         numbered = _rows_with_lines(path)
     except (sl.RegisterError, OSError) as e:
-        return [Finding(path, 1, "schema", str(e))]
+        return [Finding(path.replace("\\", "/"), getattr(e, "line", 1), "schema", str(e))]
     return check_rows(path.replace("\\", "/"), numbered, provisional=True)
 
 
@@ -127,7 +151,7 @@ def main(argv=None):
     if a.staged and not _staged_touches(a.root, a.scan):
         print("science_check: nothing staged under %s or the scanned paths; skipped" % REGISTER)
         return 0
-    findings = check_part(a.part) if a.part else check(a.root, a.register, a.scan)
+    findings = check_part(a.part) if a.part else check(a.root, a.register, a.scan, staged=a.staged)
     for f in findings:
         print("%s:%d: %s: %s" % (f.path, f.line, f.rule, f.detail))
     print("%d findings" % len(findings))

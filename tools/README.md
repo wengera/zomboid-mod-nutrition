@@ -404,13 +404,17 @@ import patterns from there.
   the register or a scanned path. Prints `path:line: rule: detail` per finding and `N findings`;
   exit 1 on any.
 
-- `science_delta.py` — `python tools/science_delta.py apply <part.tsv> [--register TSV] [--dry-run]` |
-  `status <Sdddd> <status> [--successor Sdddd] [--register TSV]`.
+- `science_delta.py` — `python tools/science_delta.py apply <part.tsv> [--register TSV] [--dry-run] [--allow-duplicate]` |
+  `status <Sdddd> <status> [--successor Sdddd[, Sdddd]] [--register TSV]` |
+  `settle <Sdddd> --topic T --grade G --value V --citation C [--range R] [--population P] [--status unverified]`.
   The controller's tool. `apply` validates every row of a part file (a bad row aborts before
-  anything is written, naming its line; a real id or a repeated provisional id is refused), mints
+  anything is written, naming its line; a real id, a repeated provisional id or a row whose parameter,
+  citation and source already sit in the register is refused unless `--allow-duplicate`), mints
   the next free id for each in file order, appends them and prints `S2.1 -> S0001` per row and
-  `rows: N`. `status` changes one row's status and successor, refuses a row already superseded and
-  a successor not in the register, and prints the change. Never deletes a row.
+  `rows: N`. `status` changes one row's status and successor (a comma list), refuses a row already superseded, a
+  successor that is missing, superseded or the row itself, and `--successor` without `superseded`; an open
+  row may be superseded with its cells empty. `settle` fills an open row's cells and sets it `settled`
+  (or `unverified`), validating the result. Never deletes a row.
 
 ## Planned (P4)
 

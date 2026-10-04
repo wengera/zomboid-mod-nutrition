@@ -71,3 +71,24 @@ def test_citation_forms():
         assert sl.CITATION_RX.search("Someone 2020, Journal, " + c), c
     assert not sl.CITATION_RX.search("Someone 2020, Journal, DOI 10.1/x")
     assert not sl.CITATION_RX.search("Someone 2020, Journal, PMID 12345")
+
+
+def test_a_superseded_gap_may_be_empty_but_names_a_successor():
+    gap = dict(GOOD, topic="", grade="", value="", range="", citation="", status="superseded", successor="S0002")
+    assert sl.validate_row(gap) == []
+    assert any("successor" in e for e in sl.validate_row(dict(gap, successor="")))
+    assert any("grade" in e for e in sl.validate_row(dict(gap, topic="protein")))
+
+
+def test_an_unrewritten_record_beside_a_good_one_is_flagged():
+    for c in ("A 2020, J, doi:10.1/x, PMID 123", "A 2020, J, pmid:1, DOI 10.1/x", "A 2020, J, doi:10.1/x, PMC1234", "A 2020, J, doi:10.1/x, PMID123"):
+        assert any("citation" in e for e in sl.validate_row(dict(GOOD, citation=c))), c
+    assert sl.validate_row(dict(GOOD, citation="A 2020, J, doi:10.1/x; pmid:123")) == []
+
+
+def test_a_short_row_names_its_line(tmp_path):
+    p = tmp_path / "s.tsv"
+    p.write_text("\t".join(sl.COLUMNS) + "\n" + "\t".join(GOOD[c] for c in sl.COLUMNS) + "\n" + "S0002\tx\n", encoding="utf-8")
+    with pytest.raises(sl.RegisterError) as e:
+        sl.read_register(str(p))
+    assert e.value.line == 3 and "trailing empty cells" in str(e.value)

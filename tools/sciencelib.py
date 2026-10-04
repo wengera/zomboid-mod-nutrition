@@ -36,10 +36,13 @@ CITATION_RX = re.compile(r"(?:^|[\s;,(])(?:doi:10\.\S+|pmid:\d+|url:https?://\S+
 SOURCE_RX = re.compile(r"^\S+\.md § .+$")
 CITED_STATUSES = ("settled", "unverified", "superseded")
 BAD_CELL_RX = re.compile(r"[\t\r\n]")
+RAW_RECORD_RX = re.compile(r"\b(?:PMID|DOI|PMC)\s*\d|\b(?:PMID|DOI)\s+\S")
 
 
 class RegisterError(Exception):
-    pass
+    def __init__(self, msg, line=1):
+        super().__init__(msg)
+        self.line = line
 
 
 def id_int(s):
@@ -75,7 +78,7 @@ def read_register(path):
     for n, line in enumerate(lines[1:], 2):
         cells = line.rstrip("\r").split("\t")
         if len(cells) != len(COLUMNS):
-            raise RegisterError("%s:%d: %d cells, expected %d" % (path, n, len(cells), len(COLUMNS)))
+            raise RegisterError("%s:%d: %d cells, expected %d \u2014 keep the trailing empty cells" % (path, n, len(cells), len(COLUMNS)), line=n)
         rows.append(dict(zip(COLUMNS, cells)))
     return rows
 
@@ -102,7 +105,8 @@ def validate_row(row, provisional=False):
         errs.append("status %r not in %s" % (status, STATUSES))
     if not row.get("parameter", "").strip():
         errs.append("parameter is empty")
-    if status != "open":
+    gap_closed = status == "superseded" and not any(row.get(c, "").strip() for c in ("topic", "grade", "value", "citation"))
+    if status != "open" and not gap_closed:
         if row.get("topic") not in TOPICS:
             errs.append("topic %r not in TOPICS" % row.get("topic"))
         if row.get("grade") not in GRADES:
@@ -112,7 +116,9 @@ def validate_row(row, provisional=False):
             errs.append("topic %r not in TOPICS" % row.get("topic"))
         if row.get("grade") and row.get("grade") not in GRADES:
             errs.append("grade %r not in %s" % (row.get("grade"), GRADES))
-    if status in CITED_STATUSES:
+    if RAW_RECORD_RX.search(row.get("citation", "")):
+        errs.append("citation holds an unrewritten PMID/DOI/PMC record; write pmid: or doi:")
+    if status in CITED_STATUSES and not gap_closed:
         if not row.get("value", "").strip():
             errs.append("value is empty on a %s row" % status)
         if not CITATION_RX.search(row.get("citation", "")):

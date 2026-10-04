@@ -61,3 +61,33 @@ def test_cli_exit_codes(tmp_path):
     root2 = _tree(tmp_path / "b", [dict(ROW, grade="nope")])
     r = subprocess.run([sys.executable, CLI, "--root", str(root2)], capture_output=True, text=True)
     assert r.returncode == 1 and "schema" in r.stdout
+
+
+def test_a_short_row_in_a_part_is_one_finding_at_its_line(tmp_path):
+    part = tmp_path / "part.tsv"
+    good = "\t".join(ROW[c] for c in sl.COLUMNS).replace("S0001", "S1.1")
+    part.write_text("\t".join(sl.COLUMNS) + "\n" + good + "\n" + "S1.2\tiron\n", encoding="utf-8")
+    f = sc.check_part(str(part))
+    assert len(f) == 1 and f[0].line == 3
+
+
+def test_scan_of_a_missing_path_is_a_finding(tmp_path):
+    root = _tree(tmp_path, [ROW])
+    f = sc.check(str(root), scan=[str(root / "nope")])
+    assert _rules(f) == ["scan"] and "nope" in f[0].detail
+
+
+def test_a_mixed_citation_fails_the_schema(tmp_path):
+    root = _tree(tmp_path, [dict(ROW, citation="A 2020, J, doi:10.1/x, PMID 5")])
+    assert any("citation" in f.detail for f in sc.check(str(root)))
+
+
+def test_staged_reads_the_index_blob(tmp_path):
+    root = _tree(tmp_path, [ROW])
+    git = lambda *a: subprocess.run(["git", *a], cwd=str(root), capture_output=True, text=True)
+    git("init", "-q")
+    sl.write_register(str(root / "docs" / "reference" / "science.tsv"), [dict(ROW, grade="nope")])
+    git("add", "docs/reference/science.tsv")
+    sl.write_register(str(root / "docs" / "reference" / "science.tsv"), [ROW])
+    r = subprocess.run([sys.executable, CLI, "--root", str(root), "--staged"], capture_output=True, text=True)
+    assert r.returncode == 1 and "grade" in r.stdout
