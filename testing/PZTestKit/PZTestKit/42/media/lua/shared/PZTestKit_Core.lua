@@ -49,7 +49,9 @@ local function jsonString(s)
         if c == "\n" then return "\\n" end
         if c == "\t" then return "\\t" end
         if c == "\r" then return "\\r" end
-        return string.format("\\u%04x", string.byte(c))
+        local b = string.byte(c)
+        local hi, lo = math.floor(b / 16) + 1, b % 16 + 1
+        return "\\u00" .. string.sub("0123456789abcdef", hi, hi) .. string.sub("0123456789abcdef", lo, lo)
     end)
     return '"' .. s .. '"'
 end

@@ -270,6 +270,23 @@ import patterns from there.
   [`docs/reference/datasets.md#schemas`](../docs/reference/datasets.md#schemas) § Recipes and § Evolved recipes; the model, the refusals and the live
   cross-check are [`docs/facts/cooking-and-recipes.md#dataset-fidelity`](../docs/facts/cooking-and-recipes.md#dataset-fidelity).
 
+## Mod lints
+
+- `kahlua_lint.py` — `python tools/kahlua_lint.py mod testing/experiments`
+  Dialect lint over every Lua file under the paths given (comments and strings
+  blanked first). Five rules: `goto` (the keyword or a `::label::`), `format-d`
+  (an integer conversion inside `string.format`), `java-length` (`#` on a call
+  result), `java-pairs` (`pairs`/`ipairs` over a call result), `loadstring`.
+  Prints `path:line: rule: detail` and `N findings`; exit 1 on any finding.
+- `hotpath_lint.py` — `python tools/hotpath_lint.py mod`
+  Fast-path lint. Inside a `-- @fastpath` ... `-- @endfastpath` region it bars a
+  table constructor, `..`, `pcall`/`xpcall`/`error`/`assert`, `string.`/`tostring`/
+  `table.` calls, `^` and `math.exp|pow|log|sqrt`, loops, and a method call on a
+  receiver outside the file's `-- @hoisted` list; one line per region marked
+  `-- @rimguard` may carry the single `pcall`. On `NR_Kernel*.lua` it adds
+  `kernel-shape` (only `function NutritionRevamp.kernel.<path>(` or
+  `function K.<path>(`) and `kernel-java` (no Java-side global named).
+
 ## Reference tooling
 
 - `luabalance.py` — `python tools/luabalance.py <lua file> [...]`

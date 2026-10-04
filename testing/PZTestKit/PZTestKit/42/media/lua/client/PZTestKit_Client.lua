@@ -151,7 +151,7 @@ TK.register("item.tamper", function(argv)
     item:setCondition(tonumber(argv[3]) or item:getCondition())
     if argv[4] then item:getModData().pzt_tag = argv[4] end
     sendItemStats(item)
-    return string.format("cond=%d/%d tag=%s", item:getCondition(), item:getConditionMax(), tostring(item:getModData().pzt_tag))
+    return string.format("cond=%.0f/%.0f tag=%s", item:getCondition(), item:getConditionMax(), tostring(item:getModData().pzt_tag))
 end)
 
 -- ---- intake-pipeline commands (slice 01) -------------------------------------
