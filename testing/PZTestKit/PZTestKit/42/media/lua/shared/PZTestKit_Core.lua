@@ -957,3 +957,181 @@ TK.register("text.get", function(argv)
     return { key = key, text = text, miss = (text == key), side = TK.side }
 end)
 TK.log("core loaded (" .. TK.side .. ")")
+
+-- ==== Plan 1 Task 7 additions ===================================================
+-- Appended after the file's last line on purpose: the claims register holds `repo:` pointers
+-- into this file by line number, so new sites go at the end and no existing line moves.
+-- Registration order does not matter -- TK.commands is read at poll time.
+
+-- ---- the whole stat registry in one read (both sides; Plan 1 Task 7) ---------
+-- TK.statsAll is the shared body of `stats.all`, which is REGISTERED twice -- in the server file
+-- (addressed by username) and in the client file (the local player) -- so each side has its own
+-- row in the generated table, exactly as `nutrition.get` does. It is not registered here: shared/
+-- loads first and a side file's registration of the same name would silently shadow it.
+-- The 24 fields are the registry table of docs/facts/character-stats.md#registry, in its
+-- ORDERED_STATS order; the second column is the registry id the reply is keyed by. A field this
+-- build's CharacterStat does not carry is nil in Lua (indexing an exposed class for an absent
+-- static is a nil, never a raise) and lands in `missing` beside one whose Stats:get is absent.
+-- Every read goes through TK.call -- index-first guard: a caught nil call is silent and names
+-- nothing; an unguarded raise aborts the rest of this handler (x126/x127).
+TK.STAT_FIELDS = {
+    { "ANGER", "Anger" }, { "BOREDOM", "Boredom" }, { "DISCOMFORT", "Discomfort" },
+    { "ENDURANCE", "Endurance" }, { "FATIGUE", "Fatigue" }, { "FITNESS", "Fitness" },
+    { "FOOD_SICKNESS", "FoodSickness" }, { "HUNGER", "Hunger" }, { "IDLENESS", "Idleness" },
+    { "INTOXICATION", "Intoxication" }, { "MORALE", "Morale" },
+    { "NICOTINE_WITHDRAWAL", "NicotineWithdrawal" }, { "PAIN", "Pain" }, { "PANIC", "Panic" },
+    { "POISON", "Poison" }, { "SANITY", "Sanity" }, { "SICKNESS", "Sickness" },
+    { "STRESS", "Stress" }, { "TEMPERATURE", "Temperature" }, { "THIRST", "Thirst" },
+    { "UNHAPPINESS", "Unhappiness" }, { "WETNESS", "Wetness" }, { "ZOMBIE_FEVER", "ZombieFever" },
+    { "ZOMBIE_INFECTION", "ZombieInfection" },
+}
+
+-- Returns {side, user, worldAge, mult, wall, stats = {<id> = value}, missing = {<FIELD>...}
+-- [, error]}. `missing` is a list of FIELD names (the static that was asked for), `stats` is keyed
+-- by the registry id; an empty `missing` encodes as `{}` (harness.md, Reading a reply).
+function TK.statsAll(p)
+    local out = { side = TK.side, stats = {}, missing = {}, wall = TK.now() }
+    local _, user = TK.call(p, "getUsername")
+    out.user = user ~= nil and tostring(user) or nil
+    local gt = getGameTime ~= nil and getGameTime() or nil
+    local okA, age = TK.call(gt, "getWorldAgeHours")
+    if okA then out.worldAge = age end
+    local okM, mult = TK.call(gt, "getMultiplier")
+    if okM then out.mult = mult end
+    local _, s = TK.call(p, "getStats")
+    if s == nil then out.error = "no IsoGameCharacter:getStats" end
+    for _, row in ipairs(TK.STAT_FIELDS) do
+        local enum = CharacterStat and CharacterStat[row[1]]
+        local ok, v = false, nil
+        if enum ~= nil and s ~= nil then ok, v = TK.call(s, "get", enum) end
+        if ok and v ~= nil then out.stats[row[2]] = v
+        else out.missing[#out.missing + 1] = row[1] end
+    end
+    return out
+end
+
+-- ---- micro-benchmark of one Lua global function (both sides; Plan 1 Task 7) ------
+-- bench.global <dotted.fn> <n>
+-- Resolves the name by the same segment walk `lua.global` uses (a hop only into a `table`,
+-- presence by `== nil`, zero segments is the usage string), REQUIRES a function, and calls it
+-- `n` times with no arguments inside one TK.now() (getTimestampMs) bracket. This is the one
+-- command that CALLS what it resolves, which `lua.global` deliberately never does -- so the name
+-- is the caller's responsibility, and the whole loop runs under ONE pcall: a raising function
+-- answers `error` with the calls made so far rather than killing the ack, and the bench pays one
+-- protected frame per run, not per call. `n` is capped at 100000 so one ack cannot stall the
+-- poll for long; ms is wall time at getTimestampMs resolution, so a short run reads 0 and a
+-- caller sizes `n` until `ms` is well above 1. usPerCall = ms * 1000 / n.
+TK.BENCH_MAX = 100000
+-- @args <name>[.<field>...] <n>
+-- @reply {side, name, n, ms, usPerCall [, calls, error]} | {side, name, error [, failedAt] [, stoppedOn] [, type]} | string
+-- @purpose Calls one resolved Lua global function n times (n <= 100000) inside one getTimestampMs bracket and reports the wall cost per call, on the side answering.
+TK.register("bench.global", function(argv)
+    local usage = "usage: bench.global <name>[.<field>...] <n>  (1 <= n <= 100000)"
+    local name, n = argv[1], tonumber(argv[2])
+    if name == nil or n == nil or n < 1 or n > TK.BENCH_MAX or n ~= math.floor(n) then
+        return usage
+    end
+    if _G == nil then return { side = TK.side, name = name, error = "no _G on this build" } end
+    local node, parts = _G, 0
+    for part in string.gmatch(tostring(name), "[^%.]+") do
+        parts = parts + 1
+        if type(node) ~= "table" then
+            return { side = TK.side, name = name, error = "not resolved", failedAt = part,
+                     stoppedOn = type(node) }
+        end
+        node = node[part]
+        if node == nil then
+            return { side = TK.side, name = name, error = "not resolved", failedAt = part }
+        end
+    end
+    if parts == 0 then return usage end
+    if type(node) ~= "function" then
+        return { side = TK.side, name = name, error = "not a function", type = type(node) }
+    end
+    if TK.now() == 0 then return { side = TK.side, name = name, error = "no getTimestampMs()" } end
+    local fn, calls = node, 0
+    local function loop()
+        for _i = 1, n do
+            fn()
+            calls = calls + 1
+        end
+    end
+    local t0 = TK.now()
+    local ran, err = pcall(loop)
+    local ms = TK.now() - t0
+    local out = { side = TK.side, name = name, n = n, ms = ms, usPerCall = ms * 1000 / n }
+    if not ran then out.calls, out.error = calls, tostring(err) end
+    return out
+end)
+
+-- ---- OnTick rate over a wall window (both sides; Plan 1 Task 7) --------------
+-- tick.rate <seconds>
+-- The reply is ASYNCHRONOUS, in the shape `test.run` uses: the command only arms a counter and
+-- answers at once naming the result document; a file-scope Events.OnTick handler counts fires
+-- while armed and, on the first fire at or after the wall deadline (TK.now(), getTimestampMs),
+-- disarms and writes pzt-results/tick-rate.json through TK.result -- the writer the test layer
+-- uses -- so a driver blocks on it with `wait_result("tick-rate")`. The window therefore closes
+-- on a TICK, never early: `elapsedMs` is the real window and both rates are divided by it, not
+-- by the requested `seconds`. worldMinutesPerSecond is the world-age delta (hours * 60) over the
+-- same elapsed wall time. The handler returns on its first line while unarmed, so it costs one
+-- global read per tick outside a window. It is added ONCE per Lua state: TK survives
+-- `reloadlua` (see :2) and TK.tickRateHooked stops a reload from adding a second counter.
+-- Seconds are capped at 600 so a typo cannot leave a window open for a session.
+TK.tickRateArmed = false
+TK.TICK_RATE_MAX_SECONDS = 600
+
+local function tickRateWorldAge()
+    local gt = getGameTime ~= nil and getGameTime() or nil
+    local ok, v = TK.call(gt, "getWorldAgeHours")
+    if ok then return v end
+    return nil
+end
+
+function TK.tickRateOnTick()
+    if not TK.tickRateArmed then return end
+    local tr = TK.tickRate
+    tr.ticks = tr.ticks + 1
+    local now = TK.now()
+    if now < tr.deadline then return end
+    TK.tickRateArmed = false
+    local elapsedMs = now - tr.startWall
+    local out = { seconds = tr.seconds, ticks = tr.ticks, elapsedMs = elapsedMs,
+                  startWall = tr.startWall, endWall = now,
+                  worldAgeStart = tr.worldAgeStart }
+    local ageEnd = tickRateWorldAge()
+    out.worldAgeEnd = ageEnd
+    if elapsedMs > 0 then
+        out.ticksPerSecond = tr.ticks * 1000 / elapsedMs
+        if ageEnd ~= nil and tr.worldAgeStart ~= nil then
+            out.worldMinutesPerSecond = (ageEnd - tr.worldAgeStart) * 60 * 1000 / elapsedMs
+        end
+    end
+    TK.result("tick-rate", out)
+end
+
+if not TK.tickRateHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() TK.tickRateOnTick() end)
+    TK.tickRateHooked = true
+end
+
+-- @args <seconds>
+-- The result document tick-rate.json: {seconds, ticks, elapsedMs, startWall, endWall,
+--   worldAgeStart, worldAgeEnd, ticksPerSecond, worldMinutesPerSecond} plus TK.result's own
+--   {name, side, t, complete}; the two rates are absent when elapsedMs is 0 / a world age is nil.
+-- @reply {side, armed, seconds, result, file} | {side, error} | string
+-- @purpose Arms an OnTick counter for a wall window and answers at once; tick-rate.json (wait_result) then carries ticks per second and world minutes per second on the side answering.
+TK.register("tick.rate", function(argv)
+    local seconds = tonumber(argv[1])
+    if seconds == nil or seconds <= 0 or seconds > TK.TICK_RATE_MAX_SECONDS then
+        return "usage: tick.rate <seconds>  (0 < seconds <= 600)"
+    end
+    if not TK.tickRateHooked then return { side = TK.side, error = "no Events.OnTick on this side" } end
+    if TK.tickRateArmed then return { side = TK.side, error = "a tick.rate window is already armed" } end
+    local start = TK.now()
+    if start == 0 then return { side = TK.side, error = "no getTimestampMs()" } end
+    TK.tickRate = { seconds = seconds, ticks = 0, startWall = start,
+                    deadline = start + seconds * 1000, worldAgeStart = tickRateWorldAge() }
+    TK.tickRateArmed = true
+    return { side = TK.side, armed = true, seconds = seconds, result = "tick-rate",
+             file = "pzt-results/tick-rate.json" }
+end)

@@ -1375,3 +1375,108 @@ if Events.OnTick then Events.OnTick.Add(tick) end
 if Events.EveryOneMinute then Events.EveryOneMinute.Add(function() TK.pollCommands() end) end
 if Events.OnServerStarted then Events.OnServerStarted.Add(function() TK.log("server started event") end) end
 TK.log("server harness loaded")
+
+-- ---- Plan 1 Task 7 additions --------------------------------------------------
+-- Appended after the file's trailing event registrations on purpose: the claims register holds
+-- `repo:` pointers into this harness by line number, so new sites go at the end and no existing
+-- line moves. Registration order does not matter -- TK.commands is read at poll time.
+
+-- <user>. Every stat of the registry (docs/facts/character-stats.md#registry) for one named
+-- player, read on the server, which owns the stats in MP; the shared body is TK.statsAll in the
+-- core file. The client twin reads its own mirror.
+-- @args <user>
+-- @reply {side, user, worldAge, mult, wall, stats, missing [, error]} | string
+-- @purpose Server-side read of all 24 registered CharacterStat values of a named player in one tick; a static this build lacks lands in missing.
+TK.register("stats.all", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    return TK.statsAll(p)
+end)
+
+-- <user> [mask]. Sends the player-fields packet from the server: mask bit 2 is the trait block
+-- (docs/platform/mp-model.md, #2595), the default here. `sendSyncPlayerFields` is a Lua GLOBAL,
+-- so it takes the harness's nil-check-then-call idiom for globals rather than TK.call; the call
+-- runs under pcall so an argument mismatch answers `callError` instead of killing the ack. The
+-- global is server-gated and the server send returns SILENTLY for a null player or an online id
+-- of -1 (#2602), so `sent` records only that the call ran -- never delivery; delivery is a
+-- client-side read. `traitList` is the server's own list after the push and `held` says it is
+-- the same list as before it (the push writes nothing on the sending side).
+-- @args <user> [<mask>]
+-- @reply {user, mask, sent, traitList, held [, callError] [, error]} | string
+-- @purpose Calls sendSyncPlayerFields(player, mask or 2) on the server for a named player -- the trait-block push -- and reads the server trait list back; sent is not delivery.
+TK.register("trait.push", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local mask = 2
+    if argv[2] ~= nil then
+        mask = tonumber(argv[2])
+        if mask == nil or mask < 0 or mask ~= math.floor(mask) then
+            return "usage: trait.push <user> [<mask>]"
+        end
+    end
+    local _, beforeList = TK.traitNames(p)
+    local out = { user = tostring(argv[1]), mask = mask, sent = false }
+    if sendSyncPlayerFields == nil then
+        out.error = "no sendSyncPlayerFields global on this side"
+    else
+        local ran, err = pcall(sendSyncPlayerFields, p, mask)
+        out.sent = ran
+        if not ran then out.callError = tostring(err) end
+    end
+    local _, list = TK.traitNames(p)
+    out.traitList = list
+    local same = #list == #beforeList
+    if same then
+        for i = 1, #list do
+            if list[i] ~= beforeList[i] then same = false; break end
+        end
+    end
+    out.held = same
+    return out
+end)
+
+-- <name> <key> <value>. One write into a GLOBAL modData table on the server, the store the mod's
+-- persistence uses (ModData.getOrCreate). ModData's binding is a DOT call, so it goes through
+-- TK.callStatic (index first, then call, no self). The table is created when absent -- that is
+-- what getOrCreate does. The bus splits arguments on whitespace, so the value arrives as a
+-- string; it is coerced true|false -> boolean, a number -> number, anything else stays a string,
+-- the coercion the brief names for this command. Note: the player-scope `moddata.set` above
+-- stores its value as the raw string; this command coerces because a mod's global table holds
+-- numbers. There is no delete. The census is every top-level key, sorted.
+-- @args <name> <key> <value>
+-- @reply {name, key, value, keyCount, keys} | {name, error} | string
+-- @purpose Server-side write of one coerced key (boolean, number or string) into a global ModData table, answering with the table's key census.
+TK.register("globalmoddata.set", function(argv)
+    local name, key, raw = argv[1], argv[2], argv[3]
+    if name == nil or key == nil or raw == nil then
+        return "usage: globalmoddata.set <name> <key> <value>"
+    end
+    local ok, t = TK.callStatic(ModData, "getOrCreate", name)
+    if not ok then return { name = name, error = "no ModData.getOrCreate" } end
+    if type(t) ~= "table" then return { name = name, error = "getOrCreate answered a " .. type(t) } end
+    local value
+    if raw == "true" or raw == "false" then value = (raw == "true")
+    elseif tonumber(raw) ~= nil then value = tonumber(raw)
+    else value = raw end
+    t[key] = value
+    local keys = {}
+    for k in pairs(t) do keys[#keys + 1] = tostring(k) end
+    table.sort(keys)
+    return { name = name, key = key, value = value, keyCount = #keys, keys = keys }
+end)
+
+-- <name>. ModData.transmit(name) from the server -- the push of one global table to the
+-- clients. Through TK.callStatic like the write above; `transmitted` records only that the
+-- member existed and the call returned, never delivery.
+-- @args <name>
+-- @reply {name, transmitted [, error]} | string
+-- @purpose Calls ModData.transmit(name) on the server for one global modData table; transmitted is that the call ran, not delivery.
+TK.register("globalmoddata.transmit", function(argv)
+    local name = argv[1]
+    if name == nil then return "usage: globalmoddata.transmit <name>" end
+    local ok = TK.callStatic(ModData, "transmit", name)
+    local out = { name = name, transmitted = ok }
+    if not ok then out.error = "no ModData.transmit" end
+    return out
+end)
+TK.log("server harness Task 7 commands loaded")

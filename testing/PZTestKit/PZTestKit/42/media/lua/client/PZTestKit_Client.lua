@@ -586,3 +586,53 @@ if Events.OnPostUIDraw then Events.OnPostUIDraw.Add(onTick) end
 Events.OnMainMenuEnter.Add(function() TK.log("main menu entered") end)
 Events.OnGameStart.Add(function() TK.log("OnGameStart - in world") end)
 TK.log("client harness loaded")
+
+-- ---- Plan 1 Task 7 additions --------------------------------------------------
+-- Appended after the file's trailing event registrations on purpose: the claims register holds
+-- `repo:` pointers into this file by line number, so new sites go at the end and no existing
+-- line moves. Registration order does not matter -- TK.commands is read at poll time.
+
+-- The client twin of the server's `stats.all`: the same TK.statsAll body over the local player.
+-- In MP this is the MIRROR of the stats the server owns (the once-a-second stats packet), so it
+-- is a second reading, never the authoritative one.
+-- @args (none)
+-- @reply {side, user, worldAge, mult, wall, stats, missing [, error]} | string
+-- @purpose Client-side read of all 24 registered CharacterStat values of the local player -- the mirror of the server's stats.all.
+TK.register("stats.all", function()
+    if getPlayer == nil then return "no getPlayer()" end
+    local p = getPlayer()
+    if p == nil then return "getPlayer() returned nil" end
+    return TK.statsAll(p)
+end)
+
+-- The drink twin of `eat.action`: queue the real ISDrinkFluidAction from the client, which the
+-- client mirrors to the server (NetTimedAction) and the SERVER completes. The constructor is
+-- `ISDrinkFluidAction:new(character, item, percentage)` (media/lua/shared/TimedActions/
+-- ISDrinkFluidAction.lua:126 in the install), and it reads `item:getFluidContainer()` itself, so
+-- an item with no fluid container is refused here before the constructor can index nil.
+-- findOrSpawn has eat.action's trap: a "client" spawn is an item the server never heard of --
+-- spawn server-side (RCON additem) for anything that has to stay error-free. The outcome is
+-- asynchronous: poll nutrition.get (and the server's stats) for it.
+-- @args <fullType> [<percentage>]
+-- @reply {queued, percentage, spawned, itemId, filledRatioBefore, before} | string
+-- @purpose Queues the real ISDrinkFluidAction from the client, which the server completes; the outcome is asynchronous, so poll nutrition.get for it.
+TK.register("drink.action", function(argv)
+    if argv[1] == nil then return "usage: drink.action <fullType> [<percentage>]" end
+    local p = getPlayer()
+    local it, spawned = findOrSpawn(argv[1])
+    if not it then return "no item " .. tostring(argv[1]) end
+    local percentage = tonumber(argv[2]) or 1.0
+    local _, fc = TK.call(it, "getFluidContainer")
+    if fc == nil then return "no fluid container on " .. tostring(argv[1]) end
+    local _, ratio = TK.call(fc, "getFilledRatio")
+    local _, itemId = TK.call(it, "getID")
+    local before = nutritionSnapshot(p)
+    if not ISDrinkFluidAction or not ISTimedActionQueue then
+        return "no ISDrinkFluidAction/ISTimedActionQueue"
+    end
+    local act = ISDrinkFluidAction:new(p, it, percentage)
+    ISTimedActionQueue.add(act)
+    return { queued = true, percentage = percentage, spawned = spawned, itemId = itemId,
+             filledRatioBefore = ratio, before = before }
+end)
+TK.log("client harness Task 7 commands loaded")
