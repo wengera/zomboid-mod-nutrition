@@ -12,7 +12,11 @@ local S = NR.server.store
 function S.attach()
     if S.records ~= nil then return S.records end
     if ModData == nil then return nil end
-    local ok, t = NR.call(ModData, "getOrCreate", S.name)
+    -- ModData.getOrCreate is a static bound with a DOT call: passing the table as a first argument
+    -- raises "expected argument of type String" (acceptance run x131-20261004-175014).
+    local fn = ModData.getOrCreate
+    if fn == nil then return nil end
+    local ok, t = pcall(fn, S.name)
     if ok and t ~= nil then S.records = t end
     return S.records
 end

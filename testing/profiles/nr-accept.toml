@@ -4,9 +4,9 @@ fixture = "default"
 description = "PZTestKit + NutritionRevamp on the fixture's own day length - Plan 1 acceptance."
 run = { hold = 60 }
 verify = [
-  { side = "server", cmd = "lua.global", args = "PZTestKit.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
   { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"value\": \"0.1.0\"" },
-  { side = "client", cmd = "lua.global", args = "PZTestKit.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
   { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"value\": \"0.1.0\"" },
 ]
 

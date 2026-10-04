@@ -4,7 +4,7 @@ fixture = "default"
 description = "PZTestKit alone, fixture day length - X49 persistence."
 run = { hold = 5 }
 verify = [
-  { side = "server", cmd = "lua.global", args = "PZTestKit.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
 ]
 
 [[mods]]
