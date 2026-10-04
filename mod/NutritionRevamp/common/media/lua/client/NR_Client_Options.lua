@@ -13,7 +13,7 @@ if Events ~= nil and Events.OnGameStart ~= nil then
         end
         NR.log.level = NR.client.options.logLevel
         print("[NutritionRevamp] NutritionRevamp v" .. NR.version .. " build " .. NR.build
-              .. " side=client mode=" .. tostring(NR.client.options.mode)
+              .. " side=client mode=" .. (NR.modeName and NR.modeName(NR.client.options.mode) or tostring(NR.client.options.mode))
               .. " log=" .. tostring(NR.client.options.logLevel) .. " frameworks=none")
     end)
 end
