@@ -122,7 +122,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2083/C/open] | Does `Fitness.update` tick on the server for a connected player? | [open-questions.md](#x36) | X36 | a seeded exercise, then two game-days without one, reading the server's regularity for the predicted fall |
 | [#2084/C/open] | Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? | [open-questions.md](#x39) | X39 | server-side counters on the three events after a console grant as the control, then melee hits and an exercise |
 | [#2085/C/open] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
-| [#2086/C/open] | Does a second registrant of `Hook.CalculateStats` change what the first one causes? | [open-questions.md](#x46) | X46 | thirst across one handler, that handler with a second, the second alone, and no handler |
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
 | [#2088/C/open] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
 | [#2089/C/open] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
@@ -136,7 +135,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2097/C/open] | How often does the server write `global_mod_data.bin`? | [open-questions.md](#x49a) | X49a | the file's modification times and the save log line with and without a write, beside a console save |
 | [#2098/C/open] | Does a global modData value written a minute before a hard server stop survive a restart? | [open-questions.md](#x49b) | X49b | a write, a hard stop and a boot on the same run directory, beside a boot on the restored fixture that must miss it |
 | [#2099/C/open] | Does a server-side `sendSyncPlayerFields(player, 2)` after a trait write reach the client's trait list, does a client-side read see the new trait within the push cadence, and does a registered mod trait behave the same? | [open-questions.md](#x4) | X4 | a trait written on the server with the mod's own trait push and with none, the client's arrival time read against the write in each, then the same for a registered trait, in one session of about 12 minutes after the harness's `trait.push` lands |
-| [#2100/C/open] | Does any registered `Hook.CalculateStats` handler, whatever it returns, skip the seven updaters on the server, and does the hook fire on both sides? | [open-questions.md](#x32) | X32 | a handler added and removed through the hook's own add and remove, reading thirst against the macro drain with and without a registrant |
 | [#2742/M/n=1/open] | Whether a MoodleFramework moodle or a mod's own `ISUIElement` widget renders on a dedicated-server client is unmeasured: no run has drawn either, and X29's render leg is the reading that settles it. | [open-questions.md](#x29) | X29 | a framework moodle and a widget of the mod's own, each driven on the client and its draw calls counted, beside a value that must leave the moodle undrawn |
 
 ## Decisions
@@ -366,11 +364,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open).
 - Settled by: a cook-transition session with a dotted target, then a harness craft command that reaches a crafted instance with the creation hook registered — [experiments.md § Named experiments](../reference/experiments.md), row `X31`.
 
-<a id="x32"></a>
-### X32 — Does any registered `Hook.CalculateStats` handler, whatever it returns, skip the seven updaters on the server, and does the hook fire on both sides?
-- Whether any registered `Hook.CalculateStats` handler, whatever it returns, skips the seven updaters on the server, and whether the hook fires on both sides, is open [#2100/C/open].
-- Settled by: a handler added and removed through `Hook.CalculateStats.Add` and `.Remove`, reading thirst against the macro drain with the handler registered and with none, with the handler's call count on both sides — [experiments.md § Named experiments](../reference/experiments.md), row `X32`.
-
 <a id="x33"></a>
 ### X33 — Does a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really apply nothing at all?
 - Whether a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really applies nothing at all is open [#1299/C/open].
@@ -454,12 +447,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether QualityCooking's eat wrap composes with a second wrap of the same method, and which wrap is outermost, is open [#2095/C/open].
 - Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open).
 - Settled by: a code read of QualityCooking, then one eat through a sentinel probe wrap beside its wrap, against the same eat on a boot without it — [experiments.md § Named experiments](../reference/experiments.md), row `X45b`.
-
-<a id="x46"></a>
-### X46 — Does a second registrant of `Hook.CalculateStats` change what the first one causes?
-- Whether a second registrant of `Hook.CalculateStats` changes what the first one causes is open [#2086/C/open].
-- Waiting on it: [character-stats.md](../facts/character-stats.md#open).
-- Settled by: thirst read across one handler, the same handler with a second beside it, the second handler alone, and no handler registered — [experiments.md § Named experiments](../reference/experiments.md), row `X46`.
 
 <a id="x47"></a>
 ### X47 — Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold?

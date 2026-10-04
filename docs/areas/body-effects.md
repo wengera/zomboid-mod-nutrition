@@ -352,10 +352,8 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 ## Open
 <a id="open"></a>
 
-- Whether any registered `Hook.CalculateStats` handler, whatever it returns, skips the seven updaters on the server, and whether the hook fires on both sides — settled by a handler added and removed through the hook's own add and remove, reading thirst against the macro drain; -> [X32](open-questions.md#x32) [#2100/C/open].
 - Whether a handler that reproduces the seven skipped updaters tracks vanilla's stat trajectory stat by stat over several game-hours — settled by two boots of one fixture, with no handler and with the reproducing handler; -> [X34](open-questions.md#x34) [#2081/C/open].
 - Whether a handler's endurance write is the last before the player-stats push — settled by a sentinel endurance written each tick and read in client-first pairs; -> [X35](open-questions.md#x35) [#2082/C/open].
-- Whether a second registrant of the hook changes what the first one causes — settled by thirst across one handler, two, the second alone and none; -> [X46](open-questions.md#x46) [#2086/C/open].
 - Whether the fitness object's update ticks on the server for a connected player — settled by a seeded exercise and two idle game-days, reading the server's regularity; -> [X36](open-questions.md#x36) [#2083/C/open].
 - Whether the metabolic-rate classification tracks a connected player's state on the server or sits at its default — settled by server reads of the rate while the client idles, walks and runs; -> [X37](open-questions.md#x37) [#2088/C/open].
 - Whether the current timed action and its calorie modifier are readable server-side — settled by the server's action list read idle, through an eat and through a book read; -> [X38](open-questions.md#x38) [#2089/C/open].
@@ -383,4 +381,4 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 - [`../platform/mp-model.md`](../platform/mp-model.md#sync-globals) — the pushes that carry the stats, the experience object and the trait list.
 - [`mp-sync.md`](mp-sync.md#rules) — the trait push and the band rule.
 - [`ui-and-moodles.md`](ui-and-moodles.md#moodle-route) — the moodle route and the display surfaces.
-- [`open-questions.md`](open-questions.md#x32) — the experiments this page waits on.
+- [`open-questions.md`](open-questions.md#x34) — the experiments this page waits on.
