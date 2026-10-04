@@ -77,7 +77,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1164/C/C-only/open] | Whether a mod can override a vanilla translation key is unknown: the Translator merges rather than shadows, so an override is exactly the case the merge does not obviously serve. | [wall-map.md](../reference/wall-map.md#h2) | X5 | a mod redefining one vanilla item-name key beside a new interface key that must hit in the same run |
 | [#1274/C/open] | Is `MoodleStat` reachable from Kahlua at all, given that C is a jar-proven absence? | [open-questions.md](#x2) | X2 | a global read of `MoodleStat` beside two exposed controls that must answer in the same call |
 | [#1276/C/open] | Does a mod JSON displace a vanilla translation key, or does the merge keep vanilla's? | [open-questions.md](#x5) | X5 | a mod redefining one vanilla item-name key and one vanilla interface key beside a new interface key that must hit |
-| [#1277/C/open] | With vanilla nutrition switched off, which of the three arms actually froze? | [open-questions.md](#x7) | X7 | the two three-day scenarios run with the option off against their own baselines, each arm shown to freeze on its own |
 | [#1278/C/open] | What does the spice branch do beyond the herbal-tea sums? | [open-questions.md](#x9b) | X9b | a desk read of the spice method's two overloads and the ingredient usability check |
 | [#1279/C/open] | Is the drink path interceptable the way the eat path is? | [open-questions.md](#x13) | X13 | a harness command that queues the real drink action, then a session counting a server-side wrapper's fires on each side |
 | [#1280/C/open] | Does item modData move server to client? | [open-questions.md](#x14) | X14 | a server-only key write, a client census that must miss it, a forced item push and a second census |
@@ -125,7 +124,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
 | [#2088/C/open] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
 | [#2089/C/open] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
-| [#2090/C/open] | With the vanilla nutrition option off and no mod weight write, does body weight drift? | [open-questions.md](#x41) | X41 | three accelerated game-days of hourly server weight with the option off, beside the same run with it on |
 | [#2091/C/open] | Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence? | [open-questions.md](#x42) | X42 | server calorie slopes with the trait held at weights below, above and inside its band, each against the trait absent at the same weight |
 | [#2092/C/open] | Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server? | [open-questions.md](#x43) | X43 | a desk re-read of the live tree, then, if the multiplier is wired, its grant at three server-set protein values |
 | [#2093/C/open] | Do simpleStatus's bars track the vanilla macro stores on a client? | [open-questions.md](#x44) | X44 | a probe copying the bars' text beside the client's store after a server write, timing the arrival |
@@ -217,12 +215,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - It also settles [#1164/C/C-only/open] on [wall-map.md](../reference/wall-map.md#h2).
 - Waiting on it: [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
 - Settled by: a mod that redefines one vanilla item-name key and one vanilla interface key beside a new interface key that must hit in the same run — [experiments.md § Named experiments](../reference/experiments.md), row `X5`.
-
-<a id="x7"></a>
-### X7 — With vanilla nutrition switched off, which of the three arms actually froze?
-- With vanilla nutrition switched off, which of the nutrition update's three arms actually freezes is unmeasured [#1277/C/open].
-- Waiting on it: [new-nutrients.md](new-nutrients.md#open), [testing-your-mod.md](testing-your-mod.md#open).
-- Settled by: the two existing multi-day scenarios run with the option off against their own baselines, each arm shown to freeze on its own — [experiments.md § Named experiments](../reference/experiments.md), row `X7`.
 
 <a id="x9b"></a>
 ### X9b — What does the spice branch do beyond the herbal-tea sums?
@@ -411,12 +403,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [#2085/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
-
-<a id="x41"></a>
-### X41 — With the vanilla nutrition option off and no mod weight write, does body weight drift?
-- Whether body weight drifts with the vanilla nutrition option off and no mod weight write is open [#2090/C/open].
-- Waiting on it: [body-and-weight.md](../facts/body-and-weight.md#open).
-- Settled by: three accelerated game-days of hourly server weight with the option off and no mod loaded, beside the same run with the option on as the control — [experiments.md § Named experiments](../reference/experiments.md), row `X41`.
 
 <a id="x42"></a>
 ### X42 — Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence?
