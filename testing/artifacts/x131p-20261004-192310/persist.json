@@ -1,0 +1,9347 @@
+{
+ "run_id": "x131p-20261004-192310",
+ "session": "X28 + X49a + X49b: player and global modData across a clean save and reload, the global_mod_data.bin save cadence (no write / write+transmit / RCON save), and a global value written one game-minute before a hard kill; five server boots, the last a fresh fixture control",
+ "user": "admin",
+ "profile": {
+  "name": "x13-persist",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x13-persist.toml",
+  "fixture": "default",
+  "description": "PZTestKit alone, fixture day length - X49 persistence.",
+  "mods": [
+   "PZTestKit"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit"
+ ],
+ "commit": "8211b15",
+ "harness_lua_commit": "42425e9",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "harness_py_commit": "86caff9",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x131b-20261004-175911",
+ "dry_run": false,
+ "constants": {
+  "GAME_MIN_WALL_S": 3.75,
+  "WINDOW_WALL_S": 375.0,
+  "SAMPLE_S": 5.0,
+  "SAVE_WATCH_S": 30.0,
+  "POST_TEARDOWN_S": 10.0,
+  "TABLES": [
+   "TKX_persist",
+   "TKX_quit",
+   "TKX_restart"
+  ],
+  "PLAYER_KEYS": [
+   "TKX_persist",
+   "TKX_persist_c",
+   "TKX_quit"
+  ],
+  "SAVE_DIR": "Saves\\Multiplayer\\pzt",
+  "GMD_FILE": "global_mod_data.bin"
+ },
+ "world_changes": {
+  "restored": "boots 1-3r share <run>/server (one fresh restore at boot 1); boot 4 restores the fixture into <run>/boot4/server; every client is a fresh fixture restore under <run>/c<label>",
+  "left_in_place": []
+ },
+ "boots": {
+  "1": {
+   "reuse": false,
+   "steps": [
+    {
+     "step": "clock_a_start",
+     "cmd": "time.snapshot",
+     "args": "",
+     "side": "server",
+     "phase": "a_nowrite",
+     "wall_before": 53.457,
+     "wall_after": 53.963,
+     "took": 0.506,
+     "ack": {
+      "worldAge": 2.3169641494750977,
+      "hour": 9,
+      "minutes": 19,
+      "mult": 4.2288923263549805,
+      "wall": 1791156244373
+     }
+    },
+    {
+     "step": "clock_a_end",
+     "cmd": "time.snapshot",
+     "args": "",
+     "side": "server",
+     "phase": "a_nowrite",
+     "wall_before": 428.964,
+     "wall_after": 429.227,
+     "took": 0.263,
+     "ack": {
+      "worldAge": 3.983488082885742,
+      "hour": 10,
+      "minutes": 59,
+      "mult": 4.796929836273193,
+      "wall": 1791156619766
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 429.227,
+     "wall_after": 429.733,
+     "took": 0.506,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {},
+      "missing": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "TKX_quit"
+      ],
+      "worldAge": 3.9859113693237305,
+      "resolved": "admin",
+      "keyCount": 5,
+      "keys": [
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 429.733,
+     "wall_after": 430.241,
+     "took": 0.508,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 3.987863540649414,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 430.241,
+     "wall_after": 431.5,
+     "took": 1.259,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {},
+      "missing": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "TKX_quit"
+      ],
+      "worldAge": 3.993255615234375,
+      "resolved": "admin",
+      "keyCount": 4,
+      "keys": [
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 431.5,
+     "wall_after": 433.009,
+     "took": 1.509,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 4.000360488891602,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "c_set",
+     "cmd": "moddata.set",
+     "args": "TKX_persist_c 1",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 433.01,
+     "wall_after": 433.266,
+     "took": 0.256,
+     "ack": "set TKX_persist_c",
+     "ack_shape": "str"
+    },
+    {
+     "step": "c_transmit",
+     "cmd": "moddata.transmit",
+     "args": "",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 433.266,
+     "wall_after": 433.771,
+     "took": 0.505,
+     "ack": "transmitted",
+     "ack_shape": "str"
+    },
+    {
+     "step": "s_set",
+     "cmd": "moddata.set",
+     "args": "admin TKX_persist 1",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 436.771,
+     "wall_after": 437.53,
+     "took": 0.759,
+     "ack": {
+      "user": "admin",
+      "key": "TKX_persist",
+      "value": "1",
+      "side": "server",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "hotbar",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "serverWorldAge": 4.019881248474121
+     }
+    },
+    {
+     "step": "s_gset",
+     "cmd": "globalmoddata.set",
+     "args": "TKX_persist k 1",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 437.53,
+     "wall_after": 439.543,
+     "took": 2.013,
+     "ack": {
+      "name": "TKX_persist",
+      "key": "k",
+      "value": 1,
+      "keyCount": 1,
+      "keys": [
+       "k"
+      ]
+     }
+    },
+    {
+     "step": "s_gtransmit",
+     "cmd": "globalmoddata.transmit",
+     "args": "TKX_persist",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 439.543,
+     "wall_after": 440.551,
+     "took": 1.008,
+     "ack": {
+      "name": "TKX_persist",
+      "transmitted": true
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 440.555,
+     "wall_after": 440.817,
+     "took": 0.262,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_persist",
+       "TKX_quit"
+      ],
+      "worldAge": 4.034550666809082,
+      "resolved": "admin",
+      "keyCount": 6,
+      "keys": [
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 440.817,
+     "wall_after": 441.328,
+     "took": 0.511,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 4.036782264709473,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 441.328,
+     "wall_after": 443.341,
+     "took": 2.013,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_quit"
+      ],
+      "worldAge": 4.046515464782715,
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 443.341,
+     "wall_after": 444.352,
+     "took": 1.011,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 4.050067901611328,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "clock_b_start",
+     "cmd": "time.snapshot",
+     "args": "",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 444.354,
+     "wall_after": 445.364,
+     "took": 1.01,
+     "ack": {
+      "worldAge": 4.055394172668457,
+      "hour": 11,
+      "minutes": 3,
+      "mult": 4.791950702667236,
+      "wall": 1791156635963
+     }
+    },
+    {
+     "step": "clock_b_end",
+     "cmd": "time.snapshot",
+     "args": "",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 820.364,
+     "wall_after": 821.376,
+     "took": 1.012,
+     "ack": {
+      "worldAge": 5.72597599029541,
+      "hour": 12,
+      "minutes": 43,
+      "mult": 4.798863887786865,
+      "wall": 1791157011959
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 821.376,
+     "wall_after": 821.631,
+     "took": 0.255,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_persist",
+       "TKX_quit"
+      ],
+      "worldAge": 5.727490425109863,
+      "resolved": "admin",
+      "keyCount": 6,
+      "keys": [
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 821.631,
+     "wall_after": 822.137,
+     "took": 0.506,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 5.729722023010254,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 822.137,
+     "wall_after": 823.146,
+     "took": 1.009,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_quit"
+      ],
+      "worldAge": 5.7335309982299805,
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 823.146,
+     "wall_after": 823.402,
+     "took": 0.256,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 5.734864234924316,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "c_save",
+     "wall_before": 853.571,
+     "wall_after": 853.827,
+     "took": 0.256,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_persist",
+       "TKX_quit"
+      ],
+      "worldAge": 5.868827819824219,
+      "resolved": "admin",
+      "keyCount": 6,
+      "keys": [
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "c_save",
+     "wall_before": 853.827,
+     "wall_after": 854.334,
+     "took": 0.507,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 5.871059417724609,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "c_save",
+     "wall_before": 854.334,
+     "wall_after": 855.348,
+     "took": 1.014,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_quit"
+      ],
+      "worldAge": 5.876361846923828,
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "c_save",
+     "wall_before": 855.348,
+     "wall_after": 857.113,
+     "took": 1.765,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 5.8834686279296875,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    }
+   ],
+   "witness": {
+    "b1_prewrite": {
+     "tag": "b1_prewrite",
+     "wall": 429.227,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 429.227,
+       "worldAge": 3.9859113693237305,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": null,
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": false,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_persist_c",
+        "TKX_quit"
+       ],
+       "keyCount": 5,
+       "keys": [
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 429.733,
+       "worldAge": 3.987863540649414,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 430.241,
+       "worldAge": 3.993255615234375,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": null,
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": false,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_persist_c",
+        "TKX_quit"
+       ],
+       "keyCount": 4,
+       "keys": [
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 431.5,
+       "worldAge": 4.000360488891602,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    },
+    "b1_postwrite": {
+     "tag": "b1_postwrite",
+     "wall": 440.555,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 440.555,
+       "worldAge": 4.034550666809082,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_quit"
+       ],
+       "keyCount": 6,
+       "keys": [
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 440.817,
+       "worldAge": 4.036782264709473,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 441.328,
+       "worldAge": 4.046515464782715,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_quit"
+       ],
+       "keyCount": 7,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 443.341,
+       "worldAge": 4.050067901611328,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    },
+    "b1_window_end": {
+     "tag": "b1_window_end",
+     "wall": 821.376,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 821.376,
+       "worldAge": 5.727490425109863,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_quit"
+       ],
+       "keyCount": 6,
+       "keys": [
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 821.631,
+       "worldAge": 5.729722023010254,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 822.137,
+       "worldAge": 5.7335309982299805,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_quit"
+       ],
+       "keyCount": 7,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 823.146,
+       "worldAge": 5.734864234924316,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    },
+    "b1_after_save": {
+     "tag": "b1_after_save",
+     "wall": 853.571,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 853.571,
+       "worldAge": 5.868827819824219,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_quit"
+       ],
+       "keyCount": 6,
+       "keys": [
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 853.827,
+       "worldAge": 5.871059417724609,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 854.334,
+       "worldAge": 5.876361846923828,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_quit"
+       ],
+       "keyCount": 7,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 855.348,
+       "worldAge": 5.8834686279296875,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    }
+   },
+   "clock": [
+    {
+     "tag": "a_start",
+     "wall": 53.457,
+     "worldAge": 2.3169641494750977,
+     "hour": 9,
+     "minutes": 19,
+     "mult": 4.2288923263549805
+    },
+    {
+     "tag": "a_end",
+     "wall": 428.964,
+     "worldAge": 3.983488082885742,
+     "hour": 10,
+     "minutes": 59,
+     "mult": 4.796929836273193
+    },
+    {
+     "tag": "b_start",
+     "wall": 444.354,
+     "worldAge": 4.055394172668457,
+     "hour": 11,
+     "minutes": 3,
+     "mult": 4.791950702667236
+    },
+    {
+     "tag": "b_end",
+     "wall": 820.364,
+     "worldAge": 5.72597599029541,
+     "hour": 12,
+     "minutes": 43,
+     "mult": 4.798863887786865
+    }
+   ],
+   "windows": {
+    "a": {
+     "wall_start": 53.963,
+     "wall_end": 429.227,
+     "worldAge_start": 2.3169641494750977,
+     "worldAge_end": 3.983488082885742,
+     "game_minutes": 99.991
+    },
+    "b": {
+     "wall_start": 445.364,
+     "wall_end": 821.376,
+     "worldAge_start": 4.055394172668457,
+     "worldAge_end": 5.72597599029541,
+     "game_minutes": 100.235
+    }
+   },
+   "server_cache": "server",
+   "build": "42.20.4",
+   "client_restored": true,
+   "session_ready_wall": 52.193,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "file_path": "server\\Saves\\Multiplayer\\pzt\\global_mod_data.bin",
+   "ini": {
+    "SaveWorldEveryMinutes": "0",
+    "BackupsCount": "5",
+    "BackupsOnStart": "true",
+    "BackupsOnVersionChange": "true",
+    "BackupsPeriod": "0"
+   },
+   "writes": [
+    {
+     "step": "c_set",
+     "cmd": "moddata.set",
+     "args": "TKX_persist_c 1",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 433.01,
+     "wall_after": 433.266,
+     "took": 0.256,
+     "ack": "set TKX_persist_c",
+     "ack_shape": "str"
+    },
+    {
+     "step": "c_transmit",
+     "cmd": "moddata.transmit",
+     "args": "",
+     "side": "client",
+     "phase": "b_write",
+     "wall_before": 433.266,
+     "wall_after": 433.771,
+     "took": 0.505,
+     "ack": "transmitted",
+     "ack_shape": "str"
+    },
+    {
+     "step": "s_set",
+     "cmd": "moddata.set",
+     "args": "admin TKX_persist 1",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 436.771,
+     "wall_after": 437.53,
+     "took": 0.759,
+     "ack": {
+      "user": "admin",
+      "key": "TKX_persist",
+      "value": "1",
+      "side": "server",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "hotbar",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "serverWorldAge": 4.019881248474121
+     }
+    },
+    {
+     "step": "s_gset",
+     "cmd": "globalmoddata.set",
+     "args": "TKX_persist k 1",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 437.53,
+     "wall_after": 439.543,
+     "took": 2.013,
+     "ack": {
+      "name": "TKX_persist",
+      "key": "k",
+      "value": 1,
+      "keyCount": 1,
+      "keys": [
+       "k"
+      ]
+     }
+    },
+    {
+     "step": "s_gtransmit",
+     "cmd": "globalmoddata.transmit",
+     "args": "TKX_persist",
+     "side": "server",
+     "phase": "b_write",
+     "wall_before": 439.543,
+     "wall_after": 440.551,
+     "took": 1.008,
+     "ack": {
+      "name": "TKX_persist",
+      "transmitted": true
+     }
+    }
+   ],
+   "write_wall": 440.551,
+   "rcon_save": {
+    "wall_before": 823.406,
+    "wall_after": 823.539,
+    "ok": true,
+    "reply": "World saved",
+    "mtime_before": 1788979009944454900
+   },
+   "wall_end_body": 857.116,
+   "server_rc": 0,
+   "client_lua_error": false,
+   "logs": {
+    "save_lines": [
+     {
+      "line": 2000,
+      "text": "LOG  : General      f:8062 st:1,499,762,585> Saving GlobalModData"
+     },
+     {
+      "line": 2012,
+      "text": "LOG  : General      f:8423 st:1,499,798,606> Saving GlobalModData"
+     }
+    ],
+    "trace_lines": [],
+    "server_log": "server-stdout-boot1.log",
+    "client_trace_lines": [],
+    "client_console": "c1\\clients\\admin\\console.txt"
+   },
+   "wall_end": 877.026
+  },
+  "2": {
+   "reuse": true,
+   "steps": [
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "x28_read",
+     "wall_before": 928.899,
+     "wall_after": 929.162,
+     "took": 0.263,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_quit"
+      ],
+      "worldAge": 6.049759864807129,
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "x28_read",
+     "wall_before": 929.162,
+     "wall_after": 929.669,
+     "took": 0.507,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.0519914627075195,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "x28_read",
+     "wall_before": 929.669,
+     "wall_after": 931.681,
+     "took": 2.012,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_quit"
+      ],
+      "worldAge": 6.062163352966309,
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "x28_read",
+     "wall_before": 931.681,
+     "wall_after": 932.694,
+     "took": 1.013,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.066952705383301,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "s_set_quit",
+     "cmd": "moddata.set",
+     "args": "admin TKX_quit 1",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 932.696,
+     "wall_after": 933.705,
+     "took": 1.009,
+     "ack": {
+      "user": "admin",
+      "key": "TKX_quit",
+      "value": "1",
+      "side": "server",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "TKX_quit",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "hotbar",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "serverWorldAge": 6.070899963378906
+     }
+    },
+    {
+     "step": "s_gset_quit",
+     "cmd": "globalmoddata.set",
+     "args": "TKX_quit k 1",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 933.705,
+     "wall_after": 935.716,
+     "took": 2.011,
+     "ack": {
+      "name": "TKX_quit",
+      "key": "k",
+      "value": 1,
+      "keyCount": 1,
+      "keys": [
+       "k"
+      ]
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "quit_arm_write",
+     "wall_before": 935.716,
+     "wall_after": 935.975,
+     "took": 0.259,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1"
+      },
+      "missing": [
+       "TKX_quit"
+      ],
+      "worldAge": 6.081594467163086,
+      "resolved": "admin",
+      "keyCount": 7,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "quit_arm_write",
+     "wall_before": 935.975,
+     "wall_after": 936.484,
+     "took": 0.509,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.083826065063477,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "client",
+     "phase": "quit_arm_write",
+     "wall_before": 936.484,
+     "wall_after": 936.99,
+     "took": 0.506,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.086057662963867,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 936.99,
+     "wall_after": 937.748,
+     "took": 0.758,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.088576316833496,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 937.748,
+     "wall_after": 939.761,
+     "took": 2.013,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.097443580627441,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 939.761,
+     "wall_after": 940.268,
+     "took": 0.507,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.100104331970215,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    }
+   ],
+   "witness": {
+    "b2_x28": {
+     "tag": "b2_x28",
+     "wall": 928.899,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 928.899,
+       "worldAge": 6.049759864807129,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_quit"
+       ],
+       "keyCount": 7,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 929.162,
+       "worldAge": 6.0519914627075195,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 929.669,
+       "worldAge": 6.062163352966309,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_quit"
+       ],
+       "keyCount": 7,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 931.681,
+       "worldAge": 6.066952705383301,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    },
+    "b2_after_quit_write": {
+     "tag": "b2_after_quit_write",
+     "wall": 935.716,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 935.716,
+       "worldAge": 6.081594467163086,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_quit"
+       ],
+       "keyCount": 7,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 935.975,
+       "worldAge": 6.083826065063477,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 936.484,
+       "worldAge": 6.086057662963867,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 936.99,
+       "worldAge": 6.088576316833496,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 937.748,
+       "worldAge": 6.097443580627441,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 939.761,
+       "worldAge": 6.100104331970215,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    }
+   },
+   "clock": [],
+   "windows": {},
+   "server_cache": "server",
+   "build": "42.20.4",
+   "client_restored": true,
+   "session_ready_wall": 928.393,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "writes": [
+    {
+     "step": "s_set_quit",
+     "cmd": "moddata.set",
+     "args": "admin TKX_quit 1",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 932.696,
+     "wall_after": 933.705,
+     "took": 1.009,
+     "ack": {
+      "user": "admin",
+      "key": "TKX_quit",
+      "value": "1",
+      "side": "server",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "TKX_quit",
+       "fitnessMod",
+       "fitnessUpTimer",
+       "hotbar",
+       "strengthMod",
+       "strengthUpTimer"
+      ],
+      "serverWorldAge": 6.070899963378906
+     }
+    },
+    {
+     "step": "s_gset_quit",
+     "cmd": "globalmoddata.set",
+     "args": "TKX_quit k 1",
+     "side": "server",
+     "phase": "quit_arm_write",
+     "wall_before": 933.705,
+     "wall_after": 935.716,
+     "took": 2.011,
+     "ack": {
+      "name": "TKX_quit",
+      "key": "k",
+      "value": 1,
+      "keyCount": 1,
+      "keys": [
+       "k"
+      ]
+     }
+    }
+   ],
+   "wall_end_body": 940.272,
+   "server_rc": 0,
+   "client_lua_error": false,
+   "logs": {
+    "save_lines": [
+     {
+      "line": 1996,
+      "text": "LOG  : General      f:488 st:1,499,881,325> Saving GlobalModData"
+     }
+    ],
+    "trace_lines": [],
+    "server_log": "server-stdout-boot2.log",
+    "client_trace_lines": [],
+    "client_console": "c2\\clients\\admin\\console.txt"
+   },
+   "wall_end": 960.053
+  },
+  "3": {
+   "reuse": true,
+   "steps": [
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "reads",
+     "wall_before": 1012.181,
+     "wall_after": 1012.694,
+     "took": 0.513,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.266845703125,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "reads",
+     "wall_before": 1012.694,
+     "wall_after": 1013.202,
+     "took": 0.508,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.269077301025391,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "client",
+     "phase": "reads",
+     "wall_before": 1013.202,
+     "wall_after": 1013.708,
+     "took": 0.506,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.271308898925781,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "reads",
+     "wall_before": 1013.708,
+     "wall_after": 1014.469,
+     "took": 0.761,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.276675224304199,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "reads",
+     "wall_before": 1014.469,
+     "wall_after": 1016.235,
+     "took": 1.766,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.283723831176758,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "server",
+     "phase": "reads",
+     "wall_before": 1016.235,
+     "wall_after": 1016.492,
+     "took": 0.257,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.285491943359375,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "s_gset_restart",
+     "cmd": "globalmoddata.set",
+     "args": "TKX_restart k 2",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1016.497,
+     "wall_after": 1018.508,
+     "took": 2.011,
+     "ack": {
+      "name": "TKX_restart",
+      "key": "k",
+      "value": 2,
+      "keyCount": 1,
+      "keys": [
+       "k"
+      ]
+     }
+    },
+    {
+     "step": "s_gtransmit_restart",
+     "cmd": "globalmoddata.transmit",
+     "args": "TKX_restart",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1018.508,
+     "wall_after": 1019.769,
+     "took": 1.261,
+     "ack": {
+      "name": "TKX_restart",
+      "transmitted": true
+     }
+    },
+    {
+     "step": "clock_x49b_write",
+     "cmd": "time.snapshot",
+     "args": "",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1019.769,
+     "wall_after": 1020.53,
+     "took": 0.761,
+     "ack": {
+      "worldAge": 6.303211212158203,
+      "hour": 13,
+      "minutes": 18,
+      "mult": 4.787852764129639,
+      "wall": 1791157211096
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "x49b_write",
+     "wall_before": 1020.537,
+     "wall_after": 1021.046,
+     "took": 0.509,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.305935859680176,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_restart",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_restart k",
+     "side": "client",
+     "phase": "x49b_write",
+     "wall_before": 1021.046,
+     "wall_after": 1021.551,
+     "took": 0.505,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_restart",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.308167457580566,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1021.551,
+     "wall_after": 1022.559,
+     "took": 1.008,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.312087059020996,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_restart",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_restart k",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1022.559,
+     "wall_after": 1023.572,
+     "took": 1.013,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_restart",
+      "values": {
+       "k": "2"
+      },
+      "missing": {},
+      "worldAge": 6.31696891784668,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "clock_x49b_poll",
+     "cmd": "time.snapshot",
+     "args": "",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1023.574,
+     "wall_after": 1024.587,
+     "took": 1.013,
+     "ack": {
+      "worldAge": 6.3209638595581055,
+      "hour": 13,
+      "minutes": 19,
+      "mult": 4.787335395812988,
+      "wall": 1791157215103
+     }
+    }
+   ],
+   "witness": {
+    "b3_reads": {
+     "tag": "b3_reads",
+     "wall": 1012.181,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 1012.181,
+       "worldAge": 6.266845703125,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 1012.694,
+       "worldAge": 6.269077301025391,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 1013.202,
+       "worldAge": 6.271308898925781,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 1013.708,
+       "worldAge": 6.276675224304199,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 1014.469,
+       "worldAge": 6.283723831176758,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 1016.235,
+       "worldAge": 6.285491943359375,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    },
+    "b3_after_restart_write": {
+     "tag": "b3_after_restart_write",
+     "wall": 1020.537,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 1020.537,
+       "worldAge": 6.305935859680176,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_restart": {
+       "answered": true,
+       "wall": 1021.046,
+       "worldAge": 6.308167457580566,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 1021.551,
+       "worldAge": 6.312087059020996,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_restart": {
+       "answered": true,
+       "wall": 1022.559,
+       "worldAge": 6.31696891784668,
+       "values": {
+        "k": "2"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    }
+   },
+   "clock": [
+    {
+     "tag": "x49b_write",
+     "wall": 1019.769,
+     "worldAge": 6.303211212158203,
+     "hour": 13,
+     "minutes": 18,
+     "mult": 4.787852764129639
+    },
+    {
+     "tag": "x49b_poll",
+     "wall": 1023.574,
+     "worldAge": 6.3209638595581055,
+     "hour": 13,
+     "minutes": 19,
+     "mult": 4.787335395812988
+    }
+   ],
+   "windows": {},
+   "server_cache": "server",
+   "build": "42.20.4",
+   "client_restored": true,
+   "session_ready_wall": 1010.923,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "writes": [
+    {
+     "step": "s_gset_restart",
+     "cmd": "globalmoddata.set",
+     "args": "TKX_restart k 2",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1016.497,
+     "wall_after": 1018.508,
+     "took": 2.011,
+     "ack": {
+      "name": "TKX_restart",
+      "key": "k",
+      "value": 2,
+      "keyCount": 1,
+      "keys": [
+       "k"
+      ]
+     }
+    },
+    {
+     "step": "s_gtransmit_restart",
+     "cmd": "globalmoddata.transmit",
+     "args": "TKX_restart",
+     "side": "server",
+     "phase": "x49b_write",
+     "wall_before": 1018.508,
+     "wall_after": 1019.769,
+     "took": 1.261,
+     "ack": {
+      "name": "TKX_restart",
+      "transmitted": true
+     }
+    }
+   ],
+   "write_wall": 1018.508,
+   "x49b_polls": [
+    {
+     "wall": 1024.587,
+     "worldAge": 6.3209638595581055
+    }
+   ],
+   "kill": {
+    "wall_before": 1024.595,
+    "wall_after": 1025.34,
+    "rc": 1,
+    "alive_after": false,
+    "worldAge_write": 6.303211212158203,
+    "worldAge_last_poll": 6.3209638595581055,
+    "write_to_kill_wall_s": 6.087
+   },
+   "wall_end_body": 1025.587,
+   "server_rc": 1,
+   "client_lua_error": false,
+   "logs": {
+    "save_lines": [],
+    "trace_lines": [],
+    "server_log": "server-stdout-boot3.log",
+    "client_trace_lines": [],
+    "client_console": "c3\\clients\\admin\\console.txt"
+   },
+   "wall_end": 1035.844
+  },
+  "3r": {
+   "reuse": true,
+   "steps": [
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "x49b_read",
+     "wall_before": 1087.391,
+     "wall_after": 1087.899,
+     "took": 0.508,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.268781661987305,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "x49b_read",
+     "wall_before": 1087.899,
+     "wall_after": 1088.407,
+     "took": 0.508,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.271013259887695,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "client",
+     "phase": "x49b_read",
+     "wall_before": 1088.408,
+     "wall_after": 1088.916,
+     "took": 0.508,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.273244857788086,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_restart",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_restart k",
+     "side": "client",
+     "phase": "x49b_read",
+     "wall_before": 1088.916,
+     "wall_after": 1089.426,
+     "took": 0.51,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_restart",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.275476455688477,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "x49b_read",
+     "wall_before": 1089.426,
+     "wall_after": 1091.439,
+     "took": 2.013,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {
+       "TKX_persist": "1",
+       "TKX_persist_c": "1",
+       "TKX_quit": "1"
+      },
+      "missing": {},
+      "worldAge": 6.2836456298828125,
+      "resolved": "admin",
+      "keyCount": 8,
+      "keys": [
+       "TKX_persist:string",
+       "TKX_persist_c:string",
+       "TKX_quit:string",
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "x49b_read",
+     "wall_before": 1091.439,
+     "wall_after": 1093.201,
+     "took": 1.762,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.292451858520508,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "server",
+     "phase": "x49b_read",
+     "wall_before": 1093.201,
+     "wall_after": 1095.216,
+     "took": 2.015,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {
+       "k": "1"
+      },
+      "missing": {},
+      "worldAge": 6.300420761108398,
+      "keyCount": 1,
+      "keys": [
+       "k:number"
+      ],
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_restart",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_restart k",
+     "side": "server",
+     "phase": "x49b_read",
+     "wall_before": 1095.216,
+     "wall_after": 1097.233,
+     "took": 2.017,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_restart",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 6.310177803039551,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    }
+   ],
+   "witness": {
+    "b3r_reads": {
+     "tag": "b3r_reads",
+     "wall": 1087.391,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 1087.391,
+       "worldAge": 6.268781661987305,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 1087.899,
+       "worldAge": 6.271013259887695,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 1088.408,
+       "worldAge": 6.273244857788086,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_restart": {
+       "answered": true,
+       "wall": 1088.916,
+       "worldAge": 6.275476455688477,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 1089.426,
+       "worldAge": 6.2836456298828125,
+       "values": {
+        "TKX_persist": "1",
+        "TKX_persist_c": "1",
+        "TKX_quit": "1"
+       },
+       "present": {
+        "TKX_persist": true,
+        "TKX_persist_c": true,
+        "TKX_quit": true
+       },
+       "missing": {},
+       "keyCount": 8,
+       "keys": [
+        "TKX_persist:string",
+        "TKX_persist_c:string",
+        "TKX_quit:string",
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 1091.439,
+       "worldAge": 6.292451858520508,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 1093.201,
+       "worldAge": 6.300420761108398,
+       "values": {
+        "k": "1"
+       },
+       "present": {
+        "k": true
+       },
+       "missing": {},
+       "keyCount": 1,
+       "keys": [
+        "k:number"
+       ],
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_restart": {
+       "answered": true,
+       "wall": 1095.216,
+       "worldAge": 6.310177803039551,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    }
+   },
+   "clock": [],
+   "windows": {},
+   "server_cache": "server",
+   "build": "42.20.4",
+   "client_restored": true,
+   "session_ready_wall": 1085.629,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "wall_end_body": 1097.238,
+   "server_rc": 0,
+   "client_lua_error": false,
+   "logs": {
+    "save_lines": [
+     {
+      "line": 1993,
+      "text": "LOG  : General      f:487 st:1,500,038,908> Saving GlobalModData"
+     }
+    ],
+    "trace_lines": [],
+    "server_log": "server-stdout-boot3r.log",
+    "client_trace_lines": [],
+    "client_console": "c3r\\clients\\admin\\console.txt"
+   },
+   "wall_end": 1117.323
+  },
+  "4": {
+   "reuse": false,
+   "steps": [
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "client",
+     "phase": "control_read",
+     "wall_before": 1172.96,
+     "wall_after": 1173.471,
+     "took": 0.511,
+     "ack": {
+      "side": "client",
+      "scope": "player",
+      "arg": "admin",
+      "values": {},
+      "missing": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "TKX_quit"
+      ],
+      "worldAge": 2.326165199279785,
+      "resolved": "admin",
+      "keyCount": 5,
+      "keys": [
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "hotbar:table",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "client",
+     "phase": "control_read",
+     "wall_before": 1173.472,
+     "wall_after": 1173.979,
+     "took": 0.507,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 2.328396797180176,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "client",
+     "phase": "control_read",
+     "wall_before": 1173.979,
+     "wall_after": 1174.488,
+     "took": 0.509,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 2.3306283950805664,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_restart",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_restart k",
+     "side": "client",
+     "phase": "control_read",
+     "wall_before": 1174.488,
+     "wall_after": 1174.995,
+     "took": 0.507,
+     "ack": {
+      "side": "client",
+      "scope": "global",
+      "arg": "TKX_restart",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 2.332859992980957,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_player:admin",
+     "cmd": "witness.moddata",
+     "args": "player:admin TKX_persist TKX_persist_c TKX_quit",
+     "side": "server",
+     "phase": "control_read",
+     "wall_before": 1174.995,
+     "wall_after": 1177.009,
+     "took": 2.014,
+     "ack": {
+      "side": "server",
+      "scope": "player",
+      "arg": "admin",
+      "values": {},
+      "missing": [
+       "TKX_persist",
+       "TKX_persist_c",
+       "TKX_quit"
+      ],
+      "worldAge": 2.341639518737793,
+      "resolved": "admin",
+      "keyCount": 4,
+      "keys": [
+       "fitnessMod:number",
+       "fitnessUpTimer:number",
+       "strengthMod:number",
+       "strengthUpTimer:number"
+      ],
+      "count": 3
+     }
+    },
+    {
+     "step": "wit_global:TKX_persist",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_persist k",
+     "side": "server",
+     "phase": "control_read",
+     "wall_before": 1177.009,
+     "wall_after": 1178.768,
+     "took": 1.759,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_persist",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 2.350020408630371,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_quit",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_quit k",
+     "side": "server",
+     "phase": "control_read",
+     "wall_before": 1178.768,
+     "wall_after": 1179.025,
+     "took": 0.257,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_quit",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 2.3504648208618164,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    },
+    {
+     "step": "wit_global:TKX_restart",
+     "cmd": "witness.moddata",
+     "args": "global:TKX_restart k",
+     "side": "server",
+     "phase": "control_read",
+     "wall_before": 1179.025,
+     "wall_after": 1181.038,
+     "took": 2.013,
+     "ack": {
+      "side": "server",
+      "scope": "global",
+      "arg": "TKX_restart",
+      "values": {},
+      "missing": [
+       "k"
+      ],
+      "worldAge": 2.3593225479125977,
+      "keyCount": 0,
+      "keys": {},
+      "count": 1
+     }
+    }
+   ],
+   "witness": {
+    "b4_control": {
+     "tag": "b4_control",
+     "wall": 1172.96,
+     "client": {
+      "player": {
+       "answered": true,
+       "wall": 1172.96,
+       "worldAge": 2.326165199279785,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": null,
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": false,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_persist_c",
+        "TKX_quit"
+       ],
+       "keyCount": 5,
+       "keys": [
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "hotbar:table",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 1173.472,
+       "worldAge": 2.328396797180176,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 1173.979,
+       "worldAge": 2.3306283950805664,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_restart": {
+       "answered": true,
+       "wall": 1174.488,
+       "worldAge": 2.332859992980957,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     },
+     "server": {
+      "player": {
+       "answered": true,
+       "wall": 1174.995,
+       "worldAge": 2.341639518737793,
+       "values": {
+        "TKX_persist": null,
+        "TKX_persist_c": null,
+        "TKX_quit": null
+       },
+       "present": {
+        "TKX_persist": false,
+        "TKX_persist_c": false,
+        "TKX_quit": false
+       },
+       "missing": [
+        "TKX_persist",
+        "TKX_persist_c",
+        "TKX_quit"
+       ],
+       "keyCount": 4,
+       "keys": [
+        "fitnessMod:number",
+        "fitnessUpTimer:number",
+        "strengthMod:number",
+        "strengthUpTimer:number"
+       ],
+       "count": 3,
+       "count_ok": true
+      },
+      "global:TKX_persist": {
+       "answered": true,
+       "wall": 1177.009,
+       "worldAge": 2.350020408630371,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_quit": {
+       "answered": true,
+       "wall": 1178.768,
+       "worldAge": 2.3504648208618164,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      },
+      "global:TKX_restart": {
+       "answered": true,
+       "wall": 1179.025,
+       "worldAge": 2.3593225479125977,
+       "values": {
+        "k": null
+       },
+       "present": {
+        "k": false
+       },
+       "missing": [
+        "k"
+       ],
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "count_ok": true
+      }
+     }
+    }
+   },
+   "clock": [],
+   "windows": {},
+   "server_cache": "boot4\\server",
+   "build": "42.20.4",
+   "client_restored": true,
+   "session_ready_wall": 1171.199,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "wall_end_body": 1181.04,
+   "server_rc": 0,
+   "client_lua_error": false,
+   "logs": {
+    "save_lines": [
+     {
+      "line": 1995,
+      "text": "LOG  : General      f:486 st:1,500,122,460> Saving GlobalModData"
+     }
+    ],
+    "trace_lines": [],
+    "server_log": "server-stdout-boot4.log",
+    "client_trace_lines": [],
+    "client_console": "c4\\clients\\admin\\console.txt"
+   },
+   "wall_end": 1200.879
+  }
+ },
+ "notes": [],
+ "verdicts": {
+  "X28-player": {
+   "phase": "X28-player",
+   "predicted": "boot 2's server census holds TKX_persist and TKX_persist_c; boot 4 misses both",
+   "falsifier": "either key absent at boot 2 while boot 4 misses it; boot 4 holding a key = unmeasured",
+   "observed": {
+    "TKX_persist": {
+     "b2_server": true,
+     "b2_client": true,
+     "b2_server_value": "1",
+     "b3_server": true,
+     "b4_server": false,
+     "b4_client": false
+    },
+    "TKX_persist_c": {
+     "b2_server": true,
+     "b2_client": true,
+     "b2_server_value": "1",
+     "b3_server": true,
+     "b4_server": false,
+     "b4_client": false
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 1200.882
+  },
+  "X28-global": {
+   "phase": "X28-global",
+   "predicted": "boot 2's server read of global:TKX_persist k is 1; boot 4 misses it",
+   "falsifier": "absent at boot 2 while boot 4 misses it",
+   "observed": {
+    "b2_server": true,
+    "b2_client": false,
+    "b2_server_value": "1",
+    "b3_server": true,
+    "b4_server": false,
+    "b4_client": false
+   },
+   "verdict": "as_predicted",
+   "wall": 1200.887
+  },
+  "X49a": {
+   "phase": "X49a",
+   "predicted": "SaveWorldEveryMinutes 0: arm (a) no change and no log line; arm (b) the reading; arm (c) RCON save moves the mtime and logs once; quit moves it once",
+   "falsifier": "(c) moving nothing = unmeasured; a move in (a) = a cadence the ini did not predict",
+   "observed": {
+    "a_nowrite": {
+     "file_changes": [],
+     "save_lines": []
+    },
+    "b_write": {
+     "file_changes": [],
+     "save_lines": []
+    },
+    "c_save": {
+     "file_changes": [
+      {
+       "wall": 824.54,
+       "mtime_ns": 1791157014374418700,
+       "size": 73,
+       "has": {
+        "TKX_persist": true,
+        "TKX_quit": false,
+        "TKX_restart": false
+       }
+      }
+     ],
+     "save_lines": [
+      {
+       "wall_seen": 824.547,
+       "line": 2000
+      }
+     ]
+    },
+    "quit": {
+     "file_changes": [
+      {
+       "wall": 863.454,
+       "mtime_ns": 1791157050392257300,
+       "size": 73,
+       "has": {
+        "TKX_persist": true,
+        "TKX_quit": false,
+        "TKX_restart": false
+       }
+      }
+     ],
+     "save_lines": [
+      {
+       "wall_seen": 863.465,
+       "line": 2012
+      }
+     ]
+    },
+    "windows": {
+     "a": {
+      "wall_start": 53.963,
+      "wall_end": 429.227,
+      "worldAge_start": 2.3169641494750977,
+      "worldAge_end": 3.983488082885742,
+      "game_minutes": 99.991
+     },
+     "b": {
+      "wall_start": 445.364,
+      "wall_end": 821.376,
+      "worldAge_start": 4.055394172668457,
+      "worldAge_end": 5.72597599029541,
+      "game_minutes": 100.235
+     }
+    },
+    "rcon_save": {
+     "wall_before": 823.406,
+     "wall_after": 823.539,
+     "ok": true,
+     "reply": "World saved",
+     "mtime_before": 1788979009944454900
+    },
+    "ini": {
+     "SaveWorldEveryMinutes": "0",
+     "BackupsCount": "5",
+     "BackupsOnStart": "true",
+     "BackupsOnVersionChange": "true",
+     "BackupsPeriod": "0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 1200.89
+  },
+  "quit-only": {
+   "phase": "quit-only",
+   "predicted": "TKX_quit present at boot 3 in both scopes if a clean quit saves",
+   "falsifier": "either scope absent at boot 3",
+   "observed": {
+    "player_b3_server": true,
+    "global_b3_server": true,
+    "player_b4_server": false,
+    "global_b4_server": false,
+    "boot2_quit_file_changes": [
+     {
+      "wall": 943.666,
+      "size": 104,
+      "has": {
+       "TKX_persist": true,
+       "TKX_quit": true,
+       "TKX_restart": false
+      }
+     }
+    ],
+    "boot2_quit_save_lines": [
+     1996
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 1200.893
+  },
+  "X49b": {
+   "phase": "X49b",
+   "predicted": "TKX_restart k present at boot 3r iff the file changed (holding the table) between the write and the kill; boot 4 misses it",
+   "falsifier": "present with no file change in the window, or absent with one",
+   "observed": {
+    "b3r_server": false,
+    "b3r_client": false,
+    "b3r_server_value": null,
+    "b4_server": false,
+    "readback_b3_server": true,
+    "readback_b3_client": false,
+    "kill": {
+     "wall_before": 1024.595,
+     "wall_after": 1025.34,
+     "rc": 1,
+     "alive_after": false,
+     "worldAge_write": 6.303211212158203,
+     "worldAge_last_poll": 6.3209638595581055,
+     "write_to_kill_wall_s": 6.087
+    },
+    "write_wall": 1018.508,
+    "file_changes_write_to_kill": [],
+    "file_changes_after_kill_boot3": [],
+    "save_lines_boot3": [],
+    "file_wrote_restart_before_kill": false
+   },
+   "verdict": "as_predicted",
+   "wall": 1200.896
+  }
+ },
+ "mtime_series": [
+  {
+   "wall": 1.139,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 5.623,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 10.635,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 15.649,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 16.003,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "server_started",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 20.665,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 25.671,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 30.677,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 35.692,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 40.703,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 45.709,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 50.716,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 53.963,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "a_start",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 55.724,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 60.731,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 65.739,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 70.747,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 75.754,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 80.761,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 85.768,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 90.777,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 95.784,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 100.791,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 105.799,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 110.807,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 115.813,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 120.821,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 125.829,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 130.836,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 135.842,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 140.85,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 145.857,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 150.864,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 155.871,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 160.878,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 165.886,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 170.894,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 175.901,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 180.908,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 185.917,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 190.925,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 195.933,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 200.942,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 205.951,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 210.96,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 215.968,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 220.976,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 225.985,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 230.994,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 236.001,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 241.009,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 246.017,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 251.025,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 256.033,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 261.04,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 266.047,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 271.055,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 276.063,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 281.07,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 286.078,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 291.086,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 296.094,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 301.102,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 306.11,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 311.117,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 316.124,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 321.132,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 326.141,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 331.148,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 336.157,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 341.166,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 346.175,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 351.183,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 356.192,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 361.199,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 366.208,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 371.218,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 376.226,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 377.578,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 382.587,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 387.596,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 392.606,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 397.614,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 402.622,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 407.632,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 412.642,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 417.649,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 422.658,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 427.665,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 428.964,
+   "boot": "1",
+   "phase": "a_nowrite",
+   "tag": "a_end",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 432.674,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 437.697,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 440.552,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "b_after_write",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 442.709,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 445.364,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "b_start",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 447.716,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 452.723,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 457.73,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 462.738,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 467.746,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 472.754,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 477.762,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 482.772,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 487.781,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 492.79,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 497.798,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 502.808,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 507.817,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 512.826,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 517.836,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 522.844,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 527.853,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 532.862,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 537.872,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 542.88,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 547.889,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 552.899,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 557.908,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 562.917,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 567.925,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 572.934,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 577.945,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 582.953,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 587.963,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 592.971,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 597.978,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 602.988,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 607.997,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 613.004,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 618.012,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 623.02,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 628.028,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 633.036,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 638.045,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 643.052,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 648.061,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 653.07,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 658.078,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 663.088,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 668.097,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 673.105,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 678.115,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 683.124,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 688.134,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 693.143,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 698.152,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 703.161,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 708.168,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 713.176,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 718.185,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 723.196,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 728.205,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 733.214,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 738.223,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 743.233,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 748.242,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 753.25,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 758.257,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 763.267,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 768.277,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 773.286,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 778.295,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 783.304,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 788.312,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 793.321,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 798.329,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 803.337,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 808.344,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 813.353,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 818.362,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 820.364,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "b_end",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 823.37,
+   "boot": "1",
+   "phase": "b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 823.405,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_before",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 824.54,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 825.548,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 826.548,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 827.55,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 828.386,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 828.55,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 829.551,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 830.552,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 831.552,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 832.553,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 833.394,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 833.554,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 834.555,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 835.555,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 836.556,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 837.558,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 838.403,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 838.558,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 839.559,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 840.561,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 841.561,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 842.562,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 843.411,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 843.563,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 844.563,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 845.564,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 846.565,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 847.565,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 848.419,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 848.566,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 849.567,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 850.568,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 851.568,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 852.569,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 853.427,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 853.57,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 858.435,
+   "boot": "1",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 863.454,
+   "boot": "1",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 868.473,
+   "boot": "1",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 873.49,
+   "boot": "1",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 877.018,
+   "boot": "1",
+   "phase": "quit",
+   "tag": "after_teardown",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 877.053,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 878.497,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 883.514,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 888.538,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 892.2,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "server_started",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 893.55,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 898.562,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 903.577,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 908.59,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 913.597,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 918.605,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 923.613,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 928.62,
+   "boot": "2",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 933.633,
+   "boot": "2",
+   "phase": "quit_arm_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 938.647,
+   "boot": "2",
+   "phase": "quit_arm_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 943.666,
+   "boot": "2",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 948.689,
+   "boot": "2",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 953.696,
+   "boot": "2",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 958.718,
+   "boot": "2",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 960.046,
+   "boot": "2",
+   "phase": "quit",
+   "tag": "after_teardown",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 960.078,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 963.724,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 968.737,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 973.754,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 975.107,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "server_started",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 978.77,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 983.785,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 988.791,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 993.804,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 998.811,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1003.817,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1008.824,
+   "boot": "3",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1013.831,
+   "boot": "3",
+   "phase": "reads",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1018.845,
+   "boot": "3",
+   "phase": "x49b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1020.53,
+   "boot": "3",
+   "phase": "x49b_write",
+   "tag": "x49b_after_write",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1023.859,
+   "boot": "3",
+   "phase": "x49b_write",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1024.588,
+   "boot": "3",
+   "phase": "kill",
+   "tag": "kill_before",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1025.341,
+   "boot": "3",
+   "phase": "kill",
+   "tag": "kill_after",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1028.876,
+   "boot": "3",
+   "phase": "killed",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1033.883,
+   "boot": "3",
+   "phase": "killed",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1035.839,
+   "boot": "3",
+   "phase": "killed",
+   "tag": "after_teardown",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1035.865,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1038.892,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1043.905,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1048.92,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1049.938,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "server_started",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1053.931,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1058.943,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1063.95,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1068.976,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1073.981,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1078.988,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1083.995,
+   "boot": "3r",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1089.003,
+   "boot": "3r",
+   "phase": "x49b_read",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1094.018,
+   "boot": "3r",
+   "phase": "x49b_read",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1099.032,
+   "boot": "3r",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1104.048,
+   "boot": "3r",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 125,
+   "mtime": 1791157290.7005057,
+   "mtime_ns": 1791157290700505700,
+   "sha256": "d5d2daae58b86dc8",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1109.062,
+   "boot": "3r",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 125,
+   "mtime": 1791157290.7005057,
+   "mtime_ns": 1791157290700505700,
+   "sha256": "d5d2daae58b86dc8",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1114.075,
+   "boot": "3r",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 125,
+   "mtime": 1791157290.7005057,
+   "mtime_ns": 1791157290700505700,
+   "sha256": "d5d2daae58b86dc8",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1117.315,
+   "boot": "3r",
+   "phase": "quit",
+   "tag": "after_teardown",
+   "exists": true,
+   "size": 125,
+   "mtime": 1791157290.7005057,
+   "mtime_ns": 1791157290700505700,
+   "sha256": "d5d2daae58b86dc8",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1117.915,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1119.082,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1124.098,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1129.121,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1133.504,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "server_started",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1134.134,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1139.147,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1144.16,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1149.166,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1154.181,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1159.187,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1164.195,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1169.201,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1174.21,
+   "boot": "4",
+   "phase": "control_read",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1179.23,
+   "boot": "4",
+   "phase": "control_read",
+   "tag": "tick",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   }
+  },
+  {
+   "wall": 1184.248,
+   "boot": "4",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 99,
+   "mtime": 1791157374.2493236,
+   "mtime_ns": 1791157374249323700,
+   "sha256": "70751ff27ed12ad6",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1189.267,
+   "boot": "4",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 99,
+   "mtime": 1791157374.2493236,
+   "mtime_ns": 1791157374249323700,
+   "sha256": "70751ff27ed12ad6",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1194.275,
+   "boot": "4",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 99,
+   "mtime": 1791157374.2493236,
+   "mtime_ns": 1791157374249323700,
+   "sha256": "70751ff27ed12ad6",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1199.295,
+   "boot": "4",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 99,
+   "mtime": 1791157374.2493236,
+   "mtime_ns": 1791157374249323700,
+   "sha256": "70751ff27ed12ad6",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  },
+  {
+   "wall": 1200.871,
+   "boot": "4",
+   "phase": "quit",
+   "tag": "after_teardown",
+   "exists": true,
+   "size": 99,
+   "mtime": 1791157374.2493236,
+   "mtime_ns": 1791157374249323700,
+   "sha256": "70751ff27ed12ad6",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   }
+  }
+ ],
+ "file_changes": [
+  {
+   "wall": 1.139,
+   "boot": "1",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   },
+   "prev": null,
+   "hex": "000000f9000000010000001b0015556e6971756556656869636c6573537061776e656400000000"
+  },
+  {
+   "wall": 824.54,
+   "boot": "1",
+   "phase": "c_save",
+   "tag": "c_watch",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157014.3744187,
+   "mtime_ns": 1791157014374418700,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   },
+   "prev": [
+    true,
+    1788979009944454900,
+    39,
+    "80ed48fdf57e1638"
+   ],
+   "hex": "000000f9000000020000001e000b544b585f70657273697374000000010000016b013ff00000000000000000001b0015556e6971756556656869636c6573537061776e656400000000"
+  },
+  {
+   "wall": 863.454,
+   "boot": "1",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 73,
+   "mtime": 1791157050.3922572,
+   "mtime_ns": 1791157050392257300,
+   "sha256": "7f8e681e0686f3a0",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": false,
+    "TKX_restart": false
+   },
+   "prev": [
+    true,
+    1791157014374418700,
+    73,
+    "7f8e681e0686f3a0"
+   ],
+   "hex": "000000f9000000020000001e000b544b585f70657273697374000000010000016b013ff00000000000000000001b0015556e6971756556656869636c6573537061776e656400000000"
+  },
+  {
+   "wall": 943.666,
+   "boot": "2",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 104,
+   "mtime": 1791157133.1149974,
+   "mtime_ns": 1791157133114997300,
+   "sha256": "e5f6629d93aaf646",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": false
+   },
+   "prev": [
+    true,
+    1791157050392257300,
+    73,
+    "7f8e681e0686f3a0"
+   ],
+   "hex": "000000f9000000030000001e000b544b585f70657273697374000000010000016b013ff00000000000000000001b0008544b585f71756974000000010000016b013ff00000000000000000001b0015556e6971756556656869636c6573537061776e656400000000"
+  },
+  {
+   "wall": 1104.048,
+   "boot": "3r",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 125,
+   "mtime": 1791157290.7005057,
+   "mtime_ns": 1791157290700505700,
+   "sha256": "d5d2daae58b86dc8",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   },
+   "prev": [
+    true,
+    1791157133114997300,
+    104,
+    "e5f6629d93aaf646"
+   ],
+   "hex": "000000f9000000040000001e000b544b585f70657273697374000000010000016b013ff00000000000000000001b0008544b585f71756974000000010000016b013ff000000000000000000011000b544b585f72657374617274000000000000001b0015556e6971756556656869636c6573537061776e656400000000"
+  },
+  {
+   "wall": 1117.915,
+   "boot": "4",
+   "phase": "boot",
+   "tag": "before_start",
+   "exists": true,
+   "size": 39,
+   "mtime": 1788979009.944455,
+   "mtime_ns": 1788979009944454900,
+   "sha256": "80ed48fdf57e1638",
+   "has": {
+    "TKX_persist": false,
+    "TKX_quit": false,
+    "TKX_restart": false
+   },
+   "prev": [
+    true,
+    1791157290700505700,
+    125,
+    "d5d2daae58b86dc8"
+   ],
+   "hex": "000000f9000000010000001b0015556e6971756556656869636c6573537061776e656400000000"
+  },
+  {
+   "wall": 1184.248,
+   "boot": "4",
+   "phase": "quit",
+   "tag": "tick",
+   "exists": true,
+   "size": 99,
+   "mtime": 1791157374.2493236,
+   "mtime_ns": 1791157374249323700,
+   "sha256": "70751ff27ed12ad6",
+   "has": {
+    "TKX_persist": true,
+    "TKX_quit": true,
+    "TKX_restart": true
+   },
+   "prev": [
+    true,
+    1788979009944454900,
+    39,
+    "80ed48fdf57e1638"
+   ],
+   "hex": "000000f90000000400000011000b544b585f70657273697374000000000000000e0008544b585f717569740000000000000011000b544b585f72657374617274000000000000001b0015556e6971756556656869636c6573537061776e656400000000"
+  }
+ ],
+ "save_log_lines": [
+  {
+   "wall_seen": 824.547,
+   "boot": "1",
+   "phase": "c_save",
+   "line": 2000,
+   "text": "LOG  : General      f:8062 st:1,499,762,585> Saving GlobalModData"
+  },
+  {
+   "wall_seen": 863.465,
+   "boot": "1",
+   "phase": "quit",
+   "line": 2012,
+   "text": "LOG  : General      f:8423 st:1,499,798,606> Saving GlobalModData"
+  },
+  {
+   "wall_seen": 943.681,
+   "boot": "2",
+   "phase": "quit",
+   "line": 1996,
+   "text": "LOG  : General      f:488 st:1,499,881,325> Saving GlobalModData"
+  },
+  {
+   "wall_seen": 1104.054,
+   "boot": "3r",
+   "phase": "quit",
+   "line": 1993,
+   "text": "LOG  : General      f:487 st:1,500,038,908> Saving GlobalModData"
+  },
+  {
+   "wall_seen": 1184.258,
+   "boot": "4",
+   "phase": "quit",
+   "line": 1995,
+   "text": "LOG  : General      f:486 st:1,500,122,460> Saving GlobalModData"
+  }
+ ],
+ "db_scans": [
+  {
+   "tag": "b1_ready",
+   "wall": 53.456,
+   "boot": "1",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791156218.0542996,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b1_before_save",
+   "wall": 823.404,
+   "boot": "1",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791156218.0542996,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b1_after_save",
+   "wall": 853.57,
+   "boot": "1",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791156218.0542996,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b1_after_teardown",
+   "wall": 877.018,
+   "boot": "1",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157055.6677933,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b2_ready",
+   "wall": 928.898,
+   "boot": "2",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157094.1939862,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b2_after_teardown",
+   "wall": 960.046,
+   "boot": "2",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157138.3996007,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b3_ready",
+   "wall": 1012.179,
+   "boot": "3",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157176.5236516,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b3_after_teardown",
+   "wall": 1035.839,
+   "boot": "3",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157176.5236516,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b3r_ready",
+   "wall": 1087.39,
+   "boot": "3r",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157251.3174798,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b3r_after_teardown",
+   "wall": 1117.315,
+   "boot": "3r",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157295.9882066,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b4_ready",
+   "wall": 1172.959,
+   "boot": "4",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157335.3894334,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  },
+  {
+   "tag": "b4_after_teardown",
+   "wall": 1200.871,
+   "boot": "4",
+   "files": {
+    "pzt.db": {
+     "size": 86016,
+     "mtime": 1791157379.54343,
+     "has": {
+      "TKX_persist": false,
+      "TKX_persist_c": false,
+      "TKX_quit": false
+     }
+    }
+   }
+  }
+ ],
+ "timeline": [
+  {
+   "t": 0.6,
+   "phase": "boot",
+   "label": "1",
+   "reuse": false
+  },
+  {
+   "t": 1.1,
+   "phase": "phase",
+   "boot": "1",
+   "name": "boot"
+  },
+  {
+   "t": 16.0,
+   "phase": "server_started",
+   "label": "1"
+  },
+  {
+   "t": 52.2,
+   "phase": "session_ready",
+   "label": "1"
+  },
+  {
+   "t": 53.4,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 53.5,
+   "phase": "phase",
+   "boot": "1",
+   "name": "a_nowrite"
+  },
+  {
+   "t": 429.2,
+   "phase": "phase",
+   "boot": "1",
+   "name": "b_write"
+  },
+  {
+   "t": 433.0,
+   "phase": "witness",
+   "boot": "1",
+   "tag": "b1_prewrite"
+  },
+  {
+   "t": 444.4,
+   "phase": "witness",
+   "boot": "1",
+   "tag": "b1_postwrite"
+  },
+  {
+   "t": 823.4,
+   "phase": "witness",
+   "boot": "1",
+   "tag": "b1_window_end"
+  },
+  {
+   "t": 823.4,
+   "phase": "phase",
+   "boot": "1",
+   "name": "c_save"
+  },
+  {
+   "t": 823.5,
+   "phase": "rcon_save",
+   "ok": true,
+   "reply": "World saved"
+  },
+  {
+   "t": 857.1,
+   "phase": "witness",
+   "boot": "1",
+   "tag": "b1_after_save"
+  },
+  {
+   "t": 857.1,
+   "phase": "phase",
+   "boot": "1",
+   "name": "quit"
+  },
+  {
+   "t": 857.1,
+   "phase": "phase",
+   "boot": "1",
+   "name": "quit"
+  },
+  {
+   "t": 859.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 867.0,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 877.0,
+   "phase": "phase",
+   "boot": "1",
+   "name": "down"
+  },
+  {
+   "t": 877.0,
+   "phase": "boot",
+   "label": "2",
+   "reuse": true
+  },
+  {
+   "t": 877.1,
+   "phase": "phase",
+   "boot": "2",
+   "name": "boot"
+  },
+  {
+   "t": 892.2,
+   "phase": "server_started",
+   "label": "2"
+  },
+  {
+   "t": 928.4,
+   "phase": "session_ready",
+   "label": "2"
+  },
+  {
+   "t": 928.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 928.9,
+   "phase": "phase",
+   "boot": "2",
+   "name": "x28_read"
+  },
+  {
+   "t": 932.7,
+   "phase": "witness",
+   "boot": "2",
+   "tag": "b2_x28"
+  },
+  {
+   "t": 932.7,
+   "phase": "phase",
+   "boot": "2",
+   "name": "quit_arm_write"
+  },
+  {
+   "t": 940.3,
+   "phase": "witness",
+   "boot": "2",
+   "tag": "b2_after_quit_write"
+  },
+  {
+   "t": 940.3,
+   "phase": "phase",
+   "boot": "2",
+   "name": "quit"
+  },
+  {
+   "t": 940.3,
+   "phase": "phase",
+   "boot": "2",
+   "name": "quit"
+  },
+  {
+   "t": 942.2,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 950.0,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 960.0,
+   "phase": "phase",
+   "boot": "2",
+   "name": "down"
+  },
+  {
+   "t": 960.1,
+   "phase": "boot",
+   "label": "3",
+   "reuse": true
+  },
+  {
+   "t": 960.1,
+   "phase": "phase",
+   "boot": "3",
+   "name": "boot"
+  },
+  {
+   "t": 975.1,
+   "phase": "server_started",
+   "label": "3"
+  },
+  {
+   "t": 1010.9,
+   "phase": "session_ready",
+   "label": "3"
+  },
+  {
+   "t": 1012.2,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 1012.2,
+   "phase": "phase",
+   "boot": "3",
+   "name": "reads"
+  },
+  {
+   "t": 1016.5,
+   "phase": "witness",
+   "boot": "3",
+   "tag": "b3_reads"
+  },
+  {
+   "t": 1016.5,
+   "phase": "phase",
+   "boot": "3",
+   "name": "x49b_write"
+  },
+  {
+   "t": 1023.6,
+   "phase": "witness",
+   "boot": "3",
+   "tag": "b3_after_restart_write"
+  },
+  {
+   "t": 1024.6,
+   "phase": "phase",
+   "boot": "3",
+   "name": "kill"
+  },
+  {
+   "t": 1025.3,
+   "phase": "server_killed",
+   "rc": 1,
+   "write_to_kill": 6.087
+  },
+  {
+   "t": 1025.6,
+   "phase": "phase",
+   "boot": "3",
+   "name": "killed"
+  },
+  {
+   "t": 1035.8,
+   "phase": "phase",
+   "boot": "3",
+   "name": "down"
+  },
+  {
+   "t": 1035.8,
+   "phase": "boot",
+   "label": "3r",
+   "reuse": true
+  },
+  {
+   "t": 1035.9,
+   "phase": "phase",
+   "boot": "3r",
+   "name": "boot"
+  },
+  {
+   "t": 1049.9,
+   "phase": "server_started",
+   "label": "3r"
+  },
+  {
+   "t": 1085.6,
+   "phase": "session_ready",
+   "label": "3r"
+  },
+  {
+   "t": 1087.4,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 1087.4,
+   "phase": "phase",
+   "boot": "3r",
+   "name": "x49b_read"
+  },
+  {
+   "t": 1097.2,
+   "phase": "witness",
+   "boot": "3r",
+   "tag": "b3r_reads"
+  },
+  {
+   "t": 1097.2,
+   "phase": "phase",
+   "boot": "3r",
+   "name": "quit"
+  },
+  {
+   "t": 1097.2,
+   "phase": "phase",
+   "boot": "3r",
+   "name": "quit"
+  },
+  {
+   "t": 1099.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 1107.3,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 1117.3,
+   "phase": "phase",
+   "boot": "3r",
+   "name": "down"
+  },
+  {
+   "t": 1117.3,
+   "phase": "boot",
+   "label": "4",
+   "reuse": false
+  },
+  {
+   "t": 1117.9,
+   "phase": "phase",
+   "boot": "4",
+   "name": "boot"
+  },
+  {
+   "t": 1133.5,
+   "phase": "server_started",
+   "label": "4"
+  },
+  {
+   "t": 1171.2,
+   "phase": "session_ready",
+   "label": "4"
+  },
+  {
+   "t": 1173.0,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 1173.0,
+   "phase": "phase",
+   "boot": "4",
+   "name": "control_read"
+  },
+  {
+   "t": 1181.0,
+   "phase": "witness",
+   "boot": "4",
+   "tag": "b4_control"
+  },
+  {
+   "t": 1181.0,
+   "phase": "phase",
+   "boot": "4",
+   "name": "quit"
+  },
+  {
+   "t": 1181.0,
+   "phase": "phase",
+   "boot": "4",
+   "name": "quit"
+  },
+  {
+   "t": 1183.4,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 1190.9,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 1200.9,
+   "phase": "phase",
+   "boot": "4",
+   "name": "down"
+  },
+  {
+   "t": 1200.9,
+   "phase": "verdict",
+   "name": "X28-player",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 1200.9,
+   "phase": "verdict",
+   "name": "X28-global",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 1200.9,
+   "phase": "verdict",
+   "name": "X49a",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 1200.9,
+   "phase": "verdict",
+   "name": "quit-only",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 1200.9,
+   "phase": "verdict",
+   "name": "X49b",
+   "verdict": "as_predicted"
+  }
+ ],
+ "ini": {
+  "SaveWorldEveryMinutes": "0",
+  "BackupsCount": "5",
+  "BackupsOnStart": "true",
+  "BackupsOnVersionChange": "true",
+  "BackupsPeriod": "0"
+ },
+ "summary": {
+  "verify_ok": {
+   "1": [
+    true
+   ],
+   "2": [
+    true
+   ],
+   "3": [
+    true
+   ],
+   "3r": [
+    true
+   ],
+   "4": [
+    true
+   ]
+  },
+  "mods_not_found": {
+   "1": {
+    "server": [],
+    "client": []
+   },
+   "2": {
+    "server": [],
+    "client": []
+   },
+   "3": {
+    "server": [],
+    "client": []
+   },
+   "3r": {
+    "server": [],
+    "client": []
+   },
+   "4": {
+    "server": [],
+    "client": []
+   }
+  },
+  "boot_errors": {
+   "1": null,
+   "2": null,
+   "3": null,
+   "3r": null,
+   "4": null
+  },
+  "server_error_count": {
+   "1": 0,
+   "2": 0,
+   "3": 0,
+   "3r": 0,
+   "4": 0
+  },
+  "client_lua_error": {
+   "1": false,
+   "2": false,
+   "3": false,
+   "3r": false,
+   "4": false
+  },
+  "file_change_count": 7,
+  "save_log_line_count": 5,
+  "verdicts": {
+   "X28-player": "as_predicted",
+   "X28-global": "as_predicted",
+   "X49a": "as_predicted",
+   "quit-only": "as_predicted",
+   "X49b": "as_predicted"
+  }
+ },
+ "wall_seconds": 1201.0
+}

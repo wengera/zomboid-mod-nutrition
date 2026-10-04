@@ -93,7 +93,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1291/C/open] | Is `incWeightLot` ever true, and does the client's derived copy agree when it is? | [open-questions.md](#x25) | X25 | a calorie ladder whose rungs are read off the jar first, reading both sides' weight flags at each rung |
 | [#1292/C/open] | Does CleanUI's `pcall(triggerEvent, …)` wrapper change what an unguarded raise does inside a dispatch? | [open-questions.md](#x26) | X26 | a harness entry into the context-menu builder and one session reading the wrapper's own failure line and the handlers behind the raise |
 | [#1293/C/open] | Does `InitLoadPP`'s per-body net-id reallocation ever put a stale id on the wire? | [open-questions.md](#x27) | X27 | reading a multiply-redefined item's id and full type on both sides, where agreement bounds the risk |
-| [#1294/C/open] | Does modData survive a save and reload? | [open-questions.md](#x28) | X28 | a write, a teardown and a second boot on the same run directory, beside a control boot that must miss the key |
 | [#1295/C/open] | Does MoodleFramework load whole on 42.20.4, does `MF_Config.lua` execute, and does a moodle registered through it render? | [open-questions.md](#x29) | X29 | one session reading its globals on both sides and, on the client, a registered moodle's level and draw after a value past a threshold, beside a value that must leave it undrawn |
 | [#1296/C/open] | Does a file-scope `ZomboidGlobals.HungerIncrease` assignment from a mod actually change the drain? | [open-questions.md](#x30) | X30 | a file-scope and a game-start assignment read against the server's drain rate and the fixture's baseline rate |
 | [#1297/C/open] | Does a dotted `OnCooked` name fire, on which side, and can the cooking pipeline be driven end to end at all? | [open-questions.md](#x31) | X31 | a cook-transition session with a dotted target, then a harness craft command that reaches a crafted instance |
@@ -130,8 +129,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2094/C/open] | Do QualityCooking and BeyondTen each load beside a probe mod on this server? | [open-questions.md](#x45a) | X45a | one co-boot reading each mod's own marker on both sides beside the probe's |
 | [#2095/C/open] | Does QualityCooking's eat wrap compose with a second wrap of the same method, and which is outermost? | [open-questions.md](#x45b) | X45b | a code read, then one eat through a sentinel probe wrap beside QualityCooking's, against a boot without it |
 | [#2096/C/open] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
-| [#2097/C/open] | How often does the server write `global_mod_data.bin`? | [open-questions.md](#x49a) | X49a | the file's modification times and the save log line with and without a write, beside a console save |
-| [#2098/C/open] | Does a global modData value written a minute before a hard server stop survive a restart? | [open-questions.md](#x49b) | X49b | a write, a hard stop and a boot on the same run directory, beside a boot on the restored fixture that must miss it |
 | [#2099/C/open] | Does a server-side `sendSyncPlayerFields(player, 2)` after a trait write reach the client's trait list, does a client-side read see the new trait within the push cadence, and does a registered mod trait behave the same? | [open-questions.md](#x4) | X4 | a trait written on the server with the mod's own trait push and with none, the client's arrival time read against the write in each, then the same for a registered trait, in one session of about 12 minutes after the harness's `trait.push` lands |
 | [#2742/M/n=1/open] | Whether a MoodleFramework moodle or a mod's own `ISUIElement` widget renders on a dedicated-server client is unmeasured: no run has drawn either, and X29's render leg is the reading that settles it. | [open-questions.md](#x29) | X29 | a framework moodle and a widget of the mod's own, each driven on the client and its draw calls counted, beside a value that must leave the moodle undrawn |
 
@@ -329,12 +326,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Waiting on it: [item-pass.md](item-pass.md#open), [mp-sync.md](mp-sync.md#open).
 - Settled by: reading a multiply-redefined item's id and full type on both sides in the shared script-replay boot, where the two sides agreeing bounds the risk — [experiments.md § Named experiments](../reference/experiments.md), row `X27`.
 
-<a id="x28"></a>
-### X28 — Does modData survive a save and reload?
-- Whether modData survives a save and reload is open [#1294/C/open].
-- Waiting on it: [new-nutrients.md](new-nutrients.md#open), [mp-sync.md](mp-sync.md#open), [testing-your-mod.md](testing-your-mod.md#open).
-- Settled by: a write, a teardown and a second boot on the same run directory, beside a control boot of the fixture that must miss the key, in the player and the global scope — [experiments.md § Named experiments](../reference/experiments.md), row `X28`.
-
 <a id="x29"></a>
 ### X29 — Does `MoodleFramework` load whole on `42.20.4`, does `MF_Config.lua` execute, and does a moodle registered through it render?
 - Whether `MoodleFramework` loads whole on `42.20.4`, whether its `MF_Config.lua` executes and whether a moodle registered through it renders is open [#1295/C/open].
@@ -445,18 +436,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value, is open [#2087/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience each hit grants — [experiments.md § Named experiments](../reference/experiments.md), row `X48`.
-
-<a id="x49a"></a>
-### X49a — How often does the server write `global_mod_data.bin`?
-- How often the server writes `global_mod_data.bin` is open [#2097/C/open].
-- Waiting on it: [server-lifecycle.md](../platform/server-lifecycle.md#open), [mp-sync.md](mp-sync.md#open).
-- Settled by: the file's modification times and the save log line over ten game-minutes after a write and transmit and over ten with no write, beside a console save as the control — [experiments.md § Named experiments](../reference/experiments.md), row `X49a`.
-
-<a id="x49b"></a>
-### X49b — Does a global modData value written a minute before a hard server stop survive a restart?
-- Whether a global modData value written a minute before a hard server stop survives a restart is open [#2098/C/open].
-- Waiting on it: [server-lifecycle.md](../platform/server-lifecycle.md#open), [mp-sync.md](mp-sync.md#open).
-- Settled by: a write, a hard stop a game-minute later and a second boot on the same run directory, beside a boot on the restored fixture that must miss the key — [experiments.md § Named experiments](../reference/experiments.md), row `X49b`.
 
 ## See also
 

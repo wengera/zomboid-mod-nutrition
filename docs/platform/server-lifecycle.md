@@ -87,6 +87,7 @@ The query reads back the character's position, its death flag and one serialised
 Character modData is saved in the blob the server stores in `networkPlayers`: `NetworkCharacterData` fills that blob through `IsoObject.save(ByteBuffer)`, which dispatches to `IsoPlayer.save`, whose chain through `IsoGameCharacter.save` reaches `IsoMovingObject.save`, which writes a presence byte and then the object's modData table, the field `getModData` returns, whenever that table is non-empty, and `IsoMovingObject.load` reads it back [#2394/C/C-only].
 The blob is filled when the row is queued, so it holds whatever the server's `IsoPlayer`, modData table included, holds at that moment [#2394/C/C-only].
 That table is also a channel the client writes: one client transmit makes the server's copy exactly the client's [#1042/M/n=2], and the rule that follows is [mp-model.md](mp-model.md#player-moddata)'s.
+After a reload the server hands the saved table to the client at join, a server-written key the client never held included [#2757/M/n=1].
 When the server rewrites a connected player's row after creation, and whether a client's own upload can overwrite it, lie outside the rows here; [the walls](#walls) name them.
 A mod's own table in global modData, keyed on the username, sits outside this blob altogether; the next section reads that store.
 
@@ -98,7 +99,12 @@ A handler that reads `false` finds only the tables the file held when the load r
 Where a mod initialises its world-scoped tables is [lessons.md](lessons.md#rules)'s standing rule.
 Global modData lives in one file per save, `global_mod_data.bin` in the current save's folder, and `GlobalModData.save()` returns without writing under `Core.isNoSave()` [#2397/C/C-only].
 On a dedicated server one save is one world, so the file is per world and outlives every connection [#2397/C/C-only].
-When the server calls `save()`, and so when a write reaches the disk, is open; [the open section](#open) carries it.
+With `SaveWorldEveryMinutes` at 0, the fixture's value, the server wrote the file only on a console `save` and on a clean `quit`, each logging one `Saving GlobalModData` line and moving the file's modification time once, while about 100 game-minutes with no write, about 100 game-minutes after a write and transmit, and every boot left it untouched [#2097/M/n=1].
+A clean `quit` with no console save before it carried a key in the player scope and one in a global table to the next boot [#2756/M/n=1].
+A key the server wrote into a player's modData, a key the client wrote and transmitted, and a key in a global table all survived a clean save and reload on the same world, while a boot on the restored fixture missed all three [#1294/M/n=1].
+A global value written about one game-minute before the server process was hard-killed did not survive the restart, because no save ran in between [#2098/M/n=1].
+The kill lost the world's progress since the last save along with it, so the restart resumed from the previous clean quit's save [#2758/M/n=1].
+On a server whose autosave is off, a global table is therefore as durable as the last console save or clean quit [#2097/M/n=1] [#2098/M/n=1].
 `ModData.transmit(name)` on a dedicated server sends the whole named table to every entry of `GameServer.udpEngine.connections`, with no per-player target and no `isFullyConnected` filter [#2398/C/C-only].
 A table keyed by username and transmitted from the server is therefore every player's values on every client [#2398/C/C-only].
 The per-player push a mod controls is the command bus's server send, which [mp-model.md](mp-model.md#command-bus) owns.
@@ -145,15 +151,12 @@ The engine has no Lua event for a returning character's join and none for a disc
 `getPlayerFromUsername` has no server branch, so there is no server-side Lua lookup of a player by name [#2390/C/C-only].
 A server-side global modData transmit cannot be aimed at one player [#2398/C/C-only].
 The wiki mirror marks `OnNewGame` client-only, in its load-order line and in its event list, while the jar fires it on a dedicated server from `CreatePlayerPacket.processServer` with the new `IsoPlayer` [#2421/C/C-only].
-Every row this page owns is a static read of the bytecode: none was exercised on a live server, and the join, respawn and reconnect ordering in particular has no session behind it.
-Not covered: the SQL write of a connected player's row and how often it runs (`ServerPlayerDB.process`, its save thread and the `charactersToSave` drain), the client-driven character upload and whether it can overwrite a server-side edit to the same blob, the delayed disconnect and its username-keyed map, where the server calls `GlobalModData.save()` and the save-cycle events around it, the body of `NetworkPlayerManager.update`, the side of `OnCreateLivingCharacter` and `OnCharacterCreateStats`, the player-data, player-stats, player-fields, extra-info and load-profile packets, the shipped server Lua beyond its per-player sweep, every cause of death's entry into the death chain, and single player — none of them was read.
+Every row this page owns is a static read of the bytecode except the persistence readings under [the player store](#player-store) and [Global modData](#global-moddata), which are one session on one fixture with the world autosave off; the join, respawn and reconnect ordering in particular has no session behind it.
+Not covered: the SQL write of a connected player's row and how often it runs (`ServerPlayerDB.process`, its save thread and the `charactersToSave` drain), the client-driven character upload and whether it can overwrite a server-side edit to the same blob, the delayed disconnect and its username-keyed map, where in the code the server calls `GlobalModData.save()` and the save-cycle events around it, the save cadence under a non-zero `SaveWorldEveryMinutes`, the body of `NetworkPlayerManager.update`, the side of `OnCreateLivingCharacter` and `OnCharacterCreateStats`, the player-data, player-stats, player-fields, extra-info and load-profile packets, the shipped server Lua beyond its per-player sweep, every cause of death's entry into the death chain, and single player — none of them was read.
 
 ## Open
 <a id="open"></a>
 
-- How often the server writes `global_mod_data.bin` — settled by the file's modification times and the save log line with and without a write, beside a console save; -> [X49a](../areas/open-questions.md#x49a) [#2097/C/open].
-- Whether a global modData value written a minute before a hard server stop survives a restart — settled by a write, a hard stop and a boot on the same run directory, beside a boot on the restored fixture that must miss it; -> [X49b](../areas/open-questions.md#x49b) [#2098/C/open].
-- Whether a player's and the world's modData survive a save and reload — settled by a write, a teardown and a second boot on the same run directory, beside a control boot that must miss the key, in the player and the global scope; -> [X28](../areas/open-questions.md#x28) [#1294/C/open].
 - The design must choose where a player's durable values live, because character modData rides in the blob the server stores [#2394/C/C-only] while one client transmit replaces the server's copy of that table [#1042/M/n=2], and global modData is a per-world file whose tables the mod keys itself [#2397/C/C-only].
 - The design must choose whether a death is read from the event, from a sweep of `isDead()`, or from both, because the server fires `OnCharacterDeath` from the death chain [#2408/C/C-only] while whether every cause of death enters that chain on the server is not read.
 - The design must choose whether a player's row is seeded on `OnNewGame` or on the first sweep that sees the username, because `OnNewGame` fires only for a new character [#2387/C/C-only] and a returning character arrives with no event [#2386/C/C-only].

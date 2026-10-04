@@ -125,7 +125,7 @@ What crosses is decided by type: strings, numbers, booleans and nested tables tr
 A nested table crosses whole and keeps its shape, so an empty table reads on the far side exactly as it left [#1337/M/n=1].
 The call also returns silently when the object's square is null, so from outside a skipped transmit and a dropped key look the same [#0916/C/C-only].
 A census of the table is time-dependent besides, because the server writes the vanilla fitness keys into its copy lazily after join [#1338/M/n=2].
-And whether any of the table survives a save and reload is read from the code and never measured, so the route's durability is a code reading until the persistence run lands [#1122/C/C-only].
+The table survives a clean save and reload, both a server-written and a client-transmitted key read back on the server after a second boot [#1294/M/n=1].
 
 Script data fails at the join rather than during play.
 Every loaded script file, the mod's own included, feeds one checksum the server compares when a client joins, so a mismatch is a disconnect rather than a degraded value, and no arm of that gate has been measured [#1182/C/C-only].
@@ -205,7 +205,9 @@ The store's rules are [server-lifecycle.md](../platform/server-lifecycle.md)'s; 
 A per-player mirror of this mod's nutrient store cannot ride a transmitted global table without reaching every client, and the per-player push a mod controls is the bus's server send ([mp-model.md#command-bus](../platform/mp-model.md#command-bus)).
 On the receiving side `OnReceiveGlobalModData` hands over a freshly loaded table, or `false` when the packet carries none, and installs nothing itself, so a client copy exists only where the mod's own handler installs it [#2399/C/C-only].
 A client's request for a table fires a server event that names no player, so a server handler cannot tell which client asked [#2406/C/C-only].
-How often the server writes the file, and whether a value written shortly before a hard stop survives a restart, are open, so the store's durability between saves is a question under [Open](#open).
+A key in a player's modData and one in a global table both survived a clean save and reload on a live server [#1294/M/n=1].
+With the world autosave off the server wrote the file only on a console save and a clean quit, never on a write or a transmit [#2097/M/n=1], and a value written a game-minute before a hard kill was gone after the restart [#2098/M/n=1].
+A world-scoped value is therefore as durable as the last save, and a write between saves is lost to a crash [#2097/M/n=1] [#2098/M/n=1].
 
 ## Options
 
@@ -248,16 +250,13 @@ Which route does each quantity this mod owns travel on: the command bus, a playe
 - Every measured reading this page cites was taken on the dedicated-server path with one real client, one fixture, and one character or one item per arm, and none of them speaks for single player.
 - No arm was taken with more than one client attached, so nothing here measures what a second client's copy holds; which client each push reaches is a code reading, under [Pushes server Lua can cause](#server-pushes).
 
-Not covered: the transport beneath every packet, the save and load round trip that an item's serialised blob and every modData table travel on, the contents of the engine's timed health push, every packet outside the food, nutrition, item-fields, player-modData, player-fields, experience, body-part and global-modData set, and anything a listen server or a second attached client would change.
+Not covered: the transport beneath every packet, the save and load round trip that an item's serialised blob and item modData travel on, the player and global modData scopes beyond one clean reload and one hard kill, the contents of the engine's timed health push, every packet outside the food, nutrition, item-fields, player-modData, player-fields, experience, body-part and global-modData set, and anything a listen server or a second attached client would change.
 
 ## Open
 <a id="open"></a>
 
 - Whether item modData moves server to client through the item-fields sync — settled by a run in which the writing mod's `server/` file is guarded so only the server's Lua state writes, a pre-sync client read that must miss, then a forced sync and a census of both sides; until then a server-owned per-item value in item modData is an unmeasured direction; -> X14 ([#0885/M/n=1/open, #1040/M/one-side/open, #1280/C/open], [open-questions.md#x14](open-questions.md#x14)).
 - Whether the per-body net-id reallocation of an item whose script body several mods append ever puts a stale id on the wire — settled by reading the item id on both sides after a multi-bodied redefinition, the single-bodied item being the control; until then the id-keyed bus round trip is read for a single-bodied item only; -> X27 ([#1063/C/C-only/open, #1293/C/open], [open-questions.md#x27](open-questions.md#x27)).
-- Whether modData survives a save and reload — settled by a boot, a write, a teardown and a second boot on the same run directory, against a control boot of the golden fixture that must miss the key, read in the player and the global scope; the durability every route above leans on is a code reading until then; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
-- How often the server writes the global modData file — settled by the file's modification times and the save log line after a write and transmit and with no write, beside a console save as the control; until then how much of a global table a crash can lose is unknown; -> X49a ([#2097/C/open], [open-questions.md#x49a](open-questions.md#x49a)).
-- Whether a global modData value written a minute before a hard server stop survives a restart — settled by a write, a hard stop and a second boot on the same run directory, beside a boot on the restored fixture that must miss the key; until then a world-scoped value written between saves is not known to be durable; -> X49b ([#2098/C/open], [open-questions.md#x49b](open-questions.md#x49b)).
 - Whether a server-side `sendSyncPlayerFields(player, 2)` after a trait write reaches the client's trait list, whether a client-side read sees the new trait within the push cadence, and whether a registered mod trait behaves the same — settled by a trait written on the server with the mod's own trait push and, as the control, with none, the client's arrival timed against each write, then the same for a registered trait; the no-push arm is predicted to arrive within a second on the experience packet, so the push shows only as an earlier arrival; until then the two trait routes are a code reading and no run has held a non-empty trait list on either side ([wall map](../reference/wall-map.md#g4)); -> X4 ([#2099/C/open, #2595/C/C-only, #2608/C/C-only], [open-questions.md#x4](open-questions.md#x4)).
 - Whether a mod may call the latent client-to-server eat route, a route for the vanilla store that no caller uses — settled by calling the game client's eat-food method from a mod and reading both sides; no `X` id ([#0145/C/snapshot/open], [mp-model.md#open](../platform/mp-model.md#open)).
 - What the server validates on an incoming nutrition write — settled by a probe that separates rejection from overwrite; each probe in the library shows the next push overwriting a client write, which is the ownership this page reads rather than a validation; no `X` id ([#0191/M/n=1/open], [mp-model.md#open](../platform/mp-model.md#open)).

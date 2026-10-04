@@ -116,8 +116,9 @@ That is a reading of the route rows above, and [the store options](#store-option
 ### What each store survives
 
 Four events test a store: a save, a rejoin, a foreign transmit and an item that changes type.
-The evidence thins sharply here, because no run in this library has restarted a world and re-read a modData key: that modData persists is a code reading backed by the corpus, never a measurement [#1122/C/C-only].
-The experiment that would settle it sits under [Open](#open) [#1294/C/open].
+One run has restarted a world and re-read modData keys: a key in a player's modData and one in a global table both survived a clean save and reload, while a fixture boot missed them [#1294/M/n=1].
+The save is the boundary: with the world autosave off a global value written a game-minute before a hard kill was lost, because the server writes the file only on a console save or a clean quit [#2098/M/n=1] [#2097/M/n=1].
+Item modData across a save, and every scope across a rejoin, remain a code reading backed by the corpus [#1122/C/C-only].
 
 A save keeps modData and nothing else a mod writes.
 Character, item and global modData are the only durable mod state the engine saves [#1122/C/C-only].
@@ -170,8 +171,8 @@ The table orders them by the wall map rows their tags cite.
 
 | option | what it costs | which wall it hits | tags |
 |---|---|---|---|
-| character modData | per player and saved with the character on the code's reading; both sides hold a copy and nothing crosses until a transmit, which moves the whole table and wipes the receiver first | the transmit is anybody's: one client transmit replaces the server's copy of the player's table, so a server-authoritative value needs a copy the transmit cannot reach, and the table cannot be sent in part | [#1122/C/C-only, #1123/M/n=2, #1151/M/n=2, #1152/M/n=2] |
-| global modData | world-scoped and saved with the world on the code's reading; initialised on the global init hook, which survives a dedicated server; a per-player value is keyed by hand | its crossing is read off one corpus mod's code and never measured, and a census cannot tell a populated table from an absent one | [#1122/C/C-only, #1151/M/n=2, #0895/C/one-side, #1066/C/snapshot, #1479/C/snapshot, #1480] |
+| character modData | per player and saved with the character, measured across one clean reload; both sides hold a copy and nothing crosses until a transmit, which moves the whole table and wipes the receiver first | the transmit is anybody's: one client transmit replaces the server's copy of the player's table, so a server-authoritative value needs a copy the transmit cannot reach, and the table cannot be sent in part | [#1122/C/C-only, #1294/M/n=1, #1123/M/n=2, #1151/M/n=2, #1152/M/n=2] |
+| global modData | world-scoped and saved with the world, measured across one clean reload, while a write since the last save is lost to a hard kill; initialised on the global init hook, which survives a dedicated server; a per-player value is keyed by hand | its crossing is read off one corpus mod's code and never measured, and a census cannot tell a populated table from an absent one | [#1122/C/C-only, #1294/M/n=1, #2098/M/n=1, #1151/M/n=2, #0895/C/one-side, #1066/C/snapshot, #1479/C/snapshot, #1480] |
 | a script key | free on both sides: scripts load per side and never sync, and an unrecognised key lands in default modData on every instance; one value per type, fixed at load | every script file must match byte for byte or a joining client is disconnected; the value cannot vary per instance; a second mod's partial block against an already-populated table is a code reading | [#1124/M/n=1, #1125/C/C-only, #1182/C/C-only] |
 | item modData | per instance and saved with the item on the code's reading; moves with the item-field sync, which wipes the receiver and copies the sender's keys | the sync is measured client to server only; a key the syncing side lacks is gone; a type change builds a new instance from its own script | [#1126/M/one-side, #1145/M/n=1, #0266] |
 | a parallel Lua store | a server-side table the mod owns outright, out of reach of every transmit and every item sync, mirrored to the client over the bus | not durable: only modData is saved, so the table is rebuilt from a modData copy at every boot, and the bus's module names share one namespace with every other mod | [#1151/M/n=2, #1153/C/C-only, #1064/C/snapshot] |
@@ -222,16 +223,15 @@ Which surface does each mod nutrient's effect attach to, and which vanilla quant
 - A client's copy of a mod nutrient is the last value that reached it and never a simulation of the server's: a client write to a mod field is corrected by no packet and simply desyncs, a reading of the packet's field list rather than a measurement ([#0129/M/n=1], [mp-model.md#what-a-client-copy-is](../platform/mp-model.md#what-a-client-copy-is)).
 - A client derives a weight direction and never a weight: it discards the weight it computes and never applies a band trait, while the direction flags are written ahead of that skip [#1138/M/n=1, #1139/M/n=1].
 - No nutrient formula can be generated at runtime: the dynamic string compiler is unreachable from Lua, so every code path exists as a file on disk at load time [#1172/C/C-only].
-- Persistence is a reading throughout: no run has restarted a world and re-read a modData key, so every survival on this page rests on the code and the corpus [#1122/C/C-only].
+- Persistence is measured for one clean reload and one hard kill, in the player and global scopes, on one fixture with the world autosave off; item modData and every other survival on this page rest on the code and the corpus [#1294/M/n=1] [#2098/M/n=1] [#1122/C/C-only].
 - Item modData's crossing is measured in the client-to-server direction only [#1126/M/one-side].
 - Every verdict this page leans on is bounded to one build on a dedicated server with one client, one fixture and one admin character, and single player is never claimed [#1256/C/one-fixture].
 
-Not covered: the save and load path itself, which no run has exercised; the global store's own transmit and receive path, read only off one corpus mod's code; the mod file writer as a store of last resort; any session with more than one client attached; and what a second nutrition mod writing the same modData scopes would do beside this one.
+Not covered: the save and load path beyond one clean reload and one hard kill of the player and global scopes; the global store's own transmit and receive path, read only off one corpus mod's code; the mod file writer as a store of last resort; any session with more than one client attached; and what a second nutrition mod writing the same modData scopes would do beside this one.
 
 ## Open
 <a id="open"></a>
 
-- Whether modData survives a save and reload, in the player scope and the global scope alike — settled by writing a key in each scope, booting a second server on the same run directory and reading it back beside a control that restores the fixture and must miss it; -> X28 ([#1294/C/open], [open-questions.md#x28](open-questions.md#x28)).
 - Whether item modData moves from server to client — settled by a server-only key write, a client-first census that must miss it, a forced item push and a second census; -> X14 ([#1040/M/one-side/open, #0885/M/n=1/open, #1280/C/open], [open-questions.md#x14](open-questions.md#x14)).
 - Whether a second mod's partial block lands against an already-populated default modData, and whether a block with `ItemType` omitted still merges — settled by one boot reading the base food pool count and the instance getters; -> X15 ([#1281/C/open, #1018/C/one-fixture/open], [open-questions.md#x15](open-questions.md#x15)).
 - Whether a server-side `sendSyncPlayerFields(player, 2)` after a trait write reaches the client's trait list, whether a client read sees the new trait within the push cadence, and whether a mod-registered trait behaves the same — settled by making the server's trait list non-empty first and timing the client's arrival against each write, with the mod's own trait push and with none as the control; the no-push arm is predicted to arrive within a second on the experience packet, so the push shows only as an earlier arrival; -> X4 ([#2099/C/open, #2608/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
