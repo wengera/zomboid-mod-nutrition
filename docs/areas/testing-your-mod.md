@@ -61,6 +61,9 @@ The plan names four profiles, each pinning the golden fixture and the harness, a
 | the vanilla-off profile, written only if the design switches vanilla nutrition off | the harness and the mod | the nutrition option off, set in the block and never at runtime | which of the update's arms the option actually freezes, beside the scenario profile's baseline | [#1127/C/C-only, #1277/C/open] |
 | the stack profile | the harness, the mod and each resident neighbour, every one by its engine-resolved id | none | that the mod's gates still pass beside the mods a live server runs | [#1558, #1617/C/snapshot] |
 
+The acceptance profile's row now has a measurement: under it the mod loaded in both Lua states and its takeover handler registered at the server-started event, the version global answering on both sides and the server log carrying the registration line and a self-report naming the takeover mode [#2746/M/n=1].
+In the same session the server's hunger and thirst advanced under that handler at the vanilla rates, thirst by 1.44501e-3 over 180.62 game-seconds against a predicted 1.44495e-3, while the handler's own call count rose from 161 to 281 [#2747/M/n=1].
+
 The four named experiments this page owns bring profiles of their own, each in the acceptance profile's shape [#2050].
 The neighbours the stack profile names are [packaging.md#resident-stack](packaging.md#resident-stack), which owns that reading.
 A green run from any of these profiles says only that the session ran clean, because the game answers a missing mod with a warning and a clean boot [#1793].
