@@ -974,7 +974,7 @@ TK.log("core loaded (" .. TK.side .. ")")
 -- static is a nil, never a raise) and lands in `missing` beside one whose Stats:get is absent.
 -- Every read goes through TK.call -- index-first guard: a caught nil call is silent and names
 -- nothing; an unguarded raise aborts the rest of this handler (x126/x127).
-TK.STAT_FIELDS = {
+TK.STAT_REGISTRY = {
     { "ANGER", "Anger" }, { "BOREDOM", "Boredom" }, { "DISCOMFORT", "Discomfort" },
     { "ENDURANCE", "Endurance" }, { "FATIGUE", "Fatigue" }, { "FITNESS", "Fitness" },
     { "FOOD_SICKNESS", "FoodSickness" }, { "HUNGER", "Hunger" }, { "IDLENESS", "Idleness" },
@@ -1000,7 +1000,7 @@ function TK.statsAll(p)
     if okM then out.mult = mult end
     local _, s = TK.call(p, "getStats")
     if s == nil then out.error = "no IsoGameCharacter:getStats" end
-    for _, row in ipairs(TK.STAT_FIELDS) do
+    for _, row in ipairs(TK.STAT_REGISTRY) do
         local enum = CharacterStat and CharacterStat[row[1]]
         local ok, v = false, nil
         if enum ~= nil and s ~= nil then ok, v = TK.call(s, "get", enum) end

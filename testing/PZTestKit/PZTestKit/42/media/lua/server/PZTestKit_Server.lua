@@ -1402,7 +1402,7 @@ end)
 -- client-side read. `traitList` is the server's own list after the push and `held` says it is
 -- the same list as before it (the push writes nothing on the sending side).
 -- @args <user> [<mask>]
--- @reply {user, mask, sent, traitList, held [, callError] [, error]} | string
+-- @reply {user, mask, wall, sent, traitList, held [, callError] [, error]} | string
 -- @purpose Calls sendSyncPlayerFields(player, mask or 2) on the server for a named player -- the trait-block push -- and reads the server trait list back; sent is not delivery.
 TK.register("trait.push", function(argv)
     local p = findPlayer(argv[1])
@@ -1415,7 +1415,7 @@ TK.register("trait.push", function(argv)
         end
     end
     local _, beforeList = TK.traitNames(p)
-    local out = { user = tostring(argv[1]), mask = mask, sent = false }
+    local out = { user = tostring(argv[1]), mask = mask, sent = false, wall = TK.now() }
     if sendSyncPlayerFields == nil then
         out.error = "no sendSyncPlayerFields global on this side"
     else
