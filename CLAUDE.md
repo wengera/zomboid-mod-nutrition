@@ -5,7 +5,7 @@ Read §§ 1–3 before touching anything, § 5 before any live run, and § 6 bef
 ## 1. What this repo is
 
 This repository is an agent-facing reference for modding Project Zomboid Build 42; its first consumer is a realism nutrition mod — nutrients tracked mod-side beyond the vanilla macros, a rebalance of the vanilla food items, multiplayer first.
-[docs/areas/](docs/areas/) is the nutrition lens, [docs/platform/](docs/platform/) general modding knowledge, [docs/facts/](docs/facts/) the measured vanilla food and nutrition mechanics, and [docs/reference/](docs/reference/) the claims register with the datasets, tools, experiments, jar notes, generated harness commands, wall map and artifacts register.
+[docs/areas/](docs/areas/) is the nutrition lens, [docs/platform/](docs/platform/) general modding knowledge, [docs/facts/](docs/facts/) the measured vanilla food and nutrition mechanics, and [docs/reference/](docs/reference/) the claims register and the science register of cited nutrition-science values, with the datasets, tools, experiments, jar notes, generated harness commands, wall map and artifacts register.
 Every claim on a page carries a tag naming its row in [the register](docs/reference/claims.tsv), and the row carries the grade and the pointer to its evidence; [README.md](README.md) is the map and the tag grammar, [STRATEGY.md](STRATEGY.md) the charter.
 The pages state what the game does and what a mod can and cannot change; the mod's design is not in this tree, and a root file names pages, never claims.
 
@@ -33,6 +33,7 @@ Route a task by its shape and read the pages in the order given; stop when the t
 | a dataset column | [reference/datasets](docs/reference/datasets.md) | — |
 | a tool | [reference/tools](docs/reference/tools.md) | — |
 | what is still open | [areas/open-questions](docs/areas/open-questions.md) → [reference/experiments](docs/reference/experiments.md) | — |
+| cite a nutrition-science value | [reference/science](docs/reference/science.md) → [the register](docs/reference/science.tsv) | — |
 
 The skills under `.claude/skills/` route the same way: each description fires on its row's task shape, and its `## Read first` opens that row's pages.
 The pre-restructure library is readable at the tag `research-program-v1`, and the restructure's own spec and plans at the parent of the cut commit `9dfc74b`.
