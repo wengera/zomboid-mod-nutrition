@@ -25,12 +25,15 @@ The schema, in full (every key optional; the defaults are the CLI's own):
 
     [sandbox]                                # validated against the fixture's own file
     DayLength = 1
+    [sandbox.NR]                             # a mod's own options, validated against its
+    Mode = 2                                 # media/sandbox-options.txt
 
 `[[verify]]` is read here and run by the caller (cli/scenario), which owns the bus.
 """
 import difflib
 import glob
 import os
+import re
 import tomllib
 
 from . import fixture as fx
@@ -215,27 +218,75 @@ def sandbox_file(fixture, rec):
                         f"{rec.get('server', {}).get('name', 'pzt')}_SandboxVars.lua")
 
 
-def check_sandbox(name, sandbox, path):
-    """Every key must be a settable top-level option of the fixture's file. A typo here is
+OPTION_RX = re.compile(r"\boption\s+([A-Za-z_]\w*\.[A-Za-z_]\w*)\s*\{([^}]*)\}", re.S)
+TYPE_RX = re.compile(r"\btype\s*=\s*(\w+)")
+
+
+def declared_mod_options(mod_dir):
+    """{'Prefix.Name': type} from the mod's media/sandbox-options.txt: the version dir's copy
+    wins outright and common/ is read only when the version dir ships none (#2422). The reader
+    concatenates lines without newlines and strips /* */ only (#2425, #2426); this parser
+    tolerates both shapes because it reads option blocks by their braces."""
+    candidates = []
+    for name in sorted(os.listdir(mod_dir)) if os.path.isdir(mod_dir) else []:
+        if re.match(r"^42(\.\d+){0,2}$", name):
+            candidates.append(os.path.join(mod_dir, name))
+    candidates.sort(key=lambda d: tuple(int(x) for x in os.path.basename(d).split(".")), reverse=True)
+    paths = [os.path.join(d, "media", "sandbox-options.txt") for d in candidates]
+    paths.append(os.path.join(mod_dir, "common", "media", "sandbox-options.txt"))
+    for p in paths:
+        if os.path.exists(p):
+            text = re.sub(r"/\*.*?\*/", "", open(p, encoding="utf-8", errors="replace").read(), flags=re.S)
+            out = {}
+            for m in OPTION_RX.finditer(text):
+                t = TYPE_RX.search(m.group(2))
+                out[m.group(1)] = t.group(1) if t else "unknown"
+            return out
+    return {}
+
+
+def check_sandbox(name, sandbox, path, mod_dirs=()):
+    """Every top-level key must be a settable option of the fixture's file. A typo here is
     otherwise invisible: the merge would append it, the server would drop it on the boot
     rewrite, and the run would report the option as applied.
 
-    It checks nothing when the fixture's `SandboxVars.lua` is not on this machine -- the
-    fixture caches are gitignored per-machine blobs, so on a fresh clone this validation is
-    simply absent and a misspelt key survives to the run (documented in
+    A dict value is a nested `[sandbox.<Prefix>]` block: each leaf must be declared as
+    `Prefix.Leaf` in the media/sandbox-options.txt of some mod in `mod_dirs`.
+
+    The top-level check is skipped when the fixture's `SandboxVars.lua` is not on this
+    machine -- the fixture caches are gitignored per-machine blobs, so on a fresh clone this
+    validation is simply absent and a misspelt key survives to the run (documented in
     `docs/testing/profiles.md` § The TOML schema). The fixture is unprovisioned at that point,
     so the run would not start either way.
     """
-    if not sandbox or not os.path.exists(path):
-        return                       # nothing to check, or no file to check against
-    known = sandbox_keys(path)
-    for key in sandbox:
-        if key not in known:
-            near = difflib.get_close_matches(key, known, n=3)
-            raise ProfileError(f"profile '{name}': [sandbox] '{key}' is not a settable option in "
-                               f"{path}" + (f" -- did you mean {', '.join(near)}?" if near else
-                                            f" ({len(known)} options there; nested tables such as "
-                                            "Map/ZombieLore are not settable from a profile)"))
+    if not sandbox:
+        return
+    flat = {k: v for k, v in sandbox.items() if not isinstance(v, dict)}
+    if flat and os.path.exists(path):
+        known = sandbox_keys(path)
+        for key in flat:
+            if key not in known:
+                near = difflib.get_close_matches(key, known, n=3)
+                raise ProfileError(f"profile '{name}': [sandbox] '{key}' is not a settable option in "
+                                   f"{path}" + (f" -- did you mean {', '.join(near)}?" if near else
+                                                f" ({len(known)} options there; nested tables such as "
+                                                "Map/ZombieLore are not settable from a profile)"))
+    nested = {k: v for k, v in sandbox.items() if isinstance(v, dict)}
+    if nested:
+        declared = {}
+        for d in mod_dirs:
+            declared.update(declared_mod_options(d))
+        for prefix, leaves in nested.items():
+            if not any(k.startswith(prefix + ".") for k in declared):
+                raise ProfileError(f"profile '{name}': [sandbox.{prefix}] '{prefix}' is a prefix no mod in "
+                                   f"this profile declares (declared prefixes: "
+                                   f"{', '.join(sorted({k.split('.')[0] for k in declared})) or 'none'})")
+            for leaf in leaves:
+                full = f"{prefix}.{leaf}"
+                if full not in declared:
+                    near = difflib.get_close_matches(full, list(declared), n=3)
+                    raise ProfileError(f"profile '{name}': [sandbox.{prefix}] '{full}' is declared by no mod "
+                                       "in this profile" + (f" -- did you mean {', '.join(near)}?" if near else ""))
 
 
 def load(name):
@@ -279,7 +330,8 @@ def load(name):
         sources[HARNESS_ID] = HARNESS_MODS[HARNESS_ID]
 
     sandbox = doc.get("sandbox") or {}
-    check_sandbox(name, sandbox, sandbox_file(fixture, rec))
+    mod_dirs = list(sources.values()) + list(HARNESS_MODS.values())
+    check_sandbox(name, sandbox, sandbox_file(fixture, rec), mod_dirs)
 
     verify = list(doc.get("verify") or [])
     for v in verify:

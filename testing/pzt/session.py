@@ -126,12 +126,18 @@ def mark_profile(tl, prof, flag=None):
 
 
 def make_server(run_dir, rec=None, port=None, rcon_port=None, mods=None, name="pzt", sandbox=None,
-                workshop=True, workshop_items=(), mod_sources=None, mod_skip=()):
+                workshop=True, workshop_items=(), mod_sources=None, mod_skip=(), reuse=False):
     """`mod_sources`/`mod_skip` come from a profile (see profile.py): a folder to copy in for
     a given mod id, and the ids named in Mods= that are deliberately not placed."""
     if rec:
-        cache = fx.restore_server(rec["name"], run_dir)
         srv = rec["server"]
+        if reuse:
+            cache = os.path.join(run_dir, "server")
+            if not os.path.isdir(os.path.join(cache, "Server")):
+                raise SystemExit(f"make_server(reuse=True): {cache} holds no server cache to boot again; "
+                                 "a reuse boot follows a first boot on the same run_dir")
+        else:
+            cache = fx.restore_server(rec["name"], run_dir)
         name, mods = srv["name"], mods or srv["mods"]
         port, rcon_port = port or srv["port"], rcon_port or srv["rcon_port"]
     else:

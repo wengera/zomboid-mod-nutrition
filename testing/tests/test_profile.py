@@ -517,3 +517,86 @@ def test_merge_on_a_file_with_no_closing_brace_says_so_instead_of_crashing():
         with pytest.raises(SystemExit) as e:
             server.merge_sandbox_vars(p, {"DayLength": 1})
     assert "no closing '}' at column 0" in str(e.value) and "DayLength" in str(e.value)
+
+
+# ---- nested (mod) sandbox options ---------------------------------------------------------
+
+NESTED_SANDBOX = ("SandboxVars = {\r\n"
+                  "    VERSION = 6,\r\n"
+                  "    Zombies = 6,\r\n"
+                  "    NR = {\r\n"
+                  "        Mode = 1,\r\n"
+                  "        LogLevel = 2,\r\n"
+                  "    },\r\n"
+                  "}\r\n")
+
+OPTIONS_TXT = ("VERSION = 1,\n"
+               "option NR.Mode { type = enum, numValues = 2, default = 1, page = NutritionRevamp, translation = NR_Mode, }\n"
+               "option NR.LogLevel { type = enum, numValues = 3, default = 2, page = NutritionRevamp, translation = NR_LogLevel, }\n")
+
+
+def _mod_with_options(root):
+    d = os.path.join(root, "NutritionRevamp")
+    _write(os.path.join(d, "42.20.4", "mod.info"), "name=NR\nid=NutritionRevamp\n")
+    _write(os.path.join(d, "42.20.4", "media", "sandbox-options.txt"), OPTIONS_TXT)
+    return d
+
+
+def test_declared_mod_options_reads_the_version_dir_file(tmp_path):
+    d = _mod_with_options(str(tmp_path))
+    assert profile.declared_mod_options(d) == {"NR.Mode": "enum", "NR.LogLevel": "enum"}
+
+
+def test_declared_mod_options_falls_back_to_common(tmp_path):
+    d = os.path.join(str(tmp_path), "M")
+    _write(os.path.join(d, "42", "mod.info"), "id=M\n")
+    _write(os.path.join(d, "common", "media", "sandbox-options.txt"), "VERSION = 1,\noption M.X { type = boolean, default = true, page = M, }\n")
+    assert profile.declared_mod_options(d) == {"M.X": "boolean"}
+
+
+def test_merge_rewrites_a_nested_leaf_in_place(tmp_path):
+    p = _write(str(tmp_path / "s.lua"), NESTED_SANDBOX)
+    applied, appended = server.merge_sandbox_vars(p, {"NR": {"Mode": 2}})
+    text = open(p, encoding="utf-8", newline="").read()
+    assert applied == ["NR.Mode"] and appended == []
+    assert "        Mode = 2,\r\n" in text and "        LogLevel = 2,\r\n" in text
+    assert text.count("\r\n") == NESTED_SANDBOX.count("\r\n")
+
+
+def test_merge_appends_a_missing_nested_block_before_the_closing_brace(tmp_path):
+    p = _write(str(tmp_path / "s.lua"), SANDBOX)
+    applied, appended = server.merge_sandbox_vars(p, {"NR": {"Mode": 2, "LogLevel": 3}})
+    text = open(p, encoding="utf-8", newline="").read()
+    assert applied == [] and appended == ["NR.LogLevel", "NR.Mode"]
+    assert text.endswith("    NR = {\r\n        LogLevel = 3,\r\n        Mode = 2,\r\n    },\r\n}\r\n")
+
+
+def test_merge_appends_a_missing_leaf_inside_an_existing_block(tmp_path):
+    p = _write(str(tmp_path / "s.lua"), NESTED_SANDBOX)
+    applied, appended = server.merge_sandbox_vars(p, {"NR": {"Extra": True}})
+    text = open(p, encoding="utf-8", newline="").read()
+    assert appended == ["NR.Extra"]
+    assert "        LogLevel = 2,\r\n        Extra = true,\r\n    },\r\n" in text
+
+
+def test_a_nested_profile_block_validates_against_the_mods_declarations(tmp_path):
+    d = _mod_with_options(str(tmp_path))
+    toml = f'[[mods]]\nid = "NutritionRevamp"\npath = {json.dumps(d)}\n[sandbox]\nZombies = 4\n[sandbox.NR]\nMode = 2\n'
+    with workspace(toml):
+        p = profile.load("p")
+        assert p.sandbox == {"Zombies": 4, "NR": {"Mode": 2}}
+
+
+def test_a_nested_key_no_mod_declares_is_an_error(tmp_path):
+    d = _mod_with_options(str(tmp_path))
+    toml = f'[[mods]]\nid = "NutritionRevamp"\npath = {json.dumps(d)}\n[sandbox.NR]\nModee = 2\n'
+    with workspace(toml):
+        with pytest.raises(profile.ProfileError, match="NR.Modee"):
+            profile.load("p")
+
+
+def test_a_nested_prefix_no_mod_declares_is_an_error(tmp_path):
+    toml = '[sandbox.ZZ]\nMode = 2\n'
+    with workspace(toml):
+        with pytest.raises(profile.ProfileError, match="ZZ"):
+            profile.load("p")

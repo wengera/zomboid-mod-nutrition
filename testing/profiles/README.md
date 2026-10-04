@@ -132,6 +132,8 @@ or a fail. **Gate a raising probe on the SERVER.** Both readings are in
 debugger's modal break on the first mod Lua error that reaches `KahluaUtil.fail`) is
 `x127-20260911-052049` and is owned by [`docs/platform/lua-platform.md#debug-break`](../../docs/platform/lua-platform.md#debug-break).
 
+`[sandbox.<Prefix>]` tables set a mod's own options (for example `[sandbox.NR]` with `Mode = 2`): each leaf must be declared as `<Prefix>.<Leaf>` in the `media/sandbox-options.txt` of a mod the profile lists, and the merge writes the server's own nested shape (the block at four spaces, its options at eight), so the fixture's file need not carry the block.
+
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
 `--fixture` (it is the fixture its `[sandbox]` keys were validated against), and an explicit CLI

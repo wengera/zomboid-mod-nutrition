@@ -105,37 +105,72 @@ def sandbox_keys(path):          # the settable options of an existing file, for
 TRAILING_COMMENT_RX = re.compile(r"\s+--.*$")
 
 
+NESTED_OPEN_RX = re.compile(r"^ {4}(\w+) = \{\s*$")
+NESTED_LEAF_RX = re.compile(r"^ {8}(\w+) = ")
+NESTED_CLOSE = "    },"
+
+
 def merge_sandbox_vars(path, overrides):
-    """Rewrite only the named top-level keys, keeping every other option (and the server's
-    comments, including a trailing one on a rewritten line) as the fixture had them.
-    -> (applied, appended); CRLF preserved."""
+    """Rewrite only the named options, keeping every other line as the fixture had them.
+    A top-level override `{"DayLength": 1}` rewrites the four-space key; a nested override
+    `{"NR": {"Mode": 2}}` rewrites the eight-space leaf inside the `    NR = {` block the server
+    writes for a mod prefix (#2455), appends a missing leaf at the block's end, and appends a
+    missing block before the file's closing brace. -> (applied, appended), each a sorted list of
+    dotted names for nested keys; CRLF preserved."""
     with open(path, encoding="utf-8", errors="replace", newline="") as fh:
         text = fh.read()
     nl = "\r\n" if "\r\n" in text else "\n"
-    pending = {k: lua_value(v) for k, v in overrides.items()}
-    out = []
+    flat = {k: lua_value(v) for k, v in overrides.items() if not isinstance(v, dict)}
+    nested = {k: {lk: lua_value(lv) for lk, lv in v.items()} for k, v in overrides.items() if isinstance(v, dict)}
+    applied, out, block, leaves_written_at_close = [], [], None, []
     for line in text.splitlines():
-        m = SANDBOX_KEY_RX.match(line)
-        if not (m and m.group(1) in pending):
+        if block is None:
+            m = SANDBOX_KEY_RX.match(line)
+            if m and m.group(1) in flat:
+                note = TRAILING_COMMENT_RX.search(line)
+                out.append(f"    {m.group(1)} = {flat.pop(m.group(1))},{note.group(0) if note else ''}")
+                applied.append(m.group(1))
+                continue
+            mo = NESTED_OPEN_RX.match(line)
+            if mo and mo.group(1) in nested:
+                block = mo.group(1)
             out.append(line)
             continue
-        note = TRAILING_COMMENT_RX.search(line)
-        out.append(f"    {m.group(1)} = {pending.pop(m.group(1))},{note.group(0) if note else ''}")
-    applied, appended = [k for k in overrides if k not in pending], sorted(pending)
-    if appended:                       # before the file's own closing brace, which is at col 0
-        # Column 0 only: the five nested tables close at four spaces, and `l.strip() == "}"`
+        if line == NESTED_CLOSE:
+            for leaf in sorted(nested[block]):
+                out.append(f"        {leaf} = {nested[block][leaf]},")
+                leaves_written_at_close.append(f"{block}.{leaf}")
+            nested.pop(block)
+            block = None
+            out.append(line)
+            continue
+        ml = NESTED_LEAF_RX.match(line)
+        if ml and ml.group(1) in nested[block]:
+            note = TRAILING_COMMENT_RX.search(line)
+            out.append(f"        {ml.group(1)} = {nested[block].pop(ml.group(1))},{note.group(0) if note else ''}")
+            applied.append(f"{block}.{ml.group(1)}")
+            continue
+        out.append(line)
+    appended = sorted(flat) + sorted(f"{p}.{leaf}" for p, leaves in nested.items() for leaf in leaves)
+    appended += sorted(n for n in leaves_written_at_close if n not in applied)
+    if flat or nested:
+        # Column 0 only: the nested tables close at four spaces, and `l.strip() == "}"`
         # would put an appended option inside the last of them. A file with no col-0 `}` is not
-        # a SandboxVars table at all -- SystemExit (profile.ProfileError's own base) so the CLI
-        # says so and stops, instead of a ValueError out of max() on an empty sequence.
+        # a SandboxVars table at all.
         closes = [i for i, l in enumerate(out) if l == "}"]
         if not closes:
             raise SystemExit(f"sandbox merge: {path} has no closing '}}' at column 0, so "
                              f"{', '.join(appended)} cannot be appended -- is this a "
                              "SandboxVars.lua the server wrote?")
-        out[closes[-1]:closes[-1]] = [f"    {k} = {pending[k]}," for k in appended]
+        extra = [f"    {k} = {flat[k]}," for k in sorted(flat)]
+        for prefix in sorted(nested):
+            extra.append(f"    {prefix} = {{")
+            extra.extend(f"        {leaf} = {nested[prefix][leaf]}," for leaf in sorted(nested[prefix]))
+            extra.append(NESTED_CLOSE)
+        out[closes[-1]:closes[-1]] = extra
     with open(path, "w", encoding="utf-8", newline="") as fh:
         fh.write(nl.join(out) + nl)
-    return applied, appended
+    return sorted(applied), appended
 
 
 class Server:
