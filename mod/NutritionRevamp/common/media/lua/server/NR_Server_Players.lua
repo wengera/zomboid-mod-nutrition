@@ -46,6 +46,8 @@ function P.minute()
     local okS, n = NR.call(list, "size")
     if not okS or type(n) ~= "number" then return end
     P.minutes = P.minutes + 1
+    P.queue = {}                      -- a fresh queue each minute: a slow drain never doubles a player (review-t4 I1)
+    P.queueHead = 1
     local seen = {}
     local i = 0
     while i < n do
