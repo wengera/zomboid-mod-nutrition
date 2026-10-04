@@ -1,5 +1,5 @@
 # Tools
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: every tracked tool under `tools/` — what each reads and writes, its rules with their engine standing, its conventions — and the register grammar the claims tools enforce; the datasets the scanners write are `datasets.md`'s.
+Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: every tracked tool under `tools/` — what each reads and writes, its rules with their engine standing, its conventions — the register grammar the claims tools enforce, and the science register; the datasets the scanners write are `datasets.md`'s.
 
 <a id="doc-lint"></a>
 ## `doc_lint.py` — the documentation lint
@@ -166,6 +166,15 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - The second reading of `data:` is a read of the read-only install's corpus, which keeps its `media/` prefix where a `lua:` path drops it, such as `data:media/scripts/generated/fluids.txt 2026-09-10`, or of the jar as a file, `data:projectzomboid.jar 2026-09-10`.
 - The third reading of `data:` is a tool sweep whose output was not committed, written `data:tools/<tool>.py <what was swept>, <date>`, which cannot be re-read, so a claim that rests on it is `unverified`.
 - The fourth reading of `data:` is a hand scan of the read-only install, written `data:media/<dir> grep <literal>, <date>`, or of the read-only workshop tree, written `data:workshop/content/108600 grep <literal>, <date>`, one pointer per literal; neither can be re-read, so a claim that rests on one is `unverified` and its bound opens `snapshot <date>;`.
+
+<a id="science-tools"></a>
+## The science tools
+
+The science tools keep the science register `docs/reference/science.tsv` consistent and let the mod's own files be checked against it; the register's columns, topics, grades and rules are stated on [its page](science.md).
+
+- `sciencelib.py` has no command line: it holds the science register's schema — its columns, topics, grades and their rank, and statuses — its TSV reader and writer, the row validator, the grade resolver, and the id, token and citation grammars, and it runs inside the checker and the applier.
+- `science_check.py` reads the register and writes nothing: its `schema` rule checks the header, the cell count, the id form and contiguity, duplicates, the topic and grade vocabularies on every row that is not open, the status vocabulary, the value and the citation form on every row that is not open, the source form and the successor lineage, and its `scan` rule, under `--scan`, resolves every `S` id token in the named files against the register and fails a token with no row or a superseded one; `--part` checks a task's part file with provisional ids; `--staged` skips the run when nothing relevant is staged.
+- `science_delta.py` is the controller's tool: `apply <part.tsv>` validates every row of a part file before writing anything, mints the next free id for each in file order and appends them; `status <id> <status> [--successor <id>]` changes one row's status and refuses a row already superseded.
 
 <a id="conventions"></a>
 ## Conventions

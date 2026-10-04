@@ -50,6 +50,7 @@ The pre-restructure library is readable at the tag `research-program-v1`, and th
 Run every gate a commit's paths trigger; each ends at zero findings or green.
 
 - `python tools/claims_check.py --staged` → 0 findings before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/`, `tools/bus_inventory.py`, `tools/reference_gen.py` or `references/wiki-mirrors/` (it says so and skips when nothing staged is under those paths).
+- `python tools/science_check.py --staged` → 0 findings before every commit that touches `docs/reference/science.tsv` (it says so and skips otherwise); the mod plans add `--scan <the mod's tree>` to it, never `tools/` or `docs/`.
 - `python tools/page_lint.py <the pages touched>` → 0 before any commit that touches a page under `docs/areas/`, `docs/platform/` or `docs/facts/`, or `docs/reference/datasets.md` or `docs/reference/tools.md` (those two under its reference profile).
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
 - `python tools/reference_gen.py cited-by --check` and `python tools/reference_gen.py contradictions --check` → in sync: the artifacts register's `Cited by` column and the mirrors' `## Contradictions` section are rendered from the register, the checker's rule 10 runs both (so `claims_check.py --staged` covers a commit touching the register, `docs/reference/artifacts.md` or `references/wiki-mirrors/`), and `--write` in place of `--check` regenerates them.
@@ -67,6 +68,7 @@ A claim is minted in the commit that lands its evidence, never later.
 5. **A harness change** (a new `TK.register`, a changed reply) lands in its own commit with its comment block, `tools/luabalance.py` green and `tools/bus_inventory.py` regenerating `docs/reference/harness-commands.md`, before the run that uses it.
 6. **A rule line edit** re-syncs the skills that quote it in the same commit; the checker fails otherwise.
 7. **Who runs the checker:** the committer, `--staged`, before every commit that touches its trigger paths (§ 3); an SDD reviewer re-runs it on the review package.
+8. **A science number:** a value the mod ships rests on a `settled` row of `docs/reference/science.tsv`; a writer files rows in a part file the controller applies with `tools/science_delta.py`, and every settled row's citation was resolved against its record before minting; the page is [reference/science](docs/reference/science.md).
 
 ## 5. Harness rules
 

@@ -386,6 +386,32 @@ import patterns from there.
   cap or floor) and prints `(no cap)`. Prints the prose count per page; exit 1 on a finding.
   `--allow-provisional` admits a provisional tag on a rule or key-fact line.
 
+- `sciencelib.py` — no CLI. The science register schema (`COLUMNS`, `GRADES`, `RANK`, `STATUSES`,
+  `TOPICS`, the controlled topic vocabulary), TSV read/write, `validate_row`, `resolve_grade`
+  (a report's grade token to a grade: `CASE` maps to `COH`, a slashed pair takes the left-most
+  member of `RANK`, `MODEL` never pairs) and the id, token, citation and source grammars shared by
+  `science_check.py` and `science_delta.py`. The page is `docs/reference/science.md`.
+
+- `science_check.py` — `python tools/science_check.py [--register TSV] [--part TSV] [--scan PATH…] [--staged] [--root DIR]`
+  Two rules. `schema` checks the header, the cell count, the id form, contiguity from `S0001`,
+  duplicates, the topic and grade vocabularies on every row that is not open, the status, a
+  non-empty value and a `doi:`/`pmid:`/`url:`/`isbn:` citation on every settled, unverified or
+  superseded row, the source form, and a successor present exactly when superseded and naming
+  a live row. `scan` (under `--scan`) resolves every `S<dddd>` token in the named `.lua`, `.md`,
+  `.py`, `.toml` and `.txt` files against the register; the register and its page are skipped, and
+  `--scan` is given the mod's tree, never `tools/` or `docs/`. `--part` checks a task's part file
+  with provisional ids and skips contiguity; `--staged` skips the run when nothing staged is under
+  the register or a scanned path. Prints `path:line: rule: detail` per finding and `N findings`;
+  exit 1 on any.
+
+- `science_delta.py` — `python tools/science_delta.py apply <part.tsv> [--register TSV] [--dry-run]` |
+  `status <Sdddd> <status> [--successor Sdddd] [--register TSV]`.
+  The controller's tool. `apply` validates every row of a part file (a bad row aborts before
+  anything is written, naming its line; a real id or a repeated provisional id is refused), mints
+  the next free id for each in file order, appends them and prints `S2.1 -> S0001` per row and
+  `rows: N`. `status` changes one row's status and successor, refuses a row already superseded and
+  a successor not in the register, and prints the change. Never deletes a row.
+
 ## Planned (P4)
 
 - `mod_food_diff.py` — which installed mods add/override Food items (compat
