@@ -1,0 +1,264 @@
+-- NR_Kernel_Fast.lua -- the fast clock's arithmetic: the seven updaters IsoGameCharacter.calculateStats
+-- runs when Hook.CalculateStats does not answer true, reproduced from
+-- docs/superpowers/research/jar-calculatestats-updaters.md with no nutrition term (Plan 1, vanilla
+-- parity). Pure: `inp`, `out` and `c` are tables the adapter owns and reuses; nothing here allocates
+-- per call and nothing names a Java global. Constants carry their register id or jar section.
+-- Every Stats.add / remove / set the jar shows clamps once to [0,1] (#2208, jar § 10), so each
+-- vanilla write is one K.clamp here, in vanilla's order: a saturated stat behaves as it does in Java.
+-- Kahlua numbers are doubles: the Java float-only chains (the idle timer, the sleep dt and fatigue
+-- removal, morale, fitness, the sleep endurance factor) reproduce bit-close, not bit-exact (jar § 9).
+local K = NutritionRevamp.kernel
+K.fast = {}
+local clamp, max = K.clamp, K.max
+
+-- The shipped defines.lua values (jar report "Shared constants" table; media/lua/shared/defines.lua).
+-- Outside the fast-path region: called once at install, never per tick.
+function K.fast.defaults()
+    return {
+        thirstIncrease = 8.0e-6,                 -- #0476; defines.lua:9
+        thirstSleepingIncrease = 1.0e-6,         -- #0477; :10
+        hungerIncrease = 9.6e-6,                 -- #0470; :14
+        hungerIncreaseWhenWellFed = 0.0,         -- #0473; :15
+        hungerIncreaseWhileAsleep = 1.0e-6,      -- #0472; :17
+        hungerIncreaseWhenExercise = 1.92e-5,    -- #0471; :16
+        fatigueIncrease = 3.45e-5,               -- #2270; :19
+        stressDecrease = 3.0e-5,                 -- jar § 2; :21
+        stressFromSoundsMultiplier = 2.0e-5,     -- #2231; :27
+        stressFromBiteOrScratch = 5.0e-5,        -- #2231; :28
+        stressFromHemophobic = 3.333e-7,         -- #2231; :29
+        angerDecrease = 1.0e-4,                  -- #2231; :32
+        idleIncrease = 5.0e-4,                   -- jar § 2; :55
+        idleDecrease = 6.0e-3,                   -- jar § 2; :56
+        imobileEnduranceIncrease = 3.1e-5,       -- #2258; :7
+        sleepDelayFraction = 0.5,                -- Plan 1 ruling 7: the mean of Rand.Next(0, d); a game choice
+    }
+end
+
+-- The input table the adapter fills every tick (one per player, allocated once at hoist time).
+-- `sitting` is sitting on the ground or on furniture; `resting` is isResting(): the awake fatigue
+-- divisor tests all three, the idleness decrease only the two sitting tests (jar § 2 @94, @598).
+-- `sleepingTablet` is getSleepingTabletEffect() > 1000, doDelayToSleep's 0.1 override (jar § 3).
+function K.fast.input()
+    return {
+        M = 0, D = 0, sd = 1, asleep = false, ghost = false,
+        hunger = 0, thirst = 0, fatigue = 0, endurance = 1, stress = 0, anger = 0, idleness = 0, morale = 1, nicotine = 0,
+        highThirst = false, lowThirst = false, heartyAppetite = false, lightEater = false, needsLess = false,
+        needsMore = false, hemophobic = false, deaf = false, insomniac = false, nightOwl = false,
+        sitting = false, resting = false, foodEaten = 0, exercising = false, running = false,
+        thermoFatigue = 1, thermoFluids = 1, soundStress = 0, partsBitten = 0, partsScratched = 0,
+        infected = false, fakeInfected = false, totalBlood = 0, veryClose = 0, chasing = 0,
+        currentlyIdle = false, hasSquare = false, sameSquare = false, inRoom = false, idleTimer = 0,
+        bedFactor = 1, timeOfSleep = 0, delayToSleep = 0, timeOfDay = 0, minutesPerDay = 60,
+        endRegen = 1, recoveryMod = 1, allAsleep = false, fitnessLevel = 0, unlimitedEndurance = false,
+        painLevel = 0, stressMoodle = 0, sleepingTablet = false, sleepTransition = false,
+    }
+end
+
+-- The output table: the seven stats' new values plus the side-effect requests and the mirrors.
+function K.fast.output()
+    return {
+        hunger = 0, thirst = 0, fatigue = 0, endurance = 1, lastEndurance = 1, stress = 0, anger = 0,
+        idleness = 0, resetIdleness = false, morale = 1, fitness = 0, autoDrink = true,
+        idleTimer = 0, timeOfSleep = 0, delayToSleep = 0,
+    }
+end
+
+-- @fastpath
+-- One update. s = M × D is the game-seconds elapsed (jar § 9).
+function K.fast.step(inp, out, c)
+    local M, D, sd = inp.M, inp.D, inp.sd
+    local s = M * D
+
+    -- 7. the endurance stub: stamp, then the cheat (#2215)
+    out.lastEndurance = inp.endurance
+    local endurance = inp.endurance
+    if inp.unlimitedEndurance then
+        endurance = 1
+    end
+
+    -- 1. thirst (#0476, #0477, #0486, #0478, #0560)
+    local thirst = inp.thirst
+    if not inp.ghost then
+        local trait = 1
+        if inp.highThirst then
+            trait = trait * 2
+        end
+        if inp.lowThirst then
+            trait = trait * 0.5
+        end
+        if inp.asleep then
+            thirst = thirst + c.thirstSleepingIncrease * sd * M * D * trait
+        else
+            local run = 1
+            if inp.running then
+                run = 1.2
+            end
+            thirst = thirst + c.thirstIncrease * sd * M * run * D * trait * inp.thermoFluids
+        end
+    end
+    out.thirst = clamp(thirst, 0, 1)
+    out.autoDrink = true                                     -- #2250: called on every pass, outside both gates
+
+    -- stress updater (#2220, #2230, #2226, #2231): each term is its own Stats.add, clamped
+    local stress = inp.stress
+    if not inp.deaf then
+        stress = clamp(stress + inp.soundStress * c.stressFromSoundsMultiplier, 0, 1)
+    end
+    if inp.partsBitten > 0 then
+        stress = clamp(stress + c.stressFromBiteOrScratch * s, 0, 1)
+    end
+    if inp.partsScratched > 0 then
+        stress = clamp(stress + c.stressFromBiteOrScratch * s, 0, 1)
+    end
+    if inp.infected or inp.fakeInfected then
+        stress = clamp(stress + c.stressFromBiteOrScratch * s, 0, 1)
+    end
+    if inp.hemophobic then
+        stress = clamp(stress + inp.totalBlood * c.stressFromHemophobic * (M / 0.8) * D, 0, 1)
+    end
+    out.anger = clamp(inp.anger - c.angerDecrease * s, 0, 1)
+
+    -- wake state
+    local hunger, fatigue, idleness = inp.hunger, inp.fatigue, inp.idleness
+    local appetite = 1 - inp.hunger                          -- #0474, rebuilt: getAppetiteMultiplier is protected
+    if inp.heartyAppetite then
+        appetite = appetite * 1.5
+    end
+    if inp.lightEater then
+        appetite = appetite * 0.75
+    end
+    out.resetIdleness = false
+    out.idleTimer = inp.idleTimer
+    out.timeOfSleep = inp.timeOfSleep
+    out.delayToSleep = inp.delayToSleep
+    if inp.asleep then
+        -- 3. IsoPlayer.updateStats_Sleeping: endurance (#2261), fatigue (#2276, #2277), hunger (#0472, #0473)
+        local f = 2
+        if inp.allAsleep then
+            f = 2 * D
+        end
+        endurance = clamp(endurance + c.imobileEnduranceIncrease * inp.endRegen * inp.recoveryMod * M * f, 0, 1)
+        local dt = 1 / inp.minutesPerDay / 60 * M / 2         -- game-hours this update (jar § 3, § 9)
+        if inp.sleepTransition then
+            -- Plan 1 ruling 7: the two mirrors, seeded as SleepingEvent.doDelayToSleep builds d (jar § 3)
+            local d = 0.3
+            if inp.insomniac then
+                d = 1.0
+            end
+            if inp.painLevel > 0 then
+                d = d + (1 + 0.2 * inp.painLevel)
+            end
+            if inp.stressMoodle > 0 then
+                d = d * 1.2
+            end
+            d = d * inp.bedFactor
+            if inp.nightOwl then
+                d = d * 0.5
+            end
+            if inp.sleepingTablet then
+                d = 0.1
+            end
+            if d > 2.0 then
+                d = 2.0
+            end
+            out.timeOfSleep = inp.timeOfDay
+            out.delayToSleep = inp.timeOfDay + d * c.sleepDelayFraction
+        end
+        if fatigue > 0 then
+            local ff = 1
+            if inp.insomniac then
+                ff = ff * 0.5
+            end
+            if inp.nightOwl then
+                ff = ff * 1.4
+            end
+            out.timeOfSleep = out.timeOfSleep + dt
+            if out.timeOfSleep > out.delayToSleep then
+                local t = 1
+                if inp.needsLess then
+                    t = t * 0.75
+                elseif inp.needsMore then
+                    t = t * 1.18
+                end
+                if fatigue <= 0.3 then
+                    fatigue = fatigue - dt / (7 * t) * 0.3 * ff * inp.bedFactor
+                else
+                    fatigue = fatigue - dt / (5 * t) * 0.7 * ff * inp.bedFactor
+                end
+            end
+        end
+        if inp.foodEaten == 0 then
+            hunger = hunger + c.hungerIncreaseWhileAsleep * sd * appetite * s
+        else
+            hunger = hunger + c.hungerIncreaseWhenWellFed * sd * c.hungerIncreaseWhileAsleep * sd * s
+        end
+    else
+        -- 2. updateStats_Awake: stress decay, fatigue, hunger, idleness (jar § 2; #2270, #2271, #0470, #0471, #0473)
+        stress = clamp(stress - c.stressDecrease * s, 0, 1)
+        local endDef = max(0.3, 1 - endurance)              -- reads ENDURANCE after the stub's cheat reset
+        local sleepTrait = 1
+        if inp.needsLess then
+            sleepTrait = 0.7
+        end
+        if inp.needsMore then
+            sleepTrait = 1.3
+        end
+        local rest = 1
+        if inp.sitting or inp.resting then
+            rest = 1.5
+        end
+        fatigue = fatigue + c.fatigueIncrease * sd * endDef * s * sleepTrait * inp.thermoFatigue / rest
+        if inp.exercising then
+            if inp.foodEaten == 0 then
+                hunger = hunger + c.hungerIncreaseWhenExercise / 3 * sd * appetite * s
+            else
+                hunger = hunger + c.hungerIncreaseWhenExercise * sd * appetite * s
+            end
+        else
+            if inp.foodEaten == 0 then
+                hunger = hunger + c.hungerIncrease * sd * appetite * s
+            else
+                hunger = hunger + c.hungerIncreaseWhenWellFed * sd * s
+            end
+        end
+        -- the idle-square timer mirror (Plan 1 ruling 8), then idleness
+        if inp.sameSquare then
+            if out.idleTimer <= 3600 then
+                out.idleTimer = out.idleTimer + s
+            end
+        else
+            out.idleTimer = 0
+        end
+        if inp.veryClose > 0 or inp.chasing >= 3 then
+            idleness = 0
+            out.resetIdleness = true
+        elseif inp.currentlyIdle and inp.hasSquare then
+            if inp.sameSquare and out.idleTimer >= 1800 then
+                idleness = clamp(idleness + c.idleIncrease * s, 0, 1)
+            end
+            if inp.inRoom then
+                idleness = clamp(idleness + c.idleIncrease / 3 * s, 0, 1)
+            end
+        elseif not inp.sitting then
+            idleness = clamp(idleness - c.idleDecrease * s, 0, 1)
+        end
+    end
+    out.hunger = clamp(hunger, 0, 1)
+    out.fatigue = clamp(fatigue, 0, 1)
+    out.stress = clamp(stress, 0, 1)
+    out.idleness = clamp(idleness, 0, 1)
+    out.endurance = clamp(endurance, 0, 1)
+
+    -- 4. morale (jar § 4): getNicotineStress reads STRESS after the stress and wake-state updaters;
+    -- never lowered, pinned at 1 within two updates
+    local ns = clamp(out.stress + inp.nicotine, 0, 1)
+    local m = (1 - ns - 0.5) * 1e-4
+    if m > 0 then
+        m = m + 0.5
+    end
+    out.morale = clamp(inp.morale + clamp(m, 0, 1), 0, 1)
+
+    -- 6. fitness (#2223)
+    out.fitness = clamp(inp.fitnessLevel / 5 - 1, -1, 1)
+end
+-- @endfastpath

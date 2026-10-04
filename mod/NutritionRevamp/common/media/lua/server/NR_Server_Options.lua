@@ -38,7 +38,7 @@ end
 
 function NR.selfReport(side)
     return "NutritionRevamp v" .. NR.version .. " build " .. NR.build .. " side=" .. tostring(side)
-        .. " mode=" .. NR.modeName(O.mode) .. " log=" .. tostring(O.logLevel) .. " frameworks=none"
+        .. " mode=" .. NR.modeName(O.mode) .. " log=" .. tostring(O.logLevel) .. " frameworks=none" .. " hook=" .. tostring(NR.server.fast ~= nil and NR.server.fast.registered) .. " limitations=" .. tostring(NR.server.fast and #NR.server.fast.limitations or 0)
 end
 
 if Events ~= nil and Events.OnServerStarted ~= nil then
