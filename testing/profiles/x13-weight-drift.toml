@@ -1,0 +1,14 @@
+# testing/profiles/x13-weight-drift.toml - X41: weight drift with the vanilla Nutrition option off.
+# Identical to x13-nutrition-off except for this description.
+fixture = "default"
+description = "PZTestKit with SandboxVars.Nutrition = false - X41 weight drift."
+run = { hold = 5 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "SandboxVars.Nutrition", expect = "\"value\": false" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[sandbox]
+Nutrition = false              # the key exists in the fixture's own file (X7)

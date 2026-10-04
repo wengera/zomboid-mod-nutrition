@@ -1,0 +1,5 @@
+name=TKX TraitProbe
+id=TKX_TraitProbe
+description=Plan 1 experiment: a registered mod trait and a server-side trait grant or removal driven from player modData (X4, X42). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

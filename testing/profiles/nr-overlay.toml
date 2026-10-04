@@ -1,0 +1,27 @@
+# testing/profiles/nr-overlay.toml - the mod in overlay mode (NR.Mode = 2), DayLength = 1.
+# The control row is the harness itself (the walk control); the mod rows pass only if the mod loaded.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp, Mode 2 (overlay), DayLength 1."
+run = { hold = 60 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "PZTestKit.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"value\": \"0.1.0\"" },
+  { side = "client", cmd = "lua.global", args = "PZTestKit.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"value\": \"0.1.0\"" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[client]
+timeout = 240
+
+[sandbox]
+DayLength = 1                 # a game-hour is 37.5 s (X34's cadence)
+
+[sandbox.NR]
+Mode = 2

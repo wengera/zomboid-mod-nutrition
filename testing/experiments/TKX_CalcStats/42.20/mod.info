@@ -1,0 +1,5 @@
+name=TKX CalcStats
+id=TKX_CalcStats
+description=Plan 1 experiment: Hook.CalculateStats registrant counts (X32, X46). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

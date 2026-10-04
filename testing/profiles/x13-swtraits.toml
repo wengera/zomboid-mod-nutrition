@@ -1,0 +1,24 @@
+# testing/profiles/x13-swtraits.toml - X42: SomewhatTraits co-boot with the grant probe.
+# The three mods come from one workshop item; each entry names its id.
+fixture = "default"
+description = "PZTestKit + SomewhatTraits + SomewhatTraitsCore (workshop 3498347699) + TKX_TraitProbe - X42."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "SWTraits.traits", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "SomewhatTraits"
+workshop_id = "3498347699"
+
+[[mods]]
+id = "SomewhatTraitsCore"
+workshop_id = "3498347699"
+
+[[mods]]
+id = "TKX_TraitProbe"
+path = "testing/experiments/TKX_TraitProbe"

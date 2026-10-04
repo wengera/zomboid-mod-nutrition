@@ -1,0 +1,23 @@
+# testing/profiles/x13-calcstats.toml - X32 / X46 / X35: Hook.CalculateStats registrant counts.
+# TKX_CalcStats adds and removes its handlers from player modData keys, so the no-handler
+# arm has an empty callback list. The rows gate only that the mod loaded.
+fixture = "default"
+description = "PZTestKit + TKX_CalcStats - X32, X46 (Hook.CalculateStats registrants)."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TKX_CalcStats.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_CalcStats.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "TKX_CalcStats"
+path = "testing/experiments/TKX_CalcStats"
+
+[client]
+timeout = 240
+
+[sandbox]
+DayLength = 1                 # a game-hour is 37.5 s

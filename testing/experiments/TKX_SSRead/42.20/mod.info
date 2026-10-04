@@ -1,0 +1,5 @@
+name=TKX SSRead
+id=TKX_SSRead
+description=Plan 1 experiment: reads simpleStatus macro bars into a global (X44). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

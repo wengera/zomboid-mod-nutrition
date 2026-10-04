@@ -1,0 +1,20 @@
+# testing/profiles/x13-ssread.toml - X44: simpleStatus bars against the vanilla macro stores.
+# The first row is teardown-simplestatus's own gate; TKX_SSRead follows simpleStatus in Mods= order.
+fixture = "default"
+description = "PZTestKit + simpleStatus (workshop 2867431511) + TKX_SSRead - X44."
+run = { hold = 20 }
+verify = [
+  { side = "client", cmd = "text.get", args = "IGUI_SS_BARTITLE_HAPPY", expect = "\"Happiness\"" },
+  { side = "client", cmd = "lua.global", args = "TKX_SS.calls", expect = "\"resolved\": true" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "simpleStatus"
+workshop_id = "2867431511"
+
+[[mods]]
+id = "TKX_SSRead"
+path = "testing/experiments/TKX_SSRead"

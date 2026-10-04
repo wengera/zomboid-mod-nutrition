@@ -1,0 +1,12 @@
+module TKX
+{
+    character_trait_definition TKX:Probe
+    {
+        IsProfessionTrait = false,
+        DisabledInMultiplayer = false,
+        CharacterTrait = TKX:Probe,
+        Cost = 0,
+        UIName = UI_trait_TKXProbe,
+        UIDescription = UI_trait_TKXProbe_Desc,
+    }
+}

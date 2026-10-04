@@ -1,0 +1,10 @@
+# testing/profiles/x13-nutrition-on.toml - the vanilla Nutrition sandbox option as the fixture ships it (X7 control).
+fixture = "default"
+description = "PZTestKit with the fixture's own Nutrition option, on - X7 control."
+run = { hold = 5 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "SandboxVars.Nutrition", expect = "\"value\": true" },
+]
+
+[[mods]]
+id = "PZTestKit"

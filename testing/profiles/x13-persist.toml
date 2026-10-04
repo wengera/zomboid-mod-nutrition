@@ -1,0 +1,14 @@
+# testing/profiles/x13-persist.toml - X49a / X49b: persistence across restarts; a bare PZTestKit session.
+# [client] timeout is raised for the multi-boot driver.
+fixture = "default"
+description = "PZTestKit alone, fixture day length - X49 persistence."
+run = { hold = 5 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "PZTestKit.version", expect = "\"resolved\": true" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[client]
+timeout = 240

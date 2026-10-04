@@ -1,0 +1,16 @@
+# testing/profiles/x13-traits.toml - X4: the registered-trait arm. TKX_TraitProbe registers TKX:Probe.
+# The rows gate that the mod and its registry entry loaded.
+fixture = "default"
+description = "PZTestKit + TKX_TraitProbe - X4 registered-trait arm."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_TraitProbe_Traits.probe", expect = "\"resolved\": true" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "TKX_TraitProbe"
+path = "testing/experiments/TKX_TraitProbe"
