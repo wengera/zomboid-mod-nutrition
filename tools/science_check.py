@@ -4,7 +4,7 @@ rules and adds a citation-form rule).
 
 Rules: schema (0: header, cell count, id form, contiguity from S0001, duplicate ids, topic and grade on
 every row that is not open, status, a non-empty value and a doi:/pmid:/url:/isbn: citation on every
-settled, unverified or superseded row, the source form, a successor present exactly when superseded and
+settled, unverified or superseded row (a superseded former open row with all four cells empty is exempt), the source form, a successor present exactly when superseded and
 naming rows that exist and are not themselves superseded) · scan (1: with --scan PATH…, every `S<dddd>`
 token in the named .lua, .md, .py, .toml and .txt files names a row and names no superseded row; the
 register itself and docs/reference/science.md, which carries the reserved S0000, are skipped — give

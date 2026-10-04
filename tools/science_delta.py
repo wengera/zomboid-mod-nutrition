@@ -5,7 +5,7 @@ A part file has the register's header exactly; every row's id is provisional `S<
 validates every row first (a bad row aborts before anything is written, naming its line), mints the
 next free id for each in file order, appends them, and prints `S2.1 -> S0042` per row. `status`
 changes one row's status and, when superseded, its successor; a row already superseded is refused,
-so a lineage is never overwritten. Nothing is ever deleted.
+so a lineage is never overwritten. `settle` fills an open row's cells and sets it settled (or unverified). Nothing is ever deleted.
 
 Usage: python tools/science_delta.py apply <part.tsv> [--register TSV] [--dry-run] [--allow-duplicate]
        python tools/science_delta.py status <Sdddd> <status> [--successor Sdddd[, Sdddd]] [--register TSV]

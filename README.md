@@ -49,7 +49,7 @@ testing/tests/             the harness tests
 - Every register row has `id claim grade pointer bound status successor kind source owner`: the pointer is the evidence, and the owner is the page anchor that states the claim.
 - A `source` cell is harvest provenance: it names the doc a row was harvested from, and a pre-restructure doc it names is readable at the tag `research-program-v1`; the restructure's own spec and plans are readable at the parent of the cut commit `9dfc74b`.
 - `C` is read in code or data — the jar, game or mod Lua and scripts, this repository's code, a dataset; `M` is measured on a live run and points at an artifact key; `W` is a wiki mirror or a fetched web page and only corroborates.
-- A science row is cited by its bare id (`S0417`, never in brackets) and is checked by `python tools/science_check.py --scan <the mod's tree>`; its register is [`docs/reference/science.tsv`](docs/reference/science.tsv).
+- A science row is cited by its bare id (`S0000`, never in brackets) and is checked by `python tools/science_check.py --scan <the mod's tree>`; its register is [`docs/reference/science.tsv`](docs/reference/science.tsv).
 - `python tools/claims_check.py` checks the register's schema and pointers and every tag on the pages against its row.
 
 ## Coverage
