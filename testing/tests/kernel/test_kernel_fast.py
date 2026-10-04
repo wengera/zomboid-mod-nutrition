@@ -157,3 +157,28 @@ def test_asleep_remaining_arms(host):
     assert o["delayToSleep"] == pytest.approx(22.0 + 2.0 * 0.5, rel=1e-12)             # d capped at 2
     o = run(host, asleep=True, sleepTransition=True, timeOfDay=22.0, sleepingTablet=True, bedFactor=1.6)
     assert o["delayToSleep"] == pytest.approx(22.0 + 0.1 * 0.5, rel=1e-12)             # the tablet override
+
+
+# Regression tests for the jar corrections (review I1): each pins a place where the brief's
+# arithmetic differed from the jar's, so reverting the kernel to the brief's code fails here.
+def test_stress_clamps_after_each_term(host):
+    o = run(host, stress=0.99999, soundStress=10.0)
+    assert o["stress"] == pytest.approx(1 - 3e-5 * 0.4, rel=1e-12)       # sound term clamps at 1, then the decay
+
+
+def test_morale_reads_stress_after_the_decay(host):
+    o = run(host, stress=0.500005, morale=0.2)
+    assert o["morale"] == pytest.approx(0.7 + (0.5 - (0.500005 - 1.2e-5)) * 1e-4, rel=1e-9)
+
+
+def test_endurance_deficit_reads_after_the_cheat_reset(host):
+    o = run(host, unlimitedEndurance=True, endurance=0.2)
+    assert o["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.3 * 0.4, rel=1e-12)
+
+
+def test_resting_divides_fatigue_but_sitting_blocks_the_idleness_decrease(host):
+    base = run(host)["fatigue"] - 0.1
+    o = run(host, resting=True, idleness=0.1)
+    assert o["fatigue"] - 0.1 == pytest.approx(base / 1.5, rel=1e-9)
+    assert o["idleness"] == pytest.approx(0.1 - 6e-3 * 0.4, rel=1e-12)   # resting does not block the decrease
+    assert run(host, sitting=True, idleness=0.1)["idleness"] == 0.1

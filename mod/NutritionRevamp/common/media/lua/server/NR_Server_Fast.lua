@@ -78,6 +78,8 @@ local function hoist(username, p)
     h.isUnlimited, h.autoDrink, h.setTimeOfSleep = want(p, "isUnlimitedEndurance"), want(p, "autoDrink"), want(p, "setTimeOfSleep")
     h.getRecoveryMod, h.getX, h.getY, h.getZ = want(p, "getRecoveryMod"), want(p, "getX"), want(p, "getY"), want(p, "getZ")
     h.getTabletEffect = want(p, "getSleepingTabletEffect")
+    local getIdle = want(p, "getIdleSquareTime")
+    h.out.idleTimer = getIdle and getIdle(p) or 0         -- seed the mirror where the engine timer stands
     h.gt = getGameTime and getGameTime() or nil
     h.getMult, h.getDMPD, h.getMPD, h.getTOD = want(h.gt, "getMultiplier"), want(h.gt, "getDeltaMinutesPerDay"), want(h.gt, "getMinutesPerDay"), want(h.gt, "getTimeOfDay")
     h.so = getSandboxOptions and getSandboxOptions() or nil
@@ -164,7 +166,7 @@ local function body(h)
     inp.currentlyIdle = h.isCurrentlyIdle(p)
     local sq = h.getCurrentSquare(p)
     inp.hasSquare = sq ~= nil
-    inp.sameSquare = sq ~= nil and sq == h.getLastSquare(p)
+    inp.sameSquare = sq == h.getLastSquare(p)             -- nil == nil is true, as in Java
     inp.inRoom = sq ~= nil and sq:isInARoom()
     inp.idleTimer = out.idleTimer
     inp.timeOfSleep = out.timeOfSleep
@@ -230,7 +232,7 @@ function FAST.adopt(username, character)
     end
     FAST.lastError = h
     NR.log.say(1, "fast: hoist failed for " .. tostring(username) .. ": " .. tostring(h))
-    FAST.disable(username)
+    FAST.disable(username, "hoist failed")
     return nil
 end
 
@@ -254,7 +256,7 @@ local function handler(character)
     FAST.stats.failures = FAST.stats.failures + 1
     FAST.stats.perPlayer[username].failures = h.fails
     FAST.lastError = err
-    if h.fails >= 3 then FAST.disable(username) end
+    if h.fails >= 3 then FAST.disable(username, "three consecutive failures") end
 end
 -- @endfastpath
 FAST.handler = handler
@@ -284,8 +286,8 @@ function FAST.uninstall()
     NR.log.say(1, "fast: takeover handler removed")
 end
 
-function FAST.disable(username)
-    FAST.stats.disabledAt = "three consecutive failures for " .. tostring(username)
+function FAST.disable(username, reason)
+    FAST.stats.disabledAt = tostring(reason) .. " for " .. tostring(username)
     FAST.uninstall()
     NR.log.say(1, "fast: DISABLED (" .. FAST.stats.disabledAt .. "); vanilla stat update resumed")
 end
