@@ -286,6 +286,7 @@ import patterns from there.
   `-- @rimguard` may carry the single `pcall`. On `NR_Kernel*.lua` it adds
   `kernel-shape` (only `function NutritionRevamp.kernel.<path>(` or
   `function K.<path>(`) and `kernel-java` (no Java-side global named).
+- The kernel tests under `testing/tests/kernel/` need `lupa` 2.8 (`python -m pip install lupa==2.8`): the mod's pure kernel runs offline under its Lua 5.1 runtime, and the suite fails rather than skips without it.
 
 ## Reference tooling
 
