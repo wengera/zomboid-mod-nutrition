@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The claims checker (spec § The checker and the generator).
 
-Rules: schema (0) · owner (1) · tag (2) · pointer (3) · untagged (4, warning only; a digit inside a
+Rules: schema (0) · owner (1) · tag (2) · pointer (3; 3b `pointer-line`: a `repo:` pointer's quoted text must be on its cited line or range) · untagged (4, warning only; a digit inside a
 markdown link target is not a number) · generator (5) · skill (6) · example (7) · fix-tags and views
 (8: --fix-tags writes each tag's suffix from the register; --view LAYER|LAYER/PAGE.md prints a
 register slice) · rules-dup (9: for each pair of pages under docs/areas and docs/platform and each
@@ -234,6 +234,33 @@ def _restricted_key(key, listed):
     return min(hits, key=lambda k: (-len(k), k)) if hits else None
 
 
+REPO_LINE_RX = re.compile(r'^(\S+?):(\d+)(?:-(\d+))?\s+"(.*)"\s*$')
+
+
+def _pointer_line_finding(r, text, n, root, register_rel):
+    """Rule 3b: a `repo:<path>:<line>[-<line>] "<text>"` pointer's quoted text must occur on that line
+    (or inside that range) of the working-tree file. A path under testing/artifacts/ and a line-less
+    pointer are exempt, and so is a superseded row (it keeps the old evidence as the source wrote it);
+    a missing file is rule 3's finding, not this one's."""
+    if r.get("status") == "superseded":
+        return None
+    m = REPO_LINE_RX.match(text.strip())
+    if not m or m.group(1).startswith("testing/artifacts/"):
+        return None
+    path, lo, hi, quoted = m.group(1), int(m.group(2)), int(m.group(3) or m.group(2)), m.group(4)
+    full = os.path.join(root, *path.split("/"))
+    if _doomed(path) or not os.path.isfile(full):
+        return None
+    with open(full, encoding="utf-8", errors="replace", newline="") as fh:
+        lines = fh.read().replace("\r\n", "\n").split("\n")
+    if quoted in "\n".join(lines[lo - 1:hi]):
+        return None
+    hits = [i for i, ln in enumerate(lines, 1) if quoted in ln]
+    where = "found at %d" % min(hits, key=lambda i: abs(i - lo)) if hits else "not found"
+    cited = "%d-%d" % (lo, hi) if hi != lo else "%d" % lo
+    return Finding(register_rel, n, "pointer-line", '#%s repo:%s:%s — "%s" not on that line (%s)' % (r["id"].lstrip("#"), path, cited, quoted, where))
+
+
 def rule_pointer(rows, root, register_rel):
     out = []
     # do-not-cite.csv is `run,key,value,why,read_instead`; a prose restriction with no key has
@@ -277,6 +304,10 @@ def rule_pointer(rows, root, register_rel):
                                                                    "research-program-v1); cite the underlying evidence" % (r["id"], path)))
                 elif not os.path.exists(os.path.join(root, *path.split("/"))):
                     out.append(Finding(register_rel, n, "pointer", "%s: repo path %s does not exist" % (r["id"], path)))
+                else:
+                    f = _pointer_line_finding(r, text, n, root, register_rel)
+                    if f:
+                        out.append(f)
     return out
 
 

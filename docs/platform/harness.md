@@ -452,8 +452,8 @@ Not covered: a release client, a Linux dedicated-server image or any continuous-
 | the shape's origin: exclusion sets, wait sizing and declared field counts | `testing/experiments/x121_overrides.py:206-256` | the per-scope modData exclusion sets, the game-minute constant every wait is sized in, and the field counts a read is asserted against |
 | the sibling driver's probe wrapper | `testing/experiments/td3_autocook.py:226-252` | one read with its own wall bracket, the dormant fallback branch, and the re-ask-once guard that keeps both readings |
 | a profile | `testing/profiles/mod-under-test.toml:1-19` | the schema in use: the fixture, the hold, two inline verification rows, two mod entries and one sandbox override |
-| the index-first guard | `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua:138-144` | the guard every Java member call goes through — index, then call — so an absent member answers false instead of raising |
-| the command registry | `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua:511` | one table keyed by name, which is why the same command can be registered from the shared file and answer on both sides |
+| the index-first guard | `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua:140-146` | the guard every Java member call goes through — index, then call — so an absent member answers false instead of raising |
+| the command registry | `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua:513` | one table keyed by name, which is why the same command can be registered from the shared file and answer on both sides |
 | a scenario registration | `testing/PZTestKit/PZTestKit/42/media/lua/server/scenarios/PZTestKit_Scenario_Nutrition.lua:162-175` | the backstop set a clear margin above the finisher, the subject's nutrition object read through the guarded call, and the hourly sampler |
 
 ## Procedure

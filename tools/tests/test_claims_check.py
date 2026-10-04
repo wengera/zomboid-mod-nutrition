@@ -473,3 +473,39 @@ def test_refgen_rule_requires_the_mirrors_readme_and_its_markers():
         os.remove(os.path.join(d, *cc.MIRRORS_README.split("/")))
         f = [x for x in cc.check(d, partial=True) if x.rule == "refgen"]
         assert len(f) == 1 and f[0].path == cc.MIRRORS_README and "missing" in f[0].detail
+
+
+# --- Rule 3b: a repo: pointer's quoted text must be on its cited line or range.
+
+def _line_findings(pointer, body="a = 1\nlocal function f()\n  return 2\nend\n"):
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "mod/x.lua", body)
+        _tree(d, [_row(1, pointer=pointer)])
+        return [x for x in cc.check(d, register_only=True) if x.rule == "pointer-line"]
+
+
+def test_pointer_line_clean_when_the_text_is_on_the_line():
+    assert _line_findings('repo:mod/x.lua:2 "local function f()"') == []
+
+
+def test_pointer_line_names_the_found_line_when_one_off():
+    f = _line_findings('repo:mod/x.lua:3 "local function f()"')
+    assert len(f) == 1 and f[0].detail == '#0001 repo:mod/x.lua:3 — "local function f()" not on that line (found at 2)'
+
+
+def test_pointer_line_not_found_when_the_text_is_absent():
+    f = _line_findings('repo:mod/x.lua:2 "local function g()"')
+    assert len(f) == 1 and f[0].detail.endswith("not on that line (not found)")
+
+
+def test_pointer_line_accepts_a_range_and_exempts_artifacts_and_lineless():
+    assert _line_findings('repo:mod/x.lua:1-3 "return 2"') == []
+    assert _line_findings('repo:mod/x.lua "nowhere"') == []
+    assert _line_findings('repo:testing/artifacts/r/a.json:9 "nowhere"') == []
+
+
+def test_pointer_line_exempts_a_superseded_row():
+    with tempfile.TemporaryDirectory() as d:
+        _write(d, "mod/x.lua", "a = 1\n")
+        _tree(d, [_row(1, pointer='repo:mod/x.lua:1 "gone"', status="superseded", successor="#0002"), _row(2)])
+        assert [x for x in cc.check(d, register_only=True) if x.rule == "pointer-line"] == []

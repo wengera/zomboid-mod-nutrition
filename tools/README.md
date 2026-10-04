@@ -285,7 +285,9 @@ import patterns from there.
   receiver outside the file's `-- @hoisted` list; one line per region marked
   `-- @rimguard` may carry the single `pcall`. On `NR_Kernel*.lua` it adds
   `kernel-shape` (only `function NutritionRevamp.kernel.<path>(` or
-  `function K.<path>(`) and `kernel-java` (no Java-side global named).
+  `function K.<path>(`), `kernel-oneline` (no code after `then`/`else`/`do`/`repeat`/a
+  `function` header on its line and no `X and Y or Z` value pick, because the coverage gate
+  is line-granular) and `kernel-java` (no Java-side global named).
 - The kernel tests under `testing/tests/kernel/` need `lupa` 2.8 (`python -m pip install lupa==2.8`): the mod's pure kernel runs offline under its Lua 5.1 runtime, and the suite fails rather than skips without it.
 
 ## Reference tooling
@@ -345,7 +347,9 @@ import patterns from there.
   keys are neither listed in `do-not-cite.csv` nor a child of a listed key (`<listed>.<rest>`
   or `<listed>[<index>` is restricted too; an ancestor of a listed key is not — R34), `repo:`
   paths exist and name none of the pre-restructure docs or plans (the docs are
-  at the tag `research-program-v1`),
+  at the tag `research-program-v1`; rule 3b `pointer-line`: a `repo:` pointer's quoted text must be
+  on its cited line or range of the working-tree file, an artifact path, a line-less pointer and a
+  `superseded` row exempt),
   `owner` (each row's owner page carries its tag), `tag` (every tag in `docs/{areas,platform,facts}`,
   the three reference pages that own register rows (`datasets.md`, `tools.md`, and `wall-map.md`)
   and the skills resolves

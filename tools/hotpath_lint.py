@@ -19,6 +19,10 @@ A file named `NR_Kernel*.lua` (the pure kernel) additionally may not:
                   globals, no anonymous functions assigned to fields -- so that
                   debug.getinfo(f, "L").activelines over the kernel table is the whole
                   executable-line set the coverage gate compares against (Plan 1 ruling 3)
+  kernel-oneline  put code after `then`, `else`, `do`, `repeat` or a `function ...(...)` header on the same line, or use
+                  the value-pick idiom `X and Y or Z` (a line not starting if/elseif/while/until/return with
+                  both ` and ` and ` or `): the coverage gate is line-granular and cannot see an untaken
+                  branch, an unrun loop body or an uncalled function on a one-line form
   kernel-java     name a Java-side global: getPlayer, getOnlinePlayers, getSpecificPlayer,
                   SandboxVars, getSandboxOptions, Events, Hook, CharacterStat, MoodleType,
                   CharacterTrait, ModData, getGameTime, getWorld, isServer, isClient,
@@ -48,6 +52,9 @@ ANY_FUNC_RX = re.compile(r"^\s*(?:local\s+)?function\b|=\s*function\s*\(")
 JAVA_GLOBALS = ("getPlayer", "getOnlinePlayers", "getSpecificPlayer", "SandboxVars", "getSandboxOptions",
                 "Events", "Hook", "CharacterStat", "MoodleType", "CharacterTrait", "ModData", "getGameTime",
                 "getWorld", "isServer", "isClient", "sendServerCommand", "sendClientCommand", "print")
+ONELINE_RX = re.compile(r"\b(?:then|else|do|repeat)\b\s*\S|^\s*function\b[^()]*\([^)]*\)\s*\S")
+PICK_RX = re.compile(r"\band\b.+\bor\b")
+COND_START_RX = re.compile(r"^\s*(?:if|elseif|while|until|return)\b")
 JAVA_RX = re.compile(r"(?<![\w.])(?:%s)\b" % "|".join(JAVA_GLOBALS))
 
 
@@ -85,6 +92,8 @@ def lint_text(path, text):
         if kernel:
             if ANY_FUNC_RX.search(line) and not KERNEL_FUNC_RX.search(line):
                 found.append(Finding(path, n, "kernel-shape", "a kernel function is `function NutritionRevamp.kernel.<path>(` or `function K.<path>(`"))
+            if ONELINE_RX.search(line) or (PICK_RX.search(line) and not COND_START_RX.match(line)):
+                found.append(Finding(path, n, "kernel-oneline", "kernel: one statement per line " + chr(8212) + " the coverage gate cannot see an untaken branch on a one-line form"))
             if JAVA_RX.search(line):
                 found.append(Finding(path, n, "kernel-java", "the kernel never names a Java-side global"))
     if in_region:
