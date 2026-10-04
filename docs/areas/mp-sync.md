@@ -77,6 +77,7 @@ A server-side table or global modData is set up on the global-mod-data init hook
 `OnNewGame` does fire on a dedicated server, with the new `IsoPlayer`, for every character a client creates, so a new character's row can be seeded there, and a row missing for an older character is created when first needed ([#2387/C/C-only], [server-lifecycle.md#creation](../platform/server-lifecycle.md#creation)).
 A world-scoped table is created whenever it is missing rather than only when the world is new, as [Global modData](#global-moddata) states.
 The client's copy is then a display mirror, and how that mirror is refreshed is exactly the choice the options table puts.
+This mod's own global-modData store attaches on the global-mod-data init hook and a mirror of its record reaches the client's server-command handler within the session: in the acceptance re-run the server's store held the player's record at version 1 and the client's mirror read that player's name, version 1 and mode 1, one mirror received, though the run does not say whether the first-sight send or the answer to the client's own request carried it [#2748/M/n=1].
 A mirror refreshed on the mod's own command is late by one round trip, while a mirror refreshed by a server-side transmit is as current as the server's last call, and any transmit from that client in the meantime writes the client's copy back over the server's [#1042/M/n=2].
 
 Two quantities have no owner at all, and both reach the player's screen.
