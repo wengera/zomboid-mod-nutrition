@@ -433,3 +433,38 @@ TK.register("water.take", function(argv)
     if not ran then out.reason = "queue raised: " .. tostring(err) end
     return out
 end)
+
+-- <user> <fullType>. pill.take's held twin (Plan 4 Task 5): pill.take spawns its pill on the
+-- client, so the server's copy of the action has no item to consume. This command spawns nothing:
+-- it takes the FIRST item of the type already in the local inventory (getFirstTypeRecurse -- an
+-- RCON `additem` copy, which both sides hold) and queues ISTakePillAction:new(player, item)
+-- through ISTimedActionQueue.add, the pair the inventory context menu uses. No such item replies
+-- queued=false with reason "not in inventory".
+-- @args <user> <fullType>
+-- @reply {queued, side, fullType, id [, reason]} | string
+-- @purpose Queues ISTakePillAction on the first pill of the type already in the local player's inventory (no spawn), so a server-visible pill is the one taken.
+TK.register("pill.take.held", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { queued = false, reason = why } end
+    local fullType = argv[2]
+    if fullType == nil then return "usage: pill.take.held <user> <fullType>" end
+    local out = { queued = false, side = TK.side, fullType = fullType }
+    if ISTakePillAction == nil or ISTimedActionQueue == nil then
+        out.reason = "no ISTakePillAction/ISTimedActionQueue on this side"
+        return out
+    end
+    local _, inv = TK.call(p, "getInventory")
+    local _, item = TK.call(inv, "getFirstTypeRecurse", fullType)
+    if item == nil then
+        out.reason = "not in inventory"
+        return out
+    end
+    local _, id = TK.call(item, "getID")
+    out.id = id
+    local ran, err = pcall(function()
+        ISTimedActionQueue.add(ISTakePillAction:new(p, item))
+    end)
+    out.queued = ran
+    if not ran then out.reason = "queue raised: " .. tostring(err) end
+    return out
+end)
