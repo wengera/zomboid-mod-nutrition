@@ -64,6 +64,8 @@ correct it.
 | `scenario-20261004-190146` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast --profile x13-nutrition-on --speed 30` | [`facts/body-and-weight.md`](../facts/body-and-weight.md), [`facts/eating-pipeline.md`](../facts/eating-pipeline.md) |
 | `x131p-20261004-192310` | `persist.json` | `testing/experiments/x131_persist.py` — **five server boots in one driver and one file**: `boots.1`, `2`, `3`, `3r` on one world, `boots.4` the fresh-fixture control | [`platform/server-lifecycle.md`](../platform/server-lifecycle.md) |
 | `x131t-20261004-195234` | `traits.json` | `testing/experiments/x131_traits.py` | [`platform/mp-model.md`](../platform/mp-model.md) |
+| `x131s-20261004-200859` | `swtraits.json` | `testing/experiments/x131_swtraits.py` | [`facts/other-mods/somewhattraitscore.md`](../facts/other-mods/somewhattraitscore.md) |
+| `x131r-20261004-201719` | `ss_track.json` | `testing/experiments/x131_ss_track.py` | [`facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md) |
 
 ## Script/artifact skew
 
@@ -1913,3 +1915,84 @@ object), the grant (`moddata.set admin TKX_grant TKX:Probe`), `grants_polls`, th
 | `phases.A1A2_summary.A2.add_hit_ms_from_push`, `summary.A2_from_push`, `trials[n].add_poll.hit_ms_from_push` for A2 | 177–371 ms | The first client read after each push already held the trait and the push came 1.2–1.6 s after the write, so the number bounds when the list was present, not when the push arrived. |
 | `phases.A1A2_summary.A1.removed`, `phases.A1A2_summary.A2.removed`, `trials[n].remove_poll.arrived`, `phases.A3.remove_poll.arrived`, `verdicts.A3.observed.removed` | `false` | The empty list serialises as `{}`, which the driver's name test reads as no answer rather than as absent, so a removal never registered as arrived. Read `trials[n].remove_poll.rows`. |
 | `phases.A1A2_summary.A1.pre_client_has`, `phases.A1A2_summary.A2.pre_client_has`, `trials[n].pre_client_has` | `null` | The same `{}` serialisation: the client's list was empty before every add (`trials[n].pre_client.traitList`). |
+
+**`x131s-20261004-200859/swtraits.json`** — produced by `testing/experiments/x131_swtraits.py` at commit
+`1ae3425` with the harness Lua clean (`harness_lua_dirty` false) and `doctor_clean` true. Plan 1 Task 15:
+**X42** in one live session of one boot, profile `x13-swtraits` (PZTestKit, `SomewhatTraits` and
+`SomewhatTraitsCore` from workshop `3498347699`, their live `42.15/` trees read 2026-10-04, and
+`TKX_TraitProbe`; the fixture's own sandbox, `DayLength` 4, a 90-minute day). Both `[[verify]]` rows
+passed (`SWTraits.traits` resolved with 32 keys; the probe's `version` 1), no mod was missing,
+`server_error_count` 0, `client_lua_error` false, client quit and server stop rc 0; 480.5 s wall.
+sha256 `9dfbd28e…6ade98898` (244 332 bytes), byte-for-byte identical to its run copy. **Skew-free**: the
+driver was written before the run and not edited after it.
+
+How to read it. `arms.a`–`arms.f` are six 60 s idle arms in run order: `a` weight 75 trait absent, `b`
+weight 75 trait held, `c`/`d` the same at 85, `e`/`f` at 80. Each row is one server `stats.get admin`:
+`wall` is the server's own `getTimestampMs` at the snapshot (the series' clock), `calories`, `weight`,
+`running`, `sprinting` and `traitList` (`held` is the driver's test for `adaptivemetabolism` in it).
+`phases.W75`/`W85`/`W80` hold each pair's writes: `weight_set` and `cal_set_absent`/`cal_set_held`
+(server `nutrition.set`, each with its `nutrition.get` read back), the grant
+(`moddata.set admin TKX_grant SWTraits:SWAdaptiveMetabolism`) and `grant_wait` (server reads until the
+list held it), the removal and `remove_wait`. `phases.summary.<pair>` is the grading: `slope_absent` and
+`slope_held` (least squares, kcal per second on the server's clock), `slope_diff`, `absent_residuals`
+and `held_residuals` (each poll interval's calorie change less the control's slope times its length),
+`held_steps` (the intervals whose residual exceeds `step_floor_used`), `step_spacing_s` (for each pair
+of consecutive steps, `lo` and `hi` bound the true spacing, since a step lies anywhere inside its
+interval) and `cadence_mean_s`. The server polls were about 1.3 s apart.
+
+- **The write reaches the store.** Weight 75: twelve steps of 0.3319–0.3339 kcal (median 0.3332), mean
+  cadence 5.01 s; the held slope -0.1749 against -0.2404 absent (+0.0655 kcal/s). Weight 85: twelve
+  steps of -0.3313 to -0.3355 (median -0.3347), mean cadence 5.09 s; -0.3388 against -0.2724
+  (-0.0665). Every `step_spacing_s` bracket holds 5 s. Predicted: 60 / 90 × 0.5 = 0.3333 kcal per 5 s.
+- **The dead band.** Weight 80: held -0.25664 against absent -0.25673, no step.
+- **The controls.** No trait-absent arm showed a step (`control_steps` 0, residual spread 0.001–0.002
+  kcal); the three absent slopes stand as the weights over 80 (0.937 and 1.061 against 0.9375 and
+  1.0625). The grant held at the first read after it each time, and every removal left the list empty
+  (`TKX_TraitProbe.grants` 3, `removes` 3).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session**, one fixture, one idle player, one build, one day length; 60 s per arm. |
+| `phases.summary.W75.step_spacing`, `phases.summary.W85.step_spacing`, `summary.spacing` | min 3.7 / 3.695 s, max 6.003 / 6.406 s | The spread of the spacings between the end stamps of step-bearing intervals: a step lies anywhere inside an interval of about 1.3–2 s, so the extremes measure the polling, not the cadence. Read `phases.summary.<pair>.step_spacing_s` (each spacing's `lo`/`hi` bracket) and `cadence_mean_s`. |
+| `phases.<pair>.cal_set_absent.readback.calories`, `phases.<pair>.cal_set_held.readback.calories` | 999.46–999.87 | The read back trails the write by one bus round trip of vanilla's drain; the write was 1000. |
+
+**`x131r-20261004-201719/ss_track.json`** — produced by `testing/experiments/x131_ss_track.py` at commit
+`1ae3425` with the harness Lua clean (`harness_lua_dirty` false) and `doctor_clean` true. Plan 1 Task 15:
+**X44** in one live session of one boot, profile `x13-ssread` (PZTestKit, `simpleStatus` from workshop
+`2867431511`, its live `42.20/` tree read 2026-10-04, then `TKX_SSRead`; the fixture's own sandbox).
+Both `[[verify]]` rows passed (`text.get IGUI_SS_BARTITLE_HAPPY` answered "Happiness" on the client;
+`TKX_SS.calls` resolved), no mod was missing, `server_error_count` 0, `client_lua_error` false, client
+quit and server stop rc 0; 97.8 s wall. sha256 `f0e58bf6…d19eb92d` (26 408 bytes), byte-for-byte identical to its run copy. **Skew-free**: the driver was written before the run and not edited after it.
+
+How to read it. `phases.L` is the wrap check: `TKX_SS.calls` read 11, then 26 about 2.5 s later, and
+209 at the end (`phases.E`); `phases.L.bars` holds all four macro bars' text at the start. Every other
+row is a client triplet: `bar_before` (`lua.global TKX_SS.<macro>`, the bar's text as the probe copied it
+from `self.barInfo`), `store` (client `stats.get`'s `calories` or `proteins`, with `store_wall` the
+client's `getTimestampMs`), `bar_after` (the same global again); `match` is true when either bar read
+equals `round(store, 1)`. `phases.C0.rows` are three pre-write triplets; `phases.AC` writes
+`nutrition.set admin calories 1500` and `phases.AP` `proteins 120` on the server (`set` with its python
+bracket, `readback` the server's `nutrition.get`), then triplets for 6 s from the acknowledgement;
+`t_from_ack_ms` is the store read's client stamp less the acknowledgement's python stamp (one host,
+one clock). Each triplet took about 1.5 s of client bus round trips.
+
+- **Control.** Three of three pre-write triplets matched (bar 797.9 → store 797.63 → bar 797.6, and so on):
+  the read before the store carried the previous push's value, the read after it the store's.
+- **Calories 1500.** The server read back 1499.67; the first bar read after the write (1.77 s after
+  the acknowledgement) read 1499.7, the store 1499.4 at 2.18 s, the next bar 1499.4; four of four
+  triplets matched as the store drained.
+- **Proteins 120.** The server read back 119.97; the first bar read (2.27 s) read `120(x1.5)` — the
+  mod's own multiplier caption appended — and five of five triplets matched, the bar following the store
+  to 119.9.
+- The arrival lag is **not resolved**: both the store and the bar already held the written value at the
+  first read after each write.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session**, one fixture, one client, one build; calories and proteins written, carbohydrates and lipids only read. |
+| `phases.AC.tagged`, `phases.AP.tagged`, `verdicts.AC.observed.tagged`, `verdicts.AP.observed.tagged` | `+1s`, `+2s`, `+4s` | Each triplet took about 1.5 s, so no read fell near +1 s: the `+1s` and `+2s` tags name the same triplet at 2.18 s (calories) and 2.76 s (proteins). Read `phases.<arm>.rows[n].t_from_ack_ms`. |
+| `phases.AC.store_first`, `phases.AC.bar_first_ms`, `phases.AP.store_first`, `phases.AP.bar_first_ms`, `summary.AC`, `summary.AP`, `verdicts.AC.observed.store_first_ms`, `verdicts.AC.observed.bar_first_ms`, `verdicts.AP.observed.store_first_ms`, `verdicts.AP.observed.bar_first_ms` | 1774–2760 ms | Both had already changed at the first read after the write, and the two are stamped on different clocks (the bar on the python read's end, the store on the client's snapshot), so neither is an arrival and their difference is not a lag. |
+| `constants.POLL_S` | 0.5 | The requested spacing; the triplets came about 1.5 s apart. |

@@ -123,9 +123,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
 | [#2088/C/open] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
 | [#2089/C/open] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
-| [#2091/C/open] | Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence? | [open-questions.md](#x42) | X42 | server calorie slopes with the trait held at weights below, above and inside its band, each against the trait absent at the same weight |
-| [#2092/C/open] | Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server? | [open-questions.md](#x43) | X43 | a desk re-read of the live tree, then, if the multiplier is wired, its grant at three server-set protein values |
-| [#2093/C/open] | Do simpleStatus's bars track the vanilla macro stores on a client? | [open-questions.md](#x44) | X44 | a probe copying the bars' text beside the client's store after a server write, timing the arrival |
 | [#2094/C/open] | Do QualityCooking and BeyondTen each load beside a probe mod on this server? | [open-questions.md](#x45a) | X45a | one co-boot reading each mod's own marker on both sides beside the probe's |
 | [#2095/C/open] | Does QualityCooking's eat wrap compose with a second wrap of the same method, and which is outermost? | [open-questions.md](#x45b) | X45b | a code read, then one eat through a sentinel probe wrap beside QualityCooking's, against a boot without it |
 | [#2096/C/open] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
@@ -394,24 +391,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [#2085/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
-
-<a id="x42"></a>
-### X42 — Does SomewhatTraitsCore's adaptive-metabolism calorie write reach the calorie store under a co-boot, and at what cadence?
-- Whether SomewhatTraitsCore's adaptive-metabolism calorie write reaches the calorie store under a co-boot, and at what cadence, is open [#2091/C/open].
-- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
-- Settled by: server calorie slopes with the trait held at weights below, above and inside its band, each against a trait-absent arm at the same weight — [experiments.md § Named experiments](../reference/experiments.md), row `X42`.
-
-<a id="x43"></a>
-### X43 — Does SkillRecoveryJournal's protein-gated exercise multiplier read the vanilla protein store's value on the server?
-- Whether SkillRecoveryJournal's protein-gated exercise multiplier reads the vanilla protein store's value on the server is open [#2092/C/open].
-- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
-- Settled by: a desk re-read of the live tree for a wired multiplier, then its own grant at three server-set protein values, each arm the others' control — [experiments.md § Named experiments](../reference/experiments.md), row `X43`.
-
-<a id="x44"></a>
-### X44 — Do simpleStatus's bars track the vanilla macro stores on a client?
-- Whether simpleStatus's bars track the vanilla macro stores on a client is open [#2093/C/open].
-- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
-- Settled by: a probe copying the bars' own text beside the client's macro store after a server write, pair by pair, timing the arrival against the push — [experiments.md § Named experiments](../reference/experiments.md), row `X44`.
 
 <a id="x45a"></a>
 ### X45a — Do QualityCooking and BeyondTen each load beside a probe mod on this server?

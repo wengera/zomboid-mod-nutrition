@@ -1,0 +1,1091 @@
+{
+ "run_id": "x131r-20261004-201719",
+ "session": "X44: simpleStatus macro bars (TKX_SSRead copies the bar text) against the client's own Nutrition store after a server write of calories 1500 and proteins 120; client (bar, store, bar) triplets timed from the write's ack",
+ "user": "admin",
+ "profile": {
+  "name": "x13-ssread",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x13-ssread.toml",
+  "fixture": "default",
+  "description": "PZTestKit + simpleStatus (workshop 2867431511) + TKX_SSRead - X44.",
+  "mods": [
+   "PZTestKit",
+   "simpleStatus",
+   "TKX_SSRead"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "simpleStatus": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\2867431511\\mods\\SimpleStatus",
+   "TKX_SSRead": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_SSRead"
+  },
+  "skip": [],
+  "workshop_items": {
+   "simpleStatus": "2867431511"
+  },
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "simpleStatus",
+  "TKX_SSRead"
+ ],
+ "commit": "1ae3425",
+ "harness_lua_commit": "42425e9",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x131b-20261004-175911",
+ "dry_run": false,
+ "subject_tree": {
+  "workshop_item": "2867431511",
+  "mod": "SimpleStatus/42.20",
+  "read_on": "2026-10-04",
+  "files_mtime": "2026-09-13 16:53"
+ },
+ "constants": {
+  "LIVE_GAP_S": 2.0,
+  "CTRL_N": 3,
+  "POLL_S": 0.5,
+  "WINDOW_S": 6.0,
+  "TAGS_S": [
+   1.0,
+   2.0,
+   4.0
+  ],
+  "TOL": 5.0,
+  "ARMS": [
+   [
+    "AC",
+    "calories",
+    1500,
+    "TKX_SS.calories"
+   ],
+   [
+    "AP",
+    "proteins",
+    120,
+    "TKX_SS.proteins"
+   ]
+  ]
+ },
+ "world_changes": {
+  "restored": "none",
+  "left_in_place": [
+   "calories near 1500",
+   "proteins near 120"
+  ]
+ },
+ "steps": [
+  {
+   "step": "c0_server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 65.616,
+   "wall_after": 65.874,
+   "epoch_ms_before": 1791159505206,
+   "epoch_ms_after": 1791159505464,
+   "took": 0.258,
+   "ack": {
+    "calories": 796.148193359375,
+    "carbs": -0.842353105545044,
+    "lipids": -0.2719596326351166,
+    "proteins": -0.2069781869649887,
+    "weight": 80,
+    "hunger": 0.002202552743256092,
+    "thirst": 0.0018374710343778133,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "AC_set",
+   "cmd": "nutrition.set",
+   "args": "admin calories 1500",
+   "side": "server",
+   "wall_before": 67.152,
+   "wall_after": 67.915,
+   "epoch_ms_before": 1791159506742,
+   "epoch_ms_after": 1791159507505,
+   "took": 0.763,
+   "ack": {
+    "calories": 1500,
+    "carbs": -0.954058825969696,
+    "lipids": -0.30802467465400696,
+    "proteins": -0.2344258725643158,
+    "weight": 80,
+    "hunger": 0.0025082258507609367,
+    "thirst": 0.0020927980076521635,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "AC_readback",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 67.915,
+   "wall_after": 69.18,
+   "epoch_ms_before": 1791159507505,
+   "epoch_ms_after": 1791159508770,
+   "took": 1.265,
+   "ack": {
+    "calories": 1499.66796875,
+    "carbs": -1.026681900024414,
+    "lipids": -0.33147159218788147,
+    "proteins": -0.2522704303264618,
+    "weight": 80.00010114164434,
+    "hunger": 0.002706903265789151,
+    "thirst": 0.0022587936837226152,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "AP_set",
+   "cmd": "nutrition.set",
+   "args": "admin proteins 120",
+   "side": "server",
+   "wall_before": 76.823,
+   "wall_after": 77.833,
+   "epoch_ms_before": 1791159516413,
+   "epoch_ms_after": 1791159517423,
+   "took": 1.01,
+   "ack": {
+    "calories": 1497.4390869140625,
+    "carbs": -1.513272762298584,
+    "lipids": -0.4885709881782532,
+    "proteins": 120,
+    "weight": 80.00077823412812,
+    "hunger": 0.004037063103169203,
+    "thirst": 0.0033710014540702105,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "AP_readback",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 77.833,
+   "wall_after": 79.847,
+   "epoch_ms_before": 1791159517423,
+   "epoch_ms_after": 1791159519437,
+   "took": 2.014,
+   "ack": {
+    "calories": 1496.92626953125,
+    "carbs": -1.6251919269561768,
+    "lipids": -0.5247049927711487,
+    "proteins": 119.97252655029297,
+    "weight": 80.0009338273403,
+    "hunger": 0.004342758096754551,
+    "thirst": 0.003626816673204303,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "L": {
+   "first": {
+    "epoch_ms_before": 1791159493793,
+    "epoch_ms_after": 1791159494301,
+    "text": 11,
+    "num": 11,
+    "resolved": true
+   },
+   "second": {
+    "epoch_ms_before": 1791159496301,
+    "epoch_ms_after": 1791159496811,
+    "text": 26,
+    "num": 26,
+    "resolved": true
+   },
+   "installed": {
+    "epoch_ms_before": 1791159496811,
+    "epoch_ms_after": 1791159497322,
+    "text": true,
+    "num": null,
+    "resolved": true
+   },
+   "bars": {
+    "calories": {
+     "epoch_ms_before": 1791159497322,
+     "epoch_ms_after": 1791159497833,
+     "text": "798.4",
+     "num": 798.4,
+     "resolved": true
+    },
+    "carbs": {
+     "epoch_ms_before": 1791159497833,
+     "epoch_ms_after": 1791159498341,
+     "text": "-0.4",
+     "num": -0.4,
+     "resolved": true
+    },
+    "lipids": {
+     "epoch_ms_before": 1791159498341,
+     "epoch_ms_after": 1791159498849,
+     "text": "-0.1",
+     "num": -0.1,
+     "resolved": true
+    },
+    "proteins": {
+     "epoch_ms_before": 1791159498849,
+     "epoch_ms_after": 1791159499360,
+     "text": "-0.1",
+     "num": -0.1,
+     "resolved": true
+    }
+   }
+  },
+  "C0": {
+   "server": {
+    "calories": 796.148193359375,
+    "carbs": -0.842353105545044,
+    "lipids": -0.2719596326351166,
+    "proteins": -0.2069781869649887,
+    "weight": 80,
+    "hunger": 0.002202552743256092,
+    "thirst": 0.0018374710343778133,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "rows": [
+    {
+     "tag": "c0_0",
+     "bar_before": {
+      "epoch_ms_before": 1791159499365,
+      "epoch_ms_after": 1791159499870,
+      "text": "797.9",
+      "num": 797.9,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159500382,
+      "epoch_ms_after": 1791159500893,
+      "text": "797.6",
+      "num": 797.6,
+      "resolved": true
+     },
+     "store": 797.6292724609375,
+     "store_r1": 797.6,
+     "store_wall": 1791159500181,
+     "store_epoch_ms_before": 1791159499870,
+     "store_epoch_ms_after": 1791159500382,
+     "match_before": false,
+     "match_after": true,
+     "match": true
+    },
+    {
+     "tag": "c0_1",
+     "bar_before": {
+      "epoch_ms_before": 1791159501393,
+      "epoch_ms_after": 1791159501904,
+      "text": "797.4",
+      "num": 797.4,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159502417,
+      "epoch_ms_after": 1791159502927,
+      "text": "797.1",
+      "num": 797.1,
+      "resolved": true
+     },
+     "store": 797.1197509765625,
+     "store_r1": 797.1,
+     "store_wall": 1791159502185,
+     "store_epoch_ms_before": 1791159501904,
+     "store_epoch_ms_after": 1791159502417,
+     "match_before": false,
+     "match_after": true,
+     "match": true
+    },
+    {
+     "tag": "c0_2",
+     "bar_before": {
+      "epoch_ms_before": 1791159503428,
+      "epoch_ms_after": 1791159503939,
+      "text": "796.9",
+      "num": 796.9,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159504195,
+      "epoch_ms_after": 1791159504706,
+      "text": "796.6",
+      "num": 796.6,
+      "resolved": true
+     },
+     "store": 796.608642578125,
+     "store_r1": 796.6,
+     "store_wall": 1791159504180,
+     "store_epoch_ms_before": 1791159503939,
+     "store_epoch_ms_after": 1791159504195,
+     "match_before": false,
+     "match_after": true,
+     "match": true
+    }
+   ]
+  },
+  "AC": {
+   "field": "calories",
+   "value": 1500,
+   "pre": {
+    "tag": "AC_pre",
+    "bar_before": {
+     "epoch_ms_before": 1791159505471,
+     "epoch_ms_after": 1791159505728,
+     "text": "796.4",
+     "num": 796.4,
+     "resolved": true
+    },
+    "bar_after": {
+     "epoch_ms_before": 1791159506234,
+     "epoch_ms_after": 1791159506742,
+     "text": "796.1",
+     "num": 796.1,
+     "resolved": true
+    },
+    "store": 796.0969848632812,
+    "store_r1": 796.1,
+    "store_wall": 1791159506184,
+    "store_epoch_ms_before": 1791159505728,
+    "store_epoch_ms_after": 1791159506234,
+    "match_before": false,
+    "match_after": true,
+    "match": true
+   },
+   "set": {
+    "step": "AC_set",
+    "cmd": "nutrition.set",
+    "args": "admin calories 1500",
+    "side": "server",
+    "wall_before": 67.152,
+    "wall_after": 67.915,
+    "epoch_ms_before": 1791159506742,
+    "epoch_ms_after": 1791159507505,
+    "took": 0.763,
+    "ack": {
+     "calories": 1500,
+     "carbs": -0.954058825969696,
+     "lipids": -0.30802467465400696,
+     "proteins": -0.2344258725643158,
+     "weight": 80,
+     "hunger": 0.0025082258507609367,
+     "thirst": 0.0020927980076521635,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "readback": {
+    "calories": 1499.66796875,
+    "carbs": -1.026681900024414,
+    "lipids": -0.33147159218788147,
+    "proteins": -0.2522704303264618,
+    "weight": 80.00010114164434,
+    "hunger": 0.002706903265789151,
+    "thirst": 0.0022587936837226152,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "rows": [
+    {
+     "tag": "AC_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159508770,
+      "epoch_ms_after": 1791159509279,
+      "text": "1499.7",
+      "num": 1499.7,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159509789,
+      "epoch_ms_after": 1791159510300,
+      "text": "1499.4",
+      "num": 1499.4,
+      "resolved": true
+     },
+     "store": 1499.4375,
+     "store_r1": 1499.4,
+     "store_wall": 1791159509682,
+     "store_epoch_ms_before": 1791159509279,
+     "store_epoch_ms_after": 1791159509789,
+     "match_before": false,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 2177,
+     "bar_after_from_ack_ms": 2795
+    },
+    {
+     "tag": "AC_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159510300,
+      "epoch_ms_after": 1791159510808,
+      "text": "1499.4",
+      "num": 1499.4,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159511321,
+      "epoch_ms_after": 1791159511834,
+      "text": "1499.2",
+      "num": 1499.2,
+      "resolved": true
+     },
+     "store": 1499.1815185546875,
+     "store_r1": 1499.2,
+     "store_wall": 1791159511180,
+     "store_epoch_ms_before": 1791159510808,
+     "store_epoch_ms_after": 1791159511321,
+     "match_before": false,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 3675,
+     "bar_after_from_ack_ms": 4329
+    },
+    {
+     "tag": "AC_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159511834,
+      "epoch_ms_after": 1791159512345,
+      "text": "1498.9",
+      "num": 1498.9,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159512855,
+      "epoch_ms_after": 1791159513366,
+      "text": "1498.7",
+      "num": 1498.7,
+      "resolved": true
+     },
+     "store": 1498.6695556640625,
+     "store_r1": 1498.7,
+     "store_wall": 1791159512679,
+     "store_epoch_ms_before": 1791159512345,
+     "store_epoch_ms_after": 1791159512855,
+     "match_before": false,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 5174,
+     "bar_after_from_ack_ms": 5861
+    },
+    {
+     "tag": "AC_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159513366,
+      "epoch_ms_after": 1791159513874,
+      "text": "1498.7",
+      "num": 1498.7,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159514380,
+      "epoch_ms_after": 1791159514887,
+      "text": "1498.4",
+      "num": 1498.4,
+      "resolved": true
+     },
+     "store": 1498.4132080078125,
+     "store_r1": 1498.4,
+     "store_wall": 1791159514184,
+     "store_epoch_ms_before": 1791159513874,
+     "store_epoch_ms_after": 1791159514380,
+     "match_before": false,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 6679,
+     "bar_after_from_ack_ms": 7382
+    }
+   ],
+   "tagged": {
+    "+1s": {
+     "t_from_ack_ms": 2177,
+     "bar_before": "1499.7",
+     "store_r1": 1499.4,
+     "bar_after": "1499.4",
+     "match": true
+    },
+    "+2s": {
+     "t_from_ack_ms": 2177,
+     "bar_before": "1499.7",
+     "store_r1": 1499.4,
+     "bar_after": "1499.4",
+     "match": true
+    },
+    "+4s": {
+     "t_from_ack_ms": 3675,
+     "bar_before": "1499.4",
+     "store_r1": 1499.2,
+     "bar_after": "1499.2",
+     "match": true
+    }
+   },
+   "store_first": 2177,
+   "bar_first_ms": 1774,
+   "matches_after_store_change": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "bar_before_store": false
+  },
+  "AP": {
+   "field": "proteins",
+   "value": 120,
+   "pre": {
+    "tag": "AP_pre",
+    "bar_before": {
+     "epoch_ms_before": 1791159514891,
+     "epoch_ms_after": 1791159515401,
+     "text": "-0.3",
+     "num": -0.3,
+     "resolved": true
+    },
+    "bar_after": {
+     "epoch_ms_before": 1791159515907,
+     "epoch_ms_after": 1791159516413,
+     "text": "-0.3",
+     "num": -0.3,
+     "resolved": true
+    },
+    "store": -0.347084105014801,
+    "store_r1": -0.3,
+    "store_wall": 1791159515686,
+    "store_epoch_ms_before": 1791159515401,
+    "store_epoch_ms_after": 1791159515907,
+    "match_before": true,
+    "match_after": true,
+    "match": true
+   },
+   "set": {
+    "step": "AP_set",
+    "cmd": "nutrition.set",
+    "args": "admin proteins 120",
+    "side": "server",
+    "wall_before": 76.823,
+    "wall_after": 77.833,
+    "epoch_ms_before": 1791159516413,
+    "epoch_ms_after": 1791159517423,
+    "took": 1.01,
+    "ack": {
+     "calories": 1497.4390869140625,
+     "carbs": -1.513272762298584,
+     "lipids": -0.4885709881782532,
+     "proteins": 120,
+     "weight": 80.00077823412812,
+     "hunger": 0.004037063103169203,
+     "thirst": 0.0033710014540702105,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "readback": {
+    "calories": 1496.92626953125,
+    "carbs": -1.6251919269561768,
+    "lipids": -0.5247049927711487,
+    "proteins": 119.97252655029297,
+    "weight": 80.0009338273403,
+    "hunger": 0.004342758096754551,
+    "thirst": 0.003626816673204303,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": true,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "rows": [
+    {
+     "tag": "AP_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159519437,
+      "epoch_ms_after": 1791159519694,
+      "text": "120(x1.5)",
+      "num": 120.0,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159520205,
+      "epoch_ms_after": 1791159520711,
+      "text": "120(x1.5)",
+      "num": 120.0,
+      "resolved": true
+     },
+     "store": 119.96977233886719,
+     "store_r1": 120.0,
+     "store_wall": 1791159520183,
+     "store_epoch_ms_before": 1791159519694,
+     "store_epoch_ms_after": 1791159520205,
+     "match_before": true,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 2760,
+     "bar_after_from_ack_ms": 3288
+    },
+    {
+     "tag": "AP_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159520711,
+      "epoch_ms_after": 1791159521222,
+      "text": "120(x1.5)",
+      "num": 120.0,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159521728,
+      "epoch_ms_after": 1791159522237,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "store": 119.94230651855469,
+     "store_r1": 119.9,
+     "store_wall": 1791159521682,
+     "store_epoch_ms_before": 1791159521222,
+     "store_epoch_ms_after": 1791159521728,
+     "match_before": false,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 4259,
+     "bar_after_from_ack_ms": 4814
+    },
+    {
+     "tag": "AP_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159522237,
+      "epoch_ms_after": 1791159522749,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159523262,
+      "epoch_ms_after": 1791159523769,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "store": 119.92857360839844,
+     "store_r1": 119.9,
+     "store_wall": 1791159523186,
+     "store_epoch_ms_before": 1791159522749,
+     "store_epoch_ms_after": 1791159523262,
+     "match_before": true,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 5763,
+     "bar_after_from_ack_ms": 6346
+    },
+    {
+     "tag": "AP_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159523769,
+      "epoch_ms_after": 1791159524275,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159524786,
+      "epoch_ms_after": 1791159525293,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "store": 119.9011001586914,
+     "store_r1": 119.9,
+     "store_wall": 1791159524684,
+     "store_epoch_ms_before": 1791159524275,
+     "store_epoch_ms_after": 1791159524786,
+     "match_before": true,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 7261,
+     "bar_after_from_ack_ms": 7870
+    },
+    {
+     "tag": "AP_post",
+     "bar_before": {
+      "epoch_ms_before": 1791159525293,
+      "epoch_ms_after": 1791159525804,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "bar_after": {
+      "epoch_ms_before": 1791159526316,
+      "epoch_ms_after": 1791159526822,
+      "text": "119.9(x1.5)",
+      "num": 119.9,
+      "resolved": true
+     },
+     "store": 119.88735961914062,
+     "store_r1": 119.9,
+     "store_wall": 1791159526185,
+     "store_epoch_ms_before": 1791159525804,
+     "store_epoch_ms_after": 1791159526316,
+     "match_before": true,
+     "match_after": true,
+     "match": true,
+     "t_from_ack_ms": 8762,
+     "bar_after_from_ack_ms": 9399
+    }
+   ],
+   "tagged": {
+    "+1s": {
+     "t_from_ack_ms": 2760,
+     "bar_before": "120(x1.5)",
+     "store_r1": 120.0,
+     "bar_after": "120(x1.5)",
+     "match": true
+    },
+    "+2s": {
+     "t_from_ack_ms": 2760,
+     "bar_before": "120(x1.5)",
+     "store_r1": 120.0,
+     "bar_after": "120(x1.5)",
+     "match": true
+    },
+    "+4s": {
+     "t_from_ack_ms": 4259,
+     "bar_before": "120(x1.5)",
+     "store_r1": 119.9,
+     "bar_after": "119.9(x1.5)",
+     "match": true
+    }
+   },
+   "store_first": 2760,
+   "bar_first_ms": 2271,
+   "matches_after_store_change": [
+    true,
+    true,
+    true,
+    true,
+    true
+   ],
+   "bar_before_store": false
+  },
+  "E": {
+   "calls": {
+    "epoch_ms_before": 1791159526829,
+    "epoch_ms_after": 1791159527339,
+    "text": 209,
+    "num": 209,
+    "resolved": true
+   }
+  }
+ },
+ "verdicts": {
+  "L": {
+   "phase": "L",
+   "predicted": "TKX_SS.calls rises",
+   "falsifier": "flat or unresolved: the wrap did not take",
+   "observed": {
+    "first": 11,
+    "second": 26
+   },
+   "verdict": "as_predicted",
+   "wall": 59.77
+  },
+  "C0": {
+   "phase": "C0",
+   "predicted": "each store value rounded to 0.1 equals a bracketing bar text",
+   "falsifier": "a pre-write bar that differs from the client's store",
+   "observed": {
+    "matches": [
+     true,
+     true,
+     true
+    ],
+    "bars": [
+     "797.9",
+     "797.4",
+     "796.9"
+    ],
+    "stores": [
+     797.6,
+     797.1,
+     796.6
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 65.874
+  },
+  "AC": {
+   "phase": "AC",
+   "predicted": "the bar equals the client's store rounded to 0.1 from the triplet after the store's first change on, never ahead of the store",
+   "falsifier": "the bar lags the store by more than one triplet, or leads it",
+   "observed": {
+    "store_first_ms": 2177,
+    "bar_first_ms": 1774,
+    "matches": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "bar_before_store": false,
+    "tagged": {
+     "+1s": {
+      "t_from_ack_ms": 2177,
+      "bar_before": "1499.7",
+      "store_r1": 1499.4,
+      "bar_after": "1499.4",
+      "match": true
+     },
+     "+2s": {
+      "t_from_ack_ms": 2177,
+      "bar_before": "1499.7",
+      "store_r1": 1499.4,
+      "bar_after": "1499.4",
+      "match": true
+     },
+     "+4s": {
+      "t_from_ack_ms": 3675,
+      "bar_before": "1499.4",
+      "store_r1": 1499.2,
+      "bar_after": "1499.2",
+      "match": true
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 75.297
+  },
+  "AP": {
+   "phase": "AP",
+   "predicted": "the bar equals the client's store rounded to 0.1 from the triplet after the store's first change on, never ahead of the store",
+   "falsifier": "the bar lags the store by more than one triplet, or leads it",
+   "observed": {
+    "store_first_ms": 2760,
+    "bar_first_ms": 2271,
+    "matches": [
+     true,
+     true,
+     true,
+     true,
+     true
+    ],
+    "bar_before_store": false,
+    "tagged": {
+     "+1s": {
+      "t_from_ack_ms": 2760,
+      "bar_before": "120(x1.5)",
+      "store_r1": 120.0,
+      "bar_after": "120(x1.5)",
+      "match": true
+     },
+     "+2s": {
+      "t_from_ack_ms": 2760,
+      "bar_before": "120(x1.5)",
+      "store_r1": 120.0,
+      "bar_after": "120(x1.5)",
+      "match": true
+     },
+     "+4s": {
+      "t_from_ack_ms": 4259,
+      "bar_before": "120(x1.5)",
+      "store_r1": 119.9,
+      "bar_after": "119.9(x1.5)",
+      "match": true
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 87.232
+  }
+ },
+ "session_ready_wall": 53.442,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "client",
+   "cmd": "text.get",
+   "args": "IGUI_SS_BARTITLE_HAPPY",
+   "expect": "\"Happiness\"",
+   "ok": true,
+   "got": {
+    "key": "IGUI_SS_BARTITLE_HAPPY",
+    "text": "Happiness",
+    "miss": false,
+    "side": "client"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_SS.calls",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_SS.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 8
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "timeline": [
+  {
+   "t": 53.4,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.7,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "text.get",
+   "ok": true,
+   "got": "{\"key\": \"IGUI_SS_BARTITLE_HAPPY\", \"text\": \"Happiness\", \"miss\": false, \"side\": \"client\"}"
+  },
+  {
+   "t": 54.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_SS.calls\", \"type\": \"number\", \"resolved\": true, \"value\": 8}"
+  },
+  {
+   "t": 59.8,
+   "phase": "verdict",
+   "name": "L",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 65.9,
+   "phase": "step",
+   "took": 0.258,
+   "name": "c0_server",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 65.9,
+   "phase": "verdict",
+   "name": "C0",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 67.9,
+   "phase": "step",
+   "took": 0.763,
+   "name": "AC_set",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 69.2,
+   "phase": "step",
+   "took": 1.265,
+   "name": "AC_readback",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 75.3,
+   "phase": "verdict",
+   "name": "AC",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 77.8,
+   "phase": "step",
+   "took": 1.01,
+   "name": "AP_set",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 79.8,
+   "phase": "step",
+   "took": 2.014,
+   "name": "AP_readback",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 87.2,
+   "phase": "verdict",
+   "name": "AP",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 89.9,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 97.8,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "summary": {
+  "verify_ok": [
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "verdicts": {
+   "L": "as_predicted",
+   "C0": "as_predicted",
+   "AC": "as_predicted",
+   "AP": "as_predicted"
+  },
+  "calls": [
+   11,
+   26,
+   209
+  ],
+  "AC": {
+   "store_first": 2177,
+   "bar_first_ms": 1774
+  },
+  "AP": {
+   "store_first": 2760,
+   "bar_first_ms": 2271
+  }
+ },
+ "wall_seconds": 97.8,
+ "server_error_count": 0,
+ "client_lua_error": false
+}

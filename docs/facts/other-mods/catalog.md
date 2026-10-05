@@ -72,13 +72,16 @@ The Sweep 1 sites table is 11 rows, one per signalled mod, naming the side each 
 What each signalled mod does with its hits is the reading the count cannot carry, and it is one line per mod.
 
 `simpleStatus`'s 12 nutrition hits are all client-side and all in one file, reading the four macros, the body weight and the three weight-trend predicates, each wrapped in a round to one decimal for a status bar [#1582].
+Booted once beside a probe that copied its bar text, those bars equalled the client's own mirrored store rounded to one decimal at every read after a server write, following the client's mirror within one push rather than the server's value ([#2093/M/n=1], [simplestatus.md](simplestatus.md#mp)).
 `CleanUI`'s 11 nutrition hits all sit in whole copies of vanilla UI files, and 9 of them are `item:getHungerChange()` in inventory tooltips and the eat-portion menu [#1583].
 `SkillRecoveryJournal`'s 8 nutrition hits are in `lua/shared/`, so they run on both the client and the dedicated server: `canAddFitnessXp()` gates fitness XP and `getProteins()` scales the exercise multiplier 1.5 / 1.0 / 0.7 [#1584].
+A dated re-read of the live `42.20.1/` tree on 2026-10-04 found that multiplier still unwired: `checkProteinLevelMulti` has no caller anywhere in the item and the protein branch of `fetchMultipliers` sits in a block comment, so the mod reads no protein value to scale a grant on either side [#2092/C/snapshot/unverified].
 `AutoCook` chooses whether to add spices by reading the player's body weight and the two weight-trend predicates client-side [#1585].
 `AutoCook` also filters which food enters a recipe from the player's nutrition client-side and selects edible recipe outputs with `item:getHungerChange() < 0` [#1586].
 Long Term Preservation multiplies a crafted instance's four macros by 0.70 from an `OnCooked` script hook that runs in `lua/server/` [#1587].
 The same handler pins `offAge` and `offAgeMax` to a non-perishable sentinel of 1 000 000 000 on the crafted instance, which are fields the item-stats packet does not carry ([wire-packets.md](../wire-packets.md#item-stats-packet)) [#1635].
 `SomewhatTraitsCore` owns the corpus's only player macro write: an `OnTick` handler in `lua/server/`, gated on the `SWAdaptiveMetabolism` trait, adds or subtracts `dayLengthMultiplier × 0.5` calories to hold body weight inside 77 to 83 kg [#1588].
+Measured under a co-boot, that write reaches the server's calorie store a third of a kilocalorie every five seconds below and above the band, and not at all inside it ([#2091/M/n=1], [#2762/M/n=1], [somewhattraitscore.md](somewhattraitscore.md#mp)).
 That calorie write sticks because it is on the server; the same code in `lua/client/` would be a no-op with a visible flicker [#1633/C/inference].
 `MoodleFramework`'s single nutrition hit is a `print` debug line that appends the player's proteins to a moodle-level log [#1589].
 `QuestSystem`'s single nutrition hit is a rounded `getHungerChange` read inside a developer item-dump exporter [#1590].
@@ -415,9 +418,7 @@ Not covered: no mod here was booted for this catalog — every reading is of a s
 - The design must decide how it reads a zero in the corpus dataset, because 177 of the 230 rows ship a `common/media` the signal scan never opened [#1559/C/snapshot].
 - The design must decide whether it needs a command bus of its own, given that none of the three teardown picks has one [#1625/C/snapshot] while the resident stack it must coexist with already carries 228 sites [#1567/C/snapshot].
 - The design must decide whether its own new foods sit in a module of their own or in `module Base`, because seven of the nine script-signalled mods declare `module Base` and only one of them ever collides with a vanilla name [#1594/C/snapshot].
-- Whether SomewhatTraitsCore's adaptive-metabolism calorie write reaches the calorie store under a co-boot, and at what cadence, is open — settled by server calorie slopes with the trait held below, above and inside its band against a trait-absent arm; -> [X42](../../areas/open-questions.md#x42) [#2091/C/open].
-- Whether SkillRecoveryJournal's protein-gated exercise multiplier reads the vanilla protein store's value on the server is open — settled by a desk re-read of its live tree for a wired multiplier, then its own grant at three server-set protein values; -> [X43](../../areas/open-questions.md#x43) [#2092/C/open].
-- Whether simpleStatus's bars track the vanilla macro stores on a client is open — settled by a probe copying the bars' text beside the client's macro store after a server write; -> [X44](../../areas/open-questions.md#x44) [#2093/C/open].
+- That SkillRecoveryJournal's protein-gated exercise multiplier is unwired, so that the mod reads no protein value to scale an experience grant, is unverified: it rests on a hand grep of the live `42.20.1/` tree on 2026-10-04 rather than a committed dataset; re-measure by a committed sweep of the item's Lua for a caller of `checkProteinLevelMulti` or an uncommented protein branch, and run [X43](../../reference/experiments.md)'s three protein arms only if one appears [#2092/C/snapshot/unverified].
 - Whether QualityCooking and BeyondTen each load beside a probe mod on this server is open — settled by one co-boot reading each mod's own marker on both sides; -> [X45a](../../areas/open-questions.md#x45a) [#2094/C/open].
 - That vanilla's `media/lua` calls `applyTraitFromWeight` nowhere is unverified: it rests on a hand scan of the install rather than a committed dataset; re-measure by a committed sweep of the install's Lua for that name [#2571/C/snapshot/unverified].
 - The design must decide whether QualityCooking's code is read line by line before its own eat wrapper is written, because QualityCooking wraps the same eat completion on the server with no sentinel [#2562/C/snapshot] and reads the eaten macros inside that wrap [#2563/C/snapshot].
@@ -432,6 +433,7 @@ Not covered: no mod here was booted for this catalog — every reading is of a s
 - [autocook.md](autocook.md#architecture) — the teardown of the corpus's sharpest `common/` against version-folder case, and the merge rule it settled.
 - [longtermpreservation.md](longtermpreservation.md#what-it-does) — the domain twin: new foods with full macro sets plus a server-side cook hook.
 - [simplestatus.md](simplestatus.md#mp) — what a pure client reader of the server's store can and cannot show.
+- [somewhattraitscore.md](somewhattraitscore.md#mp) — the corpus's one player macro writer, measured writing the server's calorie store under a co-boot.
 - [beyondten.md](beyondten.md#techniques) — the parallel-stat architecture behind this page's reflection-table reading.
 - [itemquality.md](itemquality.md#pitfalls) — the unsynced-field failure this page's multiplayer consequences generalise.
 - [../wire-packets.md](../wire-packets.md#item-stats-packet) — the item packet's field contract and the cadence a client mirror is bounded by.

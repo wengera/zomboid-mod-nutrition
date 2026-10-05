@@ -160,6 +160,8 @@ Weight is the one drawn field whose gap takes the opposite sign, because the cli
 The mirrored weight is also narrowed by the wire, which is visible directly in the values the two sides hold ([#1487/M/n=1]).
 The three weight-direction flags the weight bar draws are not on the wire at all and agree anyway, because the engine recomputes them on the client from values that are ([#1489], [#1490/M/n=1]).
 A write into the store reaches the client within a measured upper bound, which is what being late amounts to here ([#1493/M/n=1], [mp-model.md](../../platform/mp-model.md#routes-server-to-client)).
+The bars themselves were read once, through a probe that showed the four hidden macro bars and copied each bar's text out of the bar's own row table on every refresh: after a server write of calories and then of proteins, the calories and proteins bars equalled the client's own store rounded to one decimal at every read, before the write and after it, and showed the written value at their first read after it [#2093/M/n=1].
+A bar read just before a store read carried the previous push's value and the one just after carried the store's, so the bar follows the client's mirror within one push rather than the server's value; the poll was too coarse to time the arrival itself [#2093/M/n=1].
 Late is the best a viewer of a pushed store can be, and nothing in this mod makes it worse or better than the packet does.
 The consequence for a nutrition overhaul's own interface is that a bar can be correct and still trail the authority it draws, and no amount of client-side work closes that gap.
 
