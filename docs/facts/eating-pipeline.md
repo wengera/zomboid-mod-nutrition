@@ -305,7 +305,7 @@ A census of fluids therefore pairs the string with the enum, or it silently lose
 For a `PillsVitamins` item `JustTookPill` adds the item's fatigue change to FATIGUE, halved when INTOXICATION is above 10, and then its stress change to STRESS [#2954/C/C-only].
 It ends by calling the pill item's `OnEat` Lua function, when the drainable names one, with the item and the character, and then uses the item up one step [#2955/C/C-only].
 Measured live, the action runs on the server: a `Base.PillsVitamins`, the caffeine-pill item with `fatigueChange = -4.0`, taken through the game's pill action lost one use on the server's copy, 1.0 to 0.8, and raised STRESS to 0.0077 and 0.0071 on two boots; with sleep allowed and needed FATIGUE fell from 0.6040 to 0.5641, and with sleep disabled the reset left no trace of it [#2952/M/n=1].
-The eat and drink action wrappers did not see it: their counters held across the pill on both boots [#2953/M/n=1].
+What a mod's eat and drink wrappers see of a pill is a reading of the mod, [testing-your-mod.md](../areas/testing-your-mod.md#scenario-inputs).
 
 <a id="eat-type"></a>
 ### `EatType` and what the eat action does with it
