@@ -1480,3 +1480,58 @@ TK.register("globalmoddata.transmit", function(argv)
     return out
 end)
 TK.log("server harness Task 7 commands loaded")
+
+TK.sleepHold = TK.sleepHold or {}
+
+-- <user> <seconds>. Sets the asleep flag and RE-ASSERTS it on every server tick for a wall
+-- window. Plan 1 read that one plain setAsleep(true) does not hold: the attached client resets
+-- the flag (#2081, #2752). Whether a per-tick re-assert wins against that reset is THE
+-- MEASUREMENT: the driver reads `stats.get <user>` asleep across the window. The closure is kept
+-- in TK.sleepHold keyed by username so a second call replaces the first; `<seconds> 0` cancels
+-- and removes it. The handler removes itself from Events.OnTick once TK.now() passes the deadline.
+-- @args <user> <seconds>
+-- @reply {user, seconds, before, after, armed, deadlineWall [, error]} | string
+-- @purpose Sets a named player's asleep flag and re-asserts it every server tick for a wall window (0 cancels); whether the re-assert holds against the client's reset is the measurement.
+TK.register("player.sleep.hold", function(argv)
+    local user = argv[1]
+    local p = findPlayer(user)
+    if not p then return "no online player " .. tostring(user) end
+    local seconds = tonumber(argv[2])
+    if seconds == nil or seconds < 0 or seconds > 600 then
+        return "usage: player.sleep.hold <user> <seconds>  (0 cancels; <= 600)"
+    end
+    local out = { user = tostring(user), seconds = seconds, armed = false }
+    local prior = TK.sleepHold[user]
+    if prior ~= nil then
+        if Events ~= nil and Events.OnTick ~= nil then Events.OnTick.Remove(prior) end
+        TK.sleepHold[user] = nil
+    end
+    local _, before = TK.call(p, "isAsleep")
+    out.before = before
+    if seconds == 0 then
+        out.after = before
+        return out
+    end
+    if Events == nil or Events.OnTick == nil then
+        out.error = "no Events.OnTick on this side"
+        return out
+    end
+    if not TK.call(p, "setAsleep", true) then out.error = "no IsoGameCharacter:setAsleep" end
+    local _, after = TK.call(p, "isAsleep")
+    out.after = after
+    local deadline = TK.now() + seconds * 1000
+    out.deadlineWall = deadline
+    local closure
+    closure = function()
+        local who = findPlayer(user)
+        if who ~= nil then TK.call(who, "setAsleep", true) end
+        if TK.now() >= deadline then
+            Events.OnTick.Remove(closure)
+            if TK.sleepHold[user] == closure then TK.sleepHold[user] = nil end
+        end
+    end
+    TK.sleepHold[user] = closure
+    Events.OnTick.Add(closure)
+    out.armed = true
+    return out
+end)
