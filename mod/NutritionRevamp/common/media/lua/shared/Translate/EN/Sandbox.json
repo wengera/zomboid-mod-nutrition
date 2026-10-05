@@ -10,5 +10,13 @@
     "Sandbox_NR_LogLevelValues_option2": "Normal",
     "Sandbox_NR_LogLevelValues_option3": "Verbose",
     "Sandbox_NR_LegacyMirror": "Mirror the vanilla macro stores",
-    "Sandbox_NR_LegacyMirror_tooltip": "On: every minute the server writes the vanilla calorie, protein, carbohydrate and lipid stores from the mod's trailing 24 hours, so mods and vanilla code that read those stores (among them the protein store's bonus, which applies to Strength experience only) keep working. Off: the mod leaves those stores alone."
+    "Sandbox_NR_LegacyMirror_tooltip": "On: every minute the server writes the vanilla calorie, protein, carbohydrate and lipid stores from the mod's trailing 24 hours, so mods and vanilla code that read those stores (among them the protein store's bonus, which applies to Strength experience only) keep working. Off: the mod leaves those stores alone.",
+    "Sandbox_NR_OnsetSpeed": "Deficiency onset speed",
+    "Sandbox_NR_OnsetSpeed_tooltip": "Multiplies how fast the slow deficiencies develop and recover: the nutrients that take more than 90 days to reach a clinical deficiency at zero intake, such as folate, vitamins B12, A and D, iodine and magnesium. 1.0 is real time; 30 makes a slow deficiency thirty times faster. Vitamin C, the other fast vitamins, water, caffeine, alcohol, glycogen and sleep are never scaled.",
+    "Sandbox_NR_DeficienciesCanKill": "Deficiencies can kill",
+    "Sandbox_NR_DeficienciesCanKill_tooltip": "On: when the body is dehydrated enough, thirst can reach vanilla's lethal top level. Off: the mod holds thirst just below that level.",
+    "Sandbox_NR_ExcessEffectsOn": "Excess effects",
+    "Sandbox_NR_ExcessEffectsOn_tooltip": "On: an intake above a nutrient's upper limit raises that nutrient's excess level. Off: every excess level reads zero, while the intake is still tracked.",
+    "Sandbox_NR_BalanceBonus": "Balanced-diet bonus",
+    "Sandbox_NR_BalanceBonus_tooltip": "On: while every tracked nutrient is in its replete band, endurance regeneration and fatigue recovery run 5 percent faster. A game choice with no evidence claimed. Off: no bonus."
 }

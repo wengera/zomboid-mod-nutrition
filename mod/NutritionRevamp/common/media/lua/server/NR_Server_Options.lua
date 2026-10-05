@@ -5,22 +5,30 @@
 local NR = NutritionRevamp
 -- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
 -- precondition check sets it; the option is the operator's and is never changed by the mod).
+-- The Plan 4 dials (ruling 16): onsetSpeed multiplies the rate of every slow deficiency record (ruling 5);
+-- deficienciesCanKill off caps the thirst view under vanilla's lethal level (ruling 8); excessEffectsOn off
+-- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
+-- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
-                      nutritionOn = false }
+                      nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
+                      excessEffectsOn = true, balanceBonus = true }
 local O = NR.server.options
 
 local MODE_NAMES = { "takeover", "overlay" }
 
 -- A number leaf in [lo, hi], or a boolean leaf when the default is a boolean; any other value reads
--- the default.
-local function readLeaf(tbl, key, default, lo, hi)
+-- the default. A non-number or NaN reads the default; an out-of-range number reads the default, or with
+-- clampIt (the double branch: a double option's value is continuous, so its nearest bound is the
+-- operator's intent) is clamped to [lo, hi].
+local function readLeaf(tbl, key, default, lo, hi, clampIt)
     if tbl == nil then return default end
     local v = tbl[key]
     if type(default) == "boolean" then
         if type(v) == "boolean" then return v end
         return default
     end
-    if type(v) ~= "number" then return default end
+    if type(v) ~= "number" or v ~= v then return default end
+    if clampIt then return math.max(lo, math.min(hi, v)) end
     if v < lo or v > hi then return default end
     return v
 end
@@ -28,14 +36,22 @@ end
 function NR.server.readOptions(where)
     local sv = SandboxVars and SandboxVars.NR or nil
     local oldMode, oldLog, oldMirror = O.mode, O.logLevel, O.legacyMirror
+    local oldOnset, oldKill, oldExcess, oldBonus = O.onsetSpeed, O.deficienciesCanKill, O.excessEffectsOn, O.balanceBonus
     O.mode = readLeaf(sv, "Mode", 1, 1, 2)
     O.logLevel = readLeaf(sv, "LogLevel", 2, 1, 3)
     O.legacyMirror = readLeaf(sv, "LegacyMirror", true)
+    O.onsetSpeed = readLeaf(sv, "OnsetSpeed", 1.0, 0.5, 30, true)
+    O.deficienciesCanKill = readLeaf(sv, "DeficienciesCanKill", true)
+    O.excessEffectsOn = readLeaf(sv, "ExcessEffectsOn", true)
+    O.balanceBonus = readLeaf(sv, "BalanceBonus", true)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
-    if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror then
+    if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed
+        or oldKill ~= O.deficienciesCanKill or oldExcess ~= O.excessEffectsOn or oldBonus ~= O.balanceBonus then
         for i = 1, #O.changed do
-            local ok, err = pcall(O.changed[i], { mode = oldMode, logLevel = oldLog, legacyMirror = oldMirror }, O)
+            local ok, err = pcall(O.changed[i], { mode = oldMode, logLevel = oldLog, legacyMirror = oldMirror,
+                                                  onsetSpeed = oldOnset, deficienciesCanKill = oldKill,
+                                                  excessEffectsOn = oldExcess, balanceBonus = oldBonus }, O)
             if not ok then NR.log.say(2, "options: changed hook failed: " .. tostring(err)) end
         end
     end

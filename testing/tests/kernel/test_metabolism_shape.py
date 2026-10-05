@@ -307,7 +307,10 @@ def test_minute_dt_is_clamped_to_an_hour(met_host):
     assert abs(body["eeDay"] - (ree / 1440 * 60 + act)) < 1e-6
 
 
-def test_lastabsorbed_is_consumed_once(met_host):
+def test_lastabsorbed_is_read_not_cleared(met_host):
+    # Plan 4 ruling 17: Metabolism reads the handoff's macros and leaves it for NR_Server_Nutrients, which
+    # runs after it on the same minute and clears it (test_nutrients_shape.py); Kinetics rewrites it
+    # every minute, so the clear stands in for Nutrients here
     h = met_host
     p = player(h)
     record = fresh(h, p)
@@ -318,7 +321,8 @@ def test_lastabsorbed_is_consumed_once(met_host):
     minute(h, p, record, 100.0 + 1 / 60)
     assert abs(record["body"]["inDay"] - 500) < TOL
     assert abs(record["body"]["pDay"] - 20) < TOL
-    assert KIN(h).lastAbsorbed["admin"] is None
+    assert KIN(h).lastAbsorbed["admin"] is not None
+    KIN(h).lastAbsorbed["admin"] = None
     minute(h, p, record, 100.0 + 2 / 60)
     assert abs(record["body"]["inDay"] - 500) < TOL
 

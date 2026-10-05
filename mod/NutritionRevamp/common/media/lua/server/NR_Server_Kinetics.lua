@@ -22,8 +22,9 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 -- lastAbsorbed: the absorbed vector of each player's last step, by username -- a transient server table,
--- never on the record -- that NR_Server_Metabolism consumes and clears on the same minute (it loads after
--- this file, so its onMinute runs after this one); nil when the step had no elapsed time.
+-- never on the record -- that NR_Server_Metabolism reads (the four macros) and NR_Server_Nutrients then
+-- consumes and clears on the same minute (both load after this file, so their onMinute entries run after
+-- this one; Plan 4 ruling 17); nil when the step had no elapsed time.
 NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false,
                        lastAbsorbed = {} }
 local KIN = NR.server.kinetics
@@ -55,7 +56,7 @@ local function step(username, player, record)
         local emptied = K.stomach.empty(record.stomach, dtH)
         local absorbed = K.stomach.absorb(emptied)
         K.stomach.toPool(record.pool, absorbed)
-        KIN.lastAbsorbed[username] = absorbed          -- the handoff to NR_Server_Metabolism
+        KIN.lastAbsorbed[username] = absorbed          -- the handoff to Metabolism, then Nutrients
     else
         KIN.lastAbsorbed[username] = nil
     end

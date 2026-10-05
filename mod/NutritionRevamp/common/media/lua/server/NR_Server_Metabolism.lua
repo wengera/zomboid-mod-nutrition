@@ -218,6 +218,7 @@ local function closeDay(body, w, immobilised, ageH)
     local m1, hard = K.training.weekMinutes(body)
     K.aerobic.tacDay(body, m1, hard, 1, K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), 1, 1, immobilised)
     body.pPrevKg = pPerKg
+    body.inDayClosed = body.inDay                        -- the closing day's absorbed kcal, for NR_Server_Nutrients' refeeding close
     K.partition.closeDay(body, ageH)
     body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     MET.stats.days = MET.stats.days + 1
@@ -338,10 +339,11 @@ local function step(username, player, record)
     heal(username, body, ageH, player)
     local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
+    -- read, never cleared here: NR_Server_Nutrients (after this file) consumes and clears the handoff
+    -- (Plan 4 ruling 17), and Kinetics rewrites it every minute, so this read sees each vector once
     local handoff = NR.server.kinetics and NR.server.kinetics.lastAbsorbed
     if handoff ~= nil and handoff[username] ~= nil then
         K.energy.intake(body, handoff[username], dtM)
-        handoff[username] = nil                          -- consumed once
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
         hourOfDay, maxW, heatLevel, climbClass = MET.readActivity(player, ageH)

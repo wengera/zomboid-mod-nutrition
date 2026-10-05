@@ -20,3 +20,29 @@ option NR.LegacyMirror
     type = boolean, default = true,
     page = NutritionRevamp, translation = NR_LegacyMirror,
 }
+
+/* Plan 4 dials (ruling 16). OnsetSpeed multiplies the rate of the slow deficiency records only (ruling 5);
+   1.0 is real time. */
+option NR.OnsetSpeed
+{
+    type = double, min = 0.5, max = 30.0, default = 1.0,
+    page = NutritionRevamp, translation = NR_OnsetSpeed,
+}
+
+option NR.DeficienciesCanKill
+{
+    type = boolean, default = true,
+    page = NutritionRevamp, translation = NR_DeficienciesCanKill,
+}
+
+option NR.ExcessEffectsOn
+{
+    type = boolean, default = true,
+    page = NutritionRevamp, translation = NR_ExcessEffectsOn,
+}
+
+option NR.BalanceBonus
+{
+    type = boolean, default = true,
+    page = NutritionRevamp, translation = NR_BalanceBonus,
+}
