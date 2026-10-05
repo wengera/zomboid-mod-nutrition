@@ -332,3 +332,37 @@ TK.register("fluid.fill", function(argv)
     if not out.ok then out.reason = "amount read back is not the amount added (capacity?)" end
     return out
 end)
+
+-- <user> <fullType>. Spawns the pill on the CLIENT (item.spawn path) and queues
+-- ISTakePillAction:new(player, item) through ISTimedActionQueue.add, the pair the inventory
+-- context menu uses (ISInventoryPaneContextMenu.onPillsItems). The action runs on the client and
+-- reaches the server through the game timed-action sync; whether the server has a copy of the
+-- item to consume is the gate measurement, not this reply.
+-- @args <user> <fullType>
+-- @reply {queued, side, fullType, id [, reason]} | string
+-- @purpose Spawns a pill item on the client and queues an ISTakePillAction on it for the local player, replying whether it was queued.
+TK.register("pill.take", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { queued = false, reason = why } end
+    local fullType = argv[2]
+    if fullType == nil then return "usage: pill.take <user> <fullType>" end
+    local out = { queued = false, side = TK.side, fullType = fullType }
+    if ISTakePillAction == nil or ISTimedActionQueue == nil then
+        out.reason = "no ISTakePillAction/ISTimedActionQueue on this side"
+        return out
+    end
+    local _, inv = TK.call(p, "getInventory")
+    local _, item = TK.call(inv, "AddItem", fullType)
+    if item == nil then
+        out.reason = "not in inventory: AddItem gave nothing for " .. fullType
+        return out
+    end
+    local _, id = TK.call(item, "getID")
+    out.id = id
+    local ran, err = pcall(function()
+        ISTimedActionQueue.add(ISTakePillAction:new(p, item))
+    end)
+    out.queued = ran
+    if not ran then out.reason = "queue raised: " .. tostring(err) end
+    return out
+end)
