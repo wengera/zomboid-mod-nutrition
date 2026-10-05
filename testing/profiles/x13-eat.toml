@@ -1,0 +1,30 @@
+# testing/profiles/x13-eat.toml - X24 + X33: the mod beside the three surface mods.
+# Mods= order is LOAD order: TKX_EatHook stays last of the three (as x12-overrides), the mod after.
+fixture = "default"
+description = "PZTestKit + TKX_ItemOverride + TKX_Nutrient + TKX_EatHook + NutritionRevamp - X24, X33."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "item.script", args = "TKX.FibreBar",      expect = '"DaysFresh": 42' },
+  { side = "server", cmd = "lua.global",  args = "TKX_Nutrient.version", expect = '"value": 1' },
+  { side = "client", cmd = "lua.global",  args = "TKX_EatHook.version",  expect = '"value": 1' },
+  { side = "server", cmd = "lua.global",  args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global",  args = "NutritionRevamp.version", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_ItemOverride"
+path = "testing/experiments/TKX_ItemOverride"
+[[mods]]
+id = "TKX_Nutrient"
+path = "testing/experiments/TKX_Nutrient"
+[[mods]]
+id = "TKX_EatHook"
+path = "testing/experiments/TKX_EatHook"
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[client]
+timeout = 240

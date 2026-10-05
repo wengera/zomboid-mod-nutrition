@@ -1,0 +1,5 @@
+name=TKX Eat Probe
+id=TKX_EatProbe
+description=Plan 2 experiment: ISEatFoodAction.complete wrap order beside the quality stack (X45b). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

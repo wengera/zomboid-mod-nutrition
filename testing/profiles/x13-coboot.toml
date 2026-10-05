@@ -1,0 +1,48 @@
+# testing/profiles/x13-coboot.toml - X45a / X45b: the mod co-booted with the quality stack.
+# Workshop trees read 2026-10-05: 3624538051 holds ItemQuality, QuestSystem and QualityCooking
+# (live tree 42/); 3396446795 is MoodleFramework; 3765241705 is BeyondTen (live tree 42/).
+# Each co-booted mod's loading IS the question (X45a), so none of them is a verify gate; only
+# the harness and the probe are. TKX_EatProbe loads last so it wraps QualityCooking's wrap.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp + TKX_EatProbe + ItemQuality/QuestSystem/QualityCooking + MoodleFramework + BeyondTen (workshop trees dated 2026-10-05) - X45a, X45b."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_EatProbe.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_EatProbe.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "ItemQuality"
+workshop_id = "3624538051"
+
+[[mods]]
+id = "QuestSystem"
+workshop_id = "3624538051"
+
+[[mods]]
+id = "QualityCooking"
+workshop_id = "3624538051"
+
+[[mods]]
+id = "MoodleFramework"
+workshop_id = "3396446795"
+
+[[mods]]
+id = "BeyondTen"
+workshop_id = "3765241705"
+
+[[mods]]
+id = "TKX_EatProbe"
+path = "testing/experiments/TKX_EatProbe"
+
+[client]
+timeout = 240

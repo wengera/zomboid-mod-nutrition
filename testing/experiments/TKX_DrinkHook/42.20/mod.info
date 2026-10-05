@@ -1,0 +1,5 @@
+name=TKX Drink Hook
+id=TKX_DrinkHook
+description=Plan 2 experiment: per-side counters on ISDrinkFluidAction updateEat and complete (X13). Test profiles only.
+modversion=1.0
+versionMin=42.0.0
