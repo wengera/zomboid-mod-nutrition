@@ -375,6 +375,20 @@ end
 --    into a temporary container and calls DrinkFluid on it itself (#2690): this wrapper never sees it,
 --    and that route is out of this plan's scope.
 --  * ISDrinkFromBottle is dead code on this build (no caller chain; it calls no DrinkFluid) (#0670).
+--  * A crafted output from a MULTI-output recipe carries no vanilla consumed-type map (the hand-craft
+--    action writes it only for exactly one output), so it falls back to dish (an extra-items list) or
+--    baseline (the output type's seed x instance scale, the right 1/amount for an InheritFood split)
+--    (#2667, #2660).
+--  * A crafted output made through the ENTITY craft path (CraftLogicSystem: furnaces, drying racks)
+--    carries no map either and takes the same fallback (#2665).
+--  * An evolved DISH is not a craft: its ingredient list is extraItems and sourceOf ranks dish over
+--    craft, so a dish never reaches the craft arm (#2650, #2653).
+--  * A LATER mod that replaces ISEatFoodAction.complete (or serverStop, or ISDrinkFluidAction.updateEat)
+--    WITHOUT calling the saved original removes the capture silently; no sentinel can detect it, and
+--    only NR.server.intake.stats.eats standing still across eats reveals it (the two-mods-one-function
+--    wall) (#1176, #1067).
+--  * No craft hook ships (Plan 2 ruling 5): the vanilla consumed-type map is the source, and X31's
+--    craft probe runs only if a live reading shows that map unreachable.
 
 -- The litres one updateEat call removed: before - after, floored at 0; a nil on either side -> 0.
 function IN.litresDrunk(before, after)

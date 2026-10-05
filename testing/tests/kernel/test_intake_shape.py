@@ -236,6 +236,18 @@ def test_assemble_craft_map(intake_host):
     assert abs(vec["iron"] - 4) < TOL
 
 
+def test_assemble_craft_map_zero_count_lands_no_seed(intake_host):
+    # vanilla writes integer counts >= 1 (ISHandcraftAction.performRecipe); a 0 count is kept by
+    # craftMap and contributes nothing through K.vector.craft, while the macros still track the item
+    h = intake_host
+    b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
+    b["craftMap"] = I(h).craftMap(tbl(h, {"Base.MincedMeat": 0}))
+    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h))
+    assert source == "craft"
+    assert vec["iron"] == 0
+    assert close(macros(vec), [200, 0, 10, 40])
+
+
 def test_assemble_dish_wins_and_records_missing(intake_host):
     h = intake_host
     b = before(h, fullType="Base.Salad", rawBefore=-0.3, instBase=-0.3, scriptHunger=-0.3, cal=190, carb=50.26, lip=0.62, pro=0.94)
