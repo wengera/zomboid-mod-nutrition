@@ -345,3 +345,14 @@ x151s-20261005-165844,summaries.*.fatigue_slope.per_game_h,e.g. 0.3567,"The same
 x151s-20261005-165844,summaries.boot1.B.intox_slope.per_wall_s,-0.005375,"Spans the rise and the fall.",cite `boot1.B.polls`
 x151s-20261005-165844,summaries.boot1.B.intox_slope.per_game_h,-0.2022,"Spans the rise and the fall.",cite `boot1.B.polls`
 x151s-20261005-165844,boot*.S0.markers.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table; the wrapper counted sips on boot 1.",cite `boot1.B.record_after.counters`
+x151t-20261005-183551,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the records.",cite `records` and `summaries.<arm>.series`
+x151t-20261005-183551,summaries.B.hand_80kg_male,e.g. 0.3142056088904117,"The Task 11 hand case (80 kg male), not this run's female subject.",cite `summaries.B.cmp`
+x151t-20261005-183551,summaries.F2.a_holds[*].kernel,e.g. 0.8075968383302108,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
+x151t-20261005-183551,summaries.F2.b_holds[*].kernel,e.g. 0.8662359950087947,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
+x151t-20261005-183551,summaries.E.off_holds[*].kernel,e.g. 1.1586318202041324,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
+x151t-20261005-183551,summaries.E.on_holds[*].kernel,e.g. 1.1589380470435497,"The kernel view on the first-sight mass while the live mass had moved.",cite the live fields beside it
+x151t-20261005-183551,phases.S0.sentinels,null,"lua.global answers no value for a table.",cite `phases.D.counters_after` and `phases.C.counters_after`
+x151t-20261005-183551,phases.S0.nutrients_stats.heals,null,"No such counter.",—
+x151t-20261005-183551,phases.A.nutrients_stats.heals,null,"No such counter.",—
+x151t-20261005-183551,phases.Z.nutrients_stats.heals,null,"No such counter.",—
+x151t-20261005-183551,logs.server_luaerr,40 lines,"The driver's pattern also matches the harness's lua.global log lines for the mod's error fields; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
