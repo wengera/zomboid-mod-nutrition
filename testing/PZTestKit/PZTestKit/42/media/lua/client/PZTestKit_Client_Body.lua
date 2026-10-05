@@ -209,3 +209,62 @@ TK.register("trait.watch", function(argv)
     return { armed = true, trait = trait, seconds = seconds, result = "trait-watch",
              file = "pzt-results/trait-watch.json" }
 end)
+
+-- ---- Plan 4 Task 3: the kinetics harness wave (client commands) -------------------------------
+
+-- The local player a client command acts on. `user` is the bus argument: a client only ever has
+-- its own player, so "-" or the local username is accepted and any other name is refused rather
+-- than silently acting on the wrong character.
+local function kineticsPlayer(user)
+    if getPlayer == nil then return nil, "no getPlayer() on this side" end
+    local p = getPlayer()
+    if p == nil then return nil, "no local player" end
+    if user ~= nil and user ~= "-" then
+        local _, me = TK.call(p, "getUsername")
+        if me ~= nil and me ~= user then return nil, "local player is " .. tostring(me) .. ", not " .. tostring(user) end
+    end
+    return p
+end
+
+-- <user> <StatName> <value>. The client twin of the server stats.setany; a client write is
+-- expected to be overwritten by the 1 Hz PlayerStatsPacket for any stat the server owns, which is
+-- the discriminator. Resolution and read-back are the server command's.
+-- @args <user> <StatName> <value>
+-- @reply {ok, stat, side, requested, before, after [, reason]} | string
+-- @purpose Client-side write of any CharacterStat by enum name on the local player, replying the value read before and after the write.
+TK.register("stats.setany", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, reason = why } end
+    local name, v = argv[2], tonumber(argv[3])
+    if name == nil or v == nil then return "usage: stats.setany <user> <StatName> <value>" end
+    local out = { ok = false, stat = name, side = TK.side, requested = v }
+    local enum = nil
+    if CharacterStat ~= nil then
+        enum = CharacterStat[name]
+        if enum == nil and CharacterStat["valueOf"] ~= nil then
+            local ran, e = pcall(CharacterStat["valueOf"], name)
+            if ran then enum = e end
+        end
+    end
+    if enum == nil then
+        out.reason = "no CharacterStat." .. tostring(name)
+        return out
+    end
+    local _, s = TK.call(p, "getStats")
+    if s == nil then
+        out.reason = "no getStats()"
+        return out
+    end
+    local _, before = TK.call(s, "get", enum)
+    out.before = before
+    local ran, err = pcall(s["set"], s, enum, v)
+    if not ran then
+        out.reason = "Stats:set raised: " .. tostring(err)
+        return out
+    end
+    local _, after = TK.call(s, "get", enum)
+    out.after = after
+    out.ok = (after ~= nil)
+    if not out.ok then out.reason = "no read-back" end
+    return out
+end)
