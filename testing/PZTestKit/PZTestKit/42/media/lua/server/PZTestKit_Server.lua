@@ -1671,3 +1671,31 @@ TK.register("witness.chain", function(argv)
     if argv[2] == nil then return "usage: witness.chain <user> <getter1[(arg)]>.<getter2>..." end
     return chainRead(p, argv[2])
 end)
+
+-- <user> <Perk> <level>. The level-only perk write the strength gate needs: `perk.set` writes the
+-- level AND getXp():setXPToLevel, so it cannot say what the level setter alone does to the XP
+-- (#2119: setPerkLevelDebug writes the level and nothing else; #2103: setXPToLevel is the XP
+-- side). This calls setPerkLevelDebug and nothing else, then reads the level and the XP back in
+-- the same tick, so a level that moved while the XP stayed is visible in one reply.
+-- @args <user> <Perk> <level>
+-- @reply {perk, requested, side, before, after, xp [, error]} | string
+-- @purpose Writes a perk level through setPerkLevelDebug ONLY (no setXPToLevel) and reads the level and the raw XP back in the same tick.
+TK.register("perk.level", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local level = tonumber(argv[3])
+    if not argv[2] or level == nil then return "usage: perk.level <user> <Perk> <level>" end
+    local perk = Perks and Perks[argv[2]]
+    if not perk then return { error = "no Perks." .. tostring(argv[2]), perk = argv[2] } end
+    local out = { perk = argv[2], requested = level, side = TK.side }
+    local _, before = TK.call(p, "getPerkLevel", perk)
+    out.before = before
+    local present = TK.call(p, "setPerkLevelDebug", perk, level)
+    if not present then out.error = "no IsoGameCharacter:setPerkLevelDebug" end
+    local _, after = TK.call(p, "getPerkLevel", perk)
+    out.after = after
+    local _, xpObj = TK.call(p, "getXp")
+    local _, xp = TK.call(xpObj, "getXP", perk)
+    out.xp = xp
+    return out
+end)
