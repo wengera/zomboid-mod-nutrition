@@ -15,6 +15,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: the registered cha
 - The fitness updater writes the `FITNESS` stat as the Fitness perk level divided by `5`, minus `1`, and is private [#2223/C/C-only] [#2222/C/C-only].
 - On a multiplayer client the player's stat update returns before calling the character's, so the fatigue reset, the hook and the seven updaters run only on the server for players [#2236/C/C-only].
 - Each side recomputes its own moodles from its own copy of the stats [#0563].
+- Intoxication decays on the body-damage tick, by its reduction value times the game-time multiplier on every server update, ahead of the `CalculateStats` hook and outside any Lua hook, so a handler's intoxication write is the later one in the update [#2918/C/C-only] [#2921/C/C-only].
 
 ## How it works
 
@@ -142,7 +143,7 @@ Inside the stat update the order is an animal return [#2239/C/C-only], then on a
 The hook therefore cannot suppress the player's endurance model, which has already run for that tick, and a handler that writes endurance writes after vanilla's drain or regeneration [#2235/C/C-only].
 At rest on a live server the push carries the handler's endurance write and not the value the player's model wrote earlier in the update: with a takeover handler writing 0.4242 every update, the client read 0.4242 to float precision at sixteen client-first pairs while vanilla's resting regeneration, read once the sentinel was cleared, ran at about 0.067 per game-hour, about 1.8e-4 per handler call; no pair was taken while running [#2753/M/n=1].
 
-The order within one server update of a player, as read [#2233/C/C-only] [#2232/C/C-only] [#2234/C/C-only] [#2723/C/C-only] [#2235/C/C-only]:
+The order within one server update of a player, as read [#2233/C/C-only] [#2232/C/C-only] [#2234/C/C-only] [#2723/C/C-only] [#2235/C/C-only] [#2921/C/C-only]:
 
 ```text
 IsoPlayer.update
@@ -155,12 +156,24 @@ IsoPlayer.update
         IsoPlayer.updateEndurance       (or updateEnduranceWhileInVehicle)
         return true
     IsoLivingCharacter.update -> IsoGameCharacter.update -> updateInternal
+      BodyDamage.Update                 (doCharacterStats switch; the intoxication decay)
       calculateStats                    (doCharacterStats switch)
         animal                                      -> return
         server, sleep not both allowed and needed   -> Stats.reset(FATIGUE)
         TriggerHook("CalculateStats") answers true  -> return
         the seven updaters
 ```
+
+Intoxication is the one stat in this section whose decay runs on the body-damage tick rather than in the stat update.
+`BodyDamage.Update` removes its reduction value times the game-time multiplier from INTOXICATION on every call, with no day-length factor, after its return on a client for a live player, and it calls no Lua hook, so in multiplayer the decay runs on the server only and no handler can skip it [#2918/C/C-only].
+The internal update calls `BodyDamage.Update` before the stat update, so the decay lands before the hook in the same update and a handler's intoxication write is the later one [#2921/C/C-only].
+The constructor sets the reduction value to 0.0042 and the increase value to 400, two private fields behind public getter and setter pairs [#2919/C/C-only].
+Nothing else in the jar or the shipped Lua sets the reduction value and no save or load method names it, so a value a mod sets is gone after a reload [#2920/C/inference].
+In game time the decay is 0.504 times the day length in real minutes per game-hour, about 30.24 per game-hour on the 60-minute default day and 45.36 on a 90-minute day, so 100 intoxication clears in about 3.3 game-hours on the default day [#2922/C/arith.].
+Two writers raise the stat at the drink and at the eat.
+The fluid writer adds 400 times the alcohol it is handed, times 1.1 above 0.8 hunger and 1.25 between 0.6 and 0.8, and calls four pill effects on the character [#2923/C/C-only].
+The food writer adds 400 times a rescaled fraction, quartered for a beer or low-alcohol item, times 1.25 above 0.8 hunger and 1.1 above 0.6, and calls the same four pill effects [#2924/C/C-only].
+What the drink path hands its writer is [the fluid path's](eating-pipeline.md#fluid-path).
 
 The frame's tail — `OnTick` and the network manager — is [the server tick order](../platform/server-lifecycle.md#tick-order), and the push that follows it is [the player-stats push](../platform/mp-model.md#packets).
 Which side runs the player's endurance model, and for whom it returns early, is [the ownership section](../platform/mp-model.md#ownership).
@@ -182,6 +195,7 @@ Not covered: the sound-stress source function and the awake path's stress decay,
 - Whether a handler's endurance write is the last before the player-stats push, as the tick order reads — settled by a sentinel endurance written each tick and read in client-first pairs at rest and running, beside an arm with the handler removed; run x131c-20261004-181223 took the resting pairs and no running pair, and run x132r-20261005-072441 none, no handler writing the sentinel and the run arm walking; -> [X35](../areas/open-questions.md#x35) [#2082/C/open].
 - Decision: whether a takeover handler integrates endurance from its own stored value or from the stat it reads back — the player's endurance model runs outside the hook, earlier in the same update [#2235/C/C-only], on the side [the ownership section](../platform/mp-model.md#ownership) states.
 - Decision: which of the updaters' non-stat side effects a takeover reproduces and which it drops — the last-endurance stamp [#2215/C/C-only], the anger decay and the idle-square timer [#2226/C/C-only], the time-of-sleep advance [#2227/C/C-only], the thirst ghost-mode gate [#0560/M/n=1], the auto-drink call [#2250/C/C-only] and the fitness stat's refresh [#2223/C/C-only].
+- Decision: whether a mod that owns intoxication writes it from the handler on every update, after the decay [#2921/C/C-only], or sets the reduction value to zero and sets it again after every load, since the value is not saved [#2920/C/inference].
 - Decision: whether the mod keeps a nutrient in a stat it registers or in its own store — a registered stat answers `get` and `set` and is never saved or synced [#2211/C/C-only].
 
 ## See also
