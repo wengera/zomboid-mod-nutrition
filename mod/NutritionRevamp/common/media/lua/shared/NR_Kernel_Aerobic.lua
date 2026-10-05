@@ -4,7 +4,8 @@
 -- and the regeneration coefficient rmod, computed on the slow clock and handed down as scalars.
 -- Plan 3 applies rmod only to the asleep regeneration arm the fast kernel already owns (ruling 2); dmod
 -- is stamped for Plan 5's awake takeover. Iron, glycogen, dehydration, caffeine, alcohol, sleep debt,
--- hours awake and the balance dial are Plan 4/5 inputs the adapter passes neutral (ruling 12).
+-- hours awake and the balance dial are read from the record's Plan 4 sub-tables by the adapter (Plan 3
+-- ruling 12 held them neutral until Plan 4 Task 13).
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
 -- region, so math.exp and math.log are allowed. This file sorts before NR_Kernel_Body.lua, so every
 -- K.clamp / K.min / K.max reference is at call time.

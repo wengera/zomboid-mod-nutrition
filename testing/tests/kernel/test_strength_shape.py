@@ -577,9 +577,10 @@ def test_limitations(str_host):
     assert ("the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model "
             "(#2118)") in lim
     assert "a rise is one level per six-hour window" in lim
-    assert ("the carry delta's acute inputs read the record's fluids, acute and nutrients sub-tables "
-            "(Plan 4); vitamin D's clinical grade gates nothing until Plan 5 maps it") in lim
+    assert ("the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) "
+            "read the current minute's fluids, acute and nutrients sub-tables (Plan 4)") in lim
     assert not any("Plan 4/5" in x for x in lim)
+    assert not any("gates nothing" in x for x in lim)
     assert ("while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; "
             "BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)") in lim
     # shipped text names register rows, never plan tasks or rulings

@@ -38,7 +38,6 @@ NR.server.nutrients = {
         "auto-drink litres land in the stomach once per slow minute (the fast handler skips its call while a drop is pending: Task 12)",
         "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (rawEggDay is always false)",
         "the ingested vector is empty until the intake wrapper's per-minute sum lands (Task 12): the excess ladder and the alcohol day total read 0",
-        "until Task 13 stamps body.met and body.coldMult, sweat, cold diuresis and the glycogen draw read MET 1 and coldMult 1",
         "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it)",
         "before the first day close the protein-scaled requirements read P_LOW x w (Plan 3's pPrevKg backfill)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",

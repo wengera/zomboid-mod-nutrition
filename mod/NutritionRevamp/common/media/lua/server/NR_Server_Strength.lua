@@ -35,7 +35,7 @@ NR.server.strength = {
     limitations = {
         "the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model (#2118)",
         "a rise is one level per six-hour window",
-        "the carry delta's acute inputs read the record's fluids, acute and nutrients sub-tables (Plan 4); vitamin D's clinical grade gates nothing until Plan 5 maps it",
+        "the carry delta's acute inputs (dehydration, sweat, hours awake, caffeine, clinical vitamin D) read the current minute's fluids, acute and nutrients sub-tables (Plan 4)",
         "while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)",
         "an XP loss follows down at once; the ceiling falls one level per game hour",
         "offline time is not integrated: the rise hold counts at most one hour per minute",
