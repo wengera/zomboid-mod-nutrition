@@ -1,0 +1,5 @@
+name=TKX Xp Burst
+id=TKX_XpBurst
+description=Plan 3 experiment: a bus-triggered burst of six-argument XP.AddXP calls with no anti-cheat checker refresh (X40). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

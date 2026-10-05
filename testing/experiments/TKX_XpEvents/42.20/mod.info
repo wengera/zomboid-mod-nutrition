@@ -1,0 +1,5 @@
+name=TKX Xp Events
+id=TKX_XpEvents
+description=Plan 3 experiment: counts Events.AddXP, LevelPerk, OnWeaponHitXp and OnWeaponHitTree on the server (X39). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

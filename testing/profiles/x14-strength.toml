@@ -1,0 +1,34 @@
+# testing/profiles/x14-strength.toml - the strength gate's boot (Plan 3 Task 3): PZTestKit +
+# NutritionRevamp (Mode 1) + TKX_XpEvents (which XP events fire server-side, X39) + TKX_XpBurst (a
+# checker-free AddXP burst, X40). The fixture's day length; client timeout normal. Tier-(a) verify
+# rows only: the markers are present on both sides.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1) + TKX_XpEvents + TKX_XpBurst - the strength gate."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_XpEvents.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_XpEvents.version", expect = "\"value\": 1" },
+]
+
+[sandbox.NR]
+Mode = 1
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_XpEvents"
+path = "testing/experiments/TKX_XpEvents"
+
+[[mods]]
+id = "TKX_XpBurst"
+path = "testing/experiments/TKX_XpBurst"
+
+[client]
+timeout = 240
