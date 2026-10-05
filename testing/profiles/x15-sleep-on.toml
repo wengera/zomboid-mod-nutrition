@@ -1,0 +1,46 @@
+# testing/profiles/x15-sleep-on.toml - the Plan 4 sleep gate boot (Task 5), sleep ON: the x15-sleep stack with
+# [server] SleepAllowed=true and SleepNeeded=true written into the server ini by Server.seed, so a
+# player can sleep and the tiredness the stat tracks is live. Otherwise identical to x15-sleep.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_SleepWatch + TKX_BoozeWatch, SleepAllowed/SleepNeeded true, DayLength 1 - the sleep gate with sleep on."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_SleepWatch"
+path = "testing/experiments/TKX_SleepWatch"
+
+[[mods]]
+id = "TKX_BoozeWatch"
+path = "testing/experiments/TKX_BoozeWatch"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5; X7/X41 profiles): vanilla's nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
