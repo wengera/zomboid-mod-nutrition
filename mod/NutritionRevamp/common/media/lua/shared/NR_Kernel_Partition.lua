@@ -121,6 +121,7 @@ end
 
 -- The surplus arm, returning dFM, dLM (kg): lean gains the lean-gain law's amount, never more than the
 -- surplus can pay at RHO_LEAN, and the rest of the surplus is stored as fat.
+-- S1056 design-phase-v1: the Forbes/Hall lean share of a surplus (S0054/S0055 give the shape only) is the open coefficient row; until it settles the untrained lean floor is 0 and the wave-2 gain product below is the lean share (ruling 7).
 function K.partition.surplus(body, dHyp, dStr, pPerKg)
     local P = K.partition
     local gain = K.min(P.leanGain(body, dHyp, dStr, pPerKg), body.ebDay / P.RHO_LEAN)
