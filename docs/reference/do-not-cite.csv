@@ -323,3 +323,6 @@ x141c-20261005-132133,verdicts.T-tac.observed.tac_pred,0.998702944681775,"Comput
 x141c-20261005-132133,verdicts.H-rmod.observed.band,"[0.848, 0.860]","A prediction; the ratio read 0.904.",verdicts.H-rmod.observed.ratio
 x141c-20261005-132133,verdicts.D-reps.observed.squats,1 rep,"The squat set stopped after ~3-5 s for a reason the run does not show; not a rep rate.",—
 x141c-20261005-132133,phases.C.reads[*].dt,0.0,"The first read was issued as the set returned; it bounds nothing below.",phases.C.str1.carryWrites
+x141s-20261005-105131,verdicts.X50-push.observed.client_first_3_after_write_s,0.0,"The driver subtracted the wrong wall; the client first read 3 within 2 s of the request (1.77 s).","cite steps.a_write.wall_before and steps.a0_client.wall_after"
+x141s-20261005-105131,verdicts.X50-write,`as_predicted`,"The prediction read before=6 and the level read 5, so the grade carries the ladder error.",cite phases.A.write
+x141s-20261005-105131,summary.verdicts.X50-write,`as_predicted`,The same.,the same

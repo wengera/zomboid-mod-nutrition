@@ -19,6 +19,11 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Add to the aiming delay rather than replace it, and expect it rewritten after every shot: the combat manager rewrites it per shot as the current value plus the weapon's terms, clamped to the weapon's aiming time, and vanilla's rack action adds to the current value [#2710/C/inference] [#2326/C/C-only] [#2340/C/C-only].
 - Move a player's speed through the inputs of the speed formula, the endurance stat behind the Endurance moodle first, never through a speed setter or a modifier field: the modifier fields are reset on every speed update, `setSpeedMod` and move speed reach no player path, base speed is cut per level of the Endurance and Heavy Load moodles, and no moodle level has a setter [#2711/C/inference] [#2289/C/C-only] [#2318/C/C-only] [#2319/C/C-only] [#2313/C/C-only] [#2285/C/C-only].
 - Read a player's activity from the thermoregulator's metabolic rate, with endurance and carried load held still or accounted for, never from a counter: the engine keeps no distance, running-time total, step, rep or training-load counter, while the metabolic target is raised to a class floor by attacking, moving and exercising, can sit above a low class when endurance is low, and rises with carried weight, read from the bytecode, and measured on a server only as the rate: the server classifies a connected player through `getMetabolicRate()` while its target reads -1 at every tick [#2712/C/inference] [#2875/M/n=1] [#2633/C/C-only] [#2649/C/C-only] [#2197/C/C-only] [#2198/C/C-only] [#2200/C/C-only].
+- Clamp a Strength level by writing it with `setPerkLevelDebug` below the experience-implied level and re-asserting it every slow tick, never by adding or removing experience: the write holds through the timed experience push, a rust pass and an admin sync, it runs no band remap of its own so the remap is re-applied after it, and a vanilla level-up above the clamp is written back within a slow tick [#2902/C/inference, #2867/M/n=1, #2868/M/n=1, #2869/M/n=1, #2870/M/n=1, #2894/M/n=1, #2896/M/n=1, #2701/C/inference, #2740/C/inference].
+- Write total mass into the vanilla weight slot and the three direction flags on every slow tick, whatever the last read held: any logged-in client can set any online player's weight through the `player` `setWeight` client command, which no handler or dispatch gates on a role, and with the `Nutrition` option off nothing else moves the flags [#2903/C/inference, #2643/C/C-only, #2644/C/C-only, #2883/M/n=1, #2885/M/n=1].
+- Keep the engine's MET table and the model's own apart: bank a training dose on the engine's own MET value above its resting floor, bill expenditure on the model's table for the classified state, and divide the engine's load factor out of the rate before either use, so that a carried load is charged once: the engine's classes are one fixed table and its rate already carries the load factor [#2904/C/inference, #2632/C/C-only, #2649/C/C-only, #2875/M/n=1].
+- Read activity on a server from the thermoregulator's metabolic rate alone, with its load factor divided out, and treat a runner as a walker until the run flag is measured to arrive: the target reads -1 there, the run and sprint flags never reach the server's copy of the player and a timed action's stack is empty server-side, so nothing else carries the activity [#2905/C/inference, #2875/M/n=1, #2877/M/n=1, #2878/M/n=1, #2712/C/inference].
+- Run a nutrition mod's acceptance with the vanilla `Nutrition` sandbox option off, the design's precondition: with it on, vanilla's per-tick update rewrites the weight-direction flags and drifts the weight slot and the macro stores between the mod's minute writes [#2906/C/inference, #2884/M/n=1, #2883/M/n=1, #2886/M/n=1, #0555].
 
 ## How it works
 
@@ -78,6 +83,8 @@ The other shape, leaving the updaters running and correcting after them, is one 
 A stat the mod registers is no shortcut around any of this.
 A registered stat answers `get` and `set` but sits outside the fixed stat order, so no save and no sync carries it [#2211/C/C-only].
 
+The mod's own live readings of this seat are on [testing-your-mod](testing-your-mod.md#scenario-inputs).
+
 <a id="perk-level"></a>
 ### Strength and Fitness levels
 
@@ -88,7 +95,7 @@ The debug setter writes the level and nothing else — no experience, no level e
 The experience setter writes the experience map to a level's cumulative total and leaves the level untouched [#2103/C/C-only].
 The Java readers of the two levels read them live on every call, so a level write takes effect at each reader's next call [#2135/C/C-only].
 The ladders those readers apply are [the level readers](../facts/perks-and-strength.md#readers).
-Write the clamped Strength level with a server `setPerkLevelDebug` and nothing else: it holds through the experience push, a rust pass and a mirrored admin sync [#2867/M/n=1][#2868/M/n=1][#2869/M/n=1], and it runs no band remap, so re-apply the band yourself [#2870/M/n=1][#2729/C/inference].
+A server `setPerkLevelDebug` write on its own held through the experience push, a rust pass and a mirrored admin sync [#2867/M/n=1][#2868/M/n=1][#2869/M/n=1], and it ran no band remap, so the mod re-applies the band itself [#2870/M/n=1][#2729/C/inference]; the clamp's rule is [in the rules](#rules).
 
 Vanilla moves the levels on its own schedules, and every schedule is a writer the mod must expect.
 The experience system raises and lowers a level only on crossings of a threshold, so a level a mod lowers is neither walked back up nor pushed further down by it [#2122/C/C-only] [#2123/C/C-only].
@@ -123,6 +130,8 @@ The vanilla admin panel sends that sync on every trait add or remove [#2615/C/C-
 An admin's panel, the rust pass, the level listener and the weight refresh are all writers the mod does not control, so a clamp and an owned trait hold only if the mod re-asserts them, which is why [the rules](#rules) put the re-assertion on a schedule.
 The perk-level packet carries three levels into remote fields only, never into the perk list [#2623/C/C-only].
 
+The mod's own live readings of this seat are on [testing-your-mod](testing-your-mod.md#scenario-inputs).
+
 <a id="carry"></a>
 ### Carry capacity
 
@@ -143,6 +152,8 @@ The delta multiplies after the floor, so it scales the finished capacity and not
 That no vanilla Lua calls either setter is unverified, because it rests on a hand scan of the install, as [the perks page](../facts/perks-and-strength.md#open) records.
 A second mod that owns carry capacity collides with this one on the same field, and cooperative registration with such a mod is a rule of [the lessons](../platform/lessons.md#rules).
 Where the carry penalty reaches speed, it does so through the Heavy Load moodle, under [perception](#perception).
+
+The mod's own live readings of this seat are on [testing-your-mod](testing-your-mod.md#scenario-inputs).
 
 <a id="traits"></a>
 ### Traits the mod grants or reads
@@ -301,7 +312,7 @@ The server cannot read a connected player's current action: its character-action
 The exercise reaches the server with no client command a mod could intercept [#2189/C/C-only].
 The grants and their triggers are [the training signals](../facts/exercise-and-training.md#training-signals).
 
-Read activity on the server from `getBodyDamage():getThermoregulator():getMetabolicRate()`, never from the target, which reads -1. The rate lags the activity and already carries the load factor [#2649/C/C-only], and it never reaches the running or sprinting classes, because those flags do not reach the server [#2875/M/n=1][#2877/M/n=1]. Read exercise reps and melee hits from the server's `AddXP` and `OnWeaponHitXp` events [#2879/M/n=1][#2880/M/n=1]. The current action's calorie modifier is not readable on the server [#2878/M/n=1].
+On the server the rate lags the activity and already carries the load factor [#2649/C/C-only], and it never reaches the running or sprinting classes, because those flags do not reach the server [#2875/M/n=1][#2877/M/n=1]. A rep and a melee hit reach a server-side listener as the `AddXP` and `OnWeaponHitXp` events [#2879/M/n=1][#2880/M/n=1], and the current action's calorie modifier is not readable there [#2878/M/n=1]. The rules say how to read activity on a server, and how to count a rep, [in the rules](#rules).
 
 ## Options
 

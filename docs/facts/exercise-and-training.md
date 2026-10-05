@@ -136,7 +136,7 @@ Twelve in-game hours after the first rep of a group, the ten-minute tick starts 
 A day after the last rep of an exercise, the same tick starts taking regularity off it [#2166/C/C-only].
 The client, meanwhile, grants nothing, writes no endurance and fires only the animation event of each loop [#2173/C/C-only] [#2175/C/C-only] [#2185/C/C-only].
 
-An exercise set's rep path runs on the server: squats regularity rose 0.08 per rep on the server's own read, ahead of the client's, and `AddXP` fired once per rep for Fitness (4) and for Strength (0) [#2879/M/n=1]. Whether `Fitness.update`'s decay ticks on the server is still open [#2083/C/open].
+An exercise set's rep path runs on the server: squats regularity read on the server rose from 0 to 0.80 over the set's ten reps, and `AddXP` fired once per rep for each of Fitness and Strength, the last amounts 4 and 0 [#2879/M/n=1]. Whether `Fitness.update`'s decay ticks on the server is still open [#2083/C/open].
 
 <a id="training-signals"></a>
 ### Training signals: every grant of Strength or Fitness XP

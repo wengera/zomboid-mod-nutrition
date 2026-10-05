@@ -93,7 +93,7 @@ Sustained running at the running branch's rate crosses the whole 5 900 kcal rang
 `Nutrition.update` returns early for a dead or god-mode character, and its only caller is the second internal player update step, itself gated by the character-stats disabler [#0466].
 The store this burn drains is clamped at both ends, so an idle starving character reaches the floor and the burn stops mattering ([nutrition-core.md#clamps](nutrition-core.md#clamps)).
 
-The moving flag of a client-driven walk reaches the server's copy of the player in about three ticks of four, but the run and sprint flags never do, so the server's running and sprinting branches are unreachable on the harness routes [#2877/M/n=1][#0591/M/n=1/open].
+The moving flag of a client-driven walk reaches the server's copy of the player in part of its ticks (226 of 301 on a walk, 53 of 141 on a sprint leg), but the run and sprint flags never do, so the server's running and sprinting branches are unreachable on the harness routes [#2877/M/n=1][#0591/M/n=1/open].
 
 <a id="metabolic-rate"></a>
 ### The metabolic-rate classes
@@ -124,9 +124,9 @@ The target is then raised twice more through the same setter: to at least `clamp
 So the target can differ from the class when the character is tired or loaded, and a reading of the rate against a class has to hold endurance and load still or account for both [#2649/C/C-only].
 The exercise class is the flat `Metabolics.Fitness` at 6.0, never the exercise's own `metabolics`; a per-exercise class such as `FitnessHeavy` at 9.0 reaches the thermoregulator through `ISFitnessAction:update`'s per-frame `setMetabolicTarget`, the timed action [exercise-and-training.md#exercise-path](exercise-and-training.md#exercise-path) describes [#2634/C/C-only].
 `IsoGameCharacter` declares no metabolic-rate getter, only the two `setMetabolicTarget` overloads, so the rate is read through `getBodyDamage():getThermoregulator()`, whose `getMetabolicRate`, `getMetabolicTarget` and `getMetabolicRateReal` are public [#2635/C/C-only].
-The classification is read from the bytecode and never measured, and whether a connected player's thermoregulator is classified on the server at all is open below [#2633/C/C-only].
+The classification is read from the bytecode [#2633/C/C-only], and on a dedicated server it is measured through the rate and not the target [#2875/M/n=1].
 
-On a dedicated server a connected player's metabolic target reads -1 at every read, because it is reset after each update, so the server's classification is read from `getMetabolicRate`. That rate held 1.50 idle, climbed toward Walking5kmh while the player walked, toward Fitness through a squat set, and above the walking class under load, so the server classifies the player's activity [#2875/M/n=1]. The client's rate tracks it within about 0.3 [#2876/M/n=1].
+On a dedicated server a connected player's metabolic target reads -1 at every read, because the update ends by writing -1.0 into it [#2908/C/C-only], so the server's classification is read from `getMetabolicRate`. That rate held 1.50 idle, climbed toward Walking5kmh while the player walked, toward Fitness through a squat set, and above the walking class under load, so the server classifies the player's activity [#2875/M/n=1]. The client's rate tracked it within 0.37 at every pair [#2876/M/n=1].
 
 <a id="hunger-thirst"></a>
 ### Hunger and thirst

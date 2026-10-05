@@ -93,6 +93,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A harness Lua edit appends new sites at the end of its file; an edit that shifts lines re-anchors every `repo:` pointer into that file in the same commit (`claims_check` rule 3b fails otherwise).
 - Standing rule: live-server experiments and trial and error are encouraged, and the harness is improved as the work goes whenever that makes a measurement better — before the run, under the rules above.
 - A live boot of the mod never overlaps an offline edit under `mod/`: the boot loads the whole tree and a half-saved file parks the `-debug` client; a live task waits for the mod/ tree to be quiescent, and an offline mod/ task waits for the session to end (Plan 2 ruling).
+- An acceptance profile for the mod sets `Nutrition = false`, the design's precondition (ruling T18-1; x141b ran without it).
 - Row `#2808` is the living harness-inventory count tethered to the generated command table: a harness commit that changes the table's count line updates `#2808`'s claim text and quote in the same commit (rule 3b fails otherwise) — the one register edit a harness implementer may make.
 
 ## 6. Process

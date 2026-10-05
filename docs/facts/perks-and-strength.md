@@ -107,7 +107,7 @@ Its dice roll `xpUpdate.randXp()` succeeds on a roll of 1 in 100 times the inver
 On the move event it grants 2 Strength experience on a `randXp()` roll whenever the inventory weight exceeds half the maximum weight, with no requirement to be moving fast [#2116/C/C-only].
 Which side fires the move event is stated at [lua-platform.md#events](../platform/lua-platform.md#events).
 The melee, tree, exercise and endurance-warning grants are stated at [exercise-and-training.md#training-signals](exercise-and-training.md#training-signals).
-For a server-side grant the protein branch reads the server's store, whatever the client's copy holds [#2872/M/n=1].
+For a server-side grant the protein branch reads the server's store, with the client's store having just answered 200 and reverting within a second [#2872/M/n=1].
 
 <a id="level-writes"></a>
 ### Level writes
@@ -132,7 +132,7 @@ The one absolute test is Lua: `xpUpdate.checkForLosingLevel` calls `LoseLevel` w
 It runs only for Strength and Fitness, only from the ten-minute rust pass, and only on a tick where that perk's rust timer is above 20000 and has entered a new 1200-unit bucket [#2124/C/C-only].
 A level written above the experience it implies is therefore pulled down one step per rust step, and not on every ten-minute tick [#2124/C/C-only].
 Each such step fires the level event with a gained flag of false and so rewrites the band traits [#2127/C/C-only] [#2157/C/C-only].
-On a dedicated server a level-only `setPerkLevelDebug` write below the experience-implied level holds: Strength written from 5 to 3 with 37600 experience stayed at 3 on the server for 30 s of reads and reached the client's own read within 1.8 s of the request, the timed experience push carrying it down [#2867/M/n=1]. An admin client's `SyncXp` sent while the client mirrored that level left it and the experience unchanged and fired no event, which does not show what a sync carrying a different level would do [#2869/M/n=1].
+On a dedicated server a level-only `setPerkLevelDebug` write below the experience-implied level holds: Strength written from 5 to 3 with 37600 experience stayed at 3 on the server for 30 s of reads and the owning client read 3 within 2 s of the request [#2867/M/n=1]. An admin client's `SyncXp` sent while the client mirrored that level left it and the experience unchanged and fired no event, which does not show what a sync carrying a different level would do [#2869/M/n=1].
 
 <a id="events"></a>
 ### The two events and the grant route
