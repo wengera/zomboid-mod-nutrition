@@ -749,7 +749,10 @@ def test_server_path_drink_lands_the_cola(server_host):
     assert r == "orig" and calls == 1
     assert rec is not None, I(h).lastError
     assert expected_bulk > 0
-    assert abs(rec["stomach"]["bulk"] - expected_bulk) < TOL
+    # a fresh record's stomach is seeded FULL on creation (the Task 11 game choice, mirrored in the
+    # intake landing), so the landed bulk is the seed plus the meal
+    full_bulk = h.K.stomach.FULL_BULK
+    assert abs(rec["stomach"]["bulk"] - (full_bulk + expected_bulk)) < TOL
     assert stats.sips == before_stats["sips"] + 1
     assert stats.landed == before_stats["landed"] + 1
     assert rec["lastIntake"]["source"] == "fluid"

@@ -242,7 +242,7 @@ function IN.readAfterAndLand(b)
     if vec == nil then return nil end                      -- a cancel under vanilla's guards, or a no-op
     local record = NR.server.store.get(b.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
-    record.stomach = record.stomach or K.stomach.new()
+    record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
     K.stomach.ingest(record.stomach, vec)
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
@@ -467,7 +467,7 @@ function IN.readDrinkAfterAndLand(d)
     local vec, missing = IN.fluidVector(NR.data.fluids.get, d.mix, litres)
     local record = NR.server.store.get(d.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
-    record.stomach = record.stomach or K.stomach.new()
+    record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
     K.stomach.ingest(record.stomach, vec)
     record.lastIntake = { fullType = d.fullType, source = "fluid", litres = litres, missing = missing }
