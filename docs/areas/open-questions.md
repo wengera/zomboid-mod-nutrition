@@ -119,6 +119,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2946/M/n=1/open] | Whether the climate override moves an outdoor character's air and core, and whether a hot exposure with activity raises the fluids multiplier above 1, is unmeasured: the one run stood the character where the air read 22.0 under both overrides and walked it at 16 degrees. | [open-questions.md](#x51) | X51 | the climate override held over an outdoor character, idle and walking, reading the server's thermoregulator per tick |
 | [#2960/C/C-only/open] | Whether a script `OnEat` given to `Base.PillsVitamins` by a mod's item block runs on the server when the pill is taken is unmeasured: the pill path calls the drainable's `OnEat`, as the jar reads, and run x151s-20261005-165844 took the pill with none assigned. | [open-questions.md](#x59) | X59 | a pill taken with a script `OnEat` assigned, counting its calls on both sides |
 | [#2972/M/n=1/open] | Whether the mod's sweat term fires live is unmeasured: a 60 s walk took the server's `body.met` from 1.6 to 3.0 and never above the term's 3 MET floor, so `sweatLmin` stayed 0 and `sweatActive` false. | [open-questions.md](#x64) | X64 | a run or an activity the server classifies above 3 MET for game hours, reading the sweat fields |
+| [#2992/M/n=1/open] | Whether an unbroken sleep resets the mod's hours awake live is unmeasured: under the harness's sleep hold no asleep run reached the one-hour nap threshold, so `awakeH` never reset across the hold. | [open-questions.md](#x69) | X69 | a client-initiated sleep, or a hold that keeps every minute asleep for over an hour, reading `acute.awakeH` and `sleptH` |
 
 ## Decisions
 <a id="decisions"></a>
@@ -373,6 +374,12 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether the sweat term fires on a live server is open [#2972/M/n=1/open]; the drink, sodium and world-water routes it shares the pool with are settled [#2966/M/n=1, #2967/M/n=1, #2970/M/n=1].
 - Waiting on it: [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
 - Settled by: a run or an activity the server classifies above 3 MET for game hours [#2972/M/n=1/open], reading the sweat fields — [experiments.md § Named experiments](../reference/experiments.md), row `X64`.
+
+<a id="x69"></a>
+### X69 — Does an unbroken sleep reset the mod's hours awake?
+- Whether an unbroken sleep resets hours awake on a live server is open [#2992/M/n=1/open]; the window accounting, the debt and the impairment unit under the harness's hold are settled [#2986/M/n=1, #2985/M/n=1].
+- Waiting on it: [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
+- Settled by: a client-initiated sleep, or a hold that keeps every minute asleep for over an hour [#2992/M/n=1/open], reading `acute.awakeH` and `sleptH` — [experiments.md § Named experiments](../reference/experiments.md), row `X69`.
 
 ## See also
 
