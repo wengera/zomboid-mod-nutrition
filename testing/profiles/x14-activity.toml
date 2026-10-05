@@ -1,0 +1,37 @@
+# testing/profiles/x14-activity.toml - the activity gate's boot (Plan 3 Task 5): PZTestKit +
+# NutritionRevamp (Mode 1) + TKX_MetWatch (the server's per-tick view of the metabolic target, the
+# movement flags, the first action's caloriesModifier, regularity and inventory weight, X37/X38/
+# X36) + TKX_XpEvents (the XP events during the exercise and melee arms, X39). The fixture's day
+# length; client timeout normal. Tier-(a) verify rows only: the markers are present on both sides.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1) + TKX_MetWatch + TKX_XpEvents - the activity gate."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_MetWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_MetWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_XpEvents.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_XpEvents.version", expect = "\"value\": 1" },
+]
+
+[sandbox.NR]
+Mode = 1
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_MetWatch"
+path = "testing/experiments/TKX_MetWatch"
+
+[[mods]]
+id = "TKX_XpEvents"
+path = "testing/experiments/TKX_XpEvents"
+
+[client]
+timeout = 240

@@ -1,0 +1,5 @@
+name=TKX Met Watch
+id=TKX_MetWatch
+description=Plan 3 experiment: per-tick server samples of the metabolic target and rate, the movement flags, the first action's caloriesModifier, squats regularity and inventory weight during a bus-armed window (X37, X38, X36). Test profiles only.
+modversion=1.0
+versionMin=42.0.0
