@@ -1,0 +1,5 @@
+name=TKX Sleep Watch
+id=TKX_SleepWatch
+description=Plan 4 experiment: per-tick server samples of FATIGUE, isAsleep and the fatigue read before and after one player update (the reset signature) during a bus-armed window (the sleep gate). Test profiles only.
+modversion=1.0
+versionMin=42.0.0
