@@ -17,7 +17,7 @@ BASE = dict(M=0.8, D=0.5, sd=1.0, asleep=False, ghost=False, hunger=0.2, thirst=
             sameSquare=True, inRoom=False, idleTimer=0.0, bedFactor=1.0, timeOfSleep=0.0, delayToSleep=0.0,
             timeOfDay=8.0, minutesPerDay=60.0, endRegen=1.0, recoveryMod=1.0, allAsleep=False, fitnessLevel=5,
             unlimitedEndurance=False, painLevel=0, stressMoodle=0, sleepTransition=False,
-            stomachFill=0.8, energyState=1.0)                 # Plan 2: hunger is the view of the fill, 1 - 0.8
+            stomachFill=0.8, energyState=1.0, rmod=1.0)       # Plan 2: hunger is the view of the fill, 1 - 0.8
 
 
 def run(host, **kw):
@@ -239,3 +239,15 @@ def test_sleep_split_compares_against_the_float_0_3(host):
     assert 0.3 < 0.3000000075 < F03
     o = run(host, asleep=True, fatigue=0.3000000075, timeOfSleep=9.0, delayToSleep=8.5)
     assert o["fatigue"] == pytest.approx(0.3000000075 - dt / 7.0 * 0.3, rel=1e-12)
+
+
+# Plan 3 (Task 11, ruling 2): the asleep endurance regeneration is the one endurance arm the handler owns,
+# scaled by the regeneration coefficient rmod; rmod 1 reproduces Plan 1's value exactly.
+def test_asleep_regen_scales_with_rmod(host):
+    plan1 = 3.1e-5 * 1.0 * 1.0 * 0.8 * 2.0
+    assert run(host, asleep=True, endurance=0.5)["endurance"] == pytest.approx(0.5 + plan1, rel=1e-12)
+    assert run(host, asleep=True, endurance=0.5, rmod=1.0)["endurance"] == run(host, asleep=True, endurance=0.5)["endurance"]
+    assert run(host, asleep=True, endurance=0.5, rmod=2.0)["endurance"] == pytest.approx(0.5 + 2 * plan1, rel=1e-12)
+    assert run(host, asleep=True, endurance=0.5, rmod=0.25)["endurance"] == pytest.approx(0.5 + 0.25 * plan1, rel=1e-12)
+    assert run(host, endurance=0.5, rmod=2.0)["endurance"] == 0.5                  # awake: the takeover never writes it
+    assert host.py(host.K.fast.input())["rmod"] == 1

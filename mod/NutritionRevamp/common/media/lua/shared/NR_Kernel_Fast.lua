@@ -46,7 +46,9 @@ end
 -- divisor tests all three, the idleness decrease only the two sitting tests (jar § 2 @94, @598).
 -- `sleepingTablet` is getSleepingTabletEffect() > 1000, doDelayToSleep's 0.1 override (jar § 3).
 -- `stomachFill` is the slow clock's record.stomachFill (0 empty .. 1 full); `energyState` is the
--- Plan 3 entry point, stubbed at the neutral 1 by the adapter. The defaults read full and neutral.
+-- Plan 3 entry point, stubbed at the neutral 1 by the adapter; `rmod` is the slow clock's regeneration
+-- coefficient (NR_Kernel_Aerobic.lua), scaling the asleep endurance regeneration. The defaults read full
+-- and neutral.
 -- `heartyAppetite`, `lightEater` and `foodEaten` are no longer read by the hunger term (Plan 2); they
 -- stay filled for Plan 3/4's appetite and energy terms.
 function K.fast.input()
@@ -62,7 +64,7 @@ function K.fast.input()
         bedFactor = 1, timeOfSleep = 0, delayToSleep = 0, timeOfDay = 0, minutesPerDay = 60,
         endRegen = 1, recoveryMod = 1, allAsleep = false, fitnessLevel = 0, unlimitedEndurance = false,
         painLevel = 0, stressMoodle = 0, sleepingTablet = false, sleepTransition = false,
-        stomachFill = 1, energyState = 1,
+        stomachFill = 1, energyState = 1, rmod = 1,
     }
 end
 
@@ -152,7 +154,8 @@ function K.fast.step(inp, out, c)
         if inp.allAsleep then
             f = 2 * D
         end
-        endurance = clamp(endurance + c.imobileEnduranceIncrease * inp.endRegen * inp.recoveryMod * M * f, 0, 1)
+        -- Plan 3 ruling 2: the one endurance arm the handler owns, x the regeneration coefficient
+        endurance = clamp(endurance + c.imobileEnduranceIncrease * inp.endRegen * inp.recoveryMod * M * f * inp.rmod, 0, 1)
         local dt = 1 / inp.minutesPerDay / 60 * M / 2         -- game-hours this update (jar § 3, § 9)
         if inp.sleepTransition then
             -- Plan 1 ruling 7: the two mirrors, seeded as SleepingEvent.doDelayToSleep builds d (jar § 3)
