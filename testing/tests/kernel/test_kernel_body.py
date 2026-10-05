@@ -217,7 +217,10 @@ def test_new_record_body(host):
     assert list(body["nHist"].values()) == [0] * 14
     assert len(body["nHist"]) == 14
     assert body["mirrorLast"] == {1: 0, 2: 0, 3: 0, 4: 0}
-    ring_keys = {"eb7", "mass7", "bandWeek", "nHist", "mirrorLast"}
+    for k in ("p7", "carb7", "lip7"):
+        assert list(body[k].values()) == [0] * 7, k
+        assert len(body[k]) == 7, k
+    ring_keys = {"eb7", "mass7", "bandWeek", "nHist", "mirrorLast", "p7", "carb7", "lip7"}
     assert set(body) == set(scalars) | {"fm", "lm"} | ring_keys
 
 

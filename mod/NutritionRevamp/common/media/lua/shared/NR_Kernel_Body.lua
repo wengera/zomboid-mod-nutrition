@@ -139,7 +139,8 @@ end
 -- Strength level l0, the creation-trait carry factor, the responder constant r and the world age in
 -- hours. Numbers, one string (band) and tables of numbers only (#1495: global modData refuses
 -- functions and userdata). The rings are built with numeric `for`; every bandWeek slot is its own
--- table.
+-- table. p7, carb7 and lip7 hold each closed day's protein, carbohydrate and lipid grams (slot 7 is
+-- yesterday), the legacy mirror's trailing-24 h blend.
 function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     local fm, lm = K.body.split(w, sex, build)
     local day = math.floor(ageH / 24)
@@ -171,10 +172,16 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.eb7 = {}
     body.mass7 = {}
     body.bandWeek = {}
+    body.p7 = {}
+    body.carb7 = {}
+    body.lip7 = {}
     for i = 1, 7 do
         body.eb7[i] = 0
         body.mass7[i] = w
         body.bandWeek[i] = { 0, 0 }
+        body.p7[i] = 0
+        body.carb7[i] = 0
+        body.lip7[i] = 0
     end
     body.eb24h = 0
     body.vStr = 0

@@ -171,17 +171,27 @@ function K.partition.day(body, dHyp, dStr, pPerKg, immobilised)
     return dFM, dLM
 end
 
--- Close the day: shift eb7 and mass7 one slot (slot 1 the oldest), write the day's ebDay and fm + lm
--- into slot 7, zero the day accumulators and advance dayIndex. Returns the body.
+-- Close the day: shift eb7, mass7, p7, carb7 and lip7 one slot (slot 1 the oldest), write the day's
+-- ebDay, fm + lm, pDay, carbDay and lipDay into slot 7 (the legacy mirror's yesterday), zero the day
+-- accumulators and advance dayIndex. Returns the body.
 function K.partition.closeDay(body)
     local eb = body.eb7
     local mass = body.mass7
+    local p7 = body.p7
+    local carb7 = body.carb7
+    local lip7 = body.lip7
     for i = 1, 6 do
         eb[i] = eb[i + 1]
         mass[i] = mass[i + 1]
+        p7[i] = p7[i + 1]
+        carb7[i] = carb7[i + 1]
+        lip7[i] = lip7[i + 1]
     end
     eb[7] = body.ebDay
     mass[7] = body.fm + body.lm
+    p7[7] = body.pDay
+    carb7[7] = body.carbDay
+    lip7[7] = body.lipDay
     body.inDay = 0
     body.eeDay = 0
     body.ebDay = 0

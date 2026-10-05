@@ -3,14 +3,20 @@
 -- file scope sees the declared default. No change event exists (#2466), so the options are
 -- re-read every slow tick and a change fires NR.server.options.changed.
 local NR = NutritionRevamp
-NR.server.options = { mode = 1, logLevel = 2, readAt = "default", changed = {} }
+NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {} }
 local O = NR.server.options
 
 local MODE_NAMES = { "takeover", "overlay" }
 
+-- A number leaf in [lo, hi], or a boolean leaf when the default is a boolean; any other value reads
+-- the default.
 local function readLeaf(tbl, key, default, lo, hi)
     if tbl == nil then return default end
     local v = tbl[key]
+    if type(default) == "boolean" then
+        if type(v) == "boolean" then return v end
+        return default
+    end
     if type(v) ~= "number" then return default end
     if v < lo or v > hi then return default end
     return v
@@ -18,14 +24,15 @@ end
 
 function NR.server.readOptions(where)
     local sv = SandboxVars and SandboxVars.NR or nil
-    local oldMode, oldLog = O.mode, O.logLevel
+    local oldMode, oldLog, oldMirror = O.mode, O.logLevel, O.legacyMirror
     O.mode = readLeaf(sv, "Mode", 1, 1, 2)
     O.logLevel = readLeaf(sv, "LogLevel", 2, 1, 3)
+    O.legacyMirror = readLeaf(sv, "LegacyMirror", true)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
-    if oldMode ~= O.mode or oldLog ~= O.logLevel then
+    if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror then
         for i = 1, #O.changed do
-            local ok, err = pcall(O.changed[i], { mode = oldMode, logLevel = oldLog }, O)
+            local ok, err = pcall(O.changed[i], { mode = oldMode, logLevel = oldLog, legacyMirror = oldMirror }, O)
             if not ok then NR.log.say(2, "options: changed hook failed: " .. tostring(err)) end
         end
     end

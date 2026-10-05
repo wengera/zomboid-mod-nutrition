@@ -14,3 +14,9 @@ option NR.LogLevel
     type = enum, numValues = 3, default = 2,
     page = NutritionRevamp, translation = NR_LogLevel, valueTranslation = NR_LogLevelValues,
 }
+
+option NR.LegacyMirror
+{
+    type = boolean, default = true,
+    page = NutritionRevamp, translation = NR_LegacyMirror,
+}
