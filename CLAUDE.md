@@ -65,7 +65,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 
 A claim is minted in the commit that lands its evidence, never later.
 
-1. **A new measurement:** the run's JSON is copied byte-identical to `testing/artifacts/<run-id>/` with a row in the artifacts register (run id · file · what it measured · its reading guide) and its keys in `docs/reference/do-not-cite.csv` (empty allowed; a listed key is never cited); the same commit adds the register rows and the tagged sentences on their owner pages, green under the checker.
+1. **A new measurement:** the run's JSON is copied byte-identical to `testing/artifacts/<run-id>/` with a row in the artifacts register (run id · file · what it measured · its reading guide) and its keys in `docs/reference/do-not-cite.csv` (empty allowed; a listed key is never cited); the same commit adds the register rows and the tagged sentences on their owner pages, green under the checker; the artifact-row commit re-runs the full checker and re-anchors the `artifacts.md` pointers its new row shifts.
 2. **Ids:** the next unused id; the checker fails a duplicate or a gap; a parallel SDD wave reserves an id block per task in its ledger before dispatch; a wave whose writers never touch the register reserves no block, because the controller mints serially from the delta files at the wave's close.
 3. **Settling an open row:** the row keeps its id and goes `open -> settled` with its pointer and bound filled; the owner sentence is rewritten to the settled form, its line leaves `docs/areas/open-questions.md`, and its rows in `docs/reference/experiments.md` and the wall map's experiment table are marked `run <run-id>`; a reading that comes back unmeasured or trivial stays `open` with the run named in `bound`.
 4. **Superseding:** a claim a run overturns keeps its id and goes `superseded` with `successor`; every page tagging it moves to the successor in the same commit.
@@ -90,6 +90,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Fixture caches (`testing/fixtures/default/cache/`) and run folders (`testing/runs/`) are per-machine and gitignored.
 - Kahlua rules for every harness and experiment Lua file: no `goto`, no `%d` on floats, no `#` on Java lists.
 - The experiment mods (`testing/experiments/TKX_*`) are installed only through test profiles, never into the fixture.
+- A harness Lua edit appends new sites at the end of its file; an edit that shifts lines re-anchors every `repo:` pointer into that file in the same commit (`claims_check` rule 3b fails otherwise).
 - Standing rule: live-server experiments and trial and error are encouraged, and the harness is improved as the work goes whenever that makes a measurement better — before the run, under the rules above.
 
 ## 6. Process
@@ -104,6 +105,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Commits are pathspec commits (`git commit -m "…" -- <paths>`), never `--amend`, with no Claude attribution and a succinct subject line; implementers never push — the controller pushes at a plan's close.
 - Proceed to completion and ledger each decision for review instead of asking; ask only before a destructive action or one outside this worktree.
 - Implementers run in parallel only on disjoint files; reviewers are read-only, may overlap anything, and read an implementer's committed content with `git show <commit>:<path>`; research subagents are sent off as the work goes.
+- In a delta a `supersede` names its successor in the `successor` cell; the add row may sit anywhere.
 - The register is read-only for page writers: a new or changed claim is a delta file the controller applies with `tools/claims_delta.py`, and a writer never runs `claims_check.py --fix-tags` (the controller runs it once per wave close).
 - An added `rule` row (an area page's own imperative) rests on register rows: its pointer is a C pointer copied from a row it rests on, its bound reads `inference; a reading of <ids>`, and its page line carries the resting row's tag beside its own.
 - A rule copied from a page that states it outside `## Rules` is copied byte-identically and diffed by hand at review, because the checker's `rules-dup` rule reads `## Rules` lines only.

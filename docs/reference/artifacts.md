@@ -56,9 +56,9 @@ correct it.
 | `x125-20260911-042055` | `platform-order2.json` | `testing/experiments/x125_order2.py` | [`areas/open-questions.md`](../areas/open-questions.md), [`platform/loader-and-scripts.md`](../platform/loader-and-scripts.md), [`reference/wall-map.md`](../reference/wall-map.md) |
 | `x126-20260911-045205` | `platform-pcall.json` | `testing/experiments/x126_pcall.py` | [`platform/harness.md`](../platform/harness.md), [`platform/lua-platform.md`](../platform/lua-platform.md), [`reference/wall-map.md`](../reference/wall-map.md) |
 | `x127-20260911-052049` | `platform-raise.json` | `testing/experiments/x127_raise.py` | [`platform/harness.md`](../platform/harness.md), [`platform/lessons.md`](../platform/lessons.md), [`platform/lua-platform.md`](../platform/lua-platform.md), [`platform/mod-anatomy.md`](../platform/mod-anatomy.md), [`reference/wall-map.md`](../reference/wall-map.md) |
-| `x131-20261004-175014` | `accept.json` | `testing/experiments/x131_accept.py` | [`areas/testing-your-mod.md`](../areas/testing-your-mod.md) |
-| `x131b-20261004-175911` | `accept-b.json` | `testing/experiments/x131_accept_b.py` | [`areas/mp-sync.md`](../areas/mp-sync.md) |
-| `x131c-20261004-181223` | `calcrepro.json` | `testing/experiments/x131_calcrepro.py` — **three boots in one driver and one file**: `boots.A` (`nr-overlay`), `boots.B` (`nr-takeover`), `boots.C` (`x13-calcstats`) | [`facts/character-stats.md`](../facts/character-stats.md), [`platform/harness.md`](../platform/harness.md), [`platform/lua-platform.md`](../platform/lua-platform.md) |
+| `x131-20261004-175014` | `accept.json` | `testing/experiments/x131_accept.py` | [`areas/testing-your-mod.md`](../areas/testing-your-mod.md), [`platform/lessons.md`](../platform/lessons.md) |
+| `x131b-20261004-175911` | `accept-b.json` | `testing/experiments/x131_accept_b.py` | [`areas/mp-sync.md`](../areas/mp-sync.md), [`platform/lessons.md`](../platform/lessons.md) |
+| `x131c-20261004-181223` | `calcrepro.json` | `testing/experiments/x131_calcrepro.py` — **three boots in one driver and one file**: `boots.A` (`nr-overlay`), `boots.B` (`nr-takeover`), `boots.C` (`x13-calcstats`) | [`facts/character-stats.md`](../facts/character-stats.md), [`platform/harness.md`](../platform/harness.md), [`platform/lessons.md`](../platform/lessons.md), [`platform/lua-platform.md`](../platform/lua-platform.md) |
 | `scenario-20261004-184114` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast --profile x13-nutrition-off --speed 30` | [`facts/body-and-weight.md`](../facts/body-and-weight.md), [`facts/eating-pipeline.md`](../facts/eating-pipeline.md) |
 | `scenario-20261004-185129` | `scenario-nutrition_3day_gain.json` | `pzt scenario nutrition_3day_gain --profile x13-nutrition-off --speed 30` | [`facts/body-and-weight.md`](../facts/body-and-weight.md), [`facts/eating-pipeline.md`](../facts/eating-pipeline.md) |
 | `scenario-20261004-190146` | `scenario-nutrition_3day_fast.json` | `pzt scenario nutrition_3day_fast --profile x13-nutrition-on --speed 30` | [`facts/body-and-weight.md`](../facts/body-and-weight.md), [`facts/eating-pipeline.md`](../facts/eating-pipeline.md) |
@@ -66,6 +66,7 @@ correct it.
 | `x131t-20261004-195234` | `traits.json` | `testing/experiments/x131_traits.py` | [`platform/mp-model.md`](../platform/mp-model.md) |
 | `x131s-20261004-200859` | `swtraits.json` | `testing/experiments/x131_swtraits.py` | [`facts/other-mods/somewhattraitscore.md`](../facts/other-mods/somewhattraitscore.md) |
 | `x131r-20261004-201719` | `ss_track.json` | `testing/experiments/x131_ss_track.py` | [`facts/other-mods/simplestatus.md`](../facts/other-mods/simplestatus.md) |
+| `x131d-20261004-205257` | `accept-c.json` | `testing/experiments/x131_accept_c.py` | — |
 
 ## Script/artifact skew
 
@@ -1996,3 +1997,41 @@ one clock). Each triplet took about 1.5 s of client bus round trips.
 | `phases.AC.tagged`, `phases.AP.tagged`, `verdicts.AC.observed.tagged`, `verdicts.AP.observed.tagged` | `+1s`, `+2s`, `+4s` | Each triplet took about 1.5 s, so no read fell near +1 s: the `+1s` and `+2s` tags name the same triplet at 2.18 s (calories) and 2.76 s (proteins). Read `phases.<arm>.rows[n].t_from_ack_ms`. |
 | `phases.AC.store_first`, `phases.AC.bar_first_ms`, `phases.AP.store_first`, `phases.AP.bar_first_ms`, `summary.AC`, `summary.AP`, `verdicts.AC.observed.store_first_ms`, `verdicts.AC.observed.bar_first_ms`, `verdicts.AP.observed.store_first_ms`, `verdicts.AP.observed.bar_first_ms` | 1774–2760 ms | Both had already changed at the first read after the write, and the two are stamped on different clocks (the bar on the python read's end, the store on the client's snapshot), so neither is an arrival and their difference is not a lag. |
 | `constants.POLL_S` | 0.5 | The requested spacing; the triplets came about 1.5 s apart. |
+
+**`x131d-20261004-205257/accept-c.json`** — produced by `testing/experiments/x131_accept_c.py` at commit
+`9a424d8` (124.2 s wall; 40 796 bytes, sha256 `4e47bce9…617f9a9b`, byte-for-byte identical to the run
+copy). Plan 1 acceptance **run C**, the smoke test of the fix-wave commit `9a424d8`: the takeover
+handler now finds its hoisted handles in `NutritionRevamp.server.fast.byChar`, a Lua table keyed by the
+`IsoPlayer` object, and falls back to the guarded username lookup only on a miss. Same profile as
+`x131b-20261004-175911` (`testing/profiles/nr-accept.toml`, golden fixture, no `[sandbox]`, so `Mode` is
+its default 1 = takeover); harness Lua at `42425e9`, clean, `doctor_clean true`, `acceptance_run
+"x131b-20261004-175911"`. **Skew-free**: the driver is a copy of the frozen b driver, changed before the
+run only in its artifact name, `SESSION`, `ACCEPTANCE_RUN`, the run-id prefix and a new P1.9, and not
+edited after it. Every verdict `as_predicted`; `summary.verify_ok` `[true, true, true, true]`;
+`server_error_count 0`; `client_lua_error false`; zero `STACK TRACE` lines in either log.
+
+How to read it. `phases.P1.byChar` is the new reading. Its four counter reads were taken in the sandwich
+order `byCharHits` a, `calls` a, a 10 s wait, `calls` b, `byCharHits` b, so the hits window (12.06 s)
+contains the calls window (10.04 s): with no miss between the two calls reads, `dHits >= dCalls` by
+construction. Read `dHits` against `dCalls`; `failures` and `disabledAt` sit beside them at both ends.
+
+- **The character key hits.** `byCharHits` 458 → 571 (`dHits` 113) while `calls` 466 → 566 (`dCalls`
+  100): every handler call inside the calls window took the `FAST.byChar[character]` hit, so a Kahlua
+  table keyed by the `IsoPlayer` returned the stored entry on the engine's every call. `failures` 0 and
+  `disabledAt` unresolved (never set) at both ends (`verdicts.P1.9`).
+- **Every b-run reading reproduces.** `versions` `0.1.0` on both sides; `takeover` `registered true`,
+  `failures 0`, hoist `missing` keyCount 0; `statsMove` thirst Δ 1.27911e-3 against 8.0e-6 × 159.86
+  game-s = 1.27892e-3 (ratio 1.00015), hunger ratio 1.00016 (direction graded); `calls` 159 → 266 over
+  10.04 s wall; `mirror` `received 1`, `username` / `v` / `mode` `"admin"` / `1` / `1`; `bench`
+  `usPerCall 2`; `store` `records.admin.v` 1, `players.minutes` 19 → 22 over 10.02 s wall; `logs` one
+  server self-report, one registration line, one client self-report, and no trace line on either side.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | **`n = 1` session**, one fixture, one player, one build. |
+| `phases.P1.byChar.calls_minus_hits`, `summary.byChar.calls_minus_hits` | `{a: 8, b: -5}` | Each side of the difference is two sequential bus reads under a second apart at about 10 handler calls a second, so it measures the read gap, not the misses since boot. |
+| `phases.P1.byChar.dHits_minus_dCalls`, `summary.byChar.dHits_minus_dCalls` | `13` | The surplus is the sandwich order's wider hits window (its reads bracket the calls reads), not hits beyond calls. |
+| `phases.P1.mirror.received`, read as "the first-sight send arrived" | `1` | As in `x131b-20261004-175911`: two sends reach the client by the code path and the count reads 1; cite it as "a mirror arrived". |
+| `phases.P1.store.minutes.serverWorldAge` | `{a: null, b: null}` | A `lua.global` ack carries no world age, so the nulls are an absent field; the window is `window_measured_s`. |

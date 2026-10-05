@@ -23,13 +23,11 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what the body does
 <a id="time-unit"></a>
 ### The time unit
 
-Every body-side rate is stated per game-world second, of which a game day holds 86 400, and the two rate idioms in the code — `Nutrition`'s `getGameWorldSecondsSinceLastUpdate()` and `IsoGameCharacter`'s `getMultiplier()` times `getDeltaMinutesPerDay()` — reduce to the same quantity because `GameTime.multiplierBias` is 1.0 [#0451].
+Every body-side rate is stated per game-world second, of which a game day holds 86 400, and the two rate idioms in the code — `Nutrition`'s `getGameWorldSecondsSinceLastUpdate()` and `IsoGameCharacter`'s `getMultiplier()` times `getDeltaMinutesPerDay()` — reduce to the same quantity because `GameTime.multiplierBias` is 1.0 after every sandbox load, the `speed` field it switches on being set to 3 at construction and written nowhere else, so `getGameWorldSecondsSinceLastUpdate`, which equals `getMultiplier × getDeltaMinutesPerDay ÷ multiplierBias`, gives the same game-seconds [#0451, #2798/C/C-only, #2799/C/C-only].
 
 Game-seconds elapsed in one update equal `GameTime.getMultiplier() × getDeltaMinutesPerDay()`, since the clock advances the time of day by `getMultiplier() ÷ (120 × minutesPerDay)` hours per update. [#2795/C/C-only]
 `getMultiplier` is the product of the time-speed field, the frame multiplier, the sandbox bias, the per-object bucket multiplier, the slow-motion multiplier and 0.8, the leading 1 being replaced on a fast-forwarding server by the fast-forward option divided by `deltaMinutesPerDay`. [#2796/C/C-only]
 On a dedicated server the frame multiplier is `60 ÷ fps`, with `fps` smoothed toward the instantaneous rate by at most 1 per frame. [#2797/C/C-only]
-The game-time multiplier bias is 1.0 after every sandbox load, because the `speed` field it switches on is set to 3 at construction and written nowhere else. [#2798/C/C-only]
-`getGameWorldSecondsSinceLastUpdate` equals `getMultiplier × getDeltaMinutesPerDay ÷ multiplierBias`, the same game-seconds while the bias is 1. [#2799/C/C-only]
 Two quantities on this page do not carry the second factor and therefore scale with the day length instead: the severe-moodle health terms and the health-from-food timer, both stated at their own anchors.
 
 A rate quoted per real second belongs to the time-speed setting and not to the model, so every rate figure below is stated in game time and the wall-clock readings say so; a reading taken at an accelerated speed is then directly comparable with a baseline one [#0451].
@@ -145,12 +143,12 @@ That dispatcher is also the cleanest interception point a mod has on this side, 
 | `ThirstLevelToAutoDrink` | 0.1 | loaded from the Lua table and read by nothing in the jar; the auto-drink method carries its own 0.1 literal | [#2771/C/C-only, #2770/C/C-only] |
 | `ThirstLevelReductionOnAutoDrink` | 0.1 | loaded from the Lua table and read by nothing in the jar; an auto-drink takes `min(container amount, 2 × thirst)` | [#2771/C/C-only, #2770/C/C-only] |
 
-Exercising means running while moving, or swiping [#0471/C/C-only].
+Exercising, for the awake hunger arm, means a player running while moving or any character in the melee swing state [#0471/C/C-only, #2774/C/C-only].
 Neither exercising branch was measured, and the one that runs while the food-eaten moodle is down is the lower of the two: exercising on an empty stomach makes a character hungry more slowly than standing still does [#0471/C/C-only].
 
 Both awake rates are measured on the dedicated-server path at one fixture: hunger fitted 7.4912e-6 against a predicted 7.4916e-6 at a mean hunger of 0.2196 with r-squared 0.99996, and thirst 7.99999e-6 at ratio 1.0000 with r-squared 1.000000, over 233 samples [#0470/M/n=1, #0476/M/n=1].
 The asleep arms of both stats are read from the code and never measured, because the written sleep state did not persist in the run [#0472/C/C-only, #0477/C/C-only].
-The appetite factor is one minus the current hunger and multiplies every hunger branch except the well-fed one, so hunger is the only stat that damps its own rate; the factor is required to fit every one of the run's 11 windows and tracks it to four significant figures [#0474/M/n=1].
+The appetite factor is one minus the current hunger, times 1.5 for Hearty Appetite and 0.75 for Light Eater as two independent tests, and it multiplies every hunger branch except the well-fed one, so hunger is the only stat that damps its own rate; the one-minus-hunger factor is required to fit every one of the run's 11 windows and tracks it to four significant figures, and `getAppetiteMultiplier` is protected, so Lua rebuilds the factor rather than calling it [#0474/M/n=1, #2776/C/C-only].
 The well-fed branch drops the appetite factor from the expression entirely, which is moot because its rate constant is 0 [#0499].
 The two auto-drink constants are not the auto-drink's governors, and none of what follows was measured.
 `autoDrink` is `public void autoDrink()` on `IsoGameCharacter` and carries its own gates: it returns on a client, on a server for a player whose `autoDrink` flag is off, when `Core.getOptionAutoDrink()` is false, while asleep, grappling, knocked down, falling, aiming or climbing, and when the `AutoDrink` hook answers true. [#2769/C/C-only]
@@ -166,9 +164,7 @@ The thirst updater's asleep test reads the `asleep` field directly, and its ghos
 
 The hunger updaters, as read in the same way, are one awake arm and one asleep arm.
 The awake hunger arm adds `rate × StatsDecrease × appetite × multiplier × deltaMinutesPerDay × getHungerMultiplier()`, the rate being `HungerIncreaseWhenExercise ÷ 3` exercising with the food-eaten moodle at 0, `HungerIncreaseWhenExercise` exercising with it up and `HungerIncrease` idle with it at 0, and adds `HungerIncreaseWhenWellFed × StatsDecrease × multiplier × deltaMinutesPerDay × getHungerMultiplier()` idle with it up. [#2773/C/C-only]
-Exercising, for the awake hunger arm, is a player running while moving or any character in the melee swing state. [#2774/C/C-only]
 `isRunning` returns false at endurance moodle level 3 or above, so an exhausted runner stops counting as exercising for hunger. [#2775/C/C-only]
-The appetite factor is `(1 − hunger)`, times 1.5 for Hearty Appetite and 0.75 for Light Eater as two independent tests, and `getAppetiteMultiplier` is protected, so Lua rebuilds it rather than calling it. [#2776/C/C-only]
 Asleep with the food-eaten moodle at 0, hunger rises per update by `HungerIncreaseWhileAsleep × StatsDecrease × appetite × multiplier × deltaMinutesPerDay × getHungerMultiplier()`; with it up, by a product of `HungerIncreaseWhenWellFed`, `HungerIncreaseWhileAsleep` and StatsDecrease twice, which is 0 at the shipped constant. [#2783/C/C-only]
 
 Left alone, the thirst clock kills: a fed subject whose hunger and thirst were not pinned lost health from 100 to 0 starting at about 29.13 game-hours, at 17.820029 health per game-hour on a 90-minute-day fixture, and died at game-hour 35 [#0173/M/one-fixture].
@@ -368,9 +364,8 @@ The jar exposes only a trait test taking a trait object and one taking a trait a
 | `Nutrition` | boolean, default true | `Nutrition.update`, and therefore the macro drain, the calorie burn and the weight update | intake, which keeps filling the stores, and hunger and thirst, which live in `IsoGameCharacter` | [#0555] |
 | none | — | there is no dedicated hunger, thirst or calorie-burn option | — | [#0554/C/snapshot] |
 
-All five `StatsDecrease` mappings were read directly off the live server rather than inferred, and at the extremes the measured hunger and thirst rates scale exactly as the multiplier predicts — hunger 0.9996 at setting 1 and 1.0002 at setting 5, thirst 1.0000 at both — while the calorie ratio stays at 1.0054 and 1.0050, unchanged [#0483/M/n=1, #0484/M/n=1].
+All five `StatsDecrease` mappings, 1 to 5 onto 2.0, 1.6, 1.0, 0.8 and 0.65 with any other value 1.0, were read directly off the live server rather than inferred, and at the extremes the measured hunger and thirst rates scale exactly as the multiplier predicts — hunger 0.9996 at setting 1 and 1.0002 at setting 5, thirst 1.0000 at both — while the calorie ratio stays at 1.0054 and 1.0050, unchanged [#0483/M/n=1, #0484/M/n=1, #2804/C/C-only].
 `StatsDecrease` is the only sandbox option that touches hunger or thirst: a scan of `SandboxOptions`' method list dated 2026-09-10 for hunger, thirst, stat, nutrition, food and multiplier returns only `getStatsDecreaseMultiplier`, `getEnduranceRegenMultiplier` and two loot multipliers [#0554/C/snapshot].
-`StatsDecrease` maps 1 to 5 onto 2.0, 1.6, 1.0, 0.8 and 0.65, with any other value 1.0. [#2804/C/C-only]
 What the `Nutrition` option gates it gates whole, and what it leaves running it leaves running: intake is [eating-pipeline.md#sandbox](eating-pipeline.md#sandbox) [#0555].
 With the option off the character screen's weight arrow stops moving: vanilla writes the three weight-trend flags it reads only inside `updateWeight`, which the option's early return skips, so the arrow holds the last update's direction [#2644/C/C-only].
 Nothing else moves weight while the option is off: with only the harness loaded, weight read 80 kg exactly at all 73 hourly samples across three accelerated game-days of fasting and across three dosed above the gain threshold, while the same fasting run with the option on lost 1.426 kg against the decoded model's 1.412 [#2090/M/n=1].

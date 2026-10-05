@@ -138,7 +138,7 @@ A profile's sandbox value survives the server's own boot-time rewrite beside the
 | Bytes / CRLF endings | 45 533 / 1 020 | 45 533 / 1 020 |
 | `diff` against the fixture | — | **one hunk, one line** (the seeded one) |
 
-Of the 189 four-space assignment lines five are nested-table openers, which is why the settable-option list a profile is validated against returns 184, and both counts are stable across the merge; a profile naming a nested option or a table opener is rejected rather than silently doing nothing [#1808/M/n=1].
+Of the 189 four-space assignment lines five are nested-table openers, which is why the settable-option list a profile is validated against returns 184, and both counts are stable across the merge; a profile naming a vanilla nested option or a table opener is rejected rather than silently doing nothing [#2812/M/n=1].
 A profile's nested `[sandbox.<Prefix>]` table sets a mod's own option, the harness writing it into the server file in the server's nested shape, a prefix at four spaces and its leaves at eight ([sandbox-options.md](sandbox-options.md#server-file)); the mod's two modes were booted that way on a live server, which a top-level key could not express [#2807/M/n=1].
 
 Five sandbox options carry the nutrition work, with the fixture's value and what each does; all five are settable from a profile and only the day length has been exercised by one [#1809/C/C-only].
@@ -174,7 +174,6 @@ One protocol runs on both sides, carried by the same reader and writer pair, and
 A result is written as one complete JSON object and that completeness is the ready signal, because the file writer's extension allowlist rules out marker files; the orchestrator collects them into the run report and a bus helper blocks on one, a partial write never parsing [#1761].
 The command bus answers with no client attached: a server ping answered in 1.51 seconds, the version control read 1, and all ten echo checks passed, over two boots on the server alone [#0933/M/n=2].
 The live registration set, counted on 2026-10-04, is 63 distinct names over 72 registration sites, nine names being registered twice, once per side; the generated table counts the sites and not the names [#2808/C/snapshot].
-The count on 2026-09-17 was 56 names over 64 calls [#1235/C/snapshot].
 That table — one row per name and side, with the arguments, the reply keys and the purpose of each — is [`harness-commands.md`](../reference/harness-commands.md), and it is generated from the registration sites rather than written by hand.
 
 The test layer answers three bus commands: a sorted list of registered names, a run command whose acknowledgement is one of started, unknown, already running with the running name, or a player-resolution error — and only started leads to a result document — and a status reply carrying the running flag, name, clock, due minute, side and sample count [#1722].
@@ -343,6 +342,7 @@ The elapsed field on the server-started and client-ready marks is the second: it
 
 The bus number format is a rendering property of the artifact and not a measurement one: integers still take the integral branch with its own cut-off, no key changes name or type, and the current path round-trips a non-integral double exactly where the older one quantised every float to six decimals and made cross-side comparison at the last bit impossible [#1754].
 No bit-level claim may rest on an artifact written before the harness commit `291f977`: the encoder rendered every non-integral number at six decimals, so a cross-side comparison from such a run is equal at the bus's resolution and never bit-equal, and the one-in-a-million tolerance the graded rows used is exactly the encoder's own resolution [#1965].
+Give a run id a prefix with no hyphen: the run-id form the checker reads is a lower-case alphanumeric prefix, a hyphen, eight digits, a hyphen and six digits, so a hyphenated prefix is refused; this form is stated in `tools/claimslib.py` and in no register row.
 Two teardown sessions were measured under that limit, so every float on their bus arrived rounded and no row from either artifact supports a bit-level claim; those two artifacts stay exactly as recorded, and every desync graded on them is whole-value, far above the comparison tolerance [#1435/M/n=1].
 The three scenario artifacts, as the tree stood on 2026-09-10, predate the thirst sample column and the evaluator's dead-subject verdict, neither of which has been exercised live, while the scenario's own die-early abort was in place for the second and third runs and never fired [#0171/C/snapshot].
 The measured lifecycle run's artifact carries no fixture or build key of its own, which is known only from the fixture file [#0385/M/one-fixture].
@@ -404,11 +404,11 @@ A global-scope modData census proves less than it looks: the read goes through a
 The client side of the scenario runner is wired end to end and has nothing to run: the test layer is shared and both bus commands answer on the client, but every registered scenario lives under the server folder because the server owns nutrition [#1784].
 Artifacts older than commit `291f977` render every non-integral number at six decimal places, so no bit-level claim may rest on them [#1254/C/snapshot].
 An option the world generator consumed once is not retroactive: the distributed zombie population, the spawn regions and the start date belong to the world and not to the boot that loads it, so a world-generation option has to be changed by re-provisioning a fresh fixture — only the day length has been measured on a restored world, so the other four are unproven rather than shown non-retroactive [#1811/C/inference].
-A vanilla nested option of the server's file stays out of scope and a profile naming one fails validation [#1831]; a mod's own nested options are the `[sandbox.<Prefix>]` table above [#2807/M/n=1].
+A vanilla nested option of the server's file stays out of scope and a profile naming one fails validation [#2811]; a mod's own nested options are the `[sandbox.<Prefix>]` table above [#2807/M/n=1].
 The one measurement of the once-a-minute event's own ceiling is 10.08 ticks per wall second, on the run that overran, and where the true ceiling sits between eight and 10.08 is unmeasured [#1815/M/n=1/open].
 A case-only folder subject can never answer the rename question: the filesystem is case-preserving so the listing shows which spelling was written, but path lookup is case-insensitive, so such a mod loads whichever name is used — the regression subject has to differ from its id by more than case [#1834].
 The counterfactual is out of reach from a profile rather than merely un-run: both profile branches return a non-empty source, so producing a mod left under its folder name in the run's mods directory would need it in the golden fixture's own mod list — a fixture re-provision and shared state [#1835].
-Three legs of the experiment map are stated but never measured: modData persistence across a save and reload, the Lua drink-driver path, and a deliberate client/server script mismatch [#1255/C/C-only].
+Two legs of the experiment map are stated but not yet measured, the Lua drink-driver path and a deliberate client/server script mismatch, while modData persistence across a save and reload is measured by run x131p-20261004-192310 [#1255/C/C-only].
 
 The design's own risk register names seven risks and what is done about each [#1844].
 

@@ -57,8 +57,8 @@ The mod ships three profiles and the plan names two more, each pinning the golde
 | profile | mod list | sandbox block | what it proves | tags |
 |---|---|---|---|---|
 | `nr-accept`, the acceptance profile | the harness and the mod | none, so every option is the fixture's | that the mod arrived on both sides and its files ran in both Lua states | [#1793, #1825/M/n=1] |
-| `nr-takeover`, the takeover profile | the harness and the mod | the day length and `[sandbox.NR] Mode = 1` | that the takeover handler registers and tracks vanilla's stats over game hours, beside the baseline of the same fixture | [#2807/M/n=1, #2749/M/n=1, #1253/C/one-fixture, #1814/M/n=3, #2071/C/inference] |
-| `nr-overlay`, the baseline profile | the harness and the mod | the day length and `[sandbox.NR] Mode = 2` | the overlay boot the takeover arm is read against, the same fixture and day length with vanilla's own stat update running | [#2807/M/n=1, #2749/M/n=1] |
+| `nr-takeover`, the takeover profile | the harness and the mod | the day length and `[sandbox.NR] Mode = 1` | that the takeover handler registers and tracks vanilla's stats over game hours, beside the baseline of the same fixture | [#2807/M/n=1, #2809/M/n=1, #1253/C/one-fixture, #1814/M/n=3, #2071/C/inference] |
+| `nr-overlay`, the baseline profile | the harness and the mod | the day length and `[sandbox.NR] Mode = 2` | the overlay boot the takeover arm is read against, the same fixture and day length with vanilla's own stat update running | [#2807/M/n=1, #2809/M/n=1] |
 | the vanilla-off profile, planned and written only if the design switches vanilla nutrition off | the harness and the mod | the nutrition option off, set in the block and never at runtime | the mod's own arms over game days with vanilla's frozen, since the option freezes all three of the update's arms, beside the scenario profile's baseline | [#1127/C/C-only, #1277/M/n=1] |
 | the stack profile, planned | the harness, the mod and each resident neighbour, every one by its engine-resolved id | none | that the mod's gates still pass beside the mods a live server runs | [#1558, #1617/C/snapshot] |
 
@@ -247,7 +247,7 @@ A client-local flip of the nutrition option reads back on the client, leaves the
 That is why the vanilla-off profile sets the option in its sandbox block, which is the server's own configuration for that run.
 The block merges into the restored file rather than replacing it, so an option a profile leaves out keeps the fixture's value [#1806].
 An option the world generator consumed is not retroactive, so an option that shapes the world is changed by provisioning a fresh fixture rather than by a profile [#1811/C/inference].
-A vanilla nested option is out of the sandbox block's reach, and the answer there is again a fresh fixture [#1831].
+A vanilla nested option is out of the sandbox block's reach, and the answer there is again a fresh fixture [#2811].
 The mod's own options are in its reach through a nested `[sandbox.<Prefix>]` table, which booted the mod in each of its two modes [#2807/M/n=1].
 
 ## Options
@@ -279,7 +279,7 @@ At which pacing does each of this mod's timed scenarios run — real time, a sho
 - No measured moodle route exists: the open route is a Lua-drawn widget, the framework's or the mod's own, and none of the framework's legs has been booted ([#1295/C/open], [wall-map.md#d4](../reference/wall-map.md#d4), [open-questions.md#x29](open-questions.md#x29)).
 - Nothing on the bus executes a craft, so a crafted food's nutrition is read from the code and its create hooks stay unmeasured [#1248/C/C-only].
 - No bus command synthesises a click or a key press, so a panel of this mod's own keeps its state invisible to the bus until a human clicks [#1498/M/n=1].
-- A sandbox option that is nested, or that the world generator consumed, is out of a profile's reach, and changing one means a fresh fixture ([#1831], [#1811/C/inference]).
+- A sandbox option that is nested, or that the world generator consumed, is out of a profile's reach, and changing one means a fresh fixture ([#2811], [#1811/C/inference]).
 - A profile's top-level sandbox keys cannot set the mod's own options, and its nested `[sandbox.<Prefix>]` table can [#2807/M/n=1].
 - A tooltip probe on the driven client reads a debug client's tooltip, whose nutrition block can show without the Nutritionist trait, and on any client a packaged food with a readable label shows the block too ([#2645/C/C-only], [#1710]).
 - A tooltip probe on the stack profile reads the end of a sentinel-free wrap chain the resident mods build, one of whose links bypasses the chain with its own fork of vanilla's render, so it never reads the mod's wrap alone [#2568/C/snapshot].
@@ -296,6 +296,7 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - Whether the moodle framework loads whole, runs its configuration file and renders a registered moodle above its lowest level — settled by one session reading its globals on both sides and, on the client, a registered moodle's level and draw after a value past a threshold, beside a value that must leave it undrawn; -> X29 ([#1295/C/open, #0884/C/C-only/open, #2742/M/n=1/open], [open-questions.md#x29](open-questions.md#x29)).
 - Which sandbox options survive a restore — settled by a profiled run that sets each nutrition option on a restored world and reads it back; no `X` id ([#1830/C/C-only/open], [harness.md#open](../platform/harness.md#open)).
 - Where the cadence ceiling really sits above the known-safe demand — settled by scheduler self-tests that step the demand past it and read the fitted tick rate; no `X` id ([#1815/M/n=1/open], [harness.md#walls](../platform/harness.md#walls)).
+- Decision: Plan 2's entry gate is the cost budget of the design's § 6, read as `bench.global` over `NutritionRevamp.kernel.fast.step` with a filled input (the mod exposes `NutritionRevamp.bench_fast()` in Plan 2) and `tick.rate` on a takeover boot beside an overlay boot of the same fixture, because the only cost reading so far is 2 µs for `defaults`, a table constructor, which says nothing of the handler against the seven updaters [#2746/M/n=1].
 - A `player.sleep` that holds across a game-hour, because the client resets the server's asleep flag, and a real run, because `player.walk` asked to run only walked, are harness needs before X34's asleep and running arms and X35's running pairs can be read (#2081, #2082); -> X34, X35.
 - A same-tick add-and-push trait command, with a client-side stamp of the first change, is a harness need before X4's push arm can be separated from the experience route, because the bus polls every 20 ticks and a client poll about 0.5 s apart is coarser than the hop (#2099); -> X4.
 - The thirst sample column and the evaluator's dead-subject verdict have never run on a live session — settled by the next pinned three-day run's committed artifact; no `X` id [#0171/C/snapshot].
