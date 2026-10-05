@@ -30,10 +30,17 @@ NR.server.metabolism = {
     limitations = {
         "the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the Running classes are unreachable; the metabolic rate lags activity by tens of seconds; the current timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions bill at the class rate",
         "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, never Fitness",
-        "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading",
+        "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading; the catch-up stamps every close with the catch-up minute's age, so the first blend after an offline gap counts yesterday in full",
         "the disuse arm needs a leg fracture or splint",
         "glycogen, dehydration, iron, caffeine, alcohol, sleep debt and the balance dial are Plan 4/5 inputs held neutral",
         "the drain coefficient is stamped and unapplied until Plan 5",
+        "a climb is credited when the minute sample lands inside the climb state; short climbs are missed",
+        "the MET-minute bank is mirrored for the panel and feeds no coefficient; the aerobic dose is the band minutes",
+        "the engine's inventory weight is read as kilograms",
+        "an exhausted idle character's metabolic rate sits at the tired floor (up to the DefaultExercise class), so exhaustion bills as activity until Plan 5 owns endurance",
+        "rmod scales the asleep regeneration arm only; under the harness's partial sleep hold it measured 0.904 for a predicted 0.848 (#2899)",
+        "a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last close",
+        "an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror without the body, which the next readable minute builds",
     },
 }
 local MET = NR.server.metabolism
@@ -52,12 +59,13 @@ local function finite(x)
     return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
 end
 
+-- The world age, or nil when it cannot be read (the minute is then skipped and counted, never stamped 0).
 local function worldAge()
-    if getGameTime == nil then return 0 end
+    if getGameTime == nil then return nil end
     local ok, gt = pcall(getGameTime)
     local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
     if okA and finite(age) then return age end
-    return 0
+    return nil
 end
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
@@ -122,8 +130,11 @@ function MET.ensureBody(username, player, record, ageH)
 end
 
 -- The minute's activity: className, moving, modifier, loadKg, heavyLevel, coldMult, exercising,
--- swiping, immobilised, hourOfDay, maxW, heatLevel.
-function MET.readActivity(player)
+-- swiping, immobilised, hourOfDay, maxW, heatLevel, climbClass. ageH (optional) is the minute's world
+-- age. climbClass is the K.training.CLIMB_MET class of the climb state the character is in at the
+-- sample (a fence vault JumpFence, a window climb ClimbRope), or nil: a per-minute state sample, so a
+-- climb shorter than the gap between samples is missed (ruling W-4).
+function MET.readActivity(player, ageH)
     local bd = obj(player, "getBodyDamage")
     local thermo = obj(bd, "getThermoregulator")
     local loadKg = num(player, "getInventoryWeight", 0)
@@ -154,6 +165,15 @@ function MET.readActivity(player)
     if SwipeStatePlayer ~= nil and SwipeStatePlayer.instance ~= nil then
         swiping = flag(player, "isCurrentState", SwipeStatePlayer.instance())
     end
+    local climbClass = nil
+    if ClimbOverFenceState ~= nil and ClimbOverFenceState.instance ~= nil then
+        local okI, inst = pcall(ClimbOverFenceState.instance)
+        if okI and inst ~= nil and flag(player, "isCurrentState", inst) then climbClass = "JumpFence" end
+    end
+    if climbClass == nil and ClimbThroughWindowState ~= nil and ClimbThroughWindowState.instance ~= nil then
+        local okI, inst = pcall(ClimbThroughWindowState.instance)
+        if okI and inst ~= nil and flag(player, "isCurrentState", inst) then climbClass = "ClimbRope" end
+    end
     local immobilised = false
     if BodyPartType ~= nil then
         for i = 1, #MET.LEG_PARTS do
@@ -165,22 +185,24 @@ function MET.readActivity(player)
             end
         end
     end
-    local age = worldAge()
+    local age = ageH or worldAge() or 0
     local hourOfDay = age - math.floor(age / 24) * 24
     if getGameTime ~= nil then
         local ok, gt = pcall(getGameTime)
         hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
     end
     return className, moving, 1, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised, hourOfDay,
-        maxW, heatLevel
+        maxW, heatLevel, climbClass
 end
 
--- One day close, in the order Task 10's constraint fixes: the disuse day count (before the partition, so
--- the first immobilised day runs with t = 1), the partition, the strength bookkeeping (reads ebDay),
--- adaptive thermogenesis, the training ring, TAC, the partition ring (zeroes ebDay, advances dayIndex,
--- stamps lastCloseAgeH). The training ring shifts the closing day in BEFORE TAC reads the week (run
--- x141c-20261005-132133: read before the shift, a day's training reached TAC one close late); TAC's
--- energy gate still reads the closing day's inDay and actKcalDay, which only the partition ring zeroes.
+-- One day close: the disuse day count (before the partition, so the first immobilised day runs with
+-- t = 1 off the lean mass it began on), the partition, the strength bookkeeping (reads ebDay), the
+-- training ring, TAC, the partition ring (pushes today's balance into eb7, zeroes the day accumulators,
+-- advances dayIndex, stamps lastCloseAgeH), then adaptive thermogenesis. Each reader runs after the
+-- writer of what it reads (the x141c one-close lag): the training ring shifts the closing day in BEFORE
+-- TAC reads the week (run x141c-20261005-132133); TAC's energy gate reads the closing day's inDay and
+-- exKcalDay (ruling W-1) and its immobilised flag (ruling W-2) before the partition ring zeroes them;
+-- the AT step reads deficitWeek AFTER the partition ring, so the week it reads includes today.
 local function closeDay(body, w, immobilised, ageH)
     if immobilised then
         if body.tDisuse == 0 then body.lm0dis = body.lm end
@@ -192,12 +214,12 @@ local function closeDay(body, w, immobilised, ageH)
     local pPerKg = body.pDay / w
     K.partition.day(body, dHyp, dStr, pPerKg, immobilised)
     K.strength.closeDay(body, body.dayIndex)
-    body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     K.training.closeDay(body)
     local m1, hard = K.training.weekMinutes(body)
-    K.aerobic.tacDay(body, m1, hard, 1, K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.actKcalDay, body.lm), 1, 1)
+    K.aerobic.tacDay(body, m1, hard, 1, K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), 1, 1, immobilised)
     body.pPrevKg = pPerKg
     K.partition.closeDay(body, ageH)
+    body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
     MET.stats.days = MET.stats.days + 1
 end
 
@@ -207,24 +229,30 @@ end
 -- protein input to the neutral P_LOW; dayIndex to the day of the world age (a NaN would stop every day
 -- close); lastAgeH and lastCloseAgeH to the world age; a ring slot to 0 (mass7's to the current mass).
 -- The backfill, uncounted: a field or ring a record made before it existed lacks (pPrevKg,
--- lastCloseAgeH; the p7, carb7 and lip7 rings of a pre-Task-15 body) is created at its neutral. This
--- file owns the rings: the Weight mirror and the partition ring read them and rebuild nothing.
+-- lastCloseAgeH, exKcalDay; the p7, carb7 and lip7 rings of a pre-Task-15 body; an absent nHist or
+-- bandWeek) is created at its neutral. The creation scalars heal too: r and traitCarry to 1, l0 to the
+-- Strength level read now, tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to
+-- dayIndex; every nHist and bandWeek slot to 0. Every healed field is named in the pass's counted
+-- failure. This file owns the rings: the Weight mirror and the partition ring read them and rebuild
+-- nothing.
 MET.NEUTRAL = { energyState = 1, dmod = 1, rmod = 1, tac = 1, at = 0, n = 0, vStr = 0, vHyp = 0,
-                vStrHigh = 0, inDay = 0, eeDay = 0, ebDay = 0, actKcalDay = 0, pDay = 0, carbDay = 0,
-                lipDay = 0, alcDay = 0, metMinDay = 0, band1Day = 0, band2Day = 0, cumDef = 0 }
+                vStrHigh = 0, inDay = 0, eeDay = 0, ebDay = 0, actKcalDay = 0, exKcalDay = 0, pDay = 0,
+                carbDay = 0, lipDay = 0, alcDay = 0, metMinDay = 0, band1Day = 0, band2Day = 0, cumDef = 0,
+                r = 1, traitCarry = 1, tDisuse = 0, nPeak = 0 }
 MET.NEUTRAL_KEYS = { "energyState", "dmod", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay",
-                     "eeDay", "ebDay", "actKcalDay", "pDay", "carbDay", "lipDay", "alcDay", "metMinDay",
-                     "band1Day", "band2Day", "cumDef" }
+                     "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay",
+                     "metMinDay", "band1Day", "band2Day", "cumDef", "r", "traitCarry", "tDisuse", "nPeak" }
 -- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.
 MET.ZERO_RINGS = { "eb7", "p7", "carb7", "lip7" }
 
-local function heal(username, body, ageH)
+local function heal(username, body, ageH, player)
     local bad = nil
     local function mark(name)
         if bad == nil then bad = name else bad = bad .. "," .. name end
     end
     if body.pPrevKg == nil then body.pPrevKg = K.aerobic.P_LOW end
     if body.lastCloseAgeH == nil then body.lastCloseAgeH = ageH end
+    if body.exKcalDay == nil then body.exKcalDay = 0 end
     for r = 1, #MET.ZERO_RINGS do
         local key = MET.ZERO_RINGS[r]
         if type(body[key]) ~= "table" then
@@ -234,6 +262,15 @@ local function heal(username, body, ageH)
         end
     end
     if type(body.mass7) ~= "table" then body.mass7 = {} end
+    if type(body.nHist) ~= "table" then
+        local hist = {}
+        for j = 1, K.strength.MEM_HOLD_DAYS do hist[j] = 0 end
+        body.nHist = hist
+    end
+    if type(body.bandWeek) ~= "table" then body.bandWeek = {} end
+    for i = 1, 7 do
+        if type(body.bandWeek[i]) ~= "table" then body.bandWeek[i] = { 0, 0 } end
+    end
     if not finite(body.fm0) or not finite(body.lm0) then
         local fmS, lmS = K.body.split(80, body.sex == 2 and 2 or 1, {})
         if not finite(body.fm0) then
@@ -257,6 +294,23 @@ local function heal(username, body, ageH)
         local k = keys[i]
         if not finite(body[k]) then body[k] = MET.NEUTRAL[k]; mark(k) end
     end
+    if not finite(body.l0) then
+        local l0 = 0
+        local perk = Perks ~= nil and Perks.Strength or nil
+        if perk ~= nil then l0 = num(player, "getPerkLevel", 0, perk) end
+        body.l0 = l0
+        mark("l0")
+    end
+    if not finite(body.lm0dis) then body.lm0dis = body.lm; mark("lm0dis") end
+    if not finite(body.tPeakD) then body.tPeakD = body.dayIndex; mark("tPeakD") end
+    for i = 1, K.strength.MEM_HOLD_DAYS do
+        if not finite(body.nHist[i]) then body.nHist[i] = 0; mark("nHist") end
+    end
+    for i = 1, 7 do
+        local slot = body.bandWeek[i]
+        if not finite(slot[1]) then slot[1] = 0; mark("bandWeek") end
+        if not finite(slot[2]) then slot[2] = 0; mark("bandWeek") end
+    end
     for i = 1, 7 do
         if not finite(body.mass7[i]) then body.mass7[i] = body.fm + body.lm; mark("mass7") end
     end
@@ -276,8 +330,12 @@ end
 
 local function step(username, player, record)
     local ageH = worldAge()
+    if ageH == nil then
+        MET.stats.badReads = MET.stats.badReads + 1   -- skipped: no stamp of a 0 age
+        return
+    end
     local body = MET.ensureBody(username, player, record, ageH)
-    heal(username, body, ageH)
+    heal(username, body, ageH, player)
     local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
     local handoff = NR.server.kinetics and NR.server.kinetics.lastAbsorbed
@@ -286,10 +344,11 @@ local function step(username, player, record)
         handoff[username] = nil                          -- consumed once
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
-        hourOfDay, maxW, heatLevel = MET.readActivity(player)
+        hourOfDay, maxW, heatLevel, climbClass = MET.readActivity(player, ageH)
     local met = K.energy.activityMet(className, moving, modifier, loadKg)
     K.energy.minute(body, met, not moving, coldMult, dtM)
     K.training.sample(body, K.energy.CLASS_MET[className], heavyLevel, w, exercising, swiping, dtM)
+    if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
     if maxW > 0 then K.training.loadMinute(body, loadKg, maxW, dtM) end
     K.training.actionMinute(body, modifier, moving, dtM)
     K.training.decay(body, dtM)
@@ -312,7 +371,7 @@ local function step(username, player, record)
     body.rmod = K.aerobic.rmod(body.tac, 1, K.aerobic.gProt(body.pPrevKg), 1, 0, 0, 0, 1)
     body.energyState = K.energy.state(K.energy.eb24h(body, ageH - body.lastCloseAgeH), fatDep)
     body.lastAgeH = ageH
-    heal(username, body, ageH)
+    heal(username, body, ageH, player)
 end
 
 -- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
@@ -331,10 +390,18 @@ end
 
 -- First sight (the players' onFirstSight hook): the body is made before the first mirror goes out, so
 -- that mirror carries the body_* keys (run x141b-20261005-122603: sent before the body existed, the
--- client read them 0 until a re-request).
+-- client read them 0 until a re-request). This is the one first-sight mirror: NR_Server_Players sends
+-- none of its own, and its OnNewGame reset fires this hook too, so the post-respawn mirror carries the
+-- new body. An unreadable world age defers the body to the next readable minute (counted in badReads)
+-- and the mirror goes out without it.
 function MET.onFirstSight(username, player, record)
     if record == nil then return end
-    MET.ensureBody(username, player, record, worldAge())
+    local ageH = worldAge()
+    if ageH == nil then
+        MET.stats.badReads = MET.stats.badReads + 1
+    else
+        MET.ensureBody(username, player, record, ageH)
+    end
     if NR.server.bus ~= nil and NR.server.bus.sendMirror(player, record) then
         MET.stats.firstSightMirrors = MET.stats.firstSightMirrors + 1
     end

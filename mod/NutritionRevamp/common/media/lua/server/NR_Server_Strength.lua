@@ -16,7 +16,7 @@
 -- addXp or AddXP, and never writes the carry base (#2704): a level-only write moves no XP and cannot
 -- trip the XP anti-cheat.
 --
--- BeyondTen (ruling T1-1): for a perk at Java level 10 it holds getXP at the level-9 total every server
+-- BeyondTen (#2850, 1.3.4): for a perk at Java level 10 it holds getXP at the level-9 total every server
 -- tick and banks the excess as mastery, so the XP-implied level reads 9 for a legitimate level 10; while
 -- BeyondTen is loaded a level-10 perk whose XP is at least the level-9 total reads 10.
 --
@@ -33,10 +33,10 @@ NR.server.strength = {
     wired = false,
     totals = nil,
     limitations = {
-        "the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model (#2118, Task 1)",
+        "the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model (#2118)",
         "a rise is one level per six-hour window",
         "the carry delta's acute inputs are Plan 4/5's",
-        "BeyondTen parks a level-10 perk's XP at the level-9 total; while it is loaded a level-10 perk at or above the level-9 total reads 10 (ruling T1-1)",
+        "while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)",
         "an XP loss follows down at once; the ceiling falls one level per game hour",
         "offline time is not integrated: the rise hold counts at most one hour per minute",
     },
@@ -111,7 +111,7 @@ function STR.ladder()
 end
 
 -- The XP-implied level and the Java level now, or nil when either read fails. BeyondTen's parked XP
--- reads 10 for a level-10 perk (ruling T1-1).
+-- reads 10 for a level-10 perk (#2850).
 function STR.vanillaLevel(player, perk)
     local xp = num(obj(player, "getXp"), "getXP", nil, perk)
     local current = num(player, "getPerkLevel", nil, perk)
@@ -140,12 +140,10 @@ function STR.remap(player, level)
         if t ~= nil then
             local present = flag(coll, "get", t)
             if name == want then
-                if not present then
-                    NR.call(coll, "add", t)
-                    changed = true
+                if not present and NR.call(coll, "add", t) then
+                    changed = true                       -- a failing add repairs nothing
                 end
-            elseif present then
-                NR.call(coll, "remove", t)
+            elseif present and NR.call(coll, "remove", t) then
                 changed = true
             end
         end

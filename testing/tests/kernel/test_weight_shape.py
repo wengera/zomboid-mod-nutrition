@@ -606,3 +606,15 @@ def test_weight_runs_last_in_the_players_list():
     assert same(on[3], G.NutritionRevamp.server.strength.minute)
     assert same(on[4], G.NutritionRevamp.server.weight.minute)
     assert G.NutritionRevamp.server.weight.wired is True
+
+
+# --- the legacy-mirror option text (whole-pass issue 14) ---------------------------------------------
+
+def test_legacy_mirror_tooltip_names_the_strength_bonus_only():
+    # #2112: the protein store's experience bonus is on Strength experience only, never Fitness
+    import json
+    path = os.path.join(SHARED, "Translate", "EN", "Sandbox.json")
+    with open(path, encoding="utf-8") as fh:
+        tip = json.load(fh)["Sandbox_NR_LegacyMirror_tooltip"]
+    assert "applies to Strength experience only" in tip
+    assert "Fitness" not in tip

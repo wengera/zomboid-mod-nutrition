@@ -60,7 +60,7 @@ function P.minute()
                     local r = NR.server.store.get(username, worldAge())
                     NR.log.say(2, "players: first sight of " .. tostring(username))
                     fire(P.onFirstSight, username, player, r)
-                    if r ~= nil then NR.server.bus.sendMirror(player, r) end
+                    -- no mirror here: NR_Server_Metabolism's onFirstSight hook sends the one first-sight mirror
                 end
                 P.queue[#P.queue + 1] = username
             end
@@ -106,7 +106,7 @@ if Events ~= nil then
             local okU, username = NR.call(player, "getUsername")
             if okU and username ~= nil then
                 local r = NR.server.store.reset(username, worldAge())
-                if r ~= nil then NR.server.bus.sendMirror(player, r) end
+                if r ~= nil then fire(P.onFirstSight, username, player, r) end   -- Metabolism's hook: the body, then the one mirror
             end
         end)
     end

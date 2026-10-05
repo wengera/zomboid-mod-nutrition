@@ -447,6 +447,34 @@ def test_band_repair_adds_a_missing_trait(str_host):
     assert STR(h).stats.bandRepairs == r0 + 1
 
 
+FAILING_TRAITS = r"""
+function(p)
+    -- the trait collection answers get, but its add and remove members are absent
+    p.getCharacterTraits = function(self)
+        return { get = function(s, t) return self.cfg.traits[t] == true end }
+    end
+    return p
+end
+"""
+
+
+def test_a_failing_add_or_remove_counts_no_repair_and_pushes_nothing(str_host):
+    # re-review: a remap whose add or remove fails changed nothing, so it must not count a repair and
+    # push every minute
+    h = str_host
+    p = h.rt.eval(FAILING_TRAITS)(player(h, level=3, xp=10500, traits=["STRONG"]))
+    record = record_for(h, l0=3)
+    record["body"].shownL = 3
+    r0 = STR(h).stats.bandRepairs
+    pushes = h.G.NR_TEST_PUSHES
+    minute(h, p, record, 100.0)
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert traits(p) == ["STRONG"]             # nothing could change
+    assert STR(h).stats.bandRepairs == r0
+    assert h.G.NR_TEST_PUSHES == pushes
+    assert STR(h).remap(p, 3) is False
+
+
 def test_no_band_repair_on_a_matching_set(str_host):
     h = str_host
     p = player(h, level=5, xp=40000, traits=[])
@@ -547,10 +575,13 @@ def test_limitations(str_host):
     h = str_host
     lim = list(STR(h).limitations.values())
     assert ("the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model "
-            "(#2118, Task 1)") in lim
+            "(#2118)") in lim
     assert "a rise is one level per six-hour window" in lim
     assert "the carry delta's acute inputs are Plan 4/5's" in lim
-    assert any("BeyondTen" in s and "level-9 total" in s for s in lim)
+    assert ("while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; "
+            "BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)") in lim
+    # shipped text names register rows, never plan tasks or rulings
+    assert not any("Task " in x or "ruling" in x for x in lim)
 
 
 # --- the wiring order -------------------------------------------------------------------------------

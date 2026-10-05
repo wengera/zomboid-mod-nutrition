@@ -6,6 +6,7 @@ first, so a Lua table of function fields stands in for a Java object (test_intak
 world age, rate and flag is stubbed by hand; the kernel math is the real kernel. A stub proves the
 wiring, the order and the guards, not the engine's real getters, which the live acceptance runs read.
 """
+import glob
 import math
 import os
 import re
@@ -28,7 +29,7 @@ TOL = 1e-9
 SETUP = r"""
 function(age)
     local names = { "getGameTime", "CharacterTrait", "Perks", "MoodleType", "BodyPartType",
-                    "SwipeStatePlayer", "ZombRandFloat" }
+                    "SwipeStatePlayer", "ZombRandFloat", "ClimbOverFenceState", "ClimbThroughWindowState" }
     local saved = { age = NR_TEST_AGE, tod = NR_TEST_TOD, rand = NR_TEST_RAND, names = names, vals = {} }
     for i = 1, #names do saved.vals[i] = _G[names[i]] end
     NR_TEST_AGE = age
@@ -50,6 +51,8 @@ function(age)
     BodyPartType = { UpperLeg_L = "UpperLeg_L", UpperLeg_R = "UpperLeg_R", LowerLeg_L = "LowerLeg_L",
                      LowerLeg_R = "LowerLeg_R" }
     SwipeStatePlayer = { instance = function() return "SWIPE" end }
+    ClimbOverFenceState = { instance = function() return "FENCE" end }
+    ClimbThroughWindowState = { instance = function() return "WINDOW" end }
     ZombRandFloat = function(a, b) return NR_TEST_RAND end
     return saved
 end
@@ -102,7 +105,9 @@ function(cfg)
     p.getFitness = function(self)
         return { getCurrentExe = function(s) return self.cfg.exe end }
     end
-    p.isCurrentState = function(self, st) return self.cfg.swiping == true and st == "SWIPE" end
+    p.isCurrentState = function(self, st)
+        return (self.cfg.swiping == true and st == "SWIPE") or (self.cfg.climb ~= nil and st == self.cfg.climb)
+    end
     return p
 end
 """
@@ -181,7 +186,7 @@ def KIN(h):
 def cfg(h, **kw):
     base = dict(weight=80.0, female=False, traits={}, strength=5, delta=1.0, rate=3.1, cold=1.0,
                 fracture={}, splint={}, carried=0.0, maxW=20, moving=True, asleep=False, moodles={},
-                exe=None, swiping=False, noBodyDamage=False)
+                exe=None, swiping=False, noBodyDamage=False, climb=None)
     base.update(kw)
     return h.table(base)
 
@@ -501,15 +506,77 @@ def test_training_reaches_tac_at_the_same_close(met_host):
     assert body["tac"] > 1.0                   # the same close saw the training
 
 
-def test_close_order_training_ring_before_tac():
+def test_close_order_training_ring_before_tac_and_at_after_the_ring():
     with open(METABOLISM, encoding="utf-8") as fh:
         src = fh.read()
     region = src[src.index("local function closeDay("):src.index("MET.stats.days = MET.stats.days + 1")]
-    order = ["K.training.doses(body)", "K.partition.day(", "K.strength.closeDay(", "K.energy.atStep(",
-             "K.training.closeDay(body)", "K.training.weekMinutes(body)", "K.aerobic.tacDay(",
-             "K.partition.closeDay(body, ageH)"]
+    order = ["body.tDisuse = body.tDisuse + 1", "K.training.doses(body)", "K.partition.day(",
+             "K.strength.closeDay(", "K.training.closeDay(body)", "K.training.weekMinutes(body)",
+             "K.aerobic.tacDay(", "K.partition.closeDay(body, ageH)", "K.energy.atStep(",
+             "K.partition.deficitWeek(body)"]
     at = [region.index(s) for s in order]
     assert at == sorted(at)
+    assert "K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm)" in region   # ruling W-1
+    assert "actKcalDay" not in region
+    assert re.search(r"K\.aerobic\.tacDay\(.*, immobilised\)", region)   # ruling W-2
+
+
+SPY = r"""
+function(player, record, age)
+    local K = NutritionRevamp.kernel
+    local origD, origG, origT = K.partition.deficitWeek, K.aerobic.gEnergy, K.aerobic.tacDay
+    local seen = {}
+    K.partition.deficitWeek = function(body)
+        seen.ebDayAtAT = body.ebDay
+        seen.eb7AtAT = body.eb7[7]
+        return origD(body)
+    end
+    K.aerobic.gEnergy = function(inDay, ex, lm)
+        seen.gInDay, seen.gEx = inDay, ex
+        return origG(inDay, ex, lm)
+    end
+    K.aerobic.tacDay = function(...)
+        seen.immobilised = select(9, ...)
+        return origT(...)
+    end
+    NR_TEST_AGE = age
+    local ok, err = pcall(NutritionRevamp.server.metabolism.minute, "admin", player, record)
+    K.partition.deficitWeek, K.aerobic.gEnergy, K.aerobic.tacDay = origD, origG, origT
+    seen.ok = ok
+    return seen
+end
+"""
+
+
+def test_at_reads_a_week_that_includes_today(met_host):
+    # whole-pass issue 8: deficitWeek was read before the partition ring pushed today, a one-close lag
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    seen = h.rt.eval(SPY)(p, record, 124.0)
+    assert seen.ok is True
+    assert seen.ebDayAtAT == 0                 # the ring has closed the day
+    assert seen.eb7AtAT < 0                    # and today's deficit is in the week AT reads
+    assert record["body"]["at"] > 0            # one deficit day adapts at the first close
+
+
+def test_tac_reads_exercise_kcal_and_the_immobilised_flag(met_host):
+    h = met_host
+    p = player(h, moving=False, rate=1.5)      # an idle minute: activity kcal but no exercise kcal
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.inDay = 2000.0
+    body.actKcalDay = 900.0
+    body.exKcalDay = 120.0
+    seen = h.rt.eval(SPY)(p, record, 124.0)
+    assert seen.gInDay == 2000.0 and seen.gEx == 120.0  # not actKcalDay (ruling W-1)
+    assert seen.immobilised is False
+    assert body["exKcalDay"] == 0              # the partition ring zeroes it
+    q = player(h, fracture={"LowerLeg_R": 30.0})
+    record2 = fresh(h, q, 100.0)
+    seen2 = h.rt.eval(SPY)(q, record2, 124.0)
+    assert seen2.immobilised is True
+    assert record2["body"]["tac"] < 1.0        # immobilisation detrains below parity (ruling W-2)
 
 
 def test_immobilised_days_run_disuse(met_host):
@@ -665,12 +732,18 @@ def test_heal_rebuilds_absent_rings_and_backfills_without_counting(met_host):
     body.lip7 = None
     body.pPrevKg = None
     body.lastCloseAgeH = None
+    body.exKcalDay = None                      # a record saved before Part A-2's accumulator
+    body.nHist = None
+    body.bandWeek = None
     failures = MET(h).stats.failures
     minute(h, p, record, 100.5)
     for k in ("p7", "carb7", "lip7"):
         assert list(body[k].values()) == [0] * 7, k
     assert body["pPrevKg"] == h.K.aerobic.P_LOW
     assert body["lastCloseAgeH"] == 100.5
+    assert body["exKcalDay"] > 0             # backfilled 0, then the walking half hour banked
+    assert list(body["nHist"].values()) == [0] * 14
+    assert [list(body["bandWeek"][i].values()) for i in range(1, 8)] == [[0, 0]] * 7
     assert MET(h).stats.failures == failures   # a backfill, not a corruption
     minute(h, p, record, 124.0)                # the partition ring reads the rebuilt rings
     assert body["dayIndex"] == 5
@@ -694,6 +767,115 @@ def test_heal_stamps_non_finite_ring_slots(met_host):
     for k in ("p7", "carb7", "lip7", "mass7"):
         assert k in MET(h).lastError
     assert nonfinite(h, record) == ""
+
+
+def test_heal_covers_the_creation_scalars_and_the_strength_and_band_rings(met_host):
+    # whole-pass issue 11: every field a kernel reads at a close heals to its neutral, counted
+    h = met_host
+    p = player(h, strength=7)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.r = NAN
+    body.traitCarry = float("inf")
+    body.l0 = NAN
+    body.tDisuse = NAN
+    body.lm0dis = NAN
+    body.nPeak = NAN
+    body.tPeakD = NAN
+    body.exKcalDay = NAN
+    body.nHist[3] = NAN
+    body.bandWeek[2][1] = NAN
+    body.bandWeek[5][2] = float("-inf")
+    failures = MET(h).stats.failures
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert body["r"] == 1 and body["traitCarry"] == 1
+    assert body["l0"] == 7                     # the Strength level read now
+    assert body["tDisuse"] == 0 and body["nPeak"] == 0
+    assert abs(body["lm0dis"] - body["lm"]) < TOL
+    assert body["tPeakD"] == body["dayIndex"]
+    assert body["exKcalDay"] == body["exKcalDay"]
+    assert body["nHist"][3] == 0
+    assert body["bandWeek"][2][1] == 0 and body["bandWeek"][5][2] == 0
+    assert MET(h).stats.failures == failures + 1
+    named = MET(h).lastError.split("non-finite ")[1].split(" for ")[0].split(",")
+    for k in ("r", "traitCarry", "l0", "tDisuse", "lm0dis", "nPeak", "tPeakD", "exKcalDay", "nHist",
+              "bandWeek"):
+        assert k in named, k
+    assert nonfinite(h, record) == ""
+    minute(h, p, record, 124.0)                # the closes run on the healed record
+    assert body["dayIndex"] == 5
+    assert nonfinite(h, record) == ""
+
+
+# --- the unreadable world age (Part B re-review) --------------------------------------------------------
+
+def test_an_unreadable_world_age_skips_the_minute(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    bad = MET(h).stats.badReads
+    ee = body["eeDay"]
+    minute(h, p, record, NAN)                  # getWorldAgeHours answers NaN
+    assert MET(h).stats.badReads == bad + 1
+    assert body["lastAgeH"] == 100.0 and body["lastCloseAgeH"] == 100.0   # never stamped 0
+    assert body["eeDay"] == ee
+    record2 = h.rt.table()
+    minute(h, p, record2, NAN)                 # no body is built off an unreadable age
+    assert record2["body"] is None
+    minute(h, p, record2, 100.0)
+    assert record2["body"]["lastAgeH"] == 100.0
+
+
+# --- the climb sample (ruling W-4) ----------------------------------------------------------------------
+
+def _climb_credit(h, state):
+    p0 = player(h)
+    p1 = player(h, climb=state)
+    r0 = fresh(h, p0, 100.0)
+    r1 = fresh(h, p1, 100.0)
+    minute(h, p0, r0, 100.0 + 1 / 60)
+    minute(h, p1, r1, 100.0 + 1 / 60)
+    return r1["body"]["metMinDay"] - r0["body"]["metMinDay"], r1["body"]["fm"] + r1["body"]["lm"]
+
+
+@pytest.mark.parametrize("state, cls", [("FENCE", "JumpFence"), ("WINDOW", "ClimbRope")])
+def test_a_climb_state_minute_credits_its_class_once(met_host, state, cls):
+    h = met_host
+    got, w = _climb_credit(h, state)
+    T = h.K.training
+    want = (T.CLIMB_MET[cls] - T.MET_FLOOR) * (w / T.MASS_REF)
+    assert want > 0 and abs(got - want) < 1e-6
+
+
+def test_read_activity_reads_the_climb_state(met_host):
+    h = met_host
+    assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[12] == "JumpFence"
+    assert MET(h).readActivity(player(h, climb="WINDOW"), 100.0)[12] == "ClimbRope"
+    assert MET(h).readActivity(player(h), 100.0)[12] is None
+
+
+def test_absent_climb_state_globals_read_no_climb(met_host):
+    h = met_host
+    G = h.G
+    saved = (G.ClimbOverFenceState, G.ClimbThroughWindowState)
+    G.ClimbOverFenceState = None
+    G.ClimbThroughWindowState = h.table({})    # a class global without instance
+    try:
+        assert MET(h).readActivity(player(h, climb="FENCE"), 100.0)[12] is None
+        got, _ = _climb_credit(h, "FENCE")
+        assert got == 0
+    finally:
+        G.ClimbOverFenceState, G.ClimbThroughWindowState = saved
+
+
+def test_a_repeated_minute_credits_no_climb(met_host):
+    h = met_host
+    p = player(h, climb="FENCE")
+    record = fresh(h, p, 100.0)                # first sight: dt 0
+    assert record["body"]["metMinDay"] == 0
+    minute(h, p, record, 100.0)                # the same minute again: dt 0
+    assert record["body"]["metMinDay"] == 0
 
 
 def test_a_raising_kernel_never_raises_into_the_walk(met_host):
@@ -724,11 +906,27 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
     assert ("an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as "
             "HeavyWork, never Fitness") in lim
     assert ("offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until "
-            "the next normal close) and reuses today's immobilised reading") in lim
+            "the next normal close) and reuses today's immobilised reading; the catch-up stamps every close "
+            "with the catch-up minute's age, so the first blend after an offline gap counts yesterday in "
+            "full") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
     assert ("glycogen, dehydration, iron, caffeine, alcohol, sleep debt and the balance dial are Plan 4/5 "
             "inputs held neutral") in lim
     assert "the drain coefficient is stamped and unapplied until Plan 5" in lim
+    assert ("a climb is credited when the minute sample lands inside the climb state; short climbs are "
+            "missed") in lim
+    assert ("the MET-minute bank is mirrored for the panel and feeds no coefficient; the aerobic dose is the "
+            "band minutes") in lim
+    assert "the engine's inventory weight is read as kilograms" in lim
+    assert ("an exhausted idle character's metabolic rate sits at the tired floor (up to the DefaultExercise "
+            "class), so exhaustion bills as activity until Plan 5 owns endurance") in lim
+    assert ("rmod scales the asleep regeneration arm only; under the harness's partial sleep hold it measured "
+            "0.904 for a predicted 0.848 (#2899)") in lim
+    assert ("a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last "
+            "close") in lim
+    assert ("an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror "
+            "without the body, which the next readable minute builds") in lim
+    assert not any("Task " in x or "ruling" in x for x in lim)
 
 
 # --- the wiring order -----------------------------------------------------------------------------------
@@ -791,6 +989,94 @@ def test_first_sight_hook_makes_the_body_before_the_mirror(met_host):
     assert MET(h).stats.firstSightMirrors == n0 + 1
     MET(h).onFirstSight("admin", player(h), None)  # no record: nothing
     assert MET(h).stats.firstSightMirrors == n0 + 1
+
+
+def test_first_sight_with_an_unreadable_age_defers_the_body(met_host):
+    h = met_host
+    record = h.rt.table()
+    bad = MET(h).stats.badReads
+    sent = h.rt.eval(FIRSTSIGHT)(player(h), record, NAN)
+    assert list(sent.values()) == [False]      # the one mirror, without a body
+    assert record["body"] is None
+    assert MET(h).stats.badReads == bad + 1
+    minute(h, player(h), record, 100.0)        # the next readable minute builds it
+    assert record["body"]["lastAgeH"] == 100.0
+
+
+# --- the players first sight and respawn: one mirror each, carrying the body ---------------------------
+
+PLAYERS = os.path.join(SERVER, "NR_Server_Players.lua")
+
+
+def _players_runtime():
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    for path in [CORE] + sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))):
+        with open(path, encoding="utf-8") as fh:
+            load(fh.read(), "@" + os.path.basename(path))()
+    rt.execute(r"""
+        NR_HANDLERS = {}
+        local function ev(name)
+            return { Add = function(fn)
+                NR_HANDLERS[name] = NR_HANDLERS[name] or {}
+                table.insert(NR_HANDLERS[name], fn)
+            end }
+        end
+        Events = { OnServerStarted = ev("OnServerStarted"), EveryOneMinute = ev("EveryOneMinute"),
+                   OnTick = ev("OnTick"), OnNewGame = ev("OnNewGame") }
+        isServer = function() return true end
+        NR_AGE = 100.0
+        getGameTime = function() return { getWorldAgeHours = function(s) return NR_AGE end } end
+        NR_PLAYER = { getUsername = function(s) return "admin" end }
+        getOnlinePlayers = function()
+            return { size = function(s) return 1 end, get = function(s, i) return NR_PLAYER end }
+        end
+        NR_RECORDS = {}
+        NR_SENT = {}
+        NutritionRevamp.log.level = 0
+        NutritionRevamp.server.store = {
+            get = function(u, age) NR_RECORDS[u] = NR_RECORDS[u] or { username = u }; return NR_RECORDS[u] end,
+            reset = function(u, age) NR_RECORDS[u] = { username = u, resets = 1 }; return NR_RECORDS[u] end,
+        }
+        NutritionRevamp.server.bus = { sendMirror = function(p, r)
+            NR_SENT[#NR_SENT + 1] = r.body ~= nil
+            return true
+        end }
+    """)
+    for n in ["NR_Server_Metabolism.lua", "NR_Server_Players.lua"]:
+        with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
+            load(fh.read(), "@" + n)()
+    rt.execute("for i = 1, #NR_HANDLERS.OnServerStarted do NR_HANDLERS.OnServerStarted[i]() end")
+    return rt
+
+
+def test_first_sight_sends_one_mirror_with_the_body():
+    rt = _players_runtime()
+    G = rt.globals()
+    rt.execute("NR_HANDLERS.EveryOneMinute[1]()")
+    assert list(G.NR_SENT.values()) == [True]  # one send, carrying the body
+    assert G.NR_RECORDS.admin.body is not None
+    assert G.NutritionRevamp.server.metabolism.stats.firstSightMirrors == 1
+    rt.execute("NR_HANDLERS.EveryOneMinute[1]()")   # seen: no second first sight
+    assert list(G.NR_SENT.values()) == [True]
+
+
+def test_a_respawn_reset_fires_first_sight_and_sends_one_mirror_with_the_new_body():
+    rt = _players_runtime()
+    G = rt.globals()
+    rt.execute("NR_HANDLERS.EveryOneMinute[1]()")
+    old = G.NR_RECORDS.admin.body
+    rt.execute("NR_AGE = 130.0; NR_HANDLERS.OnNewGame[1](NR_PLAYER, nil)")
+    assert list(G.NR_SENT.values()) == [True, True]   # one send per reset, with the body
+    body = G.NR_RECORDS.admin.body
+    assert body is not None and body != old and body.lastAgeH == 130.0
+    assert G.NutritionRevamp.server.metabolism.stats.firstSightMirrors == 2
+
+
+def test_players_sends_no_mirror_of_its_own():
+    with open(PLAYERS, encoding="utf-8") as fh:
+        code = "\n".join(l.split("--")[0] for l in fh.read().splitlines())
+    assert "sendMirror" not in code
 
 
 PRECONDITION = r"""

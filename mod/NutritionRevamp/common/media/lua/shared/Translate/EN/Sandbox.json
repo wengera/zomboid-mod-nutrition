@@ -10,5 +10,5 @@
     "Sandbox_NR_LogLevelValues_option2": "Normal",
     "Sandbox_NR_LogLevelValues_option3": "Verbose",
     "Sandbox_NR_LegacyMirror": "Mirror the vanilla macro stores",
-    "Sandbox_NR_LegacyMirror_tooltip": "On: every minute the server writes the vanilla calorie, protein, carbohydrate and lipid stores from the mod's trailing 24 hours, so mods and vanilla code that read those stores (the protein bonus to Strength and Fitness experience among them) keep working. Off: the mod leaves those stores alone."
+    "Sandbox_NR_LegacyMirror_tooltip": "On: every minute the server writes the vanilla calorie, protein, carbohydrate and lipid stores from the mod's trailing 24 hours, so mods and vanilla code that read those stores (among them the protein store's bonus, which applies to Strength experience only) keep working. Off: the mod leaves those stores alone."
 }
