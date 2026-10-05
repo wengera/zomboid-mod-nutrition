@@ -12,7 +12,7 @@ class Calls:
 def test_reuse_skips_the_restore_and_keeps_the_record_ports(monkeypatch, tmp_path):
     rec = {"name": "default", "server": {"name": "pzt", "mods": ["PZTestKit"], "port": 27261, "rcon_port": 27015}}
     monkeypatch.setattr(session.fx, "restore_server", lambda name, run_dir: Calls.restored.append(name) or os.path.join(run_dir, "server"))
-    monkeypatch.setattr(session.Server, "seed", lambda self, sandbox=None: None)
+    monkeypatch.setattr(session.Server, "seed", lambda self, sandbox=None, ini=None: None)
     run_dir = str(tmp_path)
     os.makedirs(os.path.join(run_dir, "server", "Server"))
     s = session.make_server(run_dir, rec, reuse=True)

@@ -448,7 +448,7 @@ def test_cmd_run_without_a_profile_is_unchanged(monkeypatch, tmp_path, capsys):
     with workspace(), stub_run(monkeypatch, tmp_path, server) as made:
         assert cli.cmd_run(run_args(profile=None)) == 0
     assert made["server_kw"] == {"port": None, "rcon_port": None, "mods": None,
-                                 "mod_sources": None, "mod_skip": (), "sandbox": None}
+                                 "mod_sources": None, "mod_skip": (), "sandbox": None, "ini": None}
     assert [u for u, _ in made["clients"]] == ["admin"]      # the fixture's own clients
     assert made["hold"] == 5                                 # the CLI default
     rep = report_of(tmp_path)
@@ -613,7 +613,7 @@ def test_scenario_run_without_a_profile_still_writes_the_new_keys(monkeypatch, t
     with workspace(), stub_scenario(monkeypatch, tmp_path, server) as made:
         assert scenario.run(scenario_args(profile=None, user="admin")) == 0
     assert made["server_kw"] == {"port": None, "rcon_port": None, "mods": None,
-                                 "mod_sources": None, "mod_skip": (), "sandbox": None}
+                                 "mod_sources": None, "mod_skip": (), "sandbox": None, "ini": None}
     rep, art = report_of(tmp_path), artifact_of(tmp_path)
     assert art["profile"] is None and art["verify"] == []
     assert "profile" not in rep and "verify" not in rep

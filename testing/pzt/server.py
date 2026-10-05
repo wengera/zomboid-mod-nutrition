@@ -213,7 +213,7 @@ class Server:
     def alive(self):
         return self.proc is not None and self.proc.poll() is None
 
-    def seed(self, sandbox=None):
+    def seed(self, sandbox=None, ini=None):
         """Fresh cache: write the ini (+ sandbox overrides). Restored cache: keep the world,
         refresh the mods, rewrite ports so a fixture can boot on any port."""
         os.makedirs(os.path.join(self.cache, "Server"), exist_ok=True)
@@ -225,6 +225,10 @@ class Server:
         values.update({"DefaultPort": self.port, "UDPPort": self.port + 1, "RCONPort": self.rcon_port,
                        "RCONPassword": self.rcon_pw, "Mods": ";".join(self.mods),
                        "WorkshopItems": ";".join(self.workshop_items)})
+        # A profile's [server] ini keys (SleepAllowed, SleepNeeded): booleans written as the
+        # lowercase words the ini uses; absent keys leave the fixture's values untouched.
+        values.update({k: ("true" if v is True else "false" if v is False else str(v))
+                       for k, v in (ini or {}).items()})
         update_ini(self.ini, values)
         if sandbox:
             # A restored fixture already has the server's own 1000-line file: rewrite the

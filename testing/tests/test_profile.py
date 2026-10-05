@@ -600,3 +600,50 @@ def test_a_nested_prefix_no_mod_declares_is_an_error(tmp_path):
     with workspace(toml):
         with pytest.raises(profile.ProfileError, match="ZZ"):
             profile.load("p")
+
+
+# ---- [server] SleepAllowed / SleepNeeded: server-ini keys the seed writes ------------------
+
+def test_server_ini_keys_are_parsed_as_booleans():
+    with workspace('server = { SleepAllowed = true, SleepNeeded = false, timeout = 60 }\n'
+                   '[[mods]]\nid = "PZTestKit"\n'):
+        p = profile.load("p")
+    assert p.ini == {"SleepAllowed": True, "SleepNeeded": False} and p.server_timeout == 60
+
+
+def test_a_profile_without_the_ini_keys_overrides_nothing():
+    with workspace('[[mods]]\nid = "PZTestKit"\n'):
+        p = profile.load("p")
+    assert p.ini == {}
+
+
+def test_a_non_boolean_ini_key_is_a_profile_error():
+    for toml in ('server = { SleepAllowed = "yes" }\n', 'server = { SleepNeeded = 1 }\n'):
+        with workspace(toml + '[[mods]]\nid = "PZTestKit"\n'):
+            with pytest.raises(profile.ProfileError) as e:
+                profile.load("p")
+        assert "must be true or false" in str(e.value), toml
+
+
+def _seeded_ini(tmp_path, monkeypatch, ini):
+    cache = tmp_path / "cache"
+    (cache / "Server").mkdir(parents=True, exist_ok=True)
+    (cache / "Server" / "pzt.ini").write_text("SleepAllowed=false\n# note\nSleepNeeded=false\nPVP=true\n",
+                                              encoding="utf-8")
+    monkeypatch.setattr(server.harness, "install", lambda *a, **k: [])
+    s = server.Server(str(cache), name="pzt", mods=["PZTestKit"])
+    monkeypatch.setattr(s.bus, "reset", lambda: None)
+    s.seed(ini=ini)
+    return dict(l.split("=", 1) for l in (cache / "Server" / "pzt.ini").read_text(encoding="utf-8").splitlines()
+                if "=" in l and not l.startswith("#"))
+
+
+def test_seed_writes_the_profile_ini_keys_over_a_restored_fixture_ini(tmp_path, monkeypatch):
+    vals = _seeded_ini(tmp_path, monkeypatch, {"SleepAllowed": True, "SleepNeeded": True})
+    assert vals["SleepAllowed"] == "true" and vals["SleepNeeded"] == "true" and vals["PVP"] == "true"
+
+
+def test_seed_without_ini_keys_leaves_the_fixture_values(tmp_path, monkeypatch):
+    for ini in (None, {}):
+        vals = _seeded_ini(tmp_path, monkeypatch, ini)
+        assert vals["SleepAllowed"] == "false" and vals["SleepNeeded"] == "false"
