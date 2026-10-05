@@ -99,7 +99,7 @@ K.fluids.KILL_CAP = 0.83 -- game choice, ruling 8
 K.fluids.HYPONAT = {
     135, -- S0102 / S1047
     120, -- S1047
-    112, -- the midpoint of S1047's 110-115 band
+    112, -- inside S1047's 110-115 band (its midpoint 112.5, rounded down: game choice)
 }
 
 -- sweatActive: the sweat share of the last 6 h's water loss above which a deficit counts as sweat-caused.
