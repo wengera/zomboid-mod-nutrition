@@ -1866,3 +1866,50 @@ TK.register("sandbox.var", function(argv)
     end
     return out
 end)
+
+-- <table> <a.b.c> <value>. The record-edit instrument: edits one nested leaf of a global
+-- ModData table (globalmoddata.set writes top-level keys only). The table is fetched with
+-- ModData.getOrCreate only when ModData.exists says it is there (a typo never creates one), then
+-- the dot path is walked creating NO table -- a missing or non-table intermediate replies
+-- `ok = false` with failedAt, the 1-based segment. The leaf is assigned from a literal parsed
+-- true|false -> boolean, a number -> number, else a string, and the reply carries the leaf
+-- before and after. The write is server-side only; globalmoddata.transmit pushes it to clients.
+-- @args <table> <a.b.c> <value>
+-- @reply {ok, name, path, requested, before, after [, failedAt] [, reason]} | string
+-- @purpose Assigns one nested leaf of an existing global ModData table at a dot path (no table is created; a missing hop replies ok=false with failedAt) and replies the leaf before and after.
+TK.register("globalmoddata.setpath", function(argv)
+    local name, path, raw = argv[1], argv[2], argv[3]
+    if name == nil or path == nil or raw == nil then
+        return "usage: globalmoddata.setpath <table> <a.b.c> <value>"
+    end
+    local out = { ok = false, name = name, path = path }
+    local hasExists, exists = TK.callStatic(ModData, "exists", name)
+    if not hasExists then
+        out.reason = "no ModData.exists"
+        return out
+    end
+    if exists ~= true then
+        out.failedAt = 0
+        out.reason = "no global modData table " .. name
+        return out
+    end
+    local _, t = TK.callStatic(ModData, "getOrCreate", name)
+    if type(t) ~= "table" then
+        out.reason = "getOrCreate answered a " .. type(t)
+        return out
+    end
+    local parent, key, failedAt, why = walkToLeaf(t, path)
+    if parent == nil then
+        out.failedAt = failedAt
+        out.reason = why
+        return out
+    end
+    local value = parseLiteral(raw)
+    out.requested = value
+    out.before = parent[key]
+    parent[key] = value
+    out.after = parent[key]
+    out.ok = (out.after == value)
+    if not out.ok then out.reason = "read-back differs" end
+    return out
+end)
