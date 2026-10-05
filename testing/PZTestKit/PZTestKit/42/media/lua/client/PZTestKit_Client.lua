@@ -730,3 +730,24 @@ TK.register("witness.chain", function(argv)
     if argv[1] == nil then return "usage: witness.chain <getter1[(arg)]>.<getter2>..." end
     return chainRead(getPlayer(), argv[1])
 end)
+
+-- (none). The admin panel's experience sync from the client: the install's ISPlayerStatsUI.lua
+-- calls the Java-exposed global `SyncXp(player)` after an admin trait add (lines 596 and 671),
+-- and the jar lists SyncXp(IsoPlayer)V on LuaManager$GlobalObject, so it is Lua-reachable.
+-- The call is made for the LOCAL player; `called` says only that it ran without raising, and
+-- whether the server accepted it is read off the server's XP and the player-stats packet.
+-- @args (none)
+-- @reply {ok, called [, error]} | string
+-- @purpose Calls the Java global SyncXp(getPlayer()) the admin panel uses to push the local player's experience to the server; called says the call ran, not that the server accepted it.
+TK.register("xp.sync", function()
+    local out = { ok = false, called = false }
+    if SyncXp == nil then
+        out.error = "SyncXp not exposed to Lua"
+        return out
+    end
+    local ran, err = pcall(SyncXp, getPlayer())
+    out.called = ran
+    out.ok = ran
+    if not ran then out.error = tostring(err) end
+    return out
+end)
