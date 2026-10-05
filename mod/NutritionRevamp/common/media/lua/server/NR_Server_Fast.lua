@@ -199,7 +199,9 @@ local function body(h)
     inp.allAsleep = h.allPlayersAsleep ~= nil and h.allPlayersAsleep()
     inp.fitnessLevel = h.getPerkLevel(p, h.fitnessPerk)
     inp.unlimitedEndurance = h.isUnlimited(p)
-    inp.stomachFill = h.record.stomachFill or 1           -- Plan 2: hunger derives from it; nil reads full (the seed)
+    local fill = h.record.stomachFill                     -- Plan 2: hunger derives from it; nil reads full (the seed)
+    if fill == nil or fill ~= fill then fill = 1 end      -- NaN reads full too (#2833): K.clamp passes NaN through
+    inp.stomachFill = fill
     inp.energyState = 1                                   -- Plan 3 entry point: the energy-state term, stubbed neutral
 
     K.fast.step(inp, out, C)

@@ -162,3 +162,33 @@ def test_stats_count_minutes_and_players(kin_host):
     run(h, record, 101.0)
     assert KIN(h).stats.minutes == m0 + 2
     assert KIN(h).stats.players == p0 + 2
+
+
+POISON = r"""
+function(age)
+    local K = NutritionRevamp.kernel
+    local r = { stomach = K.stomach.seedFull(K.stomach.new()), pool = K.vector.new() }
+    r.stomach.bulk = 0 / 0
+    r.stomach.buffer.calories = 0 / 0
+    r.pool.calories = 0 / 0
+    r.kineticsAge = age
+    return r
+end
+"""
+
+
+@pytest.mark.parametrize("age", [None, 99.0])  # the first sight (dt 0) and a later minute (dt 1 h)
+def test_nan_bulk_self_heals(kin_host, age):
+    h = kin_host
+    K = h.G.NutritionRevamp.kernel
+    record = h.rt.eval(POISON)(age)
+    f0 = KIN(h).stats.failures
+    KIN(h).lastError = None
+    run(h, record, 100.0)
+    assert record["stomachFill"] == 1
+    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
+    for k in K.vector.KEYS.values():
+        assert record["stomach"]["buffer"][k] == 0
+        assert record["pool"][k] == 0
+    assert isinstance(KIN(h).lastError, str) and "non-finite stomach fill" in KIN(h).lastError
+    assert KIN(h).stats.failures == f0 + 1

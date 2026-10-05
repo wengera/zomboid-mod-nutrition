@@ -15,7 +15,7 @@
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.kinetics = { stats = { minutes = 0, players = 0 }, lastError = nil, wired = false }
+NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false }
 local KIN = NR.server.kinetics
 
 local function worldAge()
@@ -46,7 +46,20 @@ local function step(username, player, record)
         local absorbed = K.stomach.absorb(emptied)
         K.stomach.toPool(record.pool, absorbed)
     end
-    record.stomachFill = K.stomach.fill(record.stomach)
+    local fill = K.stomach.fill(record.stomach)
+    -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing
+    -- guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is
+    -- reset to the full seed and the pool emptied, and the record heals on this minute instead of
+    -- writing NaN into HUNGER for the session
+    if type(fill) ~= "number" or fill ~= fill or fill == math.huge or fill == -math.huge then
+        record.stomach = K.stomach.seedFull(K.stomach.new())
+        record.pool = K.vector.new()
+        fill = 1
+        KIN.stats.failures = KIN.stats.failures + 1
+        KIN.lastError = "kinetics: non-finite stomach fill for " .. tostring(username) .. "; stomach reset full"
+        NR.log.say(2, KIN.lastError)
+    end
+    record.stomachFill = fill
     KIN.stats.players = KIN.stats.players + 1
 end
 
@@ -58,6 +71,7 @@ function KIN.minute(username, player, record)
     KIN.stats.minutes = KIN.stats.minutes + 1
     local ok, err = pcall(step, username, player, record)
     if not ok then
+        KIN.stats.failures = KIN.stats.failures + 1
         KIN.lastError = err
         NR.log.say(2, "kinetics: " .. tostring(username) .. " failed: " .. tostring(err))
     end

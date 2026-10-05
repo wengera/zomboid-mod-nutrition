@@ -85,6 +85,33 @@ function IN.fractionOf(rawBefore, rawAfter, instBase, thirstBefore, thirstAfter,
     return IN.shareEaten(rawBefore, rawAfter, rawBefore), IN.shareEaten(rawBefore, rawAfter, instBase)
 end
 
+-- A finite number: a number, not NaN (the one value unequal to itself) and not an infinity. Pure.
+function IN.isFinite(x)
+    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
+end
+
+-- The raw reading after the original, normalised: a finished item reads NaN, not 0 (#2832) -- Eat
+-- sets hungChange to 0, then Food.setCurrentUses calls consumeHunger(0), whose 0/0 writes NaN into
+-- the scaled fields. A non-finite or unreadable after-reading against a numeric before-reading means
+-- the item was finished, so it reads 0 (a finishing quarter then lands its whole remainder: frac 1).
+-- A non-numeric before-reading passes the after-reading through untouched.
+function IN.afterReading(before, after)
+    if type(before) == "number" and not IN.isFinite(after) then return 0 end
+    return after
+end
+
+-- The first key of a vector that is not finite, or nil when every key is (numeric-for over KEYS, a
+-- Lua table the kernel built, so `#` on it is a Lua length). A NaN landed in the stomach would poison
+-- the buffer, bulk, pool and the HUNGER stat for the session (#2833).
+function IN.firstNonFinite(vec)
+    local keys = K.vector.KEYS
+    for i = 1, #keys do
+        local k = keys[i]
+        if not IN.isFinite(vec[k]) then return k end
+    end
+    return nil
+end
+
 -- The vector's source: a dish's ingredient list is authoritative, so it wins over a craft map.
 function IN.sourceOf(hasExtra, hasCraftMap)
     if hasExtra then return "dish" end
@@ -132,7 +159,9 @@ end
 function IN.assemble(b, rawAfter, lookup, thirstAfter)
     local frac, share = IN.fractionOf(b.rawBefore, rawAfter, b.instBase, b.thirstBefore, thirstAfter,
         b.scriptThirst)
-    if share <= 0 or frac <= 0 then return nil, nil, {}, share, frac end
+    if not IN.isFinite(share) or share <= 0 or not IN.isFinite(frac) or frac <= 0 then
+        return nil, nil, {}, share, frac
+    end
     local extra = b.extraTypes or {}
     local source = IN.sourceOf(#extra > 0, b.craftMap ~= nil)
     local vec, missing, factor
@@ -232,13 +261,22 @@ end
 
 -- After the original: the raw hunger again, the assembly, the landing in the player's stomach.
 function IN.readAfterAndLand(b)
-    local rawAfter = read(b.item, "getHungChange")         -- 0 when consumed at fraction 1 (#0058)
-    if type(rawAfter) ~= "number" then
-        error("intake: getHungChange unreadable after the original for " .. b.fullType)
-    end
-    local thirstAfter = read(b.item, "getThirstChangeUnmodified") -- the raw thirst again (#0005)
+    -- a finished item reads NaN here, not 0 (#2832, vanilla's 0/0 in consumeHunger): normalised to 0
+    local rawAfter = IN.afterReading(b.rawBefore, read(b.item, "getHungChange"))
+    -- the raw thirst again (#0005), the same normalisation
+    local thirstAfter = IN.afterReading(b.thirstBefore, read(b.item, "getThirstChangeUnmodified"))
     if NR.data == nil or NR.data.nutrients == nil then error("intake: NR.data.nutrients absent") end
     local vec, source, missing, share, frac = IN.assemble(b, rawAfter, NR.data.nutrients.get, thirstAfter)
+    -- the landing guard: nothing non-finite reaches the stomach (#2833)
+    local bad = nil
+    if not IN.isFinite(share) then
+        bad = "share"
+    elseif not IN.isFinite(frac) then
+        bad = "frac"
+    elseif vec ~= nil then
+        bad = IN.firstNonFinite(vec)
+    end
+    if bad ~= nil then return IN.reject(bad) end
     if vec == nil then return nil end                      -- a cancel under vanilla's guards, or a no-op
     local record = NR.server.store.get(b.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
@@ -251,6 +289,14 @@ function IN.readAfterAndLand(b)
     NR.log.say(3, "intake: " .. b.fullType .. " for " .. tostring(b.username) .. " source " .. source
         .. " share " .. tostring(share))
     return vec
+end
+
+-- A rejected landing: nothing lands, the failure is counted and named. Returns nil.
+function IN.reject(key)
+    IN.stats.failures = IN.stats.failures + 1
+    IN.lastError = "non-finite intake rejected: " .. tostring(key)
+    NR.log.say(2, "intake: " .. IN.lastError)
+    return nil
 end
 
 -- The two halves the wrapper calls, each under its own pcall; the original runs between them, outside.
@@ -465,6 +511,10 @@ function IN.readDrinkAfterAndLand(d)
     if litres <= 0 then return nil end                     -- an empty container or a no-op call
     if NR.data == nil or NR.data.fluids == nil then error("intake: NR.data.fluids absent") end
     local vec, missing = IN.fluidVector(NR.data.fluids.get, d.mix, litres)
+    -- the landing guard, as for an eat (#2833)
+    local bad = IN.firstNonFinite(vec)
+    if not IN.isFinite(litres) then bad = "litres" end
+    if bad ~= nil then return IN.reject(bad) end
     local record = NR.server.store.get(d.username, worldAge())
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach

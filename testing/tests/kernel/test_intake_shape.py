@@ -769,3 +769,128 @@ def test_server_path_raising_capture_still_runs_the_original(server_host):
     assert err is not None and "getHungChange raised" in str(err)
     assert stats.landed == before_stats["landed"]
     assert rec is None
+
+
+# --- fix-3: a finished item reads NaN (#2832); nothing non-finite lands (#2833) -------------------
+
+NAN = float("nan")
+INF = float("inf")
+
+
+@pytest.mark.parametrize("x,ok", [(1.0, True), (0, True), (-0.16, True), (NAN, False), (INF, False),
+                                  (-INF, False), (None, False), ("1", False)])
+def test_is_finite(intake_host, x, ok):
+    assert I(intake_host).isFinite(x) is ok
+
+
+def test_after_reading_nan_is_finished(intake_host):
+    assert I(intake_host).afterReading(-0.04, NAN) == 0
+
+
+@pytest.mark.parametrize("after", [None, INF, "x"])
+def test_after_reading_unreadable_is_finished(intake_host, after):
+    assert I(intake_host).afterReading(-0.04, after) == 0
+
+
+def test_after_reading_finite_passes_through(intake_host):
+    assert abs(I(intake_host).afterReading(-0.16, -0.08) - (-0.08)) < TOL
+
+
+def test_after_reading_non_numeric_before_passes_through(intake_host):
+    assert I(intake_host).afterReading(None, None) is None
+
+
+def test_first_non_finite_names_the_key(intake_host):
+    h = intake_host
+    v = h.K.vector.new()
+    assert I(h).firstNonFinite(v) is None
+    v["iron"] = NAN
+    assert I(h).firstNonFinite(v) == "iron"
+
+
+def test_assemble_nan_share_lands_nothing(intake_host):
+    h = intake_host
+    vec, source, missing, share, frac = I(h).assemble(before(h), NAN, lookup(h))
+    assert vec is None
+
+
+NAN_EAT_STUBS = r"""
+function(mode)
+    local IN = NutritionRevamp.server.intake
+    local hung = -0.16
+    local cal = 95
+    if mode == "finish" then hung = -0.04 cal = 95 * 0.25 end
+    local item = {}
+    item.getHungChange = function(self) return hung end
+    item.getFullType = function(self) return "Base.Apple" end
+    item.getBaseHunger = function(self) return -0.16 end
+    if mode == "nancal" then
+        item.getCalories = function(self) return 0 / 0 end
+    else
+        item.getCalories = function(self) return cal end
+    end
+    item.getCarbohydrates = function(self) return 25.13 end
+    item.getLipids = function(self) return 0.31 end
+    item.getProteins = function(self) return 0.47 end
+    item.isCooked = function(self) return false end
+    item.isBurnt = function(self) return false end
+    item.isRotten = function(self) return false end
+    item.isFrozen = function(self) return false end
+    item.getThirstChangeUnmodified = function(self) return 0 end
+    item.haveExtraItems = function(self) return false end
+    item.getModData = function(self) return {} end
+    item.getScriptItem = function(self)
+        return { getHungerChange = function(s) return -16 end, getThirstChange = function(s) return 0 end }
+    end
+    local char = { getUsername = function(self) return "admin" end }
+    local calls = 0
+    local cls = {}
+    -- vanilla Eat at fraction 1: hungChange 0, then consumeHunger(0) divides 0 by 0 (#2832)
+    cls.complete = function(self)
+        calls = calls + 1
+        if mode == "finish" then hung = 0 / 0 else hung = 0 end
+        return true
+    end
+    cls.serverStop = function(self) end
+    ISEatFoodAction = cls
+    local before = { eats = IN.stats.eats, landed = IN.stats.landed, failures = IN.stats.failures }
+    IN.lastError = nil
+    IN.install()
+    local r = cls.complete({ item = item, character = char })
+    local rec = NutritionRevamp.server.store.records.admin
+    return r, calls, before, rec, IN.lastError
+end
+"""
+
+
+def test_server_path_finishing_eat_reading_nan_lands_the_remainder(server_host):
+    h = server_host
+    r, calls, before_stats, rec, err = h.rt.eval(NAN_EAT_STUBS)("finish")
+    stats = I(h).stats
+    assert r is True and calls == 1
+    assert rec is not None, err
+    assert stats.landed == before_stats["landed"] + 1
+    assert stats.failures == before_stats["failures"]
+    li = rec["lastIntake"]
+    assert abs(li["share"] - 0.25) < TOL
+    assert abs(li["frac"] - 1.0) < TOL
+    buf = rec["stomach"]["buffer"]
+    assert abs(buf["calories"] - 23.75) < TOL      # the live (shrunk) calories x frac 1
+    assert abs(buf["fibre"] - 1.1) < TOL           # the whole-instance seed x share 0.25
+    assert abs(buf["water"] - 39.0) < TOL
+    for k in h.K.vector.KEYS.values():
+        assert buf[k] == buf[k], k
+        assert rec["pool"][k] == rec["pool"][k], k
+    full = h.K.stomach.FULL_BULK
+    assert abs(rec["stomach"]["bulk"] - (full + 0.2375 + 0.55 + 0.39)) < TOL
+
+
+def test_server_path_nan_calories_rejected_nothing_landed(server_host):
+    h = server_host
+    r, calls, before_stats, rec, err = h.rt.eval(NAN_EAT_STUBS)("nancal")
+    stats = I(h).stats
+    assert r is True and calls == 1                 # the original still ran, once
+    assert stats.landed == before_stats["landed"]
+    assert stats.failures == before_stats["failures"] + 1
+    assert err == "non-finite intake rejected: calories"
+    assert rec is None
