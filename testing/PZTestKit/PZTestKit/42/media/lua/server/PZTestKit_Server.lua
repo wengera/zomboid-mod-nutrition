@@ -2058,3 +2058,47 @@ TK.register("autodrink.set", function(argv)
     if not out.ok then out.reason = "read-back differs" end
     return out
 end)
+
+-- <user>. One-tick bracket for the autoDrink gate: THIRST (Stats:get(CharacterStat.THIRST),
+-- index-first) and the litres in the FIRST fluid container in the player's main inventory that
+-- holds anything, read in the same command so no tick falls between them; plus the autoDrink flag
+-- and the item's primary fluid. A container-less inventory replies litres = nil, item = nil.
+-- @args <user>
+-- @reply {ok, side, thirst, autoDrink, item, litres, fluid, containers [, reason]} | string
+-- @purpose Reads a named player's THIRST and the first non-empty fluid container's litres on one tick, with the autoDrink flag, to bracket an autoDrink sip.
+TK.register("autodrink.probe", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local out = { ok = false, side = TK.side, containers = 0 }
+    local _, s = TK.call(p, "getStats")
+    local _, thirst = TK.call(s, "get", CharacterStat and CharacterStat["THIRST"])
+    out.thirst = thirst
+    local _, flag = TK.call(p, "getAutoDrink")
+    out.autoDrink = flag
+    local _, inv = TK.call(p, "getInventory")
+    local _, items = TK.call(inv, "getItems")
+    local _, n = TK.call(items, "size")
+    if n == nil then
+        out.reason = "no inventory item list"
+        return out
+    end
+    for i = 0, n - 1 do
+        local _, it = TK.call(items, "get", i)
+        local _, fc = TK.call(it, "getFluidContainer")
+        if fc ~= nil then
+            out.containers = out.containers + 1
+            local _, amount = TK.call(fc, "getAmount")
+            if out.item == nil and amount ~= nil and amount > 0 then
+                local _, ft = TK.call(it, "getFullType")
+                out.item = ft
+                out.litres = amount
+                local _, prim = TK.call(fc, "getPrimaryFluid")
+                local _, fname = TK.call(prim, "getFluidTypeString")
+                out.fluid = fname
+            end
+        end
+    end
+    out.ok = (thirst ~= nil)
+    if not out.ok then out.reason = "no THIRST read" end
+    return out
+end)
