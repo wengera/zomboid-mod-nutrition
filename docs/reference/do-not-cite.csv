@@ -356,3 +356,17 @@ x151t-20261005-183551,phases.S0.nutrients_stats.heals,null,"No such counter.",�
 x151t-20261005-183551,phases.A.nutrients_stats.heals,null,"No such counter.",—
 x151t-20261005-183551,phases.Z.nutrients_stats.heals,null,"No such counter.",—
 x151t-20261005-183551,logs.server_luaerr,40 lines,"The driver's pattern also matches the harness's lua.global log lines for the mod's error fields; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
+x151r-20261005-192030,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the records.",cite `records` and the `summaries` named in the register
+x151r-20261005-192030,records[*].nutrients.allReplete,null,"witness.moddata lists a nested leaf whose value is false under missing; null here means false, not absent.",read the per-key `g` in `nut`
+x151r-20261005-192030,nut[*].allReplete,null,"witness.moddata lists a nested leaf whose value is false under missing; null here means false, not absent.",read the per-key `g` in `nut`
+x151r-20261005-192030,summaries.A.intervals[*].allReplete,null,"Copied from the nut reads, where a false leaf reads null.",read `summaries.A.intervals[*].obs_g`
+x151r-20261005-192030,records[*].nutrients.anaemia,null,"The false-leaf reading of witness.moddata.",—
+x151r-20261005-192030,records[*].nutrients.vitDClinical,null,"The false-leaf reading of witness.moddata.",read `nut[*].keys.vitD.g`
+x151r-20261005-192030,records[*].body.inDayClosed,null,"The field does not exist until Metabolism's first day close.",cite it from `records[173]` on
+x151r-20261005-192030,summaries.C.series[*].pred,e.g. 3.5285,"The replay spreads each interval's absorbed caffeine evenly, up to 0.164 mg off the exact step.",cite `records[*].acute.caf` and `summaries.C.series[*].thalf_fit`
+x151r-20261005-192030,summaries.E.series[*].dGlyc_kernel_at_met,e.g. -0.1824,"The work term alone, without the shivering term the kernel adds above coldMult 1.",cite the `quick` rows
+x151r-20261005-192030,summaries.F.pred.measured_share,e.g. awakeH 37.52,"Replayed at the asleep share of 35 stats.get reads (0.771), not the record's per-minute share.",cite the `records` of the hold
+x151r-20261005-192030,phases.S0.sentinels.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table.",cite `phases.C.counters_after`
+x151r-20261005-192030,phases.S0.sentinels.NR_IntakeWorld_Installed,null,"lua.global answers no value for a table.",—
+x151r-20261005-192030,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
+x151r-20261005-192030,logs.client_luaerr,20 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
