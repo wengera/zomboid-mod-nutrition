@@ -45,6 +45,34 @@ def test_keys_cover_the_macros_and_the_seed_mod_nutrients(host):
         assert k in keys
 
 
+# Plan 4: the nine Plan 2 keys first in their order, then the twenty-two kinetics keys in the plan's order.
+PLAN2_KEYS = ["calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate"]
+PLAN4_KEYS = ["retinol", "carotene", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6",
+              "folate", "vitB12", "choline", "sodium", "potassium", "calcium", "magnesium", "zinc", "iodine",
+              "selenium", "efa", "caffeine", "ethanol"]
+
+
+def test_keys_are_the_31_in_the_plan_order(host):
+    keys = list(host.K.vector["keys"]().values())
+    assert len(PLAN4_KEYS) == 22
+    assert keys == PLAN2_KEYS + PLAN4_KEYS
+    assert len(keys) == 31
+
+
+def test_new_zeroes_every_one_of_the_31_keys(host):
+    v = host.py(host.K.vector.new())
+    assert len(v) == 31
+    assert all(v[k] == 0 for k in PLAN4_KEYS)
+
+
+def test_add_carries_a_new_key(host):
+    dst = host.K.vector.new()
+    host.K.vector.add(dst, host.table({"caffeine": 96.0, "ethanol": 39.5}), 0.5)
+    assert abs(dst.caffeine - 48.0) < 1e-9
+    assert abs(dst.ethanol - 19.75) < 1e-9
+    assert dst.retinol == 0
+
+
 def test_add_accumulates_with_scale(host):
     dst = host.K.vector.new()
     src = host.table({"calories": 10, "carbs": 5})
@@ -78,6 +106,13 @@ def test_every_declared_key_is_present_on_a_seed_vector(data_host):
     v = data_host.py(data_host.G.NutritionRevamp.data.nutrients.get("Base.Steak"))
     keys = list(data_host.K.vector["keys"]().values())
     assert set(v.keys()) == set(keys)
+
+
+def test_a_seed_vector_reads_back_its_new_keys(data_host):
+    v = data_host.py(data_host.G.NutritionRevamp.data.nutrients.get("Base.Carrots"))
+    assert len(v) == 31
+    assert v["carotene"] > 1000          # micrograms of beta-carotene in a carrot
+    assert v["caffeine"] == 0 and v["ethanol"] == 0
 
 
 def test_unknown_type_is_nil(data_host):

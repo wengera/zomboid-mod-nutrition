@@ -12,8 +12,42 @@ Every factor is a design-phase judgement or a USDA R6 basis, not a settled scien
 
 def test_classes_tag_each_mod_nutrient(host):
     c = host.py(host.K.retention.CLASSES)
-    assert c == {"vitC": "watersol", "fibre": "stable", "water": "stable",
-                 "iron": "mineral", "phytate": "heatlabile"}
+    expect = {"vitC": "watersol", "fibre": "stable", "water": "stable",
+              "iron": "mineral", "phytate": "heatlabile"}
+    # Plan 4: the B vitamins and choline lose to cooking water and heat (watersol, S0252's 20-80 %
+    # thiamine band); carotene is stable (cooking raises its availability, never a loss); the minerals
+    # leach slightly; caffeine and ethanol are carried as stable.
+    for k in ("thiamine", "riboflavin", "niacin", "vitB6", "folate", "vitB12", "choline"):
+        expect[k] = "watersol"
+    for k in ("zinc", "calcium", "magnesium", "sodium", "potassium"):
+        expect[k] = "mineral"
+    for k in ("carotene", "caffeine", "ethanol"):
+        expect[k] = "stable"
+    assert c == expect
+
+
+def test_every_class_named_has_a_factor_row(host):
+    c = host.py(host.K.retention.CLASSES)
+    f = host.py(host.K.retention.FACTORS)
+    assert set(c.values()) <= set(f)
+
+
+def test_the_unclassified_kinetics_keys_pass_unscaled(host):
+    # No retention row for retinol, D, E, K, iodine, selenium or efa: unscaled until one settles.
+    meal = host.table({"retinol": 10, "vitD": 5, "vitE": 2, "vitK": 50, "iodine": 20, "selenium": 30, "efa": 1})
+    out = host.py(host.K.retention.apply(meal, host.table({"cooked": True, "burnt": True, "rotten": True})))
+    assert (out["retinol"], out["vitD"], out["vitE"], out["vitK"], out["iodine"], out["selenium"], out["efa"]) == \
+        (10, 5, 2, 50, 20, 30, 1)
+
+
+def test_cooking_scales_the_new_keys_by_their_class(host):
+    meal = host.table({"thiamine": 1.0, "folate": 100.0, "zinc": 5.0, "carotene": 5000.0, "caffeine": 96.0})
+    out = host.py(host.K.retention.apply(meal, host.table({"cooked": True})))
+    assert abs(out["thiamine"] - 0.60) < 1e-9       # watersol cooked
+    assert abs(out["folate"] - 60.0) < 1e-9         # watersol cooked
+    assert abs(out["zinc"] - 4.75) < 1e-9           # mineral cooked
+    assert abs(out["carotene"] - 5000.0) < 1e-9     # stable
+    assert abs(out["caffeine"] - 96.0) < 1e-9       # stable
 
 
 def test_no_macro_is_classified(host):

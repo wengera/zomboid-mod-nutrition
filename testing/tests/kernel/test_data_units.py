@@ -48,8 +48,106 @@ def test_the_iron_interaction_keys_are_milligrams(units_host, key):
 
 
 def test_the_seed_tables_are_enumerated():
-    assert len(_seed_ids("NUTRIENTS")) == 8
-    assert len(_seed_ids("FLUIDS")) == 3
+    assert len(_seed_ids("NUTRIENTS")) == 9
+    assert len(_seed_ids("FLUIDS")) == 6
+
+
+# Plan 4: the unit of every key (ug = micrograms, per item, per litre for a fluid).
+UNITS = {"calories": "kcal", "carbs": "g", "lipids": "g", "proteins": "g", "fibre": "g", "water": "g",
+         "vitC": "mg", "iron": "mg", "phytate": "mg",
+         "retinol": "ug", "carotene": "ug", "vitD": "ug", "vitE": "mg", "vitK": "ug", "thiamine": "mg",
+         "riboflavin": "mg", "niacin": "mg", "vitB6": "mg", "folate": "ug", "vitB12": "ug", "choline": "mg",
+         "sodium": "mg", "potassium": "mg", "calcium": "mg", "magnesium": "mg", "zinc": "mg", "iodine": "ug",
+         "selenium": "ug", "efa": "g", "caffeine": "mg", "ethanol": "g"}
+
+
+def test_units_name_the_unit_of_every_key(units_host):
+    assert dict(units_host.G.NutritionRevamp.data.UNITS.items()) == UNITS
+    assert len(UNITS) == 31
+
+
+def _seed_entries(block):
+    """{pz_id: [the key names written in the entry's source text]} for one local seed table."""
+    with open(DATA, encoding="utf-8") as fh:
+        src = fh.read()
+    m = re.search(r"^local " + block + r" = \{\n(.*?)^\}", src, re.S | re.M)
+    body = re.sub(r"--[^\n]*", "", m.group(1))
+    out = {}
+    for pz_id, inner in re.findall(r'\["([^"]+)"\] = \{(.*?)\}', body, re.S):
+        out[pz_id] = re.findall(r"(\w+) = ", inner)
+    return out
+
+
+@pytest.mark.parametrize("block", ["NUTRIENTS", "FLUIDS"])
+def test_every_seed_entry_writes_every_key_explicitly(block):
+    entries = _seed_entries(block)
+    assert len(entries) == len(_seed_ids(block))
+    for pz_id, names in entries.items():
+        assert sorted(names) == sorted(UNITS), pz_id     # each key once, none missing, none extra
+
+
+@pytest.mark.parametrize("block,loader", [("NUTRIENTS", "nutrients"), ("FLUIDS", "fluids")])
+def test_every_seed_value_is_finite_and_non_negative(units_host, block, loader):
+    get = units_host.G.NutritionRevamp.data[loader].get
+    for pz_id in _seed_ids(block):
+        vec = units_host.py(get(pz_id))
+        for k, val in vec.items():
+            assert math.isfinite(val) and val >= 0, (pz_id, k, val)
+
+
+def _fluid(h, name):
+    return h.py(h.G.NutritionRevamp.data.fluids.get(name))
+
+
+def test_the_fluid_seeds_per_litre(units_host):
+    h = units_host
+    water = _fluid(h, "Water")
+    assert water["water"] == 1000 and all(v == 0 for k, v in water.items() if k != "water")
+    cola = _fluid(h, "Cola")
+    assert (cola["water"], cola["sodium"], cola["caffeine"]) == (890, 40, 96)
+    grape = _fluid(h, "JuiceGrape")
+    assert (grape["water"], grape["potassium"]) == (840, 1320)
+    beer = _fluid(h, "Beer")
+    assert (beer["water"], beer["ethanol"], beer["potassium"]) == (920, 39.5, 270)
+    assert abs(beer["ethanol"] - 1000 * 0.05 * 0.789) < 0.06        # 5 % ABV x 0.789 g/mL
+    coffee = _fluid(h, "Coffee")
+    assert (coffee["water"], coffee["caffeine"]) == (990, 428)
+    assert abs(coffee["caffeine"] - 107 / 0.25) < 1e-9                # S0797: 107 mg per 250 mL
+    whiskey = _fluid(h, "Whiskey")
+    assert whiskey["ethanol"] == 315.6
+    assert abs(whiskey["ethanol"] - 1000 * 0.40 * 0.789) < 1e-9      # 40 % ABV
+    for name in ("Water", "Cola", "JuiceGrape", "Coffee"):
+        assert _fluid(h, name)["ethanol"] == 0
+
+
+def test_the_vitamin_pill_is_a_caffeine_item(units_host):
+    pill = units_host.py(units_host.G.NutritionRevamp.data.nutrients.get("Base.PillsVitamins"))
+    assert pill["caffeine"] == 50
+    assert all(v == 0 for k, v in pill.items() if k != "caffeine")
+
+
+@pytest.mark.parametrize("pz_id", ["Base.Apple", "Base.Steak", "Base.Bread", "Base.Carrots", "Base.Lettuce",
+                                   "Base.Tomato", "Base.MincedMeat", "Base.MeatPatty"])
+def test_the_session_foods_carry_the_kinetics_keys(units_host, pz_id):
+    v = units_host.py(units_host.G.NutritionRevamp.data.nutrients.get(pz_id))
+    for k in ("potassium", "magnesium", "thiamine", "riboflavin", "niacin", "folate"):
+        assert v[k] > 0, (pz_id, k)
+    assert v["caffeine"] == 0 and v["ethanol"] == 0
+    assert v["potassium"] < 2000 and v["sodium"] < 2000              # mg per item, not g or ug
+
+
+def test_the_seed_magnitudes_sit_in_their_units(units_host):
+    get = units_host.G.NutritionRevamp.data.nutrients.get
+    carrot = units_host.py(get("Base.Carrots"))
+    steak = units_host.py(get("Base.Steak"))
+    bread = units_host.py(get("Base.Bread"))
+    lettuce = units_host.py(get("Base.Lettuce"))
+    assert 1000 < carrot["carotene"] < 20000         # ug beta-carotene in one carrot
+    assert 0.5 < steak["vitB12"] < 10                # ug B12 in a steak
+    assert 1 < steak["zinc"] < 20                    # mg zinc in a steak
+    assert 500 < bread["sodium"] < 2000              # mg sodium in a loaf portion
+    assert 100 < lettuce["vitK"] < 1000              # ug vitamin K in a romaine head
+    assert carrot["vitB12"] == 0 and lettuce["vitB12"] == 0
 
 
 @pytest.mark.parametrize("block,loader", [("NUTRIENTS", "nutrients"), ("FLUIDS", "fluids")])

@@ -16,7 +16,10 @@ def test_mirror_is_flat_scalars_only(host):
     m = host.py(host.call("mirror.build", rec(host), host.table({"mode": 1, "version": "0.1.0", "build": "42.20.4"})))
     expect = {"v": 1, "username": "admin", "firstSeen": 1.5, "lastSeen": 2.25, "resets": 0, "dead": False,
               "mode": 1, "version": "0.1.0", "build": "42.20.4", "stomachFill": 1}      # Plan 2: the fill, full by default
-    expect.update({"pool_" + k: 0 for k in ("calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate")})
+    # the mirror derives its pool_ keys from K.vector.KEYS, so the 31 keys of the Plan 4 vector each appear
+    keys = list(host.K.vector.KEYS.values())
+    assert len(keys) == 31
+    expect.update({"pool_" + k: 0 for k in keys})
     expect.update(BODY_ABSENT)
     assert m == expect
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())

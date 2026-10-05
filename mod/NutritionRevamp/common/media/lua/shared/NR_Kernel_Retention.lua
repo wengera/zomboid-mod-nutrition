@@ -19,6 +19,31 @@ K.retention.CLASSES.fibre = "stable"
 K.retention.CLASSES.water = "stable"
 K.retention.CLASSES.iron = "mineral"
 K.retention.CLASSES.phytate = "heatlabile"
+-- The kinetics keys with a cooking-retention row. The B vitamins and choline lose to heat and cooking
+-- water (thiamine retains 20-80 % across methods, S0252); they take the water-soluble class, whose
+-- rotten term is already the vitC/folate/thiamin decay judgement. No B6 or choline retention fraction
+-- is settled: the class is the direction only (design-phase-v1 game choice).
+K.retention.CLASSES.thiamine = "watersol"
+K.retention.CLASSES.riboflavin = "watersol"
+K.retention.CLASSES.niacin = "watersol"
+K.retention.CLASSES.vitB6 = "watersol"
+K.retention.CLASSES.folate = "watersol"
+K.retention.CLASSES.vitB12 = "watersol"
+K.retention.CLASSES.choline = "watersol"
+-- Carotene is stable: cooking RAISES its availability (it frees the carotenoid from the plant matrix),
+-- a factor rather than a loss, which this loss-only table cannot express, so it is left unscaled.
+K.retention.CLASSES.carotene = "stable"
+-- The minerals and electrolytes leach slightly into cooking water, like iron.
+K.retention.CLASSES.zinc = "mineral"
+K.retention.CLASSES.calcium = "mineral"
+K.retention.CLASSES.magnesium = "mineral"
+K.retention.CLASSES.sodium = "mineral"
+K.retention.CLASSES.potassium = "mineral"
+-- Caffeine and ethanol ride the drink unscaled (no cook state applies to a fluid's vector).
+K.retention.CLASSES.caffeine = "stable"
+K.retention.CLASSES.ethanol = "stable"
+-- retinol, vitD, vitE, vitK, iodine, selenium and efa have no settled retention row and stay
+-- unclassified, so unscaled.
 
 -- FACTORS[class][state], every value in (0, 1]: the retained fraction of the class under the state.
 K.retention.FACTORS = {}

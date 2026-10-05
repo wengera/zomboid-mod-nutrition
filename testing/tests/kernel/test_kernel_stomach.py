@@ -37,7 +37,13 @@ def test_constants(host):
     s = host.K.stomach
     assert s.HALF_TIME_H == 2.0
     assert s.FULL_BULK == 8.0
-    assert host.py(s.BIOAVAIL) == {"water": 1.0, "fibre": 1.0, "vitC": 0.85, "iron": 0.18, "phytate": 0.0}
+    expect = {"water": 1.0, "fibre": 1.0, "vitC": 0.85, "iron": 0.18, "phytate": 0.0,
+              "carotene": 0.14, "calcium": 0.25, "magnesium": 0.325}
+    for k in ("retinol", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6", "folate", "vitB12",
+              "choline", "sodium", "potassium", "zinc", "iodine", "selenium", "efa", "caffeine", "ethanol"):
+        expect[k] = 1.0
+    assert host.py(s.BIOAVAIL) == expect
+    assert s.VITD_FAT_FREE == 0.76
 
 
 # --- new / bulkOf / ingest ---
@@ -210,6 +216,64 @@ def test_absorb_iron_control_and_a_fresh_vector(host):
     assert not _same(host, out, emptied)
     assert abs(out.iron - 1.8) < TOL
     assert emptied.iron == 10
+
+
+def test_bioavail_lists_every_non_macro_key(host):
+    keys = set(host.K.vector.KEYS.values()) - set(host.K.vector.MACROS.values())
+    assert set(host.py(host.K.stomach.BIOAVAIL)) == keys
+
+
+# --- absorb: the fat factor on the fat-soluble keys (S0197/S0199; vitamin D's floor S0198) ---
+
+FAT_SOLUBLE = ("retinol", "vitE", "vitK")
+WATER_SOLUBLE = ("thiamine", "riboflavin", "niacin", "vitB6", "folate", "vitB12", "choline", "sodium",
+                 "potassium", "zinc", "iodine", "selenium", "efa", "caffeine", "ethanol")
+
+
+def _micro_meal(host, lipids):
+    kw = {k: 100.0 for k in FAT_SOLUBLE + WATER_SOLUBLE}
+    kw.update(carotene=1000.0, vitD=10.0, calcium=400.0, magnesium=80.0, vitC=50.0, lipids=lipids)
+    return _vec(host, **kw)
+
+
+def test_absorb_a_fat_free_meal_floors_the_fat_soluble_keys(host):
+    out = host.py(host.K.stomach.absorb(_micro_meal(host, 0)))
+    for k in FAT_SOLUBLE:
+        assert abs(out[k] - 100 * 0.05) < TOL, k               # the factor's floor
+    assert abs(out["vitD"] - 10 * 0.772) < TOL                 # 0.76 + 0.24 x 0.05
+    assert abs(out["carotene"] - 1000 * 0.14 * 0.05) < TOL     # S0156 x the floor
+    for k in WATER_SOLUBLE:
+        assert abs(out[k] - 100) < TOL, k                       # no fat factor, absorb 1.0
+    assert abs(out["calcium"] - 100) < TOL                      # 400 x 0.25
+    assert abs(out["magnesium"] - 26) < TOL                     # 80 x 0.325
+    assert abs(out["vitC"] - 42.5) < TOL
+    assert out["lipids"] == 0
+
+
+def test_absorb_a_30g_fat_meal_takes_the_saturating_factor(host):
+    out = host.py(host.K.stomach.absorb(_micro_meal(host, 30)))
+    f = 1 - math.exp(-3)
+    assert abs(f - 0.9502) < 1e-4
+    for k in FAT_SOLUBLE:
+        assert abs(out[k] - 100 * f) < TOL, k
+    assert abs(out["vitD"] - 10 * (0.76 + 0.24 * f)) < TOL
+    assert abs(out["carotene"] - 1000 * 0.14 * f) < TOL
+    for k in WATER_SOLUBLE:
+        assert abs(out[k] - 100) < TOL, k
+    assert out["lipids"] == 30
+
+
+def test_absorb_vitamin_d_floor_is_above_the_carotene_floor(host):
+    # S0198: vitamin D keeps 0.76 of its fat-meal absorption with no fat; carotene keeps ~0 (S0197).
+    out = host.py(host.K.stomach.absorb(_vec(host, vitD=1.0, retinol=1.0)))
+    assert out["vitD"] > 0.76 > out["retinol"]
+
+
+def test_absorb_iron_keeps_its_branch_beside_the_new_keys(host):
+    out = host.py(host.K.stomach.absorb(_vec(host, iron=10, phytate=250, calcium=300, lipids=20)))
+    assert abs(out["iron"] - 10 * 0.18 * math.exp(-0.85)) < TOL
+    assert out["phytate"] == 0
+    assert abs(out["calcium"] - 75) < TOL
 
 
 # --- toPool / fill ---

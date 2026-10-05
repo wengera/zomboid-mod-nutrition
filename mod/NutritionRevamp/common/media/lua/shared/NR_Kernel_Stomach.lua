@@ -21,13 +21,47 @@ K.stomach.FULL_BULK = 8.0
 -- Per-nutrient bioavailability of the emptied vector. water and fibre pass through as intake
 -- (judgement); vitC 0.85 is a judgement (food vitamin C is absorbed at about 70-90 %); phytate is an
 -- anti-nutrient context, not a pooled nutrient, so it absorbs at 0. A macro has no entry and passes at
--- 1.0; an unlisted non-macro passes at 1.0.
+-- 1.0; every non-macro key is listed (an unlisted one would pass at 1.0). The fat-soluble keys
+-- (retinol, carotene, vitD, vitE, vitK) take the fat factor in absorb on top of this entry.
 K.stomach.BIOAVAIL = {}
 K.stomach.BIOAVAIL.water = 1.0
 K.stomach.BIOAVAIL.fibre = 1.0
 K.stomach.BIOAVAIL.vitC = 0.85 -- design-phase-v1 game choice: food vitamin C absorption 70-90 %, no settled row
 K.stomach.BIOAVAIL.iron = 0.18 -- S0434 (the RDA's assumed 18 %), S0535 (14-18 % for mixed diets)
 K.stomach.BIOAVAIL.phytate = 0.0
+K.stomach.BIOAVAIL.retinol = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.carotene = 0.14 -- S0156 (beta-carotene from whole mixed vegetables, ~14 % of purified)
+K.stomach.BIOAVAIL.vitD = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.vitE = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.vitK = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.thiamine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.riboflavin = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.niacin = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.vitB6 = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.folate = 1.0 -- design-phase-v1 game choice: absorb default 1.0 (folate in DFE already folds in its availability)
+K.stomach.BIOAVAIL.vitB12 = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.choline = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.sodium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.potassium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.calcium = 0.25 -- S0413 (fractional absorption of dietary calcium, about 25 % of intake)
+K.stomach.BIOAVAIL.magnesium = 0.325 -- S0536 (fractional magnesium absorption 32.5 % with no added phytate)
+K.stomach.BIOAVAIL.zinc = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.iodine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.selenium = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.efa = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.caffeine = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+K.stomach.BIOAVAIL.ethanol = 1.0 -- design-phase-v1 game choice: absorb default 1.0 for a new key with no row
+
+-- The fat-soluble keys that take the fat factor in absorb (vitamin D takes its own floored form).
+K.stomach.FAT_SOLUBLE = {}
+K.stomach.FAT_SOLUBLE.retinol = true
+K.stomach.FAT_SOLUBLE.carotene = true
+K.stomach.FAT_SOLUBLE.vitE = true
+K.stomach.FAT_SOLUBLE.vitK = true
+
+-- Vitamin D's fat-free share of its fat-meal absorption: 1 / 1.32 (a fat meal raises the plasma peak
+-- 32 %), so D absorbs at VITD_FAT_FREE + (1 - VITD_FAT_FREE) x fatFactor, 0.772 with no fat at all.
+K.stomach.VITD_FAT_FREE = 0.76 -- S0198 (+32 % with a fat-containing meal; 1/1.32 = 0.76, derived)
 
 -- A fresh stomach: an all-zero buffer and no bulk.
 function K.stomach.new()
@@ -105,19 +139,20 @@ end
 -- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / 10), floored at 0.05
 -- (fat-free: negligible carotenoid absorption) and saturating by 28 g.
 -- design-phase-v1 game choice: the /10 saturation and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
--- Standalone and unit-tested, NOT yet wired into absorb: no seed nutrient is fat-soluble, so wiring it
--- would leave an untaken branch; Plan 4's records bring the fat-soluble nutrients and the one-line
--- application (Plan 2 ruling).
+-- absorb reads it once per emptied vector, off the vector's own lipids, for the fat-soluble keys.
 function K.stomach.fatFactor(lipidsG)
     return K.clamp(1 - math.exp(-lipidsG / 10), 0.05, 1.0) -- S0197, S0199
 end
 
 -- Absorb an emptied vector: a fresh vector. A macro passes unchanged; iron takes its bioavailability
 -- times the meal-context factor read off the emptied vector's own phytate and vitC; phytate absorbs to
--- 0; any other key takes its bioavailability (1.0 when unlisted).
+-- 0; vitamin D takes its bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor;
+-- retinol, carotene, vitE and vitK take their bioavailability times the fat factor, both read off the
+-- emptied vector's own lipids; any other key takes its bioavailability (1.0 when unlisted).
 function K.stomach.absorb(emptied)
     local out = K.vector.new()
     local macros = K.retention.macroSet()
+    local fat = K.stomach.fatFactor(emptied.lipids)
     local keys = K.vector.KEYS
     for i = 1, #keys do
         local k = keys[i]
@@ -127,6 +162,10 @@ function K.stomach.absorb(emptied)
             out[k] = emptied.iron * K.stomach.BIOAVAIL.iron * K.stomach.ironFactor(emptied.phytate, emptied.vitC)
         elseif k == "phytate" then
             out[k] = 0
+        elseif k == "vitD" then
+            out[k] = emptied.vitD * K.stomach.BIOAVAIL.vitD * (K.stomach.VITD_FAT_FREE + (1 - K.stomach.VITD_FAT_FREE) * fat)
+        elseif K.stomach.FAT_SOLUBLE[k] then
+            out[k] = emptied[k] * K.stomach.BIOAVAIL[k] * fat
         else
             out[k] = emptied[k] * (K.stomach.BIOAVAIL[k] or 1)
         end

@@ -1,6 +1,6 @@
 -- NR_Kernel_Vector.lua -- the nutrient vector: one flat table of named scalars, the four vanilla
--- macros plus the seed's mod-nutrient keys (spec § 4.2). The kernel iterates the vector's own key
--- list and hard-codes only the four macros, so Plan 4 adds a nutrient by adding a key here, never a
+-- macros plus the mod-nutrient keys (spec § 4.2, § 4.4). The kernel iterates the vector's own key
+-- list and hard-codes only the four macros, so a nutrient is added by adding a key here, never a
 -- code path. Pure: tables in, tables out, no Java. KEYS is a Lua table this file built, so `#` on it
 -- is a Lua length, never a Java list (#0940).
 local K = NutritionRevamp.kernel
@@ -9,8 +9,13 @@ K.vector = {}
 -- The four vanilla macros, in the engine's order. The only nutrient names the kernel hard-codes.
 K.vector.MACROS = {"calories", "carbs", "lipids", "proteins"}
 
--- The declared key list: the macros plus the seed's worked mod-nutrient set (Plan 4 extends it).
-K.vector.KEYS = {"calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate"}
+-- The declared key list: the macros, the Plan 2 seed set, then the twenty-two kinetics keys Plan 4 adds
+-- (the fat-soluble vitamins, the B vitamins and choline, the minerals and electrolytes, the essential
+-- fats, caffeine and ethanol); the unit of each is NR.data.UNITS.
+K.vector.KEYS = {"calories", "carbs", "lipids", "proteins", "fibre", "water", "vitC", "iron", "phytate",
+                 "retinol", "carotene", "vitD", "vitE", "vitK", "thiamine", "riboflavin", "niacin", "vitB6",
+                 "folate", "vitB12", "choline", "sodium", "potassium", "calcium", "magnesium", "zinc",
+                 "iodine", "selenium", "efa", "caffeine", "ethanol"}
 
 -- The declared key list a reader iterates.
 function K.vector.keys()
