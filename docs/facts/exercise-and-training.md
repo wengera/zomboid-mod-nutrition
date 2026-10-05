@@ -209,7 +209,7 @@ Not covered: `Fitness.save` and `Fitness.load` (which maps survive a save), the 
 ## Open
 <a id="open"></a>
 
-- Whether `Fitness.update`'s decay ticks on the server for a connected player, so that regularity decays and soreness lands there (the rep path is settled, T5.5) — settled by a seeded exercise and two idle game-days, reading the server's regularity for the predicted fall; -> [X36](../areas/open-questions.md#x36) [#2083/C/open]
+- Whether `Fitness.update`'s decay ticks on the server for a connected player, so that regularity decays and soreness lands there (the rep path is settled, #2879) — settled by a seeded exercise and two idle game-days, reading the server's regularity for the predicted fall; -> [X36](../areas/open-questions.md#x36) [#2083/C/open]
 - Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise — settled by server-side counters on the three events after a console grant, melee hits and an exercise; -> [X39](../areas/open-questions.md#x39) [#2084/C/open]
 - A decision the design takes: whether a training model reads the engine's per-exercise regularity or keeps its own, given that regularity decays only after a one-day grace, by 0.288 a day, with no floor [#2167/C/arith.] [#2166/C/C-only].
 - A decision the design takes: whether a resistance dose counts reps through the server-side grant or through the fitness object, given that the grant is truncated to an integer and a multiplayer client grants nothing [#2173/C/C-only].

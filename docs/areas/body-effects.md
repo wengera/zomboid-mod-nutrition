@@ -18,7 +18,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Grant night vision or short sight through the Night Vision and Short Sighted traits rather than through the cone or the lighting bridge: the rendered cone is computed only on the client from inputs that include the trait list, the native bridge is unexposed, and neither the cone nor hearing range has a setter [#2709/C/inference] [#2298/C/C-only] [#2303/C/C-only] [#2301/C/C-only] [#2302/C/C-only] [#2333/C/C-only].
 - Add to the aiming delay rather than replace it, and expect it rewritten after every shot: the combat manager rewrites it per shot as the current value plus the weapon's terms, clamped to the weapon's aiming time, and vanilla's rack action adds to the current value [#2710/C/inference] [#2326/C/C-only] [#2340/C/C-only].
 - Move a player's speed through the inputs of the speed formula, the endurance stat behind the Endurance moodle first, never through a speed setter or a modifier field: the modifier fields are reset on every speed update, `setSpeedMod` and move speed reach no player path, base speed is cut per level of the Endurance and Heavy Load moodles, and no moodle level has a setter [#2711/C/inference] [#2289/C/C-only] [#2318/C/C-only] [#2319/C/C-only] [#2313/C/C-only] [#2285/C/C-only].
-- Read a player's activity from the thermoregulator's metabolic rate, with endurance and carried load held still or accounted for, never from a counter: the engine keeps no distance, running-time total, step, rep or training-load counter, while the metabolic target is raised to a class floor by attacking, moving and exercising, can sit above a low class when endurance is low, and rises with carried weight, read from the bytecode and not measured on a server [#2712/C/inference] [#2633/C/C-only] [#2649/C/C-only] [#2197/C/C-only] [#2198/C/C-only] [#2200/C/C-only].
+- Read a player's activity from the thermoregulator's metabolic rate, with endurance and carried load held still or accounted for, never from a counter: the engine keeps no distance, running-time total, step, rep or training-load counter, while the metabolic target is raised to a class floor by attacking, moving and exercising, can sit above a low class when endurance is low, and rises with carried weight, read from the bytecode, and measured on a server only as the rate: the server classifies a connected player through `getMetabolicRate()` while its target reads -1 at every tick [#2712/C/inference] [#2875/M/n=1] [#2633/C/C-only] [#2649/C/C-only] [#2197/C/C-only] [#2198/C/C-only] [#2200/C/C-only].
 
 ## How it works
 
@@ -297,11 +297,11 @@ A rep runs on the server through the state packet's handler, and its experience 
 Endurance has three event writers outside the per-update model — a swing, a vault and a rep — so a model that counts effort from endurance alone sees those too [#2269/C/C-only].
 The exercise action sets a calorie modifier and a per-frame metabolic target [#2187/C/C-only].
 A timed action's calorie modifier reaches the burn only at rest, because every moving branch of the calorie update overwrites it before use [#0462].
-Whether the server can read the current action at all is open (see [Open](#open)).
+The server cannot read a connected player's current action: its character-action stack is empty there at every poll while the client reads the action and its calorie modifier [#2878/M/n=1].
 The exercise reaches the server with no client command a mod could intercept [#2189/C/C-only].
 The grants and their triggers are [the training signals](../facts/exercise-and-training.md#training-signals).
 
-Read activity on the server from `getBodyDamage():getThermoregulator():getMetabolicRate()`, never from the target, which reads -1. The rate lags the activity and already carries the load factor, and it never reaches the running or sprinting classes, because those flags do not reach the server [#2875/M/n=1][#2877/M/n=1]. Read exercise reps and melee hits from the server's `AddXP` and `OnWeaponHitXp` events [#2879/M/n=1][#2880/M/n=1]. The current action's calorie modifier is not readable on the server [#2878/M/n=1].
+Read activity on the server from `getBodyDamage():getThermoregulator():getMetabolicRate()`, never from the target, which reads -1. The rate lags the activity and already carries the load factor [#2649/C/C-only], and it never reaches the running or sprinting classes, because those flags do not reach the server [#2875/M/n=1][#2877/M/n=1]. Read exercise reps and melee hits from the server's `AddXP` and `OnWeaponHitXp` events [#2879/M/n=1][#2880/M/n=1]. The current action's calorie modifier is not readable on the server [#2878/M/n=1].
 
 ## Options
 
@@ -358,7 +358,7 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 - Whether a handler that reproduces the seven skipped updaters tracks vanilla's stat trajectory stat by stat over several game-hours — settled by two boots of one fixture, with no handler and with the reproducing handler; -> [X34](open-questions.md#x34) [#2081/C/open].
 - Whether a handler's endurance write is the last before the player-stats push — settled by a sentinel endurance written each tick and read in client-first pairs; -> [X35](open-questions.md#x35) [#2082/C/open].
 - Whether the fitness object's update ticks on the server for a connected player — settled by a seeded exercise and two idle game-days, reading the server's regularity; -> [X36](open-questions.md#x36) [#2083/C/open].
-- Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's hits and exercise — settled by server-side counters after a console grant, melee hits and an exercise; -> [X39](open-questions.md#x39) [#2084/C/open].
+- Whether `LevelPerk` fires on a real level crossing for a connected player — `AddXP` fires per grant [#2871/M/n=1] and per rep [#2879/M/n=1], and `OnWeaponHitXp` per landed swing [#2880/M/n=1], all measured; the crossing is the open arm -> [X39](open-questions.md#x39) [#2084/C/open].
 - What the experience anti-cheat's check interval is, and whether a server-side burst of grants trips it — settled by a desk read of the enabling option and timed bursts either side of the bound; -> [X40](open-questions.md#x40) [#2085/C/open].
 - Whether a client-side write to the `WalkSpeed` animation variable holds inside the injuries-packet window — settled by a client write sampled every quarter second; -> [X47](open-questions.md#x47) [#2096/C/open].
 - Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value — settled by melee hits with the protein store raised on one side at a time; -> [X48](open-questions.md#x48) [#2087/C/open].
@@ -367,7 +367,7 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 - Decision: how large a single server-side grant the mod issues — a tripped anti-cheat check can kick or ban and its interval is unread [#2147/C/C-only] [#2148/C/C-only].
 - Decision: whether a warmth effect writes the temperature stat every update or accepts the single lerp step of one write [#2373/C/C-only].
 - Decision: which distance input a sight effect goes through, the Short Sighted boolean or the detection range — both reach the native lighting, whose use of either is outside the bytecode [#2303/C/C-only].
-- Decision: whether an activity-scaled quantity reads the metabolic-rate classes or classifies the player itself — the classes are floors raised by endurance and load, and none of it is measured on a server [#2633/C/C-only] [#2649/C/C-only].
+- Decision: whether an activity-scaled quantity reads the metabolic-rate classes or classifies the player itself — the classes are floors raised by endurance and load [#2633/C/C-only] [#2649/C/C-only], and on a server the rate is what classifies a connected player, the target reading -1 there [#2875/M/n=1].
 
 ## See also
 

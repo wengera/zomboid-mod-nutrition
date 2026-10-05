@@ -126,7 +126,7 @@ The exercise class is the flat `Metabolics.Fitness` at 6.0, never the exercise's
 `IsoGameCharacter` declares no metabolic-rate getter, only the two `setMetabolicTarget` overloads, so the rate is read through `getBodyDamage():getThermoregulator()`, whose `getMetabolicRate`, `getMetabolicTarget` and `getMetabolicRateReal` are public [#2635/C/C-only].
 The classification is read from the bytecode and never measured, and whether a connected player's thermoregulator is classified on the server at all is open below [#2633/C/C-only].
 
-On a dedicated server a connected player's metabolic target reads -1 at every read, because it is reset after each update, so the server's classification is read from `getMetabolicRate`. That rate held 1.50 idle, climbed toward Walking5kmh while the player walked, toward Fitness through a squat set, and above the walking class under load, so the server classifies the player's activity [#2875/M/n=1, #2088]. The client's rate tracks it within about 0.3 [#2876/M/n=1].
+On a dedicated server a connected player's metabolic target reads -1 at every read, because it is reset after each update, so the server's classification is read from `getMetabolicRate`. That rate held 1.50 idle, climbed toward Walking5kmh while the player walked, toward Fitness through a squat set, and above the walking class under load, so the server classifies the player's activity [#2875/M/n=1]. The client's rate tracks it within about 0.3 [#2876/M/n=1].
 
 <a id="hunger-thirst"></a>
 ### Hunger and thirst
@@ -420,7 +420,7 @@ Not covered: the temperature model behind the thermoregulator's primary and seco
 - Decision: whether a weight band is evaluated server-side or derived on the client from the three weight-direction flags, which a client does compute [#1098] — the band trait itself lags the weight by up to 2000 weight updates [#0534/C/C-only].
 - Decision: whether hunger and thirst are retuned through the sandbox multiplier or the updaters are replaced — `StatsDecrease` scales hunger, thirst and fatigue together and never calories [#0553].
 - Decision: whether a trait-keyed effect reads a vanilla band trait at all, given that its name comes back lowercased and no string overload of the trait test exists [#0582/M/n=1, #1260/C/C-only].
-- Decision: whether an activity-scaled mod quantity reads the engine's metabolic-rate classes or classifies the player itself — the classes are floors raised within one update, endurance and carried load raise the target above them, and none of it is measured on a server [#2633/C/C-only] [#2649/C/C-only].
+- Decision: whether an activity-scaled mod quantity reads the engine's metabolic-rate classes or classifies the player itself — the classes are floors raised within one update, endurance and carried load raise the target above them, and on a server the rate classifies a connected player while the target reads -1 there [#2875/M/n=1]; the rest is the bytecode's [#2633/C/C-only] [#2649/C/C-only].
 - Decision: whether the mod refreshes the band traits after its own weight write, given that each refresh removes all five band traits, re-adds one and pushes nothing [#2722/C/C-only].
 
 ## See also

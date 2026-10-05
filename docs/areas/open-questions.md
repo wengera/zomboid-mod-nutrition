@@ -32,7 +32,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#0380/C/C-only/open] | No reader for `AddIngredientIfCooked`, which 37 recipe blocks use, was traced beyond the ingredient-usability check. | [cooking-and-recipes.md](../facts/cooking-and-recipes.md#open) | — | dumping the key's readers from the jar |
 | [#0381/C/C-only/open] | `EvolvedRecipe.useSpice` and its two overloads were never dumped, so the spice branch's effect beyond the herbal-tea sums is unread. | [open-questions.md](#x9b) | X9b | a jar dump of both `useSpice` overloads and the ingredient usability check |
 | [#0384/C/C-only/open] | The behaviour of an item whose fresh and rotten thresholds are equal is unmeasured at eat time, where it takes the hundred-per-cent branch of the rot-sickness denominator. | [spoilage.md](../facts/spoilage.md#open) | — | eating `Base.RatKing` on a live server and reading the sickness roll |
-| [#0591/M/n=1/open] | The walking, running and sprinting burn constants are unmeasured: the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character on the walk-to plus set-running route. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the walk, run and sprint burn ratios; running never reaches the server (T5.3) |
+| [#0591/M/n=1/open] | The walking, running and sprinting burn constants are unmeasured: the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character on the walk-to plus set-running route. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the walk, run and sprint burn ratios; running never reaches the server (#2877) |
 | [#0592/M/n=1/open] | The asleep burn branch is unmeasured: the sleep write held on the immediate read-back but did not persist, and the next row's 52 server samples all read the character awake with idle-rate burn about 27 s later, so whether the sleep was walked off or never persisted is undetermined. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | a sleep arm that verifies the state on the server before the window opens |
 | [#0593/C/C-only/open] | Whether the 1.2 running thirst factor ever fires on a dedicated server is unknown: it is gated on the character being the local player instance, which on a headless server is probably never true, so running may not raise thirst in multiplayer at all. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the same running branch the burn constants need |
 | [#0594/C/C-only/open] | The real range of the thermoregulator's energy multiplier is unknown: the primary and secondary totals are written by updateNodes from a loop that was not traced, so the size of the cold-weather burn bonus is unbounded here. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | a temperature-controlled pair of idle windows |
@@ -334,13 +334,13 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x36"></a>
 ### X36 — Does `Fitness.update` tick on the server for a connected player?
-- Whether `Fitness.update`'s decay ticks on the server for a connected player is open [#2083/C/open]; the rep path is settled (T5.5).
+- Whether `Fitness.update`'s decay ticks on the server for a connected player is open [#2083/C/open]; the rep path is settled (#2879).
 - Waiting on it: [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: a seeded exercise, then two game-days with no exercise, reading the server's regularity for the fall the decay predicts — [experiments.md § Named experiments](../reference/experiments.md), row `X36`.
 
 <a id="x39"></a>
 ### X39 — Do the server-side experience events fire per grant — `AddXP`, `LevelPerk`, `OnWeaponHitXp` — for a connected player's melee hits and exercise?
-- LevelPerk on a real crossing is open [#2084/C/open]; `AddXP` is settled [#2871/M/n=1], and the rep and hit arms are settled (T3.5, T5.5, T5.6).
+- LevelPerk on a real crossing is open [#2084/C/open]; `AddXP` is settled [#2871/M/n=1], and the rep and hit arms are settled (#2871, #2879, #2880).
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open), [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: server-side counters on the three events, read after a console experience grant as the positive control and then after melee hits and an exercise — [experiments.md § Named experiments](../reference/experiments.md), row `X39`.
 
