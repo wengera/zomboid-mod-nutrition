@@ -17,7 +17,7 @@
 -- pDay for scaled records. The state fields added lazily (numbers only, #1495): S and H (iron, absolute mg)
 -- and bone (calcium, mg); biotin reuses ext (its record has no chronic, so the engine's excess never writes
 -- it). Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast
--- region, so math.exp is allowed. This file sorts after NR_Kernel.lua and NR_Kernel_Nutrients.lua, and
+-- region, so math.exp is allowed. This file sorts after NR_Kernel.lua and before NR_Kernel_Nutrients.lua, so, and
 -- every K.clamp / K.min / K.max / K.nutrients reference is at call time.
 local K = NutritionRevamp.kernel
 K.interact = {}
