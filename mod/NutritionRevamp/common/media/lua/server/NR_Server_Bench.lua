@@ -41,6 +41,7 @@ BENCH_INP.minutesPerDay = 60
 BENCH_INP.fitnessLevel = 5
 BENCH_INP.energyState = 1
 BENCH_INP.rmod = 1
+BENCH_INP.thirstTarget = 0.3
 
 -- One fast step over the reused tables; returns the output table. The target of bench.global.
 function NR.bench_fast()

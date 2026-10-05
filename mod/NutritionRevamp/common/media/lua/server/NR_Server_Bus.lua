@@ -15,7 +15,7 @@ end
 function B.sendMirror(player, record)
     if player == nil or record == nil then return false end
     if sendServerCommand == nil then return false end
-    local ok = pcall(sendServerCommand, player, B.module, "mirror", K.mirror.build(record, B.meta()))
+    local ok = pcall(sendServerCommand, player, B.module, "mirror", K.mirror.build(record, B.meta(), NR.data and NR.data.records and NR.data.records.ORDER))
     if not ok then NR.log.say(2, "bus: sendServerCommand failed for " .. tostring(record.username)) end
     return ok
 end
