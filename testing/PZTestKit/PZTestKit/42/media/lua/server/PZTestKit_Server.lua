@@ -1699,3 +1699,39 @@ TK.register("perk.level", function(argv)
     out.xp = xp
     return out
 end)
+
+-- <user> <Perk> <amount>. A real server-side XP grant through the game's own Lua global
+-- `addXp(player, perk, amount)`, which routes to GameServer.addXp when GameServer.server is set
+-- (#2130) and there calls the six-argument XP.AddXP and then refreshes the anti-cheat's
+-- experience snapshot (#2132). It is capability-gated inside the engine, so a grant the engine
+-- refused is read off xpBefore against xpAfter, never off `ok` (which says only that the call
+-- ran without raising).
+-- @args <user> <Perk> <amount>
+-- @reply {ok, perk, amount, side, xpBefore, xpAfter, levelBefore, levelAfter [, error]} | string
+-- @purpose Grants XP through the server Lua global addXp (the checker-refreshing route) and reads XP and level either side of it in the same tick.
+TK.register("xp.grant", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local amount = tonumber(argv[3])
+    if not argv[2] or amount == nil then return "usage: xp.grant <user> <Perk> <amount>" end
+    local perk = Perks and Perks[argv[2]]
+    if not perk then return { ok = false, error = "no Perks." .. tostring(argv[2]), perk = argv[2] } end
+    local out = { ok = false, perk = argv[2], amount = amount, side = TK.side }
+    local _, xpObj = TK.call(p, "getXp")
+    local _, x0 = TK.call(xpObj, "getXP", perk)
+    local _, l0 = TK.call(p, "getPerkLevel", perk)
+    out.xpBefore = x0
+    out.levelBefore = l0
+    if addXp == nil then
+        out.error = "no addXp global on this side"
+    else
+        local ran, err = pcall(addXp, p, perk, amount)
+        out.ok = ran
+        if not ran then out.error = tostring(err) end
+    end
+    local _, x1 = TK.call(xpObj, "getXP", perk)
+    local _, l1 = TK.call(p, "getPerkLevel", perk)
+    out.xpAfter = x1
+    out.levelAfter = l1
+    return out
+end)
