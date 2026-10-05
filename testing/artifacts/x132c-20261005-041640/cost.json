@@ -1,0 +1,807 @@
+{
+ "run_id": "x132c-20261005-041640",
+ "session": "Plan 2 entry gate (\u00a7 6 cost budget): server bench.global NutritionRevamp.bench_fast 100000 (per-call \u00b5s of the whole fast step, a steady-state awake floor), the kernel.fast.step no-arg method note, and tick.rate 10 on a takeover boot beside an overlay boot of the same fixture",
+ "user": "admin",
+ "profile": {
+  "name": "nr-takeover",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\nr-takeover.toml",
+  "fixture": "default",
+  "description": "PZTestKit + NutritionRevamp, Mode 1 (takeover), DayLength 1.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "DayLength": 1,
+   "NR": {
+    "Mode": 1
+   }
+  },
+  "users": [
+   "admin"
+  ]
+ },
+ "profile_overlay": {
+  "name": "nr-overlay",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\nr-overlay.toml",
+  "fixture": "default",
+  "description": "PZTestKit + NutritionRevamp, Mode 2 (overlay), DayLength 1.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "DayLength": 1,
+   "NR": {
+    "Mode": 2
+   }
+  },
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "NutritionRevamp"
+ ],
+ "commit": "ad270bf",
+ "harness_lua_commit": "42425e9",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x131d-20261004-205257",
+ "dry_run": false,
+ "constants": {
+  "BENCH_N": 100000,
+  "TICK_SECONDS": 10,
+  "BUDGET_US": 50.0,
+  "TRACK_FLOOR": 0.9
+ },
+ "world_changes": {
+  "restored": "two boots, each a fresh fixture restore; no world write (bench and tick-rate reads only)",
+  "left_in_place": []
+ },
+ "boots": {
+  "takeover": {
+   "profile": {
+    "name": "nr-takeover",
+    "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\nr-takeover.toml",
+    "fixture": "default",
+    "description": "PZTestKit + NutritionRevamp, Mode 1 (takeover), DayLength 1.",
+    "mods": [
+     "PZTestKit",
+     "NutritionRevamp"
+    ],
+    "sources": {
+     "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+     "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp"
+    },
+    "skip": [],
+    "workshop_items": {},
+    "sandbox": {
+     "DayLength": 1,
+     "NR": {
+      "Mode": 1
+     }
+    },
+    "users": [
+     "admin"
+    ]
+   },
+   "reuse": false,
+   "build": "42.20.4",
+   "session_ready_wall": 78.086,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"value\": \"0.1.0\"",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"value\": \"0.1.0\"",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "bench_fast": {
+    "side": "server",
+    "name": "NutritionRevamp.bench_fast",
+    "n": 100000,
+    "ms": 306,
+    "usPerCall": 3.06
+   },
+   "bench_step_attempt": {
+    "side": "server",
+    "name": "NutritionRevamp.kernel.fast.step",
+    "n": 100000,
+    "ms": 2,
+    "usPerCall": 0.02,
+    "error": "attempted index: M of non-table: null java.lang.RuntimeException",
+    "calls": 0
+   },
+   "tick_rate": {
+    "arm": {
+     "side": "server",
+     "armed": true,
+     "seconds": 10,
+     "result": "tick-rate",
+     "file": "pzt-results/tick-rate.json"
+    },
+    "result": {
+     "seconds": 10,
+     "ticks": 101,
+     "elapsedMs": 10094,
+     "startWall": 1791188282008,
+     "endWall": 1791188292102,
+     "worldAgeStart": 3.2057247161865234,
+     "worldAgeEnd": 3.4707326889038086,
+     "ticksPerSecond": 10.005944125222905,
+     "worldMinutesPerSecond": 1.575240574899654,
+     "complete": true,
+     "t": 1791188292102,
+     "side": "server",
+     "name": "tick-rate"
+    },
+    "ticksPerSecond": 10.005944125222905,
+    "worldMinutesPerSecond": 1.575240574899654
+   },
+   "wall_end_body": 91.455,
+   "server_error_count": 7,
+   "server_errors": [
+    "ERROR: General      f:398 st:1,531,030,029 at KahluaThread.flushErrorMessage      > -------------------------------------------------------------",
+    "ERROR: General      f:398 st:1,531,030,029 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+    "STACK TRACE",
+    "ERROR: General      f:398 st:1,531,030,030> Lua((MOD:Nutrition Revamp)).step> Exception thrown\n\tjava.lang.RuntimeException: attempted index: M of non-table: null at KahluaThread.tableget(KahluaThread.java:1430).\n\tStack trace:\n\t\tse.krka.kahlua.vm.KahluaThread.tableget(KahluaThread.java:1430)\n\t\tLua((MOD:Nutrition Revamp)).step(NR_Kernel_Fast.lua:69)\n\t\tLua((MOD:PZTestKit)).loop(PZTestKit_Core.lua:1055)\n\t\tLua((MOD:PZTestKit)).bench.global(PZTestKit_Core.lua:1060)",
+    "ERROR: General      f:398 st:1,531,030,030 at KahluaThread.flushErrorMessage      > dumping Lua stack trace",
+    "STACK TRACE",
+    "LOG  : Lua          f:398 st:1,531,030,031> PZTK: cmd #4 bench.global -> {\"side\":\"server\",\"name\":\"NutritionRevamp.kernel.fast.step\",\"n\":100000,\"ms\":2,\"usPerCall\":0.02,\"error\":\"attempted index: M of non-table: null java.lang.RuntimeException\",\"calls\":0}"
+   ],
+   "client_lua_error": false,
+   "wall_end": 101.687
+  },
+  "overlay": {
+   "profile": {
+    "name": "nr-overlay",
+    "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\nr-overlay.toml",
+    "fixture": "default",
+    "description": "PZTestKit + NutritionRevamp, Mode 2 (overlay), DayLength 1.",
+    "mods": [
+     "PZTestKit",
+     "NutritionRevamp"
+    ],
+    "sources": {
+     "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+     "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp"
+    },
+    "skip": [],
+    "workshop_items": {},
+    "sandbox": {
+     "DayLength": 1,
+     "NR": {
+      "Mode": 2
+     }
+    },
+    "users": [
+     "admin"
+    ]
+   },
+   "reuse": false,
+   "build": "42.20.4",
+   "session_ready_wall": 155.554,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"value\": \"0.1.0\"",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"value\": \"0.1.0\"",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "tick_rate": {
+    "arm": {
+     "side": "server",
+     "armed": true,
+     "seconds": 10,
+     "result": "tick-rate",
+     "file": "pzt-results/tick-rate.json"
+    },
+    "result": {
+     "seconds": 10,
+     "ticks": 102,
+     "elapsedMs": 10096,
+     "startWall": 1791188358952,
+     "endWall": 1791188369048,
+     "worldAgeStart": 3.2020645141601562,
+     "worldAgeEnd": 3.46929931640625,
+     "ticksPerSecond": 10.103011093502378,
+     "worldMinutesPerSecond": 1.5881624539189407,
+     "complete": true,
+     "t": 1791188369048,
+     "side": "server",
+     "name": "tick-rate"
+    },
+    "ticksPerSecond": 10.103011093502378,
+    "worldMinutesPerSecond": 1.5881624539189407
+   },
+   "wall_end_body": 168.371,
+   "server_error_count": 0,
+   "server_errors": [],
+   "client_lua_error": false,
+   "wall_end": 178.327
+  }
+ },
+ "steps": [
+  {
+   "step": "p1_bench_fast",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.bench_fast 100000",
+   "side": "server",
+   "wall_before": 80.129,
+   "wall_after": 80.648,
+   "took": 0.519,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.bench_fast",
+    "n": 100000,
+    "ms": 306,
+    "usPerCall": 3.06
+   }
+  },
+  {
+   "step": "p2_bench_step",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.kernel.fast.step 100000",
+   "side": "server",
+   "wall_before": 80.651,
+   "wall_after": 81.162,
+   "took": 0.511,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.kernel.fast.step",
+    "n": 100000,
+    "ms": 2,
+    "usPerCall": 0.02,
+    "error": "attempted index: M of non-table: null java.lang.RuntimeException",
+    "calls": 0
+   }
+  },
+  {
+   "step": "p3a_takeover_tick_arm",
+   "cmd": "tick.rate",
+   "args": "10",
+   "side": "server",
+   "wall_before": 81.165,
+   "wall_after": 81.421,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 10,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "p3b_overlay_tick_arm",
+   "cmd": "tick.rate",
+   "args": "10",
+   "side": "server",
+   "wall_before": 157.825,
+   "wall_after": 158.34,
+   "took": 0.515,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 10,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "P1": {
+   "question": "per-call wall cost of one whole fast-kernel step through NutritionRevamp.bench_fast (a representative steady-state AWAKE-tick floor, not a worst case)",
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.bench_fast",
+    "n": 100000,
+    "ms": 306,
+    "usPerCall": 3.06
+   },
+   "usPerCall": 3.06
+  },
+  "P2": {
+   "question": "can kernel.fast.step be benched directly? (no -- it needs inp/out/c args bench.global cannot pass; bench_fast is its proxy, P1)",
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.kernel.fast.step",
+    "n": 100000,
+    "ms": 2,
+    "usPerCall": 0.02,
+    "error": "attempted index: M of non-table: null java.lang.RuntimeException",
+    "calls": 0
+   }
+  },
+  "P3_takeover": {
+   "arm": {
+    "side": "server",
+    "armed": true,
+    "seconds": 10,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   },
+   "result": {
+    "seconds": 10,
+    "ticks": 101,
+    "elapsedMs": 10094,
+    "startWall": 1791188282008,
+    "endWall": 1791188292102,
+    "worldAgeStart": 3.2057247161865234,
+    "worldAgeEnd": 3.4707326889038086,
+    "ticksPerSecond": 10.005944125222905,
+    "worldMinutesPerSecond": 1.575240574899654,
+    "complete": true,
+    "t": 1791188292102,
+    "side": "server",
+    "name": "tick-rate"
+   },
+   "ticksPerSecond": 10.005944125222905,
+   "worldMinutesPerSecond": 1.575240574899654
+  },
+  "P3_overlay": {
+   "arm": {
+    "side": "server",
+    "armed": true,
+    "seconds": 10,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   },
+   "result": {
+    "seconds": 10,
+    "ticks": 102,
+    "elapsedMs": 10096,
+    "startWall": 1791188358952,
+    "endWall": 1791188369048,
+    "worldAgeStart": 3.2020645141601562,
+    "worldAgeEnd": 3.46929931640625,
+    "ticksPerSecond": 10.103011093502378,
+    "worldMinutesPerSecond": 1.5881624539189407,
+    "complete": true,
+    "t": 1791188369048,
+    "side": "server",
+    "name": "tick-rate"
+   },
+   "ticksPerSecond": 10.103011093502378,
+   "worldMinutesPerSecond": 1.5881624539189407
+  },
+  "P3": {
+   "takeover": {
+    "ticksPerSecond": 10.005944125222905,
+    "worldMinutesPerSecond": 1.575240574899654
+   },
+   "overlay": {
+    "ticksPerSecond": 10.103011093502378,
+    "worldMinutesPerSecond": 1.5881624539189407
+   },
+   "takeover_over_overlay": 0.9903922734142201
+  }
+ },
+ "verdicts": {
+  "P1": {
+   "phase": "P1",
+   "predicted": "usPerCall a few \u00b5s (arithmetic over ~24 stats, no allocation; Plan 1 benched defaults() at ~2 \u00b5s)",
+   "falsifier": "usPerCall above ~50.0 \u00b5s",
+   "observed": {
+    "usPerCall": 3.06,
+    "ack": {
+     "side": "server",
+     "name": "NutritionRevamp.bench_fast",
+     "n": 100000,
+     "ms": 306,
+     "usPerCall": 3.06
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 80.649
+  },
+  "P2": {
+   "phase": "P2",
+   "predicted": "an error/resolve-only reply: kernel.fast.step(inp,out,c) raises when called with no args, so bench_fast (P1) is the step's proxy",
+   "falsifier": "(none -- a trivial reading by construction)",
+   "observed": {
+    "ack": {
+     "side": "server",
+     "name": "NutritionRevamp.kernel.fast.step",
+     "n": 100000,
+     "ms": 2,
+     "usPerCall": 0.02,
+     "error": "attempted index: M of non-table: null java.lang.RuntimeException",
+     "calls": 0
+    },
+    "note": "kernel.fast.step is not directly benchable without a filled input; this is a method note, not a failure"
+   },
+   "verdict": "trivial",
+   "wall": 81.164
+  },
+  "P3": {
+   "phase": "P3",
+   "predicted": "takeover tick rate within a few percent of overlay's (the handler replaces the seven updaters, it does not add to them)",
+   "falsifier": "takeover tick rate below 90 % of overlay's",
+   "observed": {
+    "takeover": {
+     "ticksPerSecond": 10.005944125222905,
+     "worldMinutesPerSecond": 1.575240574899654
+    },
+    "overlay": {
+     "ticksPerSecond": 10.103011093502378,
+     "worldMinutesPerSecond": 1.5881624539189407
+    },
+    "takeover_over_overlay": 0.9903922734142201
+   },
+   "verdict": "as_predicted",
+   "wall": 178.331
+  },
+  "ENTRY_GATE": {
+   "phase": "ENTRY_GATE",
+   "predicted": "proceed: usPerCall within budget AND takeover tracks overlay, so takeover stays the shipped default and the plan runs as written",
+   "falsifier": "overlay-default finding: cost above budget OR takeover below 90 % of overlay -- changes only the shipped mode and the \u00a7 6 claim (Task 11, Task 17), never the plan's other tasks",
+   "observed": {
+    "usPerCall": 3.06,
+    "within_budget": true,
+    "takeover_tps": 10.005944125222905,
+    "overlay_tps": 10.103011093502378,
+    "ratio": 0.9903922734142201,
+    "tracks": true
+   },
+   "verdict": "as_predicted",
+   "wall": 178.335,
+   "gate": "proceed"
+  }
+ },
+ "timeline": [
+  {
+   "t": 0.7,
+   "phase": "boot",
+   "label": "takeover"
+  },
+  {
+   "t": 39.8,
+   "phase": "server_started",
+   "label": "takeover"
+  },
+  {
+   "t": 78.1,
+   "phase": "session_ready",
+   "label": "takeover"
+  },
+  {
+   "t": 78.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 79.1,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 79.6,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 80.1,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 80.6,
+   "phase": "step",
+   "took": 0.519,
+   "name": "p1_bench_fast",
+   "cmd": "bench.global"
+  },
+  {
+   "t": 80.6,
+   "phase": "verdict",
+   "name": "P1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 81.2,
+   "phase": "step",
+   "took": 0.511,
+   "name": "p2_bench_step",
+   "cmd": "bench.global"
+  },
+  {
+   "t": 81.2,
+   "phase": "verdict",
+   "name": "P2",
+   "verdict": "trivial"
+  },
+  {
+   "t": 81.4,
+   "phase": "step",
+   "took": 0.256,
+   "name": "p3a_takeover_tick_arm",
+   "cmd": "tick.rate"
+  },
+  {
+   "t": 93.9,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 101.7,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 7
+  },
+  {
+   "t": 101.7,
+   "phase": "boot",
+   "label": "overlay"
+  },
+  {
+   "t": 117.4,
+   "phase": "server_started",
+   "label": "overlay"
+  },
+  {
+   "t": 155.6,
+   "phase": "session_ready",
+   "label": "overlay"
+  },
+  {
+   "t": 156.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 156.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 157.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 157.8,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 158.3,
+   "phase": "step",
+   "took": 0.515,
+   "name": "p3b_overlay_tick_arm",
+   "cmd": "tick.rate"
+  },
+  {
+   "t": 170.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 178.3,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 178.3,
+   "phase": "verdict",
+   "name": "P3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 178.3,
+   "phase": "verdict",
+   "name": "ENTRY_GATE",
+   "verdict": "as_predicted"
+  }
+ ],
+ "live_server_errors": [],
+ "summary": {
+  "verify_ok": {
+   "takeover": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "overlay": [
+    true,
+    true,
+    true,
+    true
+   ]
+  },
+  "mods_not_found": {
+   "takeover": {
+    "server": [],
+    "client": []
+   },
+   "overlay": {
+    "server": [],
+    "client": []
+   }
+  },
+  "boot_errors": {
+   "takeover": null,
+   "overlay": null
+  },
+  "server_error_count": {
+   "takeover": 7,
+   "overlay": 0
+  },
+  "client_lua_error": {
+   "takeover": false,
+   "overlay": false
+  },
+  "usPerCall": 3.06,
+  "takeover_tps": 10.005944125222905,
+  "overlay_tps": 10.103011093502378,
+  "takeover_over_overlay": 0.9903922734142201,
+  "entry_gate": "proceed",
+  "verdicts": {
+   "P1": "as_predicted",
+   "P2": "trivial",
+   "P3": "as_predicted",
+   "ENTRY_GATE": "as_predicted"
+  }
+ },
+ "wall_seconds": 178.3
+}
