@@ -1,0 +1,5 @@
+name=TKX Booze Watch
+id=TKX_BoozeWatch
+description=Plan 4 experiment: per-tick server samples of INTOXICATION during a bus-armed window (the alcohol gate); the stat only, JustDrankBoozeFluid is not wrappable from Lua. Test profiles only.
+modversion=1.0
+versionMin=42.0.0
