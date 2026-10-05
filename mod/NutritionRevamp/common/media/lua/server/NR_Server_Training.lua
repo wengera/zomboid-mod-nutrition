@@ -4,18 +4,24 @@
 -- per-minute work (load, timed action, decay, the climb-state sample) is NR_Server_Metabolism's; this
 -- file owns the events only and never runs on a clock.
 --
--- A rep (ruling T5-1): the engine grants one exercise rep as a Strength AddXP then a Fitness AddXP in
--- the same call (Fitness.incStats L351-L352: Strength = 4 per "arms" + 2 per "chest", Fitness = 4 per
--- "legs" + 2 per "abs", times the exercise's xpMod, truncated). A rep is counted ONCE, on the Fitness
--- event, while getFitness():getCurrentExe() is current; the Strength companion is ignored. The rep's
--- class is the exercise's first stiffness group (EXERCISE_CLASS, read from the install): legs/abs bank
--- S_REP_LEGS, arms/chest S_REP_ARMS, both at the moderate class. getCurrentExe answers a
+-- A rep (ruling T13-2, replacing T5-1's anchor): the engine grants one exercise rep as a Strength AddXP
+-- then a Fitness AddXP back to back with no amount test (Fitness.incStats @201 L351, @211 L352:
+-- Strength = 4 per "arms" + 2 per "chest", Fitness = 4 per "legs" + 2 per "abs", times the exercise's
+-- xpMod, truncated). XP.AddXP returns before the Lua event when the perk is Fitness and the character
+-- may not gain Fitness XP (L14196-L14198, #2647: the weight-trouble gate) or when the perk's XP sits at
+-- its level-10 total (L14214-L14215), so the Fitness event drops reps for exactly the characters a
+-- nutrition mod models. A rep is therefore counted ONCE on the STRENGTH event (0 for a legs exercise,
+-- no weight gate) while getFitness():getCurrentExe() is current, and that opens the rep's pair; the
+-- Fitness event that follows closes the pair and banks nothing. A Fitness event with no open pair is a
+-- rep whose Strength event the level-10 cap dropped, and is counted there instead. A Strength event
+-- whose Fitness partner was dropped leaves the pair open; the next rep's Strength event counts as usual.
+-- The rep's class is the exercise's first stiffness group (EXERCISE_CLASS, read from the install):
+-- legs/abs bank S_REP_LEGS, arms/chest S_REP_ARMS, both at the moderate class. getCurrentExe answers a
 -- Fitness$FitnessExercise whose type is a field with no getter, so the key is read when it can be (a
--- string, or a readable .type) and otherwise inferred from the XP pair: a Fitness grant above 0 is a
--- legs/abs rep, a Fitness grant of 0 after a Strength companion above 0 is an arms/chest rep. An arms
--- exercise grants Fitness 0, so the Fitness event of 0 is the rep's event too. A Strength grant with no
--- current exercise is a knockback, tree or load grant, ignored here (the hit and tree hooks and the
--- minute's load sample own them); a negative amount is rust and is ignored.
+-- string, or a readable .type) and otherwise inferred from the Strength grant: above 0 is arms/chest,
+-- 0 is legs/abs. An event of either perk with no current exercise is a knockback, tree or load grant,
+-- ignored here (the hit and tree hooks and the minute's load sample own them) and closes any open
+-- pair; a negative amount is rust and is ignored.
 --
 -- Each handler resolves the record by username off the store's records WITHOUT creating one (a player
 -- with no record or no body yet is skipped until Metabolism's first sight), runs under one pcall and
@@ -25,12 +31,13 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.training = {
-    stats = { reps = 0, hits = 0, trees = 0, ignored = 0, failures = 0 },
+    stats = { reps = 0, paired = 0, repsFitnessOnly = 0, hits = 0, trees = 0, ignored = 0, failures = 0 },
     lastError = nil,
     wired = false,
     limitations = {
-        "a rep is one Fitness event; the Strength companion event is ignored; a climb/vault has no Lua event and is sampled per minute by Task 12's state read",
-        "the exercise type is a Java field with no getter, so an unreadable exercise is classed from its XP pair (Fitness above 0 legs/abs, else arms/chest after a Strength companion)",
+        "a climb or vault has no Lua event and is sampled per minute from the character's state",
+        "a rep is counted on the Strength XP event (unconditional, 0 for a legs exercise); vanilla's Fitness-XP gate (#2647) cannot drop it; a character whose Strength XP sits at the level-10 total fires no Strength event, and its reps are counted on the Fitness event instead",
+        "the exercise type is a Java field with no getter, so an unreadable exercise is classed from its Strength grant (above 0 arms/chest, 0 legs/abs; legs on the Fitness-only path)",
     },
 }
 local TRN = NR.server.training
@@ -45,8 +52,8 @@ TRN.EXERCISE_CLASS = {
 TRN.GROUP_S = { legs = "S_REP_LEGS", abs = "S_REP_LEGS", arms = "S_REP_ARMS", chest = "S_REP_ARMS" }
 -- The weapon weight above which a hit is a high-intensity event (Task 13's brief).
 TRN.HEAVY_WEAPON = 2
--- The last Strength companion amount per username, consumed by the Fitness event of the same rep.
-TRN.pendingStrength = {}
+-- The open rep pair per username: true after a rep's Strength event, cleared by its Fitness partner.
+TRN.pairOpen = {}
 
 local function finite(x)
     return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
@@ -112,32 +119,31 @@ local function xpStep(player, perk, amount)
     end
     local exe = currentExe(player)
     if exe == nil then
-        TRN.pendingStrength[name] = nil
+        TRN.pairOpen[name] = nil
         TRN.stats.ignored = TRN.stats.ignored + 1
         return
     end
-    if isStr then
-        TRN.pendingStrength[name] = amount            -- the companion; the Fitness event follows
-        TRN.stats.ignored = TRN.stats.ignored + 1
+    if isFit and TRN.pairOpen[name] then
+        TRN.pairOpen[name] = nil                      -- the same rep's Fitness partner; banks nothing
+        TRN.stats.paired = TRN.stats.paired + 1
         return
     end
-    local companion = TRN.pendingStrength[name] or 0
-    TRN.pendingStrength[name] = nil
     local group = nil
     local key = exeKey(exe)
     if key ~= nil then
         group = TRN.EXERCISE_CLASS[key] or "legs"
-    elseif amount > 0 then
-        group = "legs"
-    elseif companion > 0 then
+    elseif isStr and amount > 0 then
         group = "arms"
-    end
-    if group == nil then
-        TRN.stats.ignored = TRN.stats.ignored + 1
-        return
+    else
+        group = "legs"
     end
     K.training.event(body, K.training[TRN.GROUP_S[group]], "moderate")
     TRN.stats.reps = TRN.stats.reps + 1
+    if isStr then
+        TRN.pairOpen[name] = true                     -- the Fitness event of this rep follows
+    else
+        TRN.stats.repsFitnessOnly = TRN.stats.repsFitnessOnly + 1
+    end
 end
 
 local function hitStep(owner, weapon)

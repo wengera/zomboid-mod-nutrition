@@ -93,7 +93,7 @@ class Host:
 
     def stats(self):
         s = self.TRN.stats
-        return {k: s[k] for k in ("reps", "hits", "trees", "ignored", "failures")}
+        return {k: s[k] for k in ("reps", "paired", "repsFitnessOnly", "hits", "trees", "ignored", "failures")}
 
     def banked(self):
         b = self.body
@@ -131,57 +131,90 @@ def test_not_wired_off_the_server():
     assert host.TRN.wired is False
 
 
-# --- the reps (ruling T5-1) ------------------------------------------------------------------------------
+# --- the reps (ruling T13-2: anchored on the Strength event) ---------------------------------------------
 
-def test_fitness_rep_on_squats_banks_a_legs_rep(h):
-    h.xp(h.player(exe="squats"), "Strength", 0)        # the companion event, fired first (Fitness.incStats L351)
-    h.xp(h.player(exe="squats"), "Fitness", 4)
+def test_squats_strength_zero_then_fitness_is_one_legs_rep(h):
+    p = h.player(exe="squats")
+    h.xp(p, "Strength", 0)                             # fired first (Fitness.incStats L351), 0 for legs
+    h.xp(p, "Fitness", 4)                              # the same rep's partner (L352): banks nothing
     assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
     s = h.stats()
-    assert s["reps"] == 1 and s["ignored"] == 1 and s["failures"] == 0
+    assert s["reps"] == 1 and s["paired"] == 1 and s["repsFitnessOnly"] == 0 and s["failures"] == 0
+    assert h.TRN.pairOpen["admin"] is None
+
+
+def test_pushups_strength_then_fitness_zero_is_one_arms_rep(h):
+    p = h.player(exe="pushups")
+    h.xp(p, "Strength", 4)
+    h.xp(p, "Fitness", 0)
+    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
+    s = h.stats()
+    assert s["reps"] == 1 and s["paired"] == 1
+
+
+def test_pushups_with_the_fitness_event_dropped_count_every_rep(h):
+    p = h.player(exe="pushups")
+    h.xp(p, "Strength", 4)                             # the weight gate (#2647) drops the Fitness partner
+    h.xp(p, "Strength", 4)                             # the next rep counts with the pair still open
+    assert close(h.banked(), (2 * 0.10 * 0.8, 2 * 0.10, 0.0))
+    s = h.stats()
+    assert s["reps"] == 2 and s["paired"] == 0
+    assert h.TRN.pairOpen["admin"] is True
+
+
+def test_strength_capped_counts_the_rep_on_fitness(h):
+    h.xp(h.player(exe=h.rt.table()), "Fitness", 4)     # no Strength event: Strength XP at its level-10 total
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+    s = h.stats()
+    assert s["reps"] == 1 and s["repsFitnessOnly"] == 1 and s["paired"] == 0
+
+
+def test_fitness_only_rep_uses_the_readable_key(h):
+    h.xp(h.player(exe="bicepscurl"), "Fitness", 0)
+    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
+    assert h.stats()["repsFitnessOnly"] == 1
 
 
 def test_exercise_object_with_a_readable_type(h):
-    exe = h.rt.table_from({"type": "pushups"})
-    h.xp(h.player(exe=exe), "Strength", 6)
-    h.xp(h.player(exe=exe), "Fitness", 0)              # pushups grant no Fitness XP; the rep still counts once
-    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
-    assert h.stats()["reps"] == 1
-
-
-def test_unreadable_exercise_infers_arms_from_the_strength_companion(h):
-    exe = h.rt.table()                                 # a Java object with no readable type
+    exe = h.rt.table_from({"type": "burpees"})
     p = h.player(exe=exe)
+    h.xp(p, "Strength", 4)                             # burpees grant Strength 4; the key says legs
+    h.xp(p, "Fitness", 3)
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+    assert h.stats()["reps"] == 1 and h.stats()["paired"] == 1
+
+
+def test_unreadable_exercise_with_strength_above_zero_is_arms(h):
+    p = h.player(exe=h.rt.table())
     h.xp(p, "Strength", 7)                             # dumbbell press: 4 x 1.8 -> 7 Strength
     h.xp(p, "Fitness", 0)
     assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
     assert h.stats()["reps"] == 1
 
 
-def test_unreadable_exercise_with_fitness_xp_is_legs(h):
+def test_unreadable_exercise_with_strength_zero_is_legs(h):
     p = h.player(exe=h.rt.table())
-    h.xp(p, "Strength", 4)                             # burpees: Strength 4, Fitness 3
-    h.xp(p, "Fitness", 3)
+    h.xp(p, "Strength", 0)
+    h.xp(p, "Fitness", 4)
     assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
     assert h.stats()["reps"] == 1
 
 
 def test_unknown_exercise_key_reads_legs(h):
-    h.xp(h.player(exe="jumpingjacks"), "Fitness", 4)
+    h.xp(h.player(exe="jumpingjacks"), "Strength", 4)
     assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
 
 
-def test_unreadable_exercise_with_no_xp_at_all_banks_nothing(h):
-    p = h.player(exe=h.rt.table())
-    h.xp(p, "Fitness", 0)
-    assert close(h.banked(), (0.0, 0.0, 0.0))
-    assert h.stats()["reps"] == 0 and h.stats()["ignored"] == 1
-
-
-def test_strength_event_with_exercise_is_ignored(h):
-    h.xp(h.player(exe="squats"), "Strength", 0)
-    assert close(h.banked(), (0.0, 0.0, 0.0))
-    assert h.stats()["ignored"] == 1 and h.stats()["reps"] == 0
+def test_strength_without_exercise_is_ignored_and_clears_the_pair(h):
+    h.xp(h.player(exe="pushups"), "Strength", 4)       # a rep; its Fitness partner dropped
+    assert h.TRN.pairOpen["admin"] is True
+    h.xp(h.player(exe=None), "Strength", 6)            # a knockback or load grant
+    assert h.TRN.pairOpen["admin"] is None
+    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
+    s = h.stats()
+    assert s["ignored"] == 1 and s["reps"] == 1
+    h.xp(h.player(exe="squats"), "Fitness", 4)         # no open pair now: a Fitness-only rep
+    assert h.stats()["repsFitnessOnly"] == 1
 
 
 def test_fitness_without_exercise_is_ignored(h):
@@ -190,24 +223,18 @@ def test_fitness_without_exercise_is_ignored(h):
     assert h.stats()["ignored"] == 1
 
 
-def test_strength_without_exercise_is_ignored_and_never_primes_a_rep(h):
-    h.xp(h.player(exe=None), "Strength", 6)            # a knockback or load grant
-    h.xp(h.player(exe=h.rt.table()), "Fitness", 0)     # no companion Strength recorded -> no rep
-    assert close(h.banked(), (0.0, 0.0, 0.0))
-    assert h.stats()["ignored"] == 2 and h.stats()["reps"] == 0
-
-
 def test_rust_is_ignored(h):
     h.xp(h.player(exe="squats"), "Strength", -1)
     h.xp(h.player(exe="squats"), "Fitness", -1)
     assert close(h.banked(), (0.0, 0.0, 0.0))
-    assert h.stats()["ignored"] == 2
+    assert h.stats()["ignored"] == 2 and h.stats()["reps"] == 0
 
 
 def test_other_perks_are_not_counted(h):
     h.xp(h.player(exe="squats"), "Axe", 10)
     assert close(h.banked(), (0.0, 0.0, 0.0))
-    assert h.stats() == {"reps": 0, "hits": 0, "trees": 0, "ignored": 0, "failures": 0}
+    assert h.stats() == {"reps": 0, "paired": 0, "repsFitnessOnly": 0, "hits": 0, "trees": 0, "ignored": 0,
+                         "failures": 0}
 
 
 def test_exercise_class_table_matches_the_install():
@@ -257,7 +284,8 @@ def test_zombie_owner_does_nothing(h):
     h.handler("OnWeaponHitTree")(zombie, h.G.NR_WEAPON(3))
     h.handler("OnWeaponHitXp")(None, h.G.NR_WEAPON(3), None, 1.0, 1)
     assert close(h.banked(), (0.0, 0.0, 0.0))
-    assert h.stats() == {"reps": 0, "hits": 0, "trees": 0, "ignored": 0, "failures": 0}
+    assert h.stats() == {"reps": 0, "paired": 0, "repsFitnessOnly": 0, "hits": 0, "trees": 0, "ignored": 0,
+                         "failures": 0}
 
 
 def test_no_record_or_no_body_never_creates(h):
@@ -266,10 +294,14 @@ def test_no_record_or_no_body_never_creates(h):
     h.xp(h.player(name="stranger", exe="squats"), "Fitness", 4)
     assert h.G.NR_RECORDS["stranger"] is None
     assert h.G.NR_RECORDS["nobody"]["body"] is None
-    assert h.stats() == {"reps": 0, "hits": 0, "trees": 0, "ignored": 0, "failures": 0}
+    assert h.stats() == {"reps": 0, "paired": 0, "repsFitnessOnly": 0, "hits": 0, "trees": 0, "ignored": 0,
+                         "failures": 0}
 
 
 def test_limitations_name_the_rep_and_the_climb():
     lim = list(Host(start=False).TRN.limitations.values())
-    assert ("a rep is one Fitness event; the Strength companion event is ignored; a climb/vault has no Lua "
-            "event and is sampled per minute by Task 12's state read") in lim
+    assert "a climb or vault has no Lua event and is sampled per minute from the character's state" in lim
+    assert ("a rep is counted on the Strength XP event (unconditional, 0 for a legs exercise); vanilla's "
+            "Fitness-XP gate (#2647) cannot drop it; a character whose Strength XP sits at the level-10 total "
+            "fires no Strength event, and its reps are counted on the Fitness event instead") in lim
+    assert not any("Task 12" in x for x in lim)
