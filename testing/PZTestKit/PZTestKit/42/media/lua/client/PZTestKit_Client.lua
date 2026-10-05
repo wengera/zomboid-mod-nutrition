@@ -802,3 +802,43 @@ TK.register("exercise.do", function(argv)
     out.queueLen = qlen
     return out
 end)
+
+-- [<bookType>]. Queues the game's own read action on a book in the local inventory:
+-- `ISTimedActionQueue.add(ISReadABook:new(player, item))` (the install's ISReadABook.lua:483
+-- takes (character, item) only -- the brief's third argument does not exist). The book is the
+-- first inventory item of the named type (the part after the dot of a full type, default
+-- `Base.Book`); when there is none, one is added client-side first, exactly as item.spawn does,
+-- and `spawned` says so. The action sets `caloriesModifier = 0.5` on itself (:511), which is the
+-- value the activity gate reads server-side from `getCharacterActions()`.
+-- @args [<bookType>]
+-- @reply {ok, bookType, spawned, itemId, queued [, error | queueError]} | string
+-- @purpose Queues ISReadABook on an inventory book of the given type (spawned client-side when absent) for the local player; queued says the add ran.
+TK.register("action.read", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local full = argv[1] or "Base.Book"
+    local short = string.match(full, "([^%.]+)$") or full
+    local out = { ok = false, bookType = full, spawned = false }
+    if ISReadABook == nil or ISTimedActionQueue == nil then
+        out.error = "no ISReadABook/ISTimedActionQueue"
+        return out
+    end
+    local inv = p:getInventory()
+    local item = inv:getFirstTypeRecurse(short)
+    if item == nil then
+        item = inv:AddItem(full)
+        out.spawned = true
+    end
+    if item == nil then
+        out.error = "no item " .. tostring(full)
+        return out
+    end
+    out.itemId = item:getID()
+    local ran, err = pcall(function()
+        ISTimedActionQueue.add(ISReadABook:new(p, item))
+    end)
+    out.queued = ran
+    out.ok = ran
+    if not ran then out.queueError = tostring(err) end
+    return out
+end)
