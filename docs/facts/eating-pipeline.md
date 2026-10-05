@@ -299,6 +299,14 @@ One identifier trap belongs with them.
 `FluidDefinitionScript.Load` sets the enum fluid type and leaves the type string null when the fluid's name matches a built-in constant, and sets the modded type plus the string otherwise, the two routes being mutually exclusive, so the string names only 34 of the 61 definitions [#0654/M/n=2].
 A census of fluids therefore pairs the string with the enum, or it silently loses the built-in half.
 
+<a id="pill-path"></a>
+### The pill path
+
+For a `PillsVitamins` item `JustTookPill` adds the item's fatigue change to FATIGUE, halved when INTOXICATION is above 10, and then its stress change to STRESS [#2954/C/C-only].
+It ends by calling the pill item's `OnEat` Lua function, when the drainable names one, with the item and the character, and then uses the item up one step [#2955/C/C-only].
+Measured live, the action runs on the server: a `Base.PillsVitamins`, the caffeine-pill item with `fatigueChange = -4.0`, taken through the game's pill action lost one use on the server's copy, 1.0 to 0.8, and raised STRESS to 0.0077 and 0.0071 on two boots; with sleep allowed and needed FATIGUE fell from 0.6040 to 0.5641, and with sleep disabled the reset left no trace of it [#2952/M/n=1].
+The eat and drink action wrappers did not see it: their counters held across the pill on both boots [#2953/M/n=1].
+
 <a id="eat-type"></a>
 ### `EatType` and what the eat action does with it
 
@@ -405,6 +413,7 @@ Not covered: the food-to-health loop and the sickness rolls beyond their call si
 - Decision: whether the mod ships expecting the sandbox `Nutrition` option on or off — with it off the stores keep filling to their clamps and nothing burns them [#0089/C/inference].
 - Decision: whether the mod's own nutrient numbers for a container are per litre or per container — a fluid's properties are per litre and the container multiplies them by the litres it holds [#0630].
 - Decision: whether the mod's drink accounting wraps the drink action's `updateEat` alone or also the world-water route, since drinking from a world source never passes through the drink action [#2690/C/C-only].
+- Whether a script `OnEat` given to the vitamin pill by a mod's item block runs on the server when the pill is taken — settled by a pill taken with one assigned, counting its calls on both sides; -> [X59](../areas/open-questions.md#x59) [#2960/C/C-only/open].
 
 ## See also
 

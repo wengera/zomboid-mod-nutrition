@@ -138,6 +138,7 @@ On a dedicated server the character-action stack of a connected player is empty 
 The two endurance updaters are both private, so they are two separate methods rather than an override pair: the character's is reached from the stat update and the player's from the player's second-stage update [#2214/C/C-only].
 A player's update calls only its first stage, which calls the second stage first and, when that returns true, the character update, whose internal update calls the stat update under the character-stats system switch [#2233/C/C-only].
 On a dedicated server the second stage takes the remote-player branch, which after the server-gated movement-rate update calls the player's endurance model, or its in-vehicle variant, and returns true, ahead of the `OnPlayerUpdate` trigger in the later local-player path [#2232/C/C-only].
+Measured live, an `OnPlayerUpdate` handler registered by a server-side Lua file never recorded the connected player across 2903 armed ticks in seven windows on two boots, while the same file's `OnTick` handler read the player at every tick [#2959/M/n=1].
 The nutrition update, under the same system switch, and the exercise object's update also run inside the second stage, before the hook [#2234/C/C-only].
 Inside the stat update the order is an animal return [#2239/C/C-only], then on a server the fatigue reset, which reads `ServerOptions.sleepAllowed` and `ServerOptions.sleepNeeded` and runs unless both are true, then the hook [#2723/C/C-only, #2793/C/C-only].
 The hook therefore cannot suppress the player's endurance model, which has already run for that tick, and a handler that writes endurance writes after vanilla's drain or regeneration [#2235/C/C-only].
@@ -170,10 +171,12 @@ The internal update calls `BodyDamage.Update` before the stat update, so the dec
 The constructor sets the reduction value to 0.0042 and the increase value to 400, two private fields behind public getter and setter pairs [#2919/C/C-only].
 Nothing else in the jar or the shipped Lua sets the reduction value and no save or load method names it, so a value a mod sets is gone after a reload [#2920/C/inference].
 In game time the decay is 0.504 times the day length in real minutes per game-hour, about 30.24 per game-hour on the 60-minute default day and 45.36 on a 90-minute day, so 100 intoxication clears in about 3.3 game-hours on the default day [#2922/C/arith.].
+Measured live, the decay runs at that rate: INTOXICATION written to 40 on the server fell 0.20123 per wall second and 7.5599 per game hour over 55.7 s at DayLength 1, the multiplier reading 4.781 to 4.799, against the 7.56 per game hour the reading predicts for that day length [#2951/M/n=1, #2922/C/arith.].
 Two writers raise the stat at the drink and at the eat.
 The fluid writer adds 400 times the alcohol it is handed, times 1.1 above 0.8 hunger and 1.25 between 0.6 and 0.8, and calls four pill effects on the character [#2923/C/C-only].
 The food writer adds 400 times a rescaled fraction, quartered for a beer or low-alcohol item, times 1.25 above 0.8 hunger and 1.1 above 0.6, and calls the same four pill effects [#2924/C/C-only].
 What the drink path hands its writer is [the fluid path's](eating-pipeline.md#fluid-path).
+Measured live, a 0.3-litre can of beer drunk through the game's drink action raised INTOXICATION as the can emptied, 0.630 with 0.244 litres left, 2.703 at 0.115 and 5.054 with the can empty 4.2 s after the first read, to a per-tick peak of 5.0947 at HUNGER 0.46, and the stat then read 0.0914 24.7 s after the 5.054 read and 0 at the next [#2950/M/n=1].
 
 The frame's tail — `OnTick` and the network manager — is [the server tick order](../platform/server-lifecycle.md#tick-order), and the push that follows it is [the player-stats push](../platform/mp-model.md#packets).
 Which side runs the player's endurance model, and for whom it returns early, is [the ownership section](../platform/mp-model.md#ownership).

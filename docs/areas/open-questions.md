@@ -117,6 +117,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2742/M/n=1/open] | Whether a MoodleFramework moodle or a mod's own `ISUIElement` widget renders on a dedicated-server client is unmeasured: no run has drawn either, and X29's render leg is the reading that settles it. | [open-questions.md](#x29) | X29 | a framework moodle and a widget of the mod's own, each driven on the client and its draw calls counted, beside a value that must leave the moodle undrawn |
 | [#2829/M/n=1/open] | Two drink corners are unmeasured, cancel semantics and the 100 ms anim-event cadence under `settimespeed`, and when the new fill and the new calories arrive on the client is read only to a poll of 1.5 to 2 s: the client trailed the server by about one poll and reached the same totals. | [eating-pipeline.md](../facts/eating-pipeline.md#open) | — | a drink cancelled partway and a drink at a raised time speed, each read on both sides |
 | [#2946/M/n=1/open] | Whether the climate override moves an outdoor character's air and core, and whether a hot exposure with activity raises the fluids multiplier above 1, is unmeasured: the one run stood the character where the air read 22.0 under both overrides and walked it at 16 degrees. | [open-questions.md](#x51) | X51 | the climate override held over an outdoor character, idle and walking, reading the server's thermoregulator per tick |
+| [#2960/C/C-only/open] | Whether a script `OnEat` given to `Base.PillsVitamins` by a mod's item block runs on the server when the pill is taken is unmeasured: the pill path calls the drainable's `OnEat`, as the jar reads, and run x151s-20261005-165844 took the pill with none assigned. | [open-questions.md](#x59) | X59 | a pill taken with a script `OnEat` assigned, counting its calls on both sides |
 
 ## Decisions
 <a id="decisions"></a>
@@ -359,6 +360,12 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether the climate override reaches an outdoor character's air and core, and whether heat with activity raises the fluids multiplier, is open [#2946/M/n=1/open]; the getters' live server reading is settled [#2935/M/n=1].
 - Waiting on it: [body-and-weight.md](../facts/body-and-weight.md#multipliers).
 - Settled by: the climate override held over an outdoor character, idle and walking, reading the server's thermoregulator per tick — [experiments.md § Named experiments](../reference/experiments.md), row `X51`.
+
+<a id="x59"></a>
+### X59 — Does a script `OnEat` on the vitamin pill run on the server?
+- Whether a mod's script `OnEat` on `Base.PillsVitamins` runs when the pill is taken is open [#2960/C/C-only/open]; the jar reads the call [#2955/C/C-only], and the pill action runs on the server [#2952/M/n=1].
+- Waiting on it: [eating-pipeline.md](../facts/eating-pipeline.md#pill-path).
+- Settled by: a pill taken with a script `OnEat` assigned, counting its calls on both sides — [experiments.md § Named experiments](../reference/experiments.md), row `X59`.
 
 ## See also
 

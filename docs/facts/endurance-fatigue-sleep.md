@@ -160,6 +160,8 @@ A weapon's own fatigue modifier is 0.8 once the matching Blunt, Axe or Spear per
 Like every write to the stat, it holds only on the side that owns the stat; the owner is [mp-model.md](../platform/mp-model.md#ownership).
 
 Food and fluids write both stats too: `Eat` adds each item's endurance and fatigue changes, and that write and its order are [eating-pipeline.md](../facts/eating-pipeline.md#eat).
+A drink's fatigue write lands at the drink and is lost only to the reset: 0.2 litres of Coffee (`fatigueChange = -10.0` per litre) drunk by one server-side `DrinkFluid` call lowered FATIGUE from 0.5765 to 0.5566 on a server that allows and needs sleep and the lower value held, while on a server that disables sleep the stat sat at its reset value of 0.00011, the probe's minimum read 0 across the drink and every later read was 0.00011 again [#2949/M/n=1].
+A pill writes fatigue on its own path, [eating-pipeline.md](../facts/eating-pipeline.md#pill-path).
 
 <a id="fatigue"></a>
 ### Awake fatigue
@@ -201,6 +203,8 @@ Inside a toxic building without protection, fatigue rises by 1.0e-4 times the th
 God mode resets fatigue, endurance and temperature to their defaults on every update [#2275/C/C-only].
 
 On a dedicated server the whole awake accumulation is moot unless the server allows and needs sleep, because the server resets fatigue ahead of it on every update; that reset and its gate are [character-stats.md](../facts/character-stats.md#tick-order).
+Measured live, the reset runs at the next update after a write: on a server whose ini set both options false, three server writes of FATIGUE 0.5 each read back 0.5 in the writing call, a per-tick server probe saw 0.5 and counted three falls of more than 0.1 in 301 ticks, and the next server read after each write was 9.99e-05 to 1.01e-04 [#2947/M/n=1].
+With both options true the same write held: FATIGUE read 0.00637 at first sight against 9.781e-05 on the sleep-disabled boot, the write read 0.50060 at the next server read and 0.55930 at the end of a 60 s window, and the probe counted no fall in 600 ticks [#2948/M/n=1].
 
 <a id="sleep"></a>
 ### Sleep
@@ -246,6 +250,9 @@ The base `IsoGameCharacter.updateStats_Sleeping` is an empty stub, so all of thi
 Waking has its own fatigue write.
 `SleepingEvent.wakeUp` clears the asleep flag and, on a good bed with or without a pillow, removes a random 0.05 to 0.12 of fatigue scaled by the sleep event's sleeping time over 8 [#2278/C/C-only].
 The same method's other bed branches are not read here.
+
+On a server that allows and needs sleep, the harness's per-tick asleep hold read asleep at 1014 of 1200 server ticks over 120 s, and while the only player was held asleep the world clock ran about 20 times its waking rate, 61.764 game hours in 115.998 s of server wall time against 1.5095 game hours in 56.703 s awake [#2956/M/n=1].
+What the takeover handler did with that sleep is a reading of the mod, [testing-your-mod.md](../areas/testing-your-mod.md#scenario-inputs).
 
 <a id="moodles"></a>
 ### What the moodles do with the two stats
