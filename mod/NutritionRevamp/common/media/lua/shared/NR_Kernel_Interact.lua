@@ -35,9 +35,9 @@ K.interact.B12_ACTIVE_MAX = 2.0 -- ug per meal via the active route, S0357
 K.interact.B12_PASSIVE = 0.012 -- ~1.2 % of a dose absorbed passively, S0358
 K.interact.B12_PASSIVE_FROM = 4 -- ug: the dose that saturates the active route, B12_ACTIVE_MAX / B12_ACTIVE_FRAC derived from S0357/S0358
 
--- Carotene conversion stops at this liver p (the record's two.caroteneOff wins when passed).
 -- the 2:1 retinol equivalence of absorbed beta-carotene; with the 0.14 absorption (S0156) the product 0.07 sits beside the IOM RAE 1/12; design-phase-v1 game choice (no settled conversion row; S0141 is the hepatic half-life and S1061 the liver mass, neither fits)
 K.interact.CAROTENE_RAE = 0.5
+-- Carotene conversion stops at this liver p (the record's two.caroteneOff wins when passed).
 K.interact.CAROTENE_OFF = 1.0 -- liver > 0.4 umol/g suppresses bioconversion, S0202
 
 -- Riboflavin x iron: the store-to-haemoglobin transfer at RIBO_FE_XFER once riboflavin is at RIBO_FE_GRADE or worse.
