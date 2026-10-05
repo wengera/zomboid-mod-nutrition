@@ -252,6 +252,7 @@ Each side recomputes its own moodles from its own copy of the stats, so a moodle
 
 Both hunger thresholds and both thirst thresholds read back correctly from probes either side of every level, and a timer of 197 597 read back as level 4; the endurance and heavy-load rows are read from the code only [#0508/M/n=1, #0509/M/n=1, #0510/C/C-only, #0511/M/n=1].
 The 1600 that separates the first two food-eaten levels is the standard health-from-food time [#0511/M/n=1].
+With THIRST written on the server by a mod handler the THIRST moodle read the same level on both sides at every paired read, at the levels the thresholds give, up to level 4 at 1 [#2971/M/n=1].
 
 What each level does:
 

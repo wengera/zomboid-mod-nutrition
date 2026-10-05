@@ -118,6 +118,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2829/M/n=1/open] | Two drink corners are unmeasured, cancel semantics and the 100 ms anim-event cadence under `settimespeed`, and when the new fill and the new calories arrive on the client is read only to a poll of 1.5 to 2 s: the client trailed the server by about one poll and reached the same totals. | [eating-pipeline.md](../facts/eating-pipeline.md#open) | — | a drink cancelled partway and a drink at a raised time speed, each read on both sides |
 | [#2946/M/n=1/open] | Whether the climate override moves an outdoor character's air and core, and whether a hot exposure with activity raises the fluids multiplier above 1, is unmeasured: the one run stood the character where the air read 22.0 under both overrides and walked it at 16 degrees. | [open-questions.md](#x51) | X51 | the climate override held over an outdoor character, idle and walking, reading the server's thermoregulator per tick |
 | [#2960/C/C-only/open] | Whether a script `OnEat` given to `Base.PillsVitamins` by a mod's item block runs on the server when the pill is taken is unmeasured: the pill path calls the drainable's `OnEat`, as the jar reads, and run x151s-20261005-165844 took the pill with none assigned. | [open-questions.md](#x59) | X59 | a pill taken with a script `OnEat` assigned, counting its calls on both sides |
+| [#2972/M/n=1/open] | Whether the mod's sweat term fires live is unmeasured: a 60 s walk took the server's `body.met` from 1.6 to 3.0 and never above the term's 3 MET floor, so `sweatLmin` stayed 0 and `sweatActive` false. | [open-questions.md](#x64) | X64 | a run or an activity the server classifies above 3 MET for game hours, reading the sweat fields |
 
 ## Decisions
 <a id="decisions"></a>
@@ -366,6 +367,12 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether a mod's script `OnEat` on `Base.PillsVitamins` runs when the pill is taken is open [#2960/C/C-only/open]; the jar reads the call [#2955/C/C-only], and the pill action runs on the server [#2952/M/n=1].
 - Waiting on it: [eating-pipeline.md](../facts/eating-pipeline.md#pill-path).
 - Settled by: a pill taken with a script `OnEat` assigned, counting its calls on both sides — [experiments.md § Named experiments](../reference/experiments.md), row `X59`.
+
+<a id="x64"></a>
+### X64 — Does the mod's sweat term fire live?
+- Whether the sweat term fires on a live server is open [#2972/M/n=1/open]; the drink, sodium and world-water routes it shares the pool with are settled [#2966/M/n=1, #2967/M/n=1, #2970/M/n=1].
+- Waiting on it: [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
+- Settled by: a run or an activity the server classifies above 3 MET for game hours, reading the sweat fields — [experiments.md § Named experiments](../reference/experiments.md), row `X64`.
 
 ## See also
 
