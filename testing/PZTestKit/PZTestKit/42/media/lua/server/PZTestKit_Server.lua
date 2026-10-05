@@ -2025,3 +2025,36 @@ TK.register("stats.setany", function(argv)
     if not out.ok then out.reason = "no read-back" end
     return out
 end)
+
+-- <user> <true|false>. IsoPlayer:setAutoDrink(flag) is the server-side player flag IsoGameCharacter
+-- .autoDrink tests first on a server (jar: `autoDrink @7-@34 L11730` returns when the server's
+-- IsoPlayer.getAutoDrink() is false); the client option (Core.getOptionAutoDrink) and the
+-- asleep/aiming/climbing states gate it further, and THIRST must be at or under 0.1. The reply
+-- reads the flag back through getAutoDrink() before and after, both index-first.
+-- @args <user> <true|false>
+-- @reply {ok, side, requested, before, after [, reason]} | string
+-- @purpose Sets the server-side player autoDrink flag (IsoPlayer:setAutoDrink) on a named player, replying the flag read before and after.
+TK.register("autodrink.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local flag
+    if argv[2] == "true" then flag = true elseif argv[2] == "false" then flag = false end
+    if flag == nil then return "usage: autodrink.set <user> <true|false>" end
+    local out = { ok = false, side = TK.side, requested = flag }
+    if p["setAutoDrink"] == nil or p["getAutoDrink"] == nil then
+        out.reason = "no IsoPlayer:setAutoDrink/getAutoDrink on this build"
+        return out
+    end
+    local _, before = TK.call(p, "getAutoDrink")
+    out.before = before
+    local ran, err = pcall(p["setAutoDrink"], p, flag)
+    if not ran then
+        out.reason = "setAutoDrink raised: " .. tostring(err)
+        return out
+    end
+    local _, after = TK.call(p, "getAutoDrink")
+    out.after = after
+    out.ok = (after == flag)
+    if not out.ok then out.reason = "read-back differs" end
+    return out
+end)
