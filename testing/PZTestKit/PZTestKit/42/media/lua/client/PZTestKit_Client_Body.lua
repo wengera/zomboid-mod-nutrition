@@ -268,3 +268,67 @@ TK.register("stats.setany", function(argv)
     if not out.ok then out.reason = "no read-back" end
     return out
 end)
+
+-- <user> <fullType> <fluidType> <litres>. Spawns the container item on the CLIENT (item.spawn path:
+-- getInventory():AddItem, which the server never hears of), empties its FluidContainer and adds
+-- `litres` of the named fluid. The fluid is resolved as FluidType.FromNameLower(name lowercased),
+-- the call ISFluidContainerMenu makes, then FluidType[name]; the add is
+-- FluidContainer:addFluid(FluidType, litres), all under pcall so a bad name or a full container
+-- replies ok=false. The container is read back (getAmount, getPrimaryFluid:getFluidTypeString).
+-- @args <user> <fullType> <fluidType> <litres>
+-- @reply {ok, side, fullType, id, requested, litres, fluid, capacity [, reason]} | string
+-- @purpose Spawns a fluid-container item on the client, empties it and adds the named litres of a fluid, replying the amount and primary fluid read back.
+TK.register("fluid.fill", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, reason = why } end
+    local fullType, fluidName, litres = argv[2], argv[3], tonumber(argv[4])
+    if fullType == nil or fluidName == nil or litres == nil then
+        return "usage: fluid.fill <user> <fullType> <fluidType> <litres>"
+    end
+    local out = { ok = false, side = TK.side, fullType = fullType, requested = litres }
+    local _, inv = TK.call(p, "getInventory")
+    local _, item = TK.call(inv, "AddItem", fullType)
+    if item == nil then
+        out.reason = "AddItem gave nothing for " .. fullType
+        return out
+    end
+    local _, id = TK.call(item, "getID")
+    out.id = id
+    local _, fc = TK.call(item, "getFluidContainer")
+    if fc == nil then
+        out.reason = "no FluidContainer on " .. fullType
+        return out
+    end
+    local enum = nil
+    if FluidType ~= nil then
+        if FluidType["FromNameLower"] ~= nil then
+            local ran, e = pcall(FluidType["FromNameLower"], string.lower(fluidName))
+            if ran then enum = e end
+        end
+        if enum == nil then enum = FluidType[fluidName] end
+    end
+    if enum == nil then
+        out.reason = "no FluidType for " .. fluidName
+        return out
+    end
+    local ranE, errE = pcall(fc["Empty"], fc)
+    if not ranE then
+        out.reason = "Empty raised: " .. tostring(errE)
+        return out
+    end
+    local ran, err = pcall(fc["addFluid"], fc, enum, litres)
+    if not ran then
+        out.reason = "addFluid raised: " .. tostring(err)
+        return out
+    end
+    local _, amount = TK.call(fc, "getAmount")
+    local _, cap = TK.call(fc, "getCapacity")
+    local _, prim = TK.call(fc, "getPrimaryFluid")
+    local _, fname = TK.call(prim, "getFluidTypeString")
+    out.litres = amount
+    out.capacity = cap
+    out.fluid = fname
+    out.ok = (amount ~= nil and math.abs(amount - litres) < 0.001)
+    if not out.ok then out.reason = "amount read back is not the amount added (capacity?)" end
+    return out
+end)
