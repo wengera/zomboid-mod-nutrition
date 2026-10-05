@@ -16,10 +16,10 @@ K.energy.REE_B = 413 -- S0004
 
 -- Adaptive thermogenesis: at most AT_MAX of REE, full at AT_FULL_DEP of the reference fat store gone,
 -- approached with time constant AT_TAU_ON days under a deficit week, decaying with AT_TAU_OFF otherwise.
-K.energy.AT_MAX = 0.10 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; the open row is minted at Task 20; direction S0013/S0016
-K.energy.AT_FULL_DEP = 0.5 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; the open row is minted at Task 20; direction S0013/S0016
-K.energy.AT_TAU_ON = 7 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; the open row is minted at Task 20; direction S0013/S0016
-K.energy.AT_TAU_OFF = 14 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; the open row is minted at Task 20; direction S0013/S0016
+K.energy.AT_MAX = 0.10 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; S1055 design-phase-v1 (the open row; direction S0013/S0016); direction S0013/S0016
+K.energy.AT_FULL_DEP = 0.5 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; S1055 design-phase-v1 (the open row; direction S0013/S0016); direction S0013/S0016
+K.energy.AT_TAU_ON = 7 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; S1055 design-phase-v1 (the open row; direction S0013/S0016); direction S0013/S0016
+K.energy.AT_TAU_OFF = 14 -- design-phase-v1 game choice: adaptive-thermogenesis magnitude; S1055 design-phase-v1 (the open row; direction S0013/S0016); direction S0013/S0016
 
 -- The cap on the resting cold multiplier (peak shivering, x resting metabolic rate).
 K.energy.COLD_MAX = 4.9 -- S0048
