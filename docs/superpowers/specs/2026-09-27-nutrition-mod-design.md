@@ -304,7 +304,7 @@ Added by the compatibility wave:
 
 37. The legacy macro mirror on by default, writing the four vanilla stores from the model each minute.
 38. Missed-intake reconciliation from the vanilla stores' rise, as macros only.
-39. The external-delta fold on endurance and its threshold; the failure mode that writes vanilla's shapes with unit coefficients.
+39. The external-delta fold on endurance and its threshold; the failure mode in which a failed tick writes nothing and three consecutive failures remove the handler so vanilla resumes (Plan 1 ruling).
 40. The level check every slow tick with re-assertion, the perk maximum read at runtime, and re-running vanilla's strength-trait remap after a clamp.
 41. Owned traits re-asserted every slow tick; pushes on change only; the weight-direction flags set each minute.
 42. The stance table itself: which neighbours are named incompatible, inert or redundant, and that QualityCooking gets a patch mod.
