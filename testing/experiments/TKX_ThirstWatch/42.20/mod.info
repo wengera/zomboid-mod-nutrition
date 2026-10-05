@@ -1,0 +1,5 @@
+name=TKX Thirst Watch
+id=TKX_ThirstWatch
+description=Plan 4 experiment: per-tick server samples of THIRST, the thermoregulator fluids multiplier, core and external air temperature, body fluids and WETNESS during a bus-armed window (the water gate). Test profiles only.
+modversion=1.0
+versionMin=42.0.0
