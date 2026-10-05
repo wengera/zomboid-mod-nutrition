@@ -68,15 +68,25 @@ def test_hunger_rises_as_the_fill_falls(host):
     assert run(host, stomachFill=0.3)["hunger"] > run(host, stomachFill=0.6)["hunger"]
 
 
+# Plan 3 (Task 7, ruling 14): the energy state scales the fill term and, under deficit (E > 1), adds a
+# floor 0.15 * (E - 1), so a starving character who just ate bulk still feels hungry.
 def test_hunger_energy_state_scales_the_target(host):
     assert run(host, stomachFill=0.6, energyState=1.0)["hunger"] == pytest.approx(0.4, rel=1e-12)
     assert run(host, stomachFill=0.6, energyState=0.5)["hunger"] == pytest.approx(0.2, rel=1e-12)
+    assert run(host, stomachFill=0.6, energyState=1.5)["hunger"] == pytest.approx(0.6 + 0.075, rel=1e-12)
+    assert run(host, stomachFill=1.0, energyState=1.5)["hunger"] == pytest.approx(0.075, rel=1e-12)
 
 
 def test_hunger_target_clamps_both_ends(host):
     assert host.K.fast.hungerTarget(1.5, 1.0) == 0.0
     assert host.K.fast.hungerTarget(0.0, 3.0) == 1.0
     assert host.K.fast.hungerTarget(0.25, 1.0) == pytest.approx(0.75, rel=1e-12)
+
+
+@pytest.mark.parametrize("fill,es,h", [(1, 1, 0.0), (1, 1.5, 0.075), (0.5, 1, 0.5), (0.5, 2, 1.0),
+                                       (1, 0.5, 0.0), (1, 2.0, 0.15), (0.5, 0.5, 0.25)])
+def test_hunger_target_deficit_floor(host, fill, es, h):
+    assert host.K.fast.hungerTarget(fill, es) == pytest.approx(h, rel=1e-12, abs=1e-15)
 
 
 def test_hunger_ignores_the_drain_inputs(host):

@@ -76,10 +76,12 @@ function K.fast.output()
 end
 
 -- The per-tick hunger target from the stomach fill and the energy state. Judgement: an empty stomach
--- reads as hunger 1, a full one as 0, linear between; energyState scales it (the Plan 3 entry point,
--- stubbed 1 in Plan 2). Clamped to [0, 1]. Called from inside the region: a Lua call, no allocation.
+-- reads as hunger 1, a full one as 0, linear between; energyState scales it and, under deficit
+-- (energyState > 1), adds a floor 0.15 * (energyState - 1), so a starving character who just ate bulk
+-- still feels hungry (Plan 3 ruling 14, a game choice). Clamped to [0, 1]. Called from inside the
+-- region: a Lua call, no allocation, no `^` or math.*.
 function K.fast.hungerTarget(fill, energyState)
-    return K.clamp((1 - fill) * energyState, 0, 1)
+    return K.clamp((1 - fill) * energyState + 0.15 * K.max(0, energyState - 1), 0, 1) -- ruling 14
 end
 
 -- @fastpath
