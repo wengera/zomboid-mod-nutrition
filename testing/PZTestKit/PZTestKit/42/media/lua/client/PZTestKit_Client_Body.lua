@@ -102,3 +102,51 @@ TK.register("player.stop", function()
 end)
 
 TK.log("client body harness loaded")
+
+-- <dx> <dy>: the run arm of player.walk, ONE bounded attempt (Plan 2 Task 12). Plan 1 read that
+-- `player.walk <dx> <dy> run` only walked: setRunning(true) before ISWalkToTimedAction did not
+-- make the character run (#2082). Reading the vanilla action (client/TimedActions/
+-- WalkToTimedAction.lua) shows it never touches a run flag -- start() only calls
+-- getPathFindBehavior2():pathToLocation and update() only steps that behaviour -- so there is no
+-- run flag on the action to drive. The one run-related member the jar exposes on the path side is
+-- IsoPlayer.setPathfindRunning(Z) / isPathfindRunning() (a bare boolean field, `pathfindRun`);
+-- IsoCharacter has no setForceRun. So the route tried is: setRunning(true) + setForceRun(true)
+-- if that member exists (it is expected not to; the reply records it) + setPathfindRunning(true),
+-- then the same queued walk. Whether the server's copy reports running+moving is the measurement;
+-- the driver reads `stats.get <user>` running/moving. Nothing here is retried; if it does not run
+-- the residual arm stays unmeasured.
+-- @args <dx> <dy>
+-- @reply {dx, dy, target, setRunning, setForceRun, setPathfindRunning [, queued] [, queueError], clientRunning, clientMoving, clientSprinting} | string
+-- @purpose Sets running and the pathfind run flag on the local player then queues the game's own walk action dx,dy away; one bounded attempt at making the walk actually run.
+TK.register("player.run", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local dx, dy = tonumber(argv[1]), tonumber(argv[2])
+    if dx == nil or dy == nil then return "usage: player.run <dx> <dy>" end
+    local out = { dx = dx, dy = dy }
+    local cell = getCell()
+    if not cell then return "no getCell()" end
+    local ok, sq = TK.call(cell, "getGridSquare", p:getX() + dx, p:getY() + dy, p:getZ())
+    if not ok or sq == nil then
+        out.error = "no grid square at +" .. tostring(dx) .. "," .. tostring(dy)
+        return out
+    end
+    out.target = { x = sq:getX(), y = sq:getY(), z = sq:getZ() }
+    if not ISWalkToTimedAction or not ISTimedActionQueue then
+        out.error = "no ISWalkToTimedAction/ISTimedActionQueue"
+        return out
+    end
+    out.setRunning = TK.call(p, "setRunning", true)
+    out.setForceRun = TK.call(p, "setForceRun", true)
+    out.setPathfindRunning = TK.call(p, "setPathfindRunning", true)
+    local ran, err = pcall(function()
+        ISTimedActionQueue.add(ISWalkToTimedAction:new(p, sq))
+    end)
+    out.queued = ran
+    if not ran then out.queueError = tostring(err) end
+    local _, running = TK.call(p, "IsRunning")
+    local _, moving = TK.call(p, "isPlayerMoving")
+    local _, sprinting = TK.call(p, "isSprinting")
+    out.clientRunning, out.clientMoving, out.clientSprinting = running, moving, sprinting
+    return out
+end)
