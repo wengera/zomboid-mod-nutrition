@@ -1913,3 +1913,67 @@ TK.register("globalmoddata.setpath", function(argv)
     if not out.ok then out.reason = "read-back differs" end
     return out
 end)
+
+-- <n>. Spawns n zombies within one tile of the first online player (the admin subject) through
+-- the server's own spawner: the Lua global `addZombiesInOutfit(x, y, z, count, outfit,
+-- femaleChance)` (LuaManager$GlobalObject, the entry the admin horde UI calls; its body runs
+-- VirtualZombieManager.createRealZombieAlways on the IsoCell's square at x,y,z, so on the server
+-- the zombie is server-owned -- the RCON `createhorde` lands too far). Each is placed on the
+-- player's square offset by one tile (+1,0 then -1,0 alternating, so none lands further than a
+-- tile). `spawned` is the returned list's size and `dists` each zombie's distance from the player
+-- read back index-first. n is 1..10. An absent global or a raise replies ok=false with the reason.
+-- @args <n>
+-- @reply {ok, requested, spawned, at, dists [, reason]} | string
+-- @purpose Spawns n (1..10) zombies on the squares one tile either side of the first online player through the server's addZombiesInOutfit global, replying how many appeared and their distances.
+TK.register("zombie.near", function(argv)
+    local n = tonumber(argv[1])
+    if n == nil or n < 1 or n > 10 or n ~= math.floor(n) then return "usage: zombie.near <n>  (1 <= n <= 10)" end
+    local out = { ok = false, requested = n, spawned = 0, dists = {} }
+    if addZombiesInOutfit == nil then
+        out.reason = "no addZombiesInOutfit global on this side"
+        return out
+    end
+    local players = getOnlinePlayers and getOnlinePlayers() or nil
+    local _, count = TK.call(players, "size")
+    if count == nil or count < 1 then
+        out.reason = "no online player"
+        return out
+    end
+    local _, p = TK.call(players, "get", 0)
+    local _, px = TK.call(p, "getX")
+    local _, py = TK.call(p, "getY")
+    local _, pz = TK.call(p, "getZ")
+    if px == nil or py == nil or pz == nil then
+        out.reason = "no player position"
+        return out
+    end
+    local bx, by, bz = math.floor(px), math.floor(py), math.floor(pz)
+    out.at = { x = bx, y = by, z = bz }
+    local spawned = 0
+    for i = 1, n do
+        local dx = 1
+        if i % 2 == 0 then dx = -1 end
+        local ran, list = pcall(addZombiesInOutfit, bx + dx, by, bz, 1, nil, 50)
+        if not ran then
+            out.reason = "addZombiesInOutfit raised: " .. tostring(list)
+            break
+        end
+        local _, made = TK.call(list, "size")
+        local k = 0
+        while made ~= nil and k < made do
+            local _, z = TK.call(list, "get", k)
+            local _, zx = TK.call(z, "getX")
+            local _, zy = TK.call(z, "getY")
+            if zx ~= nil and zy ~= nil then
+                local ex, ey = zx - px, zy - py
+                out.dists[#out.dists + 1] = math.floor(math.sqrt(ex * ex + ey * ey) * 100 + 0.5) / 100
+            end
+            spawned = spawned + 1
+            k = k + 1
+        end
+    end
+    out.spawned = spawned
+    out.ok = (spawned == n)
+    if not out.ok and out.reason == nil then out.reason = "spawned " .. spawned .. " of " .. n end
+    return out
+end)
