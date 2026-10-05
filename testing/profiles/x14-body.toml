@@ -1,0 +1,37 @@
+# testing/profiles/x14-body.toml - the Plan 3 body acceptance boot (Task 18, X141b): PZTestKit +
+# NutritionRevamp (Mode 1, LegacyMirror on) + TKX_MetWatch. DayLength 1 (the shortest the sandbox
+# takes, as x13-residual): a game-hour is 37.5 s, so six game hours are 225 s (3.75 min) and three
+# game days 15 min before any time.multiplier; the 90-minute day of the activity session is not used
+# here. Client timeout normal. Tier-(a) verify rows only: the markers are present on both sides.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_MetWatch, DayLength 1 - the body acceptance."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_MetWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_MetWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_MetWatch"
+path = "testing/experiments/TKX_MetWatch"
+
+[client]
+timeout = 240
+
+[sandbox]
+DayLength = 1                 # a game-hour is 37.5 s
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
