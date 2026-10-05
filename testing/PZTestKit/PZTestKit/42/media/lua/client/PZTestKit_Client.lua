@@ -915,3 +915,94 @@ TK.register("player.sprint", function(argv)
                        armedWall = start, nextSample = start, deadline = start + seconds * 1000 }
     return out
 end)
+
+-- [<n>]. Swings the local player's weapon at the nearest zombie within 2 tiles, n times (default
+-- 1, at most 20). The zombie is found by walking `getCell():getZombieList()` by size/get
+-- (index-first). There is NO spawn path: the harness has no zombie spawner, and the only Lua
+-- spawn globals (`addZombiesInOutfit`, `createZombie`) are what the admin debug UI uses -- a
+-- client-side call in multiplayer would create a zombie the server never owns -- so with no
+-- zombie in range the command replies `{ ok = false, reason }` and the driver places one by
+-- another means. With no primary-hand item it spawns and equips `Base.BaseballBat` first. It
+-- answers at once; an OnTick watcher then, every 1.2 s of wall time, faces the zombie
+-- (`faceThisObject`) and calls `DoAttack(0)` (IsoPlayer.DoAttack(F)Z, the body AttemptAttack
+-- calls with the charge time) until n swings are made or the zombie is gone, and writes
+-- attack-melee.json with the per-swing DoAttack return values. `swings` in the reply is the
+-- number scheduled; the artifact carries the number made.
+TK.attackWatch = TK.attackWatch or { armed = false }
+local ATTACK_MAX_SWINGS = 20
+
+local function attackOnTick()
+    local w = TK.attackWatch
+    if not w.armed then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local now = TK.now()
+    if now < w.nextAt then return end
+    local z = w.zombie
+    local dead = true
+    if z ~= nil then
+        local _, d = TK.call(z, "isDead")
+        dead = (d == true)
+    end
+    if w.made >= w.n or dead then
+        w.armed = false
+        TK.result("attack-melee", { n = w.n, swings = w.made, targetDead = dead, returns = w.returns })
+        return
+    end
+    TK.call(p, "faceThisObject", z)
+    local ran, ret = pcall(function()
+        local f = p["DoAttack"]
+        if f == nil then return "no DoAttack" end
+        return f(p, 0)
+    end)
+    w.made = w.made + 1
+    w.returns[#w.returns + 1] = ran and tostring(ret) or ("error: " .. tostring(ret))
+    w.nextAt = now + 1200
+end
+
+if not TK.attackHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() attackOnTick() end)
+    TK.attackHooked = true
+end
+
+-- @args [<n>]
+-- @reply {ok, target, swings, weapon, result, file} | {ok, reason} | string
+-- @purpose Swings the local player's weapon n times at the nearest zombie within 2 tiles (no spawn path; ok=false when none is in range) and writes the per-swing DoAttack results to attack-melee.json.
+TK.register("attack.melee", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local n = tonumber(argv[1]) or 1
+    if n < 1 or n > ATTACK_MAX_SWINGS then return "usage: attack.melee [<n>]  (1 <= n <= 20)" end
+    if not TK.attackHooked then return { ok = false, reason = "no Events.OnTick on this side" } end
+    if TK.attackWatch.armed then return { ok = false, reason = "an attack.melee window is already armed" } end
+    local cell = getCell()
+    if not cell then return { ok = false, reason = "no getCell()" } end
+    local list = cell["getZombieList"] and cell:getZombieList() or nil
+    if list == nil then return { ok = false, reason = "no getCell():getZombieList()" } end
+    local best, bestD = nil, 2.0
+    local px, py = p:getX(), p:getY()
+    for i = 0, list:size() - 1 do
+        local z = list:get(i)
+        if z ~= nil then
+            local dx, dy = z:getX() - px, z:getY() - py
+            local d = math.sqrt(dx * dx + dy * dy)
+            if d <= bestD then best, bestD = z, d end
+        end
+    end
+    if best == nil then
+        return { ok = false, reason = "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)" }
+    end
+    local weapon = p:getPrimaryHandItem()
+    if weapon == nil then
+        local bat = p:getInventory():AddItem("Base.BaseballBat")
+        if bat ~= nil then
+            p:setPrimaryHandItem(bat)
+            weapon = bat
+        end
+    end
+    local start = TK.now()
+    TK.attackWatch = { armed = true, n = n, made = 0, zombie = best, returns = {}, nextAt = start }
+    return { ok = true, target = { x = best:getX(), y = best:getY(), dist = bestD }, swings = n,
+             weapon = weapon and weapon:getFullType() or "none", result = "attack-melee",
+             file = "pzt-results/attack-melee.json" }
+end)
