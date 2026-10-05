@@ -149,6 +149,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.lm = lm
     body.fm0 = fm
     body.lm0 = lm
+    body.lm0dis = lm
     body.fmRef = fm
     body.l0 = l0
     body.sex = sex
