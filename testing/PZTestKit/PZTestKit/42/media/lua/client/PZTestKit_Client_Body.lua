@@ -366,3 +366,70 @@ TK.register("pill.take", function(argv)
     if not ran then out.reason = "queue raised: " .. tostring(err) end
     return out
 end)
+
+-- <user>. Finds the nearest square within 10 tiles on the player floor holding an object whose
+-- hasWater() is true (getCell():getGridSquare(x, y, z) -> getObjects() -> IsoObject:hasWater()),
+-- walks to it the way ISWorldObjectContextMenu.onDrink does (luautils.walkAdjObject) and queues
+-- ISTakeWaterAction:new(player, nil, source, source:isTaintedWater()); the nil container item is
+-- the drink-from-the-source branch. No source in range replies ok=false, reason "no source".
+-- @args <user>
+-- @reply {ok, queued, side, source, fluidAmount, tainted [, reason]} | string
+-- @purpose Queues the vanilla drink-from-source ISTakeWaterAction on the nearest water-bearing object within 10 tiles, replying the source found or no source.
+TK.register("water.take", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, queued = false, reason = why } end
+    local out = { ok = false, queued = false, side = TK.side }
+    if ISTakeWaterAction == nil or ISTimedActionQueue == nil then
+        out.reason = "no ISTakeWaterAction/ISTimedActionQueue on this side"
+        return out
+    end
+    local _, cell = TK.call(p, "getCell")
+    local _, px = TK.call(p, "getX")
+    local _, py = TK.call(p, "getY")
+    local _, pz = TK.call(p, "getZ")
+    if cell == nil or px == nil or py == nil or pz == nil then
+        out.reason = "no cell or player position"
+        return out
+    end
+    local bx, by, bz = math.floor(px), math.floor(py), math.floor(pz)
+    local best, bestD, bestAt = nil, nil, nil
+    for dx = -10, 10 do
+        for dy = -10, 10 do
+            local _, sq = TK.call(cell, "getGridSquare", bx + dx, by + dy, bz)
+            local _, objs = TK.call(sq, "getObjects")
+            local _, n = TK.call(objs, "size")
+            local i = 0
+            while n ~= nil and i < n do
+                local _, o = TK.call(objs, "get", i)
+                local ranW, w = pcall(function() return o["hasWater"](o) end)
+                if ranW and w == true then
+                    local d = dx * dx + dy * dy
+                    if bestD == nil or d < bestD then
+                        best, bestD, bestAt = o, d, { x = bx + dx, y = by + dy, z = bz }
+                    end
+                end
+                i = i + 1
+            end
+        end
+    end
+    if best == nil then
+        out.reason = "no source"
+        return out
+    end
+    local _, nm = TK.call(best, "getObjectName")
+    local _, amt = TK.call(best, "getFluidAmount")
+    local _, tainted = TK.call(best, "isTaintedWater")
+    out.source = { at = bestAt, name = nm, dist = math.floor(math.sqrt(bestD) * 10 + 0.5) / 10 }
+    out.fluidAmount = amt
+    out.tainted = tainted
+    local ran, err = pcall(function()
+        if luautils ~= nil and luautils.walkAdjObject ~= nil then
+            if not luautils.walkAdjObject(p, best, true, true) then error("walkAdjObject refused the source") end
+        end
+        ISTimedActionQueue.add(ISTakeWaterAction:new(p, nil, best, tainted == true))
+    end)
+    out.queued = ran
+    out.ok = ran
+    if not ran then out.reason = "queue raised: " .. tostring(err) end
+    return out
+end)
