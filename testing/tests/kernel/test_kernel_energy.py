@@ -20,7 +20,7 @@ def _close(a, b):
 
 
 def _body(host, **kw):
-    d = dict(lm=65.6, fm=14.4, at=0.0, inDay=0.0, eeDay=0.0, ebDay=0.0, actKcalDay=0.0,
+    d = dict(lm=65.6, fm=14.4, at=0.0, inDay=0.0, eeDay=0.0, ebDay=0.0, actKcalDay=0.0, exKcalDay=0.0,
              pDay=0.0, carbDay=0.0, lipDay=0.0)
     d.update(kw)
     return host.table(d)
@@ -205,6 +205,26 @@ def test_minute_scales_by_dt_and_accumulates(host):
     assert _close(b.ebDay, 1000 - ee1 - ee2)
     ee0, act0 = host.K.energy.minute(b, 3.8, False, 1, 0)
     assert ee0 == 0 and act0 == 0
+
+
+def test_minute_idle_class_banks_no_exercise(host):
+    # Ruling W-1: the idle class (COMPENDIUM.Default, 1.3 MET) is not exercise; actKcalDay still bills it
+    b = _body(host)
+    ee, act = host.K.energy.minute(b, 1.3, False, 1, 1)
+    assert b.exKcalDay == 0
+    assert _close(act, 0.3 * 80 / 60) and _close(b.actKcalDay, act)
+    host.K.energy.minute(b, 0.8, True, 1, 60)
+    assert b.exKcalDay == 0                                         # below the idle class: still 0
+
+
+def test_minute_walking_banks_exercise_above_the_idle_class(host):
+    # Ruling W-1: a walking minute banks (3.8 - 1.3) * 80 / 60 = 3.333333 kcal of exercise
+    b = _body(host)
+    host.K.energy.minute(b, 3.8, False, 1, 1)
+    assert _close(b.exKcalDay, (3.8 - 1.3) * 80 / 60)
+    assert _close(b.exKcalDay, 3.3333333333333335)
+    host.K.energy.minute(b, 3.8, False, 1, 10)
+    assert _close(b.exKcalDay, 11 * (3.8 - 1.3) * 80 / 60)
 
 
 # --- intake ---

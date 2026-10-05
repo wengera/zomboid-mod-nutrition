@@ -18,9 +18,9 @@ K.partition.RHO_LEAN = 1816 -- S0126 design-phase-v1: Hall's densities; the row 
 K.partition.RHO_FAT = 9441 -- S0126 design-phase-v1: Hall's densities; the row is open
 
 -- The lean protection in a deficit: the strength-dose and protein-gate weights and the floor.
-K.partition.PROT_STR = 0.55 -- S0072, S0601; the floor a game choice
-K.partition.PROT_P = 0.15 -- S0072, S0601; the floor a game choice
-K.partition.PROT_FLOOR = 0.30 -- S0072, S0601; the floor a game choice
+K.partition.PROT_STR = 0.55 -- S0072 direction; PROT_P 0.15 a game choice on S0601's null protein finding; the floor a game choice
+K.partition.PROT_P = 0.15 -- S0072 direction; PROT_P 0.15 a game choice on S0601's null protein finding; the floor a game choice
+K.partition.PROT_FLOOR = 0.30 -- S0072 direction; PROT_P 0.15 a game choice on S0601's null protein finding; the floor a game choice
 
 -- The hypertrophy base rate, kg lean per day at full dose and full gates.
 K.partition.G0 = 0.050 -- S0125 design-phase-v1: derived from S0064/S0605/S0606/S0590
@@ -150,7 +150,9 @@ function K.partition.disuse(body)
     return dFM, dLM
 end
 
--- One day's partition: immobilised -> disuse; a deficit -> deficit (its protein gate from pPerKg);
+-- One day's partition: immobilised -> disuse; a deficit -> deficit (its protein gate from pPerKg)
+-- plus the lean-gain law's deficit half-credit (nonzero only at p >= DEFICIT_HALF_P and dStr >=
+-- DEFICIT_HALF_DSTR), fat paying the recomposition at RHO_LEAN / RHO_FAT so mass balance closes;
 -- else surplus. Applies the masses under the FM_MIN and LM_MIN_RATIO * lm0 guards and re-bases fmRef
 -- upward (adaptive thermogenesis reads depletion from the highest fat mass reached). Returns the arm's
 -- dFM, dLM before the guards.
@@ -162,6 +164,9 @@ function K.partition.day(body, dHyp, dStr, pPerKg, immobilised)
         dFM, dLM = P.disuse(body)
     elseif body.ebDay < 0 then
         dFM, dLM = P.deficit(body, dStr, P.gProt(pPerKg))
+        local gain = P.leanGain(body, dHyp, dStr, pPerKg) -- S0064 Longland: lean +1.2 kg in a 40 % deficit at 2.4 g/kg with hard training
+        dLM = dLM + gain
+        dFM = dFM - gain * P.RHO_LEAN / P.RHO_FAT
     else
         dFM, dLM = P.surplus(body, dHyp, dStr, pPerKg)
     end
@@ -197,6 +202,7 @@ function K.partition.closeDay(body, ageH)
     body.eeDay = 0
     body.ebDay = 0
     body.actKcalDay = 0
+    body.exKcalDay = 0
     body.pDay = 0
     body.carbDay = 0
     body.lipDay = 0

@@ -4,8 +4,9 @@ NR_Kernel_Aerobic.lua is a kernel file (its name is NR_Kernel*), so the session 
 through its glob and already has NutritionRevamp.kernel.aerobic. Every expectation below is hand-computed
 from the file's constants: TAC clamped [0.80, 1.25] (floor a game choice; ceiling S0661/S0662/S0666); the
 gain on 15 days toward 1 + 0.25 x the weekly volume over 240 minutes (S0668); the loss on 84 days toward
-the floor (calibrated to S0675) unless two hard days held it (S0669); the protein gate 0.85 below 0.8
-g/kg/d (S0715, S0509); the energy gate 0.5 below 30 kcal per kg lean (S0691/S0692); the sleep gate 1 at
+parity 1.0 unless two hard days held it (S0669), toward the floor only immobilised (ruling W-2, S0675),
+a 1e-3 dead band keeping parity exact; the protein gate 0.85 below 0.8
+g/kg/d (S0715, S0509); the energy gate 0.5 below 30 kcal per kg lean of intake less exercise (S0691/S0692; ruling W-1); the sleep gate 1 at
 8 h of debt to 0.70 at 24 h (S0721; a game choice); the excess-fat percentage over the sex's normal-band
 fat at 80 kg (S1051 open, design-phase-v1; Ruling T6-1); the drain coefficient TAC^-0.8 x glycogen x
 dehydration x heat x fat load x iron x hours awake x caffeine capped at 2.5, and the regeneration
@@ -28,8 +29,8 @@ def _body(host, tac):
     return host.table(dict(tac=tac))
 
 
-def _tac(host, tac, week, hard, gi=1.0, gp=1.0, ge=1.0, gs=1.0, dtD=1.0):
-    body = host.K.aerobic.tacDay(_body(host, tac), week, hard, gi, gp, ge, gs, dtD)
+def _tac(host, tac, week, hard, gi=1.0, gp=1.0, ge=1.0, gs=1.0, dtD=1.0, imm=False):
+    body = host.K.aerobic.tacDay(_body(host, tac), week, hard, gi, gp, ge, gs, dtD, imm)
     return body.tac
 
 
@@ -58,6 +59,7 @@ def _rmod(host, **kw):
 def test_constants(host):
     A = host.K.aerobic
     assert (A.TAC_MIN, A.TAC_MAX, A.TAU_GAIN, A.TAU_LOSS) == (0.80, 1.25, 15, 84)
+    assert A.TAC_DEADBAND == 1e-3
     assert (A.VOL_WEEK_FULL, A.HARD_DAYS_KEEP, A.G_PROT_LOW, A.P_LOW) == (240, 2, 0.85, 0.8)
     assert (A.EA_THRESHOLD, A.G_ENERGY_LOW, A.G_SLEEP_SEVERE) == (30, 0.5, 0.70)
     assert list(host.py(A.G_IRON).values()) == [1.0, 0.7, 0.4, 0.4]
@@ -108,10 +110,56 @@ def test_tac_gain_full_volume(host):
 
 
 def test_tac_loss_and_maintenance(host):
-    assert _close(_tac(host, 1.2, 0, 0), 1.2 - 0.4 / 84)
-    assert _close(_tac(host, 1.2, 0, 0), 1.195238, 1e-6)
+    # Ruling W-2: detraining decays toward parity 1.0, not the floor
+    assert _close(_tac(host, 1.2, 0, 0), 1.2 - 0.2 / 84)
+    assert _close(_tac(host, 1.2, 0, 0), 1.197619, 1e-6)
     assert _tac(host, 1.2, 0, 2) == 1.2                                # two hard days hold the gain
-    assert _close(_tac(host, 1.2, 0, 1), 1.2 - 0.4 / 84)              # one is not enough
+    assert _close(_tac(host, 1.2, 0, 1), 1.2 - 0.2 / 84)              # one is not enough
+
+
+def test_tac_untrained_idle_stays_exactly_at_parity(host):
+    # Ruling W-2: 30 idle closes leave an untrained capacity at EXACTLY 1.0 (no sawtooth)
+    body = _body(host, 1.0)
+    for _ in range(30):
+        host.K.aerobic.tacDay(body, 0, 0, 1, 1, 1, 1, 1, False)
+        assert body.tac == 1.0
+    for _ in range(30):                                                # replete and gated alike
+        host.K.aerobic.tacDay(body, 0, 0, 0.4, 0.85, 0.5, 0.7, 1, False)
+        assert body.tac == 1.0
+
+
+def test_tac_trained_unmaintained_decays_to_parity_never_below(host):
+    body = _body(host, 1.2)
+    prev = 1.2
+    for _ in range(2000):
+        host.K.aerobic.tacDay(body, 0, 0, 1, 1, 1, 1, 1, False)
+        assert 1.0 <= body.tac <= prev
+        prev = body.tac
+    assert body.tac >= 1.0
+    assert body.tac <= 1.0 + 1e-3                                       # stopped inside the dead band
+    stopped = body.tac
+    host.K.aerobic.tacDay(body, 0, 0, 1, 1, 1, 1, 1, False)
+    assert body.tac == stopped                                         # no further step
+
+
+def test_tac_immobilised_decays_below_parity_toward_the_floor(host):
+    assert _close(_tac(host, 1.0, 0, 0, imm=True), 1.0 - 0.2 / 84)
+    assert _close(_tac(host, 1.0, 0, 2, imm=True), 1.0 - 0.2 / 84)    # hard days do not hold it
+    assert _close(_tac(host, 1.0, 240, 2, imm=True), 1.0 - 0.2 / 84)  # immobilisation leads the gain step
+    body = _body(host, 1.0)
+    for _ in range(2000):
+        host.K.aerobic.tacDay(body, 0, 0, 1, 1, 1, 1, 1, True)
+        assert body.tac >= 0.80
+    assert body.tac < 0.81
+    # remobilised at 0.9: the target 1.0 sits above it, so it climbs back on the gain law
+    assert _close(_tac(host, 0.9, 0, 0), 0.9 + 0.1 / 15)
+
+
+def test_tac_dead_band_edges(host):
+    # within 1e-3 under the target: no gain step
+    assert _tac(host, 1.25 - 5e-4, 240, 2) == 1.25 - 5e-4
+    # trained exactly at the dead band's edge above parity: no decay
+    assert _tac(host, 1.0 + 1e-3, 0, 0) == 1.0 + 1e-3
 
 
 def test_tac_gates_scale_the_rise(host):
@@ -130,7 +178,7 @@ def test_tac_clamps(host):
 
 def test_tac_returns_the_body(host):
     body = _body(host, 1.0)
-    out = host.K.aerobic.tacDay(body, 240, 2, 1, 1, 1, 1, 1)
+    out = host.K.aerobic.tacDay(body, 240, 2, 1, 1, 1, 1, 1, False)
     assert host.rt.eval("rawequal")(out, body)
 
 

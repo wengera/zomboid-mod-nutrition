@@ -46,7 +46,7 @@ end
 -- divisor tests all three, the idleness decrease only the two sitting tests (jar § 2 @94, @598).
 -- `sleepingTablet` is getSleepingTabletEffect() > 1000, doDelayToSleep's 0.1 override (jar § 3).
 -- `stomachFill` is the slow clock's record.stomachFill (0 empty .. 1 full); `energyState` is the
--- Plan 3 entry point, stubbed at the neutral 1 by the adapter; `rmod` is the slow clock's regeneration
+-- slow clock's stamp (`record.body.energyState`, Plan 3); `rmod` likewise, the regeneration
 -- coefficient (NR_Kernel_Aerobic.lua), scaling the asleep endurance regeneration. The defaults read full
 -- and neutral.
 -- `heartyAppetite`, `lightEater` and `foodEaten` are no longer read by the hunger term (Plan 2); they

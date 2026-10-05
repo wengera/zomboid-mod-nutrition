@@ -176,6 +176,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.eeDay = 0
     body.ebDay = 0
     body.actKcalDay = 0
+    body.exKcalDay = 0
     body.pDay = 0
     body.carbDay = 0
     body.lipDay = 0

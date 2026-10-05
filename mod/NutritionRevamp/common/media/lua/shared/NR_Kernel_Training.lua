@@ -27,11 +27,11 @@ K.training.BAND2_MET = 9.0 -- game choice § 7 item 31
 K.training.TAU_V_DAYS = 7 -- S0576/S0577 weekly units
 
 -- The doses' half-saturation constants, in set-equivalents.
-K.training.K_STR = 4 -- S0582
-K.training.K_HYP = 10 -- S0576
+K.training.K_STR = 4 -- S0582 (4 sets per muscle per session) read as the half-saturation of a weekly accumulator: a game mapping
+K.training.K_HYP = 10 -- S0576 (≥ 10 sets/wk) as a half-saturation: a game mapping
 
 -- The strength weight of a set-equivalent by intensity class (load drives strength, sets hypertrophy).
-K.training.W_STR = { low = 0.5, moderate = 0.8, high = 1.0 } -- S0575
+K.training.W_STR = { low = 0.5, moderate = 0.8, high = 1.0 } -- S0575 direction (load > 80 % 1RM drives strength); the 0.5/0.8/1.0 weights a game choice
 
 -- Set-equivalents per event and per loaded or effortful minute.
 K.training.S_REP_ARMS = 0.10 -- game choices § 7 item 30
@@ -44,7 +44,7 @@ K.training.S_ACTION_MOD_PER_MIN = 0.02 -- game choices § 7 item 30
 K.training.S_ACTION_HIGH_PER_MIN = 0.04 -- game choices § 7 item 30
 
 -- The high-class accumulator level that maintains strength.
-K.training.MAINTAIN_HIGH = 1 -- S0616
+K.training.MAINTAIN_HIGH = 1 -- S0616 (1 session/wk, 1 set maintains): the 1 set-equivalent threshold a game mapping
 
 -- The engine MET credited once per climb, by the climb state's Metabolics class.
 K.training.CLIMB_MET = { JumpFence = 4.0, ClimbRope = 8.0 } -- #2632

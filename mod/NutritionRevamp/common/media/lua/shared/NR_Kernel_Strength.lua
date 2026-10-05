@@ -52,7 +52,7 @@ K.strength.FALL_MIN_H = 1 -- ruling 10
 -- The acute carry terms. Dehydration in two steps (percent body mass), scaled by DEHYD_SWEAT_K when
 -- the deficit arose from sweat or heat.
 K.strength.DEHYD_PCT1 = 2 -- S0623
-K.strength.DEHYD_STEP1 = -0.03 -- S0623
+K.strength.DEHYD_STEP1 = -0.03 -- S0623 (~−2 %): −0.03 a game choice
 K.strength.DEHYD_PCT2 = 4 -- S0624
 K.strength.DEHYD_STEP2 = -0.06 -- S0624
 K.strength.DEHYD_SWEAT_K = 1.5 -- S0624: active (exercise or heat) dehydration an extra −5.4 % vs passive; the ×1.5 is a game choice
@@ -67,9 +67,9 @@ K.strength.AM_TO_H = 12 -- S0765; 06-12 game choice (ruling 11)
 
 -- Caffeine, clinical vitamin D deficiency and body fat above the knee (per 10 points of fat fraction).
 K.strength.CAFFEINE_BONUS = 0.02 -- S0626 SMD->% game choice
-K.strength.VITD_PENALTY = -0.03 -- S0633; S0634 disagrees
-K.strength.FAT_PER_10PT = -0.03 -- S0651
-K.strength.FAT_KNEE = 0.30 -- S0651
+K.strength.VITD_PENALTY = -0.03 -- S0633 SMD 0.17 → −0.03: an SMD→% game choice (S0634 disagrees)
+K.strength.FAT_PER_10PT = -0.03 -- S0651 (≥ 6 % weaker per FFM in obesity): −0.03 per 10 points over 30 % a game mapping
+K.strength.FAT_KNEE = 0.30 -- S0651 (≥ 6 % weaker per FFM in obesity): −0.03 per 10 points over 30 % a game mapping
 K.strength.FAT_PER_PTS = 0.10 -- S0651: FAT_PER_10PT's unit, 10 points of fat fraction
 
 -- The acute factor's clamp.

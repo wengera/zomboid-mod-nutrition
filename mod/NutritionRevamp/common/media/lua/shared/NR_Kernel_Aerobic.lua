@@ -19,13 +19,16 @@ K.aerobic.TAC_MAX = 1.25 -- +25 %: S0669 (+25 %/+20 %), S0668 (+23 %); S0661/S06
 K.aerobic.TAU_GAIN = 15 -- S0668
 K.aerobic.TAU_LOSS = 84 -- 84 d: a game choice (bed rest S0675 at −0.43 %/d would give ≈47 d; detraining is slower)
 
+-- The dead band around the target and parity: no step closer than this.
+K.aerobic.TAC_DEADBAND = 1e-3 -- game choice: parity exact; detraining returns a trained capacity to parity; only immobilisation (ruling 8) takes it below, S0675 bed rest
+
 -- The weekly band-1 minutes that reach the full target (40 min x 6 d), and the hard days that hold it.
 K.aerobic.VOL_WEEK_FULL = 240 -- S0668 40x6
 K.aerobic.HARD_DAYS_KEEP = 2 -- S0669
 
 -- The gain gates: protein below P_LOW g/kg/d, energy availability below EA_THRESHOLD kcal per kg lean,
 -- the iron grades (replete, marginal, depleted, clinical) and severe sleep debt.
-K.aerobic.G_PROT_LOW = 0.85 -- S0715
+K.aerobic.G_PROT_LOW = 0.85 -- S0715 SMD 0.45 → 0.85: an SMD→% game choice
 K.aerobic.P_LOW = 0.8 -- S0509
 K.aerobic.EA_THRESHOLD = 30 -- S0691/S0692
 K.aerobic.G_ENERGY_LOW = 0.5 -- S0691/S0692
@@ -66,7 +69,7 @@ K.aerobic.FAT_LOAD_K = 0.008 -- S0723
 
 -- Iron grades 1-4 on the drain and on regeneration.
 K.aerobic.IRON_D = { 1.0, 1.03, 1.08, 1.20 } -- S0696/S0697/S0694
-K.aerobic.IRON_R = { 1.0, 0.95, 0.88, 0.75 } -- S0699
+K.aerobic.IRON_R = { 1.0, 0.95, 0.88, 0.75 } -- S0699 (fatigue SMD −0.38; VO₂max NS): the rungs a game mapping
 
 -- Hours awake past the knee raise the drain, capped.
 K.aerobic.AWAKE_KNEE = 18 -- S0763; knee ruling 11
@@ -94,10 +97,11 @@ function K.aerobic.gProt(pPerKg)
     return 1
 end
 
--- The energy gate: energy availability EA = (inDay - actKcalDay) / lm kcal per kg lean; 1 at or above
+-- The energy gate: energy availability EA = (inDay - exKcalDay) / lm kcal per kg lean, exKcalDay the
+-- day's exercise kcal (the MET above the idle class, K.energy.minute; S0691); 1 at or above
 -- EA_THRESHOLD, G_ENERGY_LOW below.
-function K.aerobic.gEnergy(inDay, actKcalDay, lm)
-    local ea = (inDay - actKcalDay) / lm
+function K.aerobic.gEnergy(inDay, exKcalDay, lm)
+    local ea = (inDay - exKcalDay) / lm
     if ea >= K.aerobic.EA_THRESHOLD then
         return 1
     end
@@ -110,19 +114,25 @@ function K.aerobic.gSleep(debtH)
     return 1 - (1 - A.G_SLEEP_SEVERE) * K.clamp((debtH - A.SLEEP_DEBT_FROM) / A.SLEEP_DEBT_SPAN, 0, 1)
 end
 
--- One TAC step over dtD days: toward 1 + (TAC_MAX - 1) x the week's volume fraction on TAU_GAIN days,
--- scaled by gIron x gProt x min(gEnergy, gSleep); at or above the target, held by HARD_DAYS_KEEP hard
--- days, else falling toward TAC_MIN on TAU_LOSS days. Clamped; writes body.tac and returns the body.
-function K.aerobic.tacDay(body, weekMin1, hardDays, gIron, gProt, gEnergy, gSleep, dtD)
+-- One TAC step over dtD days: immobilised (ruling 8), falling toward TAC_MIN on TAU_LOSS days (first,
+-- since an immobilised week's target is parity and the gain step would hold it there); else below the
+-- target by more than TAC_DEADBAND, toward 1 + (TAC_MAX - 1) x the week's volume fraction on TAU_GAIN
+-- days, scaled by gIron x gProt x min(gEnergy, gSleep); else a trained capacity above parity not held
+-- by HARD_DAYS_KEEP hard days falls toward parity 1.0 on TAU_LOSS days; else no step.
+-- Clamped; writes body.tac and returns the body.
+function K.aerobic.tacDay(body, weekMin1, hardDays, gIron, gProt, gEnergy, gSleep, dtD, immobilised)
     local A = K.aerobic
     local svol = K.clamp(weekMin1 / A.VOL_WEEK_FULL, 0, 1)
     local target = 1 + (A.TAC_MAX - 1) * svol
     local gnut = gIron * gProt * K.min(gEnergy, gSleep)
     local tac = body.tac
-    if target > tac then
-        tac = tac + (target - tac) / A.TAU_GAIN * gnut * dtD
-    elseif hardDays < A.HARD_DAYS_KEEP then
+    local maintained = hardDays >= A.HARD_DAYS_KEEP
+    if immobilised then
         tac = tac - (tac - A.TAC_MIN) / A.TAU_LOSS * dtD
+    elseif target > tac + A.TAC_DEADBAND then
+        tac = tac + (target - tac) / A.TAU_GAIN * gnut * dtD
+    elseif tac > 1 + A.TAC_DEADBAND and not maintained then
+        tac = tac - (tac - 1) / A.TAU_LOSS * dtD
     end
     body.tac = K.clamp(tac, A.TAC_MIN, A.TAC_MAX)
     return body

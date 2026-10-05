@@ -126,6 +126,7 @@ K.energy.BAND_MET[8] = 7.0 -- S0040 (carpentry heavy)
 
 -- The Compendium load-walking floors: {load threshold kg, MET}, ascending.
 -- 5 lb = 2.3 kg, 15 lb = 6.8 kg, 50 lb = 22.7 kg.
+-- the engine's inventory weight unit is read as kilograms (a game choice; no row); the thresholds are S0035's lb bands in kg
 K.energy.LOAD_FLOOR = {
     { 2.3, 4.0 }, -- S0035: carrying 5-14 lb, moderate pace
     { 6.8, 4.5 }, -- S0035: carrying 15-155 lb, slow pace
@@ -137,7 +138,8 @@ function K.energy.bandMet(modifier)
     return K.energy.BAND_MET[modifier]
 end
 
--- The largest load-walking floor whose threshold the load reaches, else 0 (thresholds ascend).
+-- The largest load-walking floor whose threshold the load reaches, else 0 (thresholds ascend). loadKg
+-- is the engine's inventory weight, read as kilograms (a game choice; no row).
 function K.energy.loadFloor(loadKg)
     local floors = K.energy.LOAD_FLOOR
     local met = 0
@@ -215,7 +217,9 @@ end
 -- One expenditure step of dtM game minutes (the caller clamps dtM to [0, 60]; offline time is not
 -- integrated). REE per minute, reduced by adaptive thermogenesis, times the cold multiplier at rest
 -- (clamped to [1, COLD_MAX]); activity above MET_REST times total mass per hour. Mutates body's day
--- accumulators and balance; returns the energy spent and the activity part.
+-- accumulators and balance; returns the energy spent and the activity part. Beside actKcalDay (net
+-- activity above 1 MET, the expenditure quantity) it banks exKcalDay, the MET above the idle class
+-- (COMPENDIUM.Default, 1.3) times total mass per hour: the exercise energy availability subtracts.
 function K.energy.minute(body, met, resting, coldMult, dtM)
     local coldK = 1
     if resting then
@@ -225,8 +229,10 @@ function K.energy.minute(body, met, resting, coldMult, dtM)
     local actMin = K.max(met - K.energy.MET_REST, 0) * (body.fm + body.lm) / 60
     local ee = (reeMin + actMin) * dtM
     local act = actMin * dtM
+    local exMin = K.max(met - K.energy.COMPENDIUM.Default, 0) * (body.fm + body.lm) / 60
     body.eeDay = body.eeDay + ee
     body.actKcalDay = body.actKcalDay + act
+    body.exKcalDay = body.exKcalDay + exMin * dtM -- S0691: EA is intake minus EXERCISE expenditure per kg FFM; the idle class is not exercise
     body.ebDay = body.inDay - body.eeDay
     return ee, act
 end

@@ -200,7 +200,7 @@ def test_new_record_body(host):
     scalars = {
         "bv": 1, "fm0": body["fm"], "lm0": body["lm"], "lm0dis": body["lm"], "fmRef": body["fm"], "l0": 5, "sex": 1, "r": 1.0,
         "traitCarry": 1.0, "bornAge": 100, "lastAgeH": 100, "lastCloseAgeH": 100, "pPrevKg": 0.8, "strAgeH": 100, "at": 0, "dayIndex": 4, "inDay": 0, "eeDay": 0, "ebDay": 0,
-        "actKcalDay": 0, "pDay": 0, "carbDay": 0, "lipDay": 0, "alcDay": 0, "eb24h": 0, "vStr": 0,
+        "actKcalDay": 0, "exKcalDay": 0, "pDay": 0, "carbDay": 0, "lipDay": 0, "alcDay": 0, "eb24h": 0, "vStr": 0,
         "vHyp": 0, "vStrHigh": 0, "metMinDay": 0, "band1Day": 0, "band2Day": 0, "n": 0, "nPeak": 0,
         "tPeakD": 4, "cumDef": 0, "tDisuse": 0, "shownL": 5, "riseHeldH": 0, "lastFallAge": 100,
         "delta": 1.0, "band": "normal", "tac": 1.0, "dmod": 1, "rmod": 1, "energyState": 1,

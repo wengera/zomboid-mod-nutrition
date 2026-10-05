@@ -247,7 +247,7 @@ def test_day_floors_fm_and_lm(host):
 # --- the day close and the week ---
 
 def test_close_day_rotates_and_zeroes(host):
-    b = _body(host, ebDay=-321, fm=14.0, lm=65.0, inDay=2100, eeDay=2421, actKcalDay=400, pDay=90,
+    b = _body(host, ebDay=-321, fm=14.0, lm=65.0, inDay=2100, eeDay=2421, actKcalDay=400, exKcalDay=150, pDay=90,
               carbDay=250, lipDay=70, alcDay=14, dayIndex=9,
               eb7=_ring([1, 2, 3, 4, 5, 6, 7]), mass7=_ring([80, 81, 82, 83, 84, 85, 86]),
               p7=_ring([0] * 7), carb7=_ring([0] * 7), lip7=_ring([0] * 7))
@@ -256,7 +256,7 @@ def test_close_day_rotates_and_zeroes(host):
     assert py["lastCloseAgeH"] == 247.0
     assert list(py["eb7"].values()) == [2, 3, 4, 5, 6, 7, -321]
     assert list(py["mass7"].values()) == [81, 82, 83, 84, 85, 86, 79.0]
-    for k in ("inDay", "eeDay", "ebDay", "actKcalDay", "pDay", "carbDay", "lipDay", "alcDay"):
+    for k in ("inDay", "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay"):
         assert py[k] == 0, k
     assert py["dayIndex"] == 10
 
@@ -285,6 +285,31 @@ def test_close_day_keeps_the_closed_day_macros_in_the_newest_cell(host):
 def test_deficit_week(host, ring, want):
     b = _body(host, eb7=_ring(ring))
     assert host.K.partition.deficitWeek(b) is want
+
+
+def test_day_deficit_half_credit_runs(host):
+    # Ruling W-3: p 2.4, dStr 0.6, dHyp 0.5 in a deficit -> leanGain 0.050 * r 1 * 0.5 * gProt 1 *
+    # gEnergy 0.5 * headroom 1 * gAlc 1 = 0.0125 kg, fat paying it at 1816 / 9441
+    b = _body(host, ebDay=-2000)
+    dfm, dlm = host.K.partition.day(b, 0.5, 0.6, 2.4, False)
+    prot = max(1 - 0.55 * 0.6 - 0.15 * 1, 0.30)                        # 0.52
+    gain = 0.050 * 1.0 * 0.5 * 1 * 0.5 * 1 * 1
+    assert _close(gain, 0.0125)
+    lean_loss = 1006.4 / 1816 * prot
+    assert _close(dlm, -lean_loss + gain)
+    assert _close(dfm, -(993.6 + 1006.4 * (1 - prot)) / 9441 - gain * 1816 / 9441)
+    assert _close(dfm * 9441 + dlm * 1816, -2000, 1e-6)                # the balance identity holds
+    py = host.py(b)
+    assert _close(py["lm"], 65.6 - lean_loss + gain)
+
+
+def test_day_deficit_no_half_credit_below_the_protein_edge(host):
+    # Ruling W-3: at p 1.6 the deficit gate reads 0, so the deficit arm stands unchanged
+    b = _body(host, ebDay=-2000)
+    dfm, dlm = host.K.partition.day(b, 0.5, 0.6, 1.6, False)
+    want_fm, want_lm = host.K.partition.deficit(_body(host, ebDay=-2000), 0.6, 1.0)
+    assert dlm == want_lm and dfm == want_fm
+    assert _close(dfm * 9441 + dlm * 1816, -2000, 1e-6)
 
 
 def test_day_deficit_reads_the_protein_gate_from_p(host):
