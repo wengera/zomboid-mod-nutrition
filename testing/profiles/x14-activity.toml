@@ -15,6 +15,9 @@ verify = [
   { side = "client", cmd = "lua.global", args = "TKX_XpEvents.version", expect = "\"value\": 1" },
 ]
 
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5): these are vanilla-mechanics gates, run with the mod loaded
+
 [sandbox.NR]
 Mode = 1
 
