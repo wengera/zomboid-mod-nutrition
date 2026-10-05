@@ -150,3 +150,62 @@ TK.register("player.run", function(argv)
     out.clientRunning, out.clientMoving, out.clientSprinting = running, moving, sprinting
     return out
 end)
+
+-- <trait> <seconds>. Arms an OnTick watcher on the CLIENT (tick.rate's arm-and-result-doc
+-- pattern): each tick it reads the local player's trait list (TK.traitNames, the list stats.get
+-- builds traitList from, lowercased) and on the FIRST tick the trait is present writes the result
+-- doc trait-watch.json {trait, armedWall, firstSeenWall, ticks, found = true} through TK.result and
+-- unarms; at the deadline with no sighting it writes found = false. It answers at once. The driver
+-- arms it, calls the server's trait.add.push, then wait_result("trait-watch"): firstSeenWall minus
+-- the server's wallAfter is the push arm's latency with a client-side first-change stamp.
+TK.traitWatch = TK.traitWatch or { armed = false }
+local TRAIT_WATCH_MAX_SECONDS = 600
+
+local function traitWatchOnTick()
+    local w = TK.traitWatch
+    if not w.armed then return end
+    local p = getPlayer()
+    w.ticks = w.ticks + 1
+    local now = TK.now()
+    if p ~= nil then
+        local set = TK.traitNames(p)
+        if TK.hasTraitName(set, w.trait) then
+            w.armed = false
+            TK.result("trait-watch", { trait = w.trait, armedWall = w.armedWall,
+                                       firstSeenWall = now, ticks = w.ticks, found = true })
+            return
+        end
+    end
+    if now >= w.deadline then
+        w.armed = false
+        TK.result("trait-watch", { trait = w.trait, armedWall = w.armedWall,
+                                   deadlineWall = w.deadline, ticks = w.ticks, found = false })
+    end
+end
+
+if not TK.traitWatchHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() traitWatchOnTick() end)
+    TK.traitWatchHooked = true
+end
+
+-- @args <trait> <seconds>
+-- The result document trait-watch.json: {trait, armedWall, firstSeenWall, ticks, found} or, with no
+--   sighting by the deadline, {trait, armedWall, deadlineWall, ticks, found = false}, plus
+--   TK.result's own {name, side, t, complete}.
+-- @reply {armed, trait, seconds, result, file} | {error} | string
+-- @purpose Arms a client OnTick watcher for one trait and answers at once; trait-watch.json (wait_result) then carries the wall stamp of the first tick the local player has it.
+TK.register("trait.watch", function(argv)
+    local trait = argv[1]
+    local seconds = tonumber(argv[2])
+    if trait == nil or seconds == nil or seconds <= 0 or seconds > TRAIT_WATCH_MAX_SECONDS then
+        return "usage: trait.watch <trait> <seconds>  (0 < seconds <= 600)"
+    end
+    if not TK.traitWatchHooked then return { error = "no Events.OnTick on this side" } end
+    if TK.traitWatch.armed then return { error = "a trait.watch window is already armed" } end
+    local start = TK.now()
+    if start == 0 then return { error = "no getTimestampMs()" } end
+    TK.traitWatch = { armed = true, trait = trait, seconds = seconds, ticks = 0,
+                      armedWall = start, deadline = start + seconds * 1000 }
+    return { armed = true, trait = trait, seconds = seconds, result = "trait-watch",
+             file = "pzt-results/trait-watch.json" }
+end)

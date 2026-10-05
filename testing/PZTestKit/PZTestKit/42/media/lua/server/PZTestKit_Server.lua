@@ -1535,3 +1535,43 @@ TK.register("player.sleep.hold", function(argv)
     out.armed = true
     return out
 end)
+
+-- <user> <TraitName>. The same-tick add-and-push (X4's push arm, #2099): inside ONE handler, so
+-- one server tick, it stamps wallBefore, adds the trait by the route trait.set's add uses
+-- (getCharacterTraits():add(CharacterTrait.<field>)), calls sendSyncPlayerFields(player, 2) by the
+-- call trait.push makes, and stamps wallAfter. The client's `trait.watch` first-sight stamp minus
+-- wallAfter is then the push's latency, separable from any experience-driven route. `sent` is that
+-- the call ran, never delivery.
+-- @args <user> <TraitName>
+-- @reply {user, trait, added, sent, wallBefore, wallAfter, traitList [, callError] [, error]} | string
+-- @purpose Adds one CharacterTrait and calls sendSyncPlayerFields(player, 2) in the same server tick, stamping the wall clock either side; the client-side trait.watch stamp then gives the push latency.
+TK.register("trait.add.push", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local name = argv[2]
+    if name == nil then return "usage: trait.add.push <user> <TraitName>" end
+    local field = TRAIT_FIELDS[name] or name
+    local out = { user = tostring(argv[1]), trait = name, added = false, sent = false }
+    out.wallBefore = TK.now()
+    local enum = CharacterTrait and CharacterTrait[field]
+    local _, coll = TK.call(p, "getCharacterTraits")
+    if coll ~= nil and enum ~= nil then
+        local ran, present = pcall(TK.call, coll, "add", enum)
+        out.added = ran and present == true
+        if not ran then out.callError = tostring(present) end
+    else
+        out.error = (coll == nil and "no IsoGameCharacter:getCharacterTraits" or
+                     "no CharacterTrait." .. tostring(field))
+    end
+    if sendSyncPlayerFields == nil then
+        out.error = out.error or "no sendSyncPlayerFields global on this side"
+    else
+        local ran, err = pcall(sendSyncPlayerFields, p, 2)
+        out.sent = ran
+        if not ran then out.callError = tostring(err) end
+    end
+    out.wallAfter = TK.now()
+    local _, list = TK.traitNames(p)
+    out.traitList = list
+    return out
+end)
