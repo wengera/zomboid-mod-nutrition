@@ -232,7 +232,8 @@ function K.nutrients.excess(s, rec, aIngested, dtD, w)
             else
                 s.ext = 0
             end
-            if s.ext >= K.nutrients.EXCESS_HOLD_D then
+            local holdD = ch.holdD or K.nutrients.EXCESS_HOLD_D
+            if s.ext >= holdD then
                 rung = 2
             end
         end

@@ -168,7 +168,7 @@ DERIVED = [
     ("choline", "calib", (0.30, 21)),
     ("vitA", "calib", (0.35, 120)),
     ("vitD", "kFromHalfLife", (60,)),
-    ("vitK", "calibAt", (0.155, 13, 10 / 120)),
+    ("vitK", "calibAt", (0.155, 13, 10 / 80)),
     ("zinc", "calibAt", (0.5, 49, 4 / 11)),
     ("efa", "calib", (0.25, 28)),
 ]
@@ -192,9 +192,9 @@ def test_the_hand_rates(rh):
     assert k("vitA") == pytest.approx(0.0087485, abs=1e-7)
     assert k("vitB6") == pytest.approx(0.0239016, abs=1e-7)
     assert k("vitD") == pytest.approx(0.0115525, abs=1e-7)
-    # the exact calibAt at 4/11 and 10/120 (J's 0.0310169 and 0.1960223 used 0.36 and 0.0833)
+    # the exact calibAt at 4/11 and 10/80 (J's 0.0310169 used 0.36; vitK is solved against its trial baseline, ruling T7-1)
     assert k("zinc") == pytest.approx(0.0314377, abs=1e-7)
-    assert k("vitK") == pytest.approx(0.1960552, abs=1e-7)
+    assert k("vitK") == pytest.approx(0.2594636, abs=1e-7)
     assert k("vitB12") == 0.001
     assert k("iodine") == 0.01
     assert k("magnesium") == 0.013
@@ -261,8 +261,9 @@ def test_the_counter_derived_and_excess_fields(rh):
     se = _rec(rh, "selenium")
     assert se["ul"] == 400 and se["chronic"] == {"perDay": 5000}
     vd = _rec(rh, "vitD")
-    assert vd["sun"]["kSun"] == 0.0 and vd["pCap"] == 3.3
+    assert vd["sun"]["kSun"] == 0.0 and "pCap" not in vd       # ruling T7-2: S0167 is a toxicity limit
     assert vd["ul"] == 100 and vd["chronic"] == {"perDay": 250, "store": 5}
+    assert _rec(rh, "vitB6")["chronic"]["holdD"] == 180        # ruling T7-3
     assert _rec(rh, "vitC")["ul"] == 2000 and _rec(rh, "vitC")["pCap"] == 1.0
     assert _rec(rh, "vitE")["ul"] == 300
     assert _rec(rh, "choline")["kFemale"] == 0.57
@@ -291,6 +292,7 @@ def _register():
 
 
 def test_every_number_line_carries_a_label():
+    reg = _register()
     with open(DATA, encoding="utf-8") as fh:
         lines = fh.read().splitlines()
     bad = []
@@ -298,6 +300,11 @@ def test_every_number_line_carries_a_label():
         code, comment = _code_and_comment(line)
         if NUM.search(code) and not LABEL.search(comment):
             bad.append((n, line))
+        default_cap = code.strip() == "pCap = 1.0," and "ruling 4" in comment    # the engine default, no row to open
+        if "design-phase-v1" in comment and code.strip() and not default_cap:
+            ids = SID.findall(comment)
+            if not any(reg.get(i, {}).get("status") == "open" for i in ids):
+                bad.append((n, line))
     assert bad == []
 
 
@@ -376,7 +383,7 @@ def test_zero_intake_for_forty_days(rh):
     assert first["choline"] == pytest.approx(21, abs=1 / 24 + 1e-9)
     assert first["efa"] == pytest.approx(28, abs=1 / 24 + 1e-9)
     assert first["riboflavin"] == pytest.approx(27, abs=1 / 24 + 1e-9)
-    assert first["vitK"] == pytest.approx(7.07, abs=0.05)
+    assert 5 <= first["vitK"] <= 6 and first["vitK"] == pytest.approx(5.34, abs=0.05)   # ln(4)/0.25946 = 5.34 d (T7-1)
     assert state["vitB12"]["g"] == 1                           # real scale: exp(-0.001 x 41) = 0.96
     assert state["vitB12"]["p"] == pytest.approx(math.exp(-0.001 * 41), abs=1e-9)
     assert state["iron"]["g"] == 1 and state["vitA"]["g"] == 1

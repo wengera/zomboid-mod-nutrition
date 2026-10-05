@@ -305,6 +305,18 @@ def test_excess_chronic_hold(host):
     assert s.ext == 0
 
 
+def test_excess_per_record_hold(host):
+    N = host.K.nutrients
+    short = _rec(host, '{ kind = "pool", chronic = { perDay = 7500, holdD = 2 } }')
+    s = _s(host)
+    xs = [N.excess(s, short, 8000, 1.0, 80) for _ in range(2)]
+    assert xs == [0, 2]                                    # holdD = 2: rung 2 at day 2
+    dflt = _rec(host, '{ kind = "pool", chronic = { perDay = 7500 } }')
+    s = _s(host)
+    xs = [N.excess(s, dflt, 8000, 1.0, 80) for _ in range(N.EXCESS_HOLD_D)]
+    assert xs == [0] * (N.EXCESS_HOLD_D - 1) + [2]         # holdD nil: EXCESS_HOLD_D (7)
+
+
 def test_excess_store(host):
     N = host.K.nutrients
     rec = _sel(host)

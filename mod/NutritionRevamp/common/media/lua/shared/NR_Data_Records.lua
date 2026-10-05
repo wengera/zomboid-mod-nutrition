@@ -1,13 +1,15 @@
 -- NR_Data_Records.lua -- not a kernel file: the 27 declarative nutrient records the generic engine
 -- (NR_Kernel_Nutrients.lua, K.nutrients.minute) loops over, as NR.data.records = { ORDER, REC } (Plan 4,
 -- formulas briefing A2/A6, rulings 2-6).
+-- Fix-1 rulings T7-1 (vitK k solved against its trial baseline), T7-2 (vitD uncapped) and T7-3 (per-record
+-- chronic.holdD, B6 180 d).
 -- Every number sits on its own line with its row: a settled S id, or `design-phase-v1` / `game choice`
 -- naming the open row it rests on (testing/tests/kernel/test_data_records.py enforces it on this file).
 -- This file sorts BEFORE the kernels (NR_Data_ < NR_Kernel_), so it never calls K at load time: each
 -- derived rate is a literal computed in doubles, its expression and the kernel function that gives it
 -- written in the comment, and the test recomputes it through that function to 1e-9.
 -- Fields the engine reads (task-6 report): kind, R, scale, Rscale, absorb, k, pCap, ladder,
--- clinicalOnP2, p2Clinical, ul, chronic.perDay, chronic.store, acute.perKg, acute.abs, dialExp.
+-- clinicalOnP2, p2Clinical, ul, chronic.perDay, chronic.holdD, chronic.store, acute.perKg, acute.abs, dialExp.
 -- Fields for the adapters, never read by the engine: key (the vector key; nil when the vector has none),
 -- key2, unit (NR.data.UNITS for the key), Rmin, store (display mass at p = 1), L, two, counter, derived,
 -- sun, kFemale, trpShare, trpPerNE.
@@ -58,7 +60,7 @@ NR.data.records = {
                 90, -- male RDA mg/d, S0218
                 75, -- female RDA mg/d, S0218
             },
-            absorb = 0.85, -- design-phase-v1 game choice: K.stomach.BIOAVAIL.vitC (70-90 % food absorption, no settled row)
+            absorb = 0.85, -- design-phase-v1 game choice: K.stomach.BIOAVAIL.vitC (70-90 % food absorption, no settled row; open S1060)
             k = 0.047427999622147034, -- = ln(1/0.15)/40: K.nutrients.calib(0.15, 40); S0225 (scurvy at ~40 d), S0958/S0965 (the 0.15 clinical store)
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
@@ -151,7 +153,8 @@ NR.data.records = {
             },
             ul = 100, -- mg/d (IOM), S0295; EFSA's 12 mg/d S0296 noted
             chronic = {
-                perDay = 50, -- mg/d, the lowest neuropathy band (<50 mg/d, >6 months), S0305; the 7 d hold is open S1058
+                perDay = 50, -- S0305: neuropathy below 50 mg/d only after > 6 months; holdD 180 d
+                holdD = 180, -- days, S0305; the engine default hold is open S1058
             },
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
@@ -214,7 +217,7 @@ NR.data.records = {
             ladder = {
                 0.70, -- marginal: the generic rung, design-phase-v1 game choice (open S1057)
                 0.45, -- depleted: the generic rung, design-phase-v1 game choice (open S1057)
-                0.30, -- clinical: the 30 % fall of S0377 as the store fraction, design-phase-v1 game choice (open S1074; pool open S0382)
+                0.30, -- clinical: the 30 % fall of S0377 as the store fraction, briefing A2's calibration rung (onset 21 d, S0376/S0377); the plan table's 'generic' superseded by this derivation, design-phase-v1 game choice (open S1074; pool open S0382)
             },
             ul = 3500, -- mg/d, S0373
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
@@ -234,8 +237,8 @@ NR.data.records = {
             },
             k = 0.008748517704155646, -- = ln(1/0.35)/120: K.nutrients.calib(0.35, 120); 20 ug/g = reserves for four months, S0139
             ladder = {
-                0.25, -- marginal: liver < 0.1 umol/g of 0.4 (the newer proposal), S0139
-                0.175, -- depleted: liver < 0.07 umol/g of 0.4, S0139
+                0.25, -- marginal: liver < 0.1 umol/g of 0.4 (the newer proposal), S0139; S0138 (0.4 umol/g = the top of the adequate 0.1-0.7 range; the fractions divide by it)
+                0.175, -- depleted: liver < 0.07 umol/g of 0.4, S0139; S0138 (0.4 umol/g = the top of the adequate 0.1-0.7 range; the fractions divide by it)
                 0.06125, -- the store at which p2 crosses 0.35 = plasmaKnee x p2Clinical (S0143), design-phase-v1 game choice (open S1062)
             },
             clinicalOnP2 = true,
@@ -250,7 +253,7 @@ NR.data.records = {
                 store = 7.2, -- liver p >= 2.87/0.4 umol/g, rung 2, S0150
             },
             acute = {
-                abs = 90000, -- ug in one sitting = 100 x the male RDA, rung 2, S1025
+                abs = 90000, -- ug in one sitting, rung 2, S1025: 100 x the MALE RDA for both sexes (S1025); the engine reads one scalar - a female threshold of 70000 is a known simplification
             },
         },
         -- Vitamin D: one compartment at the parent half-life; p in units of serum 25(OH)D / 75 nmol/L (the 75 a
@@ -275,7 +278,6 @@ NR.data.records = {
                 perDay = 250, -- ug/d sustained, rung 2 (toxicity unlikely below 250), S1029
                 store = 5, -- p >= 375/75 nmol/L, rung 2, S1030
             },
-            pCap = 3.3, -- ~250/75: the conservative 250 nmol/L limit, S0167; the 75 unit open S1065
             sun = {
                 kSun = 0.0, -- p per outdoor daylight minute: 0 until Task 11 sets it, design-phase-v1 game choice (open S1064)
                 note = "cutaneous term labelled; open row S1064 (Task 1)",
@@ -303,7 +305,7 @@ NR.data.records = {
                 1, -- male AI ug per kg body mass per day (EFSA), S0185
                 1, -- female AI ug per kg body mass per day (EFSA), S0185
             },
-            k = 0.1960552432717657, -- = -ln((0.155 - 10/120)/(1 - 10/120))/13: K.nutrients.calibAt(0.155, 13, 10/120); plasma K1 to 13-18 % in 13 d at ~10 ug/d, S0961 (J's 0.1960223 used 10/120 rounded to 0.0833)
+            k = 0.25946357728426606, -- = calibAt(0.155, 13, 10/80): S0961 (plasma K1 to 15.5 % of baseline after 13 d at ~10 ug/d from an 80 ug/d baseline; R is the intake that holds p = 1, so the baseline, not the IOM AI S0184 that ruling 6 rejects); S0962 cross-check p(21) ~ 0.516 vs 0.529 measured
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
         -- Pantothenate: a ledger; no dietary deficiency, pool open (S0287). No UL (S0280).
@@ -344,8 +346,8 @@ NR.data.records = {
                 1.5, -- female basal loss mg/d (menstruating average), S0437
             },
             ladder = {
-                0.50, -- marginal below half the store, design-phase-v1 game choice (ruling 3; the iron table's)
-                0.15, -- depleted: stores exhausted with Hb normal (stage 1-2), S0438
+                0.50, -- marginal below half the store: design-phase-v1 game choice (open S1057)
+                0.15, -- depleted: stores exhausted with Hb normal (stage 1-2), S0438; the 0.15 store fraction design-phase-v1 game choice (open S1057)
                 0.01, -- game choice: never read (no k, so dialExp is 0; gradeTwo caps the store grade at 3)
             },
             clinicalOnP2 = true,
@@ -384,7 +386,7 @@ NR.data.records = {
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
         },
         -- Copper: derived; it falls only under zinc excess, dp/dt = -kcu x max(0, e24_zn - ulZn)/ulZn, and recovers at
-        -- kcu toward 1 (Task 10). Dietary deficiency is unreported (S0475; S0537 the zinc x copper reading).
+        -- kcu toward 1 (Task 10). Dietary deficiency is unreported (S0475; the clinical signs S0474; S0537 the zinc x copper reading).
         copper = {
             unit = "ug",
             kind = "derived",
