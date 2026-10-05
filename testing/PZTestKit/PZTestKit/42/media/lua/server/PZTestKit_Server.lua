@@ -2102,3 +2102,81 @@ TK.register("autodrink.probe", function(argv)
     if not out.ok then out.reason = "no THIRST read" end
     return out
 end)
+
+-- <celsius>|off. The climate admin override the install's debug climate panel uses
+-- (ClimateOptionsDebug: getClimateManager():getClimateFloat(i) for i in 0..getFloatMax()-1, then
+-- the ClimateFloat's setEnableAdmin / setAdminValue). The float whose getName() is "temperature"
+-- (case-insensitive) is found by that walk, so no index constant is assumed. `off` clears the
+-- admin flag. The final value is recomputed on the climate's own update, so the reply carries the
+-- admin value read back at once (ok follows it), the float's final value and the manager's
+-- getTemperature() as read in this same command -- the settled air temperature is the probe's
+-- later read, not this reply's. On a dedicated server the override is the server's.
+-- @args <celsius|off>
+-- @reply {ok, side, requested, floatName, enableAdmin, adminValue, finalValue, temperature [, reason]} | string
+-- @purpose Sets or clears the ClimateManager's admin override on the temperature float, replying the admin value read back and the manager's temperature that tick.
+TK.register("climate.set", function(argv)
+    local raw = argv[1]
+    local off = (raw == "off")
+    local c = tonumber(raw)
+    if raw == nil or (not off and c == nil) then return "usage: climate.set <celsius|off>" end
+    local out = { ok = false, side = TK.side, requested = raw }
+    if getClimateManager == nil then
+        out.reason = "no getClimateManager global on this side"
+        return out
+    end
+    local okM, cm = pcall(getClimateManager)
+    if not okM or cm == nil then
+        out.reason = "getClimateManager raised or answered nil"
+        return out
+    end
+    local _, max = TK.call(cm, "getFloatMax")
+    if max == nil then
+        out.reason = "no ClimateManager:getFloatMax()"
+        return out
+    end
+    local cf = nil
+    for i = 0, max - 1 do
+        local _, f = TK.call(cm, "getClimateFloat", i)
+        local _, nm = TK.call(f, "getName")
+        if nm ~= nil and string.lower(tostring(nm)) == "temperature" then
+            cf = f
+            out.floatName = nm
+            break
+        end
+    end
+    if cf == nil then
+        out.reason = "no ClimateFloat named temperature among " .. tostring(max)
+        return out
+    end
+    if off then
+        local ran, err = pcall(cf["setEnableAdmin"], cf, false)
+        if not ran then
+            out.reason = "setEnableAdmin raised: " .. tostring(err)
+            return out
+        end
+    else
+        local ran, err = pcall(function()
+            cf["setEnableAdmin"](cf, true)
+            cf["setAdminValue"](cf, c)
+        end)
+        if not ran then
+            out.reason = "admin override raised: " .. tostring(err)
+            return out
+        end
+    end
+    local _, en = TK.call(cf, "isEnableAdmin")
+    local _, av = TK.call(cf, "getAdminValue")
+    local _, fv = TK.call(cf, "getFinalValue")
+    local _, t = TK.call(cm, "getTemperature")
+    out.enableAdmin = en
+    out.adminValue = av
+    out.finalValue = fv
+    out.temperature = t
+    if off then
+        out.ok = (en == false)
+    else
+        out.ok = (en == true and av ~= nil and math.abs(av - c) < 0.01)
+    end
+    if not out.ok then out.reason = "read-back differs" end
+    return out
+end)
