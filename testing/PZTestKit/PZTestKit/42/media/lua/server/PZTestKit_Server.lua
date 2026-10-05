@@ -1977,3 +1977,51 @@ TK.register("zombie.near", function(argv)
     if not out.ok and out.reason == nil then out.reason = "spawned " .. spawned .. " of " .. n end
     return out
 end)
+
+-- ---- Plan 4 Task 3: the kinetics harness wave (server commands) -------------------------------
+
+-- <user> <StatName> <value>. stats.set reaches only the four fields TK.STAT_FIELDS names; the
+-- kinetics gates need INTOXICATION, POISON, FOOD_SICKNESS, SICKNESS, TEMPERATURE, WETNESS and
+-- the rest of the CharacterStat enum. The name is resolved to the enum (CharacterStat[name], then
+-- a pcall'd CharacterStat.valueOf(name)) so a bad name replies ok=false rather than raising, and
+-- the value goes through Stats:set(enum, value) index-first; before and after are read through
+-- Stats:get(enum), so a stat the server re-derives the same tick shows as after ~= requested.
+-- @args <user> <StatName> <value>
+-- @reply {ok, stat, side, requested, before, after [, reason]} | string
+-- @purpose Server-side write of any CharacterStat by enum name on a named player, replying the value read before and after the write.
+TK.register("stats.setany", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local name, v = argv[2], tonumber(argv[3])
+    if name == nil or v == nil then return "usage: stats.setany <user> <StatName> <value>" end
+    local out = { ok = false, stat = name, side = TK.side, requested = v }
+    local enum = nil
+    if CharacterStat ~= nil then
+        enum = CharacterStat[name]
+        if enum == nil and CharacterStat["valueOf"] ~= nil then
+            local ran, e = pcall(CharacterStat["valueOf"], name)
+            if ran then enum = e end
+        end
+    end
+    if enum == nil then
+        out.reason = "no CharacterStat." .. tostring(name)
+        return out
+    end
+    local _, s = TK.call(p, "getStats")
+    if s == nil then
+        out.reason = "no getStats()"
+        return out
+    end
+    local _, before = TK.call(s, "get", enum)
+    out.before = before
+    local ran, err = pcall(s["set"], s, enum, v)
+    if not ran then
+        out.reason = "Stats:set raised: " .. tostring(err)
+        return out
+    end
+    local _, after = TK.call(s, "get", enum)
+    out.after = after
+    out.ok = (after ~= nil)
+    if not out.ok then out.reason = "no read-back" end
+    return out
+end)
