@@ -84,7 +84,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1287/C/open] | Does a folder whose only `mod.info` is `common/mod.info` resolve, and does the client's mod-list call site agree with the dedicated server's? | [open-questions.md](#x21) | X21 | a mod carrying `common/mod.info` and nothing else, its verify gate on the server only, read on both sides |
 | [#1288/C/open] | Does a version dir shipping `media/` that collides with nothing still load, and does a shadowed `common/` copy ever execute? | [open-questions.md](#x22) | X22 | a mod whose `common/` and version dir each ship a colliding and a non-colliding file, with a sentinel only the shadowed copy can set |
 | [#1289/C/open] | How does a release client behave on an unguarded raise, and what sets `showLuaDebuggerOnError`? | [open-questions.md](#x23) | X23 | a release-client boot of the raise probe with its gate moved to the server, plus a desk read |
-| [#1291/C/open] | Is `incWeightLot` ever true, and does the client's derived copy agree when it is? | [open-questions.md](#x25) | X25 | a calorie ladder whose rungs are read off the jar first, reading both sides' weight flags at each rung |
 | [#1292/C/open] | Does CleanUI's `pcall(triggerEvent, …)` wrapper change what an unguarded raise does inside a dispatch? | [open-questions.md](#x26) | X26 | a harness entry into the context-menu builder and one session reading the wrapper's own failure line and the handlers behind the raise |
 | [#1293/C/open] | Does `InitLoadPP`'s per-body net-id reallocation ever put a stale id on the wire? | [open-questions.md](#x27) | X27 | reading a multiply-redefined item's id and full type on both sides, where agreement bounds the risk |
 | [#1295/C/open] | Does MoodleFramework load whole on 42.20.4, does `MF_Config.lua` execute, and does a moodle registered through it render? | [open-questions.md](#x29) | X29 | one session reading its globals on both sides and, on the client, a registered moodle's level and draw after a value past a threshold, beside a value that must leave it undrawn |
@@ -267,12 +266,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - What a release client does with a raise that reaches the failure helper is unmeasured, as is what sets the debugger-on-error flag, because nothing here has run a client without the debug flag [#0958/C/C-only/open].
 - It also settles [#0959/M/n=2/open] on [lua-platform.md](../platform/lua-platform.md#open).
 - Settled by: a release-client boot of the existing raise probe with its verify gate moved to the server, plus a desk read of what sets the flag — [experiments.md § Named experiments](../reference/experiments.md), row `X23`.
-
-<a id="x25"></a>
-### X25 — Is `incWeightLot` ever true, and does the client's derived copy agree when it is?
-- Whether `incWeightLot` is ever true, and whether the client's derived copy agrees when it is, is open [#1291/C/open]; the body acceptance run could not answer it, because with the vanilla `Nutrition` option on the flags both sides read were vanilla's own writes [#2884/M/n=1].
-- Waiting on it: [new-nutrients.md](new-nutrients.md#open).
-- Settled by: a calorie ladder whose rungs are read off the jar first, reading every weight flag on both sides at each rung — [experiments.md § Named experiments](../reference/experiments.md), row `X25`.
 
 <a id="x26"></a>
 ### X26 — Does `CleanUI`'s `pcall(triggerEvent, …)` wrapper change what an unguarded raise does inside a dispatch?

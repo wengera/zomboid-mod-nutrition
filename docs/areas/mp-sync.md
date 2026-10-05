@@ -185,8 +185,10 @@ The experience push is one such push, refreshing the owning client's whole trait
 Measured on a live server with no push sent, a server-written trait reached the owning client within about half a second in three trials, and a removal left it the same way, the arrival the once-a-second experience push predicts [#2759/M/n=3].
 A trait the mod registers arrived the same way on a client loading the same mod [#2760/M/n=1], and its list name is the path of its id alone, so a test of the list matches that path and never the full id [#2761/M/n=1].
 A server-side trait-block push (`sendSyncPlayerFields(player, 2)`) in the same tick as the trait write arrives sooner, within tens of milliseconds against up to about half a second with no push (measured through the harness's `trait.add.push`) ([mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)) [#2099/M/n=6].
+A model-driven band crossing's trait reached the client 61 ms after the boundary estimate [#2912/M/n=1].
 
 The weight-trend flags arrive with the weight on the stats packet, but with `Nutrition` on they are vanilla's `updateWeight` values, so a server mod's flag write does not reach the client as written [#2884/M/n=1][#2644/C/C-only].
+The stats packet's nutrition save carries the weight [#2628/C/C-only] and the update that writes the flags returns with the option off [#0555], so the flags a server write sets did not reach the client at any read across a session [#2911/M/n=1].
 
 Beside the globals the server runs timed pushes of its own, which a mod can read and can neither retime nor reshape.
 The experience object goes to each fully connected player's own connection on the stats snapshot's cadence [#2608/C/C-only].

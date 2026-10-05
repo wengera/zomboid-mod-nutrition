@@ -165,6 +165,7 @@ The server's packet dispatch runs a packet's handler only when the authorization
 Nothing announces the change to Lua, because the engine has no event for it ([Walls and bounds](#walls)) [#2451/C/C-only].
 A mod that cached a value therefore keeps the old one until it reads again, and a captured sub-table is the one reference the apply refreshes in place [#2451/C/C-only] [#2445/C/C-only].
 A server `SandboxOptions:set` changes the option object but not `SandboxVars`, so a mod that polls `SandboxVars` never sees it [#2887/M/n=1].
+A server Lua assignment into the nested `SandboxVars` leaf reaches a mod that polls it [#2914/M/n=1].
 Whether the Lua mirror follows an admin push on a live server is the measurement [Open](#open) names.
 
 <a id="server-file"></a>
