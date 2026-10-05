@@ -1,0 +1,244 @@
+"""The stomach, gastric emptying and absorption chain (NR_Kernel_Stomach.lua), spec § 4.2 / § 4.4.
+
+NR_Kernel_Stomach.lua is a kernel file (its name is NR_Kernel*), so the session `host` fixture loads
+it through its glob and already has NutritionRevamp.kernel.stomach. Every expectation below is
+hand-computed from the file's constants: the half-time 2.0 h and the composition scale (S0130/S0131,
+open rows shipped as design-phase-v1 game choices), the log-linear iron coefficients -0.0034 per mg
+phytic acid (S0195) and +0.0065 per mg ascorbic acid (S0194), the iron bioavailability 0.18 (S0434),
+and the fat-co-ingestion shape 1 - exp(-lipids / 10) (S0197/S0199 basis). The tests pass explicit mg
+values, so the mechanism is proved independent of the seed table's magnitudes.
+"""
+import math
+
+LN2 = math.log(2)
+TOL = 1e-9
+
+
+def _vec(host, **kw):
+    """A full-schema vector (every declared key 0) with the given keys set."""
+    v = host.K.vector["new"]()
+    for k, val in kw.items():
+        v[k] = val
+    return v
+
+
+def _same(host, a, b):
+    """Lua identity: lupa wraps each returned table in a fresh proxy, so == on proxies is not identity."""
+    return host.rt.eval("rawequal")(a, b)
+
+
+def _apple(host):
+    return _vec(host, calories=95, fibre=4.4, water=155.8)
+
+
+# --- constants ---
+
+def test_constants(host):
+    s = host.K.stomach
+    assert s.HALF_TIME_H == 2.0
+    assert s.FULL_BULK == 8.0
+    assert host.py(s.BIOAVAIL) == {"water": 1.0, "fibre": 1.0, "vitC": 0.85, "iron": 0.18, "phytate": 0.0}
+
+
+# --- new / bulkOf / ingest ---
+
+def test_new_is_an_empty_buffer(host):
+    st = host.py(host.K.stomach["new"]())
+    assert st["bulk"] == 0
+    assert set(st["buffer"].keys()) == set(host.K.vector.KEYS.values())
+    assert all(v == 0 for v in st["buffer"].values())
+
+
+def test_bulk_of_an_apple(host):
+    assert abs(host.K.stomach.bulkOf(_apple(host)) - 4.708) < TOL
+
+
+def test_ingest_raises_bulk_and_fills_the_buffer(host):
+    st = host.K.stomach["new"]()
+    out = host.K.stomach.ingest(st, _apple(host))
+    assert _same(host, out, st)
+    assert abs(st.bulk - 4.708) < TOL
+    assert abs(st.buffer.calories - 95) < TOL
+    assert abs(st.buffer.fibre - 4.4) < TOL
+    assert abs(st.buffer.water - 155.8) < TOL
+    host.K.stomach.ingest(st, _apple(host))
+    assert abs(st.bulk - 9.416) < TOL
+    assert abs(st.buffer.calories - 190) < TOL
+
+
+# --- compositionScale / emptyFraction ---
+
+def test_composition_scale_of_a_fatty_meal(host):
+    assert abs(host.K.stomach.compositionScale(_vec(host, calories=360, lipids=40)) - 2.0) < TOL
+
+
+def test_composition_scale_fibre_term(host):
+    assert abs(host.K.stomach.compositionScale(_vec(host, calories=100, fibre=15)) - 2.0) < TOL
+
+
+def test_composition_scale_of_a_pure_liquid(host):
+    assert host.K.stomach.compositionScale(_vec(host, water=300)) == 0.25
+
+
+def test_composition_scale_clamps_high(host):
+    assert host.K.stomach.compositionScale(_vec(host, calories=1800, lipids=200)) == 3.0
+
+
+def test_composition_scale_of_an_empty_buffer_is_one(host):
+    assert host.K.stomach.compositionScale(_vec(host)) == 1
+
+
+def test_empty_fraction_one_half_time(host):
+    assert abs(host.K.stomach.emptyFraction(2.0, 1.0, 2.0) - 0.5) < TOL
+
+
+def test_empty_fraction_zero_dt(host):
+    assert host.K.stomach.emptyFraction(2.0, 1.0, 0) == 0
+
+
+def test_empty_fraction_negative_dt(host):
+    assert host.K.stomach.emptyFraction(2.0, 1.0, -1) == 0
+
+
+def test_empty_fraction_slower_for_a_larger_scale(host):
+    f = host.K.stomach.emptyFraction(2.0, 2.0, 2.0)
+    assert abs(f - (1 - math.exp(-LN2 * 2 / 4))) < TOL
+    assert abs(f - 0.2928932188) < 1e-9
+
+
+# --- empty ---
+
+def test_empty_one_half_time_moves_half_of_every_key(host):
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _vec(host, calories=100, iron=2, vitC=30, water=50))
+    bulk0 = st.bulk
+    emptied = host.py(host.K.stomach.empty(st, 2.0))
+    left = host.py(st.buffer)
+    for k, v0 in {"calories": 100, "iron": 2, "vitC": 30, "water": 50}.items():
+        assert abs(emptied[k] - v0 / 2) < TOL
+        assert abs(left[k] - v0 / 2) < TOL
+    assert abs(st.bulk - bulk0 / 2) < TOL
+
+
+def test_a_fattier_buffer_empties_slower(host):
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _vec(host, calories=360, lipids=40, iron=2))
+    emptied = host.py(host.K.stomach.empty(st, 2.0))
+    f = 1 - math.exp(-LN2 * 2 / 4)
+    assert abs(emptied["lipids"] - 40 * f) < TOL
+    assert abs(emptied["iron"] - 2 * f) < TOL
+    assert abs(st.buffer.lipids - 40 * (1 - f)) < TOL
+    assert abs(st.buffer.calories - 360 * (1 - f)) < TOL
+
+
+def test_empty_zero_dt_moves_nothing(host):
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _apple(host))
+    emptied = host.py(host.K.stomach.empty(st, 0))
+    assert all(v == 0 for v in emptied.values())
+    assert abs(st.buffer.calories - 95) < TOL
+
+
+# --- ironFactor / fatFactor ---
+
+def test_iron_factor_phytate(host):
+    assert abs(host.K.stomach.ironFactor(250, 0) - math.exp(-0.85)) < TOL
+    assert abs(host.K.stomach.ironFactor(250, 0) - 0.4274) < 1e-4
+
+
+def test_iron_factor_vitamin_c(host):
+    assert abs(host.K.stomach.ironFactor(0, 100) - math.exp(0.65)) < TOL
+    assert abs(host.K.stomach.ironFactor(0, 100) - 1.9155) < 1e-4
+
+
+def test_iron_factor_neutral(host):
+    assert host.K.stomach.ironFactor(0, 0) == 1
+
+
+def test_iron_factor_clamps_low(host):
+    assert host.K.stomach.ironFactor(2000, 0) == 0.2
+
+
+def test_iron_factor_clamps_high(host):
+    assert host.K.stomach.ironFactor(0, 1000) == 4.0
+
+
+def test_vitamin_c_counteracts_phytate(host):
+    both = host.K.stomach.ironFactor(250, 100)
+    assert host.K.stomach.ironFactor(250, 0) < both < host.K.stomach.ironFactor(0, 100)
+    assert abs(both - math.exp(-0.85 + 0.65)) < TOL
+
+
+def test_fat_factor_floor(host):
+    assert host.K.stomach.fatFactor(0) == 0.05
+
+
+def test_fat_factor_28g(host):
+    assert abs(host.K.stomach.fatFactor(28) - (1 - math.exp(-2.8))) < TOL
+    assert abs(host.K.stomach.fatFactor(28) - 0.9392) < 1e-4
+
+
+def test_fat_factor_clamps_high(host):
+    assert host.K.stomach.fatFactor(1000) == 1.0
+
+
+# --- absorb ---
+
+def test_absorb_phytate_meal(host):
+    emptied = _vec(host, calories=100, iron=10, phytate=250, vitC=0, water=50)
+    out = host.py(host.K.stomach.absorb(emptied))
+    assert out["calories"] == 100
+    assert abs(out["iron"] - 10 * 0.18 * math.exp(-0.85)) < TOL
+    assert abs(out["iron"] - 0.7693) < 1e-4
+    assert out["phytate"] == 0
+    assert abs(out["water"] - 50) < TOL
+
+
+def test_absorb_vitamin_c_meal(host):
+    emptied = _vec(host, iron=10, vitC=100, fibre=6, lipids=12)
+    out = host.py(host.K.stomach.absorb(emptied))
+    assert abs(out["iron"] - 10 * 0.18 * math.exp(0.65)) < TOL
+    assert abs(out["iron"] - 3.448) < 1e-3
+    assert abs(out["vitC"] - 85) < TOL
+    assert abs(out["fibre"] - 6) < TOL
+    assert out["lipids"] == 12
+
+
+def test_absorb_iron_control_and_a_fresh_vector(host):
+    emptied = _vec(host, iron=10)
+    out = host.K.stomach.absorb(emptied)
+    assert not _same(host, out, emptied)
+    assert abs(out.iron - 1.8) < TOL
+    assert emptied.iron == 10
+
+
+# --- toPool / fill ---
+
+def test_to_pool_accumulates(host):
+    pool = host.K.vector["new"]()
+    a = host.K.stomach.absorb(_vec(host, calories=100, vitC=10))
+    out = host.K.stomach.toPool(pool, a)
+    assert _same(host, out, pool)
+    host.K.stomach.toPool(pool, a)
+    assert abs(pool.calories - 200) < TOL
+    assert abs(pool.vitC - 17) < TOL
+
+
+def test_fill_fresh_is_zero(host):
+    assert host.K.stomach.fill(host.K.stomach["new"]()) == 0
+
+
+def test_fill_after_an_apple_and_it_falls_on_empty(host):
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _apple(host))
+    f0 = host.K.stomach.fill(st)
+    assert abs(f0 - 4.708 / 8) < TOL
+    assert abs(f0 - 0.5885) < 1e-4
+    host.K.stomach.empty(st, 1.0)
+    assert host.K.stomach.fill(st) < f0
+
+
+def test_fill_clamps_at_one(host):
+    st = host.K.stomach["new"]()
+    host.K.stomach.ingest(st, _vec(host, calories=5000))
+    assert host.K.stomach.fill(st) == 1
