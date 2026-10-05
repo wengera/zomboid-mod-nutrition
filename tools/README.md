@@ -386,9 +386,8 @@ import patterns from there.
   tag it did not cover; exits 1 and writes nothing on an invalid delta. Never deletes a row. Not idempotent: preview
   with `--dry-run`, then apply exactly once — a second apply mints a second row for the same `add`. A delta naming a row that is already
   `superseded` is refused, and a `retarget` whose new owner page is not among `--pages` is noted.
-  `supersede <id>` makes the `add` its `successor` cell names (a provisional id, wherever it sits) the row's single successor,
-  or the one `add` line directly after it when the cell is empty (the two-child form is `split`); a cell naming a provisional id no `add`
-  carries is refused, and before this the cell was ignored (review-t16 I1); a successor that already exists is `status` with a `successor` cell.
+  `supersede <id>` makes the `add` its `successor` cell names (a provisional id, wherever it sits) the row's single successor, or the one `add` directly after it when the cell is empty (the two-child form is `split`); a cell naming no `add` is refused (the cell was once ignored, review-t16 I1);
+  a successor that already exists is `status` with a `successor` cell.
 
 - `page_lint.py` — `python tools/page_lint.py <page.md>… [--partial] [--allow-provisional] [--register TSV] [--cap N]`. The page
   contract (spec § The page contract) as rules for `docs/areas`, `docs/platform`, `docs/facts`: the stamp
