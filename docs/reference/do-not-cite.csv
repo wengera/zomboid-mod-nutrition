@@ -331,3 +331,9 @@ x141b2-20261005-144202,summary.verdicts.A0,`as_predicted`,The same.,the same
 x141b2-20261005-144202,verdicts.E.observed.rows[*].match,`true`,"Nothing landed (the items existed only on the client); at fill ~0 both forms read 1.",—
 x141b2-20261005-144202,verdicts.G.observed.log_total_at_end,0,"No rep ran (the failed eats held the action queue).",—
 x141b2-20261005-144202,phases.FAST.watches[*].boundary_epoch_ms_est,—,"Estimated from the cycles' (age, wall) pairs, not a stamp.",cite as an estimate only
+x151w-20261005-161652,verdicts.A.verdict,`falsified`,"The auto-grade: extAir did not move because the character's air read 22.0 throughout; the climate half is unmeasured.",cite `summaries.A0.fields` and `climate`
+x151w-20261005-161652,summary.verdicts.A,`falsified`,The same.,the same
+x151w-20261005-161652,verdicts.*.verdict,`see_raw`,"Placeholders; the grades are the reading guide's.",cite the phase keys
+x151w-20261005-161652,records[*].mirror_pool_water,0,"The mirror is a snapshot sent on request, not a live read of the pool.",cite `records[*].pool.water`
+x151w-20261005-161652,phases.*.watch.raw,—,"The first 50 ticks (5 s) of each window only.",cite `phases.*.watch.fields`
+x151w-20261005-161652,phases.C.spawn.attempts[*].id,678729060,"B1's canteen: the client read finds the first canteen of the type.",—
