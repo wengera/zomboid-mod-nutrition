@@ -76,8 +76,8 @@ correct it.
 | `x132r-20261005-072441` | `residual.json` | `testing/experiments/x132_residual.py` — **two boots in one file**: `boots.A` (`nr-overlay`, the control) and `boots.B` (`x13-residual`, the takeover beside TKX_CalcStats) | [`facts/character-stats.md`](../facts/character-stats.md), [`platform/harness.md`](../platform/harness.md), [`platform/mp-model.md`](../platform/mp-model.md) |
 | `x141s-20261005-105131` | `strength_gate.json` | `testing/experiments/x141_strength_gate.py` — one boot of `x14-strength`: phases `S0` setup, `S1` grant, `A` the level write and push window, `R` the forced rust pass, `Y` the admin SyncXp, `B` X39, `D` X48, `C` X40 | [`facts/perks-and-strength.md`](../facts/perks-and-strength.md) |
 | `x141a-20261005-111005` | `activity_gate.json` | `testing/experiments/x141_activity_gate.py` — one boot of `x14-activity`: arms `S0` setup, `I` idle, `W` walk, `RD` read, `E` eat, `X` squats, `R` run, `SP` sprint (two legs), `L` loaded walk, `M` melee | [`facts/body-and-weight.md`](../facts/body-and-weight.md), [`facts/character-stats.md`](../facts/character-stats.md), [`facts/exercise-and-training.md`](../facts/exercise-and-training.md) |
-| `x141b-20261005-122603` | `body.json` | `testing/experiments/x141_body.py` — one boot of `x14-body`: phases `A` first sight, `G1` cost, `D` re-assert, `FAST` nine accelerated fasting days with nine boundary watches, `F` the eat (unmeasured), `E1` mirror on, `G2` cost, `E0` mirror off (unmeasured) | — |
-| `x141c-20261005-132133` | `clamp.json` | `testing/experiments/x141_clamp.py` — one boot of `x14-clamp`: phases `P0` first sight, `C` carry, `H1` sleep hold at rmod 1, `X` the level-6 crossing held at 5, `R` an admin level write, `U` the rise hysteresis on the XP axis, `F` the fast to the lean-driven fall, `H2` sleep hold at rmod 0.848, `D` squats and push-ups, `T` the post-training close, `M` melee (unmeasured) | — |
+| `x141b-20261005-122603` | `body.json` | `testing/experiments/x141_body.py` — one boot of `x14-body`: phases `A` first sight, `G1` cost, `D` re-assert, `FAST` nine accelerated fasting days with nine boundary watches, `F` the eat (unmeasured), `E1` mirror on, `G2` cost, `E0` mirror off (unmeasured) | [`areas/mp-sync.md`](../areas/mp-sync.md), [`areas/testing-your-mod.md`](../areas/testing-your-mod.md), [`facts/body-and-weight.md`](../facts/body-and-weight.md), [`platform/sandbox-options.md`](../platform/sandbox-options.md) |
+| `x141c-20261005-132133` | `clamp.json` | `testing/experiments/x141_clamp.py` — one boot of `x14-clamp`: phases `P0` first sight, `C` carry, `H1` sleep hold at rmod 1, `X` the level-6 crossing held at 5, `R` an admin level write, `U` the rise hysteresis on the XP axis, `F` the fast to the lean-driven fall, `H2` sleep hold at rmod 0.848, `D` squats and push-ups, `T` the post-training close, `M` melee (unmeasured) | [`areas/testing-your-mod.md`](../areas/testing-your-mod.md), [`facts/exercise-and-training.md`](../facts/exercise-and-training.md), [`facts/perks-and-strength.md`](../facts/perks-and-strength.md) |
 
 ## Script/artifact skew
 
@@ -2455,7 +2455,7 @@ the first 50 ticks parsed in `raw`, `new_hist_keys`). `arm_summaries` rolls each
 | `phases.M.result.returns` as hits | `false` ×5 | `DoAttack`'s return is not a hit; `hitxp_count` is. |
 | `client_lua_error`, `server_error_count` as mod faults | `true`, 51 | The probe's own `get(0)` on an empty stack plus boot baseline. |
 
-**`x141b-20261005-122603/body.json`** — produced by `testing/experiments/x141_body.py` on HEAD `9768ce0` with the driver itself still untracked; it is committed unedited beside the artifact
+**`x141b-20261005-122603/body.json`** — produced by `testing/experiments/x141_body.py` on HEAD `9768ce0` with the driver itself still untracked; run with vanilla `Nutrition` ON against the design precondition (a profile defect, corrected at 3fa45b3): vanilla's per-tick nutrition update ran beside the mod's minute writes, which is the source of the weight residuals (≤ 1e-4 kg) and the store offsets; it is committed unedited beside the artifact
 (2022.8 s wall; 14 120 452 bytes, sha256 `4272c248…e828999a`, byte-for-byte identical to the run copy). **Plan 3 acceptance 1, Task 18**:
 one boot of `x14-body` (PZTestKit + NutritionRevamp Mode 1 with `NR.LegacyMirror` on + TKX_MetWatch) at DayLength 1, one admin character.
 Mod `9768ce0` clean, probe mod `a4f02be`, harness Lua `b246196` clean, `doctor_clean` true; `verify` 6/6 `ok`; `phase_errors` empty;
@@ -2465,7 +2465,7 @@ How to read it. Every bus call is a row of `steps`; the phases are in `phases` (
 record is read whole with `witness.moddata global:NutritionRevamp.players admin.body` (a table-valued key comes back raw with full-precision
 numbers; `phases.A.scalars` shows the same keys as strings). `FAST.cycles` are the ~1-game-hour sample cycles at RCON `settimespeed 5`,
 `FAST.bodies` every body read, `FAST.closes` the first read of each `dayIndex`, `FAST.watches` the nine boundary windows (a client
-`stats.get` every ~0.5 s from 0.4 game hours before the boundary to 10 s after it, with one server read ~0.35 s after the boundary
+`stats.get` every ~0.5 s from 0.4 game hours before the boundary to 10 s after it, with one server read 0.33–0.90 s after the boundary
 estimate; `boundary_epoch_ms_est` is ESTIMATED from the server's `(worldAge, wall)` pairs). `prediction_live` is the header's arithmetic
 re-run from the first-sight record; `prediction_apriori` the header's two 80 kg cases.
 
@@ -2482,13 +2482,13 @@ re-run from the first-sight record; `prediction_apriori` the header's two 80 kg 
   client's within 1e-3 at 747/747. `dec_after_first_close_both` is NON-DISCRIMINATING: `decWeight` read true on both sides at all 66 day-0
   cycles too, where the mod's 7-day trend is exactly 0 and it writes false — the flags the sides read are vanilla's own `updateWeight`
   writes (the `Nutrition` option is on), not the mod's. `incWeightLot` never true: X25 (#1291) not exercised.
-- **Cadence (`cadence`)**: at all nine closes the server's post-close weight was already readable ~0.35 s after the boundary estimate, and the
-  client's first read of the new weight came 1.06–1.75 s after the estimate; the client read before it sat 1.3 s earlier (the server read
+- **Cadence (`cadence`)**: at all nine closes the server's post-close weight was already readable 0.33–0.90 s after the boundary estimate, and the
+  client's first read of the new weight came 1.06–1.75 s after the estimate; the client read before it sat 1.0 s earlier (0.05–0.75 s after the boundary estimate, still reading the old weight) (the server read
   blocked the poll), so these are upper bounds only. `decWeight` true on the client at every first read.
 - **C (`verdicts.C`, unmeasured)**: no band change — the female subject reached 75.67 kg at the ninth close (the header's female case:
   no crossing within nine closes); `bandChanges` and `bandRepairs` 0 throughout, `pushes` 0.
 - **D (`verdicts.D`, as predicted)**: `nutrition.set admin weight 120` answered 120 (the write landed); the first server read, 2.04 game
-  minutes later, read 79.99998 and every read over 90 s read fm + lm within 3e-5; the client never read 120.
+  minutes later, read 79.99998 and every read over 90 s read fm + lm within 1e-4 (raw maximum 7.5e-5); the client never read 120.
 - **F (`verdicts.F`, unmeasured)**: both eats answered `validStart` false with `moodleFoodEaten` 4: the driver's own health control (the
   health-from-food timer written to 20000) holds the FOOD_EATEN moodle at its top level, and vanilla refuses an eat there. The four reads
   show hunger 1 at fill ~1e-33 with `energyState` 1.52 — the form's empty-stomach value, not the floor.
@@ -2510,7 +2510,7 @@ re-run from the first-sight record; `prediction_apriori` the header's two 80 kg 
 | everything measured here, as a population | — | `n = 1` boot, one fixture, one female admin character. |
 | `verdicts.A.verdict`, `summary.verdicts.A`, `verdicts.A.observed.ok_split` | `falsified`, `false` | The split was compared with a drifted later weight read; at 80 kg it matches exactly. |
 | `verdicts.B.observed.dec_after_first_close_both` as the mod's flag | `true` | Vanilla's `updateWeight` writes the flags every tick; the day-0 reads are true where the mod writes false. |
-| `cadence[*].latency_ms_from_boundary_est` as a latency | 1055.8–1752.6 | Upper bounds against an estimated boundary; the poll before each was 1.3 s earlier. |
+| `cadence[*].latency_ms_from_boundary_est` as a latency | 1055.8–1752.6 | Upper bounds against an estimated boundary; the poll before each was 1.0 s earlier. |
 | `verdicts.F.observed.reads[*].match`, `.match_no_floor` | `true` | Fill was ~0 (no eat landed); both forms read 1 there. |
 | `verdicts.E1.verdict` as the macro mirror | `as_predicted` | No intake landed; proteins/carbs/lipids sat at the zero-intake maps. |
 | `prediction_apriori.male80` | — | The subject is female. |
@@ -2537,7 +2537,7 @@ table (raw numbers). `trait_pairs` holds every client/server band-trait read; `e
 - **carry (`verdicts.carry`, as predicted)**: `getMaxWeightDelta` 1 = `body.delta` 1 = `traitCarry` × (1 + 0). `carry.set admin 2.0` answered
   `after` 2; the first read, issued as the set returned, already read 1; `carryWrites` 0 → 1. The client's `getMaxWeightDelta` read 1.
 - **X (`verdicts.X-clamp`, `verdicts.X39-LevelPerk`, as predicted)**: the grant took XP 37500 → 67600 with `levelAfter` 6 in the grant's
-  tick; the server read level 5 0.3 s later and at all 11 samples over 30 s, the client 5 at all 11, XP 67600 throughout, through an
+  tick; the server read level 5 within 0.76 s (the read issued as the grant returned) and at all 11 samples over 30 s, the client 5 at all 11, XP 67600 throughout, through an
   `xp.sync` at 15 s. `writes` 0 → 1 and `pushes` 0 → 1: the clamp's remap at 5 removed a band trait, the STOUT vanilla's level-up
   listener had added. STOUT was on neither side's trait list at any read, and the client's 40 s `trait.watch stout` never saw it.
   TKX_XpEvents: `levelperk_count` 0 → 1, `lastPerk` Strength, `lastLevel` 6, `lastGained` true.

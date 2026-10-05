@@ -153,6 +153,7 @@ Past its gates, `GameServer.addXp` calls the six-argument `AddXP` with the no-mu
 It then refreshes the anti-cheat's experience snapshot through `updateXpChecker` [#2132/C/C-only].
 A grant through `addXp` on the server therefore fires the `AddXP` event there unless the character is asleep, and the `LevelPerk` event too when it crosses a threshold [#2161/C/C-only] [#2125/C/C-only] [#2130/C/C-only].
 The `AddXP` Lua event fires on the server for every `addXp` grant, with the amount and the current (even debug-written) level, and for the rust step's -1 [#2871/M/n=1].
+`LevelPerk` fires on the server once per level crossed, up or down, and vanilla's band listener remaps on both [#2895/M/n=1][#2084/M/n=1].
 
 <a id="readers"></a>
 ### The Java readers of the two levels
@@ -264,7 +265,6 @@ Not covered: the body of `AddXPHaloText`; the wire encoding of a perk id inside 
 ## Open
 <a id="open"></a>
 
-- Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? — settled by server-side event counters against a console grant; -> [X39](../areas/open-questions.md#x39) [#2084/C/open]
 - What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? — settled by timed server-side bursts either side of the bound, the desk half being read [#2860/C/C-only] [#2865/C/C-only]; -> [X40](../areas/open-questions.md#x40) [#2085/C/open]
 - Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? — settled by melee hits with the protein store raised on one side at a time; -> [X48](../areas/open-questions.md#x48) [#2087/C/open]
 - Decision: which overload a dedicated server reaches for a connected player's combat experience decides where the protein branch and the Fitness gate evaluate — every server-side grant reaches the six-argument body through `GameServer.addXp`, while no client-side overload reaches it at all [#2105/C/C-only] [#2132/C/C-only].

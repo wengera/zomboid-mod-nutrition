@@ -159,12 +159,25 @@ The thirst crossing does not depend on the day length while the health drain doe
 Pinning is a control rather than a thumb on the scale, because neither the weight update nor the calorie update has a hunger or thirst term [#0178].
 A subject that dies anyway spoils the run without failing it loudly: the update stops on a corpse while an external calorie write still lands, so the trace keeps a plausible calorie line beside frozen stores ([#0176/M/one-fixture, #0177/M/one-fixture], [nutrition-core.md#verified](../facts/nutrition-core.md#verified)).
 The unpinned gain run is the precedent, its subject dead partway through and only its alive window citable [#0158/M/one-fixture].
+The health-from-food timer keeps a starving subject alive but holds FOOD_EATEN at level 4, which refuses every eat [#2889/M/n=1, #0077]; world age 0 is 07:00 on the default fixture [#2890/M/n=1].
 The evaluator fails a run outright on a dead sample [#1786], and neither that verdict nor the thirst sample column has yet run on a live session [#0171/C/snapshot].
 A scenario that wants the thirst clock itself as its reading drops the pin and reads the death as its result.
 
 The dose schedule is the last input, because the calorie ceiling rather than the rate constant bounds a fed character [#0165/M/one-fixture].
 A schedule that doses past the ceiling loses the excess to the clamp, so a scenario reads the store it got rather than the dose it asked for ([#0022/M/n=2], [nutrition-core.md#clamps](../facts/nutrition-core.md#clamps)).
 The first day of a fed run is a ramp from an empty store, so a per-day rate read off that day is not the steady rate [#0162/M/one-fixture].
+At first sight the server's record split the admin's 80 kg exactly by the band-anchored table [#2881/M/n=1].
+Over nine accelerated fasting days each day close moved fat and lean by exactly the partition law, 80.00 to 75.67 kg for an idle female [#2882/M/n=1].
+The weight write re-asserts within the first read after an admin write of 120 [#2885/M/n=1].
+With the legacy mirror on the calorie store tracks the trailing-24 h balance map [#2886/M/n=1].
+A replete character's coefficients read exactly 1 [#2891/M/n=1].
+A day's training reaches TAC one close late [#2892/M/n=1].
+The carry delta is re-asserted against another writer within one slow minute [#2893/M/n=1].
+A vanilla level-up across the ceiling lasts less than one slow minute: the clamp writes the level back and its remap removes the band trait vanilla's listener added, before the client sees it [#2894/M/n=1].
+An admin debug write is re-asserted the next minute [#2896/M/n=1].
+The rise waits six game hours of the ceiling standing above the shown level, counted from when it began, not from when the XP-implied level returned [#2897/M/n=1].
+A lean-driven fall lands within one slow minute of the day close that drops the ceiling, with its band trait pushed [#2898/M/n=1].
+Under the harness's sleep hold an rmod of 0.848 slowed endurance regeneration to 0.904 of the rmod-1 rate [#2899/M/n=1].
 
 <a id="owned-experiments"></a>
 ### The experiments this mod owns
@@ -291,6 +304,7 @@ At which pacing does each of this mod's timed scenarios run — real time, a sho
 - A tooltip probe on the stack profile reads the end of a sentinel-free wrap chain the resident mods build, one of whose links bypasses the chain with its own fork of vanilla's render, so it never reads the mod's wrap alone [#2568/C/snapshot].
 - No bit-level claim may rest on an artifact written before the harness commit `291f977` [#1254/C/snapshot].
 - The Plan 2 § 6 cost budget is measured and holds, the reading taken on the Plan 1 fast step at efd9e97 before Task 11 replaced the hunger-drain arms with the stomach-fill term (the change removes branches and adds one scalar read, so it bounds the shipped step from above without a re-run): `NutritionRevamp.bench_fast`, one whole fast step run through the takeover entry point over a representative steady-state awake tick, costs 3.06 µs per call (100 000 calls in 306 ms), a per-tick floor rather than a worst case [#2822/M/n=1]; on the same fixture a takeover boot and an overlay boot answer `tick.rate` at 10.01 and 10.10 server ticks per second (ratio 0.990), so the handler holds the tick rate within about 1 % of the seven updaters it replaces [#2823/M/n=1]; the entry gate proceeds and takeover stays the shipped default [#2824/M/n=1] ([artifacts.md](../reference/artifacts.md)).
+- The Plan 3 build left the cost where Plan 2 measured it [#2888/M/n=1].
 
 Not covered: a second machine or any continuous-integration host, a Linux dedicated server, a release client, a session with two driven clients, a save-and-reload cycle, and any session a person drives rather than the bus — every reading this plan can take is one Windows machine driving one dedicated server and at most one debug client.
 

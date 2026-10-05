@@ -298,6 +298,7 @@ The refresh runs only once every 2000 `updateWeight` calls, so a weight change i
 Unforced, the refresh did not fire within 60 s of dedicated-server time: with weight moved from 80 to 105 and no forced refresh, 29 polls over 59.8 s all read the Obese trait false at a weight of 105 [#0535/M/n=1].
 `getNutrition():applyTraitFromWeight()` is public, Lua-reachable and applies the band trait instantly; it is the route every measured band reading used [#0536/M/n=1].
 A character created inside a band starts at the band's own weight rather than at its edge, and those five creation weights are read from the code and not measured [#0533/C/C-only].
+A server mod's per-minute weight write holds the slot on both sides within 1e-3 kg, and a step in it reached the owning client's read within 1.75 s at every one of nine closes, an upper bound [#2883/M/n=1].
 
 The weight formula that feeds all of this — the gain and loss thresholds, the rates and the macro multipliers — is [nutrition-core.md#weight-model](nutrition-core.md#weight-model).
 One correction belongs here rather than there: `setIncWeightLot(true)` fires on the double-gain arm as well as the triple, that is from carbohydrates or lipids above 400 rather than above 700, so a display suffix driven by the flag appears from 400 [#1101, #1491/C/C-only].

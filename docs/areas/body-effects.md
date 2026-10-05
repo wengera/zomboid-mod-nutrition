@@ -316,6 +316,7 @@ It cannot stop the server's fatigue reset or the player's endurance model, both 
 An overlay leaves the updaters running and corrects the stats after them from a server-side handler later in the frame, whose place in the frame is [the server tick order](../platform/server-lifecycle.md#tick-order).
 It owns nothing outright: vanilla's rates keep running, and the only sandbox dial on them scales hunger, thirst and fatigue together and never calories [#0553].
 It composes with other mods, because nothing it does suppresses anyone else's code.
+The direction flags the sides read are vanilla's own while the `Nutrition` option is on [#2884/M/n=1].
 Which shape a design takes decides whether the seven formulas must be reproduced at all.
 
 ### Level clamp against experience clamp
@@ -358,7 +359,6 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 - Whether a handler that reproduces the seven skipped updaters tracks vanilla's stat trajectory stat by stat over several game-hours — settled by two boots of one fixture, with no handler and with the reproducing handler; -> [X34](open-questions.md#x34) [#2081/C/open].
 - Whether a handler's endurance write is the last before the player-stats push — settled by a sentinel endurance written each tick and read in client-first pairs; -> [X35](open-questions.md#x35) [#2082/C/open].
 - Whether the fitness object's update ticks on the server for a connected player — settled by a seeded exercise and two idle game-days, reading the server's regularity; -> [X36](open-questions.md#x36) [#2083/C/open].
-- Whether `LevelPerk` fires on a real level crossing for a connected player — `AddXP` fires per grant [#2871/M/n=1] and per rep [#2879/M/n=1], and `OnWeaponHitXp` per landed swing [#2880/M/n=1], all measured; the crossing is the open arm -> [X39](open-questions.md#x39) [#2084/C/open].
 - What the experience anti-cheat's check interval is, and whether a server-side burst of grants trips it — settled by a desk read of the enabling option and timed bursts either side of the bound; -> [X40](open-questions.md#x40) [#2085/C/open].
 - Whether a client-side write to the `WalkSpeed` animation variable holds inside the injuries-packet window — settled by a client write sampled every quarter second; -> [X47](open-questions.md#x47) [#2096/C/open].
 - Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value — settled by melee hits with the protein store raised on one side at a time; -> [X48](open-questions.md#x48) [#2087/C/open].

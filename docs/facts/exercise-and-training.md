@@ -102,6 +102,7 @@ The table `init` reads is the global of the Lua state the call runs in, so on a 
 Each exercise object reads four keys off its Lua row: `type`, `metabolics`, a comma-separated `stiffness` string split into a list, and `xpMod`, which defaults to 1 and is overridden only when the row's value is above 0 [#2180/C/C-only].
 All four fields are package-private with no getters, so Lua holds the exercise object from `getCurrentExe()` but cannot read its fields [#2180/C/C-only].
 The body groups a rep loads are therefore read off the Lua table the mod can see, or off the soreness countdown `getCurrentExeStiffnessTimer(part)` returns, not off the Java object [#2180/C/C-only] [#2182/C/C-only].
+The current exercise's `.type` is unreadable from Lua and raises [#2901/M/n=1].
 
 <a id="exercise-path"></a>
 ### How a rep reaches the server
@@ -193,6 +194,7 @@ The melee grants reach the server through the server-only trigger and the server
 A multiplayer client therefore never originates a Strength or Fitness grant from exercise, a hit, a swing or exhaustion [#2173/C/C-only] [#2190/C/C-only] [#2193/C/C-only].
 
 `OnWeaponHitXp` fires on the server for a connected player's landed melee hits, with the hit-count argument 1 [#2880/M/n=1].
+A push-up rep fires Strength then Fitness at amount 0 [#2900/M/n=1].
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -210,7 +212,6 @@ Not covered: `Fitness.save` and `Fitness.load` (which maps survive a save), the 
 <a id="open"></a>
 
 - Whether `Fitness.update`'s decay ticks on the server for a connected player, so that regularity decays and soreness lands there (the rep path is settled, #2879) — settled by a seeded exercise and two idle game-days, reading the server's regularity for the predicted fall; -> [X36](../areas/open-questions.md#x36) [#2083/C/open]
-- Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise — settled by server-side counters on the three events after a console grant, melee hits and an exercise; -> [X39](../areas/open-questions.md#x39) [#2084/C/open]
 - A decision the design takes: whether a training model reads the engine's per-exercise regularity or keeps its own, given that regularity decays only after a one-day grace, by 0.288 a day, with no floor [#2167/C/arith.] [#2166/C/C-only].
 - A decision the design takes: whether a resistance dose counts reps through the server-side grant or through the fitness object, given that the grant is truncated to an integer and a multiplayer client grants nothing [#2173/C/C-only].
 - A decision the design takes: whether melee training reads the event argument or the attacker's hit count, given that both triggers pass `1` [#2194/C/C-only].

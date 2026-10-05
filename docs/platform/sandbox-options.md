@@ -164,6 +164,7 @@ The packet type requires `Capability.SandboxOptions` [#2450/C/C-only].
 The server's packet dispatch runs a packet's handler only when the authorization check passes, which it does only when the connection's role holds the packet's required capability, so a sandbox-options packet from a connection without that capability reaches no handler [#2450/C/C-only].
 Nothing announces the change to Lua, because the engine has no event for it ([Walls and bounds](#walls)) [#2451/C/C-only].
 A mod that cached a value therefore keeps the old one until it reads again, and a captured sub-table is the one reference the apply refreshes in place [#2451/C/C-only] [#2445/C/C-only].
+A server `SandboxOptions:set` changes the option object but not `SandboxVars`, so a mod that polls `SandboxVars` never sees it [#2887/M/n=1].
 Whether the Lua mirror follows an admin push on a live server is the measurement [Open](#open) names.
 
 <a id="server-file"></a>

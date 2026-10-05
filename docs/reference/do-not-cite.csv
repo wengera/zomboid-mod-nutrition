@@ -310,7 +310,7 @@ x141b-20261005-122603,verdicts.A.verdict,`falsified`,"The split was compared wit
 x141b-20261005-122603,summary.verdicts.A,`falsified`,The same.,the same
 x141b-20261005-122603,verdicts.A.observed.ok_split,`false`,The same.,the same
 x141b-20261005-122603,verdicts.B.observed.dec_after_first_close_both,`true`,"Vanilla updateWeight writes the flags every tick; the day-0 reads are true where the mod writes false.",cite the day-0 cycles as vanilla overwriting the flags
-x141b-20261005-122603,cadence[*].latency_ms_from_boundary_est,1055.8-1752.6,"Upper bounds against an estimated boundary; the poll before each was 1.3 s earlier.",cite as an upper bound only
+x141b-20261005-122603,cadence[*].latency_ms_from_boundary_est,1055.8-1752.6,"Upper bounds against an estimated boundary; the poll before each was 1.0 s earlier.",cite as an upper bound only
 x141b-20261005-122603,verdicts.F.observed.reads[*].match,`true`,"Fill was ~0 (no eat landed); both forms read 1 there.",—
 x141b-20261005-122603,verdicts.E1.verdict,`as_predicted`,"No intake landed; the macro maps sat at their zero-intake values.",cite the calories arm only
 x141b-20261005-122603,prediction_apriori.male80,—,The subject is female.,`prediction_live`
