@@ -1621,6 +1621,17 @@ local function chainRead(subject, chain)
             out.error = "no member " .. name
             return out
         end
+        -- a `get(N)` on a Java list whose size() <= N is an empty read, not a raise: answer it
+        -- without calling get, so the engine log carries no exception line (T5).
+        local idx = lit ~= nil and tonumber(lit) or nil
+        if name == "get" and idx ~= nil and obj["size"] ~= nil then
+            local okS, n = pcall(obj["size"], obj)
+            if okS and type(n) == "number" and n <= idx then
+                out.failedAt = i
+                out.reason = "empty"
+                return out
+            end
+        end
         local ran, v
         if lit ~= nil then
             local arg = chainLiteral(lit)
@@ -1663,7 +1674,7 @@ end
 -- The end value: a number, boolean or string is tostring'd; a Lua table is walked ONE level
 -- into string values; anything else (a Java object) is tostring'd, which names its class.
 -- @args <user> <getter1[(arg)]>.<getter2>...
--- @reply {ok, value, hops, failedAt [, error]} | string
+-- @reply {ok, value, hops, failedAt [, error] [, reason]} | string
 -- @purpose Reads the value at the end of a dot-chain of zero- or one-literal-argument getters on a named player (index-first at every hop); the one command for reads the typed witnesses do not name, such as the thermoregulator's metabolic target.
 TK.register("witness.chain", function(argv)
     local p = findPlayer(argv[1])

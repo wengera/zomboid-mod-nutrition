@@ -14,7 +14,7 @@
 --   invw      getInventoryWeight()
 -- At the window end the global modData table gets FLAT scalar keys only (#2848):
 --   status ("armed" | "done"), samples (count), windowMs,
---   hist_<field>_<value>   a count per value (numbers rounded to 0.1, booleans, calmod strings),
+--   hist_<field>_<value>   a count per value (numbers rounded to 0.1 with the "." written "_", booleans, calmod strings),
 --   raw_1 .. raw_50        the first 50 samples as "t=<ms> target=.. rate=.. mv=.. run=.. spr=.. ...".
 -- Install-once (#2845): the sentinel TKX_MetWatch_Installed is a global of its own; the handler
 -- registers at file scope behind the nil-checked isServer() test, once, never at a boot event.
@@ -56,7 +56,8 @@ local function readCalMod(p)
 end
 
 local function bumpHist(h, field, value)
-    local key = "hist_" .. field .. "_" .. tostring(value)
+    -- no dots in a key: the value's "." becomes "_" (2.6 -> hist_rate_2_6), so a driver can read it back
+    local key = "hist_" .. field .. "_" .. string.gsub(tostring(value), "%.", "_")
     h[key] = (h[key] or 0) + 1
 end
 
