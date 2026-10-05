@@ -145,7 +145,7 @@ A client cannot push a trait the other way on an ordinary connection: the vanill
 On the client, the character screen rebuilds its trait icons whenever the list it reads differs from the icons it holds, so a pushed trait appears there without a refresh [#2504/C/C-only].
 The route is traced from the bytecode and the files ([#2595/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4)), and its arrival is measured: with no push a server-written trait reached the owning client's list within about half a second in three trials [#2759/M/n=3].
 A trait the mod registers reads back in that list by the path of its id alone, so a panel's test matches that path, never the full id [#2761/M/n=1].
-The mod's own trait push sent in the same tick as the write makes the arrival sooner, within tens of milliseconds ([mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)) [#2099/M/n=6].
+A server-side trait-block push (`sendSyncPlayerFields(player, 2)`) in the same tick as the trait write makes the arrival sooner, within tens of milliseconds (measured through the harness's `trait.add.push`) ([mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)) [#2099/M/n=6].
 A band label drawn from the client's own list is therefore the owning player's alone, as fresh as the last push of either carrier, and the rule on pushing the trait block after a server-side write is [mp-sync.md](mp-sync.md#rules)'s.
 
 <a id="honest-but-wrong"></a>

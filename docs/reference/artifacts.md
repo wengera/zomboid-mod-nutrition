@@ -2329,7 +2329,7 @@ trials alternating push and no-push. Rates are least-squares slopes against the 
   (`boots.*.sleep_hold.deadlineWall`); the client's `asleep` read false at all fourteen. Over the twelve
   in-hold reads thirst rose at 0.007385 per game-hour (A) and 0.007400 (B), difference 1.5e-5 against the
   band 1.48e-4; awake (`W1`) both read 0.0288. Fatigue read 0 and endurance 1 throughout `W4` in both boots;
-  hunger rose 0.0076 per game-hour (A) and 0.133 (B, the stomach-fill model) — recorded, not graded.
+  hunger rose 0.0076 per game-hour (A) and 0.133 (B, the stomach-fill model) — recorded, not graded. The twelve in-hold reads show the flag set at sample time; about 15 % of stat updates still ran awake (f = 0.150, a refit from the thirst and hunger slopes, not an artifact key), so the in-hold slopes are an ≈85/15 asleep/awake mix and not the asleep rate.
 - **The run arm (`verdicts.X34-running`, unmeasured, correctly)**: every `player.run` ack read
   `setRunning`, `setForceRun` and `setPathfindRunning` true and `clientRunning` true at the call, yet every
   later read was `running false` on both sides (16 of 16 per boot) with `moving` true at 14; thirst's W2/W1
