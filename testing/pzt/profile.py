@@ -49,10 +49,7 @@ HARNESS_ID = "PZTestKit"
 
 TOP_KEYS = {"fixture", "description", "mods", "sandbox", "server", "client", "run", "verify"}
 MOD_KEYS = {"id", "workshop_id", "path", "copy"}
-SERVER_KEYS = {"timeout", "SleepAllowed", "SleepNeeded"}
-# [server] keys that are server-ini keys written verbatim by Server.seed (booleans); the rest
-# of [server] is a run setting.
-INI_BOOL_KEYS = ("SleepAllowed", "SleepNeeded")
+SERVER_KEYS = {"timeout", "SleepAllowed", "SleepNeeded"}   # the last two are server-ini booleans
 CLIENT_KEYS = {"timeout", "users", "safemode", "launcher"}
 RUN_KEYS = {"hold"}
 VERIFY_KEYS = {"side", "cmd", "args", "expect"}
@@ -74,15 +71,13 @@ class Profile:
     """
 
     def __init__(self, name, path, fixture, mods, sources, skip, items, sandbox, users, verify,
-                 hold, safemode, launcher, server_timeout, client_timeout, description="",
-                 ini=None):
+                 hold, safemode, launcher, server_timeout, client_timeout, description=""):
         self.name, self.path, self.fixture = name, path, fixture
         self.description = description
         self.mods, self.sources, self.skip, self.items = mods, sources, skip, items
         self.sandbox, self.users, self.verify = sandbox, users, verify
         self.hold, self.safemode, self.launcher = hold, safemode, launcher
         self.server_timeout, self.client_timeout = server_timeout, client_timeout
-        self.ini = dict(ini or {})    # server-ini overrides; empty leaves the fixture's ini untouched
 
     def __repr__(self):
         """The one-line summary the plans quote from `print(profile.load(name))`."""
@@ -372,7 +367,7 @@ def load(name):
         raise ProfileError(f"profile '{name}': [client] users = [] is not a server-only run -- "
                            "it would fall back to the fixture's own clients. Name the accounts "
                            "to attach, or leave `users` out for the default ('" + ADMIN_USER + "')")
-    return Profile(
+    prof = Profile(
         name=os.path.splitext(os.path.basename(path))[0], path=path, fixture=fixture,
         mods=mods, sources=sources, skip=tuple(skip), items=items, sandbox=sandbox,
         users=list(clt.get("users") or [ADMIN_USER]), verify=verify,
@@ -381,5 +376,7 @@ def load(name):
         launcher=launcher,
         server_timeout=_int(name, "[server] timeout", srv.get("timeout", DEFAULTS["server_timeout"])),
         client_timeout=_int(name, "[client] timeout", clt.get("timeout", DEFAULTS["client_timeout"])),
-        description=doc.get("description", ""),
-        ini={k: _bool(name, f"[server] {k}", srv[k]) for k in INI_BOOL_KEYS if k in srv})
+        description=doc.get("description", ""))
+    # server-ini overrides (booleans, written verbatim by Server.seed); empty leaves the fixture's ini alone
+    prof.ini = {k: _bool(name, f"[server] {k}", srv[k]) for k in ("SleepAllowed", "SleepNeeded") if k in srv}
+    return prof

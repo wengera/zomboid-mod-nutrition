@@ -633,7 +633,8 @@ def _seeded_ini(tmp_path, monkeypatch, ini):
     monkeypatch.setattr(server.harness, "install", lambda *a, **k: [])
     s = server.Server(str(cache), name="pzt", mods=["PZTestKit"])
     monkeypatch.setattr(s.bus, "reset", lambda: None)
-    s.seed(ini=ini)
+    s.ini_overrides = dict(ini or {})
+    s.seed()
     return dict(l.split("=", 1) for l in (cache / "Server" / "pzt.ini").read_text(encoding="utf-8").splitlines()
                 if "=" in l and not l.startswith("#"))
 
