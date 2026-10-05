@@ -372,7 +372,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 ### X64 — Does the mod's sweat term fire live?
 - Whether the sweat term fires on a live server is open [#2972/M/n=1/open]; the drink, sodium and world-water routes it shares the pool with are settled [#2966/M/n=1, #2967/M/n=1, #2970/M/n=1].
 - Waiting on it: [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
-- Settled by: a run or an activity the server classifies above 3 MET for game hours, reading the sweat fields — [experiments.md § Named experiments](../reference/experiments.md), row `X64`.
+- Settled by: a run or an activity the server classifies above 3 MET for game hours [#2972/M/n=1/open], reading the sweat fields — [experiments.md § Named experiments](../reference/experiments.md), row `X64`.
 
 ## See also
 
