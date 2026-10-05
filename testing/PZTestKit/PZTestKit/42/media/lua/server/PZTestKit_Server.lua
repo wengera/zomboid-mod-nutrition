@@ -1759,3 +1759,31 @@ TK.register("carry.set", function(argv)
     out.maxWeight = mw
     return out
 end)
+
+-- <user> <fullType> <count>. Server-side AddItems on the named player's inventory, then the
+-- server's own inventory weight and carry capacity read in the same tick. Whether the CLIENT
+-- ever sees the added items or the weight is the gate's measurement (the add is not sent to the
+-- client by this call), so the reply records only the server side.
+-- @args <user> <fullType> <count>
+-- @reply {ok, fullType, count, side, invWeight, maxWeight [, error]} | string
+-- @purpose Adds count items of a type to a named player's inventory on the server and reads getInventoryWeight() and getMaxWeight() the same tick; client visibility is read separately.
+TK.register("inventory.add", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local count = tonumber(argv[3])
+    if not argv[2] or count == nil then return "usage: inventory.add <user> <fullType> <count>" end
+    local out = { ok = false, fullType = argv[2], count = count, side = TK.side }
+    local _, inv = TK.call(p, "getInventory")
+    if inv == nil or inv["AddItems"] == nil then
+        out.error = "no getInventory():AddItems"
+        return out
+    end
+    local ran, err = pcall(inv["AddItems"], inv, argv[2], count)
+    out.ok = ran
+    if not ran then out.error = tostring(err) end
+    local _, w = TK.call(p, "getInventoryWeight")
+    local _, mw = TK.call(p, "getMaxWeight")
+    out.invWeight = w
+    out.maxWeight = mw
+    return out
+end)
