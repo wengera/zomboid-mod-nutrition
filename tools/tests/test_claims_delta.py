@@ -172,3 +172,20 @@ def test_supersede_needs_exactly_one_add_and_writes_nothing_otherwise(tmp_path):
     with pytest.raises(cd.DeltaError, match="exactly one add line"):
         cd.apply(_delta(tmp_path, lines), [], register=reg)
     assert open(reg, encoding="utf-8").read() == before
+
+
+def test_supersede_honours_the_successor_cell_wherever_the_add_sits(tmp_path):
+    reg = _register(tmp_path)
+    page = _page(tmp_path, "Parent [#0003]. First [T1.1]. Named [T1.2].\n")
+    lines = ["\t".join(["supersede", "#0003", "", "", "", "", "", "T1.2", "", "", "", "narrowed"]),
+             _add("T1.1", "First."), _add("T1.2", "Named.")]
+    cd.apply(_delta(tmp_path, lines), [page], register=reg)
+    rows = {r["id"]: r for r in cl.read_register(reg)}
+    assert rows["#0003"]["status"] == "superseded" and rows["#0003"]["successor"] == "#0004"
+    assert rows["#0004"]["claim"] == "Named." and rows["#0005"]["claim"] == "First."
+    assert open(page, encoding="utf-8").read() == "Parent [#0004]. First [#0005]. Named [#0004].\n"
+    before = open(reg, encoding="utf-8").read()
+    lines = ["\t".join(["supersede", "#0001", "", "", "", "", "", "T1.9", "", "", "", "x"]), _add("T1.1")]
+    with pytest.raises(cd.DeltaError, match="carried by no add row"):
+        cd.apply(_delta(tmp_path, lines), [], register=reg)
+    assert open(reg, encoding="utf-8").read() == before

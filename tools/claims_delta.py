@@ -7,8 +7,9 @@ and one delta per line. `add` names a provisional id `T<task>.<n>`: apply mints 
 id for it and rewrites that provisional tag in every page named with --pages. `split` names a real
 parent id and is followed by exactly two `add` lines, which become the parent's successors; the parent
 goes superseded and its tag on the pages is rewritten to the two children. `supersede` names a real
-parent id and is followed by exactly one `add` line, which becomes the parent's single successor; the
-parent goes superseded and its tag on the pages is rewritten to the child. A supersession onto a row
+parent id and its single successor is the `add` its `successor` cell names (a provisional id, wherever
+that add sits in the file; one no add carries is refused), or, when the cell is empty, the `add` line
+directly after it; the parent goes superseded and its tag on the pages is rewritten to the child. A supersession onto a row
 that already exists is `status` with a real successor, which rewrites no tag. `retarget` changes the
 row's owner. `status` changes the row's status (and its successor when superseded; its bound when
 the delta gives one). Nothing is ever deleted; an invalid delta aborts before anything is written,
@@ -84,9 +85,12 @@ def plan(rows, deltas):
     new_rows = [dict(r) for r in rows]
     by = {r["id"]: r for r in new_rows}
     tag_map, changes, i = {}, [], 0
+    claimed = set()                            # adds a supersede minted ahead of their own line
     while i < len(deltas):
         d = deltas[i]
-        if d["op"] == "add":
+        if d["op"] == "add" and d["id"] in claimed:
+            i += 1
+        elif d["op"] == "add":
             row, msg = _mint(d, new_rows, tag_map)
             by[row["id"]] = row
             changes.append(msg)
@@ -108,16 +112,32 @@ def plan(rows, deltas):
             i += 3
         elif d["op"] == "supersede":
             parent = _target("supersede", d["id"], by)
-            kid = deltas[i + 1:i + 2]
-            if len(kid) != 1 or kid[0]["op"] != "add":
-                raise DeltaError("supersede %s: must be followed by exactly one add line" % d["id"])
-            row, msg = _mint(kid[0], new_rows, tag_map, " (successor of %s)" % d["id"])
-            by[row["id"]] = row
-            changes.append(msg)
+            named = d["successor"].strip()
+            if named:
+                if not cl.is_provisional(named):
+                    raise DeltaError("supersede %s: successor cell %r is not a provisional id (T<task>.<n>)" % (d["id"], named))
+                hits = [k for k in deltas if k["op"] == "add" and k["id"] == named]
+                if len(hits) != 1:
+                    raise DeltaError("supersede %s: successor %s is carried by no add row" % (d["id"], named))
+                kid, step = hits[0], 1
+                if i + 1 < len(deltas) and deltas[i + 1] is kid:
+                    step = 2                   # the named add sits directly after: consumed here
+            else:
+                nxt = deltas[i + 1:i + 2]
+                if len(nxt) != 1 or nxt[0]["op"] != "add":
+                    raise DeltaError("supersede %s: must be followed by exactly one add line" % d["id"])
+                kid, step = nxt[0], 2
+            if kid["id"] in tag_map:
+                row = by[tag_map[kid["id"]]]
+            else:
+                row, msg = _mint(kid, new_rows, tag_map, " (successor of %s)" % d["id"])
+                by[row["id"]] = row
+                changes.append(msg)
+                claimed.add(kid["id"])
             parent["status"], parent["successor"] = "superseded", row["id"]
             tag_map[d["id"]] = row["id"]
             changes.append("%s superseded -> %s" % (d["id"], row["id"]))
-            i += 2
+            i += step
         elif d["op"] == "retarget":
             row = _target("retarget", d["id"], by)
             if not cl.OWNER_RX.match(d["owner"]):
