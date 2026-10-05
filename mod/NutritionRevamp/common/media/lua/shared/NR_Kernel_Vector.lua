@@ -36,3 +36,99 @@ function K.vector.add(dst, src, scale)
     end
     return dst
 end
+
+-- Four-source nutrient-vector assembly (spec § 4.2). Each function is pure: an injected lookup or an
+-- already-resolved vector in, a fresh vector out, no NR.data reference, so the kernel stays testable
+-- with no data file. The aggregating functions (baseline, dish, craft) take lookup(fullType) ->
+-- seed vector or nil, and track the types it could not resolve in a `missing` list; the server
+-- wrapper passes NR.data.nutrients.get as the lookup, the test a stub. The vector, the scratch and
+-- the missing list are Lua tables this file built, so `#` on them is a Lua length, never a Java list.
+
+-- One type's seed times the share eaten: a fresh vector plus a `missing` list naming the type when
+-- lookup returned nil (the vector is then all-zero).
+function K.vector.baseline(lookup, fullType, share)
+    local vec = K.vector.new()
+    local missing = {}
+    local seed = lookup(fullType)
+    if seed == nil then
+        missing[#missing + 1] = fullType
+        return vec, missing
+    end
+    K.vector.add(vec, seed, share)
+    return vec, missing
+end
+
+-- A dish: sum each ingredient type (one entry per appearance in extraTypes) into a scratch vector,
+-- then scale every key so the summed macro total matches the dish's own macro total -- recovering the
+-- cooking share the ingredient list does not keep (jar read § A, #2650/#2651; the Salad 25.0 kcal at
+-- Cooking 0, #0301). Returns the vector and a note {missing=<list>, scaled=<bool>}; a zero scratch
+-- macro total or a non-positive dishMacroTotal leaves the sum unscaled with scaled=false.
+function K.vector.dish(lookup, extraTypes, dishMacroTotal)
+    local scratch = K.vector.new()
+    local missing = {}
+    for i = 1, #extraTypes do
+        local fullType = extraTypes[i]
+        local seed = lookup(fullType)
+        if seed == nil then
+            missing[#missing + 1] = fullType
+        else
+            K.vector.add(scratch, seed, 1)
+        end
+    end
+    local scratchMacroTotal = 0
+    for i = 1, #K.vector.MACROS do
+        scratchMacroTotal = scratchMacroTotal + scratch[K.vector.MACROS[i]]
+    end
+    local note = {}
+    note.missing = missing
+    if scratchMacroTotal > 0 and dishMacroTotal > 0 then
+        local scale = dishMacroTotal / scratchMacroTotal
+        for i = 1, #K.vector.KEYS do
+            local k = K.vector.KEYS[i]
+            scratch[k] = scratch[k] * scale
+        end
+        note.scaled = true
+        return scratch, note
+    end
+    note.scaled = false
+    return scratch, note
+end
+
+-- Animal meat: the type baseline scaled by raw hunger over base hunger (the butcher factor, accepting
+-- the per-field noise of about +/-11 %, jar read § D #2669-#2672); a baseHunger of 0 falls back to
+-- scale 1. typeBaseline is an already-resolved vector.
+function K.vector.meat(typeBaseline, rawHunger, baseHunger)
+    local scale = 1
+    if baseHunger ~= 0 then
+        scale = rawHunger / baseHunger
+    end
+    local vec = K.vector.new()
+    K.vector.add(vec, typeBaseline, scale)
+    return vec
+end
+
+-- A crafted output: sum each consumed type's seed times its count times the share, over the
+-- consumed-type-to-count map the hand-craft action writes (#2667; the MeatPatty 40 x MincedMeat at
+-- share 1, #0745). Returns the vector and a `missing` list.
+function K.vector.craft(lookup, consumedCounts, share)
+    local vec = K.vector.new()
+    local missing = {}
+    local empty = K.vector.new()
+    for fullType, count in pairs(consumedCounts) do
+        local seed = lookup(fullType)
+        if seed == nil then
+            missing[#missing + 1] = fullType
+        end
+        local src = seed or empty
+        K.vector.add(vec, src, count * share)
+    end
+    return vec, missing
+end
+
+-- A drink: the per-litre fluid vector times the litres drunk (Cola per-litre 400 x 0.3 = the per-can
+-- figure, #0634). fluidVector is an already-resolved per-litre vector.
+function K.vector.fluid(fluidVector, litres)
+    local vec = K.vector.new()
+    K.vector.add(vec, fluidVector, litres)
+    return vec
+end
