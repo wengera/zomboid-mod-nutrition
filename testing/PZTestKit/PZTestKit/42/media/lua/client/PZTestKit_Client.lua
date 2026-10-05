@@ -842,3 +842,76 @@ TK.register("action.read", function(argv)
     if not ran then out.queueError = tostring(err) end
     return out
 end)
+
+-- <dx> <dy> <seconds>. Holds sprint on the local player for a window: queues the same walk
+-- action player.run does (ISWalkToTimedAction to the square dx,dy away -- the move intent), then
+-- an OnTick watcher (trait.watch's arm-and-result pattern) sets setSprinting(true) and
+-- setRunning(true) every tick until the deadline and, every 0.5 s of wall time, records what the
+-- CLIENT's isSprinting/isRunning/isPlayerMoving read (at most 40 samples, so seconds <= 20).
+-- It answers at once; at the deadline the trace goes to player-sprint.json through TK.result.
+-- The run flag has never reached the server (#0591/#2810); this records the client side only
+-- and does not try to make the flag arrive -- the driver pairs it with the server's stats.get.
+TK.sprintWatch = TK.sprintWatch or { armed = false }
+local SPRINT_MAX_SECONDS = 20
+
+local function sprintOnTick()
+    local w = TK.sprintWatch
+    if not w.armed then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local now = TK.now()
+    TK.call(p, "setSprinting", true)
+    TK.call(p, "setRunning", true)
+    if now >= w.nextSample and #w.samples < 40 then
+        local _, sp = TK.call(p, "isSprinting")
+        local _, ru = TK.call(p, "isRunning")
+        local _, mv = TK.call(p, "isPlayerMoving")
+        w.samples[#w.samples + 1] = { t = now - w.armedWall, sprinting = sp, running = ru, moving = mv }
+        w.nextSample = now + 500
+    end
+    if now >= w.deadline then
+        w.armed = false
+        TK.call(p, "setSprinting", false)
+        TK.call(p, "setRunning", false)
+        TK.result("player-sprint", { dx = w.dx, dy = w.dy, seconds = w.seconds, samples = w.samples,
+                                     sampleCount = #w.samples })
+    end
+end
+
+if not TK.sprintHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() sprintOnTick() end)
+    TK.sprintHooked = true
+end
+
+-- @args <dx> <dy> <seconds>
+-- @reply {armed, dx, dy, seconds, queued [, queueError], result, file} | {error} | string
+-- @purpose Holds sprint and run on the local player for up to 20 s while a queued walk moves it, answers at once, and writes the client's sprint/run/moving reads every 0.5 s to player-sprint.json.
+TK.register("player.sprint", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local dx, dy, seconds = tonumber(argv[1]), tonumber(argv[2]), tonumber(argv[3])
+    if dx == nil or dy == nil or seconds == nil or seconds <= 0 or seconds > SPRINT_MAX_SECONDS then
+        return "usage: player.sprint <dx> <dy> <seconds>  (0 < seconds <= 20)"
+    end
+    if not TK.sprintHooked then return { error = "no Events.OnTick on this side" } end
+    if TK.sprintWatch.armed then return { error = "a player.sprint window is already armed" } end
+    local cell = getCell()
+    if not cell then return { error = "no getCell()" } end
+    local ok, sq = TK.call(cell, "getGridSquare", p:getX() + dx, p:getY() + dy, p:getZ())
+    if not ok or sq == nil then return { error = "no grid square at +" .. tostring(dx) .. "," .. tostring(dy) } end
+    if not ISWalkToTimedAction or not ISTimedActionQueue then
+        return { error = "no ISWalkToTimedAction/ISTimedActionQueue" }
+    end
+    local out = { armed = true, dx = dx, dy = dy, seconds = seconds, result = "player-sprint",
+                  file = "pzt-results/player-sprint.json" }
+    local ran, err = pcall(function()
+        ISTimedActionQueue.add(ISWalkToTimedAction:new(p, sq))
+    end)
+    out.queued = ran
+    if not ran then out.queueError = tostring(err) end
+    local start = TK.now()
+    if start == 0 then return { error = "no getTimestampMs()" } end
+    TK.sprintWatch = { armed = true, dx = dx, dy = dy, seconds = seconds, samples = {},
+                       armedWall = start, nextSample = start, deadline = start + seconds * 1000 }
+    return out
+end)
