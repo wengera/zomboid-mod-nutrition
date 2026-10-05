@@ -51,7 +51,7 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
                                passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0 },
                      lastIngested = {},
                      limitations = {
-                         "a world-water drink can transfer up to one game minute of sips before the view falls",
+                         "a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water",
                          "a world-water source lands as the Water seed whatever its fluid (a tainted source included)",
                          "a drink's acute dose is tested per sip, not per drink: a dose split across sips can read a lower rung",
                      },
@@ -683,9 +683,12 @@ end
 -- drink wrapper's updateEat. With an item the step FILLS that item and nothing is drunk: not captured.
 -- The litres are read before the original and land as the Water seed through the fluid path
 -- (IN.fluidVector, then IN.land) after it. Same sentinel shape as the other three wraps.
--- limitations: IN.limitations (the over-drink window and the fluid read as Water). The over-drink: the
--- action sizes each step from THIRST, which the fast clock re-asserts to the view every tick, so the
--- steps run at full size until the slow clock lands the water and the view falls (ruling T1-1).
+-- limitations: IN.limitations (the planned-litres cap and the fluid read as Water). a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water (ruling T1-1).
+-- The cap: readWorldBefore lands min(step, source, waterUnit - action.nrLanded); nrLanded is a field on the
+-- vanilla action object for its lifetime, never on the record.
+-- Residual notes: after a respawn one minute's autoDrop can go to the dead character's record (the
+-- respawn limitation of NR_Server_Fast gains the clause); if the slow clock never clears autoDrop for a
+-- player (a repeated raise), auto-drink stays skipped for that player -- the heal is Plan 8's.
 
 -- The before-snapshot of one world-water step, or nil when nothing is drunk (an item to fill, no
 -- character or username, a non-positive amount, an empty or unreadable source).
@@ -698,7 +701,15 @@ function IN.readWorldBefore(action, amount)
     if type(avail) ~= "number" or avail <= 0 then return nil end
     local username = read(char, "getUsername")
     if username == nil then return nil end
-    return { username = username, litres = K.min(amount, avail), fullType = "world water" }
+    local litres = K.min(amount, avail)
+    local planned = action.waterUnit
+    if type(planned) == "number" then
+        litres = K.min(litres, K.max(planned - (action.nrLanded or 0), 0))
+    end
+    if litres <= 0 then
+        return nil
+    end
+    return { username = username, litres = litres, fullType = "world water", action = action }
 end
 
 -- After the original: the step's litres as the Water seed, the landing.
@@ -720,6 +731,7 @@ function IN.readWorldAfterAndLand(d)
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())
     record.pool = record.pool or K.vector.new()
     IN.land(record, d.username, vec)
+    if d.action ~= nil then d.action.nrLanded = (d.action.nrLanded or 0) + litres end
     record.lastIntake = { fullType = d.fullType, source = "world", litres = litres, missing = {} }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: world water for " .. tostring(d.username) .. " litres " .. tostring(litres))

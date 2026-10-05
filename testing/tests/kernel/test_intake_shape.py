@@ -1247,9 +1247,51 @@ def test_world_water_uses_the_water_seed_when_the_data_has_it(server_host):
     I(h).lastIngested = h.rt.table()
 
 
+CAP_STUBS = r"""
+function(waterUnit, steps, step)
+    local IN = NutritionRevamp.server.intake
+    local source = { getFluidAmount = function(self) return 9.0 end }
+    local char = { getUsername = function(self) return "admin" end }
+    local cls = {}
+    cls.transferFluid = function(self, a) return nil end
+    ISTakeWaterAction = cls
+    IN.installWorld()
+    local action = { character = char, waterObject = source, waterUnit = waterUnit }
+    local per = {}
+    for i = 1, steps do
+        local rec0 = NutritionRevamp.server.store.records.admin
+        local before = (rec0 ~= nil and rec0.lastIntake ~= nil and rec0.lastIntake.litres) or 0
+        local landedBefore = IN.stats.landed
+        cls.transferFluid(action, step)
+        per[i] = (IN.stats.landed - landedBefore)
+    end
+    local nr = action.nrLanded or 0
+    ISTakeWaterAction = nil
+    local S = NR_IntakeWorld_Installed
+    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    return nr, per[1], per[2], per[3]
+end
+"""
+
+
+def test_world_water_is_capped_at_the_actions_planned_litres(server_host):
+    h = server_host
+    nr, p1, p2, p3 = h.rt.eval(CAP_STUBS)(0.8, 3, 0.5)
+    assert abs(nr - 0.8) < TOL                                          # 0.5 + 0.3, then nothing
+    assert (p1, p2, p3) == (1, 1, 0)                                    # the third step lands nothing
+    I(h).lastIngested = h.rt.table()
+
+
+def test_world_water_without_a_waterunit_is_uncapped(server_host):
+    h = server_host
+    nr, p1, p2, p3 = h.rt.eval(CAP_STUBS)(None, 3, 0.5)
+    assert abs(nr - 1.5) < TOL and (p1, p2, p3) == (1, 1, 1)
+    I(h).lastIngested = h.rt.table()
+
+
 def test_limitations_name_the_world_water_window(intake_host):
     lims = list(I(intake_host).limitations.values())
-    assert "a world-water drink can transfer up to one game minute of sips before the view falls" in lims
+    assert "a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water" in lims
 
 
 # --- the fast handler's auto-drink bracket (NR_Server_Fast.lua, loaded in a runtime of its own) ----
