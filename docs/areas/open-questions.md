@@ -354,13 +354,13 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x39"></a>
 ### X39 — Do the server-side experience events fire per grant — `AddXP`, `LevelPerk`, `OnWeaponHitXp` — for a connected player's melee hits and exercise?
-- Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise is open [#2084/C/open].
+- Whether the `LevelPerk` event crossing and the `OnWeaponHitXp` hit and rep arms fire per grant for a connected player is open [#2084/C/open]; `AddXP` is settled [#2871/M/n=1].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open), [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: server-side counters on the three events, read after a console experience grant as the positive control and then after melee hits and an exercise — [experiments.md § Named experiments](../reference/experiments.md), row `X39`.
 
 <a id="x40"></a>
 ### X40 — What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it?
-- What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [#2085/C/open].
+- Whether a server-side burst of grants trips the experience anti-cheat on a non-admin connection is open [#2085/C/open]; on the admin connection it drew no kick and no line [#2873/M/n=1].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
 
@@ -377,7 +377,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x48"></a>
 ### X48 — Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value?
-- Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value, is open [#2087/C/open].
+- Whether a client-originated hit or rep grant reaches the Strength protein branch on the server's store is open [#2087/C/open]; the server route is settled [#2872/M/n=1].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience each hit grants — [experiments.md § Named experiments](../reference/experiments.md), row `X48`.
 

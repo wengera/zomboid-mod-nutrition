@@ -88,6 +88,7 @@ The debug setter writes the level and nothing else — no experience, no level e
 The experience setter writes the experience map to a level's cumulative total and leaves the level untouched [#2103/C/C-only].
 The Java readers of the two levels read them live on every call, so a level write takes effect at each reader's next call [#2135/C/C-only].
 The ladders those readers apply are [the level readers](../facts/perks-and-strength.md#readers).
+Write the clamped Strength level with a server `setPerkLevelDebug` and nothing else: it holds through the experience push, a rust pass and a mirrored admin sync [#2867/M/n=1][#2868/M/n=1][#2869/M/n=1], and it runs no band remap, so re-apply the band yourself [#2870/M/n=1][#2729/C/inference].
 
 Vanilla moves the levels on its own schedules, and every schedule is a writer the mod must expect.
 The experience system raises and lowers a level only on crossings of a threshold, so a level a mod lowers is neither walked back up nor pushed further down by it [#2122/C/C-only] [#2123/C/C-only].

@@ -127,7 +127,7 @@ A parallel Lua store is therefore gone at every boot unless the mod rebuilds it 
 A script key survives by being re-read rather than saved: the default table is rebuilt from the script at every load, while an instance's copy was made when the instance was created and rides that instance's item modData [#1089].
 What a saved instance holds after the mod changes a script value — its saved copy or the new default — is read nowhere in this library.
 The corpus's parallel-stat blueprint banks its value in character modData and derives everything else from it on read, which is the shape that needs no migration when a formula changes ([#1526/C/C-only], [#1068/C/snapshot]).
-That blueprint's own persistence is a reading of its code: saved and synced by the engine's character path is a statement about a save and a rejoin, and no run evidences it ([#1528/C/C-only], [beyondten.md#mp](../facts/other-mods/beyondten.md#mp)).
+That blueprint's own persistence is a reading of its code: on a dedicated server its authoritative copy is a global modData table and the character's table a mirror the server re-publishes every tick, and no run evidences it ([#1528/C/C-only/superseded], [beyondten.md#mp](../facts/other-mods/beyondten.md#mp)).
 
 A rejoin starts the server's copy of a player's table empty.
 The server's copy of a player's modData is empty at join and gains even the vanilla keys only some seconds after the session is ready, while the client's copy already holds its keys [#1432/M/n=1].

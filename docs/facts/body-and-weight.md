@@ -341,6 +341,7 @@ Driven to plus 1500 kcal the three flags read true, false, false on both sides, 
 On the arm where all three flags are false they agree across sides at all six snapshots of an earlier session, on a character whose trait lists came back empty on both sides, so that reading carries no information about a character that holds a band trait [#1099/M/n=1].
 Unforced, `applyTraitFromWeight` runs only once every 2000 `updateWeight` calls and did not fire within 60 s of dedicated-server time, while called directly from Lua the traits apply instantly — so a trait-keyed effect reads a band that lags the weight unless the mod forces the refresh [#1194/M/n=1].
 The refresh itself is a full replace of the band and silent: `applyTraitFromWeight` removes exactly the five band traits and no other, adds back the one the weight's band names, adds none in the open interval between 75 and 85 kg, and pushes nothing — no packet, no player-fields send and no dirty flag [#2722/C/C-only].
+Vanilla's shipped Lua calls `applyTraitFromWeight` nowhere [#2571/C/snapshot].
 So a band trait another mod grants for its own reason is gone at the next call, and a client sees the new band only on a later push of the trait list, which [../platform/mp-model.md#ownership](../platform/mp-model.md#ownership) traces [#2722/C/C-only].
 
 <a id="traits"></a>
