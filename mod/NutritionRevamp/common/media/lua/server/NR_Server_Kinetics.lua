@@ -10,6 +10,11 @@
 -- character starts at vanilla's hunger 0 and empties on the gastric half-time; (2) the energy-state
 -- term is stubbed at 1 in the fast adapter (inp.energyState = 1), the Plan 3 entry point. Thirst is
 -- untouched in this plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
+-- design-phase-v1 game choice, the hunger timescale: the stomach's 2 h half-time (S0130,
+-- design-phase-v1) makes hunger run from 0 to 0.5 in 2 game-hours, ~0.875 by 6 h and ~0.94 across an
+-- 8 h sleep -- hours, where vanilla's drain takes ~29 game-hours to reach 1 -- and a litre of drink
+-- (bulk >= 9 against FULL_BULK 8) sates fully; a balance choice re-read when S0130 settles (Plan 2
+-- ruling T11).
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
@@ -49,11 +54,21 @@ local function step(username, player, record)
     local fill = K.stomach.fill(record.stomach)
     -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing
     -- guard, or a corrupt record) is never stamped -- K.clamp passes NaN through -- so the stomach is
-    -- reset to the full seed and the pool emptied, and the record heals on this minute instead of
-    -- writing NaN into HUNGER for the session
+    -- reset to the full seed and the record heals on this minute instead of writing NaN into HUNGER
+    -- for the session. The POOL is reset only when one of its own keys is non-finite: a finite pool
+    -- is absorbed intake the stomach fault did not touch, so it is kept. NR.server.intake.isFinite is
+    -- the one finiteness test: NR_Server_Intake.lua loads before this file (server/ files load
+    -- alphabetically) and the test is read at call time.
     if type(fill) ~= "number" or fill ~= fill or fill == math.huge or fill == -math.huge then
         record.stomach = K.stomach.seedFull(K.stomach.new())
-        record.pool = K.vector.new()
+        local isFinite = NR.server.intake.isFinite
+        local keys = K.vector.KEYS
+        for i = 1, #keys do
+            if not isFinite(record.pool[keys[i]]) then
+                record.pool = K.vector.new()
+                break
+            end
+        end
         fill = 1
         KIN.stats.failures = KIN.stats.failures + 1
         KIN.lastError = "kinetics: non-finite stomach fill for " .. tostring(username) .. "; stomach reset full"

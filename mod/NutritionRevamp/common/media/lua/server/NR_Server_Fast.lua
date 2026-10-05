@@ -14,7 +14,8 @@ NR.server.fast = { h = {}, byChar = {}, mode = 2, closure = nil, registered = fa
                    stats = { calls = 0, failures = 0, disabledAt = nil, byCharHits = 0, perPlayer = {} },
                    limitations = { "idle-square timer mirrored (engine field frozen under takeover; boredom reads it)",
                                    "sleep delay mirrored with sleepDelayFraction (vanilla draws it at random)",
-                                   "tripping angle dropped (nothing reads it)" } }
+                                   "tripping angle dropped (nothing reads it)",
+                                   "after a respawn the fast clock may read the dead character's stomachFill for at most one slow-clock minute until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified (a Plan 8 reading)" } }
 local FAST = NR.server.fast
 local C = K.fast.defaults()
 
@@ -319,6 +320,9 @@ function FAST.disable(username, reason)
 end
 
 -- Mode: 1 takeover registers; 2 overlay registers nothing (and in this plan writes nothing).
+-- In overlay mode the handler is not registered, so hunger stays vanilla's drain and is NOT derived
+-- from the stomach -- an intake consequence of the mode choice (the stomach still fills and empties on
+-- the slow clock; nothing reads its fill into HUNGER).
 local function applyMode(opts)
     if FAST.stats.disabledAt ~= nil then return end
     if opts.mode == 1 then FAST.install() else FAST.uninstall() end

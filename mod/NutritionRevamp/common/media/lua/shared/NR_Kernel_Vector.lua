@@ -108,8 +108,12 @@ function K.vector.meat(typeBaseline, rawHunger, baseHunger)
 end
 
 -- A crafted output: sum each consumed type's seed times its count times the share, over the
--- consumed-type-to-count map the hand-craft action writes (#2667; the MeatPatty 40 x MincedMeat at
--- share 1, #0745). Returns the vector and a `missing` list.
+-- consumed-type-to-count map the hand-craft action writes (#2667). The count is consumed item
+-- INSTANCES, not uses: the map is +1 per entry of getAllConsumedItems, one entry per consumed
+-- InventoryItem (jar 42.20.4, CraftRecipeData.getAllConsumedItems @range L2220-L2235 into
+-- CacheData.addAppliedItem @range L1825-L1828). MakeMeatPatty spends 40 USES of ONE MincedMeat tub
+-- (#0745), so its map is { Base.MincedMeat = 1 }: the whole-tub seed once. A partly-used input lands
+-- its whole seed (an Intake limitation; Plan 6's use fraction). Returns the vector and a `missing` list.
 function K.vector.craft(lookup, consumedCounts, share)
     local vec = K.vector.new()
     local missing = {}

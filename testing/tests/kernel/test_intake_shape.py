@@ -894,3 +894,83 @@ def test_server_path_nan_calories_rejected_nothing_landed(server_host):
     assert stats.failures == before_stats["failures"] + 1
     assert err == "non-finite intake rejected: calories"
     assert rec is None
+
+
+# --- close fix wave (f): an UNREADABLE after-read is treated as finished but counted and named ----
+
+UNREADABLE_EAT_STUBS = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local hung = -0.04
+    local after = false
+    local item = {}
+    -- readable before the original, nil only after it (an unreadable after-read, not the NaN)
+    item.getHungChange = function(self) if after then return nil end return hung end
+    item.getFullType = function(self) return "Base.Apple" end
+    item.getBaseHunger = function(self) return -0.16 end
+    item.getCalories = function(self) return 95 * 0.25 end
+    item.getCarbohydrates = function(self) return 25.13 end
+    item.getLipids = function(self) return 0.31 end
+    item.getProteins = function(self) return 0.47 end
+    item.isCooked = function(self) return false end
+    item.isBurnt = function(self) return false end
+    item.isRotten = function(self) return false end
+    item.isFrozen = function(self) return false end
+    item.getThirstChangeUnmodified = function(self) return 0 end
+    item.haveExtraItems = function(self) return false end
+    item.getModData = function(self) return {} end
+    item.getScriptItem = function(self)
+        return { getHungerChange = function(s) return -16 end, getThirstChange = function(s) return 0 end }
+    end
+    local char = { getUsername = function(self) return "admin" end }
+    local calls = 0
+    local cls = {}
+    cls.complete = function(self)
+        calls = calls + 1
+        after = true
+        return true
+    end
+    cls.serverStop = function(self) end
+    ISEatFoodAction = cls
+    local before = { landed = IN.stats.landed, failures = IN.stats.failures, unreadable = IN.stats.unreadableAfter }
+    IN.lastError = nil
+    IN.install()
+    local r = cls.complete({ item = item, character = char })
+    local rec = NutritionRevamp.server.store.records.admin
+    return r, calls, before, rec, IN.lastError
+end
+"""
+
+
+def test_is_unreadable_after(intake_host):
+    IN = I(intake_host)
+    assert IN.isUnreadableAfter(-0.04, None) is True
+    assert IN.isUnreadableAfter(-0.04, "x") is True
+    assert IN.isUnreadableAfter(-0.04, NAN) is False     # the known vanilla 0/0 (#2832): silent
+    assert IN.isUnreadableAfter(-0.04, INF) is False
+    assert IN.isUnreadableAfter(-0.04, 0) is False
+    assert IN.isUnreadableAfter(None, None) is False     # no numeric before: passed through, not counted
+
+
+def test_server_path_unreadable_after_lands_the_remainder_and_is_counted(server_host):
+    h = server_host
+    r, calls, before_stats, rec, err = h.rt.eval(UNREADABLE_EAT_STUBS)()
+    stats = I(h).stats
+    assert r is True and calls == 1
+    assert rec is not None, err
+    assert stats.landed == before_stats["landed"] + 1
+    assert stats.failures == before_stats["failures"]
+    assert stats.unreadableAfter == before_stats["unreadable"] + 1
+    assert err == "after-read unreadable; treated as finished: Base.Apple"
+    li = rec["lastIntake"]
+    assert abs(li["share"] - 0.25) < TOL                  # the whole remainder: -0.04 of -0.16
+    assert abs(li["frac"] - 1.0) < TOL
+
+
+def test_server_path_nan_after_read_is_not_counted_unreadable(server_host):
+    h = server_host
+    u0 = I(h).stats.unreadableAfter
+    r, calls, before_stats, rec, err = h.rt.eval(NAN_EAT_STUBS)("finish")
+    assert rec is not None, err
+    assert I(h).stats.unreadableAfter == u0
+    assert err is None

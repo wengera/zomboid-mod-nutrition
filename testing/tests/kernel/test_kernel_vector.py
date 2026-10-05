@@ -192,18 +192,26 @@ def test_meat_zero_base_hunger_keeps_scale_one(host):
 
 
 def test_craft_sums_each_consumed_type_by_count_and_share(host, lookup):
-    vec, missing = host.K.vector.craft(lookup, host.table({"Base.MincedMeat": 40}), 1)
+    # MakeMeatPatty: 40 USES of ONE tub (#0745); the map counts consumed INSTANCES, so it reads 1
+    vec, missing = host.K.vector.craft(lookup, host.table({"Base.MincedMeat": 1}), 1)
     v = host.py(vec)
-    assert abs(v["calories"] - 12000.0) < 1e-6
-    assert abs(v["proteins"] - 1840.0) < 1e-6
+    assert abs(v["calories"] - 300.0) < 1e-6
+    assert abs(v["proteins"] - 46.0) < 1e-6
     assert list(host.py(missing).values()) == []
 
 
+def test_craft_multiplies_by_the_instance_count(host, lookup):
+    vec, missing = host.K.vector.craft(lookup, host.table({"Base.MincedMeat": 2}), 0.5)
+    v = host.py(vec)
+    assert abs(v["calories"] - 300.0) < 1e-6
+    assert abs(v["proteins"] - 46.0) < 1e-6
+
+
 def test_craft_names_a_missing_type_and_still_adds_the_rest(host, lookup):
-    counts = host.table({"Base.MincedMeat": 40, "Base.Nonesuch": 2})
+    counts = host.table({"Base.MincedMeat": 1, "Base.Nonesuch": 2})
     vec, missing = host.K.vector.craft(lookup, counts, 1)
     v = host.py(vec)
-    assert abs(v["calories"] - 12000.0) < 1e-6
+    assert abs(v["calories"] - 300.0) < 1e-6
     assert list(host.py(missing).values()) == ["Base.Nonesuch"]
 
 

@@ -14,12 +14,27 @@ KINETICS = os.path.join(
 )
 TOL = 1e-9
 
+INTAKE = os.path.join(
+    REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Intake.lua"
+)
+
+# The session-host stubs: the previous getGameTime and NR_TEST_AGE are returned so the fixture's
+# teardown puts them back and nothing leaks into a later module.
 SETUP = r"""
 function(age)
+    local saved = { getGameTime = getGameTime, age = NR_TEST_AGE }
     NR_TEST_AGE = age
     getGameTime = function()
         return { getWorldAgeHours = function(self) return NR_TEST_AGE end }
     end
+    return saved
+end
+"""
+
+TEARDOWN = r"""
+function(saved)
+    getGameTime = saved.getGameTime
+    NR_TEST_AGE = saved.age
 end
 """
 
@@ -39,8 +54,6 @@ function(calories, seeded)
         NutritionRevamp.kernel.stomach.seedFull(r.stomach)
         r.pool = NutritionRevamp.kernel.vector.new()
         if calories > 0 then
-            local v = NutritionRevamp.kernel.vector.new()
-            v.calories = calories
             r.stomach.buffer.calories = calories
         end
     end
@@ -61,14 +74,24 @@ end
 """
 
 
-@pytest.fixture(scope="session")
-def kin_host(host):
-    with open(KINETICS, encoding="utf-8") as fh:
+def _load(host, path, name):
+    with open(path, encoding="utf-8") as fh:
         src = fh.read()
-    chunk = host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@NR_Server_Kinetics.lua")
-    chunk()
-    host.rt.eval(SETUP)(100.0)
-    return host
+    host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, name)()
+
+
+@pytest.fixture(scope="module")
+def kin_host(host):
+    # the self-heal reads NR.server.intake.isFinite (Intake loads before Kinetics in the game); a run
+    # of this module alone loads it here, as test_intake_shape.py does
+    if host.G.NutritionRevamp.server.intake is None:
+        _load(host, INTAKE, "@NR_Server_Intake.lua")
+    _load(host, KINETICS, "@NR_Server_Kinetics.lua")
+    saved = host.rt.eval(SETUP)(100.0)
+    try:
+        yield host
+    finally:
+        host.rt.eval(TEARDOWN)(saved)
 
 
 def KIN(h):
@@ -192,3 +215,40 @@ def test_nan_bulk_self_heals(kin_host, age):
         assert record["pool"][k] == 0
     assert isinstance(KIN(h).lastError, str) and "non-finite stomach fill" in KIN(h).lastError
     assert KIN(h).stats.failures == f0 + 1
+
+
+FINITE_POOL = r"""
+function(age, nanPool)
+    local K = NutritionRevamp.kernel
+    local r = { stomach = K.stomach.seedFull(K.stomach.new()), pool = K.vector.new() }
+    r.stomach.bulk = 0 / 0
+    r.pool.calories = 40
+    if nanPool then r.pool.iron = 0 / 0 end
+    r.kineticsAge = age
+    return r
+end
+"""
+
+
+@pytest.mark.parametrize("age", [None, 99.0])  # the first sight (dt 0) and a later minute (an empty buffer)
+def test_nan_bulk_keeps_a_finite_pool(kin_host, age):
+    h = kin_host
+    K = h.G.NutritionRevamp.kernel
+    record = h.rt.eval(FINITE_POOL)(age, False)
+    f0 = KIN(h).stats.failures
+    run(h, record, 100.0)
+    assert record["stomachFill"] == 1
+    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
+    assert abs(record["pool"]["calories"] - 40) < TOL
+    assert KIN(h).stats.failures == f0 + 1
+
+
+def test_nan_bulk_and_a_nan_pool_key_resets_the_pool(kin_host):
+    h = kin_host
+    K = h.G.NutritionRevamp.kernel
+    record = h.rt.eval(FINITE_POOL)(None, True)
+    run(h, record, 100.0)
+    assert record["stomachFill"] == 1
+    assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
+    for k in K.vector.KEYS.values():
+        assert record["pool"][k] == 0

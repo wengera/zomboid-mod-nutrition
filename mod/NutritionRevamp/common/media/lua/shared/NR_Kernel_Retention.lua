@@ -23,12 +23,15 @@ K.retention.CLASSES.phytate = "heatlabile"
 -- FACTORS[class][state], every value in (0, 1]: the retained fraction of the class under the state.
 K.retention.FACTORS = {}
 -- watersol: cooked is the USDA R6 water-soluble loss band; burnt is the 0.6^2 judgement; rotten is the vitC/folate/thiamin decay judgement; frozen is the Rickman 2007 long-storage term.
+-- design-phase-v1 game choice: no settled row; basis USDA R6 (cooked, water-soluble loss band) / Rickman 2007 (frozen storage); S0234 (vitamin C heat stability, settled: among the least heat-stable vitamins) is the nearest row and supports only the direction -- it is NOT a coefficient source.
 K.retention.FACTORS.watersol = {cooked = 0.60, burnt = 0.36, rotten = 0.50, frozen = 0.95}
 -- mineral: minerals are heat-stable with slight leaching; the burnt squaring is a judgement.
+-- design-phase-v1 game choice: no settled row; basis USDA R6 (cooked, mineral leaching band).
 K.retention.FACTORS.mineral = {cooked = 0.95, burnt = 0.90, rotten = 1.0, frozen = 1.0}
 -- stable: fibre and the water term are heat-stable across every state.
 K.retention.FACTORS.stable = {cooked = 1.0, burnt = 1.0, rotten = 1.0, frozen = 1.0}
 -- heatlabile (phytate): cooking and soaking REDUCE phytate, which is beneficial for absorption; judgement.
+-- design-phase-v1 game choice: no settled row.
 K.retention.FACTORS.heatlabile = {cooked = 0.70, burnt = 0.49, rotten = 1.0, frozen = 1.0}
 
 -- The macro lookup set, built once from the vector's MACROS list and cached. Lazy because K.vector

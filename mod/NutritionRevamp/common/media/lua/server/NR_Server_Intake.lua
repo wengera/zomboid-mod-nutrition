@@ -32,7 +32,8 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
                      wrappedDrink = false, wired = false,
-                     stats = { eats = 0, cancels = 0, sips = 0, landed = 0, failures = 0, passthrough = 0 },
+                     stats = { eats = 0, cancels = 0, sips = 0, landed = 0, failures = 0, passthrough = 0,
+                               unreadableAfter = 0 },
                      lastError = nil }
 local IN = NR.server.intake
 
@@ -98,6 +99,13 @@ end
 function IN.afterReading(before, after)
     if type(before) == "number" and not IN.isFinite(after) then return 0 end
     return after
+end
+
+-- An after-reading that is UNREADABLE (nil or not a number) against a numeric before-reading, as
+-- opposed to the known NaN/inf of a finished item (#2832, silent): afterReading still maps it to 0
+-- (finished, so the whole remainder lands), but it is not the vanilla 0/0, so it is made visible.
+function IN.isUnreadableAfter(before, after)
+    return type(before) == "number" and type(after) ~= "number"
 end
 
 -- The first key of a vector that is not finite, or nil when every key is (numeric-for over KEYS, a
@@ -262,9 +270,18 @@ end
 -- After the original: the raw hunger again, the assembly, the landing in the player's stomach.
 function IN.readAfterAndLand(b)
     -- a finished item reads NaN here, not 0 (#2832, vanilla's 0/0 in consumeHunger): normalised to 0
-    local rawAfter = IN.afterReading(b.rawBefore, read(b.item, "getHungChange"))
+    local rawRead = read(b.item, "getHungChange")
+    local rawAfter = IN.afterReading(b.rawBefore, rawRead)
     -- the raw thirst again (#0005), the same normalisation
-    local thirstAfter = IN.afterReading(b.thirstBefore, read(b.item, "getThirstChangeUnmodified"))
+    local thirstRead = read(b.item, "getThirstChangeUnmodified")
+    local thirstAfter = IN.afterReading(b.thirstBefore, thirstRead)
+    -- an unreadable (nil/non-number) after-read is treated as finished like the NaN, but counted and
+    -- named, once per landing: it is not the known vanilla 0/0, so it must not pass silently
+    if IN.isUnreadableAfter(b.rawBefore, rawRead) or IN.isUnreadableAfter(b.thirstBefore, thirstRead) then
+        IN.stats.unreadableAfter = IN.stats.unreadableAfter + 1
+        IN.lastError = "after-read unreadable; treated as finished: " .. tostring(b.fullType)
+        NR.log.say(2, "intake: " .. IN.lastError)
+    end
     if NR.data == nil or NR.data.nutrients == nil then error("intake: NR.data.nutrients absent") end
     local vec, source, missing, share, frac = IN.assemble(b, rawAfter, NR.data.nutrients.get, thirstAfter)
     -- the landing guard: nothing non-finite reaches the stomach (#2833)
@@ -434,10 +451,17 @@ end
 --    craft, so a dish never reaches the craft arm (#2650, #2653).
 --  * A LATER mod that replaces ISEatFoodAction.complete (or serverStop, or ISDrinkFluidAction.updateEat)
 --    WITHOUT calling the saved original removes the capture silently; no sentinel can detect it, and
---    only NR.server.intake.stats.eats standing still across eats reveals it. #1067 is the rule it
---    breaks (keep and call the original so two wraps compose); #1176 is only an ANALOGUE (the
---    path-granular file-shadow wall, one body winning whole) -- a dedicated register row for the
---    function-wrap wall is minted at the documentation task.
+--    only NR.server.intake.stats.eats standing still across eats reveals it (#2842, the function-wrap
+--    wall). #1067 is the rule it breaks (keep and call the original so two wraps compose).
+--  * A crafted output's consumed-type map counts INSTANCES, not uses: a partly-used input (10 of 30
+--    ice-cream uses, #0709) lands its whole seed, so the craft arm over-counts partial inputs by the
+--    unspent fraction -- the map carries no uses, and the fix is Plan 6's (a per-recipe use fraction
+--    from data/recipes.json). The map is +1 per entry of getAllConsumedItems (ISHandcraftAction.lua
+--    :236-247), and that list holds one entry per consumed InventoryItem whatever its uses spent
+--    (jar 42.20.4: CraftRecipeData.getAllConsumedItems @range L2220-L2235 walks the inputs into
+--    CacheData.addAppliedItemsToList @L1868, a copy of appliedItems; CacheData.addAppliedItem
+--    @range L1825-L1828 adds the item once, asserting no duplicate; its one consume-side caller,
+--    CraftRecipeManager.consumeInputItemInternal @range L948-L949, passes one InventoryItem).
 --  * No craft hook ships (Plan 2 ruling 5): the vanilla consumed-type map is the source, and X31's
 --    craft probe runs only if a live reading shows that map unreachable.
 

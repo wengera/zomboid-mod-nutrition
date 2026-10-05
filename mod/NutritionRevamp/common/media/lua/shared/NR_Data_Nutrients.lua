@@ -5,19 +5,28 @@
 -- data-pipeline report's SR Legacy mapping or a clearly labelled judgement -- precision is Plan 6's
 -- deliverable, coverage of the session foods is this task's. phytate is 0 on non-grain/legume foods.
 -- A reader goes through the loaders, never the tables, so Plan 6 can swap the provenance untouched.
--- Units: calories kcal; carbs/lipids/proteins/fibre/water/phytate g; vitC/iron mg.
+-- Units: calories kcal; carbs/lipids/proteins/fibre/water g; vitC/iron/phytate mg (NR.data.UNITS below).
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.data = NR.data or {}
 NR.data.nutrients = {}
 NR.data.fluids = {}
 
+-- The units contract: the unit of every vector key, per item (per litre for a fluid). Plan 6's
+-- pipeline emits these units and the kernel's coefficients assume them -- K.stomach.ironFactor's
+-- per-MILLIGRAM phytate and vitamin C slopes (the rows cited there) and K.stomach.BIOAVAIL per the
+-- same key -- so a seed or generated value in any other unit misreads by the conversion factor
+-- (phytate in grams read about 1000x too weak an inhibition). Every K.vector.KEYS key is listed, and
+-- nothing else.
+NR.data.UNITS = { calories = "kcal", carbs = "g", lipids = "g", proteins = "g", fibre = "g", water = "g",
+                  vitC = "mg", iron = "mg", phytate = "mg" }
+
 -- Per-item vectors (macros exact from food-items.json; mod nutrients per the report's mapping or a
 -- judgement). Every entry: -- SEED <pz_id> <sr-legacy-id or "judgement">.
 local NUTRIENTS = {
     ["Base.Apple"] = { calories = 95.0, carbs = 25.13, lipids = 0.31, proteins = 0.47, fibre = 4.4, water = 155.8, vitC = 8.4, iron = 0.22, phytate = 0.0 },       -- SEED Base.Apple 171688 (Apples raw w/skin, 182 g)
     ["Base.Steak"] = { calories = 220.0, carbs = 0.0, lipids = 9.35, proteins = 31.62, fibre = 0.0, water = 74.0, vitC = 0.0, iron = 2.4, phytate = 0.0 },         -- SEED Base.Steak judgement (beef cut ~120 g; vitC 0, phytate 0 on meat)
-    ["Base.Bread"] = { calories = 532.0, carbs = 99.0, lipids = 6.66, proteins = 17.7, fibre = 4.4, water = 65.0, vitC = 0.0, iron = 6.5, phytate = 0.4 },         -- SEED Base.Bread judgement (172675 french bread ~190 g; grain -> small phytate)
+    ["Base.Bread"] = { calories = 532.0, carbs = 99.0, lipids = 6.66, proteins = 17.7, fibre = 4.4, water = 65.0, vitC = 0.0, iron = 6.5, phytate = 400.0 },       -- SEED Base.Bread judgement: ~400 mg phytic acid per ~190 g loaf-portion of wholemeal-ish bread (macros 172675 french bread)
     ["Base.Carrots"] = { calories = 25.0, carbs = 6.0, lipids = 0.15, proteins = 0.6, fibre = 1.7, water = 54.6, vitC = 3.7, iron = 0.19, phytate = 0.0 },         -- SEED Base.Carrots judgement (carrot ~62 g)
     ["Base.Lettuce"] = { calories = 54.0, carbs = 10.33, lipids = 0.54, proteins = 4.9, fibre = 6.3, water = 285.0, vitC = 12.0, iron = 3.0, phytate = 0.0 },      -- SEED Base.Lettuce judgement (romaine head ~300 g; water high on produce)
     ["Base.Tomato"] = { calories = 14.0, carbs = 3.5, lipids = 0.2, proteins = 1.3, fibre = 0.94, water = 73.7, vitC = 10.7, iron = 0.21, phytate = 0.0 },         -- SEED Base.Tomato judgement (tomato ~78 g)

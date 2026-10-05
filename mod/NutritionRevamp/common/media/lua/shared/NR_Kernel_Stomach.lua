@@ -25,7 +25,7 @@ K.stomach.FULL_BULK = 8.0
 K.stomach.BIOAVAIL = {}
 K.stomach.BIOAVAIL.water = 1.0
 K.stomach.BIOAVAIL.fibre = 1.0
-K.stomach.BIOAVAIL.vitC = 0.85
+K.stomach.BIOAVAIL.vitC = 0.85 -- design-phase-v1 game choice: food vitamin C absorption 70-90 %, no settled row
 K.stomach.BIOAVAIL.iron = 0.18 -- S0434 (the RDA's assumed 18 %), S0535 (14-18 % for mixed diets)
 K.stomach.BIOAVAIL.phytate = 0.0
 
@@ -97,12 +97,14 @@ end
 -- just above S0532's measured -82 % at 250 mg phytate PHOSPHORUS (about 886 mg phytic acid, which
 -- the unclamped model would put near 0.05), so the band deliberately under-reads the heaviest
 -- phytate meals rather than extrapolate the log-linear fit past the measured range.
+-- design-phase-v1 game choice: the [0.2, 4.0] band is a judgement; S0532 supports the -82 % at 250 mg phytate P, which the floor caps at -80 %. The S tags below stand for the slopes (-0.0034 per mg phytate, +0.0065 per mg vitamin C) the rows state.
 function K.stomach.ironFactor(phytateMg, vitCMg)
     return K.clamp(math.exp(-0.0034 * phytateMg + 0.0065 * vitCMg), 0.2, 4.0) -- S0195, S0194, S0533, S0532
 end
 
 -- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / 10), floored at 0.05
--- (fat-free: negligible carotenoid absorption) and saturating by 28 g. The /10 shape is a judgement.
+-- (fat-free: negligible carotenoid absorption) and saturating by 28 g.
+-- design-phase-v1 game choice: the /10 saturation and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
 -- Standalone and unit-tested, NOT yet wired into absorb: no seed nutrient is fat-soluble, so wiring it
 -- would leave an untaken branch; Plan 4's records bring the fat-soluble nutrients and the one-line
 -- application (Plan 2 ruling).
