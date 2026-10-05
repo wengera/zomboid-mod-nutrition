@@ -4,9 +4,11 @@ The file is a server/ file the kernel host does not load (the host loads NR_Core
 NR_Kernel*.lua files only), so this test loads it on top of the session host itself, the way
 test_bench.py loads NR_Server_Bench.lua. Every Java global the file names (ISEatFoodAction, Events,
 getGameTime) sits inside a function behind a nil check, so the load runs no engine code and the
-file-scope install() finds no ISEatFoodAction and wraps nothing. The wrapper bodies need the engine
-and are proved live (Plan 2 Tasks 13-14); the helpers below carry no Java and are covered here by
-hand-computed values.
+file-scope install() finds no ISEatFoodAction and wraps nothing. The helpers below carry no Java and
+are covered here by hand-computed values; the server path (wrapper, before-read, original, landing in
+the store) is driven end to end through Lua stand-ins for the Java objects at the end of this file.
+Neither proves the engine's real member names or behaviour, which the live runs do (Plan 2 Tasks
+13-14).
 """
 import os
 import pytest
@@ -556,3 +558,199 @@ def test_drink_install_is_idempotent_and_always_calls_the_original(intake_host):
     assert passed == 1
     assert restored is True
     assert wrapped is False
+
+
+# --- fix-2: the thirst-only share against the TYPE's script thirst ---------------------------------
+
+def test_fraction_thirst_only_half_against_script_thirst(intake_host):
+    frac, share = I(intake_host).fractionOf(0, 0, 0, -0.1, -0.05, -0.1)
+    assert abs(frac - 0.5) < TOL and abs(share - 0.5) < TOL
+
+
+def test_fraction_thirst_only_rest_against_script_thirst(intake_host):
+    # the second eat of a half-drunk item: all of what was LEFT (1.0), half of the WHOLE (0.5)
+    frac, share = I(intake_host).fractionOf(0, 0, 0, -0.05, 0, -0.1)
+    assert abs(frac - 1.0) < TOL and abs(share - 0.5) < TOL
+
+
+def test_fraction_thirst_only_unknown_script_thirst_falls_back(intake_host):
+    # the whole is unknown: share falls back to frac (the named limitation)
+    frac, share = I(intake_host).fractionOf(0, 0, 0, -0.05, 0, 0)
+    assert abs(frac - 1.0) < TOL and abs(share - 1.0) < TOL
+
+
+def test_assemble_thirst_only_two_eats_land_the_baseline_once(intake_host):
+    # half, then the rest: the whole-instance seed lands 1.0x in total (not 1.5x), the macros land
+    # the live (already shrunk) item both times at Eat's own fraction
+    h = intake_host
+    b1 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=2, carb=0, lip=0, pro=0,
+                thirstBefore=-0.1, scriptThirst=-0.1)
+    v1, s1, m1, share1, frac1 = I(h).assemble(b1, 0, lookup(h), -0.05)
+    b2 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=1, carb=0, lip=0, pro=0,
+                thirstBefore=-0.05, scriptThirst=-0.1)
+    v2, s2, m2, share2, frac2 = I(h).assemble(b2, 0, lookup(h), 0)
+    assert abs(share1 - 0.5) < TOL and abs(frac1 - 0.5) < TOL
+    assert abs(share2 - 0.5) < TOL and abs(frac2 - 1.0) < TOL
+    assert abs(v1["fibre"] + v2["fibre"] - 4.4) < TOL
+    assert abs(v1["water"] + v2["water"] - 156) < TOL
+    assert abs(v1["calories"] - 1) < TOL and abs(v2["calories"] - 1) < TOL
+
+
+# --- fix-2: the server path end to end through stand-in Java objects -------------------------------
+# NR.call indexes obj[name] and calls it with obj first, so a Lua table of function fields stands in
+# for a Java object. The store attaches offline once its records table is pre-set.
+
+STORE = os.path.join(
+    REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Store.lua"
+)
+
+SERVER_SETUP = r"""
+function(nutrients, fluids)
+    local NR = NutritionRevamp
+    local saved = { isServer = NR.isServer, data = NR.data, getGameTime = getGameTime }
+    NR.isServer = function() return true end
+    NR.server.store.records = {}
+    NR.data = { nutrients = { get = nutrients }, fluids = { get = fluids } }
+    getGameTime = function()
+        return { getWorldAgeHours = function(self) return 12.5 end }
+    end
+    return saved
+end
+"""
+
+SERVER_TEARDOWN = r"""
+function(saved)
+    local NR = NutritionRevamp
+    NR.isServer, NR.data, getGameTime = saved.isServer, saved.data, saved.getGameTime
+    NR.server.store.records = nil
+    ISEatFoodAction, ISDrinkFluidAction = nil, nil
+    for _, S in ipairs({NR_IntakeComplete_Installed, NR_IntakeServerStop_Installed, NR_IntakeDrink_Installed}) do
+        S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    end
+end
+"""
+
+EAT_STUBS = r"""
+function(raising)
+    local IN = NutritionRevamp.server.intake
+    local hung, thirst = -0.16, 0
+    local item = {}
+    if raising then
+        item.getHungChange = function(self) error("stub: getHungChange raised") end
+    else
+        item.getHungChange = function(self) return hung end
+    end
+    item.getFullType = function(self) return "Base.Apple" end
+    item.getBaseHunger = function(self) return -0.16 end
+    item.getCalories = function(self) return 95 end
+    item.getCarbohydrates = function(self) return 25.13 end
+    item.getLipids = function(self) return 0.31 end
+    item.getProteins = function(self) return 0.47 end
+    item.isCooked = function(self) return false end
+    item.isBurnt = function(self) return false end
+    item.isRotten = function(self) return false end
+    item.isFrozen = function(self) return false end
+    item.getThirstChangeUnmodified = function(self) return thirst end
+    item.haveExtraItems = function(self) return false end
+    item.getModData = function(self) return {} end
+    item.getScriptItem = function(self)
+        return { getHungerChange = function(s) return -16 end, getThirstChange = function(s) return 0 end }
+    end
+    local char = { getUsername = function(self) return "admin" end }
+    local calls = 0
+    local cls = {}
+    cls.complete = function(self) calls = calls + 1 hung = 0 return true end
+    cls.serverStop = function(self) end
+    ISEatFoodAction = cls
+    local before = { eats = IN.stats.eats, landed = IN.stats.landed, failures = IN.stats.failures }
+    IN.install()
+    local r = cls.complete({ item = item, character = char })
+    local rec = NutritionRevamp.server.store.records.admin
+    return r, calls, before, rec, IN.lastError
+end
+"""
+
+DRINK_STUBS = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local amount = 0.3
+    local released = 0
+    local fluid = { getFluidTypeString = function(self) return "Cola" end }
+    local sample = {
+        size = function(self) return 1 end,
+        getFluid = function(self, i) return fluid end,
+        getPercentage = function(self, i) return 1.0 end,
+        release = function(self) released = released + 1 end,
+    }
+    local fc = {
+        getAmount = function(self) return amount end,
+        createFluidSample = function(self) return sample end,
+    }
+    local item = { getFullType = function(self) return "Base.Pop" end }
+    local char = { getUsername = function(self) return "admin" end }
+    local calls = 0
+    local cls = {}
+    cls.updateEat = function(self, delta) calls = calls + 1 amount = 0 return "orig" end
+    ISDrinkFluidAction = cls
+    local before = { sips = IN.stats.sips, landed = IN.stats.landed }
+    IN.installDrink()
+    local r = cls.updateEat({ item = item, fluidContainer = fc, character = char }, 1)
+    local rec = NutritionRevamp.server.store.records.admin
+    local expected = IN.fluidVector(NutritionRevamp.data.fluids.get, { { "Cola", 1.0 } }, 0.3)
+    return r, calls, before, rec, NutritionRevamp.kernel.stomach.bulkOf(expected), released
+end
+"""
+
+
+@pytest.fixture
+def server_host(intake_host):
+    h = intake_host
+    with open(STORE, encoding="utf-8") as fh:
+        src = fh.read()
+    h.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@NR_Server_Store.lua")()
+    saved = h.rt.eval(SERVER_SETUP)(lookup(h), fluid_lookup(h))
+    try:
+        yield h
+    finally:
+        h.rt.eval(SERVER_TEARDOWN)(saved)
+
+
+def test_server_path_eat_lands_in_the_stomach(server_host):
+    h = server_host
+    r, calls, before_stats, rec, err = h.rt.eval(EAT_STUBS)(False)
+    stats = I(h).stats
+    assert r is True and calls == 1
+    assert rec is not None, err
+    assert rec["stomach"]["bulk"] > 0
+    assert stats.eats == before_stats["eats"] + 1
+    assert stats.landed == before_stats["landed"] + 1
+    assert stats.failures == before_stats["failures"]
+    assert rec["lastIntake"]["source"] == "baseline"
+    assert abs(rec["lastIntake"]["share"] - 1.0) < TOL
+    assert rec["firstSeen"] == 12.5
+
+
+def test_server_path_drink_lands_the_cola(server_host):
+    h = server_host
+    r, calls, before_stats, rec, expected_bulk, released = h.rt.eval(DRINK_STUBS)()
+    stats = I(h).stats
+    assert r == "orig" and calls == 1
+    assert rec is not None, I(h).lastError
+    assert expected_bulk > 0
+    assert abs(rec["stomach"]["bulk"] - expected_bulk) < TOL
+    assert stats.sips == before_stats["sips"] + 1
+    assert stats.landed == before_stats["landed"] + 1
+    assert rec["lastIntake"]["source"] == "fluid"
+    assert abs(rec["lastIntake"]["litres"] - 0.3) < TOL
+    assert released == 1
+
+
+def test_server_path_raising_capture_still_runs_the_original(server_host):
+    h = server_host
+    r, calls, before_stats, rec, err = h.rt.eval(EAT_STUBS)(True)
+    stats = I(h).stats
+    assert r is True and calls == 1
+    assert stats.failures == before_stats["failures"] + 1
+    assert err is not None and "getHungChange raised" in str(err)
+    assert stats.landed == before_stats["landed"]
+    assert rec is None

@@ -18,16 +18,21 @@
 --  * The wrapper reads its logic from NutritionRevamp.server.intake at call time, so a reload of this
 --    file swaps the capture code under a wrapper that stays installed.
 --  * The side test is nil-checked and per call: this server/ file also runs in the client VM (#0855).
---  * Every Java global (ISEatFoodAction, Events, getGameTime) is named only inside a function, behind a
---    nil check, so the file loads with no engine (testing/tests/kernel/test_intake_shape.py).
+--  * Every Java global (ISEatFoodAction, ISDrinkFluidAction, Events, getGameTime) is named only inside
+--    a function, behind a nil check, so the file loads with no engine
+--    (testing/tests/kernel/test_intake_shape.py).
 --  * Java lists are walked with size()/get(i), never `#` (#0940).
 --
--- The capture runs once per eat on the server, never per tick: no @fastpath region in this file.
+-- Cadence: the eat capture runs once per eat (complete) or cancel (serverStop) on the server. The
+-- drink capture runs once per updateEat call -- every server tick during a drink plus about every
+-- 100 ms from the animation event (#0085), bounded to the drink's duration -- each call allocating one
+-- fluid sample and one store lookup. None of it is on the per-tick stat path: no @fastpath region in
+-- this file.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
                      wrappedDrink = false, wired = false,
-                     stats = { eats = 0, cancels = 0, drinks = 0, landed = 0, failures = 0, passthrough = 0 },
+                     stats = { eats = 0, cancels = 0, sips = 0, landed = 0, failures = 0, passthrough = 0 },
                      lastError = nil }
 local IN = NR.server.intake
 
@@ -55,13 +60,25 @@ end
 -- Food (base hunger 0) still goes through Eat (#0083), which then skips the baseHunger rescale and
 -- applies the menu fraction directly (#0014); the leftover multiplyFoodValues(1 - f) scales its stored
 -- thirstChange too (#0057), so the drop in RAW thirst (getThirstChangeUnmodified, #0005) over the raw
--- thirst before IS that fraction, and of the whole and of what was left alike (no rescale to undo).
+-- thirst before IS that fraction -- of what was LEFT (frac). It is the share of the whole only for a
+-- never-eaten item: after a partial eat the stored thirst has shrunk, so the whole-instance share
+-- takes the drop over the TYPE's unscaled thirst instead (scriptThirst, readBefore), the same shape as
+-- hunger's instBase. A thirst-only Food has no base-thirst field; scriptThirst is the denominator.
 -- Raw thirst is negative like hunger; the sign cancels. Nothing readable -> 0, 0 (nothing landed).
-function IN.fractionOf(rawBefore, rawAfter, instBase, thirstBefore, thirstAfter)
+-- limitations:
+--  * A split or butchered thirst-only item (its instance thirst scaled off the script value) mis-shares
+--    by that scale -- vanishingly rare for a thirst-only Food.
+--  * scriptThirst 0 or unreadable: the whole is unknown and share falls back to frac, which over-counts
+--    the whole-instance vector on any eat after the first partial one.
+function IN.fractionOf(rawBefore, rawAfter, instBase, thirstBefore, thirstAfter, scriptThirst)
     if instBase == nil or instBase == 0 then
         if type(thirstBefore) == "number" and type(thirstAfter) == "number" and thirstBefore ~= 0 then
-            local f = K.clamp((thirstBefore - thirstAfter) / thirstBefore, 0, 1)
-            return f, f
+            local drop = thirstBefore - thirstAfter
+            local f = K.clamp(drop / thirstBefore, 0, 1)
+            if type(scriptThirst) == "number" and scriptThirst ~= 0 then
+                return f, K.clamp(drop / scriptThirst, 0, 1)
+            end
+            return f, f                                    -- the base is unknown (limitation above)
         end
         return 0, 0
     end
@@ -109,10 +126,12 @@ end
 --          factor on anything read off the live item, whose values a prior partial eat already shrank
 --          (multiplyFoodValues): the four macros and the dish scaled to the live macro total.
 -- For an item never eaten before rawBefore == instBase and the two agree. A thirst-only Food takes
--- both from its raw thirst (fractionOf); thirstAfter is the raw thirst after the original ran.
+-- frac from its raw thirst and share from that drop over the type's script thirst (fractionOf);
+-- thirstAfter is the raw thirst after the original ran.
 -- lookup(fullType) -> seed vector or nil (the server passes NR.data.nutrients.get).
 function IN.assemble(b, rawAfter, lookup, thirstAfter)
-    local frac, share = IN.fractionOf(b.rawBefore, rawAfter, b.instBase, b.thirstBefore, thirstAfter)
+    local frac, share = IN.fractionOf(b.rawBefore, rawAfter, b.instBase, b.thirstBefore, thirstAfter,
+        b.scriptThirst)
     if share <= 0 or frac <= 0 then return nil, nil, {}, share, frac end
     local extra = b.extraTypes or {}
     local source = IN.sourceOf(#extra > 0, b.craftMap ~= nil)
@@ -185,9 +204,16 @@ function IN.readBefore(action)
     b.rotten = read(item, "isRotten") == true
     b.frozen = read(item, "isFrozen") == true
     -- the script hunger, a public bare read in script points (#2678): /100 to the instance's units
-    local scriptHunger = read(read(item, "getScriptItem"), "getHungerChange")
+    local script = read(item, "getScriptItem")
+    local scriptHunger = read(script, "getHungerChange")
     b.scriptHunger = 0
     if type(scriptHunger) == "number" then b.scriptHunger = scriptHunger / 100 end
+    -- the script thirst, the same shape: Item.getThirstChange() is a bare getfield of the script
+    -- object's thirstChange (jar 42.20.4, Item.getThirstChange L563), script points /100 like hunger
+    -- (#0011, #0323) -- a thirst-only Food's whole-instance denominator (fractionOf)
+    local scriptThirst = read(script, "getThirstChange")
+    b.scriptThirst = 0
+    if type(scriptThirst) == "number" then b.scriptThirst = scriptThirst / 100 end
     -- the dish's ingredient list: a Java ArrayList, walked with size()/get(i)
     b.extraTypes = {}
     if read(item, "haveExtraItems") == true then
@@ -233,7 +259,7 @@ function IN.guardBefore(action, kind)
     if kind == "cancel" then
         IN.stats.cancels = IN.stats.cancels + 1
     elseif kind == "drink" then
-        IN.stats.drinks = IN.stats.drinks + 1
+        IN.stats.sips = IN.stats.sips + 1             -- one per updateEat call
         readFn = IN.readDrinkBefore
     else
         IN.stats.eats = IN.stats.eats + 1
