@@ -24,7 +24,7 @@ Writers grepped across all eight `42/` files: `setPerkLevelDebug`, `LevelPerk`, 
 Result of the grep (2026-10-05), complete:
 
 - `setPerkLevelDebug`, `LevelPerk`, `LoseLevel`, `level0`, `setPerkBoost`, `addXp` (the global),
-  `setMaxWeightBase`, `setMaxWeightDelta`: **0 hits**.
+  `setMaxWeightBase`, `setMaxWeightDelta`: **0 call sites** (`addXp` occurs twice, both in comments: `Server.lua:337`, `:453`).
 - `setXPToLevel`: `Server.lua:226` (server `setRawXP`), `Client.lua:50` and `Client.lua:195` (both behind
   `isClient()` being false).
 - six-argument `XP.AddXP`: `Server.lua:285`, `Client.lua:113` (both inside `applyNativeOverflow`).

@@ -135,6 +135,8 @@ Twelve in-game hours after the first rep of a group, the ten-minute tick starts 
 A day after the last rep of an exercise, the same tick starts taking regularity off it [#2166/C/C-only].
 The client, meanwhile, grants nothing, writes no endurance and fires only the animation event of each loop [#2173/C/C-only] [#2175/C/C-only] [#2185/C/C-only].
 
+An exercise set's rep path runs on the server: squats regularity rose 0.08 per rep on the server's own read, ahead of the client's, and `AddXP` fired once per rep for Fitness (4) and for Strength (0) [#2879/M/n=1]. Whether `Fitness.update`'s decay ticks on the server is still open [#2083/C/open].
+
 <a id="training-signals"></a>
 ### Training signals: every grant of Strength or Fitness XP
 
@@ -190,6 +192,8 @@ The hit and exhaustion grants pass literal amounts of 2.0 and 1.0, which truncat
 The melee grants reach the server through the server-only trigger and the server-side handler, so on a dedicated server they are server grants too [#2193/C/C-only] [#2195/C/C-only].
 A multiplayer client therefore never originates a Strength or Fitness grant from exercise, a hit, a swing or exhaustion [#2173/C/C-only] [#2190/C/C-only] [#2193/C/C-only].
 
+`OnWeaponHitXp` fires on the server for a connected player's landed melee hits, with the hit-count argument 1 [#2880/M/n=1].
+
 ## Walls and bounds
 <a id="walls"></a>
 
@@ -205,7 +209,7 @@ Not covered: `Fitness.save` and `Fitness.load` (which maps survive a save), the 
 ## Open
 <a id="open"></a>
 
-- Whether `Fitness.update` ticks on the server for a connected player, so that regularity decays and soreness lands there — settled by a seeded exercise and two idle game-days, reading the server's regularity for the predicted fall; -> [X36](../areas/open-questions.md#x36) [#2083/C/open]
+- Whether `Fitness.update`'s decay ticks on the server for a connected player, so that regularity decays and soreness lands there (the rep path is settled, T5.5) — settled by a seeded exercise and two idle game-days, reading the server's regularity for the predicted fall; -> [X36](../areas/open-questions.md#x36) [#2083/C/open]
 - Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise — settled by server-side counters on the three events after a console grant, melee hits and an exercise; -> [X39](../areas/open-questions.md#x39) [#2084/C/open]
 - A decision the design takes: whether a training model reads the engine's per-exercise regularity or keeps its own, given that regularity decays only after a one-day grace, by 0.288 a day, with no floor [#2167/C/arith.] [#2166/C/C-only].
 - A decision the design takes: whether a resistance dose counts reps through the server-side grant or through the fitness object, given that the grant is truncated to an integer and a multiplayer client grants nothing [#2173/C/C-only].

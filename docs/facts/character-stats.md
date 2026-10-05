@@ -129,6 +129,8 @@ The updater is private, so Lua cannot call it to refresh the stat [#2222/C/C-onl
 The moodle update carries no side gate, so each side recomputes its own moodles from its own copy of the stats [#0563].
 A server-side stat write therefore reaches the client's moodle levels once the client's stats copy has it, through [the player-stats push](../platform/mp-model.md#packets).
 
+On a dedicated server the character-action stack of a connected player is empty while its client runs a timed action, so `Nutrition.updateCalories` on the server never sees the action's calorie modifier [#2878/M/n=1, #2089].
+
 <a id="tick-order"></a>
 ### One server update of a player, up to the hook
 

@@ -301,6 +301,8 @@ Whether the server can read the current action at all is open (see [Open](#open)
 The exercise reaches the server with no client command a mod could intercept [#2189/C/C-only].
 The grants and their triggers are [the training signals](../facts/exercise-and-training.md#training-signals).
 
+Read activity on the server from `getBodyDamage():getThermoregulator():getMetabolicRate()`, never from the target, which reads -1. The rate lags the activity and already carries the load factor, and it never reaches the running or sprinting classes, because those flags do not reach the server [#2875/M/n=1][#2877/M/n=1]. Read exercise reps and melee hits from the server's `AddXP` and `OnWeaponHitXp` events [#2879/M/n=1][#2880/M/n=1]. The current action's calorie modifier is not readable on the server [#2878/M/n=1].
+
 ## Options
 
 A body effect takes one of a few shapes on each lever, and the shapes differ in what they own and what they fight.
@@ -356,8 +358,6 @@ Not covered: the nine body-damage sub-updaters' bodies, and so which of them ove
 - Whether a handler that reproduces the seven skipped updaters tracks vanilla's stat trajectory stat by stat over several game-hours — settled by two boots of one fixture, with no handler and with the reproducing handler; -> [X34](open-questions.md#x34) [#2081/C/open].
 - Whether a handler's endurance write is the last before the player-stats push — settled by a sentinel endurance written each tick and read in client-first pairs; -> [X35](open-questions.md#x35) [#2082/C/open].
 - Whether the fitness object's update ticks on the server for a connected player — settled by a seeded exercise and two idle game-days, reading the server's regularity; -> [X36](open-questions.md#x36) [#2083/C/open].
-- Whether the metabolic-rate classification tracks a connected player's state on the server or sits at its default — settled by server reads of the rate while the client idles, walks and runs; -> [X37](open-questions.md#x37) [#2088/C/open].
-- Whether the current timed action and its calorie modifier are readable server-side — settled by the server's action list read idle, through an eat and through a book read; -> [X38](open-questions.md#x38) [#2089/C/open].
 - Whether the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's hits and exercise — settled by server-side counters after a console grant, melee hits and an exercise; -> [X39](open-questions.md#x39) [#2084/C/open].
 - What the experience anti-cheat's check interval is, and whether a server-side burst of grants trips it — settled by a desk read of the enabling option and timed bursts either side of the bound; -> [X40](open-questions.md#x40) [#2085/C/open].
 - Whether a client-side write to the `WalkSpeed` animation variable holds inside the injuries-packet window — settled by a client write sampled every quarter second; -> [X47](open-questions.md#x47) [#2096/C/open].

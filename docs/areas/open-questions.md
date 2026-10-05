@@ -32,7 +32,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#0380/C/C-only/open] | No reader for `AddIngredientIfCooked`, which 37 recipe blocks use, was traced beyond the ingredient-usability check. | [cooking-and-recipes.md](../facts/cooking-and-recipes.md#open) | — | dumping the key's readers from the jar |
 | [#0381/C/C-only/open] | `EvolvedRecipe.useSpice` and its two overloads were never dumped, so the spice branch's effect beyond the herbal-tea sums is unread. | [open-questions.md](#x9b) | X9b | a jar dump of both `useSpice` overloads and the ingredient usability check |
 | [#0384/C/C-only/open] | The behaviour of an item whose fresh and rotten thresholds are equal is unmeasured at eat time, where it takes the hundred-per-cent branch of the rot-sickness denominator. | [spoilage.md](../facts/spoilage.md#open) | — | eating `Base.RatKing` on a live server and reading the sickness roll |
-| [#0591/M/n=1/open] | The walking, running and sprinting burn constants are unmeasured: the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character on the walk-to plus set-running route. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the walk, run and sprint ratio tests against idle, with the run flag reaching the server |
+| [#0591/M/n=1/open] | The walking, running and sprinting burn constants are unmeasured: the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character on the walk-to plus set-running route. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the walk, run and sprint burn ratios; running never reaches the server (T5.3) |
 | [#0592/M/n=1/open] | The asleep burn branch is unmeasured: the sleep write held on the immediate read-back but did not persist, and the next row's 52 server samples all read the character awake with idle-rate burn about 27 s later, so whether the sleep was walked off or never persisted is undetermined. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | a sleep arm that verifies the state on the server before the window opens |
 | [#0593/C/C-only/open] | Whether the 1.2 running thirst factor ever fires on a dedicated server is unknown: it is gated on the character being the local player instance, which on a headless server is probably never true, so running may not raise thirst in multiplayer at all. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | the same running branch the burn constants need |
 | [#0594/C/C-only/open] | The real range of the thermoregulator's energy multiplier is unknown: the primary and secondary totals are written by updateNodes from a loop that was not traced, so the size of the cold-weather burn bonus is unbounded here. | [body-and-weight.md](../facts/body-and-weight.md#open) | — | a temperature-controlled pair of idle windows |
@@ -115,8 +115,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2084/C/open] | Do the server-side experience events `AddXP`, `LevelPerk` and `OnWeaponHitXp` fire per grant for a connected player's melee hits and exercise? | [open-questions.md](#x39) | X39 | server-side counters on the three events after a console grant as the control, then melee hits and an exercise |
 | [#2085/C/open] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
-| [#2088/C/open] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
-| [#2089/C/open] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
 | [#2096/C/open] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
 | [#2742/M/n=1/open] | Whether a MoodleFramework moodle or a mod's own `ISUIElement` widget renders on a dedicated-server client is unmeasured: no run has drawn either, and X29's render leg is the reading that settles it. | [open-questions.md](#x29) | X29 | a framework moodle and a widget of the mod's own, each driven on the client and its draw calls counted, beside a value that must leave the moodle undrawn |
 | [#2829/M/n=1/open] | Two drink corners are unmeasured, cancel semantics and the 100 ms anim-event cadence under `settimespeed`, and when the new fill and the new calories arrive on the client is read only to a poll of 1.5 to 2 s: the client trailed the server by about one poll and reached the same totals. | [eating-pipeline.md](../facts/eating-pipeline.md#open) | — | a drink cancelled partway and a drink at a raised time speed, each read on both sides |
@@ -336,25 +334,13 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x36"></a>
 ### X36 — Does `Fitness.update` tick on the server for a connected player?
-- Whether `Fitness.update` ticks on the server for a connected player is open [#2083/C/open].
+- Whether `Fitness.update`'s decay ticks on the server for a connected player is open [#2083/C/open]; the rep path is settled (T5.5).
 - Waiting on it: [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: a seeded exercise, then two game-days with no exercise, reading the server's regularity for the fall the decay predicts — [experiments.md § Named experiments](../reference/experiments.md), row `X36`.
 
-<a id="x37"></a>
-### X37 — Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default?
-- Whether the thermoregulator's metabolic-rate classification tracks a server-side player's state or sits at its default is open [#2088/C/open].
-- Waiting on it: [body-and-weight.md](../facts/body-and-weight.md#open).
-- Settled by: server reads of the metabolic rate while the driven client idles, walks and runs, the idle read as the control, against the class values the jar names for each state — [experiments.md § Named experiments](../reference/experiments.md), row `X37`.
-
-<a id="x38"></a>
-### X38 — Is the current timed action, and its calorie modifier, readable server-side?
-- Whether the current timed action and its calorie modifier are readable server-side is open [#2089/C/open].
-- Waiting on it: [body-effects.md](body-effects.md#open).
-- Settled by: the server's action list read idle and through a client-driven eat, then through a book read whose calorie modifier differs from the eat's — [experiments.md § Named experiments](../reference/experiments.md), row `X38`.
-
 <a id="x39"></a>
 ### X39 — Do the server-side experience events fire per grant — `AddXP`, `LevelPerk`, `OnWeaponHitXp` — for a connected player's melee hits and exercise?
-- Whether the `LevelPerk` event crossing and the `OnWeaponHitXp` hit and rep arms fire per grant for a connected player is open [#2084/C/open]; `AddXP` is settled [#2871/M/n=1].
+- LevelPerk on a real crossing is open [#2084/C/open]; `AddXP` is settled [#2871/M/n=1], and the rep and hit arms are settled (T3.5, T5.5, T5.6).
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open), [exercise-and-training.md](../facts/exercise-and-training.md#open).
 - Settled by: server-side counters on the three events, read after a console experience grant as the positive control and then after melee hits and an exercise — [experiments.md § Named experiments](../reference/experiments.md), row `X39`.
 

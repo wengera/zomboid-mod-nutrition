@@ -93,6 +93,8 @@ Sustained running at the running branch's rate crosses the whole 5 900 kcal rang
 `Nutrition.update` returns early for a dead or god-mode character, and its only caller is the second internal player update step, itself gated by the character-stats disabler [#0466].
 The store this burn drains is clamped at both ends, so an idle starving character reaches the floor and the burn stops mattering ([nutrition-core.md#clamps](nutrition-core.md#clamps)).
 
+The moving flag of a client-driven walk reaches the server's copy of the player in about three ticks of four, but the run and sprint flags never do, so the server's running and sprinting branches are unreachable on the harness routes [#2877/M/n=1][#0591/M/n=1/open].
+
 <a id="metabolic-rate"></a>
 ### The metabolic-rate classes
 
@@ -123,6 +125,8 @@ So the target can differ from the class when the character is tired or loaded, a
 The exercise class is the flat `Metabolics.Fitness` at 6.0, never the exercise's own `metabolics`; a per-exercise class such as `FitnessHeavy` at 9.0 reaches the thermoregulator through `ISFitnessAction:update`'s per-frame `setMetabolicTarget`, the timed action [exercise-and-training.md#exercise-path](exercise-and-training.md#exercise-path) describes [#2634/C/C-only].
 `IsoGameCharacter` declares no metabolic-rate getter, only the two `setMetabolicTarget` overloads, so the rate is read through `getBodyDamage():getThermoregulator()`, whose `getMetabolicRate`, `getMetabolicTarget` and `getMetabolicRateReal` are public [#2635/C/C-only].
 The classification is read from the bytecode and never measured, and whether a connected player's thermoregulator is classified on the server at all is open below [#2633/C/C-only].
+
+On a dedicated server a connected player's metabolic target reads -1 at every read, because it is reset after each update, so the server's classification is read from `getMetabolicRate`. That rate held 1.50 idle, climbed toward Walking5kmh while the player walked, toward Fitness through a squat set, and above the walking class under load, so the server classifies the player's activity [#2875/M/n=1, #2088]. The client's rate tracks it within about 0.3 [#2876/M/n=1].
 
 <a id="hunger-thirst"></a>
 ### Hunger and thirst
@@ -404,14 +408,13 @@ Not covered: the temperature model behind the thermoregulator's primary and seco
 ## Open
 <a id="open"></a>
 
-- The walking, running and sprinting burn constants are unmeasured — the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character — settled by the walk, run and sprint ratio tests against idle, 4.875, 8.125 and 10.5625 [#0591/M/n=1/open].
+- The walking, running and sprinting burn constants are unmeasured — the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character — settled by the walk, run and sprint ratio tests against idle, 4.875, 8.125 and 10.5625; running never reaches the server [#2877/M/n=1] [#0591/M/n=1/open].
 - The asleep burn branch is unmeasured: the sleep write held on the immediate read-back but did not persist, and the next row's 52 server samples all read the character awake with idle-rate burn about 27 s later, so whether the sleep was walked off or never persisted is undetermined — settled by a sleep arm that verifies the state on the server before the window opens [#0592/M/n=1/open].
 - Whether the 1.2 running thirst factor ever fires on a dedicated server is unknown: it is gated on the character being the local player instance, which on a headless server is probably never true, so running may not raise thirst in multiplayer at all — settled by the same running branch the burn constants need [#0593/C/C-only/open].
 - The real range of the thermoregulator's energy multiplier is unknown: the primary and secondary totals are written by a node loop that was not traced, so the size of the cold-weather burn bonus is unbounded here, and the reading near 1.005 seen in the run is one uncontrolled fixture — settled by a temperature-controlled pair of idle windows [#0594/C/C-only/open].
 - Whether split-screen players 2 to 4 accrue hunger or thirst locally is unverified: in single-player the wake-state and thirst updaters run only for the local player instance — settled by a split-screen boot, which no run in this library has exercised [#0596/C/C-only/open].
 - The write order of `applyWeightFromTraits` is not exercised: its branches are sequential ifs, so a character carrying two weight traits — blocked in the UI, but reachable by a mod — would end at the last matching branch — settled by a probe that adds two band traits from Lua and reads the written weight back [#0597/C/C-only/open].
 - Not settled: the 50 kg and 65 kg band edges rest on the code alone, because the server nudged the weight past each boundary before the comparison ran; priming calories below the gain threshold for those weights measures them [#0531/M/n=1].
-- Whether the thermoregulator's metabolic-rate classification tracks a connected player's state on the server or sits at its default — settled by server reads of the metabolic rate while the client idles, walks and runs, against the class each state names, with endurance and carried load held still or accounted for, because both raise the target above its class [#2649/C/C-only]; -> [X37](../areas/open-questions.md#x37) [#2088/C/open].
 - The rows above without a named experiment are costed in [../reference/experiments.md](../reference/experiments.md).
 - Decision: whether the mod's own nutrient stores are driven from hunger, from calories or from neither — the two vanilla stores have no coupling in either direction [#0500, #0501].
 - Decision: whether a weight band is evaluated server-side or derived on the client from the three weight-direction flags, which a client does compute [#1098] — the band trait itself lags the weight by up to 2000 weight updates [#0534/C/C-only].
