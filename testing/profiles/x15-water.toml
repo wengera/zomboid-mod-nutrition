@@ -1,0 +1,37 @@
+# testing/profiles/x15-water.toml - the Plan 4 water gate boot (Task 4): PZTestKit + NutritionRevamp
+# (Mode 1, LegacyMirror on) + TKX_ThirstWatch. DayLength 1 (a game-hour is 37.5 s); Nutrition = false,
+# the design's precondition. The server ini keeps the fixture's SleepAllowed/SleepNeeded (false/false).
+# Client timeout normal. Tier-(a) verify rows only: the markers are present on both sides.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_ThirstWatch, DayLength 1 - the water gate."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_ThirstWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_ThirstWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_ThirstWatch"
+path = "testing/experiments/TKX_ThirstWatch"
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5; X7/X41 profiles): vanilla's nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
