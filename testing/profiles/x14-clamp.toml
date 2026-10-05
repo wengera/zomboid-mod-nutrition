@@ -29,6 +29,7 @@ path = "testing/experiments/TKX_XpEvents"
 timeout = 240
 
 [sandbox]
+Nutrition = false            # the design precondition (spec ruling 5; X7/X41 profiles): vanilla's nutrition update off
 DayLength = 1                 # a game-hour is 37.5 s
 
 [sandbox.NR]
