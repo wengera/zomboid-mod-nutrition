@@ -16,7 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item o
 - `Eat` never writes `Nutrition.weight`: its nutrition block writes the four nutrient setters and nothing else [#0061/M/one-fixture].
 - A fluid's `Properties` are the effect of one litre, the container multiplies them by the litres it holds, and drinking spends that aggregate times the fraction drunk [#0630, #0633].
 - Measured on the drink path, a full 0.3-litre can wrote 120.000031 calories and 31.200001 grams of carbohydrate, the same can at half wrote 60.0 and 15.6 [#1892/M/n=1].
-- The drink action's Lua is interceptable: a wrapper of its `updateEat` and `complete` fired on the server and never on the client when the game's own drink action ran [#2825/M/n=1].
+- The drink action's Lua is interceptable: a wrapper of its `updateEat` and `complete` fired on the server and the client's counters stayed at 0 when the game's own drink action ran, the client's install not witnessed [#2825/M/n=1].
 - The sandbox `Nutrition` option gates only `Nutrition.update()` — the macro drain, the calorie burn and weight — and leaves the `Eat` and `DrinkFluid` store writes untouched [#0067].
 - An eat costs 232 ticks per loop for food and 171 for a drink-type item, and the real multiplayer path lands on the client about 5.5 s after the action is queued [#0071/M/one-fixture, #1189/M/n=1].
 
@@ -224,7 +224,7 @@ The remainder is scaled by `multiplyFoodValues(1 - f)`, which multiplies fifteen
 
 Three endings close the method.
 At a fraction of exactly 1 the item's `hungChange` is set to 0 and `UseAndSync()` consumes it [#0058/M/one-fixture].
-It does not stay 0: the consume step's use count is the hunger times 100, so the count it decrements is already 0, the hunger it rescales by is a 0 over 0, and the finished item's raw hunger and scaled fields read NaN on the server — a reader after the eat must treat a finishing eat as the whole remainder rather than divide by what the item says [#2832/M/n=1].
+It does not stay 0: the consume step's use count is the hunger times 100, so the count it decrements is already 0, the setter clamps its argument at 0, the hunger it rescales by is a 0 over 0, and by the jar's reading the finished item's raw hunger and scaled fields are NaN, the raw hunger inferred from the NaN share a server-side wrapper computed after the eat and the item's own fields never read directly — a reader after the eat must treat a finishing eat as the whole remainder rather than divide by what the item says [#2832/M/n=1].
 After the multiply, an item whose old `hungChange` was 0, whose old thirst was negative and whose new thirst is greater than -0.01 has its `hungChange` set to 0 and is consumed [#0059].
 That is the crumb rule again, applied to what is left rather than to the fraction.
 Otherwise a custom-weight item's weight becomes `(w - base) - f0 * (w - base) + base`, where `base` is the actual weight of its `replaceOnUse` item and 0 when it has none [#0060].
@@ -268,7 +268,7 @@ One `DrinkFluid(FluidContainer, f, useUtensil)` call writes the four macros befo
 `ISDrinkFluidAction:updateEat` holds the drink action's one `DrinkFluid` call, `complete` reaches it unguarded, and it calls `syncItemFields()` right after each `DrinkFluid`; the gap it consumes and the `update` and animation-event gates are the incremental driver above [#0085/C/C-only, #2689/C/C-only].
 Drinking straight from a world water source takes a second `DrinkFluid` route: `ISTakeWaterAction`, queued with no item, moves the litres into a temporary container and calls `DrinkFluid` on it with a fraction of 1 before disposing of the container [#2690/C/C-only].
 A wrapper of the drink action's `updateEat` that samples the container's litres and mix before calling through and its litres after sees each sip once, and never sees a drink from a world source [#2689/C/C-only] [#2690/C/C-only].
-That route is measured on a live server: when a client queued the game's own drink action on a full 0.3-litre cola can, a wrapper of `updateEat` and of `complete` installed in both Lua states counted 29 `updateEat` calls and one `complete` on the server and none of either in the client's state, and a half juice box added 32 more calls and one more completion, server-side only [#2825/M/n=1].
+That route is measured on a live server: when a client queued the game's own drink action on a full 0.3-litre cola can, a wrapper of `updateEat` and of `complete` counted 29 `updateEat` calls and one `complete` on the server while the client's counters stayed at 0 (only the server install was read, so the client's install is not witnessed), and a half juice box added 32 more calls and one more completion, none of them on the client [#2825/M/n=1].
 The timed action delivered what the direct call delivers, a full can 120.48 kcal after a drift correction and the half juice box 40.12, so the incremental calls sum to the container [#0148/M/n=1].
 The shipped direct `DrinkFluid` call moved the store by the same 120 kcal and neither wrapper counted it, so a drink-action wrapper sees the action route and nothing else [#2827/M/n=1].
 How a container's mix is read from Lua, and why a per-fluid mod value cannot ride the fluid block, are [`../facts/food-item-model.md#fluid-blocks`](../facts/food-item-model.md#fluid-blocks)'s.

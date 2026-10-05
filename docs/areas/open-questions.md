@@ -315,14 +315,15 @@ One subsection per surviving named experiment, in id order: the open rows this p
 <a id="x33"></a>
 ### X33 — Does a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really apply nothing at all?
 - Whether a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really applies nothing at all is open [#1299/C/open].
-- Both boots of session S-D left it unmeasured: the harness's stop clears only actions not yet started, so the started eats ran to completion and no cancel reached the server-stop step [#2834/M/n=2].
+- Both boots of session S-D left it unmeasured: the harness's stop clears only actions not yet started, so the started eats of the second boot ran to completion, the first boot's eats reached `complete` and raised in a wrap cycle, and no cancel reached the server-stop step in either [#2834/M/n=2].
 - Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open), [item-pass.md](item-pass.md#open).
 - Settled by: a client command that stops a started action (`IsoGameCharacter.StopAllActionQueue`), then a completed eat, a cancelled eat of a normal item and a cancelled eat of an item driven under the guard, each read on the server — [experiments.md § Named experiments](../reference/experiments.md), row `X33`.
 
 <a id="x34"></a>
 ### X34 — Does a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas track vanilla's stat trajectory, stat by stat, over several game-hours on a live server?
 - Whether a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas tracks vanilla's stat trajectory, stat by stat, over several game-hours on a live server is open [#2081/C/open].
-- Run `x132r-20261005-072441` held the sleeping path with the harness hold: asleep thirst tracked vanilla's inside the band, fatigue and endurance sat at their floor and ceiling on a rested character, and the running arm only walked, the harness run command not running [#2841/M/n=2] [#2840/M/n=2].
+- Run `x132r-20261005-072441` ran the asleep arm under a partial hold, about 15 % of stat updates awake: asleep thirst tracked vanilla's inside the band as a mixed-sample parity reading, fatigue and endurance sat at their floor and ceiling on a rested character, and the running arm only walked, the harness run command not running [#2841/M/n=2] [#2840/M/n=2].
+- X34's asleep arm needs a hold that wins at every stat update: `player.sleep.hold`'s once-per-tick re-assert loses about 15 % of updates to the client's reset (x132r-20261005-072441); a re-assert inside the stat tick itself, or a suppressed client reset, would close it [#2840/M/n=2].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: two boots of one restored fixture, one with no handler registered and one with the reproducing handler, sampling the seven stats hourly on the server against a per-stat band — [experiments.md § Named experiments](../reference/experiments.md), row `X34`.
 
@@ -362,6 +363,11 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [#2085/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
+
+<a id="x45b"></a>
+### X45b residual — What does QualityCooking's per-eat buff do beside a second eat wrap?
+- QualityCooking's per-eat effect stays unmeasured: a spawned Apple carries no cooking tier, so its handler calls the original and writes no buff, and the composition of the two wraps was read without it [#2838/M/n=3].
+- Settled by: a harness command that stamps an item's modData on the server (`QualityCookingTier`), then one eat of the stamped item with both wraps installed, reading QuestSystem's `cookingBuff` record — [experiments.md § Named experiments](../reference/experiments.md), row `X45b`.
 
 <a id="x47"></a>
 ### X47 — Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold?

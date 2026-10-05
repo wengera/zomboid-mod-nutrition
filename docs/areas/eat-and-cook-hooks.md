@@ -12,11 +12,12 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Sit in a server-side wrapper of the eat action's completion when the mod needs the item before `Eat` touches it: the wrapper must hold its sentinel outside any table the shared file re-creates, guard on a nil-checked `isServer()` because the mod's `server/` file also runs in the client VM, and call the original unless it means to skip `Eat` entirely [#1190/M/n=1, #1033/M/n=1].
 - Hold a wrapper's sentinel in a global of its own: the shared file re-creates its state table by plain assignment on every load, so a sentinel kept inside it is wiped while the old wrapper is still installed and the next install wraps the wrapper [#0943/C/C-only].
 - Monkey-patch idempotently and keep the original, testing for your own wrapper before you replace the target: that shape is safe under a Lua reload, unwindable, and it composes when two mods wrap the same function [#1067/C/snapshot].
+- Expect a later mod's non-chaining replacement of a method you wrapped to remove your capture silently: a replaced function value drops the earlier closure, no sentinel can see it, and only your own per-eat counters standing still reveal it — so a wrapper keeps a call counter and the next boot beside a new eat-wrapping mod reads it [#2842/C/inference, #1067/C/snapshot, #2562/C/snapshot, #2817/C/C-only].
 - Never put mod logic in a client-side wrapper of a timed action's completion: the Lua complete is skipped on a client, so the wrapper installs and then stays silent [#2005/C/C-only].
 - Write an `OnEat` correction as a delta on the store the eat has already filled, never as a second intake: the hook fires after every stat and nutrient write, so vanilla's numbers are already in [#0008, #2062/C/inference].
 - Expect an eat-hook correction to reach the client one push late: the server's eat packet has already left when the hook runs, so the correction rides the next once-a-second player-stats push [#0006, #0114, #2063/C/inference].
 - Never count on the completion wrapper to see a cancelled eat: a cancel reaches `Eat` through the net action's stop and the eat action's server-stop step, which does not pass through the completion step [#0111, #2064/C/inference].
-- Expect no eat-side seat to see a drink from a fluid container: the fluid path has no eat hook and no eat packet, so a container drink reaches the mod only through a server-side wrapper of the drink action's `updateEat` [#0084/C/C-only, #1133/M/n=1, #2828/C/inference].
+- Expect no eat-side seat to see a drink from a fluid container: the fluid path has no eat hook and no eat packet, and a container drink from the drink action reaches a mod through a server-side wrapper of the action's `updateEat`, which a direct `DrinkFluid` call and the world-water route bypass [#0084/C/C-only, #1133/M/n=1, #2690/C/C-only, #2827/M/n=1, #2828/C/inference].
 - Branch on the side inside a cook hook as inside an eat hook: the cook dispatch is not side-gated, so a client copy that reaches the cook transition makes the same call in the client's state [#1394/C/C-only, #2066/C/inference].
 - Write a `ReplaceOnCooked` item's cooked nutrition into the replacement's script, never into a cook hook on the item it replaces: the cook block swaps the item and returns before it sets the cooked flag or calls the hook [#0266, #0257, #2067/C/inference].
 - Put item data in scripts and reach for a Lua field write only when the field is in `ItemStatsPacket` or the value may stay server-only: a script value is identical on both sides for free, while a Lua write to a live item never leaves the server [#1074/M/n=1].
@@ -42,6 +43,7 @@ One handler therefore cannot fire once in multiplayer, and a client-side wrapper
 The eat packet goes through the player-addressed send, which reaches the eater's own connection only, so the client arm fires on the eater's own client and on no other ([#0130], [#2603/C/C-only], [mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)).
 The completion wrapper installed from a `server/` file acts on the server only, and it installs on the client too, where it stays silent [#0928/M/n=1].
 Where the wrapper installs is the platform page's reading, and why its sentinel lives in a global of its own is the rule above ([lua-platform.md#script-hooks](../platform/lua-platform.md#script-hooks), [lua-platform.md#dev-loop](../platform/lua-platform.md#dev-loop)).
+A wrapper's install also re-wraps only when the class table it wrapped was re-created, never at a boot event merely because the method is no longer its own, which keeps a later wrapper's capture and its own saved original intact ([#2844/C/inference], [#2845/C/inference], [lessons.md#rules](../platform/lessons.md#rules)).
 The completion already carries a corpus mod's sentinel-free save-and-replace on the server, so a wrapper beside it must call the saved original on every path that does not mean to skip the eat, which is [the idempotent-patch rule](../platform/lessons.md#rules) applied to this seat [#2562/C/snapshot] [#2566/C/snapshot] [#1067/C/snapshot].
 The cook hook is reached only by the side that runs the cook transition, which on the measured path is the server [#0925/M/n=1].
 The creation hook runs on whichever side instantiates the item, read from the bytecode and never fired [#0926/C/C-only].
@@ -74,7 +76,7 @@ The completion wrapper, ahead of its call of the original, is the one seat that 
 Whatever it writes into the item or the store before that call is what `Eat` then reads, a reading of the order that no session has exercised [#0006, #1129/M/n=1].
 It cannot stop the eat except by not calling the original, which skips the whole eat rather than any part of it [#1129/M/n=1].
 The share the eat will actually take is not yet known there, because the rescale of the menu's share of the whole item into a share of what is left happens inside `Eat` ([#0014/M/one-fixture], [eating-pipeline.md#modifiers](../facts/eating-pipeline.md#modifiers)).
-A wrapper that needs that share has to reproduce the rescale, and the same arithmetic is already duplicated in Lua twice, so a wrapper's copy is one more site to keep in step ([#0082], [eating-pipeline.md#partial](../facts/eating-pipeline.md#partial)).
+A wrapper that needs that share has to reproduce the rescale, and the same arithmetic is already duplicated in Lua twice, so a wrapper's copy is one more site to keep in step, and the rule that copy follows is the two fractions, a live-read quantity scaled by the share of what is left and a whole-instance quantity by the share of the whole ([#0082], [#2843/C/inference], [eating-pipeline.md#partial](../facts/eating-pipeline.md#partial), [lessons.md#rules](../platform/lessons.md#rules)).
 
 Between the wrapper and the eat hook there is no Lua seat at all.
 The stats, the nutrients, the pain and cold reductions, the sickness cure, the mood writes and the server's packet sends all land with no hook between them, the eat hook being the only vanilla hook on the intake path [#0006, #0130].
@@ -105,7 +107,7 @@ A correction that must change what an eat delivers can only sit in the wrapper; 
 
 A partial eat reaches the same seats: the menu offers fractions below a whole item, and the eat hook receives the rescaled share of each ([#0078], [#0093]).
 The eat hook fires once per portion, not once per eat: four completed quarter eats of one item fired it four times on each side and a whole eat once more, each call handed `Eat`'s rescaled fraction of what was left [#0929/M/n=1, #2830/M/n=1].
-A wrapper that reads the item after calling the original sees the drop of that portion, but a finishing eat leaves the item's raw hunger reading NaN, not 0 [#2832/M/n=1].
+A wrapper that reads the item after calling the original sees the drop of that portion, but a finishing eat divides 0 by 0 in the consume step by the jar's reading, so a share computed from the raw hunger after the eat reads NaN, not 1 [#2832/M/n=1].
 
 A cancelled eat is a different route into the same method.
 It resolves on the server through the net action's stop and the eat action's server-stop step, whose fraction is the net action's progress ([#0111], [mp-model.md#ownership](../platform/mp-model.md#ownership)).
@@ -119,7 +121,7 @@ A drink from a fluid container sits outside all of these seats.
 `DrinkFluid` has no eat hook, no eat packet and no fraction rescale ([#0084/C/C-only], [eating-pipeline.md#fluid-path](../facts/eating-pipeline.md#fluid-path)).
 Its action calls it incrementally from the update and the animation event rather than from a completion step [#0085/C/C-only].
 The action's one call sits in its `updateEat`, which the completion reaches as well, so that method is the seat a drink wrapper takes, and a wrapper there sees each sip once ([#2689/C/C-only], [eating-pipeline.md#fluid-path](../facts/eating-pipeline.md#fluid-path)).
-That seat is measured once on a live server: a wrapper there fired on the server and never on the client, and a second save-and-call-original wrapper stacked on the same method counted every call the first counted and landed the drink in its own store ([#2825/M/n=1], [#2826/M/n=1]).
+That seat is measured once on a live server: a wrapper there fired on the server and the client's counters stayed at 0, its install there not witnessed, and a second save-and-call-original wrapper stacked on the same method counted every call the first counted and landed the drink in its own store ([#2825/M/n=1], [#2826/M/n=1]).
 A drink straight from a world water source goes through a second action, with its own call on a temporary container, which a wrapper of the drink action never sees [#2690/C/C-only].
 The called method's body holds no Lua call, so a wrapper of one of those two actions is the only Lua seat on either route [#2687/C/C-only] [#0084/C/C-only].
 No live version folder in the corpus names `updateEat`, so a drink wrapper there has no other wrap to chain onto, a reading of one sweep of a corpus that drifts [#2567/C/snapshot].
@@ -198,7 +200,7 @@ Which seat carries a drink, a craft and a dish, given that a drink reaches the m
 ## Walls and bounds
 <a id="walls"></a>
 
-- The drink path's one intake seat is a server-side wrapper of the drink action, measured in one session: the fluid path has no eat-hook twin, the wrapper fires on the server and not on the client, and it misses a direct `DrinkFluid` call ([#1133/M/n=1], [#1279/M/n=1], [#2827/M/n=1]).
+- The drink path's one intake seat is a server-side wrapper of the drink action, measured in one session: the fluid path has no eat-hook twin, the wrapper fires on the server and the client's counters stayed at 0, and it misses a direct `DrinkFluid` call ([#1133/M/n=1], [#1279/M/n=1], [#2827/M/n=1]).
 - A drink-action wrapper never sees a drink from a world water source: that drink goes through `ISTakeWaterAction` and its own `DrinkFluid` call on a temporary container [#2690/C/C-only].
 - No client arm fires for another player's eat: the eat packet goes through the player-addressed send, which reaches the eater's own connection only [#2603/C/C-only].
 - No vanilla hook runs ahead of the eat's writes: the eat hook is the only hook on the intake path and fires after them, so pre-intake work needs the completion wrapper, a workaround rather than a hook ([#0130], [#1129/M/n=1]).
@@ -211,7 +213,7 @@ Which seat carries a drink, a craft and a dish, given that a drink reaches the m
 - No cook hook runs on a swapped item's transition, because the swap returns before the hook ([#0266], [cooking-and-recipes.md#cook-block](../facts/cooking-and-recipes.md#cook-block)).
 - The cooking pipeline has never been driven end to end: the cook hook's registration and firing are read, the measured side is one mod's single transition per session, and nothing on the bus executes a craft ([#1154/M/n=1], [#0925/M/n=1], [#1248/C/C-only]).
 - The eat-hook and wrapper readings on this page are single sessions on the dedicated-server path: one whole eat in one, four quarter eats and four whole eats of one fixture in another ([#1031/M/n=1], [#1033/M/n=1], [#2830/M/n=1]).
-- Two save-and-replace wrappers of the eat completion can form a call cycle that blocks every eat: a wrapper that re-installs itself at a later boot event over a later-loading wrapper, while its first closure calls its saved original through a global the re-install overwrote, recursed to a stack overflow on every completed eat [#2835/M/n=1].
+- Two save-and-replace wrappers of the eat completion can form a call cycle that blocks every eat: a wrapper that re-installs itself at a later boot event over a later-loading wrapper, while its first closure calls its saved original through a global the re-install overwrote, recursed on every completed eat until it overflowed the stack, so no eat ran in eight of eight [#2835/M/n=1].
 - A non-finite number an intake wrapper lands is not stopped by the stat clamp: a NaN share from a finishing eat, carried into a hunger stat written from the wrapper's store, read as non-finite on both sides [#2833/M/n=1].
 - Single player is never claimed here: there a cancelled eat action calls its own server-stop step, and the server arm and the client arm are one process ([#0103], [mp-model.md#ownership](../platform/mp-model.md#ownership)).
 

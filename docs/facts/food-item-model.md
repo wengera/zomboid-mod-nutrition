@@ -253,6 +253,7 @@ The table's `enduranceChange` row is that one block, and what `Eat` does with th
 
 A mod that wants a type's own numbers at run time can read some of them off the script and not others.
 A type's script hunger is recoverable from Lua: `Item.InstanceItem` writes both `hungChange` and `baseHunger` as the script's `HungerChange` over 100, and `Item.getHungerChange()` is a public bare read of the script field [#2678/C/C-only].
+Its thirst twin, `Item.getThirstChange()`, is a bare read of the script's thirst field in the same way, a getfield of `thirstChange` with no scaling, so a type's script thirst is recoverable from Lua through the script item as well [#2846/C/C-only].
 A type's script macros are not readable through `getScriptItem()`: `Item.calories`, `carbohydrates`, `lipids` and `proteins` are private and `Item` declares no getter for any of them, so a per-type macro is read off a fresh instance made through the `instanceItem` global [#2679/C/C-only].
 `InventoryItemFactory` is absent from the exposer's class set, so a mod reaches item construction through the `instanceItem` global, whose `String` overload calls `InventoryItemFactory.CreateItem` [#2680/C/C-only].
 
@@ -273,6 +274,7 @@ So the item block's route for a mod key has no counterpart on a fluid, and a per
 The script object's getter, which leaves every built-in definition unnamed, is [`eating-pipeline.md`](eating-pipeline.md#fluid-path)'s [#0654/M/n=2].
 
 A container's mix is iterated from Lua through `createFluidSample()` and the sample's `size`, `getFluid(i)`, `getPercentage(i)` and `getAmount`, because `FluidContainer` declares no `getFluids()` and keeps its fluid list private, and `FluidInstance` is absent from the exposer's class set [#2685/C/C-only].
+`FluidSample.getPercentage(i)` is a 0 to 1 proportion: the container's cache pass sets each fluid instance's percentage to its amount over the container's summed amount, and the sample's getter returns that field, or 0 for an index out of range [#2847/C/C-only].
 `FluidContainer.getRatioForFluid` returns one fluid's proportion of the mix and `getSpecificFluidAmount` its litres, both walking the private fluid list and both 0 when the fluid is absent [#2686/C/C-only].
 What a drink does with a container's numbers is [`eating-pipeline.md`](eating-pipeline.md#fluid-path)'s.
 

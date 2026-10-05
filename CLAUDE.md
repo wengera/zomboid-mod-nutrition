@@ -92,6 +92,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - The experiment mods (`testing/experiments/TKX_*`) are installed only through test profiles, never into the fixture.
 - A harness Lua edit appends new sites at the end of its file; an edit that shifts lines re-anchors every `repo:` pointer into that file in the same commit (`claims_check` rule 3b fails otherwise).
 - Standing rule: live-server experiments and trial and error are encouraged, and the harness is improved as the work goes whenever that makes a measurement better — before the run, under the rules above.
+- Row `#2808` is the living harness-inventory count tethered to the generated command table: a harness commit that changes the table's count line updates `#2808`'s claim text and quote in the same commit (rule 3b fails otherwise) — the one register edit a harness implementer may make.
 
 ## 6. Process
 
@@ -111,6 +112,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A rule copied from a page that states it outside `## Rules` is copied byte-identically and diffed by hand at review, because the checker's `rules-dup` rule reads `## Rules` lines only.
 - A skill's quoted rule line keeps the row's numbers; the skill's own text carries none.
 - A register `source` cell is harvest provenance and is never renumbered when the doc it names is rewritten.
+- A subagent never runs `git stash`, `git checkout --`, `git reset` or any index-wide command in the shared worktree; it commits by pathspec only, and retries once after two seconds on `.git/index.lock`.
 
 ## 7. Environment gotchas
 

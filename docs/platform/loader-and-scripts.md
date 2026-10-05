@@ -50,6 +50,7 @@ Reading the print therefore tells you that a collision happened and who won, and
 ### The Lua execution list
 
 `LuaManager.LoadDirBase` builds the Lua execution list vanilla-first, sorted case-insensitively, then per mod the `common/` block and the version-dir block, each sorted case-insensitively [#0850/C/C-only].
+Read live, the server ran the mods' Lua files in `Mods=` order and the last mod listed that wrapped a shared method wrapped it outermost: a probe listed last sat above QualityCooking's wrap and the nutrition mod's own, so a profile's `Mods=` order is load-bearing for which wrap is outermost [#2838/M/n=3, #0850/C/C-only].
 `LoadDirBase` then walks that list through a hash set: a relative path already seen is skipped, and the survivor is resolved through `ZomboidFileSystem.getAbsolutePath` and run [#0851/C/C-only].
 A doubled relative path therefore executes once, from the file the map holds, whichever tree of whichever mod put it there [#1313].
 

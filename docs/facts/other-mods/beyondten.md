@@ -66,7 +66,7 @@ The one field Beyond Ten contests with another mod is maximum carry weight, and 
 Its remaining third-party work is explicit rather than defensive: a shim for the skill-recovery journal mod, the carry-weight handshake, and a separate compatibility file for a skill-tooltip mod.
 A nutrition mod meets Beyond Ten in one place only, the character modData table both would write into, so the obligation this mod creates for the design is to namespace every key and never to replace that table wholesale ([#1091], [`../../platform/mp-model.md#wipe-and-replace`](../../platform/mp-model.md#wipe-and-replace)).
 
-Not covered: the mod's client-side UI, its `common` tree and its `B41` root tree, and any live reading of it at all — the skills UI, the tooltip compatibility file and the mod's behaviour in a running session were neither read nor measured, and no run in the artifact tree touches this mod.
+Not covered: the mod's client-side UI, its `common` tree and its `B41` root tree, and any live reading of its behaviour — the skills UI, the tooltip compatibility file and the mod's behaviour in a running session were neither read nor measured, and the one run that touches this mod is a co-boot in which its version marker resolved on both sides and nothing more was read [#2837/M/n=2].
 
 ## Open
 <a id="open"></a>

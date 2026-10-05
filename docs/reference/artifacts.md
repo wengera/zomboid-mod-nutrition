@@ -2110,17 +2110,17 @@ pre-run deviation from the brief's second Pop2, because an emptied Pop2 stays a 
 second RCON can (one direct `DrinkFluid`, the timed action off). Calorie deltas are drift-corrected by
 the P0 rate (`phases.P0.drift.kcal_per_s` −0.260 kcal/s, two server reads 6.5 s apart); bulk deltas
 are decay-corrected by `exp(−ln2·Δ kineticsAge / 2 h)` (`bulk_read`), the ingest-only delta then
-lying in `[pred × decay, pred]`.
+lying in the strict band `[pred × decay, pred]` (the driver's reported `accept_band` widens it by 3 % + 0.06).
 
 - **The counters (raw, `snapshots.*.moddata`)**: server `updateEat_server` 0 → 29 → 61 and
   `complete_server` 0 → 1 → 2 across P1 and P3, unchanged across P2; the client's table stayed empty
   at every tag (all four keys `missing`, `keyCount 0`), and the client's `TKX_DrinkHook.updateEat` /
-  `.complete` and the mod's client-VM `passthrough` stayed 0, so no `updateEat` call happened in the
-  client's Lua state at all. The mod's `stats.sips` matched the probe call for call (29, then 61),
+  `.complete` and the mod's client-VM `passthrough` stayed 0, so no `updateEat` call was seen in the
+  client's Lua state (the client install itself is not witnessed). The mod's `stats.sips` matched the probe call for call (29, then 61),
   `landed` 28 and 59 (one call per drink removed no litres), `failures` 0, `lastError` unset.
 - **The landing**: P1 bulk 7.638 → 10.743 over 0.233 game-hours, ingest delta 3.697 against
-  `bulkOf(Cola × 0.3 L)` 3.87 (band 3.394–4.046); `lastIntake` `fluid` / `Base.Pop2`, last sip
-  0.01228 L. P3 ingest 1.150 against 1.265 (band 1.082–1.363), `lastIntake` `Base.JuiceBox`, last sip
+  `bulkOf(Cola × 0.3 L)` 3.87 (inside the strict decay band 3.570–3.87; the tolerance-widened `accept_band` is 3.394–4.046); `lastIntake` `fluid` / `Base.Pop2`, last sip
+  0.01228 L. P3 ingest 1.150 against 1.265 (below the strict lower edge 1.180 and inside only the pre-declared tolerance band 1.082–1.363), `lastIntake` `Base.JuiceBox`, last sip
   0.00433 L. P2 ingest −0.054 (flat), `lastIntake` still `Base.JuiceBox`.
 - **The stores**: P1 +120.48 kcal drift-corrected (raw +107.37 over 50.4 s), P3 +40.12, P2 ack
   `delta.calories` 120.00006 with the snapshot pair at +120.14. The client's calories trailed the
@@ -2152,11 +2152,11 @@ copy). **X24 + X33, the first boot of session S-D, which ran no eat.** Profile `
 TKX_ItemOverride, TKX_Nutrient, TKX_EatHook, NutritionRevamp — the probe loading **before** the mod),
 mod tree `ffaed41` clean, probe `de10855`, harness Lua `7710d2d` clean, `doctor_clean true`, build
 42.20.4; the five `verify` rows `ok`, `field_count_failures` empty; acceptance run
-`x132d-20261005-060046`. **Skew-free**: the driver was not edited after the run.
+`x132d-20261005-060046`. **Consistent**: `x132_eat.py` was untracked at the run's commit, so git cannot confirm it unedited; `x132_eat_b.py`, the second boot's driver, differs from it only by the docstring, `PROFILE` and two `deviations` lines.
 
 How to read it. Every completed eat (`Q1`–`Q4`, `P5`, `A6`, and `A7`/`A8`, whose stops did not
 cancel) recursed between the two `ISEatFoodAction.complete` wrappers: TKX_EatHook wrapped at file
-load, NutritionRevamp wrapped over it, TKX_EatHook re-wrapped at `OnServerStarted`, and its first
+load, NutritionRevamp wrapped over it, TKX_EatHook re-wrapped at a boot event (`OnGameBoot` or `OnServerStarted`), and its first
 closure — still inside the mod's wrapper — calls its saved original through `TKX_EatHook_Installed.orig`,
 which the re-wrap had overwritten with the mod's wrapper. Each eat's `delta` reads `completes_server`
 +498 and the mod's `eats` +497 for **one** action (the recursion depth to the Kahlua stack overflow),
