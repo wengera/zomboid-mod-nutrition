@@ -113,8 +113,11 @@ local function onTick()
     local players = nil
     if getOnlinePlayers ~= nil then players = getOnlinePlayers() end
     local now = getTimestampMs()
-    if players ~= nil and players:size() > 0 then
-        local s = sample(players:get(0))
+    local nPlayers = hop(players, "size")
+    local first = nil
+    if nPlayers ~= nil and nPlayers > 0 then first = hop(players, "get", 0) end
+    if first ~= nil then
+        local s = sample(first)
         state.count = state.count + 1
         bumpHist(state.hist, "target", s.target)
         bumpHist(state.hist, "rate", s.rate)

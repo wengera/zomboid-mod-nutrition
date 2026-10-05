@@ -803,6 +803,12 @@ TK.register("exercise.do", function(argv)
     return out
 end)
 
+-- index-first value read (#0935): the value of obj:name(...) or nil when the member is absent.
+local function got(obj, name, ...)
+    local _, v = TK.call(obj, name, ...)
+    return v
+end
+
 -- [<bookType>]. Queues the game's own read action on a book in the local inventory:
 -- `ISTimedActionQueue.add(ISReadABook:new(player, item))` (the install's ISReadABook.lua:483
 -- takes (character, item) only -- the brief's third argument does not exist). The book is the
@@ -823,17 +829,17 @@ TK.register("action.read", function(argv)
         out.error = "no ISReadABook/ISTimedActionQueue"
         return out
     end
-    local inv = p:getInventory()
-    local item = inv:getFirstTypeRecurse(short)
+    local inv = got(p, "getInventory")
+    local item = got(inv, "getFirstTypeRecurse", short)
     if item == nil then
-        item = inv:AddItem(full)
+        item = got(inv, "AddItem", full)
         out.spawned = true
     end
     if item == nil then
         out.error = "no item " .. tostring(full)
         return out
     end
-    out.itemId = item:getID()
+    out.itemId = got(item, "getID")
     local ran, err = pcall(function()
         ISTimedActionQueue.add(ISReadABook:new(p, item))
     end)
@@ -897,7 +903,9 @@ TK.register("player.sprint", function(argv)
     if TK.sprintWatch.armed then return { error = "a player.sprint window is already armed" } end
     local cell = getCell()
     if not cell then return { error = "no getCell()" } end
-    local ok, sq = TK.call(cell, "getGridSquare", p:getX() + dx, p:getY() + dy, p:getZ())
+    local px, py, pz = got(p, "getX"), got(p, "getY"), got(p, "getZ")
+    if px == nil or py == nil or pz == nil then return { error = "no player position" } end
+    local ok, sq = TK.call(cell, "getGridSquare", px + dx, py + dy, pz)
     if not ok or sq == nil then return { error = "no grid square at +" .. tostring(dx) .. "," .. tostring(dy) } end
     if not ISWalkToTimedAction or not ISTimedActionQueue then
         return { error = "no ISWalkToTimedAction/ISTimedActionQueue" }
@@ -977,14 +985,15 @@ TK.register("attack.melee", function(argv)
     if TK.attackWatch.armed then return { ok = false, reason = "an attack.melee window is already armed" } end
     local cell = getCell()
     if not cell then return { ok = false, reason = "no getCell()" } end
-    local list = cell["getZombieList"] and cell:getZombieList() or nil
+    local list = got(cell, "getZombieList")
     if list == nil then return { ok = false, reason = "no getCell():getZombieList()" } end
     local best, bestD = nil, 2.0
-    local px, py = p:getX(), p:getY()
-    for i = 0, list:size() - 1 do
-        local z = list:get(i)
+    local px, py = got(p, "getX"), got(p, "getY")
+    local count = got(list, "size") or 0
+    for i = 0, count - 1 do
+        local z = got(list, "get", i)
         if z ~= nil then
-            local dx, dy = z:getX() - px, z:getY() - py
+            local dx, dy = got(z, "getX") - px, got(z, "getY") - py
             local d = math.sqrt(dx * dx + dy * dy)
             if d <= bestD then best, bestD = z, d end
         end
@@ -992,17 +1001,17 @@ TK.register("attack.melee", function(argv)
     if best == nil then
         return { ok = false, reason = "no zombie within 2 tiles and no safe client-side spawn path (a client addZombiesInOutfit is not server-owned in MP)" }
     end
-    local weapon = p:getPrimaryHandItem()
+    local weapon = got(p, "getPrimaryHandItem")
     if weapon == nil then
-        local bat = p:getInventory():AddItem("Base.BaseballBat")
+        local bat = got(got(p, "getInventory"), "AddItem", "Base.BaseballBat")
         if bat ~= nil then
-            p:setPrimaryHandItem(bat)
+            TK.call(p, "setPrimaryHandItem", bat)
             weapon = bat
         end
     end
     local start = TK.now()
     TK.attackWatch = { armed = true, n = n, made = 0, zombie = best, returns = {}, nextAt = start }
-    return { ok = true, target = { x = best:getX(), y = best:getY(), dist = bestD }, swings = n,
-             weapon = weapon and weapon:getFullType() or "none", result = "attack-melee",
+    return { ok = true, target = { x = got(best, "getX"), y = got(best, "getY"), dist = bestD }, swings = n,
+             weapon = weapon and got(weapon, "getFullType") or "none", result = "attack-melee",
              file = "pzt-results/attack-melee.json" }
 end)
