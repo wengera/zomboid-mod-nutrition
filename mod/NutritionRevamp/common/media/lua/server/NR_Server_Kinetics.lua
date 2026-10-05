@@ -20,7 +20,11 @@
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false }
+-- lastAbsorbed: the absorbed vector of each player's last step, by username -- a transient server table,
+-- never on the record -- that NR_Server_Metabolism consumes and clears on the same minute (it loads after
+-- this file, so its onMinute runs after this one); nil when the step had no elapsed time.
+NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false,
+                       lastAbsorbed = {} }
 local KIN = NR.server.kinetics
 
 local function worldAge()
@@ -50,6 +54,9 @@ local function step(username, player, record)
         local emptied = K.stomach.empty(record.stomach, dtH)
         local absorbed = K.stomach.absorb(emptied)
         K.stomach.toPool(record.pool, absorbed)
+        KIN.lastAbsorbed[username] = absorbed          -- the handoff to NR_Server_Metabolism
+    else
+        KIN.lastAbsorbed[username] = nil
     end
     local fill = K.stomach.fill(record.stomach)
     -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing

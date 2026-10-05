@@ -156,6 +156,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.r = r
     body.traitCarry = traitCarry
     body.bornAge = ageH
+    body.lastAgeH = ageH
     body.at = 0
     body.dayIndex = day
     body.inDay = 0
