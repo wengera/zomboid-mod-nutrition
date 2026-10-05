@@ -1735,3 +1735,27 @@ TK.register("xp.grant", function(argv)
     out.levelAfter = l1
     return out
 end)
+
+-- <user> <delta>. Writes the carry-capacity delta through IsoPlayer.setMaxWeightDelta (#2143:
+-- public, no caller in the jar, re-read on every carry recompute). The recompute that turns the
+-- new delta into getMaxWeight() lands on the next body-damage update, not in this call, so the
+-- same-tick `maxWeight` is the OLD capacity and the driver re-reads it later.
+-- @args <user> <delta>
+-- @reply {side, before, after, maxWeight [, error]} | string
+-- @purpose Writes the player's carry delta through setMaxWeightDelta and reads the delta and getMaxWeight() back; maxWeight moves only after the next recompute, so re-read it later.
+TK.register("carry.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local delta = tonumber(argv[2])
+    if delta == nil then return "usage: carry.set <user> <delta>" end
+    local out = { side = TK.side }
+    local _, before = TK.call(p, "getMaxWeightDelta")
+    out.before = before
+    local present = TK.call(p, "setMaxWeightDelta", delta)
+    if not present then out.error = "no IsoPlayer:setMaxWeightDelta" end
+    local _, after = TK.call(p, "getMaxWeightDelta")
+    out.after = after
+    local _, mw = TK.call(p, "getMaxWeight")
+    out.maxWeight = mw
+    return out
+end)
