@@ -1,0 +1,1695 @@
+{
+ "run_id": "x131d-20261004-205257",
+ "session": "Plan 1 acceptance run C, the smoke test of the fix-wave commit 9a424d8: the takeover handler finds its hoisted handles in fast.byChar, a Lua table keyed by the IsoPlayer, and every b-run phase still holds",
+ "user": "admin",
+ "profile": {
+  "name": "nr-accept",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\nr-accept.toml",
+  "fixture": "default",
+  "description": "PZTestKit + NutritionRevamp on the fixture's own day length - Plan 1 acceptance.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "NutritionRevamp"
+ ],
+ "commit": "9a424d8",
+ "harness_lua_commit": "42425e9",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x131b-20261004-175911",
+ "dry_run": false,
+ "world_changes": {
+  "restored": "",
+  "left_in_place": []
+ },
+ "steps": [
+  {
+   "step": "p1_1_version_client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "side": "admin",
+   "wall_before": 59.296,
+   "wall_after": 59.801,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "0.1.0"
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_1_version_server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "side": "server",
+   "wall_before": 59.802,
+   "wall_after": 60.308,
+   "took": 0.506,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "0.1.0"
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_2_registered",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.registered",
+   "side": "server",
+   "wall_before": 60.31,
+   "wall_after": 62.068,
+   "took": 1.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.registered",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_2_failures",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.failures",
+   "side": "server",
+   "wall_before": 62.069,
+   "wall_after": 62.324,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.failures",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_2_disabledAt",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.disabledAt",
+   "side": "server",
+   "wall_before": 62.325,
+   "wall_after": 64.335,
+   "took": 2.01,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.disabledAt",
+    "failedAt": "disabledAt",
+    "resolved": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_2_hoist_missing",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.h.admin.missing",
+   "side": "server",
+   "wall_before": 64.336,
+   "wall_after": 65.844,
+   "took": 1.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.h.admin.missing",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 0
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_3_time_a",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 65.849,
+   "wall_after": 66.354,
+   "took": 0.505,
+   "ack": {
+    "worldAge": 2.369072914123535,
+    "hour": 9,
+    "minutes": 22,
+    "mult": 4.799753665924072,
+    "wall": 1791161643180
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_3_stats_a",
+   "cmd": "stats.all",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 66.355,
+   "wall_after": 68.365,
+   "took": 2.01,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.01576470583677292,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 1.661329770286102e-05,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.0024152579717338085,
+     "Idleness": 0.04198195040225983,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.883941650390625,
+     "Thirst": 0.002015134086832404,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791161645178,
+    "user": "admin",
+    "worldAge": 2.3779525756835938,
+    "mult": 4.796884059906006
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_4_calls_a",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "side": "server",
+   "wall_before": 68.366,
+   "wall_after": 69.623,
+   "took": 1.257,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 159
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_3_time_b",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 76.384,
+   "wall_after": 77.14,
+   "took": 0.756,
+   "ack": {
+    "worldAge": 2.4170284271240234,
+    "hour": 9,
+    "minutes": 25,
+    "mult": 4.795763969421387,
+    "wall": 1791161653977
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_3_stats_b",
+   "cmd": "stats.all",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 77.143,
+   "wall_after": 78.4,
+   "took": 1.257,
+   "ack": {
+    "side": "server",
+    "stats": {
+     "Anger": 0,
+     "Boredom": 0.0422292985022068,
+     "Discomfort": 0,
+     "Endurance": 1,
+     "Fatigue": 1.669308403506875e-05,
+     "Fitness": 0,
+     "FoodSickness": 0,
+     "Hunger": 0.003945323172956705,
+     "Idleness": 0.06863012909889221,
+     "Intoxication": 0,
+     "Morale": 1,
+     "NicotineWithdrawal": 0,
+     "Pain": 0,
+     "Panic": 0,
+     "Poison": 0,
+     "Sanity": 1,
+     "Sickness": 0,
+     "Stress": 0,
+     "Temperature": 36.83172607421875,
+     "Thirst": 0.0032942472025752068,
+     "Unhappiness": 0,
+     "Wetness": 0,
+     "ZombieFever": 0,
+     "ZombieInfection": 0
+    },
+    "missing": {},
+    "wall": 1791161655177,
+    "user": "admin",
+    "worldAge": 2.4223594665527344,
+    "mult": 4.7993998527526855
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_4_calls_b",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "side": "server",
+   "wall_before": 78.401,
+   "wall_after": 80.409,
+   "took": 2.008,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 266
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_4_failures_end",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.failures",
+   "side": "server",
+   "wall_before": 80.411,
+   "wall_after": 80.915,
+   "took": 0.504,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.failures",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_5_received_client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.client.received",
+   "side": "admin",
+   "wall_before": 80.922,
+   "wall_after": 81.177,
+   "took": 0.255,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.client.received",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_5_mirror_client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.client.mirror",
+   "side": "admin",
+   "wall_before": 81.18,
+   "wall_after": 81.687,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.client.mirror",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 9
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_5_mirror_username",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.client.mirror.username",
+   "side": "admin",
+   "wall_before": 81.689,
+   "wall_after": 82.194,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.client.mirror.username",
+    "type": "string",
+    "resolved": true,
+    "value": "admin"
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_5_mirror_v",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.client.mirror.v",
+   "side": "admin",
+   "wall_before": 82.195,
+   "wall_after": 82.7,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.client.mirror.v",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_5_mirror_mode",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.client.mirror.mode",
+   "side": "admin",
+   "wall_before": 82.702,
+   "wall_after": 83.208,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.client.mirror.mode",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_6_bench_server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.kernel.fast.defaults 1000",
+   "side": "server",
+   "wall_before": 83.21,
+   "wall_after": 84.217,
+   "took": 1.007,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.kernel.fast.defaults",
+    "n": 1000,
+    "ms": 2,
+    "usPerCall": 2
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_8_store_record_v",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.v",
+   "side": "server",
+   "wall_before": 84.22,
+   "wall_after": 84.471,
+   "took": 0.251,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.v",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_8_store_records",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records",
+   "side": "server",
+   "wall_before": 84.473,
+   "wall_after": 86.232,
+   "took": 1.759,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 1
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_8_minutes_a",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.minutes",
+   "side": "server",
+   "wall_before": 86.234,
+   "wall_after": 88.242,
+   "took": 2.008,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 19
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_8_minutes_b",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.minutes",
+   "side": "server",
+   "wall_before": 96.254,
+   "wall_after": 98.268,
+   "took": 2.014,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 22
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_byCharHits_a",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.byCharHits",
+   "side": "server",
+   "wall_before": 98.272,
+   "wall_after": 99.531,
+   "took": 1.259,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.byCharHits",
+    "type": "number",
+    "resolved": true,
+    "value": 458
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_calls_a",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "side": "server",
+   "wall_before": 99.533,
+   "wall_after": 100.288,
+   "took": 0.755,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 466
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_failures_a",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.failures",
+   "side": "server",
+   "wall_before": 100.291,
+   "wall_after": 102.299,
+   "took": 2.008,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.failures",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_disabledAt_a",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.disabledAt",
+   "side": "server",
+   "wall_before": 102.301,
+   "wall_after": 103.308,
+   "took": 1.007,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.disabledAt",
+    "failedAt": "disabledAt",
+    "resolved": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_calls_b",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "side": "server",
+   "wall_before": 109.57,
+   "wall_after": 110.326,
+   "took": 0.756,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 566
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_byCharHits_b",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.byCharHits",
+   "side": "server",
+   "wall_before": 110.327,
+   "wall_after": 110.832,
+   "took": 0.505,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.byCharHits",
+    "type": "number",
+    "resolved": true,
+    "value": 571
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_failures_b",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.failures",
+   "side": "server",
+   "wall_before": 110.834,
+   "wall_after": 112.342,
+   "took": 1.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.failures",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  },
+  {
+   "step": "p1_9_disabledAt_b",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.disabledAt",
+   "side": "server",
+   "wall_before": 112.345,
+   "wall_after": 114.356,
+   "took": 2.011,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.disabledAt",
+    "failedAt": "disabledAt",
+    "resolved": false
+   },
+   "serverWorldAge": null,
+   "gameMinute": null,
+   "worldAgeMinutes": null
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "P1": {
+   "question": "does NutritionRevamp load in both Lua states, register its takeover handler at OnServerStarted, and do hunger and thirst advance under that handler?",
+   "versions": {
+    "client": "0.1.0",
+    "server": "0.1.0"
+   },
+   "takeover": {
+    "registered": true,
+    "failures": 0,
+    "disabledAt": {
+     "side": "server",
+     "name": "NutritionRevamp.server.fast.stats.disabledAt",
+     "failedAt": "disabledAt",
+     "resolved": false
+    },
+    "hoistMissing": {
+     "side": "server",
+     "name": "NutritionRevamp.server.fast.h.admin.missing",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 0
+    }
+   },
+   "field_count": {
+    "expected": 24,
+    "reads": {
+     "a": {
+      "ok": true,
+      "count": 24,
+      "missing": {}
+     },
+     "b": {
+      "ok": true,
+      "count": 24,
+      "missing": {}
+     }
+    }
+   },
+   "statsMove": {
+    "window_requested_s": 10.0,
+    "window_measured_s": 10.788,
+    "time_snapshots": {
+     "a": {
+      "worldAge": 2.369072914123535,
+      "hour": 9,
+      "minutes": 22,
+      "mult": 4.799753665924072,
+      "wall": 1791161643180
+     },
+     "b": {
+      "worldAge": 2.4170284271240234,
+      "hour": 9,
+      "minutes": 25,
+      "mult": 4.795763969421387,
+      "wall": 1791161653977
+     }
+    },
+    "worldAge": {
+     "a": 2.3779525756835938,
+     "b": 2.4223594665527344
+    },
+    "gameSeconds": 159.86480712890625,
+    "mult": {
+     "a": 4.796884059906006,
+     "b": 4.7993998527526855
+    },
+    "thirst": {
+     "a": 0.002015134086832404,
+     "b": 0.0032942472025752068,
+     "delta": 0.0012791131157428026,
+     "predicted": 0.0012789184570312498,
+     "ratio": 1.000152205725457
+    },
+    "hunger": {
+     "a": 0.0024152579717338085,
+     "b": 0.003945323172956705,
+     "delta": 0.0015300652012228966,
+     "predicted_ungraded": 0.0015298213496634664,
+     "ratio_ungraded": 1.0001593987163822
+    }
+   },
+   "calls": {
+    "a": 159,
+    "b": 266,
+    "failures_end": 0,
+    "window_measured_s": 10.035,
+    "delta": 107,
+    "per_wall_second": 10.662680617837568
+   },
+   "mirror": {
+    "received": {
+     "side": "client",
+     "name": "NutritionRevamp.client.received",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "mirror": {
+     "side": "client",
+     "name": "NutritionRevamp.client.mirror",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 9
+    },
+    "fields": {
+     "username": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.username",
+      "type": "string",
+      "resolved": true,
+      "value": "admin"
+     },
+     "v": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.v",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     },
+     "mode": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.mode",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   },
+   "bench": {
+    "side": "server",
+    "name": "NutritionRevamp.kernel.fast.defaults",
+    "n": 1000,
+    "ms": 2,
+    "usPerCall": 2
+   },
+   "store": {
+    "record_v": {
+     "side": "server",
+     "name": "NutritionRevamp.server.store.records.admin.v",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "records": {
+     "side": "server",
+     "name": "NutritionRevamp.server.store.records",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 1
+    },
+    "minutes": {
+     "a": 19,
+     "b": 22,
+     "window_requested_s": 10.0,
+     "window_measured_s": 10.02,
+     "serverWorldAge": {
+      "a": null,
+      "b": null
+     }
+    }
+   },
+   "byChar": {
+    "order": "hits_a, calls_a, wait, calls_b, hits_b",
+    "byCharHits": {
+     "a": 458,
+     "b": 571
+    },
+    "calls": {
+     "a": 466,
+     "b": 566
+    },
+    "failures": {
+     "a": 0,
+     "b": 0
+    },
+    "disabledAt": {
+     "a": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.disabledAt",
+      "failedAt": "disabledAt",
+      "resolved": false
+     },
+     "b": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.disabledAt",
+      "failedAt": "disabledAt",
+      "resolved": false
+     }
+    },
+    "window_requested_s": 10.0,
+    "calls_window_measured_s": 10.037,
+    "hits_window_measured_s": 12.055,
+    "dHits": 113,
+    "dCalls": 100,
+    "dHits_minus_dCalls": 13,
+    "calls_minus_hits": {
+     "a": 8,
+     "b": -5
+    }
+   },
+   "logs": {
+    "limit": 20,
+    "trace_limit": 40,
+    "server_nr_lines": [
+     {
+      "line": 1996,
+      "text": "LOG  : Lua          f:0 st:1,504,339,795> [NutritionRevamp] store attached (new world: true)"
+     },
+     {
+      "line": 2046,
+      "text": "LOG  : Lua          f:0 st:1,504,342,050> [NutritionRevamp] fast: takeover handler registered"
+     },
+     {
+      "line": 2047,
+      "text": "LOG  : Lua          f:0 st:1,504,342,051> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=server mode=takeover log=2 frameworks=none hook=true limitations=3"
+     },
+     {
+      "line": 2072,
+      "text": "LOG  : Lua          f:360 st:1,504,379,428> [NutritionRevamp] players: first sight of admin"
+     }
+    ],
+    "client_nr_lines": [
+     {
+      "line": 3272,
+      "text": "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=client mode=takeover log=2 frameworks=none"
+     }
+    ],
+    "server_trace_lines": [],
+    "client_trace_lines": [],
+    "self_report_server": [
+     "LOG  : Lua          f:0 st:1,504,342,051> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=server mode=takeover log=2 frameworks=none hook=true limitations=3"
+    ],
+    "self_report_client": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=client mode=takeover log=2 frameworks=none"
+    ],
+    "registered_lines": [
+     "LOG  : Lua          f:0 st:1,504,342,050> [NutritionRevamp] fast: takeover handler registered"
+    ],
+    "server_log": "server-stdout.log",
+    "client_console": "clients\\admin\\console.txt"
+   }
+  }
+ },
+ "verdicts": {
+  "P1.1": {
+   "phase": "P1.1",
+   "predicted": "NutritionRevamp.version == '0.1.0' on the client and on the server",
+   "falsifier": "either side unresolved or another value: the mod's shared files did not run there",
+   "observed": {
+    "client": "0.1.0",
+    "server": "0.1.0"
+   },
+   "verdict": "as_predicted",
+   "wall": 60.308
+  },
+  "P1.2": {
+   "phase": "P1.2",
+   "predicted": "fast.registered == true (Mode default 1 = takeover) and fast.stats.failures == 0",
+   "falsifier": "registered false or unresolved, or a failure count above zero",
+   "observed": {
+    "registered": true,
+    "failures": 0
+   },
+   "verdict": "as_predicted",
+   "wall": 65.845
+  },
+  "P1.2b": {
+   "phase": "P1.2b",
+   "predicted": "the hoist of admin exists and its missing-member list is empty (keyCount 0)",
+   "falsifier": "no hoist for the player (resolved false), or a missing member listed",
+   "observed": {
+    "hoistMissing": {
+     "side": "server",
+     "name": "NutritionRevamp.server.fast.h.admin.missing",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 0
+    },
+    "disabledAt": {
+     "side": "server",
+     "name": "NutritionRevamp.server.fast.stats.disabledAt",
+     "failedAt": "disabledAt",
+     "resolved": false
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 65.847
+  },
+  "P1.3-thirst": {
+   "phase": "P1.3-thirst",
+   "predicted": "thirst rises by 8.0e-6 x game-seconds elapsed (#0476), the elapsed read off the two stats.all worldAge values",
+   "falsifier": "no change, or a change outside +-10 % of the prediction",
+   "observed": {
+    "a": 0.002015134086832404,
+    "b": 0.0032942472025752068,
+    "delta": 0.0012791131157428026,
+    "predicted": 0.0012789184570312498,
+    "ratio": 1.000152205725457
+   },
+   "verdict": "as_predicted",
+   "wall": 80.917
+  },
+  "P1.3-hunger": {
+   "phase": "P1.3-hunger",
+   "predicted": "hunger rises between the two reads (direction graded; the ratio to 9.6e-6 x (1 - h) per game-second is recorded only)",
+   "falsifier": "no rise",
+   "observed": {
+    "a": 0.0024152579717338085,
+    "b": 0.003945323172956705,
+    "delta": 0.0015300652012228966,
+    "predicted_ungraded": 0.0015298213496634664,
+    "ratio_ungraded": 1.0001593987163822
+   },
+   "verdict": "as_predicted",
+   "wall": 80.918
+  },
+  "P1.3-field_count": {
+   "phase": "P1.3-field_count",
+   "predicted": "24 stats and an empty missing list on each stats.all",
+   "falsifier": "a read with another count or a non-empty missing list",
+   "observed": {
+    "a": {
+     "ok": true,
+     "count": 24,
+     "missing": {}
+    },
+    "b": {
+     "ok": true,
+     "count": 24,
+     "missing": {}
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 80.919
+  },
+  "P1.4": {
+   "phase": "P1.4",
+   "predicted": "fast.stats.calls rises between two reads ~10 s apart and failures still reads 0 after them",
+   "falsifier": "the count does not rise (the handler is not being called), or a failure",
+   "observed": {
+    "a": 159,
+    "b": 266,
+    "failures_end": 0,
+    "window_measured_s": 10.035,
+    "delta": 107,
+    "per_wall_second": 10.662680617837568
+   },
+   "verdict": "as_predicted",
+   "wall": 80.921
+  },
+  "P1.5": {
+   "phase": "P1.5",
+   "predicted": "NutritionRevamp.client.received >= 1 (the mirror arrived at first sight) and client.mirror resolved with username 'admin', v 1, mode 1",
+   "falsifier": "received 0 or unresolved, or a mirror field unresolved or another value: no (or a wrong) mirror reached the client",
+   "observed": {
+    "received": 1,
+    "mirror": {
+     "side": "client",
+     "name": "NutritionRevamp.client.mirror",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 9
+    },
+    "username": "admin",
+    "v": 1,
+    "mode": 1
+   },
+   "verdict": "as_predicted",
+   "wall": 83.209
+  },
+  "P1.6": {
+   "phase": "P1.6",
+   "predicted": "bench.global answers usPerCall for 1000 calls with no error (the number itself is recorded, not graded)",
+   "falsifier": "an error reply or a raise inside the loop",
+   "observed": {
+    "side": "server",
+    "name": "NutritionRevamp.kernel.fast.defaults",
+    "n": 1000,
+    "ms": 2,
+    "usPerCall": 2
+   },
+   "verdict": "as_predicted",
+   "wall": 84.218
+  },
+  "P1.8": {
+   "phase": "P1.8",
+   "predicted": "server.store.records.admin.v resolves to 1 (the store attached on OnInitGlobalModData and holds the record) and server.players.minutes rises between two reads ~10 s wall apart",
+   "falsifier": "the record unresolved or v not 1, or the minute count flat",
+   "observed": {
+    "record_v": 1,
+    "record_v_ack": {
+     "side": "server",
+     "name": "NutritionRevamp.server.store.records.admin.v",
+     "type": "number",
+     "resolved": true,
+     "value": 1
+    },
+    "minutes": {
+     "a": 19,
+     "b": 22,
+     "window_requested_s": 10.0,
+     "window_measured_s": 10.02,
+     "serverWorldAge": {
+      "a": null,
+      "b": null
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 98.27
+  },
+  "P1.9": {
+   "phase": "P1.9",
+   "predicted": "fast.stats.byCharHits rises by the same count as fast.stats.calls minus at most one (dHits >= dCalls - 1 under the sandwich order); failures 0 and disabledAt unresolved (nil) at both ends",
+   "falsifier": "byCharHits stays at 0 while calls rises (the IsoPlayer key misses every tick and the slow path runs), dHits < dCalls - 1, a failure, or disabledAt set",
+   "observed": {
+    "order": "hits_a, calls_a, wait, calls_b, hits_b",
+    "byCharHits": {
+     "a": 458,
+     "b": 571
+    },
+    "calls": {
+     "a": 466,
+     "b": 566
+    },
+    "failures": {
+     "a": 0,
+     "b": 0
+    },
+    "disabledAt": {
+     "a": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.disabledAt",
+      "failedAt": "disabledAt",
+      "resolved": false
+     },
+     "b": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.disabledAt",
+      "failedAt": "disabledAt",
+      "resolved": false
+     }
+    },
+    "window_requested_s": 10.0,
+    "calls_window_measured_s": 10.037,
+    "hits_window_measured_s": 12.055,
+    "dHits": 113,
+    "dCalls": 100,
+    "dHits_minus_dCalls": 13,
+    "calls_minus_hits": {
+     "a": 8,
+     "b": -5
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 114.358
+  },
+  "P1.7": {
+   "phase": "P1.7",
+   "predicted": "exactly one server self-report carrying 'mode=takeover log=2 frameworks=none hook=true', exactly one 'fast: takeover handler registered', exactly one client self-report, and no Lua stack-frame line of this mod (or naming an NR_ file) on either side",
+   "falsifier": "a missing or doubled line, another mode / hook value, or any trace line",
+   "observed": {
+    "self_report_server": [
+     "LOG  : Lua          f:0 st:1,504,342,051> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=server mode=takeover log=2 frameworks=none hook=true limitations=3"
+    ],
+    "registered_lines": [
+     "LOG  : Lua          f:0 st:1,504,342,050> [NutritionRevamp] fast: takeover handler registered"
+    ],
+    "self_report_client": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=client mode=takeover log=2 frameworks=none"
+    ],
+    "trace_lines": {
+     "server": [],
+     "client": []
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 114.366
+  }
+ },
+ "session_ready_wall": 54.516,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"0.1.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "0.1.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"0.1.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "0.1.0"
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "timeline": [
+  {
+   "t": 54.5,
+   "phase": "session_ready"
+  },
+  {
+   "t": 56.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 58.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 58.8,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 59.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 59.8,
+   "phase": "step",
+   "took": 0.505,
+   "name": "p1_1_version_client",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 60.3,
+   "phase": "step",
+   "took": 0.506,
+   "name": "p1_1_version_server",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 60.3,
+   "phase": "verdict",
+   "name": "P1.1",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 62.1,
+   "phase": "step",
+   "took": 1.758,
+   "name": "p1_2_registered",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 62.3,
+   "phase": "step",
+   "took": 0.255,
+   "name": "p1_2_failures",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 64.3,
+   "phase": "step",
+   "took": 2.01,
+   "name": "p1_2_disabledAt",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 65.8,
+   "phase": "step",
+   "took": 1.508,
+   "name": "p1_2_hoist_missing",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 65.8,
+   "phase": "verdict",
+   "name": "P1.2",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 65.8,
+   "phase": "verdict",
+   "name": "P1.2b",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 66.4,
+   "phase": "step",
+   "took": 0.505,
+   "name": "p1_3_time_a",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 68.4,
+   "phase": "step",
+   "took": 2.01,
+   "name": "p1_3_stats_a",
+   "cmd": "stats.all"
+  },
+  {
+   "t": 69.6,
+   "phase": "step",
+   "took": 1.257,
+   "name": "p1_4_calls_a",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 77.1,
+   "phase": "step",
+   "took": 0.756,
+   "name": "p1_3_time_b",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 78.4,
+   "phase": "step",
+   "took": 1.257,
+   "name": "p1_3_stats_b",
+   "cmd": "stats.all"
+  },
+  {
+   "t": 80.4,
+   "phase": "step",
+   "took": 2.008,
+   "name": "p1_4_calls_b",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 80.9,
+   "phase": "step",
+   "took": 0.504,
+   "name": "p1_4_failures_end",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 80.9,
+   "phase": "verdict",
+   "name": "P1.3-thirst",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 80.9,
+   "phase": "verdict",
+   "name": "P1.3-hunger",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 80.9,
+   "phase": "verdict",
+   "name": "P1.3-field_count",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 80.9,
+   "phase": "verdict",
+   "name": "P1.4",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 81.2,
+   "phase": "step",
+   "took": 0.255,
+   "name": "p1_5_received_client",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 81.7,
+   "phase": "step",
+   "took": 0.507,
+   "name": "p1_5_mirror_client",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 82.2,
+   "phase": "step",
+   "took": 0.505,
+   "name": "p1_5_mirror_username",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 82.7,
+   "phase": "step",
+   "took": 0.505,
+   "name": "p1_5_mirror_v",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 83.2,
+   "phase": "step",
+   "took": 0.506,
+   "name": "p1_5_mirror_mode",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 83.2,
+   "phase": "verdict",
+   "name": "P1.5",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 84.2,
+   "phase": "step",
+   "took": 1.007,
+   "name": "p1_6_bench_server",
+   "cmd": "bench.global"
+  },
+  {
+   "t": 84.2,
+   "phase": "verdict",
+   "name": "P1.6",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 84.5,
+   "phase": "step",
+   "took": 0.251,
+   "name": "p1_8_store_record_v",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 86.2,
+   "phase": "step",
+   "took": 1.759,
+   "name": "p1_8_store_records",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 88.2,
+   "phase": "step",
+   "took": 2.008,
+   "name": "p1_8_minutes_a",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 98.3,
+   "phase": "step",
+   "took": 2.014,
+   "name": "p1_8_minutes_b",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 98.3,
+   "phase": "verdict",
+   "name": "P1.8",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 99.5,
+   "phase": "step",
+   "took": 1.259,
+   "name": "p1_9_byCharHits_a",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 100.3,
+   "phase": "step",
+   "took": 0.755,
+   "name": "p1_9_calls_a",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 102.3,
+   "phase": "step",
+   "took": 2.008,
+   "name": "p1_9_failures_a",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 103.3,
+   "phase": "step",
+   "took": 1.007,
+   "name": "p1_9_disabledAt_a",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 110.3,
+   "phase": "step",
+   "took": 0.756,
+   "name": "p1_9_calls_b",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 110.8,
+   "phase": "step",
+   "took": 0.505,
+   "name": "p1_9_byCharHits_b",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 112.3,
+   "phase": "step",
+   "took": 1.508,
+   "name": "p1_9_failures_b",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 114.4,
+   "phase": "step",
+   "took": 2.011,
+   "name": "p1_9_disabledAt_b",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 114.4,
+   "phase": "verdict",
+   "name": "P1.9",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 114.4,
+   "phase": "verdict",
+   "name": "P1.7",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 116.4,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 124.2,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "summary": {
+  "verify_ok": [
+   true,
+   true,
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "verdicts": {
+   "P1.1": "as_predicted",
+   "P1.2": "as_predicted",
+   "P1.2b": "as_predicted",
+   "P1.3-thirst": "as_predicted",
+   "P1.3-hunger": "as_predicted",
+   "P1.3-field_count": "as_predicted",
+   "P1.4": "as_predicted",
+   "P1.5": "as_predicted",
+   "P1.6": "as_predicted",
+   "P1.8": "as_predicted",
+   "P1.9": "as_predicted",
+   "P1.7": "as_predicted"
+  },
+  "statsMove": {
+   "window_requested_s": 10.0,
+   "window_measured_s": 10.788,
+   "time_snapshots": {
+    "a": {
+     "worldAge": 2.369072914123535,
+     "hour": 9,
+     "minutes": 22,
+     "mult": 4.799753665924072,
+     "wall": 1791161643180
+    },
+    "b": {
+     "worldAge": 2.4170284271240234,
+     "hour": 9,
+     "minutes": 25,
+     "mult": 4.795763969421387,
+     "wall": 1791161653977
+    }
+   },
+   "worldAge": {
+    "a": 2.3779525756835938,
+    "b": 2.4223594665527344
+   },
+   "gameSeconds": 159.86480712890625,
+   "mult": {
+    "a": 4.796884059906006,
+    "b": 4.7993998527526855
+   },
+   "thirst": {
+    "a": 0.002015134086832404,
+    "b": 0.0032942472025752068,
+    "delta": 0.0012791131157428026,
+    "predicted": 0.0012789184570312498,
+    "ratio": 1.000152205725457
+   },
+   "hunger": {
+    "a": 0.0024152579717338085,
+    "b": 0.003945323172956705,
+    "delta": 0.0015300652012228966,
+    "predicted_ungraded": 0.0015298213496634664,
+    "ratio_ungraded": 1.0001593987163822
+   }
+  },
+  "calls": {
+   "a": 159,
+   "b": 266,
+   "failures_end": 0,
+   "window_measured_s": 10.035,
+   "delta": 107,
+   "per_wall_second": 10.662680617837568
+  },
+  "byChar": {
+   "order": "hits_a, calls_a, wait, calls_b, hits_b",
+   "byCharHits": {
+    "a": 458,
+    "b": 571
+   },
+   "calls": {
+    "a": 466,
+    "b": 566
+   },
+   "failures": {
+    "a": 0,
+    "b": 0
+   },
+   "disabledAt": {
+    "a": {
+     "side": "server",
+     "name": "NutritionRevamp.server.fast.stats.disabledAt",
+     "failedAt": "disabledAt",
+     "resolved": false
+    },
+    "b": {
+     "side": "server",
+     "name": "NutritionRevamp.server.fast.stats.disabledAt",
+     "failedAt": "disabledAt",
+     "resolved": false
+    }
+   },
+   "window_requested_s": 10.0,
+   "calls_window_measured_s": 10.037,
+   "hits_window_measured_s": 12.055,
+   "dHits": 113,
+   "dCalls": 100,
+   "dHits_minus_dCalls": 13,
+   "calls_minus_hits": {
+    "a": 8,
+    "b": -5
+   }
+  },
+  "bench_usPerCall": 2
+ },
+ "wall_seconds": 124.2,
+ "server_error_count": 0,
+ "client_lua_error": false
+}
