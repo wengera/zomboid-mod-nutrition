@@ -1,0 +1,40 @@
+# testing/profiles/x15-thirst.toml - the Plan 4 thirst acceptance boot (Task 15): PZTestKit +
+# NutritionRevamp (Mode 1, LegacyMirror) + TKX_ThirstWatch, DayLength 1, OnsetSpeed 1.0 (the declared
+# default: kinetics at their real rates). The fixture's sleep false/false stands: no [server] block.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror, OnsetSpeed 1) + TKX_ThirstWatch, DayLength 1 - the thirst acceptance."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_ThirstWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_ThirstWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_ThirstWatch"
+path = "testing/experiments/TKX_ThirstWatch"
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
+OnsetSpeed = 1.0
+DeficienciesCanKill = true
+ExcessEffectsOn = true
+BalanceBonus = true

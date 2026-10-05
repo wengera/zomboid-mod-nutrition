@@ -1,0 +1,58 @@
+# testing/profiles/x15-records.toml - the Plan 4 records acceptance boot (Task 15): PZTestKit +
+# NutritionRevamp (Mode 1, LegacyMirror) + TKX_ThirstWatch + TKX_SleepWatch + TKX_BoozeWatch, DayLength 1,
+# [server] SleepAllowed/SleepNeeded true. OnsetSpeed 30.0 (the declared maximum) scales the deficiency
+# onset so vitamin C reaches clinical in ln(1/0.15)/(0.0474*30) = 1.897/1.422 = ~1.33 game days; at
+# DayLength 1 a game day is 15 real minutes, so ~20 real minutes.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror, OnsetSpeed 30) + TKX_ThirstWatch + TKX_SleepWatch + TKX_BoozeWatch, sleep on, DayLength 1 - the records acceptance."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_ThirstWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_ThirstWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_ThirstWatch"
+path = "testing/experiments/TKX_ThirstWatch"
+
+[[mods]]
+id = "TKX_SleepWatch"
+path = "testing/experiments/TKX_SleepWatch"
+
+[[mods]]
+id = "TKX_BoozeWatch"
+path = "testing/experiments/TKX_BoozeWatch"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
+OnsetSpeed = 30.0
+DeficienciesCanKill = true
+ExcessEffectsOn = true
+BalanceBonus = true
