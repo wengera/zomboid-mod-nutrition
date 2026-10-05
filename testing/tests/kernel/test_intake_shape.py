@@ -314,10 +314,144 @@ end
 
 
 def test_install_is_idempotent_and_composes(intake_host):
+    before_pass = I(intake_host).stats.passthrough
     first, again, same, not_rewrapped, r, order, pass_off = intake_host.rt.eval(COMPOSE)()
+    # one call through the chain, no isServer: it ran THROUGH the mod wrapper as a pass-through
+    assert I(intake_host).stats.passthrough == before_pass + 1
     assert first is True and again is True
     assert same is True
     assert not_rewrapped is True
     assert r is True
     assert order == "qc vanilla"
     assert pass_off is True
+
+
+RESET = r"""
+function()
+    ISEatFoodAction = nil
+    for _, S in ipairs({NR_IntakeComplete_Installed, NR_IntakeServerStop_Installed}) do
+        S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    end
+end
+"""
+
+
+def reset_sentinels(h):
+    h.rt.eval(RESET)()
+
+
+UNINSTALL = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local cls = {}
+    local vComplete = function(self) return true end
+    local vStop = function(self) end
+    cls.complete, cls.serverStop = vComplete, vStop
+    ISEatFoodAction = cls
+    IN.install()
+    local wrapped = cls.complete ~= vComplete and cls.serverStop ~= vStop
+    IN.uninstall()
+    return wrapped, cls.complete == vComplete, cls.serverStop == vStop, IN.wrapped
+end
+"""
+
+
+def test_uninstall_outermost_restores_the_originals(intake_host):
+    h = intake_host
+    reset_sentinels(h)
+    try:
+        wrapped, complete_restored, stop_restored, still = h.rt.eval(UNINSTALL)()
+        assert wrapped is True
+        assert complete_restored is True
+        assert stop_restored is True
+        assert still is False
+    finally:
+        reset_sentinels(h)
+
+
+RELOAD = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local old = {}
+    old.complete = function(self) return "old" end
+    old.serverStop = function(self) end
+    ISEatFoodAction = old
+    IN.install()
+    local oldWrapped = old.complete
+    -- a reload of the vanilla file: a FRESH class table with fresh vanilla stubs
+    local new = {}
+    local vNew = function(self) return "new" end
+    new.complete = vNew
+    new.serverStop = function(self) end
+    ISEatFoodAction = new
+    IN.install()
+    local C = NR_IntakeComplete_Installed
+    return new.complete == C.wrapper, new.complete ~= vNew, C.orig == vNew, C.class == new,
+        old.complete == oldWrapped, new.complete({}), IN.wrapped
+end
+"""
+
+
+def test_reload_of_the_class_table_rewraps(intake_host):
+    h = intake_host
+    reset_sentinels(h)
+    try:
+        is_ours, replaced, orig_new, class_new, old_untouched, r, wrapped = h.rt.eval(RELOAD)()
+        assert is_ours is True and replaced is True
+        assert orig_new is True and class_new is True
+        assert old_untouched is True
+        assert r == "new"
+        assert wrapped is True
+    finally:
+        reset_sentinels(h)
+
+
+# --- fractionOf: the hunger fraction, or the thirst fraction for a thirst-only Food (#0014) ------
+
+def test_fraction_thirst_only_whole(intake_host):
+    frac, share = I(intake_host).fractionOf(0, 0, 0, -0.1, 0)
+    assert abs(frac - 1.0) < TOL and abs(share - 1.0) < TOL
+
+
+def test_fraction_thirst_only_half(intake_host):
+    frac, share = I(intake_host).fractionOf(0, 0, 0, -0.1, -0.05)
+    assert abs(frac - 0.5) < TOL and abs(share - 0.5) < TOL
+
+
+def test_fraction_thirst_only_nil_base(intake_host):
+    frac, share = I(intake_host).fractionOf(0, 0, None, -0.1, -0.05)
+    assert abs(frac - 0.5) < TOL and abs(share - 0.5) < TOL
+
+
+def test_fraction_hunger_ignores_thirst(intake_host):
+    # a part-eaten apple: share of the whole 0.5, Eat's own fraction of what was left 1.0
+    frac, share = I(intake_host).fractionOf(-0.08, 0, -0.16, -0.1, -0.1)
+    assert abs(frac - 1.0) < TOL and abs(share - 0.5) < TOL
+
+
+def test_fraction_hunger_half_apple(intake_host):
+    frac, share = I(intake_host).fractionOf(-0.16, -0.08, -0.16, None, None)
+    assert abs(frac - 0.5) < TOL and abs(share - 0.5) < TOL
+
+
+def test_fraction_both_zero_is_zero(intake_host):
+    frac, share = I(intake_host).fractionOf(0, 0, 0, 0, 0)
+    assert frac == 0 and share == 0
+
+
+def test_assemble_thirst_only_food_lands_its_calories(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.Nothing", rawBefore=0, instBase=0, scriptHunger=0,
+               cal=2, carb=0, lip=0, pro=0, thirstBefore=-0.1)
+    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h), 0)
+    assert abs(share - 1.0) < TOL and abs(frac - 1.0) < TOL
+    assert abs(vec["calories"] - 2) < TOL
+
+
+def test_assemble_thirst_only_food_half(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.Nothing", rawBefore=0, instBase=0, scriptHunger=0,
+               cal=2, carb=0, lip=0, pro=0, thirstBefore=-0.1)
+    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h), -0.05)
+    assert abs(share - 0.5) < TOL
+    assert abs(vec["calories"] - 1) < TOL
