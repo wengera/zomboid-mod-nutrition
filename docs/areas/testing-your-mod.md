@@ -172,7 +172,8 @@ A schedule that doses past the ceiling loses the excess to the clamp, so a scena
 The first day of a fed run is a ramp from an empty store, so a per-day rate read off that day is not the steady rate [#0162/M/one-fixture].
 At first sight the server's record split the admin's 80 kg exactly by the band-anchored table [#2881/M/n=1].
 The mod's drink wrapper already lands a drink's water in the pool before any thirst view exists: 0.11304 litres drunk through the game's drink action counted 58 sips and 57 landings and moved 113.036 g through the stomach into `pool.water`, half of it within about 25 s [#2944/M/n=1].
-A scenario that hands the player water has to reckon with `autoDrink`: a 0.9-litre canteen given by RCON reached its drink holding 0.11304 litres, drunk down at the THIRST writes before it with the flag back on after it had been written off [#2945/M/n=1, #2941/M/n=1].
+A scenario that hands the player water has to reckon with `autoDrink`: a 0.9-litre canteen given by RCON reached its drink holding 0.11304 litres, drunk down by `autoDrink` before it, first at the THIRST drained over the A windows and then at the 0.2 write, with the flag back on after it had been written off [#2945/M/n=1, #2941/M/n=1].
+The mod's pooled water did not move while `autoDrink` drank 0.9 litres or while the world-source drink took THIRST from 0.4099 to 0.0012, because no drink wrapper sees either route [#2940/M/n=1, #2942/M/n=1].
 Over nine accelerated fasting days each day close moved fat and lean by exactly the partition law, 80.00 to 75.67 kg for an idle female [#2882/M/n=1].
 The weight write re-asserts within the first read after an admin write of 120 [#2885/M/n=1].
 With the legacy mirror on the calorie store tracks the trailing-24 h balance map [#2886/M/n=1].
