@@ -269,7 +269,7 @@ Not covered: the transport beneath every packet, the save and load round trip th
 - Decision: whether any value the client displays is derived on the client or always sent from the server — forced by the band traits reaching the client only on server pushes, the experience push measured landing within about half a second, and by the cooked-thirst halving [#2595/C/C-only] [#2759/M/n=3] [#1038/M/n=2].
 - Decision: whether any of this mod's state lives in global modData, and whether such a table is ever transmitted — forced by a server-side transmit sending the whole named table to every connection with no per-player target [#2398/C/C-only].
 - Decision: whether a per-item mod value is fixed per type in the script or carried per instance — forced by a script value being identical on both sides for free while the item-modData route is measured in one direction only [#1124/M/n=1, #1241/M/one-side].
-- Decision: whether the design leans on modData surviving a restart before the persistence run lands — forced by persistence being read from the code and never measured [#1122/C/C-only].
+- Decision: how far the design leans on modData surviving a restart — settled by run `x131p-20261004-192310`: both scopes survived a clean quit and reload, a quit with no console save carried them, and a hard kill lost a minute-old global write along with the world's progress since the last save [#1294/M/n=1, #2756/M/n=1, #2098/M/n=1, #2758/M/n=1].
 - Decision: whether item round trips are keyed on the item id before the net-id run lands — forced by the per-body reallocation being unread for an item several mods append to [#1063/C/C-only/open].
 
 ## See also

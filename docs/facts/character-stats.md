@@ -63,6 +63,7 @@ A stat a mod registers is absent from `ORDERED_STATS` and therefore from every s
 Such a stat is still reset with the others, because the reset-all method iterates the whole registry rather than the fixed order [#2212/C/C-only].
 Registering an id that already exists is [a wall](#walls) as well.
 Three endurance helpers on `Stats` are hard-coded: the recharging flag is a constant false, and the warning and danger thresholds are constants of 0.5 and 0.25 [#2213/C/C-only].
+`Stats.add`, `remove` and `reset` all write through `set`, so each clamps once to the stat's bounds and returns whether the stored value changed, and `add` sums in float. [#2800/C/C-only]
 Where the fixed order meets the wire — the packet's field order — is [the player-stats packet](wire-packets.md#player-stats-packet) [#0564].
 
 <a id="updaters"></a>
@@ -79,7 +80,12 @@ Thirst's and hunger's rates, their trait multipliers and their gates are stated 
 The character's endurance updater does nothing but stamp the last-endurance value from the current endurance and, under the unlimited-endurance cheat, reset endurance to its default of 1 [#2215/C/C-only].
 It is not the endurance model: the player's model is a separate method the hook never sees, placed in [the tick order](#tick-order).
 
+`Stats.getLastEndurance` has no caller in the jar and no vanilla Lua file names it, so the last-endurance stamp has no vanilla reader. [#2791/C/C-only]
+The unlimited-endurance test is `isUnlimitedEndurance()`, public, over `PlayerCheats`, which is not exposed. [#2792/C/C-only]
+
 The tripping updater's only write is the tripping rotation angle, advanced by `0.06` per call while the character is tripping, and nothing in the jar outside `Stats` reads that angle [#2225/C/C-only].
+
+The tripping angle is readable and writable from Lua through the public `Stats` getters and setters. [#2790/C/C-only]
 
 The thirst updater adds thirst only when the process is a server, or is not a client and the character is the local player instance, and it skips the add while the character's player is in ghost mode [#0560/M/n=1].
 A takeover that drops the thirst updater drops that ghost-mode gate with it, because the gate lives inside one of the seven updaters the hook skips [#2724/C/C-only] [#0560/M/n=1].
@@ -106,7 +112,17 @@ The wake-state updater runs its awake or sleeping path only when the process is 
 The character's own sleeping path is an empty method, so a non-player character's stats do not move through it while it sleeps [#2218/C/C-only].
 The player's sleeping path writes one field besides the stats — the time-of-sleep advance its restoration gate compares against — and carries no wake-up, no call that sets the asleep flag and no bed release [#2227/C/C-only].
 
+The awake arm of the wake-state updater, as read, is the one place stress, idleness and the idle-square timer move together.
+The awake updater writes stress, fatigue, hunger, idleness and the idle-square timer and nothing else. [#2781/C/C-only]
+Awake, stress falls per update by `StressDecrease × multiplier × deltaMinutesPerDay`, with no StatsDecrease, trait or moodle term. [#2772/C/C-only]
+In combat — more than zero very-close zombies or at least three chasing — the awake updater resets idleness to 0, and `isInCombat` is private. [#2777/C/C-only]
+Idle and on a square, idleness rises by `IdleIncrease × multiplier × deltaMinutesPerDay` once the idle-square timer reaches 1800 on an unchanged square and, independently, by a third of that indoors; not idle and not sitting, it falls by `IdleDecrease × multiplier × deltaMinutesPerDay`. [#2778/C/C-only]
+The idle-square timer advances by `multiplier × deltaMinutesPerDay` per update while the square is unchanged and the timer is at most 3600, and resets to 0 on a square change; its updater is private and no setter exists, so Lua cannot advance it. [#2779/C/C-only]
+The idle-square timer is read only by the awake updater and by `BodyDamage.UpdateBoredom`, so a takeover that skips the wake-state updater freezes the timer boredom reads. [#2780/C/C-only]
+
 The morale literal is held by three classes only — the stat class, the character class and the book class — so skipping the morale updater reaches no moodle, speed or combat term [#2228/C/C-only].
+
+The morale updater adds `0.5 + (0.5 − ns) × 1e-4` while stress plus nicotine withdrawal is below 0.5 and 0 otherwise, so it pins morale at 1 and never lowers it. [#2789/C/C-only]
 
 The fitness updater writes the `FITNESS` stat as the Fitness perk level divided by `5`, minus `1` [#2223/C/C-only].
 It does not drive the exercise system, which is the separate `Fitness` object with its own update [#2224/C/C-only].
@@ -123,6 +139,7 @@ A player's update calls only its first stage, which calls the second stage first
 On a dedicated server the second stage takes the remote-player branch, which after the server-gated movement-rate update calls the player's endurance model, or its in-vehicle variant, and returns true, ahead of the `OnPlayerUpdate` trigger in the later local-player path [#2232/C/C-only].
 The nutrition update, under the same system switch, and the exercise object's update also run inside the second stage, before the hook [#2234/C/C-only].
 Inside the stat update the order is an animal return [#2239/C/C-only], then on a server the fatigue reset unless sleep is both allowed and needed, then the hook [#2723/C/C-only].
+The server fatigue reset reads `ServerOptions.sleepAllowed` and `ServerOptions.sleepNeeded` and runs unless both are true. [#2793/C/C-only]
 The hook therefore cannot suppress the player's endurance model, which has already run for that tick, and a handler that writes endurance writes after vanilla's drain or regeneration [#2235/C/C-only].
 At rest on a live server the push carries the handler's endurance write and not the value the player's model wrote earlier in the update: with a takeover handler writing 0.4242 every update, the client read 0.4242 to float precision at sixteen client-first pairs while vanilla's resting regeneration, read once the sentinel was cleared, ran at about 0.067 per game-hour, about 1.8e-4 per handler call; no pair was taken while running [#2753/M/n=1].
 

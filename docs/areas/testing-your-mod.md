@@ -39,10 +39,10 @@ A profile is one file per named combination under test: the fixture to restore, 
 Its schema is [harness.md#profiles](../platform/harness.md#profiles), and a profile says only what differs from the command line's defaults [#1796].
 Everything it asks for is resolved and validated before a process starts, so a wrong mod id or a misspelt sandbox key costs a second rather than a boot [#1790].
 
-The mod ships no profile yet, and the plan seeds each one from `testing/profiles/mod-under-test.toml`, the acceptance profile whose shape every new profile copies [#2050].
+The mod ships three profiles, `nr-accept`, `nr-takeover` and `nr-overlay`, and each is seeded from `testing/profiles/mod-under-test.toml`, the acceptance profile whose shape every profile copies [#2050].
 That file carries the harness and one workshop mod on the golden fixture, with inline verification rows and a single sandbox override, and the harness page lists it among its worked examples ([`../platform/harness.md`](../platform/harness.md)).
 Its override shortens the day, which a plain run never notices and a timed scenario does: a fifteen-minute day at a multiplier of thirty overran the game-minute scheduler [#1813/M/n=1].
-The mod's profiles therefore copy the template's shape and not its sandbox block, whose day length is the pacing decision's to set.
+The mod's profiles therefore copy the template's shape and not its sandbox block: `nr-accept` sets no option, and `nr-takeover` and `nr-overlay` set the day length to its shortest value beside the mod's own mode in a nested `[sandbox.NR]` table [#2807/M/n=1].
 
 Every profile of this mod pins the golden fixture, because every reading this library compares against was taken on it [#1253/C/one-fixture].
 The profile's own fixture wins over a typed fixture flag, since it is the fixture its sandbox keys were validated against [#1797].
@@ -52,14 +52,15 @@ The harness mod is prepended when a profile leaves it out, because without it th
 No profile touches the fixture: the mods overlay a restored per-run copy, and the sandbox block is merged into that copy's own options file [#1792].
 A resident neighbour named by its workshop item rather than by its mod id is a defect whenever the item ships more than one mod [#1617/C/snapshot].
 
-The plan names four profiles, each pinning the golden fixture and the harness, and each proving one thing.
+The mod ships three profiles and the plan names two more, each pinning the golden fixture and the harness, and each proving one thing.
 
 | profile | mod list | sandbox block | what it proves | tags |
 |---|---|---|---|---|
-| the mod's acceptance profile | the harness and the mod | none, so every option is the fixture's | that the mod arrived on both sides and its files ran in both Lua states | [#1793, #1825/M/n=1] |
-| the mod's scenario profile | the harness and the mod | none, or the day length if the pacing decision moves it | the mod's numbers over game days, beside the baseline pair run on the same profile | [#1253/C/one-fixture, #1814/M/n=3, #2071/C/inference] |
-| the vanilla-off profile, written only if the design switches vanilla nutrition off | the harness and the mod | the nutrition option off, set in the block and never at runtime | the mod's own arms over game days with vanilla's frozen, since the option freezes all three of the update's arms, beside the scenario profile's baseline | [#1127/C/C-only, #1277/M/n=1] |
-| the stack profile | the harness, the mod and each resident neighbour, every one by its engine-resolved id | none | that the mod's gates still pass beside the mods a live server runs | [#1558, #1617/C/snapshot] |
+| `nr-accept`, the acceptance profile | the harness and the mod | none, so every option is the fixture's | that the mod arrived on both sides and its files ran in both Lua states | [#1793, #1825/M/n=1] |
+| `nr-takeover`, the takeover profile | the harness and the mod | the day length and `[sandbox.NR] Mode = 1` | that the takeover handler registers and tracks vanilla's stats over game hours, beside the baseline of the same fixture | [#2807/M/n=1, #2749/M/n=1, #1253/C/one-fixture, #1814/M/n=3, #2071/C/inference] |
+| `nr-overlay`, the baseline profile | the harness and the mod | the day length and `[sandbox.NR] Mode = 2` | the overlay boot the takeover arm is read against, the same fixture and day length with vanilla's own stat update running | [#2807/M/n=1, #2749/M/n=1] |
+| the vanilla-off profile, planned and written only if the design switches vanilla nutrition off | the harness and the mod | the nutrition option off, set in the block and never at runtime | the mod's own arms over game days with vanilla's frozen, since the option freezes all three of the update's arms, beside the scenario profile's baseline | [#1127/C/C-only, #1277/M/n=1] |
+| the stack profile, planned | the harness, the mod and each resident neighbour, every one by its engine-resolved id | none | that the mod's gates still pass beside the mods a live server runs | [#1558, #1617/C/snapshot] |
 
 The acceptance profile's row now has a measurement: under it the mod loaded in both Lua states and its takeover handler registered at the server-started event, the version global answering on both sides and the server log carrying the registration line and a self-report naming the takeover mode [#2746/M/n=1].
 In the same session the server's hunger and thirst advanced under that handler at the vanilla rates, thirst by 1.44501e-3 over 180.62 game-seconds against a predicted 1.44495e-3, while the handler's own call count rose from 161 to 281 [#2747/M/n=1].
@@ -246,9 +247,8 @@ A client-local flip of the nutrition option reads back on the client, leaves the
 That is why the vanilla-off profile sets the option in its sandbox block, which is the server's own configuration for that run.
 The block merges into the restored file rather than replacing it, so an option a profile leaves out keeps the fixture's value [#1806].
 An option the world generator consumed is not retroactive, so an option that shapes the world is changed by provisioning a fresh fixture rather than by a profile [#1811/C/inference].
-Nested options are out of the sandbox block's reach, and the answer there is again a fresh fixture [#1831].
-The mod's own options are out of its reach too, because the block's key pattern takes only a top-level key and never names a mod option or its prefix [#2458/C/C-only].
-How a test sets one is therefore a decision under [Open](#open), and the remedies are [sandbox-options.md#open](../platform/sandbox-options.md#open)'s.
+A vanilla nested option is out of the sandbox block's reach, and the answer there is again a fresh fixture [#1831].
+The mod's own options are in its reach through a nested `[sandbox.<Prefix>]` table, which booted the mod in each of its two modes [#2807/M/n=1].
 
 ## Options
 
@@ -280,7 +280,7 @@ At which pacing does each of this mod's timed scenarios run — real time, a sho
 - Nothing on the bus executes a craft, so a crafted food's nutrition is read from the code and its create hooks stay unmeasured [#1248/C/C-only].
 - No bus command synthesises a click or a key press, so a panel of this mod's own keeps its state invisible to the bus until a human clicks [#1498/M/n=1].
 - A sandbox option that is nested, or that the world generator consumed, is out of a profile's reach, and changing one means a fresh fixture ([#1831], [#1811/C/inference]).
-- A profile's sandbox block cannot set the mod's own options: its key pattern matches only a top-level key and excludes a nested-table opener, so the settable list never names a mod option or its prefix [#2458/C/C-only].
+- A profile's top-level sandbox keys cannot set the mod's own options, and its nested `[sandbox.<Prefix>]` table can [#2807/M/n=1].
 - A tooltip probe on the driven client reads a debug client's tooltip, whose nutrition block can show without the Nutritionist trait, and on any client a packaged food with a readable label shows the block too ([#2645/C/C-only], [#1710]).
 - A tooltip probe on the stack profile reads the end of a sentinel-free wrap chain the resident mods build, one of whose links bypasses the chain with its own fork of vanilla's render, so it never reads the mod's wrap alone [#2568/C/snapshot].
 - No bit-level claim may rest on an artifact written before the harness commit `291f977` [#1254/C/snapshot].
@@ -296,6 +296,8 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - Whether the moodle framework loads whole, runs its configuration file and renders a registered moodle above its lowest level — settled by one session reading its globals on both sides and, on the client, a registered moodle's level and draw after a value past a threshold, beside a value that must leave it undrawn; -> X29 ([#1295/C/open, #0884/C/C-only/open, #2742/M/n=1/open], [open-questions.md#x29](open-questions.md#x29)).
 - Which sandbox options survive a restore — settled by a profiled run that sets each nutrition option on a restored world and reads it back; no `X` id ([#1830/C/C-only/open], [harness.md#open](../platform/harness.md#open)).
 - Where the cadence ceiling really sits above the known-safe demand — settled by scheduler self-tests that step the demand past it and read the fitted tick rate; no `X` id ([#1815/M/n=1/open], [harness.md#walls](../platform/harness.md#walls)).
+- A `player.sleep` that holds across a game-hour, because the client resets the server's asleep flag, and a real run, because `player.walk` asked to run only walked, are harness needs before X34's asleep and running arms and X35's running pairs can be read (#2081, #2082); -> X34, X35.
+- A same-tick add-and-push trait command, with a client-side stamp of the first change, is a harness need before X4's push arm can be separated from the experience route, because the bus polls every 20 ticks and a client poll about 0.5 s apart is coarser than the hop (#2099); -> X4.
 - The thirst sample column and the evaluator's dead-subject verdict have never run on a live session — settled by the next pinned three-day run's committed artifact; no `X` id [#0171/C/snapshot].
 - That the multiplier getter is scaled rather than the argument passed, that the time multiplier must always be changed through the broadcast admin command, and how a multiplier change re-syncs the client's clock are unverified, and their owner states them with their bounds ([#1869/M/uncommitted/unverified, #1870/M/uncommitted/unverified, #1871/M/uncommitted/unverified], [harness.md#open](../platform/harness.md#open)).
 - That a small cross-side calorie gap in the witness spike is the sampling skew of a once-a-second mirror is unverified, and its owner states it with its bound ([#1875/M/uncommitted/unverified], [harness.md#open](../platform/harness.md#open)).
@@ -304,7 +306,6 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 - Decision: whether the mod ships a client-side scenario for its display copy — forced by the client runner being wired with nothing to run and by every client read of a live store being a staircase [#1784, #1483].
 - Decision: whether any scenario moves a sandbox option off the fixture's value — forced by only the day length having been set by a profile, so a moved option buys a new baseline [#1809/C/C-only, #1253/C/one-fixture].
 - Decision: in which order the four owned experiments are bought — forced by the trait and drink experiments each needing a harness addition before their sessions, while the translation and framework experiments need neither [#1295/C/open, #1279/C/open, #2099/C/open].
-- Decision: how this mod's tests set its own sandbox options — a harness merge that writes a profile's nested block into the mod's table in the server file, a two-pass run that boots once so the server writes the block and then merges into it, or a live set over the bus after boot, which reaches no consumer that reads at server start — forced by the profile block's top-level-only key pattern [#2458/C/C-only]; the harness change lands before any run that sets a mod option.
 - Decision: whether a scenario pins the thirst clock or reads the death as its result — forced by an unattended thirst drain killing the subject partway through a multi-day run [#0179/M/one-fixture].
 
 ## See also

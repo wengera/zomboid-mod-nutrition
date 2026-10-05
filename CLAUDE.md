@@ -4,7 +4,7 @@ Read §§ 1–3 before touching anything, § 5 before any live run, and § 6 bef
 
 ## 1. What this repo is
 
-This repository is an agent-facing reference for modding Project Zomboid Build 42; its first consumer is a realism nutrition mod — nutrients tracked mod-side beyond the vanilla macros, a rebalance of the vanilla food items, multiplayer first.
+This repository is an agent-facing reference for modding Project Zomboid Build 42; its first consumer is a realism nutrition mod — nutrients tracked mod-side beyond the vanilla macros, a rebalance of the vanilla food items, multiplayer first — whose tree is `mod/NutritionRevamp/` here.
 [docs/areas/](docs/areas/) is the nutrition lens, [docs/platform/](docs/platform/) general modding knowledge, [docs/facts/](docs/facts/) the measured vanilla food and nutrition mechanics, and [docs/reference/](docs/reference/) the claims register and the science register of cited nutrition-science values, with the datasets, tools, experiments, jar notes, generated harness commands, wall map and artifacts register.
 Every claim on a page carries a tag naming its row in [the register](docs/reference/claims.tsv), and the row carries the grade and the pointer to its evidence; [README.md](README.md) is the map and the tag grammar, [STRATEGY.md](STRATEGY.md) the charter.
 The pages state what the game does and what a mod can and cannot change; the mod's design is not in this tree, and a root file names pages, never claims.
@@ -27,6 +27,7 @@ Route a task by its shape and read the pages in the order given; stop when the t
 | run or change the harness | [platform/harness](docs/platform/harness.md) → [reference/harness-commands](docs/reference/harness-commands.md) → § 5 | `pz-mod-testing` |
 | answer from the jar | [platform/jar-research](docs/platform/jar-research.md) → [reference/jar-method-notes](docs/reference/jar-method-notes.md) | `pz-jar-research` |
 | a PZ modding task outside nutrition | [platform/overview#coverage](docs/platform/overview.md#coverage) → the platform page its [routing table](docs/platform/overview.md#routing) names | `pz-modding-platform` |
+| work on the mod's code | [areas/testing-your-mod](docs/areas/testing-your-mod.md) → [platform/lessons#rules](docs/platform/lessons.md#rules) → the mod's tree `mod/NutritionRevamp/` | `nutrition-testing-your-mod` |
 | a vanilla food, body, spoilage or cooking number | [platform/overview#routing](docs/platform/overview.md#routing) → the facts page it names | — |
 | what another mod already does | [facts/other-mods/catalog](docs/facts/other-mods/catalog.md) → that mod's own page | — |
 | a standing rule or an anti-pattern | [platform/lessons](docs/platform/lessons.md) | — |
@@ -51,7 +52,9 @@ The pre-restructure library is readable at the tag `research-program-v1`, and th
 Run every gate a commit's paths trigger; each ends at zero findings or green.
 
 - `python tools/claims_check.py --staged` → 0 findings before every commit that touches `docs/`, `.claude/skills/`, `testing/PZTestKit/`, `testing/artifacts/`, `testing/experiments/`, `tools/bus_inventory.py`, `tools/reference_gen.py` or `references/wiki-mirrors/` (it says so and skips when nothing staged is under those paths).
-- `python tools/science_check.py --staged` → 0 findings before every commit that touches `docs/reference/science.tsv` (it says so and skips otherwise); the mod plans add `--scan <the mod's tree>` to it, never `tools/` or `docs/`.
+- `python tools/science_check.py --staged` → 0 findings before every commit that touches `docs/reference/science.tsv` (it says so and skips otherwise); `python tools/science_check.py --scan mod` → 0 findings before any commit that touches `mod/`, and it is never pointed at `tools/` or `docs/`.
+- `python tools/mod_lint.py mod/NutritionRevamp` → 0 ERROR before any commit that touches `mod/`.
+- `python tools/kahlua_lint.py mod testing/experiments testing/PZTestKit` → 0 findings and `python tools/hotpath_lint.py mod` → 0 findings before any commit that touches `mod/`, an experiment mod or the harness mod.
 - `python tools/page_lint.py <the pages touched>` → 0 before any commit that touches a page under `docs/areas/`, `docs/platform/` or `docs/facts/`, or `docs/reference/datasets.md` or `docs/reference/tools.md` (those two under its reference profile).
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
 - `python tools/reference_gen.py cited-by --check` and `python tools/reference_gen.py contradictions --check` → in sync: the artifacts register's `Cited by` column and the mirrors' `## Contradictions` section are rendered from the register, the checker's rule 10 runs both (so `claims_check.py --staged` covers a commit touching the register, `docs/reference/artifacts.md` or `references/wiki-mirrors/`), and `--write` in place of `--check` regenerates them.
@@ -114,6 +117,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - CRLF survivors in the working tree: `tools/README.md` (CRLF with a few LF lines), `tools/mod_lint.py`, `tools/tests/test_mod_lint.py`, `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua`, `testing/experiments/s03_body.py`, `testing/fixtures/default/fixture.json` (which `file` reports as JSON without naming its endings) and the `references/wiki-mirrors/` pages; edit them with `newline=''` handling and preserve the endings, and check any other file with `file <path>` first.
 - `core.autocrlf=true` here; `.gitattributes` pins the `TKX_ItemOverride` translation file to CRLF and `docs/reference/**` and `.claude/**` to LF.
 - A stray `ProjectZomboid64.exe` predating a session is Angus's own client, never killed (§ 5).
+- `lupa` 2.8 is the kernel tests' Lua 5.1 host (`python -m pip install lupa==2.8`), and the kernel coverage gate is line-granular, so the kernel files `NR_Kernel*.lua` are written one statement per line.
 - The harness client runs `-debug`, so an unguarded mod Lua error parks it in the debugger: [the raising-probe rule](docs/platform/lessons.md#rules).
 - The workshop corpus drifts under a running session, so every count is dated: [the corpus-drift rule](docs/platform/lessons.md#corpus-drift).
 

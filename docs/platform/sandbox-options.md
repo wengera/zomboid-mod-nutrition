@@ -178,7 +178,7 @@ The writer groups options by table name and writes each mod prefix as a nested L
 String values are quoted and escaped [#2455/C/C-only].
 Selecting a shipped sandbox preset never touches a mod option: `loadGameFile` runs the preset's Lua table through `fromTable`, and an option the table does not name is left alone [#2456/C/C-only].
 A mod option's shipped default therefore survives any preset the operator picks [#2456/C/C-only] [#2457/C/C-only].
-Setting a mod option from a test profile is a separate matter: the profile's sandbox block cannot reach a nested table ([harness.md](harness.md#sandbox)) [#2458/C/C-only].
+Setting a mod option from a test profile is a separate matter: the profile's nested `[sandbox.<Prefix>]` table reaches it ([harness.md](harness.md#sandbox)) [#2807/M/n=1].
 
 The shape of a mod's block in the written file, read off the writer and not booted [#2455/C/C-only]:
 
@@ -199,7 +199,7 @@ SandboxVars = {
 The engine has no Lua event for a sandbox option change: `OnSandboxOptionsChanged`, `OnSandboxOptions`, `SandboxOptionsChanged`, `OnSandboxVars`, `SandboxChanged` and `OnSandboxChange` are each absent from every class in the jar, and `LuaEventManager` holds no string containing `Sandbox` [#2451/C/C-only].
 The engine does not reject a duplicate option name: `addOption` keeps both options in its list and the last in its name map, so two mods declaring the same prefix and short name collide silently [#2437/C/C-only].
 Every timing statement on this page is read off call order in the bytecode and has not been observed on a booted session, the file-scope default included [#2444/C/C-only].
-A profile's sandbox block cannot set a mod's own option, and the remedy is the decision under [Open](#open) [#2458/C/C-only].
+A profile's nested `[sandbox.<Prefix>]` table sets a mod's own option, so a test needs no re-provisioned fixture for it [#2807/M/n=1].
 Not covered: `SandboxOptions.applySettings()`, which runs before every `toLua()` on each arrival path; the connection-details request chain beyond its read order; the option-name and value upgrade rules and whether a mod name can collide with one; the enum value-label fallback when a key is missing; whether a value outside a mod option's declared `min` and `max`, arriving over the wire or out of the server file, is clamped, rejected or kept; whether a mod can ship or shadow a preset such as `Apocalypse.lua`; the settings manager's own folder resolution for the server file; the `text` option type the admin panel branches on; any other declaration filename; and any other Java writer of `SandboxVars` — this library read none of them.
 
 ## Open
@@ -208,7 +208,6 @@ Not covered: `SandboxOptions.applySettings()`, which runs before every `toLua()`
 - Whether a runtime flip of a sandbox option from Lua takes effect, and whether the Lua mirror follows an admin push on a live server, is unmeasured — settled by one session reading the Java option, the Lua mirror and the gated behaviour beside a no-flip control; -> [X17](../areas/open-questions.md#x17) [#1283/C/open] [#0140/C/C-only/open].
 - That all 1308 `option` lines across the 103 installed `sandbox-options.txt` files use a dotted id is unverified: the count is a hand scan of the installed workshop tree whose output is not a committed dataset, and the dated inventory counts dotted lines in each mod's live file only; re-measure by a committed sweep that counts every option line, dotted or not, in every tree a mod ships [#2435/C/snapshot/unverified].
 - That 380 option blocks in the installed corpus carry a `description` key, 65 a `tooltip` key and 2 a `title` key is unverified: the counts are a hand scan whose output is not a committed dataset; re-measure by a committed sweep that counts each key per option block [#2459/C/snapshot/unverified].
-- Decision: how the mod's own tests set its options — a merge that writes a profile's nested block into the mod's table in the server file, a two-pass run that boots once so the server writes the block and then merges into it, or a live set through the bus after boot, which cannot give the value to a consumer that reads at `OnServerStarted` — forced by the profile block's top-level-only key pattern [#2458/C/C-only]; the harness change lands before any run that sets a mod option.
 - Decision: whether the mod reads each option at use time or caches it at `OnServerStarted` and `OnGameStart` with a re-read on a cadence — forced by the file-scope default [#2444/C/C-only] and the missing change event [#2451/C/C-only].
 
 ## See also

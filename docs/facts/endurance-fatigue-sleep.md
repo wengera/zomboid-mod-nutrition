@@ -94,6 +94,8 @@ Standing still, endurance regenerates at `imobileEnduranceReduce × EnduranceReg
 Walking, endurance regenerates at a quarter of the standing rate with a `(1 − fatigue)` term and no 0.85 factor, while the endurance moodle is below level 2 and the heavy-load moodle at level 1 or below; at endurance moodle level 2 or above, walking drains it instead, at `runningEnduranceReduce ÷ 7 × sneak` [#2259/C/C-only].
 Sitting on the ground or on furniture, resting, or riding awake in a vehicle regenerates endurance at five times the standing rate with a `(1 − 0.8 × fatigue)` term, the five being the hard-coded `sittingEnduranceMultiplier` rather than a Lua value [#2260/C/C-only].
 Asleep, endurance regenerates at twice the standing rate, multiplied by `getDeltaMinutesPerDay()` when every player is asleep, with no fatigue term at all [#2261/C/C-only].
+The asleep endurance regeneration is in `IsoPlayer.updateStats_Sleeping`, one of the hook-skipped updaters, and `IsoPlayer.updateEndurance` has no asleep test, so a registered `CalculateStats` handler also drops sleep's endurance regeneration. [#2782/C/C-only]
+`IsoPlayer.allPlayersAsleep` counts the process's local `IsoPlayer.players` array, not the server's connected players. [#2788/C/C-only]
 
 Fatigue therefore gates every waking regeneration arm and none of the sleeping one.
 A tired character standing still recovers endurance more slowly than a rested one, and a fully fatigued character walking recovers none, while the same character asleep recovers at the full sleeping rate.
@@ -233,10 +235,12 @@ if (stats.isAboveMinimum(FATIGUE)) {                            // @56 L3297
 Asleep, fatigue above 0.3 comes off at `dt ÷ (5 × t) × 0.7 × f × bed` per update and fatigue at or below 0.3 at `dt ÷ (7 × t) × 0.3 × f × bed`, so the top 0.7 is sized to clear over a nominal 5 hours and the last 0.3 over a nominal 7 [#2276/C/C-only].
 The bed factor is 0.6 on a floor, 0.75 on a floor with a pillow, 0.9 in a bad bed, 0.95 in a bad bed with a pillow, 1.05 in an average bed with a pillow, 1.1 in a good bed, 1.15 in a good bed with a pillow and 1.0 otherwise [#2276/C/C-only].
 Insomniac halves the rate and Night Owl multiplies it by 1.4, while Needs Less Sleep scales the nominal hours by 0.75 and Needs More Sleep by 1.18 [#2276/C/C-only].
-The nominal hours are the code's own constants; the unit of `dt` was not reconciled against the game clock, so neither figure is a derived duration.
+The nominal hours are the code's own constants, and the clock that drives them is the game's.
+The sleep fatigue clock `dt` equals the per-update advance of `GameTime.timeOfDay`, so it is game-hours and the 5- and 7-hour constants of sleep restoration are game-hours. [#2785/C/C-only]
 
 Restoration waits for sleep to take hold: fatigue comes off only once `timeOfSleep` exceeds `delayToActuallySleep`, and `timeOfSleep` advances by `1 ÷ minutesPerDay ÷ 60 × multiplier ÷ 2` on each call [#2277/C/C-only].
-What writes `delayToActuallySleep`, and so how long the gate holds, is not read.
+`timeOfSleep` is set to the time of day when the player falls asleep and `delayToActuallySleep` to the time of day plus a random 0 to `d` hours, `d` built from Insomniac, pain, stress, bed type, Night Owl and sleeping tablets and capped at 2. [#2786/C/C-only]
+`timeOfSleep` and `delayToActuallySleep` are protected fields with public setters `setTimeOfSleep(F)` and `setDelayToSleep(F)` and no getters. [#2787/C/C-only]
 The base `IsoGameCharacter.updateStats_Sleeping` is an empty stub, so all of this is a player's alone; the stub is [character-stats.md](../facts/character-stats.md#updaters).
 
 Waking has its own fatigue write.

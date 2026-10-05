@@ -142,6 +142,8 @@ The claims tools keep the register `docs/reference/claims.tsv` and the pages tha
 - `kahlua_lint.py`, the Kahlua dialect lint, blanks comments and strings and then reports one finding per `goto` or label, integer conversion inside `string.format`, `#` or `pairs` over a call result, and `loadstring`, run over the mod and the experiment mods and exiting `1` on any finding.
 - `hotpath_lint.py`, the fast-path lint, reads each `-- @fastpath` region and reports an allocation, a concatenation, a protected call beyond the one `-- @rimguard` line, a string, table or exponential call, a loop, and a method call on a receiver outside the file's `-- @hoisted` list, and on a `NR_Kernel*.lua` file also reports any function that is not a field of the kernel table, any Java-side global it names, and any one-line form (code after `then`, `else`, `do`, `repeat` or a function header, or an `X and Y or Z` value pick) that the line-granular coverage gate could not see into.
 
+The kernel test harness is not a tool under `tools/` but is gated beside them: `testing/tests/kernel/` loads the mod's pure `NR_Kernel*.lua` files into a Lua 5.1 state through `lupa` 2.8, runs each kernel function against hand arithmetic, and ends in `test_zz_coverage.py`, which fails the run when any executable line of a kernel file went unvisited; the gate counts lines, which is why `hotpath_lint.py` forbids a one-line branch in a kernel file, and it runs inside `python -m pytest tools/tests testing/tests -q`.
+
 ### The register grammar
 
 - A register row is one tab-separated line whose columns are, in order, `id`, `claim`, `grade`, `pointer`, `bound`, `status`, `successor`, `kind`, `source` and `owner`.

@@ -39,7 +39,8 @@ testing/profiles/          the test profiles: fixture, mods, sandbox, verify pro
 testing/fixtures/          the server fixture
 testing/experiments/       the experiment drivers and the experiment mods
 testing/artifacts/         the committed run artifacts
-testing/tests/             the harness tests
+testing/tests/             the harness tests and the kernel tests (testing/tests/kernel)
+mod/                       the nutrition mod, NutritionRevamp: its version dir and common/ tree
 ```
 
 ## Tags

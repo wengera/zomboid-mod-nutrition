@@ -188,6 +188,10 @@ Vanilla Lua registers handlers on three of the eight: `AutoDrink`, `ContextualAc
 Whether any shipped Lua file names the stat hook at all is [an unverified reading](#open).
 The trigger discards every callback's return value and answers true whenever the callback list is non-empty, so registering any `Hook.CalculateStats` handler suppresses the whole vanilla stat update, whatever the handler does or returns [#2238/C/C-only].
 The hook lookup hands that answer back unchanged, so once one handler is registered a second mod's handler cannot restore the updaters [#2240/C/C-only].
+`calculateStats` fires the hook through `TriggerHook(String, Object)` with the character as the only payload, so a `Hook.CalculateStats` handler receives one argument, the character. [#2794/C/C-only]
+`Hook.CalculateStats.Add` registers only a Lua closure passed as its first argument, so the colon form passes the table and registers nothing, without error. [#2801/C/C-only]
+`Add` does not de-duplicate and `Remove` removes one matching closure per call, so a function added twice runs twice and needs two removes. [#2802/C/C-only]
+`Add` and `Remove` are no-ops while `LuaCompiler.rewriteEvents` is set, which `LuaManager.RunLuaInternal` sets from its flag for the duration of one file run. [#2803/C/C-only]
 The seven updaters that registration skips, and what each does besides writing its stat, are [the character-stat updaters](../facts/character-stats.md#updaters).
 The stat update returns at once for an animal, ahead of the fatigue reset and the hook, so a handler never runs for an animal [#2239/C/C-only].
 A zombie's stat update is an empty method, so a zombie never reaches the hook either [#2241/C/C-only].
