@@ -61,3 +61,13 @@ def test_bench_fast_reuses_the_same_tables(bench_host):
         "function() local NR = NutritionRevamp return NR.bench_fast_input() == NR.bench_fast_input() end"
     )()
     assert same_in is True
+
+
+def test_bench_inputs_name_the_plan3_fields_and_hunger_follows_the_fill(bench_host):
+    NR = bench_host.G.NutritionRevamp
+    inp = NR.bench_fast_input()
+    assert inp["energyState"] == 1 and inp["rmod"] == 1
+    out = NR.bench_fast()
+    h = out["hunger"]
+    assert h == h and abs(h) != float("inf")
+    assert abs(h - (1 - inp["stomachFill"])) < 1e-9
