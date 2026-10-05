@@ -273,3 +273,19 @@ x132e-20261005-063700,phases.A8.bulk,"`nan`, `within false`",The same.,—
 x132e-20261005-063700,snapshots.Q4_post.record.values.admin.stomach.bulk,`nan`,"The mod's NaN landing (the finished item's raw hunger reads NaN after UseAndSync), not a stomach state; the same for every record value from Q4_post on.",cite `snapshots.Q3_post.record.values` for the last finite state
 x132e-20261005-063700,snapshots.Q4_post.stats.server.hunger,`null`,"A non-finite hunger (the harness renders NaN as null), not an absent read; the same for every stats hunger from Q4_post on, both sides.",cite `snapshots.Q3_post.stats.server.hunger`
 x132e-20261005-063700,greps.lua_errors,"server 20, client 20 (saturated)",Vanilla AdvancedAnimator boot noise saturated at the limit.,cite `server_error_count` 0
+x132b-20261005-071013,verdicts.X45a.verdict,`falsified`,The console pattern counted the engine's baseline AdvancedAnimator and IsoPropertyType exception lines the control boot carries too.,cite `verdicts.X45a.observed.markers` and `boots.A.logs.client_luaerr`
+x132b-20261005-071013,summary.verdicts,X45a/X45b-A/X45b `falsified`,X45a as above; X45b falsified on .outermost alone while every composition clause held.,cite `verdicts.X45b.observed.match`
+x132b-20261005-071013,verdicts.X45b-A.verdict,`falsified`,Falsified on the pre-registered .outermost false alone; the probe read outermost in both boots.,cite `verdicts.X45b-A.observed`
+x132b-20261005-071013,verdicts.X45b.verdict,`falsified`,The same.,cite `verdicts.X45b.observed.match`
+x132b-20261005-071013,boots.A.phases.eat.intake.bulk_delta,4.238,"A raw delta over a window of kinetics emptying, not decay-corrected.",—
+x132b-20261005-071013,boots.B.phases.eat.intake.bulk_delta,4.238,The same.,—
+x132b-20261005-071959,verdicts.X45a.verdict,`falsified`,"The baseline exception lines, as in the first co-boot run.",cite `verdicts.X45a.observed.markers`
+x132b-20261005-071959,verdicts.X45b-A.verdict,`falsified`,Falsified on .outermost alone.,cite `verdicts.X45b-A.observed`
+x132b-20261005-071959,summary.verdicts,X45a/X45b-A `falsified`,The same two.,cite `verdicts.QC-wrap-file` and `verdicts.X45b-A.observed`
+x132b-20261005-071959,boots.A.phases.eat.intake.bulk_delta,4.253,"A raw delta, not decay-corrected.",—
+x132r-20261005-072441,verdicts.X34-asleep.verdict,`unmeasured`,"The 62 s window outran the 60 s hold by two reads, which read awake after the deadline; the hold held at every in-window read.",cite `boots.A.pairs` and `boots.B.pairs` (window W4)
+x132r-20261005-072441,summary.verdicts,X34-asleep `unmeasured`,The same.,cite `boots.A.pairs` and `boots.B.pairs`
+x132r-20261005-072441,verdicts.X34-asleep.observed.per_boot.A.thirst,0.00809 per game-hour,"The fit includes two awake reads after the hold ended; the same for every per_boot slope, held and thirst_vs_0477, and for thirst_band and fatigue_band.",refit over the in-hold W4 reads of `boots.*.pairs`
+x132r-20261005-072441,verdicts.X34-asleep.observed.per_boot.B.thirst,0.00821 per game-hour,The same.,the same
+x132r-20261005-072441,verdicts.X34-asleep.observed.thirst_band,in band,Computed from the contaminated fits.,the same
+x132r-20261005-072441,verdicts.X4-push.observed.nopush_ms_range,53–1133 ms,"A bracket around the command round trip, not an arrival; only the lower bound is compared.",cite `verdicts.X4-push.observed.nopush_lower_min`

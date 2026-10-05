@@ -1,0 +1,3800 @@
+{
+ "run_id": "x132b-20261005-071959",
+ "session": "X45a + X45b: the mod co-booted with QualityCooking (+ ItemQuality, QuestSystem, MoodleFramework) and BeyondTen, the markers read on both sides; one eat.action Base.Apple 1 against TKX_EatProbe's enter/exit/outermost and the mod's intake; boot B the same without the QualityCooking stack (the control)",
+ "user": "admin",
+ "profile": {
+  "A": {
+   "name": "x13-coboot",
+   "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x13-coboot.toml",
+   "fixture": "default",
+   "description": "PZTestKit + NutritionRevamp + TKX_EatProbe + ItemQuality/QuestSystem/QualityCooking + MoodleFramework + BeyondTen (workshop trees dated 2026-10-05) - X45a, X45b.",
+   "mods": [
+    "PZTestKit",
+    "NutritionRevamp",
+    "ItemQuality",
+    "QuestSystem",
+    "QualityCooking",
+    "MoodleFramework",
+    "BeyondTen",
+    "TKX_EatProbe"
+   ],
+   "sources": {
+    "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+    "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp",
+    "ItemQuality": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3624538051\\mods\\ItemQuality",
+    "QuestSystem": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3624538051\\mods\\QuestSystem",
+    "QualityCooking": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3624538051\\mods\\QualityCooking",
+    "MoodleFramework": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3396446795\\mods\\MoodleFramework",
+    "BeyondTen": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3765241705\\mods\\BeyondTen",
+    "TKX_EatProbe": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_EatProbe"
+   },
+   "skip": [],
+   "workshop_items": {
+    "ItemQuality": "3624538051",
+    "QuestSystem": "3624538051",
+    "QualityCooking": "3624538051",
+    "MoodleFramework": "3396446795",
+    "BeyondTen": "3765241705"
+   },
+   "sandbox": {},
+   "users": [
+    "admin"
+   ]
+  }
+ },
+ "mods": {
+  "A": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "ItemQuality",
+   "QuestSystem",
+   "QualityCooking",
+   "MoodleFramework",
+   "BeyondTen",
+   "TKX_EatProbe"
+  ]
+ },
+ "commit": "a02e8d9",
+ "mod_commit": "9f53324",
+ "mod_dirty": false,
+ "probe_commit": "04cda41",
+ "harness_lua_commit": "7710d2d",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "acceptance_run": "x132e-20261005-063700",
+ "dry_run": false,
+ "constants": {
+  "KCAL_TOL": 3.0,
+  "SHARE_TOL": 0.01,
+  "APPLE_SEED": {
+   "fibre": 4.4,
+   "water": 155.8
+  },
+  "POLL_S": 0.5,
+  "POLL_MAX_S": 20.0,
+  "SETTLE_S": 1.5,
+  "LATE_S": 6.0,
+  "REC_FIELD_COUNT": 10,
+  "MARKERS": [
+   "TK.version",
+   "TKX_EatProbe.version",
+   "NutritionRevamp.version",
+   "QualityCooking",
+   "QualityCooking.Server",
+   "BeyondTen",
+   "BeyondTen.VERSION",
+   "QuestSystem",
+   "QuestSystem.PersistentData",
+   "ItemQuality",
+   "QualityCooking.Server.EventHandlers.Roll",
+   "QualityCooking.Server.EventHandlers.BuffTicker",
+   "QualityCooking.Server.EventHandlers.Roll.ApplyBuff"
+  ],
+  "EXPECT": {
+   "TKX_EatProbe.version": 1,
+   "NutritionRevamp.version": "0.1.0",
+   "BeyondTen.VERSION": "1.3.4"
+  }
+ },
+ "deviations": [
+  "QualityCooking's buff is predicted ABSENT, not present: the RCON Apple carries no QualityCookingTier item-modData key, so eatWithBuff takes its no-points early return and only calls the original (CookingRollHandler.lua:150-155); no harness command stamps an item's modData server-side. QualityCooking's wrap having run is read off .outermost (false in A, true in B) with .enter +1. Decided before the run.",
+  "Prediction for .outermost in boot A is FALSE per the controller's pre-run note (QC loads after the probe); x13-coboot.toml's header comment expects the probe outermost. The read decides. Decided before the run.",
+  "doctor is run before EACH boot (recorded per boot); the top-level doctor_clean is the A boot's."
+ ],
+ "world_changes": {
+  "restored": "each boot restores the golden fixture into its own sub-directory",
+  "left_in_place": [
+   "one RCON-spawned Base.Apple eaten per boot",
+   "healthFromFoodTimer zeroed before the eat",
+   "the record's stomach, pool and lastIntake"
+  ]
+ },
+ "boots": {
+  "A": {
+   "profile": "x13-coboot",
+   "run_subdir": "boot-A",
+   "steps": [
+    {
+     "step": "foodtimer",
+     "cmd": "foodtimer.set",
+     "args": "admin 0",
+     "side": "server",
+     "wall_before": 156.869,
+     "wall_after": 158.88,
+     "took": 2.011,
+     "ack": {
+      "requested": 0,
+      "before": 0,
+      "set": true,
+      "after": 0
+     }
+    },
+    {
+     "step": "eat_action",
+     "cmd": "eat.action",
+     "args": "Base.Apple 1",
+     "side": "client",
+     "wall_before": 159.882,
+     "wall_after": 160.393,
+     "took": 0.511,
+     "ack": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1292222091,
+      "itemBefore": {
+       "fullType": "Base.Apple",
+       "cooked": false,
+       "burnt": false,
+       "rotten": false,
+       "frozen": false,
+       "age": 0,
+       "hungChange": -0.1599999964237213,
+       "baseHunger": -0.1599999964237213,
+       "calories": 95,
+       "carbs": 25.1299991607666,
+       "lipids": 0.3100000023841858,
+       "proteins": 0.4699999988079071,
+       "id": 1292222091,
+       "uses": 0.1599999964237213,
+       "fresh": true,
+       "offAge": 5,
+       "offAgeMax": 8,
+       "freezingTime": 0,
+       "cookingTime": 0,
+       "heat": 1,
+       "minutesToCook": 60,
+       "minutesToBurn": 120,
+       "thirstChange": -0.07000000029802322,
+       "hungerChange": -0.1599999964237213,
+       "isCookable": false,
+       "actualWeight": 0.20000000298023224,
+       "weight": 0.20000000298023224,
+       "customWeight": false,
+       "lastCookMinute": 0
+      },
+      "validStart": true,
+      "maxTime": 232.05863189697266,
+      "moodleFoodEaten": 0,
+      "before": {
+       "calories": 773.0379028320312,
+       "carbs": -5.88122034072876,
+       "lipids": -1.8987953662872314,
+       "proteins": -1.4450995922088623,
+       "weight": 80,
+       "hunger": 0.1395353227853775,
+       "thirst": 0.013355012983083725,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false
+      }
+     }
+    }
+   ],
+   "mods": [
+    "PZTestKit",
+    "NutritionRevamp",
+    "ItemQuality",
+    "QuestSystem",
+    "QualityCooking",
+    "MoodleFramework",
+    "BeyondTen",
+    "TKX_EatProbe"
+   ],
+   "doctor_clean": true,
+   "doctor": [
+    "ok   PZ java processes: none",
+    "ok   ports 27261/27262/27015: free",
+    "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+    "ok   workshop index: 233 mods",
+    "ok   pytest available"
+   ],
+   "build": "42.20.4",
+   "session_ready_wall": 57.427,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TKX_EatProbe.version",
+     "expect": "\"value\": 1",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TKX_EatProbe.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TKX_EatProbe.version",
+     "expect": "\"value\": 1",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TKX_EatProbe.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "markers": {
+    "boot": {
+     "TK.version": {
+      "client": {
+       "side": "client",
+       "name": "TK.version",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TK.version",
+        "wall": 61.201,
+        "wall_done": 61.706
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "TK.version",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TK.version",
+        "wall": 61.706,
+        "wall_done": 62.969
+       }
+      }
+     },
+     "TKX_EatProbe.version": {
+      "client": {
+       "side": "client",
+       "name": "TKX_EatProbe.version",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatProbe.version",
+        "wall": 62.969,
+        "wall_done": 63.222
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "TKX_EatProbe.version",
+       "type": "number",
+       "resolved": true,
+       "value": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "TKX_EatProbe.version",
+        "wall": 63.222,
+        "wall_done": 64.99
+       }
+      }
+     },
+     "NutritionRevamp.version": {
+      "client": {
+       "side": "client",
+       "name": "NutritionRevamp.version",
+       "type": "string",
+       "resolved": true,
+       "value": "0.1.0",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "NutritionRevamp.version",
+        "wall": 64.99,
+        "wall_done": 65.249
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "NutritionRevamp.version",
+       "type": "string",
+       "resolved": true,
+       "value": "0.1.0",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "NutritionRevamp.version",
+        "wall": 65.249,
+        "wall_done": 66.756
+       }
+      }
+     },
+     "QualityCooking": {
+      "client": {
+       "side": "client",
+       "name": "QualityCooking",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 9,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking",
+        "wall": 66.756,
+        "wall_done": 67.269
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QualityCooking",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 6,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking",
+        "wall": 67.269,
+        "wall_done": 69.026
+       }
+      }
+     },
+     "QualityCooking.Server": {
+      "client": {
+       "side": "client",
+       "name": "QualityCooking.Server",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server",
+        "wall": 69.026,
+        "wall_done": 69.28
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QualityCooking.Server",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server",
+        "wall": 69.28,
+        "wall_done": 70.536
+       }
+      }
+     },
+     "BeyondTen": {
+      "client": {
+       "side": "client",
+       "name": "BeyondTen",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 55,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "BeyondTen",
+        "wall": 70.536,
+        "wall_done": 70.792
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "BeyondTen",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 56,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "BeyondTen",
+        "wall": 70.792,
+        "wall_done": 71.047
+       }
+      }
+     },
+     "BeyondTen.VERSION": {
+      "client": {
+       "side": "client",
+       "name": "BeyondTen.VERSION",
+       "type": "string",
+       "resolved": true,
+       "value": "1.3.4",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "BeyondTen.VERSION",
+        "wall": 71.047,
+        "wall_done": 71.303
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "BeyondTen.VERSION",
+       "type": "string",
+       "resolved": true,
+       "value": "1.3.4",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "BeyondTen.VERSION",
+        "wall": 71.303,
+        "wall_done": 73.062
+       }
+      }
+     },
+     "QuestSystem": {
+      "client": {
+       "side": "client",
+       "name": "QuestSystem",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 77,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QuestSystem",
+        "wall": 73.062,
+        "wall_done": 73.316
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QuestSystem",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 37,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QuestSystem",
+        "wall": 73.316,
+        "wall_done": 74.327
+       }
+      }
+     },
+     "QuestSystem.PersistentData": {
+      "client": {
+       "side": "client",
+       "name": "QuestSystem.PersistentData",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 20,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QuestSystem.PersistentData",
+        "wall": 74.327,
+        "wall_done": 74.831
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QuestSystem.PersistentData",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 20,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QuestSystem.PersistentData",
+        "wall": 74.831,
+        "wall_done": 76.838
+       }
+      }
+     },
+     "ItemQuality": {
+      "client": {
+       "side": "client",
+       "name": "ItemQuality",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 12,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "ItemQuality",
+        "wall": 76.838,
+        "wall_done": 77.343
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "ItemQuality",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 10,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "ItemQuality",
+        "wall": 77.343,
+        "wall_done": 77.847
+       }
+      }
+     },
+     "QualityCooking.Server.EventHandlers.Roll": {
+      "client": {
+       "side": "client",
+       "name": "QualityCooking.Server.EventHandlers.Roll",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server.EventHandlers.Roll",
+        "wall": 77.847,
+        "wall_done": 78.358
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QualityCooking.Server.EventHandlers.Roll",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server.EventHandlers.Roll",
+        "wall": 78.358,
+        "wall_done": 78.866
+       }
+      }
+     },
+     "QualityCooking.Server.EventHandlers.BuffTicker": {
+      "client": {
+       "side": "client",
+       "name": "QualityCooking.Server.EventHandlers.BuffTicker",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server.EventHandlers.BuffTicker",
+        "wall": 78.866,
+        "wall_done": 79.125
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QualityCooking.Server.EventHandlers.BuffTicker",
+       "type": "table",
+       "resolved": true,
+       "keyCount": 1,
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server.EventHandlers.BuffTicker",
+        "wall": 79.125,
+        "wall_done": 80.887
+       }
+      }
+     },
+     "QualityCooking.Server.EventHandlers.Roll.ApplyBuff": {
+      "client": {
+       "side": "client",
+       "name": "QualityCooking.Server.EventHandlers.Roll.ApplyBuff",
+       "type": "function",
+       "resolved": true,
+       "value": "function",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server.EventHandlers.Roll.ApplyBuff",
+        "wall": 80.887,
+        "wall_done": 81.143
+       }
+      },
+      "server": {
+       "side": "server",
+       "name": "QualityCooking.Server.EventHandlers.Roll.ApplyBuff",
+       "type": "function",
+       "resolved": true,
+       "value": "function",
+       "_probe": {
+        "cmd": "lua.global",
+        "args": "QualityCooking.Server.EventHandlers.Roll.ApplyBuff",
+        "wall": 81.143,
+        "wall_done": 81.655
+       }
+      }
+     }
+    }
+   },
+   "snapshots": {
+    "pre": {
+     "tag": "pre",
+     "wall_start": 84.96,
+     "stats": {
+      "client": {
+       "calories": 792.2835693359375,
+       "carbs": -1.6867376565933228,
+       "lipids": -0.5445755124092102,
+       "proteins": -0.4144556224346161,
+       "weight": 80,
+       "hunger": 0.0341646783053875,
+       "thirst": 0.003767625894397497,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.6644788047415204e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 0,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 0,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.4494810104370117,
+       "mult": 0.8001263737678528,
+       "wall": 1791199284491,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "",
+        "wall": 84.96,
+        "wall_done": 85.22
+       }
+      },
+      "server": {
+       "calories": 792.2069091796875,
+       "carbs": -1.7034833431243896,
+       "lipids": -0.549981951713562,
+       "proteins": -0.41857025027275085,
+       "weight": 80,
+       "hunger": 0.0341646783053875,
+       "thirst": 0.0038059016223996878,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.6653062630211934e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 0,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 0,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.450139045715332,
+       "mult": 4.779248237609863,
+       "wall": 1791199284677,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "admin",
+        "wall": 85.22,
+        "wall_done": 85.479
+       }
+      }
+     },
+     "nutrition_server": {
+      "calories": 791.8233032226562,
+      "carbs": -1.7872354984283447,
+      "lipids": -0.5770218372344971,
+      "proteins": -0.43914932012557983,
+      "weight": 80,
+      "hunger": 0.039640747010707855,
+      "thirst": 0.00399733567610383,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false,
+      "_probe": {
+       "cmd": "nutrition.get",
+       "args": "admin",
+       "wall": 85.479,
+       "wall_done": 86.992
+      }
+     },
+     "record": {
+      "side": "server",
+      "scope": "global",
+      "arg": "NutritionRevamp.players",
+      "values": {
+       "admin.stomach.bulk": "7.682874029829423",
+       "admin.stomach.buffer.calories": "0",
+       "admin.stomachFill": "0.9603592537286779",
+       "admin.kineticsAge": "2.450139045715332",
+       "admin.pool.calories": "0",
+       "admin.pool.fibre": "0",
+       "admin.pool.water": "0"
+      },
+      "missing": [
+       "admin.lastIntake.share",
+       "admin.lastIntake.frac",
+       "admin.lastIntake.fullType"
+      ],
+      "worldAge": 2.4656591415405273,
+      "keyCount": 1,
+      "keys": [
+       "admin:table"
+      ],
+      "count": 10,
+      "_probe": {
+       "cmd": "witness.moddata",
+       "args": "global:NutritionRevamp.players admin.stomach.bulk admin.stomach.buffer.calories admin.stomachFill admin.kineticsAge admin.lastIntake.share admin.lastIntake.frac admin.lastIntake.fullType admin.pool.calories admin.pool.fibre admin.pool.water",
+       "wall": 86.992,
+       "wall_done": 89.005
+      }
+     },
+     "globals": {
+      "client": {
+       "TKX_EatProbe.enter": {
+        "side": "client",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 89.005,
+         "wall_done": 89.262
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "client",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 89.262,
+         "wall_done": 89.771
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "client",
+        "name": "TKX_EatProbe.outermost",
+        "failedAt": "outermost",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 89.771,
+         "wall_done": 90.283
+        }
+       },
+       "NutritionRevamp.client.mirror.stomachFill": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.stomachFill",
+         "wall": 90.283,
+         "wall_done": 90.791
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_calories": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_calories",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_calories",
+         "wall": 90.791,
+         "wall_done": 91.303
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_fibre": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_fibre",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_fibre",
+         "wall": 91.303,
+         "wall_done": 91.811
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_water": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_water",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_water",
+         "wall": 91.811,
+         "wall_done": 92.32
+        }
+       },
+       "NutritionRevamp.client.received": {
+        "side": "client",
+        "name": "NutritionRevamp.client.received",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.received",
+         "wall": 92.32,
+         "wall_done": 92.828
+        }
+       }
+      },
+      "server": {
+       "TKX_EatProbe.enter": {
+        "side": "server",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 92.828,
+         "wall_done": 94.84
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "server",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 94.84,
+         "wall_done": 96.851
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "server",
+        "name": "TKX_EatProbe.outermost",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 96.851,
+         "wall_done": 98.865
+        }
+       },
+       "NutritionRevamp.server.intake.stats.eats": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.eats",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.eats",
+         "wall": 98.865,
+         "wall_done": 100.379
+        }
+       },
+       "NutritionRevamp.server.intake.stats.landed": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.landed",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.landed",
+         "wall": 100.379,
+         "wall_done": 100.891
+        }
+       },
+       "NutritionRevamp.server.intake.stats.failures": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.failures",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.failures",
+         "wall": 100.891,
+         "wall_done": 102.904
+        }
+       },
+       "NutritionRevamp.server.intake.stats.cancels": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.cancels",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.cancels",
+         "wall": 102.904,
+         "wall_done": 104.161
+        }
+       },
+       "NutritionRevamp.server.intake.stats.passthrough": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.passthrough",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.passthrough",
+         "wall": 104.161,
+         "wall_done": 104.918
+        }
+       },
+       "NutritionRevamp.server.intake.lastError": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.lastError",
+        "failedAt": "lastError",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.lastError",
+         "wall": 104.918,
+         "wall_done": 106.936
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedComplete": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedComplete",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedComplete",
+         "wall": 106.936,
+         "wall_done": 107.946
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedServerStop": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedServerStop",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedServerStop",
+         "wall": 107.946,
+         "wall_done": 108.954
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.share": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+        "failedAt": "lastIntake",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+         "wall": 108.954,
+         "wall_done": 110.967
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.frac": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+        "failedAt": "lastIntake",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+         "wall": 110.967,
+         "wall_done": 111.725
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.stomachFill": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 0.9222886768882372,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+         "wall": 111.725,
+         "wall_done": 112.989
+        }
+       }
+      }
+     },
+     "qc_store": {
+      "client": {
+       "side": "client",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {},
+       "missing": [
+        "players"
+       ],
+       "worldAge": 2.573674201965332,
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 112.989,
+        "wall_done": 113.248
+       }
+      },
+      "server": {
+       "side": "server",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {
+        "players": {
+         "admin": {
+          "username": "admin",
+          "steamId": "admin"
+         }
+        }
+       },
+       "missing": {},
+       "worldAge": 2.5810508728027344,
+       "keyCount": 2,
+       "keys": [
+        "global:table",
+        "players:table"
+       ],
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 113.248,
+        "wall_done": 115.012
+       }
+      }
+     },
+     "item": {
+      "fullType": "Base.Apple",
+      "cooked": false,
+      "burnt": false,
+      "rotten": false,
+      "frozen": false,
+      "age": 0,
+      "hungChange": -0.1599999964237213,
+      "baseHunger": -0.1599999964237213,
+      "calories": 95,
+      "carbs": 25.1299991607666,
+      "lipids": 0.3100000023841858,
+      "proteins": 0.4699999988079071,
+      "id": 1292222091,
+      "uses": 0.1599999964237213,
+      "fresh": true,
+      "offAge": 5,
+      "offAgeMax": 8,
+      "freezingTime": 0,
+      "cookingTime": 0,
+      "heat": 1,
+      "minutesToCook": 60,
+      "minutesToBurn": 120,
+      "thirstChange": -0.07000000029802322,
+      "hungerChange": -0.1599999964237213,
+      "isCookable": false,
+      "actualWeight": 0.20000000298023224,
+      "weight": 0.20000000298023224,
+      "customWeight": false,
+      "lastCookMinute": 0,
+      "serverWorldAge": 2.5837154388427734,
+      "_probe": {
+       "cmd": "item.get",
+       "args": "admin Base.Apple",
+       "wall": 115.012,
+       "wall_done": 115.518
+      }
+     },
+     "wall_end": 115.518
+    },
+    "pre2": {
+     "tag": "pre2",
+     "wall_start": 125.048,
+     "stats": {
+      "client": {
+       "calories": 782.0234985351562,
+       "carbs": -3.923933267593384,
+       "lipids": -1.266870141029358,
+       "proteins": -0.9641664624214172,
+       "weight": 80,
+       "hunger": 0.09361237287521362,
+       "thirst": 0.00888120848685503,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.6882057025213726e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 0,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 0,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.6269912719726562,
+       "mult": 0.7998480200767517,
+       "wall": 1791199324488,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "",
+        "wall": 125.048,
+        "wall_done": 125.304
+       }
+      },
+      "server": {
+       "calories": 781.6123046875,
+       "carbs": -4.013532638549805,
+       "lipids": -1.2957978248596191,
+       "proteins": -0.9861821532249451,
+       "weight": 80,
+       "hunger": 0.09361237287521362,
+       "thirst": 0.009086006321012974,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.6905962183955126e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 0,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 0,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.633474349975586,
+       "mult": 4.803613185882568,
+       "wall": 1791199325980,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "admin",
+        "wall": 125.304,
+        "wall_done": 126.816
+       }
+      }
+     },
+     "nutrition_server": {
+      "calories": 781.047607421875,
+      "carbs": -4.136575698852539,
+      "lipids": -1.3355231285095215,
+      "proteins": -1.0164155960083008,
+      "weight": 80,
+      "hunger": 0.09876300394535065,
+      "thirst": 0.009367248974740505,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false,
+      "_probe": {
+       "cmd": "nutrition.get",
+       "args": "admin",
+       "wall": 126.816,
+       "wall_done": 128.829
+      }
+     },
+     "record": {
+      "side": "server",
+      "scope": "global",
+      "arg": "NutritionRevamp.players",
+      "values": {
+       "admin.stomach.bulk": "7.209895988355751",
+       "admin.stomach.buffer.calories": "0",
+       "admin.stomachFill": "0.9012369985444689",
+       "admin.kineticsAge": "2.633474349975586",
+       "admin.pool.calories": "0",
+       "admin.pool.fibre": "0",
+       "admin.pool.water": "0"
+      },
+      "missing": [
+       "admin.lastIntake.share",
+       "admin.lastIntake.frac",
+       "admin.lastIntake.fullType"
+      ],
+      "worldAge": 2.650341033935547,
+      "keyCount": 1,
+      "keys": [
+       "admin:table"
+      ],
+      "count": 10,
+      "_probe": {
+       "cmd": "witness.moddata",
+       "args": "global:NutritionRevamp.players admin.stomach.bulk admin.stomach.buffer.calories admin.stomachFill admin.kineticsAge admin.lastIntake.share admin.lastIntake.frac admin.lastIntake.fullType admin.pool.calories admin.pool.fibre admin.pool.water",
+       "wall": 128.829,
+       "wall_done": 130.592
+      }
+     },
+     "globals": {
+      "client": {
+       "TKX_EatProbe.enter": {
+        "side": "client",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 130.592,
+         "wall_done": 130.853
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "client",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 130.853,
+         "wall_done": 131.365
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "client",
+        "name": "TKX_EatProbe.outermost",
+        "failedAt": "outermost",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 131.365,
+         "wall_done": 131.874
+        }
+       },
+       "NutritionRevamp.client.mirror.stomachFill": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.stomachFill",
+         "wall": 131.874,
+         "wall_done": 132.382
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_calories": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_calories",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_calories",
+         "wall": 132.382,
+         "wall_done": 132.642
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_fibre": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_fibre",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_fibre",
+         "wall": 132.642,
+         "wall_done": 133.155
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_water": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_water",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_water",
+         "wall": 133.155,
+         "wall_done": 133.664
+        }
+       },
+       "NutritionRevamp.client.received": {
+        "side": "client",
+        "name": "NutritionRevamp.client.received",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.received",
+         "wall": 133.664,
+         "wall_done": 134.17
+        }
+       }
+      },
+      "server": {
+       "TKX_EatProbe.enter": {
+        "side": "server",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 134.17,
+         "wall_done": 134.932
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "server",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 134.932,
+         "wall_done": 136.943
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "server",
+        "name": "TKX_EatProbe.outermost",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 136.943,
+         "wall_done": 137.955
+        }
+       },
+       "NutritionRevamp.server.intake.stats.eats": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.eats",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.eats",
+         "wall": 137.955,
+         "wall_done": 138.968
+        }
+       },
+       "NutritionRevamp.server.intake.stats.landed": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.landed",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.landed",
+         "wall": 138.968,
+         "wall_done": 140.986
+        }
+       },
+       "NutritionRevamp.server.intake.stats.failures": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.failures",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.failures",
+         "wall": 140.986,
+         "wall_done": 141.744
+        }
+       },
+       "NutritionRevamp.server.intake.stats.cancels": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.cancels",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.cancels",
+         "wall": 141.745,
+         "wall_done": 143.004
+        }
+       },
+       "NutritionRevamp.server.intake.stats.passthrough": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.passthrough",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.passthrough",
+         "wall": 143.004,
+         "wall_done": 145.016
+        }
+       },
+       "NutritionRevamp.server.intake.lastError": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.lastError",
+        "failedAt": "lastError",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.lastError",
+         "wall": 145.016,
+         "wall_done": 145.524
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedComplete": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedComplete",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedComplete",
+         "wall": 145.524,
+         "wall_done": 147.037
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedServerStop": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedServerStop",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedServerStop",
+         "wall": 147.037,
+         "wall_done": 149.051
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.share": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+        "failedAt": "lastIntake",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+         "wall": 149.051,
+         "wall_done": 149.307
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.frac": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+        "failedAt": "lastIntake",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+         "wall": 149.307,
+         "wall_done": 151.067
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.stomachFill": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 0.870446812988058,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+         "wall": 151.067,
+         "wall_done": 152.828
+        }
+       }
+      }
+     },
+     "qc_store": {
+      "client": {
+       "side": "client",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {},
+       "missing": [
+        "players"
+       ],
+       "worldAge": 2.751169204711914,
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 152.828,
+        "wall_done": 153.34
+       }
+      },
+      "server": {
+       "side": "server",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {
+        "players": {
+         "admin": {
+          "username": "admin",
+          "steamId": "admin"
+         }
+        }
+       },
+       "missing": {},
+       "worldAge": 2.7586212158203125,
+       "keyCount": 2,
+       "keys": [
+        "global:table",
+        "players:table"
+       ],
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 153.34,
+        "wall_done": 154.85
+       }
+      }
+     },
+     "item": {
+      "fullType": "Base.Apple",
+      "cooked": false,
+      "burnt": false,
+      "rotten": false,
+      "frozen": false,
+      "age": 0,
+      "hungChange": -0.1599999964237213,
+      "baseHunger": -0.1599999964237213,
+      "calories": 95,
+      "carbs": 25.1299991607666,
+      "lipids": 0.3100000023841858,
+      "proteins": 0.4699999988079071,
+      "id": 1292222091,
+      "uses": 0.1599999964237213,
+      "fresh": true,
+      "offAge": 5,
+      "offAgeMax": 8,
+      "freezingTime": 0,
+      "cookingTime": 0,
+      "heat": 1,
+      "minutesToCook": 60,
+      "minutesToBurn": 120,
+      "thirstChange": -0.07000000029802322,
+      "hungerChange": -0.1599999964237213,
+      "isCookable": false,
+      "actualWeight": 0.20000000298023224,
+      "weight": 0.20000000298023224,
+      "customWeight": false,
+      "lastCookMinute": 0,
+      "serverWorldAge": 2.7670555114746094,
+      "_probe": {
+       "cmd": "item.get",
+       "args": "admin Base.Apple",
+       "wall": 154.85,
+       "wall_done": 156.867
+      }
+     },
+     "wall_end": 156.867
+    },
+    "post": {
+     "tag": "post",
+     "wall_start": 168.454,
+     "stats": {
+      "client": {
+       "calories": 865.9822387695312,
+       "carbs": 18.801109313964844,
+       "lipids": -1.7333283424377441,
+       "proteins": -1.0850980281829834,
+       "weight": 80,
+       "hunger": 0,
+       "thirst": 0.0004093374591320753,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.690653880359605e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 2,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 1926.4984130859375,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.8201675415039062,
+       "mult": 0.799881637096405,
+       "wall": 1791199368007,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "",
+        "wall": 168.454,
+        "wall_done": 168.717
+       }
+      },
+      "server": {
+       "calories": 865.7767944335938,
+       "carbs": 18.75635528564453,
+       "lipids": -1.7477785348892212,
+       "proteins": -1.0960956811904907,
+       "weight": 80,
+       "hunger": 0,
+       "thirst": 0.0005116403917782009,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.692691512289457e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 2,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 1888.134765625,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.820789337158203,
+       "mult": 4.7991509437561035,
+       "wall": 1791199368178,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "admin",
+        "wall": 168.717,
+        "wall_done": 168.974
+       }
+      }
+     },
+     "nutrition_server": {
+      "calories": 865.2630615234375,
+      "carbs": 18.644468307495117,
+      "lipids": -1.783900499343872,
+      "proteins": -1.1235871315002441,
+      "weight": 80,
+      "hunger": 0,
+      "thirst": 0.0007673720829188824,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false,
+      "_probe": {
+       "cmd": "nutrition.get",
+       "args": "admin",
+       "wall": 168.974,
+       "wall_done": 170.99
+      }
+     },
+     "record": {
+      "side": "server",
+      "scope": "global",
+      "arg": "NutritionRevamp.players",
+      "values": {
+       "admin.stomach.bulk": "11.46242801547905",
+       "admin.stomach.buffer.calories": "94.58495030830612",
+       "admin.stomachFill": "1",
+       "admin.kineticsAge": "2.8167943954467773",
+       "admin.lastIntake.share": "1",
+       "admin.lastIntake.frac": "1",
+       "admin.lastIntake.fullType": "Base.Apple",
+       "admin.pool.calories": "0.41504969169387396",
+       "admin.pool.fibre": "0.019223353711935558",
+       "admin.pool.water": "0.6806814791635363"
+      },
+      "missing": {},
+      "worldAge": 2.833664894104004,
+      "keyCount": 1,
+      "keys": [
+       "admin:table"
+      ],
+      "count": 10,
+      "_probe": {
+       "cmd": "witness.moddata",
+       "args": "global:NutritionRevamp.players admin.stomach.bulk admin.stomach.buffer.calories admin.stomachFill admin.kineticsAge admin.lastIntake.share admin.lastIntake.frac admin.lastIntake.fullType admin.pool.calories admin.pool.fibre admin.pool.water",
+       "wall": 170.99,
+       "wall_done": 171.751
+      }
+     },
+     "globals": {
+      "client": {
+       "TKX_EatProbe.enter": {
+        "side": "client",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 171.751,
+         "wall_done": 172.264
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "client",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 172.264,
+         "wall_done": 172.776
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "client",
+        "name": "TKX_EatProbe.outermost",
+        "failedAt": "outermost",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 172.776,
+         "wall_done": 173.288
+        }
+       },
+       "NutritionRevamp.client.mirror.stomachFill": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.stomachFill",
+         "wall": 173.288,
+         "wall_done": 173.795
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_calories": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_calories",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_calories",
+         "wall": 173.795,
+         "wall_done": 174.306
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_fibre": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_fibre",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_fibre",
+         "wall": 174.306,
+         "wall_done": 174.819
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_water": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_water",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_water",
+         "wall": 174.819,
+         "wall_done": 175.329
+        }
+       },
+       "NutritionRevamp.client.received": {
+        "side": "client",
+        "name": "NutritionRevamp.client.received",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.received",
+         "wall": 175.329,
+         "wall_done": 175.841
+        }
+       }
+      },
+      "server": {
+       "TKX_EatProbe.enter": {
+        "side": "server",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 175.841,
+         "wall_done": 176.854
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "server",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 176.854,
+         "wall_done": 178.866
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "server",
+        "name": "TKX_EatProbe.outermost",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 178.866,
+         "wall_done": 179.378
+        }
+       },
+       "NutritionRevamp.server.intake.stats.eats": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.eats",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.eats",
+         "wall": 179.378,
+         "wall_done": 180.887
+        }
+       },
+       "NutritionRevamp.server.intake.stats.landed": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.landed",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.landed",
+         "wall": 180.887,
+         "wall_done": 182.898
+        }
+       },
+       "NutritionRevamp.server.intake.stats.failures": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.failures",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.failures",
+         "wall": 182.898,
+         "wall_done": 183.157
+        }
+       },
+       "NutritionRevamp.server.intake.stats.cancels": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.cancels",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.cancels",
+         "wall": 183.157,
+         "wall_done": 184.919
+        }
+       },
+       "NutritionRevamp.server.intake.stats.passthrough": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.passthrough",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.passthrough",
+         "wall": 184.919,
+         "wall_done": 186.929
+        }
+       },
+       "NutritionRevamp.server.intake.lastError": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.lastError",
+        "failedAt": "lastError",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.lastError",
+         "wall": 186.929,
+         "wall_done": 188.941
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedComplete": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedComplete",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedComplete",
+         "wall": 188.941,
+         "wall_done": 190.453
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedServerStop": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedServerStop",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedServerStop",
+         "wall": 190.453,
+         "wall_done": 190.959
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.share": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+         "wall": 190.959,
+         "wall_done": 192.973
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.frac": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+         "wall": 192.973,
+         "wall_done": 194.231
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.stomachFill": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+         "wall": 194.231,
+         "wall_done": 194.992
+        }
+       }
+      }
+     },
+     "qc_store": {
+      "client": {
+       "side": "client",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {},
+       "missing": [
+        "players"
+       ],
+       "worldAge": 2.9380340576171875,
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 194.992,
+        "wall_done": 195.249
+       }
+      },
+      "server": {
+       "side": "server",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {
+        "players": {
+         "admin": {
+          "username": "admin",
+          "steamId": "admin"
+         }
+        }
+       },
+       "missing": {},
+       "worldAge": 2.9450817108154297,
+       "keyCount": 2,
+       "keys": [
+        "global:table",
+        "players:table"
+       ],
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 195.249,
+        "wall_done": 197.011
+       }
+      }
+     },
+     "item": "no item Base.Apple in admin's inventory",
+     "wall_end": 199.027
+    },
+    "late": {
+     "tag": "late",
+     "wall_start": 205.031,
+     "stats": {
+      "client": {
+       "calories": 856.4818725585938,
+       "carbs": 16.73150634765625,
+       "lipids": -2.4015135765075684,
+       "proteins": -1.5936298370361328,
+       "weight": 80,
+       "hunger": 0,
+       "thirst": 0.005139858461916447,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.689487908151932e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 1,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 152.5526885986328,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.982487678527832,
+       "mult": 0.8000063896179199,
+       "wall": 1791199404573,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "",
+        "wall": 205.031,
+        "wall_done": 205.288
+       }
+      },
+      "server": {
+       "calories": 856.3533325195312,
+       "carbs": 16.70350456237793,
+       "lipids": -2.4105539321899414,
+       "proteins": -1.6005102396011353,
+       "weight": 80,
+       "hunger": 0,
+       "thirst": 0.005203863140195608,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false,
+       "endurance": 1,
+       "fatigue": 1.6874468201422133e-05,
+       "moodles": {
+        "hungry": 0,
+        "thirst": 0,
+        "foodEaten": 1,
+        "heavyLoad": 0,
+        "endurance": 0
+       },
+       "traits": {
+        "obese": false,
+        "overweight": false,
+        "underweight": false,
+        "veryUnderweight": false,
+        "emaciated": false,
+        "HeartyAppetite": false,
+        "LightEater": false,
+        "HighThirst": false,
+        "LowThirst": false
+       },
+       "traitRoute": "getKnownTraits",
+       "traitList": {},
+       "maxWeight": 12,
+       "foodTimer": 128.55091857910156,
+       "standardFoodTime": 1600,
+       "asleep": false,
+       "running": false,
+       "sprinting": false,
+       "moving": false,
+       "worldAge": 2.9837141036987305,
+       "mult": 4.793666362762451,
+       "wall": 1791199404876,
+       "_probe": {
+        "cmd": "stats.get",
+        "args": "admin",
+        "wall": 205.288,
+        "wall_done": 205.547
+       }
+      }
+     },
+     "nutrition_server": {
+      "calories": 856.0193481445312,
+      "carbs": 16.630748748779297,
+      "lipids": -2.434044122695923,
+      "proteins": -1.6183881759643555,
+      "weight": 80,
+      "hunger": 0,
+      "thirst": 0.005370168015360832,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false,
+      "_probe": {
+       "cmd": "nutrition.get",
+       "args": "admin",
+       "wall": 205.547,
+       "wall_done": 207.06
+      }
+     },
+     "record": {
+      "side": "server",
+      "scope": "global",
+      "arg": "NutritionRevamp.players",
+      "values": {
+       "admin.stomach.bulk": "10.961203281204849",
+       "admin.stomach.buffer.calories": "90.44897523211823",
+       "admin.stomachFill": "1",
+       "admin.kineticsAge": "2.9837141036987305",
+       "admin.lastIntake.share": "1",
+       "admin.lastIntake.frac": "1",
+       "admin.lastIntake.fullType": "Base.Apple",
+       "admin.pool.calories": "4.55102476788177",
+       "admin.pool.fibre": "0.21078430032733828",
+       "admin.pool.water": "7.463680452499842"
+      },
+      "missing": {},
+      "worldAge": 2.9983692169189453,
+      "keyCount": 1,
+      "keys": [
+       "admin:table"
+      ],
+      "count": 10,
+      "_probe": {
+       "cmd": "witness.moddata",
+       "args": "global:NutritionRevamp.players admin.stomach.bulk admin.stomach.buffer.calories admin.stomachFill admin.kineticsAge admin.lastIntake.share admin.lastIntake.frac admin.lastIntake.fullType admin.pool.calories admin.pool.fibre admin.pool.water",
+       "wall": 207.06,
+       "wall_done": 209.071
+      }
+     },
+     "globals": {
+      "client": {
+       "TKX_EatProbe.enter": {
+        "side": "client",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 209.071,
+         "wall_done": 209.328
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "client",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 209.328,
+         "wall_done": 209.836
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "client",
+        "name": "TKX_EatProbe.outermost",
+        "failedAt": "outermost",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 209.836,
+         "wall_done": 210.343
+        }
+       },
+       "NutritionRevamp.client.mirror.stomachFill": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.stomachFill",
+         "wall": 210.343,
+         "wall_done": 210.851
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_calories": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_calories",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_calories",
+         "wall": 210.851,
+         "wall_done": 211.358
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_fibre": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_fibre",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_fibre",
+         "wall": 211.358,
+         "wall_done": 211.864
+        }
+       },
+       "NutritionRevamp.client.mirror.pool_water": {
+        "side": "client",
+        "name": "NutritionRevamp.client.mirror.pool_water",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.mirror.pool_water",
+         "wall": 211.864,
+         "wall_done": 212.37
+        }
+       },
+       "NutritionRevamp.client.received": {
+        "side": "client",
+        "name": "NutritionRevamp.client.received",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.client.received",
+         "wall": 212.37,
+         "wall_done": 212.878
+        }
+       }
+      },
+      "server": {
+       "TKX_EatProbe.enter": {
+        "side": "server",
+        "name": "TKX_EatProbe.enter",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.enter",
+         "wall": 212.878,
+         "wall_done": 213.135
+        }
+       },
+       "TKX_EatProbe.exit": {
+        "side": "server",
+        "name": "TKX_EatProbe.exit",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.exit",
+         "wall": 213.135,
+         "wall_done": 214.896
+        }
+       },
+       "TKX_EatProbe.outermost": {
+        "side": "server",
+        "name": "TKX_EatProbe.outermost",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "TKX_EatProbe.outermost",
+         "wall": 214.896,
+         "wall_done": 216.907
+        }
+       },
+       "NutritionRevamp.server.intake.stats.eats": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.eats",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.eats",
+         "wall": 216.907,
+         "wall_done": 218.922
+        }
+       },
+       "NutritionRevamp.server.intake.stats.landed": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.landed",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.landed",
+         "wall": 218.922,
+         "wall_done": 220.687
+        }
+       },
+       "NutritionRevamp.server.intake.stats.failures": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.failures",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.failures",
+         "wall": 220.687,
+         "wall_done": 220.944
+        }
+       },
+       "NutritionRevamp.server.intake.stats.cancels": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.cancels",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.cancels",
+         "wall": 220.944,
+         "wall_done": 222.959
+        }
+       },
+       "NutritionRevamp.server.intake.stats.passthrough": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.stats.passthrough",
+        "type": "number",
+        "resolved": true,
+        "value": 0,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.stats.passthrough",
+         "wall": 222.959,
+         "wall_done": 224.474
+        }
+       },
+       "NutritionRevamp.server.intake.lastError": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.lastError",
+        "failedAt": "lastError",
+        "resolved": false,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.lastError",
+         "wall": 224.474,
+         "wall_done": 224.984
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedComplete": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedComplete",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedComplete",
+         "wall": 224.984,
+         "wall_done": 227.001
+        }
+       },
+       "NutritionRevamp.server.intake.wrappedServerStop": {
+        "side": "server",
+        "name": "NutritionRevamp.server.intake.wrappedServerStop",
+        "type": "boolean",
+        "resolved": true,
+        "value": true,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.intake.wrappedServerStop",
+         "wall": 227.001,
+         "wall_done": 228.262
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.share": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.share",
+         "wall": 228.262,
+         "wall_done": 229.021
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.lastIntake.frac": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.lastIntake.frac",
+         "wall": 229.021,
+         "wall_done": 231.032
+        }
+       },
+       "NutritionRevamp.server.store.records.admin.stomachFill": {
+        "side": "server",
+        "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+        "type": "number",
+        "resolved": true,
+        "value": 1,
+        "_probe": {
+         "cmd": "lua.global",
+         "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+         "wall": 231.032,
+         "wall_done": 231.789
+        }
+       }
+      }
+     },
+     "qc_store": {
+      "client": {
+       "side": "client",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {},
+       "missing": [
+        "players"
+       ],
+       "worldAge": 3.1022682189941406,
+       "keyCount": 0,
+       "keys": {},
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 231.789,
+        "wall_done": 232.299
+       }
+      },
+      "server": {
+       "side": "server",
+       "scope": "global",
+       "arg": "QuestSystemPersistent",
+       "values": {
+        "players": {
+         "admin": {
+          "username": "admin",
+          "steamId": "admin"
+         }
+        }
+       },
+       "missing": {},
+       "worldAge": 3.1048851013183594,
+       "keyCount": 2,
+       "keys": [
+        "global:table",
+        "players:table"
+       ],
+       "count": 1,
+       "_probe": {
+        "cmd": "witness.moddata",
+        "args": "global:QuestSystemPersistent players",
+        "wall": 232.299,
+        "wall_done": 233.056
+       }
+      }
+     },
+     "item": "no item Base.Apple in admin's inventory",
+     "wall_end": 235.579
+    }
+   },
+   "spawns": [
+    {
+     "type": "Base.Apple",
+     "why": "X45b: the one eat; RCON first -- eat.action's findOrSpawn would client-spawn one (#0124)",
+     "rcon_ok": true,
+     "rcon_reply": "",
+     "wall_rcon": 81.685,
+     "attempts": [
+      {
+       "attempt": 1,
+       "wall": 84.694,
+       "resolved": "admin/Base.Apple #1292222091",
+       "id": 1292222091
+      }
+     ],
+     "resolved": true,
+     "server_item_get": {
+      "fullType": "Base.Apple",
+      "cooked": false,
+      "burnt": false,
+      "rotten": false,
+      "frozen": false,
+      "age": 0,
+      "hungChange": -0.1599999964237213,
+      "baseHunger": -0.1599999964237213,
+      "calories": 95,
+      "carbs": 25.1299991607666,
+      "lipids": 0.3100000023841858,
+      "proteins": 0.4699999988079071,
+      "id": 1292222091,
+      "uses": 0.1599999964237213,
+      "fresh": true,
+      "offAge": 5,
+      "offAgeMax": 8,
+      "freezingTime": 0,
+      "cookingTime": 0,
+      "heat": 1,
+      "minutesToCook": 60,
+      "minutesToBurn": 120,
+      "thirstChange": -0.07000000029802322,
+      "hungerChange": -0.1599999964237213,
+      "isCookable": false,
+      "actualWeight": 0.20000000298023224,
+      "weight": 0.20000000298023224,
+      "customWeight": false,
+      "lastCookMinute": 0,
+      "serverWorldAge": 2.447920799255371,
+      "_probe": {
+       "cmd": "item.get",
+       "args": "admin Base.Apple",
+       "wall": 84.694,
+       "wall_done": 84.955
+      }
+     }
+    }
+   ],
+   "field_count_failures": [],
+   "phases": {
+    "markers": {
+     "TK.version": {
+      "client": {
+       "resolved": true,
+       "type": "number",
+       "value": 1,
+       "keyCount": null,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "number",
+       "value": 1,
+       "keyCount": null,
+       "failedAt": null
+      }
+     },
+     "TKX_EatProbe.version": {
+      "client": {
+       "resolved": true,
+       "type": "number",
+       "value": 1,
+       "keyCount": null,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "number",
+       "value": 1,
+       "keyCount": null,
+       "failedAt": null
+      }
+     },
+     "NutritionRevamp.version": {
+      "client": {
+       "resolved": true,
+       "type": "string",
+       "value": "0.1.0",
+       "keyCount": null,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "string",
+       "value": "0.1.0",
+       "keyCount": null,
+       "failedAt": null
+      }
+     },
+     "QualityCooking": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 9,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 6,
+       "failedAt": null
+      }
+     },
+     "QualityCooking.Server": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 1,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 1,
+       "failedAt": null
+      }
+     },
+     "BeyondTen": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 55,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 56,
+       "failedAt": null
+      }
+     },
+     "BeyondTen.VERSION": {
+      "client": {
+       "resolved": true,
+       "type": "string",
+       "value": "1.3.4",
+       "keyCount": null,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "string",
+       "value": "1.3.4",
+       "keyCount": null,
+       "failedAt": null
+      }
+     },
+     "QuestSystem": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 77,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 37,
+       "failedAt": null
+      }
+     },
+     "QuestSystem.PersistentData": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 20,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 20,
+       "failedAt": null
+      }
+     },
+     "ItemQuality": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 12,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 10,
+       "failedAt": null
+      }
+     },
+     "QualityCooking.Server.EventHandlers.Roll": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 1,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 1,
+       "failedAt": null
+      }
+     },
+     "QualityCooking.Server.EventHandlers.BuffTicker": {
+      "client": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 1,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "table",
+       "value": null,
+       "keyCount": 1,
+       "failedAt": null
+      }
+     },
+     "QualityCooking.Server.EventHandlers.Roll.ApplyBuff": {
+      "client": {
+       "resolved": true,
+       "type": "function",
+       "value": "function",
+       "keyCount": null,
+       "failedAt": null
+      },
+      "server": {
+       "resolved": true,
+       "type": "function",
+       "value": "function",
+       "keyCount": null,
+       "failedAt": null
+      }
+     }
+    },
+    "apple": {
+     "resolved": true,
+     "calories": 95.0,
+     "hungChange": -0.1599999964237213,
+     "baseHunger": -0.1599999964237213,
+     "id": 1292222091,
+     "pred_kcal": 95.0,
+     "pred_bulk": 4.708
+    },
+    "drift": {
+     "first": {
+      "calories": 784.130126953125,
+      "carbs": -3.4649465084075928,
+      "lipids": -1.1186827421188354,
+      "proteins": -0.851387083530426,
+      "weight": 80,
+      "hunger": 0.0830862745642662,
+      "thirst": 0.007832099683582783,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false,
+      "_probe": {
+       "cmd": "nutrition.get",
+       "args": "admin",
+       "wall": 115.522,
+       "wall_done": 117.035
+      }
+     },
+     "second": {
+      "calories": 782.0748901367188,
+      "carbs": -3.9127330780029297,
+      "lipids": -1.2632540464401245,
+      "proteins": -0.9614143967628479,
+      "weight": 80,
+      "hunger": 0.09361237287521362,
+      "thirst": 0.008855608291924,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false,
+      "_probe": {
+       "cmd": "nutrition.get",
+       "args": "admin",
+       "wall": 123.035,
+       "wall_done": 125.048
+      }
+     },
+     "kcal_per_s": -0.25648780936057014
+    },
+    "eat": {
+     "foodtimer": {
+      "requested": 0,
+      "before": 0,
+      "set": true,
+      "after": 0
+     },
+     "ack": {
+      "queued": true,
+      "fraction": 1,
+      "spawned": "found",
+      "itemId": 1292222091,
+      "itemBefore": {
+       "fullType": "Base.Apple",
+       "cooked": false,
+       "burnt": false,
+       "rotten": false,
+       "frozen": false,
+       "age": 0,
+       "hungChange": -0.1599999964237213,
+       "baseHunger": -0.1599999964237213,
+       "calories": 95,
+       "carbs": 25.1299991607666,
+       "lipids": 0.3100000023841858,
+       "proteins": 0.4699999988079071,
+       "id": 1292222091,
+       "uses": 0.1599999964237213,
+       "fresh": true,
+       "offAge": 5,
+       "offAgeMax": 8,
+       "freezingTime": 0,
+       "cookingTime": 0,
+       "heat": 1,
+       "minutesToCook": 60,
+       "minutesToBurn": 120,
+       "thirstChange": -0.07000000029802322,
+       "hungerChange": -0.1599999964237213,
+       "isCookable": false,
+       "actualWeight": 0.20000000298023224,
+       "weight": 0.20000000298023224,
+       "customWeight": false,
+       "lastCookMinute": 0
+      },
+      "validStart": true,
+      "maxTime": 232.05863189697266,
+      "moodleFoodEaten": 0,
+      "before": {
+       "calories": 773.0379028320312,
+       "carbs": -5.88122034072876,
+       "lipids": -1.8987953662872314,
+       "proteins": -1.4450995922088623,
+       "weight": 80,
+       "hunger": 0.1395353227853775,
+       "thirst": 0.013355012983083725,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false
+      }
+     },
+     "queued_wall": 160.393,
+     "polls": [
+      {
+       "wall": 162.921,
+       "since_queue": 2.528,
+       "server_calories": 772.3185424804688,
+       "client_calories": 772.7810668945312,
+       "server_hunger": 0.14442019164562225,
+       "client_hunger": 0.14442019164562225,
+       "server_delta_corr": 0.35453971768531467
+      },
+      {
+       "wall": 164.435,
+       "since_queue": 4.042,
+       "server_calories": 771.958740234375,
+       "client_calories": 772.26708984375,
+       "server_hunger": 0.14442019164562225,
+       "client_hunger": 0.14442019164562225,
+       "server_delta_corr": 0.38306001496347086
+      },
+      {
+       "wall": 166.954,
+       "since_queue": 6.561,
+       "server_calories": 866.2905883789062,
+       "client_calories": 866.7531127929688,
+       "server_hunger": 0.14940917491912842,
+       "client_hunger": 0.14940917491912842,
+       "server_delta_corr": 95.361000951274
+      }
+     ],
+     "kcal": {
+      "server_before": 781.6123046875,
+      "server_post": 865.7767944335938,
+      "server_late": 856.3533325195312,
+      "raw_post": 84.16448974609375,
+      "raw_late": 74.74102783203125,
+      "corrected_post": 95.29939501386418,
+      "corrected_late": 95.2559487759271,
+      "client_raw_post": 83.958740234375,
+      "pred": 95.0
+     },
+     "probe": {
+      "enter_delta": 1.0,
+      "exit_delta": 1.0,
+      "enter_after": 1.0,
+      "exit_after": 1.0,
+      "outermost": true,
+      "outermost_pre": true,
+      "client_enter_after": 0.0,
+      "client_exit_after": 0.0,
+      "client_outermost": null,
+      "late_enter_delta": 1.0
+     },
+     "intake": {
+      "eats_delta": 1.0,
+      "landed_delta": 1.0,
+      "failures_delta": 0.0,
+      "cancels_delta": 0.0,
+      "eats_late_delta": 1.0,
+      "lastError": null,
+      "wrappedComplete": true,
+      "wrappedServerStop": true,
+      "share": 1.0,
+      "frac": 1.0,
+      "share_md": 1.0,
+      "fullType_md": "Base.Apple",
+      "bulk_before": 7.209895988355751,
+      "bulk_after": 11.46242801547905,
+      "buffer_kcal_before": 0.0,
+      "buffer_kcal_after": 94.58495030830612,
+      "stomachFill_before": 0.9012369985444689,
+      "stomachFill_after": 1.0,
+      "bulk_delta": 4.252532027123299,
+      "buffer_kcal_delta": 94.58495030830612
+     },
+     "finite": {
+      "post": {
+       "record": {
+        "admin.stomach.bulk": "finite",
+        "admin.stomach.buffer.calories": "finite",
+        "admin.stomachFill": "finite",
+        "admin.kineticsAge": "finite",
+        "admin.lastIntake.share": "finite",
+        "admin.lastIntake.frac": "finite",
+        "admin.pool.calories": "finite",
+        "admin.pool.fibre": "finite",
+        "admin.pool.water": "finite"
+       },
+       "server_globals": {
+        "NutritionRevamp.server.intake.stats.eats": "finite",
+        "NutritionRevamp.server.intake.stats.landed": "finite",
+        "NutritionRevamp.server.intake.stats.failures": "finite",
+        "NutritionRevamp.server.store.records.admin.lastIntake.share": "finite",
+        "NutritionRevamp.server.store.records.admin.lastIntake.frac": "finite",
+        "NutritionRevamp.server.store.records.admin.stomachFill": "finite"
+       },
+       "client_mirror": {
+        "NutritionRevamp.client.mirror.stomachFill": "finite",
+        "NutritionRevamp.client.mirror.pool_calories": "finite",
+        "NutritionRevamp.client.mirror.pool_fibre": "finite",
+        "NutritionRevamp.client.mirror.pool_water": "finite"
+       },
+       "hunger": {
+        "client": "finite",
+        "server": "finite"
+       },
+       "non_finite": [],
+       "hunger_not_finite": [],
+       "blocking": false
+      },
+      "late": {
+       "record": {
+        "admin.stomach.bulk": "finite",
+        "admin.stomach.buffer.calories": "finite",
+        "admin.stomachFill": "finite",
+        "admin.kineticsAge": "finite",
+        "admin.lastIntake.share": "finite",
+        "admin.lastIntake.frac": "finite",
+        "admin.pool.calories": "finite",
+        "admin.pool.fibre": "finite",
+        "admin.pool.water": "finite"
+       },
+       "server_globals": {
+        "NutritionRevamp.server.intake.stats.eats": "finite",
+        "NutritionRevamp.server.intake.stats.landed": "finite",
+        "NutritionRevamp.server.intake.stats.failures": "finite",
+        "NutritionRevamp.server.store.records.admin.lastIntake.share": "finite",
+        "NutritionRevamp.server.store.records.admin.lastIntake.frac": "finite",
+        "NutritionRevamp.server.store.records.admin.stomachFill": "finite"
+       },
+       "client_mirror": {
+        "NutritionRevamp.client.mirror.stomachFill": "finite",
+        "NutritionRevamp.client.mirror.pool_calories": "finite",
+        "NutritionRevamp.client.mirror.pool_fibre": "finite",
+        "NutritionRevamp.client.mirror.pool_water": "finite"
+       },
+       "hunger": {
+        "client": "finite",
+        "server": "finite"
+       },
+       "non_finite": [],
+       "hunger_not_finite": [],
+       "blocking": false
+      },
+      "pre": {
+       "record": {
+        "admin.stomach.bulk": "finite",
+        "admin.stomach.buffer.calories": "finite",
+        "admin.stomachFill": "finite",
+        "admin.kineticsAge": "finite",
+        "admin.lastIntake.share": "absent",
+        "admin.lastIntake.frac": "absent",
+        "admin.pool.calories": "finite",
+        "admin.pool.fibre": "finite",
+        "admin.pool.water": "finite"
+       },
+       "server_globals": {
+        "NutritionRevamp.server.intake.stats.eats": "finite",
+        "NutritionRevamp.server.intake.stats.landed": "finite",
+        "NutritionRevamp.server.intake.stats.failures": "finite",
+        "NutritionRevamp.server.store.records.admin.lastIntake.share": "absent",
+        "NutritionRevamp.server.store.records.admin.lastIntake.frac": "absent",
+        "NutritionRevamp.server.store.records.admin.stomachFill": "finite"
+       },
+       "client_mirror": {
+        "NutritionRevamp.client.mirror.stomachFill": "finite",
+        "NutritionRevamp.client.mirror.pool_calories": "finite",
+        "NutritionRevamp.client.mirror.pool_fibre": "finite",
+        "NutritionRevamp.client.mirror.pool_water": "finite"
+       },
+       "hunger": {
+        "client": "finite",
+        "server": "finite"
+       },
+       "non_finite": [],
+       "hunger_not_finite": [],
+       "blocking": false
+      }
+     },
+     "hunger": {
+      "server_post": 0,
+      "client_post": 0,
+      "stomachFill_post": 1.0
+     },
+     "qc_store": {
+      "pre": {
+       "client": null,
+       "server": {
+        "admin": {
+         "username": "admin",
+         "steamId": "admin"
+        }
+       }
+      },
+      "post": {
+       "client": null,
+       "server": {
+        "admin": {
+         "username": "admin",
+         "steamId": "admin"
+        }
+       }
+      },
+      "late": {
+       "client": null,
+       "server": {
+        "admin": {
+         "username": "admin",
+         "steamId": "admin"
+        }
+       }
+      }
+     },
+     "qc_store_keys": {
+      "pre": {
+       "client": {},
+       "server": [
+        "global:table",
+        "players:table"
+       ]
+      },
+      "post": {
+       "client": {},
+       "server": [
+        "global:table",
+        "players:table"
+       ]
+      }
+     },
+     "qc_buff_post": null,
+     "item_after": "no item Base.Apple in admin's inventory"
+    }
+   },
+   "wall_end_body": 235.582,
+   "client_lua_error": true,
+   "client_seen": [
+    "in_game",
+    "lua_error",
+    "ready"
+   ],
+   "logs": {
+    "server_luaerr": [
+     "ERROR: General      f:0 st:1,541,959,408> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,408> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,409> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,409> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,410> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,411> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,411> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,412> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,412> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,412> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,413> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,413> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,414> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,414> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,418> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,419> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,419> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,419> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,420> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,420> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,420> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,421> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,421> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,421> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,422> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,422> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,422> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,423> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,423> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,424> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,541,959,424> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,541,962,142> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,541,962,143> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,541,962,143> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,541,962,143> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,541,962,144> IsoPropertyType.lookupOrDefaultStr> Exception thrown"
+    ],
+    "server_modlines": [
+     "LOG  : Mod          f:0 st:1,541,951,326> loading ItemQuality",
+     "LOG  : Mod          f:0 st:1,541,951,327> mod \"ItemQuality\" overrides",
+     "LOG  : Mod          f:0 st:1,541,951,328> mod \"ItemQuality\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0 st:1,541,951,328> mod \"ItemQuality\" overrides media/lua/shared/translate/en/tooltip.json",
+     "LOG  : Mod          f:0 st:1,541,951,328> mod \"ItemQuality\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,328> mod \"ItemQuality\" overrides media/lua/shared/translate/es/sandbox.json",
+     "LOG  : Mod          f:0 st:1,541,951,329> mod \"ItemQuality\" overrides media/lua/shared/translate/es/tooltip.json",
+     "LOG  : Mod          f:0 st:1,541,951,329> mod \"ItemQuality\" overrides media/lua/shared/translate/es/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,330> mod \"ItemQuality\" overrides media/sandbox-options.txt",
+     "LOG  : Mod          f:0 st:1,541,951,330> loading QuestSystem",
+     "LOG  : Mod          f:0 st:1,541,951,332> mod \"QuestSystem\" overrides media/tilegeometry.txt",
+     "LOG  : Mod          f:0 st:1,541,951,339> mod \"QuestSystem\" overrides media/animsets/zombie/falldown/default.xml",
+     "LOG  : Mod          f:0 st:1,541,951,342> mod \"QuestSystem\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0 st:1,541,951,342> mod \"QuestSystem\" overrides media/lua/shared/translate/en/tooltip.json",
+     "LOG  : Mod          f:0 st:1,541,951,343> mod \"QuestSystem\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,343> mod \"QuestSystem\" overrides media/lua/shared/translate/es/sandbox.json",
+     "LOG  : Mod          f:0 st:1,541,951,344> mod \"QuestSystem\" overrides media/lua/shared/translate/es/tooltip.json",
+     "LOG  : Mod          f:0 st:1,541,951,344> mod \"QuestSystem\" overrides media/lua/shared/translate/es/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,345> mod \"QuestSystem\" overrides media/sandbox-options.txt",
+     "LOG  : Mod          f:0 st:1,541,951,346> loading MoodleFramework",
+     "LOG  : Mod          f:0 st:1,541,951,348> mod \"MoodleFramework\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,349> mod \"MoodleFramework\" overrides media/lua/client/mf_ismoodle.lua",
+     "LOG  : Mod          f:0 st:1,541,951,349> loading QualityCooking",
+     "LOG  : Mod          f:0 st:1,541,951,349> mod \"QualityCooking\" overrides",
+     "LOG  : Mod          f:0 st:1,541,951,352> mod \"QualityCooking\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0 st:1,541,951,352> mod \"QualityCooking\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,352> mod \"QualityCooking\" overrides media/lua/shared/translate/es/sandbox.json",
+     "LOG  : Mod          f:0 st:1,541,951,352> mod \"QualityCooking\" overrides media/lua/shared/translate/es/ui.json",
+     "LOG  : Mod          f:0 st:1,541,951,352> mod \"QualityCooking\" overrides media/sandbox-options.txt",
+     "LOG  : Mod          f:0 st:1,541,951,353> loading BeyondTen",
+     "LOG  : Mod          f:0 st:1,541,951,353> mod \"BeyondTen\" overrides media/lua/shared/translate/en/ig_ui.json",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\ItemQuality\\common\\media\\AnimSets at WindowsException.translateToIOExcepti",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\ItemQuality\\common\\media\\actiongroups at WindowsException.translateToIOExc",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\ItemQuality\\42\\media\\AnimSets at WindowsException.translateToIOException(n",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\ItemQuality\\42\\media\\actiongroups at WindowsException.translateToIOExcepti",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\QuestSystem\\common\\media\\AnimSets at WindowsException.translateToIOExcepti",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\QuestSystem\\common\\media\\actiongroups at WindowsException.translateToIOExc",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\QuestSystem\\42\\media\\actiongroups at WindowsException.translateToIOExcepti",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\MoodleFramework\\common\\media\\AnimSets at WindowsException.translateToIOExc",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x132b-20261005-071959\\boot-A\\server\\mods\\MoodleFramework\\common\\media\\actiongroups at WindowsException.translateToI"
+    ],
+    "limits": {
+     "luaerr": 40,
+     "modlines": 40,
+     "kick": 20
+    },
+    "client_luaerr": [
+     "WARN : General      f:0> Translator.reportMissingArgumentsFromPastAbuse> Exception thrown java.util.UnknownFormatConversionException: Conversion = 'p' at Formatter$FormatSpecifier.conversion(null:-1).",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "WARN : General      f:0 st:0> Translator.reportMissingArgumentsFromPastAbuse> Exception thrown java.util.UnknownFormatConversionException: Conversion = 'p' at Formatter$FormatSpecifier.conversion(null",
+     "STACK TRACE",
+     "ERROR: General      f:0 st:0> Lua((MOD:Quest System)).load> Exception thrown"
+    ],
+    "client_modlines": [
+     "LOG  : Mod          f:0> loading ItemQuality",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/lua/shared/translate/en/tooltip.json",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/lua/shared/translate/es/sandbox.json",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/lua/shared/translate/es/tooltip.json",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/lua/shared/translate/es/ui.json",
+     "LOG  : Mod          f:0> mod \"ItemQuality\" overrides media/sandbox-options.txt",
+     "LOG  : Mod          f:0> loading QuestSystem",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/tilegeometry.txt",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/animsets/zombie/falldown/default.xml",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/lua/shared/translate/en/tooltip.json",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/lua/shared/translate/es/sandbox.json",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/lua/shared/translate/es/tooltip.json",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/lua/shared/translate/es/ui.json",
+     "LOG  : Mod          f:0> mod \"QuestSystem\" overrides media/sandbox-options.txt",
+     "LOG  : Mod          f:0> loading MoodleFramework",
+     "LOG  : Mod          f:0> mod \"MoodleFramework\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0> mod \"MoodleFramework\" overrides media/lua/client/mf_ismoodle.lua",
+     "LOG  : Mod          f:0> loading QualityCooking",
+     "LOG  : Mod          f:0> mod \"QualityCooking\" overrides",
+     "LOG  : Mod          f:0> mod \"QualityCooking\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0> mod \"QualityCooking\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0> mod \"QualityCooking\" overrides media/lua/shared/translate/es/sandbox.json",
+     "LOG  : Mod          f:0> mod \"QualityCooking\" overrides media/lua/shared/translate/es/ui.json",
+     "LOG  : Mod          f:0> mod \"QualityCooking\" overrides media/sandbox-options.txt",
+     "LOG  : Mod          f:0> loading BeyondTen",
+     "LOG  : Mod          f:0> mod \"BeyondTen\" overrides media/lua/shared/translate/en/ig_ui.json",
+     "LOG  : Lua          f:0> [QuestSystem] Fishing override loaded. isServer=false isClient=false",
+     "LOG  : Lua          f:0> [BeyondTen/B42] shared boot OK v1.3.4",
+     "LOG  : Lua          f:0> [BeyondTen/B42] mastery bonuses installed",
+     "LOG  : Lua          f:0> [BeyondTen/B42] extended mastery bonuses installed",
+     "WARN : General      f:0> Translator.reportMissingArgumentsFromPastAbuse> Exception thrown java.util.UnknownFormatConversionException: Conversion = 'p' at Formatter$FormatSpecifier.conversion(null:-1).",
+     "LOG  : Lua          f:0> [ItemQuality] client scripts loaded (isClient=false isServer=false)",
+     "LOG  : Lua          f:0> [QualityCooking] client scripts loaded (isClient=false isServer=false)",
+     "LOG  : Lua          f:0> [BeyondTen/B42] client boot OK v1.3.4",
+     "LOG  : Lua          f:0> [BeyondTen/B42] 15-level Skills UI patch installed"
+    ],
+    "client_kick": [
+     "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound"
+    ]
+   },
+   "wall_end": 245.456
+  }
+ },
+ "notes": [
+  {
+   "reask_failed": {
+    "cmd": "item.get",
+    "args": "admin Base.Apple",
+    "wall": 197.011,
+    "wall_done": 199.027,
+    "reasked": true,
+    "first_reply": "no item Base.Apple in admin's inventory"
+   },
+   "second_reply": "no item Base.Apple in admin's inventory"
+  },
+  {
+   "reask_failed": {
+    "cmd": "item.get",
+    "args": "admin Base.Apple",
+    "wall": 233.056,
+    "wall_done": 235.579,
+    "reasked": true,
+    "first_reply": "no item Base.Apple in admin's inventory"
+   },
+   "second_reply": "no item Base.Apple in admin's inventory"
+  }
+ ],
+ "verdicts": {
+  "X45a": {
+   "phase": "X45a",
+   "predicted": "QualityCooking.Server a table, BeyondTen.VERSION 1.3.4, TKX_EatProbe.version 1 (control), NutritionRevamp.version 0.1.0 -- each on BOTH sides; 0 Lua error lines on either console",
+   "falsifier": "a nil marker (names the mod and side), a Lua error line, a failed join (kick line)",
+   "observed": {
+    "markers": {
+     "QualityCooking.Server@client": {
+      "ok": true,
+      "type": "table",
+      "value": null,
+      "keyCount": 1
+     },
+     "QualityCooking.Server@server": {
+      "ok": true,
+      "type": "table",
+      "value": null,
+      "keyCount": 1
+     },
+     "BeyondTen.VERSION@client": {
+      "ok": true,
+      "type": "string",
+      "value": "1.3.4",
+      "keyCount": null
+     },
+     "BeyondTen.VERSION@server": {
+      "ok": true,
+      "type": "string",
+      "value": "1.3.4",
+      "keyCount": null
+     },
+     "TKX_EatProbe.version@client": {
+      "ok": true,
+      "type": "number",
+      "value": 1,
+      "keyCount": null
+     },
+     "TKX_EatProbe.version@server": {
+      "ok": true,
+      "type": "number",
+      "value": 1,
+      "keyCount": null
+     },
+     "NutritionRevamp.version@client": {
+      "ok": true,
+      "type": "string",
+      "value": "0.1.0",
+      "keyCount": null
+     },
+     "NutritionRevamp.version@server": {
+      "ok": true,
+      "type": "string",
+      "value": "0.1.0",
+      "keyCount": null
+     }
+    },
+    "not_ok": [],
+    "luaerr_counts": {
+     "server": 36,
+     "client": 35,
+     "kick": 1
+    },
+    "verify": [
+     true,
+     true,
+     true,
+     true
+    ],
+    "mods_not_found": {
+     "server": [],
+     "client": []
+    }
+   },
+   "verdict": "falsified",
+   "wall": 245.46
+  },
+  "QC-wrap-file": {
+   "phase": "QC-wrap-file",
+   "predicted": "QualityCooking.Server.EventHandlers.Roll a table and Roll.ApplyBuff a function on the server (CookingRollHandler.lua ran, so its unconditional save-and-replace of ISEatFoodAction.complete ran)",
+   "falsifier": "Roll unresolved on the server",
+   "observed": {
+    "QualityCooking.Server.EventHandlers.Roll@client": {
+     "resolved": true,
+     "type": "table",
+     "keyCount": 1
+    },
+    "QualityCooking.Server.EventHandlers.Roll@server": {
+     "resolved": true,
+     "type": "table",
+     "keyCount": 1
+    },
+    "QualityCooking.Server.EventHandlers.BuffTicker@client": {
+     "resolved": true,
+     "type": "table",
+     "keyCount": 1
+    },
+    "QualityCooking.Server.EventHandlers.BuffTicker@server": {
+     "resolved": true,
+     "type": "table",
+     "keyCount": 1
+    },
+    "QualityCooking.Server.EventHandlers.Roll.ApplyBuff@client": {
+     "resolved": true,
+     "type": "function",
+     "keyCount": null
+    },
+    "QualityCooking.Server.EventHandlers.Roll.ApplyBuff@server": {
+     "resolved": true,
+     "type": "function",
+     "keyCount": null
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 245.464
+  },
+  "X45b-A": {
+   "phase": "X45b-A",
+   "predicted": "enter +1, exit +1; kcal +95.0 once (post and late); eats +1, landed +1, failures +0, share 1.0; outermost False; every mod read and HUNGER finite",
+   "falsifier": "enter without exit; a doubled intake; eats 0 with the stores moved; a stack overflow (#2835, unmeasured); a non-finite value (blocking)",
+   "observed": {
+    "kcal_corrected_post": 95.29939501386418,
+    "kcal_corrected_late": 95.2559487759271,
+    "pred": 95.0,
+    "once": true,
+    "doubled": false,
+    "enter_delta": 1.0,
+    "exit_delta": 1.0,
+    "outermost": true,
+    "outermost_predicted": false,
+    "client_probe": [
+     0.0,
+     0.0
+    ],
+    "eats_delta": 1.0,
+    "landed_delta": 1.0,
+    "failures_delta": 0.0,
+    "share": 1.0,
+    "bulk_delta": 4.252532027123299,
+    "buffer_kcal_delta": 94.58495030830612,
+    "non_finite": [],
+    "hunger_not_finite": [],
+    "qc_buff_post": null,
+    "stack_overflow": false,
+    "server_error_count": 0,
+    "verdict": "falsified"
+   },
+   "verdict": "falsified",
+   "wall": 245.469
+  }
+ },
+ "timeline": [
+  {
+   "t": 0.1,
+   "phase": "boot",
+   "label": "A",
+   "profile": "x13-coboot"
+  },
+  {
+   "t": 57.4,
+   "phase": "session_ready",
+   "label": "A"
+  },
+  {
+   "t": 58.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 59.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 60.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_EatProbe.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 61.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_EatProbe.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 85.0,
+   "phase": "spawn",
+   "type": "Base.Apple",
+   "resolved": true
+  },
+  {
+   "t": 158.9,
+   "phase": "step",
+   "took": 2.011,
+   "name": "foodtimer",
+   "cmd": "foodtimer.set"
+  },
+  {
+   "t": 160.4,
+   "phase": "step",
+   "took": 0.511,
+   "name": "eat_action",
+   "cmd": "eat.action"
+  },
+  {
+   "t": 237.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 245.4,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 245.5,
+   "phase": "verdict",
+   "name": "X45a",
+   "verdict": "falsified"
+  },
+  {
+   "t": 245.5,
+   "phase": "verdict",
+   "name": "QC-wrap-file",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 245.5,
+   "phase": "verdict",
+   "name": "X45b-A",
+   "verdict": "falsified"
+  }
+ ],
+ "summary": {
+  "verify_ok": {
+   "A": [
+    true,
+    true,
+    true,
+    true
+   ]
+  },
+  "mods_not_found": {
+   "A": {
+    "server": [],
+    "client": []
+   }
+  },
+  "boot_errors": {
+   "A": null
+  },
+  "server_error_count": {
+   "A": 0
+  },
+  "client_lua_error": {
+   "A": true
+  },
+  "verdicts": {
+   "X45a": "falsified",
+   "QC-wrap-file": "as_predicted",
+   "X45b-A": "falsified"
+  }
+ },
+ "wall_seconds": 245.5
+}

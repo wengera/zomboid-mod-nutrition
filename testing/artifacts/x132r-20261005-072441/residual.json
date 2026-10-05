@@ -1,0 +1,7765 @@
+{
+ "run_id": "x132r-20261005-072441",
+ "session": "X34 asleep + running arms, X35 running pairs (recorded), X4 push arm: an overlay control boot (A) and a takeover boot with TKX_CalcStats (B), DayLength 1; player.sleep.hold, player.run, trait.watch + trait.add.push / trait.set",
+ "user": "admin",
+ "profile": {
+  "A": {
+   "name": "nr-overlay",
+   "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\nr-overlay.toml",
+   "fixture": "default",
+   "description": "PZTestKit + NutritionRevamp, Mode 2 (overlay), DayLength 1.",
+   "mods": [
+    "PZTestKit",
+    "NutritionRevamp"
+   ],
+   "sources": {
+    "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+    "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp"
+   },
+   "skip": [],
+   "workshop_items": {},
+   "sandbox": {
+    "DayLength": 1,
+    "NR": {
+     "Mode": 2
+    }
+   },
+   "users": [
+    "admin"
+   ]
+  },
+  "B": {
+   "name": "x13-residual",
+   "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x13-residual.toml",
+   "fixture": "default",
+   "description": "PZTestKit + NutritionRevamp (Mode 1) + TKX_CalcStats, DayLength 1 - X34, X35, X4 residual arms.",
+   "mods": [
+    "PZTestKit",
+    "NutritionRevamp",
+    "TKX_CalcStats"
+   ],
+   "sources": {
+    "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+    "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp",
+    "TKX_CalcStats": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_CalcStats"
+   },
+   "skip": [],
+   "workshop_items": {},
+   "sandbox": {
+    "DayLength": 1,
+    "NR": {
+     "Mode": 1
+    }
+   },
+   "users": [
+    "admin"
+   ]
+  }
+ },
+ "mods": {
+  "A": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "B": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "TKX_CalcStats"
+  ]
+ },
+ "commit": "a02e8d9",
+ "mod_commit": "9f53324",
+ "mod_dirty": false,
+ "probe_mod_commit": "8783438",
+ "harness_lua_commit": "7710d2d",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "acceptance_run": "x132e-20261005-063700",
+ "dry_run": false,
+ "constants": {
+  "IDLE_S": 30.0,
+  "RUN_S": 30.0,
+  "RUN_DX": 20,
+  "SLEEP_HOLD_S": 60,
+  "SLEEP_S": 62.0,
+  "BAND_FRAC": 0.02,
+  "BAND_FLOOR": 0.0001,
+  "THIRST_SLEEP_PER_H": 0.0036,
+  "RUN_THIRST_FACTOR": 1.2,
+  "TRAIT": "HeartyAppetite",
+  "X4_TRIALS": [
+   "push",
+   "nopush",
+   "push",
+   "nopush",
+   "push",
+   "nopush"
+  ],
+  "WATCH_S": 8,
+  "PLAN1_NOPUSH_MS": [
+   417,
+   511,
+   562
+  ],
+  "STATS_KEYS": [
+   "calories",
+   "carbs",
+   "lipids",
+   "proteins",
+   "weight",
+   "hunger",
+   "thirst",
+   "statsApi",
+   "incWeight",
+   "incWeightLot",
+   "decWeight",
+   "endurance",
+   "fatigue",
+   "moodles",
+   "traits",
+   "traitList",
+   "traitRoute",
+   "maxWeight",
+   "foodTimer",
+   "standardFoodTime",
+   "asleep",
+   "running",
+   "sprinting",
+   "moving",
+   "worldAge",
+   "mult",
+   "wall"
+  ],
+  "SENTINEL": 0.4242
+ },
+ "deviations": [
+  "X35 is unmeasurable in this tree and graded unmeasured before the run: no handler writes the 0.4242 sentinel (NR_sentinel dropped at 9a424d8; TKX_CalcStats ships calc/A/B handlers that write no stat, despite the x13-residual header calling it the sentinel's carrier).",
+  "X4 adds a NO-PUSH arm with the same client first-tick stamp (trait.set add), alternated with the push arm, three trials each, in BOTH boots: the Plan 1 no-push arrivals (#2759) were poll-bounded and are not the same instrument. The removal is polled (trait.watch watches presence only).",
+  "The amendments cite #0486 for the 1.2 running thirst factor; the factor's row is #0479 (and #0593 reads it may never fire on a dedicated server). Both readings are pre-registered.",
+  "doctor is run before EACH boot (recorded per boot); the top-level doctor_clean is boot A's."
+ ],
+ "world_changes": {
+  "restored": "each boot restores the golden fixture into its own sub-directory",
+  "left_in_place": [
+   "the player moved by player.run",
+   "asleep flag held 60 s",
+   "HeartyAppetite added and removed six times"
+  ]
+ },
+ "boots": {
+  "A": {
+   "profile": "nr-overlay",
+   "run_subdir": "boot-A",
+   "steps": [
+    {
+     "step": "registered",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.registered",
+     "side": "server",
+     "wall_before": 55.854,
+     "wall_after": 56.113,
+     "epoch_ms_before": 1791199537774,
+     "epoch_ms_after": 1791199538034,
+     "took": 0.259,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.registered",
+      "type": "boolean",
+      "resolved": true,
+      "value": false
+     }
+    },
+    {
+     "step": "mode",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.options.mode",
+     "side": "server",
+     "wall_before": 56.113,
+     "wall_after": 56.62,
+     "epoch_ms_before": 1791199538034,
+     "epoch_ms_after": 1791199538540,
+     "took": 0.507,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.options.mode",
+      "type": "number",
+      "resolved": true,
+      "value": 2
+     }
+    },
+    {
+     "step": "tkx_c",
+     "cmd": "lua.global",
+     "args": "TKX_CalcStats.version",
+     "side": "client",
+     "wall_before": 56.62,
+     "wall_after": 57.125,
+     "epoch_ms_before": 1791199538540,
+     "epoch_ms_after": 1791199539046,
+     "took": 0.505,
+     "ack": {
+      "side": "client",
+      "name": "TKX_CalcStats.version",
+      "failedAt": "TKX_CalcStats",
+      "resolved": false
+     }
+    },
+    {
+     "step": "tkx_s",
+     "cmd": "lua.global",
+     "args": "TKX_CalcStats.version",
+     "side": "server",
+     "wall_before": 57.125,
+     "wall_after": 57.386,
+     "epoch_ms_before": 1791199539046,
+     "epoch_ms_after": 1791199539306,
+     "took": 0.261,
+     "ack": {
+      "side": "server",
+      "name": "TKX_CalcStats.version",
+      "failedAt": "TKX_CalcStats",
+      "resolved": false
+     }
+    },
+    {
+     "step": "calls0",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.calls",
+     "side": "server",
+     "wall_before": 57.386,
+     "wall_after": 58.143,
+     "epoch_ms_before": 1791199539306,
+     "epoch_ms_after": 1791199540063,
+     "took": 0.757,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.calls",
+      "type": "number",
+      "resolved": true,
+      "value": 0
+     }
+    },
+    {
+     "step": "fail0",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.failures",
+     "side": "server",
+     "wall_before": 58.143,
+     "wall_after": 58.65,
+     "epoch_ms_before": 1791199540063,
+     "epoch_ms_after": 1791199540570,
+     "took": 0.507,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0
+     }
+    },
+    {
+     "step": "stop_t0",
+     "cmd": "player.stop",
+     "args": "",
+     "side": "client",
+     "wall_before": 58.65,
+     "wall_after": 59.158,
+     "epoch_ms_before": 1791199540570,
+     "epoch_ms_after": 1791199541079,
+     "took": 0.508,
+     "ack": {
+      "cleared": true,
+      "setRunning": true,
+      "clientMoving": false
+     }
+    },
+    {
+     "step": "run_0",
+     "cmd": "player.run",
+     "args": "20 0",
+     "side": "client",
+     "wall_before": 89.931,
+     "wall_after": 90.19,
+     "epoch_ms_before": 1791199571851,
+     "epoch_ms_after": 1791199572111,
+     "took": 0.259,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10741,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "step": "run_again",
+     "cmd": "player.run",
+     "args": "-20 0",
+     "side": "client",
+     "wall_before": 91.211,
+     "wall_after": 91.722,
+     "epoch_ms_before": 1791199573132,
+     "epoch_ms_after": 1791199573642,
+     "took": 0.511,
+     "ack": {
+      "dx": -20,
+      "dy": 0,
+      "target": {
+       "x": 10701,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "step": "run_again",
+     "cmd": "player.run",
+     "args": "20 0",
+     "side": "client",
+     "wall_before": 107.366,
+     "wall_after": 107.876,
+     "epoch_ms_before": 1791199589287,
+     "epoch_ms_after": 1791199589796,
+     "took": 0.51,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10721,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "step": "run_stop",
+     "cmd": "player.stop",
+     "args": "",
+     "side": "client",
+     "wall_before": 121.218,
+     "wall_after": 121.724,
+     "epoch_ms_before": 1791199603138,
+     "epoch_ms_after": 1791199603645,
+     "took": 0.506,
+     "ack": {
+      "cleared": true,
+      "setRunning": true,
+      "clientMoving": true
+     }
+    },
+    {
+     "step": "sleep_hold",
+     "cmd": "player.sleep.hold",
+     "args": "admin 60",
+     "side": "server",
+     "wall_before": 128.748,
+     "wall_after": 129.26,
+     "epoch_ms_before": 1791199610668,
+     "epoch_ms_after": 1791199611180,
+     "took": 0.512,
+     "ack": {
+      "user": "admin",
+      "seconds": 60,
+      "armed": true,
+      "before": false,
+      "after": true,
+      "deadlineWall": 1791199671131
+     }
+    },
+    {
+     "step": "sleep_hold_cancel",
+     "cmd": "player.sleep.hold",
+     "args": "admin 0",
+     "side": "server",
+     "wall_before": 195.033,
+     "wall_after": 195.29,
+     "epoch_ms_before": 1791199676953,
+     "epoch_ms_after": 1791199677210,
+     "took": 0.257,
+     "ack": {
+      "user": "admin",
+      "seconds": 0,
+      "armed": false,
+      "before": false,
+      "after": false
+     }
+    },
+    {
+     "step": "sleep_off",
+     "cmd": "player.sleep",
+     "args": "admin false",
+     "side": "server",
+     "wall_before": 195.29,
+     "wall_after": 195.802,
+     "epoch_ms_before": 1791199677210,
+     "epoch_ms_after": 1791199677722,
+     "took": 0.512,
+     "ack": {
+      "requested": false,
+      "before": false,
+      "setAsleep": true,
+      "after": false,
+      "held": true
+     }
+    },
+    {
+     "step": "calls1",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.calls",
+     "side": "server",
+     "wall_before": 205.824,
+     "wall_after": 206.331,
+     "epoch_ms_before": 1791199687745,
+     "epoch_ms_after": 1791199688251,
+     "took": 0.507,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.calls",
+      "type": "number",
+      "resolved": true,
+      "value": 0
+     }
+    },
+    {
+     "step": "fail1",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.failures",
+     "side": "server",
+     "wall_before": 206.331,
+     "wall_after": 206.839,
+     "epoch_ms_before": 1791199688251,
+     "epoch_ms_after": 1791199688760,
+     "took": 0.508,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0
+     }
+    },
+    {
+     "step": "lasterr",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.lastError",
+     "side": "server",
+     "wall_before": 206.839,
+     "wall_after": 207.348,
+     "epoch_ms_before": 1791199688760,
+     "epoch_ms_after": 1791199689268,
+     "took": 0.509,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.lastError",
+      "failedAt": "lastError",
+      "resolved": false
+     }
+    },
+    {
+     "step": "x4_1_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 207.856,
+     "wall_after": 208.363,
+     "epoch_ms_before": 1791199689777,
+     "epoch_ms_after": 1791199690284,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_1_addpush",
+     "cmd": "trait.add.push",
+     "args": "admin HeartyAppetite",
+     "side": "server",
+     "wall_before": 208.363,
+     "wall_after": 208.873,
+     "epoch_ms_before": 1791199690284,
+     "epoch_ms_after": 1791199690794,
+     "took": 0.51,
+     "ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199690628,
+      "wallAfter": 1791199690629,
+      "traitList": [
+       "heartyappetite"
+      ]
+     }
+    },
+    {
+     "step": "x4_1_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 210.144,
+     "wall_after": 210.656,
+     "epoch_ms_before": 1791199692064,
+     "epoch_ms_after": 1791199692576,
+     "took": 0.512,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_2_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 212.284,
+     "wall_after": 212.794,
+     "epoch_ms_before": 1791199694205,
+     "epoch_ms_after": 1791199694714,
+     "took": 0.51,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_2_set",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite add",
+     "side": "server",
+     "wall_before": 212.794,
+     "wall_after": 213.307,
+     "epoch_ms_before": 1791199694715,
+     "epoch_ms_after": 1791199695227,
+     "took": 0.513,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     }
+    },
+    {
+     "step": "x4_2_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 214.328,
+     "wall_after": 215.087,
+     "epoch_ms_before": 1791199696249,
+     "epoch_ms_after": 1791199697008,
+     "took": 0.759,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_3_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 216.414,
+     "wall_after": 216.92,
+     "epoch_ms_before": 1791199698334,
+     "epoch_ms_after": 1791199698841,
+     "took": 0.506,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_3_addpush",
+     "cmd": "trait.add.push",
+     "args": "admin HeartyAppetite",
+     "side": "server",
+     "wall_before": 216.92,
+     "wall_after": 217.429,
+     "epoch_ms_before": 1791199698841,
+     "epoch_ms_after": 1791199699349,
+     "took": 0.509,
+     "ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199699130,
+      "wallAfter": 1791199699131,
+      "traitList": [
+       "heartyappetite"
+      ]
+     }
+    },
+    {
+     "step": "x4_3_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 218.205,
+     "wall_after": 218.715,
+     "epoch_ms_before": 1791199700125,
+     "epoch_ms_after": 1791199700636,
+     "took": 0.51,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_4_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 220.347,
+     "wall_after": 220.853,
+     "epoch_ms_before": 1791199702267,
+     "epoch_ms_after": 1791199702773,
+     "took": 0.506,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_4_set",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite add",
+     "side": "server",
+     "wall_before": 220.853,
+     "wall_after": 221.37,
+     "epoch_ms_before": 1791199702773,
+     "epoch_ms_after": 1791199703290,
+     "took": 0.517,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     }
+    },
+    {
+     "step": "x4_4_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 222.645,
+     "wall_after": 223.155,
+     "epoch_ms_before": 1791199704565,
+     "epoch_ms_after": 1791199705076,
+     "took": 0.51,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_5_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 224.223,
+     "wall_after": 224.73,
+     "epoch_ms_before": 1791199706143,
+     "epoch_ms_after": 1791199706651,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_5_addpush",
+     "cmd": "trait.add.push",
+     "args": "admin HeartyAppetite",
+     "side": "server",
+     "wall_before": 224.73,
+     "wall_after": 225.237,
+     "epoch_ms_before": 1791199706651,
+     "epoch_ms_after": 1791199707158,
+     "took": 0.507,
+     "ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199706926,
+      "wallAfter": 1791199706926,
+      "traitList": [
+       "heartyappetite"
+      ]
+     }
+    },
+    {
+     "step": "x4_5_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 226.261,
+     "wall_after": 227.02,
+     "epoch_ms_before": 1791199708182,
+     "epoch_ms_after": 1791199708941,
+     "took": 0.759,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_6_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 228.343,
+     "wall_after": 228.849,
+     "epoch_ms_before": 1791199710263,
+     "epoch_ms_after": 1791199710769,
+     "took": 0.506,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_6_set",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite add",
+     "side": "server",
+     "wall_before": 228.849,
+     "wall_after": 229.36,
+     "epoch_ms_before": 1791199710769,
+     "epoch_ms_after": 1791199711281,
+     "took": 0.511,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     }
+    },
+    {
+     "step": "x4_6_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 230.137,
+     "wall_after": 230.644,
+     "epoch_ms_before": 1791199712058,
+     "epoch_ms_after": 1791199712565,
+     "took": 0.507,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    }
+   ],
+   "sandbox": {
+    "DayLength": 1,
+    "NR": {
+     "Mode": 2
+    }
+   },
+   "mods": [
+    "PZTestKit",
+    "NutritionRevamp"
+   ],
+   "doctor_clean": true,
+   "doctor": [
+    "ok   PZ java processes: none",
+    "ok   ports 27261/27262/27015: free",
+    "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+    "ok   workshop index: 233 mods",
+    "ok   pytest available"
+   ],
+   "build": "42.20.4",
+   "session_ready_wall": 53.575,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"value\": \"0.1.0\"",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"value\": \"0.1.0\"",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "pairs": [
+    {
+     "tag": "W10",
+     "window": "W1",
+     "client_wall": 59.158,
+     "server_wall": 59.667,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.006314123049378395,
+      "thirst": 0.00527822133153677,
+      "fatigue": 9.885020699584857e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.2796735763549805,
+      "mult": 0.7999967932701111,
+      "traitList": {},
+      "calories": 788.8819580078125
+     },
+     "server": {
+      "hunger": 0.0066785006783902645,
+      "thirst": 0.005583840422332287,
+      "fatigue": 9.911123925121501e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.28456974029541,
+      "mult": 4.781771659851074,
+      "traitList": {},
+      "calories": 788.2705078125
+     }
+    },
+    {
+     "tag": "W11",
+     "window": "W1",
+     "client_wall": 62.158,
+     "server_wall": 62.666,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.009048075415194035,
+      "thirst": 0.007574045564979315,
+      "fatigue": 9.937612776411697e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.3596677780151367,
+      "mult": 0.800011157989502,
+      "traitList": {},
+      "calories": 784.288818359375
+     },
+     "server": {
+      "hunger": 0.0095039838925004,
+      "thirst": 0.007957507856190205,
+      "fatigue": 9.942254837369546e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.3669891357421875,
+      "mult": 4.792089462280273,
+      "traitList": {},
+      "calories": 783.5215454101562
+     }
+    },
+    {
+     "tag": "W12",
+     "window": "W1",
+     "client_wall": 65.159,
+     "server_wall": 65.667,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.011780017986893654,
+      "thirst": 0.009874519892036915,
+      "fatigue": 9.946310456143692e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.439663887023926,
+      "mult": 0.8000831604003906,
+      "traitList": {},
+      "calories": 779.6854248046875
+     },
+     "server": {
+      "hunger": 0.012416447512805462,
+      "thirst": 0.010411348193883896,
+      "fatigue": 9.968215454136953e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.452193260192871,
+      "mult": 4.798863887786865,
+      "traitList": {},
+      "calories": 778.6109619140625
+     }
+    },
+    {
+     "tag": "W13",
+     "window": "W1",
+     "client_wall": 68.159,
+     "server_wall": 68.669,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.014504392631351948,
+      "thirst": 0.01217496208846569,
+      "fatigue": 9.96229427983053e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.518794059753418,
+      "mult": 0.8001983761787415,
+      "traitList": {},
+      "calories": 775.0808715820312
+     },
+     "server": {
+      "hunger": 0.015229904092848301,
+      "thirst": 0.012788651511073112,
+      "fatigue": 9.969462553272024e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.534740447998047,
+      "mult": 4.7933478355407715,
+      "traitList": {},
+      "calories": 773.8523559570312
+     }
+    },
+    {
+     "tag": "W14",
+     "window": "W1",
+     "client_wall": 71.159,
+     "server_wall": 71.666,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.017221631482243538,
+      "thirst": 0.014475720934569836,
+      "fatigue": 9.978086745832115e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.5987892150878906,
+      "mult": 0.8000399470329285,
+      "traitList": {},
+      "calories": 770.4747314453125
+     },
+     "server": {
+      "hunger": 0.01749291829764843,
+      "thirst": 0.014705776236951351,
+      "fatigue": 9.976449655368924e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.6013078689575195,
+      "mult": 4.791543006896973,
+      "traitList": {},
+      "calories": 770.0140991210938
+     }
+    },
+    {
+     "tag": "W15",
+     "window": "W1",
+     "client_wall": 74.159,
+     "server_wall": 74.666,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.019932223483920097,
+      "thirst": 0.016777202486991882,
+      "fatigue": 0.00010007638047682121,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.678783416748047,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 765.8659057617188
+     },
+     "server": {
+      "hunger": 0.0202928613871336,
+      "thirst": 0.01708388887345791,
+      "fatigue": 9.985513315768912e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.6838817596435547,
+      "mult": 4.789372444152832,
+      "traitList": {},
+      "calories": 765.2516479492188
+     }
+    },
+    {
+     "tag": "W16",
+     "window": "W1",
+     "client_wall": 77.16,
+     "server_wall": 77.669,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.022635160014033318,
+      "thirst": 0.019078537821769714,
+      "fatigue": 0.00010027278040070087,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.758777618408203,
+      "mult": 0.8000016212463379,
+      "traitList": {},
+      "calories": 761.2562255859375
+     },
+     "server": {
+      "hunger": 0.023175187408924103,
+      "thirst": 0.019539089873433113,
+      "fatigue": 0.00010010057303588837,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.769129753112793,
+      "mult": 4.794447422027588,
+      "traitList": {},
+      "calories": 760.3336181640625
+     }
+    },
+    {
+     "tag": "W17",
+     "window": "W1",
+     "client_wall": 80.161,
+     "server_wall": 80.672,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.02533162571489811,
+      "thirst": 0.021380705758929253,
+      "fatigue": 0.00010027384269051254,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.8384628295898438,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 756.643798828125
+     },
+     "server": {
+      "hunger": 0.025959976017475128,
+      "thirst": 0.02191809006035328,
+      "fatigue": 0.00010033845319412649,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.851734161376953,
+      "mult": 4.799540042877197,
+      "traitList": {},
+      "calories": 755.5670166015625
+     }
+    },
+    {
+     "tag": "W18",
+     "window": "W1",
+     "client_wall": 83.161,
+     "server_wall": 83.669,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.028020232915878296,
+      "thirst": 0.02368251606822014,
+      "fatigue": 0.0001002990102279,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.9184579849243164,
+      "mult": 0.800011157989502,
+      "traitList": {},
+      "calories": 752.0308227539062
+     },
+     "server": {
+      "hunger": 0.028735896572470665,
+      "thirst": 0.024296287447214127,
+      "fatigue": 0.00010042118083219975,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.9343109130859375,
+      "mult": 4.7975029945373535,
+      "traitList": {},
+      "calories": 750.800537109375
+     }
+    },
+    {
+     "tag": "W19",
+     "window": "W1",
+     "client_wall": 86.161,
+     "server_wall": 86.669,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.03070077858865261,
+      "thirst": 0.025983763858675957,
+      "fatigue": 0.00010038070467999205,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.9984521865844727,
+      "mult": 0.800011157989502,
+      "traitList": {},
+      "calories": 747.4176635742188
+     },
+     "server": {
+      "hunger": 0.030968444421887398,
+      "thirst": 0.026213904842734337,
+      "fatigue": 0.00010051213030237705,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.000894546508789,
+      "mult": 4.7972941398620605,
+      "traitList": {},
+      "calories": 746.9562377929688
+     }
+    },
+    {
+     "tag": "W110",
+     "window": "W1",
+     "client_wall": 89.161,
+     "server_wall": 89.671,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.03337324783205986,
+      "thirst": 0.028284430503845215,
+      "fatigue": 0.0001005898739094846,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.078182220458984,
+      "mult": 0.7999728322029114,
+      "traitList": {},
+      "calories": 742.8047485351562
+     },
+     "server": {
+      "hunger": 0.03372925892472267,
+      "thirst": 0.028591390699148178,
+      "fatigue": 0.00010067035327665508,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.083446502685547,
+      "mult": 4.799581527709961,
+      "traitList": {},
+      "calories": 742.1892700195312
+     }
+    },
+    {
+     "tag": "W20",
+     "window": "W2",
+     "client_wall": 90.19,
+     "server_wall": 90.704,
+     "skew_s": 0.514,
+     "client": {
+      "hunger": 0.03426290675997734,
+      "thirst": 0.029051732271909714,
+      "fatigue": 0.00010057472536573187,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.104846954345703,
+      "mult": 0.7999967932701111,
+      "traitList": {},
+      "calories": 741.2662353515625
+     },
+     "server": {
+      "hunger": 0.034885380417108536,
+      "thirst": 0.029589015990495682,
+      "fatigue": 0.00010072030272567645,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.118085861206055,
+      "mult": 4.799892425537109,
+      "traitList": {},
+      "calories": 740.1887817382812
+     }
+    },
+    {
+     "tag": "W21",
+     "window": "W2",
+     "client_wall": 92.191,
+     "server_wall": 92.702,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.036039017140865326,
+      "thirst": 0.03058568201959133,
+      "fatigue": 0.00010072907025460154,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.158176422119141,
+      "mult": 0.8000496029853821,
+      "traitList": {},
+      "calories": 735.221923828125
+     },
+     "server": {
+      "hunger": 0.03657083958387375,
+      "thirst": 0.031045541167259216,
+      "fatigue": 0.00010053130245069042,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.168661117553711,
+      "mult": 4.7884440422058105,
+      "traitList": {},
+      "calories": 730.7382202148438
+     }
+    },
+    {
+     "tag": "W22",
+     "window": "W2",
+     "client_wall": 94.192,
+     "server_wall": 94.706,
+     "skew_s": 0.514,
+     "client": {
+      "hunger": 0.037810519337654114,
+      "thirst": 0.03211846947669983,
+      "fatigue": 0.00010071728320326656,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.211505889892578,
+      "mult": 0.8000304102897644,
+      "traitList": {},
+      "calories": 720.2772216796875
+     },
+     "server": {
+      "hunger": 0.03825315833091736,
+      "thirst": 0.03250190243124962,
+      "fatigue": 0.00010062416549772024,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.219230651855469,
+      "mult": 4.792297840118408,
+      "traitList": {},
+      "calories": 716.5387573242188
+     }
+    },
+    {
+     "tag": "W23",
+     "window": "W2",
+     "client_wall": 96.192,
+     "server_wall": 96.703,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.039579447358846664,
+      "thirst": 0.03365184739232063,
+      "fatigue": 0.00010072780423797667,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.264836311340332,
+      "mult": 0.800011157989502,
+      "traitList": {},
+      "calories": 705.3267211914062
+     },
+     "server": {
+      "hunger": 0.03984447568655014,
+      "thirst": 0.03388183191418648,
+      "fatigue": 0.00010073337762150913,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.267144203186035,
+      "mult": 4.7978668212890625,
+      "traitList": {},
+      "calories": 703.0844116210938
+     }
+    },
+    {
+     "tag": "W24",
+     "window": "W2",
+     "client_wall": 98.193,
+     "server_wall": 98.704,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.041345834732055664,
+      "thirst": 0.03518584743142128,
+      "fatigue": 0.00010078798368340358,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.317776679992676,
+      "mult": 0.8000255823135376,
+      "traitList": {},
+      "calories": 690.370361328125
+     },
+     "server": {
+      "hunger": 0.042051468044519424,
+      "thirst": 0.03579943627119064,
+      "fatigue": 0.00010064653906738386,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.333728790283203,
+      "mult": 4.7967658042907715,
+      "traitList": {},
+      "calories": 684.3878173828125
+     }
+    },
+    {
+     "tag": "W25",
+     "window": "W2",
+     "client_wall": 100.193,
+     "server_wall": 100.705,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.043108534067869186,
+      "thirst": 0.03671945631504059,
+      "fatigue": 0.00010049803677247837,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.371106147766113,
+      "mult": 0.8000016212463379,
+      "traitList": {},
+      "calories": 675.417724609375
+     },
+     "server": {
+      "hunger": 0.043725259602069855,
+      "thirst": 0.03725669905543327,
+      "fatigue": 0.00010047522664535791,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.384328842163086,
+      "mult": 4.792443752288818,
+      "traitList": {},
+      "calories": 670.1796264648438
+     }
+    },
+    {
+     "tag": "W26",
+     "window": "W2",
+     "client_wall": 102.194,
+     "server_wall": 102.703,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.04486891254782677,
+      "thirst": 0.03825387358665466,
+      "fatigue": 0.0001003912984742783,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.424880027770996,
+      "mult": 0.7999728322029114,
+      "traitList": {},
+      "calories": 660.4570922851562
+     },
+     "server": {
+      "hunger": 0.04539642110466957,
+      "thirst": 0.0387142188847065,
+      "fatigue": 0.0001004210498649627,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.434937477111816,
+      "mult": 4.794646739959717,
+      "traitList": {},
+      "calories": 655.9686889648438
+     }
+    },
+    {
+     "tag": "W27",
+     "window": "W2",
+     "client_wall": 104.194,
+     "server_wall": 104.702,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.04662622511386871,
+      "thirst": 0.03978843614459038,
+      "fatigue": 0.00010029674012912437,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.478209495544434,
+      "mult": 0.8000496029853821,
+      "traitList": {},
+      "calories": 645.4950561523438
+     },
+     "server": {
+      "hunger": 0.04706520214676857,
+      "thirst": 0.040172211825847626,
+      "fatigue": 0.00010027434473158792,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.485562324523926,
+      "mult": 4.793017387390137,
+      "traitList": {},
+      "calories": 641.7532958984375
+     }
+    },
+    {
+     "tag": "W28",
+     "window": "W2",
+     "client_wall": 106.194,
+     "server_wall": 106.704,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.04838019981980324,
+      "thirst": 0.041322916746139526,
+      "fatigue": 0.00010017504246206954,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.531538963317871,
+      "mult": 0.799987256526947,
+      "traitList": {},
+      "calories": 630.5338745117188
+     },
+     "server": {
+      "hunger": 0.04908091947436333,
+      "thirst": 0.041936732828617096,
+      "fatigue": 0.0001002013377728872,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.546832084655762,
+      "mult": 4.796386241912842,
+      "traitList": {},
+      "calories": 626.3319091796875
+     }
+    },
+    {
+     "tag": "W29",
+     "window": "W2",
+     "client_wall": 108.194,
+     "server_wall": 108.704,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.05013098195195198,
+      "thirst": 0.042857419699430466,
+      "fatigue": 0.00010003048373619094,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.584595680236816,
+      "mult": 0.7999631762504578,
+      "traitList": {},
+      "calories": 622.7041625976562
+     },
+     "server": {
+      "hunger": 0.05083046108484268,
+      "thirst": 0.04347128048539162,
+      "fatigue": 0.00010016739543061703,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.600114822387695,
+      "mult": 4.800219535827637,
+      "traitList": {},
+      "calories": 616.7189331054688
+     }
+    },
+    {
+     "tag": "W210",
+     "window": "W2",
+     "client_wall": 110.195,
+     "server_wall": 110.703,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.05187911540269852,
+      "thirst": 0.0443924143910408,
+      "fatigue": 0.00010002964700106531,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.637925148010254,
+      "mult": 0.7999247908592224,
+      "traitList": {},
+      "calories": 607.7378540039062
+     },
+     "server": {
+      "hunger": 0.0524902381002903,
+      "thirst": 0.04492969810962677,
+      "fatigue": 9.9995217169635e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.650754928588867,
+      "mult": 4.797090530395508,
+      "traitList": {},
+      "calories": 602.4993286132812
+     }
+    },
+    {
+     "tag": "W211",
+     "window": "W2",
+     "client_wall": 112.195,
+     "server_wall": 112.706,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.05362405255436897,
+      "thirst": 0.045927442610263824,
+      "fatigue": 9.990183025365695e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.691254615783691,
+      "mult": 0.799828827381134,
+      "traitList": {},
+      "calories": 592.7713623046875
+     },
+     "server": {
+      "hunger": 0.05414664372801781,
+      "thirst": 0.04638771340250969,
+      "fatigue": 9.978877642424777e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.701380729675293,
+      "mult": 4.792194843292236,
+      "traitList": {},
+      "calories": 588.28369140625
+     }
+    },
+    {
+     "tag": "W212",
+     "window": "W2",
+     "client_wall": 114.195,
+     "server_wall": 114.704,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.05536501109600067,
+      "thirst": 0.04746178537607193,
+      "fatigue": 9.96441303868778e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.744584083557129,
+      "mult": 0.8001119494438171,
+      "traitList": {},
+      "calories": 577.8115844726562
+     },
+     "server": {
+      "hunger": 0.05580003187060356,
+      "thirst": 0.04784562066197395,
+      "fatigue": 9.993030107580125e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.75200080871582,
+      "mult": 4.803786754608154,
+      "traitList": {},
+      "calories": 574.0692138671875
+     }
+    },
+    {
+     "tag": "W213",
+     "window": "W2",
+     "client_wall": 116.195,
+     "server_wall": 116.703,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.05710289999842644,
+      "thirst": 0.048996251076459885,
+      "fatigue": 9.970755490940064e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.797913551330566,
+      "mult": 0.7999967932701111,
+      "traitList": {},
+      "calories": 562.8507080078125
+     },
+     "server": {
+      "hunger": 0.05745002627372742,
+      "thirst": 0.0493030846118927,
+      "fatigue": 9.975957800634205e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.802606582641602,
+      "mult": 4.800050258636475,
+      "traitList": {},
+      "calories": 559.8590698242188
+     }
+    },
+    {
+     "tag": "W214",
+     "window": "W2",
+     "client_wall": 118.195,
+     "server_wall": 118.703,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.05883733928203583,
+      "thirst": 0.05053049325942993,
+      "fatigue": 9.962898911908269e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.85101318359375,
+      "mult": 0.7999343872070312,
+      "traitList": {},
+      "calories": 547.8917846679688
+     },
+     "server": {
+      "hunger": 0.05953032895922661,
+      "thirst": 0.05114428699016571,
+      "fatigue": 9.941263124346733e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.866539001464844,
+      "mult": 4.7884368896484375,
+      "traitList": {},
+      "calories": 541.9072875976562
+     }
+    },
+    {
+     "tag": "W215",
+     "window": "W2",
+     "client_wall": 120.195,
+     "server_wall": 120.703,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.060568325221538544,
+      "thirst": 0.052064500749111176,
+      "fatigue": 9.936527203535661e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.904343605041504,
+      "mult": 0.7999392151832581,
+      "traitList": {},
+      "calories": 532.9352416992188
+     },
+     "server": {
+      "hunger": 0.06117339804768562,
+      "thirst": 0.05260138213634491,
+      "fatigue": 9.937465802067891e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.917130470275879,
+      "mult": 4.7901716232299805,
+      "traitList": {},
+      "calories": 527.7006225585938
+     }
+    },
+    {
+     "tag": "W30",
+     "window": "W3",
+     "client_wall": 121.724,
+     "server_wall": 122.232,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.061432987451553345,
+      "thirst": 0.052831824868917465,
+      "fatigue": 9.946392674464732e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.944340705871582,
+      "mult": 0.7999967932701111,
+      "traitList": {},
+      "calories": 525.4537963867188
+     },
+     "server": {
+      "hunger": 0.062296442687511444,
+      "thirst": 0.0535987913608551,
+      "fatigue": 9.937686991179362e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.9517621994018555,
+      "mult": 4.79253625869751,
+      "traitList": {},
+      "calories": 517.9758911132812
+     }
+    },
+    {
+     "tag": "W31",
+     "window": "W3",
+     "client_wall": 124.725,
+     "server_wall": 125.237,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.06402096897363663,
+      "thirst": 0.05513271689414978,
+      "fatigue": 9.933584806276485e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.024334907531738,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 507.1797180175781
+     },
+     "server": {
+      "hunger": 0.06496840715408325,
+      "thirst": 0.055976636707782745,
+      "fatigue": 9.935236448654905e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.034326553344727,
+      "mult": 4.7954840660095215,
+      "traitList": {},
+      "calories": 505.4915466308594
+     }
+    },
+    {
+     "tag": "W32",
+     "window": "W3",
+     "client_wall": 127.725,
+     "server_wall": 128.236,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.06660264730453491,
+      "thirst": 0.057434361428022385,
+      "fatigue": 9.93153007584624e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.104043006896973,
+      "mult": 0.7999824285507202,
+      "traitList": {},
+      "calories": 502.5757141113281
+     },
+     "server": {
+      "hunger": 0.06763345003128052,
+      "thirst": 0.05835513398051262,
+      "fatigue": 9.923155448632315e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.116911888122559,
+      "mult": 4.791965484619141,
+      "traitList": {},
+      "calories": 500.73406982421875
+     }
+    },
+    {
+     "tag": "W40",
+     "window": "W4",
+     "client_wall": 129.26,
+     "server_wall": 129.767,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.0681663230061531,
+      "thirst": 0.05883472040295601,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.144040107727051,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 499.755615234375
+     },
+     "server": {
+      "hunger": 0.06828779727220535,
+      "thirst": 0.058949749916791916,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.151552200317383,
+      "mult": 4.794888973236084,
+      "traitList": {},
+      "calories": 499.4871520996094
+     }
+    },
+    {
+     "tag": "W41",
+     "window": "W4",
+     "client_wall": 134.26,
+     "server_wall": 134.768,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.06922706961631775,
+      "thirst": 0.05985096096992493,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.2773637771606445,
+      "mult": 0.799987256526947,
+      "traitList": {},
+      "calories": 497.32012939453125
+     },
+     "server": {
+      "hunger": 0.06934858113527298,
+      "thirst": 0.05996614322066307,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.28475284576416,
+      "mult": 4.801889896392822,
+      "traitList": {},
+      "calories": 497.0513610839844
+     }
+    },
+    {
+     "tag": "W42",
+     "window": "W4",
+     "client_wall": 139.26,
+     "server_wall": 139.772,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.07021066546440125,
+      "thirst": 0.06080077961087227,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.410470008850098,
+      "mult": 0.7999824285507202,
+      "traitList": {},
+      "calories": 495.0079345703125
+     },
+     "server": {
+      "hunger": 0.07033208757638931,
+      "thirst": 0.06091601401567459,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.418007850646973,
+      "mult": 4.8006062507629395,
+      "traitList": {},
+      "calories": 494.7391052246094
+     }
+    },
+    {
+     "tag": "W43",
+     "window": "W4",
+     "client_wall": 144.261,
+     "server_wall": 144.769,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.07126977294683456,
+      "thirst": 0.06181768700480461,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.543793678283691,
+      "mult": 0.799992024898529,
+      "traitList": {},
+      "calories": 492.5713195800781
+     },
+     "server": {
+      "hunger": 0.07139095664024353,
+      "thirst": 0.06193282827734947,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.551240921020508,
+      "mult": 4.800431728363037,
+      "traitList": {},
+      "calories": 492.30267333984375
+     }
+    },
+    {
+     "tag": "W44",
+     "window": "W4",
+     "client_wall": 149.261,
+     "server_wall": 149.772,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.07225137203931808,
+      "thirst": 0.06276767700910568,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.676953315734863,
+      "mult": 0.7999680042266846,
+      "traitList": {},
+      "calories": 490.25885009765625
+     },
+     "server": {
+      "hunger": 0.07237236946821213,
+      "thirst": 0.06288277357816696,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.68448543548584,
+      "mult": 4.793233871459961,
+      "traitList": {},
+      "calories": 489.9903259277344
+     }
+    },
+    {
+     "tag": "W45",
+     "window": "W4",
+     "client_wall": 154.261,
+     "server_wall": 154.773,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.07330778986215591,
+      "thirst": 0.06378427892923355,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.810277938842773,
+      "mult": 0.7999776005744934,
+      "traitList": {},
+      "calories": 487.8229675292969
+     },
+     "server": {
+      "hunger": 0.0734286904335022,
+      "thirst": 0.06389940530061722,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.817693710327148,
+      "mult": 4.7996320724487305,
+      "traitList": {},
+      "calories": 487.5543518066406
+     }
+    },
+    {
+     "tag": "W46",
+     "window": "W4",
+     "client_wall": 159.261,
+     "server_wall": 159.774,
+     "skew_s": 0.513,
+     "client": {
+      "hunger": 0.0743630975484848,
+      "thirst": 0.06480095535516739,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.94338321685791,
+      "mult": 0.7999967932701111,
+      "traitList": {},
+      "calories": 485.38677978515625
+     },
+     "server": {
+      "hunger": 0.07440750300884247,
+      "thirst": 0.06484893709421158,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.950915336608887,
+      "mult": 4.800904273986816,
+      "traitList": {},
+      "calories": 485.2428894042969
+     }
+    },
+    {
+     "tag": "W47",
+     "window": "W4",
+     "client_wall": 164.261,
+     "server_wall": 164.769,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.07534075528383255,
+      "thirst": 0.06575028598308563,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.076706886291504,
+      "mult": 0.799992024898529,
+      "traitList": {},
+      "calories": 483.07562255859375
+     },
+     "server": {
+      "hunger": 0.07546138018369675,
+      "thirst": 0.0658653974533081,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.084142684936523,
+      "mult": 4.802192211151123,
+      "traitList": {},
+      "calories": 482.8069763183594
+     }
+    },
+    {
+     "tag": "W48",
+     "window": "W4",
+     "client_wall": 169.261,
+     "server_wall": 169.769,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.07631756365299225,
+      "thirst": 0.06669977307319641,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.209851264953613,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 480.76397705078125
+     },
+     "server": {
+      "hunger": 0.07643816620111465,
+      "thirst": 0.06681497395038605,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.217376708984375,
+      "mult": 4.80117654800415,
+      "traitList": {},
+      "calories": 480.4951477050781
+     }
+    },
+    {
+     "tag": "W49",
+     "window": "W4",
+     "client_wall": 174.262,
+     "server_wall": 174.77,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.07736972719430923,
+      "thirst": 0.06771672517061234,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.343174934387207,
+      "mult": 0.7999776005744934,
+      "traitList": {},
+      "calories": 478.3270263671875
+     },
+     "server": {
+      "hunger": 0.07748999446630478,
+      "thirst": 0.06783175468444824,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.350622177124023,
+      "mult": 4.792299747467041,
+      "traitList": {},
+      "calories": 478.0586242675781
+     }
+    },
+    {
+     "tag": "W410",
+     "window": "W4",
+     "client_wall": 179.263,
+     "server_wall": 179.77,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.07834433019161224,
+      "thirst": 0.06866620481014252,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.478102684020996,
+      "mult": 0.8000063896179199,
+      "traitList": {},
+      "calories": 476.015380859375
+     },
+     "server": {
+      "hunger": 0.0784645825624466,
+      "thirst": 0.06878133118152618,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.4838666915893555,
+      "mult": 4.795904159545898,
+      "traitList": {},
+      "calories": 475.7467346191406
+     }
+    },
+    {
+     "tag": "W411",
+     "window": "W4",
+     "client_wall": 184.264,
+     "server_wall": 184.775,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.07939434051513672,
+      "thirst": 0.0696832537651062,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.61142635345459,
+      "mult": 0.7999824285507202,
+      "traitList": {},
+      "calories": 473.5779113769531
+     },
+     "server": {
+      "hunger": 0.07951449602842331,
+      "thirst": 0.06979842483997345,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.6171369552612305,
+      "mult": 4.801918029785156,
+      "traitList": {},
+      "calories": 473.3091735839844
+     }
+    },
+    {
+     "tag": "W412",
+     "window": "W4",
+     "client_wall": 189.264,
+     "server_wall": 189.772,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.08036698400974274,
+      "thirst": 0.07063286751508713,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.744610786437988,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 471.26556396484375
+     },
+     "server": {
+      "hunger": 0.08079054206609726,
+      "thirst": 0.07101675868034363,
+      "fatigue": 9.944222983904183e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.750367164611816,
+      "mult": 4.7946858406066895,
+      "traitList": {},
+      "calories": 470.49749755859375
+     }
+    },
+    {
+     "tag": "W413",
+     "window": "W4",
+     "client_wall": 194.264,
+     "server_wall": 194.772,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.08459269255399704,
+      "thirst": 0.07447069883346558,
+      "fatigue": 9.967549704015255e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.877934455871582,
+      "mult": 0.799992024898529,
+      "traitList": {},
+      "calories": 463.5865173339844
+     },
+     "server": {
+      "hunger": 0.0850139930844307,
+      "thirst": 0.0748542994260788,
+      "fatigue": 9.964765922632068e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.8836164474487305,
+      "mult": 4.80076789855957,
+      "traitList": {},
+      "calories": 462.8188781738281
+     }
+    },
+    {
+     "tag": "W50",
+     "window": "W5",
+     "client_wall": 195.802,
+     "server_wall": 196.313,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.08543545007705688,
+      "thirst": 0.07523820549249649,
+      "fatigue": 9.933331602951512e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.91793155670166,
+      "mult": 0.8000592589378357,
+      "traitList": {},
+      "calories": 462.0506591796875
+     },
+     "server": {
+      "hunger": 0.08661307394504547,
+      "thirst": 0.07631188631057739,
+      "fatigue": 9.942922042682767e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.93422794342041,
+      "mult": 4.788640975952148,
+      "traitList": {},
+      "calories": 459.90203857421875
+     }
+    },
+    {
+     "tag": "W51",
+     "window": "W5",
+     "client_wall": 198.803,
+     "server_wall": 199.316,
+     "skew_s": 0.513,
+     "client": {
+      "hunger": 0.08795683085918427,
+      "thirst": 0.07753870636224747,
+      "fatigue": 9.95126465568319e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.997709274291992,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 457.44683837890625
+     },
+     "server": {
+      "hunger": 0.08921598643064499,
+      "thirst": 0.07868994772434235,
+      "fatigue": 9.965518256649375e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.016798973083496,
+      "mult": 4.7967329025268555,
+      "traitList": {},
+      "calories": 455.14276123046875
+     }
+    },
+    {
+     "tag": "W52",
+     "window": "W5",
+     "client_wall": 201.803,
+     "server_wall": 202.31,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.09047313779592514,
+      "thirst": 0.07984095811843872,
+      "fatigue": 9.955638961400837e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.077703475952148,
+      "mult": 0.8000304102897644,
+      "traitList": {},
+      "calories": 452.83905029296875
+     },
+     "server": {
+      "hunger": 0.09131049364805222,
+      "thirst": 0.08060848712921143,
+      "fatigue": 9.958500595530495e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.083414077758789,
+      "mult": 4.790970802307129,
+      "traitList": {},
+      "calories": 451.302734375
+     }
+    },
+    {
+     "tag": "W53",
+     "window": "W5",
+     "client_wall": 204.803,
+     "server_wall": 205.311,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.0929824486374855,
+      "thirst": 0.0821431428194046,
+      "fatigue": 9.967182268155739e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.157697677612305,
+      "mult": 0.8000016212463379,
+      "traitList": {},
+      "calories": 448.23077392578125
+     },
+     "server": {
+      "hunger": 0.09398391842842102,
+      "thirst": 0.08306372165679932,
+      "fatigue": 9.962116018868983e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.168663024902344,
+      "mult": 4.7895097732543945,
+      "traitList": {},
+      "calories": 446.3879089355469
+     }
+    }
+   ],
+   "windows": {
+    "W1": {
+     "start": 59.158,
+     "end": 89.929,
+     "pairs": 11
+    },
+    "W2": {
+     "start": 90.19,
+     "end": 121.215,
+     "pairs": 16
+    },
+    "W3": {
+     "start": 121.724,
+     "end": 128.744,
+     "pairs": 3
+    },
+    "W4": {
+     "start": 129.26,
+     "end": 195.03,
+     "pairs": 14
+    },
+    "W5": {
+     "start": 195.802,
+     "end": 205.822,
+     "pairs": 4
+    }
+   },
+   "runs": [
+    {
+     "wall": 89.931,
+     "dx": 20,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10741,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "wall": 91.211,
+     "dx": -20,
+     "ack": {
+      "dx": -20,
+      "dy": 0,
+      "target": {
+       "x": 10701,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "wall": 107.366,
+     "dx": 20,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10721,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "wall": 121.218,
+     "stop": {
+      "cleared": true,
+      "setRunning": true,
+      "clientMoving": true
+     }
+    }
+   ],
+   "field_count_failures": [],
+   "non_finite": [],
+   "registered": false,
+   "mode": 2,
+   "calcstats_version": {
+    "client": null,
+    "server": null
+   },
+   "fast_calls_start": 0,
+   "fast_failures_start": 0,
+   "sleep_hold": {
+    "user": "admin",
+    "seconds": 60,
+    "armed": true,
+    "before": false,
+    "after": true,
+    "deadlineWall": 1791199671131
+   },
+   "sleep_hold_cancel": {
+    "user": "admin",
+    "seconds": 0,
+    "armed": false,
+    "before": false,
+    "after": false
+   },
+   "sleep_off": {
+    "requested": false,
+    "before": false,
+    "setAsleep": true,
+    "after": false,
+    "held": true
+   },
+   "fast_calls_end": 0,
+   "fast_failures_end": 0,
+   "fast_lastError": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   },
+   "x4": [
+    {
+     "trial": 1,
+     "arm": "push",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms": 1791199690629.0,
+     "server_wallBefore": 1791199690628.0,
+     "server_ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199690628,
+      "wallAfter": 1791199690629,
+      "traitList": [
+       "heartyappetite"
+      ]
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199690117,
+      "firstSeenWall": 1791199690659,
+      "ticks": 33,
+      "found": true,
+      "complete": true,
+      "t": 1791199690659,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199690659.0,
+     "latency_ms": 30.0,
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 210.956,
+       "epoch_ms": 1791199692877,
+       "has": true
+      },
+      {
+       "wall": 211.514,
+       "epoch_ms": 1791199693434,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1370
+    },
+    {
+     "trial": 2,
+     "arm": "nopush",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms_bracket": [
+      1791199694715,
+      1791199695227
+     ],
+     "server_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199694616,
+      "firstSeenWall": 1791199695343,
+      "ticks": 44,
+      "found": true,
+      "complete": true,
+      "t": 1791199695343,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199695343.0,
+     "latency_ms_range": [
+      116.0,
+      628.0
+     ],
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 215.388,
+       "epoch_ms": 1791199697308,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1059
+    },
+    {
+     "trial": 3,
+     "arm": "push",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms": 1791199699131.0,
+     "server_wallBefore": 1791199699130.0,
+     "server_ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199699130,
+      "wallAfter": 1791199699131,
+      "traitList": [
+       "heartyappetite"
+      ]
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199698615,
+      "firstSeenWall": 1791199699159,
+      "ticks": 33,
+      "found": true,
+      "complete": true,
+      "t": 1791199699159,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199699159.0,
+     "latency_ms": 28.0,
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 219.016,
+       "epoch_ms": 1791199700936,
+       "has": true
+      },
+      {
+       "wall": 219.576,
+       "epoch_ms": 1791199701497,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1372
+    },
+    {
+     "trial": 4,
+     "arm": "nopush",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms_bracket": [
+      1791199702773,
+      1791199703290
+     ],
+     "server_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199702618,
+      "firstSeenWall": 1791199703343,
+      "ticks": 44,
+      "found": true,
+      "complete": true,
+      "t": 1791199703343,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199703343.0,
+     "latency_ms_range": [
+      53.0,
+      570.0
+     ],
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 223.456,
+       "epoch_ms": 1791199705377,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 812
+    },
+    {
+     "trial": 5,
+     "arm": "push",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms": 1791199706926.0,
+     "server_wallBefore": 1791199706926.0,
+     "server_ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199706926,
+      "wallAfter": 1791199706926,
+      "traitList": [
+       "heartyappetite"
+      ]
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199706618,
+      "firstSeenWall": 1791199706944,
+      "ticks": 20,
+      "found": true,
+      "complete": true,
+      "t": 1791199706944,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199706944.0,
+     "latency_ms": 18.0,
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 227.32,
+       "epoch_ms": 1791199709241,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1059
+    },
+    {
+     "trial": 6,
+     "arm": "nopush",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms_bracket": [
+      1791199710769,
+      1791199711281
+     ],
+     "server_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199710616,
+      "firstSeenWall": 1791199711343,
+      "ticks": 44,
+      "found": true,
+      "complete": true,
+      "t": 1791199711343,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199711343.0,
+     "latency_ms_range": [
+      62.0,
+      574.0
+     ],
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 230.945,
+       "epoch_ms": 1791199712865,
+       "has": true
+      },
+      {
+       "wall": 231.502,
+       "epoch_ms": 1791199713422,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1364
+    }
+   ],
+   "wall_end_body": 231.763,
+   "client_lua_error": false,
+   "logs": {
+    "server_luaerr": [
+     "ERROR: General      f:0 st:1,542,241,735> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,735> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,736> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,736> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,737> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,738> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,739> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,241,739> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,243,175> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,243,176> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,243,176> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,243,176> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,243,178> IsoPropertyType.lookupOrDefaultStr> Exception thrown"
+    ],
+    "server_nr": [
+     "LOG  : Lua          f:0 st:1,542,242,808> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:1,542,242,808> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:1,542,242,808> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:1,542,243,920> [NutritionRevamp] store attached (new world: true)",
+     "LOG  : Lua          f:0 st:1,542,246,012> [NutritionRevamp] intake: wrappers true drink true",
+     "LOG  : Lua          f:0 st:1,542,246,012> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=server mode=overlay log=2 frameworks=none hook=false limitations=3",
+     "LOG  : Lua          f:356 st:1,542,283,035> [NutritionRevamp] players: first sight of admin",
+     "LOG  : Lua          f:2153 st:1,542,462,638> [NutritionRevamp] players: admin left"
+    ],
+    "limits": {
+     "luaerr": 40,
+     "nr": 40
+    },
+    "client_luaerr": [
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown"
+    ],
+    "client_nr": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=client mode=overlay log=2 frameworks=none"
+    ]
+   },
+   "wall_end": 241.859
+  },
+  "B": {
+   "profile": "x13-residual",
+   "run_subdir": "boot-B",
+   "steps": [
+    {
+     "step": "registered",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.registered",
+     "side": "server",
+     "wall_before": 297.181,
+     "wall_after": 297.692,
+     "epoch_ms_before": 1791199779101,
+     "epoch_ms_after": 1791199779613,
+     "took": 0.511,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.registered",
+      "type": "boolean",
+      "resolved": true,
+      "value": true
+     }
+    },
+    {
+     "step": "mode",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.options.mode",
+     "side": "server",
+     "wall_before": 297.692,
+     "wall_after": 297.95,
+     "epoch_ms_before": 1791199779613,
+     "epoch_ms_after": 1791199779871,
+     "took": 0.258,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.options.mode",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "step": "tkx_c",
+     "cmd": "lua.global",
+     "args": "TKX_CalcStats.version",
+     "side": "client",
+     "wall_before": 297.95,
+     "wall_after": 298.21,
+     "epoch_ms_before": 1791199779871,
+     "epoch_ms_after": 1791199780130,
+     "took": 0.26,
+     "ack": {
+      "side": "client",
+      "name": "TKX_CalcStats.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "step": "tkx_s",
+     "cmd": "lua.global",
+     "args": "TKX_CalcStats.version",
+     "side": "server",
+     "wall_before": 298.21,
+     "wall_after": 298.465,
+     "epoch_ms_before": 1791199780130,
+     "epoch_ms_after": 1791199780385,
+     "took": 0.255,
+     "ack": {
+      "side": "server",
+      "name": "TKX_CalcStats.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "step": "calls0",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.calls",
+     "side": "server",
+     "wall_before": 298.465,
+     "wall_after": 299.222,
+     "epoch_ms_before": 1791199780385,
+     "epoch_ms_after": 1791199781142,
+     "took": 0.757,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.calls",
+      "type": "number",
+      "resolved": true,
+      "value": 51
+     }
+    },
+    {
+     "step": "fail0",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.failures",
+     "side": "server",
+     "wall_before": 299.222,
+     "wall_after": 299.729,
+     "epoch_ms_before": 1791199781142,
+     "epoch_ms_after": 1791199781650,
+     "took": 0.507,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0
+     }
+    },
+    {
+     "step": "stop_t0",
+     "cmd": "player.stop",
+     "args": "",
+     "side": "client",
+     "wall_before": 299.729,
+     "wall_after": 300.237,
+     "epoch_ms_before": 1791199781650,
+     "epoch_ms_after": 1791199782158,
+     "took": 0.508,
+     "ack": {
+      "cleared": true,
+      "setRunning": true,
+      "clientMoving": false
+     }
+    },
+    {
+     "step": "run_0",
+     "cmd": "player.run",
+     "args": "20 0",
+     "side": "client",
+     "wall_before": 331.275,
+     "wall_after": 331.531,
+     "epoch_ms_before": 1791199813195,
+     "epoch_ms_after": 1791199813451,
+     "took": 0.256,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10741,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "step": "run_again",
+     "cmd": "player.run",
+     "args": "-20 0",
+     "side": "client",
+     "wall_before": 332.296,
+     "wall_after": 332.553,
+     "epoch_ms_before": 1791199814216,
+     "epoch_ms_after": 1791199814473,
+     "took": 0.257,
+     "ack": {
+      "dx": -20,
+      "dy": 0,
+      "target": {
+       "x": 10701,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "step": "run_again",
+     "cmd": "player.run",
+     "args": "20 0",
+     "side": "client",
+     "wall_before": 348.549,
+     "wall_after": 349.055,
+     "epoch_ms_before": 1791199830469,
+     "epoch_ms_after": 1791199830976,
+     "took": 0.506,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10721,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "step": "run_stop",
+     "cmd": "player.stop",
+     "args": "",
+     "side": "client",
+     "wall_before": 362.562,
+     "wall_after": 363.069,
+     "epoch_ms_before": 1791199844483,
+     "epoch_ms_after": 1791199844990,
+     "took": 0.507,
+     "ack": {
+      "cleared": true,
+      "setRunning": true,
+      "clientMoving": true
+     }
+    },
+    {
+     "step": "sleep_hold",
+     "cmd": "player.sleep.hold",
+     "args": "admin 60",
+     "side": "server",
+     "wall_before": 369.849,
+     "wall_after": 370.61,
+     "epoch_ms_before": 1791199851769,
+     "epoch_ms_after": 1791199852531,
+     "took": 0.761,
+     "ack": {
+      "user": "admin",
+      "seconds": 60,
+      "armed": true,
+      "before": false,
+      "after": true,
+      "deadlineWall": 1791199912338
+     }
+    },
+    {
+     "step": "sleep_hold_cancel",
+     "cmd": "player.sleep.hold",
+     "args": "admin 0",
+     "side": "server",
+     "wall_before": 436.884,
+     "wall_after": 437.39,
+     "epoch_ms_before": 1791199918804,
+     "epoch_ms_after": 1791199919310,
+     "took": 0.506,
+     "ack": {
+      "user": "admin",
+      "seconds": 0,
+      "armed": false,
+      "before": false,
+      "after": false
+     }
+    },
+    {
+     "step": "sleep_off",
+     "cmd": "player.sleep",
+     "args": "admin false",
+     "side": "server",
+     "wall_before": 437.39,
+     "wall_after": 437.646,
+     "epoch_ms_before": 1791199919310,
+     "epoch_ms_after": 1791199919566,
+     "took": 0.256,
+     "ack": {
+      "requested": false,
+      "before": false,
+      "setAsleep": true,
+      "after": false,
+      "held": true
+     }
+    },
+    {
+     "step": "calls1",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.calls",
+     "side": "server",
+     "wall_before": 447.421,
+     "wall_after": 447.677,
+     "epoch_ms_before": 1791199929341,
+     "epoch_ms_after": 1791199929597,
+     "took": 0.256,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.calls",
+      "type": "number",
+      "resolved": true,
+      "value": 1536
+     }
+    },
+    {
+     "step": "fail1",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.stats.failures",
+     "side": "server",
+     "wall_before": 447.677,
+     "wall_after": 448.187,
+     "epoch_ms_before": 1791199929597,
+     "epoch_ms_after": 1791199930107,
+     "took": 0.51,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0
+     }
+    },
+    {
+     "step": "lasterr",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.server.fast.lastError",
+     "side": "server",
+     "wall_before": 448.187,
+     "wall_after": 448.693,
+     "epoch_ms_before": 1791199930107,
+     "epoch_ms_after": 1791199930613,
+     "took": 0.506,
+     "ack": {
+      "side": "server",
+      "name": "NutritionRevamp.server.fast.lastError",
+      "failedAt": "lastError",
+      "resolved": false
+     }
+    },
+    {
+     "step": "x4_1_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 449.203,
+     "wall_after": 449.71,
+     "epoch_ms_before": 1791199931124,
+     "epoch_ms_after": 1791199931631,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_1_addpush",
+     "cmd": "trait.add.push",
+     "args": "admin HeartyAppetite",
+     "side": "server",
+     "wall_before": 449.71,
+     "wall_after": 449.966,
+     "epoch_ms_before": 1791199931631,
+     "epoch_ms_after": 1791199931886,
+     "took": 0.256,
+     "ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199931736,
+      "wallAfter": 1791199931736,
+      "traitList": [
+       "heartyappetite"
+      ]
+     }
+    },
+    {
+     "step": "x4_1_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 450.732,
+     "wall_after": 451.24,
+     "epoch_ms_before": 1791199932652,
+     "epoch_ms_after": 1791199933160,
+     "took": 0.508,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_2_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 452.56,
+     "wall_after": 453.067,
+     "epoch_ms_before": 1791199934480,
+     "epoch_ms_after": 1791199934988,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_2_set",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite add",
+     "side": "server",
+     "wall_before": 453.067,
+     "wall_after": 453.574,
+     "epoch_ms_before": 1791199934988,
+     "epoch_ms_after": 1791199935495,
+     "took": 0.507,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     }
+    },
+    {
+     "step": "x4_2_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 454.344,
+     "wall_after": 455.105,
+     "epoch_ms_before": 1791199936264,
+     "epoch_ms_after": 1791199937025,
+     "took": 0.761,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_3_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 456.734,
+     "wall_after": 457.241,
+     "epoch_ms_before": 1791199938654,
+     "epoch_ms_after": 1791199939162,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_3_addpush",
+     "cmd": "trait.add.push",
+     "args": "admin HeartyAppetite",
+     "side": "server",
+     "wall_before": 457.241,
+     "wall_after": 457.496,
+     "epoch_ms_before": 1791199939162,
+     "epoch_ms_after": 1791199939417,
+     "took": 0.255,
+     "ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199939334,
+      "wallAfter": 1791199939334,
+      "traitList": [
+       "heartyappetite"
+      ]
+     }
+    },
+    {
+     "step": "x4_3_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 458.265,
+     "wall_after": 458.772,
+     "epoch_ms_before": 1791199940186,
+     "epoch_ms_after": 1791199940693,
+     "took": 0.507,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_4_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 460.094,
+     "wall_after": 460.598,
+     "epoch_ms_before": 1791199942015,
+     "epoch_ms_after": 1791199942518,
+     "took": 0.504,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_4_set",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite add",
+     "side": "server",
+     "wall_before": 460.598,
+     "wall_after": 461.361,
+     "epoch_ms_before": 1791199942518,
+     "epoch_ms_after": 1791199943281,
+     "took": 0.763,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     }
+    },
+    {
+     "step": "x4_4_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 462.637,
+     "wall_after": 463.148,
+     "epoch_ms_before": 1791199944557,
+     "epoch_ms_after": 1791199945069,
+     "took": 0.511,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_5_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 465.036,
+     "wall_after": 465.543,
+     "epoch_ms_before": 1791199946957,
+     "epoch_ms_after": 1791199947463,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_5_addpush",
+     "cmd": "trait.add.push",
+     "args": "admin HeartyAppetite",
+     "side": "server",
+     "wall_before": 465.543,
+     "wall_after": 466.306,
+     "epoch_ms_before": 1791199947463,
+     "epoch_ms_after": 1791199948226,
+     "took": 0.763,
+     "ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199948038,
+      "wallAfter": 1791199948038,
+      "traitList": [
+       "heartyappetite"
+      ]
+     }
+    },
+    {
+     "step": "x4_5_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 466.828,
+     "wall_after": 467.588,
+     "epoch_ms_before": 1791199948748,
+     "epoch_ms_after": 1791199949508,
+     "took": 0.76,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    },
+    {
+     "step": "x4_6_watch",
+     "cmd": "trait.watch",
+     "args": "HeartyAppetite 8",
+     "side": "client",
+     "wall_before": 468.66,
+     "wall_after": 469.167,
+     "epoch_ms_before": 1791199950581,
+     "epoch_ms_after": 1791199951087,
+     "took": 0.507,
+     "ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     }
+    },
+    {
+     "step": "x4_6_set",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite add",
+     "side": "server",
+     "wall_before": 469.167,
+     "wall_after": 469.427,
+     "epoch_ms_before": 1791199951087,
+     "epoch_ms_after": 1791199951348,
+     "took": 0.26,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     }
+    },
+    {
+     "step": "x4_6_remove",
+     "cmd": "trait.set",
+     "args": "admin HeartyAppetite remove",
+     "side": "server",
+     "wall_before": 470.703,
+     "wall_after": 471.209,
+     "epoch_ms_before": 1791199952623,
+     "epoch_ms_after": 1791199953130,
+     "took": 0.506,
+     "ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     }
+    }
+   ],
+   "sandbox": {
+    "DayLength": 1,
+    "NR": {
+     "Mode": 1
+    }
+   },
+   "mods": [
+    "PZTestKit",
+    "NutritionRevamp",
+    "TKX_CalcStats"
+   ],
+   "doctor_clean": true,
+   "doctor": [
+    "ok   PZ java processes: none",
+    "ok   ports 27261/27262/27015: free",
+    "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+    "ok   workshop index: 233 mods",
+    "ok   pytest available"
+   ],
+   "build": "42.20.4",
+   "session_ready_wall": 294.894,
+   "verify": [
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TK.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "NutritionRevamp.version",
+     "expect": "\"resolved\": true",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0"
+     }
+    },
+    {
+     "side": "server",
+     "cmd": "lua.global",
+     "args": "TKX_CalcStats.version",
+     "expect": "\"value\": 1",
+     "ok": true,
+     "got": {
+      "side": "server",
+      "name": "TKX_CalcStats.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "side": "client",
+     "cmd": "lua.global",
+     "args": "TKX_CalcStats.version",
+     "expect": "\"value\": 1",
+     "ok": true,
+     "got": {
+      "side": "client",
+      "name": "TKX_CalcStats.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "mods_not_found": {
+    "server": [],
+    "client": []
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "pairs": [
+    {
+     "tag": "W10",
+     "window": "W1",
+     "client_wall": 300.237,
+     "server_wall": 300.746,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.04439368098974228,
+      "thirst": 0.00441415049135685,
+      "fatigue": 9.766159928403795e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.239321708679199,
+      "mult": 0.7999440431594849,
+      "traitList": {},
+      "calories": 790.6271362304688
+     },
+     "server": {
+      "hunger": 0.055640868842601776,
+      "thirst": 0.005324802361428738,
+      "fatigue": 9.853845403995365e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.2501354217529297,
+      "mult": 4.754396915435791,
+      "traitList": {},
+      "calories": 788.8054809570312
+     }
+    },
+    {
+     "tag": "W11",
+     "window": "W1",
+     "client_wall": 303.237,
+     "server_wall": 303.745,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.07194145023822784,
+      "thirst": 0.006697465665638447,
+      "fatigue": 9.91319611785002e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.3193159103393555,
+      "mult": 0.8000448346138,
+      "traitList": {},
+      "calories": 786.0593872070312
+     },
+     "server": {
+      "hunger": 0.08298201113939285,
+      "thirst": 0.007769348565489054,
+      "fatigue": 9.938111179508269e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.335015296936035,
+      "mult": 4.790064334869385,
+      "traitList": {},
+      "calories": 783.9146118164062
+     }
+    },
+    {
+     "tag": "W12",
+     "window": "W1",
+     "client_wall": 306.238,
+     "server_wall": 306.746,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.09806481003761292,
+      "thirst": 0.008994480594992638,
+      "fatigue": 9.948634397005662e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.3993101119995117,
+      "mult": 0.8000543713569641,
+      "traitList": {},
+      "calories": 781.463134765625
+     },
+     "server": {
+      "hunger": 0.10881403833627701,
+      "thirst": 0.010144543834030628,
+      "fatigue": 9.965565550373867e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.4174909591674805,
+      "mult": 4.797397136688232,
+      "traitList": {},
+      "calories": 779.1615600585938
+     }
+    },
+    {
+     "tag": "W13",
+     "window": "W1",
+     "client_wall": 309.239,
+     "server_wall": 309.746,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.12430505454540253,
+      "thirst": 0.011294937692582607,
+      "fatigue": 9.95974987745285e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.479304313659668,
+      "mult": 0.8002320528030396,
+      "traitList": {},
+      "calories": 776.8590698242188
+     },
+     "server": {
+      "hunger": 0.13395445048809052,
+      "thirst": 0.012522618286311626,
+      "fatigue": 9.967125515686348e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.500062942504883,
+      "mult": 4.791452407836914,
+      "traitList": {},
+      "calories": 774.4015502929688
+     }
+    },
+    {
+     "tag": "W14",
+     "window": "W1",
+     "client_wall": 312.24,
+     "server_wall": 312.749,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.14901436865329742,
+      "thirst": 0.013596836477518082,
+      "fatigue": 9.98983668978326e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.5582895278930664,
+      "mult": 0.7999776005744934,
+      "traitList": {},
+      "calories": 772.2508544921875
+     },
+     "server": {
+      "hunger": 0.15371648967266083,
+      "thirst": 0.014517607167363167,
+      "fatigue": 9.99977855826728e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.569333076477051,
+      "mult": 4.801066875457764,
+      "traitList": {},
+      "calories": 770.4071655273438
+     }
+    },
+    {
+     "tag": "W15",
+     "window": "W1",
+     "client_wall": 315.24,
+     "server_wall": 315.748,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.1684371531009674,
+      "thirst": 0.015899166464805603,
+      "fatigue": 0.00010018469038186595,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.6382837295532227,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 767.6405029296875
+     },
+     "server": {
+      "hunger": 0.17835991084575653,
+      "thirst": 0.016896774992346764,
+      "fatigue": 0.0001001267519313842,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.65194034576416,
+      "mult": 4.799637794494629,
+      "traitList": {},
+      "calories": 765.6422729492188
+     }
+    },
+    {
+     "tag": "W16",
+     "window": "W1",
+     "client_wall": 318.24,
+     "server_wall": 318.75,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.1919073462486267,
+      "thirst": 0.018201526254415512,
+      "fatigue": 0.00010005993681261316,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.718277931213379,
+      "mult": 0.8000448346138,
+      "traitList": {},
+      "calories": 763.0285034179688
+     },
+     "server": {
+      "hunger": 0.20155057311058044,
+      "thirst": 0.019276369363069534,
+      "fatigue": 0.00010025061055785045,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.734564781188965,
+      "mult": 4.797715187072754,
+      "traitList": {},
+      "calories": 760.8748779296875
+     }
+    },
+    {
+     "tag": "W17",
+     "window": "W1",
+     "client_wall": 321.241,
+     "server_wall": 321.747,
+     "skew_s": 0.506,
+     "client": {
+      "hunger": 0.2154407501220703,
+      "thirst": 0.020504171028733253,
+      "fatigue": 0.00010036016465164721,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.798095703125,
+      "mult": 0.7999680042266846,
+      "traitList": {},
+      "calories": 758.4144287109375
+     },
+     "server": {
+      "hunger": 0.22408975660800934,
+      "thirst": 0.021656062453985214,
+      "fatigue": 0.00010055792517960072,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.817193031311035,
+      "mult": 4.804452419281006,
+      "traitList": {},
+      "calories": 756.1058349609375
+     }
+    },
+    {
+     "tag": "W18",
+     "window": "W1",
+     "client_wall": 324.241,
+     "server_wall": 324.749,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.2375815361738205,
+      "thirst": 0.02280624397099018,
+      "fatigue": 0.00010035912418970838,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.8780899047851562,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 753.8001098632812
+     },
+     "server": {
+      "hunger": 0.2459777444601059,
+      "thirst": 0.024110106751322746,
+      "fatigue": 0.00010060279601020738,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.902400016784668,
+      "mult": 4.7984113693237305,
+      "traitList": {},
+      "calories": 751.1859741210938
+     }
+    },
+    {
+     "tag": "W19",
+     "window": "W1",
+     "client_wall": 327.242,
+     "server_wall": 327.753,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.259091854095459,
+      "thirst": 0.025107771158218384,
+      "fatigue": 0.00010062890942208469,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.9580841064453125,
+      "mult": 0.8001263737678528,
+      "traitList": {},
+      "calories": 749.1854858398438
+     },
+     "server": {
+      "hunger": 0.2631847560405731,
+      "thirst": 0.026028502732515335,
+      "fatigue": 0.00010060986096505076,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 3.969010353088379,
+      "mult": 4.792442321777344,
+      "traitList": {},
+      "calories": 747.3389892578125
+     }
+    },
+    {
+     "tag": "W110",
+     "window": "W1",
+     "client_wall": 330.243,
+     "server_wall": 330.754,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.276001513004303,
+      "thirst": 0.027410155162215233,
+      "fatigue": 0.00010081574146170169,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.0378618240356445,
+      "mult": 0.7998384237289429,
+      "traitList": {},
+      "calories": 744.5677490234375
+     },
+     "server": {
+      "hunger": 0.28464004397392273,
+      "thirst": 0.0284075066447258,
+      "fatigue": 0.00010084758105222136,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.051612854003906,
+      "mult": 4.796103000640869,
+      "traitList": {},
+      "calories": 742.5668334960938
+     }
+    },
+    {
+     "tag": "W20",
+     "window": "W2",
+     "client_wall": 331.531,
+     "server_wall": 332.04,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.2925238609313965,
+      "thirst": 0.028944866731762886,
+      "fatigue": 0.00010099354403791949,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.077859878540039,
+      "mult": 0.7999536395072937,
+      "traitList": {},
+      "calories": 741.4887084960938
+     },
+     "server": {
+      "hunger": 0.2925238609313965,
+      "thirst": 0.029328366741538048,
+      "fatigue": 0.0001008262624964118,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.083586692810059,
+      "mult": 4.792184829711914,
+      "traitList": {},
+      "calories": 740.7192993164062
+     }
+    },
+    {
+     "tag": "W21",
+     "window": "W2",
+     "client_wall": 333.531,
+     "server_wall": 334.043,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.3048314154148102,
+      "thirst": 0.030479760840535164,
+      "fatigue": 0.00010092566662933677,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.131190299987793,
+      "mult": 0.7999247908592224,
+      "traitList": {},
+      "calories": 733.0601806640625
+     },
+     "server": {
+      "hunger": 0.3048314154148102,
+      "thirst": 0.03078683279454708,
+      "fatigue": 0.00010104495595442131,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.134227752685547,
+      "mult": 4.798652648925781,
+      "traitList": {},
+      "calories": 730.0662231445312
+     }
+    },
+    {
+     "tag": "W22",
+     "window": "W2",
+     "client_wall": 335.532,
+     "server_wall": 336.039,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.3169260025024414,
+      "thirst": 0.03201494738459587,
+      "fatigue": 0.00010081991058541462,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.184520721435547,
+      "mult": 0.8000543713569641,
+      "traitList": {},
+      "calories": 718.0921020507812
+     },
+     "server": {
+      "hunger": 0.32069918513298035,
+      "thirst": 0.032705456018447876,
+      "fatigue": 0.000100881872640457,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.200847625732422,
+      "mult": 4.788197040557861,
+      "traitList": {},
+      "calories": 711.3595581054688
+     }
+    },
+    {
+     "tag": "W23",
+     "window": "W2",
+     "client_wall": 337.532,
+     "server_wall": 338.045,
+     "skew_s": 0.513,
+     "client": {
+      "hunger": 0.32817962765693665,
+      "thirst": 0.03354822099208832,
+      "fatigue": 0.00010064733942272142,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.237850189208984,
+      "mult": 0.8000399470329285,
+      "traitList": {},
+      "calories": 703.142578125
+     },
+     "server": {
+      "hunger": 0.33250051736831665,
+      "thirst": 0.034160878509283066,
+      "fatigue": 0.00010085192479891703,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.2513837814331055,
+      "mult": 4.786179542541504,
+      "traitList": {},
+      "calories": 697.169189453125
+     }
+    },
+    {
+     "tag": "W24",
+     "window": "W2",
+     "client_wall": 339.533,
+     "server_wall": 340.047,
+     "skew_s": 0.514,
+     "client": {
+      "hunger": 0.3398479223251343,
+      "thirst": 0.035081274807453156,
+      "fatigue": 0.00010098073107656091,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.291179656982422,
+      "mult": 0.8000208139419556,
+      "traitList": {},
+      "calories": 688.1953125
+     },
+     "server": {
+      "hunger": 0.3434925377368927,
+      "thirst": 0.035617779940366745,
+      "fatigue": 0.00010085547546623275,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.301972389221191,
+      "mult": 4.787390232086182,
+      "traitList": {},
+      "calories": 682.9644775390625
+     }
+    },
+    {
+     "tag": "W25",
+     "window": "W2",
+     "client_wall": 341.533,
+     "server_wall": 342.046,
+     "skew_s": 0.513,
+     "client": {
+      "hunger": 0.35490086674690247,
+      "thirst": 0.036614883691072464,
+      "fatigue": 0.00010115170880453661,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.344199180603027,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 673.24267578125
+     },
+     "server": {
+      "hunger": 0.35490086674690247,
+      "thirst": 0.03707488998770714,
+      "fatigue": 0.00010089455463457853,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.352564811706543,
+      "mult": 4.7916789054870605,
+      "traitList": {},
+      "calories": 668.7576904296875
+     }
+    },
+    {
+     "tag": "W26",
+     "window": "W2",
+     "client_wall": 343.533,
+     "server_wall": 344.043,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.3661157488822937,
+      "thirst": 0.03814886510372162,
+      "fatigue": 0.00010086871770909056,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.397528648376465,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 658.2864990234375
+     },
+     "server": {
+      "hunger": 0.3661157488822937,
+      "thirst": 0.03845544904470444,
+      "fatigue": 0.00010078735795104876,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.400501251220703,
+      "mult": 4.789895534515381,
+      "traitList": {},
+      "calories": 655.2973022460938
+     }
+    },
+    {
+     "tag": "W27",
+     "window": "W2",
+     "client_wall": 345.533,
+     "server_wall": 346.044,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.3771366775035858,
+      "thirst": 0.03968305513262749,
+      "fatigue": 0.000100874894997105,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.450858116149902,
+      "mult": 0.8000736236572266,
+      "traitList": {},
+      "calories": 643.3282470703125
+     },
+     "server": {
+      "hunger": 0.3805766701698303,
+      "thirst": 0.040373295545578,
+      "fatigue": 0.00010088247654493898,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.467092514038086,
+      "mult": 4.800185680389404,
+      "traitList": {},
+      "calories": 636.598388671875
+     }
+    },
+    {
+     "tag": "W28",
+     "window": "W2",
+     "client_wall": 347.533,
+     "server_wall": 348.042,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.3879678249359131,
+      "thirst": 0.041217315942049026,
+      "fatigue": 0.00010058891348307952,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.50418758392334,
+      "mult": 0.8001168370246887,
+      "traitList": {},
+      "calories": 628.3692016601562
+     },
+     "server": {
+      "hunger": 0.3913477957248688,
+      "thirst": 0.0418308787047863,
+      "fatigue": 0.00010053989535663277,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.517704963684082,
+      "mult": 4.788665771484375,
+      "traitList": {},
+      "calories": 626.5435791015625
+     }
+    },
+    {
+     "tag": "W29",
+     "window": "W2",
+     "client_wall": 349.533,
+     "server_wall": 350.041,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.3980512320995331,
+      "thirst": 0.042750608175992966,
+      "fatigue": 0.00010055091115646064,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.557517051696777,
+      "mult": 0.8000063896179199,
+      "traitList": {},
+      "calories": 622.9190673828125
+     },
+     "server": {
+      "hunger": 0.40192273259162903,
+      "thirst": 0.043287456035614014,
+      "fatigue": 0.00010054942686110735,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.5682783126831055,
+      "mult": 4.7933502197265625,
+      "traitList": {},
+      "calories": 617.6847534179688
+     }
+    },
+    {
+     "tag": "W210",
+     "window": "W2",
+     "client_wall": 351.534,
+     "server_wall": 352.045,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.41177505254745483,
+      "thirst": 0.0442843958735466,
+      "fatigue": 0.00010049872798845172,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.610503196716309,
+      "mult": 0.8000496029853821,
+      "traitList": {},
+      "calories": 607.9646606445312
+     },
+     "server": {
+      "hunger": 0.41177505254745483,
+      "thirst": 0.04474440962076187,
+      "fatigue": 0.00010034857405116782,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.618865966796875,
+      "mult": 4.788152694702148,
+      "traitList": {},
+      "calories": 603.4795532226562
+     }
+    },
+    {
+     "tag": "W211",
+     "window": "W2",
+     "client_wall": 353.534,
+     "server_wall": 354.044,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.4219987094402313,
+      "thirst": 0.04581819847226143,
+      "fatigue": 0.0001003986835712567,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.6638336181640625,
+      "mult": 0.8000831604003906,
+      "traitList": {},
+      "calories": 593.0101318359375
+     },
+     "server": {
+      "hunger": 0.4219987094402313,
+      "thirst": 0.04612504690885544,
+      "fatigue": 0.00010039543121820316,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.666804313659668,
+      "mult": 4.794667720794678,
+      "traitList": {},
+      "calories": 590.0183715820312
+     }
+    },
+    {
+     "tag": "W212",
+     "window": "W2",
+     "client_wall": 355.535,
+     "server_wall": 356.043,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.4320521950721741,
+      "thirst": 0.04735294356942177,
+      "fatigue": 0.00010028866381617263,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.7171630859375,
+      "mult": 0.8000448346138,
+      "traitList": {},
+      "calories": 578.0464477539062
+     },
+     "server": {
+      "hunger": 0.435189813375473,
+      "thirst": 0.048043541610240936,
+      "fatigue": 0.00010020991612691432,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.7334184646606445,
+      "mult": 4.7917585372924805,
+      "traitList": {},
+      "calories": 571.3131103515625
+     }
+    },
+    {
+     "tag": "W213",
+     "window": "W2",
+     "client_wall": 357.535,
+     "server_wall": 358.043,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.4419320821762085,
+      "thirst": 0.04888804629445076,
+      "fatigue": 0.00010033542639575899,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.7704925537109375,
+      "mult": 0.8000208139419556,
+      "traitList": {},
+      "calories": 563.0792236328125
+     },
+     "server": {
+      "hunger": 0.4450147747993469,
+      "thirst": 0.049501851201057434,
+      "fatigue": 0.00010021530033554882,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.784054756164551,
+      "mult": 4.796443462371826,
+      "traitList": {},
+      "calories": 557.0946655273438
+     }
+    },
+    {
+     "tag": "W214",
+     "window": "W2",
+     "client_wall": 359.536,
+     "server_wall": 360.044,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.45113059878349304,
+      "thirst": 0.050422996282577515,
+      "fatigue": 0.00010032836144091561,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.823822021484375,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 548.1134033203125
+     },
+     "server": {
+      "hunger": 0.4546689987182617,
+      "thirst": 0.05096022039651871,
+      "fatigue": 0.00010014219878939912,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.83469295501709,
+      "mult": 4.797213554382324,
+      "traitList": {},
+      "calories": 542.87548828125
+     }
+    },
+    {
+     "tag": "W215",
+     "window": "W2",
+     "client_wall": 361.537,
+     "server_wall": 362.048,
+     "skew_s": 0.511,
+     "client": {
+      "hunger": 0.4606793224811554,
+      "thirst": 0.051957324147224426,
+      "fatigue": 0.00010008505341829732,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.876913070678711,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 533.1536254882812
+     },
+     "server": {
+      "hunger": 0.4641515612602234,
+      "thirst": 0.0524173229932785,
+      "fatigue": 0.0001000849370029755,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.885289192199707,
+      "mult": 4.798606872558594,
+      "traitList": {},
+      "calories": 528.6686401367188
+     }
+    },
+    {
+     "tag": "W30",
+     "window": "W3",
+     "client_wall": 363.069,
+     "server_wall": 363.576,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.467109739780426,
+      "thirst": 0.05272424593567848,
+      "fatigue": 0.00010002728959079832,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.916910171508789,
+      "mult": 0.8000496029853821,
+      "traitList": {},
+      "calories": 525.6761474609375
+     },
+     "server": {
+      "hunger": 0.4729793071746826,
+      "thirst": 0.05387462303042412,
+      "fatigue": 9.994706488214433e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": true,
+      "worldAge": 4.935891151428223,
+      "mult": 4.796217441558838,
+      "traitList": {},
+      "calories": 514.4599609375
+     }
+    },
+    {
+     "tag": "W31",
+     "window": "W3",
+     "client_wall": 366.07,
+     "server_wall": 366.58,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.482139527797699,
+      "thirst": 0.05502472072839737,
+      "fatigue": 9.977106674341485e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 4.996904373168945,
+      "mult": 0.8000016212463379,
+      "traitList": {},
+      "calories": 507.4026184082031
+     },
+     "server": {
+      "hunger": 0.4849990904331207,
+      "thirst": 0.055792186409235,
+      "fatigue": 9.983927884604782e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.002471923828125,
+      "mult": 4.795785427093506,
+      "traitList": {},
+      "calories": 505.8658447265625
+     }
+    },
+    {
+     "tag": "W32",
+     "window": "W3",
+     "client_wall": 369.071,
+     "server_wall": 369.583,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.4967505633831024,
+      "thirst": 0.05732656642794609,
+      "fatigue": 9.982645133277401e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.076898574829102,
+      "mult": 0.7999680042266846,
+      "traitList": {},
+      "calories": 502.793701171875
+     },
+     "server": {
+      "hunger": 0.49999403953552246,
+      "thirst": 0.058170974254608154,
+      "fatigue": 9.985745418816805e-05,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.0850677490234375,
+      "mult": 4.80064058303833,
+      "traitList": {},
+      "calories": 501.10321044921875
+     }
+    },
+    {
+     "tag": "W40",
+     "window": "W4",
+     "client_wall": 370.61,
+     "server_wall": 371.119,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.5055053234100342,
+      "thirst": 0.05866021662950516,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.116610527038574,
+      "mult": 0.8001216053962708,
+      "traitList": {},
+      "calories": 500.0950012207031
+     },
+     "server": {
+      "hunger": 0.5082358717918396,
+      "thirst": 0.05880395695567131,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.130352020263672,
+      "mult": 4.798360347747803,
+      "traitList": {},
+      "calories": 499.74005126953125
+     }
+    },
+    {
+     "tag": "W41",
+     "window": "W4",
+     "client_wall": 375.61,
+     "server_wall": 376.123,
+     "skew_s": 0.513,
+     "client": {
+      "hunger": 0.5278097987174988,
+      "thirst": 0.059676699340343475,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.249934196472168,
+      "mult": 0.8000975847244263,
+      "traitList": {},
+      "calories": 497.6571350097656
+     },
+     "server": {
+      "hunger": 0.5304198265075684,
+      "thirst": 0.05983974039554596,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.268880844116211,
+      "mult": 4.800086975097656,
+      "traitList": {},
+      "calories": 497.2442932128906
+     }
+    },
+    {
+     "tag": "W42",
+     "window": "W4",
+     "client_wall": 380.61,
+     "server_wall": 381.118,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.5491233468055725,
+      "thirst": 0.06062643602490425,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.383052825927734,
+      "mult": 0.8000496029853821,
+      "traitList": {},
+      "calories": 495.3431396484375
+     },
+     "server": {
+      "hunger": 0.5516162514686584,
+      "thirst": 0.060770440846681595,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.396833419799805,
+      "mult": 4.791262626647949,
+      "traitList": {},
+      "calories": 494.9876403808594
+     }
+    },
+    {
+     "tag": "W43",
+     "window": "W4",
+     "client_wall": 385.61,
+     "server_wall": 386.123,
+     "skew_s": 0.513,
+     "client": {
+      "hunger": 0.5694723725318909,
+      "thirst": 0.0616435706615448,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.516376495361328,
+      "mult": 0.8000304102897644,
+      "traitList": {},
+      "calories": 492.9039306640625
+     },
+     "server": {
+      "hunger": 0.5718522071838379,
+      "thirst": 0.061806779354810715,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.535391807556152,
+      "mult": 4.7917656898498535,
+      "traitList": {},
+      "calories": 492.4908447265625
+     }
+    },
+    {
+     "tag": "W44",
+     "window": "W4",
+     "client_wall": 390.611,
+     "server_wall": 391.12,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.5889021754264832,
+      "thirst": 0.0625934973359108,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.649553298950195,
+      "mult": 0.8000351786613464,
+      "traitList": {},
+      "calories": 490.5893859863281
+     },
+     "server": {
+      "hunger": 0.5911751985549927,
+      "thirst": 0.06273746490478516,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.663324356079102,
+      "mult": 4.800205707550049,
+      "traitList": {},
+      "calories": 490.2339172363281
+     }
+    },
+    {
+     "tag": "W45",
+     "window": "W4",
+     "client_wall": 395.611,
+     "server_wall": 396.12,
+     "skew_s": 0.509,
+     "client": {
+      "hunger": 0.6074560284614563,
+      "thirst": 0.0636107325553894,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.782876968383789,
+      "mult": 0.8000208139419556,
+      "traitList": {},
+      "calories": 488.14923095703125
+     },
+     "server": {
+      "hunger": 0.6099865436553955,
+      "thirst": 0.06377381086349487,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.801914215087891,
+      "mult": 4.79406213760376,
+      "traitList": {},
+      "calories": 487.73614501953125
+     }
+    },
+    {
+     "tag": "W46",
+     "window": "W4",
+     "client_wall": 400.611,
+     "server_wall": 401.119,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.6251716613769531,
+      "thirst": 0.064560666680336,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.91605281829834,
+      "mult": 0.8000543713569641,
+      "traitList": {},
+      "calories": 485.8336181640625
+     },
+     "server": {
+      "hunger": 0.6275863647460938,
+      "thirst": 0.06477164477109909,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 5.929812431335449,
+      "mult": 4.793786525726318,
+      "traitList": {},
+      "calories": 485.3533935546875
+     }
+    },
+    {
+     "tag": "W47",
+     "window": "W4",
+     "client_wall": 405.611,
+     "server_wall": 406.121,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.6420801877975464,
+      "thirst": 0.06557699292898178,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.049376487731934,
+      "mult": 0.7999824285507202,
+      "traitList": {},
+      "calories": 483.3939208984375
+     },
+     "server": {
+      "hunger": 0.6443853378295898,
+      "thirst": 0.0657399445772171,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.068324089050293,
+      "mult": 4.797399520874023,
+      "traitList": {},
+      "calories": 482.9809265136719
+     }
+    },
+    {
+     "tag": "W48",
+     "window": "W4",
+     "client_wall": 410.611,
+     "server_wall": 411.118,
+     "skew_s": 0.507,
+     "client": {
+      "hunger": 0.6582306027412415,
+      "thirst": 0.06652671843767166,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.182466506958008,
+      "mult": 0.8000543713569641,
+      "traitList": {},
+      "calories": 481.07720947265625
+     },
+     "server": {
+      "hunger": 0.6604328751564026,
+      "thirst": 0.06667059659957886,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.196237564086914,
+      "mult": 4.803436279296875,
+      "traitList": {},
+      "calories": 480.7214050292969
+     }
+    },
+    {
+     "tag": "W49",
+     "window": "W4",
+     "client_wall": 415.611,
+     "server_wall": 416.123,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.6736557483673096,
+      "thirst": 0.06754353642463684,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.315790176391602,
+      "mult": 0.7999967932701111,
+      "traitList": {},
+      "calories": 478.6341552734375
+     },
+     "server": {
+      "hunger": 0.6757577657699585,
+      "thirst": 0.06770659238100052,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.3348188400268555,
+      "mult": 4.797565937042236,
+      "traitList": {},
+      "calories": 478.2204895019531
+     }
+    },
+    {
+     "tag": "W410",
+     "window": "W4",
+     "client_wall": 420.612,
+     "server_wall": 421.118,
+     "skew_s": 0.506,
+     "client": {
+      "hunger": 0.6883834004402161,
+      "thirst": 0.06849358230829239,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.448969841003418,
+      "mult": 0.8000160455703735,
+      "traitList": {},
+      "calories": 476.31427001953125
+     },
+     "server": {
+      "hunger": 0.6903918981552124,
+      "thirst": 0.06870478391647339,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.462743759155273,
+      "mult": 4.792830944061279,
+      "traitList": {},
+      "calories": 475.8326721191406
+     }
+    },
+    {
+     "tag": "W411",
+     "window": "W4",
+     "client_wall": 425.612,
+     "server_wall": 426.122,
+     "skew_s": 0.51,
+     "client": {
+      "hunger": 0.702720046043396,
+      "thirst": 0.0695103108882904,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.582293510437012,
+      "mult": 0.8000304102897644,
+      "traitList": {},
+      "calories": 473.8689270019531
+     },
+     "server": {
+      "hunger": 0.7043631672859192,
+      "thirst": 0.06967342644929886,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": true,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.6013031005859375,
+      "mult": 4.801019191741943,
+      "traitList": {},
+      "calories": 473.4547119140625
+     }
+    },
+    {
+     "tag": "W412",
+     "window": "W4",
+     "client_wall": 430.612,
+     "server_wall": 431.124,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.7161355018615723,
+      "thirst": 0.07046028226613998,
+      "fatigue": 0,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.7156171798706055,
+      "mult": 0.8000208139419556,
+      "traitList": {},
+      "calories": 471.5466003417969
+     },
+     "server": {
+      "hunger": 0.7177039980888367,
+      "thirst": 0.07107438892126083,
+      "fatigue": 0.00010162084072362632,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.729213714599609,
+      "mult": 4.795690059661865,
+      "traitList": {},
+      "calories": 470.312744140625
+     }
+    },
+    {
+     "tag": "W413",
+     "window": "W4",
+     "client_wall": 435.612,
+     "server_wall": 436.12,
+     "skew_s": 0.508,
+     "client": {
+      "hunger": 0.7289472222328186,
+      "thirst": 0.07429827749729156,
+      "fatigue": 0.00010183814447373152,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.848760604858398,
+      "mult": 0.800011157989502,
+      "traitList": {},
+      "calories": 463.8331298828125
+     },
+     "server": {
+      "hunger": 0.7304453253746033,
+      "thirst": 0.07506581395864487,
+      "fatigue": 0.0001019119008560665,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.867802619934082,
+      "mult": 4.7937331199646,
+      "traitList": {},
+      "calories": 462.2900085449219
+     }
+    },
+    {
+     "tag": "W50",
+     "window": "W5",
+     "client_wall": 437.646,
+     "server_wall": 438.152,
+     "skew_s": 0.506,
+     "client": {
+      "hunger": 0.7334176898002625,
+      "thirst": 0.07583388686180115,
+      "fatigue": 0.00010187307634623721,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.902090072631836,
+      "mult": 0.8000736236572266,
+      "traitList": {},
+      "calories": 460.7455139160156
+     },
+     "server": {
+      "hunger": 0.7351353168487549,
+      "thirst": 0.07652419060468674,
+      "fatigue": 0.00010216594091616571,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.9184417724609375,
+      "mult": 4.799883842468262,
+      "traitList": {},
+      "calories": 459.3572998046875
+     }
+    },
+    {
+     "tag": "W51",
+     "window": "W5",
+     "client_wall": 440.646,
+     "server_wall": 441.158,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.7411772608757019,
+      "thirst": 0.07813466340303421,
+      "fatigue": 0.00010212440975010395,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.982085227966309,
+      "mult": 0.8000255823135376,
+      "traitList": {},
+      "calories": 456.1179504394531
+     },
+     "server": {
+      "hunger": 0.7426063418388367,
+      "thirst": 0.07874833047389984,
+      "fatigue": 0.0001022132855723612,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 6.995669364929199,
+      "mult": 4.793247699737549,
+      "traitList": {},
+      "calories": 454.8833923339844
+     }
+    },
+    {
+     "tag": "W52",
+     "window": "W5",
+     "client_wall": 443.647,
+     "server_wall": 444.159,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.7484791278839111,
+      "thirst": 0.08043618500232697,
+      "fatigue": 0.00010238152026431635,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.061896324157715,
+      "mult": 0.8000255823135376,
+      "traitList": {},
+      "calories": 451.4873352050781
+     },
+     "server": {
+      "hunger": 0.7484791278839111,
+      "thirst": 0.0808199942111969,
+      "fatigue": 0.00010242353891953826,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.067600250244141,
+      "mult": 4.79484748840332,
+      "traitList": {},
+      "calories": 450.7149353027344
+     }
+    },
+    {
+     "tag": "W53",
+     "window": "W5",
+     "client_wall": 446.647,
+     "server_wall": 447.159,
+     "skew_s": 0.512,
+     "client": {
+      "hunger": 0.7542194128036499,
+      "thirst": 0.08273882418870926,
+      "fatigue": 0.00010282563744112849,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.141890525817871,
+      "mult": 0.8000208139419556,
+      "traitList": {},
+      "calories": 446.8525390625
+     },
+     "server": {
+      "hunger": 0.7555789351463318,
+      "thirst": 0.0831993892788887,
+      "fatigue": 0.00010253922664560378,
+      "endurance": 1,
+      "asleep": false,
+      "running": false,
+      "sprinting": false,
+      "moving": false,
+      "worldAge": 7.15022087097168,
+      "mult": 4.790822982788086,
+      "traitList": {},
+      "calories": 445.9253234863281
+     }
+    }
+   ],
+   "windows": {
+    "W1": {
+     "start": 300.237,
+     "end": 331.267,
+     "pairs": 11
+    },
+    "W2": {
+     "start": 331.531,
+     "end": 362.556,
+     "pairs": 16
+    },
+    "W3": {
+     "start": 363.069,
+     "end": 369.845,
+     "pairs": 3
+    },
+    "W4": {
+     "start": 370.61,
+     "end": 436.879,
+     "pairs": 14
+    },
+    "W5": {
+     "start": 437.646,
+     "end": 447.416,
+     "pairs": 4
+    }
+   },
+   "runs": [
+    {
+     "wall": 331.275,
+     "dx": 20,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10741,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "wall": 332.296,
+     "dx": -20,
+     "ack": {
+      "dx": -20,
+      "dy": 0,
+      "target": {
+       "x": 10701,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "wall": 348.549,
+     "dx": 20,
+     "ack": {
+      "dx": 20,
+      "dy": 0,
+      "target": {
+       "x": 10721,
+       "y": 10630,
+       "z": 0
+      },
+      "setRunning": true,
+      "setForceRun": true,
+      "setPathfindRunning": true,
+      "queued": true,
+      "clientSprinting": false,
+      "clientMoving": false,
+      "clientRunning": true
+     }
+    },
+    {
+     "wall": 362.562,
+     "stop": {
+      "cleared": true,
+      "setRunning": true,
+      "clientMoving": true
+     }
+    }
+   ],
+   "field_count_failures": [],
+   "non_finite": [],
+   "registered": true,
+   "mode": 1,
+   "calcstats_version": {
+    "client": 1,
+    "server": 1
+   },
+   "fast_calls_start": 51,
+   "fast_failures_start": 0,
+   "sleep_hold": {
+    "user": "admin",
+    "seconds": 60,
+    "armed": true,
+    "before": false,
+    "after": true,
+    "deadlineWall": 1791199912338
+   },
+   "sleep_hold_cancel": {
+    "user": "admin",
+    "seconds": 0,
+    "armed": false,
+    "before": false,
+    "after": false
+   },
+   "sleep_off": {
+    "requested": false,
+    "before": false,
+    "setAsleep": true,
+    "after": false,
+    "held": true
+   },
+   "fast_calls_end": 1536,
+   "fast_failures_end": 0,
+   "fast_lastError": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   },
+   "x4": [
+    {
+     "trial": 1,
+     "arm": "push",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms": 1791199931736.0,
+     "server_wallBefore": 1791199931736.0,
+     "server_ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199931736,
+      "wallAfter": 1791199931736,
+      "traitList": [
+       "heartyappetite"
+      ]
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199931426,
+      "firstSeenWall": 1791199931768,
+      "ticks": 21,
+      "found": true,
+      "complete": true,
+      "t": 1791199931768,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199931768.0,
+     "latency_ms": 32.0,
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 451.54,
+       "epoch_ms": 1791199933461,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 809
+    },
+    {
+     "trial": 2,
+     "arm": "nopush",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms_bracket": [
+      1791199934988,
+      1791199935495
+     ],
+     "server_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199934921,
+      "firstSeenWall": 1791199935651,
+      "ticks": 44,
+      "found": true,
+      "complete": true,
+      "t": 1791199935651,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199935651.0,
+     "latency_ms_range": [
+      156.0,
+      663.0
+     ],
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 455.405,
+       "epoch_ms": 1791199937326,
+       "has": true
+      },
+      {
+       "wall": 455.962,
+       "epoch_ms": 1791199937882,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1618
+    },
+    {
+     "trial": 3,
+     "arm": "push",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms": 1791199939334.0,
+     "server_wallBefore": 1791199939334.0,
+     "server_ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199939334,
+      "wallAfter": 1791199939334,
+      "traitList": [
+       "heartyappetite"
+      ]
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199938925,
+      "firstSeenWall": 1791199939351,
+      "ticks": 26,
+      "found": true,
+      "complete": true,
+      "t": 1791199939351,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199939351.0,
+     "latency_ms": 17.0,
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 459.073,
+       "epoch_ms": 1791199940993,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 807
+    },
+    {
+     "trial": 4,
+     "arm": "nopush",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms_bracket": [
+      1791199942518,
+      1791199943281
+     ],
+     "server_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199942424,
+      "firstSeenWall": 1791199943651,
+      "ticks": 74,
+      "found": true,
+      "complete": true,
+      "t": 1791199943651,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199943651.0,
+     "latency_ms_range": [
+      370.0,
+      1133.0
+     ],
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 463.449,
+       "epoch_ms": 1791199945369,
+       "has": true
+      },
+      {
+       "wall": 464.013,
+       "epoch_ms": 1791199945933,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1376
+    },
+    {
+     "trial": 5,
+     "arm": "push",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms": 1791199948038.0,
+     "server_wallBefore": 1791199948038.0,
+     "server_ack": {
+      "user": "admin",
+      "trait": "HeartyAppetite",
+      "added": true,
+      "sent": true,
+      "wallBefore": 1791199948038,
+      "wallAfter": 1791199948038,
+      "traitList": [
+       "heartyappetite"
+      ]
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199947423,
+      "firstSeenWall": 1791199948068,
+      "ticks": 39,
+      "found": true,
+      "complete": true,
+      "t": 1791199948068,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199948068.0,
+     "latency_ms": 30.0,
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 467.888,
+       "epoch_ms": 1791199949809,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 1061
+    },
+    {
+     "trial": 6,
+     "arm": "nopush",
+     "pre": {
+      "initial": false,
+      "removed": false,
+      "polls": [],
+      "final": false
+     },
+     "watch_ack": {
+      "armed": true,
+      "trait": "HeartyAppetite",
+      "seconds": 8,
+      "result": "trait-watch",
+      "file": "pzt-results/trait-watch.json"
+     },
+     "zero_ms_bracket": [
+      1791199951087,
+      1791199951348
+     ],
+     "server_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "add",
+      "before": false,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+      "after": true,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "held": true
+     },
+     "watch_result": {
+      "trait": "HeartyAppetite",
+      "armedWall": 1791199950925,
+      "firstSeenWall": 1791199951652,
+      "ticks": 44,
+      "found": true,
+      "complete": true,
+      "t": 1791199951652,
+      "side": "client",
+      "name": "trait-watch"
+     },
+     "firstSeenWall": 1791199951652.0,
+     "latency_ms_range": [
+      304.0,
+      565.0
+     ],
+     "after": {
+      "client_has": true,
+      "server_has": true,
+      "client_traitList": [
+       "heartyappetite"
+      ],
+      "server_traitList": [
+       "heartyappetite"
+      ]
+     },
+     "remove_ack": {
+      "trait": "HeartyAppetite",
+      "field": "HEARTY_APPETITE",
+      "op": "remove",
+      "before": true,
+      "enumFound": true,
+      "collection": "getCharacterTraits()",
+      "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+      "after": false,
+      "traitList": {},
+      "held": true
+     },
+     "remove_polls": [
+      {
+       "wall": 471.51,
+       "epoch_ms": 1791199953431,
+       "has": false
+      }
+     ],
+     "removal_seen_ms_upper": 808
+    }
+   ],
+   "wall_end_body": 472.023,
+   "client_lua_error": false,
+   "logs": {
+    "server_luaerr": [
+     "ERROR: General      f:0 st:1,542,483,515> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,515> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,515> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,516> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,516> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,516> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,517> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,517> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,517> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,518> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,519> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,542,483,519> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,485,197> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,485,198> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,485,198> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,485,198> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,542,485,199> IsoPropertyType.lookupOrDefaultStr> Exception thrown"
+    ],
+    "server_nr": [
+     "LOG  : Lua          f:0 st:1,542,484,830> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:1,542,484,830> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:1,542,484,830> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:1,542,485,943> [NutritionRevamp] store attached (new world: true)",
+     "LOG  : Lua          f:0 st:1,542,488,318> [NutritionRevamp] fast: takeover handler registered",
+     "LOG  : Lua          f:0 st:1,542,488,318> [NutritionRevamp] intake: wrappers true drink true",
+     "LOG  : Lua          f:0 st:1,542,488,318> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=server mode=takeover log=2 frameworks=none hook=true limitations=3",
+     "LOG  : Lua          f:343 st:1,542,523,950> [NutritionRevamp] players: first sight of admin",
+     "LOG  : Lua          f:2135 st:1,542,703,151> [NutritionRevamp] players: admin left"
+    ],
+    "limits": {
+     "luaerr": 40,
+     "nr": 40
+    },
+    "client_luaerr": [
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown"
+    ],
+    "client_nr": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v0.1.0 build 42.20.4 side=client mode=takeover log=2 frameworks=none"
+    ]
+   },
+   "wall_end": 484.251
+  }
+ },
+ "notes": [],
+ "verdicts": {
+  "X34-asleep": {
+   "phase": "X34-asleep",
+   "predicted": "server asleep true at every W4 read in both boots (the hold wins); B's thirst slope (W4) and fatigue slope (W4 second half) within max(2 % |A|, 1e-4) per game-hour of A's; A's asleep thirst ~0.0036 per game-hour (#0477)",
+   "falsifier": "asleep false on the server inside W4 (the hold loses: unmeasured, a harness finding); a slope outside the band (the reproduction is wrong while asleep)",
+   "observed": {
+    "per_boot": {
+     "A": {
+      "server_asleep": [
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       false,
+       false
+      ],
+      "client_asleep": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false
+      ],
+      "held": false,
+      "thirst": {
+       "n": 14,
+       "per_game_hour": 0.008094519098767603,
+       "delta": 0.01590454950928688,
+       "game_hours": 1.7320642471313477,
+       "first": 0.058949749916791916,
+       "last": 0.0748542994260788
+      },
+      "fatigue_all": {
+       "n": 14,
+       "per_game_hour": 3.9413946297433835e-05,
+       "delta": 9.964765922632068e-05,
+       "game_hours": 1.7320642471313477,
+       "first": 0.0,
+       "last": 9.964765922632068e-05
+      },
+      "fatigue_second_half": {
+       "n": 7,
+       "per_game_hour": 0.00013343246634276625,
+       "delta": 9.964765922632068e-05,
+       "game_hours": 0.799473762512207,
+       "first": 0.0,
+       "last": 9.964765922632068e-05
+      },
+      "hunger": {
+       "n": 14,
+       "per_game_hour": 0.008431435242750378,
+       "delta": 0.016726195812225342,
+       "game_hours": 1.7320642471313477,
+       "first": 0.06828779727220535,
+       "last": 0.0850139930844307
+      },
+      "endurance": {
+       "n": 14,
+       "per_game_hour": 0.0,
+       "delta": 0.0,
+       "game_hours": 1.7320642471313477,
+       "first": 1.0,
+       "last": 1.0
+      },
+      "mult": [
+       4.794888973236084,
+       4.801889896392822,
+       4.8006062507629395,
+       4.800431728363037,
+       4.793233871459961,
+       4.7996320724487305,
+       4.800904273986816,
+       4.802192211151123,
+       4.80117654800415,
+       4.792299747467041,
+       4.795904159545898,
+       4.801918029785156,
+       4.7946858406066895,
+       4.80076789855957
+      ],
+      "worldAge": [
+       5.151552200317383,
+       5.28475284576416,
+       5.418007850646973,
+       5.551240921020508,
+       5.68448543548584,
+       5.817693710327148,
+       5.950915336608887,
+       6.084142684936523,
+       6.217376708984375,
+       6.350622177124023,
+       6.4838666915893555,
+       6.6171369552612305,
+       6.750367164611816,
+       6.8836164474487305
+      ],
+      "hold_ack": {
+       "user": "admin",
+       "seconds": 60,
+       "armed": true,
+       "before": false,
+       "after": true,
+       "deadlineWall": 1791199671131
+      },
+      "thirst_vs_0477": 2.2484775274354454
+     },
+     "B": {
+      "server_asleep": [
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       false,
+       false
+      ],
+      "client_asleep": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false
+      ],
+      "held": false,
+      "thirst": {
+       "n": 14,
+       "per_game_hour": 0.008209331946724652,
+       "delta": 0.016261857002973557,
+       "game_hours": 1.7374505996704102,
+       "first": 0.05880395695567131,
+       "last": 0.07506581395864487
+      },
+      "fatigue_all": {
+       "n": 14,
+       "per_game_hour": 4.024236342700876e-05,
+       "delta": 0.0001019119008560665,
+       "game_hours": 1.7374505996704102,
+       "first": 0.0,
+       "last": 0.0001019119008560665
+      },
+      "fatigue_second_half": {
+       "n": 7,
+       "per_game_hour": 0.00013625453292701828,
+       "delta": 0.0001019119008560665,
+       "game_hours": 0.7994785308837891,
+       "first": 0.0,
+       "last": 0.0001019119008560665
+      },
+      "hunger": {
+       "n": 14,
+       "per_game_hour": 0.12766409608200824,
+       "delta": 0.22220945358276367,
+       "game_hours": 1.7374505996704102,
+       "first": 0.5082358717918396,
+       "last": 0.7304453253746033
+      },
+      "endurance": {
+       "n": 14,
+       "per_game_hour": 0.0,
+       "delta": 0.0,
+       "game_hours": 1.7374505996704102,
+       "first": 1.0,
+       "last": 1.0
+      },
+      "mult": [
+       4.798360347747803,
+       4.800086975097656,
+       4.791262626647949,
+       4.7917656898498535,
+       4.800205707550049,
+       4.79406213760376,
+       4.793786525726318,
+       4.797399520874023,
+       4.803436279296875,
+       4.797565937042236,
+       4.792830944061279,
+       4.801019191741943,
+       4.795690059661865,
+       4.7937331199646
+      ],
+      "worldAge": [
+       5.130352020263672,
+       5.268880844116211,
+       5.396833419799805,
+       5.535391807556152,
+       5.663324356079102,
+       5.801914215087891,
+       5.929812431335449,
+       6.068324089050293,
+       6.196237564086914,
+       6.3348188400268555,
+       6.462743759155273,
+       6.6013031005859375,
+       6.729213714599609,
+       6.867802619934082
+      ],
+      "hold_ack": {
+       "user": "admin",
+       "seconds": 60,
+       "armed": true,
+       "before": false,
+       "after": true,
+       "deadlineWall": 1791199912338
+      },
+      "thirst_vs_0477": 2.2803699852012924
+     }
+    },
+    "thirst_band": {
+     "A": 0.008094519098767603,
+     "B": 0.008209331946724652,
+     "diff": 0.00011481284795704892,
+     "band": 0.00016189038197535207,
+     "in_band": true
+    },
+    "fatigue_band": {
+     "A": 0.00013343246634276625,
+     "B": 0.00013625453292701828,
+     "diff": 2.822066584252036e-06,
+     "band": 0.0001,
+     "in_band": true
+    },
+    "registered": {
+     "A": false,
+     "B": true
+    },
+    "hunger_note": "hunger recorded, not graded for parity (the takeover derives it from the stomach fill under Plan 2)"
+   },
+   "verdict": "unmeasured",
+   "wall": 484.257
+  },
+  "X34-running": {
+   "phase": "X34-running",
+   "predicted": "server running and moving true in at least half the W2 reads in both boots; B's W2 thirst slope within max(2 % |A|, 1e-4) per game-hour of A's; the W2/W1 thirst ratio recorded (1.2 if getRunningThirstReduction fires server-side, #0479; 1.0 per #0593's reading)",
+   "falsifier": "the server never reads running (the run arm walked: unmeasured, a harness finding); B's running thirst slope outside A's band",
+   "observed": {
+    "per_boot": {
+     "A": {
+      "server_running": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false
+      ],
+      "server_moving": [
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true
+      ],
+      "client_running": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false
+      ],
+      "client_moving": [
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true
+      ],
+      "server_running_frac": 0.0,
+      "server_moving_frac": 0.875,
+      "client_running_frac": 0.0,
+      "thirst_run": {
+       "n": 16,
+       "per_game_hour": 0.028799833400574917,
+       "delta": 0.023012366145849228,
+       "game_hours": 0.7990446090698242,
+       "first": 0.029589015990495682,
+       "last": 0.05260138213634491
+      },
+      "thirst_idle": {
+       "n": 11,
+       "per_game_hour": 0.028799899464874344,
+       "delta": 0.02300755027681589,
+       "game_hours": 0.7988767623901367,
+       "first": 0.005583840422332287,
+       "last": 0.028591390699148178
+      },
+      "ratio_run_over_idle": 0.9999977060927068,
+      "endurance_run": {
+       "n": 16,
+       "per_game_hour": 0.0,
+       "delta": 0.0,
+       "game_hours": 0.7990446090698242,
+       "first": 1.0,
+       "last": 1.0
+      },
+      "endurance_pairs": [
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ]
+      ],
+      "run_acks": [
+       {
+        "dx": 20,
+        "dy": 0,
+        "target": {
+         "x": 10741,
+         "y": 10630,
+         "z": 0
+        },
+        "setRunning": true,
+        "setForceRun": true,
+        "setPathfindRunning": true,
+        "queued": true,
+        "clientSprinting": false,
+        "clientMoving": false,
+        "clientRunning": true
+       },
+       {
+        "dx": -20,
+        "dy": 0,
+        "target": {
+         "x": 10701,
+         "y": 10630,
+         "z": 0
+        },
+        "setRunning": true,
+        "setForceRun": true,
+        "setPathfindRunning": true,
+        "queued": true,
+        "clientSprinting": false,
+        "clientMoving": false,
+        "clientRunning": true
+       },
+       {
+        "dx": 20,
+        "dy": 0,
+        "target": {
+         "x": 10721,
+         "y": 10630,
+         "z": 0
+        },
+        "setRunning": true,
+        "setForceRun": true,
+        "setPathfindRunning": true,
+        "queued": true,
+        "clientSprinting": false,
+        "clientMoving": false,
+        "clientRunning": true
+       },
+       null
+      ]
+     },
+     "B": {
+      "server_running": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false
+      ],
+      "server_moving": [
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true
+      ],
+      "client_running": [
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false,
+       false
+      ],
+      "client_moving": [
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       false,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true,
+       true
+      ],
+      "server_running_frac": 0.0,
+      "server_moving_frac": 0.875,
+      "client_running_frac": 0.0,
+      "thirst_run": {
+       "n": 16,
+       "per_game_hour": 0.028800017469700095,
+       "delta": 0.023088956251740456,
+       "game_hours": 0.8017024993896484,
+       "first": 0.029328366741538048,
+       "last": 0.0524173229932785
+      },
+      "thirst_idle": {
+       "n": 11,
+       "per_game_hour": 0.0288002249755745,
+       "delta": 0.023082704283297062,
+       "game_hours": 0.8014774322509766,
+       "first": 0.005324802361428738,
+       "last": 0.0284075066447258
+      },
+      "ratio_run_over_idle": 0.9999927949911995,
+      "endurance_run": {
+       "n": 16,
+       "per_game_hour": 0.0,
+       "delta": 0.0,
+       "game_hours": 0.8017024993896484,
+       "first": 1.0,
+       "last": 1.0
+      },
+      "endurance_pairs": [
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ]
+      ],
+      "run_acks": [
+       {
+        "dx": 20,
+        "dy": 0,
+        "target": {
+         "x": 10741,
+         "y": 10630,
+         "z": 0
+        },
+        "setRunning": true,
+        "setForceRun": true,
+        "setPathfindRunning": true,
+        "queued": true,
+        "clientSprinting": false,
+        "clientMoving": false,
+        "clientRunning": true
+       },
+       {
+        "dx": -20,
+        "dy": 0,
+        "target": {
+         "x": 10701,
+         "y": 10630,
+         "z": 0
+        },
+        "setRunning": true,
+        "setForceRun": true,
+        "setPathfindRunning": true,
+        "queued": true,
+        "clientSprinting": false,
+        "clientMoving": false,
+        "clientRunning": true
+       },
+       {
+        "dx": 20,
+        "dy": 0,
+        "target": {
+         "x": 10721,
+         "y": 10630,
+         "z": 0
+        },
+        "setRunning": true,
+        "setForceRun": true,
+        "setPathfindRunning": true,
+        "queued": true,
+        "clientSprinting": false,
+        "clientMoving": false,
+        "clientRunning": true
+       },
+       null
+      ]
+     }
+    },
+    "thirst_run_band": {
+     "A": 0.028799833400574917,
+     "B": 0.028800017469700095,
+     "diff": 1.8406912517809904e-07,
+     "band": 0.0005759966680114984,
+     "in_band": true
+    }
+   },
+   "verdict": "unmeasured",
+   "wall": 484.263
+  },
+  "X35": {
+   "phase": "X35",
+   "predicted": "unmeasurable in this tree (written before the run): no handler writes the 0.4242 sentinel -- the mod dropped NR_sentinel at 9a424d8 and TKX_CalcStats' three handlers write no stat; the W2 endurance pairs are recorded only",
+   "falsifier": "-",
+   "observed": {
+    "endurance_pairs": {
+     "A": [
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ]
+     ],
+     "B": [
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ],
+      [
+       1,
+       1
+      ]
+     ]
+    },
+    "server_running_frac": {
+     "A": 0.0,
+     "B": 0.0
+    }
+   },
+   "verdict": "unmeasured",
+   "wall": 484.271
+  },
+  "X4-push": {
+   "phase": "X4-push",
+   "predicted": "every push arrival < 1000 ms and below every no-push arrival's lower bound; the trait on both sides' traitList after every add",
+   "falsifier": "a push arrival >= 1 s or a trait missing from a traitList; overlapping spreads are 'not discriminated', never re-run",
+   "observed": {
+    "push_ms": [
+     {
+      "boot": "A",
+      "trial": 1,
+      "ms": 30.0
+     },
+     {
+      "boot": "A",
+      "trial": 3,
+      "ms": 28.0
+     },
+     {
+      "boot": "A",
+      "trial": 5,
+      "ms": 18.0
+     },
+     {
+      "boot": "B",
+      "trial": 1,
+      "ms": 32.0
+     },
+     {
+      "boot": "B",
+      "trial": 3,
+      "ms": 17.0
+     },
+     {
+      "boot": "B",
+      "trial": 5,
+      "ms": 30.0
+     }
+    ],
+    "nopush_ms_range": [
+     {
+      "boot": "A",
+      "trial": 2,
+      "ms_range": [
+       116.0,
+       628.0
+      ]
+     },
+     {
+      "boot": "A",
+      "trial": 4,
+      "ms_range": [
+       53.0,
+       570.0
+      ]
+     },
+     {
+      "boot": "A",
+      "trial": 6,
+      "ms_range": [
+       62.0,
+       574.0
+      ]
+     },
+     {
+      "boot": "B",
+      "trial": 2,
+      "ms_range": [
+       156.0,
+       663.0
+      ]
+     },
+     {
+      "boot": "B",
+      "trial": 4,
+      "ms_range": [
+       370.0,
+       1133.0
+      ]
+     },
+     {
+      "boot": "B",
+      "trial": 6,
+      "ms_range": [
+       304.0,
+       565.0
+      ]
+     }
+    ],
+    "presence": [
+     {
+      "boot": "A",
+      "trial": 1,
+      "arm": "push",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "A",
+      "trial": 2,
+      "arm": "nopush",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "A",
+      "trial": 3,
+      "arm": "push",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "A",
+      "trial": 4,
+      "arm": "nopush",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "A",
+      "trial": 5,
+      "arm": "push",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "A",
+      "trial": 6,
+      "arm": "nopush",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "B",
+      "trial": 1,
+      "arm": "push",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "B",
+      "trial": 2,
+      "arm": "nopush",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "B",
+      "trial": 3,
+      "arm": "push",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "B",
+      "trial": 4,
+      "arm": "nopush",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "B",
+      "trial": 5,
+      "arm": "push",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     },
+     {
+      "boot": "B",
+      "trial": 6,
+      "arm": "nopush",
+      "client_has": true,
+      "server_has": true,
+      "watch_found": true
+     }
+    ],
+    "push_max": 32.0,
+    "push_min": 17.0,
+    "nopush_lower_min": 53.0,
+    "nopush_upper_max": 1133.0,
+    "plan1_nopush_ms": [
+     417,
+     511,
+     562
+    ],
+    "all_present": true
+   },
+   "verdict": "as_predicted",
+   "wall": 484.277
+  }
+ },
+ "timeline": [
+  {
+   "t": 0.1,
+   "phase": "boot",
+   "label": "A",
+   "profile": "nr-overlay"
+  },
+  {
+   "t": 53.6,
+   "phase": "session_ready",
+   "label": "A"
+  },
+  {
+   "t": 54.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 54.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 55.3,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 55.9,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 234.0,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 241.8,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 241.9,
+   "phase": "boot",
+   "label": "B",
+   "profile": "x13-residual"
+  },
+  {
+   "t": 294.9,
+   "phase": "session_ready",
+   "label": "B"
+  },
+  {
+   "t": 295.1,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 295.6,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 295.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 296.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 296.7,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_CalcStats.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 297.2,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_CalcStats.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 476.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 484.2,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 484.3,
+   "phase": "verdict",
+   "name": "X34-asleep",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 484.3,
+   "phase": "verdict",
+   "name": "X34-running",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 484.3,
+   "phase": "verdict",
+   "name": "X35",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 484.3,
+   "phase": "verdict",
+   "name": "X4-push",
+   "verdict": "as_predicted"
+  }
+ ],
+ "summary": {
+  "verify_ok": {
+   "A": [
+    true,
+    true,
+    true,
+    true
+   ],
+   "B": [
+    true,
+    true,
+    true,
+    true,
+    true,
+    true
+   ]
+  },
+  "mods_not_found": {
+   "A": {
+    "server": [],
+    "client": []
+   },
+   "B": {
+    "server": [],
+    "client": []
+   }
+  },
+  "boot_errors": {
+   "A": null,
+   "B": null
+  },
+  "server_error_count": {
+   "A": 0,
+   "B": 0
+  },
+  "client_lua_error": {
+   "A": false,
+   "B": false
+  },
+  "field_count_failures": {
+   "A": 0,
+   "B": 0
+  },
+  "non_finite": {
+   "A": 0,
+   "B": 0
+  },
+  "verdicts": {
+   "X34-asleep": "unmeasured",
+   "X34-running": "unmeasured",
+   "X35": "unmeasured",
+   "X4-push": "as_predicted"
+  }
+ },
+ "wall_seconds": 484.3
+}

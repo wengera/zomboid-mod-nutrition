@@ -117,10 +117,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
 | [#2088/C/open] | Does the thermoregulator's metabolic-rate classification track a server-side player's state, or sit at its default? | [open-questions.md](#x37) | X37 | server reads of the metabolic rate while the client idles, walks and runs, against the class each state names |
 | [#2089/C/open] | Is the current timed action, and its calorie modifier, readable server-side? | [open-questions.md](#x38) | X38 | the server's action list read idle and during a client-driven eat, then during a book read |
-| [#2094/C/open] | Do QualityCooking and BeyondTen each load beside a probe mod on this server? | [open-questions.md](#x45a) | X45a | one co-boot reading each mod's own marker on both sides beside the probe's |
-| [#2095/C/open] | Does QualityCooking's eat wrap compose with a second wrap of the same method, and which is outermost? | [open-questions.md](#x45b) | X45b | a code read, then one eat through a sentinel probe wrap beside QualityCooking's, against a boot without it |
 | [#2096/C/open] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
-| [#2099/C/open] | Does a server-side `sendSyncPlayerFields(player, 2)` sent straight after a trait write bring the trait to the owning client sooner than the once-a-second experience push does? | [open-questions.md](#x4) | X4 | a push run in the same server tick as the trait write, timed on the client against the same write with no push; run `x131t-20261004-195234` measured the no-push and registered-trait arrivals and did not separate the push |
 | [#2742/M/n=1/open] | Whether a MoodleFramework moodle or a mod's own `ISUIElement` widget renders on a dedicated-server client is unmeasured: no run has drawn either, and X29's render leg is the reading that settles it. | [open-questions.md](#x29) | X29 | a framework moodle and a widget of the mod's own, each driven on the client and its draw calls counted, beside a value that must leave the moodle undrawn |
 | [#2829/M/n=1/open] | Two drink corners are unmeasured, cancel semantics and the 100 ms anim-event cadence under `settimespeed`, and when the new fill and the new calories arrive on the client is read only to a poll of 1.5 to 2 s: the client trailed the server by about one poll and reached the same totals. | [eating-pipeline.md](../facts/eating-pipeline.md#open) | — | a drink cancelled partway and a drink at a raised time speed, each read on both sides |
 
@@ -151,7 +148,7 @@ One line per decision the area pages' `## Open` sections leave to the design, ea
 - Whether any nutrient is shown as a moodle before a moodle render is measured — forced by no run having drawn a framework moodle or a widget of the mod's own on a live client [#1295/C/open, #2555/C/inference] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether this mod requires `MoodleFramework`, detects it optionally or draws its own widget — forced by a hard dependency inheriting the framework's version-folder hazard and an optional one needing a fallback widget of its own [#2543/C/C-only, #2547/C/inference, #1070/C/snapshot] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Which slot a fallback widget takes beside a framework stack — forced by the framework placing its moodles by counting vanilla's and its own and nothing else [#2549/C/C-only, #2555/C/inference] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
-- Whether the panel shows a band label drawn from the client's own trait list — forced by that list reaching the client within about half a second of a server write with no push [#2759/M/n=3], while what the mod's own push adds is unmeasured [#2595/C/C-only, #2099/C/open] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
+- Whether the panel shows a band label drawn from the client's own trait list — forced by that list reaching the client within about half a second of a server write with no push [#2759/M/n=3], while the mod's own push sent with the write brings the trait within tens of milliseconds [#2595/C/C-only, #2099/M/n=6] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether a band label waits for the timed experience push or follows a trait-block push the mod sends after each write — forced by no Java code sending the trait bit [#2604/C/C-only, #2608/C/C-only] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - How stale a displayed value may be — forced by a client panel not observing the player-stats write and drawing a mirror late by up to one push plus its own refresh interval [#1149/M/n=1, #1486/M/n=1] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether a cooked food's thirst is shown on a client at all, or re-derived from the script — forced by the client's getter reading a value halved once per hop [#1038/M/n=2] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
@@ -169,7 +166,7 @@ One line per decision the area pages' `## Open` sections leave to the design, ea
 - Whether the mod's load checks are verification rows or scenarios — forced by a verification expectation being a substring that cannot express absence or a numeric comparison [#1828] ([testing-your-mod.md#open](testing-your-mod.md#open)).
 - Whether the mod ships a client-side scenario for its display copy — forced by the client runner being wired with nothing to run and by every client read of a live store being a staircase [#1784, #1483] ([testing-your-mod.md#open](testing-your-mod.md#open)).
 - Whether any scenario moves a sandbox option off the fixture's value — forced by only the day length having been set by a profile, so a moved option buys a new baseline [#1809/C/C-only, #1253/C/one-fixture] ([testing-your-mod.md#open](testing-your-mod.md#open)).
-- In which order the three owned experiments still open are bought — forced by the trait experiment needing a harness addition before its push arm, while the translation and framework experiments need none, the drink experiment having run [#1295/C/open, #1279/M/n=1, #2099/C/open] ([testing-your-mod.md#open](testing-your-mod.md#open)).
+- In which order the two owned experiments still open are bought — the translation and framework experiments need no harness addition, the drink and trait experiments having run [#1295/C/open, #1279/M/n=1, #2099/M/n=6] ([testing-your-mod.md#open](testing-your-mod.md#open)).
 - Whether a scenario pins the thirst clock or reads the death as its result — forced by an unattended thirst drain killing the subject partway through a multi-day run [#0179/M/one-fixture] ([testing-your-mod.md#open](testing-your-mod.md#open)).
 - Whether the stats a diet moves are taken over or overlaid — forced by a takeover suppressing all seven updaters for every player, which no other mod can undo, while an overlay leaves vanilla's rates running [#2238/C/C-only, #2240/C/C-only] ([body-effects.md#open](body-effects.md#open)).
 - Which store is the truth for a clamped Strength or Fitness — forced by the level and the experience being separate stores, each moved by a different vanilla writer [#2101/C/C-only, #2124/C/C-only] ([body-effects.md#open](body-effects.md#open)).
@@ -188,14 +185,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether a mod-registered moodle type carries any Java effect is unmeasured: the registration methods exist and the type is Lua-exposed, but nothing in this library has registered one, and the reachability probe does not register one either [#0970/C/C-only/open].
 - Waiting on it: [ui-and-moodles.md](ui-and-moodles.md#open).
 - Settled by: a global read of `MoodleStat` beside two exposed controls that must answer in the same call, riding any session with a client — [experiments.md § Named experiments](../reference/experiments.md), row `X2`.
-
-<a id="x4"></a>
-### X4 — Does a server-side `sendSyncPlayerFields(player, 2)` sent straight after a trait write bring the trait to the owning client sooner than the once-a-second experience push does?
-- Whether a server-side `sendSyncPlayerFields(player, 2)` sent straight after a trait write brings the trait to the owning client sooner than the once-a-second experience push is open [#2099/C/open].
-- Run `x131t-20261004-195234` answered the rest: with no push a server trait write reached the owning client's list within about half a second in three trials and a removal left it the same way [#2759/M/n=3], and a trait the mod registers arrived the same way on a client loading the same mod [#2760/M/n=1]; its push arm ran each push 1.2 to 1.6 s after the write, past the experience packet's second, so the client already held the trait at every first read after the push.
-- It is also the live measurement of [mp-model.md](../platform/mp-model.md#ownership)'s trait route and of [wall-map.md](../reference/wall-map.md#g4)'s trait verdict [#2718/C/C-only].
-- Waiting on it: [mp-sync.md](mp-sync.md#open), [new-nutrients.md](new-nutrients.md#open), [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
-- Settled by: the push issued in the same server tick as the trait write, which the harness's separate `trait.set` and `trait.push` commands cannot do because the server picks each command up up to 2 s apart, timed on the client against the same write with no push; the push shows only as an arrival earlier than the no-push arm's spread inside the experience packet's second [#2099/C/open, #2608/C/C-only] — [experiments.md § Named experiments](../reference/experiments.md), row `X4`.
 
 <a id="x5"></a>
 ### X5 — Does a mod JSON displace a vanilla translation key, or does the merge keep vanilla's?
@@ -307,7 +296,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether `MoodleFramework` loads whole on `42.20.4`, whether its `MF_Config.lua` executes and whether a moodle registered through it renders is open [#1295/C/open].
 - Its wholeness is derived from the merge rule rather than measured, nothing has booted it, and it is the one corpus mod whose `mod.info` chain differs between the lint and the engine [#0884/C/C-only/open].
 - Whether it renders a registered moodle at a non-zero level on a client is unmeasured, and that render, with the boot, is what stays open: its registration surface, the value it draws and its missing multiplayer surface are read from its live tree ([moodleframework.md#what-it-does](../facts/other-mods/moodleframework.md#what-it-does), [moodleframework.md#mp](../facts/other-mods/moodleframework.md#mp)) [#2742/M/n=1/open].
-- A band-trait display also rests on the client-side trait route, measured arriving within about half a second with no push [#2759/M/n=3]; what the mod's own push adds is [X4](#x4)'s question [#2099/C/open].
+- A band-trait display also rests on the client-side trait route, measured arriving within about half a second with no push [#2759/M/n=3]; the mod's own push sent with the write brings it within tens of milliseconds ([mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)) [#2099/M/n=6].
 - Waiting on it: [new-nutrients.md](new-nutrients.md#open), [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
 - Settled by: one session reading its globals on both sides and, on the client, a registered moodle's level and draw count after a value past a threshold, beside a value that must leave it undrawn and a widget of the mod's own drawn the same way — [experiments.md § Named experiments](../reference/experiments.md), row `X29`.
 
@@ -333,12 +322,14 @@ One subsection per surviving named experiment, in id order: the open rows this p
 <a id="x34"></a>
 ### X34 — Does a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas track vanilla's stat trajectory, stat by stat, over several game-hours on a live server?
 - Whether a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas tracks vanilla's stat trajectory, stat by stat, over several game-hours on a live server is open [#2081/C/open].
+- Run `x132r-20261005-072441` held the sleeping path with the harness hold: asleep thirst tracked vanilla's inside the band, fatigue and endurance sat at their floor and ceiling on a rested character, and the running arm only walked, the harness run command not running [#2841/M/n=2] [#2840/M/n=2].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: two boots of one restored fixture, one with no handler registered and one with the reproducing handler, sampling the seven stats hourly on the server against a per-stat band — [experiments.md § Named experiments](../reference/experiments.md), row `X34`.
 
 <a id="x35"></a>
 ### X35 — Is the handler's endurance write the last before the push, as the tick order reads?
 - Whether a `CalculateStats` handler's endurance write is the last write before the player-stats push, as the tick order reads, is open [#2082/C/open].
+- Run `x132r-20261005-072441` could not take it: no handler in the tree writes the sentinel, the mod having dropped its own and the probe mod's handlers writing no stat, and the harness run command only walked [#2840/M/n=2].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: a handler writing a sentinel endurance each tick, read in client-first pairs at rest and while running, beside an arm with the handler removed — [experiments.md § Named experiments](../reference/experiments.md), row `X35`.
 
@@ -371,18 +362,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - What the experience anti-cheat's check interval is on a live server, and whether a server-side burst of grants trips it, is open [#2085/C/open].
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: a desk read of what enables the check, then above-bound and below-bound bursts of server-side grants beside a console-grant control, timing the logged trips — [experiments.md § Named experiments](../reference/experiments.md), row `X40`.
-
-<a id="x45a"></a>
-### X45a — Do QualityCooking and BeyondTen each load beside a probe mod on this server?
-- Whether QualityCooking and BeyondTen each load beside a probe mod on this server is open [#2094/C/open].
-- Waiting on it: [catalog.md](../facts/other-mods/catalog.md#open).
-- Settled by: one co-boot reading each mod's own marker on both sides, beside the probe mod's marker as the control — [experiments.md § Named experiments](../reference/experiments.md), row `X45a`.
-
-<a id="x45b"></a>
-### X45b — Does QualityCooking's eat wrap compose with a second wrap of the same method, and which is outermost?
-- Whether QualityCooking's eat wrap composes with a second wrap of the same method, and which wrap is outermost, is open [#2095/C/open].
-- Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open).
-- Settled by: a code read of QualityCooking, then one eat through a sentinel probe wrap beside its wrap, against the same eat on a boot without it — [experiments.md § Named experiments](../reference/experiments.md), row `X45b`.
 
 <a id="x47"></a>
 ### X47 — Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold?

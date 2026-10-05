@@ -71,6 +71,9 @@ correct it.
 | `x132d-20261005-060046` | `drink.json` | `testing/experiments/x132_drink.py` | [`areas/eat-and-cook-hooks.md`](../areas/eat-and-cook-hooks.md), [`facts/eating-pipeline.md`](../facts/eating-pipeline.md), [`reference/wall-map.md`](../reference/wall-map.md) |
 | `x132e-20261005-062748` | `eat.json` | `testing/experiments/x132_eat.py` — the first S-D boot (`x13-eat`); a wrap cycle ran no eat | [`areas/eat-and-cook-hooks.md`](../areas/eat-and-cook-hooks.md), [`platform/harness.md`](../platform/harness.md) |
 | `x132e-20261005-063700` | `eat.json` | `testing/experiments/x132_eat_b.py` — the second S-D boot (`x13-eat-b`, the mod before the probe) | [`areas/eat-and-cook-hooks.md`](../areas/eat-and-cook-hooks.md), [`facts/eating-pipeline.md`](../facts/eating-pipeline.md), [`platform/harness.md`](../platform/harness.md), [`reference/wall-map.md`](../reference/wall-map.md) |
+| `x132b-20261005-071013` | `coboot.json` | `testing/experiments/x132_coboot.py` — **two boots in one file**: `boots.A` (`x13-coboot`, QualityCooking + BeyondTen beside the mod and TKX_EatProbe) and `boots.B` (`x13-coboot-control`, the control without the QualityCooking stack) | [`facts/other-mods/catalog.md`](../facts/other-mods/catalog.md) |
+| `x132b-20261005-071959` | `coboot.json` | `testing/experiments/x132_coboot_b.py` — one boot of `x13-coboot` with QualityCooking's server-table markers added | [`facts/other-mods/catalog.md`](../facts/other-mods/catalog.md) |
+| `x132r-20261005-072441` | `residual.json` | `testing/experiments/x132_residual.py` — **two boots in one file**: `boots.A` (`nr-overlay`, the control) and `boots.B` (`x13-residual`, the takeover beside TKX_CalcStats) | [`facts/character-stats.md`](../facts/character-stats.md), [`platform/harness.md`](../platform/harness.md), [`platform/mp-model.md`](../platform/mp-model.md) |
 
 ## Script/artifact skew
 
@@ -2231,3 +2234,114 @@ is a delta against the preceding snapshot; calories are drift-corrected (`phases
 | every record value from `Q4_post` on, as a number | `nan` / `null` | The mod's NaN landing (above), not a stomach state. |
 | `snapshots.*.stats.*.hunger` from `Q4_post` on | `null` | A non-finite hunger, not an absent read. |
 | `greps.lua_errors` | server 20, client 20 (saturated) | Vanilla `AdvancedAnimator` boot noise; cite `server_error_count` 0. |
+
+**`x132b-20261005-071013/coboot.json`** — produced by `testing/experiments/x132_coboot.py` at commit `a02e8d9`
+(477.1 s wall; 220 724 bytes, sha256 `5c9cb264…a542a5f4`, byte-for-byte identical to the run copy).
+**X45a + X45b, session 1, two boots**: `boots.A` under `x13-coboot` (PZTestKit, NutritionRevamp,
+ItemQuality, QuestSystem, QualityCooking, MoodleFramework, BeyondTen, TKX_EatProbe in `Mods=` order) and
+`boots.B` under `x13-coboot-control` (the same without QualityCooking and its three requirements). Mod
+`9f53324` (intake fix-3), probe `04cda41` (install once), harness Lua `7710d2d` clean, `doctor_clean true`
+before each boot (`boots.*.doctor_clean`), build 42.20.4; four `verify` rows `ok` per boot,
+`server_error_count` 0 in both. **Skew-free.** Acceptance run `x132e-20261005-063700`.
+
+How to read it. Each boot reads the markers client first then server (`boots.*.markers.boot`, raw
+`lua.global` replies; `boots.*.phases.markers` the summary), spawns a `Base.Apple` by RCON and waits for it
+on the client (`boots.*.spawns`; `item.get` read 95 kcal, `hungChange` −0.16), then takes a snapshot
+(`pre`), a 6 s calorie drift, a second snapshot (`pre2`, the baseline), `foodtimer.set admin 0`,
+`eat.action Base.Apple 1`, nutrition polls until the server's corrected calories reach 92, and two
+snapshots `post` (1.5 s later) and `late` (6 s after that). A snapshot is `stats.get` client then server,
+`nutrition.get` server, the mod's record as one `witness.moddata` of `NutritionRevamp.players` (values are
+**strings**, parsed by `to_num`), the intake and probe globals by `lua.global` on both sides, QuestSystem's
+global store census (`global:QuestSystemPersistent players`) on both sides and the server's Apple.
+`boots.*.phases.eat` holds the deltas: `kcal` (drift-corrected, `pred` 95), `probe`, `intake`, `finite`
+(`blocking false` at `pre`, `post` and `late` in both boots: every mod value and HUNGER finite), `qc_store`.
+
+- **X45a (`verdicts.X45a.observed.markers`)**: `QualityCooking.Server` a table (keyCount 1),
+  `BeyondTen.VERSION` "1.3.4", `TKX_EatProbe.version` 1, `NutritionRevamp.version` "0.1.0", each on **both**
+  sides; no join failure. The console grep (`boots.A.logs`) catches the engine's baseline
+  `AdvancedAnimator$1.visitFileFailed` (31) and `IsoPropertyType.lookupOrDefaultStr` (5) exception lines,
+  which the control boot carries too (16 and 5), two ItemQuality translation format warnings, and **one** Lua
+  error from a co-booted mod: QuestSystem's client `OnGameStart` → `QuestTrackerPrefs.load:18` →
+  `getFileReader` raising a Java `IOException` creating a file under a `QuestSystem/` folder the fresh client
+  cache lacked (`boots.A.client_seen` carries `lua_error`; the client kept answering the bus).
+- **X45b (`verdicts.X45b.observed`)**: boot A +94.80 kcal post, +94.93 late; boot B +95.34, +95.13; probe
+  `enter` and `exit` +1 each, the client's 0 and 0; the mod's `eats` +1, `landed` +1, `failures` 0,
+  `lastIntake.share` 1.0 in both. **`.outermost` read `true` in both boots** (also before the eat,
+  `phases.eat.probe.outermost_pre`): the pre-registered `false` for boot A is falsified. The server log
+  shows why: `[NutritionRevamp] intake: ISEatFoodAction.complete wrapped` at 07:10:28.907 precedes
+  `[ItemQuality] server scripts loaded` at 07:10:28.931 — the server ran the mods' Lua in `Mods=` order, so
+  the probe (last) wrapped QualityCooking's wrap, which wrapped the mod's. QualityCooking wrote no
+  `cookingBuff` (`qc_buff_post` null; the store census `players` absent): the RCON Apple carries no cooking
+  tier and `eatWithBuff` then only calls the original.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` eat per boot, one fixture, one admin character. |
+| `verdicts.X45a.verdict`, `summary.verdicts.X45a` | `falsified` | The error pattern counted the engine's baseline exception lines present in the control too; read `verdicts.X45a.observed.markers` and `boots.A.logs.client_luaerr`. |
+| `verdicts.X45b-A.verdict`, `verdicts.X45b.verdict`, `summary.verdicts` | `falsified` | Falsified on `.outermost` alone (predicted false, read true); every composition clause held — read `verdicts.X45b.observed.match`. |
+| `boots.*.phases.eat.intake.bulk_delta` | 4.238 | A raw delta over a window of kinetics emptying, not decay-corrected; not a bulk reading. |
+
+**`x132b-20261005-071959/coboot.json`** — produced by `testing/experiments/x132_coboot_b.py` at commit `a02e8d9`
+(245.5 s wall; 119 772 bytes, sha256 `38d4d7ae…5b1cc5c3`, byte-for-byte identical to the run copy). **A second
+co-boot, one boot of `x13-coboot`**: the first driver verbatim but for one boot and three more markers,
+`QualityCooking.Server.EventHandlers.Roll`, `...BuffTicker` and `...Roll.ApplyBuff`, because the first run's
+`QualityCooking.Server` is made by QualityCooking's **shared** init and so did not show its eat-wrapping
+server file ran. Same provenance as `x132b-20261005-071013`; four `verify` rows `ok`, `server_error_count` 0.
+
+How to read it. As `x132b-20261005-071013`'s boot A. **`verdicts.QC-wrap-file`**: `Roll` and `BuffTicker` tables and
+`Roll.ApplyBuff` a function on both sides — `CookingRollHandler.lua` ran, and with it its unconditional
+save-and-replace of `ISEatFoodAction.complete`. **`verdicts.X45b-A.observed`**: +95.30 kcal post, +95.26
+late; `enter`/`exit` +1; `eats`/`landed` +1, share 1.0; every value finite; `.outermost` true again; no
+buff. The console carries the same QuestSystem client error and the same baseline lines.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` eat, one fixture, one admin character. |
+| `verdicts.X45a.verdict`, `verdicts.X45b-A.verdict`, `summary.verdicts` | `falsified` | As in `x132b-20261005-071013`: the baseline exception lines, and `.outermost` alone. |
+| `boots.A.phases.eat.intake.bulk_delta` | 4.253 | A raw delta, not decay-corrected. |
+
+**`x132r-20261005-072441/residual.json`** — produced by `testing/experiments/x132_residual.py` at commit `a02e8d9`
+(484.3 s wall; 196 600 bytes, sha256 `d81241f2…80684213`, byte-for-byte identical to the run copy). **The Plan 1
+residual arms, session 2, two boots**: `boots.A` under `nr-overlay` (Mode 2, `registered` false) and
+`boots.B` under `x13-residual` (Mode 1 takeover beside TKX_CalcStats, `registered` true), both at
+DayLength 1. Mod `9f53324`, TKX_CalcStats `8783438`, harness Lua `7710d2d` clean, `doctor_clean true` before
+each boot; `verify` 4/4 and 6/6 `ok`, `server_error_count` 0, `client_lua_error` false,
+`field_count_failures` and `non_finite` empty, the fast handler's `failures` 0. A first launch of this driver
+(`x132r-20261005-072422`) was stopped while boot A's server was starting, before any reading; its run dir
+is not evidence. **Skew-free.**
+
+How to read it. Every read is a client-first `stats.get` pair in `boots.*.pairs`, tagged by `window`: `W1`
+idle 30 s, `W2` run 30 s (`player.run 20 0`, re-issued reversed whenever the client read not moving;
+acks in `boots.*.runs`), `W3` settle, `W4` asleep (`player.sleep.hold admin 60` at `boots.*.sleep_hold`,
+pairs every 5 s for 62 s), `W5` after `player.sleep admin false`. Then `boots.*.x4`, six Hearty Appetite
+trials alternating push and no-push. Rates are least-squares slopes against the server's own world age.
+
+- **X4 push (`verdicts.X4-push`, settled)**: push arrivals (client first-tick stamp minus the server's
+  `wallAfter`) 30, 28, 18 ms (A) and 32, 17, 30 ms (B); no-push arrivals bracketed by the driver's epoch
+  around `trait.set` 116–628, 53–570, 62–574 ms (A) and 156–663, 370–1 133, 304–565 ms (B); the trait on
+  both sides' `traitList` after every add; removals seen by polling within 0.8–1.6 s.
+- **The asleep hold (re-graded from the raw pairs)**: the server's `asleep` read true at the first twelve
+  `W4` reads of each boot and false at the last two, which fell after the hold's 60 s deadline
+  (`boots.*.sleep_hold.deadlineWall`); the client's `asleep` read false at all fourteen. Over the twelve
+  in-hold reads thirst rose at 0.007385 per game-hour (A) and 0.007400 (B), difference 1.5e-5 against the
+  band 1.48e-4; awake (`W1`) both read 0.0288. Fatigue read 0 and endurance 1 throughout `W4` in both boots;
+  hunger rose 0.0076 per game-hour (A) and 0.133 (B, the stomach-fill model) — recorded, not graded.
+- **The run arm (`verdicts.X34-running`, unmeasured, correctly)**: every `player.run` ack read
+  `setRunning`, `setForceRun` and `setPathfindRunning` true and `clientRunning` true at the call, yet every
+  later read was `running false` on both sides (16 of 16 per boot) with `moving` true at 14; thirst's W2/W1
+  ratio 1.0000 in both — a walk.
+- **X35 (`verdicts.X35`, unmeasured by design)**: no handler writes the 0.4242 sentinel; the `W2`
+  endurance pairs (1.0 throughout) are recorded only.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 2` boots, one fixture at DayLength 1, one admin character, rested at the start. |
+| `verdicts.X34-asleep.verdict`, `summary.verdicts.X34-asleep` | `unmeasured` | The driver required every `W4` read asleep, but its 62 s window outran the 60 s hold by two reads; read `boots.*.pairs` (`W4`) and the re-grade above. |
+| `verdicts.X34-asleep.observed.per_boot.*.thirst`, `.fatigue_all`, `.fatigue_second_half`, `.hunger`, `.endurance`, `.held`, `.thirst_vs_0477`, `verdicts.X34-asleep.observed.thirst_band`, `.fatigue_band` | slopes 0.0081 / 0.0082 and derived | The fits include the two awake reads after the hold ended; refit over the in-hold reads. |
+| `verdicts.X4-push.observed.nopush_ms_range` as a latency | 53–1 133 ms | A bracket around the command's round trip, not an arrival time; only its lower bound is compared. |
