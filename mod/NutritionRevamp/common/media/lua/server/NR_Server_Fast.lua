@@ -8,8 +8,10 @@
 -- NR_Server_Players: every append to their lists happens in the OnServerStarted handler below.
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.fast = { h = {}, mode = 2, closure = nil, registered = false, wired = false,
-                   stats = { calls = 0, failures = 0, disabledAt = nil, sentinelCalls = 0, perPlayer = {} },
+-- The limitations list is the handler's self-report. The mod ships no test hook: no sentinel arm
+-- (player modData is client-writable), so X35's running arm reads one from a probe mod's own handler.
+NR.server.fast = { h = {}, byChar = {}, mode = 2, closure = nil, registered = false, wired = false,
+                   stats = { calls = 0, failures = 0, disabledAt = nil, byCharHits = 0, perPlayer = {} },
                    limitations = { "idle-square timer mirrored (engine field frozen under takeover; boredom reads it)",
                                    "sleep delay mirrored with sleepDelayFraction (vanilla draws it at random)",
                                    "tripping angle dropped (nothing reads it)" } }
@@ -47,7 +49,7 @@ local DELAY_BED = { badBed = 1.3, badBedPillow = 1.25, goodBed = 0.8, goodBedPil
 -- which the rim guard turns into the three-strike failover to vanilla.
 local function hoist(username, p)
     local h = { username = username, p = p, inp = K.fast.input(), out = K.fast.output(), missing = {},
-                sentinel = false, wasAsleep = false, calls = 0, fails = 0 }
+                wasAsleep = false, calls = 0, fails = 0 }
     local function want(obj, name)
         if obj == nil then
             h.missing[#h.missing + 1] = name
@@ -203,17 +205,14 @@ local function body(h)
     elseif inp.unlimitedEndurance then
         set(stats, h.ENDURANCE, 1)
     end
-    if h.sentinel then                                    -- X35's arm: the endurance write the push should carry
-        set(stats, h.ENDURANCE, 0.4242)
-        FAST.stats.sentinelCalls = FAST.stats.sentinelCalls + 1
-    end
     h.autoDrink(p)                                        -- #2250: vanilla calls it on every pass
 end
 -- @endfastpath
 
--- The hook hands the character and nothing else (jar § 8); its username is the key into the hoisted
--- handles. getUsername is a Java member on an object this file did not hoist, so it is read behind
--- the guard, outside the region; the body's rim guard is the one pcall the region allows.
+-- The hook hands the character and nothing else (jar § 8). The steady-state tick finds its handles
+-- by the character object itself (FAST.byChar, a plain Kahlua table index: the engine hands the same
+-- IsoPlayer instance every update); only a miss -- first sight or a respawn -- reads the username,
+-- a Java member on an object this file did not hoist, behind this guard outside the region.
 local function keyOf(character)
     local ok, username = pcall(character.getUsername, character)
     if ok then return username end
@@ -225,9 +224,12 @@ end
 -- report again) is hoisted here, once, outside the region. A hoist that raises disables the
 -- takeover, so vanilla resumes rather than a player's stats freezing.
 function FAST.adopt(username, character)
+    local old = FAST.h[username]
+    if old ~= nil and old.p ~= character then FAST.byChar[old.p] = nil end
     local ok, h = pcall(hoist, username, character)
     if ok then
         FAST.h[username] = h
+        FAST.byChar[character] = h
         return h
     end
     FAST.lastError = h
@@ -238,12 +240,19 @@ end
 
 -- @fastpath
 local function handler(character)
-    local username = keyOf(character)
-    if username == nil then return end
-    local h = FAST.h[username]
-    if h == nil or h.p ~= character then
-        h = FAST.adopt(username, character)
-        if h == nil then return end
+    local h = FAST.byChar[character]
+    if h == nil then
+        -- first sight or a respawn (rare): the guarded username read, then the hoist if stale
+        local username = keyOf(character)
+        if username == nil then return end
+        h = FAST.h[username]
+        if h == nil or h.p ~= character then
+            h = FAST.adopt(username, character)
+            if h == nil then return end
+        end
+        FAST.byChar[character] = h
+    else
+        FAST.stats.byCharHits = FAST.stats.byCharHits + 1
     end
     h.calls = h.calls + 1
     FAST.stats.calls = FAST.stats.calls + 1
@@ -254,9 +263,9 @@ local function handler(character)
     end
     h.fails = h.fails + 1
     FAST.stats.failures = FAST.stats.failures + 1
-    FAST.stats.perPlayer[username].failures = h.fails
+    FAST.stats.perPlayer[h.username].failures = h.fails
     FAST.lastError = err
-    if h.fails >= 3 then FAST.disable(username, "three consecutive failures") end
+    if h.fails >= 3 then FAST.disable(h.username, "three consecutive failures") end
 end
 -- @endfastpath
 FAST.handler = handler
@@ -301,19 +310,24 @@ end
 local function onFirstSight(username, player)
     if player == nil then return end
     local h = FAST.h[username]
-    if h == nil or h.p ~= player then FAST.h[username] = hoist(username, player) end
+    if h == nil or h.p ~= player then
+        if h ~= nil then FAST.byChar[h.p] = nil end
+        h = hoist(username, player)
+        FAST.h[username] = h
+        FAST.byChar[player] = h
+    end
 end
 
 local function onDeparture(username)
+    local h = FAST.h[username]
+    if h ~= nil then FAST.byChar[h.p] = nil end
     FAST.h[username] = nil
 end
 
--- X35's sentinel flag and the per-player failure count are read on the slow clock, never per tick.
+-- The per-player call and failure counts are read on the slow clock, never per tick.
 local function onMinute(username, player)
     local h = FAST.h[username]
     if h == nil then return end
-    local okMd, md = NR.call(player, "getModData")
-    h.sentinel = okMd and md ~= nil and (md.NR_sentinel == 1 or md.NR_sentinel == "1")
     FAST.stats.perPlayer[username].calls = h.calls
     if FAST.lastError ~= nil then
         NR.log.say(2, "fast: handler failed (" .. tostring(FAST.stats.failures) .. " so far): " .. tostring(FAST.lastError))
@@ -335,7 +349,9 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
             P.onMinute[#P.onMinute + 1] = onMinute
             NR.server.options.changed[#NR.server.options.changed + 1] = function(old, new) applyMode(new) end
             for username, player in pairs(P.online) do
-                FAST.h[username] = hoist(username, player)
+                local h = hoist(username, player)
+                FAST.h[username] = h
+                FAST.byChar[player] = h
             end
         end
         applyMode(NR.server.options)

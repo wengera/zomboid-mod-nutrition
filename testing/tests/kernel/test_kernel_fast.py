@@ -1,5 +1,7 @@
 import math, pytest
 
+F03 = 0.30000001192092896                          # the float 0.3f the jar compares against (jar report section 9)
+
 C = dict(thirstIncrease=8.0e-6, thirstSleepingIncrease=1.0e-6, hungerIncrease=9.6e-6, hungerIncreaseWhenWellFed=0.0,
          hungerIncreaseWhileAsleep=1.0e-6, hungerIncreaseWhenExercise=1.92e-5, fatigueIncrease=3.45e-5,
          stressDecrease=3.0e-5, stressFromSoundsMultiplier=2.0e-5, stressFromBiteOrScratch=5.0e-5,
@@ -29,7 +31,7 @@ def test_awake_idle_vanilla_rates(host):
     s = 0.8 * 0.5                                  # game-seconds this update
     assert o["thirst"] == pytest.approx(0.1 + 8.0e-6 * s, rel=1e-12)
     assert o["hunger"] == pytest.approx(0.2 + 9.6e-6 * (1 - 0.2) * s, rel=1e-12)
-    assert o["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.3 * s, rel=1e-12)      # deficit 0.1 floored to 0.3
+    assert o["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * s, rel=1e-12)      # deficit 0.1 floored to 0.3f
     assert o["stress"] == pytest.approx(0.05 - 3.0e-5 * s, rel=1e-12)
     assert o["anger"] == pytest.approx(0.02 - 1.0e-4 * s, rel=1e-12)
     assert o["morale"] == 1.0 and o["fitness"] == 0.0
@@ -61,9 +63,9 @@ def test_hunger_arms(host):
 def test_fatigue_awake_terms(host):
     s = 0.4
     assert run(host, endurance=0.2)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.8 * s, rel=1e-12)
-    assert run(host, needsLess=True)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.3 * s * 0.7, rel=1e-12)
-    assert run(host, needsLess=True, needsMore=True)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.3 * s * 1.3, rel=1e-12)
-    assert run(host, sitting=True, thermoFatigue=2.0)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.3 * s * 2.0 / 1.5, rel=1e-12)
+    assert run(host, needsLess=True)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * s * 0.7, rel=1e-12)
+    assert run(host, needsLess=True, needsMore=True)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * s * 1.3, rel=1e-12)
+    assert run(host, sitting=True, thermoFatigue=2.0)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * s * 2.0 / 1.5, rel=1e-12)
 
 
 def test_stress_terms(host):
@@ -120,7 +122,7 @@ def test_morale_and_fitness(host):
     assert run(host, fitnessLevel=0)["fitness"] == -1.0 and run(host, fitnessLevel=10)["fitness"] == 1.0
 
 
-def test_endurance_stub_and_sentinel(host):
+def test_endurance_stub(host):
     assert run(host, unlimitedEndurance=True, endurance=0.3)["endurance"] == 1.0
     assert run(host, endurance=0.3)["lastEndurance"] == 0.3
 
@@ -173,7 +175,7 @@ def test_morale_reads_stress_after_the_decay(host):
 
 def test_endurance_deficit_reads_after_the_cheat_reset(host):
     o = run(host, unlimitedEndurance=True, endurance=0.2)
-    assert o["fatigue"] == pytest.approx(0.1 + 3.45e-5 * 0.3 * 0.4, rel=1e-12)
+    assert o["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * 0.4, rel=1e-12)
 
 
 def test_resting_divides_fatigue_but_sitting_blocks_the_idleness_decrease(host):
@@ -182,3 +184,11 @@ def test_resting_divides_fatigue_but_sitting_blocks_the_idleness_decrease(host):
     assert o["fatigue"] - 0.1 == pytest.approx(base / 1.5, rel=1e-9)
     assert o["idleness"] == pytest.approx(0.1 - 6e-3 * 0.4, rel=1e-12)   # resting does not block the decrease
     assert run(host, sitting=True, idleness=0.1)["idleness"] == 0.1
+
+
+def test_sleep_split_compares_against_the_float_0_3(host):
+    # 0.3000000075 lies between the double 0.3 and the float 0.3f: Java's fatigue <= 0.3f takes the slow arm
+    dt = 1.0 / 60.0 / 60.0 * 0.8 / 2.0
+    assert 0.3 < 0.3000000075 < F03
+    o = run(host, asleep=True, fatigue=0.3000000075, timeOfSleep=9.0, delayToSleep=8.5)
+    assert o["fatigue"] == pytest.approx(0.3000000075 - dt / 7.0 * 0.3, rel=1e-12)

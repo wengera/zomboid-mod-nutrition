@@ -68,6 +68,7 @@ end
 function K.fast.step(inp, out, c)
     local M, D, sd = inp.M, inp.D, inp.sd
     local s = M * D
+    local F03 = 0.30000001192092896                         -- the float 0.3f the jar compares against (§ 9)
 
     -- 7. the endurance stub: stamp, then the cheat (#2215)
     out.lastEndurance = inp.endurance
@@ -180,7 +181,7 @@ function K.fast.step(inp, out, c)
                 elseif inp.needsMore then
                     t = t * 1.18
                 end
-                if fatigue <= 0.3 then
+                if fatigue <= F03 then
                     fatigue = fatigue - dt / (7 * t) * 0.3 * ff * inp.bedFactor
                 else
                     fatigue = fatigue - dt / (5 * t) * 0.7 * ff * inp.bedFactor
@@ -195,7 +196,7 @@ function K.fast.step(inp, out, c)
     else
         -- 2. updateStats_Awake: stress decay, fatigue, hunger, idleness (jar § 2; #2270, #2271, #0470, #0471, #0473)
         stress = clamp(stress - c.stressDecrease * s, 0, 1)
-        local endDef = max(0.3, 1 - endurance)              -- reads ENDURANCE after the stub's cheat reset
+        local endDef = max(F03, 1 - endurance)              -- reads ENDURANCE after the stub's cheat reset
         local sleepTrait = 1
         if inp.needsLess then
             sleepTrait = 0.7
