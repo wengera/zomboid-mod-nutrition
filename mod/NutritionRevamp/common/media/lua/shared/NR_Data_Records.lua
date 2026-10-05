@@ -189,6 +189,7 @@ NR.data.records = {
                 2.4, -- male RDA ug/d, S0349
                 2.4, -- female RDA ug/d, S0349
             },
+            absorb = 0.5, -- S0358 (50 % of a 1 ug dose); the per-eat ceiling K.interact.b12Ceiling is applied by the intake wrapper on the INGESTED amount and already yields 0.5 at <= 4 ug, so R_abs = 1.2 ug/d and a diet at the 2.4 ug RDA holds p = 1
             k = 0.001, -- = obligatory loss / store = 2.5/2500 (t1/2 693 d), S0354/S0355
             ladder = {
                 0.70, -- marginal (store): the generic rung, design-phase-v1 game choice (open S1057)

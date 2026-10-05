@@ -54,6 +54,7 @@ def test_constants(host):
     assert (A.IU_DEHYD_FROM, A.IU_DEHYD_KNEE, A.IU_DEHYD_SLOPE1, A.IU_DEHYD_SLOPE2, A.IU_DEHYD_MAX) == (1, 2, 0.45, 0.22, 0.89)
     assert _list(host, A.IU_IRON) == [0, 0, 0.38, 0.76]
     assert (A.CREDIT_BASE, A.CREDIT_GAIN, A.CREDIT_MG, A.IU_MAX) == (0.50, 0.60, 200, 2.5)
+    assert A.CREDIT_BASE_MG == 100
     assert (A.LOW_KCAL_KG, A.HEIGHT_M, A.MASS_WINDOW_H) == (5, 1.75, 2160)
     assert (A.RISK_BMI_HIGH, A.RISK_LOSS_HIGH, A.RISK_DAYS_HIGH, A.RISK_BMI_MOD, A.RISK_LOSS_MOD, A.RISK_DAYS_MOD) == (16, 0.15, 10, 18.5, 0.10, 5)
     assert (A.REFEED_DAYS, A.RESTART_KCAL_KG, A.RESTART_LOW_KCAL_KG, A.RESTART_LOW_BMI, A.REFEED_P) == (7, 10, 5, 14, 0.23)
@@ -112,6 +113,13 @@ def test_caffeine_mean_is_a_daily_rate(host):
     b = _new(host)
     A.caffeine(b, 140, 80, 0)
     assert _close(b.cafMean, 20.0)  # a dose-only step adds dose * 24 / 168 = dose / 7
+
+
+def test_caffeine_mean_never_negative(host):
+    a = _new(host)
+    a.cafMean = 400
+    host.K.acute.caffeine(a, 0, 80, 200.0)  # one 200 h step: 400 + (0 - 400 * 200) / 168 < 0 unfloored
+    assert a.cafMean == 0
 
 
 def test_caffeine_tolerance_tau_7d_both_ways(host):
@@ -387,6 +395,13 @@ def test_sleep_window_short_sleep_accrues_debt(host):
     assert _close(a.awakeH, MIN) and a.sleptH == 0
 
 
+def test_sleep_long_step_closes_every_window(host):
+    a = _new(host, 0.0)
+    host.K.acute.sleepMinute(a, False, 8.0, 1.0, 50.0, 50.0, False)  # 50 h awake in one step: windows at 24 h and 48 h
+    assert _close(a.debtH, 15.0, 1e-9)  # two windows x 7.5, not 7.5
+    assert _close(a.winStartH, 48.0)
+
+
 def test_sleep_window_long_sleep_repays(host):
     a = _new(host, 0.0)
     a.debtH = 2.5
@@ -517,11 +532,13 @@ def test_iu_caffeine_credit(host):
     A = host.K.acute
     a = _new(host)
     a.awakeH = 24
-    assert _close(A.iu(a, 0, 1), 0.5)  # credit min(1.0, 0.5 + 0) = 0.5: capped 0.5 at C 0
+    assert A.iu(a, 0, 1) == 1.0  # no caffeine, no credit (ruling T9-2)
+    a.caf = 50
+    assert _close(A.iu(a, 0, 1), 0.6)  # credit 0.5 * 0.5 + 0.6 * 0.25 = 0.40
     a.caf = 200
-    assert _close(A.iu(a, 0, 1), 0.0)  # credit min(1.0, 1.1) = 1.0
+    assert _close(A.iu(a, 0, 1), 0.0)  # credit min(1.0, 0.5 + 0.6) = 1.0
     a.caf = 100
-    assert _close(A.iu(a, 0, 1), 0.2)  # credit 0.5 + 0.3 = 0.8
+    assert _close(A.iu(a, 0, 1), 0.2)  # credit 0.5 * 1 + 0.6 * 0.5 = 0.8
     r = _new(host)
     r.caf = 400
     r.bac = 0.03

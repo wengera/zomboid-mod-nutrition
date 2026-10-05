@@ -9,7 +9,9 @@
 -- The records are injected as { ORDER = {key, ...}, REC = { [key] = rec } } (Task 7 writes them); this
 -- file never names NR.data. The record fields read here: kind, R, scale, Rscale, absorb, k, pCap, ladder,
 -- clinicalOnP2, p2Clinical, ul, chronic.perDay, chronic.store, acute.perKg, acute.abs, dialExp. Sex is indexed 1 male,
--- 2 female (Plan 3's K.body convention); ctx carries sex, w, eeMJ, pDay, dial, excessOn and two.
+-- 2 female (Plan 3's K.body convention); ctx carries sex, w, eeMJ, pDay, dial, excessOn and two,
+-- and optionally kMul, a table {[key] = multiplier} on a pool's rate k that the adapter owns (file-scope,
+-- never allocated per minute); thiamine's alcohol term K.interact.thiamineAlcoholK is the first user.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast region,
 -- so math.exp and math.log are allowed. This file sorts after NR_Kernel.lua, and every K.max reference is
 -- at call time.
@@ -336,7 +338,14 @@ function K.nutrients.minute(state, records, absorbed, ingested, ctx, dtM)
         local kind = rec.kind
         if kind == "pool" then
             local R = K.nutrients.requirement(rec, ctx)
-            local kEff = K.nutrients.kEff(rec, rec.k, dial)
+            local k = rec.k
+            if ctx.kMul ~= nil then
+                local m = ctx.kMul[key]
+                if m ~= nil then
+                    k = k * m
+                end
+            end
+            local kEff = K.nutrients.kEff(rec, k, dial)
             K.nutrients.stepPool(s, rec, aAbs, R, kEff, dtD)
         elseif K.nutrients.NO_TWO[kind] == nil then
             if type(ctx.two) == "function" then

@@ -100,6 +100,7 @@ K.acute.DEBT_MAX = 40 -- S0742 (cumulative); the cap a game choice
 K.acute.REPAY = 0.5 -- S0743 (deficits persist); design-phase-v1 game choice (open row S1113: the repaid fraction)
 K.acute.CIRC_AMP = 0.12 -- S0736
 K.acute.CIRC_PEAK_H = 4 -- design-phase-v1 game choice (open row S0861: the 04:00 trough)
+-- Sign: +0.12 at 04:00 = the sleep-propensity peak (the alertness trough); Plan 5's FATIGUE term ADDS circ.
 K.acute.IU_SLEEP_ZERO_H = 16 -- design-phase-v1 game choice (open row S1115: the hours awake of the first decline)
 K.acute.IU_SLEEP_SPAN_H = 8 -- S0892 (24 h awake = 1 IU)
 K.acute.IU_SLEEP_DEBT_H = 10.5 -- derived from S0742 (about 21 h owed = 2 nights' deprivation = 2 IU)
@@ -121,6 +122,7 @@ K.acute.IU_IRON = {
 K.acute.CREDIT_BASE = 0.50 -- S0899 (g 0.28 rested); the formula a game choice
 K.acute.CREDIT_GAIN = 0.60 -- S0900 (g 1.11 after sleep loss); the formula a game choice
 K.acute.CREDIT_MG = 200 -- S0899 (doses of 200 mg and more did more)
+K.acute.CREDIT_BASE_MG = 100 -- game choice (ruling T9-2: the rested credit is full at 100 mg; S0899 direction)
 K.acute.IU_MAX = 2.5 -- game choice: additive sum capped (super-additive gamma rejected pending open row S0855)
 
 -- Refeeding.
@@ -197,7 +199,8 @@ function K.acute.caffeine(a, doseAbsMg, w, dtH)
         thalf = A.CAF_THALF_SLOW_H
     end
     a.caf = a.caf * math.exp(-math.log(2) * dtH / thalf) + doseAbsMg
-    a.cafMean = a.cafMean + (doseAbsMg * 24 - a.cafMean * dtH) / A.CAF_MEAN_H
+    -- floored at 0: a step longer than CAF_MEAN_H would otherwise drive the mean negative
+    a.cafMean = K.max(0, a.cafMean + (doseAbsMg * 24 - a.cafMean * dtH) / A.CAF_MEAN_H)
     local tStar = K.clamp(a.cafMean / A.CAF_TOL_REF, 0, 1)
     a.cafTol = tStar + (a.cafTol - tStar) * math.exp(-dtH / A.CAF_TOL_TAU_H)
     if a.cafTol > A.CAF_WD_TOL and a.caf < A.CAF_WD_LOW_MG then
@@ -372,10 +375,12 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
         local chiW = A.CHI_W / (1 + A.CHI_W_DEBT * K.min(a.debtH, A.CHI_W_DEBT_MAX))
         a.S = 1 - (1 - a.S) * math.exp(-dtH / chiW)
     end
-    if ageH - a.winStartH >= A.WINDOW_H then
+    -- every elapsed window closes (a long step can span several); a window books at most its own WINDOW_H
+    while ageH - a.winStartH >= A.WINDOW_H do
         local need = A.SLEEP_NEED_H * needFactor
-        local short = K.max(0, need - a.winSleptH)
-        local extra = K.max(0, a.winSleptH - need)
+        local booked = K.min(a.winSleptH, A.WINDOW_H)
+        local short = K.max(0, need - booked)
+        local extra = K.max(0, booked - need)
         a.debtH = K.clamp(a.debtH + short - A.REPAY * extra, 0, A.DEBT_MAX)
         a.winStartH = a.winStartH + A.WINDOW_H
         a.winSleptH = 0
@@ -404,12 +409,12 @@ function K.acute.iuDehyd(dehydPct)
 end
 
 -- The impairment unit (1 IU = 24 h awake = BAC 0.05 %): the sleep, alcohol, dehydration, glucose and iron
--- terms summed, less the caffeine credit min(IU_sleep, 0.5 + 0.6 x min(1, caf / 200)), clamped [0, 2.5].
+-- terms summed, less the caffeine credit min(IU_sleep, 0.5 x min(1, caf / 100) + 0.6 x min(1, caf / 200)), clamped [0, 2.5].
 -- Additive (ruling 14). Writes a.iu and returns it.
 function K.acute.iu(a, dehydPct, ironGrade)
     local A = K.acute
     local sleep = A.iuSleep(a)
-    local credit = K.min(sleep, A.CREDIT_BASE + A.CREDIT_GAIN * K.min(1, a.caf / A.CREDIT_MG))
+    local credit = K.min(sleep, A.CREDIT_BASE * K.min(1, a.caf / A.CREDIT_BASE_MG) + A.CREDIT_GAIN * K.min(1, a.caf / A.CREDIT_MG))
     local sum = sleep + A.iuAlcohol(a.bac) + A.iuDehyd(dehydPct) + A.iuGlucose(a.bg) + A.IU_IRON[ironGrade]
     a.iu = K.clamp(sum - credit, 0, A.IU_MAX)
     return a.iu

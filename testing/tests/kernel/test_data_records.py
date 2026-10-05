@@ -243,6 +243,7 @@ def test_the_two_compartment_fields(rh):
     b12 = _rec(rh, "vitB12")
     assert b12["clinicalOnP2"] is True and b12["p2Clinical"] == 1.0
     assert b12["two"] == {"fThreshold": 0.10}
+    assert b12["absorb"] == 0.5
     clin = {key for key in ORDER if _rec(rh, key).get("clinicalOnP2")}
     assert clin == {"iron", "vitA", "vitB12"}
 

@@ -355,6 +355,29 @@ def _empty(host):
     return host.table({})
 
 
+KMUL_RECORDS = r"""
+{
+  ORDER = { "x" },
+  REC = {
+    x = { key = "x", unit = "mg", kind = "pool", R = { 90, 75 }, k = 0.01,
+          ladder = { 0.70, 0.45, 0.15 }, pCap = 1.0 },
+  },
+}
+"""
+
+
+@pytest.mark.parametrize("kmul, expect", [(None, math.exp(-0.01)), ({"y": 2}, math.exp(-0.01)), ({"x": 2}, math.exp(-0.02))])
+def test_minute_kmul_scales_the_pool_rate(host, kmul, expect):
+    N = host.K.nutrients
+    recs = _records(host, KMUL_RECORDS)
+    st = N.newState(recs)
+    kw = {} if kmul is None else {"kMul": kmul}
+    ctx = _ctx(host, **kw)
+    for _ in range(1440):
+        N.minute(st, recs, _empty(host), _empty(host), ctx, 1)
+    assert st.x.p == pytest.approx(expect, abs=1e-12)
+
+
 def test_minute_forty_days_zero_intake(host):
     N = host.K.nutrients
     recs = _records(host)
