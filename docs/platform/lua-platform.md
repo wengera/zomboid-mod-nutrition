@@ -253,7 +253,7 @@ Four readings of what the reload itself does — the survival of globals across 
 A mod-registered moodle type reaches every character and is never driven above its lowest level, so the registration methods the jar declares lead nowhere ([the wall map](../reference/wall-map.md)) [#0969/C/C-only, #1140/C/C-only].
 The class that holds every moodle's level thresholds is absent from the exposer's class set and no exposed method returns one, so the setters the bytecode declares cannot be reached from Lua at all [#2040/C/C-only, #1141/C/C-only].
 A raise at file scope is a bytecode reading with no session behind it: the chunk-abort is the one unguarded-raise arm this library never raised, and the measured arms are all handler-body arms [#1226/C/C-only].
-Whether the drink path can be hooked the way the eat path is hooked is not settled: the declared hook roster carries no eat, drink, consume, digest or nutrition name, and the wrapper route by analogy with the eat action has never been tried [#1133/C/C-only/open].
+The drink path is hooked the way the eat path is, through a wrapper rather than a named hook: the declared hook roster carries no eat, drink, consume, digest or nutrition name, and a server-side wrapper of the drink action, the route by analogy with the eat action, fired on the server and not on the client in one session [#1133/M/n=1].
 Not covered: the Kahlua standard library beyond the members this library called, the UI and ISUI Lua layer, the animation, sound and vehicle bindings, the debug console and its command surface, the declared event roster beyond the events named above, coroutines and any threading behaviour, and the Lua side of the crafting and context-menu pipelines — none of them was read.
 
 ## Open

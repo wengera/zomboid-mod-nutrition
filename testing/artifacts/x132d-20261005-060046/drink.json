@@ -1,0 +1,4455 @@
+{
+ "run_id": "x132d-20261005-060046",
+ "session": "X13: client drink.action Base.Pop2 (the real ISDrinkFluidAction) against TKX_DrinkHook's per-side updateEat/complete counters and the mod's own drink wrapper (stats.sips, the record's stomach.bulk, lastIntake); drink.action Base.JuiceBox 0.5; the shipped server drink admin Base.Pop2 as the control",
+ "user": "admin",
+ "profile": {
+  "name": "x13-drink",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x13-drink.toml",
+  "fixture": "default",
+  "description": "PZTestKit + NutritionRevamp + TKX_DrinkHook - X13 (the drink action's side).",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "TKX_DrinkHook"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp",
+   "TKX_DrinkHook": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_DrinkHook"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "NutritionRevamp",
+  "TKX_DrinkHook"
+ ],
+ "commit": "f1968b6",
+ "harness_lua_commit": "7710d2d",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "mod_commit": "ffaed41",
+ "mod_dirty": false,
+ "probe_commit": "2b8e702",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x132c-20261005-041640",
+ "dry_run": false,
+ "constants": {
+  "COLA_per_litre": {
+   "calories": 400.0,
+   "fibre": 0.0,
+   "water": 890.0
+  },
+  "JUICE_per_litre": {
+   "calories": 400.0,
+   "fibre": 0.5,
+   "water": 840.0
+  },
+  "HALF_TIME_H": 2.0,
+  "FULL_BULK": 8.0,
+  "P1_PRED_BULK": 3.87,
+  "P3_PRED_BULK": 1.2650000000000001,
+  "P1_PRED_KCAL": 120.0,
+  "P3_PRED_KCAL": 40.0,
+  "P2_PRED_KCAL": 120.0,
+  "KCAL_TOL": 5.0,
+  "BULK_TOL_FRAC": 0.03,
+  "BULK_TOL_ABS": 0.06,
+  "POLL_S": 1.0,
+  "POLL_MAX_S": 20.0,
+  "SETTLE_S": 2.0,
+  "COUNTER_FIELD_COUNT": 4
+ },
+ "deviation": "P3 drinks Base.JuiceBox 0.5 rather than a second Base.Pop2 0.5: an emptied Pop2 stays a Base.Pop2 (exp05b), drink.action's findOrSpawn takes the first one (P1's empty can), and no harness command removes an item. Decided before the run.",
+ "world_changes": {
+  "restored": "the run's own copy of the fixture (fx.restore_server); nothing written back to the golden fixture",
+  "left_in_place": [
+   "RCON-spawned Base.Pop2 x2 and Base.JuiceBox x1 in admin's inventory in this run's copy",
+   "the record's stomach and lastIntake in this run's copy"
+  ]
+ },
+ "steps": [
+  {
+   "step": "P1_drink_action",
+   "cmd": "drink.action",
+   "args": "Base.Pop2 1.0",
+   "side": "client",
+   "wall_before": 105.791,
+   "wall_after": 106.301,
+   "took": 0.51,
+   "ack": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 214536473,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 786.05419921875,
+     "carbs": -3.0455121994018555,
+     "lipids": -0.9832658171653748,
+     "proteins": -0.7483255863189697,
+     "weight": 80,
+     "hunger": 0.07226806879043579,
+     "thirst": 0.006872398778796196,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "P3_drink_action",
+   "cmd": "drink.action",
+   "args": "Base.JuiceBox 0.5",
+   "side": "client",
+   "wall_before": 185.587,
+   "wall_after": 185.848,
+   "took": 0.261,
+   "ack": {
+    "queued": true,
+    "percentage": 0.5,
+    "spawned": "found",
+    "itemId": 1951698720,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 886.0684204101562,
+     "carbs": 23.811370849609375,
+     "lipids": -2.409348249435425,
+     "proteins": -1.8336628675460815,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.009456992149353027,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   }
+  },
+  {
+   "step": "P2_drink",
+   "cmd": "drink",
+   "args": "admin Base.Pop2 1.0",
+   "side": "server",
+   "wall_before": 265.686,
+   "wall_after": 267.698,
+   "took": 2.012,
+   "ack": {
+    "user": "admin",
+    "fullType": "Base.Pop2",
+    "fraction": 1,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "fullest, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 214536473,
+      "hasFluidContainer": true,
+      "empty": true,
+      "capacity": 0.30000001192092896,
+      "amount": 0
+     },
+     {
+      "index": 1,
+      "id": 117144678,
+      "hasFluidContainer": true,
+      "empty": false,
+      "capacity": 0.30000001192092896,
+      "amount": 0.30000001192092896
+     }
+    ],
+    "selected": {
+     "index": 1,
+     "id": 117144678,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.30000001192092896,
+     "amount": 0.30000001192092896
+    },
+    "selectedFullType": "Base.Pop2",
+    "primaryFluidRoute": "getFluidTypeString",
+    "primaryFluid": "Cola",
+    "fluidDisplayName": "Cola",
+    "containerProperties": {
+     "calories": 120.00000762939453,
+     "carbs": 31.200000762939453,
+     "lipids": 0,
+     "proteins": 0,
+     "hungerChange": -0.036000002175569534,
+     "thirstChange": -0.09000000357627869,
+     "unhappyChange": -3,
+     "fatigueChange": -0.006000000052154064,
+     "stressChange": 0,
+     "alcohol": 0,
+     "poison": 0,
+     "enduranceChange": 0,
+     "fluReduction": 0,
+     "painReduction": 0,
+     "foodSicknessChange": 0
+    },
+    "predictedNutrition": {
+     "calories": 120.00000762939453,
+     "carbs": 31.200000762939453,
+     "lipids": 0,
+     "proteins": 0
+    },
+    "predictedStats": {
+     "hunger": -0.036000002175569534,
+     "thirst": -0.09000000357627869
+    },
+    "worldAgeBefore": 3.2652769088745117,
+    "before": {
+     "container": {
+      "amount": 0.30000001192092896,
+      "capacity": 0.30000001192092896,
+      "filledRatio": 1,
+      "empty": false
+     },
+     "nutrition": {
+      "calories": 904.8139038085938,
+      "carbs": 31.18037986755371,
+      "lipids": -3.9044840335845947,
+      "proteins": -2.9715538024902344,
+      "weight": 80,
+      "hunger": 0,
+      "thirst": 0.009881882928311825,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "foodTimer": -4.592223644256592
+    },
+    "predictedFoodTimer": 463,
+    "drinkFluidReturned": true,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "after": {
+     "container": {
+      "amount": 0,
+      "capacity": 0.30000001192092896,
+      "filledRatio": 0,
+      "empty": true
+     },
+     "nutrition": {
+      "calories": 1024.81396484375,
+      "carbs": 62.38037872314453,
+      "lipids": -3.9044840335845947,
+      "proteins": -2.9715538024902344,
+      "weight": 80,
+      "hunger": 0,
+      "thirst": 0,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "foodTimer": 463
+    },
+    "worldAgeAfter": 3.2652769088745117,
+    "syncItemFields": true,
+    "delta": {
+     "amount": -0.30000001192092896,
+     "calories": 120.00006103515625,
+     "carbs": 31.19999885559082,
+     "lipids": 0,
+     "proteins": 0,
+     "hunger": 0,
+     "thirst": -0.009881882928311825,
+     "weight": 0,
+     "foodTimer": 467.5922236442566,
+     "worldAgeHours": 0
+    }
+   }
+  }
+ ],
+ "notes": [],
+ "spawns": [
+  {
+   "type": "Base.Pop2",
+   "why": "P1: RCON first -- drink.action's findOrSpawn falls back to a CLIENT spawn the server never hears of (#0124)",
+   "rcon_ok": true,
+   "rcon_reply": "",
+   "wall_rcon": 60.418,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 63.175,
+     "resolved": "admin/Base.Pop2 #214536473",
+     "id": 214536473
+    }
+   ],
+   "resolved": true,
+   "server_item_get": {
+    "fullType": "Base.Pop2",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 214536473,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "serverWorldAge": 2.359818458557129,
+    "_probe": {
+     "cmd": "item.get",
+     "args": "admin Base.Pop2",
+     "wall": 63.175,
+     "wall_done": 63.686
+    }
+   }
+  },
+  {
+   "type": "Base.JuiceBox",
+   "why": "P3: the half arm on a second seeded fluid",
+   "rcon_ok": true,
+   "rcon_reply": "Item Base.JuiceBox Added in admin's inventory.",
+   "wall_rcon": 147.742,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 150.755,
+     "resolved": "admin/Base.JuiceBox #1951698720",
+     "id": 1951698720
+    }
+   ],
+   "resolved": true,
+   "server_item_get": {
+    "fullType": "Base.JuiceBox",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 1951698720,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.10000000149011612,
+    "weight": 0.10000000149011612,
+    "customWeight": false,
+    "serverWorldAge": 2.7503719329833984,
+    "_probe": {
+     "cmd": "item.get",
+     "args": "admin Base.JuiceBox",
+     "wall": 150.755,
+     "wall_done": 151.765
+    }
+   }
+  },
+  {
+   "type": "Base.Pop2",
+   "why": "P2: a full can for the server drink (picks the fullest)",
+   "rcon_ok": true,
+   "rcon_reply": "Item Base.Pop2 Added in admin's inventory.",
+   "wall_rcon": 229.868,
+   "attempts": [
+    {
+     "attempt": 1,
+     "wall": 232.368,
+     "resolved": null,
+     "note": "server-side use only; no client resolve needed"
+    }
+   ],
+   "resolved": null,
+   "server_item_get": {
+    "fullType": "Base.Pop2",
+    "cooked": false,
+    "burnt": false,
+    "age": 0,
+    "id": 214536473,
+    "uses": 1,
+    "offAge": 1000000000,
+    "offAgeMax": 1000000000,
+    "cookingTime": 0,
+    "minutesToCook": 60,
+    "minutesToBurn": 120,
+    "isCookable": false,
+    "actualWeight": 0.30000001192092896,
+    "weight": 0.30000001192092896,
+    "customWeight": false,
+    "serverWorldAge": 3.1143503189086914,
+    "_probe": {
+     "cmd": "item.get",
+     "args": "admin Base.Pop2",
+     "wall": 232.368,
+     "wall_done": 233.878
+    }
+   }
+  }
+ ],
+ "snapshots": {
+  "P0": {
+   "tag": "P0",
+   "wall_start": 63.687,
+   "nutrition": {
+    "tag": "P0",
+    "wall": 65.458,
+    "client": {
+     "calories": 796.8161010742188,
+     "carbs": -0.6964144110679626,
+     "lipids": -0.2248423844575882,
+     "proteins": -0.17111895978450775,
+     "weight": 80,
+     "hunger": 0.011418171226978302,
+     "thirst": 0.0015030329814180732,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 63.687,
+      "wall_done": 64.197
+     }
+    },
+    "server": {
+     "calories": 796.4588012695312,
+     "carbs": -0.7745181322097778,
+     "lipids": -0.25005874037742615,
+     "proteins": -0.19031018018722534,
+     "weight": 80,
+     "hunger": 0.011418171226978302,
+     "thirst": 0.0016815557610243559,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 64.197,
+      "wall_done": 65.458
+     }
+    },
+    "client_calories": 796.8161010742188,
+    "server_calories": 796.4588012695312
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 2.3691558837890625,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 65.458,
+      "wall_done": 65.716
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 2.3775548934936523,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 65.716,
+      "wall_done": 67.731
+     }
+    }
+   },
+   "counters": {
+    "client": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    },
+    "server": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    }
+   },
+   "globals": {
+    "client": {
+     "NutritionRevamp.version": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 67.731,
+       "wall_done": 68.242
+      }
+     },
+     "TK.version": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 68.242,
+       "wall_done": 68.753
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "client",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 68.753,
+       "wall_done": 69.265
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "client",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 69.265,
+       "wall_done": 69.772
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 69.772,
+       "wall_done": 70.281
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 70.281,
+       "wall_done": 70.789
+      }
+     },
+     "NutritionRevamp.client.mirror.stomachFill": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.mirror.stomachFill",
+       "wall": 70.789,
+       "wall_done": 71.301
+      }
+     },
+     "NutritionRevamp.client.received": {
+      "side": "client",
+      "name": "NutritionRevamp.client.received",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.received",
+       "wall": 71.301,
+       "wall_done": 71.814
+      }
+     }
+    },
+    "server": {
+     "NutritionRevamp.version": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 71.814,
+       "wall_done": 72.822
+      }
+     },
+     "TK.version": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 72.822,
+       "wall_done": 73.834
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "server",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 73.834,
+       "wall_done": 75.848
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "server",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 75.848,
+       "wall_done": 76.609
+      }
+     },
+     "NutritionRevamp.server.intake.wrappedDrink": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.wrappedDrink",
+      "type": "boolean",
+      "resolved": true,
+      "value": true,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.wrappedDrink",
+       "wall": 76.609,
+       "wall_done": 77.868
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 77.868,
+       "wall_done": 79.88
+      }
+     },
+     "NutritionRevamp.server.intake.stats.landed": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.landed",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.landed",
+       "wall": 79.88,
+       "wall_done": 80.391
+      }
+     },
+     "NutritionRevamp.server.intake.stats.failures": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.failures",
+       "wall": 80.391,
+       "wall_done": 81.65
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 81.65,
+       "wall_done": 83.659
+      }
+     },
+     "NutritionRevamp.server.intake.lastError": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.lastError",
+      "failedAt": "lastError",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.lastError",
+       "wall": 83.659,
+       "wall_done": 84.165
+      }
+     },
+     "NutritionRevamp.server.kinetics.stats.minutes": {
+      "side": "server",
+      "name": "NutritionRevamp.server.kinetics.stats.minutes",
+      "type": "number",
+      "resolved": true,
+      "value": 9,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.kinetics.stats.minutes",
+       "wall": 84.165,
+       "wall_done": 85.674
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.bulk": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+      "type": "number",
+      "resolved": true,
+      "value": 7.6384428281788646,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+       "wall": 85.674,
+       "wall_done": 87.683
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.kineticsAge": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.kineticsAge",
+      "type": "number",
+      "resolved": true,
+      "value": 2.450387954711914,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.kineticsAge",
+       "wall": 87.683,
+       "wall_done": 87.944
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomachFill": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 0.9493874311380295,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+       "wall": 87.944,
+       "wall_done": 89.708
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.source": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+      "failedAt": "lastIntake",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+       "wall": 89.708,
+       "wall_done": 91.718
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.litres": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+      "failedAt": "lastIntake",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+       "wall": 91.718,
+       "wall_done": 93.734
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.fullType": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+      "failedAt": "lastIntake",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+       "wall": 93.734,
+       "wall_done": 95.248
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.calories": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+       "wall": 95.248,
+       "wall_done": 95.754
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.water": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+       "wall": 95.754,
+       "wall_done": 97.763
+      }
+     }
+    }
+   },
+   "wall_end": 97.763
+  },
+  "P1_post": {
+   "tag": "P1_post",
+   "wall_start": 113.843,
+   "nutrition": {
+    "tag": "P1_post",
+    "wall": 115.865,
+    "client": {
+     "calories": 904.285888671875,
+     "carbs": 27.78104019165039,
+     "lipids": -1.1277155876159668,
+     "proteins": -0.8582608103752136,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.0003834754170384258,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 113.843,
+      "wall_done": 114.352
+     }
+    },
+    "server": {
+     "calories": 903.8239135742188,
+     "carbs": 27.680343627929688,
+     "lipids": -1.1602250337600708,
+     "proteins": -0.8830026388168335,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.0006136319134384394,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 114.352,
+      "wall_done": 115.865
+     }
+    },
+    "client_calories": 904.285888671875,
+    "server_calories": 903.8239135742188
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 2.5931358337402344,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 115.865,
+      "wall_done": 116.372
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {
+      "updateEat_server": "29",
+      "complete_server": "1"
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "worldAge": 2.5995349884033203,
+     "keyCount": 2,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ],
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 116.372,
+      "wall_done": 117.891
+     }
+    }
+   },
+   "counters": {
+    "client": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    },
+    "server": {
+     "ok": true,
+     "values": {
+      "updateEat_server": null,
+      "updateEat_client": 0.0,
+      "complete_server": null,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ]
+    }
+   },
+   "globals": {
+    "client": {
+     "NutritionRevamp.version": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 117.891,
+       "wall_done": 118.406
+      }
+     },
+     "TK.version": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 118.406,
+       "wall_done": 118.666
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "client",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 118.666,
+       "wall_done": 119.172
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "client",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 119.172,
+       "wall_done": 119.683
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 119.683,
+       "wall_done": 120.193
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 120.193,
+       "wall_done": 120.699
+      }
+     },
+     "NutritionRevamp.client.mirror.stomachFill": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.mirror.stomachFill",
+       "wall": 120.699,
+       "wall_done": 121.212
+      }
+     },
+     "NutritionRevamp.client.received": {
+      "side": "client",
+      "name": "NutritionRevamp.client.received",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.received",
+       "wall": 121.212,
+       "wall_done": 121.718
+      }
+     }
+    },
+    "server": {
+     "NutritionRevamp.version": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 121.718,
+       "wall_done": 123.734
+      }
+     },
+     "TK.version": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 123.734,
+       "wall_done": 125.495
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "server",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 29,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 125.495,
+       "wall_done": 125.751
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "server",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 125.751,
+       "wall_done": 127.762
+      }
+     },
+     "NutritionRevamp.server.intake.wrappedDrink": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.wrappedDrink",
+      "type": "boolean",
+      "resolved": true,
+      "value": true,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.wrappedDrink",
+       "wall": 127.762,
+       "wall_done": 129.276
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 29,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 129.276,
+       "wall_done": 129.783
+      }
+     },
+     "NutritionRevamp.server.intake.stats.landed": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.landed",
+      "type": "number",
+      "resolved": true,
+      "value": 28,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.landed",
+       "wall": 129.783,
+       "wall_done": 131.796
+      }
+     },
+     "NutritionRevamp.server.intake.stats.failures": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.failures",
+       "wall": 131.796,
+       "wall_done": 133.054
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 133.054,
+       "wall_done": 133.814
+      }
+     },
+     "NutritionRevamp.server.intake.lastError": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.lastError",
+      "failedAt": "lastError",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.lastError",
+       "wall": 133.814,
+       "wall_done": 135.828
+      }
+     },
+     "NutritionRevamp.server.kinetics.stats.minutes": {
+      "side": "server",
+      "name": "NutritionRevamp.server.kinetics.stats.minutes",
+      "type": "number",
+      "resolved": true,
+      "value": 22,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.kinetics.stats.minutes",
+       "wall": 135.828,
+       "wall_done": 136.586
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.bulk": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+      "type": "number",
+      "resolved": true,
+      "value": 10.742914669648481,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+       "wall": 136.586,
+       "wall_done": 137.85
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.kineticsAge": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.kineticsAge",
+      "type": "number",
+      "resolved": true,
+      "value": 2.683378219604492,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.kineticsAge",
+       "wall": 137.85,
+       "wall_done": 139.86
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomachFill": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+       "wall": 139.86,
+       "wall_done": 140.367
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.source": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+      "type": "string",
+      "resolved": true,
+      "value": "fluid",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+       "wall": 140.367,
+       "wall_done": 141.881
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.litres": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+      "type": "number",
+      "resolved": true,
+      "value": 0.012284481897950172,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+       "wall": 141.881,
+       "wall_done": 143.894
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.fullType": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+      "type": "string",
+      "resolved": true,
+      "value": "Base.Pop2",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+       "wall": 143.894,
+       "wall_done": 144.15
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.calories": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+      "type": "number",
+      "resolved": true,
+      "value": 113.30438071163594,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+       "wall": 144.15,
+       "wall_done": 145.663
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.water": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+      "type": "number",
+      "resolved": true,
+      "value": 252.10224708339,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+       "wall": 145.663,
+       "wall_done": 147.675
+      }
+     }
+    }
+   },
+   "wall_end": 147.675
+  },
+  "P3_pre": {
+   "tag": "P3_pre",
+   "wall_start": 151.767,
+   "nutrition": {
+    "tag": "P3_pre",
+    "wall": 153.788,
+    "client": {
+     "calories": 894.5374755859375,
+     "carbs": 25.656713485717773,
+     "lipids": -1.8135688304901123,
+     "proteins": -1.3802378177642822,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.00523907458409667,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 151.767,
+      "wall_done": 152.277
+     }
+    },
+    "server": {
+     "calories": 894.0753784179688,
+     "carbs": 25.556028366088867,
+     "lipids": -1.8460761308670044,
+     "proteins": -1.404977798461914,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.005469214171171188,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 152.277,
+      "wall_done": 153.788
+     }
+    },
+    "client_calories": 894.5374755859375,
+    "server_calories": 894.0753784179688
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 2.76168155670166,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 153.788,
+      "wall_done": 154.295
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {
+      "updateEat_server": "29",
+      "complete_server": "1"
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "worldAge": 2.766800880432129,
+     "keyCount": 2,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ],
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 154.295,
+      "wall_done": 155.554
+     }
+    }
+   },
+   "counters": {
+    "client": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    },
+    "server": {
+     "ok": true,
+     "values": {
+      "updateEat_server": null,
+      "updateEat_client": 0.0,
+      "complete_server": null,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ]
+    }
+   },
+   "globals": {
+    "client": {
+     "NutritionRevamp.version": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 155.554,
+       "wall_done": 155.812
+      }
+     },
+     "TK.version": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 155.812,
+       "wall_done": 156.318
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "client",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 156.318,
+       "wall_done": 156.83
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "client",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 156.83,
+       "wall_done": 157.34
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 157.34,
+       "wall_done": 157.852
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 157.852,
+       "wall_done": 158.359
+      }
+     },
+     "NutritionRevamp.client.mirror.stomachFill": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.mirror.stomachFill",
+       "wall": 158.359,
+       "wall_done": 158.865
+      }
+     },
+     "NutritionRevamp.client.received": {
+      "side": "client",
+      "name": "NutritionRevamp.client.received",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.received",
+       "wall": 158.865,
+       "wall_done": 159.373
+      }
+     }
+    },
+    "server": {
+     "NutritionRevamp.version": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 159.373,
+       "wall_done": 159.88
+      }
+     },
+     "TK.version": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 159.88,
+       "wall_done": 161.643
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "server",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 29,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 161.643,
+       "wall_done": 162.902
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "server",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 162.902,
+       "wall_done": 163.659
+      }
+     },
+     "NutritionRevamp.server.intake.wrappedDrink": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.wrappedDrink",
+      "type": "boolean",
+      "resolved": true,
+      "value": true,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.wrappedDrink",
+       "wall": 163.659,
+       "wall_done": 165.676
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 29,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 165.676,
+       "wall_done": 166.685
+      }
+     },
+     "NutritionRevamp.server.intake.stats.landed": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.landed",
+      "type": "number",
+      "resolved": true,
+      "value": 28,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.landed",
+       "wall": 166.685,
+       "wall_done": 167.694
+      }
+     },
+     "NutritionRevamp.server.intake.stats.failures": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.failures",
+       "wall": 167.694,
+       "wall_done": 169.706
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 169.706,
+       "wall_done": 170.464
+      }
+     },
+     "NutritionRevamp.server.intake.lastError": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.lastError",
+      "failedAt": "lastError",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.lastError",
+       "wall": 170.464,
+       "wall_done": 171.723
+      }
+     },
+     "NutritionRevamp.server.kinetics.stats.minutes": {
+      "side": "server",
+      "name": "NutritionRevamp.server.kinetics.stats.minutes",
+      "type": "number",
+      "resolved": true,
+      "value": 32,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.kinetics.stats.minutes",
+       "wall": 171.723,
+       "wall_done": 173.733
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.bulk": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+      "type": "number",
+      "resolved": true,
+      "value": 10.198648812428853,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+       "wall": 173.733,
+       "wall_done": 174.245
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.kineticsAge": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.kineticsAge",
+      "type": "number",
+      "resolved": true,
+      "value": 2.8502445220947266,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.kineticsAge",
+       "wall": 174.245,
+       "wall_done": 175.758
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomachFill": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+       "wall": 175.758,
+       "wall_done": 177.777
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.source": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+      "type": "string",
+      "resolved": true,
+      "value": "fluid",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+       "wall": 177.777,
+       "wall_done": 178.037
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.litres": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+      "type": "number",
+      "resolved": true,
+      "value": 0.012284481897950172,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+       "wall": 178.037,
+       "wall_done": 179.796
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.fullType": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+      "type": "string",
+      "resolved": true,
+      "value": "Base.Pop2",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+       "wall": 179.796,
+       "wall_done": 181.806
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.calories": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+      "type": "number",
+      "resolved": true,
+      "value": 106.95402592901146,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+       "wall": 181.806,
+       "wall_done": 183.823
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.water": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+      "type": "number",
+      "resolved": true,
+      "value": 237.97270769205053,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+       "wall": 183.823,
+       "wall_done": 185.585
+      }
+     }
+    }
+   },
+   "wall_end": 185.585
+  },
+  "P3_post": {
+   "tag": "P3_post",
+   "wall_start": 195.183,
+   "nutrition": {
+    "tag": "P3_post",
+    "wall": 196.699,
+    "client": {
+     "calories": 923.5014038085938,
+     "carbs": 35.252071380615234,
+     "lipids": -2.5899178981781006,
+     "proteins": -1.9710878133773804,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.0005752298166044056,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 195.183,
+      "wall_done": 195.691
+     }
+    },
+    "server": {
+     "calories": 923.0391235351562,
+     "carbs": 35.15135192871094,
+     "lipids": -2.622436761856079,
+     "proteins": -1.9958364963531494,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.000805450661573559,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 195.691,
+      "wall_done": 196.699
+     }
+    },
+    "client_calories": 923.5014038085938,
+    "server_calories": 923.0391235351562
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 2.952665328979492,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 196.699,
+      "wall_done": 197.207
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {
+      "updateEat_server": "61",
+      "complete_server": "2"
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "worldAge": 2.9545440673828125,
+     "keyCount": 2,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ],
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 197.207,
+      "wall_done": 197.714
+     }
+    }
+   },
+   "counters": {
+    "client": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    },
+    "server": {
+     "ok": true,
+     "values": {
+      "updateEat_server": null,
+      "updateEat_client": 0.0,
+      "complete_server": null,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ]
+    }
+   },
+   "globals": {
+    "client": {
+     "NutritionRevamp.version": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 197.714,
+       "wall_done": 198.22
+      }
+     },
+     "TK.version": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 198.22,
+       "wall_done": 198.728
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "client",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 198.728,
+       "wall_done": 199.236
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "client",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 199.236,
+       "wall_done": 199.746
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 199.746,
+       "wall_done": 200.255
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 200.255,
+       "wall_done": 200.763
+      }
+     },
+     "NutritionRevamp.client.mirror.stomachFill": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.mirror.stomachFill",
+       "wall": 200.763,
+       "wall_done": 201.268
+      }
+     },
+     "NutritionRevamp.client.received": {
+      "side": "client",
+      "name": "NutritionRevamp.client.received",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.received",
+       "wall": 201.268,
+       "wall_done": 201.78
+      }
+     }
+    },
+    "server": {
+     "NutritionRevamp.version": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 201.78,
+       "wall_done": 203.79
+      }
+     },
+     "TK.version": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 203.79,
+       "wall_done": 204.296
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "server",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 61,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 204.296,
+       "wall_done": 205.805
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "server",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 2,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 205.805,
+       "wall_done": 207.816
+      }
+     },
+     "NutritionRevamp.server.intake.wrappedDrink": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.wrappedDrink",
+      "type": "boolean",
+      "resolved": true,
+      "value": true,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.wrappedDrink",
+       "wall": 207.816,
+       "wall_done": 208.075
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 61,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 208.075,
+       "wall_done": 209.841
+      }
+     },
+     "NutritionRevamp.server.intake.stats.landed": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.landed",
+      "type": "number",
+      "resolved": true,
+      "value": 59,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.landed",
+       "wall": 209.841,
+       "wall_done": 211.855
+      }
+     },
+     "NutritionRevamp.server.intake.stats.failures": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.failures",
+       "wall": 211.855,
+       "wall_done": 213.87
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 213.87,
+       "wall_done": 215.633
+      }
+     },
+     "NutritionRevamp.server.intake.lastError": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.lastError",
+      "failedAt": "lastError",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.lastError",
+       "wall": 215.633,
+       "wall_done": 217.645
+      }
+     },
+     "NutritionRevamp.server.kinetics.stats.minutes": {
+      "side": "server",
+      "name": "NutritionRevamp.server.kinetics.stats.minutes",
+      "type": "number",
+      "resolved": true,
+      "value": 44,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.kinetics.stats.minutes",
+       "wall": 217.645,
+       "wall_done": 219.404
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.bulk": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+      "type": "number",
+      "resolved": true,
+      "value": 10.664836733826961,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+       "wall": 219.404,
+       "wall_done": 219.666
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.kineticsAge": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.kineticsAge",
+      "type": "number",
+      "resolved": true,
+      "value": 3.0504016876220703,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.kineticsAge",
+       "wall": 219.666,
+       "wall_done": 221.681
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomachFill": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+       "wall": 221.681,
+       "wall_done": 222.938
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.source": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+      "type": "string",
+      "resolved": true,
+      "value": "fluid",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+       "wall": 222.938,
+       "wall_done": 223.7
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.litres": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+      "type": "number",
+      "resolved": true,
+      "value": 0.004330955445766449,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+       "wall": 223.7,
+       "wall_done": 225.71
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.fullType": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+      "type": "string",
+      "resolved": true,
+      "value": "Base.JuiceBox",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+       "wall": 225.71,
+       "wall_done": 226.968
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.calories": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+      "type": "number",
+      "resolved": true,
+      "value": 137.42679191841052,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+       "wall": 226.968,
+       "wall_done": 227.724
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.water": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+      "type": "number",
+      "resolved": true,
+      "value": 301.07195336702017,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+       "wall": 227.724,
+       "wall_done": 229.737
+      }
+     }
+    }
+   },
+   "wall_end": 229.737
+  },
+  "P2_pre": {
+   "tag": "P2_pre",
+   "wall_start": 233.88,
+   "nutrition": {
+    "tag": "P2_pre",
+    "wall": 235.647,
+    "client": {
+     "calories": 913.4898071289062,
+     "carbs": 33.070701599121094,
+     "lipids": -3.294179916381836,
+     "proteins": -2.5070738792419434,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.0055611468851566315,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 233.881,
+      "wall_done": 234.39
+     }
+    },
+    "server": {
+     "calories": 913.0276489257812,
+     "carbs": 32.970008850097656,
+     "lipids": -3.326688289642334,
+     "proteins": -2.5318150520324707,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.005791294854134321,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 234.39,
+      "wall_done": 235.647
+     }
+    },
+    "client_calories": 913.4898071289062,
+    "server_calories": 913.0276489257812
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 3.123518943786621,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 235.647,
+      "wall_done": 235.902
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {
+      "updateEat_server": "61",
+      "complete_server": "2"
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "worldAge": 3.132113456726074,
+     "keyCount": 2,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ],
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 235.902,
+      "wall_done": 237.665
+     }
+    }
+   },
+   "counters": {
+    "client": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    },
+    "server": {
+     "ok": true,
+     "values": {
+      "updateEat_server": null,
+      "updateEat_client": 0.0,
+      "complete_server": null,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ]
+    }
+   },
+   "globals": {
+    "client": {
+     "NutritionRevamp.version": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 237.665,
+       "wall_done": 237.926
+      }
+     },
+     "TK.version": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 237.926,
+       "wall_done": 238.181
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "client",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 238.181,
+       "wall_done": 238.688
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "client",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 238.688,
+       "wall_done": 239.194
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 239.194,
+       "wall_done": 239.701
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 239.701,
+       "wall_done": 240.211
+      }
+     },
+     "NutritionRevamp.client.mirror.stomachFill": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.mirror.stomachFill",
+       "wall": 240.211,
+       "wall_done": 240.718
+      }
+     },
+     "NutritionRevamp.client.received": {
+      "side": "client",
+      "name": "NutritionRevamp.client.received",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.received",
+       "wall": 240.718,
+       "wall_done": 241.228
+      }
+     }
+    },
+    "server": {
+     "NutritionRevamp.version": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 241.228,
+       "wall_done": 241.737
+      }
+     },
+     "TK.version": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 241.737,
+       "wall_done": 243.751
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "server",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 61,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 243.751,
+       "wall_done": 245.516
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "server",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 2,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 245.516,
+       "wall_done": 245.776
+      }
+     },
+     "NutritionRevamp.server.intake.wrappedDrink": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.wrappedDrink",
+      "type": "boolean",
+      "resolved": true,
+      "value": true,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.wrappedDrink",
+       "wall": 245.776,
+       "wall_done": 247.788
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 61,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 247.788,
+       "wall_done": 249.298
+      }
+     },
+     "NutritionRevamp.server.intake.stats.landed": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.landed",
+      "type": "number",
+      "resolved": true,
+      "value": 59,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.landed",
+       "wall": 249.298,
+       "wall_done": 249.81
+      }
+     },
+     "NutritionRevamp.server.intake.stats.failures": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.failures",
+       "wall": 249.81,
+       "wall_done": 251.821
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 251.821,
+       "wall_done": 253.081
+      }
+     },
+     "NutritionRevamp.server.intake.lastError": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.lastError",
+      "failedAt": "lastError",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.lastError",
+       "wall": 253.081,
+       "wall_done": 253.84
+      }
+     },
+     "NutritionRevamp.server.kinetics.stats.minutes": {
+      "side": "server",
+      "name": "NutritionRevamp.server.kinetics.stats.minutes",
+      "type": "number",
+      "resolved": true,
+      "value": 54,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.kinetics.stats.minutes",
+       "wall": 253.84,
+       "wall_done": 255.852
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.bulk": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+      "type": "number",
+      "resolved": true,
+      "value": 10.127534663965447,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+       "wall": 255.852,
+       "wall_done": 256.863
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.kineticsAge": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.kineticsAge",
+      "type": "number",
+      "resolved": true,
+      "value": 3.216878890991211,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.kineticsAge",
+       "wall": 256.863,
+       "wall_done": 257.872
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomachFill": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+       "wall": 257.872,
+       "wall_done": 259.885
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.source": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+      "type": "string",
+      "resolved": true,
+      "value": "fluid",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+       "wall": 259.885,
+       "wall_done": 260.645
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.litres": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+      "type": "number",
+      "resolved": true,
+      "value": 0.004330955445766449,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+       "wall": 260.645,
+       "wall_done": 261.652
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.fullType": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+      "type": "string",
+      "resolved": true,
+      "value": "Base.JuiceBox",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+       "wall": 261.652,
+       "wall_done": 263.662
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.calories": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+      "type": "number",
+      "resolved": true,
+      "value": 130.4833710770284,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+       "wall": 263.662,
+       "wall_done": 264.421
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.water": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+      "type": "number",
+      "resolved": true,
+      "value": 284.241757982497,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+       "wall": 264.421,
+       "wall_done": 265.681
+      }
+     }
+    }
+   },
+   "wall_end": 265.681
+  },
+  "P2_post": {
+   "tag": "P2_post",
+   "wall_start": 269.702,
+   "nutrition": {
+    "tag": "P2_post",
+    "wall": 271.725,
+    "client": {
+     "calories": 1024.2498779296875,
+     "carbs": 62.25736999511719,
+     "lipids": -3.9441988468170166,
+     "proteins": -3.001779794692993,
+     "weight": 80.00011444091797,
+     "hunger": 0,
+     "thirst": 0.0002811686135828495,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "",
+      "wall": 269.702,
+      "wall_done": 270.21
+     }
+    },
+    "server": {
+     "calories": 1023.7880859375,
+     "carbs": 62.156681060791016,
+     "lipids": -3.9767043590545654,
+     "proteins": -3.0265188217163086,
+     "weight": 80.00021275954623,
+     "hunger": 0,
+     "thirst": 0.0005112973158247769,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": true,
+     "incWeightLot": false,
+     "decWeight": false,
+     "_probe": {
+      "cmd": "nutrition.get",
+      "args": "admin",
+      "wall": 270.21,
+      "wall_done": 271.725
+     }
+    },
+    "client_calories": 1024.2498779296875,
+    "server_calories": 1023.7880859375
+   },
+   "moddata": {
+    "client": {
+     "side": "client",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {},
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "worldAge": 3.285538673400879,
+     "keyCount": 0,
+     "keys": {},
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 271.725,
+      "wall_done": 272.236
+     }
+    },
+    "server": {
+     "side": "server",
+     "scope": "global",
+     "arg": "TKX_Drink",
+     "values": {
+      "updateEat_server": "61",
+      "complete_server": "2"
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "worldAge": 3.291910171508789,
+     "keyCount": 2,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ],
+     "count": 4,
+     "_probe": {
+      "cmd": "witness.moddata",
+      "args": "global:TKX_Drink updateEat_server updateEat_client complete_server complete_client",
+      "wall": 272.236,
+      "wall_done": 273.745
+     }
+    }
+   },
+   "counters": {
+    "client": {
+     "ok": true,
+     "values": {
+      "updateEat_server": 0.0,
+      "updateEat_client": 0.0,
+      "complete_server": 0.0,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_server",
+      "updateEat_client",
+      "complete_server",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": {}
+    },
+    "server": {
+     "ok": true,
+     "values": {
+      "updateEat_server": null,
+      "updateEat_client": 0.0,
+      "complete_server": null,
+      "complete_client": 0.0
+     },
+     "missing": [
+      "updateEat_client",
+      "complete_client"
+     ],
+     "count": 4,
+     "count_ok": true,
+     "keys": [
+      "complete_server:number",
+      "updateEat_server:number"
+     ]
+    }
+   },
+   "globals": {
+    "client": {
+     "NutritionRevamp.version": {
+      "side": "client",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 273.745,
+       "wall_done": 274.258
+      }
+     },
+     "TK.version": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 274.258,
+       "wall_done": 274.769
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "client",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 274.769,
+       "wall_done": 275.281
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "client",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 275.281,
+       "wall_done": 275.79
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 275.79,
+       "wall_done": 276.299
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "client",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 276.299,
+       "wall_done": 276.809
+      }
+     },
+     "NutritionRevamp.client.mirror.stomachFill": {
+      "side": "client",
+      "name": "NutritionRevamp.client.mirror.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.mirror.stomachFill",
+       "wall": 276.809,
+       "wall_done": 277.317
+      }
+     },
+     "NutritionRevamp.client.received": {
+      "side": "client",
+      "name": "NutritionRevamp.client.received",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.client.received",
+       "wall": 277.317,
+       "wall_done": 277.824
+      }
+     }
+    },
+    "server": {
+     "NutritionRevamp.version": {
+      "side": "server",
+      "name": "NutritionRevamp.version",
+      "type": "string",
+      "resolved": true,
+      "value": "0.1.0",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.version",
+       "wall": 277.824,
+       "wall_done": 279.334
+      }
+     },
+     "TK.version": {
+      "side": "server",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TK.version",
+       "wall": 279.334,
+       "wall_done": 279.841
+      }
+     },
+     "TKX_DrinkHook.updateEat": {
+      "side": "server",
+      "name": "TKX_DrinkHook.updateEat",
+      "type": "number",
+      "resolved": true,
+      "value": 61,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.updateEat",
+       "wall": 279.841,
+       "wall_done": 281.851
+      }
+     },
+     "TKX_DrinkHook.complete": {
+      "side": "server",
+      "name": "TKX_DrinkHook.complete",
+      "type": "number",
+      "resolved": true,
+      "value": 2,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "TKX_DrinkHook.complete",
+       "wall": 281.851,
+       "wall_done": 283.114
+      }
+     },
+     "NutritionRevamp.server.intake.wrappedDrink": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.wrappedDrink",
+      "type": "boolean",
+      "resolved": true,
+      "value": true,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.wrappedDrink",
+       "wall": 283.114,
+       "wall_done": 283.876
+      }
+     },
+     "NutritionRevamp.server.intake.stats.sips": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.sips",
+      "type": "number",
+      "resolved": true,
+      "value": 61,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.sips",
+       "wall": 283.876,
+       "wall_done": 285.889
+      }
+     },
+     "NutritionRevamp.server.intake.stats.landed": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.landed",
+      "type": "number",
+      "resolved": true,
+      "value": 59,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.landed",
+       "wall": 285.889,
+       "wall_done": 286.9
+      }
+     },
+     "NutritionRevamp.server.intake.stats.failures": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.failures",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.failures",
+       "wall": 286.9,
+       "wall_done": 287.657
+      }
+     },
+     "NutritionRevamp.server.intake.stats.passthrough": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.stats.passthrough",
+      "type": "number",
+      "resolved": true,
+      "value": 0,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.stats.passthrough",
+       "wall": 287.657,
+       "wall_done": 289.675
+      }
+     },
+     "NutritionRevamp.server.intake.lastError": {
+      "side": "server",
+      "name": "NutritionRevamp.server.intake.lastError",
+      "failedAt": "lastError",
+      "resolved": false,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.intake.lastError",
+       "wall": 289.675,
+       "wall_done": 290.686
+      }
+     },
+     "NutritionRevamp.server.kinetics.stats.minutes": {
+      "side": "server",
+      "name": "NutritionRevamp.server.kinetics.stats.minutes",
+      "type": "number",
+      "resolved": true,
+      "value": 64,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.kinetics.stats.minutes",
+       "wall": 290.686,
+       "wall_done": 291.693
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.bulk": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+      "type": "number",
+      "resolved": true,
+      "value": 9.559962758172649,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.bulk",
+       "wall": 291.693,
+       "wall_done": 293.704
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.kineticsAge": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.kineticsAge",
+      "type": "number",
+      "resolved": true,
+      "value": 3.366922378540039,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.kineticsAge",
+       "wall": 293.704,
+       "wall_done": 294.467
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomachFill": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomachFill",
+      "type": "number",
+      "resolved": true,
+      "value": 1,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomachFill",
+       "wall": 294.467,
+       "wall_done": 295.729
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.source": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+      "type": "string",
+      "resolved": true,
+      "value": "fluid",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.source",
+       "wall": 295.729,
+       "wall_done": 297.743
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.litres": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+      "type": "number",
+      "resolved": true,
+      "value": 0.004330955445766449,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.litres",
+       "wall": 297.743,
+       "wall_done": 298.258
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.lastIntake.fullType": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+      "type": "string",
+      "resolved": true,
+      "value": "Base.JuiceBox",
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.lastIntake.fullType",
+       "wall": 298.258,
+       "wall_done": 299.77
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.calories": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+      "type": "number",
+      "resolved": true,
+      "value": 123.19025265854097,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.calories",
+       "wall": 299.77,
+       "wall_done": 301.785
+      }
+     },
+     "NutritionRevamp.server.store.records.admin.stomach.buffer.water": {
+      "side": "server",
+      "name": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+      "type": "number",
+      "resolved": true,
+      "value": 269.88281896082736,
+      "_probe": {
+       "cmd": "lua.global",
+       "args": "NutritionRevamp.server.store.records.admin.stomach.buffer.water",
+       "wall": 301.785,
+       "wall_done": 302.046
+      }
+     }
+    }
+   },
+   "wall_end": 302.046
+  }
+ },
+ "phases": {
+  "P0": {
+   "drift": {
+    "first": 787.7991333007812,
+    "second": 786.1056518554688,
+    "wall": [
+     99.277,
+     105.788
+    ],
+    "kcal_per_s": -0.26009544544808805
+   },
+   "record_bulk": 7.6384428281788646,
+   "record_fill": 0.9493874311380295,
+   "kineticsAge": 2.450387954711914,
+   "wrappedDrink": true,
+   "counters": {
+    "updateEat_server": 0.0,
+    "complete_server": 0.0,
+    "updateEat_client": 0.0,
+    "complete_client": 0.0,
+    "server_table_client_keys": {
+     "updateEat_client": 0.0,
+     "complete_client": 0.0
+    },
+    "client_table_server_keys": {
+     "updateEat_server": 0.0,
+     "complete_server": 0.0
+    }
+   },
+   "version": {
+    "client": "0.1.0",
+    "server": "0.1.0"
+   }
+  },
+  "P1_pre": {
+   "server_calories": 796.4588012695312,
+   "client_calories": 796.8161010742188,
+   "wall": 65.458
+  },
+  "P1": {
+   "label": "P1",
+   "fullType": "Base.Pop2",
+   "arg": "1.0",
+   "ack": {
+    "queued": true,
+    "percentage": 1,
+    "spawned": "found",
+    "itemId": 214536473,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 786.05419921875,
+     "carbs": -3.0455121994018555,
+     "lipids": -0.9832658171653748,
+     "proteins": -0.7483255863189697,
+     "weight": 80,
+     "hunger": 0.07226806879043579,
+     "thirst": 0.006872398778796196,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "queued_wall": 106.301,
+   "spawned": "found",
+   "filledRatioBefore": 1,
+   "polls": [
+    {
+     "wall": 109.822,
+     "since_queue": 3.521,
+     "server_calories": 874.30322265625,
+     "client_calories": 802.6339111328125,
+     "server_delta_corr": 89.38329572857774,
+     "client_delta_corr": 17.35668440045273
+    },
+    {
+     "wall": 111.841,
+     "since_queue": 5.54,
+     "server_calories": 904.8506469726562,
+     "client_calories": 905.0558471679688,
+     "server_delta_corr": 120.45585274934366,
+     "client_delta_corr": 120.30375313996866
+    }
+   ],
+   "first_server_move_since_queue_s": 3.521,
+   "first_client_move_since_queue_s": 3.521,
+   "settle_s": 2.0
+  },
+  "P3_pre": {
+   "server_calories": 894.0753784179688,
+   "client_calories": 894.5374755859375,
+   "wall": 153.788
+  },
+  "P3": {
+   "label": "P3",
+   "fullType": "Base.JuiceBox",
+   "arg": "0.5",
+   "ack": {
+    "queued": true,
+    "percentage": 0.5,
+    "spawned": "found",
+    "itemId": 1951698720,
+    "filledRatioBefore": 1,
+    "before": {
+     "calories": 886.0684204101562,
+     "carbs": 23.811370849609375,
+     "lipids": -2.409348249435425,
+     "proteins": -1.8336628675460815,
+     "weight": 80,
+     "hunger": 0,
+     "thirst": 0.009456992149353027,
+     "statsApi": "Stats:get(CharacterStat.HUNGER)",
+     "incWeight": false,
+     "incWeightLot": false,
+     "decWeight": false
+    }
+   },
+   "queued_wall": 185.848,
+   "spawned": "found",
+   "filledRatioBefore": 1,
+   "polls": [
+    {
+     "wall": 187.87,
+     "since_queue": 2.022,
+     "server_calories": 901.2171630859375,
+     "client_calories": 895.3722534179688,
+     "server_delta_corr": 16.006357639730485,
+     "client_delta_corr": 9.699350803792985
+    },
+    {
+     "wall": 189.638,
+     "since_queue": 3.79,
+     "server_calories": 918.7857666015625,
+     "client_calories": 912.1134643554688,
+     "server_delta_corr": 34.0348099029077,
+     "client_delta_corr": 26.900410488845203
+    },
+    {
+     "wall": 191.663,
+     "since_queue": 5.815,
+     "server_calories": 924.3226318359375,
+     "client_calories": 920.4839477539062,
+     "server_delta_corr": 40.09836841431508,
+     "client_delta_corr": 35.79758716431508
+    },
+    {
+     "wall": 193.18,
+     "since_queue": 7.332,
+     "server_calories": 923.9889526367188,
+     "client_calories": 924.2711791992188,
+     "server_delta_corr": 40.159254005841085,
+     "client_delta_corr": 39.979383400372335
+    }
+   ],
+   "first_server_move_since_queue_s": 2.022,
+   "first_client_move_since_queue_s": 2.022,
+   "settle_s": 2.0
+  },
+  "P2": {
+   "ack": {
+    "user": "admin",
+    "fullType": "Base.Pop2",
+    "fraction": 1,
+    "finder": "getAllTypeRecurse",
+    "selectionRule": "fullest, then highest id",
+    "candidates": [
+     {
+      "index": 0,
+      "id": 214536473,
+      "hasFluidContainer": true,
+      "empty": true,
+      "capacity": 0.30000001192092896,
+      "amount": 0
+     },
+     {
+      "index": 1,
+      "id": 117144678,
+      "hasFluidContainer": true,
+      "empty": false,
+      "capacity": 0.30000001192092896,
+      "amount": 0.30000001192092896
+     }
+    ],
+    "selected": {
+     "index": 1,
+     "id": 117144678,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.30000001192092896,
+     "amount": 0.30000001192092896
+    },
+    "selectedFullType": "Base.Pop2",
+    "primaryFluidRoute": "getFluidTypeString",
+    "primaryFluid": "Cola",
+    "fluidDisplayName": "Cola",
+    "containerProperties": {
+     "calories": 120.00000762939453,
+     "carbs": 31.200000762939453,
+     "lipids": 0,
+     "proteins": 0,
+     "hungerChange": -0.036000002175569534,
+     "thirstChange": -0.09000000357627869,
+     "unhappyChange": -3,
+     "fatigueChange": -0.006000000052154064,
+     "stressChange": 0,
+     "alcohol": 0,
+     "poison": 0,
+     "enduranceChange": 0,
+     "fluReduction": 0,
+     "painReduction": 0,
+     "foodSicknessChange": 0
+    },
+    "predictedNutrition": {
+     "calories": 120.00000762939453,
+     "carbs": 31.200000762939453,
+     "lipids": 0,
+     "proteins": 0
+    },
+    "predictedStats": {
+     "hunger": -0.036000002175569534,
+     "thirst": -0.09000000357627869
+    },
+    "worldAgeBefore": 3.2652769088745117,
+    "before": {
+     "container": {
+      "amount": 0.30000001192092896,
+      "capacity": 0.30000001192092896,
+      "filledRatio": 1,
+      "empty": false
+     },
+     "nutrition": {
+      "calories": 904.8139038085938,
+      "carbs": 31.18037986755371,
+      "lipids": -3.9044840335845947,
+      "proteins": -2.9715538024902344,
+      "weight": 80,
+      "hunger": 0,
+      "thirst": 0.009881882928311825,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "foodTimer": -4.592223644256592
+    },
+    "predictedFoodTimer": 463,
+    "drinkFluidReturned": true,
+    "route": "IsoGameCharacter:DrinkFluid(InventoryItem, f, false)",
+    "after": {
+     "container": {
+      "amount": 0,
+      "capacity": 0.30000001192092896,
+      "filledRatio": 0,
+      "empty": true
+     },
+     "nutrition": {
+      "calories": 1024.81396484375,
+      "carbs": 62.38037872314453,
+      "lipids": -3.9044840335845947,
+      "proteins": -2.9715538024902344,
+      "weight": 80,
+      "hunger": 0,
+      "thirst": 0,
+      "statsApi": "Stats:get(CharacterStat.HUNGER)",
+      "incWeight": false,
+      "incWeightLot": false,
+      "decWeight": false
+     },
+     "foodTimer": 463
+    },
+    "worldAgeAfter": 3.2652769088745117,
+    "syncItemFields": true,
+    "delta": {
+     "amount": -0.30000001192092896,
+     "calories": 120.00006103515625,
+     "carbs": 31.19999885559082,
+     "lipids": 0,
+     "proteins": 0,
+     "hunger": 0,
+     "thirst": -0.009881882928311825,
+     "weight": 0,
+     "foodTimer": 467.5922236442566,
+     "worldAgeHours": 0
+    }
+   }
+  }
+ },
+ "verdicts": {
+  "P0": {
+   "phase": "P0",
+   "predicted": "the admin record exists with its stomach seeded full: bulk at or just under FULL_BULK 8.0 (kinetics minutes since first sight empty it on the 2 h half-time), stomachFill near 1.0; the drink wrapper installed; every probe counter absent or 0",
+   "falsifier": "bulk 0 or absent (the seed did not run), or a counter already above 0",
+   "observed": {
+    "drift": {
+     "first": 787.7991333007812,
+     "second": 786.1056518554688,
+     "wall": [
+      99.277,
+      105.788
+     ],
+     "kcal_per_s": -0.26009544544808805
+    },
+    "record_bulk": 7.6384428281788646,
+    "record_fill": 0.9493874311380295,
+    "kineticsAge": 2.450387954711914,
+    "wrappedDrink": true,
+    "counters": {
+     "updateEat_server": 0.0,
+     "complete_server": 0.0,
+     "updateEat_client": 0.0,
+     "complete_client": 0.0,
+     "server_table_client_keys": {
+      "updateEat_client": 0.0,
+      "complete_client": 0.0
+     },
+     "client_table_server_keys": {
+      "updateEat_server": 0.0,
+      "complete_server": 0.0
+     }
+    },
+    "version": {
+     "client": "0.1.0",
+     "server": "0.1.0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 105.788
+  },
+  "P1a_sides": {
+   "phase": "P1a_sides",
+   "predicted": "updateEat_server >= 1, updateEat_client == 0, complete_server == 1, complete_client == 0 (the eat path's server-only result #0928, mirrored on the drink path)",
+   "falsifier": "counters 0/0 with the calories risen (the Lua route is silent though the fluid path ran: B7's negative), or a client-side fire",
+   "observed": {
+    "counter_delta": {
+     "updateEat_server": null,
+     "updateEat_client": 0.0,
+     "complete_server": null,
+     "complete_client": 0.0
+    },
+    "counters_after": {
+     "updateEat_server": null,
+     "complete_server": null,
+     "updateEat_client": 0.0,
+     "complete_client": 0.0,
+     "server_table_client_keys": {
+      "updateEat_client": 0.0,
+      "complete_client": 0.0
+     },
+     "client_table_server_keys": {
+      "updateEat_server": 0.0,
+      "complete_server": 0.0
+     }
+    },
+    "kcal": {
+     "server_before": 796.4588012695312,
+     "server_after": 903.8239135742188,
+     "server_raw": 107.3651123046875,
+     "server_corrected": 120.47574342338928,
+     "client_raw": 107.46978759765625,
+     "client_corrected": 120.58041871635803,
+     "elapsed_s": 50.407,
+     "drift_kcal_per_s": -0.26009544544808805
+    },
+    "lua_counters": {
+     "client": {
+      "updateEat": 0,
+      "complete": 0
+     },
+     "server": {
+      "updateEat": 29,
+      "complete": 1
+     }
+    }
+   },
+   "verdict": "falsified",
+   "wall": 302.05
+  },
+  "P1b_sips": {
+   "phase": "P1b_sips",
+   "predicted": "stats.sips >= 1 and == the probe's updateEat_server (both wraps see every call; the probe outermost)",
+   "falsifier": "sips ~= updateEat_server: a composition fault between the two wraps",
+   "observed": {
+    "sips_delta": 29,
+    "updateEat_server_delta": null,
+    "landed_delta": 28,
+    "client_passthrough_delta": 0,
+    "client_sips_delta": 0
+   },
+   "verdict": "unmeasured",
+   "wall": 302.055
+  },
+  "P1c_landing": {
+   "phase": "P1c_landing",
+   "predicted": "stomach.bulk ingest delta (decay-corrected) in [3.870 x decay, 3.870]; lastIntake.source fluid, fullType Base.Pop2; failures +0",
+   "falsifier": "bulk unchanged with sips > 0 (the capture ran, the landing failed: lastError), or a failure counted",
+   "observed": {
+    "bulk": {
+     "bulk_before": 7.6384428281788646,
+     "bulk_after": 10.742914669648481,
+     "raw_delta": 3.104471841469617,
+     "kineticsAge_before": 2.450387954711914,
+     "kineticsAge_after": 2.683378219604492,
+     "dt_h": 0.23299026489257812,
+     "decay": 0.9224258620816973,
+     "ingest_delta_corrected": 3.697017458903834,
+     "predicted": 3.87,
+     "accept_band": [
+      3.393688086256169,
+      4.0461
+     ],
+     "within": true
+    },
+    "failures_delta": 0,
+    "lastIntake": {
+     "source": "fluid",
+     "fullType": "Base.Pop2",
+     "litres_last_sip": 0.012284481897950172
+    },
+    "lastError": {
+     "side": "server",
+     "name": "NutritionRevamp.server.intake.lastError",
+     "failedAt": "lastError",
+     "resolved": false,
+     "_probe": {
+      "cmd": "lua.global",
+      "args": "NutritionRevamp.server.intake.lastError",
+      "wall": 133.814,
+      "wall_done": 135.828
+     }
+    },
+    "stomachFill_after": 1,
+    "buffer_after": {
+     "calories": 113.30438071163594,
+     "water": 252.10224708339
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 302.059
+  },
+  "P1d_calories": {
+   "phase": "P1d_calories",
+   "predicted": "server calories +120 (drift-corrected) through the timed action, the per-sip DrinkFluid calls summing to the whole can (#0634 measured the direct call)",
+   "falsifier": "a delta off 120 by more than the tolerance: the incremental route does not sum to the container",
+   "observed": {
+    "server_before": 796.4588012695312,
+    "server_after": 903.8239135742188,
+    "server_raw": 107.3651123046875,
+    "server_corrected": 120.47574342338928,
+    "client_raw": 107.46978759765625,
+    "client_corrected": 120.58041871635803,
+    "elapsed_s": 50.407,
+    "drift_kcal_per_s": -0.26009544544808805
+   },
+   "verdict": "as_predicted",
+   "wall": 302.064
+  },
+  "P1e_client_arrival": {
+   "phase": "P1e_client_arrival",
+   "predicted": "the client's calories arrive within one stats-packet period of the server's (poll granularity ~1 s, so a lag <= 2.5 s) and total +120 (#0649)",
+   "falsifier": "the client never shows the calories, or lags the server by more than 2.5 s",
+   "observed": {
+    "first_server_move_since_queue_s": 3.521,
+    "first_client_move_since_queue_s": 3.521,
+    "client_kcal_corrected": 120.58041871635803,
+    "poll_s": 1.0
+   },
+   "verdict": "as_predicted",
+   "wall": 302.068
+  },
+  "P1f_mirror": {
+   "phase": "P1f_mirror",
+   "predicted": "the client mirror's stomachFill is STALE (sent at first sight and on request, not per sip): unchanged",
+   "falsifier": "the mirror moved with the drink (it would mean a per-intake push)",
+   "observed": {
+    "before": 1,
+    "after": 1,
+    "received_before": 1,
+    "received_after": 1
+   },
+   "verdict": "trivial",
+   "wall": 302.073
+  },
+  "P3_half": {
+   "phase": "P3_half",
+   "predicted": "JuiceBox at 0.5: calories +40; bulk ingest delta in [1.265 x decay, 1.265]; lastIntake Base.JuiceBox; complete_server +1; sips == updateEat_server",
+   "falsifier": "calories or bulk off the half, or the sip counts disagree",
+   "observed": {
+    "kcal": {
+     "server_before": 894.0753784179688,
+     "server_after": 923.0391235351562,
+     "server_raw": 28.9637451171875,
+     "server_corrected": 40.12470077681041,
+     "client_raw": 28.96392822265625,
+     "client_corrected": 40.12488388227916,
+     "elapsed_s": 42.911,
+     "drift_kcal_per_s": -0.26009544544808805
+    },
+    "counter_delta": {
+     "updateEat_server": null,
+     "updateEat_client": 0.0,
+     "complete_server": null,
+     "complete_client": 0.0
+    },
+    "bulk": {
+     "bulk_before": 10.198648812428853,
+     "bulk_after": 10.664836733826961,
+     "raw_delta": 0.4661879213981077,
+     "kineticsAge_before": 2.8502445220947266,
+     "kineticsAge_after": 3.0504016876220703,
+     "dt_h": 0.20015716552734375,
+     "decay": 0.9329821711540011,
+     "ingest_delta_corrected": 1.1496792219699152,
+     "predicted": 1.2650000000000001,
+     "accept_band": [
+      1.0822724465098115,
+      1.36295
+     ],
+     "within": true
+    },
+    "sips_delta": 32,
+    "landed_delta": 31,
+    "failures_delta": 0,
+    "lastIntake": {
+     "source": "fluid",
+     "fullType": "Base.JuiceBox",
+     "litres_last_sip": 0.004330955445766449
+    },
+    "phase": {
+     "label": "P3",
+     "fullType": "Base.JuiceBox",
+     "arg": "0.5",
+     "ack": {
+      "queued": true,
+      "percentage": 0.5,
+      "spawned": "found",
+      "itemId": 1951698720,
+      "filledRatioBefore": 1,
+      "before": {
+       "calories": 886.0684204101562,
+       "carbs": 23.811370849609375,
+       "lipids": -2.409348249435425,
+       "proteins": -1.8336628675460815,
+       "weight": 80,
+       "hunger": 0,
+       "thirst": 0.009456992149353027,
+       "statsApi": "Stats:get(CharacterStat.HUNGER)",
+       "incWeight": false,
+       "incWeightLot": false,
+       "decWeight": false
+      }
+     },
+     "queued_wall": 185.848,
+     "spawned": "found",
+     "filledRatioBefore": 1,
+     "polls": [
+      {
+       "wall": 187.87,
+       "since_queue": 2.022,
+       "server_calories": 901.2171630859375,
+       "client_calories": 895.3722534179688,
+       "server_delta_corr": 16.006357639730485,
+       "client_delta_corr": 9.699350803792985
+      },
+      {
+       "wall": 189.638,
+       "since_queue": 3.79,
+       "server_calories": 918.7857666015625,
+       "client_calories": 912.1134643554688,
+       "server_delta_corr": 34.0348099029077,
+       "client_delta_corr": 26.900410488845203
+      },
+      {
+       "wall": 191.663,
+       "since_queue": 5.815,
+       "server_calories": 924.3226318359375,
+       "client_calories": 920.4839477539062,
+       "server_delta_corr": 40.09836841431508,
+       "client_delta_corr": 35.79758716431508
+      },
+      {
+       "wall": 193.18,
+       "since_queue": 7.332,
+       "server_calories": 923.9889526367188,
+       "client_calories": 924.2711791992188,
+       "server_delta_corr": 40.159254005841085,
+       "client_delta_corr": 39.979383400372335
+      }
+     ],
+     "first_server_move_since_queue_s": 2.022,
+     "first_client_move_since_queue_s": 2.022,
+     "settle_s": 2.0
+    }
+   },
+   "verdict": "falsified",
+   "wall": 302.077
+  },
+  "P2_control": {
+   "phase": "P2_control",
+   "predicted": "the shipped server drink moves calories +120 while the probe counters, sips and landed stay put, the bulk does not rise and lastIntake still names P3's JuiceBox",
+   "falsifier": "a counter or sips moving on the direct DrinkFluid call (the wrapper would see more than the action route), or the stores not moving (no control)",
+   "observed": {
+    "kcal": {
+     "server_before": 913.0276489257812,
+     "server_after": 1023.7880859375,
+     "server_raw": 110.76043701171875,
+     "server_corrected": 120.14416049259488,
+     "client_raw": 110.76007080078125,
+     "client_corrected": 120.14379428165738,
+     "elapsed_s": 36.078,
+     "drift_kcal_per_s": -0.26009544544808805
+    },
+    "ack_delta_calories": 120.00006103515625,
+    "ack_selected": {
+     "index": 1,
+     "id": 117144678,
+     "hasFluidContainer": true,
+     "empty": false,
+     "capacity": 0.30000001192092896,
+     "amount": 0.30000001192092896
+    },
+    "counter_delta": {
+     "updateEat_server": null,
+     "updateEat_client": 0.0,
+     "complete_server": null,
+     "complete_client": 0.0
+    },
+    "sips_delta": 0,
+    "landed_delta": 0,
+    "bulk": {
+     "bulk_before": 10.127534663965447,
+     "bulk_after": 9.559962758172649,
+     "raw_delta": -0.5675719057927981,
+     "kineticsAge_before": 3.216878890991211,
+     "kineticsAge_after": 3.366922378540039,
+     "dt_h": 0.15004348754882812,
+     "decay": 0.9493278129195224,
+     "ingest_delta_corrected": -0.05438757463631916,
+     "predicted": 0.0,
+     "accept_band": [
+      -0.06,
+      0.06
+     ],
+     "within": true
+    },
+    "lastIntake_fullType_after": "Base.JuiceBox"
+   },
+   "verdict": "as_predicted",
+   "wall": 302.08
+  },
+  "X13": {
+   "phase": "X13",
+   "predicted": "P1's server counters fire and the client's do not, with P2 as the control -> B7 UNKNOWN -> CAN",
+   "falsifier": "0/0 against a moving control, or a client fire",
+   "observed": {
+    "P1a": "falsified",
+    "P2": "as_predicted",
+    "P1b": "unmeasured",
+    "P1c": "as_predicted",
+    "summary": "B7 negative: the Lua route is silent though the fluid path ran"
+   },
+   "verdict": "falsified",
+   "wall": 302.084
+  }
+ },
+ "field_count_failures": [],
+ "session_ready_wall": 54.094,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "0.1.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "0.1.0"
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TKX_DrinkHook.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TKX_DrinkHook.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_DrinkHook.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_DrinkHook.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "timeline": [
+  {
+   "t": 54.1,
+   "phase": "session_ready"
+  },
+  {
+   "t": 55.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 56.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 57.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 58.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 59.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_DrinkHook.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 60.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_DrinkHook.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 63.7,
+   "phase": "spawn",
+   "type": "Base.Pop2",
+   "resolved": true
+  },
+  {
+   "t": 105.8,
+   "phase": "verdict",
+   "name": "P0",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 106.3,
+   "phase": "step",
+   "took": 0.51,
+   "name": "P1_drink_action",
+   "cmd": "drink.action"
+  },
+  {
+   "t": 151.8,
+   "phase": "spawn",
+   "type": "Base.JuiceBox",
+   "resolved": true
+  },
+  {
+   "t": 185.8,
+   "phase": "step",
+   "took": 0.261,
+   "name": "P3_drink_action",
+   "cmd": "drink.action"
+  },
+  {
+   "t": 233.9,
+   "phase": "spawn",
+   "type": "Base.Pop2",
+   "resolved": null
+  },
+  {
+   "t": 267.7,
+   "phase": "step",
+   "took": 2.012,
+   "name": "P2_drink",
+   "cmd": "drink"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P1a_sides",
+   "verdict": "falsified"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P1b_sips",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P1c_landing",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P1d_calories",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P1e_client_arrival",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P1f_mirror",
+   "verdict": "trivial"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P3_half",
+   "verdict": "falsified"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "P2_control",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 302.1,
+   "phase": "verdict",
+   "name": "X13",
+   "verdict": "falsified"
+  },
+  {
+   "t": 304.3,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 312.0,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "summary": {
+  "verify_ok": [
+   true,
+   true,
+   true,
+   true,
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "counters_P1_delta": {
+   "updateEat_server": null,
+   "updateEat_client": 0.0,
+   "complete_server": null,
+   "complete_client": 0.0
+  },
+  "sips_P1_delta": 29,
+  "landed_P1_delta": 28,
+  "bulk_P1": {
+   "bulk_before": 7.6384428281788646,
+   "bulk_after": 10.742914669648481,
+   "raw_delta": 3.104471841469617,
+   "kineticsAge_before": 2.450387954711914,
+   "kineticsAge_after": 2.683378219604492,
+   "dt_h": 0.23299026489257812,
+   "decay": 0.9224258620816973,
+   "ingest_delta_corrected": 3.697017458903834,
+   "predicted": 3.87,
+   "accept_band": [
+    3.393688086256169,
+    4.0461
+   ],
+   "within": true
+  },
+  "bulk_P3": {
+   "bulk_before": 10.198648812428853,
+   "bulk_after": 10.664836733826961,
+   "raw_delta": 0.4661879213981077,
+   "kineticsAge_before": 2.8502445220947266,
+   "kineticsAge_after": 3.0504016876220703,
+   "dt_h": 0.20015716552734375,
+   "decay": 0.9329821711540011,
+   "ingest_delta_corrected": 1.1496792219699152,
+   "predicted": 1.2650000000000001,
+   "accept_band": [
+    1.0822724465098115,
+    1.36295
+   ],
+   "within": true
+  },
+  "kcal_P1": 120.47574342338928,
+  "kcal_P3": 40.12470077681041,
+  "kcal_P2_ack": 120.00006103515625,
+  "counters_after_all": {
+   "updateEat_server": null,
+   "complete_server": null,
+   "updateEat_client": 0.0,
+   "complete_client": 0.0,
+   "server_table_client_keys": {
+    "updateEat_client": 0.0,
+    "complete_client": 0.0
+   },
+   "client_table_server_keys": {
+    "updateEat_server": 0.0,
+    "complete_server": 0.0
+   }
+  },
+  "sips_total": 61,
+  "field_count_failures": 0,
+  "x13": "B7 negative: the Lua route is silent though the fluid path ran",
+  "verdicts": {
+   "P0": "as_predicted",
+   "P1a_sides": "falsified",
+   "P1b_sips": "unmeasured",
+   "P1c_landing": "as_predicted",
+   "P1d_calories": "as_predicted",
+   "P1e_client_arrival": "as_predicted",
+   "P1f_mirror": "trivial",
+   "P3_half": "falsified",
+   "P2_control": "as_predicted",
+   "X13": "falsified"
+  }
+ },
+ "wall_seconds": 312.0,
+ "server_error_count": 0,
+ "client_lua_error": false,
+ "greps": {
+  "lua_errors": {
+   "limit": 20,
+   "server": {
+    "count": 17,
+    "saturated": false,
+    "lines": [
+     "ERROR: General      f:0 st:1,537,206,441> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,441> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,442> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,443> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,444> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,444> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,445> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,445> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,445> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,446> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,446> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:1,537,206,447> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,537,208,111> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,537,208,112> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,537,208,112> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,537,208,112> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+     "ERROR: WorldGen     f:0 st:1,537,208,114> IsoPropertyType.lookupOrDefaultStr> Exception thrown"
+    ]
+   },
+   "client": {
+    "count": 12,
+    "saturated": false,
+    "lines": [
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown"
+    ]
+   }
+  },
+  "intake_lines": {
+   "limit": 60,
+   "server": {
+    "count": 4,
+    "saturated": false,
+    "lines": [
+     "LOG  : Lua          f:0 st:1,537,207,709> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:1,537,207,710> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:1,537,207,710> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:1,537,211,106> [NutritionRevamp] intake: wrappers true drink true"
+    ]
+   },
+   "client": {
+    "count": 3,
+    "saturated": false,
+    "lines": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped"
+    ]
+   }
+  },
+  "syncitemfields": {
+   "limit": 10,
+   "server": {
+    "count": 1,
+    "saturated": false,
+    "lines": [
+     "LOG  : Lua          f:2500 st:1,537,462,350> PZTK: cmd #120 drink -> {\"user\":\"admin\",\"fullType\":\"Base.Pop2\",\"fraction\":1,\"finder\":\"getAllTypeRecurse\",\"selectionRule\":\"fullest, then highest id\",\"candid"
+    ]
+   },
+   "client": {
+    "count": 0,
+    "saturated": false,
+    "lines": []
+   }
+  }
+ },
+ "greps_reading": "server = the server stdout log; client = console.txt, which prints each mod's block twice (two Lua states). The intake lines are the mod's own NR.log at its configured level, so an absent line is the log level, not an absent landing."
+}

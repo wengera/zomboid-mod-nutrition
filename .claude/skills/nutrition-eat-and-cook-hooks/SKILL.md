@@ -15,7 +15,7 @@ description: Hooking eating, drinking or cooking — an `OnEat`, `OnCooked` or `
 - Monkey-patch idempotently and keep the original, testing for your own wrapper before you replace the target: that shape is safe under a Lua reload, unwindable, and it composes when two mods wrap the same function [#1067/C/snapshot].
 - Never put mod logic in a client-side wrapper of a timed action's completion: the Lua complete is skipped on a client, so the wrapper installs and then stays silent [#2005/C/C-only].
 - Write an `OnEat` correction as a delta on the store the eat has already filled, never as a second intake: the hook fires after every stat and nutrient write, so vanilla's numbers are already in [#0008, #2062/C/inference].
-- Expect no eat-side seat to see a drink from a fluid container: the fluid path has no eat hook and no eat packet, and a wrapper of the drink action has never been driven [#0084/C/C-only, #1133/C/C-only/open, #2065/C/inference].
+- Expect no eat-side seat to see a drink from a fluid container: the fluid path has no eat hook and no eat packet, so a container drink reaches the mod only through a server-side wrapper of the drink action's `updateEat` [#0084/C/C-only, #1133/M/n=1, #2828/C/inference].
 - Write a `ReplaceOnCooked` item's cooked nutrition into the replacement's script, never into a cook hook on the item it replaces: the cook block swaps the item and returns before it sets the cooked flag or calls the hook [#0266, #0257, #2067/C/inference].
 
 ## Also

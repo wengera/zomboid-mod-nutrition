@@ -16,6 +16,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: what a food item o
 - `Eat` never writes `Nutrition.weight`: its nutrition block writes the four nutrient setters and nothing else [#0061/M/one-fixture].
 - A fluid's `Properties` are the effect of one litre, the container multiplies them by the litres it holds, and drinking spends that aggregate times the fraction drunk [#0630, #0633].
 - Measured on the drink path, a full 0.3-litre can wrote 120.000031 calories and 31.200001 grams of carbohydrate, the same can at half wrote 60.0 and 15.6 [#1892/M/n=1].
+- The drink action's Lua is interceptable: a wrapper of its `updateEat` and `complete` fired on the server and never on the client when the game's own drink action ran [#2825/M/n=1].
 - The sandbox `Nutrition` option gates only `Nutrition.update()` — the macro drain, the calorie burn and weight — and leaves the `Eat` and `DrinkFluid` store writes untouched [#0067].
 - An eat costs 232 ticks per loop for food and 171 for a drink-type item, and the real multiplayer path lands on the client about 5.5 s after the action is queued [#0071/M/one-fixture, #1189/M/n=1].
 
@@ -264,6 +265,9 @@ One `DrinkFluid(FluidContainer, f, useUtensil)` call writes the four macros befo
 `ISDrinkFluidAction:updateEat` holds the drink action's one `DrinkFluid` call, `complete` reaches it unguarded, and it calls `syncItemFields()` right after each `DrinkFluid`; the gap it consumes and the `update` and animation-event gates are the incremental driver above [#0085/C/C-only, #2689/C/C-only].
 Drinking straight from a world water source takes a second `DrinkFluid` route: `ISTakeWaterAction`, queued with no item, moves the litres into a temporary container and calls `DrinkFluid` on it with a fraction of 1 before disposing of the container [#2690/C/C-only].
 A wrapper of the drink action's `updateEat` that samples the container's litres and mix before calling through and its litres after sees each sip once, and never sees a drink from a world source [#2689/C/C-only] [#2690/C/C-only].
+That route is measured on a live server: when a client queued the game's own drink action on a full 0.3-litre cola can, a wrapper of `updateEat` and of `complete` installed in both Lua states counted 29 `updateEat` calls and one `complete` on the server and none of either in the client's state, and a half juice box added 32 more calls and one more completion, server-side only [#2825/M/n=1].
+The timed action delivered what the direct call delivers, a full can 120.48 kcal after a drift correction and the half juice box 40.12, so the incremental calls sum to the container [#0148/M/n=1].
+The shipped direct `DrinkFluid` call moved the store by the same 120 kcal and neither wrapper counted it, so a drink-action wrapper sees the action route and nothing else [#2827/M/n=1].
 How a container's mix is read from Lua, and why a per-fluid mod value cannot ride the fluid block, are [`../facts/food-item-model.md#fluid-blocks`](../facts/food-item-model.md#fluid-blocks)'s.
 That packet's own field contract is [`../facts/wire-packets.md#player-stats-packet`](../facts/wire-packets.md#player-stats-packet).
 
@@ -349,7 +353,7 @@ The one thing the option cannot do is stop a store from filling, which is why a 
 <a id="walls"></a>
 
 Every measured number on this page comes from the dedicated-server path with one client attached, on the fixture's defaults.
-The eat matrix is one fixture across five items and five states, the partial-eat arms are one item each, and the drink probe read the server only [#0102/M/one-fixture, #0018/M/one-fixture, #0081/M/one-fixture, #0671/C/one-side/open].
+The eat matrix is one fixture across five items and five states, the partial-eat arms are one item each, the direct drink probe read the server only and the timed-action drink is one can of each of two fluids in one session [#0102/M/one-fixture, #0018/M/one-fixture, #0081/M/one-fixture, #2825/M/n=1].
 Single player is never claimed anywhere on this page.
 Where a row rests on one item or one session, its line says so, and widening it takes another run rather than another reading.
 The nutrition mirror's gain and loss formulas and its calorie and macro ceilings match the jar and the measured clamps, so the mirror corroborates those two points and nothing else, its page being nine minors stale [#0132/M/one-fixture].
@@ -366,7 +370,7 @@ A mod can run its intake math where `Eat` runs, which is the server ([#1128/M/n=
 Intercepting an eat before vanilla's numbers land needs a server-side Lua wrapper of the eat action's completion step ([#1129/M/n=1], [`../platform/lua-platform.md#script-hooks`](../platform/lua-platform.md#script-hooks)).
 Correcting intake afterwards from `OnEat` is a workaround rather than a hook that runs first ([#1130/M/n=1]).
 A partial or cancelled eat is handled, with the two cancel guards above as the catch ([#1132/C/C-only]).
-Whether the drink path can be hooked the way the eat path is remains unknown ([#1133/C/C-only/open]).
+The drink path can be hooked the way the eat path is, through a server-side wrapper of the drink action rather than a named hook ([#1133/M/n=1], [#1279/M/n=1]).
 Turning vanilla nutrition off and owning the macro model is the sandbox option's one lever ([#1127/C/C-only], [#1136/C/C-only]).
 Not covered: the food-to-health loop and the sickness rolls beyond their call sites, the fluid container's own save and sync routines, and single player — no reading on this page was taken outside the dedicated-server path; what a cooked or crafted item carries into the eat is [cooking-and-recipes.md](cooking-and-recipes.md#evolved)'s.
 
@@ -378,8 +382,7 @@ Not covered: the food-to-health loop and the sickness rolls beyond their call si
 - Which items ever set `baseHunger` different from `hungChange` at spawn — a split scales both fields of its input by one ratio, so a part-eaten input's unequal pair carries onto the output, the butcher paths and the Java craft summation set the two from one value, and `RecipeCodeOnCreate.makeCoffee` and `ItemStatsPacket.applyItemStats` are unread; settled by reading those two writers and whether an `InheritFood` input can be part-eaten; no `X` id [#0143/C/open].
 - What `getHealthFromFoodTimeByHunger()` returns — settled by a jar dump of the method, which scales the food-to-health loop rather than intake; no `X` id [#0146/C/open].
 - Whether any vanilla item sets `DaysFresh` equal to `DaysTotallyRotten`, the shape that makes the rot-roll denominator take the hundred-per-cent branch — settled by scanning the food script for that pair; no `X` id [#0147/C/open].
-- Whether the fluid-container overload of `DrinkFluid` behaves on a live server as the jar reads — settled by driving a container drink through the game's own timed action rather than through a direct call; -> X13 [#0148/C/C-only/open].
-- Four further drink corners are unmeasured, the container overload, cancel semantics, the 100 ms animation-event cadence under an accelerated clock, and when the new fill and the new calories arrive on the client — settled by a second drink probe that reads both sides; -> X13 [#0671/C/one-side/open].
+- Two drink corners are unmeasured, cancel semantics and the 100 ms animation-event cadence under an accelerated clock, and the client's arrival is bounded only to a poll — settled by a drink cancelled partway and a drink at a raised time speed, each read on both sides; no `X` id [#2829/M/n=1/open].
 - Decision: whether the mod's intake math runs in a server-side wrapper of the eat action's completion step or in `OnEat` — by the time `OnEat` fires, `Eat` has already written every stat and every nutrient [#0008].
 - Decision: whether a rebalanced hunger value is allowed to land under the magnitude the cancel guard tests — a cancelled eat of such an item applies nothing at all ([#0112], [`../platform/mp-model.md#ownership`](../platform/mp-model.md#ownership)).
 - Decision: whether the mod ships expecting the sandbox `Nutrition` option on or off — with it off the stores keep filling to their clamps and nothing burns them [#0089/C/inference].
