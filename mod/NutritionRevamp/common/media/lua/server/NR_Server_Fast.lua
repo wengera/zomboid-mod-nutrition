@@ -43,6 +43,15 @@ local BED = { badBed = 0.9, badBedPillow = 0.95, averageBedPillow = 1.05, goodBe
 local DELAY_BED = { badBed = 1.3, badBedPillow = 1.25, goodBed = 0.8, goodBedPillow = 0.6, floor = 1.6,
                     floorPillow = 1.45, averageBedPillow = 1.0 }
 
+-- The world age in hours, for a record the store creates at hoist time (its firstSeen stamp).
+local function worldAge()
+    if getGameTime == nil then return 0 end
+    local ok, gt = pcall(getGameTime)
+    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
+    if okA and type(age) == "number" then return age end
+    return 0
+end
+
 -- Hoist: one table of handles per player, filled at first sight. A member that is nil here is
 -- recorded in h.missing; an optional term's member (thermoregulator, sounds, wounds, blood, the
 -- all-asleep test, the tablet) disables that term, and a core member's absence raises in the body,
@@ -80,6 +89,10 @@ local function hoist(username, p)
     h.isUnlimited, h.autoDrink, h.setTimeOfSleep = want(p, "isUnlimitedEndurance"), want(p, "autoDrink"), want(p, "setTimeOfSleep")
     h.getRecoveryMod, h.getX, h.getY, h.getZ = want(p, "getRecoveryMod"), want(p, "getX"), want(p, "getY"), want(p, "getZ")
     h.getTabletEffect = want(p, "getSleepingTabletEffect")
+    -- the player's store record (a Lua table on global modData, not a Java member): the region reads
+    -- its stomachFill field, which the slow clock (NR_Server_Kinetics) stamps; an empty stand-in
+    -- when the store is not attached reads full, and the slow clock's onMinute refreshes the handle
+    h.record = (NR.server.store and NR.server.store.get(username, worldAge())) or {}
     local getIdle = want(p, "getIdleSquareTime")
     h.out.idleTimer = getIdle and getIdle(p) or 0         -- seed the mirror where the engine timer stands
     h.gt = getGameTime and getGameTime() or nil
@@ -186,6 +199,8 @@ local function body(h)
     inp.allAsleep = h.allPlayersAsleep ~= nil and h.allPlayersAsleep()
     inp.fitnessLevel = h.getPerkLevel(p, h.fitnessPerk)
     inp.unlimitedEndurance = h.isUnlimited(p)
+    inp.stomachFill = h.record.stomachFill or 1           -- Plan 2: hunger derives from it; nil reads full (the seed)
+    inp.energyState = 1                                   -- Plan 3 entry point: the energy-state term, stubbed neutral
 
     K.fast.step(inp, out, C)
 
@@ -324,10 +339,13 @@ local function onDeparture(username)
     FAST.h[username] = nil
 end
 
--- The per-player call and failure counts are read on the slow clock, never per tick.
-local function onMinute(username, player)
+-- The per-player call and failure counts are read on the slow clock, never per tick. The record
+-- handle is refreshed here: a respawn replaces the record (NR_Server_Store reset), and the region
+-- must read the table the slow clock stamps.
+local function onMinute(username, player, record)
     local h = FAST.h[username]
     if h == nil then return end
+    if record ~= nil then h.record = record end
     FAST.stats.perPlayer[username].calls = h.calls
     if FAST.lastError ~= nil then
         NR.log.say(2, "fast: handler failed (" .. tostring(FAST.stats.failures) .. " so far): " .. tostring(FAST.lastError))

@@ -44,6 +44,14 @@ function K.stomach.bulkOf(vector)
     return vector.calories / 100 + vector.fibre * 0.5 + vector.water / 100
 end
 
+-- Seed a stomach full: bulk = FULL_BULK, the buffer untouched (so nothing absorbs from it); returns the
+-- stomach. Plan 2 game choice (Task 11) -- judgement: the character ate before the apocalypse, so a
+-- new or respawned record starts at vanilla's hunger 0 and empties on the gastric half-time.
+function K.stomach.seedFull(stomach)
+    stomach.bulk = K.stomach.FULL_BULK
+    return stomach
+end
+
 -- Add a meal vector into the buffer and its bulk into the fill total; returns the stomach.
 function K.stomach.ingest(stomach, vector)
     K.vector.add(stomach.buffer, vector, 1)

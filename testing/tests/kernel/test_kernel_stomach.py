@@ -242,3 +242,13 @@ def test_fill_clamps_at_one(host):
     st = host.K.stomach["new"]()
     host.K.stomach.ingest(st, _vec(host, calories=5000))
     assert host.K.stomach.fill(st) == 1
+
+
+def test_seed_full_sets_the_bulk_to_full_and_leaves_the_buffer(host):
+    # Plan 2 Task 11 game choice: a new record's stomach starts full (the character ate before the apocalypse)
+    st = host.K.stomach.new()
+    out = host.K.stomach.seedFull(st)
+    assert _same(host, out, st)
+    assert st["bulk"] == host.K.stomach.FULL_BULK
+    assert host.K.stomach.fill(st) == 1.0
+    assert all(st["buffer"][k] == 0 for k in host.K.vector.KEYS.values())

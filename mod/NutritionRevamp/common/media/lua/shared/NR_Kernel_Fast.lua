@@ -3,6 +3,11 @@
 -- docs/superpowers/research/jar-calculatestats-updaters.md with no nutrition term (Plan 1, vanilla
 -- parity). Pure: `inp`, `out` and `c` are tables the adapter owns and reuses; nothing here allocates
 -- per call and nothing names a Java global. Constants carry their register id or jar section.
+-- Plan 2 ruling (Task 11): HUNGER is no longer the Plan 1 vanilla drain. It is derived from stomach
+-- fill and written every tick, so vanilla's eat-time hunger write is overwritten within one push
+-- (spec § 4.2): the stomach is the state, hunger the view. The slow clock stamps record.stomachFill
+-- (NR_Server_Kinetics.lua); the adapter hands it in as inp.stomachFill. THIRST is untouched in this
+-- plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
 -- Every Stats.add / remove / set the jar shows clamps once to [0,1] (#2208, jar § 10), so each
 -- vanilla write is one K.clamp here, in vanilla's order: a saturated stat behaves as it does in Java.
 -- Kahlua numbers are doubles: the Java float-only chains (the idle timer, the sleep dt and fatigue
@@ -17,6 +22,8 @@ function K.fast.defaults()
     return {
         thirstIncrease = 8.0e-6,                 -- #0476; defines.lua:9
         thirstSleepingIncrease = 1.0e-6,         -- #0477; :10
+        -- the four hunger constants are no longer read by the hunger term (Plan 2: hunger derives from
+        -- stomach fill); they stay because the adapter's GLOBAL_KEYS reads them from ZomboidGlobals
         hungerIncrease = 9.6e-6,                 -- #0470; :14
         hungerIncreaseWhenWellFed = 0.0,         -- #0473; :15
         hungerIncreaseWhileAsleep = 1.0e-6,      -- #0472; :17
@@ -38,6 +45,10 @@ end
 -- `sitting` is sitting on the ground or on furniture; `resting` is isResting(): the awake fatigue
 -- divisor tests all three, the idleness decrease only the two sitting tests (jar § 2 @94, @598).
 -- `sleepingTablet` is getSleepingTabletEffect() > 1000, doDelayToSleep's 0.1 override (jar § 3).
+-- `stomachFill` is the slow clock's record.stomachFill (0 empty .. 1 full); `energyState` is the
+-- Plan 3 entry point, stubbed at the neutral 1 by the adapter. The defaults read full and neutral.
+-- `heartyAppetite`, `lightEater` and `foodEaten` are no longer read by the hunger term (Plan 2); they
+-- stay filled for Plan 3/4's appetite and energy terms.
 function K.fast.input()
     return {
         M = 0, D = 0, sd = 1, asleep = false, ghost = false,
@@ -51,6 +62,7 @@ function K.fast.input()
         bedFactor = 1, timeOfSleep = 0, delayToSleep = 0, timeOfDay = 0, minutesPerDay = 60,
         endRegen = 1, recoveryMod = 1, allAsleep = false, fitnessLevel = 0, unlimitedEndurance = false,
         painLevel = 0, stressMoodle = 0, sleepingTablet = false, sleepTransition = false,
+        stomachFill = 1, energyState = 1,
     }
 end
 
@@ -61,6 +73,13 @@ function K.fast.output()
         idleness = 0, resetIdleness = false, morale = 1, fitness = 0, autoDrink = true,
         idleTimer = 0, timeOfSleep = 0, delayToSleep = 0,
     }
+end
+
+-- The per-tick hunger target from the stomach fill and the energy state. Judgement: an empty stomach
+-- reads as hunger 1, a full one as 0, linear between; energyState scales it (the Plan 3 entry point,
+-- stubbed 1 in Plan 2). Clamped to [0, 1]. Called from inside the region: a Lua call, no allocation.
+function K.fast.hungerTarget(fill, energyState)
+    return K.clamp((1 - fill) * energyState, 0, 1)
 end
 
 -- @fastpath
@@ -120,20 +139,13 @@ function K.fast.step(inp, out, c)
     out.anger = clamp(inp.anger - c.angerDecrease * s, 0, 1)
 
     -- wake state
-    local hunger, fatigue, idleness = inp.hunger, inp.fatigue, inp.idleness
-    local appetite = 1 - inp.hunger                          -- #0474, rebuilt: getAppetiteMultiplier is protected
-    if inp.heartyAppetite then
-        appetite = appetite * 1.5
-    end
-    if inp.lightEater then
-        appetite = appetite * 0.75
-    end
+    local fatigue, idleness = inp.fatigue, inp.idleness
     out.resetIdleness = false
     out.idleTimer = inp.idleTimer
     out.timeOfSleep = inp.timeOfSleep
     out.delayToSleep = inp.delayToSleep
     if inp.asleep then
-        -- 3. IsoPlayer.updateStats_Sleeping: endurance (#2261), fatigue (#2276, #2277), hunger (#0472, #0473)
+        -- 3. IsoPlayer.updateStats_Sleeping: endurance (#2261), fatigue (#2276, #2277); hunger below (Plan 2)
         local f = 2
         if inp.allAsleep then
             f = 2 * D
@@ -188,13 +200,8 @@ function K.fast.step(inp, out, c)
                 end
             end
         end
-        if inp.foodEaten == 0 then
-            hunger = hunger + c.hungerIncreaseWhileAsleep * sd * appetite * s
-        else
-            hunger = hunger + c.hungerIncreaseWhenWellFed * sd * c.hungerIncreaseWhileAsleep * sd * s
-        end
     else
-        -- 2. updateStats_Awake: stress decay, fatigue, hunger, idleness (jar § 2; #2270, #2271, #0470, #0471, #0473)
+        -- 2. updateStats_Awake: stress decay, fatigue, idleness (jar § 2; #2270, #2271); hunger below (Plan 2)
         stress = clamp(stress - c.stressDecrease * s, 0, 1)
         local endDef = max(F03, 1 - endurance)              -- reads ENDURANCE after the stub's cheat reset
         local sleepTrait = 1
@@ -209,19 +216,6 @@ function K.fast.step(inp, out, c)
             rest = 1.5
         end
         fatigue = fatigue + c.fatigueIncrease * sd * endDef * s * sleepTrait * inp.thermoFatigue / rest
-        if inp.exercising then
-            if inp.foodEaten == 0 then
-                hunger = hunger + c.hungerIncreaseWhenExercise / 3 * sd * appetite * s
-            else
-                hunger = hunger + c.hungerIncreaseWhenExercise * sd * appetite * s
-            end
-        else
-            if inp.foodEaten == 0 then
-                hunger = hunger + c.hungerIncrease * sd * appetite * s
-            else
-                hunger = hunger + c.hungerIncreaseWhenWellFed * sd * s
-            end
-        end
         -- the idle-square timer mirror (Plan 1 ruling 8), then idleness
         if inp.sameSquare then
             if out.idleTimer <= 3600 then
@@ -244,6 +238,8 @@ function K.fast.step(inp, out, c)
             idleness = clamp(idleness - c.idleDecrease * s, 0, 1)
         end
     end
+    -- hunger (Plan 2 ruling): the stomach's view, written every tick whatever the stat read
+    local hunger = K.fast.hungerTarget(inp.stomachFill, inp.energyState)
     out.hunger = clamp(hunger, 0, 1)
     out.fatigue = clamp(fatigue, 0, 1)
     out.stress = clamp(stress, 0, 1)
