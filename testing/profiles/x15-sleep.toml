@@ -1,0 +1,48 @@
+# testing/profiles/x15-sleep.toml - the Plan 4 sleep and alcohol gate boot (Task 5), sleep OFF: PZTestKit +
+# NutritionRevamp (Mode 1, LegacyMirror on) + TKX_SleepWatch + TKX_BoozeWatch. [server] writes
+# SleepAllowed=false and SleepNeeded=false into the server ini (the fixture's own values, stated so the
+# pair of x15-sleep and x15-sleep-on differ in exactly those two keys). DayLength 1; Nutrition = false.
+# Tier-(a) verify rows only: the markers are present on both sides.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_SleepWatch + TKX_BoozeWatch, SleepAllowed/SleepNeeded false, DayLength 1 - the sleep and alcohol gate."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_SleepWatch"
+path = "testing/experiments/TKX_SleepWatch"
+
+[[mods]]
+id = "TKX_BoozeWatch"
+path = "testing/experiments/TKX_BoozeWatch"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5; X7/X41 profiles): vanilla's nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
