@@ -8,7 +8,7 @@
 -- step, so intake at the requirement holds p at 1 exactly; at zero intake it is the pure exp(-kEff t).
 -- The records are injected as { ORDER = {key, ...}, REC = { [key] = rec } } (Task 7 writes them); this
 -- file never names NR.data. The record fields read here: kind, R, scale, Rscale, absorb, k, pCap, ladder,
--- clinicalOnP2, ul, chronic.perDay, chronic.store, acute.perKg, acute.abs, dialExp. Sex is indexed 1 male,
+-- clinicalOnP2, p2Clinical, ul, chronic.perDay, chronic.store, acute.perKg, acute.abs, dialExp. Sex is indexed 1 male,
 -- 2 female (Plan 3's K.body convention); ctx carries sex, w, eeMJ, pDay, dial, excessOn and two.
 -- Pure: numbers and Lua tables in, numbers and Lua tables out, no Java. Slow-clock code with no fast region,
 -- so math.exp and math.log are allowed. This file sorts after NR_Kernel.lua, and every K.max reference is
@@ -20,13 +20,13 @@ K.nutrients = {}
 K.nutrients.NV = 1
 
 -- The generic status ladder on p, {marginal, depleted, clinical}, where a record has no sourced rung.
-K.nutrients.LADDER = { 0.70, 0.45, 0.25 } -- game choice, ruling 4
+K.nutrients.LADDER = { 0.70, 0.45, 0.25 } -- design-phase-v1 game choice, ruling 4 (open row S1057: the store fractions at the three rungs)
 
 -- The grade hysteresis: a grade improves one rung only when p clears that rung's threshold by HYST.
 K.nutrients.HYST = 0.02 -- game choice, ruling 4
 
 -- The days a chronic-excess threshold must hold before rung 2.
-K.nutrients.EXCESS_HOLD_D = 7 -- game choice, ruling 4
+K.nutrients.EXCESS_HOLD_D = 7 -- game choice, ruling 4 (open row S1058)
 
 -- The hours an acute excess flag stays raised after the eat that set it.
 K.nutrients.ACUTE_DECAY_H = 48 -- the 48 h vomiting window, S1028
@@ -64,7 +64,7 @@ function K.nutrients.fFromThreshold(iThreshold, R)
     return iThreshold / R
 end
 
--- A fresh per-key state: replete, graded 1, no excess.
+-- A fresh per-key state: replete, graded 1, no excess. ax is the acute flag's hours left and axr the rung it stamped.
 function K.nutrients.newKey()
     return { p = 1, p2 = 1, g = 1, gl = 1, ah = 0, x = 0, e24 = 0, dmg = 0, ext = 0, ax = 0, axr = 0 }
 end
@@ -87,7 +87,7 @@ function K.nutrients.ladderOf(rec)
     return K.nutrients.LADDER
 end
 
--- The absorbed requirement per day for this character: R[sex], scaled, times the default absorption.
+-- The absorbed requirement per day for this character: R[sex], scaled, times the default absorption. The default absorption is a game choice (open row S1060).
 function K.nutrients.requirement(rec, ctx)
     if rec.R == nil then
         return 0
@@ -193,16 +193,20 @@ end
 
 -- A two-compartment grade (rec.clinicalOnP2): marginal and depleted on the store p, clinical on the
 -- functional p2 alone, with the same upward hysteresis on leaving clinical.
-function K.nutrients.gradeTwo(p, p2, ladder, gPrev)
-    local g = K.nutrients.gradeHyst(p, ladder, gPrev)
+function K.nutrients.gradeTwo(p, p2, ladder, gPrev, thrP2)
+    local gp = gPrev
+    if gp == 4 then
+        gp = 3
+    end
+    local g = K.nutrients.gradeHyst(p, ladder, gp)
     if g == 4 then
         g = 3
     end
-    local thr = ladder[3]
+    local thr = thrP2
     if gPrev == 4 then
-        thr = thr + K.nutrients.HYST
+        thr = K.min(thr + K.nutrients.HYST, 1)
     end
-    if p2 <= thr then
+    if p2 < thr then
         g = 4
     end
     return g
@@ -345,18 +349,25 @@ function K.nutrients.minute(state, records, absorbed, ingested, ctx, dtM)
         end
         local g = 1
         if rec.clinicalOnP2 == true then
-            g = K.nutrients.gradeTwo(s.p, s.p2, K.nutrients.ladderOf(rec), s.g)
+            g = K.nutrients.gradeTwo(s.p, s.p2, K.nutrients.ladderOf(rec), s.g, rec.p2Clinical or K.nutrients.ladderOf(rec)[3])
         elseif K.nutrients.UNGRADED[kind] == nil then
             g = K.nutrients.gradeHyst(s.p, K.nutrients.ladderOf(rec), s.g)
         end
-        if g ~= s.g or x ~= s.x then
+        local changed = false
+        if g ~= s.g then
             s.gl = s.g
             s.g = g
-            s.x = x
             s.ah = 0
-            state.epoch = state.epoch + 1
+            changed = true
         else
             s.ah = s.ah + dtH
+        end
+        if x ~= s.x then
+            s.x = x
+            changed = true
+        end
+        if changed then
+            state.epoch = state.epoch + 1
         end
         if kind == "pool" or kind == "pool2" then
             if g ~= 1 then

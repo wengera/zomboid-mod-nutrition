@@ -256,11 +256,19 @@ def test_grade_hysteresis(host):
 def test_grade_two(host):
     N = host.K.nutrients
     L = N.LADDER
-    assert N.gradeTwo(0.9, 0.9, L, 1) == 1
-    assert N.gradeTwo(0.9, 0.2, L, 1) == 4    # clinical on p2
-    assert N.gradeTwo(0.1, 0.9, L, 1) == 3    # p alone stops at depleted
-    assert N.gradeTwo(0.9, 0.26, L, 4) == 4   # leaving clinical needs p2 > 0.25 + 0.02
-    assert N.gradeTwo(0.9, 0.28, L, 4) == 1
+    assert N.gradeTwo(0.9, 0.9, L, 1, 0.25) == 1
+    assert N.gradeTwo(0.9, 0.2, L, 1, 0.25) == 4    # clinical on p2
+    assert N.gradeTwo(0.1, 0.9, L, 1, 0.25) == 3    # p alone stops at depleted
+    assert N.gradeTwo(0.9, 0.26, L, 4, 0.25) == 4   # leaving clinical needs p2 > 0.25 + 0.02
+    assert N.gradeTwo(0.9, 0.28, L, 4, 0.25) == 1
+    # B12-like: clinical the moment p2 leaves 1, and leaving it needs p2 back at 1 (threshold capped at 1)
+    assert N.gradeTwo(1, 1, L, 1, 1) == 1
+    assert N.gradeTwo(1, 0.99, L, 1, 1) == 4
+    assert N.gradeTwo(1, 1, L, 4, 1) == 1
+    # iron-like: its own p2 threshold 0.88, not the ladder's third rung
+    assert N.gradeTwo(0.6, 0.87, L, 1, 0.88) == 4
+    assert N.gradeTwo(0.6, 0.89, L, 4, 0.88) == 4
+    assert N.gradeTwo(0.6, 0.91, L, 4, 0.88) == 2
 
 
 # -------------------------------------------------------------------------------------------------- excess
@@ -374,6 +382,58 @@ def test_minute_ledger_and_excess(host):
     assert st.vitC.p == pytest.approx(1.0, abs=1e-12)
     assert st.epoch == 1
     assert st.vitC.gl == 1
+    assert st.vitC.ah == pytest.approx(1 / 60, abs=1e-12)
+
+
+def test_minute_x_only_change(host):
+    N = host.K.nutrients
+    recs = _records(host)
+    st = N.newState(recs)
+    st.vitC.x = 1
+    st.vitC.gl = 2
+    st.vitC.ah = 5
+    # only x changes (a UL crossing at an unchanged grade): gl stays, ah keeps accruing, epoch + 1
+    N.minute(st, recs, _empty(host), _empty(host), _ctx(host), 1)
+    assert st.vitC.x == 0
+    assert st.vitC.g == 1
+    assert st.vitC.gl == 2
+    assert st.vitC.ah == pytest.approx(5 + 1 / 60, abs=1e-12)
+    assert st.epoch == 1
+
+
+DIAL_REC = r"""
+{
+  ORDER = { "vitC" },
+  REC = { vitC = { key = "vitC", unit = "mg", kind = "pool", R = { 90, 75 }, k = 0.001,
+                   ladder = { 0.7, 0.45, 0.10 }, pCap = 1.0 } },
+}
+"""
+
+
+@pytest.mark.parametrize("dial,exp", [(10, -0.01), (1, -0.001)])
+def test_minute_dial_through_minute(host, dial, exp):
+    N = host.K.nutrients
+    recs = _records(host, DIAL_REC)
+    st = N.newState(recs)
+    ctx = _ctx(host, dial=dial)
+    for _ in range(1440):
+        N.minute(st, recs, _empty(host), _empty(host), ctx, 1)
+    assert st.vitC.p == pytest.approx(math.exp(exp), abs=1e-12)
+
+
+def test_minute_acute_flag_through_minute(host):
+    N = host.K.nutrients
+    recs = _records(host)
+    st = N.newState(recs)
+    st.vitC.ax = 1
+    st.vitC.axr = 2
+    N.minute(st, recs, _empty(host), _empty(host), _ctx(host), 1)
+    assert st.vitC.x == 2
+    assert st.epoch == 1
+    for _ in range(60):
+        N.minute(st, recs, _empty(host), _empty(host), _ctx(host), 1)
+    assert st.vitC.x == 0
+    assert st.epoch == 2
 
 
 def test_minute_excess_off(host):
