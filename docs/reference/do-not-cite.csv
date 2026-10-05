@@ -258,3 +258,18 @@ x132d-20261005-060046,greps.lua_errors,"server 17, client 12","The pattern's `Ex
 x132d-20261005-060046,greps.syncitemfields.server,`1`,"The one hit is the harness's own echo of the P2 drink reply, whose payload contains the word syncItemFields; no SyncItemFields error was logged.",cite `server_error_count` (0)
 x132d-20261005-060046,verdicts.P1e_client_arrival,"first moves both 3.521 s","Each poll is a client-then-server nutrition pair about 1.5 to 2 s wide, so both first moves fall in one poll window; the client's delta in that poll was +17 against the server's +89. It shows arrival within a poll or two, not a latency.",cite the poll rows `phases.P1.polls` and `phases.P3.polls` as a granularity-bound reading
 x132d-20261005-060046,"snapshots.*.globals.server.NutritionRevamp.server.store.records.admin.stomachFill",`1` after P1,"stomachFill is bulk over FULL_BULK clamped to 1, and the seeded-full stomach plus a can exceeds 8, so the scalar is pinned at its clamp.",cite the `stomach.bulk` values
+x132e-20261005-062748,verdicts,`unmeasured` / `falsified` after P0,"The wrap cycle (TKX_EatHook re-wrapping over NutritionRevamp's wrapper at OnServerStarted, its old closure calling the overwritten global original) overflowed the stack inside every completed eat, so Eat never ran; no phase after P0 read the question it asks, and A6_completed's falsified is the cycle too.",cite `phases.*.delta` and `server_errors` for the cycle itself
+x132e-20261005-062748,summary,x24/x33 unmeasured,The same cycle; the summary restates the phase verdicts.,cite `phases.*.delta`
+x132e-20261005-062748,phases.Q1.delta.eats,`497`,"One eat action recursing to a stack overflow, not 497 eats; the same holds for every phase's eats and completes_server delta.",cite `server_errors` and `phases.Q1.kcal`
+x132e-20261005-062748,greps.lua_errors,"server 20, client 20 (saturated)","Vanilla AdvancedAnimator boot noise plus the overflow traces, saturated at the limit.",cite `server_error_count` 112 and `server_errors`
+x132e-20261005-063700,verdicts.A7_cancelled,`unmeasured`,player.stop did not cancel the started eat (it clears only unstarted actions); nothing about serverStop was read.,cite `phases.A7.delta` for the completed eat
+x132e-20261005-063700,verdicts.A8_guard,`unmeasured`,"The same: no cancel happened, so the guard was never on the route.",cite `phases.A8.kcal` and `phases.A8.item_confirm` for the completed sub-guard eat
+x132e-20261005-063700,verdicts.X33,`unmeasured`,No cancel arm reached serverStop.,—
+x132e-20261005-063700,summary.x33,unmeasured: arms ...,The same.,—
+x132e-20261005-063700,phases.A7.buffer,"predicted 0, `within false`","The prediction took the share of a cancel that never happened, and the store was already NaN from Q4.",—
+x132e-20261005-063700,phases.A7.bulk,"predicted 0, `within false`",The same.,—
+x132e-20261005-063700,phases.A8.buffer,"`nan`, `within false`",The store was already NaN from Q4.,—
+x132e-20261005-063700,phases.A8.bulk,"`nan`, `within false`",The same.,—
+x132e-20261005-063700,snapshots.Q4_post.record.values.admin.stomach.bulk,`nan`,"The mod's NaN landing (the finished item's raw hunger reads NaN after UseAndSync), not a stomach state; the same for every record value from Q4_post on.",cite `snapshots.Q3_post.record.values` for the last finite state
+x132e-20261005-063700,snapshots.Q4_post.stats.server.hunger,`null`,"A non-finite hunger (the harness renders NaN as null), not an absent read; the same for every stats hunger from Q4_post on, both sides.",cite `snapshots.Q3_post.stats.server.hunger`
+x132e-20261005-063700,greps.lua_errors,"server 20, client 20 (saturated)",Vanilla AdvancedAnimator boot noise saturated at the limit.,cite `server_error_count` 0

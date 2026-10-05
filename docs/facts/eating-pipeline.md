@@ -217,18 +217,21 @@ Half is offered only when `abs(hungerChange * 100)` is at least 2 and at least h
 Because the fraction is a share of the whole item, eating a quarter of an already half-eaten item asks for half of what is left, and a leftover half-apple eaten at menu fraction 1.0 delivers 47.5 kcal rather than 95 — one item, measured on the server [#0081/M/one-fixture].
 The same rescale arithmetic is duplicated in Lua twice, for the eat tooltip and for the utensil-scrape sound [#0082].
 A mod that changes the rescale therefore has three sites to keep in step, not one.
+Read live around three quarter eats of one item, the drop in raw hunger over `baseHunger` stayed at a quarter while the drop over the hunger before each eat ran a quarter, a third and a half — the fraction `Eat` applies to the live macros — so a share of the whole item and a fraction of what is left are two numbers on every eat after the first [#2831/M/n=1].
 The rescale and the leftover scaling are complements, because what the fraction takes is what the multiply removes, and `baseHunger` is the one field that survives both untouched.
 
 The remainder is scaled by `multiplyFoodValues(1 - f)`, which multiplies fifteen stored fields including calories, carbohydrates, proteins and lipids, and truncates `fluReduction`, `foodSicknessChange` and `poisonPower` to int so those three erode faster than linearly; half an apple left `calories 47.5` and `hungChange -0.08` [#0057/M/one-fixture].
 
 Three endings close the method.
 At a fraction of exactly 1 the item's `hungChange` is set to 0 and `UseAndSync()` consumes it [#0058/M/one-fixture].
+It does not stay 0: the consume step's use count is the hunger times 100, so the count it decrements is already 0, the hunger it rescales by is a 0 over 0, and the finished item's raw hunger and scaled fields read NaN on the server — a reader after the eat must treat a finishing eat as the whole remainder rather than divide by what the item says [#2832/M/n=1].
 After the multiply, an item whose old `hungChange` was 0, whose old thirst was negative and whose new thirst is greater than -0.01 has its `hungChange` set to 0 and is consumed [#0059].
 That is the crumb rule again, applied to what is left rather than to the fraction.
 Otherwise a custom-weight item's weight becomes `(w - base) - f0 * (w - base) + base`, where `base` is the actual weight of its `replaceOnUse` item and 0 when it has none [#0060].
 
 A cancelled eat is a partial eat too: it resolves on the server, and two guards there can make it apply nothing at all — no stats, no nutrition, no leftover scaling and no consumption ([#0112], [`../platform/mp-model.md#ownership`](../platform/mp-model.md#ownership)).
 An item pass that rewrites hunger values across every food can land a value under that threshold and silently disable partial eating for it.
+The guard sits on the cancel route only: a completed eat of an item whose hunger was driven under it, against a full-size base hunger, delivered the whole item, because the rescale clamps to 1 there [#2836/M/n=1].
 
 <a id="fluid-path"></a>
 ### The drink path and the per-litre chain

@@ -1,0 +1,34 @@
+# testing/profiles/x13-eat-b.toml - X24 + X33, the second boot: x13-eat with NutritionRevamp loaded
+# BEFORE TKX_EatHook. In x13-eat (probe first) the probe's OnServerStarted re-wrap of
+# ISEatFoodAction.complete went outside the mod's wrapper while its old closure stayed inside, and
+# that closure reads its saved original through the global the re-wrap overwrote: a call cycle,
+# a stack overflow on every completed eat (run x132e-20261005-062748). With the mod first, the
+# probe wraps outermost at file load and neither install re-wraps (x13-drink's order).
+fixture = "default"
+description = "PZTestKit + TKX_ItemOverride + TKX_Nutrient + NutritionRevamp + TKX_EatHook - X24, X33 (mod before probe)."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "item.script", args = "TKX.FibreBar",      expect = '"DaysFresh": 42' },
+  { side = "server", cmd = "lua.global",  args = "TKX_Nutrient.version", expect = '"value": 1' },
+  { side = "client", cmd = "lua.global",  args = "TKX_EatHook.version",  expect = '"value": 1' },
+  { side = "server", cmd = "lua.global",  args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global",  args = "NutritionRevamp.version", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_ItemOverride"
+path = "testing/experiments/TKX_ItemOverride"
+[[mods]]
+id = "TKX_Nutrient"
+path = "testing/experiments/TKX_Nutrient"
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+[[mods]]
+id = "TKX_EatHook"
+path = "testing/experiments/TKX_EatHook"
+
+[client]
+timeout = 240

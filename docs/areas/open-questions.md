@@ -61,7 +61,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#0884/C/C-only/open] | Whether MoodleFramework loads whole on 42.20.4 and renders a registered moodle is unsettled: its wholeness is derived from the merge rule rather than measured, nothing has booted it, and it is the one corpus mod whose `mod.info` chain differs between the lint and the engine. | [open-questions.md](#x29) | X29 | one boot reading one of its own configuration globals and a registered moodle's draw |
 | [#0885/M/n=1/open] | Whether item modData moves from server to client is un-run: the player-modData directions were measured and the item-modData direction across the same hop was never exercised. | [open-questions.md](#x14) | X14 | a server-only key write, a client census that must miss it, a forced item push and a second census |
 | [#0886/M/n=2/open] | Which string orders the script-body replay is unmeasured: a mod whose id sorts last while its script file sorts first has not been booted, and mod id, folder name, stored script path and `mod.info` display name all sort identically in every boot this library has run. | [open-questions.md](#x19) | X19 | four sort mods, each built to win under exactly one candidate key |
-| [#0929/M/n=1/open] | Whether the eat hook fires once per eat or once per portion is unsettled: the only measured eat was a whole item at fraction 1, which cannot separate the two. | [open-questions.md](#x24) | X24 | quarter eats on one item beside a whole eat on a fresh one, each proved complete by store reads |
 | [#0958/C/C-only/open] | What a release client does with a raise that reaches the failure helper is unmeasured, as is what sets the debugger-on-error flag: nothing here has run a client without the debug flag. | [open-questions.md](#x23) | X23 | a release client reaching an unguarded raise, plus a desk read of what sets the flag |
 | [#0959/M/n=2/open] | The unguarded nil call's effect on a client is unmeasured: the body-abort and chain-survives halves are server-VM readings only, because the debug client parked before it reached the unguarded raise. | [lua-platform.md](../platform/lua-platform.md#open) | X23 | a run that reaches an unguarded raise on a client launched without the debug flag |
 | [#0967/C/C-only/open] | The item-block creation hook has never been fired by any session in this library: it is read off the jar only, and it is the one hook that runs at instantiation, which is where a per-item nutrient field would most naturally be seeded. | [lua-platform.md](../platform/lua-platform.md#open) | X31 | a session that instantiates a modded item through the game's own craft path with the hook registered |
@@ -85,7 +84,6 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#1287/C/open] | Does a folder whose only `mod.info` is `common/mod.info` resolve, and does the client's mod-list call site agree with the dedicated server's? | [open-questions.md](#x21) | X21 | a mod carrying `common/mod.info` and nothing else, its verify gate on the server only, read on both sides |
 | [#1288/C/open] | Does a version dir shipping `media/` that collides with nothing still load, and does a shadowed `common/` copy ever execute? | [open-questions.md](#x22) | X22 | a mod whose `common/` and version dir each ship a colliding and a non-colliding file, with a sentinel only the shadowed copy can set |
 | [#1289/C/open] | How does a release client behave on an unguarded raise, and what sets `showLuaDebuggerOnError`? | [open-questions.md](#x23) | X23 | a release-client boot of the raise probe with its gate moved to the server, plus a desk read |
-| [#1290/C/open] | Does `OnEat` fire once per eat or once per portion? | [open-questions.md](#x24) | X24 | quarter eats on one item beside a whole eat on a fresh one, reading the hook's per-side counters |
 | [#1291/C/open] | Is `incWeightLot` ever true, and does the client's derived copy agree when it is? | [open-questions.md](#x25) | X25 | a calorie ladder whose rungs are read off the jar first, reading both sides' weight flags at each rung |
 | [#1292/C/open] | Does CleanUI's `pcall(triggerEvent, …)` wrapper change what an unguarded raise does inside a dispatch? | [open-questions.md](#x26) | X26 | a harness entry into the context-menu builder and one session reading the wrapper's own failure line and the handlers behind the raise |
 | [#1293/C/open] | Does `InitLoadPP`'s per-body net-id reallocation ever put a stale id on the wire? | [open-questions.md](#x27) | X27 | reading a multiply-redefined item's id and full type on both sides, where agreement bounds the risk |
@@ -284,14 +282,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - It also settles [#0959/M/n=2/open] on [lua-platform.md](../platform/lua-platform.md#open).
 - Settled by: a release-client boot of the existing raise probe with its verify gate moved to the server, plus a desk read of what sets the flag — [experiments.md § Named experiments](../reference/experiments.md), row `X23`.
 
-<a id="x24"></a>
-### X24 — Does `OnEat` fire once per eat or once per portion?
-- Whether `OnEat` fires once per eat or once per portion is open [#1290/C/open].
-- The only measured eat was a whole item at fraction 1, which cannot separate the two [#0929/M/n=1/open].
-- The item-block creation hook has never fired in any session, and the cooking-pipeline experiment carries it [#0967/C/C-only/open] ([lua-platform.md#open](../platform/lua-platform.md#open), [X31](#x31)).
-- Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open).
-- Settled by: quarter eats on one item beside a whole eat on a fresh one, each proved complete by store reads, counting the hook's fires on each side — [experiments.md § Named experiments](../reference/experiments.md), row `X24`.
-
 <a id="x25"></a>
 ### X25 — Is `incWeightLot` ever true, and does the client's derived copy agree when it is?
 - Whether `incWeightLot` is ever true, and whether the client's derived copy agrees when it is, is open [#1291/C/open].
@@ -336,8 +326,9 @@ One subsection per surviving named experiment, in id order: the open rows this p
 <a id="x33"></a>
 ### X33 — Does a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really apply nothing at all?
 - Whether a cancelled eat of an item whose state-modified `abs(getHungerChange()*100)` is 1 or less really applies nothing at all is open [#1299/C/open].
+- Both boots of session S-D left it unmeasured: the harness's stop clears only actions not yet started, so the started eats ran to completion and no cancel reached the server-stop step [#2834/M/n=2].
 - Waiting on it: [eat-and-cook-hooks.md](eat-and-cook-hooks.md#open), [item-pass.md](item-pass.md#open).
-- Settled by: a completed eat, a cancelled eat of a normal item and a cancelled eat of an item driven under the guard, each read on the server — [experiments.md § Named experiments](../reference/experiments.md), row `X33`.
+- Settled by: a client command that stops a started action (`IsoGameCharacter.StopAllActionQueue`), then a completed eat, a cancelled eat of a normal item and a cancelled eat of an item driven under the guard, each read on the server — [experiments.md § Named experiments](../reference/experiments.md), row `X33`.
 
 <a id="x34"></a>
 ### X34 — Does a `CalculateStats` handler that reproduces the seven skipped updaters from the library's formulas track vanilla's stat trajectory, stat by stat, over several game-hours on a live server?
