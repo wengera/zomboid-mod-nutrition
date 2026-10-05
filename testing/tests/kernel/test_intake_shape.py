@@ -967,6 +967,26 @@ def test_server_path_unreadable_after_lands_the_remainder_and_is_counted(server_
     assert abs(li["frac"] - 1.0) < TOL
 
 
+RAISING_AFTER_EAT_STUBS = UNREADABLE_EAT_STUBS.replace(
+    "if after then return nil end return hung end",
+    "if after then error(\"getHungChange raised\") end return hung end",
+)
+
+
+def test_server_path_raising_after_read_is_a_failure_not_unreadable(server_host):
+    # a RAISING after-read is not the unreadable (nil) case: read() is a plain call inside
+    # readAfterAndLand, so the raise reaches guardAfter's pcall -> nothing lands, failures +1,
+    # unreadableAfter unchanged, lastError the raise
+    h = server_host
+    r, calls, before_stats, rec, err = h.rt.eval(RAISING_AFTER_EAT_STUBS)()
+    assert r is True and calls == 1                     # the original still ran and its value passed
+    assert rec is None
+    assert I(h).stats.failures == before_stats["failures"] + 1
+    assert I(h).stats.landed == before_stats["landed"]
+    assert I(h).stats.unreadableAfter == before_stats["unreadable"]
+    assert "getHungChange raised" in err
+
+
 def test_server_path_nan_after_read_is_not_counted_unreadable(server_host):
     h = server_host
     u0 = I(h).stats.unreadableAfter

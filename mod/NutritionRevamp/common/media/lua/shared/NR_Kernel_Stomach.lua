@@ -97,7 +97,7 @@ end
 -- just above S0532's measured -82 % at 250 mg phytate PHOSPHORUS (about 886 mg phytic acid, which
 -- the unclamped model would put near 0.05), so the band deliberately under-reads the heaviest
 -- phytate meals rather than extrapolate the log-linear fit past the measured range.
--- design-phase-v1 game choice: the [0.2, 4.0] band is a judgement; S0532 supports the -82 % at 250 mg phytate P, which the floor caps at -80 %. The S tags below stand for the slopes (-0.0034 per mg phytate, +0.0065 per mg vitamin C) the rows state.
+-- design-phase-v1 game choice: the [0.2, 4.0] band is a judgement; S0532 supports the -82 % at 250 mg phytate P, which the floor caps at -80 %. Of the S tags below, S0195 and S0194 state the slopes (-0.0034 per mg phytate, +0.0065 per mg vitamin C); S0533 is a direction row and S0532 the 250 mg dose-response point, neither a slope.
 function K.stomach.ironFactor(phytateMg, vitCMg)
     return K.clamp(math.exp(-0.0034 * phytateMg + 0.0065 * vitCMg), 0.2, 4.0) -- S0195, S0194, S0533, S0532
 end

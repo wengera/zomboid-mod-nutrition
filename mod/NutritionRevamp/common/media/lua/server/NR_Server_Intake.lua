@@ -460,8 +460,9 @@ end
 --    :236-247), and that list holds one entry per consumed InventoryItem whatever its uses spent
 --    (jar 42.20.4: CraftRecipeData.getAllConsumedItems @range L2220-L2235 walks the inputs into
 --    CacheData.addAppliedItemsToList @L1868, a copy of appliedItems; CacheData.addAppliedItem
---    @range L1825-L1828 adds the item once, asserting no duplicate; its one consume-side caller,
---    CraftRecipeManager.consumeInputItemInternal @range L948-L949, passes one InventoryItem).
+--    @range L1825-L1828 adds the item once (its duplicate check is a Java assert, off in production);
+--    what makes it one entry per item is that CraftRecipeManager.consumeInputItemInternal @range
+--    L948-L949 calls it once per InventoryItem and the uses arm, consumeInputItemUsesInternal, never does).
 --  * No craft hook ships (Plan 2 ruling 5): the vanilla consumed-type map is the source, and X31's
 --    craft probe runs only if a live reading shows that map unreachable.
 

@@ -111,11 +111,15 @@ def note(msg):
 
 
 def to_num(v):
-    """Read a `witness.moddata` value: it arrives as a STRING, which `num` turns into None."""
+    """Read a `witness.moddata` value: a scalar arrives as a STRING, which `num` turns into None.
+    Booleans and non-finite strings ("nan", "inf") are not numbers here either."""
+    if isinstance(v, bool):
+        return None
     try:
-        return float(v)
+        f = float(v)
     except (TypeError, ValueError):
         return None
+    return f if f == f and f not in (float("inf"), float("-inf")) else None
 
 
 def probe(side, cmd, args, timeout=20):

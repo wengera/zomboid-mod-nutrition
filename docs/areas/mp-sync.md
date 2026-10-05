@@ -58,7 +58,7 @@ Those flags are not packet fields, and each side's own computation of them agree
 The client may therefore show which way the weight is moving, and may never show a weight of its own [#1139/M/n=1, #1138/M/n=1].
 The band traits are applied on the server, and the trait list reaches that player's own client on two server pushes, the once-a-second experience packet and the player-fields packet's trait block [#2595/C/C-only].
 Anything this mod keys on a band is therefore evaluated on the server, or the mod pushes the trait list after each server-side write, and a client's copy of a band is as fresh as the last of those pushes [#2727/C/inference].
-Measured, a client-side read sees a trait the server has just written within about half a second with no push of the mod's own, and a removal the same way [#2759/M/n=3]; whether the mod's own trait-block push makes it sooner is the trait-push question under [Open](#open) ([wall map](../reference/wall-map.md#g4)).
+Measured, a client-side read sees a trait the server has just written within about half a second with no push of the mod's own, and a removal the same way [#2759/M/n=3]; a server-side trait-block push in the same tick brings the arrival to 17-32 ms after the push stamp, against no-push lower bounds of 53-370 ms [#2099/M/n=6] ([wall map](../reference/wall-map.md#g4)).
 
 On the item side the server owns the whole lifecycle.
 The container hooks that fire as an item enters or leaves a container are server-gated, and the cook transition runs on the server [#0327, #1417/M/n=1].
