@@ -1,0 +1,275 @@
+"""NR_Server_Training, driven through table-of-functions Java stand-ins.
+
+The file is a server/ file the kernel host does not load, so each test builds a bare Lua 5.1 runtime
+with NR_Core.lua and every NR_Kernel*.lua, an Events stub that records the handlers each Add receives,
+a store stand-in whose records the test owns, and registry stand-ins for Perks. NR.call indexes
+obj[name] and calls it with obj first, so a Lua table of function fields stands in for a Java object.
+A stub proves the wiring, the filters and the guards, not the engine's real getters, which the live
+acceptance runs read.
+"""
+import glob
+import os
+
+import lupa.lua51 as lua51
+import pytest
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+SERVER = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server")
+SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+TRAINING = os.path.join(SERVER, "NR_Server_Training.lua")
+CORE = os.path.join(SHARED, "NR_Core.lua")
+TOL = 1e-9
+
+SETUP = r"""
+NR_ADDED = { OnServerStarted = {}, AddXP = {}, OnWeaponHitXp = {}, OnWeaponHitTree = {} }
+local function ev(name)
+    return { Add = function(fn) local t = NR_ADDED[name]; t[#t + 1] = fn end }
+end
+Events = { OnServerStarted = ev("OnServerStarted"), AddXP = ev("AddXP"), OnWeaponHitXp = ev("OnWeaponHitXp"),
+           OnWeaponHitTree = ev("OnWeaponHitTree") }
+NR_SERVER = true
+isServer = function() return NR_SERVER end
+Perks = { Strength = { name = "Strength" }, Fitness = { name = "Fitness" }, Axe = { name = "Axe" } }
+NR_RECORDS = {
+    admin = { body = { vStr = 0, vHyp = 0, vStrHigh = 0 } },
+    nobody = {},
+}
+NutritionRevamp.server.store = { records = NR_RECORDS, attach = function() return NR_RECORDS end }
+
+function NR_PLAYER(name, exe)
+    local p = { exe = exe }
+    p.getUsername = function(self) return name end
+    p.getFitness = function(self)
+        return { getCurrentExe = function(s) return self.exe end }
+    end
+    p.getLastHitCount = function(self) return self.hits end
+    return p
+end
+
+function NR_WEAPON(w)
+    return { getWeight = function(self) return w end }
+end
+"""
+
+
+def _load(rt, path):
+    with open(path, encoding="utf-8") as fh:
+        src = fh.read()
+    rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@" + os.path.basename(path))()
+
+
+class Host:
+    def __init__(self, start=True):
+        self.rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+        _load(self.rt, CORE)
+        for path in sorted(glob.glob(os.path.join(SHARED, "NR_Kernel*.lua"))):
+            _load(self.rt, path)
+        self.rt.execute(SETUP)
+        self.G = self.rt.globals()
+        self.G.NutritionRevamp.log.level = 0
+        _load(self.rt, TRAINING)
+        if start:
+            self.start()
+
+    def start(self):
+        self.rt.execute("for i = 1, #NR_ADDED.OnServerStarted do NR_ADDED.OnServerStarted[i]() end")
+
+    @property
+    def TRN(self):
+        return self.G.NutritionRevamp.server.training
+
+    @property
+    def body(self):
+        return self.G.NR_RECORDS["admin"]["body"]
+
+    def handler(self, event):
+        return self.G.NR_ADDED[event][1]
+
+    def player(self, name="admin", exe=None):
+        return self.G.NR_PLAYER(name, exe)
+
+    def xp(self, p, perk, amount):
+        self.handler("AddXP")(p, self.G.Perks[perk], amount)
+
+    def stats(self):
+        s = self.TRN.stats
+        return {k: s[k] for k in ("reps", "hits", "trees", "ignored", "failures")}
+
+    def banked(self):
+        b = self.body
+        return (b["vStr"], b["vHyp"], b["vStrHigh"])
+
+
+@pytest.fixture
+def h():
+    return Host()
+
+
+def close(a, b):
+    return all(abs(x - y) < TOL for x, y in zip(a, b))
+
+
+# --- the wiring -----------------------------------------------------------------------------------------
+
+def test_wired_once_at_server_start():
+    host = Host(start=False)
+    assert len(host.G.NR_ADDED["OnServerStarted"]) == 1
+    assert len(host.G.NR_ADDED["AddXP"]) == 0          # nothing at load
+    host.start()
+    host.start()                                       # a second start wires nothing twice
+    for ev in ("AddXP", "OnWeaponHitXp", "OnWeaponHitTree"):
+        assert len(host.G.NR_ADDED[ev]) == 1
+    assert host.TRN.wired is True
+
+
+def test_not_wired_off_the_server():
+    host = Host(start=False)
+    host.G.NR_SERVER = False
+    host.start()
+    for ev in ("AddXP", "OnWeaponHitXp", "OnWeaponHitTree"):
+        assert len(host.G.NR_ADDED[ev]) == 0
+    assert host.TRN.wired is False
+
+
+# --- the reps (ruling T5-1) ------------------------------------------------------------------------------
+
+def test_fitness_rep_on_squats_banks_a_legs_rep(h):
+    h.xp(h.player(exe="squats"), "Strength", 0)        # the companion event, fired first (Fitness.incStats L351)
+    h.xp(h.player(exe="squats"), "Fitness", 4)
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+    s = h.stats()
+    assert s["reps"] == 1 and s["ignored"] == 1 and s["failures"] == 0
+
+
+def test_exercise_object_with_a_readable_type(h):
+    exe = h.rt.table_from({"type": "pushups"})
+    h.xp(h.player(exe=exe), "Strength", 6)
+    h.xp(h.player(exe=exe), "Fitness", 0)              # pushups grant no Fitness XP; the rep still counts once
+    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
+    assert h.stats()["reps"] == 1
+
+
+def test_unreadable_exercise_infers_arms_from_the_strength_companion(h):
+    exe = h.rt.table()                                 # a Java object with no readable type
+    p = h.player(exe=exe)
+    h.xp(p, "Strength", 7)                             # dumbbell press: 4 x 1.8 -> 7 Strength
+    h.xp(p, "Fitness", 0)
+    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
+    assert h.stats()["reps"] == 1
+
+
+def test_unreadable_exercise_with_fitness_xp_is_legs(h):
+    p = h.player(exe=h.rt.table())
+    h.xp(p, "Strength", 4)                             # burpees: Strength 4, Fitness 3
+    h.xp(p, "Fitness", 3)
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+    assert h.stats()["reps"] == 1
+
+
+def test_unknown_exercise_key_reads_legs(h):
+    h.xp(h.player(exe="jumpingjacks"), "Fitness", 4)
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+
+
+def test_unreadable_exercise_with_no_xp_at_all_banks_nothing(h):
+    p = h.player(exe=h.rt.table())
+    h.xp(p, "Fitness", 0)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["reps"] == 0 and h.stats()["ignored"] == 1
+
+
+def test_strength_event_with_exercise_is_ignored(h):
+    h.xp(h.player(exe="squats"), "Strength", 0)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["ignored"] == 1 and h.stats()["reps"] == 0
+
+
+def test_fitness_without_exercise_is_ignored(h):
+    h.xp(h.player(exe=None), "Fitness", 4)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["ignored"] == 1
+
+
+def test_strength_without_exercise_is_ignored_and_never_primes_a_rep(h):
+    h.xp(h.player(exe=None), "Strength", 6)            # a knockback or load grant
+    h.xp(h.player(exe=h.rt.table()), "Fitness", 0)     # no companion Strength recorded -> no rep
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["ignored"] == 2 and h.stats()["reps"] == 0
+
+
+def test_rust_is_ignored(h):
+    h.xp(h.player(exe="squats"), "Strength", -1)
+    h.xp(h.player(exe="squats"), "Fitness", -1)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["ignored"] == 2
+
+
+def test_other_perks_are_not_counted(h):
+    h.xp(h.player(exe="squats"), "Axe", 10)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats() == {"reps": 0, "hits": 0, "trees": 0, "ignored": 0, "failures": 0}
+
+
+def test_exercise_class_table_matches_the_install():
+    host = Host(start=False)
+    t = host.TRN.EXERCISE_CLASS
+    assert dict(t.items()) == {"squats": "legs", "pushups": "arms", "situp": "abs", "burpees": "legs",
+                               "barbellcurl": "arms", "dumbbellpress": "arms", "bicepscurl": "arms"}
+
+
+# --- the hits and the trees ------------------------------------------------------------------------------
+
+def test_heavy_weapon_hit_two_targets(h):
+    p = h.player()
+    p["hits"] = 2
+    h.handler("OnWeaponHitXp")(p, h.G.NR_WEAPON(3), None, 1.0, 1)
+    assert close(h.banked(), (0.10, 0.10, 0.10))
+    assert h.stats()["hits"] == 1
+
+
+def test_light_weapon_hit_with_no_hit_count(h):
+    h.handler("OnWeaponHitXp")(h.player(), h.G.NR_WEAPON(1.5), None, 1.0, 1)
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+
+
+def test_weapon_without_weight_reads_moderate(h):
+    h.handler("OnWeaponHitXp")(h.player(), h.rt.table(), None, 1.0, 1)
+    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+
+
+def test_tree_hit(h):
+    h.handler("OnWeaponHitTree")(h.player(), h.G.NR_WEAPON(3))
+    assert close(h.banked(), (0.07, 0.07, 0.07))
+    assert h.stats()["trees"] == 1
+
+
+def test_raising_getter_counts_a_failure_and_banks_nothing(h):
+    weapon = h.rt.eval("{ getWeight = function(self) error('boom') end }")
+    h.handler("OnWeaponHitXp")(h.player(), weapon, None, 1.0, 1)   # never raises into the dispatch
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats()["failures"] == 1 and h.stats()["hits"] == 0
+    assert "boom" in str(h.TRN.lastError)
+
+
+def test_zombie_owner_does_nothing(h):
+    zombie = h.rt.table()                              # no getUsername
+    h.handler("OnWeaponHitXp")(zombie, h.G.NR_WEAPON(3), None, 1.0, 1)
+    h.handler("OnWeaponHitTree")(zombie, h.G.NR_WEAPON(3))
+    h.handler("OnWeaponHitXp")(None, h.G.NR_WEAPON(3), None, 1.0, 1)
+    assert close(h.banked(), (0.0, 0.0, 0.0))
+    assert h.stats() == {"reps": 0, "hits": 0, "trees": 0, "ignored": 0, "failures": 0}
+
+
+def test_no_record_or_no_body_never_creates(h):
+    h.handler("OnWeaponHitTree")(h.player(name="stranger"), h.G.NR_WEAPON(3))
+    h.handler("OnWeaponHitTree")(h.player(name="nobody"), h.G.NR_WEAPON(3))
+    h.xp(h.player(name="stranger", exe="squats"), "Fitness", 4)
+    assert h.G.NR_RECORDS["stranger"] is None
+    assert h.G.NR_RECORDS["nobody"]["body"] is None
+    assert h.stats() == {"reps": 0, "hits": 0, "trees": 0, "ignored": 0, "failures": 0}
+
+
+def test_limitations_name_the_rep_and_the_climb():
+    lim = list(Host(start=False).TRN.limitations.values())
+    assert ("a rep is one Fitness event; the Strength companion event is ignored; a climb/vault has no Lua "
+            "event and is sampled per minute by Task 12's state read") in lim
