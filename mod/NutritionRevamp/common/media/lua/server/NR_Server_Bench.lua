@@ -4,8 +4,9 @@
 -- builds them once at file scope, and runs NutritionRevamp.kernel.fast.step once per call. The
 -- tables are reused, never re-allocated, so bench.global measures the step and not a constructor.
 -- This file exists only for the § 6 cost reading and ships with the mod. It is not a kernel file:
--- it names no NutritionRevamp.kernel function. It names no Java global -- at file scope or in its
--- functions -- so it loads with no engine (it only reads NutritionRevamp.kernel, loaded before it).
+-- it defines no NutritionRevamp.kernel function (it only calls the kernel's K.fast.* helpers). It
+-- names no Java global -- at file scope or in its functions -- so it loads with no engine (it only
+-- reads NutritionRevamp.kernel, loaded before it).
 local NR = NutritionRevamp
 local K = NR.kernel
 
