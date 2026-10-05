@@ -1798,3 +1798,71 @@ TK.register("inventory.add", function(argv)
     out.maxWeight = mw
     return out
 end)
+
+-- ---- nested-table writes (close fix wave, Plan 3) --------------------------------------------
+-- A literal arrives as a whitespace-split string: true|false -> boolean, a number -> number,
+-- anything else stays a string (the coercion globalmoddata.set uses).
+local function parseLiteral(raw)
+    if raw == "true" then return true end
+    if raw == "false" then return false end
+    local n = tonumber(raw)
+    if n ~= nil then return n end
+    return raw
+end
+
+-- Walks a dot path from a Lua table WITHOUT creating anything: returns (parent, leafKey) with
+-- parent the table holding the leaf, or (nil, nil, failedAt, reason) when a hop before the leaf
+-- is absent or not a table. Pure Lua tables only, so there is no Java member to index first.
+local function walkToLeaf(root, path)
+    local segs = {}
+    for seg in string.gmatch(path, "[^%.]+") do segs[#segs + 1] = seg end
+    if #segs == 0 then return nil, nil, 0, "empty path" end
+    local cur = root
+    for i = 1, #segs - 1 do
+        if type(cur) ~= "table" then return nil, nil, i, "not a table before hop " .. i end
+        cur = cur[segs[i]]
+        if cur == nil then return nil, nil, i, "no table at " .. segs[i] end
+    end
+    if type(cur) ~= "table" then return nil, nil, #segs, "not a table before the leaf" end
+    return cur, segs[#segs]
+end
+
+-- <Section.Key> <value>. A live sandbox flip that REACHES SandboxVars: sandbox.set goes through
+-- SandboxOptions:set and its sandboxVars read covers one level only, and a mod option such as
+-- NR.LegacyMirror lives at SandboxVars.NR.LegacyMirror, a plain Lua table the mod re-reads every
+-- game minute (#2460). This assigns that nested leaf directly on the server (the intermediate
+-- tables must exist, none is created; the leaf may be new, `before` nil says so) and reads it back.
+-- The value is parsed true|false -> boolean, a number -> number, else a string. When the
+-- read-back does not equal the request the reply is `ok = false` with the reason -- never a
+-- claim that a flip stuck. The write is server-local config: it is not sent to the clients.
+-- @args <Section.Key> <value>
+-- @reply {ok, path, requested, before, after [, failedAt] [, reason]} | string
+-- @purpose Assigns a nested SandboxVars leaf (e.g. NR.LegacyMirror) on the server from a parsed literal and replies the read-back before and after; ok is false when a hop is missing or the read-back differs.
+TK.register("sandbox.var", function(argv)
+    local path, raw = argv[1], argv[2]
+    if path == nil or raw == nil then return "usage: sandbox.var <Section.Key> <value>" end
+    local out = { ok = false, path = path }
+    if type(SandboxVars) ~= "table" then
+        out.reason = "no SandboxVars table"
+        return out
+    end
+    local parent, key, failedAt, why = walkToLeaf(SandboxVars, path)
+    if parent == nil then
+        out.failedAt = failedAt
+        out.reason = why
+        return out
+    end
+    local value = parseLiteral(raw)
+    out.requested = value
+    out.before = parent[key]
+    local ran, err = pcall(function() parent[key] = value end)
+    out.after = parent[key]
+    if not ran then
+        out.reason = "assignment raised: " .. tostring(err)
+    elseif out.after ~= value then
+        out.reason = "assignment did not stick"
+    else
+        out.ok = true
+    end
+    return out
+end)
