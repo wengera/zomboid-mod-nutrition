@@ -337,3 +337,11 @@ x151w-20261005-161652,verdicts.*.verdict,`see_raw`,"Placeholders; the grades are
 x151w-20261005-161652,records[*].mirror_pool_water,0,"The mirror is a snapshot sent on request, not a live read of the pool.",cite `records[*].pool.water`
 x151w-20261005-161652,phases.*.watch.raw,—,"The first 50 ticks (5 s) of each window only.",cite `phases.*.watch.fields`
 x151w-20261005-161652,phases.C.spawn.attempts[*].id,678729060,"B1's canteen: the client read finds the first canteen of the type.",—
+x151s-20261005-165844,boot*.*.watch.raw,—,"The first 50 ticks (5 s) of each window only.",cite `<boot>.<arm>.watch.fields` and `watch.resets`
+x151s-20261005-165844,boot*.*.watch.fields.asleep,"n 0, reset","The probe tracks a boolean only in its histogram.",cite `<boot>.<arm>.watch.hist`
+x151s-20261005-165844,boot*.*.watch.fields.dUpd,"n 0, reset","dUpd needs fatUpd, which no window saw.",cite `<boot>.<arm>.watch.fields.fatUpd`
+x151s-20261005-165844,summaries.*.fatigue_slope.per_wall_s,e.g. 0.009495,"First-to-last over a window that holds a write, a drink, a pill or a whole sleep.",cite the polls either side
+x151s-20261005-165844,summaries.*.fatigue_slope.per_game_h,e.g. 0.3567,"The same.",cite the polls either side
+x151s-20261005-165844,summaries.boot1.B.intox_slope.per_wall_s,-0.005375,"Spans the rise and the fall.",cite `boot1.B.polls`
+x151s-20261005-165844,summaries.boot1.B.intox_slope.per_game_h,-0.2022,"Spans the rise and the fall.",cite `boot1.B.polls`
+x151s-20261005-165844,boot*.S0.markers.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table; the wrapper counted sips on boot 1.",cite `boot1.B.record_after.counters`
