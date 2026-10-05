@@ -18,7 +18,7 @@
 --  * The wrapper reads its logic from NutritionRevamp.server.intake at call time, so a reload of this
 --    file swaps the capture code under a wrapper that stays installed.
 --  * The side test is nil-checked and per call: this server/ file also runs in the client VM (#0855).
---  * Every Java global (ISEatFoodAction, ISDrinkFluidAction, Events, getGameTime) is named only inside
+--  * Every Java global (ISEatFoodAction, ISDrinkFluidAction, ISTakeWaterAction, Events, getGameTime) is named only inside
 --    a function, behind a nil check, so the file loads with no engine
 --    (testing/tests/kernel/test_intake_shape.py).
 --  * Java lists are walked with size()/get(i), never `#` (#0940).
@@ -26,14 +26,35 @@
 -- Cadence: the eat capture runs once per eat (complete) or cancel (serverStop) on the server. The
 -- drink capture runs once per updateEat call -- every server tick during a drink plus about every
 -- 100 ms from the animation event (#0085), bounded to the drink's duration -- each call allocating one
--- fluid sample and one store lookup. None of it is on the per-tick stat path: no @fastpath region in
--- this file.
+-- fluid sample and one store lookup. The world-water capture runs once per transferFluid step. None
+-- of it is on the per-tick stat path: no @fastpath region in this file.
+--
+-- The landing every route shares (Plan 4 Task 12, IN.land): the eat, the drink sip and the world-water
+-- transfer each go through it, in this order --
+--  1. the per-minute ingested sum IN.lastIngested[username] (every key of K.vector.KEYS, the amount as
+--     INGESTED, before the B12 ceiling), which NR_Server_Nutrients reads and clears once a slow minute
+--     (the excess ladder, the alcohol day total);
+--  2. the acute dose test (ruling 18), IN.acuteAtEat: K.nutrients.acuteTest per record with an `acute`
+--     field on the landed vector, against the body mass fm + lm and the pre-eat record.stomachFill,
+--     stamping record.nutrients[key].ax = ACUTE_DECAY_H and .axr = the rung (a live flag's higher rung is
+--     kept); NR_Server_Nutrients exposes no acuteAtEat, so it is here, under its own pcall;
+--  3. the B12 per-eat ceiling (ruling 20, S0357/S0358): vector.vitB12 = K.interact.b12Ceiling(vitB12).
+--     The ceiling is an ABSORPTION cap per meal, so it is applied where the per-eat amount is known, on
+--     the vector that goes into the stomach; K.stomach.BIOAVAIL.vitB12 stays 1.0, so the stomach absorbs
+--     what the ceiling let through;
+--  4. K.stomach.ingest.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
-                     wrappedDrink = false, wired = false,
-                     stats = { eats = 0, cancels = 0, sips = 0, landed = 0, failures = 0, passthrough = 0,
-                               unreadableAfter = 0 },
+                     wrappedDrink = false, wrappedWorld = false, wired = false,
+                     stats = { eats = 0, cancels = 0, sips = 0, worldSips = 0, landed = 0, failures = 0,
+                               passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0 },
+                     lastIngested = {},
+                     limitations = {
+                         "a world-water drink can transfer up to one game minute of sips before the view falls",
+                         "a world-water source lands as the Water seed whatever its fluid (a tainted source included)",
+                         "a drink's acute dose is tested per sip, not per drink: a dose split across sips can read a lower rung",
+                     },
                      lastError = nil }
 local IN = NR.server.intake
 
@@ -43,6 +64,7 @@ local IN = NR.server.intake
 NR_IntakeComplete_Installed = NR_IntakeComplete_Installed or {}
 NR_IntakeServerStop_Installed = NR_IntakeServerStop_Installed or {}
 NR_IntakeDrink_Installed = NR_IntakeDrink_Installed or {}
+NR_IntakeWorld_Installed = NR_IntakeWorld_Installed or {}
 
 -- ---------------------------------------------------------------------------------------------------
 -- The pure helpers: no Java, tested on the lupa host.
@@ -118,6 +140,82 @@ function IN.firstNonFinite(vec)
         if not IN.isFinite(vec[k]) then return k end
     end
     return nil
+end
+
+-- Add one landed vector into the per-minute ingested sum for username (every declared key, numeric for
+-- over KEYS, a Lua table). The sum is allocated the first time a username lands in a minute; the slow
+-- clock (NR_Server_Nutrients) reads it and sets the slot to nil. Returns the sum.
+function IN.addIngested(username, vec)
+    local sum = IN.lastIngested[username]
+    if sum == nil then
+        sum = K.vector.new()
+        IN.lastIngested[username] = sum
+    end
+    local keys = K.vector.KEYS
+    for i = 1, #keys do
+        local k = keys[i]
+        sum[k] = (sum[k] or 0) + (vec[k] or 0)
+    end
+    return sum
+end
+
+-- The acute dose test at the eat (ruling 18): every record with an `acute` field and a vector key is
+-- tested on the landed vector against the body mass (fm + lm) and the record's stomachFill (the slow
+-- clock's stamp, the fill before this eat; nil or non-finite reads full). A rung > 0 stamps the key's
+-- state ax = ACUTE_DECAY_H and axr = the rung, keeping a still-live flag's higher rung. records defaults
+-- to NR.data.records; no records or no body tests nothing. A missing record.nutrients is made the way
+-- NR_Server_Nutrients makes it. Returns the number of keys flagged.
+function IN.acuteAtEat(record, vec, records)
+    records = records or (NR.data and NR.data.records)
+    if records == nil or record == nil then return 0 end
+    local body = record.body
+    if body == nil then return 0 end
+    local w = (body.fm or 0) + (body.lm or 0)
+    if not IN.isFinite(w) or w <= 0 then return 0 end
+    local fill = record.stomachFill
+    if not IN.isFinite(fill) then fill = 1 end
+    if record.nutrients == nil then record.nutrients = K.nutrients.newState(records) end
+    local n = record.nutrients
+    local order = records.ORDER
+    local flagged = 0
+    for i = 1, #order do
+        local key = order[i]
+        local rec = records.REC[key]
+        if rec ~= nil and rec.acute ~= nil and rec.key ~= nil then
+            local rung = K.nutrients.acuteTest(rec, vec[rec.key] or 0, w, fill)
+            if rung > 0 then
+                local st = n[key]
+                if st == nil then
+                    st = K.nutrients.newKey()
+                    n[key] = st
+                end
+                if st.ax > 0 and st.axr > rung then rung = st.axr end
+                st.ax = K.nutrients.ACUTE_DECAY_H
+                st.axr = rung
+                flagged = flagged + 1
+            end
+        end
+    end
+    return flagged
+end
+
+-- The landing every route shares (the header's four steps): the ingested sum and the acute test read
+-- the vector as ingested; the B12 ceiling then caps vitB12 in place; the stomach takes the result.
+-- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
+-- and named, and the landing goes on.
+function IN.land(record, username, vec)
+    IN.addIngested(username, vec)
+    local ok, flagged = pcall(IN.acuteAtEat, record, vec)
+    if ok then
+        IN.stats.acuteFlags = IN.stats.acuteFlags + flagged
+    else
+        IN.stats.acuteFailures = IN.stats.acuteFailures + 1
+        IN.lastError = "acute test failed: " .. tostring(flagged)
+        NR.log.say(2, "intake: " .. IN.lastError)
+    end
+    vec.vitB12 = K.interact.b12Ceiling(vec.vitB12 or 0)
+    K.stomach.ingest(record.stomach, vec)
+    return vec
 end
 
 -- The vector's source: a dish's ingredient list is authoritative, so it wins over a craft map.
@@ -299,7 +397,7 @@ function IN.readAfterAndLand(b)
     if record == nil then error("intake: no store record for " .. tostring(b.username)) end
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
-    K.stomach.ingest(record.stomach, vec)
+    IN.land(record, b.username, vec)
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
                           missing = missing }
     IN.stats.landed = IN.stats.landed + 1
@@ -317,17 +415,20 @@ function IN.reject(key)
 end
 
 -- The two halves the wrapper calls, each under its own pcall; the original runs between them, outside.
-function IN.guardBefore(action, kind)
+function IN.guardBefore(action, kind, ...)
     local readFn = IN.readBefore
     if kind == "cancel" then
         IN.stats.cancels = IN.stats.cancels + 1
     elseif kind == "drink" then
         IN.stats.sips = IN.stats.sips + 1             -- one per updateEat call
         readFn = IN.readDrinkBefore
+    elseif kind == "world" then
+        IN.stats.worldSips = IN.stats.worldSips + 1   -- one per transferFluid call
+        readFn = IN.readWorldBefore
     else
         IN.stats.eats = IN.stats.eats + 1
     end
-    local ok, b = pcall(readFn, action)
+    local ok, b = pcall(readFn, action, ...)
     if ok then return b end
     IN.stats.failures = IN.stats.failures + 1
     IN.lastError = b
@@ -338,6 +439,7 @@ end
 function IN.guardAfter(b, kind)
     local landFn = IN.readAfterAndLand
     if kind == "drink" then landFn = IN.readDrinkAfterAndLand end
+    if kind == "world" then landFn = IN.readWorldAfterAndLand end
     local ok, err = pcall(landFn, b)
     if ok then return end
     IN.stats.failures = IN.stats.failures + 1
@@ -346,7 +448,8 @@ function IN.guardAfter(b, kind)
 end
 
 -- The wrapper closure, made once per sentinel and kept in it. It names nothing from this file's load:
--- the sentinel S is a persistent global and the logic is looked up on NutritionRevamp per call.
+-- the sentinel S is a persistent global and the logic is looked up on NutritionRevamp per call. The
+-- method's own arguments reach the before-read (transferFluid's _amount; the other seats ignore them).
 local function makeWrapper(S, kind)
     return function(self, ...)
         local nr = NutritionRevamp
@@ -354,7 +457,7 @@ local function makeWrapper(S, kind)
         if nr ~= nil and nr.server ~= nil then intake = nr.server.intake end
         local b = nil
         if intake ~= nil and not S.off and nr.isServer ~= nil and nr.isServer() then
-            b = intake.guardBefore(self, kind)
+            b = intake.guardBefore(self, kind, ...)
         elseif intake ~= nil then
             intake.stats.passthrough = intake.stats.passthrough + 1 -- the client, or switched off
         end
@@ -435,8 +538,8 @@ end
 --
 -- limitations:
 --  * A drink straight from a world water source goes through ISTakeWaterAction, which moves the litres
---    into a temporary container and calls DrinkFluid on it itself (#2690): this wrapper never sees it,
---    and that route is out of this plan's scope.
+--    into a temporary container and calls DrinkFluid on it itself (#2690): this wrapper never sees it;
+--    the world-water wrapper below (transferFluid, Plan 4 Task 12) does.
 --  * ISDrinkFromBottle is dead code on this build (no caller chain; it calls no DrinkFluid) (#0670).
 --
 -- limitations (intake-wide: the eat, cancel and craft paths, Task 10):
@@ -449,7 +552,8 @@ end
 --    hand-craft action writes the consumed-type map (#2667).
 --  * An evolved DISH is not a craft: its ingredient list is extraItems and sourceOf ranks dish over
 --    craft, so a dish never reaches the craft arm (#2650, #2653).
---  * A LATER mod that replaces ISEatFoodAction.complete (or serverStop, or ISDrinkFluidAction.updateEat)
+--  * A LATER mod that replaces ISEatFoodAction.complete (or serverStop, ISDrinkFluidAction.updateEat or
+--    ISTakeWaterAction.transferFluid)
 --    WITHOUT calling the saved original removes the capture silently; no sentinel can detect it, and
 --    only NR.server.intake.stats.eats standing still across eats reveals it (#2842, the function-wrap
 --    wall). #1067 is the rule it breaks (keep and call the original so two wraps compose).
@@ -544,7 +648,7 @@ function IN.readDrinkAfterAndLand(d)
     if record == nil then error("intake: no store record for " .. tostring(d.username)) end
     record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())  -- seeded full like kinetics' first sight (Task 11 game choice): an eat before the first kinetics minute must not leave an unseeded stomach
     record.pool = record.pool or K.vector.new()
-    K.stomach.ingest(record.stomach, vec)
+    IN.land(record, d.username, vec)
     record.lastIntake = { fullType = d.fullType, source = "fluid", litres = litres, missing = missing }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. d.fullType .. " for " .. tostring(d.username) .. " source fluid litres "
@@ -570,20 +674,93 @@ function IN.uninstallDrink()
     return mirrorDrink()
 end
 
+-- ---------------------------------------------------------------------------------------------------
+-- The world-water wrapper (Plan 4 Task 12; ruling 9 with Task 1 verdict 4 and Task 4 arm D, x151w #2942):
+-- ISTakeWaterAction.transferFluid(_amount) is the seat. The action drinks a world source in steps, each
+-- reaching transferFluid from update, animEvent or complete, and the server builds and runs the action
+-- (NetTimedAction.parse, #2932); with no item the step moves min(_amount, the source's amount) litres into a
+-- temporary container and DrinkFluid drinks it whole (#2931) -- a Java call no Lua wrap sees, and not the
+-- drink wrapper's updateEat. With an item the step FILLS that item and nothing is drunk: not captured.
+-- The litres are read before the original and land as the Water seed through the fluid path
+-- (IN.fluidVector, then IN.land) after it. Same sentinel shape as the other three wraps.
+-- limitations: IN.limitations (the over-drink window and the fluid read as Water). The over-drink: the
+-- action sizes each step from THIRST, which the fast clock re-asserts to the view every tick, so the
+-- steps run at full size until the slow clock lands the water and the view falls (ruling T1-1).
+
+-- The before-snapshot of one world-water step, or nil when nothing is drunk (an item to fill, no
+-- character or username, a non-positive amount, an empty or unreadable source).
+function IN.readWorldBefore(action, amount)
+    if action.item ~= nil then return nil end              -- filling a container, not a drink
+    local char = action.character
+    if char == nil then return nil end
+    if type(amount) ~= "number" or amount <= 0 then return nil end
+    local avail = read(action.waterObject, "getFluidAmount")
+    if type(avail) ~= "number" or avail <= 0 then return nil end
+    local username = read(char, "getUsername")
+    if username == nil then return nil end
+    return { username = username, litres = K.min(amount, avail), fullType = "world water" }
+end
+
+-- After the original: the step's litres as the Water seed, the landing.
+function IN.readWorldAfterAndLand(d)
+    local litres = d.litres
+    if not IN.isFinite(litres) then return IN.reject("litres") end
+    local vec, missing
+    if NR.data ~= nil and NR.data.fluids ~= nil then
+        vec, missing = IN.fluidVector(NR.data.fluids.get, { { "Water", 1 } }, litres)
+    end
+    if vec == nil or missing[1] ~= nil then
+        vec = K.vector.new()                               -- no Water seed: the water alone
+        vec.water = litres * 1000
+    end
+    local bad = IN.firstNonFinite(vec)
+    if bad ~= nil then return IN.reject(bad) end
+    local record = NR.server.store.get(d.username, worldAge())
+    if record == nil then error("intake: no store record for " .. tostring(d.username)) end
+    record.stomach = record.stomach or K.stomach.seedFull(K.stomach.new())
+    record.pool = record.pool or K.vector.new()
+    IN.land(record, d.username, vec)
+    record.lastIntake = { fullType = d.fullType, source = "world", litres = litres, missing = {} }
+    IN.stats.landed = IN.stats.landed + 1
+    NR.log.say(3, "intake: world water for " .. tostring(d.username) .. " litres " .. tostring(litres))
+    return vec
+end
+
+local function mirrorWorld()
+    local cls = ISTakeWaterAction
+    local W = NR_IntakeWorld_Installed
+    IN.wrappedWorld = cls ~= nil and W.wrapper ~= nil and W.class == cls and not W.off
+    return IN.wrappedWorld
+end
+
+function IN.installWorld()
+    if ISTakeWaterAction == nil then return mirrorWorld() end
+    installOne(NR_IntakeWorld_Installed, ISTakeWaterAction, "ISTakeWaterAction", "transferFluid", "world")
+    return mirrorWorld()
+end
+
+function IN.uninstallWorld()
+    uninstallOne(NR_IntakeWorld_Installed, ISTakeWaterAction, "transferFluid")
+    return mirrorWorld()
+end
+
 -- At load, so the wrap is in place before the first eat (the wrapper itself gates on the side per
 -- call), and again at OnServerStarted behind the side test. Both modes install: the mod owns intake in
 -- takeover and overlay alike; only the stat tick differs by mode.
 IN.install()
 IN.installDrink()
+IN.installWorld()
 
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         IN.install()
         IN.installDrink()
+        IN.installWorld()
         if not IN.wired then
             IN.wired = true
-            NR.log.say(1, "intake: wrappers " .. tostring(IN.wrapped) .. " drink " .. tostring(IN.wrappedDrink))
+            NR.log.say(1, "intake: wrappers " .. tostring(IN.wrapped) .. " drink " .. tostring(IN.wrappedDrink)
+                .. " world " .. tostring(IN.wrappedWorld))
         end
     end)
 end

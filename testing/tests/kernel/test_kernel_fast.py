@@ -17,7 +17,8 @@ BASE = dict(M=0.8, D=0.5, sd=1.0, asleep=False, ghost=False, hunger=0.2, thirst=
             sameSquare=True, inRoom=False, idleTimer=0.0, bedFactor=1.0, timeOfSleep=0.0, delayToSleep=0.0,
             timeOfDay=8.0, minutesPerDay=60.0, endRegen=1.0, recoveryMod=1.0, allAsleep=False, fitnessLevel=5,
             unlimitedEndurance=False, painLevel=0, stressMoodle=0, sleepTransition=False,
-            stomachFill=0.8, energyState=1.0, rmod=1.0)       # Plan 2: hunger is the view of the fill, 1 - 0.8
+            stomachFill=0.8, energyState=1.0, rmod=1.0,         # Plan 2: hunger is the view of the fill, 1 - 0.8
+            thirstTarget=0.1)                                   # Plan 4: thirst is the pool's view; equal to the read
 
 
 def run(host, **kw):
@@ -30,7 +31,7 @@ def run(host, **kw):
 def test_awake_idle_vanilla_rates(host):
     o = run(host)
     s = 0.8 * 0.5                                  # game-seconds this update
-    assert o["thirst"] == pytest.approx(0.1 + 8.0e-6 * s, rel=1e-12)
+    assert o["thirst"] == 0.1                                     # Plan 4: the pool's view, no drain
     assert o["hunger"] == pytest.approx(1 - 0.8, rel=1e-12)       # Plan 2: derived from stomach fill, no drain
     assert o["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * s, rel=1e-12)      # deficit 0.1 floored to 0.3f
     assert o["stress"] == pytest.approx(0.05 - 3.0e-5 * s, rel=1e-12)
@@ -40,15 +41,37 @@ def test_awake_idle_vanilla_rates(host):
     assert o["autoDrink"] is True and o["resetIdleness"] is False
 
 
-def test_thirst_traits_and_thermo(host):
-    s = 0.4
-    assert run(host, highThirst=True)["thirst"] == pytest.approx(0.1 + 8.0e-6 * 2 * s, rel=1e-12)
-    assert run(host, lowThirst=True)["thirst"] == pytest.approx(0.1 + 8.0e-6 * 0.5 * s, rel=1e-12)
-    assert run(host, highThirst=True, lowThirst=True)["thirst"] == pytest.approx(0.1 + 8.0e-6 * s, rel=1e-12)
-    assert run(host, thermoFluids=1.5)["thirst"] == pytest.approx(0.1 + 8.0e-6 * 1.5 * s, rel=1e-12)
-    assert run(host, running=True)["thirst"] == pytest.approx(0.1 + 8.0e-6 * 1.2 * s, rel=1e-12)
-    assert run(host, ghost=True)["thirst"] == 0.1                      # the ghost gate; autoDrink still runs
-    assert run(host, ghost=True)["autoDrink"] is True
+# Plan 4 (ruling 8): thirst is the water pool's view, inp.thirstTarget, written every tick whatever the
+# stat read; the Plan 1 drain arms (traits, thermoFluids, running, the sleeping rate) are gone.
+@pytest.mark.parametrize("target,want", [(0.0, 0.0), (0.37, 0.37), (1.2, 1.0), (-0.3, 0.0)])
+def test_thirst_is_the_pool_view(host, target, want):
+    o = run(host, thirst=0.6, thirstTarget=target)
+    assert o["thirst"] == want
+    assert o["autoDrink"] is True
+
+
+def test_thirst_view_ignores_the_drain_inputs(host):
+    for kw in (dict(highThirst=True), dict(lowThirst=True), dict(thermoFluids=1.5), dict(running=True),
+               dict(asleep=True), dict(M=1e6)):
+        assert run(host, thirst=0.2, thirstTarget=0.37, **kw)["thirst"] == 0.37
+
+
+def test_thirst_view_nan_target_passes_the_stat_through(host):
+    o = run(host, thirst=0.42, thirstTarget=float("nan"))
+    assert o["thirst"] == 0.42
+    assert o["autoDrink"] is True
+
+
+def test_thirst_view_ghost_gate_skips(host):
+    o = run(host, ghost=True, thirst=0.1, thirstTarget=0.9)
+    assert o["thirst"] == 0.1                                           # the ghost gate; autoDrink still runs
+    assert o["autoDrink"] is True
+
+
+def test_thirst_input_defaults(host):
+    d = host.py(host.K.fast.input())
+    assert d["thirstTarget"] == 0
+    assert {"highThirst", "lowThirst", "running", "thermoFluids"} <= set(d)   # adapters never shrink an input
 
 
 # Plan 2 (Task 11): hunger is derived from stomach fill every tick (spec section 4.2), replacing the
@@ -142,7 +165,7 @@ def test_asleep_arms(host):
     s = 0.4
     o = run(host, asleep=True, thirst=0.1, hunger=0.2, fatigue=0.5, endurance=0.5, timeOfSleep=9.0, delayToSleep=8.5, bedFactor=1.1)
     dt = 1.0 / 60.0 / 60.0 * 0.8 / 2.0
-    assert o["thirst"] == pytest.approx(0.1 + 1.0e-6 * s, rel=1e-12)
+    assert o["thirst"] == 0.1                                     # Plan 4: the pool's view asleep too
     assert o["hunger"] == pytest.approx(1 - 0.8, rel=1e-12)       # Plan 2: derived from stomach fill, no drain
     assert o["endurance"] == pytest.approx(0.5 + 3.1e-5 * 1.0 * 1.0 * 0.8 * 2.0, rel=1e-12)
     assert o["fatigue"] == pytest.approx(0.5 - dt / 5.0 * 0.7 * 1.1, rel=1e-12)

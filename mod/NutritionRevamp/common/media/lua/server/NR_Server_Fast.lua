@@ -4,6 +4,10 @@
 -- the body runs inside one rim guard (Plan 1 ruling 4) and, after three consecutive failures for
 -- a player, the handler removes itself and vanilla resumes (ruling 9, logged at level 1).
 -- Every Java member is hoisted once per player (#0935); the per-tick body re-indexes nothing.
+-- Plan 4 (ruling 8): THIRST is the water pool's view -- the region reads h.record.fluids.thirstTarget,
+-- which NR_Server_Nutrients stamps on the slow clock, and writes it. A record with no fluids table yet
+-- (a pre-Plan-4 record on first sight) hands the stat through, so vanilla's thirst is frozen at its
+-- last value until the slow clock stamps a target. autoDrink is bracketed (ruling 9): see the body.
 -- server/ files load alphabetically, so this file runs before NR_Server_Options and
 -- NR_Server_Players: every append to their lists happens in the OnServerStarted handler below.
 local NR = NutritionRevamp
@@ -139,6 +143,8 @@ local function body(h)
     inp.endRegen = h.getEndRegen(h.so)
     inp.hunger = get(stats, h.HUNGER)
     inp.thirst = get(stats, h.THIRST)
+    local fl = h.record.fluids                            -- Plan 4: the pool's view; nil passes the stat through
+    inp.thirstTarget = fl and fl.thirstTarget or inp.thirst
     inp.fatigue = get(stats, h.FATIGUE)
     inp.endurance = get(stats, h.ENDURANCE)
     inp.stress = get(stats, h.STRESS)
@@ -233,7 +239,23 @@ local function body(h)
     elseif inp.unlimitedEndurance then
         set(stats, h.ENDURANCE, 1)
     end
-    h.autoDrink(p)                                        -- #2250: vanilla calls it on every pass
+    -- #2250: vanilla calls autoDrink on every pass. Ruling 9's bracket: the THIRST drop across the call is
+    -- the sip (litres = 2 x the drop, x151w #2939-#2941), held in fl.autoDrop for the slow clock to land as
+    -- water; while a drop is pending the call is SKIPPED (the only off switch: setAutoDrink reverts), so at
+    -- most one sip lands per slow minute and the view falls at the next slow tick (ruling T1-1)
+    if fl == nil then
+        h.autoDrink(p)
+    else
+        local pending = fl.autoDrop or 0                  -- nil (a table the slow clock has not filled) reads 0
+        if not (pending > 0) then
+            local t0 = get(stats, h.THIRST)
+            h.autoDrink(p)
+            local t1 = get(stats, h.THIRST)
+            if t1 < t0 then
+                fl.autoDrop = pending + (t0 - t1)
+            end
+        end
+    end
 end
 -- @endfastpath
 

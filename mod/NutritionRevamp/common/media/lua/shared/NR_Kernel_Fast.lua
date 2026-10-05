@@ -6,8 +6,9 @@
 -- Plan 2 ruling (Task 11): HUNGER is no longer the Plan 1 vanilla drain. It is derived from stomach
 -- fill and written every tick, so vanilla's eat-time hunger write is overwritten within one push
 -- (spec § 4.2): the stomach is the state, hunger the view. The slow clock stamps record.stomachFill
--- (NR_Server_Kinetics.lua); the adapter hands it in as inp.stomachFill. THIRST is untouched in this
--- plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
+-- (NR_Server_Kinetics.lua); the adapter hands it in as inp.stomachFill. Plan 4 ruling 8: THIRST is
+-- likewise the water pool's view (inp.thirstTarget, stamped by NR_Server_Nutrients.lua); vanilla's
+-- thirst drain is gone, and its constants and inputs stay filled for the bench and later arms.
 -- Every Stats.add / remove / set the jar shows clamps once to [0,1] (#2208, jar § 10), so each
 -- vanilla write is one K.clamp here, in vanilla's order: a saturated stat behaves as it does in Java.
 -- Kahlua numbers are doubles: the Java float-only chains (the idle timer, the sleep dt and fatigue
@@ -49,6 +50,8 @@ end
 -- slow clock's stamp (`record.body.energyState`, Plan 3); `rmod` likewise, the regeneration
 -- coefficient (NR_Kernel_Aerobic.lua), scaling the asleep endurance regeneration. The defaults read full
 -- and neutral.
+-- `thirstTarget` is the slow clock's record.fluids.thirstTarget (Plan 4); `highThirst`, `lowThirst`,
+-- `running` and `thermoFluids` are no longer read by the thirst term and stay filled.
 -- `heartyAppetite`, `lightEater` and `foodEaten` are no longer read by the hunger term (Plan 2); they
 -- stay filled for Plan 3/4's appetite and energy terms.
 function K.fast.input()
@@ -64,7 +67,7 @@ function K.fast.input()
         bedFactor = 1, timeOfSleep = 0, delayToSleep = 0, timeOfDay = 0, minutesPerDay = 60,
         endRegen = 1, recoveryMod = 1, allAsleep = false, fitnessLevel = 0, unlimitedEndurance = false,
         painLevel = 0, stressMoodle = 0, sleepingTablet = false, sleepTransition = false,
-        stomachFill = 1, energyState = 1, rmod = 1,
+        stomachFill = 1, energyState = 1, rmod = 1, thirstTarget = 0,
     }
 end
 
@@ -100,25 +103,16 @@ function K.fast.step(inp, out, c)
         endurance = 1
     end
 
-    -- 1. thirst (#0476, #0477, #0486, #0478, #0560)
+    -- 1. thirst (Plan 4 ruling 8): the water pool's view. The slow clock stamps record.fluids.thirstTarget
+    -- (the pool plus the stomach's pending water, ruling T1-1); the adapter hands it in as inp.thirstTarget.
+    -- A NaN target (the one value unequal to itself) passes the stat through; the ghost gate still holds.
     local thirst = inp.thirst
     if not inp.ghost then
-        local trait = 1
-        if inp.highThirst then
-            trait = trait * 2
+        local t = inp.thirstTarget
+        if t ~= t then
+            t = inp.thirst
         end
-        if inp.lowThirst then
-            trait = trait * 0.5
-        end
-        if inp.asleep then
-            thirst = thirst + c.thirstSleepingIncrease * sd * M * D * trait
-        else
-            local run = 1
-            if inp.running then
-                run = 1.2
-            end
-            thirst = thirst + c.thirstIncrease * sd * M * run * D * trait * inp.thermoFluids
-        end
+        thirst = t
     end
     out.thirst = clamp(thirst, 0, 1)
     out.autoDrink = true                                     -- #2250: called on every pass, outside both gates

@@ -994,3 +994,400 @@ def test_server_path_nan_after_read_is_not_counted_unreadable(server_host):
     assert rec is not None, err
     assert I(h).stats.unreadableAfter == u0
     assert err is None
+
+
+# --- Plan 4 Task 12: the acute test, the B12 ceiling, the per-minute ingested sum ----------------
+
+SHARED_DIR = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+RECORDS_FILE = os.path.join(SHARED_DIR, "NR_Data_Records.lua")
+
+
+@pytest.fixture
+def rec_host(intake_host):
+    h = intake_host
+    with open(RECORDS_FILE, encoding="utf-8") as fh:
+        src = fh.read()
+    h.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@NR_Data_Records.lua")()
+    I(h).lastIngested = h.rt.table()
+    try:
+        yield h
+    finally:
+        I(h).lastIngested = h.rt.table()
+
+
+def _records(h):
+    return h.G.NutritionRevamp.data.records
+
+
+def _record(h, fill=0.8, fm=16.0, lm=64.0):
+    body = tbl(h, {"fm": fm, "lm": lm})
+    return tbl(h, {"body": body, "stomachFill": fill})
+
+
+def _vec(h, **kw):
+    v = h.K.vector.new()
+    for k, val in kw.items():
+        v[k] = val
+    return v
+
+
+def test_acute_flags_a_1600_mg_iron_eat_at_80_kg(rec_host):
+    h = rec_host
+    record = _record(h)
+    n = I(h).acuteAtEat(record, _vec(h, iron=1600.0), _records(h))
+    assert n == 1
+    st = record["nutrients"]["iron"]
+    assert st["ax"] == 48 and st["axr"] == 2
+
+
+def test_acute_below_the_threshold_flags_nothing(rec_host):
+    h = rec_host
+    record = _record(h)
+    assert I(h).acuteAtEat(record, _vec(h, iron=1500.0), _records(h)) == 0
+    assert record["nutrients"]["iron"]["ax"] == 0
+
+
+def test_acute_empty_stomach_multiplies_the_dose(rec_host):
+    h = rec_host
+    # 1100 mg / 80 kg = 13.75 mg/kg; x1.5 on a stomach below 0.2 = 20.6 -> rung 2
+    record = _record(h, fill=0.1)
+    assert I(h).acuteAtEat(record, _vec(h, iron=1100.0), _records(h)) == 1
+    assert record["nutrients"]["iron"]["axr"] == 2
+    # 3300 mg = 41.25 mg/kg x 1.5 = 61.9 -> rung 3
+    record = _record(h, fill=0.1)
+    I(h).acuteAtEat(record, _vec(h, iron=3300.0), _records(h))
+    assert record["nutrients"]["iron"]["axr"] == 3
+
+
+def test_acute_preformed_retinol_reads_the_vitA_record(rec_host):
+    h = rec_host
+    record = _record(h)
+    assert I(h).acuteAtEat(record, _vec(h, retinol=90000.0, carotene=1e6), _records(h)) == 1
+    assert record["nutrients"]["vitA"]["axr"] == 2 and record["nutrients"]["vitA"]["ax"] == 48
+
+
+def test_acute_keeps_a_live_higher_rung(rec_host):
+    h = rec_host
+    record = _record(h)
+    I(h).acuteAtEat(record, _vec(h, iron=5000.0), _records(h))          # 62.5 mg/kg -> rung 3
+    record["nutrients"]["iron"]["ax"] = 10
+    I(h).acuteAtEat(record, _vec(h, iron=1600.0), _records(h))          # rung 2 while 3 is live
+    st = record["nutrients"]["iron"]
+    assert st["axr"] == 3 and st["ax"] == 48
+
+
+def test_acute_without_a_body_or_records_tests_nothing(rec_host):
+    h = rec_host
+    assert I(h).acuteAtEat(tbl(h, {}), _vec(h, iron=1e6), _records(h)) == 0
+    assert I(h).acuteAtEat(_record(h, fm=0.0, lm=0.0), _vec(h, iron=1e6), _records(h)) == 0
+    saved = h.G.NutritionRevamp.data.records
+    h.G.NutritionRevamp.data.records = None
+    try:
+        assert I(h).acuteAtEat(_record(h), _vec(h, iron=1e6)) == 0
+    finally:
+        h.G.NutritionRevamp.data.records = saved
+
+
+def test_acute_nan_fill_reads_full(rec_host):
+    h = rec_host
+    record = _record(h, fill=float("nan"))
+    assert I(h).acuteAtEat(record, _vec(h, iron=1100.0), _records(h)) == 0   # 13.75 mg/kg, no x1.5
+
+
+def test_land_caps_b12_and_sums_the_ingested_amount(rec_host):
+    h = rec_host
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    vec = _vec(h, vitB12=25.0, iron=1600.0)
+    I(h).land(record, "u", vec)
+    assert abs(vec["vitB12"] - 2.252) < 1e-12                          # min(12.5, 2) + 0.012 x 21
+    assert abs(record["stomach"]["buffer"]["vitB12"] - 2.252) < 1e-12
+    assert I(h).lastIngested["u"]["vitB12"] == 25.0                     # the ingested amount, pre-ceiling
+    assert record["nutrients"]["iron"]["axr"] == 2                      # the landing ran the acute test
+
+
+def test_land_survives_a_raising_acute_test(rec_host):
+    h = rec_host
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    record["body"]["fm"] = "x"                                          # (fm or 0) + lm raises
+    f0 = I(h).stats.acuteFailures
+    I(h).land(record, "u", _vec(h, water=500.0))
+    assert I(h).stats.acuteFailures == f0 + 1
+    assert record["stomach"]["buffer"]["water"] == 500.0
+    I(h).lastError = None
+
+
+def test_last_ingested_sums_two_eats_and_clears(rec_host):
+    h = rec_host
+    s1 = I(h).addIngested("u", _vec(h, calories=100.0, ethanol=14.0))
+    s2 = I(h).addIngested("u", _vec(h, calories=50.0, iron=2.0))
+    same = h.rt.eval("function(a, b) return rawequal(a, b) end")
+    assert same(s1, s2)                                                 # one table per username per minute
+    got = I(h).lastIngested["u"]
+    assert got["calories"] == 150.0 and got["ethanol"] == 14.0 and got["iron"] == 2.0
+    keys = list(h.K.vector.KEYS.values())
+    assert set(keys) <= set(as_dict(got))
+    I(h).lastIngested["u"] = None                                       # the adapter's read-and-clear
+    s3 = I(h).addIngested("u", _vec(h, calories=10.0))
+    assert not same(s3, s1) and I(h).lastIngested["u"]["calories"] == 10.0
+
+
+def test_last_ingested_is_the_name_the_nutrients_adapter_reads():
+    src = open(os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server",
+                            "NR_Server_Nutrients.lua"), encoding="utf-8").read()
+    assert "intake.lastIngested[username]" in src
+    assert "intake.lastIngested[username] = nil" in src
+
+
+# --- the world-water wrapper: ISTakeWaterAction.transferFluid ----------------------------------
+
+def test_world_sentinel_is_a_global_of_its_own(intake_host):
+    assert lua51.lua_type(intake_host.G.NR_IntakeWorld_Installed) == "table"
+    assert intake_host.G.ISTakeWaterAction is None
+    assert I(intake_host).installWorld() is False
+
+
+WORLD = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local calls = 0
+    local cls = {}
+    local vTransfer = function(self, amount) calls = calls + 1 return "orig" end
+    cls.transferFluid = vTransfer
+    ISTakeWaterAction = cls
+    local first = IN.installWorld()
+    local w = cls.transferFluid
+    local again = IN.installWorld()
+    local same = cls.transferFluid == w and w ~= vTransfer
+    local before = IN.stats.passthrough
+    local r = cls.transferFluid({}, 0.5)
+    local passed = IN.stats.passthrough - before
+    IN.uninstallWorld()
+    local restored = cls.transferFluid == vTransfer
+    ISTakeWaterAction = nil
+    local S = NR_IntakeWorld_Installed
+    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    return first, again, same, r, calls, passed, restored, IN.wrappedWorld
+end
+"""
+
+
+def test_world_install_is_idempotent_and_always_calls_the_original(intake_host):
+    first, again, same, r, calls, passed, restored, wrapped = intake_host.rt.eval(WORLD)()
+    assert first is True and again is True and same is True
+    assert r == "orig" and calls == 1
+    assert passed == 1
+    assert restored is True
+    assert wrapped is False
+
+
+WORLD_STUBS = r"""
+function(amount, avail, withItem)
+    local IN = NutritionRevamp.server.intake
+    local source = { getFluidAmount = function(self) return avail end }
+    local char = { getUsername = function(self) return "admin" end }
+    local calls, seen = 0, nil
+    local cls = {}
+    cls.transferFluid = function(self, a) calls = calls + 1 seen = a avail = avail - math.min(a, avail) return nil end
+    ISTakeWaterAction = cls
+    local before = { worldSips = IN.stats.worldSips, landed = IN.stats.landed }
+    IN.installWorld()
+    local action = { character = char, waterObject = source }
+    if withItem then action.item = {} end
+    cls.transferFluid(action, amount)
+    local rec = NutritionRevamp.server.store.records.admin
+    ISTakeWaterAction = nil
+    local S = NR_IntakeWorld_Installed
+    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    return calls, seen, before, rec
+end
+"""
+
+
+def test_world_water_step_lands_its_litres(server_host):
+    h = server_host
+    I(h).lastIngested = h.rt.table()
+    calls, seen, before_stats, rec = h.rt.eval(WORLD_STUBS)(0.25, 3.0, False)
+    assert calls == 1 and seen == 0.25                                 # the original ran with its argument
+    assert rec is not None, I(h).lastError
+    assert I(h).stats.worldSips == before_stats["worldSips"] + 1
+    assert I(h).stats.landed == before_stats["landed"] + 1
+    assert rec["lastIntake"]["source"] == "world"
+    assert abs(rec["lastIntake"]["litres"] - 0.25) < TOL
+    assert abs(rec["stomach"]["buffer"]["water"] - 250.0) < TOL         # the stub's Water seed: 1000 g per litre
+    assert abs(I(h).lastIngested["admin"]["water"] - 250.0) < TOL
+    I(h).lastIngested = h.rt.table()
+
+
+def test_world_water_step_is_clamped_to_the_source(server_host):
+    h = server_host
+    calls, seen, before_stats, rec = h.rt.eval(WORLD_STUBS)(0.8, 0.3, False)
+    assert calls == 1
+    assert abs(rec["lastIntake"]["litres"] - 0.3) < TOL
+    I(h).lastIngested = h.rt.table()
+
+
+@pytest.mark.parametrize("amount,avail,with_item", [(0.25, 3.0, True), (0.0, 3.0, False), (0.25, 0.0, False)])
+def test_world_water_fill_or_empty_lands_nothing(server_host, amount, avail, with_item):
+    h = server_host
+    calls, seen, before_stats, rec = h.rt.eval(WORLD_STUBS)(amount, avail, with_item)
+    assert calls == 1                                                   # the original always runs
+    assert rec is None
+    assert I(h).stats.landed == before_stats["landed"]
+
+
+def test_world_water_uses_the_water_seed_when_the_data_has_it(server_host):
+    h = server_host
+    water_seed = h.rt.eval("function() local v = NutritionRevamp.kernel.vector.new() v.water = 1000 v.sodium = 10 return v end")()
+    h.G.NutritionRevamp.data.fluids.get = h.rt.eval("function(seed) return function(t) if t == 'Water' then return seed end return nil end end")(water_seed)
+    calls, seen, before_stats, rec = h.rt.eval(WORLD_STUBS)(0.5, 3.0, False)
+    assert abs(rec["stomach"]["buffer"]["water"] - 500.0) < TOL
+    assert abs(rec["stomach"]["buffer"]["sodium"] - 5.0) < TOL
+    I(h).lastIngested = h.rt.table()
+
+
+def test_limitations_name_the_world_water_window(intake_host):
+    lims = list(I(intake_host).limitations.values())
+    assert "a world-water drink can transfer up to one game minute of sips before the view falls" in lims
+
+
+# --- the fast handler's auto-drink bracket (NR_Server_Fast.lua, loaded in a runtime of its own) ----
+
+FAST_FILE = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Fast.lua")
+
+FAST_STUBS = r"""
+function(drop)
+    CharacterStat = { HUNGER = "HUNGER", THIRST = "THIRST", FATIGUE = "FATIGUE", ENDURANCE = "ENDURANCE",
+                      STRESS = "STRESS", ANGER = "ANGER", IDLENESS = "IDLENESS", MORALE = "MORALE",
+                      NICOTINE_WITHDRAWAL = "NICOTINE", FITNESS = "FITNESS" }
+    MoodleType = { FOOD_EATEN = "FOOD_EATEN", PAIN = "PAIN", STRESS = "STRESSM" }
+    CharacterTrait = setmetatable({}, { __index = function(t, k) return k end })
+    Perks = { Fitness = "Fitness" }
+    IsoPlayer = { allPlayersAsleep = function() return false end }
+    local gt = { getMultiplier = function(s) return 1 end, getDeltaMinutesPerDay = function(s) return 1 end,
+                 getMinutesPerDay = function(s) return 60 end, getTimeOfDay = function(s) return 8 end,
+                 getWorldAgeHours = function(s) return 1 end }
+    getGameTime = function() return gt end
+    local so = { getStatsDecreaseMultiplier = function(s) return 1 end,
+                 getEnduranceRegenMultiplier = function(s) return 1 end }
+    getSandboxOptions = function() return so end
+    local env = { vals = { THIRST = 0.5, ENDURANCE = 1, MORALE = 1 }, drinks = 0, drop = drop }
+    local stats = {
+        get = function(s, k) return env.vals[k] or 0 end,
+        set = function(s, k, v) env.vals[k] = v end,
+        setLastEndurance = function(s, v) end,
+        getNumVeryCloseZombies = function(s) return 0 end,
+        getNumChasingZombies = function(s) return 0 end,
+    }
+    local F = function(s) return false end
+    local Z = function(s) return 0 end
+    local p = {
+        getStats = function(s) return stats end,
+        getCharacterTraits = function(s) return { get = function(t, k) return false end } end,
+        getMoodles = function(s) return { getMoodleLevel = function(m, k) return 0 end } end,
+        getBodyDamage = function(s) return nil end,
+        isAsleep = F, isGhostMode = F, isSitOnGround = F, isSittingOnFurniture = F, isResting = F,
+        IsRunning = F, isPlayerMoving = F, isCurrentState = F, isCurrentlyIdle = F,
+        getCurrentSquare = function(s) return nil end, getLastSquare = function(s) return nil end,
+        getTotalBlood = Z, getBedType = function(s) return "none" end, getPerkLevel = function(s, k) return 5 end,
+        isUnlimitedEndurance = F, setTimeOfSleep = function(s, v) end, getRecoveryMod = function(s) return 1 end,
+        getX = Z, getY = Z, getZ = Z, getSleepingTabletEffect = Z, getIdleSquareTime = Z,
+        autoDrink = function(s)
+            env.drinks = env.drinks + 1
+            if env.vals.THIRST > 0.1 then env.vals.THIRST = env.vals.THIRST - env.drop end
+        end,
+    }
+    env.p = p
+    return env
+end
+"""
+
+
+@pytest.fixture
+def fast_rt():
+    import glob
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    for path in [os.path.join(SHARED_DIR, "NR_Core.lua")] + sorted(glob.glob(os.path.join(SHARED_DIR, "NR_Kernel*.lua"))) + [FAST_FILE]:
+        with open(path, encoding="utf-8") as fh:
+            load(fh.read(), "@" + os.path.basename(path))()
+    rt.globals().NutritionRevamp.log.level = 0
+    return rt
+
+
+def _fast(rt, record, drop=0.2):
+    env = rt.eval(FAST_STUBS)(drop)
+    FAST = rt.globals().NutritionRevamp.server.fast
+    h = FAST.adopt("u", env.p)
+    assert h is not None, FAST.lastError
+    h.record = record
+    return env, FAST
+
+
+def test_bracket_accumulates_the_drop_and_skips_while_pending(fast_rt):
+    rt = fast_rt
+    fl = rt.eval("function() return { thirstTarget = 0.3, autoDrop = 0 } end")()
+    record = rt.table_from({"fluids": fl})
+    env, FAST = _fast(rt, record)
+    FAST.handler(env.p)
+    assert FAST.stats.failures == 0, FAST.lastError
+    assert env.drinks == 1
+    assert fl.autoDrop == pytest.approx(0.2, abs=1e-12)                 # 0.3 written, the sip took 0.2
+    assert env.vals.THIRST == pytest.approx(0.1, abs=1e-12)
+    FAST.handler(env.p)                                                  # a drop is pending: no call
+    assert FAST.stats.failures == 0, FAST.lastError
+    assert env.drinks == 1
+    assert fl.autoDrop == pytest.approx(0.2, abs=1e-12)
+    assert env.vals.THIRST == pytest.approx(0.3, abs=1e-12)              # the view re-asserted
+    fl.autoDrop = 0                                                      # the slow clock landed it
+    FAST.handler(env.p)
+    assert env.drinks == 2
+
+
+def test_bracket_no_drop_below_the_gate_records_nothing(fast_rt):
+    rt = fast_rt
+    fl = rt.eval("function() return { thirstTarget = 0.05, autoDrop = 0 } end")()
+    env, FAST = _fast(rt, rt.table_from({"fluids": fl}))
+    FAST.handler(env.p)
+    FAST.handler(env.p)
+    assert FAST.stats.failures == 0, FAST.lastError
+    assert env.drinks == 2 and fl.autoDrop == 0
+    assert env.vals.THIRST == pytest.approx(0.05, abs=1e-12)
+
+
+def test_no_fluids_passes_the_stat_through_and_still_drinks(fast_rt):
+    rt = fast_rt
+    env, FAST = _fast(rt, rt.table())
+    env.vals.THIRST = 0.05
+    FAST.handler(env.p)
+    assert FAST.stats.failures == 0, FAST.lastError
+    assert env.drinks == 1
+    assert env.vals.THIRST == pytest.approx(0.05, abs=1e-12)
+
+
+def test_bracket_reads_a_nil_auto_drop_as_zero(fast_rt):
+    rt = fast_rt
+    fl = rt.eval("function() return { thirstTarget = 0.4 } end")()
+    env, FAST = _fast(rt, rt.table_from({"fluids": fl}), drop=0.1)
+    FAST.handler(env.p)
+    assert FAST.stats.failures == 0, FAST.lastError
+    assert fl.autoDrop == pytest.approx(0.1, abs=1e-12)
+
+
+def test_nan_target_passes_the_stat_through(fast_rt):
+    rt = fast_rt
+    fl = rt.eval("function() return { thirstTarget = 0/0, autoDrop = 0 } end")()
+    env, FAST = _fast(rt, rt.table_from({"fluids": fl}))
+    env.vals.THIRST = 0.07
+    FAST.handler(env.p)
+    assert FAST.stats.failures == 0, FAST.lastError
+    assert env.vals.THIRST == pytest.approx(0.07, abs=1e-12)
+
+
+def test_fast_limitations_and_region_shape():
+    src = open(FAST_FILE, encoding="utf-8").read()
+    region = src[src.index("local function body(h)"):src.index("-- @endfastpath")]
+    assert "inp.thirstTarget = fl and fl.thirstTarget or inp.thirst" in region
+    assert "if not (pending > 0) then" in region
+    assert "pcall(h.autoDrink" not in region                              # parity: no pcall around the call
