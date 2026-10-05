@@ -23,7 +23,7 @@ K.partition.PROT_P = 0.15 -- S0072, S0601; the floor a game choice
 K.partition.PROT_FLOOR = 0.30 -- S0072, S0601; the floor a game choice
 
 -- The hypertrophy base rate, kg lean per day at full dose and full gates.
-K.partition.G0 = 0.050 -- S0125 design-phase-v1; derived from S0064/S0605/S0606/S0590
+K.partition.G0 = 0.050 -- S0125 design-phase-v1: derived from S0064/S0605/S0606/S0590
 
 -- The protein gate's ends, g per kg per day.
 K.partition.P_LO = 0.8 -- S0509
@@ -140,10 +140,10 @@ end
 -- curve's step from day tDisuse - 1 to day tDisuse, whatever the balance. Fat takes the deficit arm
 -- with the lean overflow set to 0: fat pays up to the ceiling and the energy beyond it is UNPAID under
 -- immobilisation (the disuse loss stands in for the lean arm); a surplus reads as a negative deficit
--- under the ceiling and is stored as fat.
+-- under the ceiling and is stored as fat. A tDisuse below 1 reads as day 1 (branchless guard).
 function K.partition.disuse(body)
     local P = K.partition
-    local t = body.tDisuse
+    local t = K.max(body.tDisuse, 1)
     local dLM = -body.lm0dis * (P.disuseFraction(t) - P.disuseFraction(t - 1))
     local fromFat = K.min(-body.ebDay, P.FAT_CEIL_KCAL * body.fm)
     local dFM = -fromFat / P.RHO_FAT
@@ -173,8 +173,9 @@ end
 
 -- Close the day: shift eb7, mass7, p7, carb7 and lip7 one slot (slot 1 the oldest), write the day's
 -- ebDay, fm + lm, pDay, carbDay and lipDay into slot 7 (the legacy mirror's yesterday), zero the day
--- accumulators and advance dayIndex. Returns the body.
-function K.partition.closeDay(body)
+-- accumulators, advance dayIndex and stamp lastCloseAgeH with the world age ageH of the close (the
+-- 24 h blends read hours since it). Returns the body.
+function K.partition.closeDay(body, ageH)
     local eb = body.eb7
     local mass = body.mass7
     local p7 = body.p7
@@ -201,6 +202,7 @@ function K.partition.closeDay(body)
     body.lipDay = 0
     body.alcDay = 0
     body.dayIndex = body.dayIndex + 1
+    body.lastCloseAgeH = ageH
     return body
 end
 

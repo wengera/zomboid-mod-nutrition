@@ -199,7 +199,7 @@ def test_new_record_body(host):
     body = host.py(host.K.body["new"](80, 1, _build(host), 5, 1.0, 1.0, 100))
     scalars = {
         "bv": 1, "fm0": body["fm"], "lm0": body["lm"], "lm0dis": body["lm"], "fmRef": body["fm"], "l0": 5, "sex": 1, "r": 1.0,
-        "traitCarry": 1.0, "bornAge": 100, "lastAgeH": 100, "strAgeH": 100, "at": 0, "dayIndex": 4, "inDay": 0, "eeDay": 0, "ebDay": 0,
+        "traitCarry": 1.0, "bornAge": 100, "lastAgeH": 100, "lastCloseAgeH": 100, "pPrevKg": 0.8, "strAgeH": 100, "at": 0, "dayIndex": 4, "inDay": 0, "eeDay": 0, "ebDay": 0,
         "actKcalDay": 0, "pDay": 0, "carbDay": 0, "lipDay": 0, "alcDay": 0, "eb24h": 0, "vStr": 0,
         "vHyp": 0, "vStrHigh": 0, "metMinDay": 0, "band1Day": 0, "band2Day": 0, "n": 0, "nPeak": 0,
         "tPeakD": 4, "cumDef": 0, "tDisuse": 0, "shownL": 5, "riseHeldH": 0, "lastFallAge": 100,
@@ -222,6 +222,27 @@ def test_new_record_body(host):
         assert len(body[k]) == 7, k
     ring_keys = {"eb7", "mass7", "bandWeek", "nHist", "mirrorLast", "p7", "carb7", "lip7"}
     assert set(body) == set(scalars) | {"fm", "lm"} | ring_keys
+
+
+def test_new_rings_and_band_read_the_clamped_weight(host):
+    # Close fix wave (T6 review): mass7 and band read the clamped weight fm + lm uses, not the raw w.
+    py = host.py(host.K.body["new"](300, 1, _build(host), 5, 1.0, 1.0, 0))
+    assert py["mass7"][1] == 200
+    assert list(py["mass7"].values()) == [200] * 7
+    assert py["band"] == "obese"
+    assert _close(py["fm"] + py["lm"], 200)
+    low = host.py(host.K.body["new"](20, 2, _build(host), 5, 1.0, 1.0, 0))
+    assert list(low["mass7"].values()) == [35] * 7
+    assert low["band"] == "emaciated"
+
+
+@pytest.mark.parametrize("today,yesterday,h,out", [
+    (10, 20, 12, 20), (10, 20, 0, 30), (10, 20, 24, 10), (10, 20, 30, 10), (10, 20, -6, 30),
+])
+def test_blend24(host, today, yesterday, h, out):
+    # Close fix wave (T18 defect 2): yesterday weighted by the share of the 24 h since the last close
+    # still to run, clamped to [0, 1].
+    assert _close(host.K.body.blend24(today, yesterday, h), out)
 
 
 def test_new_rings_are_distinct_tables(host):

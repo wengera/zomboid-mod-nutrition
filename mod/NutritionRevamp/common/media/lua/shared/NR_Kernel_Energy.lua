@@ -56,6 +56,9 @@ K.energy.CLASS_MET.MAX = 10.3 -- #2632
 
 -- The same names in ascending engine value, for classOf's bucketing loop. Equal values keep the
 -- plan's order (HeavyWork before Fitness, ClimbRope before ForestryAxe), and the first wins a tie.
+-- The cost of the tie rule: an 8.0 rate classifies as ClimbRope, so COMPENDIUM.ForestryAxe (6.5) is
+-- unreachable through classOf and chopping bills 8.0; a 6.0 as HeavyWork, so Fitness's 6.0 is reached
+-- only by the exercise flag.
 K.energy.CLASS_LIST = {
     "Sleeping",
     "SeatedResting",
@@ -108,7 +111,7 @@ K.energy.COMPENDIUM.FitnessHeavy = 9.0 -- engine value #2632, no Compendium row 
 K.energy.COMPENDIUM.Running10kmh = 9.3 -- S0029
 K.energy.COMPENDIUM.ClimbRope = 8.0 -- S0043 (rock climbing)
 K.energy.COMPENDIUM.ForestryAxe = 6.5 -- S0038 (chopping vigorous)
-K.energy.COMPENDIUM.Running15kmh = 14.8 -- S0032, extrapolated to the sprint class (S0034; spec § 7 item 3)
+K.energy.COMPENDIUM.Running15kmh = 14.8 -- S0032's 16.1 km/h row applied to the 15 km/h class (MAX is the sprint class; S0034; spec § 7 item 3)
 K.energy.COMPENDIUM.MAX = 14.8 -- S0032, extrapolated to the sprint class (S0034; spec § 7 item 3)
 
 -- The timed-action band METs keyed by the action's caloriesModifier; 1 has no entry.
@@ -238,9 +241,10 @@ function K.energy.intake(body, absorbed, dtM)
 end
 
 -- The trailing-24 h balance: today's balance plus yesterday's (eb7[7], the most recent closed day)
--- weighted by the share of the day still to run. A game choice.
-function K.energy.eb24h(body, hourOfDay)
-    return body.ebDay + body.eb7[7] * (1 - hourOfDay / 24)
+-- weighted by the share of the 24 h since the last close still to run (K.body.blend24; the caller
+-- passes ageH - body.lastCloseAgeH, so the window follows the day close, not the clock). A game choice.
+function K.energy.eb24h(body, hoursSinceClose)
+    return K.body.blend24(body.ebDay, body.eb7[7], hoursSinceClose)
 end
 
 -- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion, down under

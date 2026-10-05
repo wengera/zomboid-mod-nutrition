@@ -228,6 +228,17 @@ def test_eb24h(host):
     assert _close(e.eb24h(b, 24), -500)
 
 
+def test_eb24h_reads_hours_since_the_last_close(host):
+    # Close fix wave (T18 defect 2): the blend runs on hours since the last close, clamped, so the
+    # window never stretches past 24 h whatever the clock reads.
+    b = host.table(dict(ebDay=250.0, eb7={1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 400.0}))
+    e = host.K.energy
+    assert _close(e.eb24h(b, 0), 650)
+    assert _close(e.eb24h(b, 24), 250)
+    assert _close(e.eb24h(b, 31), 250)
+    assert _close(e.eb24h(b, 6), 250 + 400 * 0.75)
+
+
 @pytest.mark.parametrize("eb,dep,es", [(-1500, 0, 1.5), (1500, 0, 0.5), (0, 1, 1.5), (-3000, 1, 2.0),
                                        (0, 0, 1.0), (-750, 0, 1.25), (3000, 0, 0.5), (3000, -1, 0.5),
                                        (-3000, 2, 2.0)])

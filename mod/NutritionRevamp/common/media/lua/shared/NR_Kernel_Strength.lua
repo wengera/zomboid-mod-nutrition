@@ -55,7 +55,7 @@ K.strength.DEHYD_PCT1 = 2 -- S0623
 K.strength.DEHYD_STEP1 = -0.03 -- S0623
 K.strength.DEHYD_PCT2 = 4 -- S0624
 K.strength.DEHYD_STEP2 = -0.06 -- S0624
-K.strength.DEHYD_SWEAT_K = 1.5 -- game choice § 7 item 30: the sweat/heat multiplier of the F4 reading
+K.strength.DEHYD_SWEAT_K = 1.5 -- S0624: active (exercise or heat) dehydration an extra −5.4 % vs passive; the ×1.5 is a game choice
 
 -- Hours awake past the knee cost SLEEP_PER_H per hour, capped; halved from dawn to noon.
 K.strength.SLEEP_KNEE_H = 18 -- S0763, S0762; ruling 11 (conflict C7)
@@ -70,6 +70,7 @@ K.strength.CAFFEINE_BONUS = 0.02 -- S0626 SMD->% game choice
 K.strength.VITD_PENALTY = -0.03 -- S0633; S0634 disagrees
 K.strength.FAT_PER_10PT = -0.03 -- S0651
 K.strength.FAT_KNEE = 0.30 -- S0651
+K.strength.FAT_PER_PTS = 0.10 -- S0651: FAT_PER_10PT's unit, 10 points of fat fraction
 
 -- The acute factor's clamp.
 K.strength.E_ACUTE_MIN = -0.20 -- game choice § 7 item 30
@@ -225,7 +226,7 @@ function K.strength.eAcute(dehydPct, sweatActive, hoursAwake, hourOfDay, caffein
         e = e + S.VITD_PENALTY
     end
     if bf > S.FAT_KNEE then
-        e = e + S.FAT_PER_10PT * (bf - S.FAT_KNEE) / 0.10
+        e = e + S.FAT_PER_10PT * (bf - S.FAT_KNEE) / S.FAT_PER_PTS
     end
     return K.clamp(e, S.E_ACUTE_MIN, S.E_ACUTE_MAX)
 end

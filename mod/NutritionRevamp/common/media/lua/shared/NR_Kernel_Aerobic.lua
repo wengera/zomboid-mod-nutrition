@@ -13,11 +13,11 @@ K.aerobic = {}
 
 -- TAC's clamp: parity 1.00, the trained ceiling +25 %.
 K.aerobic.TAC_MIN = 0.80 -- floor game choice
-K.aerobic.TAC_MAX = 1.25 -- ceiling S0661/S0662/S0666
+K.aerobic.TAC_MAX = 1.25 -- +25 %: S0669 (+25 %/+20 %), S0668 (+23 %); S0661/S0666 weaker anchors
 
 -- The gain and loss time constants, days.
 K.aerobic.TAU_GAIN = 15 -- S0668
-K.aerobic.TAU_LOSS = 84 -- calibrated to S0675; game choice
+K.aerobic.TAU_LOSS = 84 -- 84 d: a game choice (bed rest S0675 at −0.43 %/d would give ≈47 d; detraining is slower)
 
 -- The weekly band-1 minutes that reach the full target (40 min x 6 d), and the hard days that hold it.
 K.aerobic.VOL_WEEK_FULL = 240 -- S0668 40x6
@@ -46,7 +46,7 @@ K.aerobic.R_FLOOR = 0.25 -- game choices § 7 item 31
 
 -- Glycogen: the drain rises GLYC_D x (1 - g)^2; regeneration runs at GLYC_R + (1 - GLYC_R) x g.
 K.aerobic.GLYC_D = 0.35 -- S0684
-K.aerobic.GLYC_R = 0.5 -- S0684; inference
+K.aerobic.GLYC_R = 0.5 -- 0.5: a game choice (S0684 is the drain side)
 
 -- Dehydration in percent body mass: the drain's two slopes above HYDR_T1 and HYDR_T2.
 K.aerobic.HYDR_T1 = 2 -- S0706/S0707
@@ -58,8 +58,8 @@ K.aerobic.HYDR_K2 = 0.09 -- S0706/S0707
 -- interaction HEAT_HYDR_K x (d / HEAT_HYDR_PCT) x (level / HEAT_HYDR_LEVEL).
 K.aerobic.HEAT = { 1.0, 1.10, 1.25, 1.50, 2.00 } -- S0730 design-phase-v1: open row, a game choice until it settles
 K.aerobic.HEAT_HYDR_K = 0.10 -- S1021
-K.aerobic.HEAT_HYDR_PCT = 4 -- S1021: the interaction's dehydration unit
-K.aerobic.HEAT_HYDR_LEVEL = 2 -- S1021: the interaction's heat-level unit
+K.aerobic.HEAT_HYDR_PCT = 4 -- game-choice normalisers (S1021 gives the interaction's direction): the dehydration unit
+K.aerobic.HEAT_HYDR_LEVEL = 2 -- game-choice normalisers (S1021 gives the interaction's direction): the heat-level unit
 
 -- Fat as load: per point of excess fat percentage.
 K.aerobic.FAT_LOAD_K = 0.008 -- S0723
@@ -71,7 +71,7 @@ K.aerobic.IRON_R = { 1.0, 0.95, 0.88, 0.75 } -- S0699
 -- Hours awake past the knee raise the drain, capped.
 K.aerobic.AWAKE_KNEE = 18 -- S0763; knee ruling 11
 K.aerobic.AWAKE_K = 0.004 -- S0763
-K.aerobic.AWAKE_CAP = 1.20 -- S0763
+K.aerobic.AWAKE_CAP = 1.20 -- 1.20: a game choice (S0763 states no cap)
 
 -- Caffeine lowers the drain by CAF_K x effect x (1 - tolerance).
 K.aerobic.CAF_K = 0.03 -- S0531

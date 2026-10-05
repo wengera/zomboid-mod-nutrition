@@ -104,6 +104,13 @@ function K.body.trend(mass7, w)
     return (w - mass7[1]) / 7
 end
 
+-- The trailing-24 h blend: today's figure plus yesterday's (the most recent closed day) weighted by
+-- the share of the 24 h since the last close still to run, clamped to [0, 1] (a game choice). Both
+-- K.energy.eb24h and the legacy mirror's protein, carbohydrate and lipid blends read it.
+function K.body.blend24(today, yesterday, hoursSinceClose)
+    return today + yesterday * K.clamp(1 - hoursSinceClose / 24, 0, 1)
+end
+
 -- The legacy calorie store: the trailing-24 h energy balance clamped to the vanilla store's range.
 function K.body.mapCalories(eb24h)
     return K.clamp(eb24h, -2200, 3700) -- #0022
@@ -140,9 +147,12 @@ end
 -- hours. Numbers, one string (band) and tables of numbers only (#1495: global modData refuses
 -- functions and userdata). The rings are built with numeric `for`; every bandWeek slot is its own
 -- table. p7, carb7 and lip7 hold each closed day's protein, carbohydrate and lipid grams (slot 7 is
--- yesterday), the legacy mirror's trailing-24 h blend.
+-- yesterday), the legacy mirror's trailing-24 h blend. The rings and the band read the clamped weight
+-- split reads (fm + lm), not the raw w. lastCloseAgeH is the world age of the last day close (the
+-- creation age until the first close); pPrevKg is the closed day's protein per kg, neutral at birth.
 function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     local fm, lm = K.body.split(w, sex, build)
+    local wc = K.clamp(w, K.body.W_MIN, K.body.W_MAX)
     local day = math.floor(ageH / 24)
     local body = {}
     body.bv = 1
@@ -158,6 +168,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.traitCarry = traitCarry
     body.bornAge = ageH
     body.lastAgeH = ageH
+    body.lastCloseAgeH = ageH
     body.strAgeH = ageH
     body.at = 0
     body.dayIndex = day
@@ -177,7 +188,7 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.lip7 = {}
     for i = 1, 7 do
         body.eb7[i] = 0
-        body.mass7[i] = w
+        body.mass7[i] = wc
         body.bandWeek[i] = { 0, 0 }
         body.p7[i] = 0
         body.carb7[i] = 0
@@ -203,10 +214,11 @@ function K.body.new(w, sex, build, l0, traitCarry, r, ageH)
     body.riseHeldH = 0
     body.lastFallAge = ageH
     body.delta = traitCarry
-    body.band = K.body.band(w)
+    body.band = K.body.band(wc)
     body.tac = 1.0
     body.dmod = 1
     body.rmod = 1
+    body.pPrevKg = 0.8 -- = K.aerobic.P_LOW; neutral
     body.energyState = 1
     body.mirrorLast = { 0, 0, 0, 0 }
     return body

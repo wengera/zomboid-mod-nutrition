@@ -189,6 +189,17 @@ def test_disuse_deficit_beyond_the_ceiling_is_unpaid(host):
     assert _close(dlm, -65.6 * _f(1))
 
 
+def test_disuse_guards_a_zero_day_as_day_one(host):
+    # Close fix wave (T9 review): tDisuse 0 reads as day 1, the same loss, no f(-1) term and no NaN.
+    b0 = _body(host, ebDay=-500, tDisuse=0)
+    b1 = _body(host, ebDay=-500, tDisuse=1)
+    dfm0, dlm0 = host.K.partition.disuse(b0)
+    dfm1, dlm1 = host.K.partition.disuse(b1)
+    assert dlm0 == dlm1 and dfm0 == dfm1
+    assert dlm0 == dlm0
+    assert _close(dlm0, -65.6 * _f(1))
+
+
 def test_disuse_surplus_is_stored_as_fat(host):
     b = _body(host, ebDay=300, tDisuse=2)
     dfm, dlm = host.K.partition.disuse(b)
@@ -240,8 +251,9 @@ def test_close_day_rotates_and_zeroes(host):
               carbDay=250, lipDay=70, alcDay=14, dayIndex=9,
               eb7=_ring([1, 2, 3, 4, 5, 6, 7]), mass7=_ring([80, 81, 82, 83, 84, 85, 86]),
               p7=_ring([0] * 7), carb7=_ring([0] * 7), lip7=_ring([0] * 7))
-    host.K.partition.closeDay(b)
+    host.K.partition.closeDay(b, 247.0)
     py = host.py(b)
+    assert py["lastCloseAgeH"] == 247.0
     assert list(py["eb7"].values()) == [2, 3, 4, 5, 6, 7, -321]
     assert list(py["mass7"].values()) == [81, 82, 83, 84, 85, 86, 79.0]
     for k in ("inDay", "eeDay", "ebDay", "actKcalDay", "pDay", "carbDay", "lipDay", "alcDay"):
@@ -256,8 +268,9 @@ def test_close_day_keeps_the_closed_day_macros_in_the_newest_cell(host):
               lipDay=72, alcDay=0, dayIndex=3, eb7=_ring([0] * 7), mass7=_ring([79] * 7),
               p7=_ring([10, 20, 30, 40, 50, 60, 70]), carb7=_ring([1, 2, 3, 4, 5, 6, 7]),
               lip7=_ring([7, 6, 5, 4, 3, 2, 1]))
-    host.K.partition.closeDay(b)
+    host.K.partition.closeDay(b, 79.0)
     py = host.py(b)
+    assert py["lastCloseAgeH"] == 79.0
     assert list(py["p7"].values()) == [20, 30, 40, 50, 60, 70, 96]
     assert list(py["carb7"].values()) == [2, 3, 4, 5, 6, 7, 310]
     assert list(py["lip7"].values()) == [6, 5, 4, 3, 2, 1, 72]

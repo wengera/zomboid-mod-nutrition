@@ -54,7 +54,7 @@ def test_constants(host):
     assert s.SLEEP_KNEE_H == 18 and s.SLEEP_PER_H == -0.004 and s.SLEEP_CAP == -0.08
     assert s.SLEEP_AM_FACTOR == 0.5 and s.AM_FROM_H == 6 and s.AM_TO_H == 12
     assert s.CAFFEINE_BONUS == 0.02 and s.VITD_PENALTY == -0.03
-    assert s.FAT_PER_10PT == -0.03 and s.FAT_KNEE == 0.30
+    assert s.FAT_PER_10PT == -0.03 and s.FAT_KNEE == 0.30 and s.FAT_PER_PTS == 0.10
     assert s.E_ACUTE_MIN == -0.20 and s.E_ACUTE_MAX == 0.03
 
 
