@@ -38,6 +38,8 @@ The house shape, every part of which is load-bearing:
     teardown marks and any shutdown-phase server errors) and copies the file byte-for-byte into
     `testing/artifacts/<run-id>/`. Nothing in the driver may raise through teardown: no PZ
     process may outlive the script.
+  * **`witness.moddata` values are STRINGS.** `_common.num` returns None on a string, so run a
+    counter through `to_num` (below), never `num`, or every present counter grades as null (x132d).
 
 **Starting a new driver.** Copy this file to `testing/experiments/xNNN_<topic>.py`, set `PROFILE`
 to the profile the session runs under (`testing/profiles/<name>.toml`), write `SESSION` as the
@@ -106,6 +108,14 @@ def wall():
 
 def note(msg):
     out["notes"].append({"wall": wall(), "note": msg})
+
+
+def to_num(v):
+    """Read a `witness.moddata` value: it arrives as a STRING, which `num` turns into None."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
 
 
 def probe(side, cmd, args, timeout=20):

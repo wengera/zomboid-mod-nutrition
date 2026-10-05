@@ -1,5 +1,6 @@
 # testing/profiles/x13-residual.toml - the X34 / X35 / X4 residual arms: the mod in takeover
-# (Mode 1) with TKX_CalcStats' sentinel handler; the driver boots nr-overlay for its control.
+# (Mode 1); TKX_CalcStats counts CalculateStats calls (X32/X46); X35's running arm needs a probe
+# handler that WRITES the 0.4242 sentinel, which no shipped probe does (x132r-20261005-072441); the driver boots nr-overlay for its control.
 fixture = "default"
 description = "PZTestKit + NutritionRevamp (Mode 1) + TKX_CalcStats, DayLength 1 - X34, X35, X4 residual arms."
 run = { hold = 60 }

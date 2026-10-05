@@ -1544,7 +1544,7 @@ end)
 -- the call ran, never delivery.
 -- @args <user> <TraitName>
 -- @reply {user, trait, added, sent, wallBefore, wallAfter, traitList [, callError] [, error]} | string
--- @purpose Adds one CharacterTrait and calls sendSyncPlayerFields(player, 2) in the same server tick, stamping the wall clock either side; the client-side trait.watch stamp then gives the push latency.
+-- @purpose Adds one CharacterTrait and calls sendSyncPlayerFields(player, 2) in the same server tick, stamping the wall clock either side; the client-side trait.watch stamp then gives the push latency. `added` says only that the add call did not raise; grade presence on `traitList`.
 TK.register("trait.add.push", function(argv)
     local p = findPlayer(argv[1])
     if not p then return "no online player " .. tostring(argv[1]) end
