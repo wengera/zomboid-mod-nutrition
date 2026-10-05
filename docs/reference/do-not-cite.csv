@@ -315,3 +315,11 @@ x141b-20261005-122603,verdicts.F.observed.reads[*].match,`true`,"Fill was ~0 (no
 x141b-20261005-122603,verdicts.E1.verdict,`as_predicted`,"No intake landed; the macro maps sat at their zero-intake values.",cite the calories arm only
 x141b-20261005-122603,prediction_apriori.male80,—,The subject is female.,`prediction_live`
 x141b-20261005-122603,FAST.*.client.worldAge,—,"The client world age ran behind and stepped backwards at speed 5.",—
+x141c-20261005-132133,verdicts.U-rise.verdict,`falsified`,"age_drop is the read after the drop minute; the record riseHeldH reached 6 at each rise.",phases.U.polls[*].scal.riseHeldH
+x141c-20261005-132133,summary.verdicts.U-rise,`falsified`,"Same grader error as verdicts.U-rise.",phases.U.polls[*].scal.riseHeldH
+x141c-20261005-132133,verdicts.T-tac.verdict,`falsified`,"The grader used the post-shift ring; tacDay runs before the shift.",phases.T.pre_body.body.bandWeek
+x141c-20261005-132133,summary.verdicts.T-tac,`falsified`,"Same grader ring choice as verdicts.T-tac.",phases.T.pre_body.body.bandWeek
+x141c-20261005-132133,verdicts.T-tac.observed.tac_pred,0.998702944681775,"Computed on the post-shift ring (m1 27.96, target 1.029).",phases.T.post_body.body.tac
+x141c-20261005-132133,verdicts.H-rmod.observed.band,"[0.848, 0.860]","A prediction; the ratio read 0.904.",verdicts.H-rmod.observed.ratio
+x141c-20261005-132133,verdicts.D-reps.observed.squats,1 rep,"The squat set stopped after ~3-5 s for a reason the run does not show; not a rep rate.",—
+x141c-20261005-132133,phases.C.reads[*].dt,0.0,"The first read was issued as the set returned; it bounds nothing below.",phases.C.str1.carryWrites
