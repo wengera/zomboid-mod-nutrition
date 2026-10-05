@@ -17,9 +17,10 @@
 -- whose Fitness partner was dropped leaves the pair open; the next rep's Strength event counts as usual.
 -- The rep's class is the exercise's first stiffness group (EXERCISE_CLASS, read from the install):
 -- legs/abs bank S_REP_LEGS, arms/chest S_REP_ARMS, both at the moderate class. getCurrentExe answers a
--- Fitness$FitnessExercise whose type is a field with no getter, so the key is read when it can be (a
--- string, or a readable .type) and otherwise inferred from the Strength grant: above 0 is arms/chest,
--- 0 is legs/abs. An event of either perk with no current exercise is a knockback, tree or load grant,
+-- Fitness$FitnessExercise whose type is a field with no getter and is unreadable from Lua (run
+-- x141c-20261005-132133: indexing it raised on every rep), so the key is read only when the exercise is
+-- itself a string; any other value is never indexed and is inferred from the Strength grant: above 0 is
+-- arms/chest, 0 is legs/abs. An event of either perk with no current exercise is a knockback, tree or load grant,
 -- ignored here (the hit and tree hooks and the minute's load sample own them) and closes any open
 -- pair; a negative amount is rust and is ignored.
 --
@@ -36,7 +37,7 @@ NR.server.training = {
     wired = false,
     limitations = {
         "a climb or vault has no Lua event and is sampled per minute from the character's state",
-        "a rep is counted on the Strength XP event (unconditional, 0 for a legs exercise); vanilla's Fitness-XP gate (#2647) cannot drop it; a character whose Strength XP sits at the level-10 total fires no Strength event, and its reps are counted on the Fitness event instead",
+        "a rep is counted on the Strength XP event (unconditional, 0 for a legs exercise); vanilla's Fitness-XP gate (#2647) cannot drop it; a character whose Strength XP sits at the level-10 total fires no Strength event, and its reps are counted on the Fitness event instead; a Fitness-only rep after a stale open pair is read as the partner",
         "the exercise type is a Java field with no getter, so an unreadable exercise is classed from its Strength grant (above 0 arms/chest, 0 legs/abs; legs on the Fitness-only path)",
     },
 }
@@ -87,15 +88,10 @@ local function currentExe(player)
     return nil
 end
 
-local function readType(exe)
-    return exe.type
-end
-
--- The exercise's key when it can be read: the value itself when a string, else its .type when readable.
+-- The exercise's key: the value itself when a string; nil for anything else (a userdata is never
+-- indexed: its type field is unreadable, and the index attempt logged a stack trace per rep).
 local function exeKey(exe)
     if type(exe) == "string" then return exe end
-    local ok, t = pcall(readType, exe)
-    if ok and type(t) == "string" then return t end
     return nil
 end
 

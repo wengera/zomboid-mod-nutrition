@@ -203,12 +203,12 @@ local function body(h)
     local fill = h.record.stomachFill                     -- Plan 2: hunger derives from it; nil reads full (the seed)
     if fill == nil or fill ~= fill then fill = 1 end      -- NaN reads full too (#2833): K.clamp passes NaN through
     inp.stomachFill = fill
-    local body = h.record.body                            -- Plan 3: the slow clock stamps the two scalars here
+    local rec_body = h.record.body                        -- Plan 3: the slow clock stamps the two scalars here
     local es = 1
     local rm = 1
-    if body ~= nil then
-        es = body.energyState
-        rm = body.rmod
+    if rec_body ~= nil then
+        es = rec_body.energyState
+        rm = rec_body.rmod
     end
     if es == nil or es ~= es then es = 1 end              -- nil or NaN reads neutral, as the fill does
     if rm == nil or rm ~= rm then rm = 1 end

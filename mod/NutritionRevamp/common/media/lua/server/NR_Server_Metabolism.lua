@@ -23,13 +23,14 @@
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.metabolism = {
-    stats = { minutes = 0, days = 0, failures = 0, splits = 0, badReads = 0, skippedDays = 0 },
+    stats = { minutes = 0, days = 0, failures = 0, splits = 0, badReads = 0, skippedDays = 0,
+              firstSightMirrors = 0, preconditionWarnings = 0 },
     lastError = nil,
     wired = false,
     limitations = {
         "the run and sprint flags never reach the server (x141a), so a runner bills as a walker and the Running classes are unreachable; the metabolic rate lags activity by tens of seconds; the current timed action is unreadable server-side, so the calorie-modifier bands are unused and timed actions bill at the class rate",
         "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, never Fitness",
-        "offline time is not integrated",
+        "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading",
         "the disuse arm needs a leg fracture or splint",
         "glycogen, dehydration, iron, caffeine, alcohol, sleep debt and the balance dial are Plan 4/5 inputs held neutral",
         "the drain coefficient is stamped and unapplied until Plan 5",
@@ -114,7 +115,6 @@ function MET.ensureBody(username, player, record, ageH)
     local traitCarry = num(player, "getMaxWeightDelta", 1.0)
     local r = responder()
     record.body = K.body.new(w, sex, build, l0, traitCarry, r, ageH)
-    record.body.pPrevKg = K.aerobic.P_LOW                -- rmod's protein gate reads neutral until a day closes
     MET.stats.splits = MET.stats.splits + 1
     NR.log.say(3, "metabolism: first sight of " .. tostring(username) .. " w=" .. tostring(w) .. " sex=" .. sex
         .. " l0=" .. tostring(l0) .. " traitCarry=" .. tostring(traitCarry) .. " r=" .. tostring(r))
@@ -177,8 +177,11 @@ end
 
 -- One day close, in the order Task 10's constraint fixes: the disuse day count (before the partition, so
 -- the first immobilised day runs with t = 1), the partition, the strength bookkeeping (reads ebDay),
--- adaptive thermogenesis, TAC, the training ring, the partition ring (zeroes ebDay, advances dayIndex).
-local function closeDay(body, w, immobilised)
+-- adaptive thermogenesis, the training ring, TAC, the partition ring (zeroes ebDay, advances dayIndex,
+-- stamps lastCloseAgeH). The training ring shifts the closing day in BEFORE TAC reads the week (run
+-- x141c-20261005-132133: read before the shift, a day's training reached TAC one close late); TAC's
+-- energy gate still reads the closing day's inDay and actKcalDay, which only the partition ring zeroes.
+local function closeDay(body, w, immobilised, ageH)
     if immobilised then
         if body.tDisuse == 0 then body.lm0dis = body.lm end
         body.tDisuse = body.tDisuse + 1
@@ -190,41 +193,79 @@ local function closeDay(body, w, immobilised)
     K.partition.day(body, dHyp, dStr, pPerKg, immobilised)
     K.strength.closeDay(body, body.dayIndex)
     body.at = K.energy.atStep(body.at, K.energy.atTarget(body.fm, body.fmRef), K.partition.deficitWeek(body), 1)
+    K.training.closeDay(body)
     local m1, hard = K.training.weekMinutes(body)
     K.aerobic.tacDay(body, m1, hard, 1, K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.actKcalDay, body.lm), 1, 1)
     body.pPrevKg = pPerKg
-    K.training.closeDay(body)
-    K.partition.closeDay(body)
+    K.partition.closeDay(body, ageH)
     MET.stats.days = MET.stats.days + 1
 end
 
 -- The self-heal (the #2833 pattern), run before the minute's arithmetic and again after its stamps: a
 -- non-finite scalar or ring slot is stamped its neutral and the pass counts one failure. Masses heal to
--- their creation values; rmod's protein input to the neutral P_LOW.
+-- their creation values (a non-finite creation value to the current mass, else the 80 kg split); rmod's
+-- protein input to the neutral P_LOW; dayIndex to the day of the world age (a NaN would stop every day
+-- close); lastAgeH and lastCloseAgeH to the world age; a ring slot to 0 (mass7's to the current mass).
+-- The backfill, uncounted: a field or ring a record made before it existed lacks (pPrevKg,
+-- lastCloseAgeH; the p7, carb7 and lip7 rings of a pre-Task-15 body) is created at its neutral. This
+-- file owns the rings: the Weight mirror and the partition ring read them and rebuild nothing.
 MET.NEUTRAL = { energyState = 1, dmod = 1, rmod = 1, tac = 1, at = 0, n = 0, vStr = 0, vHyp = 0,
                 vStrHigh = 0, inDay = 0, eeDay = 0, ebDay = 0, actKcalDay = 0, pDay = 0, carbDay = 0,
                 lipDay = 0, alcDay = 0, metMinDay = 0, band1Day = 0, band2Day = 0, cumDef = 0 }
 MET.NEUTRAL_KEYS = { "energyState", "dmod", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay",
                      "eeDay", "ebDay", "actKcalDay", "pDay", "carbDay", "lipDay", "alcDay", "metMinDay",
                      "band1Day", "band2Day", "cumDef" }
+-- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.
+MET.ZERO_RINGS = { "eb7", "p7", "carb7", "lip7" }
 
-local function heal(username, body)
+local function heal(username, body, ageH)
     local bad = nil
     local function mark(name)
         if bad == nil then bad = name else bad = bad .. "," .. name end
+    end
+    if body.pPrevKg == nil then body.pPrevKg = K.aerobic.P_LOW end
+    if body.lastCloseAgeH == nil then body.lastCloseAgeH = ageH end
+    for r = 1, #MET.ZERO_RINGS do
+        local key = MET.ZERO_RINGS[r]
+        if type(body[key]) ~= "table" then
+            local ring = {}
+            for j = 1, 7 do ring[j] = 0 end
+            body[key] = ring
+        end
+    end
+    if type(body.mass7) ~= "table" then body.mass7 = {} end
+    if not finite(body.fm0) or not finite(body.lm0) then
+        local fmS, lmS = K.body.split(80, body.sex == 2 and 2 or 1, {})
+        if not finite(body.fm0) then
+            if finite(body.fm) then body.fm0 = body.fm else body.fm0 = fmS end
+            mark("fm0")
+        end
+        if not finite(body.lm0) then
+            if finite(body.lm) then body.lm0 = body.lm else body.lm0 = lmS end
+            mark("lm0")
+        end
     end
     if not finite(body.fm) then body.fm = body.fm0; mark("fm") end
     if not finite(body.lm) then body.lm = body.lm0; mark("lm") end
     if not finite(body.fmRef) then body.fmRef = body.fm; mark("fmRef") end
     if not finite(body.pPrevKg) then body.pPrevKg = K.aerobic.P_LOW; mark("pPrevKg") end
+    if not finite(body.dayIndex) then body.dayIndex = math.floor(ageH / 24); mark("dayIndex") end
+    if not finite(body.lastAgeH) then body.lastAgeH = ageH; mark("lastAgeH") end
+    if not finite(body.lastCloseAgeH) then body.lastCloseAgeH = ageH; mark("lastCloseAgeH") end
     local keys = MET.NEUTRAL_KEYS
     for i = 1, #keys do
         local k = keys[i]
         if not finite(body[k]) then body[k] = MET.NEUTRAL[k]; mark(k) end
     end
     for i = 1, 7 do
-        if not finite(body.eb7[i]) then body.eb7[i] = 0; mark("eb7") end
         if not finite(body.mass7[i]) then body.mass7[i] = body.fm + body.lm; mark("mass7") end
+    end
+    for r = 1, #MET.ZERO_RINGS do
+        local key = MET.ZERO_RINGS[r]
+        local ring = body[key]
+        for i = 1, 7 do
+            if not finite(ring[i]) then ring[i] = 0; mark(key) end
+        end
     end
     if bad ~= nil then
         MET.stats.failures = MET.stats.failures + 1
@@ -236,11 +277,8 @@ end
 local function step(username, player, record)
     local ageH = worldAge()
     local body = MET.ensureBody(username, player, record, ageH)
-    if body.pPrevKg == nil then body.pPrevKg = K.aerobic.P_LOW end
-    heal(username, body)
-    local last = body.lastAgeH
-    if not finite(last) then last = ageH end
-    local dtM = K.clamp((ageH - last) * 60, 0, 60)       -- offline time is not integrated
+    heal(username, body, ageH)
+    local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
     local handoff = NR.server.kinetics and NR.server.kinetics.lastAbsorbed
     if handoff ~= nil and handoff[username] ~= nil then
@@ -260,7 +298,7 @@ local function step(username, player, record)
     local today = math.floor(ageH / 24)
     local closes = 0
     while today > body.dayIndex and closes < MET.MAX_CLOSES do
-        closeDay(body, w, immobilised)
+        closeDay(body, w, immobilised, ageH)
         closes = closes + 1
     end
     if today > body.dayIndex then
@@ -272,9 +310,9 @@ local function step(username, player, record)
     if body.fmRef > 0 then fatDep = K.clamp((body.fmRef - body.fm) / body.fmRef, 0, 1) end
     body.dmod = K.aerobic.dmod(body.tac, 1, 0, heatLevel, K.aerobic.excessPct(body.fm, K.aerobic.FM_NORMAL_80[body.sex], w), 1, 0, 0, 0)
     body.rmod = K.aerobic.rmod(body.tac, 1, K.aerobic.gProt(body.pPrevKg), 1, 0, 0, 0, 1)
-    body.energyState = K.energy.state(K.energy.eb24h(body, hourOfDay), fatDep)
+    body.energyState = K.energy.state(K.energy.eb24h(body, ageH - body.lastCloseAgeH), fatDep)
     body.lastAgeH = ageH
-    heal(username, body)
+    heal(username, body, ageH)
 end
 
 -- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
@@ -291,14 +329,44 @@ function MET.minute(username, player, record)
     end
 end
 
+-- First sight (the players' onFirstSight hook): the body is made before the first mirror goes out, so
+-- that mirror carries the body_* keys (run x141b-20261005-122603: sent before the body existed, the
+-- client read them 0 until a re-request).
+function MET.onFirstSight(username, player, record)
+    if record == nil then return end
+    MET.ensureBody(username, player, record, worldAge())
+    if NR.server.bus ~= nil and NR.server.bus.sendMirror(player, record) then
+        MET.stats.firstSightMirrors = MET.stats.firstSightMirrors + 1
+    end
+end
+
+-- The design precondition (spec ruling 5, ruling T18-1): vanilla's nutrition update off. With
+-- SandboxVars.Nutrition anything but false, vanilla's updateWeight rewrites the weight flags every tick
+-- and its drain empties the mirror stores (run x141b-20261005-122603). Read once at boot; warned at log
+-- level 1 and flagged on NR.server.options.nutritionOn for the self-report. The option is the
+-- operator's: the mod never changes it. Returns whether the precondition is broken.
+function MET.checkPrecondition()
+    local sv = SandboxVars
+    local v = nil
+    if sv ~= nil then v = sv.Nutrition end
+    if v == false then return false end
+    MET.stats.preconditionWarnings = MET.stats.preconditionWarnings + 1
+    NR.log.say(1, "NutritionRevamp expects SandboxVars.Nutrition = false: vanilla's nutrition update is ON and will fight the weight flags and drain the mirror stores")
+    if NR.server.options ~= nil then NR.server.options.nutritionOn = true end
+    return true
+end
+
 -- Wiring: appended to the players' onMinute list at OnServerStarted. This file sorts after
--- NR_Server_Kinetics.lua, whose handler registers first, so the stomach step runs before this one.
+-- NR_Server_Kinetics.lua, whose handler registers first, so the stomach step runs before this one. It
+-- sorts before NR_Server_Options.lua, so the precondition flag is set before the boot self-report.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         if MET.wired then return end
         MET.wired = true
+        MET.checkPrecondition()
         local P = NR.server.players
         P.onMinute[#P.onMinute + 1] = MET.minute
+        if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.onFirstSight end
     end)
 end

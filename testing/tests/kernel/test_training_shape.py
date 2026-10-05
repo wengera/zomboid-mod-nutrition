@@ -175,13 +175,29 @@ def test_fitness_only_rep_uses_the_readable_key(h):
     assert h.stats()["repsFitnessOnly"] == 1
 
 
-def test_exercise_object_with_a_readable_type(h):
-    exe = h.rt.table_from({"type": "burpees"})
-    p = h.player(exe=exe)
-    h.xp(p, "Strength", 4)                             # burpees grant Strength 4; the key says legs
+def test_a_non_string_exercise_is_never_indexed(h):
+    # run x141c: FitnessExercise.type is unreadable and the index attempt logged a stack trace per rep;
+    # any non-string exercise goes straight to the inference path, its fields never read
+    h.rt.execute("""
+        NR_TEST_INDEXED = 0
+        NR_TEST_EXE = setmetatable({}, { __index = function(t, k)
+            NR_TEST_INDEXED = NR_TEST_INDEXED + 1
+            return "burpees"
+        end })
+    """)
+    p = h.player(exe=h.G.NR_TEST_EXE)
+    h.xp(p, "Strength", 4)                             # inferred: Strength above 0 is arms
     h.xp(p, "Fitness", 3)
-    assert close(h.banked(), (0.05 * 0.8, 0.05, 0.0))
+    assert close(h.banked(), (0.10 * 0.8, 0.10, 0.0))
     assert h.stats()["reps"] == 1 and h.stats()["paired"] == 1
+    assert h.stats()["failures"] == 0
+    assert h.G.NR_TEST_INDEXED == 0
+
+
+def test_no_index_attempt_in_the_source():
+    with open(TRAINING, encoding="utf-8") as fh:
+        code = "\n".join(l.split("--")[0] for l in fh.read().splitlines())
+    assert "exe.type" not in code and "readType" not in code
 
 
 def test_unreadable_exercise_with_strength_above_zero_is_arms(h):
@@ -303,5 +319,6 @@ def test_limitations_name_the_rep_and_the_climb():
     assert "a climb or vault has no Lua event and is sampled per minute from the character's state" in lim
     assert ("a rep is counted on the Strength XP event (unconditional, 0 for a legs exercise); vanilla's "
             "Fitness-XP gate (#2647) cannot drop it; a character whose Strength XP sits at the level-10 total "
-            "fires no Strength event, and its reps are counted on the Fitness event instead") in lim
+            "fires no Strength event, and its reps are counted on the Fitness event instead; a Fitness-only rep "
+            "after a stale open pair is read as the partner") in lim
     assert not any("Task 12" in x for x in lim)

@@ -15,8 +15,10 @@
 --
 -- The legacy mirror (ruling 13): calories = the trailing-24 h energy balance; proteins = the piecewise
 -- map of the trailing-24 h protein per kg; carbohydrates and lipids = the trailing-24 h grams less a
--- reference; each blends today with yesterday's closed day as K.energy.eb24h does, clamped to the
--- stores (#0022, #0023). A plain overwrite every minute.
+-- reference; each blends today with yesterday's closed day on the hours since the last day close
+-- (K.body.blend24, as K.energy.eb24h does), clamped to the stores (#0022, #0023). A plain overwrite every
+-- minute. The p7, carb7 and lip7 rings are NR_Server_Metabolism's: it rebuilds them on an old record
+-- before this file reads them.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
 -- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_weight_shape.py). The
@@ -46,23 +48,19 @@ WGT.BAND_TRAIT = {
 }
 -- The five band traits applyTraitFromWeight removes before it adds one back (#2722).
 WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
--- The macro rings the mirror's blend reads (slot 7 is yesterday), rebuilt as zeros when absent.
-WGT.RINGS = { "p7", "carb7", "lip7" }
-
 local function finite(x)
     return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
 end
 
--- The hour of the day: getGameTime():getTimeOfDay(), else the world age mod 24, else 0.
-local function hourOfDay()
+-- The hours since the body's last day close (world age less lastCloseAgeH), or 0 -- the full blend --
+-- when either is unreadable.
+local function hoursSinceClose(body)
     if getGameTime == nil then return 0 end
     local ok, gt = pcall(getGameTime)
     if not ok or gt == nil then return 0 end
-    local okT, tod = NR.call(gt, "getTimeOfDay")
-    if okT and finite(tod) then return tod end
     local okA, age = NR.call(gt, "getWorldAgeHours")
-    if okA and finite(age) then return age - math.floor(age / 24) * 24 end
-    return 0
+    if not okA or not finite(age) or not finite(body.lastCloseAgeH) then return 0 end
+    return age - body.lastCloseAgeH
 end
 
 -- The trait-block push (#2099): a Java global called with a dot (#2815); absent -> counted.
@@ -101,12 +99,11 @@ end
 
 -- The legacy macro mirror: the four stores off the trailing-24 h blend of today and yesterday.
 local function mirror(nut, body, w)
-    local hod = hourOfDay()
-    local rest = 1 - hod / 24
-    local p24h = (body.pDay + body.p7[7] * rest) / w
-    local carb24h = body.carbDay + body.carb7[7] * rest
-    local lip24h = body.lipDay + body.lip7[7] * rest
-    local cal = K.body.mapCalories(K.energy.eb24h(body, hod))
+    local hsc = hoursSinceClose(body)
+    local p24h = K.body.blend24(body.pDay, body.p7[7], hsc) / w
+    local carb24h = K.body.blend24(body.carbDay, body.carb7[7], hsc)
+    local lip24h = K.body.blend24(body.lipDay, body.lip7[7], hsc)
+    local cal = K.body.mapCalories(K.energy.eb24h(body, hsc))
     local prot = K.body.mapProteins(p24h)
     local carb = K.body.mapCarbs(carb24h)
     local lip = K.body.mapLipids(lip24h)
@@ -136,14 +133,6 @@ local function step(username, player, record)
         NR.log.say(2, WGT.lastError)
         return
     end
-    for i = 1, #WGT.RINGS do
-        local key = WGT.RINGS[i]
-        if type(body[key]) ~= "table" then
-            local ring = {}
-            for j = 1, 7 do ring[j] = 0 end
-            body[key] = ring
-        end
-    end
     local okN, nut = NR.call(player, "getNutrition")
     if not okN or nut == nil then
         WGT.stats.badReads = WGT.stats.badReads + 1
@@ -151,20 +140,22 @@ local function step(username, player, record)
     end
     if NR.call(nut, "setWeight", w) then WGT.stats.weightWrites = WGT.stats.weightWrites + 1 end
     local inc, lot, dec = K.body.flags(K.body.trend(body.mass7, w))
-    NR.call(nut, "setIncWeight", inc)
-    NR.call(nut, "setIncWeightLot", lot)
-    NR.call(nut, "setDecWeight", dec)
-    WGT.stats.flagWrites = WGT.stats.flagWrites + 1
+    local okI = NR.call(nut, "setIncWeight", inc)
+    local okL = NR.call(nut, "setIncWeightLot", lot)
+    local okD = NR.call(nut, "setDecWeight", dec)
+    if okI and okL and okD then WGT.stats.flagWrites = WGT.stats.flagWrites + 1 end
     local band = K.body.band(w)
     if band ~= body.band then
-        NR.call(nut, "applyTraitFromWeight")
-        body.band = band
-        WGT.stats.bandChanges = WGT.stats.bandChanges + 1
-        push(player)
+        if NR.call(nut, "applyTraitFromWeight") then       -- absent: nothing stamped; next minute retries
+            body.band = band
+            WGT.stats.bandChanges = WGT.stats.bandChanges + 1
+            push(player)
+        end
     elseif needsRepair(player, band) then
-        NR.call(nut, "applyTraitFromWeight")
-        WGT.stats.bandRepairs = WGT.stats.bandRepairs + 1
-        push(player)
+        if NR.call(nut, "applyTraitFromWeight") then
+            WGT.stats.bandRepairs = WGT.stats.bandRepairs + 1
+            push(player)
+        end
     end
     local opts = NR.server.options
     if opts == nil or opts.legacyMirror ~= false then

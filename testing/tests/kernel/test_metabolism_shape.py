@@ -8,6 +8,7 @@ wiring, the order and the guards, not the engine's real getters, which the live 
 """
 import math
 import os
+import re
 
 import lupa.lua51 as lua51
 import pytest
@@ -486,6 +487,31 @@ def test_day_close_runs_the_partition_strength_and_tac(met_host):
     assert body["pPrevKg"] == 0                # no protein eaten on the closed day
 
 
+def test_training_reaches_tac_at_the_same_close(met_host):
+    # run x141c: the week was read before the training ring shifted the closing day in, so a day's
+    # training reached TAC one close late; the training ring now closes first
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.band1Day = 300.0                      # the closing day's band-1 minutes; the ring is empty
+    minute(h, p, record, 124.0)
+    assert body["bandWeek"][7][1] == 300.0
+    assert body["band1Day"] == 0
+    assert body["tac"] > 1.0                   # the same close saw the training
+
+
+def test_close_order_training_ring_before_tac():
+    with open(METABOLISM, encoding="utf-8") as fh:
+        src = fh.read()
+    region = src[src.index("local function closeDay("):src.index("MET.stats.days = MET.stats.days + 1")]
+    order = ["K.training.doses(body)", "K.partition.day(", "K.strength.closeDay(", "K.energy.atStep(",
+             "K.training.closeDay(body)", "K.training.weekMinutes(body)", "K.aerobic.tacDay(",
+             "K.partition.closeDay(body, ageH)"]
+    at = [region.index(s) for s in order]
+    assert at == sorted(at)
+
+
 def test_immobilised_days_run_disuse(met_host):
     h = met_host
     p = player(h, fracture={"UpperLeg_L": 40.0})
@@ -534,15 +560,39 @@ def test_energy_state_reads_the_trailing_balance_and_fat_depletion(met_host):
     body = record["body"]
     body.eb7[7] = -3000.0
     body.fm = body["fmRef"] / 2
-    h.G.NR_TEST_TOD = 0.0
-    try:
-        minute(h, p, record, 100.0 + 1 / 60)
-    finally:
-        h.G.NR_TEST_TOD = None
-    eb = h.K.energy.eb24h(body, 0.0)
+    minute(h, p, record, 100.0 + 1 / 60)
+    eb = h.K.energy.eb24h(body, 1 / 60)        # the hours since the last close (first sight at 100)
     expected = h.K.energy.state(eb, 0.5)
     assert abs(body["energyState"] - expected) < TOL
     assert abs(body["energyState"] - 1.75) < TOL  # the balance term saturates: 1 + 0.5 + 0.5 x 0.5
+
+
+def test_energy_state_blends_on_hours_since_the_close_not_the_clock(met_host):
+    # run x141b: the day closes at floor(age / 24), which is not midnight on the clock; the blend reads
+    # the hours since the last close, so the clock hour never enters it
+    h = met_host
+    p = player(h, moving=False, rate=1.5)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.lastCloseAgeH = 100.0 - 12.0          # half of yesterday still in the window
+    body.eb7[7] = -1000.0
+    h.G.NR_TEST_TOD = 0.0                      # a clock reading the old code would have used
+    try:
+        minute(h, p, record, 100.0)
+    finally:
+        h.G.NR_TEST_TOD = None
+    expected = h.K.energy.state(body["ebDay"] + -1000.0 * 0.5, 0)
+    assert abs(body["energyState"] - expected) < TOL
+    assert abs(body["energyState"] - (1 + 0.5 * 500 / 1500)) < 1e-6
+
+
+def test_day_close_stamps_last_close_age(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    assert record["body"]["lastCloseAgeH"] == 100.0  # K.body.new stamps creation
+    minute(h, p, record, 124.25)
+    assert abs(record["body"]["lastCloseAgeH"] - 124.25) < TOL
 
 
 def test_a_non_finite_stamp_heals_and_counts(met_host):
@@ -561,6 +611,89 @@ def test_a_non_finite_stamp_heals_and_counts(met_host):
     assert body["energyState"] == body["energyState"]
     assert MET(h).stats.failures == failures + 1
     assert "non-finite" in MET(h).lastError
+
+
+def test_heal_covers_day_index_ages_and_creation_masses(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.dayIndex = NAN
+    body.lastAgeH = NAN
+    body.lastCloseAgeH = float("inf")
+    body.fm0 = NAN
+    body.lm0 = NAN
+    failures = MET(h).stats.failures
+    days = MET(h).stats.days
+    minute(h, p, record, 130.0)
+    assert body["dayIndex"] == 5               # floor(130 / 24); a NaN never stops the closes
+    assert MET(h).stats.days == days           # healed to today: no spurious close
+    assert body["lastAgeH"] == 130.0
+    assert body["lastCloseAgeH"] == 130.0
+    assert abs(body["fm0"] - body["fm"]) < 1e-6 and abs(body["lm0"] - body["lm"]) < 1e-6
+    assert MET(h).stats.failures == failures + 1
+    for k in ("dayIndex", "lastAgeH", "lastCloseAgeH", "fm0", "lm0"):
+        assert k in MET(h).lastError
+    assert nonfinite(h, record) == ""
+    minute(h, p, record, 154.0)
+    assert body["dayIndex"] == 6               # the closes run again
+
+
+def test_heal_creation_masses_fall_back_to_the_split(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.fm = NAN
+    body.fm0 = NAN
+    body.lm = NAN
+    body.lm0 = NAN
+    minute(h, p, record, 100.0 + 1 / 60)
+    fm, lm, _ = h.K.body.split(80, 1, h.table({}))
+    assert abs(body["fm0"] - fm) < TOL and abs(body["lm0"] - lm) < TOL
+    assert nonfinite(h, record) == ""
+
+
+def test_heal_rebuilds_absent_rings_and_backfills_without_counting(met_host):
+    # a record.body made before the p7/carb7/lip7 rings, pPrevKg or lastCloseAgeH existed
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.p7 = None
+    body.carb7 = None
+    body.lip7 = None
+    body.pPrevKg = None
+    body.lastCloseAgeH = None
+    failures = MET(h).stats.failures
+    minute(h, p, record, 100.5)
+    for k in ("p7", "carb7", "lip7"):
+        assert list(body[k].values()) == [0] * 7, k
+    assert body["pPrevKg"] == h.K.aerobic.P_LOW
+    assert body["lastCloseAgeH"] == 100.5
+    assert MET(h).stats.failures == failures   # a backfill, not a corruption
+    minute(h, p, record, 124.0)                # the partition ring reads the rebuilt rings
+    assert body["dayIndex"] == 5
+    assert nonfinite(h, record) == ""
+
+
+def test_heal_stamps_non_finite_ring_slots(met_host):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    body = record["body"]
+    body.p7[2] = NAN
+    body.carb7[7] = float("inf")
+    body.lip7[4] = NAN
+    body.mass7[1] = NAN
+    failures = MET(h).stats.failures
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert body["p7"][2] == 0 and body["carb7"][7] == 0 and body["lip7"][4] == 0
+    assert abs(body["mass7"][1] - (body["fm"] + body["lm"])) < 1e-6
+    assert MET(h).stats.failures == failures + 1
+    for k in ("p7", "carb7", "lip7", "mass7"):
+        assert k in MET(h).lastError
+    assert nonfinite(h, record) == ""
 
 
 def test_a_raising_kernel_never_raises_into_the_walk(met_host):
@@ -590,7 +723,8 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "bill at the class rate") in lim
     assert ("an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as "
             "HeavyWork, never Fitness") in lim
-    assert "offline time is not integrated" in lim
+    assert ("offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until "
+            "the next normal close) and reuses today's immobilised reading") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
     assert ("glycogen, dehydration, iron, caffeine, alcohol, sleep debt and the balance dial are Plan 4/5 "
             "inputs held neutral") in lim
@@ -628,6 +762,117 @@ def test_metabolism_runs_after_kinetics_in_the_players_list():
     assert G.NutritionRevamp.server.metabolism.wired is True
 
 
+# --- first sight's mirror and the precondition (ruling T18-1) ----------------------------------------
+
+FIRSTSIGHT = r"""
+function(player, record, age)
+    local NR = NutritionRevamp
+    local savedBus = NR.server.bus
+    NR_TEST_SENT = {}
+    NR.server.bus = { sendMirror = function(p, r)
+        NR_TEST_SENT[#NR_TEST_SENT + 1] = r.body ~= nil
+        return true
+    end }
+    NR_TEST_AGE = age
+    NR.server.metabolism.onFirstSight("admin", player, record)
+    NR.server.bus = savedBus
+    return NR_TEST_SENT
+end
+"""
+
+
+def test_first_sight_hook_makes_the_body_before_the_mirror(met_host):
+    h = met_host
+    record = h.rt.table()
+    n0 = MET(h).stats.firstSightMirrors
+    sent = h.rt.eval(FIRSTSIGHT)(player(h), record, 100.0)
+    assert list(sent.values()) == [True]       # the one mirror carried the body
+    assert record["body"] is not None and record["body"]["lastAgeH"] == 100.0
+    assert MET(h).stats.firstSightMirrors == n0 + 1
+    MET(h).onFirstSight("admin", player(h), None)  # no record: nothing
+    assert MET(h).stats.firstSightMirrors == n0 + 1
+
+
+PRECONDITION = r"""
+function(v)
+    local NR = NutritionRevamp
+    local saved, savedOpts, savedLevel = SandboxVars, NR.server.options, NR.log.level
+    NR.log.level = 0
+    if v == "absent" then SandboxVars = nil
+    elseif v == "missing" then SandboxVars = {}
+    else SandboxVars = { Nutrition = v } end
+    NR.server.options = { nutritionOn = false }
+    local broken = NR.server.metabolism.checkPrecondition()
+    local flagged = NR.server.options.nutritionOn
+    SandboxVars, NR.server.options, NR.log.level = saved, savedOpts, savedLevel
+    return broken, flagged
+end
+"""
+
+
+@pytest.mark.parametrize("v, broken", [(False, False), (True, True), ("missing", True), ("absent", True),
+                                       ("false", True)])
+def test_precondition_warns_unless_nutrition_is_false(met_host, v, broken):
+    h = met_host
+    w0 = MET(h).stats.preconditionWarnings
+    got, flagged = h.rt.eval(PRECONDITION)(v)
+    assert got is broken
+    assert flagged is broken
+    assert MET(h).stats.preconditionWarnings == w0 + (1 if broken else 0)
+
+
+def test_precondition_message_and_no_write():
+    with open(METABOLISM, encoding="utf-8") as fh:
+        src = fh.read()
+    assert ('NR.log.say(1, "NutritionRevamp expects SandboxVars.Nutrition = false: vanilla\'s nutrition update '
+            'is ON and will fight the weight flags and drain the mirror stores")') in src
+    code = "\n".join(l.split("--")[0] for l in src.splitlines())
+    assert re.search(r"^\s*(SandboxVars|sv)\.Nutrition\s*=[^=]", code, re.M) is None   # never changed
+
+
+def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    with open(CORE, encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Core.lua")()
+    rt.execute(r"""
+        NR_STARTED = {}
+        NR_PRINTED = {}
+        print = function(s) NR_PRINTED[#NR_PRINTED + 1] = s end
+        Events = { OnServerStarted = { Add = function(fn) NR_STARTED[#NR_STARTED + 1] = fn end } }
+        isServer = function() return true end
+        SandboxVars = { Nutrition = true }
+        NutritionRevamp.server.players = { onMinute = {}, onFirstSight = {} }
+    """)
+    for n in sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Options.lua"]):
+        with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
+            load(fh.read(), "@" + n)()
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
+    rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
+    G = rt.globals()
+    printed = list(G.NR_PRINTED.values())
+    warn = [s for s in printed if "expects SandboxVars.Nutrition = false" in s]
+    assert len(warn) == 1                      # once, at level 1
+    assert G.NutritionRevamp.server.options.nutritionOn is True
+    report = [s for s in printed if "NutritionRevamp v" in s]
+    assert report and "nutritionOn=true" in report[0]   # set before the boot self-report
+    fs = G.NutritionRevamp.server.players.onFirstSight
+    assert len(fs) == 1
+    assert rt.eval("rawequal")(fs[1], G.NutritionRevamp.server.metabolism.onFirstSight)
+
+
+def test_self_report_reads_nutrition_off_by_default():
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    with open(CORE, encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Core.lua")()
+    with open(os.path.join(SERVER, "NR_Server_Options.lua"), encoding="utf-8") as fh:
+        load(fh.read(), "@NR_Server_Options.lua")()
+    G = rt.globals()
+    assert G.NutritionRevamp.server.options.nutritionOn is False
+    assert "nutritionOn=false" in G.NutritionRevamp.selfReport("server")
+
+
 # --- the fast adapter's two scalars (the file names Java at hoist, so it is read, not loaded) ----------
 
 def test_fast_adapter_reads_the_two_body_scalars():
@@ -635,8 +880,9 @@ def test_fast_adapter_reads_the_two_body_scalars():
         src = fh.read()
     region = src[src.index("-- @fastpath"):src.index("-- @endfastpath")]
     assert "inp.energyState = 1 " not in region
-    assert "local body = h.record.body" in region
-    assert "es = body.energyState" in region and "inp.energyState = es" in region
-    assert "rm = body.rmod" in region and "inp.rmod = rm" in region
+    assert "local rec_body = h.record.body" in region          # never shadows the function body
+    assert "local body =" not in region
+    assert "es = rec_body.energyState" in region and "inp.energyState = es" in region
+    assert "rm = rec_body.rmod" in region and "inp.rmod = rm" in region
     assert "if es == nil or es ~= es then" in region
     assert "if rm == nil or rm ~= rm then" in region

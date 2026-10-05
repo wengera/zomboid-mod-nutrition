@@ -8,7 +8,8 @@
 -- Two companion game choices make that playable: (1) a record with no stomach yet is seeded FULL
 -- (K.stomach.seedFull) -- judgement: the character ate before the apocalypse, so a new or respawned
 -- character starts at vanilla's hunger 0 and empties on the gastric half-time; (2) the energy-state
--- term is stubbed at 1 in the fast adapter (inp.energyState = 1), the Plan 3 entry point. Thirst is
+-- term, stubbed at 1 in Plan 2, is NR_Server_Metabolism's per-minute stamp (record.body.energyState;
+-- the fast adapter reads nil or NaN as 1). Thirst is
 -- untouched in this plan: vanilla's drain stays until Plan 4 derives thirst from the water pool.
 -- design-phase-v1 game choice, the hunger timescale: the stomach's 2 h half-time (S0130,
 -- design-phase-v1) makes hunger run from 0 to 0.5 in 2 game-hours, ~0.875 by 6 h and ~0.94 across an

@@ -344,7 +344,8 @@ def test_mirror_on_writes_the_four_mapped_stores(wgt_host):
     p = player(h)
     record = record_for(h)
     body = record.body
-    h.G.NR_TEST_TOD = 12.0                              # half of yesterday still in the window
+    body.lastCloseAgeH = 100.0 - 12.0                   # half of yesterday still in the window
+    h.G.NR_TEST_TOD = 0.0                               # the clock hour never enters the blend
     body.ebDay = -250.0
     body.eb7[7] = -500.0                                # eb24h = -250 + -500 * 0.5 = -500
     body.pDay = 48.0
@@ -371,7 +372,7 @@ def test_mirror_reads_today_only_at_midnight_and_clamps(wgt_host):
     p = player(h)
     record = record_for(h)
     body = record.body
-    h.G.NR_TEST_TOD = 24.0                              # yesterday weighs 0
+    body.lastCloseAgeH = 100.0 - 24.0                   # yesterday weighs 0
     body.ebDay = 5000.0
     body.eb7[7] = -9000.0
     body.pDay = 0.0
@@ -456,20 +457,70 @@ def test_a_raising_setter_never_raises_into_the_walk(wgt_host):
     assert "setWeight raised" in WGT(h).lastError
 
 
-def test_missing_rings_are_rebuilt(wgt_host):
-    # a record.body created before the p7/carb7/lip7 rings existed reads zeros, never raises
+def test_the_rings_are_not_rebuilt_here(wgt_host):
+    # NR_Server_Metabolism owns the ring rebuild (it runs first in the minute); a ring missing here is
+    # a failure counted under the pcall, after the weight write
     h = wgt_host
     p = player(h)
     record = record_for(h)
     record.body.p7 = None
-    record.body.carb7 = None
-    record.body.lip7 = None
     s0 = stats(h)
     minute(h, p, record)
-    assert stats(h)["failures"] == s0["failures"]
-    for k in ("p7", "carb7", "lip7"):
-        assert list(record.body[k].values()) == [0] * 7, k
-    assert calls(p, "setCarbohydrates") == [-300.0]
+    assert record.body.p7 is None
+    assert calls(p, "setWeight") == [80.0]
+    assert stats(h)["failures"] == s0["failures"] + 1
+    with open(WEIGHT, encoding="utf-8") as fh:
+        assert "RINGS" not in fh.read()
+
+
+def test_mirror_blend_on_hours_since_close(wgt_host):
+    h = wgt_host
+    p = player(h)
+    record = record_for(h)
+    body = record.body
+    body.lastCloseAgeH = 100.0 - 6.0                    # three quarters of yesterday in the window
+    body.carbDay = 100.0
+    body.carb7[7] = 400.0
+    minute(h, p, record)
+    assert calls(p, "setCarbohydrates") == [100.0]      # 100 + 400 x 0.75 - 300
+    body.lastCloseAgeH = 100.0 + 3.0                    # a close ahead of the age reads the full day
+    minute(h, p, record)
+    assert calls(p, "setCarbohydrates")[1] == 200.0
+
+
+def test_absent_apply_trait_stamps_no_band_and_pushes_nothing(wgt_host):
+    h = wgt_host
+    p = player(h)
+    record = record_for(h, fm=25.0, lm=65.0)            # 90 kg: overweight, the body says normal
+    band0 = record.body.band
+    p.getNutrition(p).applyTraitFromWeight = None
+    s0 = stats(h)
+    n0 = pushes(h)
+    minute(h, p, record)
+    assert record.body.band == band0                    # not stamped: the next minute retries
+    assert stats(h)["bandChanges"] == s0["bandChanges"]
+    assert pushes(h) == n0
+
+
+def test_absent_apply_trait_counts_no_repair(wgt_host):
+    h = wgt_host
+    p = player(h, traits=["OBESE"])                     # 80 kg normal with a band trait present
+    p.getNutrition(p).applyTraitFromWeight = None
+    s0 = stats(h)
+    n0 = pushes(h)
+    minute(h, p, record_for(h))
+    assert stats(h)["bandRepairs"] == s0["bandRepairs"]
+    assert pushes(h) == n0
+
+
+def test_flag_writes_count_only_on_success(wgt_host):
+    h = wgt_host
+    p = player(h)
+    p.getNutrition(p).setDecWeight = None
+    s0 = stats(h)
+    minute(h, p, record_for(h))
+    assert stats(h)["flagWrites"] == s0["flagWrites"]
+    assert calls(p, "setIncWeight") == [False]
 
 
 def test_limitations(wgt_host):

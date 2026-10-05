@@ -385,6 +385,76 @@ def test_unreadable_xp_skips_the_level_arm(str_host):
     assert STR(h).stats.badReads == bad + 1
 
 
+def test_an_absent_level_setter_counts_no_write_and_runs_no_remap(str_host):
+    h = str_host
+    p = player(h, level=5, xp=0, traits=["STOUT"])
+    p.setPerkLevelDebug = None
+    record = record_for(h)
+    w0 = STR(h).stats.writes
+    pushes = h.G.NR_TEST_PUSHES
+    minute(h, p, record, 100.0)
+    assert STR(h).stats.writes == w0
+    assert traits(p) == ["STOUT"]              # no remap without the write
+    assert h.G.NR_TEST_PUSHES == pushes
+
+
+def test_an_unreadable_world_age_skips_the_step(str_host):
+    h = str_host
+    saved = h.G.getGameTime
+    h.G.getGameTime = lambda: h.table({})      # no getWorldAgeHours
+    p = player(h, level=5, xp=0)
+    record = record_for(h)
+    body = record["body"]
+    bad = STR(h).stats.badReads
+    try:
+        minute(h, p, record, 100.0)
+    finally:
+        h.G.getGameTime = saved
+    assert STR(h).stats.badReads == bad + 1
+    assert writes(p) == [] and deltas(p) == []
+    assert body["strAgeH"] == 99.0             # never stamped 0
+    assert body["riseHeldH"] == 0
+
+
+def test_band_repair_when_the_level_already_matches(str_host):
+    # #2740: an admin trait edit, or vanilla's own level-down after an XP drop, leaves the Java level at
+    # the shown level with the wrong band set; the minute re-asserts it once
+    h = str_host
+    p = player(h, level=3, xp=10500, traits=["STRONG"])   # level 3 implies FEEBLE
+    record = record_for(h, l0=3)
+    record["body"].shownL = 3
+    r0 = STR(h).stats.bandRepairs
+    pushes = h.G.NR_TEST_PUSHES
+    minute(h, p, record, 100.0)
+    assert writes(p) == []
+    assert traits(p) == ["FEEBLE"]
+    assert STR(h).stats.bandRepairs == r0 + 1
+    assert h.G.NR_TEST_PUSHES == pushes + 1
+    minute(h, p, record, 100.0 + 1 / 60)       # repaired: nothing more
+    assert STR(h).stats.bandRepairs == r0 + 1
+    assert h.G.NR_TEST_PUSHES == pushes + 1
+
+
+def test_band_repair_adds_a_missing_trait(str_host):
+    h = str_host
+    p = player(h, level=0, xp=0, traits=[])    # level 0 implies WEAK, absent
+    record = record_for(h, l0=0)
+    record["body"].shownL = 0
+    r0 = STR(h).stats.bandRepairs
+    minute(h, p, record, 100.0)
+    assert writes(p) == []
+    assert traits(p) == ["WEAK"]
+    assert STR(h).stats.bandRepairs == r0 + 1
+
+
+def test_no_band_repair_on_a_matching_set(str_host):
+    h = str_host
+    p = player(h, level=5, xp=40000, traits=[])
+    r0 = STR(h).stats.bandRepairs
+    minute(h, p, record_for(h), 100.0)
+    assert STR(h).stats.bandRepairs == r0
+
+
 def test_never_calls_a_granting_or_leveling_member():
     with open(STRENGTH, encoding="utf-8") as fh:
         code = "\n".join(l.split("--")[0] for l in fh.read().splitlines())

@@ -8,8 +8,11 @@
 -- The level is a clamp, never a grant (#2701): the shown level is min(XP-implied, ceiling), written with
 -- setPerkLevelDebug alone (ruling T3-1, run x141s-20261005-105131: the write held through the
 -- experience push, the rust pass and an admin SyncXp, and ran no band remap, #2867-#2874), so the band
--- (XpUpdate.lua:207-223, #2157) is re-applied here. Any divergence -- the client's XP sync, an admin
--- edit -- is corrected every minute (#2740). This file never calls LevelPerk, LoseLevel, setXPToLevel,
+-- (XpUpdate.lua:207-243, #2157) is re-applied here. Any divergence -- the client's XP sync, an admin
+-- edit -- is corrected every minute (#2740), the band trait set included: when the Java level already
+-- equals the shown level but the band traits differ from what that level implies (an admin trait edit;
+-- an XP drop vanilla's own level-down met with no write, run x141c-20261005-132133), the remap runs as
+-- a repair. This file never calls LevelPerk, LoseLevel, setXPToLevel,
 -- addXp or AddXP, and never writes the carry base (#2704): a level-only write moves no XP and cannot
 -- trip the XP anti-cheat.
 --
@@ -25,7 +28,7 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.strength = {
     stats = { minutes = 0, writes = 0, pushes = 0, pushMissing = 0, carryWrites = 0, failures = 0,
-              badReads = 0, ladderFallbacks = 0 },
+              badReads = 0, ladderFallbacks = 0, bandRepairs = 0 },
     lastError = nil,
     wired = false,
     totals = nil,
@@ -53,12 +56,13 @@ local function finite(x)
     return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
 end
 
+-- The world age, or nil when it cannot be read (the step is then skipped, never stamped 0).
 local function worldAge()
-    if getGameTime == nil then return 0 end
+    if getGameTime == nil then return nil end
     local ok, gt = pcall(getGameTime)
     local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
     if okA and finite(age) then return age end
-    return 0
+    return nil
 end
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
@@ -201,6 +205,10 @@ local function step(username, player, record)
     local body = record.body
     if body == nil then return end
     local ageH = worldAge()
+    if ageH == nil then
+        STR.stats.badReads = STR.stats.badReads + 1
+        return
+    end
     heal(username, body, ageH)
     local dtH = K.clamp(ageH - body.strAgeH, 0, STR.MAX_DT_H)
     body.strAgeH = ageH
@@ -213,9 +221,12 @@ local function step(username, player, record)
             local lceil = K.strength.ceiling(body.l0, body.lm, body.lm0, K.strength.fSlow(body, body.dayIndex))
             local desired = K.strength.policy(body, lvanilla, lceil, ageH, dtH)
             if current ~= desired then
-                NR.call(player, "setPerkLevelDebug", perk, desired)
-                STR.stats.writes = STR.stats.writes + 1
-                STR.remap(player, desired)
+                if NR.call(player, "setPerkLevelDebug", perk, desired) then
+                    STR.stats.writes = STR.stats.writes + 1
+                    STR.remap(player, desired)
+                end
+            elseif STR.remap(player, desired) then
+                STR.stats.bandRepairs = STR.stats.bandRepairs + 1   -- #2740: the band set re-asserted
             end
         end
     end

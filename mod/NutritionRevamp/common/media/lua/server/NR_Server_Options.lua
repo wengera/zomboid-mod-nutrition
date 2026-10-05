@@ -3,7 +3,10 @@
 -- file scope sees the declared default. No change event exists (#2466), so the options are
 -- re-read every slow tick and a change fires NR.server.options.changed.
 local NR = NutritionRevamp
-NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {} }
+-- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
+-- precondition check sets it; the option is the operator's and is never changed by the mod).
+NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
+                      nutritionOn = false }
 local O = NR.server.options
 
 local MODE_NAMES = { "takeover", "overlay" }
@@ -45,7 +48,7 @@ end
 
 function NR.selfReport(side)
     return "NutritionRevamp v" .. NR.version .. " build " .. NR.build .. " side=" .. tostring(side)
-        .. " mode=" .. NR.modeName(O.mode) .. " log=" .. tostring(O.logLevel) .. " frameworks=none" .. " hook=" .. tostring(NR.server.fast ~= nil and NR.server.fast.registered) .. " limitations=" .. tostring(NR.server.fast and #NR.server.fast.limitations or 0)
+        .. " mode=" .. NR.modeName(O.mode) .. " log=" .. tostring(O.logLevel) .. " frameworks=none" .. " hook=" .. tostring(NR.server.fast ~= nil and NR.server.fast.registered) .. " limitations=" .. tostring(NR.server.fast and #NR.server.fast.limitations or 0) .. " nutritionOn=" .. tostring(O.nutritionOn == true)
 end
 
 if Events ~= nil and Events.OnServerStarted ~= nil then
