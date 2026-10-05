@@ -298,3 +298,11 @@ x141s-20261005-105131,verdicts.X40.verdict,`falsified`,"The prediction left out 
 x141s-20261005-105131,summary.verdicts.X40,`falsified`,The same.,the same
 x141s-20261005-105131,constants.TARGET_XP,37600,"Chosen as above level 6's total, but 37500 is the level-5 total; no crossing followed.",—
 x141s-20261005-105131,constants.L6_TOTAL,37500,"37500 is the level-5 cumulative total (#2102), not level 6's.",—
+x141a-20261005-111005,verdicts.X36.verdict,`as_predicted`,"The rise is the rep path (exerciseRepeat); the Fitness.update decay tick was not exercised.",cite `verdicts.X36.observed` as the rep path only
+x141a-20261005-111005,summary.verdicts.X36,`as_predicted`,The same.,the same
+x141a-20261005-111005,arm_summaries.*.metwatch_raw_rate,—,"The first 50 ticks (5 s) of each window only.",cite the polls and `new_hist_keys`
+x141a-20261005-111005,arm_summaries.*.metwatch_raw_target,—,The same.,the same
+x141a-20261005-111005,verdicts.X37.observed.*.raw_rate_max,—,The same.,the same
+x141a-20261005-111005,phases.M.result.returns,`false` x5,"DoAttack's return is not a hit.",cite `verdicts.X39-hit.observed.count_deltas`
+x141a-20261005-111005,client_lua_error,`true`,"The probe's own get(0) on an empty action stack.",—
+x141a-20261005-111005,server_error_count,51,"13 are the probe's get(0) reads on an empty stack; the rest boot baseline.",—
