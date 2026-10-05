@@ -455,3 +455,104 @@ def test_assemble_thirst_only_food_half(intake_host):
     vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h), -0.05)
     assert abs(share - 0.5) < TOL
     assert abs(vec["calories"] - 1) < TOL
+
+
+# --- the drink wrapper's pure helpers: litresDrunk and fluidVector -------------------------------
+
+def test_litres_drunk_half_can(intake_host):
+    assert abs(I(intake_host).litresDrunk(0.3, 0.15) - 0.15) < TOL
+
+
+def test_litres_drunk_no_op(intake_host):
+    assert I(intake_host).litresDrunk(0.3, 0.3) == 0
+
+
+def test_litres_drunk_never_negative(intake_host):
+    assert I(intake_host).litresDrunk(0.15, 0.3) == 0
+
+
+def test_litres_drunk_nil_is_zero(intake_host):
+    assert I(intake_host).litresDrunk(None, 0.1) == 0
+    assert I(intake_host).litresDrunk(0.3, None) == 0
+
+
+def fluid_lookup(h):
+    cola = tbl(h, {"calories": 400, "carbs": 104, "lipids": 0, "proteins": 0, "water": 890})
+    water = tbl(h, {"calories": 0, "carbs": 0, "lipids": 0, "proteins": 0, "water": 1000})
+    seeds = tbl(h, {"Cola": cola, "Water": water})
+    return h.rt.eval(STUB)(seeds)
+
+
+def mix(h, *pairs):
+    return h.rt.table(*[h.rt.table(t, s) for t, s in pairs])
+
+
+def test_fluid_vector_full_can_of_cola(intake_host):
+    # Cola per litre 400 kcal, 104 g carbs x 0.3 L = the per-can 120 / 31.2 (#0634, #1892)
+    h = intake_host
+    vec, missing = I(h).fluidVector(fluid_lookup(h), mix(h, ("Cola", 1.0)), 0.3)
+    assert abs(vec["calories"] - 120) < TOL
+    assert abs(vec["carbs"] - 31.2) < TOL
+    assert len(as_dict(missing)) == 0
+
+
+def test_fluid_vector_half_cola_half_water(intake_host):
+    h = intake_host
+    vec, missing = I(h).fluidVector(fluid_lookup(h), mix(h, ("Cola", 0.5), ("Water", 0.5)), 0.4)
+    assert abs(vec["calories"] - 80) < TOL
+    assert abs(vec["water"] - (0.5 * 0.4 * 890 + 0.5 * 0.4 * 1000)) < TOL
+    assert len(as_dict(missing)) == 0
+
+
+def test_fluid_vector_unknown_fluid_is_missing(intake_host):
+    h = intake_host
+    vec, missing = I(h).fluidVector(fluid_lookup(h), mix(h, ("Cola", 0.5), ("Bleach", 0.5)), 0.4)
+    assert list(as_dict(missing).values()) == ["Bleach"]
+    assert abs(vec["calories"] - 80) < TOL
+    assert abs(vec["water"] - 0.5 * 0.4 * 890) < TOL
+
+
+def test_fluid_vector_empty_mix(intake_host):
+    h = intake_host
+    vec, missing = I(h).fluidVector(fluid_lookup(h), h.rt.table(), 0.3)
+    assert all(v == 0 for v in as_dict(vec).values())
+    assert len(as_dict(missing)) == 0
+
+
+def test_drink_sentinel_is_a_global_of_its_own(intake_host):
+    assert lua51.lua_type(intake_host.G.NR_IntakeDrink_Installed) == "table"
+    assert intake_host.G.ISDrinkFluidAction is None
+
+
+DRINK = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local calls = 0
+    local cls = {}
+    local vUpdate = function(self, delta) calls = calls + 1 return "orig" end
+    cls.updateEat = vUpdate
+    ISDrinkFluidAction = cls
+    local first = IN.installDrink()
+    local w = cls.updateEat
+    local again = IN.installDrink()
+    local same = cls.updateEat == w and w ~= vUpdate
+    local before = IN.stats.passthrough
+    local r = cls.updateEat({}, 0.5)
+    local passed = IN.stats.passthrough - before
+    IN.uninstallDrink()
+    local restored = cls.updateEat == vUpdate
+    ISDrinkFluidAction = nil
+    local S = NR_IntakeDrink_Installed
+    S.wrapper, S.class, S.orig, S.off = nil, nil, nil, nil
+    return first, again, same, r, calls, passed, restored, IN.wrappedDrink
+end
+"""
+
+
+def test_drink_install_is_idempotent_and_always_calls_the_original(intake_host):
+    first, again, same, r, calls, passed, restored, wrapped = intake_host.rt.eval(DRINK)()
+    assert first is True and again is True and same is True
+    assert r == "orig" and calls == 1
+    assert passed == 1
+    assert restored is True
+    assert wrapped is False

@@ -25,8 +25,9 @@
 -- The capture runs once per eat on the server, never per tick: no @fastpath region in this file.
 local NR = NutritionRevamp
 local K = NR.kernel
-NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false, wired = false,
-                     stats = { eats = 0, cancels = 0, landed = 0, failures = 0, passthrough = 0 },
+NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
+                     wrappedDrink = false, wired = false,
+                     stats = { eats = 0, cancels = 0, drinks = 0, landed = 0, failures = 0, passthrough = 0 },
                      lastError = nil }
 local IN = NR.server.intake
 
@@ -35,6 +36,7 @@ local IN = NR.server.intake
 -- the wrap went into) and off (a pass-through switch for an uninstall that could not unwind).
 NR_IntakeComplete_Installed = NR_IntakeComplete_Installed or {}
 NR_IntakeServerStop_Installed = NR_IntakeServerStop_Installed or {}
+NR_IntakeDrink_Installed = NR_IntakeDrink_Installed or {}
 
 -- ---------------------------------------------------------------------------------------------------
 -- The pure helpers: no Java, tested on the lupa host.
@@ -227,12 +229,16 @@ end
 
 -- The two halves the wrapper calls, each under its own pcall; the original runs between them, outside.
 function IN.guardBefore(action, kind)
+    local readFn = IN.readBefore
     if kind == "cancel" then
         IN.stats.cancels = IN.stats.cancels + 1
+    elseif kind == "drink" then
+        IN.stats.drinks = IN.stats.drinks + 1
+        readFn = IN.readDrinkBefore
     else
         IN.stats.eats = IN.stats.eats + 1
     end
-    local ok, b = pcall(IN.readBefore, action)
+    local ok, b = pcall(readFn, action)
     if ok then return b end
     IN.stats.failures = IN.stats.failures + 1
     IN.lastError = b
@@ -241,7 +247,9 @@ function IN.guardBefore(action, kind)
 end
 
 function IN.guardAfter(b, kind)
-    local ok, err = pcall(IN.readAfterAndLand, b)
+    local landFn = IN.readAfterAndLand
+    if kind == "drink" then landFn = IN.readDrinkAfterAndLand end
+    local ok, err = pcall(landFn, b)
     if ok then return end
     IN.stats.failures = IN.stats.failures + 1
     IN.lastError = err
@@ -267,8 +275,8 @@ local function makeWrapper(S, kind)
     end
 end
 
-local function installOne(S, method, kind)
-    local cls = ISEatFoodAction
+local function installOne(S, cls, clsName, method, kind)
+    if cls == nil then return false end
     local cur = cls[method]
     if cur == nil then return false end
     S.off = false
@@ -278,12 +286,11 @@ local function installOne(S, method, kind)
     S.wrapper = S.wrapper or makeWrapper(S, kind)
     S.class = cls
     cls[method] = S.wrapper
-    NR.log.say(2, "intake: ISEatFoodAction." .. method .. " wrapped")
+    NR.log.say(2, "intake: " .. clsName .. "." .. method .. " wrapped")
     return true
 end
 
-local function uninstallOne(S, method)
-    local cls = ISEatFoodAction
+local function uninstallOne(S, cls, method)
     if cls == nil or S.wrapper == nil or S.class ~= cls then return end
     if cls[method] == S.wrapper then
         cls[method] = S.orig
@@ -307,29 +314,156 @@ function IN.install()
         mirror()
         return false
     end
-    installOne(NR_IntakeComplete_Installed, "complete", "eat")
-    installOne(NR_IntakeServerStop_Installed, "serverStop", "cancel")
+    installOne(NR_IntakeComplete_Installed, ISEatFoodAction, "ISEatFoodAction", "complete", "eat")
+    installOne(NR_IntakeServerStop_Installed, ISEatFoodAction, "ISEatFoodAction", "serverStop", "cancel")
     return mirror()
 end
 
 function IN.uninstall()
-    uninstallOne(NR_IntakeComplete_Installed, "complete")
-    uninstallOne(NR_IntakeServerStop_Installed, "serverStop")
+    uninstallOne(NR_IntakeComplete_Installed, ISEatFoodAction, "complete")
+    uninstallOne(NR_IntakeServerStop_Installed, ISEatFoodAction, "serverStop")
     return mirror()
+end
+
+-- ---------------------------------------------------------------------------------------------------
+-- The drink wrapper (Task 9): ISDrinkFluidAction.updateEat, the drink action's ONE DrinkFluid call
+-- (#2689). The update reaches it when not a client, the drinkFluid animation event when a server, and
+-- complete unguarded (complete is just updateEat(1)), so updateEat is the single seat: wrapping complete
+-- as well would count the last sip twice. A drink has no eat hook and no eat packet (#0084).
+--  * Each sip is seen once: updateEat consumes only the gap between the target ratio and what has
+--    already gone (#0085), so the litres before minus the litres after EACH call, summed over the
+--    calls, is the container's whole consumed amount with no double count. Several calls per drink are
+--    normal (the animation event about every 100 ms, complete the last); each lands its own vector.
+--  * The mix is sampled BEFORE the call: the removal returns a FluidConsume with the aggregate's
+--    nutrition and no per-fluid breakdown (#2688). The sample is walked with size()/get(i), never `#`
+--    (#2685), and is pooled, so it is released inside the before-read, before the original runs.
+--  * No retention on a drink: a fluid has no cooked/burnt/rotten/frozen state (tainted water and
+--    poison are a separate vanilla path the mod does not touch here). No macro override either: the
+--    per-litre seed macros are the fluid's own Properties, which is exactly what DrinkFluid writes
+--    times the litres (#0064, #0630), so the fluid vector's macros track vanilla by construction.
+--  * Same sentinel shape as the eat wrappers: a global of its own, idempotent save-and-replace with
+--    the class-table reload guard, the saved original ALWAYS called, outside the pcall.
+--
+-- limitations:
+--  * A drink straight from a world water source goes through ISTakeWaterAction, which moves the litres
+--    into a temporary container and calls DrinkFluid on it itself (#2690): this wrapper never sees it,
+--    and that route is out of this plan's scope.
+--  * ISDrinkFromBottle is dead code on this build (no caller chain; it calls no DrinkFluid) (#0670).
+
+-- The litres one updateEat call removed: before - after, floored at 0; a nil on either side -> 0.
+function IN.litresDrunk(before, after)
+    if type(before) ~= "number" or type(after) ~= "number" then return 0 end
+    return K.max(before - after, 0)
+end
+
+-- The drink's vector: each sampled fluid's per-litre seed x its proportion of the mix x the litres
+-- drunk, summed (K.vector.fluid is the single-fluid form of the same product). mix is a Lua array of
+-- { fluidTypeString, proportion 0..1 } the before-read built, so `#` on it is a Lua length. A type the
+-- lookup does not know goes to `missing` and contributes nothing. Returns vec, missing.
+function IN.fluidVector(lookup, mix, litres)
+    local vec = K.vector.new()
+    local missing = {}
+    for i = 1, #mix do
+        local typeStr, proportion = mix[i][1], mix[i][2]
+        local seed = lookup(typeStr)
+        if seed == nil then
+            missing[#missing + 1] = typeStr
+        else
+            K.vector.add(vec, seed, proportion * litres)
+        end
+    end
+    return vec, missing
+end
+
+-- The before-snapshot of a drink, or nil when there is nothing to capture (no item, no character, no
+-- username, no container, an empty container).
+function IN.readDrinkBefore(action)
+    local item, char = action.item, action.character
+    if item == nil or char == nil then return nil end
+    local username = read(char, "getUsername")
+    if username == nil then return nil end
+    local fc = action.fluidContainer                       -- the action's own Lua field
+    if fc == nil then fc = read(item, "getFluidContainer") end
+    if fc == nil then return nil end
+    local litresBefore = read(fc, "getAmount")             -- litres (#2685)
+    if type(litresBefore) ~= "number" or litresBefore <= 0 then return nil end
+    local d = { item = item, fc = fc, username = username, litresBefore = litresBefore, mix = {} }
+    d.fullType = tostring(read(item, "getFullType"))
+    -- the mix: getPercentage(i) is the fluid's proportion 0..1 of the container's amount (the
+    -- instance amount over the container total); getFluidTypeString is never null on a Fluid (#2684),
+    -- the key the per-fluid table uses
+    local sample = read(fc, "createFluidSample")
+    if sample ~= nil then
+        local n = num(read(sample, "size"))
+        local i = 0
+        while i < n do
+            local fluid = read(sample, "getFluid", i)
+            local typeStr = read(fluid, "getFluidTypeString")
+            local proportion = read(sample, "getPercentage", i)
+            if type(proportion) == "number" then
+                d.mix[#d.mix + 1] = { tostring(typeStr), proportion }
+            end
+            i = i + 1
+        end
+        NR.call(sample, "release")                         -- pooled: back before the original runs
+    end
+    return d
+end
+
+-- After the original: the litres again, the fluid vector for the litres drunk, the landing.
+function IN.readDrinkAfterAndLand(d)
+    local litresAfter = read(d.fc, "getAmount")
+    if type(litresAfter) ~= "number" then
+        error("intake: getAmount unreadable after the original for " .. d.fullType)
+    end
+    local litres = IN.litresDrunk(d.litresBefore, litresAfter)
+    if litres <= 0 then return nil end                     -- an empty container or a no-op call
+    if NR.data == nil or NR.data.fluids == nil then error("intake: NR.data.fluids absent") end
+    local vec, missing = IN.fluidVector(NR.data.fluids.get, d.mix, litres)
+    local record = NR.server.store.get(d.username, worldAge())
+    if record == nil then error("intake: no store record for " .. tostring(d.username)) end
+    record.stomach = record.stomach or K.stomach.new()
+    record.pool = record.pool or K.vector.new()
+    K.stomach.ingest(record.stomach, vec)
+    record.lastIntake = { fullType = d.fullType, source = "fluid", litres = litres, missing = missing }
+    IN.stats.landed = IN.stats.landed + 1
+    NR.log.say(3, "intake: " .. d.fullType .. " for " .. tostring(d.username) .. " source fluid litres "
+        .. tostring(litres))
+    return vec
+end
+
+local function mirrorDrink()
+    local cls = ISDrinkFluidAction
+    local D = NR_IntakeDrink_Installed
+    IN.wrappedDrink = cls ~= nil and D.wrapper ~= nil and D.class == cls and not D.off
+    return IN.wrappedDrink
+end
+
+function IN.installDrink()
+    if ISDrinkFluidAction == nil then return mirrorDrink() end
+    installOne(NR_IntakeDrink_Installed, ISDrinkFluidAction, "ISDrinkFluidAction", "updateEat", "drink")
+    return mirrorDrink()
+end
+
+function IN.uninstallDrink()
+    uninstallOne(NR_IntakeDrink_Installed, ISDrinkFluidAction, "updateEat")
+    return mirrorDrink()
 end
 
 -- At load, so the wrap is in place before the first eat (the wrapper itself gates on the side per
 -- call), and again at OnServerStarted behind the side test. Both modes install: the mod owns intake in
 -- takeover and overlay alike; only the stat tick differs by mode.
 IN.install()
+IN.installDrink()
 
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         IN.install()
+        IN.installDrink()
         if not IN.wired then
             IN.wired = true
-            NR.log.say(1, "intake: wrappers " .. tostring(IN.wrapped))
+            NR.log.say(1, "intake: wrappers " .. tostring(IN.wrapped) .. " drink " .. tostring(IN.wrappedDrink))
         end
     end)
 end
