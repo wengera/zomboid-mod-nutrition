@@ -205,7 +205,7 @@ Weight also crosses the wire narrowed to a float, so the two sides' weights are 
 A mod value the client derives from the store inherits the same staircase, and it is graded with the same band.
 
 A reading discriminates only when the two sides were first made to differ.
-No run has yet held a non-empty trait list on either side, so the two sides' agreement in every run that could have shown a trait crossing answered nothing [#2595/C/C-only].
+Before X4's run no run had held a non-empty trait list on either side, so the two sides' agreement in every earlier run that could have shown a trait crossing answered nothing [#2595/C/C-only]; X4's no-push arm then timed a server-written trait onto the client's list within about half a second [#2759/M/n=3].
 Every experiment this page owns names the control that makes its sides differ, and a reading that comes back trivial, unmeasured or falsified is written as such rather than re-run ([harness.md#driver-rules](../platform/harness.md#driver-rules)).
 
 Two reply shapes are stale or side-relative by construction and are never graded as desyncs.
@@ -290,7 +290,7 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 ## Open
 <a id="open"></a>
 
-- Whether a server push after a trait write reaches the client's trait list, whether a client read sees the new trait within the push cadence, and whether a trait the mod registers behaves the same — settled by making the server's trait list non-empty first and timing the client's arrival against each write, with the mod's own trait push and with none as the control; the no-push arm is predicted to arrive within a second on the experience packet, so the push shows only as an earlier arrival; -> X4 ([#2099/C/open, #2595/C/C-only, #2608/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
+- Whether a server-side `sendSyncPlayerFields(player, 2)` sent straight after a trait write brings the trait to the owning client sooner than the once-a-second experience push — settled by a push run in the same server tick as the write, timed on the client against the same write with no push; the no-push arrival is measured within about half a second, so the push shows only as an earlier arrival; -> X4 ([#2099/C/open, #2595/C/C-only, #2608/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [open-questions.md#x4](open-questions.md#x4)).
 - Whether a mod translation file displaces a vanilla key or the merge keeps vanilla's — settled by a mod that redefines one vanilla item-name key beside a new interface key that must hit in the same run; -> X5 ([#1276/C/open, #1164/C/C-only/open], [open-questions.md#x5](open-questions.md#x5)).
 - Whether the drink path is interceptable the way the eat path is — settled by a harness command that queues the real drink action, then one session counting a server-side wrapper's fires on each side against the shipped drink command as the control; -> X13 ([#1279/C/open, #1133/C/C-only/open], [open-questions.md#x13](open-questions.md#x13)).
 - Whether the moodle framework loads whole, runs its configuration file and renders a registered moodle above its lowest level — settled by one session reading its globals on both sides and, on the client, a registered moodle's level and draw after a value past a threshold, beside a value that must leave it undrawn; -> X29 ([#1295/C/open, #0884/C/C-only/open, #2742/M/n=1/open], [open-questions.md#x29](open-questions.md#x29)).

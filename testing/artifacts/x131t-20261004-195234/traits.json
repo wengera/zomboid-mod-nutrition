@@ -1,0 +1,4928 @@
+{
+ "run_id": "x131t-20261004-195234",
+ "session": "X4: a server-side trait write timed to the owning client's trait list -- no push (x3), trait.set + trait.push mask 2 (x3), and a registered mod trait TKX:Probe granted by TKX_TraitProbe and pushed; client stats.get polled for the arrival",
+ "user": "admin",
+ "profile": {
+  "name": "x13-traits",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x13-traits.toml",
+  "fixture": "default",
+  "description": "PZTestKit + TKX_TraitProbe - X4 registered-trait arm.",
+  "mods": [
+   "PZTestKit",
+   "TKX_TraitProbe"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "TKX_TraitProbe": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_TraitProbe"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "TKX_TraitProbe"
+ ],
+ "commit": "de0525e",
+ "harness_lua_commit": "42425e9",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x131b-20261004-175911",
+ "dry_run": false,
+ "constants": {
+  "POLL_S": 0.25,
+  "WINDOW_S": 5.0,
+  "GRANT_WAIT_S": 10.0,
+  "GAPS": [
+   1.37,
+   2.11,
+   1.73,
+   2.59,
+   1.19,
+   2.33
+  ],
+  "FIELD_COUNT": 9
+ },
+ "world_changes": {
+  "restored": "every trait added is removed in the same trial",
+  "left_in_place": []
+ },
+ "steps": [
+  {
+   "step": "A1_1_set_add",
+   "cmd": "trait.set",
+   "args": "admin HeartyAppetite add",
+   "side": "server",
+   "wall_before": 57.298,
+   "wall_after": 57.558,
+   "epoch_ms_before": 1791158011658,
+   "epoch_ms_after": 1791158011918,
+   "took": 0.26,
+   "ack": {
+    "trait": "HeartyAppetite",
+    "field": "HEARTY_APPETITE",
+    "op": "add",
+    "before": false,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+    "after": true,
+    "traitList": [
+     "heartyappetite"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A1_1_set_remove",
+   "cmd": "trait.set",
+   "args": "admin HeartyAppetite remove",
+   "side": "server",
+   "wall_before": 59.581,
+   "wall_after": 61.595,
+   "epoch_ms_before": 1791158013941,
+   "epoch_ms_after": 1791158015955,
+   "took": 2.014,
+   "ack": {
+    "trait": "HeartyAppetite",
+    "field": "HEARTY_APPETITE",
+    "op": "remove",
+    "before": true,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+    "after": false,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A2_1_set_add",
+   "cmd": "trait.set",
+   "args": "admin LightEater add",
+   "side": "server",
+   "wall_before": 70.322,
+   "wall_after": 71.585,
+   "epoch_ms_before": 1791158024683,
+   "epoch_ms_after": 1791158025945,
+   "took": 1.263,
+   "ack": {
+    "trait": "LightEater",
+    "field": "LIGHT_EATER",
+    "op": "add",
+    "before": false,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():add(CharacterTrait.LIGHT_EATER)",
+    "after": true,
+    "traitList": [
+     "lighteater"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A2_1_push_add",
+   "cmd": "trait.push",
+   "args": "admin 2",
+   "side": "server",
+   "wall_before": 71.585,
+   "wall_after": 72.843,
+   "epoch_ms_before": 1791158025946,
+   "epoch_ms_after": 1791158027203,
+   "took": 1.258,
+   "ack": {
+    "user": "admin",
+    "mask": 2,
+    "sent": true,
+    "wall": 1791158027157,
+    "traitList": [
+     "lighteater"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A2_1_set_remove",
+   "cmd": "trait.set",
+   "args": "admin LightEater remove",
+   "side": "server",
+   "wall_before": 73.611,
+   "wall_after": 75.627,
+   "epoch_ms_before": 1791158027971,
+   "epoch_ms_after": 1791158029987,
+   "took": 2.016,
+   "ack": {
+    "trait": "LightEater",
+    "field": "LIGHT_EATER",
+    "op": "remove",
+    "before": true,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():remove(CharacterTrait.LIGHT_EATER)",
+    "after": false,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A2_1_push_remove",
+   "cmd": "trait.push",
+   "args": "admin 2",
+   "side": "server",
+   "wall_before": 75.627,
+   "wall_after": 76.635,
+   "epoch_ms_before": 1791158029987,
+   "epoch_ms_after": 1791158030996,
+   "took": 1.008,
+   "ack": {
+    "user": "admin",
+    "mask": 2,
+    "sent": true,
+    "wall": 1791158030952,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A1_2_set_add",
+   "cmd": "trait.set",
+   "args": "admin HeartyAppetite add",
+   "side": "server",
+   "wall_before": 85.745,
+   "wall_after": 87.504,
+   "epoch_ms_before": 1791158040105,
+   "epoch_ms_after": 1791158041865,
+   "took": 1.759,
+   "ack": {
+    "trait": "HeartyAppetite",
+    "field": "HEARTY_APPETITE",
+    "op": "add",
+    "before": false,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+    "after": true,
+    "traitList": [
+     "heartyappetite"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A1_2_set_remove",
+   "cmd": "trait.set",
+   "args": "admin HeartyAppetite remove",
+   "side": "server",
+   "wall_before": 89.529,
+   "wall_after": 91.539,
+   "epoch_ms_before": 1791158043889,
+   "epoch_ms_after": 1791158045899,
+   "took": 2.01,
+   "ack": {
+    "trait": "HeartyAppetite",
+    "field": "HEARTY_APPETITE",
+    "op": "remove",
+    "before": true,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+    "after": false,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A2_2_set_add",
+   "cmd": "trait.set",
+   "args": "admin LightEater add",
+   "side": "server",
+   "wall_before": 100.767,
+   "wall_after": 101.529,
+   "epoch_ms_before": 1791158055127,
+   "epoch_ms_after": 1791158055890,
+   "took": 0.762,
+   "ack": {
+    "trait": "LightEater",
+    "field": "LIGHT_EATER",
+    "op": "add",
+    "before": false,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():add(CharacterTrait.LIGHT_EATER)",
+    "after": true,
+    "traitList": [
+     "lighteater"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A2_2_push_add",
+   "cmd": "trait.push",
+   "args": "admin 2",
+   "side": "server",
+   "wall_before": 101.529,
+   "wall_after": 103.04,
+   "epoch_ms_before": 1791158055890,
+   "epoch_ms_after": 1791158057400,
+   "took": 1.511,
+   "ack": {
+    "user": "admin",
+    "mask": 2,
+    "sent": true,
+    "wall": 1791158057250,
+    "traitList": [
+     "lighteater"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A2_2_set_remove",
+   "cmd": "trait.set",
+   "args": "admin LightEater remove",
+   "side": "server",
+   "wall_before": 103.558,
+   "wall_after": 105.575,
+   "epoch_ms_before": 1791158057918,
+   "epoch_ms_after": 1791158059936,
+   "took": 2.017,
+   "ack": {
+    "trait": "LightEater",
+    "field": "LIGHT_EATER",
+    "op": "remove",
+    "before": true,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():remove(CharacterTrait.LIGHT_EATER)",
+    "after": false,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A2_2_push_remove",
+   "cmd": "trait.push",
+   "args": "admin 2",
+   "side": "server",
+   "wall_before": 105.576,
+   "wall_after": 106.834,
+   "epoch_ms_before": 1791158059936,
+   "epoch_ms_after": 1791158061194,
+   "took": 1.258,
+   "ack": {
+    "user": "admin",
+    "mask": 2,
+    "sent": true,
+    "wall": 1791158060953,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A1_3_set_add",
+   "cmd": "trait.set",
+   "args": "admin HeartyAppetite add",
+   "side": "server",
+   "wall_before": 115.143,
+   "wall_after": 115.649,
+   "epoch_ms_before": 1791158069503,
+   "epoch_ms_after": 1791158070010,
+   "took": 0.506,
+   "ack": {
+    "trait": "HeartyAppetite",
+    "field": "HEARTY_APPETITE",
+    "op": "add",
+    "before": false,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+    "after": true,
+    "traitList": [
+     "heartyappetite"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A1_3_set_remove",
+   "cmd": "trait.set",
+   "args": "admin HeartyAppetite remove",
+   "side": "server",
+   "wall_before": 117.669,
+   "wall_after": 117.925,
+   "epoch_ms_before": 1791158072030,
+   "epoch_ms_after": 1791158072286,
+   "took": 0.256,
+   "ack": {
+    "trait": "HeartyAppetite",
+    "field": "HEARTY_APPETITE",
+    "op": "remove",
+    "before": true,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+    "after": false,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A2_3_set_add",
+   "cmd": "trait.set",
+   "args": "admin LightEater add",
+   "side": "server",
+   "wall_before": 126.125,
+   "wall_after": 127.634,
+   "epoch_ms_before": 1791158080485,
+   "epoch_ms_after": 1791158081995,
+   "took": 1.509,
+   "ack": {
+    "trait": "LightEater",
+    "field": "LIGHT_EATER",
+    "op": "add",
+    "before": false,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():add(CharacterTrait.LIGHT_EATER)",
+    "after": true,
+    "traitList": [
+     "lighteater"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A2_3_push_add",
+   "cmd": "trait.push",
+   "args": "admin 2",
+   "side": "server",
+   "wall_before": 127.634,
+   "wall_after": 129.396,
+   "epoch_ms_before": 1791158081995,
+   "epoch_ms_after": 1791158083756,
+   "took": 1.762,
+   "ack": {
+    "user": "admin",
+    "mask": 2,
+    "sent": true,
+    "wall": 1791158083556,
+    "traitList": [
+     "lighteater"
+    ],
+    "held": true
+   }
+  },
+  {
+   "step": "A2_3_set_remove",
+   "cmd": "trait.set",
+   "args": "admin LightEater remove",
+   "side": "server",
+   "wall_before": 131.667,
+   "wall_after": 132.926,
+   "epoch_ms_before": 1791158086027,
+   "epoch_ms_after": 1791158087286,
+   "took": 1.259,
+   "ack": {
+    "trait": "LightEater",
+    "field": "LIGHT_EATER",
+    "op": "remove",
+    "before": true,
+    "enumFound": true,
+    "collection": "getCharacterTraits()",
+    "route": "getCharacterTraits():remove(CharacterTrait.LIGHT_EATER)",
+    "after": false,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "A2_3_push_remove",
+   "cmd": "trait.push",
+   "args": "admin 2",
+   "side": "server",
+   "wall_before": 132.926,
+   "wall_after": 133.689,
+   "epoch_ms_before": 1791158087286,
+   "epoch_ms_after": 1791158088049,
+   "took": 0.763,
+   "ack": {
+    "user": "admin",
+    "mask": 2,
+    "sent": true,
+    "wall": 1791158087855,
+    "traitList": {},
+    "held": true
+   }
+  },
+  {
+   "step": "a3_rl",
+   "cmd": "lua.global",
+   "args": "ResourceLocation",
+   "side": "server",
+   "wall_before": 139.538,
+   "wall_after": 140.551,
+   "epoch_ms_before": 1791158093899,
+   "epoch_ms_after": 1791158094911,
+   "took": 1.013,
+   "ack": {
+    "side": "server",
+    "name": "ResourceLocation",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 4
+   }
+  },
+  {
+   "step": "a3_rl_of",
+   "cmd": "lua.global",
+   "args": "ResourceLocation.of",
+   "side": "server",
+   "wall_before": 140.551,
+   "wall_after": 141.563,
+   "epoch_ms_before": 1791158094911,
+   "epoch_ms_after": 1791158095923,
+   "took": 1.012,
+   "ack": {
+    "side": "server",
+    "name": "ResourceLocation.of",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "a3_client_reg",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe_Traits.probe",
+   "side": "client",
+   "wall_before": 141.563,
+   "wall_after": 142.326,
+   "epoch_ms_before": 1791158095923,
+   "epoch_ms_after": 1791158096687,
+   "took": 0.763,
+   "ack": {
+    "side": "client",
+    "name": "TKX_TraitProbe_Traits.probe",
+    "type": "userdata",
+    "resolved": true,
+    "value": "tkx:probe"
+   }
+  },
+  {
+   "step": "a3_grants_before",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe.grants",
+   "side": "server",
+   "wall_before": 142.582,
+   "wall_after": 143.589,
+   "epoch_ms_before": 1791158096942,
+   "epoch_ms_after": 1791158097950,
+   "took": 1.007,
+   "ack": {
+    "side": "server",
+    "name": "TKX_TraitProbe.grants",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "a3_grant",
+   "cmd": "moddata.set",
+   "args": "admin TKX_grant TKX:Probe",
+   "side": "server",
+   "wall_before": 143.589,
+   "wall_after": 144.351,
+   "epoch_ms_before": 1791158097950,
+   "epoch_ms_after": 1791158098711,
+   "took": 0.762,
+   "ack": {
+    "user": "admin",
+    "key": "TKX_grant",
+    "value": "TKX:Probe",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "TKX_grant",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.7169876098632812
+   }
+  },
+  {
+   "step": "a3_grants_poll",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe.grants",
+   "side": "server",
+   "wall_before": 144.351,
+   "wall_after": 145.614,
+   "epoch_ms_before": 1791158098711,
+   "epoch_ms_after": 1791158099974,
+   "took": 1.263,
+   "ack": {
+    "side": "server",
+    "name": "TKX_TraitProbe.grants",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "a3_push",
+   "cmd": "moddata.set",
+   "args": "admin TKX_push 1",
+   "side": "server",
+   "wall_before": 145.614,
+   "wall_after": 147.627,
+   "epoch_ms_before": 1791158099974,
+   "epoch_ms_after": 1791158101987,
+   "took": 2.013,
+   "ack": {
+    "user": "admin",
+    "key": "TKX_push",
+    "value": "1",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "TKX_push",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.731637954711914
+   }
+  },
+  {
+   "step": "a3_lastid",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe.lastId",
+   "side": "server",
+   "wall_before": 149.649,
+   "wall_after": 151.669,
+   "epoch_ms_before": 1791158104010,
+   "epoch_ms_after": 1791158106029,
+   "took": 2.02,
+   "ack": {
+    "side": "server",
+    "name": "TKX_TraitProbe.lastId",
+    "type": "string",
+    "resolved": true,
+    "value": "TKX:Probe"
+   }
+  },
+  {
+   "step": "a3_remove",
+   "cmd": "moddata.set",
+   "args": "admin TKX_grant -TKX:Probe",
+   "side": "server",
+   "wall_before": 151.669,
+   "wall_after": 151.924,
+   "epoch_ms_before": 1791158106029,
+   "epoch_ms_after": 1791158106284,
+   "took": 0.255,
+   "ack": {
+    "user": "admin",
+    "key": "TKX_grant",
+    "value": "-TKX:Probe",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "TKX_grant",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.7502880096435547
+   }
+  },
+  {
+   "step": "a3_push_remove",
+   "cmd": "moddata.set",
+   "args": "admin TKX_push 1",
+   "side": "server",
+   "wall_before": 152.424,
+   "wall_after": 153.685,
+   "epoch_ms_before": 1791158106784,
+   "epoch_ms_after": 1791158108046,
+   "took": 1.261,
+   "ack": {
+    "user": "admin",
+    "key": "TKX_push",
+    "value": "1",
+    "side": "server",
+    "keyCount": 5,
+    "keys": [
+     "TKX_push",
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.7582759857177734
+   }
+  },
+  {
+   "step": "a3_removes",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe.removes",
+   "side": "server",
+   "wall_before": 159.285,
+   "wall_after": 159.544,
+   "epoch_ms_before": 1791158113646,
+   "epoch_ms_after": 1791158113904,
+   "took": 0.259,
+   "ack": {
+    "side": "server",
+    "name": "TKX_TraitProbe.removes",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "a3_lastid2",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe.lastId",
+   "side": "server",
+   "wall_before": 159.544,
+   "wall_after": 161.557,
+   "epoch_ms_before": 1791158113904,
+   "epoch_ms_after": 1791158115917,
+   "took": 2.013,
+   "ack": {
+    "side": "server",
+    "name": "TKX_TraitProbe.lastId",
+    "type": "string",
+    "resolved": true,
+    "value": "-TKX:Probe"
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "T0": {
+   "client": {
+    "tag": "t0_client",
+    "side": "client",
+    "wall_before": 53.9,
+    "wall_after": 54.161,
+    "epoch_ms_before": 1791158008260,
+    "epoch_ms_after": 1791158008521,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158008432,
+    "worldAge": 2.3173131942749023
+   },
+   "server": {
+    "tag": "t0_server",
+    "side": "server",
+    "wall_before": 54.161,
+    "wall_after": 55.67,
+    "epoch_ms_before": 1791158008521,
+    "epoch_ms_after": 1791158010030,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158009855,
+    "worldAge": 2.3235902786254883
+   }
+  },
+  "A3": {
+   "route_probe": {
+    "ResourceLocation": {
+     "side": "server",
+     "name": "ResourceLocation",
+     "type": "table",
+     "resolved": true,
+     "keyCount": 4
+    },
+    "ResourceLocation.of": {
+     "side": "server",
+     "name": "ResourceLocation.of",
+     "type": "function",
+     "resolved": true,
+     "value": "function"
+    },
+    "client_registry": {
+     "side": "client",
+     "name": "TKX_TraitProbe_Traits.probe",
+     "type": "userdata",
+     "resolved": true,
+     "value": "tkx:probe"
+    }
+   },
+   "pre_client": {
+    "tag": "a3_pre_client",
+    "side": "client",
+    "wall_before": 142.326,
+    "wall_after": 142.581,
+    "epoch_ms_before": 1791158096687,
+    "epoch_ms_after": 1791158096942,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158096926,
+    "worldAge": 2.709824562072754
+   },
+   "grants_before": 0,
+   "grant_set": {
+    "step": "a3_grant",
+    "cmd": "moddata.set",
+    "args": "admin TKX_grant TKX:Probe",
+    "side": "server",
+    "wall_before": 143.589,
+    "wall_after": 144.351,
+    "epoch_ms_before": 1791158097950,
+    "epoch_ms_after": 1791158098711,
+    "took": 0.762,
+    "ack": {
+     "user": "admin",
+     "key": "TKX_grant",
+     "value": "TKX:Probe",
+     "side": "server",
+     "keyCount": 5,
+     "keys": [
+      "TKX_grant",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "serverWorldAge": 2.7169876098632812
+    }
+   },
+   "grants_polls": [
+    {
+     "value": 1,
+     "epoch_ms_after": 1791158099974
+    }
+   ],
+   "granted": true,
+   "push_set": {
+    "step": "a3_push",
+    "cmd": "moddata.set",
+    "args": "admin TKX_push 1",
+    "side": "server",
+    "wall_before": 145.614,
+    "wall_after": 147.627,
+    "epoch_ms_before": 1791158099974,
+    "epoch_ms_after": 1791158101987,
+    "took": 2.013,
+    "ack": {
+     "user": "admin",
+     "key": "TKX_push",
+     "value": "1",
+     "side": "server",
+     "keyCount": 5,
+     "keys": [
+      "TKX_push",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "serverWorldAge": 2.731637954711914
+    }
+   },
+   "add_poll": {
+    "tag": "a3_add",
+    "match": "probe",
+    "want_present": true,
+    "zero_ms": 1791158097950,
+    "polls": 1,
+    "rows": [
+     {
+      "tag": "a3_add",
+      "side": "client",
+      "wall_before": 147.627,
+      "wall_after": 148.138,
+      "epoch_ms_before": 1791158101987,
+      "epoch_ms_after": 1791158102499,
+      "traitList": [
+       "probe"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158102427,
+      "worldAge": 2.734372138977051,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158102427,
+    "hit_ms": 4477,
+    "first_poll_hit": true,
+    "hit_ms_from_push_set": 2453
+   },
+   "server_after_add": {
+    "tag": "a3_server_after_add",
+    "side": "server",
+    "wall_before": 148.138,
+    "wall_after": 149.649,
+    "epoch_ms_before": 1791158102499,
+    "epoch_ms_after": 1791158104010,
+    "traitList": [
+     "probe"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158103849,
+    "worldAge": 2.740518569946289,
+    "has": true
+   },
+   "lastId": {
+    "side": "server",
+    "name": "TKX_TraitProbe.lastId",
+    "type": "string",
+    "resolved": true,
+    "value": "TKX:Probe"
+   },
+   "remove_set": {
+    "step": "a3_remove",
+    "cmd": "moddata.set",
+    "args": "admin TKX_grant -TKX:Probe",
+    "side": "server",
+    "wall_before": 151.669,
+    "wall_after": 151.924,
+    "epoch_ms_before": 1791158106029,
+    "epoch_ms_after": 1791158106284,
+    "took": 0.255,
+    "ack": {
+     "user": "admin",
+     "key": "TKX_grant",
+     "value": "-TKX:Probe",
+     "side": "server",
+     "keyCount": 5,
+     "keys": [
+      "TKX_grant",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "serverWorldAge": 2.7502880096435547
+    }
+   },
+   "push_remove_set": {
+    "step": "a3_push_remove",
+    "cmd": "moddata.set",
+    "args": "admin TKX_push 1",
+    "side": "server",
+    "wall_before": 152.424,
+    "wall_after": 153.685,
+    "epoch_ms_before": 1791158106784,
+    "epoch_ms_after": 1791158108046,
+    "took": 1.261,
+    "ack": {
+     "user": "admin",
+     "key": "TKX_push",
+     "value": "1",
+     "side": "server",
+     "keyCount": 5,
+     "keys": [
+      "TKX_push",
+      "fitnessMod",
+      "fitnessUpTimer",
+      "strengthMod",
+      "strengthUpTimer"
+     ],
+     "serverWorldAge": 2.7582759857177734
+    }
+   },
+   "remove_poll": {
+    "tag": "a3_remove",
+    "match": "probe",
+    "want_present": false,
+    "zero_ms": 1791158106029,
+    "polls": 10,
+    "rows": [
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 153.685,
+      "wall_after": 154.193,
+      "epoch_ms_before": 1791158108046,
+      "epoch_ms_after": 1791158108553,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158108428,
+      "worldAge": 2.760918617248535,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 154.193,
+      "wall_after": 154.705,
+      "epoch_ms_before": 1791158108553,
+      "epoch_ms_after": 1791158109065,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158108926,
+      "worldAge": 2.763150215148926,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 154.705,
+      "wall_after": 155.212,
+      "epoch_ms_before": 1791158109065,
+      "epoch_ms_after": 1791158109572,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158109428,
+      "worldAge": 2.765380859375,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 155.212,
+      "wall_after": 155.723,
+      "epoch_ms_before": 1791158109572,
+      "epoch_ms_after": 1791158110083,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158109928,
+      "worldAge": 2.7676124572753906,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 155.723,
+      "wall_after": 156.23,
+      "epoch_ms_before": 1791158110083,
+      "epoch_ms_after": 1791158110590,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158110429,
+      "worldAge": 2.7698440551757812,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 156.23,
+      "wall_after": 156.743,
+      "epoch_ms_before": 1791158110590,
+      "epoch_ms_after": 1791158111104,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158110927,
+      "worldAge": 2.772075653076172,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 156.743,
+      "wall_after": 157.25,
+      "epoch_ms_before": 1791158111104,
+      "epoch_ms_after": 1791158111611,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158111427,
+      "worldAge": 2.7743072509765625,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 157.25,
+      "wall_after": 157.756,
+      "epoch_ms_before": 1791158111611,
+      "epoch_ms_after": 1791158112116,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158111925,
+      "worldAge": 2.776538848876953,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 157.756,
+      "wall_after": 158.268,
+      "epoch_ms_before": 1791158112116,
+      "epoch_ms_after": 1791158112628,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158112426,
+      "worldAge": 2.7787704467773438,
+      "has": null
+     },
+     {
+      "tag": "a3_remove",
+      "side": "client",
+      "wall_before": 158.268,
+      "wall_after": 158.777,
+      "epoch_ms_before": 1791158112628,
+      "epoch_ms_after": 1791158113137,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158112925,
+      "worldAge": 2.7810020446777344,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "a3_server_after_remove",
+    "side": "server",
+    "wall_before": 158.777,
+    "wall_after": 159.285,
+    "epoch_ms_before": 1791158113137,
+    "epoch_ms_after": 1791158113646,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158113547,
+    "worldAge": 2.7835826873779297,
+    "has": null
+   },
+   "removes": {
+    "side": "server",
+    "name": "TKX_TraitProbe.removes",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   },
+   "lastId_after_remove": {
+    "side": "server",
+    "name": "TKX_TraitProbe.lastId",
+    "type": "string",
+    "resolved": true,
+    "value": "-TKX:Probe"
+   }
+  },
+  "A1A2_summary": {
+   "A1": {
+    "server_held": [
+     true,
+     true,
+     true
+    ],
+    "set_listed": [
+     true,
+     true,
+     true
+    ],
+    "pre_client_has": [
+     null,
+     null,
+     null
+    ],
+    "arrived": [
+     true,
+     true,
+     true
+    ],
+    "add_hit_ms": {
+     "n": 3,
+     "min": 771,
+     "median": 924,
+     "max": 2322,
+     "values": [
+      771,
+      2322,
+      924
+     ]
+    },
+    "add_prev_ms": {
+     "n": 2,
+     "min": 270,
+     "median": 1046.0,
+     "max": 1822,
+     "values": [
+      270,
+      1822
+     ]
+    },
+    "add_first_poll_hit": [
+     false,
+     false,
+     true
+    ],
+    "removed": [
+     false,
+     false,
+     false
+    ],
+    "remove_hit_ms": null
+   },
+   "A2": {
+    "server_held": [
+     true,
+     true,
+     true
+    ],
+    "set_listed": [
+     true,
+     true,
+     true
+    ],
+    "pre_client_has": [
+     null,
+     null,
+     null
+    ],
+    "arrived": [
+     true,
+     true,
+     true
+    ],
+    "add_hit_ms": {
+     "n": 3,
+     "min": 2300,
+     "median": 2741,
+     "max": 3442,
+     "values": [
+      2741,
+      2300,
+      3442
+     ]
+    },
+    "add_prev_ms": null,
+    "add_first_poll_hit": [
+     true,
+     true,
+     true
+    ],
+    "removed": [
+     false,
+     false,
+     false
+    ],
+    "remove_hit_ms": null,
+    "add_hit_ms_from_push": {
+     "n": 3,
+     "min": 177,
+     "median": 267,
+     "max": 371,
+     "values": [
+      267,
+      177,
+      371
+     ]
+    },
+    "add_prev_ms_from_push": null,
+    "set_to_push_ms": {
+     "n": 3,
+     "min": 2123,
+     "median": 2474,
+     "max": 3071,
+     "values": [
+      2474,
+      2123,
+      3071
+     ]
+    },
+    "remove_hit_ms_from_push": null
+   }
+  }
+ },
+ "verdicts": {
+  "A1": {
+   "phase": "A1",
+   "predicted": "arrival within 1.5 s of the set with no push (experience packet)",
+   "falsifier": "absent on the client at +5 s while the server holds the name",
+   "observed": {
+    "server_held": [
+     true,
+     true,
+     true
+    ],
+    "set_listed": [
+     true,
+     true,
+     true
+    ],
+    "pre_client_has": [
+     null,
+     null,
+     null
+    ],
+    "arrived": [
+     true,
+     true,
+     true
+    ],
+    "add_hit_ms": {
+     "n": 3,
+     "min": 771,
+     "median": 924,
+     "max": 2322,
+     "values": [
+      771,
+      2322,
+      924
+     ]
+    },
+    "add_prev_ms": {
+     "n": 2,
+     "min": 270,
+     "median": 1046.0,
+     "max": 1822,
+     "values": [
+      270,
+      1822
+     ]
+    },
+    "add_first_poll_hit": [
+     false,
+     false,
+     true
+    ],
+    "removed": [
+     false,
+     false,
+     false
+    ],
+    "remove_hit_ms": null
+   },
+   "verdict": "falsified",
+   "wall": 161.56
+  },
+  "A2": {
+   "phase": "A2",
+   "predicted": "arrival below A1's spread, at about one poll after the push",
+   "falsifier": "absent on the client at +5 s while the server holds the name",
+   "observed": {
+    "server_held": [
+     true,
+     true,
+     true
+    ],
+    "set_listed": [
+     true,
+     true,
+     true
+    ],
+    "pre_client_has": [
+     null,
+     null,
+     null
+    ],
+    "arrived": [
+     true,
+     true,
+     true
+    ],
+    "add_hit_ms": {
+     "n": 3,
+     "min": 2300,
+     "median": 2741,
+     "max": 3442,
+     "values": [
+      2741,
+      2300,
+      3442
+     ]
+    },
+    "add_prev_ms": null,
+    "add_first_poll_hit": [
+     true,
+     true,
+     true
+    ],
+    "removed": [
+     false,
+     false,
+     false
+    ],
+    "remove_hit_ms": null,
+    "add_hit_ms_from_push": {
+     "n": 3,
+     "min": 177,
+     "median": 267,
+     "max": 371,
+     "values": [
+      267,
+      177,
+      371
+     ]
+    },
+    "add_prev_ms_from_push": null,
+    "set_to_push_ms": {
+     "n": 3,
+     "min": 2123,
+     "median": 2474,
+     "max": 3071,
+     "values": [
+      2474,
+      2123,
+      3071
+     ]
+    },
+    "remove_hit_ms_from_push": null
+   },
+   "verdict": "not discriminated",
+   "wall": 161.566
+  },
+  "A3": {
+   "phase": "A3",
+   "predicted": "tkx:probe arrives on the client like A2's trait",
+   "falsifier": "server holds tkx:probe and the client never shows it within 5 s",
+   "observed": {
+    "granted": true,
+    "server_has": true,
+    "server_list": [
+     "probe"
+    ],
+    "arrived": true,
+    "hit_ms": 4477,
+    "prev_ms": null,
+    "hit_ms_from_push_set": 2453,
+    "client_list_at_hit": [
+     "probe"
+    ],
+    "removed": false,
+    "remove_hit_ms": null
+   },
+   "verdict": "as_predicted",
+   "wall": 161.57
+  }
+ },
+ "trials": [
+  {
+   "arm": "A1",
+   "trial": 1,
+   "trait": "HeartyAppetite",
+   "push": false,
+   "pre_client": {
+    "tag": "A1_1_pre_client",
+    "side": "client",
+    "wall_before": 57.041,
+    "wall_after": 57.298,
+    "epoch_ms_before": 1791158011402,
+    "epoch_ms_after": 1791158011658,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158011427,
+    "worldAge": 2.330702781677246
+   },
+   "pre_client_has": null,
+   "set": {
+    "step": "A1_1_set_add",
+    "cmd": "trait.set",
+    "args": "admin HeartyAppetite add",
+    "side": "server",
+    "wall_before": 57.298,
+    "wall_after": 57.558,
+    "epoch_ms_before": 1791158011658,
+    "epoch_ms_after": 1791158011918,
+    "took": 0.26,
+    "ack": {
+     "trait": "HeartyAppetite",
+     "field": "HEARTY_APPETITE",
+     "op": "add",
+     "before": false,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+     "after": true,
+     "traitList": [
+      "heartyappetite"
+     ],
+     "held": true
+    }
+   },
+   "set_zero_ms": {
+    "start": 1791158011658,
+    "end": 1791158011918
+   },
+   "add_poll": {
+    "tag": "A1_1_add",
+    "match": "heartyappetite",
+    "want_present": true,
+    "zero_ms": 1791158011658,
+    "polls": 2,
+    "rows": [
+     {
+      "tag": "A1_1_add",
+      "side": "client",
+      "wall_before": 57.558,
+      "wall_after": 57.813,
+      "epoch_ms_before": 1791158011918,
+      "epoch_ms_after": 1791158012174,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158011928,
+      "worldAge": 2.3329343795776367,
+      "has": null
+     },
+     {
+      "tag": "A1_1_add",
+      "side": "client",
+      "wall_before": 57.813,
+      "wall_after": 58.319,
+      "epoch_ms_before": 1791158012174,
+      "epoch_ms_after": 1791158012679,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": true,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158012429,
+      "worldAge": 2.3347368240356445,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158012429,
+    "hit_ms": 771,
+    "prev_wall": 1791158011928,
+    "prev_ms": 270,
+    "first_poll_hit": false
+   },
+   "server_after_add": {
+    "tag": "A1_1_server_after_add",
+    "side": "server",
+    "wall_before": 58.319,
+    "wall_after": 59.581,
+    "epoch_ms_before": 1791158012679,
+    "epoch_ms_after": 1791158013941,
+    "traitList": [
+     "heartyappetite"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": true,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158013850,
+    "worldAge": 2.34104061126709,
+    "has": true
+   },
+   "remove": {
+    "step": "A1_1_set_remove",
+    "cmd": "trait.set",
+    "args": "admin HeartyAppetite remove",
+    "side": "server",
+    "wall_before": 59.581,
+    "wall_after": 61.595,
+    "epoch_ms_before": 1791158013941,
+    "epoch_ms_after": 1791158015955,
+    "took": 2.014,
+    "ack": {
+     "trait": "HeartyAppetite",
+     "field": "HEARTY_APPETITE",
+     "op": "remove",
+     "before": true,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+     "after": false,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "remove_poll": {
+    "tag": "A1_1_remove",
+    "match": "heartyappetite",
+    "want_present": false,
+    "zero_ms": 1791158013941,
+    "polls": 10,
+    "rows": [
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 61.595,
+      "wall_after": 62.107,
+      "epoch_ms_before": 1791158015955,
+      "epoch_ms_after": 1791158016467,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158016424,
+      "worldAge": 2.3525896072387695,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 62.107,
+      "wall_after": 62.618,
+      "epoch_ms_before": 1791158016467,
+      "epoch_ms_after": 1791158016978,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158016929,
+      "worldAge": 2.35482120513916,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 62.618,
+      "wall_after": 63.126,
+      "epoch_ms_before": 1791158016979,
+      "epoch_ms_after": 1791158017486,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158017423,
+      "worldAge": 2.357052803039551,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 63.126,
+      "wall_after": 63.639,
+      "epoch_ms_before": 1791158017486,
+      "epoch_ms_after": 1791158018000,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158017924,
+      "worldAge": 2.3592844009399414,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 63.639,
+      "wall_after": 64.149,
+      "epoch_ms_before": 1791158018000,
+      "epoch_ms_after": 1791158018509,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158018427,
+      "worldAge": 2.361515998840332,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 64.149,
+      "wall_after": 64.658,
+      "epoch_ms_before": 1791158018509,
+      "epoch_ms_after": 1791158019018,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158018927,
+      "worldAge": 2.3637475967407227,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 64.658,
+      "wall_after": 65.168,
+      "epoch_ms_before": 1791158019018,
+      "epoch_ms_after": 1791158019528,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158019427,
+      "worldAge": 2.3659791946411133,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 65.168,
+      "wall_after": 65.679,
+      "epoch_ms_before": 1791158019528,
+      "epoch_ms_after": 1791158020040,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158019927,
+      "worldAge": 2.368210792541504,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 65.679,
+      "wall_after": 66.189,
+      "epoch_ms_before": 1791158020040,
+      "epoch_ms_after": 1791158020549,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158020428,
+      "worldAge": 2.3704423904418945,
+      "has": null
+     },
+     {
+      "tag": "A1_1_remove",
+      "side": "client",
+      "wall_before": 66.189,
+      "wall_after": 66.696,
+      "epoch_ms_before": 1791158020549,
+      "epoch_ms_after": 1791158021057,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158020928,
+      "worldAge": 2.372673988342285,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "A1_1_server_after_remove",
+    "side": "server",
+    "wall_before": 66.696,
+    "wall_after": 67.703,
+    "epoch_ms_before": 1791158021057,
+    "epoch_ms_after": 1791158022064,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158021857,
+    "worldAge": 2.3765077590942383,
+    "has": null
+   }
+  },
+  {
+   "arm": "A2",
+   "trial": 1,
+   "trait": "LightEater",
+   "push": {
+    "step": "A2_1_push_add",
+    "cmd": "trait.push",
+    "args": "admin 2",
+    "side": "server",
+    "wall_before": 71.585,
+    "wall_after": 72.843,
+    "epoch_ms_before": 1791158025946,
+    "epoch_ms_after": 1791158027203,
+    "took": 1.258,
+    "ack": {
+     "user": "admin",
+     "mask": 2,
+     "sent": true,
+     "wall": 1791158027157,
+     "traitList": [
+      "lighteater"
+     ],
+     "held": true
+    }
+   },
+   "pre_client": {
+    "tag": "A2_1_pre_client",
+    "side": "client",
+    "wall_before": 69.815,
+    "wall_after": 70.322,
+    "epoch_ms_before": 1791158024175,
+    "epoch_ms_after": 1791158024683,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158024429,
+    "worldAge": 2.387944221496582
+   },
+   "pre_client_has": null,
+   "set": {
+    "step": "A2_1_set_add",
+    "cmd": "trait.set",
+    "args": "admin LightEater add",
+    "side": "server",
+    "wall_before": 70.322,
+    "wall_after": 71.585,
+    "epoch_ms_before": 1791158024683,
+    "epoch_ms_after": 1791158025945,
+    "took": 1.263,
+    "ack": {
+     "trait": "LightEater",
+     "field": "LIGHT_EATER",
+     "op": "add",
+     "before": false,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():add(CharacterTrait.LIGHT_EATER)",
+     "after": true,
+     "traitList": [
+      "lighteater"
+     ],
+     "held": true
+    }
+   },
+   "set_zero_ms": {
+    "start": 1791158024683,
+    "end": 1791158025945
+   },
+   "push_wall": 1791158027157,
+   "add_poll": {
+    "tag": "A2_1_add",
+    "match": "lighteater",
+    "want_present": true,
+    "zero_ms": 1791158024683,
+    "polls": 1,
+    "rows": [
+     {
+      "tag": "A2_1_add",
+      "side": "client",
+      "wall_before": 72.843,
+      "wall_after": 73.099,
+      "epoch_ms_before": 1791158027203,
+      "epoch_ms_after": 1791158027460,
+      "traitList": [
+       "lighteater"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": true,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158027424,
+      "worldAge": 2.401333808898926,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158027424,
+    "hit_ms": 2741,
+    "first_poll_hit": true,
+    "hit_ms_from_push": 267
+   },
+   "server_after_add": {
+    "tag": "A2_1_server_after_add",
+    "side": "server",
+    "wall_before": 73.099,
+    "wall_after": 73.611,
+    "epoch_ms_before": 1791158027460,
+    "epoch_ms_after": 1791158027971,
+    "traitList": [
+     "lighteater"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": true,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158027858,
+    "worldAge": 2.403130531311035,
+    "has": true
+   },
+   "remove": {
+    "step": "A2_1_set_remove",
+    "cmd": "trait.set",
+    "args": "admin LightEater remove",
+    "side": "server",
+    "wall_before": 73.611,
+    "wall_after": 75.627,
+    "epoch_ms_before": 1791158027971,
+    "epoch_ms_after": 1791158029987,
+    "took": 2.016,
+    "ack": {
+     "trait": "LightEater",
+     "field": "LIGHT_EATER",
+     "op": "remove",
+     "before": true,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():remove(CharacterTrait.LIGHT_EATER)",
+     "after": false,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "push_remove": {
+    "step": "A2_1_push_remove",
+    "cmd": "trait.push",
+    "args": "admin 2",
+    "side": "server",
+    "wall_before": 75.627,
+    "wall_after": 76.635,
+    "epoch_ms_before": 1791158029987,
+    "epoch_ms_after": 1791158030996,
+    "took": 1.008,
+    "ack": {
+     "user": "admin",
+     "mask": 2,
+     "sent": true,
+     "wall": 1791158030952,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "push_remove_wall": 1791158030952,
+   "remove_poll": {
+    "tag": "A2_1_remove",
+    "match": "lighteater",
+    "want_present": false,
+    "zero_ms": 1791158027971,
+    "polls": 10,
+    "rows": [
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 76.635,
+      "wall_after": 77.146,
+      "epoch_ms_before": 1791158030996,
+      "epoch_ms_after": 1791158031507,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158031427,
+      "worldAge": 2.419186592102051,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 77.146,
+      "wall_after": 77.655,
+      "epoch_ms_before": 1791158031507,
+      "epoch_ms_after": 1791158032016,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158031925,
+      "worldAge": 2.4214181900024414,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 77.655,
+      "wall_after": 78.165,
+      "epoch_ms_before": 1791158032016,
+      "epoch_ms_after": 1791158032526,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158032423,
+      "worldAge": 2.423649787902832,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 78.165,
+      "wall_after": 78.676,
+      "epoch_ms_before": 1791158032526,
+      "epoch_ms_after": 1791158033037,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158032924,
+      "worldAge": 2.4256019592285156,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 78.676,
+      "wall_after": 79.187,
+      "epoch_ms_before": 1791158033037,
+      "epoch_ms_after": 1791158033548,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158033427,
+      "worldAge": 2.4278335571289062,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 79.187,
+      "wall_after": 79.701,
+      "epoch_ms_before": 1791158033548,
+      "epoch_ms_after": 1791158034061,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158033924,
+      "worldAge": 2.430065155029297,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 79.701,
+      "wall_after": 80.209,
+      "epoch_ms_before": 1791158034061,
+      "epoch_ms_after": 1791158034569,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158034425,
+      "worldAge": 2.4322967529296875,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 80.209,
+      "wall_after": 80.72,
+      "epoch_ms_before": 1791158034569,
+      "epoch_ms_after": 1791158035081,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158034929,
+      "worldAge": 2.434528350830078,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 80.72,
+      "wall_after": 81.229,
+      "epoch_ms_before": 1791158035081,
+      "epoch_ms_after": 1791158035589,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158035424,
+      "worldAge": 2.4367599487304688,
+      "has": null
+     },
+     {
+      "tag": "A2_1_remove",
+      "side": "client",
+      "wall_before": 81.229,
+      "wall_after": 81.74,
+      "epoch_ms_before": 1791158035589,
+      "epoch_ms_after": 1791158036101,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158035927,
+      "worldAge": 2.4389915466308594,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "A2_1_server_after_remove",
+    "side": "server",
+    "wall_before": 81.74,
+    "wall_after": 83.501,
+    "epoch_ms_before": 1791158036101,
+    "epoch_ms_after": 1791158037861,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158037855,
+    "worldAge": 2.447498321533203,
+    "has": null
+   }
+  },
+  {
+   "arm": "A1",
+   "trial": 2,
+   "trait": "HeartyAppetite",
+   "push": false,
+   "pre_client": {
+    "tag": "A1_2_pre_client",
+    "side": "client",
+    "wall_before": 85.234,
+    "wall_after": 85.745,
+    "epoch_ms_before": 1791158039595,
+    "epoch_ms_after": 1791158040105,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158039930,
+    "worldAge": 2.4568443298339844
+   },
+   "pre_client_has": null,
+   "set": {
+    "step": "A1_2_set_add",
+    "cmd": "trait.set",
+    "args": "admin HeartyAppetite add",
+    "side": "server",
+    "wall_before": 85.745,
+    "wall_after": 87.504,
+    "epoch_ms_before": 1791158040105,
+    "epoch_ms_after": 1791158041865,
+    "took": 1.759,
+    "ack": {
+     "trait": "HeartyAppetite",
+     "field": "HEARTY_APPETITE",
+     "op": "add",
+     "before": false,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+     "after": true,
+     "traitList": [
+      "heartyappetite"
+     ],
+     "held": true
+    }
+   },
+   "set_zero_ms": {
+    "start": 1791158040105,
+    "end": 1791158041865
+   },
+   "add_poll": {
+    "tag": "A1_2_add",
+    "match": "heartyappetite",
+    "want_present": true,
+    "zero_ms": 1791158040105,
+    "polls": 2,
+    "rows": [
+     {
+      "tag": "A1_2_add",
+      "side": "client",
+      "wall_before": 87.504,
+      "wall_after": 87.76,
+      "epoch_ms_before": 1791158041865,
+      "epoch_ms_after": 1791158042121,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158041927,
+      "worldAge": 2.465770721435547,
+      "has": null
+     },
+     {
+      "tag": "A1_2_add",
+      "side": "client",
+      "wall_before": 87.76,
+      "wall_after": 88.27,
+      "epoch_ms_before": 1791158042121,
+      "epoch_ms_after": 1791158042630,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": true,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158042427,
+      "worldAge": 2.4680023193359375,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158042427,
+    "hit_ms": 2322,
+    "prev_wall": 1791158041927,
+    "prev_ms": 1822,
+    "first_poll_hit": false
+   },
+   "server_after_add": {
+    "tag": "A1_2_server_after_add",
+    "side": "server",
+    "wall_before": 88.27,
+    "wall_after": 89.529,
+    "epoch_ms_before": 1791158042630,
+    "epoch_ms_after": 1791158043889,
+    "traitList": [
+     "heartyappetite"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": true,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158043852,
+    "worldAge": 2.474137306213379,
+    "has": true
+   },
+   "remove": {
+    "step": "A1_2_set_remove",
+    "cmd": "trait.set",
+    "args": "admin HeartyAppetite remove",
+    "side": "server",
+    "wall_before": 89.529,
+    "wall_after": 91.539,
+    "epoch_ms_before": 1791158043889,
+    "epoch_ms_after": 1791158045899,
+    "took": 2.01,
+    "ack": {
+     "trait": "HeartyAppetite",
+     "field": "HEARTY_APPETITE",
+     "op": "remove",
+     "before": true,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+     "after": false,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "remove_poll": {
+    "tag": "A1_2_remove",
+    "match": "heartyappetite",
+    "want_present": false,
+    "zero_ms": 1791158043889,
+    "polls": 11,
+    "rows": [
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 91.539,
+      "wall_after": 91.796,
+      "epoch_ms_before": 1791158045899,
+      "epoch_ms_after": 1791158046156,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": true,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158045927,
+      "worldAge": 2.483388900756836,
+      "has": true
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 91.796,
+      "wall_after": 92.303,
+      "epoch_ms_before": 1791158046156,
+      "epoch_ms_after": 1791158046664,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158046426,
+      "worldAge": 2.4856204986572266,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 92.303,
+      "wall_after": 92.817,
+      "epoch_ms_before": 1791158046664,
+      "epoch_ms_after": 1791158047177,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158046925,
+      "worldAge": 2.487852096557617,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 92.817,
+      "wall_after": 93.078,
+      "epoch_ms_before": 1791158047177,
+      "epoch_ms_after": 1791158047438,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158047427,
+      "worldAge": 2.490083694458008,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 93.078,
+      "wall_after": 93.59,
+      "epoch_ms_before": 1791158047438,
+      "epoch_ms_after": 1791158047951,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158047927,
+      "worldAge": 2.4923152923583984,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 93.59,
+      "wall_after": 94.102,
+      "epoch_ms_before": 1791158047951,
+      "epoch_ms_after": 1791158048463,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158048424,
+      "worldAge": 2.494546890258789,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 94.102,
+      "wall_after": 94.615,
+      "epoch_ms_before": 1791158048463,
+      "epoch_ms_after": 1791158048975,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158048928,
+      "worldAge": 2.4967784881591797,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 94.615,
+      "wall_after": 95.127,
+      "epoch_ms_before": 1791158048975,
+      "epoch_ms_after": 1791158049488,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158049425,
+      "worldAge": 2.4990100860595703,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 95.127,
+      "wall_after": 95.635,
+      "epoch_ms_before": 1791158049488,
+      "epoch_ms_after": 1791158049995,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158049926,
+      "worldAge": 2.501241683959961,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 95.635,
+      "wall_after": 96.146,
+      "epoch_ms_before": 1791158049995,
+      "epoch_ms_after": 1791158050506,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158050423,
+      "worldAge": 2.5034732818603516,
+      "has": null
+     },
+     {
+      "tag": "A1_2_remove",
+      "side": "client",
+      "wall_before": 96.146,
+      "wall_after": 96.657,
+      "epoch_ms_before": 1791158050506,
+      "epoch_ms_after": 1791158051017,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158050928,
+      "worldAge": 2.505704879760742,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "A1_2_server_after_remove",
+    "side": "server",
+    "wall_before": 96.657,
+    "wall_after": 97.666,
+    "epoch_ms_before": 1791158051017,
+    "epoch_ms_after": 1791158052026,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158051849,
+    "worldAge": 2.5096521377563477,
+    "has": null
+   }
+  },
+  {
+   "arm": "A2",
+   "trial": 2,
+   "trait": "LightEater",
+   "push": {
+    "step": "A2_2_push_add",
+    "cmd": "trait.push",
+    "args": "admin 2",
+    "side": "server",
+    "wall_before": 101.529,
+    "wall_after": 103.04,
+    "epoch_ms_before": 1791158055890,
+    "epoch_ms_after": 1791158057400,
+    "took": 1.511,
+    "ack": {
+     "user": "admin",
+     "mask": 2,
+     "sent": true,
+     "wall": 1791158057250,
+     "traitList": [
+      "lighteater"
+     ],
+     "held": true
+    }
+   },
+   "pre_client": {
+    "tag": "A2_2_pre_client",
+    "side": "client",
+    "wall_before": 100.259,
+    "wall_after": 100.767,
+    "epoch_ms_before": 1791158054620,
+    "epoch_ms_after": 1791158055127,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158054923,
+    "worldAge": 2.5233192443847656
+   },
+   "pre_client_has": null,
+   "set": {
+    "step": "A2_2_set_add",
+    "cmd": "trait.set",
+    "args": "admin LightEater add",
+    "side": "server",
+    "wall_before": 100.767,
+    "wall_after": 101.529,
+    "epoch_ms_before": 1791158055127,
+    "epoch_ms_after": 1791158055890,
+    "took": 0.762,
+    "ack": {
+     "trait": "LightEater",
+     "field": "LIGHT_EATER",
+     "op": "add",
+     "before": false,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():add(CharacterTrait.LIGHT_EATER)",
+     "after": true,
+     "traitList": [
+      "lighteater"
+     ],
+     "held": true
+    }
+   },
+   "set_zero_ms": {
+    "start": 1791158055127,
+    "end": 1791158055890
+   },
+   "push_wall": 1791158057250,
+   "add_poll": {
+    "tag": "A2_2_add",
+    "match": "lighteater",
+    "want_present": true,
+    "zero_ms": 1791158055127,
+    "polls": 1,
+    "rows": [
+     {
+      "tag": "A2_2_add",
+      "side": "client",
+      "wall_before": 103.04,
+      "wall_after": 103.301,
+      "epoch_ms_before": 1791158057400,
+      "epoch_ms_after": 1791158057661,
+      "traitList": [
+       "lighteater"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": true,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158057427,
+      "worldAge": 2.5344772338867188,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158057427,
+    "hit_ms": 2300,
+    "first_poll_hit": true,
+    "hit_ms_from_push": 177
+   },
+   "server_after_add": {
+    "tag": "A2_2_server_after_add",
+    "side": "server",
+    "wall_before": 103.301,
+    "wall_after": 103.558,
+    "epoch_ms_before": 1791158057661,
+    "epoch_ms_after": 1791158057918,
+    "traitList": [
+     "lighteater"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": true,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158057849,
+    "worldAge": 2.536294937133789,
+    "has": true
+   },
+   "remove": {
+    "step": "A2_2_set_remove",
+    "cmd": "trait.set",
+    "args": "admin LightEater remove",
+    "side": "server",
+    "wall_before": 103.558,
+    "wall_after": 105.575,
+    "epoch_ms_before": 1791158057918,
+    "epoch_ms_after": 1791158059936,
+    "took": 2.017,
+    "ack": {
+     "trait": "LightEater",
+     "field": "LIGHT_EATER",
+     "op": "remove",
+     "before": true,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():remove(CharacterTrait.LIGHT_EATER)",
+     "after": false,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "push_remove": {
+    "step": "A2_2_push_remove",
+    "cmd": "trait.push",
+    "args": "admin 2",
+    "side": "server",
+    "wall_before": 105.576,
+    "wall_after": 106.834,
+    "epoch_ms_before": 1791158059936,
+    "epoch_ms_after": 1791158061194,
+    "took": 1.258,
+    "ack": {
+     "user": "admin",
+     "mask": 2,
+     "sent": true,
+     "wall": 1791158060953,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "push_remove_wall": 1791158060953,
+   "remove_poll": {
+    "tag": "A2_2_remove",
+    "match": "lighteater",
+    "want_present": false,
+    "zero_ms": 1791158057918,
+    "polls": 11,
+    "rows": [
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 106.834,
+      "wall_after": 107.09,
+      "epoch_ms_before": 1791158061194,
+      "epoch_ms_after": 1791158061450,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158061425,
+      "worldAge": 2.5523300170898438,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 107.09,
+      "wall_after": 107.598,
+      "epoch_ms_before": 1791158061450,
+      "epoch_ms_after": 1791158061959,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158061929,
+      "worldAge": 2.5545616149902344,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 107.599,
+      "wall_after": 108.105,
+      "epoch_ms_before": 1791158061959,
+      "epoch_ms_after": 1791158062466,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158062427,
+      "worldAge": 2.556793212890625,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 108.105,
+      "wall_after": 108.613,
+      "epoch_ms_before": 1791158062466,
+      "epoch_ms_after": 1791158062974,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158062927,
+      "worldAge": 2.558783531188965,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 108.613,
+      "wall_after": 109.121,
+      "epoch_ms_before": 1791158062974,
+      "epoch_ms_after": 1791158063481,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158063427,
+      "worldAge": 2.5610151290893555,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 109.121,
+      "wall_after": 109.629,
+      "epoch_ms_before": 1791158063481,
+      "epoch_ms_after": 1791158063990,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158063925,
+      "worldAge": 2.563246726989746,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 109.629,
+      "wall_after": 110.144,
+      "epoch_ms_before": 1791158063990,
+      "epoch_ms_after": 1791158064504,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158064427,
+      "worldAge": 2.5654783248901367,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 110.144,
+      "wall_after": 110.657,
+      "epoch_ms_before": 1791158064504,
+      "epoch_ms_after": 1791158065018,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158064925,
+      "worldAge": 2.5677099227905273,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 110.657,
+      "wall_after": 111.165,
+      "epoch_ms_before": 1791158065018,
+      "epoch_ms_after": 1791158065525,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158065427,
+      "worldAge": 2.569941520690918,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 111.165,
+      "wall_after": 111.672,
+      "epoch_ms_before": 1791158065525,
+      "epoch_ms_after": 1791158066033,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158065927,
+      "worldAge": 2.5721731185913086,
+      "has": null
+     },
+     {
+      "tag": "A2_2_remove",
+      "side": "client",
+      "wall_before": 111.672,
+      "wall_after": 112.179,
+      "epoch_ms_before": 1791158066033,
+      "epoch_ms_after": 1791158066540,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158066428,
+      "worldAge": 2.574404716491699,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "A2_2_server_after_remove",
+    "side": "server",
+    "wall_before": 112.179,
+    "wall_after": 113.688,
+    "epoch_ms_before": 1791158066540,
+    "epoch_ms_after": 1791158068048,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158067850,
+    "worldAge": 2.580686569213867,
+    "has": null
+   }
+  },
+  {
+   "arm": "A1",
+   "trial": 3,
+   "trait": "HeartyAppetite",
+   "push": false,
+   "pre_client": {
+    "tag": "A1_3_pre_client",
+    "side": "client",
+    "wall_before": 114.882,
+    "wall_after": 115.143,
+    "epoch_ms_before": 1791158069242,
+    "epoch_ms_after": 1791158069503,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158069427,
+    "worldAge": 2.587794303894043
+   },
+   "pre_client_has": null,
+   "set": {
+    "step": "A1_3_set_add",
+    "cmd": "trait.set",
+    "args": "admin HeartyAppetite add",
+    "side": "server",
+    "wall_before": 115.143,
+    "wall_after": 115.649,
+    "epoch_ms_before": 1791158069503,
+    "epoch_ms_after": 1791158070010,
+    "took": 0.506,
+    "ack": {
+     "trait": "HeartyAppetite",
+     "field": "HEARTY_APPETITE",
+     "op": "add",
+     "before": false,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():add(CharacterTrait.HEARTY_APPETITE)",
+     "after": true,
+     "traitList": [
+      "heartyappetite"
+     ],
+     "held": true
+    }
+   },
+   "set_zero_ms": {
+    "start": 1791158069503,
+    "end": 1791158070010
+   },
+   "add_poll": {
+    "tag": "A1_3_add",
+    "match": "heartyappetite",
+    "want_present": true,
+    "zero_ms": 1791158069503,
+    "polls": 1,
+    "rows": [
+     {
+      "tag": "A1_3_add",
+      "side": "client",
+      "wall_before": 115.649,
+      "wall_after": 116.155,
+      "epoch_ms_before": 1791158070010,
+      "epoch_ms_after": 1791158070516,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": true,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158070427,
+      "worldAge": 2.592257499694824,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158070427,
+    "hit_ms": 924,
+    "first_poll_hit": true
+   },
+   "server_after_add": {
+    "tag": "A1_3_server_after_add",
+    "side": "server",
+    "wall_before": 116.155,
+    "wall_after": 117.669,
+    "epoch_ms_before": 1791158070516,
+    "epoch_ms_after": 1791158072030,
+    "traitList": [
+     "heartyappetite"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": true,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158071851,
+    "worldAge": 2.5984487533569336,
+    "has": true
+   },
+   "remove": {
+    "step": "A1_3_set_remove",
+    "cmd": "trait.set",
+    "args": "admin HeartyAppetite remove",
+    "side": "server",
+    "wall_before": 117.669,
+    "wall_after": 117.925,
+    "epoch_ms_before": 1791158072030,
+    "epoch_ms_after": 1791158072286,
+    "took": 0.256,
+    "ack": {
+     "trait": "HeartyAppetite",
+     "field": "HEARTY_APPETITE",
+     "op": "remove",
+     "before": true,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():remove(CharacterTrait.HEARTY_APPETITE)",
+     "after": false,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "remove_poll": {
+    "tag": "A1_3_remove",
+    "match": "heartyappetite",
+    "want_present": false,
+    "zero_ms": 1791158072030,
+    "polls": 11,
+    "rows": [
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 117.925,
+      "wall_after": 118.185,
+      "epoch_ms_before": 1791158072286,
+      "epoch_ms_after": 1791158072545,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": true,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158072426,
+      "worldAge": 2.6011838912963867,
+      "has": true
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 118.185,
+      "wall_after": 118.692,
+      "epoch_ms_before": 1791158072545,
+      "epoch_ms_after": 1791158073052,
+      "traitList": [
+       "heartyappetite"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": true,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158072925,
+      "worldAge": 2.6034154891967773,
+      "has": true
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 118.692,
+      "wall_after": 119.199,
+      "epoch_ms_before": 1791158073052,
+      "epoch_ms_after": 1791158073560,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158073427,
+      "worldAge": 2.6054162979125977,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 119.199,
+      "wall_after": 119.707,
+      "epoch_ms_before": 1791158073560,
+      "epoch_ms_after": 1791158074067,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158073927,
+      "worldAge": 2.6076478958129883,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 119.707,
+      "wall_after": 120.218,
+      "epoch_ms_before": 1791158074067,
+      "epoch_ms_after": 1791158074579,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158074426,
+      "worldAge": 2.609879493713379,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 120.218,
+      "wall_after": 120.724,
+      "epoch_ms_before": 1791158074579,
+      "epoch_ms_after": 1791158075085,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158074926,
+      "worldAge": 2.6121110916137695,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 120.724,
+      "wall_after": 121.239,
+      "epoch_ms_before": 1791158075085,
+      "epoch_ms_after": 1791158075599,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158075427,
+      "worldAge": 2.61434268951416,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 121.239,
+      "wall_after": 121.745,
+      "epoch_ms_before": 1791158075599,
+      "epoch_ms_after": 1791158076106,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158075927,
+      "worldAge": 2.616574287414551,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 121.745,
+      "wall_after": 122.258,
+      "epoch_ms_before": 1791158076106,
+      "epoch_ms_after": 1791158076618,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158076428,
+      "worldAge": 2.6188058853149414,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 122.258,
+      "wall_after": 122.767,
+      "epoch_ms_before": 1791158076618,
+      "epoch_ms_after": 1791158077127,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158076927,
+      "worldAge": 2.621037483215332,
+      "has": null
+     },
+     {
+      "tag": "A1_3_remove",
+      "side": "client",
+      "wall_before": 122.767,
+      "wall_after": 123.279,
+      "epoch_ms_before": 1791158077127,
+      "epoch_ms_after": 1791158077640,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158077428,
+      "worldAge": 2.6232690811157227,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "A1_3_server_after_remove",
+    "side": "server",
+    "wall_before": 123.279,
+    "wall_after": 123.535,
+    "epoch_ms_before": 1791158077640,
+    "epoch_ms_after": 1791158077895,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158077852,
+    "worldAge": 2.6250953674316406,
+    "has": null
+   }
+  },
+  {
+   "arm": "A2",
+   "trial": 3,
+   "trait": "LightEater",
+   "push": {
+    "step": "A2_3_push_add",
+    "cmd": "trait.push",
+    "args": "admin 2",
+    "side": "server",
+    "wall_before": 127.634,
+    "wall_after": 129.396,
+    "epoch_ms_before": 1791158081995,
+    "epoch_ms_after": 1791158083756,
+    "took": 1.762,
+    "ack": {
+     "user": "admin",
+     "mask": 2,
+     "sent": true,
+     "wall": 1791158083556,
+     "traitList": [
+      "lighteater"
+     ],
+     "held": true
+    }
+   },
+   "pre_client": {
+    "tag": "A2_3_pre_client",
+    "side": "client",
+    "wall_before": 125.868,
+    "wall_after": 126.125,
+    "epoch_ms_before": 1791158080229,
+    "epoch_ms_after": 1791158080485,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158080425,
+    "worldAge": 2.6366586685180664
+   },
+   "pre_client_has": null,
+   "set": {
+    "step": "A2_3_set_add",
+    "cmd": "trait.set",
+    "args": "admin LightEater add",
+    "side": "server",
+    "wall_before": 126.125,
+    "wall_after": 127.634,
+    "epoch_ms_before": 1791158080485,
+    "epoch_ms_after": 1791158081995,
+    "took": 1.509,
+    "ack": {
+     "trait": "LightEater",
+     "field": "LIGHT_EATER",
+     "op": "add",
+     "before": false,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():add(CharacterTrait.LIGHT_EATER)",
+     "after": true,
+     "traitList": [
+      "lighteater"
+     ],
+     "held": true
+    }
+   },
+   "set_zero_ms": {
+    "start": 1791158080485,
+    "end": 1791158081995
+   },
+   "push_wall": 1791158083556,
+   "add_poll": {
+    "tag": "A2_3_add",
+    "match": "lighteater",
+    "want_present": true,
+    "zero_ms": 1791158080485,
+    "polls": 1,
+    "rows": [
+     {
+      "tag": "A2_3_add",
+      "side": "client",
+      "wall_before": 129.396,
+      "wall_after": 129.655,
+      "epoch_ms_before": 1791158083756,
+      "epoch_ms_after": 1791158084016,
+      "traitList": [
+       "lighteater"
+      ],
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": true,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158083927,
+      "worldAge": 2.652057647705078,
+      "has": true
+     }
+    ],
+    "arrived": true,
+    "hit_wall": 1791158083927,
+    "hit_ms": 3442,
+    "first_poll_hit": true,
+    "hit_ms_from_push": 371
+   },
+   "server_after_add": {
+    "tag": "A2_3_server_after_add",
+    "side": "server",
+    "wall_before": 129.655,
+    "wall_after": 131.667,
+    "epoch_ms_before": 1791158084016,
+    "epoch_ms_after": 1791158086027,
+    "traitList": [
+     "lighteater"
+    ],
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": true,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158085858,
+    "worldAge": 2.6606216430664062,
+    "has": true
+   },
+   "remove": {
+    "step": "A2_3_set_remove",
+    "cmd": "trait.set",
+    "args": "admin LightEater remove",
+    "side": "server",
+    "wall_before": 131.667,
+    "wall_after": 132.926,
+    "epoch_ms_before": 1791158086027,
+    "epoch_ms_after": 1791158087286,
+    "took": 1.259,
+    "ack": {
+     "trait": "LightEater",
+     "field": "LIGHT_EATER",
+     "op": "remove",
+     "before": true,
+     "enumFound": true,
+     "collection": "getCharacterTraits()",
+     "route": "getCharacterTraits():remove(CharacterTrait.LIGHT_EATER)",
+     "after": false,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "push_remove": {
+    "step": "A2_3_push_remove",
+    "cmd": "trait.push",
+    "args": "admin 2",
+    "side": "server",
+    "wall_before": 132.926,
+    "wall_after": 133.689,
+    "epoch_ms_before": 1791158087286,
+    "epoch_ms_after": 1791158088049,
+    "took": 0.763,
+    "ack": {
+     "user": "admin",
+     "mask": 2,
+     "sent": true,
+     "wall": 1791158087855,
+     "traitList": {},
+     "held": true
+    }
+   },
+   "push_remove_wall": 1791158087855,
+   "remove_poll": {
+    "tag": "A2_3_remove",
+    "match": "lighteater",
+    "want_present": false,
+    "zero_ms": 1791158086027,
+    "polls": 10,
+    "rows": [
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 133.689,
+      "wall_after": 134.195,
+      "epoch_ms_before": 1791158088049,
+      "epoch_ms_after": 1791158088556,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158088425,
+      "worldAge": 2.6721420288085938,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 134.195,
+      "wall_after": 134.71,
+      "epoch_ms_before": 1791158088556,
+      "epoch_ms_after": 1791158089071,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158088927,
+      "worldAge": 2.6743736267089844,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 134.71,
+      "wall_after": 135.219,
+      "epoch_ms_before": 1791158089071,
+      "epoch_ms_after": 1791158089579,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158089427,
+      "worldAge": 2.676605224609375,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 135.219,
+      "wall_after": 135.726,
+      "epoch_ms_before": 1791158089579,
+      "epoch_ms_after": 1791158090086,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158089925,
+      "worldAge": 2.6788368225097656,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 135.726,
+      "wall_after": 136.234,
+      "epoch_ms_before": 1791158090086,
+      "epoch_ms_after": 1791158090594,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158090426,
+      "worldAge": 2.6810684204101562,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 136.234,
+      "wall_after": 136.743,
+      "epoch_ms_before": 1791158090594,
+      "epoch_ms_after": 1791158091104,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158090926,
+      "worldAge": 2.683300018310547,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 136.743,
+      "wall_after": 137.253,
+      "epoch_ms_before": 1791158091104,
+      "epoch_ms_after": 1791158091613,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158091425,
+      "worldAge": 2.6855316162109375,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 137.253,
+      "wall_after": 137.76,
+      "epoch_ms_before": 1791158091613,
+      "epoch_ms_after": 1791158092120,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158091927,
+      "worldAge": 2.687763214111328,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 137.76,
+      "wall_after": 138.269,
+      "epoch_ms_before": 1791158092120,
+      "epoch_ms_after": 1791158092629,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158092427,
+      "worldAge": 2.6899948120117188,
+      "has": null
+     },
+     {
+      "tag": "A2_3_remove",
+      "side": "client",
+      "wall_before": 138.269,
+      "wall_after": 138.777,
+      "epoch_ms_before": 1791158092629,
+      "epoch_ms_after": 1791158093138,
+      "traitList": {},
+      "traitRoute": "getKnownTraits",
+      "traits": {
+       "obese": false,
+       "overweight": false,
+       "underweight": false,
+       "veryUnderweight": false,
+       "emaciated": false,
+       "HeartyAppetite": false,
+       "LightEater": false,
+       "HighThirst": false,
+       "LowThirst": false
+      },
+      "field_count": 9,
+      "field_count_ok": true,
+      "snap_wall": 1791158092927,
+      "worldAge": 2.6922264099121094,
+      "has": null
+     }
+    ],
+    "arrived": false
+   },
+   "server_after_remove": {
+    "tag": "A2_3_server_after_remove",
+    "side": "server",
+    "wall_before": 138.777,
+    "wall_after": 139.535,
+    "epoch_ms_before": 1791158093138,
+    "epoch_ms_after": 1791158093895,
+    "traitList": {},
+    "traitRoute": "getKnownTraits",
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "field_count": 9,
+    "field_count_ok": true,
+    "snap_wall": 1791158093850,
+    "worldAge": 2.6961183547973633,
+    "has": null
+   }
+  }
+ ],
+ "field_count_failures": [],
+ "session_ready_wall": 51.879,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TKX_TraitProbe.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TKX_TraitProbe_Traits.probe",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TKX_TraitProbe_Traits.probe",
+    "type": "userdata",
+    "resolved": true,
+    "value": "tkx:probe"
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "timeline": [
+  {
+   "t": 51.9,
+   "phase": "session_ready"
+  },
+  {
+   "t": 53.6,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_TraitProbe.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 53.9,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_TraitProbe_Traits.probe\", \"type\": \"userdata\", \"resolved\": true, \"val"
+  },
+  {
+   "t": 57.6,
+   "phase": "step",
+   "took": 0.26,
+   "name": "A1_1_set_add",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 61.6,
+   "phase": "step",
+   "took": 2.014,
+   "name": "A1_1_set_remove",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 71.6,
+   "phase": "step",
+   "took": 1.263,
+   "name": "A2_1_set_add",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 72.8,
+   "phase": "step",
+   "took": 1.258,
+   "name": "A2_1_push_add",
+   "cmd": "trait.push"
+  },
+  {
+   "t": 75.6,
+   "phase": "step",
+   "took": 2.016,
+   "name": "A2_1_set_remove",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 76.6,
+   "phase": "step",
+   "took": 1.008,
+   "name": "A2_1_push_remove",
+   "cmd": "trait.push"
+  },
+  {
+   "t": 87.5,
+   "phase": "step",
+   "took": 1.759,
+   "name": "A1_2_set_add",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 91.5,
+   "phase": "step",
+   "took": 2.01,
+   "name": "A1_2_set_remove",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 101.5,
+   "phase": "step",
+   "took": 0.762,
+   "name": "A2_2_set_add",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 103.0,
+   "phase": "step",
+   "took": 1.511,
+   "name": "A2_2_push_add",
+   "cmd": "trait.push"
+  },
+  {
+   "t": 105.6,
+   "phase": "step",
+   "took": 2.017,
+   "name": "A2_2_set_remove",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 106.8,
+   "phase": "step",
+   "took": 1.258,
+   "name": "A2_2_push_remove",
+   "cmd": "trait.push"
+  },
+  {
+   "t": 115.6,
+   "phase": "step",
+   "took": 0.506,
+   "name": "A1_3_set_add",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 117.9,
+   "phase": "step",
+   "took": 0.256,
+   "name": "A1_3_set_remove",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 127.6,
+   "phase": "step",
+   "took": 1.509,
+   "name": "A2_3_set_add",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 129.4,
+   "phase": "step",
+   "took": 1.762,
+   "name": "A2_3_push_add",
+   "cmd": "trait.push"
+  },
+  {
+   "t": 132.9,
+   "phase": "step",
+   "took": 1.259,
+   "name": "A2_3_set_remove",
+   "cmd": "trait.set"
+  },
+  {
+   "t": 133.7,
+   "phase": "step",
+   "took": 0.763,
+   "name": "A2_3_push_remove",
+   "cmd": "trait.push"
+  },
+  {
+   "t": 140.6,
+   "phase": "step",
+   "took": 1.013,
+   "name": "a3_rl",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 141.6,
+   "phase": "step",
+   "took": 1.012,
+   "name": "a3_rl_of",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 142.3,
+   "phase": "step",
+   "took": 0.763,
+   "name": "a3_client_reg",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 143.6,
+   "phase": "step",
+   "took": 1.007,
+   "name": "a3_grants_before",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 144.4,
+   "phase": "step",
+   "took": 0.762,
+   "name": "a3_grant",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 145.6,
+   "phase": "step",
+   "took": 1.263,
+   "name": "a3_grants_poll",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 147.6,
+   "phase": "step",
+   "took": 2.013,
+   "name": "a3_push",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 151.7,
+   "phase": "step",
+   "took": 2.02,
+   "name": "a3_lastid",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 151.9,
+   "phase": "step",
+   "took": 0.255,
+   "name": "a3_remove",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 153.7,
+   "phase": "step",
+   "took": 1.261,
+   "name": "a3_push_remove",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 159.5,
+   "phase": "step",
+   "took": 0.259,
+   "name": "a3_removes",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 161.6,
+   "phase": "step",
+   "took": 2.013,
+   "name": "a3_lastid2",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 161.6,
+   "phase": "verdict",
+   "name": "A1",
+   "verdict": "falsified"
+  },
+  {
+   "t": 161.6,
+   "phase": "verdict",
+   "name": "A2",
+   "verdict": "not discriminated"
+  },
+  {
+   "t": 161.6,
+   "phase": "verdict",
+   "name": "A3",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 163.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 171.6,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "summary": {
+  "verify_ok": [
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "field_count_failures": 0,
+  "verdicts": {
+   "A1": "falsified",
+   "A2": "not discriminated",
+   "A3": "as_predicted"
+  },
+  "A1": {
+   "n": 3,
+   "min": 771,
+   "median": 924,
+   "max": 2322,
+   "values": [
+    771,
+    2322,
+    924
+   ]
+  },
+  "A2": {
+   "n": 3,
+   "min": 2300,
+   "median": 2741,
+   "max": 3442,
+   "values": [
+    2741,
+    2300,
+    3442
+   ]
+  },
+  "A2_from_push": {
+   "n": 3,
+   "min": 177,
+   "median": 267,
+   "max": 371,
+   "values": [
+    267,
+    177,
+    371
+   ]
+  },
+  "A3": {
+   "arrived": true,
+   "hit_ms": 4477
+  }
+ },
+ "wall_seconds": 171.6,
+ "server_error_count": 0,
+ "client_lua_error": false
+}
