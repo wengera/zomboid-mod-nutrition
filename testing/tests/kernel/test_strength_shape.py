@@ -577,7 +577,9 @@ def test_limitations(str_host):
     assert ("the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model "
             "(#2118)") in lim
     assert "a rise is one level per six-hour window" in lim
-    assert "the carry delta's acute inputs are Plan 4/5's" in lim
+    assert ("the carry delta's acute inputs read the record's fluids, acute and nutrients sub-tables "
+            "(Plan 4); vitamin D's clinical grade gates nothing until Plan 5 maps it") in lim
+    assert not any("Plan 4/5" in x for x in lim)
     assert ("while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; "
             "BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)") in lim
     # shipped text names register rows, never plan tasks or rulings
@@ -611,3 +613,65 @@ def test_strength_runs_after_metabolism_in_the_players_list():
     assert same(on[2], G.NutritionRevamp.server.metabolism.minute)
     assert same(on[3], G.NutritionRevamp.server.strength.minute)
     assert G.NutritionRevamp.server.strength.wired is True
+
+
+# --- the Plan 4 acute inputs: the current minute's fluids, acute and nutrients sub-tables ---------------
+
+def _acute_delta(h, nutrients=None, fluids=None, acute=None, tod=14.0):
+    p = player(h, level=5, xp=40000, delta=1.0)
+    record = record_for(h)
+    if nutrients is not None:
+        record.nutrients = h.table(nutrients)
+    if fluids is not None:
+        record.fluids = h.table(fluids)
+    if acute is not None:
+        a = h.K.acute["new"](99.0)
+        for k, v in acute.items():
+            a[k] = v
+        record.acute = a
+    h.G.NR_TEST_TOD = tod
+    minute(h, p, record, 100.0)
+    return record["body"]["delta"]
+
+
+def test_a_pre_plan4_record_reads_eacute_zero(str_host):
+    assert _acute_delta(str_host) == 1.0
+
+
+def test_dehydration_five_percent_is_minus_six(str_host):
+    h = str_host
+    assert h.K.strength.eAcute(5, False, 0, 14.0, False, False, 0) == pytest.approx(-0.06, abs=1e-12)
+    assert _acute_delta(h, fluids=dict(dehydPct=5)) == pytest.approx(1 - 0.06, abs=1e-12)
+
+
+def test_sweat_active_dehydration_scales_the_step(str_host):
+    h = str_host
+    want = 1 + h.K.strength.eAcute(5, True, 0, 14.0, False, False, 0)
+    assert _acute_delta(h, fluids=dict(dehydPct=5, sweatActive=True)) == pytest.approx(want, abs=1e-12)
+    assert want == pytest.approx(1 - 0.09, abs=1e-12)
+
+
+def test_twenty_eight_hours_awake_is_minus_four(str_host):
+    h = str_host
+    assert _acute_delta(h, acute=dict(awakeH=28.0)) == pytest.approx(1 - 0.04, abs=1e-12)
+    assert _acute_delta(h, acute=dict(awakeH=28.0), tod=8.0) == pytest.approx(1 - 0.02, abs=1e-12)
+
+
+def test_caffeine_active_is_plus_two(str_host):
+    h = str_host
+    w = 80.0
+    assert _acute_delta(h, acute=dict(caf=3 * w)) == pytest.approx(1.02, abs=1e-12)
+    assert _acute_delta(h, acute=dict(caf=3 * w - 1)) == 1.0     # below 3 mg/kg: inactive
+
+
+def test_vitamin_d_clinical_is_minus_three(str_host):
+    assert _acute_delta(str_host, nutrients=dict(vitDClinical=True)) == pytest.approx(0.97, abs=1e-12)
+
+
+def test_unreadable_sub_table_values_read_neutral_in_the_carry(str_host):
+    h = str_host
+    failures = STR(h).stats.failures
+    d = _acute_delta(h, nutrients=dict(vitDClinical="yes"), fluids=dict(dehydPct=float("nan"), sweatActive=1),
+                     acute=dict(awakeH=float("inf"), caf=float("nan")))
+    assert d == 1.0
+    assert STR(h).stats.failures == failures

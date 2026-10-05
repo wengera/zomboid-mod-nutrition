@@ -253,8 +253,14 @@ function K.energy.eb24h(body, hoursSinceClose)
     return K.body.blend24(body.ebDay, body.eb7[7], hoursSinceClose)
 end
 
--- The energy state the hunger term reads: 1 neutral, up under deficit and fat depletion, down under
--- surplus, clamped to [0.5, 2.0] (ruling 14, a game choice).
-function K.energy.state(eb24h, fatDep)
-    return K.clamp(1 + 0.5 * K.clamp(-eb24h / 1500, -1, 1) + 0.5 * fatDep, 0.5, 2.0) -- ruling 14
+-- The energy state the hunger term reads: 1 neutral, up under deficit, fat depletion and glycogen
+-- depletion, down under surplus, clamped to [0.5, 2.0] (ruling 14, a game choice). g is the muscle
+-- glycogen fraction (0-1, record.acute.g); omitted it reads 1, the neutral every Plan 3 caller passed.
+K.energy.GLYC_STATE_K = 0.3 -- game choice (plan 4 ruling: the glycogen term; open row S1109 is the nearest)
+
+function K.energy.state(eb24h, fatDep, g)
+    if g == nil then
+        g = 1
+    end
+    return K.clamp(1 + 0.5 * K.clamp(-eb24h / 1500, -1, 1) + 0.5 * fatDep + K.energy.GLYC_STATE_K * (1 - g), 0.5, 2.0) -- ruling 14
 end

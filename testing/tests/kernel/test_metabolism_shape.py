@@ -914,8 +914,10 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "with the catch-up minute's age, so the first blend after an offline gap counts yesterday in "
             "full") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
-    assert ("glycogen, dehydration, iron, caffeine, alcohol, sleep debt and the balance dial are Plan 4/5 "
-            "inputs held neutral") in lim
+    assert ("the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance "
+            "dial) read the previous minute" + chr(39) + "s record sub-tables (a one-minute lag; NR_Server_Nutrients "
+            "sorts after this file)") in lim
+    assert not any("held neutral" in x for x in lim)
     assert "the drain coefficient is stamped and unapplied until Plan 5" in lim
     assert ("a climb is credited when the minute sample lands inside the climb state; short climbs are "
             "missed") in lim
@@ -1176,3 +1178,222 @@ def test_fast_adapter_reads_the_two_body_scalars():
     assert "rm = rec_body.rmod" in region and "inp.rmod = rm" in region
     assert "if es == nil or es ~= es then" in region
     assert "if rm == nil or rm ~= rm then" in region
+
+
+# --- the Plan 4 scalars: the record's nutrients, fluids and acute sub-tables feed dmod, rmod, TAC and E --
+
+@pytest.fixture
+def opts(met_host):
+    # NR_Server_Options may or may not have loaded in this session: a stand-in with the dial on, put back
+    h = met_host
+    NR = h.G.NutritionRevamp
+    saved = NR.server.options
+    NR.server.options = h.table(dict(balanceBonus=True))
+    try:
+        yield NR.server.options
+    finally:
+        NR.server.options = saved
+
+
+def _plan4(h, nutrients=None, fluids=None, acute=None, alcDay=None, **pkw):
+    # a body made on a bare (pre-Plan-4) minute, then the sub-tables laid and one more minute run
+    p = player(h, **pkw)
+    record = fresh(h, p)
+    if nutrients is not None:
+        record.nutrients = h.table(nutrients)
+    if fluids is not None:
+        record.fluids = h.table(fluids)
+    if acute is not None:
+        a = h.K.acute["new"](100.0)
+        for k, v in acute.items():
+            a[k] = v
+        record.acute = a
+    if alcDay is not None:
+        record["body"].alcDay = alcDay
+    minute(h, p, record, 100.0 + 1 / 60)
+    return record
+
+
+def _excess(h, body):
+    w = body["fm"] + body["lm"]
+    return h.K.aerobic.excessPct(body["fm"], h.K.aerobic.FM_NORMAL_80[body["sex"]], w)
+
+
+def _rmod(h, body, g=1, iron=1, dehyd=0, debt=0, alc=0, bonus=1):
+    return h.K.aerobic.rmod(body["tac"], g, h.K.aerobic.gProt(body["pPrevKg"]), iron, dehyd, debt, alc, bonus)
+
+
+def _dmod(h, body, g=1, dehyd=0, heat=0, iron=1, awake=0, caf=0, tol=0):
+    return h.K.aerobic.dmod(body["tac"], g, dehyd, heat, _excess(h, body), iron, awake, caf, tol)
+
+
+def test_a_pre_plan4_record_reads_the_plan3_values(met_host, opts):
+    h = met_host
+    record = _plan4(h)
+    body = record["body"]
+    assert record["nutrients"] is None and record["fluids"] is None and record["acute"] is None
+    assert body["dmod"] == _dmod(h, body)
+    assert body["rmod"] == _rmod(h, body)
+    assert abs(body["dmod"] - 1.0) < TOL and abs(body["rmod"] - 1.0) < TOL
+    eb = h.K.energy.eb24h(body, 1 / 60)
+    assert body["energyState"] == h.K.energy.state(eb, 0)
+
+
+def test_iron_grade_four_reaches_dmod_and_rmod(met_host, opts):
+    h = met_host
+    record = _plan4(h, nutrients=dict(ironGrade=4))
+    body = record["body"]
+    assert body["dmod"] == _dmod(h, body, iron=4)
+    assert abs(body["dmod"] - 1.20) < TOL          # IRON_D[4] on a neutral body
+    assert body["rmod"] == _rmod(h, body, iron=4)
+    assert abs(body["rmod"] - 0.75) < TOL          # IRON_R[4]
+
+
+def test_dehydration_lowers_rmod_by_the_kernel_factor(met_host, opts):
+    h = met_host
+    base = _plan4(h)["body"]["rmod"]
+    record = _plan4(h, fluids=dict(dehydPct=5))
+    body = record["body"]
+    assert body["rmod"] == _rmod(h, body, dehyd=5)
+    A = h.K.aerobic
+    factor = max(A.HYDR_R_FLOOR, 1 - A.HYDR_R_K * max(0, 5 - A.HYDR_T1))
+    assert abs(body["rmod"] - base * factor) < TOL
+    assert body["rmod"] < base
+    assert body["dmod"] == _dmod(h, body, dehyd=5)
+
+
+def test_the_balance_bonus_follows_all_replete_and_the_dial(met_host, opts):
+    h = met_host
+    base = _plan4(h)["body"]["rmod"]
+    on = _plan4(h, nutrients=dict(allReplete=True))["body"]
+    assert abs(on["rmod"] - base * 1.05) < TOL
+    assert on["rmod"] == _rmod(h, on, bonus=1.05)
+    opts.balanceBonus = False
+    off = _plan4(h, nutrients=dict(allReplete=True))["body"]
+    assert off["rmod"] == base
+    opts.balanceBonus = True
+    not_replete = _plan4(h, nutrients=dict(allReplete=False))["body"]
+    assert not_replete["rmod"] == base
+
+
+def test_absent_options_read_the_dial_default_on(met_host):
+    h = met_host
+    NR = h.G.NutritionRevamp
+    saved = NR.server.options
+    NR.server.options = None
+    try:
+        base = _plan4(h)["body"]["rmod"]
+        body = _plan4(h, nutrients=dict(allReplete=True))["body"]
+    finally:
+        NR.server.options = saved
+    assert abs(body["rmod"] - base * 1.05) < TOL
+
+
+def test_the_acute_scalars_reach_dmod_rmod_and_the_energy_state(met_host, opts):
+    h = met_host
+    record = _plan4(h, acute=dict(g=0.5, awakeH=22.0, debtH=12.0, caf=120.0, cafTol=0.25))
+    body = record["body"]
+    w = body["fm"] + body["lm"]
+    caf = h.K.acute.cafEffect(record["acute"], w)
+    assert 0 < caf < 1
+    assert body["dmod"] == _dmod(h, body, g=0.5, awake=22.0, caf=caf, tol=0.25)
+    assert body["rmod"] == _rmod(h, body, g=0.5, debt=12.0)
+    eb = h.K.energy.eb24h(body, 1 / 60)
+    assert body["energyState"] == h.K.energy.state(eb, 0, 0.5)
+    assert abs(body["energyState"] - (h.K.energy.state(eb, 0) + 0.15)) < TOL
+
+
+def test_the_day_alcohol_reaches_rmod_per_kg(met_host, opts):
+    h = met_host
+    record = _plan4(h, alcDay=80.0)
+    body = record["body"]
+    w = body["fm"] + body["lm"]
+    assert body["rmod"] == _rmod(h, body, alc=80.0 / w)
+    assert body["rmod"] < 1.0
+
+
+def test_unreadable_sub_table_values_read_neutral(met_host, opts):
+    h = met_host
+    failures = MET(h).stats.failures
+    record = _plan4(h, nutrients=dict(ironGrade=7, allReplete="yes", vitDClinical=1),
+                    fluids=dict(dehydPct=NAN, sweatActive="no"),
+                    acute=dict(g=NAN, awakeH=float("inf"), caf=NAN, cafTol=-float("inf")))
+    record.acute.debtH = None
+    minute(h, player(h), record, 100.0 + 2 / 60)
+    body = record["body"]
+    assert body["dmod"] == _dmod(h, body)
+    assert body["rmod"] == _rmod(h, body)
+    assert nonfinite(h, record) == ""
+    for grade in (0, 2.5, NAN, "4"):
+        rec = _plan4(h, nutrients=dict(ironGrade=grade))
+        assert rec["body"]["dmod"] == _dmod(h, rec["body"])
+    assert MET(h).stats.failures == failures       # no raise, no heal: the reads never stamp a bad value
+
+
+CLOSE_SPY = r"""
+function(player, record, age)
+    local K = NutritionRevamp.kernel
+    local origT = K.aerobic.tacDay
+    local seen = {}
+    K.aerobic.tacDay = function(...)
+        seen.gIron = select(4, ...)
+        seen.gSleep = select(7, ...)
+        return origT(...)
+    end
+    NR_TEST_AGE = age
+    local ok, err = pcall(NutritionRevamp.server.metabolism.minute, "admin", player, record)
+    K.aerobic.tacDay = origT
+    seen.ok = ok
+    return seen
+end
+"""
+
+
+def test_the_close_reads_the_iron_and_sleep_gates(met_host, opts):
+    h = met_host
+    p = player(h)
+    record = fresh(h, p, 100.0)
+    failures = MET(h).stats.failures
+    seen = h.rt.eval(CLOSE_SPY)(p, record, 124.0)
+    assert seen["ok"] is True
+    assert seen["gIron"] == 1 and seen["gSleep"] == 1          # a pre-Plan-4 record: the neutral gates
+    record.nutrients = h.table(dict(ironGrade=3))
+    a = h.K.acute["new"](100.0)
+    a.debtH = 20.0
+    record.acute = a
+    record["body"].alcDay = 30.0
+    seen = h.rt.eval(CLOSE_SPY)(p, record, 148.0)
+    assert seen["ok"] is True
+    assert MET(h).stats.failures == failures
+    assert seen["gIron"] == h.K.aerobic.G_IRON[3]
+    assert seen["gSleep"] == h.K.aerobic.gSleep(20.0)
+    assert abs(seen["gSleep"] - 0.775) < TOL                   # 1 - (1 - 0.70) x (20 - 8)/16
+    assert record["body"]["alcDay"] == 0                       # the partition close zeroes the day's ethanol
+
+
+def test_met_and_cold_mult_are_stamped_finite(met_host, opts):
+    h = met_host
+    p = player(h, rate=3.1, moving=True, cold=1.4)
+    record = fresh(h, p)
+    body = record["body"]
+    class_name = h.K.energy.classOf(h.K.energy.stripLoad(3.1, 0.0, 20))
+    assert body["met"] == h.K.energy.activityMet(class_name, True, 1, 0.0)
+    assert body["coldMult"] == 1.4
+    p.cfg.cold = NAN
+    p.cfg.rate = NAN
+    minute(h, p, record, 100.0 + 1 / 60)
+    assert body["coldMult"] == 1
+    assert body["met"] == h.K.energy.activityMet("Default", True, 1, 0.0)
+    assert nonfinite(h, record) == ""
+
+
+def test_met_stamp_falls_back_to_one_when_the_kernel_returns_a_non_finite(met_host, opts):
+    h = met_host
+    E = h.K.energy
+    orig = E.activityMet
+    E.activityMet = h.rt.eval("function() return 0/0 end")
+    try:
+        record = fresh(h, player(h))
+    finally:
+        E.activityMet = orig
+    assert record["body"]["met"] == 1

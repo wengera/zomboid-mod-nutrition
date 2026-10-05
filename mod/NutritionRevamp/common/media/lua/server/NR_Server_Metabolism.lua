@@ -32,7 +32,7 @@ NR.server.metabolism = {
         "an 8.0 rate classifies as ClimbRope, never ForestryAxe (chopping bills 8.0 not 6.5); a 6.0 as HeavyWork, never Fitness",
         "offline time is not integrated; a multi-day catch-up runs days 2..n with pDay 0 (pPrevKg 0 until the next normal close) and reuses today's immobilised reading; the catch-up stamps every close with the catch-up minute's age, so the first blend after an offline gap counts yesterday in full",
         "the disuse arm needs a leg fracture or splint",
-        "glycogen, dehydration, iron, caffeine, alcohol, sleep debt and the balance dial are Plan 4/5 inputs held neutral",
+        "the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance dial) read the previous minute's record sub-tables (a one-minute lag; NR_Server_Nutrients sorts after this file)",
         "the drain coefficient is stamped and unapplied until Plan 5",
         "a climb is credited when the minute sample lands inside the climb state; short climbs are missed",
         "the MET-minute bank is mirrored for the panel and feeds no coefficient; the aerobic dose is the band minutes",
@@ -86,6 +86,35 @@ local function obj(o, name, ...)
     local ok, v = NR.call(o, name, ...)
     if ok then return v end
     return nil
+end
+
+-- The nutrient scalars dmod, rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
+-- writes record.nutrients, record.fluids and record.acute). That file sorts after this one, so these are
+-- the PREVIOUS minute's stamps: a one-minute lag. A sub-table that is absent (a record made before Plan 4,
+-- or the first minute before NR_Server_Nutrients has run) or a field that is absent, non-finite or out of
+-- range reads the neutral the Plan 3 stubs passed: iron grade 1, not all replete, dehydration 0, glycogen
+-- 1, hours awake 0, sleep debt 0, caffeine effect 0, tolerance 0. Read: nutrients.ironGrade (1-4),
+-- nutrients.allReplete (true), fluids.dehydPct, acute.g, acute.awakeH, acute.debtH, acute.caf (through
+-- K.acute.cafEffect) and acute.cafTol. w is the minute's starting mass, kg.
+local function nutrientInputs(record, w)
+    local nut, fl, ac = record.nutrients, record.fluids, record.acute
+    local ironGrade, allReplete = 1, false
+    if type(nut) == "table" then
+        local grade = nut.ironGrade
+        if grade == 1 or grade == 2 or grade == 3 or grade == 4 then ironGrade = grade end
+        allReplete = nut.allReplete == true
+    end
+    local dehydPct = 0
+    if type(fl) == "table" and finite(fl.dehydPct) then dehydPct = K.max(0, fl.dehydPct) end
+    local g, awakeH, debtH, cafEffect, cafTol = 1, 0, 0, 0, 0
+    if type(ac) == "table" then
+        if finite(ac.g) then g = K.clamp(ac.g, 0, 1) end
+        if finite(ac.awakeH) then awakeH = K.max(0, ac.awakeH) end
+        if finite(ac.debtH) then debtH = K.max(0, ac.debtH) end
+        if finite(ac.caf) and w > 0 then cafEffect = K.acute.cafEffect(ac, w) end
+        if finite(ac.cafTol) then cafTol = K.clamp(ac.cafTol, 0, 1) end
+    end
+    return ironGrade, allReplete, dehydPct, g, awakeH, debtH, cafEffect, cafTol
 end
 
 -- The responder constant R = exp(0.3 z), z the sum of twelve uniform draws minus 6 (an approximate unit
@@ -203,7 +232,9 @@ end
 -- TAC reads the week (run x141c-20261005-132133); TAC's energy gate reads the closing day's inDay and
 -- exKcalDay (ruling W-1) and its immobilised flag (ruling W-2) before the partition ring zeroes them;
 -- the AT step reads deficitWeek AFTER the partition ring, so the week it reads includes today.
-local function closeDay(body, w, immobilised, ageH)
+-- ironGrade and debtH are the record's iron grade and sleep debt (nutrientInputs): TAC's iron and sleep
+-- gates.
+local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     if immobilised then
         if body.tDisuse == 0 then body.lm0dis = body.lm end
         body.tDisuse = body.tDisuse + 1
@@ -216,7 +247,7 @@ local function closeDay(body, w, immobilised, ageH)
     K.strength.closeDay(body, body.dayIndex)
     K.training.closeDay(body)
     local m1, hard = K.training.weekMinutes(body)
-    K.aerobic.tacDay(body, m1, hard, 1, K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), 1, 1, immobilised)
+    K.aerobic.tacDay(body, m1, hard, K.aerobic.G_IRON[ironGrade], K.aerobic.gProt(pPerKg), K.aerobic.gEnergy(body.inDay, body.exKcalDay, body.lm), K.aerobic.gSleep(debtH), 1, immobilised)
     body.pPrevKg = pPerKg
     body.inDayClosed = body.inDay                        -- the closing day's absorbed kcal, for NR_Server_Nutrients' refeeding close
     K.partition.closeDay(body, ageH)
@@ -348,6 +379,10 @@ local function step(username, player, record)
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
         hourOfDay, maxW, heatLevel, climbClass = MET.readActivity(player, ageH)
     local met = K.energy.activityMet(className, moving, modifier, loadKg)
+    -- the activity stamps NR_Server_Nutrients reads for sweat, cold diuresis and the glycogen draw: always
+    -- finite (1 when the read is not)
+    if finite(met) then body.met = met else body.met = 1 end
+    if finite(coldMult) then body.coldMult = coldMult else body.coldMult = 1 end
     K.energy.minute(body, met, not moving, coldMult, dtM)
     K.training.sample(body, K.energy.CLASS_MET[className], heavyLevel, w, exercising, swiping, dtM)
     if climbClass ~= nil and dtM > 0 then K.training.climbCredit(body, climbClass, w) end
@@ -356,10 +391,11 @@ local function step(username, player, record)
     K.training.decay(body, dtM)
     local dStr, _, maintained = K.training.doses(body)
     K.strength.neuralStep(body, dStr, maintained, immobilised, dtM / 1440)
+    local ironGrade, allReplete, dehydPct, g, awakeH, debtH, cafEffect, cafTol = nutrientInputs(record, w)
     local today = math.floor(ageH / 24)
     local closes = 0
     while today > body.dayIndex and closes < MET.MAX_CLOSES do
-        closeDay(body, w, immobilised, ageH)
+        closeDay(body, w, immobilised, ageH, ironGrade, debtH)
         closes = closes + 1
     end
     if today > body.dayIndex then
@@ -369,9 +405,17 @@ local function step(username, player, record)
     w = body.fm + body.lm
     local fatDep = 0
     if body.fmRef > 0 then fatDep = K.clamp((body.fmRef - body.fm) / body.fmRef, 0, 1) end
-    body.dmod = K.aerobic.dmod(body.tac, 1, 0, heatLevel, K.aerobic.excessPct(body.fm, K.aerobic.FM_NORMAL_80[body.sex], w), 1, 0, 0, 0)
-    body.rmod = K.aerobic.rmod(body.tac, 1, K.aerobic.gProt(body.pPrevKg), 1, 0, 0, 0, 1)
-    body.energyState = K.energy.state(K.energy.eb24h(body, ageH - body.lastCloseAgeH), fatDep)
+    -- the balance dial (NR.BalanceBonus, default on: an absent options table reads on) while every pool
+    -- record is replete; body.alcDay is the day-so-far ethanol, zeroed by the partition close
+    local opts = NR.server.options
+    local balanceBonus = 1
+    if allReplete and (opts == nil or opts.balanceBonus ~= false) then
+        balanceBonus = 1.05                                -- game choice, spec s4.5
+    end
+    local alcGkg = body.alcDay / w
+    body.dmod = K.aerobic.dmod(body.tac, g, dehydPct, heatLevel, K.aerobic.excessPct(body.fm, K.aerobic.FM_NORMAL_80[body.sex], w), ironGrade, awakeH, cafEffect, cafTol)
+    body.rmod = K.aerobic.rmod(body.tac, g, K.aerobic.gProt(body.pPrevKg), ironGrade, dehydPct, debtH, alcGkg, balanceBonus)
+    body.energyState = K.energy.state(K.energy.eb24h(body, ageH - body.lastCloseAgeH), fatDep, g)
     body.lastAgeH = ageH
     heal(username, body, ageH, player)
 end

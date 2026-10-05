@@ -35,7 +35,7 @@ NR.server.strength = {
     limitations = {
         "the ceiling clamps the Java level 0-10; BeyondTen mastery levels are outside the model (#2118)",
         "a rise is one level per six-hour window",
-        "the carry delta's acute inputs are Plan 4/5's",
+        "the carry delta's acute inputs read the record's fluids, acute and nutrients sub-tables (Plan 4); vitamin D's clinical grade gates nothing until Plan 5 maps it",
         "while BeyondTen is loaded a level-10 perk at or above the level-9 total reads 10 (#2850; BeyondTen 1.3.4 parks a level-10 perk's XP at the level-9 total)",
         "an XP loss follows down at once; the ceiling falls one level per game hour",
         "offline time is not integrated: the rise hold counts at most one hour per minute",
@@ -176,10 +176,31 @@ local function heal(username, body, ageH)
     end
 end
 
--- The carry delta: traitCarry x (1 + eAcute) (ruling 11), the dehydration, hours-awake, caffeine and
--- vitamin D inputs neutral (Plan 4/5); written when it differs from the live delta by more than
--- CARRY_EPS, so any other writer is re-asserted against (#2143, #2565).
-local function carry(player, body, ageH)
+-- The carry delta's acute inputs off the record's Plan 4 sub-tables. This file sorts after
+-- NR_Server_Nutrients.lua, whose handler registers first, so these are the CURRENT minute's stamps. An
+-- absent sub-table (a record made before Plan 4) or an absent or non-finite field reads the neutral the
+-- Plan 3 stub passed. Read: fluids.dehydPct, fluids.sweatActive (true), acute.awakeH, acute.caf (through
+-- K.acute.caffeineActive) and nutrients.vitDClinical (true). w is the body mass, kg.
+local function acuteInputs(record, w)
+    local nut, fl, ac = record.nutrients, record.fluids, record.acute
+    local dehydPct, sweatActive = 0, false
+    if type(fl) == "table" then
+        if finite(fl.dehydPct) then dehydPct = K.max(0, fl.dehydPct) end
+        sweatActive = fl.sweatActive == true
+    end
+    local awakeH, caffeineActive = 0, false
+    if type(ac) == "table" then
+        if finite(ac.awakeH) then awakeH = K.max(0, ac.awakeH) end
+        if finite(ac.caf) and w > 0 then caffeineActive = K.acute.caffeineActive(ac, w) end
+    end
+    local vitDClinical = type(nut) == "table" and nut.vitDClinical == true
+    return dehydPct, sweatActive, awakeH, caffeineActive, vitDClinical
+end
+
+-- The carry delta: traitCarry x (1 + eAcute) (ruling 11), the dehydration, sweat, hours-awake, caffeine
+-- and vitamin D inputs read off the record (acuteInputs); written when it differs from the live delta by
+-- more than CARRY_EPS, so any other writer is re-asserted against (#2143, #2565).
+local function carry(player, record, body, ageH)
     local hourOfDay = ageH - math.floor(ageH / 24) * 24
     if getGameTime ~= nil then
         local ok, gt = pcall(getGameTime)
@@ -188,7 +209,8 @@ local function carry(player, body, ageH)
     local w = body.fm + body.lm
     local bf = 0
     if w > 0 then bf = body.fm / w end
-    local eAcute = K.strength.eAcute(0, false, 0, hourOfDay, false, false, bf)
+    local dehydPct, sweatActive, awakeH, caffeineActive, vitDClinical = acuteInputs(record, w)
+    local eAcute = K.strength.eAcute(dehydPct, sweatActive, awakeH, hourOfDay, caffeineActive, vitDClinical, bf)
     local delta = K.strength.carryDelta(body.traitCarry, eAcute)
     if not finite(delta) then return end
     local live = num(player, "getMaxWeightDelta", nil)
@@ -228,7 +250,7 @@ local function step(username, player, record)
             end
         end
     end
-    carry(player, body, ageH)
+    carry(player, record, body, ageH)
 end
 
 -- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
