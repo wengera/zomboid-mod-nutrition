@@ -145,7 +145,8 @@ function K.stomach.fatFactor(lipidsG)
 end
 
 -- Absorb an emptied vector: a fresh vector. A macro passes unchanged; iron takes its bioavailability
--- times the meal-context factor read off the emptied vector's own phytate and vitC; phytate absorbs to
+-- times the meal-context factor read off the emptied vector's own phytate and vitC; magnesium and zinc take
+-- their bioavailability times the phytate factor; phytate absorbs to
 -- 0; vitamin D takes its bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor;
 -- retinol, carotene, vitE and vitK take their bioavailability times the fat factor, both read off the
 -- emptied vector's own lipids; any other key takes its bioavailability (1.0 when unlisted).
@@ -160,6 +161,11 @@ function K.stomach.absorb(emptied)
             out[k] = emptied[k]
         elseif k == "iron" then
             out[k] = emptied.iron * K.stomach.BIOAVAIL.iron * K.stomach.ironFactor(emptied.phytate, emptied.vitC)
+        elseif k == "magnesium" then
+            -- the phytate factor reads the emptied vector's own phytate (S0536 direction and slope, S1084 the zinc reuse)
+            out[k] = emptied.magnesium * K.stomach.BIOAVAIL.magnesium * K.interact.phytateMg(emptied.phytate)
+        elseif k == "zinc" then
+            out[k] = emptied.zinc * K.stomach.BIOAVAIL.zinc * K.interact.phytateZn(emptied.phytate) -- S0536, S1084
         elseif k == "phytate" then
             out[k] = 0
         elseif k == "vitD" then

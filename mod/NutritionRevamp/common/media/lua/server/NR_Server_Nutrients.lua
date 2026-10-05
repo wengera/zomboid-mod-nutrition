@@ -39,7 +39,8 @@ NR.server.nutrients = {
         "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (rawEggDay is always false)",
         "the ingested vector is empty until the intake wrapper's per-minute sum lands (Task 12): the excess ladder and the alcohol day total read 0",
         "until Task 13 stamps body.met and body.coldMult, sweat, cold diuresis and the glycogen draw read MET 1 and coldMult 1",
-        "the phytate factors on magnesium and zinc read the absorbed vector's phytate, which the stomach absorbs to 0, so they hold at 1",
+        "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it)",
+        "before the first day close the protein-scaled requirements read P_LOW x w (Plan 3's pPrevKg backfill)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
         "Plan 4 writes no stat, moodle or health; INTOXICATION and FATIGUE are vanilla's until Plan 5",
@@ -196,8 +197,8 @@ local function heal(username, record, body, ageH)
     end
 end
 
--- Ensure the three sub-tables. The sweat multiplier and sweat sodium are drawn once per character, uniform
--- over K.fluids' ranges (fallback with no ZombRandFloat: the multiplier 1.0 and the mean 37 mmol/L); the
+-- Ensure the three sub-tables. The sweat multiplier and sweat sodium are drawn once per character: the multiplier uniform over
+-- its range, the sodium as 10 + 80 r^2 (mean 36.7; fallback with no ZombRandFloat: the multiplier 1.0 and 37 mmol/L); the
 -- slow-metaboliser trait once (fallback roll 0.75: not slow; ruling T9-1).
 local function ensure(record, body, ageH)
     if record.nutrients == nil then
@@ -205,10 +206,9 @@ local function ensure(record, body, ageH)
     end
     if record.fluids == nil then
         local sk = K.fluids.SWEATK_RANGE
-        local nr = K.fluids.NA_SWEAT_RANGE
         local sweatK = sk[1] + (sk[2] - sk[1]) * roll(0.5)
-        -- the fallback roll is the one that lands on the mean
-        local naSweat = nr[1] + (nr[2] - nr[1]) * roll((K.fluids.NA_SWEAT_MEAN - nr[1]) / (nr[2] - nr[1]))
+        -- the fallback roll is the one that lands on 37 exactly: sqrt(27/80); the draw is the kernel's
+        local naSweat = K.fluids.naSweatOf(roll(math.sqrt(27 / 80)))
         record.fluids = K.fluids.new(body.lm, sweatK, naSweat)
     end
     if record.acute == nil then
@@ -248,15 +248,13 @@ local function closeDay(record, body, w, ageH)
 end
 
 -- The interaction factors on the absorbed vector before the engine (Task 10's contract): calcium x iron on
--- the minute's absorbed calcium (the meal-calcium proxy), phytate x magnesium and zinc, the caffeine and
+-- the minute's absorbed calcium (the meal-calcium proxy), the caffeine and
 -- alcohol urinary losses off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
 -- absorbed[ORDER key] = absorbed.vitA, so the folded amount (preformed retinol plus the carotene the liver
 -- gate passes) is written there; the ingested vitA the excess tests read is the preformed retinol alone.
 local function factors(absorbed, ingested, n, lm)
     if absorbed ~= EMPTY then
         absorbed.iron = (absorbed.iron or 0) * K.interact.calciumIron(absorbed.calcium or 0)
-        absorbed.magnesium = (absorbed.magnesium or 0) * K.interact.phytateMg(absorbed.phytate or 0)
-        absorbed.zinc = (absorbed.zinc or 0) * K.interact.phytateZn(absorbed.phytate or 0)
         local cafMg, cafCa = K.interact.caffeineLossMg(absorbed.caffeine or 0, lm)
         local alcMg = K.interact.alcoholLossMg(absorbed.ethanol or 0)
         absorbed.magnesium = K.max(0, absorbed.magnesium - cafMg - alcMg)
@@ -267,7 +265,7 @@ local function factors(absorbed, ingested, n, lm)
         if vitA ~= nil then p = vitA.p end
         local off = nil
         if rec ~= nil and rec.two ~= nil then off = rec.two.caroteneOff end
-        absorbed.vitA = (absorbed.retinol or 0) + K.interact.caroteneOn(p, off) * (absorbed.carotene or 0)
+        absorbed.vitA = (absorbed.retinol or 0) + K.interact.CAROTENE_RAE * K.interact.caroteneOn(p, off) * (absorbed.carotene or 0)
     end
     if ingested ~= EMPTY then
         ingested.vitA = ingested.retinol or 0
@@ -336,8 +334,10 @@ local function step(username, player, record)
     K.nutrients.minute(n, NR.data.records, absorbed, ingested, ctx, dtM)
 
     -- the fluids
-    local met = body.met or 1
-    local coldMult = body.coldMult or 1
+    local met = body.met
+    if not finite(met) then met = 1 end
+    local coldMult = body.coldMult
+    if not finite(coldMult) then coldMult = 1 end
     K.fluids.intake(f, absorbed)
     local fctx = NUT.fctx
     fctx.sex = body.sex

@@ -190,6 +190,18 @@ def test_fat_factor_clamps_high(host):
 
 # --- absorb ---
 
+def test_absorb_phytate_on_magnesium_and_zinc(host):
+    # exp(-0.00093 * 983) recomputed in doubles; S0536 (slope), S1084 (the zinc reuse)
+    f = math.exp(-0.00093 * 983)
+    out = host.py(host.K.stomach.absorb(_vec(host, magnesium=100, zinc=10, phytate=983)))
+    assert abs(f - 0.4008) < 1e-4
+    assert abs(out["magnesium"] - 100 * 0.325 * f) < TOL
+    assert abs(out["zinc"] - 10 * host.K.stomach.BIOAVAIL.zinc * f) < TOL
+    plain = host.py(host.K.stomach.absorb(_vec(host, magnesium=100, zinc=10)))
+    assert abs(plain["magnesium"] - 32.5) < TOL
+    assert abs(plain["zinc"] - 10 * host.K.stomach.BIOAVAIL.zinc) < TOL
+
+
 def test_absorb_phytate_meal(host):
     emptied = _vec(host, calories=100, iron=10, phytate=250, vitC=0, water=50)
     out = host.py(host.K.stomach.absorb(emptied))

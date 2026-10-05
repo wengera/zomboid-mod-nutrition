@@ -105,6 +105,15 @@ K.fluids.HYPONAT = {
 -- sweatActive: the sweat share of the last 6 h's water loss above which a deficit counts as sweat-caused.
 K.fluids.SWEAT_ACTIVE_SHARE = 0.5 -- design-phase-v1 game choice (open row S1100)
 
+-- The share of basal water loss that carries sodium at the reference concentration.
+K.fluids.BASAL_NA_FRAC = 0.65 -- game choice (ruling T11-3): the urine share of basal loss near-isotonic, the insensible share solute-free; open S1092/S1093
+
+-- The sweat sodium draw from a uniform roll r: 10 + 80 r^2 has mean 36.7 and range 10-90 (S0518; ruling T11-4).
+function K.fluids.naSweatOf(r)
+    local nr = K.fluids.NA_SWEAT_RANGE
+    return nr[1] + (nr[2] - nr[1]) * r * r
+end
+
 -- The sweat EMAs' window, minutes.
 K.fluids.EMA_MIN = 360 -- game choice: the 6 h window
 
@@ -172,6 +181,7 @@ function K.fluids.losses(f, ctx, dtM)
     local alcG = F.ALC_DIURESIS_G_PER_G * ctx.ethanolAbsG * blunt
     local lossG = basalG + sweatG + coldG + alcG
     f.water = f.water - lossG
+    f.na = f.na - basalG / 1000 * F.BASAL_NA_FRAC * F.OSM_REF
     f.na = f.na - sweatL * f.naSweat
     f.k = f.k - sweatL * F.K_SWEAT
     local a = K.min(dtM / F.EMA_MIN, 1)

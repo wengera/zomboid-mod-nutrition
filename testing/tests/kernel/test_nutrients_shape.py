@@ -238,8 +238,8 @@ def vec(h, **kw):
     return v
 
 
-def expected_thirst(dehyd, lm, water):
-    # K.fluids.thirstTarget recomputed in doubles: the volume knots and the osmotic term (Edelman, na = k = 0)
+def expected_thirst(dehyd, lm, water, na=0.0):
+    # K.fluids.thirstTarget recomputed in doubles: the volume knots and the osmotic term (Edelman, k = 0)
     knots = [(0, 0), (1, 0.12), (2, 0.25), (4, 0.70), (6, 0.84), (8, 1.0)]
     d = min(max(dehyd, 0), 8)
     tvol = 1.0
@@ -248,7 +248,8 @@ def expected_thirst(dehyd, lm, water):
             tvol = y0 + (y1 - y0) * (d - x0) / (x1 - x0)
             break
     t0 = 0.73 * lm
-    c = t0 / max(t0 + water / 1000, 0.1 * t0)
+    p0 = 140 * t0
+    c = (p0 + na) / p0 * t0 / max(t0 + water / 1000, 0.1 * t0)
     tosm = 0.25 * min(max((c - 1) / 0.03, 0), 4)
     return 1 - (1 - tvol) * (1 - min(tosm, 1)), c
 
@@ -268,7 +269,7 @@ def test_fresh_record_gains_the_three_sub_tables(nut_host):
     assert n["lastDayIndex"] == record["body"]["dayIndex"] == 4
     assert f["fv"] == 1 and f["water"] == 0 and f["viewPct"] == 0
     assert abs(f["sweatK"] - 1.0) < TOL                     # 0.5 + 1.0 x the stub roll 0.5
-    assert abs(f["naSweat"] - 50.0) < TOL                   # 10 + 80 x 0.5
+    assert abs(f["naSweat"] - 30.0) < TOL                   # 10 + 80 x 0.5^2
     assert a["av"] == 1 and a["slowMet"] is False           # roll 0.5 is not < 0.5
     assert abs(a["lastFedAgeH"] - 100.0) < TOL and a["alc7"] == 0 and a["alcDayG"] == 0
     assert nonfinite(h, record) == ""
@@ -283,7 +284,7 @@ def test_draws_fall_back_without_zombrandfloat(nut_host):
     finally:
         h.G.ZombRandFloat = saved
     assert abs(record["fluids"]["sweatK"] - 1.0) < TOL
-    assert abs(record["fluids"]["naSweat"] - 37.0) < 1e-9   # the fallback roll lands on the mean
+    assert abs(record["fluids"]["naSweat"] - 37.0) < 1e-9   # the fallback roll lands on 37 exactly
     assert record["acute"]["slowMet"] is False              # fallback roll 0.75
 
 
@@ -356,13 +357,23 @@ def test_the_interaction_factors_and_the_vitamin_a_fold(nut_host):
     cafLoss = 0.02 * 100 * 60 / lm
     assert abs(ab["magnesium"] - (10.0 - cafLoss - 2.0)) < 1e-9
     assert abs(ab["calcium"] - (150.0 - cafLoss)) < 1e-9
-    assert abs(ab["zinc"] - 2.0) < TOL                      # phytate absorbs to 0: the factor is 1
+    assert abs(ab["zinc"] - 2.0) < TOL                      # the phytate factors live in the stomach kernel
     assert abs(ab["vitA"] - 100.0) < TOL                    # liver p = 1: carotene conversion off (S0202)
     record["nutrients"]["vitA"]["p"] = 0.5
     ab2 = vec(h, retinol=100.0, carotene=50.0, magnesium=1.0, caffeine=1000.0)
     KIN(h).lastAbsorbed["admin"] = ab2
     alone(h, p, record, 100.0 + 2 / 60)
-    assert abs(ab2["vitA"] - 150.0) < TOL
+    assert abs(ab2["vitA"] - 125.0) < TOL                   # 100 + 0.5 x 50 (the 2:1 equivalence)
+    record["nutrients"]["vitA"]["p"] = 0.5
+    ab3 = vec(h, carotene=1000.0)
+    KIN(h).lastAbsorbed["admin"] = ab3
+    alone(h, p, record, 100.0 + 3 / 60)
+    assert abs(ab3["vitA"] - 500.0) < TOL                   # 1000 ug carotene at p 0.5 adds 500
+    record["nutrients"]["vitA"]["p"] = 1.0
+    ab4 = vec(h, carotene=1000.0)
+    KIN(h).lastAbsorbed["admin"] = ab4
+    alone(h, p, record, 100.0 + 4 / 60)
+    assert abs(ab4["vitA"]) < TOL                           # at p 1.0 adds 0
     assert ab2["magnesium"] == 0                            # floored at 0
 
 
@@ -467,7 +478,9 @@ def test_ten_hours_at_rest(nut_host):
     assert abs(w - 80.0) < 1e-6
     assert abs(f["water"] + 3700 * 600 / 1440) < 1e-6
     assert abs(f["dehydPct"] - 1.9270833333333133) < 1e-6
-    want, c = expected_thirst(f["dehydPct"], body["lm"], f["water"])
+    # the basal sodium: -1541.67 g x 0.65 x 140 / 1000 = -140.29 mmol (T11-3)
+    assert abs(f["na"] + 3700 * 600 / 1440 / 1000 * 0.65 * 140) < 1e-6
+    want, c = expected_thirst(f["dehydPct"], body["lm"], f["water"], f["na"])
     assert abs(f["c"] - c) < 1e-9
     assert abs(f["naPlasma"] - 140 * c) < 1e-6
     assert abs(f["thirstTarget"] - want) < 1e-9
@@ -533,13 +546,19 @@ def test_sweat_reads_the_thermoregulator_fluids_multiplier(nut_host):
     alone(h, p, record, 100.0 + 1 / 60)
     f = record["fluids"]
     assert abs(f["sweatLmin"] - 1.0 * 1.0 * 2.0 * 1.0 / 60) < 1e-12   # 1 L/h x 1 x 2 x sweatK 1, one minute
-    assert abs(f["na"] - (-(2.0 / 60) * 50.0)) < 1e-9      # the drawn sweat sodium 50
+    assert abs(f["na"] - (-(2.0 / 60) * 30.0 - 3700 / 1440 / 1000 * 0.65 * 140)) < 1e-9   # sweat sodium 30 plus the basal
     record["body"]["met"] = None
     p2 = player(h, fluids=NAN)                              # a non-finite read is 1
     record2 = fresh(h, p2)
     record2["body"]["met"] = 8.0
     alone(h, p2, record2, 100.0 + 1 / 60)
     assert abs(record2["fluids"]["sweatLmin"] - 1.0 / 60) < 1e-12
+    record3 = fresh(h, player(h))
+    record3["body"]["met"] = NAN                            # a NaN stamped upstream: the losses run at met 1
+    record3["body"]["coldMult"] = NAN
+    alone(h, p, record3, 100.0 + 1 / 60)
+    assert record3["fluids"]["sweatLmin"] == 0
+    assert nonfinite(h, record3) == ""
 
 
 # --- the acute states --------------------------------------------------------------------------------

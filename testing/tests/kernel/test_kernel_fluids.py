@@ -135,8 +135,20 @@ def test_basal_ten_hours_at_rest(host):
     for _ in range(600):
         assert F.losses(f, ctx, 1) == 0
     assert _close(f.water, -1541.6666666666506, 1e-6)
-    assert _close(f.na, 0) and _close(f.k, 0)
+    # ruling T11-3: the basal loss carries sodium: -1541.6666666666506 / 1000 * 0.65 * 140 = -140.2916666666650
+    assert _close(f.na, -1541.6666666666506 / 1000 * 0.65 * 140, 1e-6)
+    assert _close(f.na, -140.29166666666, 1e-6) and _close(f.k, 0)
     assert _close(F.dehydPct(f, 80), 1.9270833333333133, 1e-8)
+    c = F.conc(f, 65.6)
+    p0 = 140 * 0.73 * 65.6
+    t0 = 0.73 * 65.6
+    assert _close(c, (p0 + f.na) / p0 * t0 / (t0 - 1.5416666666666506), 1e-9)
+    assert _close(c, 1.0116424, 1e-6)
+    assert _close(F.naPlasma(c), 140 * c, 1e-9)
+    want = F.thirstTarget(1.9270833333333133, c, 140 * c, True)
+    tvol = 0.12 + 0.13 * 0.9270833333333133
+    tosm = 0.25 * ((c - 1) / 0.03)
+    assert _close(want, 1 - (1 - tvol) * (1 - tosm), 1e-9)
     assert _close(F.dehydPct(f, 80, 0), 1.9270833333333133, 1e-8)
     # ruling T1-1: the thirst view reads the pool plus 1 L still in the stomach: 100*0.5416666/80
     assert _close(F.dehydPct(f, 80, 1000), 0.6770833333333133, 1e-8)
@@ -144,6 +156,15 @@ def test_basal_ten_hours_at_rest(host):
     f2 = _new(host)
     F.losses(f2, _ctx(host, sex=2), 1440)
     assert _close(f2.water, -2700)  # the female AI over a day
+
+
+def test_sweat_sodium_draw(host):
+    # 10 + 80 r^2 has mean 36.7 and range 10-90 (S0518; ruling T11-4)
+    D = host.K.fluids.naSweatOf
+    assert _close(D(0.5), 30.0)
+    assert _close(D(0), 10.0)
+    assert _close(D(1), 90.0)
+    assert _close(D((27 / 80) ** 0.5), 37.0)
 
 
 def test_sweat_rate(host):
@@ -162,7 +183,7 @@ def test_sweat_losses_one_minute(host):
     assert _close(L, 1 / 60)
     assert _close(f.sweatLmin, 1 / 60)
     assert _close(f.water, -(1000 / 60 + 3700 / 1440))
-    assert _close(f.na, -(1 / 60) * 37)
+    assert _close(f.na, -(1 / 60) * 37 - 3700 / 1440 / 1000 * 0.65 * 140)
     assert _close(f.k, -(1 / 60) * 5)
 
 
