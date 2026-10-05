@@ -751,3 +751,54 @@ TK.register("xp.sync", function()
     if not ran then out.error = tostring(err) end
     return out
 end)
+
+-- <type> <minutes>. Queues the game's own fitness action for the local player, the call
+-- ISFitnessUI:onClick makes (ISFitnessUI.lua:280): `ISFitnessAction:new(player, exercise,
+-- timeToExe, exeData, exeData.type)` through `ISTimedActionQueue.addGetUpAndThen` (the queue is
+-- client-only, #2641). The exercise table is `FitnessExercises.exercisesType`, keyed `squats`,
+-- `pushups`, `situp` (singular -- `situps` is accepted and mapped), `burpees`. The third
+-- constructor argument is GAME MINUTES the set may run (`endMS = start + timeToExe * 60000`,
+-- ISFitnessAction.lua:213), not a repetition count: reps come from the engine's own anim loop
+-- (`exerciseRepeat` per ActiveAnimLooped), so a driver reads rep counts off the server. The UI's
+-- equip/unequip step is skipped: these four need no item. A player who is not idle, is moving or
+-- has an endurance moodle above the threshold has the action refused or stopped by the engine;
+-- `queued` says only that the add returned without raising.
+-- @args <squats|pushups|situp|burpees> <minutes>
+-- @reply {ok, exercise, minutes, queued, queueLen [, error | queueError]} | string
+-- @purpose Queues ISFitnessAction for the local player with the named exercise for the given game minutes (not reps); queued says the add ran, the server's Fitness regularity says the exercise did.
+TK.register("exercise.do", function(argv)
+    local p = getPlayer()
+    if not p then return "no local player" end
+    local name = argv[1]
+    if name == "situps" then name = "situp" end
+    local minutes = tonumber(argv[2])
+    if name == nil or minutes == nil or minutes <= 0 then
+        return "usage: exercise.do <squats|pushups|situp|burpees> <minutes>"
+    end
+    local out = { ok = false, exercise = name, minutes = minutes }
+    if FitnessExercises == nil or FitnessExercises.exercisesType == nil then
+        out.error = "no FitnessExercises.exercisesType"
+        return out
+    end
+    local exeData = FitnessExercises.exercisesType[name]
+    if exeData == nil then
+        out.error = "no exercise " .. tostring(name)
+        return out
+    end
+    if ISFitnessAction == nil or ISTimedActionQueue == nil or ISTimedActionQueue.addGetUpAndThen == nil then
+        out.error = "no ISFitnessAction/ISTimedActionQueue.addGetUpAndThen"
+        return out
+    end
+    local ran, err = pcall(function()
+        local action = ISFitnessAction:new(p, name, minutes, exeData, exeData.type)
+        ISTimedActionQueue.addGetUpAndThen(p, action)
+    end)
+    out.queued = ran
+    out.ok = ran
+    if not ran then out.queueError = tostring(err) end
+    local qlen = nil
+    local rq, q = pcall(ISTimedActionQueue.getTimedActionQueue, p)
+    if rq and q ~= nil and q.queue ~= nil then qlen = #q.queue end
+    out.queueLen = qlen
+    return out
+end)
