@@ -289,3 +289,12 @@ x132r-20261005-072441,verdicts.X34-asleep.observed.per_boot.A.thirst,0.00809 per
 x132r-20261005-072441,verdicts.X34-asleep.observed.per_boot.B.thirst,0.00821 per game-hour,The same.,the same
 x132r-20261005-072441,verdicts.X34-asleep.observed.thirst_band,in band,Computed from the contaminated fits.,the same
 x132r-20261005-072441,verdicts.X4-push.observed.nopush_ms_range,53–1133 ms,"A bracket around the command round trip, not an arrival; only the lower bound is compared.",cite `verdicts.X4-push.observed.nopush_lower_min`
+x141s-20261005-105131,verdicts.X50-remap.verdict,`trivial`,"Keyed on STOUT, which the level-5 start never gave; FEEBLE's absence after the level-3 write is the reading.",cite `trait_pairs` (tags a0 a7 a14 r y) and `events`
+x141s-20261005-105131,summary.verdicts.X50-remap,`trivial`,The same.,the same
+x141s-20261005-105131,verdicts.X39-AddXP.verdict,`falsified`,"The LevelPerk half was never exercised (no grant crossed a level); the AddXP half is as predicted.",cite `phases.B.events0` and `phases.B.events1`
+x141s-20261005-105131,summary.verdicts.X39-AddXP,`falsified`,The same.,the same
+x141s-20261005-105131,verdicts.X39-AddXP.observed.levelperk_delta_over_crossing,0,No crossing happened.,—
+x141s-20261005-105131,verdicts.X40.verdict,`falsified`,"The prediction left out the admin role's kick exemption and the debug channel of the check's log.","cite `verdicts.X40.observed` as no kick and no line for the admin"
+x141s-20261005-105131,summary.verdicts.X40,`falsified`,The same.,the same
+x141s-20261005-105131,constants.TARGET_XP,37600,"Chosen as above level 6's total, but 37500 is the level-5 total; no crossing followed.",—
+x141s-20261005-105131,constants.L6_TOTAL,37500,"37500 is the level-5 cumulative total (#2102), not level 6's.",—

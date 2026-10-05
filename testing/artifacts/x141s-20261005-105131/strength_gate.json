@@ -1,0 +1,6561 @@
+{
+ "run_id": "x141s-20261005-105131",
+ "session": "X50 perk-level write (push, rust, SyncXp, stale remap), X39 AddXP arm, X48 protein side, X40 burst under the default AntiCheat settings: one boot of x14-strength at the fixture's 90-minute day",
+ "user": "admin",
+ "profile": {
+  "name": "x14-strength",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x14-strength.toml",
+  "fixture": "default",
+  "description": "PZTestKit + NutritionRevamp (Mode 1) + TKX_XpEvents + TKX_XpBurst - the strength gate.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp",
+   "TKX_XpEvents",
+   "TKX_XpBurst"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\mod\\NutritionRevamp",
+   "TKX_XpEvents": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_XpEvents",
+   "TKX_XpBurst": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_XpBurst"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "NR": {
+    "Mode": 1
+   }
+  },
+  "users": [
+   "admin"
+  ]
+ },
+ "mods": [
+  "PZTestKit",
+  "NutritionRevamp",
+  "TKX_XpEvents",
+  "TKX_XpBurst"
+ ],
+ "commit": "e6255ba",
+ "mod_commit": "e6255ba",
+ "mod_dirty": false,
+ "probe_mod_commit": "2bf87a6",
+ "harness_lua_commit": "b246196",
+ "harness_lua_dirty": false,
+ "harness_lua_dirty_note": null,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "acceptance_run": "x132e-20261005-063700",
+ "dry_run": false,
+ "constants": {
+  "TARGET_XP": 37600.0,
+  "L6_TOTAL": 37500.0,
+  "WRITE_LEVEL": 3,
+  "PUSH_S": 30.0,
+  "PUSH_GAP": 2.0,
+  "RUST_TIMER": "30000",
+  "RUST_PASSES": 2,
+  "SYNC_SAMPLES": 6,
+  "X39_GRANTS": 3,
+  "X39_AMOUNT": 10,
+  "X48_AMOUNT": 100,
+  "X48_PROTEIN": 200,
+  "BURST_AMOUNT": 1000,
+  "CHECK_HOLD_S": 75.0,
+  "CONTROL_AMOUNT": 1000,
+  "AC_RX": "xp growth is too high|update failed|AntiCheatXP|anticheat|anti-cheat|kick|doKickUser|doLogUser|suspicious"
+ },
+ "deviations": [
+  "This session is the first live use of perk.level, xp.grant, xp.sync and witness.chain (Task 2, no acceptance run since): the profile's verify rows plus each command's own reply are its smoke test.",
+  "The rust arm runs at the fixture's 90-minute day and multiplier 1 (a ten-minute pass is 37.5 s wall), not under time.multiplier: two passes fit the schedule and the #1870 restore hazard is avoided.",
+  "Server proteins are set to 0 before the first grant so every grant before D is x1 by construction; D sets 200/0 explicitly; C resets 0.",
+  "X40 runs LAST because a tripped check may kick the client and end the session."
+ ],
+ "world_changes": {
+  "restored": "the golden fixture restored into the run dir",
+  "left_in_place": [
+   "Strength XP ~38800+, level written 3",
+   "proteins 0",
+   "strengthUpTimer written 30000"
+  ]
+ },
+ "steps": [
+  {
+   "step": "burst_installed",
+   "cmd": "lua.global",
+   "args": "TKX_XpBurst_Installed",
+   "side": "server",
+   "wall_before": 58.514,
+   "wall_after": 60.275,
+   "epoch_before": 1791211950.469,
+   "took": 1.761,
+   "ack": {
+    "side": "server",
+    "name": "TKX_XpBurst_Installed",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "events_installed",
+   "cmd": "lua.global",
+   "args": "TKX_XpEvents_Installed",
+   "side": "server",
+   "wall_before": 60.275,
+   "wall_after": 62.292,
+   "epoch_before": 1791211952.231,
+   "took": 2.017,
+   "ack": {
+    "side": "server",
+    "name": "TKX_XpEvents_Installed",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "s0_prot_server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 62.292,
+   "wall_after": 64.303,
+   "epoch_before": 1791211954.248,
+   "took": 2.011,
+   "ack": {
+    "calories": 796.8438110351562,
+    "carbs": -0.6902861595153809,
+    "lipids": -0.2228638082742691,
+    "proteins": -0.1696130931377411,
+    "weight": 80,
+    "hunger": 0.011460973881185055,
+    "thirst": 0.0014899112284183502,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "s0_prot0",
+   "cmd": "nutrition.set",
+   "args": "admin proteins 0",
+   "side": "server",
+   "wall_before": 64.303,
+   "wall_after": 66.067,
+   "epoch_before": 1791211956.259,
+   "took": 1.764,
+   "ack": {
+    "calories": 796.4094848632812,
+    "carbs": -0.7852348685264587,
+    "lipids": -0.253518670797348,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.011460973881185055,
+    "thirst": 0.0017069368623197079,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "s0_xp",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 66.067,
+   "wall_after": 66.329,
+   "epoch_before": 1791211958.023,
+   "took": 0.262,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37500,
+    "level": 5,
+    "serverWorldAge": 2.368441581726074
+   }
+  },
+  {
+   "step": "s0_events",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 66.329,
+   "wall_after": 68.347,
+   "epoch_before": 1791211958.285,
+   "took": 2.018,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {},
+    "missing": [
+     "addxp_Strength_count",
+     "addxp_Strength_lastAmount",
+     "addxp_Strength_lastLevel",
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.377314567565918,
+    "keyCount": 0,
+    "keys": {},
+    "count": 7
+   }
+  },
+  {
+   "step": "s0_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 68.347,
+   "wall_after": 68.607,
+   "epoch_before": 1791211960.303,
+   "took": 0.26,
+   "ack": {
+    "calories": 796.0260009765625,
+    "carbs": -0.8690748810768127,
+    "lipids": -0.28058695793151855,
+    "proteins": -0.020600665360689163,
+    "weight": 80,
+    "hunger": 0.017211949452757835,
+    "thirst": 0.001898571033962071,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6565731129958294e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.378631591796875,
+    "mult": 0.8000592589378357,
+    "wall": 1791211960394
+   }
+  },
+  {
+   "step": "s0_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 68.607,
+   "wall_after": 69.87,
+   "epoch_before": 1791211960.563,
+   "took": 1.263,
+   "ack": {
+    "calories": 795.4633178710938,
+    "carbs": -0.9920984506607056,
+    "lipids": -0.3203059732913971,
+    "proteins": -0.05082927644252777,
+    "weight": 80,
+    "hunger": 0.017211949452757835,
+    "thirst": 0.002179767470806837,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6611691535217687e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.383525848388672,
+    "mult": 4.7937541007995605,
+    "wall": 1791211961584
+   }
+  },
+  {
+   "step": "s0_client_level",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 69.87,
+   "wall_after": 70.128,
+   "epoch_before": 1791211961.825,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "5"
+   }
+  },
+  {
+   "step": "s1_grant",
+   "cmd": "xp.grant",
+   "args": "admin Strength 100",
+   "side": "server",
+   "wall_before": 70.13,
+   "wall_after": 70.388,
+   "epoch_before": 1791211962.086,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 100,
+    "side": "server",
+    "xpBefore": 37500,
+    "levelBefore": 5,
+    "xpAfter": 37600,
+    "levelAfter": 5
+   }
+  },
+  {
+   "step": "s1_xp",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 70.388,
+   "wall_after": 72.405,
+   "epoch_before": 1791211962.344,
+   "took": 2.017,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 5,
+    "serverWorldAge": 2.395061492919922
+   }
+  },
+  {
+   "step": "s1_events",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 72.405,
+   "wall_after": 73.667,
+   "epoch_before": 1791211964.361,
+   "took": 1.262,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.4003849029541016,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "s1_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 75.667,
+   "wall_after": 76.175,
+   "epoch_before": 1791211967.623,
+   "took": 0.508,
+   "ack": {
+    "calories": 793.9796142578125,
+    "carbs": -1.3163557052612305,
+    "lipids": -0.42499473690986633,
+    "proteins": -0.13050386309623718,
+    "weight": 80,
+    "hunger": 0.02848079614341259,
+    "thirst": 0.0029209251515567303,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6644382412778214e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.4116697311401367,
+    "mult": 0.8001168370246887,
+    "wall": 1791211967893
+   }
+  },
+  {
+   "step": "s1_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 76.175,
+   "wall_after": 76.432,
+   "epoch_before": 1791211968.13,
+   "took": 0.257,
+   "ack": {
+    "calories": 793.774658203125,
+    "carbs": -1.3611133098602295,
+    "lipids": -0.4394450783729553,
+    "proteins": -0.14150147140026093,
+    "weight": 80,
+    "hunger": 0.02848079614341259,
+    "thirst": 0.0030232283752411604,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6668453099555336e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 12,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.4128103256225586,
+    "mult": 4.796298980712891,
+    "wall": 1791211968187
+   }
+  },
+  {
+   "step": "s1_client_level",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 76.432,
+   "wall_after": 77.189,
+   "epoch_before": 1791211968.388,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "5"
+   }
+  },
+  {
+   "step": "a_write",
+   "cmd": "perk.level",
+   "args": "admin Strength 3",
+   "side": "server",
+   "wall_before": 77.193,
+   "wall_after": 78.459,
+   "epoch_before": 1791211969.148,
+   "took": 1.266,
+   "ack": {
+    "perk": "Strength",
+    "requested": 3,
+    "side": "server",
+    "before": 5,
+    "after": 3,
+    "xp": 37600
+   }
+  },
+  {
+   "step": "a0_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 78.459,
+   "wall_after": 78.966,
+   "epoch_before": 1791211970.414,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a0_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 78.966,
+   "wall_after": 80.482,
+   "epoch_before": 1791211970.921,
+   "took": 1.516,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.4305620193481445
+   }
+  },
+  {
+   "step": "a0_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 80.482,
+   "wall_after": 80.991,
+   "epoch_before": 1791211972.437,
+   "took": 0.509,
+   "ack": {
+    "calories": 792.6990356445312,
+    "carbs": -1.5959872007369995,
+    "lipids": -0.5152758955955505,
+    "proteins": -0.19921338558197021,
+    "weight": 80,
+    "hunger": 0.03399387747049332,
+    "thirst": 0.0035600834526121616,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6673773643560708e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.4337234497070312,
+    "mult": 0.8000255823135376,
+    "wall": 1791211972893
+   }
+  },
+  {
+   "step": "a0_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 80.991,
+   "wall_after": 82.256,
+   "epoch_before": 1791211972.947,
+   "took": 1.265,
+   "ack": {
+    "calories": 792.2380981445312,
+    "carbs": -1.6966135501861572,
+    "lipids": -0.5477638244628906,
+    "proteins": -0.2239387184381485,
+    "weight": 80,
+    "hunger": 0.039623286575078964,
+    "thirst": 0.0037900866009294987,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.67046000569826e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.4394378662109375,
+    "mult": 4.794204235076904,
+    "wall": 1791211974186
+   }
+  },
+  {
+   "step": "a1_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 82.256,
+   "wall_after": 82.513,
+   "epoch_before": 1791211974.212,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a1_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 82.513,
+   "wall_after": 84.275,
+   "epoch_before": 1791211974.469,
+   "took": 1.762,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.4483137130737305
+   }
+  },
+  {
+   "step": "a2_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 84.275,
+   "wall_after": 84.533,
+   "epoch_before": 1791211976.231,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a2_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 84.533,
+   "wall_after": 84.79,
+   "epoch_before": 1791211976.489,
+   "took": 0.257,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.4500885009765625
+   }
+  },
+  {
+   "step": "a3_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 84.79,
+   "wall_after": 85.049,
+   "epoch_before": 1791211976.746,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a3_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 85.049,
+   "wall_after": 86.308,
+   "epoch_before": 1791211977.004,
+   "took": 1.259,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.4571847915649414
+   }
+  },
+  {
+   "step": "a4_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 86.46,
+   "wall_after": 86.97,
+   "epoch_before": 1791211978.415,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a4_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 86.97,
+   "wall_after": 88.48,
+   "epoch_before": 1791211978.925,
+   "took": 1.51,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.466062545776367
+   }
+  },
+  {
+   "step": "a5_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 88.48,
+   "wall_after": 88.989,
+   "epoch_before": 1791211980.436,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a5_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 88.989,
+   "wall_after": 90.25,
+   "epoch_before": 1791211980.945,
+   "took": 1.261,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.474940299987793
+   }
+  },
+  {
+   "step": "a6_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 90.459,
+   "wall_after": 90.967,
+   "epoch_before": 1791211982.415,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a6_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 90.967,
+   "wall_after": 92.227,
+   "epoch_before": 1791211982.923,
+   "took": 1.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.4833765029907227
+   }
+  },
+  {
+   "step": "a7_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 92.459,
+   "wall_after": 92.971,
+   "epoch_before": 1791211984.415,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a7_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 92.972,
+   "wall_after": 94.482,
+   "epoch_before": 1791211984.927,
+   "took": 1.51,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.49269962310791
+   }
+  },
+  {
+   "step": "a7_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 94.482,
+   "wall_after": 94.994,
+   "epoch_before": 1791211986.438,
+   "took": 0.512,
+   "ack": {
+    "calories": 789.1112060546875,
+    "carbs": -2.3789448738098145,
+    "lipids": -0.7680593132972717,
+    "proteins": -0.3915970027446747,
+    "weight": 80,
+    "hunger": 0.05602626875042915,
+    "thirst": 0.005349698942154646,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6756082914071158e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.495955467224121,
+    "mult": 0.8000399470329285,
+    "wall": 1791211986891
+   }
+  },
+  {
+   "step": "a7_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 94.994,
+   "wall_after": 96.007,
+   "epoch_before": 1791211986.95,
+   "took": 1.013,
+   "ack": {
+    "calories": 788.7266845703125,
+    "carbs": -2.4628171920776367,
+    "lipids": -0.7951381802558899,
+    "proteins": -0.41220569610595703,
+    "weight": 80,
+    "hunger": 0.05602626875042915,
+    "thirst": 0.005541407968848944,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6787731510703452e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.5002450942993164,
+    "mult": 4.794238567352295,
+    "wall": 1791211987892
+   }
+  },
+  {
+   "step": "a8_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 96.007,
+   "wall_after": 96.515,
+   "epoch_before": 1791211987.963,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a8_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 96.515,
+   "wall_after": 98.281,
+   "epoch_before": 1791211988.471,
+   "took": 1.766,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.510446548461914
+   }
+  },
+  {
+   "step": "a9_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 98.281,
+   "wall_after": 98.542,
+   "epoch_before": 1791211990.237,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a9_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 98.542,
+   "wall_after": 99.805,
+   "epoch_before": 1791211990.498,
+   "took": 1.263,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.5171003341674805
+   }
+  },
+  {
+   "step": "a10_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 99.805,
+   "wall_after": 100.064,
+   "epoch_before": 1791211991.761,
+   "took": 0.259,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a10_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 100.064,
+   "wall_after": 100.324,
+   "epoch_before": 1791211992.02,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.5193185806274414
+   }
+  },
+  {
+   "step": "a11_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 100.46,
+   "wall_after": 100.967,
+   "epoch_before": 1791211992.416,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a11_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 100.967,
+   "wall_after": 102.478,
+   "epoch_before": 1791211992.923,
+   "took": 1.511,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.528191566467285
+   }
+  },
+  {
+   "step": "a12_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 102.478,
+   "wall_after": 102.988,
+   "epoch_before": 1791211994.434,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a12_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 102.988,
+   "wall_after": 103.494,
+   "epoch_before": 1791211994.944,
+   "took": 0.506,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.5335216522216797
+   }
+  },
+  {
+   "step": "a13_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 104.46,
+   "wall_after": 104.971,
+   "epoch_before": 1791211996.415,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a13_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 104.971,
+   "wall_after": 106.487,
+   "epoch_before": 1791211996.927,
+   "took": 1.516,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.545949935913086
+   }
+  },
+  {
+   "step": "a14_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 106.487,
+   "wall_after": 106.993,
+   "epoch_before": 1791211998.443,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a14_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 106.993,
+   "wall_after": 107.253,
+   "epoch_before": 1791211998.949,
+   "took": 0.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.5503902435302734
+   }
+  },
+  {
+   "step": "a14_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 107.253,
+   "wall_after": 107.513,
+   "epoch_before": 1791211999.209,
+   "took": 0.26,
+   "ack": {
+    "calories": 786.0343017578125,
+    "carbs": -3.0498626232147217,
+    "lipids": -0.9846701622009277,
+    "proteins": -0.5564509630203247,
+    "weight": 80,
+    "hunger": 0.07228983938694,
+    "thirst": 0.006883223541080952,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6829500964377075e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.5514955520629883,
+    "mult": 0.8000399470329285,
+    "wall": 1791211999392
+   }
+  },
+  {
+   "step": "a14_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 107.513,
+   "wall_after": 108.272,
+   "epoch_before": 1791211999.469,
+   "took": 0.759,
+   "ack": {
+    "calories": 785.572509765625,
+    "carbs": -3.150519371032715,
+    "lipids": -1.0171676874160767,
+    "proteins": -0.5811836123466492,
+    "weight": 80,
+    "hunger": 0.07769760489463806,
+    "thirst": 0.007113294675946236,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6818548829178326e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.554828643798828,
+    "mult": 4.788942813873291,
+    "wall": 1791212000180
+   }
+  },
+  {
+   "step": "a15_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 108.459,
+   "wall_after": 108.967,
+   "epoch_before": 1791212000.415,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "a15_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 108.967,
+   "wall_after": 110.477,
+   "epoch_before": 1791212000.923,
+   "took": 1.51,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.5637073516845703
+   }
+  },
+  {
+   "step": "a_end_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 110.477,
+   "wall_after": 110.984,
+   "epoch_before": 1791212002.433,
+   "took": 0.507,
+   "ack": {
+    "calories": 785.0078735351562,
+    "carbs": -3.2735955715179443,
+    "lipids": -1.0569038391113281,
+    "proteins": -0.6114252805709839,
+    "weight": 80,
+    "hunger": 0.07769760489463806,
+    "thirst": 0.007394612766802311,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6847732695168816e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.566864013671875,
+    "mult": 0.8000880479812622,
+    "wall": 1791212002893
+   }
+  },
+  {
+   "step": "a_end_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 110.984,
+   "wall_after": 112.244,
+   "epoch_before": 1791212002.94,
+   "took": 1.26,
+   "ack": {
+    "calories": 784.5458984375,
+    "carbs": -3.374276876449585,
+    "lipids": -1.0894097089767456,
+    "proteins": -0.636164128780365,
+    "weight": 80,
+    "hunger": 0.08293291181325912,
+    "thirst": 0.007624741178005934,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.686642826825846e-05,
+    "moodles": {
+     "hungry": 0,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.5725889205932617,
+    "mult": 4.799275875091553,
+    "wall": 1791212004188
+   }
+  },
+  {
+   "step": "a_client_xp",
+   "cmd": "witness.chain",
+   "args": "getXp.getXP(Perks.Strength)",
+   "side": "client",
+   "wall_before": 112.244,
+   "wall_after": 112.501,
+   "epoch_before": 1791212004.2,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "37600"
+   }
+  },
+  {
+   "step": "a_events",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 112.501,
+   "wall_after": 114.267,
+   "epoch_before": 1791212004.457,
+   "took": 1.766,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.581465721130371,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "r_set",
+   "cmd": "moddata.set",
+   "args": "admin strengthUpTimer 30000",
+   "side": "server",
+   "wall_before": 114.27,
+   "wall_after": 114.778,
+   "epoch_before": 1791212006.226,
+   "took": 0.508,
+   "ack": {
+    "user": "admin",
+    "key": "strengthUpTimer",
+    "value": "30000",
+    "side": "server",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.5836849212646484
+   }
+  },
+  {
+   "step": "r_md0",
+   "cmd": "witness.moddata",
+   "args": "player:admin strengthUpTimer strengthMod",
+   "side": "server",
+   "wall_before": 114.778,
+   "wall_after": 116.293,
+   "epoch_before": 1791212006.734,
+   "took": 1.515,
+   "ack": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {
+     "strengthUpTimer": "30000",
+     "strengthMod": "0"
+    },
+    "missing": {},
+    "worldAge": 2.5903310775756836,
+    "resolved": "admin",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:string"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "step": "r_xp0",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 116.293,
+   "wall_after": 118.306,
+   "epoch_before": 1791212008.249,
+   "took": 2.013,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37600,
+    "level": 3,
+    "serverWorldAge": 2.5991926193237305
+   }
+  },
+  {
+   "step": "r_events0",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 118.306,
+   "wall_after": 118.567,
+   "epoch_before": 1791212010.262,
+   "took": 0.261,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.600081443786621,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 118.567,
+   "wall_after": 120.333,
+   "epoch_before": 1791212010.523,
+   "took": 1.766,
+   "ack": {
+    "worldAge": 2.6080617904663086,
+    "hour": 9,
+    "minutes": 36,
+    "mult": 4.794887542724609,
+    "wall": 1791212012181
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 123.333,
+   "wall_after": 124.342,
+   "epoch_before": 1791212015.289,
+   "took": 1.009,
+   "ack": {
+    "worldAge": 2.625819206237793,
+    "hour": 9,
+    "minutes": 37,
+    "mult": 4.795666217803955,
+    "wall": 1791212016185
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 127.343,
+   "wall_after": 128.356,
+   "epoch_before": 1791212019.299,
+   "took": 1.013,
+   "ack": {
+    "worldAge": 2.64357852935791,
+    "hour": 9,
+    "minutes": 38,
+    "mult": 4.797805309295654,
+    "wall": 1791212020186
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 131.357,
+   "wall_after": 132.372,
+   "epoch_before": 1791212023.312,
+   "took": 1.015,
+   "ack": {
+    "worldAge": 2.661343574523926,
+    "hour": 9,
+    "minutes": 39,
+    "mult": 4.799976825714111,
+    "wall": 1791212024184
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 135.372,
+   "wall_after": 136.38,
+   "epoch_before": 1791212027.328,
+   "took": 1.008,
+   "ack": {
+    "worldAge": 2.679110527038574,
+    "hour": 9,
+    "minutes": 40,
+    "mult": 4.7999491691589355,
+    "wall": 1791212028188
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 139.382,
+   "wall_after": 140.391,
+   "epoch_before": 1791212031.338,
+   "took": 1.009,
+   "ack": {
+    "worldAge": 2.69687557220459,
+    "hour": 9,
+    "minutes": 41,
+    "mult": 4.7972517013549805,
+    "wall": 1791212032186
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 143.392,
+   "wall_after": 144.4,
+   "epoch_before": 1791212035.348,
+   "took": 1.008,
+   "ack": {
+    "worldAge": 2.71463680267334,
+    "hour": 9,
+    "minutes": 42,
+    "mult": 4.795964241027832,
+    "wall": 1791212036181
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 147.401,
+   "wall_after": 148.41,
+   "epoch_before": 1791212039.356,
+   "took": 1.009,
+   "ack": {
+    "worldAge": 2.732400894165039,
+    "hour": 9,
+    "minutes": 43,
+    "mult": 4.800227642059326,
+    "wall": 1791212040180
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 151.41,
+   "wall_after": 152.422,
+   "epoch_before": 1791212043.366,
+   "took": 1.012,
+   "ack": {
+    "worldAge": 2.7501649856567383,
+    "hour": 9,
+    "minutes": 45,
+    "mult": 4.800304412841797,
+    "wall": 1791212044182
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 155.422,
+   "wall_after": 156.18,
+   "epoch_before": 1791212047.378,
+   "took": 0.758,
+   "ack": {
+    "worldAge": 2.7670373916625977,
+    "hour": 9,
+    "minutes": 46,
+    "mult": 4.80401611328125,
+    "wall": 1791212047984
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 159.181,
+   "wall_after": 159.938,
+   "epoch_before": 1791212051.136,
+   "took": 0.757,
+   "ack": {
+    "worldAge": 2.7834739685058594,
+    "hour": 9,
+    "minutes": 47,
+    "mult": 4.797794818878174,
+    "wall": 1791212051685
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 162.939,
+   "wall_after": 163.702,
+   "epoch_before": 1791212054.895,
+   "took": 0.763,
+   "ack": {
+    "worldAge": 2.8003482818603516,
+    "hour": 9,
+    "minutes": 48,
+    "mult": 4.796398162841797,
+    "wall": 1791212055479
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 166.702,
+   "wall_after": 167.461,
+   "epoch_before": 1791212058.658,
+   "took": 0.759,
+   "ack": {
+    "worldAge": 2.8167810440063477,
+    "hour": 9,
+    "minutes": 49,
+    "mult": 4.800267696380615,
+    "wall": 1791212059183
+   }
+  },
+  {
+   "step": "clock",
+   "cmd": "time.snapshot",
+   "args": "",
+   "side": "server",
+   "wall_before": 170.462,
+   "wall_after": 171.22,
+   "epoch_before": 1791212062.417,
+   "took": 0.758,
+   "ack": {
+    "worldAge": 2.8336591720581055,
+    "hour": 9,
+    "minutes": 50,
+    "mult": 4.797879695892334,
+    "wall": 1791212062986
+   }
+  },
+  {
+   "step": "r_md1",
+   "cmd": "witness.moddata",
+   "args": "player:admin strengthUpTimer strengthMod",
+   "side": "server",
+   "wall_before": 173.22,
+   "wall_after": 174.481,
+   "epoch_before": 1791212065.176,
+   "took": 1.261,
+   "ack": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {
+     "strengthUpTimer": "30020",
+     "strengthMod": "25"
+    },
+    "missing": {},
+    "worldAge": 2.8478736877441406,
+    "resolved": "admin",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 2
+   }
+  },
+  {
+   "step": "r_xp1",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 174.481,
+   "wall_after": 174.739,
+   "epoch_before": 1791212066.437,
+   "took": 0.258,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.850092887878418
+   }
+  },
+  {
+   "step": "r_events1",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 174.739,
+   "wall_after": 176.25,
+   "epoch_before": 1791212066.694,
+   "took": 1.511,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.856747627258301,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "r_client_level",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 176.25,
+   "wall_after": 176.511,
+   "epoch_before": 1791212068.205,
+   "took": 0.261,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "r_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 176.511,
+   "wall_after": 177.024,
+   "epoch_before": 1791212068.466,
+   "took": 0.513,
+   "ack": {
+    "calories": 768.0574340820312,
+    "carbs": -6.965877056121826,
+    "lipids": -2.24898362159729,
+    "proteins": -1.5186704397201538,
+    "weight": 80,
+    "hunger": 0.16868887841701508,
+    "thirst": 0.015834102407097816,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.691425495664589e-05,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.8600282669067383,
+    "mult": 0.7999536395072937,
+    "wall": 1791212068892
+   }
+  },
+  {
+   "step": "r_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 177.024,
+   "wall_after": 178.287,
+   "epoch_before": 1791212068.979,
+   "took": 1.263,
+   "ack": {
+    "calories": 767.5951538085938,
+    "carbs": -7.066549777984619,
+    "lipids": -2.2814865112304688,
+    "proteins": -1.5434070825576782,
+    "weight": 80,
+    "hunger": 0.16868887841701508,
+    "thirst": 0.01606421172618866,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.6927677279454656e-05,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.8656272888183594,
+    "mult": 4.796806335449219,
+    "wall": 1791212070181
+   }
+  },
+  {
+   "step": "y_client_level0",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 178.292,
+   "wall_after": 178.549,
+   "epoch_before": 1791212070.248,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y_client_xp0",
+   "cmd": "witness.chain",
+   "args": "getXp.getXP(Perks.Strength)",
+   "side": "client",
+   "wall_before": 178.549,
+   "wall_after": 179.056,
+   "epoch_before": 1791212070.505,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "hops": 2,
+    "value": "37599"
+   }
+  },
+  {
+   "step": "y_server0",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 179.056,
+   "wall_after": 180.317,
+   "epoch_before": 1791212071.012,
+   "took": 1.261,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.874509811401367
+   }
+  },
+  {
+   "step": "y_events0",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 180.317,
+   "wall_after": 182.333,
+   "epoch_before": 1791212072.273,
+   "took": 2.016,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.8833913803100586,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "y_sync",
+   "cmd": "xp.sync",
+   "args": "",
+   "side": "client",
+   "wall_before": 182.333,
+   "wall_after": 182.591,
+   "epoch_before": 1791212074.289,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "called": true
+   }
+  },
+  {
+   "step": "y0_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 182.591,
+   "wall_after": 183.099,
+   "epoch_before": 1791212074.547,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y0_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 183.099,
+   "wall_after": 184.359,
+   "epoch_before": 1791212075.055,
+   "took": 1.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.892270088195801
+   }
+  },
+  {
+   "step": "y1_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 184.591,
+   "wall_after": 185.102,
+   "epoch_before": 1791212076.547,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y1_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 185.103,
+   "wall_after": 186.112,
+   "epoch_before": 1791212077.058,
+   "took": 1.009,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.9002609252929688
+   }
+  },
+  {
+   "step": "y2_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 186.591,
+   "wall_after": 187.099,
+   "epoch_before": 1791212078.547,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y2_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 187.099,
+   "wall_after": 188.359,
+   "epoch_before": 1791212079.055,
+   "took": 1.26,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.910029411315918
+   }
+  },
+  {
+   "step": "y3_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 188.591,
+   "wall_after": 189.101,
+   "epoch_before": 1791212080.547,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y3_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 189.101,
+   "wall_after": 189.859,
+   "epoch_before": 1791212081.057,
+   "took": 0.758,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.9166879653930664
+   }
+  },
+  {
+   "step": "y4_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 190.591,
+   "wall_after": 191.103,
+   "epoch_before": 1791212082.547,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y4_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 191.103,
+   "wall_after": 192.361,
+   "epoch_before": 1791212083.059,
+   "took": 1.258,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.9277849197387695
+   }
+  },
+  {
+   "step": "y5_client",
+   "cmd": "witness.chain",
+   "args": "getPerkLevel(Perks.Strength)",
+   "side": "client",
+   "wall_before": 192.592,
+   "wall_after": 193.104,
+   "epoch_before": 1791212084.547,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "3"
+   }
+  },
+  {
+   "step": "y5_server",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 193.104,
+   "wall_after": 193.611,
+   "epoch_before": 1791212085.06,
+   "took": 0.507,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37599,
+    "level": 3,
+    "serverWorldAge": 2.9335498809814453
+   }
+  },
+  {
+   "step": "y_stats_client",
+   "cmd": "stats.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 193.611,
+   "wall_after": 194.124,
+   "epoch_before": 1791212085.567,
+   "took": 0.513,
+   "ack": {
+    "calories": 763.6908569335938,
+    "carbs": -7.916717052459717,
+    "lipids": -2.55596923828125,
+    "proteins": -1.7523045539855957,
+    "weight": 80,
+    "hunger": 0.18765589594841003,
+    "thirst": 0.018007447943091393,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.692663317953702e-05,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.9354419708251953,
+    "mult": 0.8000063896179199,
+    "wall": 1791212085889
+   }
+  },
+  {
+   "step": "y_stats_server",
+   "cmd": "stats.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 194.124,
+   "wall_after": 194.379,
+   "epoch_before": 1791212086.08,
+   "took": 0.255,
+   "ack": {
+    "calories": 763.4857177734375,
+    "carbs": -7.961387634277344,
+    "lipids": -2.5703914165496826,
+    "proteins": -1.7632807493209839,
+    "weight": 80,
+    "hunger": 0.19238929450511932,
+    "thirst": 0.018109554424881935,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false,
+    "endurance": 1,
+    "fatigue": 1.689551027084235e-05,
+    "moodles": {
+     "hungry": 1,
+     "thirst": 0,
+     "foodEaten": 0,
+     "heavyLoad": 0,
+     "endurance": 0
+    },
+    "traits": {
+     "obese": false,
+     "overweight": false,
+     "underweight": false,
+     "veryUnderweight": false,
+     "emaciated": false,
+     "HeartyAppetite": false,
+     "LightEater": false,
+     "HighThirst": false,
+     "LowThirst": false
+    },
+    "traitRoute": "getKnownTraits",
+    "traitList": {},
+    "maxWeight": 9,
+    "foodTimer": 0,
+    "standardFoodTime": 1600,
+    "asleep": false,
+    "running": false,
+    "sprinting": false,
+    "moving": false,
+    "worldAge": 2.936652183532715,
+    "mult": 4.7851080894470215,
+    "wall": 1791212086181
+   }
+  },
+  {
+   "step": "y_events1",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 194.38,
+   "wall_after": 196.392,
+   "epoch_before": 1791212086.335,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.9455204010009766,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "b_events0",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 196.399,
+   "wall_after": 197.412,
+   "epoch_before": 1791212088.355,
+   "took": 1.013,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.9503984451293945,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "b_grant0",
+   "cmd": "xp.grant",
+   "args": "admin Strength 10",
+   "side": "server",
+   "wall_before": 197.412,
+   "wall_after": 198.425,
+   "epoch_before": 1791212089.368,
+   "took": 1.013,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 10,
+    "side": "server",
+    "xpBefore": 37599,
+    "levelBefore": 3,
+    "xpAfter": 37609,
+    "levelAfter": 3
+   }
+  },
+  {
+   "step": "b_grant1",
+   "cmd": "xp.grant",
+   "args": "admin Strength 10",
+   "side": "server",
+   "wall_before": 198.425,
+   "wall_after": 200.439,
+   "epoch_before": 1791212090.381,
+   "took": 2.014,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 10,
+    "side": "server",
+    "xpBefore": 37609,
+    "levelBefore": 3,
+    "xpAfter": 37619,
+    "levelAfter": 3
+   }
+  },
+  {
+   "step": "b_grant2",
+   "cmd": "xp.grant",
+   "args": "admin Strength 10",
+   "side": "server",
+   "wall_before": 200.439,
+   "wall_after": 201.201,
+   "epoch_before": 1791212092.395,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 10,
+    "side": "server",
+    "xpBefore": 37619,
+    "levelBefore": 3,
+    "xpAfter": 37629,
+    "levelAfter": 3
+   }
+  },
+  {
+   "step": "b_events1",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 202.201,
+   "wall_after": 202.46,
+   "epoch_before": 1791212094.157,
+   "took": 0.259,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "5",
+     "addxp_Strength_lastAmount": "10",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 2.9721450805664062,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "d1_prot",
+   "cmd": "nutrition.set",
+   "args": "admin proteins 200",
+   "side": "server",
+   "wall_before": 202.464,
+   "wall_after": 204.476,
+   "epoch_before": 1791212094.42,
+   "took": 2.012,
+   "ack": {
+    "calories": 760.9186401367188,
+    "carbs": -8.52039623260498,
+    "lipids": -2.750871419906616,
+    "proteins": 200,
+    "weight": 80,
+    "hunger": 0.20164768397808075,
+    "thirst": 0.019387278705835342,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d1_prot_client",
+   "cmd": "nutrition.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 206.977,
+   "wall_after": 207.487,
+   "epoch_before": 1791212098.932,
+   "took": 0.51,
+   "ack": {
+    "calories": 760.3534545898438,
+    "carbs": -8.643448829650879,
+    "lipids": -2.790600299835205,
+    "proteins": 199.96978759765625,
+    "weight": 80,
+    "hunger": 0.20630165934562683,
+    "thirst": 0.019668543711304665,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d1_prot_server",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 207.487,
+   "wall_after": 208.245,
+   "epoch_before": 1791212099.443,
+   "took": 0.758,
+   "ack": {
+    "calories": 759.890869140625,
+    "carbs": -8.744157791137695,
+    "lipids": -2.823115825653076,
+    "proteins": 199.945068359375,
+    "weight": 80,
+    "hunger": 0.20630165934562683,
+    "thirst": 0.01989874243736267,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d1_grant",
+   "cmd": "xp.grant",
+   "args": "admin Strength 100",
+   "side": "server",
+   "wall_before": 208.245,
+   "wall_after": 208.758,
+   "epoch_before": 1791212100.2,
+   "took": 0.513,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 100,
+    "side": "server",
+    "xpBefore": 37627.5,
+    "levelBefore": 3,
+    "xpAfter": 37777.5,
+    "levelAfter": 3
+   }
+  },
+  {
+   "step": "d1_prot_server_after",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 208.758,
+   "wall_after": 210.273,
+   "epoch_before": 1791212100.714,
+   "took": 1.515,
+   "ack": {
+    "calories": 759.3771362304688,
+    "carbs": -8.855993270874023,
+    "lipids": -2.859222888946533,
+    "proteins": 199.91758728027344,
+    "weight": 80,
+    "hunger": 0.21080748736858368,
+    "thirst": 0.02015436254441738,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d2_prot0",
+   "cmd": "nutrition.set",
+   "args": "admin proteins 0",
+   "side": "server",
+   "wall_before": 210.273,
+   "wall_after": 212.284,
+   "epoch_before": 1791212102.229,
+   "took": 2.011,
+   "ack": {
+    "calories": 758.8634033203125,
+    "carbs": -8.967845916748047,
+    "lipids": -2.895334243774414,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.21080748736858368,
+    "thirst": 0.020410025492310524,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d2_prot_client0",
+   "cmd": "nutrition.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 214.785,
+   "wall_after": 215.043,
+   "epoch_before": 1791212106.741,
+   "took": 0.258,
+   "ack": {
+    "calories": 758.298095703125,
+    "carbs": -9.090943336486816,
+    "lipids": -2.9350781440734863,
+    "proteins": -0.03024708665907383,
+    "weight": 80,
+    "hunger": 0.21540702879428864,
+    "thirst": 0.020691394805908203,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d2_client_set",
+   "cmd": "nutrition.set",
+   "args": "proteins 200",
+   "side": "client",
+   "wall_before": 215.043,
+   "wall_after": 215.55,
+   "epoch_before": 1791212106.999,
+   "took": 0.507,
+   "ack": {
+    "calories": 758.298095703125,
+    "carbs": -9.090943336486816,
+    "lipids": -2.9350781440734863,
+    "proteins": 200,
+    "weight": 80,
+    "hunger": 0.21540702879428864,
+    "thirst": 0.020691394805908203,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d2_grant",
+   "cmd": "xp.grant",
+   "args": "admin Strength 100",
+   "side": "server",
+   "wall_before": 215.55,
+   "wall_after": 216.062,
+   "epoch_before": 1791212107.506,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 100,
+    "side": "server",
+    "xpBefore": 37777.5,
+    "levelBefore": 3,
+    "xpAfter": 37877.5,
+    "levelAfter": 3
+   }
+  },
+  {
+   "step": "d2_prot_client1",
+   "cmd": "nutrition.get",
+   "args": "",
+   "side": "client",
+   "wall_before": 216.062,
+   "wall_after": 216.574,
+   "epoch_before": 1791212108.018,
+   "took": 0.512,
+   "ack": {
+    "calories": 758.0410766601562,
+    "carbs": -9.146899223327637,
+    "lipids": -2.9531443119049072,
+    "proteins": -0.04399672895669937,
+    "weight": 80,
+    "hunger": 0.21540702879428864,
+    "thirst": 0.020819298923015594,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d2_prot_server1",
+   "cmd": "nutrition.get",
+   "args": "admin",
+   "side": "server",
+   "wall_before": 216.574,
+   "wall_after": 218.335,
+   "epoch_before": 1791212108.53,
+   "took": 1.761,
+   "ack": {
+    "calories": 757.32177734375,
+    "carbs": -9.303531646728516,
+    "lipids": -3.0037131309509277,
+    "proteins": -0.08248289674520493,
+    "weight": 80,
+    "hunger": 0.2198622077703476,
+    "thirst": 0.02117730677127838,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "d_events",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpEvents addxp_Strength_count addxp_Strength_lastAmount addxp_Strength_lastLevel levelperk_count levelperk_lastPerk levelperk_lastLevel levelperk_lastGained",
+   "side": "server",
+   "wall_before": 218.335,
+   "wall_after": 219.844,
+   "epoch_before": 1791212110.291,
+   "took": 1.509,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpEvents",
+    "values": {
+     "addxp_Strength_count": "8",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "worldAge": 3.0502843856811523,
+    "keyCount": 3,
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "count": 7
+   }
+  },
+  {
+   "step": "c_prot0",
+   "cmd": "nutrition.set",
+   "args": "admin proteins 0",
+   "side": "server",
+   "wall_before": 219.848,
+   "wall_after": 220.361,
+   "epoch_before": 1791212111.804,
+   "took": 0.513,
+   "ack": {
+    "calories": 756.8080444335938,
+    "carbs": -9.41537857055664,
+    "lipids": -3.0398242473602295,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.2244107723236084,
+    "thirst": 0.021432967856526375,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   }
+  },
+  {
+   "step": "c_perk",
+   "cmd": "globalmoddata.set",
+   "args": "TKX_XpBurst perk Strength",
+   "side": "server",
+   "wall_before": 220.366,
+   "wall_after": 222.378,
+   "epoch_before": 1791212112.322,
+   "took": 2.012,
+   "ack": {
+    "name": "TKX_XpBurst",
+    "key": "perk",
+    "value": "Strength",
+    "keyCount": 1,
+    "keys": [
+     "perk"
+    ]
+   }
+  },
+  {
+   "step": "c_amount",
+   "cmd": "globalmoddata.set",
+   "args": "TKX_XpBurst amount 1000",
+   "side": "server",
+   "wall_before": 222.379,
+   "wall_after": 223.642,
+   "epoch_before": 1791212114.334,
+   "took": 1.263,
+   "ack": {
+    "name": "TKX_XpBurst",
+    "key": "amount",
+    "value": 1000,
+    "keyCount": 2,
+    "keys": [
+     "amount",
+     "perk"
+    ]
+   }
+  },
+  {
+   "step": "c_xp0",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 223.642,
+   "wall_after": 224.401,
+   "epoch_before": 1791212115.598,
+   "took": 0.759,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 37877.5,
+    "level": 3,
+    "serverWorldAge": 3.06980037689209
+   }
+  },
+  {
+   "step": "c_fire",
+   "cmd": "globalmoddata.set",
+   "args": "TKX_XpBurst fire 1",
+   "side": "server",
+   "wall_before": 224.401,
+   "wall_after": 226.411,
+   "epoch_before": 1791212116.357,
+   "took": 2.01,
+   "ack": {
+    "name": "TKX_XpBurst",
+    "key": "fire",
+    "value": 1,
+    "keyCount": 3,
+    "keys": [
+     "amount",
+     "fire",
+     "perk"
+    ]
+   }
+  },
+  {
+   "step": "c_poll_md",
+   "cmd": "witness.moddata",
+   "args": "global:TKX_XpBurst firedCount fired fire",
+   "side": "server",
+   "wall_before": 228.412,
+   "wall_after": 230.423,
+   "epoch_before": 1791212120.368,
+   "took": 2.011,
+   "ack": {
+    "side": "server",
+    "scope": "global",
+    "arg": "TKX_XpBurst",
+    "values": {
+     "firedCount": "1",
+     "fired": "n=1 perk=Strength amount=1000",
+     "fire": "0"
+    },
+    "missing": {},
+    "worldAge": 3.096426010131836,
+    "keyCount": 5,
+    "keys": [
+     "amount:number",
+     "fire:number",
+     "fired:string",
+     "firedCount:number",
+     "perk:string"
+    ],
+    "count": 3
+   }
+  },
+  {
+   "step": "c_poll_xp",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 230.423,
+   "wall_after": 231.18,
+   "epoch_before": 1791212122.379,
+   "took": 0.757,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 38877.5,
+    "level": 3,
+    "serverWorldAge": 3.1004209518432617
+   }
+  },
+  {
+   "step": "c_ping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 246.181,
+   "wall_after": 246.691,
+   "epoch_before": 1791212138.137,
+   "took": 0.51,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_ping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 261.692,
+   "wall_after": 261.947,
+   "epoch_before": 1791212153.648,
+   "took": 0.255,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_ping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 276.947,
+   "wall_after": 277.455,
+   "epoch_before": 1791212168.903,
+   "took": 0.508,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_ping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 292.456,
+   "wall_after": 292.714,
+   "epoch_before": 1791212184.412,
+   "took": 0.258,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_ping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 306.182,
+   "wall_after": 306.69,
+   "epoch_before": 1791212198.137,
+   "took": 0.508,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_xp1",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 306.69,
+   "wall_after": 308.45,
+   "epoch_before": 1791212198.646,
+   "took": 1.76,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 38877.5,
+    "level": 3,
+    "serverWorldAge": 3.4428510665893555
+   }
+  },
+  {
+   "step": "c_control",
+   "cmd": "xp.grant",
+   "args": "admin Strength 1000",
+   "side": "server",
+   "wall_before": 308.458,
+   "wall_after": 309.97,
+   "epoch_before": 1791212200.414,
+   "took": 1.512,
+   "ack": {
+    "ok": true,
+    "perk": "Strength",
+    "amount": 1000,
+    "side": "server",
+    "xpBefore": 38877.5,
+    "levelBefore": 3,
+    "xpAfter": 39877.5,
+    "levelAfter": 3
+   }
+  },
+  {
+   "step": "c_cping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 324.971,
+   "wall_after": 325.232,
+   "epoch_before": 1791212216.927,
+   "took": 0.261,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_cping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 340.233,
+   "wall_after": 340.739,
+   "epoch_before": 1791212232.189,
+   "took": 0.506,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_cping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 355.739,
+   "wall_after": 356.246,
+   "epoch_before": 1791212247.695,
+   "took": 0.507,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_cping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 371.246,
+   "wall_after": 371.754,
+   "epoch_before": 1791212263.202,
+   "took": 0.508,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_cping",
+   "cmd": "ping",
+   "args": "",
+   "side": "client",
+   "wall_before": 384.971,
+   "wall_after": 385.229,
+   "epoch_before": 1791212276.927,
+   "took": 0.258,
+   "ack": "pong",
+   "ack_shape": "str"
+  },
+  {
+   "step": "c_xp2",
+   "cmd": "perk.xp",
+   "args": "admin Strength",
+   "side": "server",
+   "wall_before": 385.229,
+   "wall_after": 386.243,
+   "epoch_before": 1791212277.185,
+   "took": 1.014,
+   "ack": {
+    "perk": "Strength",
+    "user": "admin",
+    "side": "server",
+    "xp": 39877.5,
+    "level": 3,
+    "serverWorldAge": 3.789247512817383
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "S0": {
+   "burst_installed": {
+    "side": "server",
+    "name": "TKX_XpBurst_Installed",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   },
+   "events_installed": {
+    "side": "server",
+    "name": "TKX_XpEvents_Installed",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   },
+   "proteins_before": -0.1696130931377411,
+   "prot_set": {
+    "calories": 796.4094848632812,
+    "carbs": -0.7852348685264587,
+    "lipids": -0.253518670797348,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.011460973881185055,
+    "thirst": 0.0017069368623197079,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "xp0": {
+    "tag": "s0_xp",
+    "wall": 66.067,
+    "xp": 37500.0,
+    "level": 5.0,
+    "worldAge": 2.368441581726074
+   },
+   "events0": {
+    "tag": "s0_events",
+    "wall": 66.329,
+    "values": {},
+    "missing": [
+     "addxp_Strength_count",
+     "addxp_Strength_lastAmount",
+     "addxp_Strength_lastLevel",
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": {},
+    "addxp_count": 0.0,
+    "levelperk_count": 0.0
+   },
+   "traits0": {
+    "tag": "s0",
+    "client_wall": 68.347,
+    "server_wall": 68.607,
+    "client_traitList": {},
+    "server_traitList": {},
+    "client_band": [],
+    "server_band": [],
+    "client_proteins": -0.020600665360689163,
+    "server_proteins": -0.05082927644252777
+   },
+   "client_level0": {
+    "tag": "s0_client_level",
+    "wall": 69.87,
+    "ok": true,
+    "value": 5.0,
+    "raw": "5",
+    "failedAt": null
+   }
+  },
+  "S1": {
+   "grant": {
+    "tag": "s1_grant",
+    "amount": 100,
+    "wall": 70.13,
+    "ok": true,
+    "error": null,
+    "xpBefore": 37500.0,
+    "xpAfter": 37600.0,
+    "levelBefore": 5.0,
+    "levelAfter": 5.0,
+    "delta": 100.0
+   },
+   "xp1": {
+    "tag": "s1_xp",
+    "wall": 70.388,
+    "xp": 37600.0,
+    "level": 5.0,
+    "worldAge": 2.395061492919922
+   },
+   "events1": {
+    "tag": "s1_events",
+    "wall": 72.405,
+    "values": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 1.0,
+    "levelperk_count": 0.0
+   },
+   "traits1": {
+    "tag": "s1",
+    "client_wall": 75.667,
+    "server_wall": 76.175,
+    "client_traitList": {},
+    "server_traitList": {},
+    "client_band": [],
+    "server_band": [],
+    "client_proteins": -0.13050386309623718,
+    "server_proteins": -0.14150147140026093
+   },
+   "client_level1": {
+    "tag": "s1_client_level",
+    "wall": 76.432,
+    "ok": true,
+    "value": 5.0,
+    "raw": "5",
+    "failedAt": null
+   }
+  },
+  "A": {
+   "write": {
+    "perk": "Strength",
+    "requested": 3,
+    "side": "server",
+    "before": 5,
+    "after": 3,
+    "xp": 37600
+   },
+   "write_wall": 78.459,
+   "samples": [
+    {
+     "i": 0,
+     "client": {
+      "tag": "a0_client",
+      "wall": 78.459,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a0_server",
+      "wall": 78.966,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.4305620193481445
+     },
+     "traits": {
+      "tag": "a0",
+      "client_wall": 80.482,
+      "server_wall": 80.991,
+      "client_traitList": {},
+      "server_traitList": {},
+      "client_band": [],
+      "server_band": [],
+      "client_proteins": -0.19921338558197021,
+      "server_proteins": -0.2239387184381485
+     }
+    },
+    {
+     "i": 1,
+     "client": {
+      "tag": "a1_client",
+      "wall": 82.256,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a1_server",
+      "wall": 82.513,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.4483137130737305
+     }
+    },
+    {
+     "i": 2,
+     "client": {
+      "tag": "a2_client",
+      "wall": 84.275,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a2_server",
+      "wall": 84.533,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.4500885009765625
+     }
+    },
+    {
+     "i": 3,
+     "client": {
+      "tag": "a3_client",
+      "wall": 84.79,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a3_server",
+      "wall": 85.049,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.4571847915649414
+     }
+    },
+    {
+     "i": 4,
+     "client": {
+      "tag": "a4_client",
+      "wall": 86.46,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a4_server",
+      "wall": 86.97,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.466062545776367
+     }
+    },
+    {
+     "i": 5,
+     "client": {
+      "tag": "a5_client",
+      "wall": 88.48,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a5_server",
+      "wall": 88.989,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.474940299987793
+     }
+    },
+    {
+     "i": 6,
+     "client": {
+      "tag": "a6_client",
+      "wall": 90.459,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a6_server",
+      "wall": 90.967,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.4833765029907227
+     }
+    },
+    {
+     "i": 7,
+     "client": {
+      "tag": "a7_client",
+      "wall": 92.459,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a7_server",
+      "wall": 92.972,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.49269962310791
+     },
+     "traits": {
+      "tag": "a7",
+      "client_wall": 94.482,
+      "server_wall": 94.994,
+      "client_traitList": {},
+      "server_traitList": {},
+      "client_band": [],
+      "server_band": [],
+      "client_proteins": -0.3915970027446747,
+      "server_proteins": -0.41220569610595703
+     }
+    },
+    {
+     "i": 8,
+     "client": {
+      "tag": "a8_client",
+      "wall": 96.007,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a8_server",
+      "wall": 96.515,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.510446548461914
+     }
+    },
+    {
+     "i": 9,
+     "client": {
+      "tag": "a9_client",
+      "wall": 98.281,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a9_server",
+      "wall": 98.542,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.5171003341674805
+     }
+    },
+    {
+     "i": 10,
+     "client": {
+      "tag": "a10_client",
+      "wall": 99.805,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a10_server",
+      "wall": 100.064,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.5193185806274414
+     }
+    },
+    {
+     "i": 11,
+     "client": {
+      "tag": "a11_client",
+      "wall": 100.46,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a11_server",
+      "wall": 100.967,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.528191566467285
+     }
+    },
+    {
+     "i": 12,
+     "client": {
+      "tag": "a12_client",
+      "wall": 102.478,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a12_server",
+      "wall": 102.988,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.5335216522216797
+     }
+    },
+    {
+     "i": 13,
+     "client": {
+      "tag": "a13_client",
+      "wall": 104.46,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a13_server",
+      "wall": 104.971,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.545949935913086
+     }
+    },
+    {
+     "i": 14,
+     "client": {
+      "tag": "a14_client",
+      "wall": 106.487,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a14_server",
+      "wall": 106.993,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.5503902435302734
+     },
+     "traits": {
+      "tag": "a14",
+      "client_wall": 107.253,
+      "server_wall": 107.513,
+      "client_traitList": {},
+      "server_traitList": {},
+      "client_band": [],
+      "server_band": [],
+      "client_proteins": -0.5564509630203247,
+      "server_proteins": -0.5811836123466492
+     }
+    },
+    {
+     "i": 15,
+     "client": {
+      "tag": "a15_client",
+      "wall": 108.459,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "a15_server",
+      "wall": 108.967,
+      "xp": 37600.0,
+      "level": 3.0,
+      "worldAge": 2.5637073516845703
+     }
+    }
+   ],
+   "traits_end": {
+    "tag": "a_end",
+    "client_wall": 110.477,
+    "server_wall": 110.984,
+    "client_traitList": {},
+    "server_traitList": {},
+    "client_band": [],
+    "server_band": [],
+    "client_proteins": -0.6114252805709839,
+    "server_proteins": -0.636164128780365
+   },
+   "client_xp_end": {
+    "tag": "a_client_xp",
+    "wall": 112.244,
+    "ok": true,
+    "value": 37600.0,
+    "raw": "37600",
+    "failedAt": null
+   },
+   "events": {
+    "tag": "a_events",
+    "wall": 112.501,
+    "values": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 1.0,
+    "levelperk_count": 0.0
+   }
+  },
+  "R": {
+   "set": {
+    "user": "admin",
+    "key": "strengthUpTimer",
+    "value": "30000",
+    "side": "server",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod",
+     "fitnessUpTimer",
+     "strengthMod",
+     "strengthUpTimer"
+    ],
+    "serverWorldAge": 2.5836849212646484
+   },
+   "md0": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {
+     "strengthUpTimer": "30000",
+     "strengthMod": "0"
+    },
+    "missing": {},
+    "worldAge": 2.5903310775756836,
+    "resolved": "admin",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:string"
+    ],
+    "count": 2
+   },
+   "xp0": {
+    "tag": "r_xp0",
+    "wall": 116.293,
+    "xp": 37600.0,
+    "level": 3.0,
+    "worldAge": 2.5991926193237305
+   },
+   "events0": {
+    "tag": "r_events0",
+    "wall": 118.306,
+    "values": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 1.0,
+    "levelperk_count": 0.0
+   },
+   "clock0": {
+    "worldAge": 2.6080617904663086,
+    "hour": 9,
+    "minutes": 36,
+    "mult": 4.794887542724609,
+    "wall": 1791212012181
+   },
+   "clock_polls": [
+    {
+     "wall": 124.342,
+     "hour": 9,
+     "minutes": 37
+    },
+    {
+     "wall": 128.356,
+     "hour": 9,
+     "minutes": 38
+    },
+    {
+     "wall": 132.372,
+     "hour": 9,
+     "minutes": 39
+    },
+    {
+     "wall": 136.38,
+     "hour": 9,
+     "minutes": 40
+    },
+    {
+     "wall": 140.392,
+     "hour": 9,
+     "minutes": 41
+    },
+    {
+     "wall": 144.4,
+     "hour": 9,
+     "minutes": 42
+    },
+    {
+     "wall": 148.41,
+     "hour": 9,
+     "minutes": 43
+    },
+    {
+     "wall": 152.422,
+     "hour": 9,
+     "minutes": 45
+    },
+    {
+     "wall": 156.18,
+     "hour": 9,
+     "minutes": 46
+    },
+    {
+     "wall": 159.939,
+     "hour": 9,
+     "minutes": 47
+    },
+    {
+     "wall": 163.702,
+     "hour": 9,
+     "minutes": 48
+    },
+    {
+     "wall": 167.461,
+     "hour": 9,
+     "minutes": 49
+    },
+    {
+     "wall": 171.22,
+     "hour": 9,
+     "minutes": 50
+    }
+   ],
+   "boundaries_seen": 2,
+   "md1": {
+    "side": "server",
+    "scope": "player",
+    "arg": "admin",
+    "values": {
+     "strengthUpTimer": "30020",
+     "strengthMod": "25"
+    },
+    "missing": {},
+    "worldAge": 2.8478736877441406,
+    "resolved": "admin",
+    "keyCount": 4,
+    "keys": [
+     "fitnessMod:number",
+     "fitnessUpTimer:number",
+     "strengthMod:number",
+     "strengthUpTimer:number"
+    ],
+    "count": 2
+   },
+   "xp1": {
+    "tag": "r_xp1",
+    "wall": 174.481,
+    "xp": 37599.0,
+    "level": 3.0,
+    "worldAge": 2.850092887878418
+   },
+   "events1": {
+    "tag": "r_events1",
+    "wall": 174.739,
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 2.0,
+    "levelperk_count": 0.0
+   },
+   "client_level": {
+    "tag": "r_client_level",
+    "wall": 176.25,
+    "ok": true,
+    "value": 3.0,
+    "raw": "3",
+    "failedAt": null
+   },
+   "traits": {
+    "tag": "r",
+    "client_wall": 176.511,
+    "server_wall": 177.024,
+    "client_traitList": {},
+    "server_traitList": {},
+    "client_band": [],
+    "server_band": [],
+    "client_proteins": -1.5186704397201538,
+    "server_proteins": -1.5434070825576782
+   }
+  },
+  "Y": {
+   "client_level_before": {
+    "tag": "y_client_level0",
+    "wall": 178.292,
+    "ok": true,
+    "value": 3.0,
+    "raw": "3",
+    "failedAt": null
+   },
+   "client_xp_before": {
+    "tag": "y_client_xp0",
+    "wall": 178.549,
+    "ok": true,
+    "value": 37599.0,
+    "raw": "37599",
+    "failedAt": null
+   },
+   "server_before": {
+    "tag": "y_server0",
+    "wall": 179.056,
+    "xp": 37599.0,
+    "level": 3.0,
+    "worldAge": 2.874509811401367
+   },
+   "events0": {
+    "tag": "y_events0",
+    "wall": 180.317,
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 2.0,
+    "levelperk_count": 0.0
+   },
+   "sync": {
+    "ok": true,
+    "called": true
+   },
+   "sync_wall": 182.591,
+   "samples": [
+    {
+     "i": 0,
+     "client": {
+      "tag": "y0_client",
+      "wall": 182.591,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "y0_server",
+      "wall": 183.099,
+      "xp": 37599.0,
+      "level": 3.0,
+      "worldAge": 2.892270088195801
+     }
+    },
+    {
+     "i": 1,
+     "client": {
+      "tag": "y1_client",
+      "wall": 184.591,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "y1_server",
+      "wall": 185.103,
+      "xp": 37599.0,
+      "level": 3.0,
+      "worldAge": 2.9002609252929688
+     }
+    },
+    {
+     "i": 2,
+     "client": {
+      "tag": "y2_client",
+      "wall": 186.591,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "y2_server",
+      "wall": 187.099,
+      "xp": 37599.0,
+      "level": 3.0,
+      "worldAge": 2.910029411315918
+     }
+    },
+    {
+     "i": 3,
+     "client": {
+      "tag": "y3_client",
+      "wall": 188.591,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "y3_server",
+      "wall": 189.101,
+      "xp": 37599.0,
+      "level": 3.0,
+      "worldAge": 2.9166879653930664
+     }
+    },
+    {
+     "i": 4,
+     "client": {
+      "tag": "y4_client",
+      "wall": 190.591,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "y4_server",
+      "wall": 191.103,
+      "xp": 37599.0,
+      "level": 3.0,
+      "worldAge": 2.9277849197387695
+     }
+    },
+    {
+     "i": 5,
+     "client": {
+      "tag": "y5_client",
+      "wall": 192.592,
+      "ok": true,
+      "value": 3.0,
+      "raw": "3",
+      "failedAt": null
+     },
+     "server": {
+      "tag": "y5_server",
+      "wall": 193.104,
+      "xp": 37599.0,
+      "level": 3.0,
+      "worldAge": 2.9335498809814453
+     }
+    }
+   ],
+   "traits": {
+    "tag": "y",
+    "client_wall": 193.611,
+    "server_wall": 194.124,
+    "client_traitList": {},
+    "server_traitList": {},
+    "client_band": [],
+    "server_band": [],
+    "client_proteins": -1.7523045539855957,
+    "server_proteins": -1.7632807493209839
+   },
+   "events1": {
+    "tag": "y_events1",
+    "wall": 194.38,
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 2.0,
+    "levelperk_count": 0.0
+   }
+  },
+  "B": {
+   "events0": {
+    "tag": "b_events0",
+    "wall": 196.399,
+    "values": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 2.0,
+    "levelperk_count": 0.0
+   },
+   "grants": [
+    {
+     "tag": "b_grant0",
+     "amount": 10,
+     "wall": 197.412,
+     "ok": true,
+     "error": null,
+     "xpBefore": 37599.0,
+     "xpAfter": 37609.0,
+     "levelBefore": 3.0,
+     "levelAfter": 3.0,
+     "delta": 10.0
+    },
+    {
+     "tag": "b_grant1",
+     "amount": 10,
+     "wall": 198.425,
+     "ok": true,
+     "error": null,
+     "xpBefore": 37609.0,
+     "xpAfter": 37619.0,
+     "levelBefore": 3.0,
+     "levelAfter": 3.0,
+     "delta": 10.0
+    },
+    {
+     "tag": "b_grant2",
+     "amount": 10,
+     "wall": 200.439,
+     "ok": true,
+     "error": null,
+     "xpBefore": 37619.0,
+     "xpAfter": 37629.0,
+     "levelBefore": 3.0,
+     "levelAfter": 3.0,
+     "delta": 10.0
+    }
+   ],
+   "events1": {
+    "tag": "b_events1",
+    "wall": 202.201,
+    "values": {
+     "addxp_Strength_count": "5",
+     "addxp_Strength_lastAmount": "10",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 5.0,
+    "levelperk_count": 0.0
+   }
+  },
+  "D": {
+   "d1_set": {
+    "calories": 760.9186401367188,
+    "carbs": -8.52039623260498,
+    "lipids": -2.750871419906616,
+    "proteins": 200,
+    "weight": 80,
+    "hunger": 0.20164768397808075,
+    "thirst": 0.019387278705835342,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "d1_client_prot": 199.96978759765625,
+   "d1_server_prot": 199.945068359375,
+   "d1_grant": {
+    "tag": "d1_grant",
+    "amount": 100,
+    "wall": 208.245,
+    "ok": true,
+    "error": null,
+    "xpBefore": 37627.5,
+    "xpAfter": 37777.5,
+    "levelBefore": 3.0,
+    "levelAfter": 3.0,
+    "delta": 150.0
+   },
+   "d1_server_prot_after": 199.91758728027344,
+   "d2_set_server": {
+    "calories": 758.8634033203125,
+    "carbs": -8.967845916748047,
+    "lipids": -2.895334243774414,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.21080748736858368,
+    "thirst": 0.020410025492310524,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "d2_client_prot_before": -0.03024708665907383,
+   "d2_client_set": {
+    "calories": 758.298095703125,
+    "carbs": -9.090943336486816,
+    "lipids": -2.9350781440734863,
+    "proteins": 200,
+    "weight": 80,
+    "hunger": 0.21540702879428864,
+    "thirst": 0.020691394805908203,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "d2_client_set_proteins": 200.0,
+   "d2_grant": {
+    "tag": "d2_grant",
+    "amount": 100,
+    "wall": 215.55,
+    "ok": true,
+    "error": null,
+    "xpBefore": 37777.5,
+    "xpAfter": 37877.5,
+    "levelBefore": 3.0,
+    "levelAfter": 3.0,
+    "delta": 100.0
+   },
+   "d2_gap_s": 0.0,
+   "d2_client_prot_after": -0.04399672895669937,
+   "d2_server_prot_after": -0.08248289674520493,
+   "events": {
+    "tag": "d_events",
+    "wall": 218.335,
+    "values": {
+     "addxp_Strength_count": "8",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "missing": [
+     "levelperk_count",
+     "levelperk_lastPerk",
+     "levelperk_lastLevel",
+     "levelperk_lastGained"
+    ],
+    "keys": [
+     "addxp_Strength_count:number",
+     "addxp_Strength_lastAmount:number",
+     "addxp_Strength_lastLevel:number"
+    ],
+    "addxp_count": 8.0,
+    "levelperk_count": 0.0
+   }
+  },
+  "C": {
+   "prot0": {
+    "calories": 756.8080444335938,
+    "carbs": -9.41537857055664,
+    "lipids": -3.0398242473602295,
+    "proteins": 0,
+    "weight": 80,
+    "hunger": 0.2244107723236084,
+    "thirst": 0.021432967856526375,
+    "statsApi": "Stats:get(CharacterStat.HUNGER)",
+    "incWeight": false,
+    "incWeightLot": false,
+    "decWeight": false
+   },
+   "log_sizes_before": {
+    "server_stdout": 322231,
+    "server_console": 0,
+    "client_console": 299010
+   },
+   "set_perk": {
+    "name": "TKX_XpBurst",
+    "key": "perk",
+    "value": "Strength",
+    "keyCount": 1,
+    "keys": [
+     "perk"
+    ]
+   },
+   "set_amount": {
+    "name": "TKX_XpBurst",
+    "key": "amount",
+    "value": 1000,
+    "keyCount": 2,
+    "keys": [
+     "amount",
+     "perk"
+    ]
+   },
+   "xp_before": {
+    "tag": "c_xp0",
+    "wall": 223.642,
+    "xp": 37877.5,
+    "level": 3.0,
+    "worldAge": 3.06980037689209
+   },
+   "fire": {
+    "name": "TKX_XpBurst",
+    "key": "fire",
+    "value": 1,
+    "keyCount": 3,
+    "keys": [
+     "amount",
+     "fire",
+     "perk"
+    ]
+   },
+   "fire_wall": 226.411,
+   "polls": [
+    {
+     "wall": 231.181,
+     "values": {
+      "firedCount": "1",
+      "fired": "n=1 perk=Strength amount=1000",
+      "fire": "0"
+     },
+     "xp": 38877.5,
+     "level": 3.0
+    }
+   ],
+   "landed": {
+    "tag": "c_poll_xp",
+    "wall": 230.423,
+    "xp": 38877.5,
+    "level": 3.0,
+    "worldAge": 3.1004209518432617
+   },
+   "landed_wall": 230.423,
+   "pings": [
+    {
+     "wall": 246.181,
+     "pong": true
+    },
+    {
+     "wall": 261.692,
+     "pong": true
+    },
+    {
+     "wall": 276.947,
+     "pong": true
+    },
+    {
+     "wall": 292.456,
+     "pong": true
+    },
+    {
+     "wall": 306.182,
+     "pong": true
+    }
+   ],
+   "xp_after_hold": {
+    "tag": "c_xp1",
+    "wall": 306.69,
+    "xp": 38877.5,
+    "level": 3.0,
+    "worldAge": 3.4428510665893555
+   },
+   "log_after_burst": {
+    "server_stdout": [],
+    "server_console": [],
+    "client_console": []
+   },
+   "log_sizes_after_burst": {
+    "server_stdout": 323645,
+    "server_console": 0,
+    "client_console": 299380
+   },
+   "control": {
+    "tag": "c_control",
+    "amount": 1000,
+    "wall": 308.458,
+    "ok": true,
+    "error": null,
+    "xpBefore": 38877.5,
+    "xpAfter": 39877.5,
+    "levelBefore": 3.0,
+    "levelAfter": 3.0,
+    "delta": 1000.0
+   },
+   "control_pings": [
+    {
+     "wall": 324.971,
+     "pong": true
+    },
+    {
+     "wall": 340.233,
+     "pong": true
+    },
+    {
+     "wall": 355.739,
+     "pong": true
+    },
+    {
+     "wall": 371.246,
+     "pong": true
+    },
+    {
+     "wall": 384.971,
+     "pong": true
+    }
+   ],
+   "xp_after_control": {
+    "tag": "c_xp2",
+    "wall": 385.229,
+    "xp": 39877.5,
+    "level": 3.0,
+    "worldAge": 3.789247512817383
+   },
+   "log_after_control": {
+    "server_stdout": [],
+    "server_console": [],
+    "client_console": []
+   }
+  }
+ },
+ "verdicts": {
+  "X50-write": {
+   "phase": "X50-write",
+   "predicted": "perk.level replies before=6, after=3, xp unchanged (>= 37500)",
+   "falsifier": "after != 3 or the XP moved",
+   "observed": {
+    "before": 5,
+    "after": 3,
+    "xp": 37600,
+    "xp_before_write": 37600.0
+   },
+   "verdict": "as_predicted",
+   "wall": 386.261
+  },
+  "X50-push": {
+   "phase": "X50-push",
+   "predicted": "server level 3 at every sample; client reads 3 from sample 0 or 1 on",
+   "falsifier": "a server sample != 3; a client that never reads 3",
+   "observed": {
+    "server_levels": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3
+    ],
+    "client_levels": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3,
+     3
+    ],
+    "client_first_3_index": 0,
+    "sample_walls": [
+     78.459,
+     82.256,
+     84.275,
+     84.79,
+     86.46,
+     88.48,
+     90.459,
+     92.459,
+     96.007,
+     98.281,
+     99.805,
+     100.46,
+     102.478,
+     104.46,
+     106.487,
+     108.459
+    ],
+    "write_wall": 78.459,
+    "client_first_3_after_write_s": 0.0
+   },
+   "verdict": "as_predicted",
+   "wall": 386.265
+  },
+  "X50-rust": {
+   "phase": "X50-rust",
+   "predicted": "the forced pass fires (strengthMod -> floor(timer/1200)) and the level holds at 3",
+   "falsifier": "level != 3 after the pass; unmeasured if strengthMod never moves",
+   "observed": {
+    "md0": {
+     "strengthUpTimer": "30000",
+     "strengthMod": "0"
+    },
+    "md1": {
+     "strengthUpTimer": "30020",
+     "strengthMod": "25"
+    },
+    "xp0": 37600.0,
+    "xp1": 37599.0,
+    "level_after": 3,
+    "boundaries_seen": 2,
+    "events0": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "events1": {
+     "addxp_Strength_count": "2",
+     "addxp_Strength_lastAmount": "-1",
+     "addxp_Strength_lastLevel": "3"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 386.27
+  },
+  "X50-sync": {
+   "phase": "X50-sync",
+   "predicted": "SyncXp uploads the client's level; the server stays at the client's pre-sync reading (3); no AddXP/LevelPerk counter moves (#2614)",
+   "falsifier": "the server moves to a level other than the client's pre-sync reading, or a counter moves; trivial when client == server before the sync",
+   "observed": {
+    "sync_ack": {
+     "ok": true,
+     "called": true
+    },
+    "client_before": 3,
+    "server_before": 3,
+    "server_after": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     3
+    ],
+    "client_after": [
+     3,
+     3,
+     3,
+     3,
+     3,
+     3
+    ],
+    "event_counter_moved": false
+   },
+   "verdict": "trivial",
+   "wall": 386.275
+  },
+  "X50-remap": {
+   "phase": "X50-remap",
+   "predicted": "STOUT stays on the server traitList after the write, FEEBLE absent",
+   "falsifier": "FEEBLE present or STOUT gone; trivial if STOUT never present after the crossing",
+   "observed": {
+    "after_cross": {
+     "server": [],
+     "client": []
+    },
+    "after_write": [
+     {
+      "tag": "a0",
+      "server": [],
+      "client": []
+     },
+     {
+      "tag": "a7",
+      "server": [],
+      "client": []
+     },
+     {
+      "tag": "a14",
+      "server": [],
+      "client": []
+     }
+    ]
+   },
+   "verdict": "trivial",
+   "wall": 386.279
+  },
+  "X39-AddXP": {
+   "phase": "X39-AddXP",
+   "predicted": "addxp_Strength_count +3 over three grants; levelperk_count +1 (gained true) over the S1 crossing",
+   "falsifier": "a count that does not move",
+   "observed": {
+    "addxp_delta_over_3_grants": 3.0,
+    "b_values_after": {
+     "addxp_Strength_count": "5",
+     "addxp_Strength_lastAmount": "10",
+     "addxp_Strength_lastLevel": "3"
+    },
+    "levelperk_delta_over_crossing": 0.0,
+    "s1_values_after": {
+     "addxp_Strength_count": "1",
+     "addxp_Strength_lastAmount": "100",
+     "addxp_Strength_lastLevel": "5"
+    },
+    "grants": [
+     {
+      "tag": "b_grant0",
+      "amount": 10,
+      "wall": 197.412,
+      "ok": true,
+      "error": null,
+      "xpBefore": 37599.0,
+      "xpAfter": 37609.0,
+      "levelBefore": 3.0,
+      "levelAfter": 3.0,
+      "delta": 10.0
+     },
+     {
+      "tag": "b_grant1",
+      "amount": 10,
+      "wall": 198.425,
+      "ok": true,
+      "error": null,
+      "xpBefore": 37609.0,
+      "xpAfter": 37619.0,
+      "levelBefore": 3.0,
+      "levelAfter": 3.0,
+      "delta": 10.0
+     },
+     {
+      "tag": "b_grant2",
+      "amount": 10,
+      "wall": 200.439,
+      "ok": true,
+      "error": null,
+      "xpBefore": 37619.0,
+      "xpAfter": 37629.0,
+      "levelBefore": 3.0,
+      "levelAfter": 3.0,
+      "delta": 10.0
+     }
+    ],
+    "s1_grant": {
+     "tag": "s1_grant",
+     "amount": 100,
+     "wall": 70.13,
+     "ok": true,
+     "error": null,
+     "xpBefore": 37500.0,
+     "xpAfter": 37600.0,
+     "levelBefore": 5.0,
+     "levelAfter": 5.0,
+     "delta": 100.0
+    }
+   },
+   "verdict": "falsified",
+   "wall": 386.285
+  },
+  "X48": {
+   "phase": "X48",
+   "predicted": "D1 delta 150 (server store 200); D2 delta 100 (server 0, client copy 200)",
+   "falsifier": "D1 delta 100 (branch not on this route); D2 delta 150 (client copy gated)",
+   "observed": {
+    "d1": {
+     "server_prot": 199.945068359375,
+     "client_prot": 199.96978759765625,
+     "delta": 150.0,
+     "server_prot_after": 199.91758728027344
+    },
+    "d2": {
+     "client_set_proteins": 200.0,
+     "client_before": -0.03024708665907383,
+     "client_after": -0.04399672895669937,
+     "server_after": -0.08248289674520493,
+     "delta": 100.0,
+     "gap_s": 0.0
+    },
+    "control_deltas_b": [
+     10.0,
+     10.0,
+     10.0
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 386.289
+  },
+  "X40": {
+   "phase": "X40",
+   "predicted": "a 1000-XP checker-free burst trips the XP check within ~60 s (a 'xp growth is too high' line and/or a kick) under the run's AntiCheatXP value; the refreshed control trips nothing",
+   "falsifier": "no line and no kick after 75 s = no trip under these settings",
+   "observed": {
+    "xp_before": 37877.5,
+    "xp_landed": 38877.5,
+    "burst_delta": 1000.0,
+    "new_log_lines_after_burst": [],
+    "pings": [
+     {
+      "wall": 246.181,
+      "pong": true
+     },
+     {
+      "wall": 261.692,
+      "pong": true
+     },
+     {
+      "wall": 276.947,
+      "pong": true
+     },
+     {
+      "wall": 292.456,
+      "pong": true
+     },
+     {
+      "wall": 306.182,
+      "pong": true
+     }
+    ],
+    "kicked": false,
+    "anticheat": {
+     "settings": [
+      "AntiCheatSafety=2",
+      "AntiCheatSpeed=2",
+      "AntiCheatNoClip=4",
+      "AntiCheatHit=2",
+      "AntiCheatPacketException=4",
+      "AntiCheatPermission=2",
+      "AntiCheatXP=2",
+      "AntiCheatSafeHouse=2",
+      "AntiCheatPlayer=2",
+      "AntiCheatChecksum=2"
+     ],
+     "ini": "testing/runs/x141s-20261005-105131/server/Server/pzt.ini"
+    },
+    "control": {
+     "tag": "c_control",
+     "amount": 1000,
+     "wall": 308.458,
+     "ok": true,
+     "error": null,
+     "xpBefore": 38877.5,
+     "xpAfter": 39877.5,
+     "levelBefore": 3.0,
+     "levelAfter": 3.0,
+     "delta": 1000.0
+    },
+    "control_pings": [
+     {
+      "wall": 324.971,
+      "pong": true
+     },
+     {
+      "wall": 340.233,
+      "pong": true
+     },
+     {
+      "wall": 355.739,
+      "pong": true
+     },
+     {
+      "wall": 371.246,
+      "pong": true
+     },
+     {
+      "wall": 384.971,
+      "pong": true
+     }
+    ],
+    "new_log_lines_after_control": {
+     "server_stdout": [],
+     "server_console": [],
+     "client_console": []
+    }
+   },
+   "verdict": "falsified",
+   "wall": 386.293
+  }
+ },
+ "events": [
+  {
+   "tag": "s0_events",
+   "wall": 66.329,
+   "values": {},
+   "missing": [
+    "addxp_Strength_count",
+    "addxp_Strength_lastAmount",
+    "addxp_Strength_lastLevel",
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": {},
+   "addxp_count": 0.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "s1_events",
+   "wall": 72.405,
+   "values": {
+    "addxp_Strength_count": "1",
+    "addxp_Strength_lastAmount": "100",
+    "addxp_Strength_lastLevel": "5"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 1.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "a_events",
+   "wall": 112.501,
+   "values": {
+    "addxp_Strength_count": "1",
+    "addxp_Strength_lastAmount": "100",
+    "addxp_Strength_lastLevel": "5"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 1.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "r_events0",
+   "wall": 118.306,
+   "values": {
+    "addxp_Strength_count": "1",
+    "addxp_Strength_lastAmount": "100",
+    "addxp_Strength_lastLevel": "5"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 1.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "r_events1",
+   "wall": 174.739,
+   "values": {
+    "addxp_Strength_count": "2",
+    "addxp_Strength_lastAmount": "-1",
+    "addxp_Strength_lastLevel": "3"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 2.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "y_events0",
+   "wall": 180.317,
+   "values": {
+    "addxp_Strength_count": "2",
+    "addxp_Strength_lastAmount": "-1",
+    "addxp_Strength_lastLevel": "3"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 2.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "y_events1",
+   "wall": 194.38,
+   "values": {
+    "addxp_Strength_count": "2",
+    "addxp_Strength_lastAmount": "-1",
+    "addxp_Strength_lastLevel": "3"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 2.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "b_events0",
+   "wall": 196.399,
+   "values": {
+    "addxp_Strength_count": "2",
+    "addxp_Strength_lastAmount": "-1",
+    "addxp_Strength_lastLevel": "3"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 2.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "b_events1",
+   "wall": 202.201,
+   "values": {
+    "addxp_Strength_count": "5",
+    "addxp_Strength_lastAmount": "10",
+    "addxp_Strength_lastLevel": "3"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 5.0,
+   "levelperk_count": 0.0
+  },
+  {
+   "tag": "d_events",
+   "wall": 218.335,
+   "values": {
+    "addxp_Strength_count": "8",
+    "addxp_Strength_lastAmount": "100",
+    "addxp_Strength_lastLevel": "3"
+   },
+   "missing": [
+    "levelperk_count",
+    "levelperk_lastPerk",
+    "levelperk_lastLevel",
+    "levelperk_lastGained"
+   ],
+   "keys": [
+    "addxp_Strength_count:number",
+    "addxp_Strength_lastAmount:number",
+    "addxp_Strength_lastLevel:number"
+   ],
+   "addxp_count": 8.0,
+   "levelperk_count": 0.0
+  }
+ ],
+ "grants": [
+  {
+   "tag": "s1_grant",
+   "amount": 100,
+   "wall": 70.13,
+   "ok": true,
+   "error": null,
+   "xpBefore": 37500.0,
+   "xpAfter": 37600.0,
+   "levelBefore": 5.0,
+   "levelAfter": 5.0,
+   "delta": 100.0
+  },
+  {
+   "tag": "b_grant0",
+   "amount": 10,
+   "wall": 197.412,
+   "ok": true,
+   "error": null,
+   "xpBefore": 37599.0,
+   "xpAfter": 37609.0,
+   "levelBefore": 3.0,
+   "levelAfter": 3.0,
+   "delta": 10.0
+  },
+  {
+   "tag": "b_grant1",
+   "amount": 10,
+   "wall": 198.425,
+   "ok": true,
+   "error": null,
+   "xpBefore": 37609.0,
+   "xpAfter": 37619.0,
+   "levelBefore": 3.0,
+   "levelAfter": 3.0,
+   "delta": 10.0
+  },
+  {
+   "tag": "b_grant2",
+   "amount": 10,
+   "wall": 200.439,
+   "ok": true,
+   "error": null,
+   "xpBefore": 37619.0,
+   "xpAfter": 37629.0,
+   "levelBefore": 3.0,
+   "levelAfter": 3.0,
+   "delta": 10.0
+  },
+  {
+   "tag": "d1_grant",
+   "amount": 100,
+   "wall": 208.245,
+   "ok": true,
+   "error": null,
+   "xpBefore": 37627.5,
+   "xpAfter": 37777.5,
+   "levelBefore": 3.0,
+   "levelAfter": 3.0,
+   "delta": 150.0
+  },
+  {
+   "tag": "d2_grant",
+   "amount": 100,
+   "wall": 215.55,
+   "ok": true,
+   "error": null,
+   "xpBefore": 37777.5,
+   "xpAfter": 37877.5,
+   "levelBefore": 3.0,
+   "levelAfter": 3.0,
+   "delta": 100.0
+  },
+  {
+   "tag": "c_control",
+   "amount": 1000,
+   "wall": 308.458,
+   "ok": true,
+   "error": null,
+   "xpBefore": 38877.5,
+   "xpAfter": 39877.5,
+   "levelBefore": 3.0,
+   "levelAfter": 3.0,
+   "delta": 1000.0
+  }
+ ],
+ "trait_pairs": [
+  {
+   "tag": "s0",
+   "client_wall": 68.347,
+   "server_wall": 68.607,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -0.020600665360689163,
+   "server_proteins": -0.05082927644252777
+  },
+  {
+   "tag": "s1",
+   "client_wall": 75.667,
+   "server_wall": 76.175,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -0.13050386309623718,
+   "server_proteins": -0.14150147140026093
+  },
+  {
+   "tag": "a0",
+   "client_wall": 80.482,
+   "server_wall": 80.991,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -0.19921338558197021,
+   "server_proteins": -0.2239387184381485
+  },
+  {
+   "tag": "a7",
+   "client_wall": 94.482,
+   "server_wall": 94.994,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -0.3915970027446747,
+   "server_proteins": -0.41220569610595703
+  },
+  {
+   "tag": "a14",
+   "client_wall": 107.253,
+   "server_wall": 107.513,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -0.5564509630203247,
+   "server_proteins": -0.5811836123466492
+  },
+  {
+   "tag": "a_end",
+   "client_wall": 110.477,
+   "server_wall": 110.984,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -0.6114252805709839,
+   "server_proteins": -0.636164128780365
+  },
+  {
+   "tag": "r",
+   "client_wall": 176.511,
+   "server_wall": 177.024,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -1.5186704397201538,
+   "server_proteins": -1.5434070825576782
+  },
+  {
+   "tag": "y",
+   "client_wall": 193.611,
+   "server_wall": 194.124,
+   "client_traitList": {},
+   "server_traitList": {},
+   "client_band": [],
+   "server_band": [],
+   "client_proteins": -1.7523045539855957,
+   "server_proteins": -1.7632807493209839
+  }
+ ],
+ "session_ready_wall": 55.226,
+ "build": "42.20.4",
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "TKX_XpEvents.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "TKX_XpEvents.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_XpEvents.version",
+   "expect": "\"value\": 1",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_XpEvents.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "timeline": [
+  {
+   "t": 55.2,
+   "phase": "session_ready"
+  },
+  {
+   "t": 56.2,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 56.5,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 58.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"TKX_XpEvents.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 58.5,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_XpEvents.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 60.3,
+   "phase": "step",
+   "took": 1.761,
+   "name": "burst_installed",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 62.3,
+   "phase": "step",
+   "took": 2.017,
+   "name": "events_installed",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 64.3,
+   "phase": "step",
+   "took": 2.011,
+   "name": "s0_prot_server",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 66.1,
+   "phase": "step",
+   "took": 1.764,
+   "name": "s0_prot0",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 66.3,
+   "phase": "step",
+   "took": 0.262,
+   "name": "s0_xp",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 68.3,
+   "phase": "step",
+   "took": 2.018,
+   "name": "s0_events",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 68.6,
+   "phase": "step",
+   "took": 0.26,
+   "name": "s0_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 69.9,
+   "phase": "step",
+   "took": 1.263,
+   "name": "s0_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 70.1,
+   "phase": "step",
+   "took": 0.258,
+   "name": "s0_client_level",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 70.4,
+   "phase": "step",
+   "took": 0.258,
+   "name": "s1_grant",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 72.4,
+   "phase": "step",
+   "took": 2.017,
+   "name": "s1_xp",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 73.7,
+   "phase": "step",
+   "took": 1.262,
+   "name": "s1_events",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 76.2,
+   "phase": "step",
+   "took": 0.508,
+   "name": "s1_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 76.4,
+   "phase": "step",
+   "took": 0.257,
+   "name": "s1_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 77.2,
+   "phase": "step",
+   "took": 0.757,
+   "name": "s1_client_level",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 78.5,
+   "phase": "step",
+   "took": 1.266,
+   "name": "a_write",
+   "cmd": "perk.level"
+  },
+  {
+   "t": 79.0,
+   "phase": "step",
+   "took": 0.507,
+   "name": "a0_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 80.5,
+   "phase": "step",
+   "took": 1.516,
+   "name": "a0_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 81.0,
+   "phase": "step",
+   "took": 0.509,
+   "name": "a0_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 82.3,
+   "phase": "step",
+   "took": 1.265,
+   "name": "a0_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 82.5,
+   "phase": "step",
+   "took": 0.257,
+   "name": "a1_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 84.3,
+   "phase": "step",
+   "took": 1.762,
+   "name": "a1_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 84.5,
+   "phase": "step",
+   "took": 0.258,
+   "name": "a2_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 84.8,
+   "phase": "step",
+   "took": 0.257,
+   "name": "a2_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 85.0,
+   "phase": "step",
+   "took": 0.259,
+   "name": "a3_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 86.3,
+   "phase": "step",
+   "took": 1.259,
+   "name": "a3_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 87.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "a4_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 88.5,
+   "phase": "step",
+   "took": 1.51,
+   "name": "a4_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 89.0,
+   "phase": "step",
+   "took": 0.509,
+   "name": "a5_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 90.2,
+   "phase": "step",
+   "took": 1.261,
+   "name": "a5_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 91.0,
+   "phase": "step",
+   "took": 0.508,
+   "name": "a6_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 92.2,
+   "phase": "step",
+   "took": 1.26,
+   "name": "a6_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 93.0,
+   "phase": "step",
+   "took": 0.512,
+   "name": "a7_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 94.5,
+   "phase": "step",
+   "took": 1.51,
+   "name": "a7_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 95.0,
+   "phase": "step",
+   "took": 0.512,
+   "name": "a7_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 96.0,
+   "phase": "step",
+   "took": 1.013,
+   "name": "a7_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 96.5,
+   "phase": "step",
+   "took": 0.508,
+   "name": "a8_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 98.3,
+   "phase": "step",
+   "took": 1.766,
+   "name": "a8_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 98.5,
+   "phase": "step",
+   "took": 0.261,
+   "name": "a9_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 99.8,
+   "phase": "step",
+   "took": 1.263,
+   "name": "a9_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 100.1,
+   "phase": "step",
+   "took": 0.259,
+   "name": "a10_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 100.3,
+   "phase": "step",
+   "took": 0.26,
+   "name": "a10_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 101.0,
+   "phase": "step",
+   "took": 0.507,
+   "name": "a11_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 102.5,
+   "phase": "step",
+   "took": 1.511,
+   "name": "a11_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 103.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "a12_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 103.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "a12_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 105.0,
+   "phase": "step",
+   "took": 0.511,
+   "name": "a13_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 106.5,
+   "phase": "step",
+   "took": 1.516,
+   "name": "a13_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 107.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "a14_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 107.3,
+   "phase": "step",
+   "took": 0.26,
+   "name": "a14_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 107.5,
+   "phase": "step",
+   "took": 0.26,
+   "name": "a14_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 108.3,
+   "phase": "step",
+   "took": 0.759,
+   "name": "a14_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 109.0,
+   "phase": "step",
+   "took": 0.508,
+   "name": "a15_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 110.5,
+   "phase": "step",
+   "took": 1.51,
+   "name": "a15_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 111.0,
+   "phase": "step",
+   "took": 0.507,
+   "name": "a_end_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 112.2,
+   "phase": "step",
+   "took": 1.26,
+   "name": "a_end_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 112.5,
+   "phase": "step",
+   "took": 0.257,
+   "name": "a_client_xp",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 114.3,
+   "phase": "step",
+   "took": 1.766,
+   "name": "a_events",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 114.8,
+   "phase": "step",
+   "took": 0.508,
+   "name": "r_set",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 116.3,
+   "phase": "step",
+   "took": 1.515,
+   "name": "r_md0",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 118.3,
+   "phase": "step",
+   "took": 2.013,
+   "name": "r_xp0",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 118.6,
+   "phase": "step",
+   "took": 0.261,
+   "name": "r_events0",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 120.3,
+   "phase": "step",
+   "took": 1.766,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 124.3,
+   "phase": "step",
+   "took": 1.009,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 128.4,
+   "phase": "step",
+   "took": 1.013,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 132.4,
+   "phase": "step",
+   "took": 1.015,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 136.4,
+   "phase": "step",
+   "took": 1.008,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 140.4,
+   "phase": "step",
+   "took": 1.009,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 144.4,
+   "phase": "step",
+   "took": 1.008,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 148.4,
+   "phase": "step",
+   "took": 1.009,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 152.4,
+   "phase": "step",
+   "took": 1.012,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 156.2,
+   "phase": "step",
+   "took": 0.758,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 159.9,
+   "phase": "step",
+   "took": 0.757,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 163.7,
+   "phase": "step",
+   "took": 0.763,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 167.5,
+   "phase": "step",
+   "took": 0.759,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 171.2,
+   "phase": "step",
+   "took": 0.758,
+   "name": "clock",
+   "cmd": "time.snapshot"
+  },
+  {
+   "t": 174.5,
+   "phase": "step",
+   "took": 1.261,
+   "name": "r_md1",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 174.7,
+   "phase": "step",
+   "took": 0.258,
+   "name": "r_xp1",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 176.2,
+   "phase": "step",
+   "took": 1.511,
+   "name": "r_events1",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 176.5,
+   "phase": "step",
+   "took": 0.261,
+   "name": "r_client_level",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 177.0,
+   "phase": "step",
+   "took": 0.513,
+   "name": "r_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 178.3,
+   "phase": "step",
+   "took": 1.263,
+   "name": "r_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 178.5,
+   "phase": "step",
+   "took": 0.257,
+   "name": "y_client_level0",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 179.1,
+   "phase": "step",
+   "took": 0.507,
+   "name": "y_client_xp0",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 180.3,
+   "phase": "step",
+   "took": 1.261,
+   "name": "y_server0",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 182.3,
+   "phase": "step",
+   "took": 2.016,
+   "name": "y_events0",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 182.6,
+   "phase": "step",
+   "took": 0.258,
+   "name": "y_sync",
+   "cmd": "xp.sync"
+  },
+  {
+   "t": 183.1,
+   "phase": "step",
+   "took": 0.508,
+   "name": "y0_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 184.4,
+   "phase": "step",
+   "took": 1.26,
+   "name": "y0_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 185.1,
+   "phase": "step",
+   "took": 0.511,
+   "name": "y1_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 186.1,
+   "phase": "step",
+   "took": 1.009,
+   "name": "y1_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 187.1,
+   "phase": "step",
+   "took": 0.508,
+   "name": "y2_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 188.4,
+   "phase": "step",
+   "took": 1.26,
+   "name": "y2_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 189.1,
+   "phase": "step",
+   "took": 0.51,
+   "name": "y3_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 189.9,
+   "phase": "step",
+   "took": 0.758,
+   "name": "y3_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 191.1,
+   "phase": "step",
+   "took": 0.512,
+   "name": "y4_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 192.4,
+   "phase": "step",
+   "took": 1.258,
+   "name": "y4_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 193.1,
+   "phase": "step",
+   "took": 0.512,
+   "name": "y5_client",
+   "cmd": "witness.chain"
+  },
+  {
+   "t": 193.6,
+   "phase": "step",
+   "took": 0.507,
+   "name": "y5_server",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 194.1,
+   "phase": "step",
+   "took": 0.513,
+   "name": "y_stats_client",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 194.4,
+   "phase": "step",
+   "took": 0.255,
+   "name": "y_stats_server",
+   "cmd": "stats.get"
+  },
+  {
+   "t": 196.4,
+   "phase": "step",
+   "took": 2.012,
+   "name": "y_events1",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 197.4,
+   "phase": "step",
+   "took": 1.013,
+   "name": "b_events0",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 198.4,
+   "phase": "step",
+   "took": 1.013,
+   "name": "b_grant0",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 200.4,
+   "phase": "step",
+   "took": 2.014,
+   "name": "b_grant1",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 201.2,
+   "phase": "step",
+   "took": 0.762,
+   "name": "b_grant2",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 202.5,
+   "phase": "step",
+   "took": 0.259,
+   "name": "b_events1",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 204.5,
+   "phase": "step",
+   "took": 2.012,
+   "name": "d1_prot",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 207.5,
+   "phase": "step",
+   "took": 0.51,
+   "name": "d1_prot_client",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 208.2,
+   "phase": "step",
+   "took": 0.758,
+   "name": "d1_prot_server",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 208.8,
+   "phase": "step",
+   "took": 0.513,
+   "name": "d1_grant",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 210.3,
+   "phase": "step",
+   "took": 1.515,
+   "name": "d1_prot_server_after",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 212.3,
+   "phase": "step",
+   "took": 2.011,
+   "name": "d2_prot0",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 215.0,
+   "phase": "step",
+   "took": 0.258,
+   "name": "d2_prot_client0",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 215.6,
+   "phase": "step",
+   "took": 0.507,
+   "name": "d2_client_set",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 216.1,
+   "phase": "step",
+   "took": 0.512,
+   "name": "d2_grant",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 216.6,
+   "phase": "step",
+   "took": 0.512,
+   "name": "d2_prot_client1",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 218.3,
+   "phase": "step",
+   "took": 1.761,
+   "name": "d2_prot_server1",
+   "cmd": "nutrition.get"
+  },
+  {
+   "t": 219.8,
+   "phase": "step",
+   "took": 1.509,
+   "name": "d_events",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 220.4,
+   "phase": "step",
+   "took": 0.513,
+   "name": "c_prot0",
+   "cmd": "nutrition.set"
+  },
+  {
+   "t": 222.4,
+   "phase": "step",
+   "took": 2.012,
+   "name": "c_perk",
+   "cmd": "globalmoddata.set"
+  },
+  {
+   "t": 223.6,
+   "phase": "step",
+   "took": 1.263,
+   "name": "c_amount",
+   "cmd": "globalmoddata.set"
+  },
+  {
+   "t": 224.4,
+   "phase": "step",
+   "took": 0.759,
+   "name": "c_xp0",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 226.4,
+   "phase": "step",
+   "took": 2.01,
+   "name": "c_fire",
+   "cmd": "globalmoddata.set"
+  },
+  {
+   "t": 230.4,
+   "phase": "step",
+   "took": 2.011,
+   "name": "c_poll_md",
+   "cmd": "witness.moddata"
+  },
+  {
+   "t": 231.2,
+   "phase": "step",
+   "took": 0.757,
+   "name": "c_poll_xp",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 246.7,
+   "phase": "step",
+   "took": 0.51,
+   "name": "c_ping",
+   "cmd": "ping"
+  },
+  {
+   "t": 261.9,
+   "phase": "step",
+   "took": 0.255,
+   "name": "c_ping",
+   "cmd": "ping"
+  },
+  {
+   "t": 277.5,
+   "phase": "step",
+   "took": 0.508,
+   "name": "c_ping",
+   "cmd": "ping"
+  },
+  {
+   "t": 292.7,
+   "phase": "step",
+   "took": 0.258,
+   "name": "c_ping",
+   "cmd": "ping"
+  },
+  {
+   "t": 306.7,
+   "phase": "step",
+   "took": 0.508,
+   "name": "c_ping",
+   "cmd": "ping"
+  },
+  {
+   "t": 308.4,
+   "phase": "step",
+   "took": 1.76,
+   "name": "c_xp1",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 310.0,
+   "phase": "step",
+   "took": 1.512,
+   "name": "c_control",
+   "cmd": "xp.grant"
+  },
+  {
+   "t": 325.2,
+   "phase": "step",
+   "took": 0.261,
+   "name": "c_cping",
+   "cmd": "ping"
+  },
+  {
+   "t": 340.7,
+   "phase": "step",
+   "took": 0.506,
+   "name": "c_cping",
+   "cmd": "ping"
+  },
+  {
+   "t": 356.2,
+   "phase": "step",
+   "took": 0.507,
+   "name": "c_cping",
+   "cmd": "ping"
+  },
+  {
+   "t": 371.8,
+   "phase": "step",
+   "took": 0.508,
+   "name": "c_cping",
+   "cmd": "ping"
+  },
+  {
+   "t": 385.2,
+   "phase": "step",
+   "took": 0.258,
+   "name": "c_cping",
+   "cmd": "ping"
+  },
+  {
+   "t": 386.2,
+   "phase": "step",
+   "took": 1.014,
+   "name": "c_xp2",
+   "cmd": "perk.xp"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X50-write",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X50-push",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X50-rust",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X50-sync",
+   "verdict": "trivial"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X50-remap",
+   "verdict": "trivial"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X39-AddXP",
+   "verdict": "falsified"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X48",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 386.3,
+   "phase": "verdict",
+   "name": "X40",
+   "verdict": "falsified"
+  },
+  {
+   "t": 388.5,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 396.2,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "anticheat": {
+  "settings": [
+   "AntiCheatSafety=2",
+   "AntiCheatSpeed=2",
+   "AntiCheatNoClip=4",
+   "AntiCheatHit=2",
+   "AntiCheatPacketException=4",
+   "AntiCheatPermission=2",
+   "AntiCheatXP=2",
+   "AntiCheatSafeHouse=2",
+   "AntiCheatPlayer=2",
+   "AntiCheatChecksum=2"
+  ],
+  "ini": "testing/runs/x141s-20261005-105131/server/Server/pzt.ini"
+ },
+ "summary": {
+  "verify_ok": [
+   true,
+   true,
+   true,
+   true
+  ],
+  "mods_not_found": {
+   "server": [],
+   "client": []
+  },
+  "verdicts": {
+   "X50-write": "as_predicted",
+   "X50-push": "as_predicted",
+   "X50-rust": "as_predicted",
+   "X50-sync": "trivial",
+   "X50-remap": "trivial",
+   "X39-AddXP": "falsified",
+   "X48": "as_predicted",
+   "X40": "falsified"
+  },
+  "anticheat": [
+   "AntiCheatSafety=2",
+   "AntiCheatSpeed=2",
+   "AntiCheatNoClip=4",
+   "AntiCheatHit=2",
+   "AntiCheatPacketException=4",
+   "AntiCheatPermission=2",
+   "AntiCheatXP=2",
+   "AntiCheatSafeHouse=2",
+   "AntiCheatPlayer=2",
+   "AntiCheatChecksum=2"
+  ]
+ },
+ "wall_seconds": 396.2,
+ "client_lua_error": false,
+ "logs": {
+  "server_luaerr": [
+   "ERROR: General      f:0 st:1,554,652,247> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,247> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,248> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,248> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,249> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,249> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,250> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,250> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,251> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,251> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,252> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,252> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,253> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,253> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,255> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:1,554,652,255> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: WorldGen     f:0 st:1,554,653,976> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+   "ERROR: WorldGen     f:0 st:1,554,653,977> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+   "ERROR: WorldGen     f:0 st:1,554,653,978> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+   "ERROR: WorldGen     f:0 st:1,554,653,978> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+   "ERROR: WorldGen     f:0 st:1,554,653,981> IsoPropertyType.lookupOrDefaultStr> Exception thrown"
+  ],
+  "server_anticheat": [],
+  "limits": {
+   "luaerr": 40,
+   "anticheat": 60
+  },
+  "client_luaerr": [
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown"
+  ],
+  "client_anticheat": [
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer",
+   "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum"
+  ]
+ }
+}
