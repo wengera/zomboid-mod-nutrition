@@ -360,15 +360,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Waiting on it: [perks-and-strength.md](../facts/perks-and-strength.md#open).
 - Settled by: melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience each hit grants — [experiments.md § Named experiments](../reference/experiments.md), row `X48`.
 
-<a id="plan3-arms"></a>
-### The body plan's mod-side arms the acceptance runs left unmeasured
-- The regeneration coefficient's effect under a full sleep hold is open: under the partial hold the held sleep regenerated at 0.904 of the rmod-1 rate against 0.848 to 0.860 predicted, falsified against that band [#2899/M/n=1]; that the cause is the awake share of the held updates running vanilla's standing regeneration outside the hook is a hypothesis, which the two holds' confounds (hunger, a band trait, the weight) leave open, and X34's full-hold arm ([X34](#x34)) would settle it.
-- The lean-driven rise of the Strength ceiling is unmeasured, because the rise hysteresis was read with the target moved on the experience axis [#2897/M/n=1], and the fall's pacing is read for one level only [#2898/M/n=1]; a harness command that edits the body record, or a long enough fast with lean regained, would read both.
-- The mod's melee-hit counting is unmeasured: the hit event fires for a connected player's melee hits [#2880/M/n=1], but the acceptance run's horde spawns put no zombie within reach of the player, so no hit reached the mod's counter; a harness command that places a zombie beside the player would close it.
-- Whether the legacy mirror's off state leaves the macro stores to vanilla is unmeasured: a server-side sandbox set changed the option object and not the `SandboxVars` table a polling mod reads [#2887/M/n=1]; a live flip that reaches `SandboxVars` would close it.
-- The hunger floor under an energy deficit is unmeasured on a live starving character: the control that kept the subject alive held the food-eaten moodle at level 4, which refused every eat [#2889/M/n=1]; a control that keeps the subject alive without refusing eats would close it.
-- The weight band's crossing is unmeasured: the fixture's female subject lost fat and lean to 75.67 kg in nine closes without crossing a band edge [#2882/M/n=1]; a lighter or male subject would reach one.
-
 ## See also
 
 - [experiments.md](../reference/experiments.md) — the full spec of every named experiment, its merged sessions, splits, riders and cost roll-up.
