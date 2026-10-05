@@ -85,8 +85,10 @@ end
 
 -- The meal-context multiplier on non-haem iron absorption, log-linear in the meal's phytic acid and
 -- ascorbic acid (mg): exp(-0.0034 * phytate + 0.0065 * vitC), vitamin C counteracting phytate. The
--- [0.2, 4.0] band is a judgement bounding the log-linear model (the -82 % at 250 mg phytate P sits
--- inside it).
+-- [0.2, 4.0] band is a judgement bounding the log-linear model: its floor caps the loss at -80 %,
+-- just above S0532's measured -82 % at 250 mg phytate PHOSPHORUS (about 886 mg phytic acid, which
+-- the unclamped model would put near 0.05), so the band deliberately under-reads the heaviest
+-- phytate meals rather than extrapolate the log-linear fit past the measured range.
 function K.stomach.ironFactor(phytateMg, vitCMg)
     return K.clamp(math.exp(-0.0034 * phytateMg + 0.0065 * vitCMg), 0.2, 4.0) -- S0195, S0194, S0533, S0532
 end
