@@ -326,3 +326,8 @@ x141c-20261005-132133,phases.C.reads[*].dt,0.0,"The first read was issued as the
 x141s-20261005-105131,verdicts.X50-push.observed.client_first_3_after_write_s,0.0,"The driver subtracted the wrong wall; the client first read 3 within 2 s of the request (1.77 s).","cite steps.a_write.wall_before and steps.a0_client.wall_after"
 x141s-20261005-105131,verdicts.X50-write,`as_predicted`,"The prediction read before=6 and the level read 5, so the grade carries the ladder error.",cite phases.A.write
 x141s-20261005-105131,summary.verdicts.X50-write,`as_predicted`,The same.,the same
+x141b2-20261005-144202,verdicts.A0.verdict,`as_predicted`,"The client read the flags false at every read of the session; only the server half discriminates.",cite `phases.FAST.cycles[*].server` for day 0
+x141b2-20261005-144202,summary.verdicts.A0,`as_predicted`,The same.,the same
+x141b2-20261005-144202,verdicts.E.observed.rows[*].match,`true`,"Nothing landed (the items existed only on the client); at fill ~0 both forms read 1.",—
+x141b2-20261005-144202,verdicts.G.observed.log_total_at_end,0,"No rep ran (the failed eats held the action queue).",—
+x141b2-20261005-144202,phases.FAST.watches[*].boundary_epoch_ms_est,—,"Estimated from the cycles' (age, wall) pairs, not a stamp.",cite as an estimate only
