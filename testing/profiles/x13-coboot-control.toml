@@ -1,0 +1,32 @@
+# testing/profiles/x13-coboot-control.toml - X45b's control boot: x13-coboot with QualityCooking and
+# its three requirements (ItemQuality, QuestSystem, MoodleFramework) removed. BeyondTen stays, so the
+# control isolates QualityCooking alone; the remaining mods keep x13-coboot's relative Mods= order.
+# The same eat and reads as x13-coboot: the counts and store change the co-boot must match (apart
+# from QualityCooking's buff and TKX_EatProbe.outermost). Tier-(a) verify rows only.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp + BeyondTen + TKX_EatProbe (no QualityCooking stack) - X45b control."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_EatProbe.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_EatProbe.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "BeyondTen"
+workshop_id = "3765241705"
+
+[[mods]]
+id = "TKX_EatProbe"
+path = "testing/experiments/TKX_EatProbe"
+
+[client]
+timeout = 240
