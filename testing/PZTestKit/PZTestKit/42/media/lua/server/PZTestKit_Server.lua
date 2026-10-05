@@ -1575,3 +1575,99 @@ TK.register("trait.add.push", function(argv)
     out.traitList = list
     return out
 end)
+
+-- ---- chained getter read (Plan 3 Task 2) ----------------------------------------------------
+-- ---- helpers for witness.chain (documented at its register site below)
+
+local function chainSplit(chain)
+    local hops, depth, cur = {}, 0, ""
+    for i = 1, string.len(chain) do
+        local c = string.sub(chain, i, i)
+        if c == "(" then depth = depth + 1 elseif c == ")" then depth = depth - 1 end
+        if c == "." and depth == 0 then
+            hops[#hops + 1] = cur
+            cur = ""
+        else
+            cur = cur .. c
+        end
+    end
+    hops[#hops + 1] = cur
+    return hops
+end
+
+local function chainLiteral(lit)
+    local perkName = string.match(lit, "^Perks%.([%w_]+)$")
+    if perkName ~= nil then return Perks and Perks[perkName] end
+    local n = tonumber(lit)
+    if n ~= nil then return n end
+    return lit
+end
+
+local function chainRead(subject, chain)
+    local hops = chainSplit(chain)
+    local out = { ok = false, hops = #hops }
+    local obj = subject
+    for i = 1, #hops do
+        local name, lit = string.match(hops[i], "^([%w_]+)%((.*)%)$")
+        if name == nil then name = hops[i] end
+        if obj == nil then
+            out.failedAt = i
+            out.error = "nil before hop " .. i
+            return out
+        end
+        local f = obj[name]
+        if f == nil then
+            out.failedAt = i
+            out.error = "no member " .. name
+            return out
+        end
+        local ran, v
+        if lit ~= nil then
+            local arg = chainLiteral(lit)
+            if arg == nil then
+                out.failedAt = i
+                out.error = "literal " .. lit .. " did not resolve"
+                return out
+            end
+            ran, v = pcall(f, obj, arg)
+        else
+            ran, v = pcall(f, obj)
+        end
+        if not ran then
+            out.failedAt = i
+            out.error = tostring(v)
+            return out
+        end
+        obj = v
+    end
+    out.ok = true
+    local t = type(obj)
+    if t == "table" then
+        local walked = {}
+        for k, v in pairs(obj) do walked[tostring(k)] = tostring(v) end
+        out.value = walked
+    elseif obj == nil then
+        out.value = "nil"
+    else
+        out.value = tostring(obj)
+    end
+    return out
+end
+
+-- <user> <getter1[(arg)]>.<getter2[(arg)]>... Walks a chain of zero- or one-literal-argument
+-- getters from the player, every hop index-first (#0935): `local f = obj[name]; if f == nil
+-- then fail; obj = f(obj, arg)`, a colon call written as a dot call with the receiver first,
+-- under a pcall so a hop that throws names its index instead of aborting the handler. The
+-- chain is split on dots OUTSIDE parentheses, so `getXp.getXP(Perks.Strength)` is two hops. A
+-- literal argument is `Perks.<Name>` (the perk object), a number (a number) or else a string.
+-- The end value: a number, boolean or string is tostring'd; a Lua table is walked ONE level
+-- into string values; anything else (a Java object) is tostring'd, which names its class.
+-- @args <user> <getter1[(arg)]>.<getter2>...
+-- @reply {ok, value, hops, failedAt [, error]} | string
+-- @purpose Reads the value at the end of a dot-chain of zero- or one-literal-argument getters on a named player (index-first at every hop); the one command for reads the typed witnesses do not name, such as the thermoregulator's metabolic target.
+TK.register("witness.chain", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    if argv[2] == nil then return "usage: witness.chain <user> <getter1[(arg)]>.<getter2>..." end
+    return chainRead(p, argv[2])
+end)
