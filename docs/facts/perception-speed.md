@@ -145,7 +145,7 @@ No window of a quarter second or more was seen, and because the write was not re
 
 A fall ends in a landing, and the jar has two landing paths.
 On a server, the falling state's exit packet makes the server run the landing on its copy of the player with the impact the client put in the packet, then push the damage; the state's own exit on the client only stores that impact [#3028/C/C-only].
-The character update also runs a landing when the player's next height would fall below the floor, with no side gate of its own, and these two are the jar's only callers of the landing; whether a connected player's fall lands once or on both paths is not read [#3032/C/C-only].
+The character update also runs a landing when the player's next height would fall below the floor, with no side gate of its own, and these two are the jar's only callers of the landing; the bytecode does not settle whether a connected player's fall lands once or on both paths [#3032/C/C-only]; the live reading is one landing on the server [#3064/M/n=1].
 Measured live, a client pushed up two tiles fell one level and landed once, on the server: the server's listener heard one `FALLDOWN` of about 5.8, the client's none, both sides' health fell about 6 and no leg fractured [#3064/M/n=1].
 A landing called directly on the client, `DoLand(2.0)`, fired no `FALLDOWN` on either side [#3065/M/n=1].
 
@@ -174,7 +174,7 @@ A mod's own write composes with that call as long as it, too, adds to the curren
 Two Lua events bracket the swing that makes the post-shot write.
 `OnWeaponSwing` fires from the swing state's entry with the player and the weapon in use, after the attack call whose last act is the post-shot aiming-delay write, so a handler of it runs after that write in the same entry [#3026/C/C-only].
 `OnPlayerAttackFinished` fires from the swing state's exit with the character and the weapon once the attack has landed, and vanilla's reload action listens to it and to `OnWeaponSwingHitPoint` [#3031/C/C-only].
-Measured live, all three fire on the shooting client, `OnWeaponSwingHitPoint` 16 to 20 ms after `OnWeaponSwing` and `OnPlayerAttackFinished` about 270 ms after it; the server side was not listened to [#3061/M/n=1].
+Measured live, all three fire on the shooting client, `OnWeaponSwingHitPoint` 16 to 20 ms after `OnWeaponSwing` and `OnPlayerAttackFinished` 266 to 284 ms after it; the server side was not listened to [#3061/M/n=1].
 
 On an attacking client, critical chance against another, remote player reads the target's body weight on both the shove and the melee arm, moving the chance by (weight − 80)/2 around an 80.0 pivot [#2327/C/C-only].
 A lighter target is critted more often and a heavier one less.
