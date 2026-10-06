@@ -201,7 +201,7 @@ def before(h, **kw):
 
 def test_assemble_baseline_half_apple(intake_host):
     h = intake_host
-    vec, source, missing, share, frac = I(h).assemble(before(h), -0.08, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(before(h), -0.08, lookup(h))
     assert abs(share - 0.5) < TOL and abs(frac - 0.5) < TOL
     assert source == "baseline"
     assert close(macros(vec), [47.5, 12.565, 0.155, 0.235])
@@ -214,7 +214,7 @@ def test_assemble_baseline_instance_scale(intake_host):
     # a split output at 1/2 of the script hunger: the mod nutrients halve, the macros track the live item
     h = intake_host
     b = before(h, rawBefore=-0.08, instBase=-0.08, cal=47.5, carb=12.565, lip=0.155, pro=0.235)
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h))
     assert source == "baseline"
     assert close(macros(vec), [47.5, 12.565, 0.155, 0.235])
     assert abs(vec["fibre"] - 2.2) < TOL
@@ -222,7 +222,7 @@ def test_assemble_baseline_instance_scale(intake_host):
 
 def test_assemble_burnt_macros_divided_by_five(intake_host):
     h = intake_host
-    vec, source, missing, share, frac = I(h).assemble(before(h, burnt=True), 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(before(h, burnt=True), 0, lookup(h))
     assert close(macros(vec), [19, 5.026, 0.062, 0.094])
 
 
@@ -230,7 +230,7 @@ def test_assemble_craft_map(intake_host):
     h = intake_host
     b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
     b["craftMap"] = tbl(h, {"Base.MincedMeat": 2})
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h))
     assert source == "craft"
     assert close(macros(vec), [200, 0, 10, 40])
     assert abs(vec["iron"] - 4) < TOL
@@ -242,7 +242,7 @@ def test_assemble_craft_map_zero_count_lands_no_seed(intake_host):
     h = intake_host
     b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
     b["craftMap"] = I(h).craftMap(tbl(h, {"Base.MincedMeat": 0}))
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h))
     assert source == "craft"
     assert vec["iron"] == 0
     assert close(macros(vec), [200, 0, 10, 40])
@@ -257,7 +257,7 @@ def test_assemble_dish_wins_and_records_missing(intake_host):
     extra[3] = "Base.Unknown"
     b["extraTypes"] = extra
     b["craftMap"] = tbl(h, {"Base.MincedMeat": 2})
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h))
     assert source == "dish"
     assert abs(vec["fibre"] - 8.8) < TOL
     assert list(as_dict(missing).values()) == ["Base.Unknown"]
@@ -265,7 +265,7 @@ def test_assemble_dish_wins_and_records_missing(intake_host):
 
 def test_assemble_unknown_baseline_is_missing(intake_host):
     h = intake_host
-    vec, source, missing, share, frac = I(h).assemble(before(h, fullType="Base.Nothing"), 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(before(h, fullType="Base.Nothing"), 0, lookup(h))
     assert source == "baseline"
     assert list(as_dict(missing).values()) == ["Base.Nothing"]
     assert vec["fibre"] == 0
@@ -278,7 +278,7 @@ def test_assemble_second_half_of_a_part_eaten_apple(intake_host):
     # of the WHOLE (0.5) -- both deliver the second half of an apple
     h = intake_host
     b = before(h, rawBefore=-0.08, cal=47.5, carb=12.565, lip=0.155, pro=0.235)
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h))
     assert abs(share - 0.5) < TOL and abs(frac - 1.0) < TOL
     assert close(macros(vec), [47.5, 12.565, 0.155, 0.235])
     assert abs(vec["fibre"] - 2.2) < TOL
@@ -286,7 +286,7 @@ def test_assemble_second_half_of_a_part_eaten_apple(intake_host):
 
 def test_assemble_nothing_eaten_lands_nothing(intake_host):
     h = intake_host
-    vec, source, missing, share, frac = I(h).assemble(before(h), -0.16, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(before(h), -0.16, lookup(h))
     assert vec is None
     assert share == 0
 
@@ -457,7 +457,7 @@ def test_assemble_thirst_only_food_lands_its_calories(intake_host):
     h = intake_host
     b = before(h, fullType="Base.Nothing", rawBefore=0, instBase=0, scriptHunger=0,
                cal=2, carb=0, lip=0, pro=0, thirstBefore=-0.1)
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h), 0)
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h), 0)
     assert abs(share - 1.0) < TOL and abs(frac - 1.0) < TOL
     assert abs(vec["calories"] - 2) < TOL
 
@@ -466,7 +466,7 @@ def test_assemble_thirst_only_food_half(intake_host):
     h = intake_host
     b = before(h, fullType="Base.Nothing", rawBefore=0, instBase=0, scriptHunger=0,
                cal=2, carb=0, lip=0, pro=0, thirstBefore=-0.1)
-    vec, source, missing, share, frac = I(h).assemble(b, 0, lookup(h), -0.05)
+    vec, source, missing, share, frac, _trace = I(h).assemble(b, 0, lookup(h), -0.05)
     assert abs(share - 0.5) < TOL
     assert abs(vec["calories"] - 1) < TOL
 
@@ -597,10 +597,10 @@ def test_assemble_thirst_only_two_eats_land_the_baseline_once(intake_host):
     h = intake_host
     b1 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=2, carb=0, lip=0, pro=0,
                 thirstBefore=-0.1, scriptThirst=-0.1)
-    v1, s1, m1, share1, frac1 = I(h).assemble(b1, 0, lookup(h), -0.05)
+    v1, s1, m1, share1, frac1, _t1 = I(h).assemble(b1, 0, lookup(h), -0.05)
     b2 = before(h, rawBefore=0, instBase=0, scriptHunger=0, cal=1, carb=0, lip=0, pro=0,
                 thirstBefore=-0.05, scriptThirst=-0.1)
-    v2, s2, m2, share2, frac2 = I(h).assemble(b2, 0, lookup(h), 0)
+    v2, s2, m2, share2, frac2, _t2 = I(h).assemble(b2, 0, lookup(h), 0)
     assert abs(share1 - 0.5) < TOL and abs(frac1 - 0.5) < TOL
     assert abs(share2 - 0.5) < TOL and abs(frac2 - 1.0) < TOL
     assert abs(v1["fibre"] + v2["fibre"] - 4.4) < TOL
@@ -810,7 +810,7 @@ def test_first_non_finite_names_the_key(intake_host):
 
 def test_assemble_nan_share_lands_nothing(intake_host):
     h = intake_host
-    vec, source, missing, share, frac = I(h).assemble(before(h), NAN, lookup(h))
+    vec, source, missing, share, frac, _trace = I(h).assemble(before(h), NAN, lookup(h))
     assert vec is None
 
 
@@ -1463,3 +1463,347 @@ def test_fast_limitations_and_region_shape():
     assert "inp.thirstTarget = fl and fl.thirstTarget or inp.thirst" in region
     assert "if not (pending > 0) then" in region
     assert "pcall(h.autoDrink" not in region                              # parity: no pcall around the call
+
+
+# --- Plan 6 Task 10: the chain declared -> table -> inferred -> missing (rulings 13-14) -------------
+
+TEMPLATES = {
+    "Fruits": {"n": 3, "density": {"fibre": 0.04, "water": 1.5, "vitC": 0.1}},
+    "_default": {"n": 9, "density": {"fibre": 0.01, "water": 0.5, "iron": 0.005}},
+}
+
+INFO_STUB = r"""
+function(infos)
+    return function(fullType) return infos[fullType] end
+end
+"""
+
+
+def templates(h):
+    return h.table(TEMPLATES)
+
+
+def info_of(h, infos):
+    return h.rt.eval(INFO_STUB)(h.table(infos))
+
+
+def trace_list(trace, name):
+    return list(as_dict(trace[name]).values())
+
+
+def test_source_declared_and_inferred_follow_dish_and_craft(intake_host):
+    IN = I(intake_host)
+    assert IN.sourceOf(False, False, "declared") == "declared"
+    assert IN.sourceOf(False, False, "inferred") == "inferred"
+    assert IN.sourceOf(False, False, "table") == "baseline"
+    assert IN.sourceOf(False, False, "missing") == "baseline"
+    assert IN.sourceOf(True, False, "declared") == "dish"
+    assert IN.sourceOf(False, True, "inferred") == "craft"
+
+
+def test_chain_one_declared_wins_over_the_table_and_takes_the_items_macros(intake_host):
+    h = intake_host
+    info = h.table({"declared": "fibre:12;vitC:3;calories:999",
+                    "macros": {"calories": 95, "carbs": 25.13, "lipids": 0.31, "proteins": 0.47}})
+    vec, step, note = I(h).chainOne("Base.Apple", lookup(h), templates(h), info)
+    assert step == "declared"
+    assert vec["fibre"] == 12 and vec["vitC"] == 3
+    assert vec["calories"] == 95 and vec["carbs"] == 25.13          # the script block owns the macros
+    assert vec["water"] == 0                                         # the table's 156 g not consulted
+    assert len(as_dict(note)) == 0
+
+
+def test_chain_one_malformed_declared_falls_through_to_the_table_with_its_reason(intake_host):
+    h = intake_host
+    info = h.table({"declared": "fibre:lots", "macros": {"calories": 95}})
+    vec, step, note = I(h).chainOne("Base.Apple", lookup(h), templates(h), info)
+    assert step == "table"
+    assert abs(vec["fibre"] - 4.4) < TOL
+    assert isinstance(note, str) and "fibre:lots" in note
+
+
+def test_chain_one_table_wins_over_inference(intake_host):
+    h = intake_host
+    info = h.table({"foodType": "Fruits", "macros": {"calories": 95, "carbs": 25.13}})
+    vec, step, note = I(h).chainOne("Base.Apple", lookup(h), templates(h), info)
+    assert step == "table"
+    assert abs(vec["water"] - 156) < TOL
+    assert note is None
+
+
+def test_chain_one_untabled_with_macros_and_a_type_infers(intake_host):
+    h = intake_host
+    info = h.table({"foodType": "Fruits", "macros": {"calories": 50, "carbs": 12, "lipids": 0, "proteins": 1}})
+    vec, step, note = I(h).chainOne("Base.Kiwi", lookup(h), templates(h), info)
+    assert step == "inferred"
+    assert abs(vec["fibre"] - 2.0) < TOL and abs(vec["vitC"] - 5.0) < TOL
+    assert vec["calories"] == 50 and vec["carbs"] == 12
+
+
+def test_chain_one_nothing_to_go_on_is_missing(intake_host):
+    h = intake_host
+    for info in (None, h.table({"foodType": "Fruits", "macros": {"calories": 0}}), h.table({"foodType": "Fruits"})):
+        vec, step, note = I(h).chainOne("Base.Kiwi", lookup(h), templates(h), info)
+        assert vec is None and step == "missing"
+    info = h.table({"foodType": "Fruits", "macros": {"calories": 50}})
+    vec, step, note = I(h).chainOne("Base.Kiwi", lookup(h), None, info)      # no templates loaded
+    assert vec is None and step == "missing"
+
+
+def test_chain_one_reports_unknown_declared_keys(intake_host):
+    h = intake_host
+    info = h.table({"declared": "fibre:2;vitZ:1", "macros": {"calories": 10}})
+    vec, step, note = I(h).chainOne("Base.Kiwi", lookup(h), templates(h), info)
+    assert step == "declared"
+    assert list(as_dict(note).values()) == ["vitZ"]
+
+
+def test_assemble_declared_item_wins_over_the_table(intake_host):
+    h = intake_host
+    b = before(h)
+    b["declared"] = "fibre:12;vitC:3"
+    vec, source, missing, share, frac, trace = I(h).assemble(b, -0.08, lookup(h), None, templates(h))
+    assert source == "declared"
+    assert abs(vec["fibre"] - 6.0) < TOL and abs(vec["vitC"] - 1.5) < TOL
+    assert vec["water"] == 0
+    assert close(macros(vec), [47.5, 12.565, 0.155, 0.235])
+    assert len(as_dict(missing)) == 0
+    assert trace_list(trace, "declared") == ["Base.Apple"]
+
+
+def test_assemble_a_table_hit_wins_over_inference(intake_host):
+    h = intake_host
+    b = before(h, foodType="Fruits")
+    vec, source, missing, share, frac, trace = I(h).assemble(b, -0.08, lookup(h), None, templates(h))
+    assert source == "baseline"
+    assert abs(vec["fibre"] - 2.2) < TOL
+    assert trace_list(trace, "inferred") == []
+
+
+def test_assemble_an_untabled_item_with_macros_and_a_type_infers(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.Kiwi", foodType="Fruits", cal=50, carb=12, lip=0.4, pro=1)
+    vec, source, missing, share, frac, trace = I(h).assemble(b, -0.08, lookup(h), None, templates(h))
+    assert source == "inferred"
+    assert abs(frac - 0.5) < TOL
+    assert abs(vec["fibre"] - 0.04 * 50 * 0.5) < TOL
+    assert abs(vec["vitC"] - 0.1 * 50 * 0.5) < TOL
+    assert close(macros(vec), [25, 6, 0.2, 0.5])
+    assert len(as_dict(missing)) == 0
+    assert trace_list(trace, "inferred") == ["Base.Kiwi"]
+
+
+def test_assemble_an_inferred_item_reads_the_live_macros_at_frac(intake_host):
+    # the second half of a part-eaten untabled item: the live macros are already halved, so the
+    # inferred vector takes Eat's own fraction of what was LEFT (1.0), never the whole-instance share
+    h = intake_host
+    b = before(h, fullType="Base.Kiwi", rawBefore=-0.08, cal=25, carb=6, lip=0.2, pro=0.5)
+    vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h), None, templates(h))
+    assert source == "inferred"
+    assert abs(share - 0.5) < TOL and abs(frac - 1.0) < TOL
+    assert abs(vec["iron"] - 0.005 * 25) < TOL                       # `_default`: no FoodType
+    assert close(macros(vec), [25, 6, 0.2, 0.5])
+
+
+def test_assemble_untabled_without_templates_is_missing_as_before(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.Kiwi", foodType="Fruits")
+    vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h))
+    assert source == "baseline"
+    assert list(as_dict(missing).values()) == ["Base.Kiwi"]
+    assert vec["fibre"] == 0
+
+
+def test_assemble_a_malformed_declared_item_falls_through_and_is_traced(intake_host):
+    h = intake_host
+    b = before(h)
+    b["declared"] = "fibre=12"
+    vec, source, missing, share, frac, trace = I(h).assemble(b, -0.08, lookup(h), None, templates(h))
+    assert source == "baseline"
+    assert abs(vec["fibre"] - 2.2) < TOL
+    bad = trace_list(trace, "malformed")
+    assert len(bad) == 1 and bad[0].startswith("Base.Apple: ")
+
+
+def test_assemble_a_craft_map_with_one_untabled_input_infers_it(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
+    b["craftMap"] = tbl(h, {"Base.MincedMeat": 1, "Base.Kiwi": 2})
+    info = info_of(h, {"Base.Kiwi": {"foodType": "Fruits",
+                                      "macros": {"calories": 50, "carbs": 12, "lipids": 0, "proteins": 1}}})
+    vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h), None, templates(h), info)
+    assert source == "craft"
+    assert abs(vec["iron"] - 2) < TOL                                # the tabled input
+    assert abs(vec["fibre"] - 2 * 0.04 * 50) < TOL                   # two inferred Kiwis
+    assert len(as_dict(missing)) == 0
+    assert trace_list(trace, "inferred") == ["Base.Kiwi"]
+    assert close(macros(vec), [200, 0, 10, 40])
+
+
+def test_assemble_a_craft_input_declared_wins_over_its_table_entry(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
+    b["craftMap"] = tbl(h, {"Base.MincedMeat": 1})
+    info = info_of(h, {"Base.MincedMeat": {"declared": "iron:7", "macros": {"calories": 100}}})
+    vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h), None, templates(h), info)
+    assert abs(vec["iron"] - 7) < TOL
+    assert trace_list(trace, "declared") == ["Base.MincedMeat"]
+
+
+def test_assemble_a_craft_input_with_nothing_to_go_on_stays_missing(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.MeatPatty", rawBefore=-0.2, instBase=-0.2, scriptHunger=-0.2, cal=200, carb=0, lip=10, pro=40)
+    b["craftMap"] = tbl(h, {"Base.Nothing": 1})
+    vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h), None, templates(h), info_of(h, {}))
+    assert list(as_dict(missing).values()) == ["Base.Nothing"]
+
+
+def test_assemble_a_dish_ingredient_goes_through_the_chain(intake_host):
+    h = intake_host
+    b = before(h, fullType="Base.Salad", rawBefore=-0.3, instBase=-0.3, scriptHunger=-0.3, cal=145, carb=37.13, lip=0.31, pro=1.47)
+    extra = h.rt.table()
+    extra[1] = "Base.Apple"
+    extra[2] = "Base.Kiwi"
+    b["extraTypes"] = extra
+    info = info_of(h, {"Base.Kiwi": {"foodType": "Fruits",
+                                      "macros": {"calories": 50, "carbs": 12, "lipids": 0, "proteins": 1}}})
+    vec, source, missing, share, frac, trace = I(h).assemble(b, 0, lookup(h), None, templates(h), info)
+    assert source == "dish"
+    # scratch macro total: apple 120.91 + kiwi 63 = 183.91 = the dish's own, so scale 1
+    assert abs(vec["fibre"] - 6.4) < 1e-6
+    assert len(as_dict(missing)) == 0
+    assert trace_list(trace, "inferred") == ["Base.Kiwi"]
+
+
+def test_declared_of_reads_the_string_key_only(intake_host):
+    h = intake_host
+    IN = I(h)
+    assert IN.declaredOf(tbl(h, {"NR_Nutrients": "fibre:1"})) == "fibre:1"
+    assert IN.declaredOf(tbl(h, {"NR_Nutrients": 3.0})) is None       # a Double: not the contract
+    assert IN.declaredOf(tbl(h, {})) is None
+    assert IN.declaredOf(None) is None
+
+
+def test_limitations_name_the_inference_and_the_declared_contract(intake_host):
+    lims = list(I(intake_host).limitations.values())
+    assert ("a food outside the table takes a vector inferred from its FoodType's per-kcal medians over the "
+            "pass's own mapped records (NR_Data_Infer.lua; a judgement); a declared NR_Nutrients script key "
+            "(unrecognised by the loader, landing in default modData — #1281) takes precedence and its "
+            "macros are the item's own") in lims
+
+
+CHAIN_EAT = r"""
+function(fullType, md, foodType, cal, infer)
+    local IN = NutritionRevamp.server.intake
+    NutritionRevamp.data.infer = infer
+    local hung = -0.16
+    local item = {}
+    item.getHungChange = function(self) return hung end
+    item.getFullType = function(self) return fullType end
+    item.getBaseHunger = function(self) return -0.16 end
+    item.getCalories = function(self) return cal end
+    item.getCarbohydrates = function(self) return 10 end
+    item.getLipids = function(self) return 1 end
+    item.getProteins = function(self) return 2 end
+    item.getFoodType = function(self) return foodType end
+    item.isCooked = function(self) return false end
+    item.isBurnt = function(self) return false end
+    item.isRotten = function(self) return false end
+    item.isFrozen = function(self) return false end
+    item.getThirstChangeUnmodified = function(self) return 0 end
+    item.haveExtraItems = function(self) return false end
+    item.getModData = function(self) return md end
+    item.getScriptItem = function(self)
+        return { getHungerChange = function(s) return -16 end, getThirstChange = function(s) return 0 end }
+    end
+    local char = { getUsername = function(self) return "admin" end }
+    local b = IN.readBefore({ item = item, character = char })
+    hung = 0
+    local vec = IN.readAfterAndLand(b)
+    local rec = NutritionRevamp.server.store.records.admin
+    NutritionRevamp.data.infer = nil
+    return b, vec, rec, IN.lastError
+end
+"""
+
+
+def test_read_before_captures_declared_food_type_and_macros(server_host):
+    h = server_host
+    md = tbl(h, {"NR_Nutrients": "fibre:9"})
+    b, vec, rec, err = h.rt.eval(CHAIN_EAT)("Base.Kiwi", md, "Fruits", 50, None)
+    assert b["declared"] == "fibre:9"
+    assert b["foodType"] == "Fruits"
+    assert macros(b["macros"]) == [50, 10, 1, 2]
+
+
+def test_server_path_declared_item_lands_its_declared_vector(server_host):
+    h = server_host
+    md = tbl(h, {"NR_Nutrients": "fibre:9;vitC:2"})
+    b, vec, rec, err = h.rt.eval(CHAIN_EAT)("Base.Apple", md, "Fruits", 95, templates(h))
+    assert rec is not None, err
+    assert rec["lastIntake"]["source"] == "declared"
+    assert abs(vec["fibre"] - 9) < TOL
+    assert list(as_dict(rec["lastIntake"]["declared"]).values()) == ["Base.Apple"]
+
+
+def test_server_path_untabled_item_infers_from_the_loaded_templates(server_host):
+    h = server_host
+    b, vec, rec, err = h.rt.eval(CHAIN_EAT)("Base.Kiwi", h.rt.table(), "Fruits", 50, templates(h))
+    assert rec is not None, err
+    assert rec["lastIntake"]["source"] == "inferred"
+    assert abs(vec["fibre"] - 2.0) < TOL
+    assert list(as_dict(rec["lastIntake"]["inferred"]).values()) == ["Base.Kiwi"]
+
+
+def test_server_path_malformed_declared_is_counted_and_named(server_host):
+    h = server_host
+    before_n = I(h).stats.declaredMalformed
+    md = tbl(h, {"NR_Nutrients": "fibre:-3"})
+    b, vec, rec, err = h.rt.eval(CHAIN_EAT)("Base.Apple", md, "Fruits", 95, None)
+    assert rec["lastIntake"]["source"] == "baseline"
+    assert I(h).stats.declaredMalformed == before_n + 1
+    assert "NR_Nutrients" in str(err) and "Base.Apple" in str(err)
+
+
+TYPE_INFO = r"""
+function()
+    local IN = NutritionRevamp.server.intake
+    local made = 0
+    local saved = instanceItem
+    instanceItem = function(fullType)
+        made = made + 1
+        if fullType == "Base.Rock" then return {} end
+        if fullType == "Base.Raise" then error("stub: no such item") end
+        return {
+            getCalories = function(self) return 50 end,
+            getCarbohydrates = function(self) return 12 end,
+            getLipids = function(self) return 0 end,
+            getProteins = function(self) return 1 end,
+            getFoodType = function(self) return "Fruits" end,
+            getModData = function(self) return { NR_Nutrients = "fibre:3" } end,
+        }
+    end
+    IN.typeInfoCache = {}
+    local a = IN.typeInfo("Base.Kiwi")
+    local a2 = IN.typeInfo("Base.Kiwi")
+    local rock = IN.typeInfo("Base.Rock")
+    local rock2 = IN.typeInfo("Base.Rock")
+    local raised = IN.typeInfo("Base.Raise")
+    instanceItem = nil
+    local absent = IN.typeInfo("Base.Other")
+    instanceItem = saved
+    IN.typeInfoCache = {}
+    return a, a2, rock, rock2, raised, absent, made
+end
+"""
+
+
+def test_type_info_reads_a_fresh_instance_once_per_type(intake_host):
+    h = intake_host
+    a, a2, rock, rock2, raised, absent, made = h.rt.eval(TYPE_INFO)()
+    assert a["declared"] == "fibre:3" and a["foodType"] == "Fruits"
+    assert macros(a["macros"]) == [50, 12, 0, 1]
+    assert h.rt.eval("function(x, y) return rawequal(x, y) end")(a, a2)     # the cached table
+    assert rock is None and rock2 is None                # not a Food: no calories getter
+    assert raised is None and absent is None
+    assert made == 3                                     # Kiwi, Rock and Raise, each once

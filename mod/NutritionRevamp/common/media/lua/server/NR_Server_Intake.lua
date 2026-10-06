@@ -48,16 +48,27 @@
 --     gutCaf on its next minute (the pending tables are the simpler of the two shapes the fix brief
 --     offered: the eat never has to create record.acute, whose slow-metaboliser draw is the adapter's);
 --  5. K.stomach.ingest.
+--
+-- The vector's source (Plan 6 rulings 13-14, IN.assemble): a dish's ingredient list, else a craft map,
+-- else the eaten item's own chain IN.chainOne -- declared (the item's NR_Nutrients default-modData
+-- string, K.vector.declared, its four macros the item's own) -> the table (NR.data.nutrients.get) ->
+-- inferred (the item's four macros and FoodType through NR.data.infer, K.vector.infer) -> missing. A
+-- dish or craft input goes through the same chain per type (IN.chainedLookup), its declared string,
+-- macros and FoodType read once per type per boot off a fresh instance (IN.typeInfo: a script's macros
+-- have no getter, #2679, so the instanceItem global, #2680).
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
                      wrappedDrink = false, wrappedWorld = false, wired = false,
                      stats = { eats = 0, cancels = 0, sips = 0, worldSips = 0, landed = 0, failures = 0,
-                               passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0 },
+                               passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0,
+                               declaredMalformed = 0 },
                      lastIngested = {},
                      pendingAlc = {},
                      pendingCaf = {},
+                     typeInfoCache = {},
                      limitations = {
+                         "a food outside the table takes a vector inferred from its FoodType's per-kcal medians over the pass's own mapped records (NR_Data_Infer.lua; a judgement); a declared NR_Nutrients script key (unrecognised by the loader, landing in default modData — #1281) takes precedence and its macros are the item's own",
                          "a landed vector's ethanol and caffeine wait in a transient server table until the next slow minute moves them to record.acute: a server stop in that minute loses them (the ingested day totals keep them)",
                          "a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water",
                          "a world-water source lands as the Water seed whatever its fluid (a tainted source included)",
@@ -231,11 +242,82 @@ function IN.land(record, username, vec)
     return vec
 end
 
--- The vector's source: a dish's ingredient list is authoritative, so it wins over a craft map.
-function IN.sourceOf(hasExtra, hasCraftMap)
+-- The vector's source: a dish's ingredient list is authoritative, so it wins over a craft map; then the
+-- eaten item's own chain step (IN.chainOne): `declared` and `inferred` name themselves, a table hit and
+-- a miss are both `baseline` (a miss names the type in `missing`, as before Plan 6).
+function IN.sourceOf(hasExtra, hasCraftMap, step)
     if hasExtra then return "dish" end
     if hasCraftMap then return "craft" end
+    if step == "declared" or step == "inferred" then return step end
     return "baseline"
+end
+
+-- The NR_Nutrients default-modData string of an item (the declared-nutrients contract, ruling 14: an
+-- unrecognised script key lands in default modData as a String unless it parses as a Double, #0212,
+-- #1281), or nil. modData is a Lua-shaped table.
+function IN.declaredOf(md)
+    if type(md) ~= "table" then return nil end
+    local v = md.NR_Nutrients
+    if type(v) == "string" then return v end
+    return nil
+end
+
+-- One type through the chain declared -> table -> inferred -> missing (rulings 13-14). info is
+-- { declared = <NR_Nutrients string or nil>, macros = { calories, carbs, lipids, proteins }, foodType }
+-- or nil; lookup(fullType) -> table seed or nil; templates is NR.data.infer or nil. Returns vec, step,
+-- note: step is "declared", "table", "inferred" or "missing" (vec nil); note is the declared string's
+-- unknown-key list, or its malformed reason (a string) when the chain fell through it, else nil. A
+-- declared vector's four macros are info.macros, the item's own: the script block owns them.
+function IN.chainOne(fullType, lookup, templates, info)
+    local note = nil
+    if info ~= nil and info.declared ~= nil then
+        local vec, extra = K.vector.declared(info.declared)
+        note = extra
+        if vec ~= nil then
+            local m = info.macros or {}
+            vec.calories, vec.carbs, vec.lipids, vec.proteins = m.calories or 0, m.carbs or 0, m.lipids or 0,
+                m.proteins or 0
+            return vec, "declared", note
+        end
+    end
+    local seed = lookup(fullType)
+    if seed ~= nil then return seed, "table", note end
+    if templates ~= nil and info ~= nil and info.macros ~= nil and IN.isFinite(info.macros.calories)
+            and info.macros.calories > 0 then
+        return K.vector.infer(info.macros, info.foodType, templates), "inferred", note
+    end
+    return nil, "missing", note
+end
+
+-- A fresh per-eat trace of the chain: the types that took a declared or an inferred vector, and the
+-- malformed declared strings ("<fullType>: <reason>") and unknown declared keys ("<fullType>: <key>").
+function IN.newTrace()
+    return { declared = {}, inferred = {}, malformed = {}, unknown = {} }
+end
+
+-- Record one chain step in the trace (Lua tables this file built, so `#` is a Lua length).
+function IN.traceStep(trace, fullType, step, note)
+    if step == "declared" then trace.declared[#trace.declared + 1] = fullType end
+    if step == "inferred" then trace.inferred[#trace.inferred + 1] = fullType end
+    if type(note) == "string" then
+        trace.malformed[#trace.malformed + 1] = tostring(fullType) .. ": " .. note
+    elseif type(note) == "table" then
+        for i = 1, #note do trace.unknown[#trace.unknown + 1] = tostring(fullType) .. ": " .. tostring(note[i]) end
+    end
+end
+
+-- The chained lookup a dish ingredient or a craft input goes through: lookup(fullType) -> vec or nil
+-- over IN.chainOne, info(fullType) giving the type's declared string, macros and FoodType (nil info:
+-- the table alone, as before Plan 6). Built once per eat, here in the server file -- a closure, which
+-- the kernel's lookup-taking functions call without knowing (no closure inside the kernel).
+function IN.chainedLookup(lookup, templates, info, trace)
+    return function(fullType)
+        local i = nil
+        if info ~= nil then i = info(fullType) end
+        local vec, step, note = IN.chainOne(fullType, lookup, templates, i)
+        IN.traceStep(trace, fullType, step, note)
+        return vec
+    end
 end
 
 -- The consumed fullType -> count map the hand-craft action writes onto a single output (#2667), or nil.
@@ -275,29 +357,52 @@ end
 -- frac from its raw thirst and share from that drop over the type's script thirst (fractionOf);
 -- thirstAfter is the raw thirst after the original ran.
 -- lookup(fullType) -> seed vector or nil (the server passes NR.data.nutrients.get).
-function IN.assemble(b, rawAfter, lookup, thirstAfter)
+-- The chain (rulings 13-14): templates is NR.data.infer (nil: no inference); info(fullType) -> a dish
+-- or craft input's { declared, macros, foodType } (nil: inputs through the table alone). The eaten item's
+-- own chain reads b.declared, b.foodType and its live macros (b.macros, else b.cal/carb/lip/pro).
+-- A declared or table vector is a whole-type vector: the instance scale and share, as the baseline
+-- always took. An inferred vector is read off the live macros, which a prior partial eat already
+-- shrank and which carry the instance scale already: it takes frac and no instance scale.
+-- A sixth return is the chain's trace (IN.newTrace).
+function IN.assemble(b, rawAfter, lookup, thirstAfter, templates, info)
+    local trace = IN.newTrace()
     local frac, share = IN.fractionOf(b.rawBefore, rawAfter, b.instBase, b.thirstBefore, thirstAfter,
         b.scriptThirst)
     if not IN.isFinite(share) or share <= 0 or not IN.isFinite(frac) or frac <= 0 then
-        return nil, nil, {}, share, frac
+        return nil, nil, {}, share, frac, trace
     end
     local extra = b.extraTypes or {}
+    local inputs = IN.chainedLookup(lookup, templates, info, trace)
     local source = IN.sourceOf(#extra > 0, b.craftMap ~= nil)
     local vec, missing, factor
     if source == "dish" then
         local note
-        vec, note = K.vector.dish(lookup, extra, b.cal + b.carb + b.lip + b.pro)
+        vec, note = K.vector.dish(inputs, extra, b.cal + b.carb + b.lip + b.pro)
         missing = note.missing
         factor = frac
     elseif source == "craft" then
-        vec, missing = K.vector.craft(lookup, b.craftMap, 1)
+        vec, missing = K.vector.craft(inputs, b.craftMap, 1)
         factor = share
     else
-        -- the instance scale instBase/scriptHunger: 1 for an unscaled item, the butcher ratio x jitter
-        -- for a butchered meat (#2669-#2672), 1/amount for a split output (#2660); meat guards 0
-        vec, missing = K.vector.baseline(lookup, b.fullType, 1)
-        vec = K.vector.meat(vec, b.instBase, b.scriptHunger)
-        factor = share
+        local macros = b.macros or { calories = b.cal, carbs = b.carb, lipids = b.lip, proteins = b.pro }
+        local own = { declared = b.declared, foodType = b.foodType, macros = macros }
+        local step, note
+        vec, step, note = IN.chainOne(b.fullType, lookup, templates, own)
+        IN.traceStep(trace, b.fullType, step, note)
+        source = IN.sourceOf(false, false, step)
+        missing = {}
+        if step == "inferred" then
+            factor = frac
+        else
+            if vec == nil then
+                vec = K.vector.new()
+                missing[1] = b.fullType
+            end
+            -- the instance scale instBase/scriptHunger: 1 for an unscaled item, the butcher ratio x
+            -- jitter for a butchered meat (#2669-#2672), 1/amount for a split output (#2660); meat guards 0
+            vec = K.vector.meat(vec, b.instBase, b.scriptHunger)
+            factor = share
+        end
     end
     vec = K.vector.add(K.vector.new(), vec, factor)
     -- the macros track vanilla exactly: what Eat delivered, not what the seed says
@@ -305,7 +410,7 @@ function IN.assemble(b, rawAfter, lookup, thirstAfter)
     vec.calories, vec.carbs, vec.lipids, vec.proteins = m.calories, m.carbs, m.lipids, m.proteins
     -- retention skips the macros by design
     vec = K.retention.apply(vec, { cooked = b.cooked, burnt = b.burnt, rotten = b.rotten, frozen = b.frozen })
-    return vec, source, missing or {}, share, frac
+    return vec, source, missing or {}, share, frac, trace
 end
 
 -- ---------------------------------------------------------------------------------------------------
@@ -328,6 +433,41 @@ local function worldAge()
     local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
     if okA and type(age) == "number" then return age end
     return 0
+end
+
+-- A Food's FoodType string (Food.getFoodType, the script's FoodType), or nil when absent or empty.
+function IN.foodTypeOf(item)
+    local ft = read(item, "getFoodType")
+    if type(ft) == "string" and ft ~= "" then return ft end
+    return nil
+end
+
+-- The chain's reads off one Food instance: { declared, foodType, macros }, or nil when the item has
+-- no calories getter (not a Food).
+function IN.foodInfo(item)
+    local cal = read(item, "getCalories")
+    if type(cal) ~= "number" then return nil end
+    local macros = { calories = cal, carbs = num(read(item, "getCarbohydrates")),
+                     lipids = num(read(item, "getLipids")), proteins = num(read(item, "getProteins")) }
+    return { declared = IN.declaredOf(read(item, "getModData")), foodType = IN.foodTypeOf(item),
+             macros = macros }
+end
+
+-- A dish or craft input's chain reads, by type: a fresh instance through the instanceItem global (a
+-- script's macros have no getter and InventoryItemFactory is not exposed, #2679, #2680), read by
+-- IN.foodInfo. Script data is fixed for a boot, so each type is instanced once and cached
+-- (IN.typeInfoCache; false for a type that does not instance or is not a Food). nil without the global.
+function IN.typeInfo(fullType)
+    local cached = IN.typeInfoCache[fullType]
+    if cached == false then return nil end
+    if cached ~= nil then return cached end
+    if instanceItem == nil then return nil end
+    local info = false
+    local ok, item = pcall(instanceItem, fullType)
+    if ok and item ~= nil then info = IN.foodInfo(item) or false end
+    IN.typeInfoCache[fullType] = info
+    if info == false then return nil end
+    return info
 end
 
 -- The before-snapshot of the action's item, or nil when there is nothing to capture (no item, no
@@ -374,7 +514,12 @@ function IN.readBefore(action)
             i = i + 1
         end
     end
-    b.craftMap = IN.craftMap(read(item, "getModData"))
+    local md = read(item, "getModData")
+    b.craftMap = IN.craftMap(md)
+    -- the chain's own reads (rulings 13-14): the declared NR_Nutrients string, the FoodType, the macros
+    b.declared = IN.declaredOf(md)
+    b.foodType = IN.foodTypeOf(item)
+    b.macros = { calories = b.cal, carbs = b.carb, lipids = b.lip, proteins = b.pro }
     return b
 end
 
@@ -394,7 +539,17 @@ function IN.readAfterAndLand(b)
         NR.log.say(2, "intake: " .. IN.lastError)
     end
     if NR.data == nil or NR.data.nutrients == nil then error("intake: NR.data.nutrients absent") end
-    local vec, source, missing, share, frac = IN.assemble(b, rawAfter, NR.data.nutrients.get, thirstAfter)
+    local vec, source, missing, share, frac, trace = IN.assemble(b, rawAfter, NR.data.nutrients.get,
+        thirstAfter, NR.data.infer, IN.typeInfo)
+    -- a malformed declared string fell through to the table: counted and named, never silent
+    if #trace.malformed > 0 then
+        IN.stats.declaredMalformed = IN.stats.declaredMalformed + #trace.malformed
+        IN.lastError = "NR_Nutrients malformed, ignored: " .. table.concat(trace.malformed, "; ")
+        NR.log.say(2, "intake: " .. IN.lastError)
+    end
+    if #trace.unknown > 0 then
+        NR.log.say(2, "intake: NR_Nutrients unknown keys skipped: " .. table.concat(trace.unknown, "; "))
+    end
     -- the landing guard: nothing non-finite reaches the stomach (#2833)
     local bad = nil
     if not IN.isFinite(share) then
@@ -412,7 +567,7 @@ function IN.readAfterAndLand(b)
     record.pool = record.pool or K.vector.new()
     IN.land(record, b.username, vec)
     record.lastIntake = { fullType = b.fullType, source = source, share = share, frac = frac,
-                          missing = missing }
+                          missing = missing, declared = trace.declared, inferred = trace.inferred }
     IN.stats.landed = IN.stats.landed + 1
     NR.log.say(3, "intake: " .. b.fullType .. " for " .. tostring(b.username) .. " source " .. source
         .. " share " .. tostring(share))

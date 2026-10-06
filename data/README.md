@@ -37,11 +37,11 @@ script does not write has no value in this dataset.
 and nothing else: `data/food-items.json`, the mapping
 `data/food-nutrient-map/*.csv`, the extract `data/fdc-extract.json` and the
 three side tables (`iodine-db-r4.csv`, `phytate-literature.csv`,
-`insect-literature.csv`). It never opens the FDC zips under `tools/.fdc/`,
-so a fresh clone rebuilds it. It refuses, writing nothing, unless
-`--check-map` is clean, every `proxy` carries `notes`, every mapped row has
-`portion_grams` and the extract holds every citation (else re-run
-`--build-extract`).
+`insect-literature.csv`). It reads no value from the FDC zips under
+`tools/.fdc/`; check_map's two referential checks open them when present and
+skip when absent, so a fresh clone rebuilds it. It refuses, writing nothing,
+unless `--check-map` is clean, every `proxy` carries `notes`, every mapped row
+has `portion_grams` and the extract holds every citation (else `--build-extract`).
 
 `{"meta": {...}, "items": [...], "fluids": [...]}`, one record per dataset id
 (items and fluids each sorted by id), `indent=1`, sorted keys, LF, byte-stable
@@ -62,9 +62,9 @@ is `null`), `kind`, and:
   literature row's dry matter × its dry-matter fraction; all `null` on a `none`
   record;
 - `per_item` or `per_litre` — the same 31 keys, `per_100g × portion_grams / 100`
-  (a fluid's `portion_grams` is the litre's mass), save two overrides named in
-  `checks.notes`: a fluid's `ethanol` is its `alcohol` property × 789 g/L, and
-  SimpleSyrup's `water` is its 1230 g litre less the 615 g of sugar;
+  (a fluid's `portion_grams` is the litre's mass), save the overrides named in
+  `checks.notes`: a fluid's `ethanol` is its `alcohol` property × 789 g/L, its
+  `calories` moving 7 kcal/g with it; SimpleSyrup's `water` is 1230 g less 615 g;
 - `vanilla` — the dataset's `calories`, `carbohydrates`, `lipids`, `proteins`,
   `hunger` and `thirst`, `null` where absent;
 - `checks` — on `per_100g`, never clamping: `atwater_ratio` (fibre-aware

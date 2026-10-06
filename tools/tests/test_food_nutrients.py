@@ -1,5 +1,6 @@
 """Tests for tools/food_nutrients.py (Plan 6): the FDC join core (Task 2), the mapping (Task 3), the
-extract (Task 5), the output with its checks (Task 6) and the emitters (Task 9).
+extract (Task 5), the output with its checks (Task 6), the emitters (Task 9) and the inference
+templates (Task 10).
 
 The CSV fixtures are quoted verbatim from the SR Legacy zip
 (`tools/.fdc/FoodData_Central_sr_legacy_food_csv_2018-04.zip`, sha256 b8081729...6e5c2081643e6fd0;
@@ -1181,11 +1182,12 @@ CHECK_KEYS = {"atwater_ratio", "atwater_outlier", "energy_vs_fdc_ratio", "proxim
 
 
 def _overridden(rec, record):
-    """The per-basis keys the build sets apart from per_100g x portion / 100 (the two fluid overrides)."""
+    """The per-basis keys the build sets apart from per_100g x portion / 100 (the fluid overrides: the
+    ethanol and, following it at 7 kcal/g, the energy of an alcoholic fluid; SimpleSyrup's water)."""
     keys = set()
     if rec["basis"] == "per_litre":
         if (record.get("properties_raw") or {}).get("alcohol") not in (None, ""):
-            keys.add("ethanol")
+            keys.update(("ethanol", "calories"))
         if rec["pz_id"] in fn.FLUID_LITRE_GRAMS:
             keys.add("water")
     return keys
@@ -1356,7 +1358,12 @@ class BuildTest(BuildFixture, OutputShape):
         self.assertIn("the litre's 1230.0 g", " ".join(syrup["checks"]["notes"]))
         self.assertIsNone(syrup["checks"]["energy_vs_fdc_ratio"])            # vanilla 0 kcal
         self.assertNotIn("ethanol", " ".join(syrup["checks"]["notes"]))     # no alcohol property
-        self.assertAlmostEqual(beer["checks"]["energy_vs_fdc_ratio"], 52 * 10.1 / 500.0, places=4)
+        # ruling T6-1: the energy follows the game's ethanol, 7 kcal/g x (0 g FDC - 39.45 g property)
+        self.assertAlmostEqual(beer["per_litre"]["calories"], 52 * 10.1 + 7 * 39.45, places=6)
+        self.assertEqual(beer["per_100g"]["calories"], 52.0)                 # per_100g stays the entry's
+        self.assertIn("calories: per_litre", " ".join(beer["checks"]["notes"]))
+        self.assertNotIn("calories:", " ".join(syrup["checks"]["notes"]))
+        self.assertAlmostEqual(beer["checks"]["energy_vs_fdc_ratio"], (52 * 10.1 + 7 * 39.45) / 500.0, places=4)
 
     def test_the_checks_on_the_fixture(self):
         result = self.run_build()
@@ -1829,13 +1836,22 @@ class EmitLuaTest(unittest.TestCase):
 
     def test_null_is_a_bare_zero_and_numbers_are_repr(self):
         apple = re.search(r'\["Base.Apple"\] = \{ (.*) \}', self.text).group(1)
-        self.assertIn("calories = 94.588,", apple)
+        self.assertIn("vitC = 8.3674,", apple)                    # a non-macro key: the shortest repr
         self.assertIn("iodine = 0,", apple)
         self.assertIn("vitD = 0.0,", apple)
-        seeds = re.search(r'\["Base.Seeds"\] = \{ (.*) \}', self.text).group(1)
-        self.assertIn("lipids = 1e-05,", seeds)
         lard = re.search(r'\["Base.Lard"\] = \{ (.*) \}', self.text).group(1)
-        self.assertIn("calories = 902.0, carbs = 0,", lard)
+        self.assertIn("calories = 902.0, carbs = 0,", lard)      # a null macro is still a bare 0
+
+    def test_an_item_macro_is_the_script_blocks_two_decimals(self):
+        # ruling T9-1: the vector and the vanilla stores agree exactly on every re-based food
+        apple = re.search(r'\["Base.Apple"\] = \{ (.*) \}', self.text).group(1)
+        self.assertIn("calories = 94.59, carbs = 25.12, lipids = 0.31, proteins = 0.47,", apple)
+        seeds = re.search(r'\["Base.Seeds"\] = \{ (.*) \}', self.text).group(1)
+        self.assertIn("carbs = 1.23, lipids = 0.0, proteins = 0.1,", seeds)
+        script = fn.emit_scripts(_synthetic(), SYNTHETIC_RECORDS)
+        self.assertIn("Calories = 94.59,", script)
+        cola = re.search(r'\["Cola"\] = \{ (.*) \}', self.text).group(1)
+        self.assertIn("carbs = 107.744,", cola)                   # a fluid has no script block: unrounded
 
     def test_the_tables_and_the_tail(self):
         self.assertIn("\nlocal NUTRIENTS = {\n", self.text)
@@ -1908,21 +1924,31 @@ class GeneratedFilesTest(unittest.TestCase):
         tmp = tempfile.mkdtemp()
         try:
             lua_path, script_path = os.path.join(tmp, "NR_Data_Nutrients.lua"), os.path.join(tmp, "s.txt")
-            for path, text in fn.generated_texts(lua_path=lua_path, script_path=script_path):
+            infer_path = os.path.join(tmp, "NR_Data_Infer.lua")
+            paths = dict(lua_path=lua_path, script_path=script_path, infer_path=infer_path)
+            texts = fn.generated_texts(**paths)
+            self.assertEqual([p for p, _t in texts], [lua_path, script_path, infer_path])
+            for path, text in texts:
                 fn.write_text(path, text)
-            self.assertEqual(fn.check_generated(lua_path=lua_path, script_path=script_path, build_fresh=False), [])
+            self.assertEqual(fn.check_generated(build_fresh=False, **paths), [])
             with open(script_path, encoding="utf-8", newline="") as handle:
                 text = handle.read()
             n = text.index("Calories = ") + len("Calories = ")
             edited = text[:n] + ("1" if text[n] != "1" else "2") + text[n + 1:]
             fn.write_text(script_path, edited)
-            stale = fn.check_generated(lua_path=lua_path, script_path=script_path, build_fresh=False)
+            stale = fn.check_generated(build_fresh=False, **paths)
             self.assertEqual([p for p, _m in stale], [script_path])
             line = text[:n].count("\n") + 1
             self.assertTrue(stale[0][1].startswith("line %d: " % line), stale[0][1])
             fn.write_text(script_path, text.replace("\n", "\r\n"))
-            stale = fn.check_generated(lua_path=lua_path, script_path=script_path, build_fresh=False)
+            stale = fn.check_generated(build_fresh=False, **paths)
             self.assertEqual([p for p, _m in stale], [script_path])
+            fn.write_text(script_path, text)
+            with open(infer_path, encoding="utf-8", newline="") as handle:
+                infer = handle.read()
+            fn.write_text(infer_path, infer.replace("n = ", "n = 1", 1))
+            stale = fn.check_generated(build_fresh=False, **paths)
+            self.assertEqual([p for p, _m in stale], [infer_path])
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
@@ -1931,6 +1957,161 @@ class GeneratedFilesTest(unittest.TestCase):
                              capture_output=True, text=True)
         self.assertEqual(out.returncode, 0, out.stderr)
         self.assertIn("in sync", out.stdout)
+
+
+# ---- Task 10: the alcoholic fluids' energy (ruling T6-1) and the inference templates ----
+
+class EthanolEnergyTest(unittest.TestCase):
+
+    def test_mead_follows_the_games_ethanol(self):
+        # Mead: the FDC entry 103 g/L of ethanol against the property's 0.06 x 789 = 47.34 g/L
+        self.assertAlmostEqual(fn.ethanol_energy(820.0, 103.0, 0.06 * 789) - 820.0, -389.62, places=6)
+
+    def test_more_ethanol_in_the_game_adds_energy(self):
+        self.assertAlmostEqual(fn.ethanol_energy(434.3, 39.39, 39.45), 434.3 + 7 * 0.06, places=6)
+
+    def test_a_null_fdc_ethanol_reads_zero_and_the_energy_is_never_negative(self):
+        self.assertAlmostEqual(fn.ethanol_energy(100.0, None, 10.0), 170.0, places=6)
+        self.assertEqual(fn.ethanol_energy(100.0, 300.0, 0.0), 0.0)
+
+    def test_the_constant_is_atwaters(self):
+        self.assertEqual(fn.ETHANOL_KCAL_PER_G, 7.0)
+        self.assertEqual(fn.atwater({"ethanol": 1.0}), fn.ETHANOL_KCAL_PER_G)
+
+
+INFER_RECORDS = {
+    "Base.Apple": {"food_type": "Fruits"}, "Base.Pear": {"food_type": "Fruits"},
+    "Base.Plum": {"food_type": "Fruits"}, "Base.Ice": {"food_type": "Fruits"},
+    "Base.Steak": {"food_type": "Meat"}, "Base.Pork": {"food_type": "Meat"},
+    "Base.Gum": {"food_type": None}, "Base.Pot": {"food_type": "Fruits"},
+    "Base.Pebble": {"food_type": "Fruits"}, "Base.Basil": {"food_type": "Herb"},
+}
+
+
+def _infer_data():
+    """Four Fruits (one at 0 kcal), two Meat, one untyped food, a mapped drainable and a reasoned item."""
+    items = [
+        _out_rec("Base.Apple", block=_vector(calories=100.0, fibre=4.0, vitC=10.0)),
+        _out_rec("Base.Basil", fdc_id=None),
+        _out_rec("Base.Gum", block=_vector(calories=10.0, fibre=1.0, vitC=None)),
+        _out_rec("Base.Ice", block=_vector(calories=0.0, fibre=9.0)),
+        _out_rec("Base.Pear", block=_vector(calories=50.0, fibre=1.0, vitC=10.0)),
+        _out_rec("Base.Pebble", fdc_id=None),
+        _out_rec("Base.Plum", block=_vector(calories=200.0, fibre=2.0, vitC=None, iron=0.123456789)),
+        _out_rec("Base.Pork", block=_vector(calories=300.0, iron=3.0)),
+        _out_rec("Base.Pot", kind="drainable", block=_vector(calories=500.0, fibre=50.0)),
+        _out_rec("Base.Steak", block=_vector(calories=100.0, iron=2.0)),
+    ]
+    data = _synthetic()
+    data["items"] = items
+    data["fluids"] = []
+    return data
+
+
+class InferTemplatesTest(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.templates, cls.fallen = fn.infer_templates(_infer_data(), INFER_RECORDS)
+        cls.text = fn.emit_infer(_infer_data(), INFER_RECORDS)
+
+    def test_the_keys_are_every_non_macro_key(self):
+        self.assertEqual(fn.INFER_KEYS, tuple(k for k in fn.KEYS if k not in ("calories", "carbs", "lipids",
+                                                                             "proteins")))
+        self.assertEqual(len(fn.INFER_KEYS), 27)
+        for entry in self.templates.values():
+            self.assertEqual(tuple(entry["density"]), fn.INFER_KEYS)
+
+    def test_a_type_median_per_kcal_over_its_food_records_with_calories(self):
+        fruits = self.templates["Fruits"]
+        self.assertEqual(fruits["n"], 3)                              # Ice at 0 kcal, Pot a drainable
+        self.assertEqual(fruits["density"]["fibre"], 0.02)            # 0.04, 0.02, 0.01
+        self.assertEqual(fruits["density"]["vitC"], 0.1)              # 0.1, 0.2 and a null read as 0
+        self.assertEqual(fruits["density"]["iron"], 0.0)              # 0, 0, 0.000617
+        self.assertEqual(fruits["density"]["water"], 0.0)
+
+    def test_default_is_over_every_mapped_food_record(self):
+        default = self.templates["_default"]
+        self.assertEqual(default["n"], 6)
+        self.assertEqual(default["density"]["fibre"], 0.015)          # 0, 0, 0.01, 0.02, 0.04, 0.1
+
+    def test_a_type_under_three_records_falls_back(self):
+        self.assertNotIn("Meat", self.templates)
+        self.assertNotIn("Herb", self.templates)
+        self.assertEqual(self.fallen, {"Herb": 0, "Meat": 2})
+        self.assertEqual(fn.INFER_MIN_RECORDS, 3)
+
+    def test_six_significant_figures(self):
+        templates, _fallen = fn.infer_templates(_infer_data(), dict(INFER_RECORDS, **{
+            "Base.Steak": {"food_type": "Fruits"}, "Base.Pork": {"food_type": "Fruits"}}))
+        self.assertEqual(templates["Fruits"]["density"]["iron"], 0.000617284)   # 0.123456789 / 200
+
+    def test_the_text(self):
+        lines = self.text.split("\n")
+        self.assertTrue(lines[0].startswith("-- NR_Data_Infer.lua -- not a kernel file"))
+        self.assertTrue(lines[2].startswith("-- GENERATED by tools/food_nutrients.py"))
+        self.assertIn("generated 2026-10-06", lines[2])
+        self.assertIn("\nNR.data.infer = {\n", self.text)
+        entries = re.findall(r'^    \["([^"]+)"\] = \{ n = (\d+), density = \{ (.*) \} \},$', self.text, re.M)
+        self.assertEqual([(e[0], e[1]) for e in entries], [("Fruits", "3"), ("_default", "6")])
+        for _t, _n, body in entries:
+            self.assertEqual([kv.split(" = ")[0] for kv in body.split(", ")], list(fn.INFER_KEYS))
+        self.assertIn("fibre = 0.02, water = 0.0, vitC = 0.1,", entries[0][2])
+        self.assertIn("-- Falling back to _default (fewer than 3 mapped food records): Herb (0), Meat (2).",
+                      self.text)
+        self.assertTrue(self.text.endswith("\n-- 1 types, _default over 6 records\n"))
+        self.assertNotIn("\r", self.text)
+
+    def test_deterministic(self):
+        self.assertEqual(fn.emit_infer(_infer_data(), INFER_RECORDS), self.text)
+        shuffled = _infer_data()
+        shuffled["items"] = list(reversed(shuffled["items"]))
+        self.assertEqual(fn.emit_infer(shuffled, INFER_RECORDS), self.text)
+
+    def test_lua_loads_it(self):
+        try:
+            import lupa.lua51 as lua51
+        except ImportError:
+            self.skipTest("lupa is not installed")
+        rt = lua51.LuaRuntime()
+        rt.execute("NutritionRevamp = {}")
+        rt.execute(self.text)
+        infer = rt.globals().NutritionRevamp.data.infer
+        self.assertEqual(infer["Fruits"]["n"], 3)
+        self.assertEqual(infer["_default"]["density"]["fibre"], 0.015)
+
+
+@unittest.skipUnless(os.path.exists(fn.NUTRIENTS_JSON), "data/food-nutrients.json is not built")
+class RealTask10Test(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        with open(fn.NUTRIENTS_JSON, encoding="utf-8") as handle:
+            cls.data = json.load(handle)
+        cls.fluids = dict((r["pz_id"], r) for r in cls.data["fluids"])
+
+    def test_mead_energy_follows_the_property_ethanol(self):
+        mead = self.fluids["Mead"]
+        fdc_kcal = mead["per_100g"]["calories"] * mead["portion_grams"] / 100.0
+        fdc_eth = mead["per_100g"]["ethanol"] * mead["portion_grams"] / 100.0
+        self.assertAlmostEqual(fdc_eth, 103.0, places=6)
+        self.assertAlmostEqual(mead["per_litre"]["ethanol"], 47.34, places=6)
+        self.assertAlmostEqual(mead["per_litre"]["calories"] - fdc_kcal, -389.62, places=4)
+        self.assertIn("calories: per_litre", " ".join(mead["checks"]["notes"]))
+
+    def test_a_soda_with_alcohol_zero_is_unchanged(self):
+        cola = self.fluids["Cola"]
+        self.assertAlmostEqual(cola["per_litre"]["calories"],
+                               cola["per_100g"]["calories"] * cola["portion_grams"] / 100.0, places=6)
+        self.assertNotIn("calories:", " ".join(cola["checks"]["notes"]))
+
+    def test_the_committed_templates(self):
+        templates, fallen = fn.infer_templates(self.data, fn.load_dataset())
+        self.assertIn("_default", templates)
+        self.assertIn("Fruits", templates)
+        self.assertEqual(templates["_default"]["n"], len(fn.script_records(self.data)))
+        self.assertTrue(all(e["n"] >= fn.INFER_MIN_RECORDS for e in templates.values()))
+        self.assertTrue(all(n < fn.INFER_MIN_RECORDS for n in fallen.values()))
 
 
 if __name__ == "__main__":

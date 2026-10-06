@@ -319,7 +319,7 @@ def atwater(record):
     about 2 kcal/g rather than 4. Read with `fibre_known`: a None fibre widens the comparison band."""
     carbs, fibre = _zero(record.get("carbs")), _zero(record.get("fibre"))
     return (4.0 * (carbs - fibre) + 2.0 * fibre + 4.0 * _zero(record.get("proteins"))
-            + 9.0 * _zero(record.get("lipids")) + 7.0 * _zero(record.get("ethanol")))
+            + 9.0 * _zero(record.get("lipids")) + ETHANOL_KCAL_PER_G * _zero(record.get("ethanol")))
 
 
 def fibre_known(record):
@@ -380,6 +380,7 @@ VESSEL_RE = re.compile(r"Bowl|Pot|Pan")
 
 # The dataset's four macro columns -> the FDC keys (family order: kcal|carbs|lipids|proteins).
 MACROS = (("calories", "calories"), ("carbohydrates", "carbs"), ("lipids", "lipids"), ("proteins", "proteins"))
+MACRO_KEYS = tuple(key for _col, key in MACROS)                 # the vector keys of the four macros
 
 # Task 5's referential checks (iodine_ref -> data/iodine-db-r4.csv, phytate_source -> the science
 # rows) append here: each is `check(rows, records) -> [violation, ...]`, `rows` the merged mapping
@@ -1084,8 +1085,8 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
 #
 # Task 6. `build` writes data/food-nutrients.json and its CSV twin from four committed inputs only: the
 # dataset, the merged mapping, the extract and the three side tables (through check_map's referential
-# checks). It never opens the FDC zips: with them absent, check_map skips its two zip-backed checks and
-# the build still runs. One record per dataset id, `{"meta", "items", "fluids"}` as food-items.json.
+# checks). It reads no value from the FDC zips; check_map's two referential checks open them when present
+# and skip when absent, so the build still runs without them. One record per dataset id, `{"meta", "items", "fluids"}` as food-items.json.
 #
 # The vectors. `per_100g` is the composition source per 100 g in the contract's units: an SR Legacy
 # entry's amounts from the extract (the FDC unit converted by identity, `contract_unit`, which raises
@@ -1097,9 +1098,12 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
 #            note, where the entry carries no water);
 # and a literature row's vector read off the insect table by `literature_per_100g`. `per_item` (an item)
 # or `per_litre` (a fluid, ruling 7: `portion_grams` is the litre's mass) is `per_100g x portion_grams /
-# 100`, except two named overrides on a fluid's per-litre block, each written into `checks.notes`:
+# 100`, except three named overrides on a fluid's per-litre block, each written into `checks.notes`:
 #   ethanol: the fluid's `alcohol` property x 789 g/L (the game's property is the design input; the
 #            FDC value and the ratio go to the note);
+#   calories: on the same fluids the energy follows the game's ethanol at 7 kcal/g (ruling T6-1),
+#            `ethanol_energy`: the FDC energy - 7 x (the FDC ethanol - the property's), never below 0, a
+#            null FDC ethanol read as 0; noted where it moves (per_100g keeps the entry's own energy);
 #   water:   SimpleSyrup's litre is 1230 g of which the 615 g portion is the sugar entry, so its water
 #            is 1230 - 615 g (FLUID_LITRE_GRAMS).
 # A record with no composition (a `no_nutrition_reason`) has basis `none`, an all-null `per_100g` and no
@@ -1127,7 +1131,7 @@ SANITY_RANGES = {
     "vitC": (0.0, 2000.0),           # acerola ~1 678 mg
     "iron": (0.0, 130.0),            # fortified cereal; dried spirulina
     "phytate": (0.0, 7000.0),        # judgement: maize germ 6 390 mg/100 g dry, the side table's highest
-    "retinol": (0.0, 20000.0),       # the vitamin A RAE row: beef liver ~9 440 ug; cod-liver oil higher
+    "retinol": (0.0, 20000.0),       # retinol (FDC 319): beef liver ~9 440 ug; cod-liver oil higher
     "carotene": (0.0, 30000.0),      # judgement: paprika ~26 000 ug beta-carotene, the spice tail
     "vitD": (0.0, 250.0),            # cod-liver oil ~250 ug
     "vitE": (0.0, 150.0),            # wheat-germ oil ~149 mg
@@ -1158,6 +1162,7 @@ ATWATER_MIN_KCAL = 10.0          # below this per-100 g energy the ratio is comp
 PROXIMATE_MAX = 102.0            # water + proteins + lipids + carbs, allowing ash and rounding
 RETENTION_MAX = 100              # a cited retention factor, percent
 ETHANOL_G_PER_L = 789            # g of ethanol in a litre at alcohol = 1.0 (ruling 7)
+ETHANOL_KCAL_PER_G = 7.0         # the Atwater energy of ethanol, as `atwater` reads it (ruling T6-1)
 FLUID_LITRE_GRAMS = {"SimpleSyrup": 1230.0}   # the mapping note's litre mass where portion_grams is a
                                               # solute's mass, not the litre's (the 1:1 syrup)
 INSECT_DM_FRACTION = 0.30        # the dry-matter fraction of a fresh invertebrate with no measured
@@ -1309,6 +1314,13 @@ def rebase_band(ratio):
             return label
 
 
+def ethanol_energy(calories, fdc_ethanol, property_ethanol):
+    """A fluid's per-litre energy with its ethanol moved from the FDC entry's to the game property's
+    (ruling T6-1): `calories - 7 x (fdc_ethanol - property_ethanol)`, a None fdc_ethanol read as 0,
+    never below 0."""
+    return max(0.0, calories - ETHANOL_KCAL_PER_G * (_zero(fdc_ethanol) - property_ethanol))
+
+
 def _alcohol(record):
     raw = (record.get("properties_raw") or {}).get("alcohol")
     return None if raw in (None, "") else raw
@@ -1351,6 +1363,13 @@ def build_record(row, record, extract):
             notes.append("ethanol: per_litre %s g from the alcohol property %s x %d; the FDC entry gives %s%s"
                          % (food_scan._cell(grams_l), alcohol, ETHANOL_G_PER_L, given, ratio))
             block["ethanol"] = grams_l
+            kcal = block["calories"]
+            if kcal is not None and _zero(fdc) != grams_l:
+                moved = _r6(ethanol_energy(kcal, fdc, grams_l))
+                notes.append("calories: per_litre %s kcal = the entry's %s kcal - %s x (%s - %s g ethanol)"
+                             % (food_scan._cell(moved), food_scan._cell(kcal), food_scan._cell(ETHANOL_KCAL_PER_G),
+                                food_scan._cell(_zero(fdc)), food_scan._cell(grams_l)))
+                block["calories"] = moved
         litre = FLUID_LITRE_GRAMS.get(row["pz_id"])
         if litre is not None:
             water = _r6(litre - grams)
@@ -1458,7 +1477,7 @@ def build(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
     """Write data/food-nutrients.json and .csv; return the output. Refuses (BuildRefused, nothing written)
     unless check_map is clean without --allow-unfilled (the guess budget and the notes on a guess among
     its rules), every proxy carries notes, every mapped row has portion_grams, and the extract holds every
-    citation. Reads no FDC zip.
+    citation. Reads no value from an FDC zip.
     Byte-stable within one UTC day: sorted keys, indent 1, LF."""
     out = sys.stdout if out is None else out
     counts = check_map(map_dir, dataset_path, allow_unfilled=False, out=io.StringIO())
@@ -1532,8 +1551,11 @@ def build(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
 #                   fluid record with basis `per_litre`; every K.vector.KEYS key in order; a JSON null is
 #                   written `0` (the kernel sums numbers; the JSON keeps the absence) and every number
 #                   with Python's shortest round-trip `repr`, so `0.0` is a measured zero and `0` an
-#                   absence. The header's role, `NR.data.UNITS` and the loaders are literal text pinned
-#                   to the Plan 2 seed's (LUA_PREAMBLE, LUA_LOADERS).
+#                   absence -- save an ITEM's four macros, written at the script block's `%.2f` value
+#                   (ruling T9-1) so the vector and the vanilla stores agree exactly on every re-based
+#                   food (ruling 6); a fluid has no script block and keeps its full value. The header's
+#                   role, `NR.data.UNITS` and the loaders are literal text pinned to the Plan 2 seed's
+#                   (LUA_PREAMBLE, LUA_LOADERS).
 #   --emit-scripts  mod/.../scripts/NR_ItemPass_Food.txt: one partial `module Base` item block per mapped
 #                   FOOD record (kind `food`, `fdc_id`, basis `per_item`), sorted by id: DisplayCategory
 #                   (the dataset's value) and the four macros at `%.2f`; no ItemType (X15, #1018), never
@@ -1542,21 +1564,33 @@ def build(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
 #                   header is a `/* */` block: the engine's ScriptParser.stripComments removes block
 #                   comments only (#2426) and a block comment in a loaded item script is measured
 #                   stripped (#1446); a `//` line would run on into the next value.
+#   --emit-infer    mod/.../shared/NR_Data_Infer.lua (Task 10, ruling 13): NR.data.infer, the density
+#                   templates the intake's fallback inference reads (K.vector.infer). Per FoodType (the
+#                   dataset's spelling), over the mapped FOOD records of that type (script_records) with
+#                   calories > 0: for every K.vector.KEYS key but the four macros (INFER_KEYS; fibre and
+#                   water included, per kcal like the rest -- one uniform rule), the median of
+#                   per_item[key] / per_item.calories, a null read as 0 (what the table delivers for it),
+#                   at six significant figures; `n` the record count. A type with fewer than
+#                   INFER_MIN_RECORDS records has no entry (named in the header; the reader falls back
+#                   to `_default`, the same medians over every such record). A judgement from the pass's
+#                   own medians, not a measurement.
 #   --check         every generated file against a fresh emission, byte for byte (the JSON against a
 #                   fresh --build with its `meta.generated` date taken from the file on disk); exit 1
 #                   naming the first differing line. --write regenerates everything.
 
-import shutil, tempfile
+import shutil, tempfile, textwrap
 
 LUA_DATA_PATH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared",
                              "NR_Data_Nutrients.lua")
 SCRIPT_PATH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "scripts", "NR_ItemPass_Food.txt")
+INFER_PATH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Data_Infer.lua")
+INFER_MIN_RECORDS = 3      # a FoodType with fewer mapped food records falls back to `_default` (ruling 13)
 SCRIPT_MACROS = (("Calories", "calories"), ("Carbohydrates", "carbs"), ("Proteins", "proteins"),
                  ("Lipids", "lipids"))
 LUA_KEY_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")     # a table key needs no escaping
 SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")    # an item name the script grammar takes bare
-# Further generated files, appended by later tasks (Task 10: NR_Data_Infer.lua) as
-# (path, emit(data, records) -> text); --check and --write cover them with the two below.
+# Further generated files, appended by later tasks as (path, emit(data, records) -> text); --check and
+# --write cover them with the three below (Task 10's NR_Data_Infer.lua is a named one, `infer_path`).
 EXTRA_EMITTERS = []
 
 LUA_PREAMBLE = r'''local NR = NutritionRevamp
@@ -1621,10 +1655,24 @@ def lua_number(value):
     return repr(v)
 
 
-def _lua_entry(key, block, comment):
+def script_macro(value):
+    """An item macro as the script block carries it: `%.2f` of the value (0.0 for a null), as a float."""
+    lua_number(value)                                            # the same refusal on a bad value
+    return float("%.2f" % float(value or 0.0))
+
+
+def _lua_value(key, value, item):
+    """An entry's value text: an ITEM's macro at the script block's two decimals (ruling T9-1, a null
+    still a bare 0), anything else the shortest repr."""
+    if item and value is not None and key in MACRO_KEYS:
+        return lua_number(script_macro(value))
+    return lua_number(value)
+
+
+def _lua_entry(key, block, comment, item=False):
     if not LUA_KEY_RE.match(key):
         raise EmitRefused("an id the emitter will not quote: %r" % (key,))
-    body = ", ".join("%s = %s" % (k, lua_number(block[k])) for k in KEYS)
+    body = ", ".join("%s = %s" % (k, _lua_value(k, block[k], item)) for k in KEYS)
     return '    ["%s"] = { %s },  -- %s' % (key, body, comment)
 
 
@@ -1648,15 +1696,18 @@ def emit_lua(data):
         % (meta["generated"], meta["inputs"]["mapping"]["rows"], meta["inputs"]["extract"]["counts"]["foods"]),
         "-- Sources: %s." % sources,
         "-- Items per item, fluids per litre, every K.vector.KEYS key on every entry; a number is the JSON's",
-        "-- value exactly, `0.0` a measured zero and `0` an absence (null in the JSON). A food or fluid with",
-        "-- no entry has no mapping (a no_nutrition_reason): its loader returns nil. Each entry's trailing",
-        "-- comment is SOURCE <fdc_id> <confidence>. The script half of the item pass is NR_ItemPass_Food.txt.",
+        "-- value exactly (save an item's four macros, at the script block's two decimals so the vector and",
+        "-- the vanilla stores agree), `0.0` a measured zero and `0` an absence (null in the JSON). A food or",
+        "-- fluid with no entry has no mapping (a no_nutrition_reason): its loader returns nil, and the intake",
+        "-- infers its vector (NR_Data_Infer.lua). Each entry's trailing comment is SOURCE <fdc_id> <confidence>.",
+        "-- The script half of the item pass is NR_ItemPass_Food.txt.",
         "-- A reader goes through the loaders, never the tables.",
         "-- Units: NR.data.UNITS below (ug = micrograms).",
     ]
     text = "\n".join(out) + "\n" + LUA_PREAMBLE
     text += "\n-- Per-item vectors (data/food-nutrients.json `per_item`).\nlocal NUTRIENTS = {\n"
-    text += "".join(_lua_entry(r["pz_id"], r["per_item"], "SOURCE %s %s" % (r["fdc_id"], r["confidence"])) + "\n"
+    text += "".join(_lua_entry(r["pz_id"], r["per_item"], "SOURCE %s %s" % (r["fdc_id"], r["confidence"]),
+                               item=True) + "\n"
                     for r in items)
     text += "}\n\n-- Per-litre fluid vectors (data/food-nutrients.json `per_litre`).\nlocal FLUIDS = {\n"
     text += "".join(_lua_entry(r["pz_id"], r["per_litre"], "SOURCE %s %s" % (r["fdc_id"], r["confidence"])) + "\n"
@@ -1690,12 +1741,92 @@ def emit_scripts(data, records):
             lines.append("")
         lines += ["    item %s" % name, "    {", "        DisplayCategory = %s," % category]
         for script_key, key in SCRIPT_MACROS:
-            value = rec["per_item"][key]
-            lua_number(value)                                    # the same refusal on a bad value
-            lines.append("        %s = %.2f," % (script_key, float(value or 0.0)))
+            lines.append("        %s = %.2f," % (script_key, script_macro(rec["per_item"][key])))
         lines.append("    }")
     lines.append("}")
     return "\n".join(lines) + "\n"
+
+
+INFER_KEYS = tuple(k for k in KEYS if k not in MACRO_KEYS)     # the 27 keys a template carries
+
+
+def _median(values):
+    ordered = sorted(values)
+    mid = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[mid]
+    return (ordered[mid - 1] + ordered[mid]) / 2.0
+
+
+def _sig6(value):
+    return float("%.6g" % value)
+
+
+def _density(recs):
+    """{key: median per-kcal density} over records with calories > 0, a null read as 0, 6 significant
+    figures, in INFER_KEYS order."""
+    return dict((k, _sig6(_median([(r["per_item"][k] or 0.0) / r["per_item"]["calories"] for r in recs])))
+                for k in INFER_KEYS)
+
+
+def infer_templates(data, records):
+    """({FoodType or `_default`: {"n", "density"}}, {fallen-back FoodType: record count}) over the
+    mapped food records (script_records) with calories > 0; `records` is the dataset `{id: record}`
+    (its `food_type`). A type with fewer than INFER_MIN_RECORDS records is not a template; every
+    FoodType the dataset spells is either a template or fallen back."""
+    usable = [r for r in script_records(data) if (r["per_item"]["calories"] or 0.0) > 0]
+    by_type = {}
+    for rec in usable:
+        food_type = (records.get(rec["pz_id"]) or {}).get("food_type")
+        if food_type:
+            by_type.setdefault(food_type, []).append(rec)
+    spelled = set(r.get("food_type") for r in records.values() if r.get("food_type"))
+    templates, fallen = {}, {}
+    for food_type in sorted(spelled | set(by_type)):
+        recs = by_type.get(food_type, [])
+        if not LUA_KEY_RE.match(food_type):
+            raise EmitRefused("a FoodType the emitter will not quote: %r" % (food_type,))
+        if len(recs) < INFER_MIN_RECORDS:
+            fallen[food_type] = len(recs)
+        else:
+            templates[food_type] = {"n": len(recs), "density": _density(recs)}
+    if usable:
+        templates["_default"] = {"n": len(usable), "density": _density(usable)}
+    return templates, fallen
+
+
+def emit_infer(data, records):
+    """The whole NR_Data_Infer.lua text: NR.data.infer, the FoodType density templates."""
+    templates, fallen = infer_templates(data, records)
+    types = sorted(t for t in templates if t != "_default")
+    default_n = templates["_default"]["n"] if "_default" in templates else 0
+    out = [
+        "-- NR_Data_Infer.lua -- not a kernel file: the per-FoodType density templates the intake's fallback",
+        "-- inference reads (K.vector.infer; spec § 4.2, Plan 6 ruling 13).",
+        "-- GENERATED by tools/food_nutrients.py from data/food-nutrients.json and data/food-items.json "
+        "(generated %s); do not edit — regenerate with --write." % data["meta"]["generated"],
+        "-- A judgement from the pass's own medians, not a measurement. Per FoodType (the dataset's spelling),",
+        "-- over the item pass's mapped food records of that type with calories > 0: for every K.vector.KEYS",
+        "-- key but the four macros (fibre and water included), the median of per_item[key] / per_item.calories,",
+        "-- a null read as 0 (what the table delivers), in the key's NR.data.UNITS unit per kcal, at six",
+        "-- significant figures; n is the record count. `_default` is the same over every such record. A type",
+        "-- with fewer than %d records has no entry and its reader falls back to `_default`." % INFER_MIN_RECORDS,
+    ]
+    out += textwrap.wrap("Falling back to _default (fewer than %d mapped food records): %s."
+                         % (INFER_MIN_RECORDS, ", ".join("%s (%d)" % (t, fallen[t]) for t in sorted(fallen))
+                            or "none"), width=100, initial_indent="-- ", subsequent_indent="-- ")
+    out += [
+        "local NR = NutritionRevamp",
+        "NR.data = NR.data or {}",
+        "",
+        "NR.data.infer = {",
+    ]
+    for food_type in types + (["_default"] if "_default" in templates else []):
+        entry = templates[food_type]
+        body = ", ".join("%s = %s" % (k, lua_number(entry["density"][k])) for k in INFER_KEYS)
+        out.append('    ["%s"] = { n = %d, density = { %s } },' % (food_type, entry["n"], body))
+    out += ["}", "", "-- %d types, _default over %d records" % (len(types), default_n)]
+    return "\n".join(out) + "\n"
 
 
 def _load_json(path):
@@ -1704,11 +1835,12 @@ def _load_json(path):
 
 
 def generated_texts(nutrients_json=NUTRIENTS_JSON, dataset_path=DATASET_JSON, lua_path=LUA_DATA_PATH,
-                    script_path=SCRIPT_PATH):
+                    script_path=SCRIPT_PATH, infer_path=INFER_PATH):
     """[(path, text)] for every file emitted from the output JSON."""
     data = _load_json(nutrients_json)
     records = load_dataset(dataset_path)
-    out = [(lua_path, emit_lua(data)), (script_path, emit_scripts(data, records))]
+    out = [(lua_path, emit_lua(data)), (script_path, emit_scripts(data, records)),
+           (infer_path, emit_infer(data, records))]
     out += [(path, emit(data, records)) for path, emit in EXTRA_EMITTERS]
     return out
 
@@ -1740,7 +1872,7 @@ def _read_text(path):
 
 def check_generated(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
                     nutrients_json=NUTRIENTS_JSON, nutrients_csv=NUTRIENTS_CSV, lua_path=LUA_DATA_PATH,
-                    script_path=SCRIPT_PATH, build_fresh=True):
+                    script_path=SCRIPT_PATH, build_fresh=True, infer_path=INFER_PATH):
     """[(path, message)] for every generated file out of sync; empty when all are in sync."""
     stale = []
     if build_fresh:
@@ -1771,7 +1903,7 @@ def check_generated(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXT
             shutil.rmtree(tmp, ignore_errors=True)
         if stale:
             return stale
-    for path, text in generated_texts(nutrients_json, dataset_path, lua_path, script_path):
+    for path, text in generated_texts(nutrients_json, dataset_path, lua_path, script_path, infer_path):
         on_disk = _read_text(path)
         diff = "missing" if on_disk is None else first_difference(text, on_disk)
         if diff:
@@ -1781,12 +1913,12 @@ def check_generated(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXT
 
 def write_generated(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
                     nutrients_json=NUTRIENTS_JSON, nutrients_csv=NUTRIENTS_CSV, lua_path=LUA_DATA_PATH,
-                    script_path=SCRIPT_PATH, out=None):
+                    script_path=SCRIPT_PATH, out=None, infer_path=INFER_PATH):
     """--write: --build, then every emitter. Returns [(path, bytes)]."""
     out = sys.stdout if out is None else out
     build(map_dir, dataset_path, extract_path, nutrients_json, nutrients_csv, out=out)
     written = []
-    for path, text in generated_texts(nutrients_json, dataset_path, lua_path, script_path):
+    for path, text in generated_texts(nutrients_json, dataset_path, lua_path, script_path, infer_path):
         write_text(path, text)
         written.append((path, len(text.encode("utf-8"))))
         print("%s (%d bytes)" % (path, written[-1][1]), file=out)
@@ -1826,6 +1958,9 @@ def main(argv=None):
                         help="write NR_Data_Nutrients.lua (the per-type table and its loader) from the JSON")
     parser.add_argument("--emit-scripts", action="store_true",
                         help="write NR_ItemPass_Food.txt (the partial module Base blocks) from the JSON")
+    parser.add_argument("--emit-infer", action="store_true",
+                        help="write NR_Data_Infer.lua (the FoodType density templates) from the JSON and the "
+                             "dataset")
     parser.add_argument("--check", action="store_true",
                         help="every generated file against a fresh build and emission; exit 1 on a difference")
     parser.add_argument("--write", action="store_true",
@@ -1838,7 +1973,7 @@ def main(argv=None):
         if stale:
             print("regenerate with: python tools/food_nutrients.py --write", file=sys.stderr)
             return 1
-        print("in sync: the JSON, the CSV and %d emitted file(s)" % (2 + len(EXTRA_EMITTERS)))
+        print("in sync: the JSON, the CSV and %d emitted file(s)" % (3 + len(EXTRA_EMITTERS)))
         return 0
     if args.write:
         try:
@@ -1847,7 +1982,7 @@ def main(argv=None):
             print("REFUSED " + str(refused), file=sys.stderr)
             return 1
         return 0
-    if args.emit_lua or args.emit_scripts:
+    if args.emit_lua or args.emit_scripts or args.emit_infer:
         data = _load_json(args.out_json)
         try:
             if args.emit_lua:
@@ -1858,6 +1993,10 @@ def main(argv=None):
                 text = emit_scripts(data, load_dataset(args.dataset))
                 write_text(SCRIPT_PATH, text)
                 print("%s (%d bytes)" % (SCRIPT_PATH, len(text.encode("utf-8"))))
+            if args.emit_infer:
+                text = emit_infer(data, load_dataset(args.dataset))
+                write_text(INFER_PATH, text)
+                print("%s (%d bytes)" % (INFER_PATH, len(text.encode("utf-8"))))
         except EmitRefused as refused:
             print("REFUSED " + str(refused), file=sys.stderr)
             return 1

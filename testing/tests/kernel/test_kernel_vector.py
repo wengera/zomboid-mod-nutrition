@@ -256,3 +256,112 @@ def test_fluid_scales_the_per_litre_vector_by_litres(host):
     v = host.py(vec)
     assert abs(v["calories"] - 120.0) < 1e-6
     assert abs(v["carbs"] - 31.2) < 1e-6
+
+
+# --- the fallback inference and the declared-nutrients contract (Plan 6 Task 10, rulings 13-14) ---
+
+# A synthetic template: two types and `_default`, densities per kcal on a few keys (the rest absent).
+TEMPLATES = {
+    "Fruits": {"n": 3, "density": {"fibre": 0.04, "water": 1.5, "vitC": 0.1, "iron": 0.002}},
+    "Meat": {"n": 4, "density": {"fibre": 0.0, "water": 0.3, "iron": 0.01, "vitB12": 0.005}},
+    "_default": {"n": 9, "density": {"fibre": 0.01, "water": 0.5, "vitC": 0.02, "iron": 0.005}},
+}
+APPLE_MACROS = {"calories": 100.0, "carbs": 25.0, "lipids": 0.3, "proteins": 0.5}
+
+
+def _infer(host, macros, food_type, templates=TEMPLATES):
+    t = None if templates is None else host.table(templates)
+    return host.py(host.K.vector.infer(host.table(macros), food_type, t))
+
+
+def test_infer_copies_the_macros_and_multiplies_the_type_density_by_calories(host):
+    v = _infer(host, APPLE_MACROS, "Fruits")
+    assert len(v) == 31
+    assert (v["calories"], v["carbs"], v["lipids"], v["proteins"]) == (100.0, 25.0, 0.3, 0.5)
+    assert abs(v["fibre"] - 4.0) < 1e-9
+    assert abs(v["water"] - 150.0) < 1e-9
+    assert abs(v["vitC"] - 10.0) < 1e-9
+    assert abs(v["iron"] - 0.2) < 1e-9
+    assert v["vitB12"] == 0                       # a key the template does not carry stays 0
+
+
+def test_infer_picks_the_template_of_the_food_type(host):
+    v = _infer(host, APPLE_MACROS, "Meat")
+    assert abs(v["iron"] - 1.0) < 1e-9
+    assert abs(v["vitB12"] - 0.5) < 1e-9
+    assert v["vitC"] == 0
+
+
+def test_infer_an_unknown_type_falls_back_to_default(host):
+    v = _infer(host, APPLE_MACROS, "Insect")
+    assert abs(v["fibre"] - 1.0) < 1e-9
+    assert abs(v["vitC"] - 2.0) < 1e-9
+
+
+def test_infer_a_nil_type_takes_default(host):
+    v = _infer(host, APPLE_MACROS, None)
+    assert abs(v["water"] - 50.0) < 1e-9
+
+
+def test_infer_zero_calories_is_the_macros_only(host):
+    v = _infer(host, {"calories": 0.0, "carbs": 2.0, "lipids": 0.0, "proteins": 1.0}, "Fruits")
+    assert (v["calories"], v["carbs"], v["proteins"]) == (0.0, 2.0, 1.0)
+    assert all(v[k] == 0 for k in v if k not in ("carbs", "proteins"))
+
+
+def test_infer_a_missing_macro_reads_zero(host):
+    v = _infer(host, {"calories": 10.0}, "Fruits")
+    assert v["carbs"] == 0 and v["lipids"] == 0 and v["proteins"] == 0
+    assert abs(v["fibre"] - 0.4) < 1e-9
+
+
+def test_infer_without_templates_or_default_is_the_macros_only(host):
+    v = _infer(host, APPLE_MACROS, "Fruits", templates=None)
+    assert v["calories"] == 100.0 and v["fibre"] == 0
+    v = _infer(host, APPLE_MACROS, "Insect", templates={"Fruits": TEMPLATES["Fruits"]})
+    assert v["calories"] == 100.0 and v["fibre"] == 0
+
+
+def test_infer_returns_a_fresh_vector(host):
+    t = host.table(TEMPLATES)
+    a = host.K.vector.infer(host.table(APPLE_MACROS), "Fruits", t)
+    a.fibre = 999
+    b = host.py(host.K.vector.infer(host.table(APPLE_MACROS), "Fruits", t))
+    assert abs(b["fibre"] - 4.0) < 1e-9
+    assert t["Fruits"]["density"]["fibre"] == 0.04
+
+
+def _declared(host, text):
+    vec, extra = host.K.vector.declared(text)
+    return (None if vec is None else host.py(vec)), (extra if isinstance(extra, str) or extra is None
+                                                     else list(host.py(extra).values()))
+
+
+def test_declared_parses_the_units_contract_string(host):
+    v, unknown = _declared(host, "fibre:12;vitC:3")
+    assert len(v) == 31
+    assert v["fibre"] == 12 and v["vitC"] == 3
+    assert v["calories"] == 0 and v["carbs"] == 0           # macros absent: 0, the caller fills them
+    assert unknown == []
+
+
+def test_declared_takes_the_macros_when_given_and_tolerates_spaces_and_a_trailing_semicolon(host):
+    v, unknown = _declared(host, " calories: 120.5 ; carbs:30;proteins:2.5;lipids:0;iron:1e-1 ;")
+    assert (v["calories"], v["carbs"], v["proteins"], v["lipids"]) == (120.5, 30, 2.5, 0)
+    assert abs(v["iron"] - 0.1) < 1e-12
+    assert unknown == []
+
+
+def test_declared_skips_and_reports_an_unknown_key(host):
+    v, unknown = _declared(host, "fibre:13;vitZ:4;omega9:1")
+    assert v["fibre"] == 13
+    assert "vitZ" not in v
+    assert unknown == ["vitZ", "omega9"]
+
+
+@pytest.mark.parametrize("text", ["fibre:twelve;vitC:3", "fibre:-1", "fibre", "fibre:12;vitC",
+                                  "fibre:nan", "fibre:inf", ":3", "fibre:", "", ";", 12])
+def test_declared_a_malformed_string_is_nil_with_a_reason(host, text):
+    v, reason = _declared(host, text)
+    assert v is None
+    assert isinstance(reason, str) and reason != ""

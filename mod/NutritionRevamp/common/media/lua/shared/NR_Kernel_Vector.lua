@@ -141,3 +141,107 @@ function K.vector.fluid(fluidVector, litres)
     K.vector.add(vec, fluidVector, litres)
     return vec
 end
+
+-- The fallback inference (Plan 6 ruling 13): a food with no table entry and no declared vector takes
+-- the four macros as read off the item and every other key as the template's per-kcal density times
+-- the item's calories. templates is NR.data.infer (NR_Data_Infer.lua, generated: per FoodType the
+-- median of key / calories over the item pass's own mapped food records, `_default` over all of them;
+-- a judgement, not a measurement); the FoodType's entry, else `_default`; a nil foodType takes
+-- `_default`. Calories <= 0, no templates or no `_default` -> the four macros only (the rest 0). A
+-- missing macro reads 0. Returns a fresh vector. KEYS opens with the four MACROS (the order the
+-- vector test pins), so the density loop starts after them; `#` on this file's own tables is a Lua
+-- length.
+function K.vector.infer(macros, foodType, templates)
+    local vec = K.vector.new()
+    for i = 1, #K.vector.MACROS do
+        local m = K.vector.MACROS[i]
+        vec[m] = macros[m] or 0
+    end
+    local calories = vec.calories
+    if calories <= 0 then
+        return vec
+    end
+    if templates == nil then
+        return vec
+    end
+    local template = nil
+    if foodType ~= nil then
+        template = templates[foodType]
+    end
+    if template == nil then
+        template = templates["_default"]
+    end
+    if template == nil then
+        return vec
+    end
+    local density = template.density
+    for i = #K.vector.MACROS + 1, #K.vector.KEYS do
+        local k = K.vector.KEYS[i]
+        local d = density[k]
+        if d ~= nil then
+            vec[k] = d * calories
+        end
+    end
+    return vec
+end
+
+-- The trimmed text of s (leading and trailing whitespace dropped).
+function K.vector.trim(s)
+    return string.match(s, "^%s*(.-)%s*$")
+end
+
+-- The declared-nutrients contract (Plan 6 ruling 14): a food-content mod writes NR_Nutrients =
+-- key:value;key:value in its item script, in the units contract (NR.data.UNITS, per item); the loader
+-- does not know the key, so it lands as a string in the item's default modData (#0212, #1281). Parses
+-- that string: each `;`-separated pair is key:value, whitespace around either ignored, an empty pair
+-- (a trailing `;`) skipped. A key in KEYS takes its value (a later duplicate wins); a key outside KEYS
+-- is skipped and named in the returned `unknown` list. A pair without a `:`, an empty key, or a value
+-- that is not a finite number >= 0 makes the WHOLE string malformed: nil and a reason string. A string
+-- with no pair at all is malformed too. Returns vec, unknown: the four macros as the string gives
+-- them, else 0 (the caller fills them from the item, whose script block owns them).
+function K.vector.declared(str)
+    if type(str) ~= "string" then
+        return nil, "not a string"
+    end
+    local known = {}
+    for i = 1, #K.vector.KEYS do
+        known[K.vector.KEYS[i]] = true
+    end
+    local vec = K.vector.new()
+    local unknown = {}
+    local pairsRead = 0
+    local pos = 1
+    local len = string.len(str)
+    while pos <= len do
+        local stop = string.find(str, ";", pos, true)
+        if stop == nil then
+            stop = len + 1
+        end
+        local pair = K.vector.trim(string.sub(str, pos, stop - 1))
+        pos = stop + 1
+        if pair ~= "" then
+            local colon = string.find(pair, ":", 1, true)
+            if colon == nil then
+                return nil, "a pair without a colon: " .. pair
+            end
+            local key = K.vector.trim(string.sub(pair, 1, colon - 1))
+            local value = tonumber(K.vector.trim(string.sub(pair, colon + 1)))
+            if key == "" then
+                return nil, "a pair without a key: " .. pair
+            end
+            if value == nil or value ~= value or value < 0 or value == math.huge then
+                return nil, "not a finite number >= 0: " .. pair
+            end
+            pairsRead = pairsRead + 1
+            if known[key] then
+                vec[key] = value
+            else
+                unknown[#unknown + 1] = key
+            end
+        end
+    end
+    if pairsRead == 0 then
+        return nil, "no key:value pair"
+    end
+    return vec, unknown
+end

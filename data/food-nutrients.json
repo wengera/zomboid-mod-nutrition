@@ -314,10 +314,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0079,
-    "energy_vs_fdc_ratio": 0.8686,
+    "energy_vs_fdc_ratio": 0.8694,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 39.45 g from the alcohol property 0.05 x 789; the FDC entry gives 39.39 g, ratio 1.0015"
+     "ethanol: per_litre 39.45 g from the alcohol property 0.05 x 789; the FDC entry gives 39.39 g, ratio 1.0015",
+     "calories: per_litre 434.72 kcal = the entry's 434.3 kcal - 7.0 x (39.39 - 39.45 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 95.97,
@@ -369,7 +370,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 40.4,
-    "calories": 434.3,
+    "calories": 434.72,
     "carbs": 35.855,
     "carotene": 0.0,
     "choline": 102.01,
@@ -556,10 +557,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 1.0949,
+    "energy_vs_fdc_ratio": 1.0913,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -611,7 +613,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": 0.0,
     "choline": 0.0,
@@ -762,10 +764,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0095,
-    "energy_vs_fdc_ratio": 1.3972,
+    "energy_vs_fdc_ratio": 1.3094,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 94.68 g from the alcohol property 0.12 x 789; the FDC entry gives 101.97 g, ratio 0.9285"
+     "ethanol: per_litre 94.68 g from the alcohol property 0.12 x 789; the FDC entry gives 101.97 g, ratio 0.9285",
+     "calories: per_litre 760.77 kcal = the entry's 811.8 kcal - 7.0 x (101.97 - 94.68 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 89.53,
@@ -817,7 +820,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 89.1,
-    "calories": 811.8,
+    "calories": 760.77,
     "carbs": 25.74,
     "carotene": 0.0,
     "choline": 42.57,
@@ -866,10 +869,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 0.9229,
-    "energy_vs_fdc_ratio": 2.9768,
+    "energy_vs_fdc_ratio": 2.6512,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 31.56 g from the alcohol property 0.04 x 789; the FDC entry gives 40.4 g, ratio 0.7812"
+     "ethanol: per_litre 31.56 g from the alcohol property 0.04 x 789; the FDC entry gives 40.4 g, ratio 0.7812",
+     "calories: per_litre 503.72 kcal = the entry's 565.6 kcal - 7.0 x (40.4 - 31.56 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 94.92,
@@ -921,7 +925,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 40.4,
-    "calories": 565.6,
+    "calories": 503.72,
     "carbs": 59.792,
     "carotene": 141.4,
     "choline": 17.17,
@@ -1141,10 +1145,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0174,
-    "energy_vs_fdc_ratio": 1.0733,
+    "energy_vs_fdc_ratio": 1.0951,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 157.8 g from the alcohol property 0.2 x 789; the FDC entry gives 147.66 g, ratio 1.0687"
+     "ethanol: per_litre 157.8 g from the alcohol property 0.2 x 789; the FDC entry gives 147.66 g, ratio 1.0687",
+     "calories: per_litre 3569.88 kcal = the entry's 3498.9 kcal - 7.0 x (147.66 - 157.8 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 85.9,
@@ -1196,7 +1201,7 @@
    "per_litre": {
     "caffeine": 85.6,
     "calcium": 171.2,
-    "calories": 3498.9,
+    "calories": 3569.88,
     "carbs": 223.63,
     "carotene": 321.0,
     "choline": 86.67,
@@ -1624,10 +1629,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0181,
-    "energy_vs_fdc_ratio": 1.5878,
+    "energy_vs_fdc_ratio": 1.6042,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 309.92 g, ratio 1.0183"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 309.92 g, ratio 1.0183",
+     "calories: per_litre 3898.16 kcal = the entry's 3858.4 kcal - 7.0 x (309.92 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 70.2,
@@ -1679,7 +1685,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 3858.4,
+    "calories": 3898.16,
     "carbs": 432.64,
     "carotene": 0.0,
     "choline": 0.0,
@@ -1797,10 +1803,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 0.8327,
+    "energy_vs_fdc_ratio": 0.8299,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -1852,7 +1859,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": 0.0,
     "choline": 0.0,
@@ -2998,10 +3005,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0095,
-    "energy_vs_fdc_ratio": 0.6721,
+    "energy_vs_fdc_ratio": 0.3528,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 47.34 g from the alcohol property 0.06 x 789; the FDC entry gives 103.0 g, ratio 0.4596"
+     "ethanol: per_litre 47.34 g from the alcohol property 0.06 x 789; the FDC entry gives 103.0 g, ratio 0.4596",
+     "calories: per_litre 430.38 kcal = the entry's 820.0 kcal - 7.0 x (103.0 - 47.34 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 89.53,
@@ -3053,7 +3061,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 90.0,
-    "calories": 820.0,
+    "calories": 430.38,
     "carbs": 26.0,
     "carotene": 0.0,
     "choline": 43.0,
@@ -3411,10 +3419,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0166,
-    "energy_vs_fdc_ratio": 1.0497,
+    "energy_vs_fdc_ratio": 0.9099,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 126.24 g from the alcohol property 0.16 x 789; the FDC entry gives 157.59 g, ratio 0.8011"
+     "ethanol: per_litre 126.24 g from the alcohol property 0.16 x 789; the FDC entry gives 157.59 g, ratio 0.8011",
+     "calories: per_litre 1428.55 kcal = the entry's 1648.0 kcal - 7.0 x (157.59 - 126.24 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 84.4,
@@ -3466,7 +3475,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 82.4,
-    "calories": 1648.0,
+    "calories": 1428.55,
     "carbs": 141.007,
     "carotene": 0.0,
     "choline": 51.5,
@@ -3584,10 +3593,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 0.948,
+    "energy_vs_fdc_ratio": 0.9449,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -3639,7 +3649,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": 0.0,
     "choline": 0.0,
@@ -3688,10 +3698,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 0.9647,
+    "energy_vs_fdc_ratio": 0.9615,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -3743,7 +3754,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": 0.0,
     "choline": 0.0,
@@ -3963,10 +3974,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.017,
-    "energy_vs_fdc_ratio": 0.99,
+    "energy_vs_fdc_ratio": 0.8375,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 118.35 g from the alcohol property 0.15 x 789; the FDC entry gives 151.47 g, ratio 0.7813"
+     "ethanol: per_litre 118.35 g from the alcohol property 0.15 x 789; the FDC entry gives 151.47 g, ratio 0.7813",
+     "calories: per_litre 1272.96 kcal = the entry's 1504.8 kcal - 7.0 x (151.47 - 118.35 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 84.4,
@@ -4018,7 +4030,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 79.2,
-    "calories": 1504.8,
+    "calories": 1272.96,
     "carbs": 115.533,
     "carotene": 0.0,
     "choline": null,
@@ -5205,10 +5217,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 1.0428,
+    "energy_vs_fdc_ratio": 1.0394,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -5260,7 +5273,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": 0.0,
     "choline": 0.0,
@@ -5309,10 +5322,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.017,
-    "energy_vs_fdc_ratio": 1.3968,
+    "energy_vs_fdc_ratio": 1.1589,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 118.35 g from the alcohol property 0.15 x 789; the FDC entry gives 156.06 g, ratio 0.7584"
+     "ethanol: per_litre 118.35 g from the alcohol property 0.15 x 789; the FDC entry gives 156.06 g, ratio 0.7584",
+     "calories: per_litre 1286.43 kcal = the entry's 1550.4 kcal - 7.0 x (156.06 - 118.35 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 84.4,
@@ -5364,7 +5378,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 81.6,
-    "calories": 1550.4,
+    "calories": 1286.43,
     "carbs": 119.034,
     "carotene": 0.0,
     "choline": null,
@@ -5413,10 +5427,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 0.948,
+    "energy_vs_fdc_ratio": 0.9449,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -5468,7 +5483,7 @@
    "per_litre": {
     "caffeine": null,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": null,
     "choline": null,
@@ -5619,10 +5634,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0121,
-    "energy_vs_fdc_ratio": 0.876,
+    "energy_vs_fdc_ratio": 0.8731,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967"
+     "ethanol: per_litre 315.6 g from the alcohol property 0.4 x 789; the FDC entry gives 316.632 g, ratio 0.9967",
+     "calories: per_litre 2182.656 kcal = the entry's 2189.88 kcal - 7.0 x (316.632 - 315.6 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 66.6,
@@ -5674,7 +5690,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 0.0,
-    "calories": 2189.88,
+    "calories": 2182.656,
     "carbs": 0.0,
     "carotene": 0.0,
     "choline": 0.0,
@@ -5723,10 +5739,11 @@
    "checks": {
     "atwater_outlier": false,
     "atwater_ratio": 1.0116,
-    "energy_vs_fdc_ratio": 1.7083,
+    "energy_vs_fdc_ratio": 1.5878,
     "fibre_le_carb": true,
     "notes": [
-     "ethanol: per_litre 94.68 g from the alcohol property 0.12 x 789; the FDC entry gives 102.96 g, ratio 0.9196"
+     "ethanol: per_litre 94.68 g from the alcohol property 0.12 x 789; the FDC entry gives 102.96 g, ratio 0.9196",
+     "calories: per_litre 763.74 kcal = the entry's 821.7 kcal - 7.0 x (102.96 - 94.68 g ethanol)"
     ],
     "out_of_range": [],
     "proximate_sum": 89.37,
@@ -5778,7 +5795,7 @@
    "per_litre": {
     "caffeine": 0.0,
     "calcium": 79.2,
-    "calories": 821.7,
+    "calories": 763.74,
     "carbs": 26.928,
     "carotene": 0.0,
     "choline": 49.5,
@@ -92663,12 +92680,12 @@
    "out_of_range_records": 0,
    "proximate_over_102": 0,
    "rebase_factor_bands": {
-    "0.5-0.8": 15,
-    "0.8-0.95": 25,
-    "0.95-1.05": 447,
-    "1.05-1.25": 30,
-    "1.25-2.0": 19,
-    "<0.5": 15,
+    "0.5-0.8": 14,
+    "0.8-0.95": 27,
+    "0.95-1.05": 445,
+    "1.05-1.25": 31,
+    "1.25-2.0": 18,
+    "<0.5": 16,
     ">2.0": 13,
     "none": 5
    },
@@ -92751,7 +92768,7 @@
     },
     "phytate": {
      "path": "data/phytate-literature.csv",
-     "rows": 21
+     "rows": 36
     }
    }
   },

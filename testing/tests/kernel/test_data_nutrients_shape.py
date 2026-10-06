@@ -3,7 +3,8 @@
 tools/food_nutrients.py --emit-lua writes the file from data/food-nutrients.json. It is not a kernel file,
 so it is loaded on top of the session host (NR_Core.lua and NR_Kernel_Vector.lua among the kernel files)
 the way test_data_units.py loads it. The tables are file locals: the entry ids are enumerated off the
-source text and every entry is read back through the loaders and compared with the JSON, key by key.
+source text and every entry is read back through the loaders and compared with the JSON, key by key --
+an item's four macros at the script block's two decimals (ruling T9-1), everything else exactly.
 """
 import json
 import math
@@ -56,9 +57,15 @@ def _keys(h):
     return list(h.K.vector.KEYS.values())
 
 
-def _same(got, block):
-    """Every key equal to the JSON's value (null read as 0) to 1e-9."""
+MACROS = ("calories", "carbs", "lipids", "proteins")
+
+
+def _same(got, block, item=False):
+    """Every key equal to the JSON's value (null read as 0) to 1e-9; an item's four macros equal to
+    round(value, 2), the script block's value (ruling T9-1)."""
     for k, want in block.items():
+        if item and k in MACROS and want is not None:
+            want = round(want, 2)
         assert abs(got[k] - (0.0 if want is None else want)) <= 1e-9, (k, got[k], want)
 
 
@@ -109,7 +116,7 @@ def test_every_value_is_the_jsons(gen_host, output):
     h = gen_host
     items, fluids = _mapped(output)
     for pz_id, block in items.items():
-        _same(h.py(h.G.NutritionRevamp.data.nutrients.get(pz_id)), block)
+        _same(h.py(h.G.NutritionRevamp.data.nutrients.get(pz_id)), block, item=True)
     for name, block in fluids.items():
         _same(h.py(h.G.NutritionRevamp.data.fluids.get(name)), block)
 
@@ -118,8 +125,9 @@ def test_the_apple_entry_is_the_jsons_per_item(gen_host, output):
     rec = [r for r in output["items"] if r["pz_id"] == "Base.Apple"][0]
     got = gen_host.py(gen_host.G.NutritionRevamp.data.nutrients.get("Base.Apple"))
     assert set(got) == set(rec["per_item"])
-    _same(got, rec["per_item"])
-    assert got["calories"] == rec["per_item"]["calories"]          # repr round-trips exactly
+    _same(got, rec["per_item"], item=True)
+    assert got["calories"] == round(rec["per_item"]["calories"], 2)    # exactly the script block's value
+    assert got["vitC"] == rec["per_item"]["vitC"]                       # a non-macro key round-trips exactly
 
 
 def test_the_cola_fluid_is_the_jsons_per_litre(gen_host, output):
