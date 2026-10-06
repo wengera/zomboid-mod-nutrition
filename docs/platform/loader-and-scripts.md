@@ -143,7 +143,7 @@ The same property is what makes a pass over many items robust for every key it d
 It also means a partial block cannot remove a key: there is no route from a script body to an absent value, only to a different one.
 
 The measured half of the merge is one item on one build with one key type, a float macro on a `base:food`, in one session against three mods written for it, plus one `ItemType`-omitted boot of the same item.
-That boot kept `DisplayCategory`, so a block omitting it as well is unmeasured ([T8.4], [item-pass.md#open](../areas/item-pass.md#open)).
+That boot kept `DisplayCategory`, so a block omitting it as well is unmeasured ([#3136/C/open], [item-pass.md#open](../areas/item-pass.md#open)).
 
 <a id="sorted-replay"></a>
 ### The sorted replay
@@ -188,7 +188,7 @@ The arm is a route and a hazard at once: it is the one way a script line can rea
 A key that lands there is on the item's default table rather than on the script object, so the value is read from an instance's modData and never from a macro getter.
 A second mod's partial block lands on the already-populated table key by key: with two mods each declaring `NR_Nutrients` on `Base.Orange`, a spawned Orange read the later-sorting body's `fibre:13;vitC:4` on both sides, against `fibre:12;vitC:3` with the first mod alone [#1281/M/n=1].
 The two mods sort the same way under the mod id, the folder name, the stored script path and the display name, so that boot does not say which string ordered them — that is [the four-mod separator](../areas/open-questions.md#x19) [#1285/C/open].
-The key lands only on the item whose block declares it: a vanilla `Base.Apple` spawned in the same boots carried no `NR_Nutrients` on either side [T8.2].
+The key lands only on the item whose block declares it: a vanilla `Base.Apple` spawned in the same boots carried no `NR_Nutrients` on either side [#3134/M/n=1].
 
 <a id="identity"></a>
 ### What a redefinition does to identity
@@ -216,7 +216,7 @@ A mod that changes a script key changes it on whichever side loaded the mod, wit
 
 Script data is loaded per side and never synced, so the two sides' definitions of an item are two readings rather than one: reached through the script manager's item getter with the game's own find call as the fallback, the two sides agreed field for field on a mod item [#0919/M/n=1].
 Item scripts load per side and never sync, so a script-declared value is identical on the client and the server for free [#1058/M/n=2].
-A client-local instance takes the client's own merged script: an Orange spawned into the client's inventory, which the server never sees, read `getCalories` 400 and the default-modData key of whichever bodies that boot loaded [T8.1].
+A client-local instance takes the client's own merged script: an Orange spawned into the client's inventory, which the server never sees, read `getCalories` 400 and the default-modData key of whichever bodies that boot loaded [#3133/M/n=1].
 A workshop mod's item script read on the server and on the client came back identical field for field — hunger change -60, thirst change 20, 53 days fresh, 60 days to rotten, cookable true, 300 minutes to cook and 900 to burn — differing only in which side answered [#1393/M/n=1].
 Script data is owned by neither side and crosses no wire: both sides load it, so a script value is free on both sides, at the price of the checksum gate [#1243/M/n=1].
 That gate is [the script checksum](mod-anatomy.md#checksum-gate) and is the whole price of the route.

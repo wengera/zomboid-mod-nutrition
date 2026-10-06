@@ -101,14 +101,14 @@ A mismatch surfaces as a disconnect, with the two sides' separate arms acting at
 A player who cannot stay connected after an update is therefore this section's failure mode before it is anyone else's.
 
 The bypass role is an operator's lever, and the plan never leans on it.
-A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [T8.7], [#0648/C/inference]).
+A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]).
 The bypass turns a loud failure into a silent disagreement over exactly the numbers this mod exists to set.
 
 The Lua and animation arms are unread, so the plan treats them as if they gated.
 The mod's Lua ships under the same one-build discipline as its scripts, and a nutrition overhaul has no reason to ship an animation at all.
 Whichever way the unread arms turn out, nothing this mod ships differs between the two sides.
 
-The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [T8.6], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
+The plan's premise is measured: a client whose copy of one script file differed by one byte was disconnected before it reached the game, while a copy differing only in line endings joined and stayed ([#1282/M/n=1], [#3138/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
 So the item pass reaches a multiplayer server exactly when the bytes agree, and the plan is a requirement a run has shown for one probe file rather than a precaution.
 
 <a id="resident-stack"></a>
@@ -228,7 +228,7 @@ Which approach does this mod take toward each resident it shares a file or a key
 ## Walls and bounds
 <a id="walls"></a>
 
-- No mod survives a script mismatch between the server and a client: the join checksum disconnects the client, measured for a one-byte difference in one probe file under the `user` role, while the `admin` role bypasses it ([#1182/C/C-only], [#1282/M/n=1], [T8.7]).
+- No mod survives a script mismatch between the server and a client: the join checksum disconnects the client, measured for a one-byte difference in one probe file under the `user` role, while the `admin` role bypasses it ([#1182/C/C-only], [#1282/M/n=1], [#3139/M/n=1]).
 - A vanilla Lua file can be replaced at its own relative path, and `require` resolves across the merged map, which is a door and a trap at once: two mods that both want the file cannot compose [#1168/C/C-only].
 - A mod can retune hunger and thirst through the globals table only with a workaround, and two mods that retune it still collide, per key at file scope rather than per file [#1169/C/C-only].
 - A mod can ship `common/` beside a version folder, measured only for a version dir that ships colliding files or none at all ([#1170/M/n=2], [open-questions.md#x22](open-questions.md#x22)).
@@ -253,7 +253,7 @@ Not covered: the Steam Workshop upload, subscription and update surface, includi
 - Whether a version dir shipping `media/` that collides with nothing still loads, and whether a shadowed `common/` copy ever executes — settled by a mod whose `common/` and version dir each ship a colliding and a non-colliding file, with a sentinel only the shadowed copy can set; until then the layout keeps its version dir to the manifest or to files that shadow a `common/` copy; -> X22 ([#1288/C/open, #0835/M/n=2/open], [open-questions.md#x22](open-questions.md#x22)).
 - Whether the interface mod's protected dispatch changes what an unguarded raise does inside it — settled by one session that drives the interface mod's context-menu entry through a harness addition, reading that mod's own printed failure line and whether the handlers behind the raiser ran; -> X26 ([#1292/C/open], [open-questions.md#x26](open-questions.md#x26)).
 - Decision: which files ship in the version dir and which in `common/` — forced by the version dir winning a same-relative-path collision and the merge being measured only for a version dir that ships colliding files or none ([#1318/M/n=1], [#1170/M/n=2]).
-- Decision: how the item pass's script files reach a server and every client as one set of bytes, from publishing through a Workshop update — forced by a one-byte mismatch disconnecting the client within a second of the server's check while a line-ending-only copy joins, and by the gate being a content hash over every loaded script file ([#1282/M/n=1], [T8.6], [#1182/C/C-only]).
+- Decision: how the item pass's script files reach a server and every client as one set of bytes, from publishing through a Workshop update — forced by a one-byte mismatch disconnecting the client within a second of the server's check while a line-ending-only copy joins, and by the gate being a content hash over every loaded script file ([#1282/M/n=1], [#3138/M/n=1], [#1182/C/C-only]).
 - Decision: whether this mod declares `versionMin` or `versionMax` — forced by a version dir staying in use on every later build until a newer one ships, while a failed gate prints the line an absent folder prints ([#0825/C/C-only], [#0872/C/C-only]).
 - Decision: which compatibility approach this mod takes toward each resident it shares a file or a key with — forced by the loader keeping one file per relative path and the replay deciding a contested key by the stored script path ([#1173/C/C-only], [#1183/M/n=2]).
 - Decision: whether a patch mod, if one ships, rides this mod's Workshop item as a second folder or an item of its own — forced by a server naming mods by id and resident items already shipping several mods each ([#1219/C/C-only], [#1543/C/snapshot]).
