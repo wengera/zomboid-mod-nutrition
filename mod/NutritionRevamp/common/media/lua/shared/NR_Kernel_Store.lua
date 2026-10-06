@@ -327,6 +327,28 @@ function K.store.load(raw, order)
     return rec
 end
 
+-- Load raw (any version) and lay the result into target in place (ruling T4-1): every key target holds is
+-- cleared and the loaded record's keys are set on it, so a handle held on target (NR_Server_Fast's h.record)
+-- reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
+-- clear. Returns target, or nil with target untouched when raw is not a table.
+function K.store.fillInPlace(target, raw, order)
+    local rec = K.store.load(raw, order)
+    if rec == nil then
+        return nil
+    end
+    local keys = {}
+    for k, _ in pairs(target) do
+        keys[#keys + 1] = k
+    end
+    for i = 1, #keys do
+        target[keys[i]] = nil
+    end
+    for k, v in pairs(rec) do
+        target[k] = v
+    end
+    return target
+end
+
 -- One segment of the inputs-only walk: dst built as it goes; a `*` walks every key src holds there.
 function K.store.pick(dst, src, segs, i)
     local seg = segs[i]
@@ -361,7 +383,7 @@ function K.store.pickKey(dst, src, k, segs, i)
 end
 
 -- The table a save would hold: a fresh table of the INPUTS paths present in record, nothing else (the
--- complement is what load drops). The live record is not pruned (Task 4); this is the contract's oracle.
+-- complement is what load drops). The live record is pruned only by the first-sight load (fillInPlace); this is the contract's oracle.
 function K.store.inputsOnly(record)
     local out = {}
     local segs = K.store.SEGS

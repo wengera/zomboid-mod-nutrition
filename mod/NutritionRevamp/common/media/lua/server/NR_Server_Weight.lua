@@ -18,7 +18,10 @@
 -- reference; each blends today with yesterday's closed day on the hours since the last day close
 -- (K.body.blend24, as K.energy.eb24h does), clamped to the stores (#0022, #0023). A plain overwrite every
 -- minute. The p7, carb7 and lip7 rings are NR_Server_Metabolism's: it rebuilds them on an old record
--- before this file reads them.
+-- before this file reads them. When all four setters answer, the four values written become the record's
+-- reconciliation baseline (record.reconcile.baseline, Plan 8 ruling 6): NR_Server_Reconcile, earlier in the
+-- same minute, compares the stores against the mod's own last write. A band change also marks the bus
+-- (B.markBand, ruling 7), so the mirror's body_band goes out with the next effects flush.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
 -- behind a nil check, so the file loads with no engine (testing/tests/kernel/test_weight_shape.py). The
@@ -28,11 +31,11 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.weight = {
     stats = { minutes = 0, weightWrites = 0, flagWrites = 0, bandChanges = 0, bandRepairs = 0, pushes = 0,
-              pushMissing = 0, mirrorWrites = 0, failures = 0, badReads = 0 },
+              pushMissing = 0, mirrorWrites = 0, failures = 0, badReads = 0, rebases = 0 },
     lastError = nil,
     wired = false,
     limitations = {
-        "the mirror is a plain overwrite; missed-intake reconciliation is Plan 8's",
+        "the mirror is a plain overwrite; its four written values are the reconciliation's baseline (NR_Server_Reconcile)",
         "the weight-direction thresholds are a game choice",
     },
 }
@@ -107,10 +110,10 @@ local function mirror(nut, body, w)
     local prot = K.body.mapProteins(p24h)
     local carb = K.body.mapCarbs(carb24h)
     local lip = K.body.mapLipids(lip24h)
-    NR.call(nut, "setCalories", cal)
-    NR.call(nut, "setProteins", prot)
-    NR.call(nut, "setCarbohydrates", carb)
-    NR.call(nut, "setLipids", lip)
+    local okC = NR.call(nut, "setCalories", cal)
+    local okP = NR.call(nut, "setProteins", prot)
+    local okH = NR.call(nut, "setCarbohydrates", carb)
+    local okL = NR.call(nut, "setLipids", lip)
     local last = body.mirrorLast
     if type(last) ~= "table" then
         last = {}
@@ -121,6 +124,25 @@ local function mirror(nut, body, w)
     last[3] = carb
     last[4] = lip
     WGT.stats.mirrorWrites = WGT.stats.mirrorWrites + 1
+    if okC and okP and okH and okL then
+        return { calories = cal, carbs = carb, lipids = lip, proteins = prot }
+    end
+    return nil
+end
+
+-- The reconciliation baseline after the legacy write: the four values written (Plan 8 ruling 6). A record
+-- with no reconcile table yet is left for the reconciliation's own seed.
+local function rebase(record, wrote)
+    local rc = record.reconcile
+    if wrote == nil or type(rc) ~= "table" then return end
+    rc.baseline = K.reconcile.baselineAfter(wrote)
+    WGT.stats.rebases = WGT.stats.rebases + 1
+end
+
+-- The band mark on the bus (ruling 7): the effects mark, one gap and one flush.
+local function markBand(username)
+    local B = NR.server.bus
+    if B ~= nil and B.markBand ~= nil then B.markBand(username) end
 end
 
 local function step(username, player, record)
@@ -150,6 +172,7 @@ local function step(username, player, record)
             body.band = band
             WGT.stats.bandChanges = WGT.stats.bandChanges + 1
             push(player)
+            markBand(username)
         end
     elseif needsRepair(player, band) then
         if NR.call(nut, "applyTraitFromWeight") then
@@ -159,7 +182,7 @@ local function step(username, player, record)
     end
     local opts = NR.server.options
     if opts == nil or opts.legacyMirror ~= false then
-        mirror(nut, body, w)
+        rebase(record, mirror(nut, body, w))
     end
 end
 

@@ -19,9 +19,9 @@ NR.server.bus = {
     module = "NutritionRevamp",
     PUSH_GAP_MS = 60000,       -- game choice: at most one effects push per player per real minute
     wired = false,
-    effects = { dirty = {}, last = {}, stats = { marks = 0, pushes = 0, deferred = 0, failed = 0 } },
+    effects = { dirty = {}, last = {}, stats = { marks = 0, pushes = 0, deferred = 0, failed = 0, bandMarks = 0 } },
     limitations = {
-        "an effects change is pushed at most once per player per 60 s of server wall clock; a change inside the gap waits for the first slow minute after it",
+        "an effects change (B.markEffects) or a body band change (B.markBand, the same mark) is pushed at most once per player per 60 s of server wall clock; a change inside the gap waits for the first slow minute after it",
         "the push rides the player's next slow minute: a change made in one game minute reaches the client with the next one's flush",
         "with no getTimestampMs the gap is the slow minute itself",
     },
@@ -114,4 +114,13 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         P.onFirstSight[#P.onFirstSight + 1] = B.forgetEffects
         P.onDeparture[#P.onDeparture + 1] = B.forgetEffects
     end)
+end
+
+-- The band mark (Plan 8 ruling 7): NR_Server_Weight calls B.markBand(username) when the body band changes
+-- (the mirror's body_band). It IS the effects mark -- one dirty flag, one PUSH_GAP_MS gap, one flush -- and
+-- is counted apart. The first-sight and OnNewGame mirrors (NR_Server_Metabolism's) stay unconditional.
+function B.markBand(username)
+    if username == nil then return end
+    B.effects.stats.bandMarks = B.effects.stats.bandMarks + 1
+    B.markEffects(username)
 end

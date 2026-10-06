@@ -5,7 +5,8 @@
 -- mod last wrote (LegacyMirror on) or last observed (LegacyMirror off) -- and a calorie rise above
 -- RECONCILE_EPS is an intake the wrapped eat never saw: it lands as the four macros only, with every other
 -- vector key 0 and a note that the nutrient vector is unknown. A fall is never an intake. The baseline is
--- reset to the stores after every landing and after every wrapped eat or drink (the adapter's side).
+-- reset to the stores every minute and credited with each wrapped eat's or drink's own store movement (the
+-- adapter's side, NR_Server_Reconcile).
 -- Pure: Lua tables in, Lua tables out, no Java. This file sorts before NR_Kernel_Vector.lua, so every
 -- K.vector reference is at call time.
 local K = NutritionRevamp.kernel

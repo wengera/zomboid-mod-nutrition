@@ -407,3 +407,30 @@ def test_a_loaded_body_with_no_closed_day_stamp_reads_the_resting_expenditure(ho
     assert b["inDayClosed"] == host.K.energy.ree(62.0) and b["inDayClosed"] > 0
     raw["body"]["inDayClosed"] = 1800
     assert S(host).load(raw, order(host))["body"]["inDayClosed"] == 1800
+
+
+# --- fillInPlace (Plan 8 Task 4, ruling T4-1): the load laid into the record's own table ----------------
+
+def test_fill_in_place_keeps_the_table_and_drops_the_derived_fields(host):
+    rec = v1(host)
+    same = S(host).fillInPlace(rec, rec, order(host))
+    assert host.G.rawequal(same, rec)
+    assert rec["v"] == 2 and rec["username"] == "admin" and rec["resets"] == 2
+    assert rec["junk"] is None and rec["lastIntake"] is None
+    assert rec["reconcile"]["count"] == 3 and rec["reconcile"]["baseline"] is None
+    assert rec["body"]["band"] != "stale" and rec["body"]["inDayClosed"] == 2100
+
+
+def test_fill_in_place_from_another_raw_clears_every_old_key(host):
+    target = host.table({"username": "old", "stale": 1, "body": {"fm": 1}})
+    raw = host.table({"username": "admin", "firstSeen": 3.0})
+    out = S(host).fillInPlace(target, raw, order(host))
+    assert host.G.rawequal(out, target)
+    assert target["username"] == "admin" and target["stale"] is None and target["body"] is None
+    assert target["v"] == 2 and target["firstSeen"] == 3.0
+
+
+def test_fill_in_place_of_a_non_table_raw_leaves_the_target(host):
+    target = host.table({"username": "admin", "junk": 1})
+    assert S(host).fillInPlace(target, 5, order(host)) is None
+    assert target["junk"] == 1

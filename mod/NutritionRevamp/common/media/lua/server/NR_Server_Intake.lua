@@ -62,7 +62,7 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
                      wrappedDrink = false, wrappedWorld = false, wired = false,
                      stats = { eats = 0, cancels = 0, sips = 0, worldSips = 0, landed = 0, failures = 0,
                                passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0,
-                               declaredMalformed = 0 },
+                               declaredMalformed = 0, creditFailures = 0 },
                      lastIngested = {},
                      pendingAlc = {},
                      pendingCaf = {},
@@ -586,7 +586,10 @@ function IN.guardBefore(action, kind, ...)
         IN.stats.eats = IN.stats.eats + 1
     end
     local ok, b = pcall(readFn, action, ...)
-    if ok then return b end
+    if ok then
+        IN.storesBefore(b, action)
+        return b
+    end
     IN.stats.failures = IN.stats.failures + 1
     IN.lastError = b
     NR.log.say(2, "intake: capture failed before the " .. kind .. ": " .. tostring(b))
@@ -598,10 +601,53 @@ function IN.guardAfter(b, kind)
     if kind == "drink" then landFn = IN.readDrinkAfterAndLand end
     if kind == "world" then landFn = IN.readWorldAfterAndLand end
     local ok, err = pcall(landFn, b)
-    if ok then return end
+    if ok then
+        if err ~= nil then IN.creditStores(b) end
+        return
+    end
     IN.stats.failures = IN.stats.failures + 1
     IN.lastError = err
     NR.log.say(2, "intake: capture failed after the " .. kind .. ": " .. tostring(err))
+end
+
+-- The reconciliation credit (Plan 8 ruling 6, NR_Server_Reconcile): the four vanilla macro stores are read
+-- before the original (b.nrStores, b.nrChar) and again after a landing that landed a vector, and the movement
+-- between the two -- the engine's own Eat or DrinkFluid write inside the wrap -- is credited to the record's
+-- reconciliation baseline, so the next slow minute does not land the same intake again as macros, while a
+-- store rise by another writer outside the wrap stays visible to it. A landing that lands nothing (a cancel
+-- with nothing eaten, a rejected vector) credits nothing: a store rise it leaves is reconciled as macros only.
+-- Each half under its own pcall: a raise is counted and never reaches the eat.
+function IN.storesBefore(b, action)
+    if type(b) ~= "table" or type(action) ~= "table" then return end
+    local RC = NR.server.reconcile
+    if RC == nil or RC.read == nil then return end
+    local ok, st = pcall(RC.read, action.character)
+    if ok then
+        b.nrStores = st
+        b.nrChar = action.character
+    else
+        IN.stats.creditFailures = IN.stats.creditFailures + 1
+    end
+end
+
+function IN.creditStores(b)
+    if type(b) ~= "table" or b.nrStores == nil then return false end
+    local ok, done = pcall(IN.credit, b)
+    if not ok then
+        IN.stats.creditFailures = IN.stats.creditFailures + 1
+        IN.lastError = "reconcile credit failed: " .. tostring(done)
+        NR.log.say(2, "intake: " .. IN.lastError)
+        return false
+    end
+    return done
+end
+
+function IN.credit(b)
+    local RC = NR.server.reconcile
+    local after = RC.read(b.nrChar)
+    if after == nil then return false end
+    local record = NR.server.store.get(b.username, worldAge())
+    return RC.credit(record, b.nrStores, after)
 end
 
 -- The wrapper closure, made once per sentinel and kept in it. It names nothing from this file's load:

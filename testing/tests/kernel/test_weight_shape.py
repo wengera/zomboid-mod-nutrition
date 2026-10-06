@@ -525,7 +525,7 @@ def test_flag_writes_count_only_on_success(wgt_host):
 
 def test_limitations(wgt_host):
     lim = list(WGT(wgt_host).limitations.values())
-    assert "the mirror is a plain overwrite; missed-intake reconciliation is Plan 8's" in lim
+    assert "the mirror is a plain overwrite; its four written values are the reconciliation's baseline (NR_Server_Reconcile)" in lim
     assert "the weight-direction thresholds are a game choice" in lim
 
 
