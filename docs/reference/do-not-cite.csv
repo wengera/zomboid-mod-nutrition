@@ -529,3 +529,6 @@ x191-20261006-191554,phases.BC.C.*.restored,the written-back value,"The driver's
 x191-20261006-191554,phases.A.A3.action.set_remove.traitList,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A3.pairs`
 x191-20261006-191554,phases.A.A3.action.push.traitList,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A3.pairs`
 x191-20261006-191554,phases.BC.C.setY,ok true,"The call did not raise; not the position it left.",cite `phases.BC.C.y_moved.r1`
+x191-20261006-191554,phases.A.A1.action.listBefore,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A1.action.after`
+x191-20261006-191554,phases.A.A2.action.local_remove.listBefore,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A2.pairs`
+x191-20261006-191554,phases.A.A2.action.local_remove.listAfter,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A2.pairs`
