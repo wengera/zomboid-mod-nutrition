@@ -216,7 +216,7 @@ A mod that changes a script key changes it on whichever side loaded the mod, wit
 
 Script data is loaded per side and never synced, so the two sides' definitions of an item are two readings rather than one: reached through the script manager's item getter with the game's own find call as the fallback, the two sides agreed field for field on a mod item [#0919/M/n=1].
 Item scripts load per side and never sync, so a script-declared value is identical on the client and the server for free [#1058/M/n=2].
-A client-local instance takes the client's own merged script: an Orange spawned into the client's inventory, which the server never sees, read `getCalories` 400 and the default-modData key of whichever bodies that boot loaded [#3133/M/n=1].
+A client-local instance takes the client's own merged script: an Orange spawned into the client's inventory, whose id the server witness did not resolve (`phases.*.C2_local_orange.fields_server.reply.error`), read `getCalories` 400 and the default-modData key of whichever bodies that boot loaded [#3133/M/n=1].
 A workshop mod's item script read on the server and on the client came back identical field for field — hunger change -60, thirst change 20, 53 days fresh, 60 days to rotten, cookable true, 300 minutes to cook and 900 to burn — differing only in which side answered [#1393/M/n=1].
 Script data is owned by neither side and crosses no wire: both sides load it, so a script value is free on both sides, at the price of the checksum gate [#1243/M/n=1].
 That gate is [the script checksum](mod-anatomy.md#checksum-gate) and is the whole price of the route.
