@@ -6,6 +6,13 @@ import patterns from there.
 
 ## Intake pipeline
 
+- `fdc_fetch.py` -- `python tools/fdc_fetch.py [--dir tools/.fdc] [--verify]`
+  Downloads the four FoodData Central pipeline sources (SR Legacy CSV zip,
+  Foundation CSV zip, the retention-factors CSV, the iodine PDF) with urllib,
+  no key, into the gitignored `tools/.fdc/`, and writes `manifest.json` (name,
+  url, filename, bytes, sha256, fetched). Skips a file whose sha256 matches;
+  `--verify` re-hashes and exits 1 on a mismatch; a 404 fails naming the URL.
+  Module API: `sources()` returns a deep copy of the `SOURCES` list.
 - `wiki_mirror.py` — `python tools/wiki_mirror.py <Page> ["Another page" ...]`
   Fetches each PZwiki page as raw wikitext (curl with a browser UA — plain
   fetchers get 403) and writes `references/wiki-mirrors/<slug>.md`: provenance
