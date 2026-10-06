@@ -548,7 +548,9 @@ def _row_violations(row, record, allow_unfilled):
         out.append("%s %s: %s on a kind other than fluid_container" % (where, pz_id, reason))
     if reason in ("inedible_body_part", "vessel_only") and row["pz_kind"] != "food":
         out.append("%s %s: %s on a kind other than food" % (where, pz_id, reason))
-    if reason and record is not None and not row["notes"].strip():
+    if reason and reason != "fluid_sourced" and record is not None and not row["notes"].strip():
+        # a fluid_sourced container's calories are its fluid's per litre, not the item's (#1881): the
+        # reason IS the per-litre basis, so that one reason needs no note
         cal = record.get("calories")
         if cal is not None and cal >= SPICE_ONLY_KCAL:
             out.append("%s %s: no_nutrition_reason %s on a record with %s kcal, without notes"
