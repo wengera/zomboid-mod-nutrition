@@ -424,6 +424,11 @@ Not covered: a second machine or any continuous-integration host, a Linux dedica
 <a id="open"></a>
 
 - Whether the client's list lost the Nutritionist trait before the mirror's arrival or the view's read missed it is unseparated: the add read true in the client's list on the own-route boot while the view's trait read stayed false, and it flipped the view on the framework-route boot — settled by a run that re-reads the trait list at intervals after the add and at the mirror's arrival, and an add that is synced [#3241/M/n=2/open].
+- Whether the tooltip band lands on screen and where its bottom-edge branch puts it is unmeasured, the probe running the band's entry function and the hover draw count reading 0 — settled by a hover synthesiser reading the band's pixels or draw calls [#3244/M/n=2/open].
+- Whether a saved `visible=true` panel line restores the panel open is unmeasured — settled by a second boot on a user directory carrying the line [#3245/M/n=1/open].
+- Whether the tab's tear-off wrap and its `current`-clearing branch run is unmeasured — settled by a click synthesiser that activates the tab and tears it off before the quit [#3246/M/n=1/open].
+- Whether the panel's key press toggles it is unmeasured, the toggle having been a `lua.call` — settled by a key synthesiser [#3247/M/n=1/open].
+- Whether a scrolled panel clips its rows is unmeasured — settled by a wheel synthesiser [#3248/M/n=1/open].
 - Which sandbox options survive a restore — settled by a profiled run that sets each nutrition option on a restored world and reads it back; no `X` id ([#1830/C/C-only/open], [harness.md#open](../platform/harness.md#open)).
 - Where the cadence ceiling really sits above the known-safe demand — settled by scheduler self-tests that step the demand past it and read the fitted tick rate; no `X` id ([#1815/M/n=1/open], [harness.md#walls](../platform/harness.md#walls)).
 - A real run is a harness need before X34's running arm and X35's running pairs can be read, because `player.run` sets the running and path-find running flags and the character still only walks, while the asleep hold re-asserts the server's flag once per tick and about 15 % of stat updates still ran awake under it; X35 also needs a handler writing its sentinel [#2840/M/n=2] (#2081, #2082); -> X34, X35.

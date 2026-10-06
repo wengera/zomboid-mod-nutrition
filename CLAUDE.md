@@ -102,7 +102,8 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - An acceptance profile for the mod sets `Nutrition = false`, the design's precondition (ruling T18-1; x141b ran without it).
 - Row `#2808` is the living harness-inventory count tethered to the generated command table: a harness commit that changes the table's count line updates `#2808`'s claim text and quote, and `#1235`'s quote, in the same commit (rule 3b fails otherwise) — the one register edit a harness implementer may make.
 - A profile's `[server]` keys (`SleepAllowed`, `SleepNeeded`) reach the server ini at seed; the fixture's default is false/false, so a sleep reading needs a profile that sets both true (x151s).
-- `lua.setpath` is the drivers' only setter of a plain Lua field (a dotted-path scalar from `_G`; `globalmoddata.setpath` assigns into a global modData table); no chunk runner exists because `loadstring` is removed on 42.20.x.
+- `lua.setpath` (both sides since Plan 7) is the drivers' only setter of a plain Lua field (a dotted-path scalar from `_G`; `globalmoddata.setpath` assigns into a global modData table) and `lua.call` (both sides) the only caller of a plain Lua function with up to four scalar arguments; no chunk runner exists because `loadstring` is removed on 42.20.x.
+- A driver's server-log pattern excludes its own probe names: the harness echoes a client-side probe's name into the server log, and a grep for it reads the echo as a hit (x183's arm I, falsified twice by its own grep).
 
 ## 6. Process
 
@@ -125,6 +126,8 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A skill's quoted rule line keeps the row's numbers; the skill's own text carries none.
 - A register `source` cell is harvest provenance and is never renumbered when the doc it names is rewritten.
 - A subagent never runs `git stash`, `git checkout --`, `git reset` or any index-wide command in the shared worktree; it commits by pathspec only, and retries once after two seconds on `.git/index.lock`.
+- A `C/inference` row whose evidence is the mod's own line may own an area-page sentence when the sentence states what a mod can do and the mod's line is the worked example (ruling T12-1, Plan 7).
+- The controller runs a test in its own call and never chains a commit after it in one command: a chained command commits past a red test (Plan 7's icon_gen residual took three commits).
 
 ## 7. Environment gotchas
 

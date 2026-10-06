@@ -135,7 +135,7 @@ The heavier work belongs off the render path altogether: slow simulation sits on
 A display of a mod nutrient pays the staleness twice, once for the route the mod's own value travels on and once for the cache in front of it.
 The mirror a panel reads grows with what the panel shows: a mirror's size is its keys times the scalars per key per push, and the interface build's counts are on [testing-your-mod.md](testing-your-mod.md#scenario-inputs) [#3238/C/inference].
 Those keys arrived at first sight on the client [#3213/M/n=1], and an open panel can ask for a fresh copy instead of waiting out the gap: the first toggle's request moved the client's mirror count from 2 to 3 inside a 3 s poll [#3214/M/n=1].
-A display of that mirror is therefore as old as the last push: up to the push gap plus one slow minute's flush, unless it asked [#3238/C/inference].
+A display of that mirror is therefore as old as the mod's last push, unless it asked [#3238/C/inference].
 
 What a client-side reader may draw from the mirror splits on the packet's field list and not on the getter it calls [#1523/M/n=1].
 The store's floats are on the packet, and every macro gap a viewer's bars showed sat inside the band that one read skew and one push explain, so those numbers are the server's, late by under a second ([#1486/M/n=1], [wire-packets.md#staircase](../facts/wire-packets.md#staircase)).
@@ -248,7 +248,7 @@ Each row below names what the surface costs and the wall it runs into, with the 
 
 What a mod can do follows from the rows above.
 A mod can take both moodle routes at once, the framework's when it is present and its own column otherwise, and place that column at a fixed inset clear of the vanilla band, which on a 1280-wide viewport at the 32 px moodle size starts at x 1238 ([#3226/M/n=1], [#3223/M/n=1], [#3197/M/n=1]).
-It can bound a display's staleness by its own push gap [#3238/C/inference], and keep a cooked food's thirst off every display by drawing the mirror's and the script's numbers only ([#1147/M/n=1], [#1084/M/n=2]).
+It can bound a display's staleness by the mod's own push cadence [#3238/C/inference], and keep a cooked food's thirst off every display by drawing the mirror's and the script's numbers only ([#1147/M/n=1], [#1084/M/n=2]).
 It can rename a vanilla key as a client-only display change, the dedicated server keeping vanilla's value, and a lookup that falls back when `getText` answers the key itself works on both sides, the dedicated server answering a mod's new key with the key itself ([#3203/M/n=1], [#1164/M/n=1], [#3209/M/n=1], [#3204/M/n=1]).
 It can draw a band label from a server value in the mirror, which needs no client trait list and no trait push to be right: the mirror carries the body band as a server value [#3243/C/inference].
 It can derive on the client whatever its inputs carry faithfully and fetch the rest from the server: the interface build's mirror carries the pool-fraction and excess keys beside each grade, so a panel draws them as the server's values ([#3213/M/n=1], [#1508]).
@@ -325,7 +325,7 @@ The cost is a widget the mod writes whole, and the one session counted about one
 - The read-cadence rule rests on arrivals measured in one session, and a viewer's read count is a reading of its own code that no command measures as frame time, so the rule bounds a count of reads rather than a cost ([#2692/M/n=1], [#2524/C/C-only]).
 - Every client-side reading this page cites was taken on a dedicated server with one client, one fixture and one character, and single-player is never claimed ([#1256/C/one-fixture]).
 
-Not covered: the vanilla food tooltip's layout beyond its gates; the character screen's trait display beyond its rebuild on a list change; whether `CleanUI` moves, hides or redraws a framework moodle or a mod's icon column; what any moodle, band or tab looks like on screen, the harness counting render calls and taking no screenshot and opening no hover; the tab's tear-off and its `current`-clearing branch and a scrolled panel's clip, none exercised; controller and split-screen input; and any measurement of frame time or draw cost — this library read none of them.
+Not covered: the vanilla food tooltip's layout beyond its gates; the character screen's trait display beyond its rebuild on a list change; whether `CleanUI` moves, hides or redraws a framework moodle or a mod's icon column; what any moodle, band or tab looks like on screen, the harness counting render calls and taking no screenshot and opening no hover; controller and split-screen input; and any measurement of frame time or draw cost — this library read none of them.
 
 ## Open
 <a id="open"></a>
@@ -341,7 +341,7 @@ Not covered: the vanilla food tooltip's layout beyond its gates; the character s
 
 - [`../platform/client-ui.md`](../platform/client-ui.md#panel-toolkit) — the widget toolkit, the tooltip and tab wrap points and the moodle stack's Java surface.
 - [`../platform/lua-platform.md`](../platform/lua-platform.md#registries) — the moodle and trait registries, and what each registration is worth.
-- [`../platform/mod-anatomy.md`](../platform/mod-anatomy.md#translations) — the translation tables, the merge, and the dedicated server that resolves no display name.
+- [`../platform/mod-anatomy.md`](../platform/mod-anatomy.md#translations) — the translation tables, the merge, and the dedicated server that resolves no mod item's display name.
 - [`../platform/mp-model.md`](../platform/mp-model.md#what-a-client-copy-is) — what a client's copy of a server object is, and is not.
 - [`../platform/mp-model.md`](../platform/mp-model.md#sync-globals) — the sync globals, the trait push and the single recipient.
 - [`../platform/lessons.md`](../platform/lessons.md#anti-patterns) — the framework, resident-interface and cooked-getter rules this page copies.

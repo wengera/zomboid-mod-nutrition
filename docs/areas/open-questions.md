@@ -119,6 +119,11 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#3136/C/open] | Whether a partial item block that omits `DisplayCategory` as well as `ItemType` still merges into a food is unmeasured: both blocks of run x171p-20261006-090743 kept `DisplayCategory = Food`. | [item-pass.md](item-pass.md#open) | — | the same partial block with both keys omitted, reading the base-module food count and the instance getters on both sides |
 | [#3178/C/open] | Whether the server's 60 s checksum arm acts on a mismatched client is unmeasured: run x171c-20261006-091054 watched 157.806 s past the warning and saw no act, the client having force-disconnected 0.290 s after the anti-cheat line. | [item-pass.md](item-pass.md#open) | — | a mismatched client held connected past the 60 s grace, reading the server log for the timeout act |
 | [#3241/M/n=2/open] | Whether the client's list lost the Nutritionist trait before the mirror's arrival or the view's read missed it is unseparated: the add read true in the client's list on the own-route boot while the view's trait read stayed false, and it flipped the view on the framework-route boot. | [ui-and-moodles.md](ui-and-moodles.md#open) | — | a run that re-reads the client's trait list at intervals after the add and at the mirror's arrival, and an add that is synced |
+| [#3244/M/n=2/open] | Whether the tooltip band lands on screen below the engine's box, above it at the bottom edge and clear of an anchored slot is unmeasured: the probe ran the band's entry function and the hover draw count read 0 on both boots. | [client-ui.md](../platform/client-ui.md#open) | — | a hover synthesiser reading the band's pixels or the element's draw calls |
+| [#3245/M/n=1/open] | Whether a saved `visible=true` panel line restores the panel open is unmeasured: the fixture's layout file carried no line for the panel and the quit wrote `visible=false`. | [client-ui.md](../platform/client-ui.md#open) | — | a second boot on a user directory carrying the line |
+| [#3246/M/n=1/open] | Whether the tab draws, survives a tear-off through its wrap and fires the layout save's `current`-clearing branch is unmeasured: its render and tear-off counts read 0 and it was never the active tab at the quit. | [client-ui.md](../platform/client-ui.md#open) | — | a click synthesiser that activates the tab and tears it off before the quit |
+| [#3247/M/n=1/open] | Whether the panel's key press toggles it is unmeasured: `keyPresses` read 0 on every read and the toggle was a `lua.call`. | [client-ui.md](../platform/client-ui.md#open) | — | a key synthesiser |
+| [#3248/M/n=1/open] | Whether a scrolled panel clips its rows at the window's edge is unmeasured: no wheel was synthesised. | [client-ui.md](../platform/client-ui.md#open) | — | a wheel synthesiser reading the rows' draw calls after a scroll |
 
 ## Decisions
 <a id="decisions"></a>
@@ -178,6 +183,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: a global read of `MoodleStat` beside two exposed controls that must answer in the same call, riding any session with a client — [experiments.md § Named experiments](../reference/experiments.md), row `X2`.
 
 <a id="x5"></a>
+- Settled by run x182: a mod translation JSON displaces a vanilla interface key on the client [#3201/M/n=1]; see [experiments.md § Named experiments](../reference/experiments.md), row `X5`.
 
 <a id="x9b"></a>
 ### X9b — What does the spice branch do beyond the herbal-tea sums?
@@ -259,6 +265,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: reading a multiply-redefined item's id and full type on both sides in the shared script-replay boot, where the two sides agreeing bounds the risk — [experiments.md § Named experiments](../reference/experiments.md), row `X27`.
 
 <a id="x29"></a>
+- Settled by run x181: a moodle registered through MoodleFramework renders on a dedicated-server client [#3192/M/n=1]; see [experiments.md § Named experiments](../reference/experiments.md), row `X29`.
 
 <a id="x30"></a>
 ### X30 — Does a file-scope `ZomboidGlobals.HungerIncrease` assignment from a mod actually change the drain?
