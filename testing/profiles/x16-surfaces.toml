@@ -1,0 +1,41 @@
+# testing/profiles/x16-surfaces.toml - the Plan 5 surfaces boot (Task 2): PZTestKit + NutritionRevamp (Mode 1,
+# LegacyMirror on) + TKX_StatWatch, Nutrition = false (the design precondition), DayLength 1, and
+# [server] SleepAllowed/SleepNeeded true so tiredness is live. The body-part, health, regeneration, thermoregulator,
+# aiming, landing and animation-variable probes are PZTestKit commands; the stat sampler is armed through global modData.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_StatWatch, SleepAllowed/SleepNeeded true, DayLength 1 - the Plan 5 surfaces boot."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StatWatch"
+path = "testing/experiments/TKX_StatWatch"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5; X7/X41 profiles): vanilla's nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true

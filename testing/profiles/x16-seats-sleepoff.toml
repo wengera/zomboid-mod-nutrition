@@ -1,0 +1,45 @@
+# testing/profiles/x16-seats-sleepoff.toml - the Plan 5 seats boot with sleep OFF (X83): identical to x16-seats except
+# [server] SleepAllowed = false and SleepNeeded = false, the fixture's own values written explicitly.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_TraitProbe + TKX_StatWatch, SleepAllowed/SleepNeeded false, DayLength 1 - the Plan 5 seats boot, sleep off."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_TraitProbe"
+path = "testing/experiments/TKX_TraitProbe"
+
+[[mods]]
+id = "TKX_StatWatch"
+path = "testing/experiments/TKX_StatWatch"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5; X7/X41 profiles): vanilla's nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
