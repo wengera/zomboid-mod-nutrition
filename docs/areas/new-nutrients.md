@@ -195,7 +195,7 @@ A food a mod declares in its own module can carry its nutrient vector in its own
 The key is `NR_Nutrients` and its value is a string of `key:value` pairs joined by semicolons, as in `fibre:9;vitC:40;iron:2`, per item and in the units of the nutrient contract the mod's table is written in.
 The loader stores an unrecognised key in the item's default modData, as a Double where the value parses as a number and as a string otherwise, and every instance receives a copy; a `key:value` string never parses as a number, so it arrives as a string ([#0212], [#1187/C/C-only], [#2676/C/C-only]).
 That landing is measured: a second mod's block for the same food replaced the string key by key on the server, the client's copy and a client-local spawn, and a vanilla food that no block gave the key read it missing ([#1281/M/n=1], [#3133/M/n=1], [#3134/M/n=1]).
-None of the thirteen vanilla foods read carries the key ([#3150/M/n=1]).
+None of the thirteen vanilla foods read carries the key ([#3150/M/n=2]).
 
 What the mod's intake did with each source, declared, table and inferred, is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs) ([#3148/M/n=1], [#3145/M/n=1], [#3147/M/n=1]).
 
