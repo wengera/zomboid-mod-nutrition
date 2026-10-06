@@ -142,10 +142,12 @@ def test_the_files_load_with_no_engine():
     assert NRC(rt).modOptions.tooltipLines() is True and NRC(rt).modOptions.moodles() is True
     assert NRC(rt).text("UI_NR_PanelTitle", "Nutrition") == "Nutrition"
     assert V(rt).readTrait(None) is False
-    assert V(rt).readOption() == 1
+    assert V(rt).readOption() == 2            # no SandboxVars: the default, Bands (ruling T13-1)
     assert V(rt).lineHeight("small") == 14
     assert V(rt).refresh(False) is True       # an empty mirror still builds the six class rows
-    assert len(V(rt).rows) == 6
+    assert V(rt).level == 2                    # the default before any read, Bands (ruling T13-1)
+    rows = V(rt).rows
+    assert len(rows) > 6 and all(rows[i].cls is not None for i in range(1, 7))   # the classes, then the Bands rows
 
 
 def test_the_files_load_with_the_stand_ins_and_the_page_has_three_rows():
@@ -266,17 +268,30 @@ def test_readTrait_compares_the_enum_object_by_identity():
     assert V(rt).stats.traitReads == 4
 
 
-def test_the_option_level_is_read_at_create_player_and_a_non_number_reads_1():
+def test_the_option_level_is_read_at_create_player_and_a_non_number_reads_2():
     rt = rt_env()
     G(rt).SandboxVars.NR.VisibilityMode = 2
     fire(rt, "OnCreatePlayer", "0, NR_T.player")
     assert V(rt).optionLevel == 2 and V(rt).level == 2
     rt.execute("SandboxVars.NR.VisibilityMode = 'x'")
     fire(rt, "OnCreatePlayer", "0, NR_T.player")
-    assert V(rt).optionLevel == 1 and V(rt).level == 1
+    assert V(rt).optionLevel == 2 and V(rt).level == 2     # the default, Bands (ruling T13-1)
     rt.execute("SandboxVars = nil")
     fire(rt, "OnCreatePlayer", "0, NR_T.player")
-    assert V(rt).level == 1
+    assert V(rt).level == 2
+
+
+def test_the_default_level_is_bands_option_1_reads_1_and_the_trait_lifts_to_3():
+    rt = rt_env()
+    rt.execute("SandboxVars.NR.VisibilityMode = nil")
+    fire(rt, "OnCreatePlayer", "0, NR_T.player")
+    assert V(rt).optionLevel == 2 and V(rt).level == 2
+    G(rt).SandboxVars.NR.VisibilityMode = 1
+    fire(rt, "OnCreatePlayer", "0, NR_T.player")
+    assert V(rt).optionLevel == 1 and V(rt).level == 1
+    rt.execute("NR_T.held = CharacterTrait.NUTRITIONIST")
+    fire(rt, "OnCreatePlayer", "0, NR_T.player")
+    assert V(rt).hasTrait is True and V(rt).level == 3
 
 
 def test_the_trait_grants_level_3_on_the_next_mirror():
@@ -382,6 +397,7 @@ def test_draw_paints_each_rows_resolved_label_and_text_and_returns_the_next_y():
     G(rt).NR_T.texts["UI_NR_Class_energy"] = "Energy"
     G(rt).NR_T.texts["UI_NR_Class_energy_0"] = "fine"
     v = V(rt)
+    v.level = 1                                # Symptoms: the six class rows alone
     v.refresh(True)
     y = v.draw(G(rt).NR_T.el, v.rows, 8, 20, 264, None)
     g = G(rt).NR_T

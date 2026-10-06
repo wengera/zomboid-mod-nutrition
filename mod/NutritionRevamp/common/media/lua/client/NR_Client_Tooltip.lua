@@ -30,9 +30,9 @@
 --  2. whether the setHeight below fights the next frame's recompute: the original sets the height to the
 --     measured tooltip on every render (ISToolTipInv.lua, `self:setHeight(th)`), so the band's setHeight is
 --     re-done each frame from that base and does not accumulate -- read from the code, not booted.
---  3. (UNMEASURED UNTIL x183) the original clamps the box to the screen from the measured height alone, so
---     near the bottom edge the band may run off the screen.
---  With anchorBottomLeft the band runs below the anchor and may cover the slot it is anchored to (unmeasured).
+--  3. two branches (the close's D2): the original clamps the box to the screen from th alone (:76-81), so the band
+--     is drawn BELOW the box (setHeight raised) unless bottom + band passes getPlayerScreenHeight(0) or anchorBottomLeft
+--     is set (the box ends at its slot, my - th); then it is drawn ABOVE the box at y = -band, no setHeight. UNMEASURED.
 --
 -- What the band shows (the build block's rule, the reviewer's residual 8):
 --  * PER WHOLE ITEM, at script scale. K.vector.resolve returns the whole-type vector (the table's seed, a
@@ -76,7 +76,7 @@
 local NR = NutritionRevamp
 
 NR.client.tooltip = {
-    stats = { draws = 0, lines = 0, cacheHits = 0, errors = 0, installs = 0, builds = 0, invalidations = 0 },
+    stats = { draws = 0, lines = 0, cacheHits = 0, errors = 0, installs = 0, builds = 0, invalidations = 0, above = 0 },
     cache = {},
     R = {},
     last = nil,
@@ -334,8 +334,27 @@ function T.step(el)
     return T.LINE_SPACING
 end
 
--- Draw the band below the engine's box, after the original returned: the option, the context-menu test again
--- (#2496), then the frame at the panel's colours, the lines, and the panel's height raised by the band (#2517).
+T.SCREEN_H = 720 -- px, the screen height when getPlayerScreenHeight is absent or raises
+
+-- Whether the band goes ABOVE the box (the close's D2): true under anchorBottomLeft (the original ends the box at
+-- the anchor, ISToolTipInv.lua my - th, so a band below would cover the slot) or when the box's absolute bottom
+-- plus the band passes the player's screen height (getPlayerScreenHeight(0), guarded; SCREEN_H when unread),
+-- because the original clamps the box to the screen from the measured height alone (:76-81).
+function T.above(el, band)
+    if el.anchorBottomLeft then return true end
+    local top = num(read(el, "getAbsoluteY"))
+    local bottom = top + num(read(el, "getHeight"))
+    local sh = T.SCREEN_H
+    if getPlayerScreenHeight ~= nil then
+        local ok, h = pcall(getPlayerScreenHeight, 0)
+        if ok and type(h) == "number" and h > 0 then sh = h end
+    end
+    return bottom + band > sh
+end
+
+-- Draw the band after the original returned: the option, the context-menu test again (#2496), then the frame at
+-- the panel's colours and the lines -- below the box with the panel's height raised by the band (#2517), or above
+-- it at y = -band with the height left as the original set it (T.above). Both on-screen draws are UNMEASURED.
 function T.band(el, lines)
     if lines == nil or #lines == 0 then return false end
     if not T.optionOn() then return false end
@@ -349,6 +368,8 @@ function T.band(el, lines)
     local tw = num(lines.width)
     if tw + 2 * T.INSET > w then w = tw + 2 * T.INSET end
     local band = step * n + T.PAD
+    local up = T.above(el, band)
+    if up then y = -band end
     local bg = el.backgroundColor or T.BG
     local bd = el.borderColor or T.BORDER
     local font = nil
@@ -358,7 +379,11 @@ function T.band(el, lines)
     for i = 1, n do
         el:drawText(lines[i], T.INSET, y + T.PAD / 2 + (i - 1) * step, 1, 1, 1, 1, font)
     end
-    el:setHeight(y + band)
+    if up then
+        T.stats.above = T.stats.above + 1
+    else
+        el:setHeight(y + band)
+    end
     T.stats.draws = T.stats.draws + 1
     T.stats.lines = T.stats.lines + n
     return true

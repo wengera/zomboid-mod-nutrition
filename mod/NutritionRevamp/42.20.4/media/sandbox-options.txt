@@ -55,11 +55,11 @@ option NR.Severity
     page = NutritionRevamp, translation = NR_Severity,
 }
 
-/* Plan 7 option (ruling 3). VisibilityMode sets how much of the mod's state every player's interface shows:
-   1 Symptoms (the six symptom words and icons), 2 Bands (and the grades), 3 Numbers (and every figure). A
-   Nutritionist trait shows Numbers to its holder whatever the option. */
+/* Plan 7 option (ruling 3; default ruling T13-1). VisibilityMode sets how much of the mod's state every player's
+   interface shows: 1 Symptoms (the six symptom words and icons), 2 Bands, the default (and the grades and the body
+   band), 3 Numbers (and every figure). A Nutritionist trait shows Numbers to its holder whatever the option. */
 option NR.VisibilityMode
 {
-    type = enum, numValues = 3, default = 1,
+    type = enum, numValues = 3, default = 2,
     page = NutritionRevamp, translation = NR_VisibilityMode, valueTranslation = NR_VisibilityModeValues,
 }

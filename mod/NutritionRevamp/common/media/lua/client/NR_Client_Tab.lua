@@ -24,11 +24,16 @@
 -- merely because the method is no longer the wrapper (lessons, the re-wrap rule). The wrappers name nothing
 -- from this file's load: they look NutritionRevamp.client.tab up per call, so a reload swaps the logic under the
 -- wraps that stay installed. Every Java and vanilla global is named only behind a nil check, so the file loads
--- with no engine. The load order is alphabetical (_Tab before _View, _Panel): NR.client.view and
--- NR.client.text are looked up per call, never captured at file scope; with no view the tab draws nothing.
+-- with no engine. The load order is alphabetical (_Tab sorts after _Panel and before _Tooltip and _View): NR.client.view
+-- and NR.client.text are looked up per call, never captured at file scope; with no view the tab draws nothing.
 -- The tab's name is the translated string (#2503); nothing else names it. No keybind, and no request to the
 -- server: the panel's open does that and this tab reads the stored mirror through the view cache.
 -- Cadence: the render reads the view cache's refresh(false), which re-reads on its own cadence; no @fastpath.
+-- The clip and the scroll (the close's D1): ISTabPanel does not clip its active view (ISTabPanel.lua:106 draws the
+-- frame only), so the rows are drawn the panel's way (NR_Client_Panel.lua's renderBody and wheel): view.draw stops
+-- before a line would pass the tab's height (maxY) and skips a row above the top inset (minY); the wheel moves
+-- scrollY by WHEEL_LINES lines, clamped to the overflow (rows x line height - (height - 2 x PAD)). The base render
+-- runs inside the render's one pcall.
 local NR = NutritionRevamp
 NR.client.tab = {
     stats = { added = 0, tornOff = 0, saves = 0, renders = 0, errors = 0, noView = 0 },
@@ -38,6 +43,8 @@ NR.client.tab = {
 local T = NR.client.tab
 
 local TAB_ID = "NutritionRevamp"
+local PAD = 8 -- px, the rows' inset from the tab's edges
+local WHEEL_LINES = 3 -- rows one wheel notch scrolls (NR_Client_Panel.lua's step)
 
 if ISPanelJoypad ~= nil then
     NR_Client_TabPanel = ISPanelJoypad:derive("NR_Client_TabPanel")
@@ -46,30 +53,81 @@ if ISPanelJoypad ~= nil then
     function NR_Client_TabPanel:new(x, y, width, height, playerNum)
         local o = ISPanelJoypad.new(self, x, y, width, height)
         o.playerNum = playerNum
+        o.scrollY = 0
         if o.noBackground ~= nil then o:noBackground() end
         return o
     end
 
+    -- The base render and the rows, under one pcall (T.renderBody, looked up per call).
     function NR_Client_TabPanel:render()
-        ISPanelJoypad.render(self)
         local tab = NutritionRevamp.client.tab
         tab.stats.renders = tab.stats.renders + 1
-        local view = NutritionRevamp.client.view
-        if view == nil then
-            tab.stats.noView = tab.stats.noView + 1
-            return
-        end
-        local ok, err = pcall(function()
-            view.refresh(false)
-            local font = nil
-            if UIFont ~= nil then font = UIFont.Small end
-            view.draw(self, view.rows, 8, 8, self.width - 16, font)
-        end)
+        local ok, err = pcall(tab.renderBody, self)
         if not ok then
             tab.stats.errors = tab.stats.errors + 1
             tab.lastError = tostring(err)
         end
     end
+
+    -- The wheel scrolls the rows when they overflow the tab; true when it took the event.
+    function NR_Client_TabPanel:onMouseWheel(del)
+        local tab = NutritionRevamp.client.tab
+        local ok, took = pcall(tab.wheel, self, del)
+        if not ok then
+            tab.stats.errors = tab.stats.errors + 1
+            tab.lastError = tostring(took)
+            return false
+        end
+        return took
+    end
+end
+
+-- The rows' overflow in px: rows x line height - (height - 2 x PAD), never below 0.
+function T.overflow(el, view, lh)
+    local n = 0
+    if view ~= nil and view.rows ~= nil then n = #view.rows end
+    local h = el.height
+    if type(h) ~= "number" then h = 0 end
+    local over = n * lh - (h - 2 * PAD)
+    if over < 0 then over = 0 end
+    return over
+end
+
+-- The render body: the base render, the count, the scroll offset re-clamped, the rows clipped to the tab.
+function T.renderBody(el)
+    ISPanelJoypad.render(el)
+    local tab = NutritionRevamp.client.tab
+    local view = NutritionRevamp.client.view
+    if view == nil then
+        tab.stats.noView = tab.stats.noView + 1
+        return
+    end
+    view.refresh(false)
+    local font = nil
+    if UIFont ~= nil then font = UIFont.Small end
+    local over = T.overflow(el, view, view.lineHeight(font))
+    local sy = el.scrollY or 0
+    if sy > over then sy = over end
+    if sy < 0 then sy = 0 end
+    el.scrollY = sy
+    view.draw(el, view.rows, PAD, PAD - sy, el.width - 2 * PAD, font, el.height, PAD)
+end
+
+-- The wheel: scrollY moves by WHEEL_LINES x line x del, clamped to [0, overflow]; true (the event taken) only when
+-- there is overflow to scroll.
+function T.wheel(el, del)
+    local view = NutritionRevamp.client.view
+    if type(del) ~= "number" or view == nil then return false end
+    local font = nil
+    if UIFont ~= nil then font = UIFont.Small end
+    local lh = view.lineHeight(font)
+    local over = T.overflow(el, view, lh)
+    if over <= 0 then return false end
+    local y = (el.scrollY or 0) + WHEEL_LINES * lh * del
+    if y < 0 then y = 0 end
+    if y > over then y = over end
+    el.scrollY = y
+    return true
 end
 
 local function failed(tab, err)

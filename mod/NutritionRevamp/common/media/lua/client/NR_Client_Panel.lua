@@ -12,11 +12,15 @@
 -- registration, and DefaultRestoreWindow :45-47 calls addToUIManager + setVisible(true) when layout.ini says
 -- visible=true.
 --
--- Unmeasured until x183 (the research's minimal shape 1, UNTESTED; Task 11 reads each):
---  risk 1: the restore re-adds the panel visible before the key was ever pressed -- the panel then shows whatever
---          the restore said, and stats.restoredVisible records p:getIsVisible() right after RegisterWindow;
---  risk 2: whether layout.ini is written at all on the harness client's exit path (the quit arm reads the file);
---  risk 3: whether PZAPI.ModOptions:load() at OnGameStart finds ModOptions.ini (NR_Client_ModOptions.lua).
+-- The research's minimal shape 1, read in x183:
+--  risk 1: the restore re-adds the panel visible before the key was ever pressed -- the first registration
+--          measured (#3215); a saved visible=true line's restore unmeasured. stats.restoredVisible records
+--          p:getIsVisible() right after RegisterWindow. The panel is instantiated BEFORE the registration (the
+--          close's D3): RegisterWindow restores at once, and a saved pin=false visible=false line's RestoreLayout
+--          calls collapse(), which indexes collapseButton (ISCollapsableWindow.lua:343-346), a child instantiate
+--          builds (#2470); NR_Client_Moodles.lua instantiates its column the same way;
+--  risk 2: whether layout.ini is written on the harness client's exit path -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures);
+--  risk 3: whether PZAPI.ModOptions:load() at OnGameStart finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
 -- The default key is the semicolon (code 39): `;` is unbound in shared/keyBinding.lua and read by no media/lua/client
 -- handler outside debug files; K is vanilla's Display FPS at keyBinding.lua:198 (NR_Client_ModOptions.lua's header).
 -- The height follows the rows (ruling T5-2): at each rebuild the panel is titleBarHeight + 4 + rows * line + 4 tall,
@@ -221,6 +225,7 @@ function PANEL.onCreatePlayer(playerNum, player)
     end
     local p = cls:new(START_X, START_Y, WIDTH, HEIGHT, pn)
     call(p, "initialise")
+    call(p, "instantiate") -- before RegisterWindow: its restore's collapse() needs collapseButton (D3)
     call(p, "setResizable", false)
     call(p, "setRenderThisPlayerOnly", pn)
     call(p, "setVisible", false)

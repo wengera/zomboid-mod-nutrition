@@ -27,8 +27,8 @@
 local NR = NutritionRevamp
 local prior = NR.client.view
 NR.client.view = {
-    level = 1,
-    optionLevel = 1,
+    level = 2,
+    optionLevel = 2,
     hasTrait = false,
     rows = nil,
     classes = nil,
@@ -73,18 +73,18 @@ function V.readTrait(player)
 end
 
 -- The server option SandboxVars.NR.VisibilityMode (1 Symptoms, 2 Bands, 3 Numbers); a missing or non-number value
--- reads 1. K.view.level clamps it.
+-- reads 2, Bands, the option's default (ruling T13-1). K.view.level clamps it.
 function V.readOption()
-    if SandboxVars == nil then return 1 end
+    if SandboxVars == nil then return 2 end
     local ok, v = pcall(function() return SandboxVars.NR.VisibilityMode end)
     if ok and type(v) == "number" then return v end
-    return 1
+    return 2
 end
 
--- The level from the option and the trait (K.view.level), or 1 when the kernel is absent.
+-- The level from the option and the trait (K.view.level), or 2 (the default, Bands) when the kernel is absent.
 local function levelOf(optionLevel, hasTrait)
     local K = NutritionRevamp.kernel
-    if K == nil or K.view == nil then return 1 end
+    if K == nil or K.view == nil then return 2 end
     return K.view.level(optionLevel, hasTrait)
 end
 

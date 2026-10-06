@@ -331,7 +331,7 @@ def test_tooltip_keys_default_to_the_vector_keys(host):
 def test_the_option_file_declares_visibility_mode():
     with open(SANDBOX, encoding="utf-8") as fh:
         src = fh.read()
-    assert ("option NR.VisibilityMode\n{\n    type = enum, numValues = 3, default = 1,\n"
+    assert ("option NR.VisibilityMode\n{\n    type = enum, numValues = 3, default = 2,\n"
             "    page = NutritionRevamp, translation = NR_VisibilityMode, valueTranslation = NR_VisibilityModeValues,\n}"
             ) in src
 
@@ -372,7 +372,7 @@ def _table(rt, d):
     return t
 
 
-@pytest.mark.parametrize("given,want", [(None, 1), (1, 1), (2, 2), (3, 3), (0, 1), (4, 1), ("3", 1)])
+@pytest.mark.parametrize("given,want", [(None, 2), (1, 1), (2, 2), (3, 3), (0, 2), (4, 2), ("3", 2)])
 def test_the_server_reads_visibility_mode(opt_rt, given, want):
     nr = {} if given is None else {"VisibilityMode": given}
     O = opt_rt.eval(READ)(_table(opt_rt, nr))
@@ -380,8 +380,8 @@ def test_the_server_reads_visibility_mode(opt_rt, given, want):
 
 
 def test_the_default_options_carry_visibility_mode():
-    # before any read: the file-scope table already names the option at its default, Symptoms
-    assert fresh_options_rt().globals().NutritionRevamp.server.options.visibilityMode == 1
+    # before any read: the file-scope table already names the option at its default, Bands (ruling T13-1)
+    assert fresh_options_rt().globals().NutritionRevamp.server.options.visibilityMode == 2
 
 
 # --- the moodle value map (Plan 7 Task 8, ruling 10): a class level onto MoodleFramework's 0..1 value ---------

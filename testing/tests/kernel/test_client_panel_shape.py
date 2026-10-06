@@ -87,6 +87,11 @@ function ISCollapsableWindow:new(x, y, w, h)
     return o
 end
 function ISCollapsableWindow:initialise() self.initialised = true end
+function ISCollapsableWindow:instantiate() self.collapseButton = { visible = true } end
+function ISCollapsableWindow:collapse()
+    self.collapseButton.visible = false
+    self.isCollapsed = true
+end
 function ISCollapsableWindow:prerender() NR_T.ui.prerenders = NR_T.ui.prerenders + 1 end
 function ISCollapsableWindow:render() NR_T.ui.renders = NR_T.ui.renders + 1 end
 function ISCollapsableWindow:titleBarHeight() return 16 end
@@ -111,6 +116,9 @@ ISLayoutManager = {
         if NR_T.restoreVisible then
             target:addToUIManager()
             target:setVisible(true)
+        end
+        if NR_T.restoreCollapsed then   -- RestoreLayout on a saved pin=false line: collapse() (ISCollapsableWindow.lua:343-346)
+            target:collapse()
         end
     end,
 }
@@ -249,6 +257,16 @@ def test_a_respawn_removes_the_old_instance_first():
     create(rt)
     assert old.onUI is False and old.visible is False
     assert not same(rt, inst(rt), old) and P(rt).stats.creates == 2
+
+
+def test_the_restore_collapsing_the_panel_finds_the_collapse_button():
+    # the close's D3: a saved pin=false visible=false line's RestoreLayout calls collapse(), which indexes
+    # collapseButton; it passes only because instantiate ran before RegisterWindow
+    rt = rt_env()
+    G(rt).NR_T.restoreCollapsed = True
+    create(rt)
+    assert P(rt).stats.errors == 0 and P(rt).stats.registers == 1
+    assert inst(rt).isCollapsed is True and inst(rt).collapseButton.visible is False
 
 
 def test_the_restore_re_adding_the_panel_is_recorded():

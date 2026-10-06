@@ -15,16 +15,16 @@
 -- parse; KEY_K = 37). `;` is unbound in shared/keyBinding.lua and read by no media/lua/client handler outside debug
 -- files; K is vanilla's Display FPS at keyBinding.lua:198. The code is named in one place (KEY_DEFAULT_CODE).
 --
--- Unmeasured until x183 (the research's minimal shape 1, docs/superpowers/research/platform-client-ui.md, UNTESTED;
--- each a reading of Task 11's acceptance boot):
+-- The research's minimal shape 1 (docs/superpowers/research/platform-client-ui.md), read in x183:
 --  risk 1: ISLayoutManager.RegisterWindow restoring visible=true re-adds the panel before the key was ever pressed
---          (DefaultRestoreWindow's addToUIManager; NR_Client_Panel.lua records it on stats.restoredVisible);
---  risk 2: whether layout.ini is written at all on the harness client's exit path;
---  risk 3: whether PZAPI.ModOptions:load() called this early (OnGameStart) finds ModOptions.ini.
+--          (DefaultRestoreWindow's addToUIManager; NR_Client_Panel.lua records it on stats.restoredVisible) -- the
+--          first registration measured (#3215); a saved visible=true line's restore unmeasured;
+--  risk 2: whether layout.ini is written at all on the harness client's exit path -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures);
+--  risk 3: whether PZAPI.ModOptions:load() called this early (OnGameStart) finds ModOptions.ini -- measured in x183 (#3216 the layout write at the quit; #3218 the load 1 / 0 failures).
 --
 -- Shape (NR_Client_Effects.lua's discipline):
---  * Load order inside client/ is by path (#1055): _Effects, _Mirror, _ModOptions, _Options, _Panel, _Tab, _Tooltip,
---    _View. NR_Client_Options.lua loads AFTER this file and merges mode and logLevel into the existing NR.client.options
+--  * Load order inside client/ is by path (#1055): _Effects, _Mirror, _ModOptions, _Moodles, _Options, _Panel, _Tab,
+--    _Tooltip, _View. NR_Client_Options.lua loads AFTER this file and merges mode and logLevel into the existing NR.client.options
 --    table (never replacing it), so the accessors attach() sets at file scope stay; attach() runs again from this
 --    file's OnGameStart handler, and the accessors read the page through the global sentinel per call, never
 --    through a handle captured on NR.client.

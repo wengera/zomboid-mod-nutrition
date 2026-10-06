@@ -435,3 +435,58 @@ def test_the_sentinel_is_a_global_of_its_own():
     code = code_only(_src(TOOLTIP))
     assert re.search(r"^\s*NR_ClientTooltip_Installed = \{ class = ISToolTipInv, original = original, wrapper = wrapper \}", code, re.M)
     assert "NutritionRevamp.client.tooltip.installed" not in code
+
+
+# --- the close's D2: the band above the box at the screen's bottom edge and under anchorBottomLeft -------------
+
+def render_at(rt, setup_lua):
+    """One render of a fresh Apple panel after setup_lua runs on it (p in scope); returns the panel."""
+    return rt.eval("function() local p = NR_T.panel(NR_T.food('Base.Apple')); %s; ISToolTipInv.render(p); return p end"
+                   % setup_lua)()
+
+
+def _assert_above(rt, p):
+    rects = draws(rt, "rect")
+    texts = draws(rt, "text")
+    n = len(texts)
+    band = 15 * n + 6
+    assert len(rects) == 1 and rects[0][2] == -band and rects[0][4] == band
+    assert draws(rt, "border")[0][2] == -band
+    assert texts[0][3] == -band + 3 and texts[1][3] == -band + 3 + 15
+    assert all(t[3] < 0 for t in texts)
+    assert p.height == 120                       # no setHeight: the original's height stands
+    assert list(rt.globals().NR_T.heights.values()) == []
+    assert T(rt).stats.above == 1 and T(rt).stats.draws == 1
+
+
+def test_a_box_near_the_screens_bottom_draws_the_band_above_it():
+    rt = rt_with(view=True)
+    rt.execute("getPlayerScreenHeight = function(n) NR_T.screenAsked = n; return 800 end")
+    p = render_at(rt, "function p.getAbsoluteY(s) return 800 - 120 - 10 end")
+    assert rt.globals().NR_T.screenAsked == 0
+    _assert_above(rt, p)
+
+
+def test_the_screen_height_defaults_to_720_when_unread():
+    rt = rt_with(view=True)
+    p = render_at(rt, "function p.getAbsoluteY(s) return 600 end")     # 600 + 120 + band > 720
+    _assert_above(rt, p)
+    rt2 = rt_with(view=True)
+    rt2.execute("getPlayerScreenHeight = function() error('boom') end")
+    p2 = render_at(rt2, "function p.getAbsoluteY(s) return 590 end")
+    _assert_above(rt2, p2)
+
+
+def test_anchor_bottom_left_draws_the_band_above_the_box():
+    rt = rt_with(view=True)
+    p = render_at(rt, "p.anchorBottomLeft = { x = 10, y = 500 }; function p.getAbsoluteY(s) return 100 end")
+    _assert_above(rt, p)
+
+
+def test_a_box_with_room_below_keeps_the_band_below():
+    rt = rt_with(view=True)
+    rt.execute("getPlayerScreenHeight = function() return 1080 end")
+    p = render_at(rt, "function p.getAbsoluteY(s) return 600 end")
+    rects = draws(rt, "rect")
+    assert rects[0][2] == 120
+    assert p.height > 120 and T(rt).stats.above == 0
