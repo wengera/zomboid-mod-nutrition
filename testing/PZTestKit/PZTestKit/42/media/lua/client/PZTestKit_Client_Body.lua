@@ -468,3 +468,92 @@ TK.register("pill.take.held", function(argv)
     if not ran then out.reason = "queue raised: " .. tostring(err) end
     return out
 end)
+
+-- ---- Plan 5 Task 2: the effects harness wave (client commands) --------------------------------
+
+-- Plan 5 helpers for the client state, one local (P5). hop is the index-first, pcall'd call:
+-- an absent member or a raise answers nil, never an error on the -debug client.
+local P5 = {}
+
+function P5.hop(obj, name, ...)
+    if obj == nil then return nil end
+    local f = obj[name]
+    if f == nil then return nil end
+    local ran, v = pcall(f, obj, ...)
+    if not ran then return nil end
+    return v
+end
+
+function P5.part(p, i)
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil or BodyPartType == nil then return nil, nil end
+    local fromIndex = BodyPartType["FromIndex"]
+    if fromIndex == nil then return nil, nil end
+    local ran, t = pcall(fromIndex, i)
+    if not ran or t == nil then return nil, nil end
+    return P5.hop(bd, "getBodyPart", t), t
+end
+
+P5.PART_GETTERS = {
+    { "health", "getHealth" }, { "bleedingTime", "getBleedingTime" }, { "bleeding", "bleeding" },
+    { "deepWoundTime", "getDeepWoundTime" }, { "scratchTime", "getScratchTime" },
+    { "cutTime", "getCutTime" }, { "biteTime", "getBiteTime" }, { "burnTime", "getBurnTime" },
+    { "fractureTime", "getFractureTime" }, { "woundInfectionLevel", "getWoundInfectionLevel" },
+    { "infectedWound", "isInfectedWound" }, { "additionalPain", "getAdditionalPain" },
+    { "bandaged", "bandaged" }, { "alcoholLevel", "getAlcoholLevel" },
+}
+
+function P5.partRow(part, t, i)
+    local row = { index = i }
+    if BodyPartType ~= nil and BodyPartType["ToString"] ~= nil and t ~= nil then
+        local ran, nm = pcall(BodyPartType["ToString"], t)
+        if ran then row.name = nm end
+    end
+    for _, g in ipairs(P5.PART_GETTERS) do
+        local v = P5.hop(part, g[2])
+        if v == nil then row["absent_" .. g[1]] = true else row[g[1]] = v end
+    end
+    return row
+end
+
+-- <user> <partIndex|all>. The client twin of the server bodypart.get: the same getters on the
+-- local player's own BodyDamage, so a server write that syncBodyPart carried shows here as the
+-- same value and one that it did not shows as the stale one.
+-- @args <user> <partIndex|all>
+-- @reply {ok, side, parts [, reason]} | string
+-- @purpose Client twin of bodypart.get: reads the per-part wound fields of one or all body parts of the local player, to compare against the server's after a syncBodyPart.
+TK.register("bodypart.get", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, reason = why } end
+    local which = argv[2] or "all"
+    local out = { ok = false, side = TK.side, parts = {} }
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil then
+        out.reason = "no getBodyDamage()"
+        return out
+    end
+    local first, last = 0, 0
+    if which == "all" then
+        local n = P5.hop(P5.hop(bd, "getBodyParts"), "size")
+        if n == nil then
+            out.reason = "no getBodyParts():size()"
+            return out
+        end
+        first, last = 0, n - 1
+    else
+        first = tonumber(which)
+        if first == nil then return "usage: bodypart.get <user> <partIndex|all>" end
+        last = first
+    end
+    for i = first, last do
+        local part, t = P5.part(p, i)
+        if part == nil then
+            out.reason = "no body part at index " .. i
+            if which ~= "all" then return out end
+        else
+            out.parts[#out.parts + 1] = P5.partRow(part, t, i)
+        end
+    end
+    out.ok = (#out.parts > 0)
+    return out
+end)

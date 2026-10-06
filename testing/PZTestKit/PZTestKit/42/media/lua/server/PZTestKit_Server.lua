@@ -2254,3 +2254,96 @@ TK.register("fluid.fill", function(argv)
     if not out.ok then out.reason = "amount read back is not the amount added (capacity?)" end
     return out
 end)
+
+-- ---- Plan 5 Task 2: the effects harness wave (server commands) --------------------------------
+
+-- Plan 5 shared helpers. One local (P5) holds them so the chunk's local count stays low. hop is
+-- the index-first, pcall'd call: an absent member or a raise answers nil, never an error.
+local P5 = {}
+
+function P5.hop(obj, name, ...)
+    if obj == nil then return nil end
+    local f = obj[name]
+    if f == nil then return nil end
+    local ran, v = pcall(f, obj, ...)
+    if not ran then return nil end
+    return v
+end
+
+-- One body part by index: getBodyDamage():getBodyPart(BodyPartType.FromIndex(i)). BodyPartType
+-- is a Java enum whose FromIndex is a static, so it goes through the index-first dot call.
+function P5.part(p, i)
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil or BodyPartType == nil then return nil, nil end
+    local fromIndex = BodyPartType["FromIndex"]
+    if fromIndex == nil then return nil, nil end
+    local ran, t = pcall(fromIndex, i)
+    if not ran or t == nil then return nil, nil end
+    return P5.hop(bd, "getBodyPart", t), t
+end
+
+-- The reader table of bodypart.get: reply key, getter. Every getter takes no argument.
+P5.PART_GETTERS = {
+    { "health", "getHealth" }, { "bleedingTime", "getBleedingTime" }, { "bleeding", "bleeding" },
+    { "deepWoundTime", "getDeepWoundTime" }, { "scratchTime", "getScratchTime" },
+    { "cutTime", "getCutTime" }, { "biteTime", "getBiteTime" }, { "burnTime", "getBurnTime" },
+    { "fractureTime", "getFractureTime" }, { "woundInfectionLevel", "getWoundInfectionLevel" },
+    { "infectedWound", "isInfectedWound" }, { "additionalPain", "getAdditionalPain" },
+    { "bandaged", "bandaged" }, { "alcoholLevel", "getAlcoholLevel" },
+}
+
+function P5.partRow(part, t, i)
+    local row = { index = i }
+    if BodyPartType ~= nil and BodyPartType["ToString"] ~= nil and t ~= nil then
+        local ran, nm = pcall(BodyPartType["ToString"], t)
+        if ran then row.name = nm end
+    end
+    for _, g in ipairs(P5.PART_GETTERS) do
+        local v = P5.hop(part, g[2])
+        if v == nil then row["absent_" .. g[1]] = true else row[g[1]] = v end
+    end
+    return row
+end
+
+-- <user> <partIndex|all>. Per body part the wound fields #2366 / #2626 name, read index-first
+-- under pcall through BodyDamage:getBodyPart(BodyPartType.FromIndex(i)); a getter the build does
+-- not answer is written once as absent_<field> on that row, never raised. `all` walks the
+-- indices 0 .. getBodyParts():size() - 1; the client twin reads the local player the same way.
+-- @args <user> <partIndex|all>
+-- @reply {ok, side, parts [, reason]} | string
+-- @purpose Reads the per-part wound fields (health, bleeding, deep wound, scratch, cut, bite, burn, fracture, infection, pain, bandage and alcohol) of one or all body parts of a named player.
+TK.register("bodypart.get", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local which = argv[2] or "all"
+    local out = { ok = false, side = TK.side, parts = {} }
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil then
+        out.reason = "no getBodyDamage()"
+        return out
+    end
+    local first, last = 0, 0
+    if which == "all" then
+        local n = P5.hop(P5.hop(bd, "getBodyParts"), "size")
+        if n == nil then
+            out.reason = "no getBodyParts():size()"
+            return out
+        end
+        first, last = 0, n - 1
+    else
+        first = tonumber(which)
+        if first == nil then return "usage: bodypart.get <user> <partIndex|all>" end
+        last = first
+    end
+    for i = first, last do
+        local part, t = P5.part(p, i)
+        if part == nil then
+            out.reason = "no body part at index " .. i
+            if which ~= "all" then return out end
+        else
+            out.parts[#out.parts + 1] = P5.partRow(part, t, i)
+        end
+    end
+    out.ok = (#out.parts > 0)
+    return out
+end)
