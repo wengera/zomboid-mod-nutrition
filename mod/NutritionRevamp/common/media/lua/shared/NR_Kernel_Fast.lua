@@ -13,9 +13,14 @@
 -- vanilla write is one K.clamp here, in vanilla's order: a saturated stat behaves as it does in Java.
 -- Kahlua numbers are doubles: the Java float-only chains (the idle timer, the sleep dt and fatigue
 -- removal, morale, fitness, the sleep endurance factor) reproduce bit-close, not bit-exact (jar § 9).
+-- Plan 5 (Task 7): FATIGUE is written from the slow clock's sleep pressure when the record owns it
+-- (ruling 11); ENDURANCE folds vanilla's own per-tick change by dmod/rmod when the adapter turns the
+-- fold on (ruling 15); STRESS has a floor (ruling 9); the HUNGER and THIRST views are capped under
+-- moodle level 4 ALWAYS (ruling 14, hungerCap 0.69, thirstCap 0.83). The fast cap makes the fluids
+-- kernel's dial-gated kill cap (thirstTarget's canKill) moot for THIRST: the view never passes 0.83.
 local K = NutritionRevamp.kernel
 K.fast = {}
-local clamp, max = K.clamp, K.max
+local clamp, max, min = K.clamp, K.max, K.min
 
 -- The shipped defines.lua values (jar report "Shared constants" table; media/lua/shared/defines.lua).
 -- Outside the fast-path region: called once at install, never per tick.
@@ -39,6 +44,11 @@ function K.fast.defaults()
         idleDecrease = 6.0e-3,                   -- jar § 2; :56
         imobileEnduranceIncrease = 3.1e-5,       -- #2258; :7
         sleepDelayFraction = 0.5,                -- Plan 1 ruling 7: the mean of Rand.Next(0, d); a game choice
+        -- Plan 5 (Task 7)
+        extEps = 0.1,                            -- design-phase-v1 game choice (open row: S1177); spec s4.1
+        moodRiseStress = 5.0e-5,                 -- VANILLA #2231 reused (StressFromBiteOrScratch); open S1146
+        hungerCap = 0.69,                        -- under HUNGRY level 4 at 0.70, #0508; ruling 14: vanilla's starvation drain never fires
+        thirstCap = 0.83,                        -- under THIRSTY level 4 at 0.84, #0509; ruling 14: vanilla's dehydration drain never fires
     }
 end
 
@@ -54,6 +64,13 @@ end
 -- `running` and `thermoFluids` are no longer read by the thirst term and stay filled.
 -- `heartyAppetite`, `lightEater` and `foodEaten` are no longer read by the hunger term (Plan 2); they
 -- stay filled for Plan 3/4's appetite and energy terms.
+-- Plan 5 (Task 7; the adapter, Task 9, fills them from record.acute, record.effects and record.body):
+-- `fOwned` (record.acute exists) selects the FATIGUE writer F = fS + fCirc + fOff (ruling 11; the slow
+-- sleep pressure S, the circadian term, the slow offset), `fFrozen` (server sleep disabled) writes the
+-- stat read back unchanged; `solAddH` / `solMul` enter the sleep-transition delay (B6); `endFold` turns
+-- on the endurance delta fold against `endLast` (the handler's own last write) with `dmod` on a drain
+-- and `rmod` on a regeneration (ruling 15); `stressTarget` is the stress floor (ruling 9). The defaults
+-- keep the Plan 1/3/4 arms.
 function K.fast.input()
     return {
         M = 0, D = 0, sd = 1, asleep = false, ghost = false,
@@ -68,6 +85,8 @@ function K.fast.input()
         endRegen = 1, recoveryMod = 1, allAsleep = false, fitnessLevel = 0, unlimitedEndurance = false,
         painLevel = 0, stressMoodle = 0, sleepingTablet = false, sleepTransition = false,
         stomachFill = 1, energyState = 1, rmod = 1, thirstTarget = 0,
+        fOwned = false, fFrozen = false, fS = 0, fCirc = 0, fOff = 0, solAddH = 0, solMul = 1,
+        endFold = false, endLast = 1, dmod = 1, stressTarget = 0,
     }
 end
 
@@ -99,6 +118,17 @@ function K.fast.step(inp, out, c)
     -- 7. the endurance stub: stamp, then the cheat (#2215)
     out.lastEndurance = inp.endurance
     local endurance = inp.endurance
+    -- Plan 5 ruling 15: the delta fold. d is what vanilla's updateEndurance (and swings, exert) did since
+    -- the handler's own last write; a drain scales by dmod, a regeneration by rmod, |d| >= extEps passes
+    if inp.endFold then
+        local e0 = inp.endLast
+        local d = endurance - e0
+        if d < 0 and d > -c.extEps then
+            endurance = e0 + d * inp.dmod
+        elseif d > 0 and d < c.extEps then
+            endurance = e0 + d * inp.rmod
+        end
+    end
     if inp.unlimitedEndurance then
         endurance = 1
     end
@@ -114,7 +144,7 @@ function K.fast.step(inp, out, c)
         end
         thirst = t
     end
-    out.thirst = clamp(thirst, 0, 1)
+    out.thirst = clamp(thirst, 0, c.thirstCap)                -- Plan 5 ruling 14: under level 4, always
     out.autoDrink = true                                     -- #2250: called on every pass, outside both gates
 
     -- stress updater (#2220, #2230, #2226, #2231): each term is its own Stats.add, clamped
@@ -170,6 +200,7 @@ function K.fast.step(inp, out, c)
             if inp.sleepingTablet then
                 d = 0.1
             end
+            d = d * inp.solMul + inp.solAddH                -- Plan 5 B6: the sleep-onset latency terms
             if d > 2.0 then
                 d = 2.0
             end
@@ -185,7 +216,7 @@ function K.fast.step(inp, out, c)
                 ff = ff * 1.4
             end
             out.timeOfSleep = out.timeOfSleep + dt
-            if out.timeOfSleep > out.delayToSleep then
+            if out.timeOfSleep > out.delayToSleep and not inp.fOwned then
                 local t = 1
                 if inp.needsLess then
                     t = t * 0.75
@@ -202,19 +233,21 @@ function K.fast.step(inp, out, c)
     else
         -- 2. updateStats_Awake: stress decay, fatigue, idleness (jar § 2; #2270, #2271); hunger below (Plan 2)
         stress = clamp(stress - c.stressDecrease * s, 0, 1)
-        local endDef = max(F03, 1 - endurance)              -- reads ENDURANCE after the stub's cheat reset
-        local sleepTrait = 1
-        if inp.needsLess then
-            sleepTrait = 0.7
+        if not inp.fOwned then
+            local endDef = max(F03, 1 - endurance)          -- reads ENDURANCE after the stub's cheat reset
+            local sleepTrait = 1
+            if inp.needsLess then
+                sleepTrait = 0.7
+            end
+            if inp.needsMore then
+                sleepTrait = 1.3
+            end
+            local rest = 1
+            if inp.sitting or inp.resting then
+                rest = 1.5
+            end
+            fatigue = fatigue + c.fatigueIncrease * sd * endDef * s * sleepTrait * inp.thermoFatigue / rest
         end
-        if inp.needsMore then
-            sleepTrait = 1.3
-        end
-        local rest = 1
-        if inp.sitting or inp.resting then
-            rest = 1.5
-        end
-        fatigue = fatigue + c.fatigueIncrease * sd * endDef * s * sleepTrait * inp.thermoFatigue / rest
         -- the idle-square timer mirror (Plan 1 ruling 8), then idleness
         if inp.sameSquare then
             if out.idleTimer <= 3600 then
@@ -237,9 +270,22 @@ function K.fast.step(inp, out, c)
             idleness = clamp(idleness - c.idleDecrease * s, 0, 1)
         end
     end
+    -- Plan 5 ruling 11: the FATIGUE writer, two adds over the slow scalars; frozen (server sleep off)
+    -- writes the engine's reset back unchanged (#0562); unowned keeps the Plan 1 arms above
+    if inp.fOwned then
+        if inp.fFrozen then
+            fatigue = inp.fatigue
+        else
+            fatigue = inp.fS + inp.fCirc + inp.fOff
+        end
+    end
+    -- Plan 5 ruling 9: the stress floor, after vanilla's decay (asleep too: vanilla does not decay it)
+    if stress < inp.stressTarget then
+        stress = min(inp.stressTarget, stress + c.moodRiseStress * s)
+    end
     -- hunger (Plan 2 ruling): the stomach's view, written every tick whatever the stat read
     local hunger = K.fast.hungerTarget(inp.stomachFill, inp.energyState)
-    out.hunger = clamp(hunger, 0, 1)
+    out.hunger = clamp(hunger, 0, c.hungerCap)                -- Plan 5 ruling 14: under level 4, always
     out.fatigue = clamp(fatigue, 0, 1)
     out.stress = clamp(stress, 0, 1)
     out.idleness = clamp(idleness, 0, 1)

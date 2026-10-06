@@ -71,3 +71,13 @@ def test_bench_inputs_name_the_plan3_fields_and_hunger_follows_the_fill(bench_ho
     h = out["hunger"]
     assert h == h and abs(h) != float("inf")
     assert abs(h - (1 - inp["stomachFill"])) < 1e-9
+
+
+def test_bench_inputs_name_the_plan5_fields(bench_host):
+    NR = bench_host.G.NutritionRevamp
+    inp = NR.bench_fast_input()
+    assert inp["fOwned"] is True and inp["fFrozen"] is False and inp["endFold"] is True
+    assert inp["solMul"] == 1 and inp["solAddH"] == 0 and inp["dmod"] == 1 and inp["stressTarget"] == 0
+    out = NR.bench_fast()
+    assert out["fatigue"] == inp["fS"] + inp["fCirc"] + inp["fOff"]       # the owned FATIGUE writer runs
+    assert out["endurance"] == inp["endLast"] == inp["endurance"]           # the fold at rest: the identity

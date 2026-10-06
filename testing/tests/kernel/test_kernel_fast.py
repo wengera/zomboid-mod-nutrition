@@ -6,7 +6,8 @@ C = dict(thirstIncrease=8.0e-6, thirstSleepingIncrease=1.0e-6, hungerIncrease=9.
          hungerIncreaseWhileAsleep=1.0e-6, hungerIncreaseWhenExercise=1.92e-5, fatigueIncrease=3.45e-5,
          stressDecrease=3.0e-5, stressFromSoundsMultiplier=2.0e-5, stressFromBiteOrScratch=5.0e-5,
          stressFromHemophobic=3.333e-7, angerDecrease=1.0e-4, idleIncrease=5.0e-4, idleDecrease=6.0e-3,
-         imobileEnduranceIncrease=3.1e-5, sleepDelayFraction=0.5)
+         imobileEnduranceIncrease=3.1e-5, sleepDelayFraction=0.5,
+         extEps=0.1, moodRiseStress=5.0e-5, hungerCap=0.69, thirstCap=0.83)   # Plan 5 (Task 7)
 
 BASE = dict(M=0.8, D=0.5, sd=1.0, asleep=False, ghost=False, hunger=0.2, thirst=0.1, fatigue=0.1, endurance=0.9,
             stress=0.05, anger=0.02, idleness=0.0, morale=1.0, nicotine=0.0, highThirst=False, lowThirst=False,
@@ -18,7 +19,10 @@ BASE = dict(M=0.8, D=0.5, sd=1.0, asleep=False, ghost=False, hunger=0.2, thirst=
             timeOfDay=8.0, minutesPerDay=60.0, endRegen=1.0, recoveryMod=1.0, allAsleep=False, fitnessLevel=5,
             unlimitedEndurance=False, painLevel=0, stressMoodle=0, sleepTransition=False,
             stomachFill=0.8, energyState=1.0, rmod=1.0,         # Plan 2: hunger is the view of the fill, 1 - 0.8
-            thirstTarget=0.1)                                   # Plan 4: thirst is the pool's view; equal to the read
+            thirstTarget=0.1,                                   # Plan 4: thirst is the pool's view; equal to the read
+            fOwned=False, fFrozen=False, fS=0.0, fCirc=0.0, fOff=0.0, solAddH=0.0, solMul=1.0,   # Plan 5: the
+            endFold=False, endLast=1.0, dmod=1.0, stressTarget=0.0,
+            resting=False, sleepingTablet=False)                              # defaults, Plan 1 arms
 
 
 def run(host, **kw):
@@ -43,7 +47,7 @@ def test_awake_idle_vanilla_rates(host):
 
 # Plan 4 (ruling 8): thirst is the water pool's view, inp.thirstTarget, written every tick whatever the
 # stat read; the Plan 1 drain arms (traits, thermoFluids, running, the sleeping rate) are gone.
-@pytest.mark.parametrize("target,want", [(0.0, 0.0), (0.37, 0.37), (1.2, 1.0), (-0.3, 0.0)])
+@pytest.mark.parametrize("target,want", [(0.0, 0.0), (0.37, 0.37), (1.2, 0.83), (-0.3, 0.0)])   # Plan 5: cap 0.83
 def test_thirst_is_the_pool_view(host, target, want):
     o = run(host, thirst=0.6, thirstTarget=target)
     assert o["thirst"] == want
@@ -82,7 +86,7 @@ def test_hunger_full_stomach_reads_sated_whatever_the_stat_read(host):
 
 
 def test_hunger_empty_stomach_reads_starving(host):
-    assert run(host, stomachFill=0.0, hunger=0.0)["hunger"] == 1.0
+    assert run(host, stomachFill=0.0, hunger=0.0)["hunger"] == 0.69   # Plan 5 ruling 14: the view's cap
 
 
 def test_hunger_rises_as_the_fill_falls(host):
@@ -274,3 +278,148 @@ def test_asleep_regen_scales_with_rmod(host):
     assert run(host, asleep=True, endurance=0.5, rmod=0.25)["endurance"] == pytest.approx(0.5 + 0.25 * plan1, rel=1e-12)
     assert run(host, endurance=0.5, rmod=2.0)["endurance"] == 0.5                  # awake: the takeover never writes it
     assert host.py(host.K.fast.input())["rmod"] == 1
+
+
+# --- Plan 5 (Task 7): the FATIGUE writer (ruling 11), the sleep-onset latency (B6), the endurance fold
+# (ruling 15), the stress floor (ruling 9) and the view caps (ruling 14). Hand values in Python doubles.
+
+import os, re
+
+KERNEL_FAST = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                           "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Kernel_Fast.lua")
+
+CIRC_0100 = 0.08485281374238571                    # 0.12 * cos(2 pi (1 - 4) / 24), I-B1c at 01:00
+CAF_OFF_107 = 0.35 * 107 / (107 + 150) * (1 - 0.6 * 0)   # cafOffset at 107 mg, tolerance 0
+F_OFF_IB1 = min(0.005 * 6, 0.10) - CAF_OFF_107 + 0.0      # debt 6 h, fOffNut 0
+DT = 1.0 / 60.0 / 60.0 * 0.8 / 2.0                  # game-hours asleep per BASE update
+
+
+def test_input_plan5_defaults(host):
+    d = host.py(host.K.fast.input())
+    want = dict(fOwned=False, fFrozen=False, fS=0, fCirc=0, fOff=0, solAddH=0, solMul=1, endFold=False,
+                endLast=1, dmod=1, rmod=1, stressTarget=0)
+    assert {k: d[k] for k in want} == want
+
+
+def test_input_field_set_covers_every_inp_the_region_reads(host):
+    src = open(KERNEL_FAST, encoding="utf-8").read()
+    region = src[src.index("-- @fastpath"):src.index("-- @endfastpath")]
+    read = set(re.findall(r"\binp\.(\w+)", region))
+    assert read <= set(host.py(host.K.fast.input()).keys())
+    assert read <= set(BASE)
+
+
+def test_ib1_owned_fatigue_hand_value(host):
+    assert CAF_OFF_107 == 0.14571984435797664
+    for asleep in (False, True):
+        o = run(host, asleep=asleep, fOwned=True, fS=0.5, fCirc=CIRC_0100, fOff=F_OFF_IB1,
+                timeOfSleep=9.0, delayToSleep=8.5)
+        assert o["fatigue"] == 0.5 + CIRC_0100 + F_OFF_IB1          # the kernel's association, bit-exact
+        # the briefing's 0.4691329693844091 sums 0.03 and -cafOffset separately: one ulp away
+        assert o["fatigue"] == pytest.approx(0.4691329693844091, rel=1e-15, abs=0)
+
+
+def test_owned_fatigue_ignores_the_vanilla_terms_and_clamps(host):
+    for kw in (dict(), dict(endurance=0.1), dict(needsMore=True, sitting=True, thermoFatigue=3.0), dict(sd=4.0)):
+        assert run(host, fOwned=True, fS=0.4, fCirc=0.02, fOff=0.01, **kw)["fatigue"] == 0.4 + 0.02 + 0.01
+    assert run(host, fOwned=True, fS=0.95, fCirc=0.12, fOff=0.1)["fatigue"] == 1.0
+    assert run(host, fOwned=True, fS=0.01, fCirc=-0.12, fOff=-0.2)["fatigue"] == 0.0
+
+
+def test_owned_asleep_keeps_the_time_of_sleep_advance(host):
+    o = run(host, asleep=True, fOwned=True, fatigue=0.5, fS=0.3, timeOfSleep=9.0, delayToSleep=8.5, bedFactor=1.1)
+    assert o["fatigue"] == 0.3
+    assert o["timeOfSleep"] == pytest.approx(9.0 + DT, rel=1e-12)
+    assert o["endurance"] == pytest.approx(0.9 + 3.1e-5 * 0.8 * 2.0, rel=1e-12)
+
+
+def test_frozen_writes_the_engine_reset_back(host):
+    for asleep in (False, True):
+        o = run(host, asleep=asleep, fOwned=True, fFrozen=True, fatigue=1.03e-4, fS=0.7, fCirc=0.1, fOff=0.05,
+                timeOfSleep=9.0, delayToSleep=8.5)
+        assert o["fatigue"] == 1.03e-4
+
+
+def test_unowned_is_the_plan1_arm_whatever_the_slow_scalars(host):
+    for kw in (dict(), dict(asleep=True, fatigue=0.5, timeOfSleep=9.0, delayToSleep=8.5),
+               dict(asleep=True, fatigue=0.2, timeOfSleep=9.0, delayToSleep=8.5, insomniac=True)):
+        plain = run(host, **kw)
+        assert run(host, fFrozen=True, fS=0.9, fCirc=0.1, fOff=0.1, **kw) == plain
+    assert run(host)["fatigue"] == pytest.approx(0.1 + 3.45e-5 * F03 * 0.4, rel=1e-12)
+
+
+def test_sleep_onset_latency_terms(host):
+    o = run(host, asleep=True, sleepTransition=True, timeOfDay=22.0, solMul=1.2, solAddH=0.1)
+    assert o["delayToSleep"] == pytest.approx(22.0 + (0.3 * 1.2 + 0.1) * 0.5, rel=1e-12)
+    o = run(host, asleep=True, sleepTransition=True, timeOfDay=22.0, insomniac=True, painLevel=4, bedFactor=1.6,
+            solMul=1.2, solAddH=0.1)
+    assert o["delayToSleep"] == pytest.approx(22.0 + 2.0 * 0.5, rel=1e-12)          # the cap still binds
+    o = run(host, asleep=True, sleepTransition=True, timeOfDay=22.0, solMul=0.6)
+    assert o["delayToSleep"] == pytest.approx(22.0 + 0.3 * 0.6 * 0.5, rel=1e-12)
+
+
+def test_ic1_endurance_fold_hand_values(host):
+    o = run(host, endFold=True, endLast=0.8, endurance=0.799, dmod=1.5)
+    assert o["endurance"] == 0.8 + (0.799 - 0.8) * 1.5
+    assert o["endurance"] == pytest.approx(0.7985, rel=1e-12)
+    o = run(host, endFold=True, endLast=0.8, endurance=0.8005, rmod=0.8)
+    assert o["endurance"] == 0.8 + (0.8005 - 0.8) * 0.8
+    assert o["endurance"] == pytest.approx(0.8004, rel=1e-12)
+    assert o["lastEndurance"] == 0.8005                              # the stub still stamps the stat read
+
+
+def test_endurance_fold_passes_an_external_jump(host):
+    assert run(host, endFold=True, endLast=0.5, endurance=0.8, dmod=2.0, rmod=0.5)["endurance"] == 0.8
+    assert run(host, endFold=True, endLast=0.8, endurance=0.5, dmod=2.0, rmod=0.5)["endurance"] == 0.5
+    assert run(host, endFold=True, endLast=0.8, endurance=0.8, dmod=2.0, rmod=0.5)["endurance"] == 0.8
+
+
+def test_endurance_fold_unit_coefficients_are_the_identity(host):
+    for e0 in (1.0, 0.8, 0.5, 0.3, 0.12):
+        for d in (-0.0999, -0.012, -4.55e-4, 3.1e-5, 0.0015, 0.0999):
+            x = min(1.0, max(0.0, e0 + d))
+            assert run(host, endFold=True, endLast=e0, endurance=x)["endurance"] == x
+
+
+def test_endurance_fold_then_the_cheat_and_the_asleep_regen(host):
+    assert run(host, endFold=True, endLast=0.8, endurance=0.799, dmod=1.5, unlimitedEndurance=True)["endurance"] == 1.0
+    o = run(host, endFold=True, asleep=True, endLast=0.5, endurance=0.5005, rmod=0.8)
+    folded = 0.5 + (0.5005 - 0.5) * 0.8
+    assert o["endurance"] == pytest.approx(folded + 3.1e-5 * 0.8 * 2.0 * 0.8, rel=1e-12)
+
+
+def test_endurance_fold_off_is_the_plan1_arm(host):
+    assert run(host, endLast=0.8, endurance=0.799, dmod=1.5, rmod=0.8)["endurance"] == 0.799
+    assert run(host, asleep=True, endLast=0.8, endurance=0.5)["endurance"] == pytest.approx(0.5 + 3.1e-5 * 0.8 * 2.0, rel=1e-12)
+
+
+def test_stress_floor_rises_at_vanilla_bite_rate(host):
+    s = 0.4
+    o = run(host, stress=0.0, stressTarget=0.06)
+    assert o["stress"] == pytest.approx(5.0e-5 * s, rel=1e-12)            # the decay clamps at 0, then the rise
+    o = run(host, stress=0.05, stressTarget=0.06)
+    assert o["stress"] == pytest.approx(0.05 - 3.0e-5 * s + 5.0e-5 * s, rel=1e-12)
+    o = run(host, asleep=True, stress=0.05, stressTarget=0.06)
+    assert o["stress"] == pytest.approx(0.05 + 5.0e-5 * s, rel=1e-12)      # asleep: no decay, the floor applies
+
+
+def test_stress_floor_holds_exactly_at_the_target(host):
+    assert run(host, stress=0.06, stressTarget=0.06)["stress"] == 0.06
+    assert run(host, stress=0.0599999, stressTarget=0.06)["stress"] == 0.06
+    assert run(host, asleep=True, stress=0.06, stressTarget=0.06)["stress"] == 0.06
+    assert run(host, stress=0.3, stressTarget=0.06)["stress"] == pytest.approx(0.3 - 3.0e-5 * 0.4, rel=1e-12)
+    assert run(host, stress=0.05)["stress"] == pytest.approx(0.05 - 3.0e-5 * 0.4, rel=1e-12)   # target 0: vanilla
+
+
+def test_hunger_view_capped_under_level_4(host):
+    for kw in (dict(stomachFill=0.0), dict(stomachFill=0.2, energyState=3.0), dict(stomachFill=0.3),
+               dict(asleep=True, stomachFill=0.0)):
+        assert run(host, **kw)["hunger"] == 0.69
+    assert run(host, stomachFill=0.32)["hunger"] == pytest.approx(0.68, rel=1e-12)
+
+
+def test_thirst_view_capped_under_level_4_whatever_the_target(host):
+    for kw in (dict(thirstTarget=0.95), dict(thirstTarget=1.0), dict(ghost=True, thirst=0.9),
+               dict(thirst=0.9, thirstTarget=float("nan")), dict(asleep=True, thirstTarget=0.84)):
+        assert run(host, **kw)["thirst"] == 0.83
+    assert run(host, thirstTarget=0.8)["thirst"] == 0.8

@@ -17,7 +17,8 @@ local BENCH_INP = K.fast.input()
 
 -- A steady-state awake update: one game-minute (M = 1, D = 24 -> sixty game-seconds), not asleep,
 -- not a ghost, mid-range stats, every optional multiplier neutral, a real day length and a mid
--- fitness level. Every trait and flag K.fast.input() seeds false stays false.
+-- fitness level. Every trait and flag K.fast.input() seeds false stays false, except the two Plan 5
+-- ownership flags (fOwned, endFold) set below.
 BENCH_INP.M = 1
 BENCH_INP.D = 24
 BENCH_INP.sd = 1
@@ -42,6 +43,20 @@ BENCH_INP.fitnessLevel = 5
 BENCH_INP.energyState = 1
 BENCH_INP.rmod = 1
 BENCH_INP.thirstTarget = 0.3
+-- Plan 5 (Task 7): the shipped steady state. The record owns FATIGUE (the writer reads the slow sleep
+-- pressure, here equal to the stat read), the endurance fold is on at full endurance (vanilla moved
+-- nothing since the last write), the coefficients and latency terms neutral, no stress floor.
+BENCH_INP.fOwned = true
+BENCH_INP.fFrozen = false
+BENCH_INP.fS = 0.2
+BENCH_INP.fCirc = 0
+BENCH_INP.fOff = 0
+BENCH_INP.solAddH = 0
+BENCH_INP.solMul = 1
+BENCH_INP.endFold = true
+BENCH_INP.endLast = 1
+BENCH_INP.dmod = 1
+BENCH_INP.stressTarget = 0
 
 -- One fast step over the reused tables; returns the output table. The target of bench.global.
 function NR.bench_fast()
