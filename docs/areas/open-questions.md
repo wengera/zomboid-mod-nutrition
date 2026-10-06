@@ -148,7 +148,6 @@ One line per decision the area pages' `## Open` sections leave to the design, ea
 - Whether any of this mod's state lives in global modData, and whether such a table is ever transmitted — forced by a server-side transmit sending the whole named table to every connection with no per-player target [#2398/C/C-only] ([mp-sync.md#open](mp-sync.md#open)).
 - Whether the design leans on modData surviving a restart — settled: both scopes survived a clean quit and reload and a hard kill lost a minute-old global write, in run `x131p-20261004-192310` [#1294/M/n=1, #2097/M/n=1, #2098/M/n=1, #2758/M/n=1] ([mp-sync.md#open](mp-sync.md#open)).
 - Whether item round trips are keyed on the item id before the net-id run lands — forced by the per-body reallocation being unread for an item several mods append to [#1063/C/C-only/open] ([mp-sync.md#open](mp-sync.md#open)).
-- Whether any nutrient is shown as a moodle before a moodle render is measured — forced by no run having drawn a framework moodle or a widget of the mod's own on a live client [#1295/C/open, #2555/C/inference] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether this mod requires `MoodleFramework`, detects it optionally or draws its own widget — forced by a hard dependency inheriting the framework's version-folder hazard and an optional one needing a fallback widget of its own [#2543/C/C-only, #2547/C/inference, #1070/C/snapshot] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Which slot a fallback widget takes beside a framework stack — forced by the framework placing its moodles by counting vanilla's and its own and nothing else [#2549/C/C-only, #2555/C/inference] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether the panel shows a band label drawn from the client's own trait list — forced by that list reaching the client within about half a second of a server write with no push [#2759/M/n=3], while the mod's own push sent with the write brings the trait within tens of milliseconds [#2595/C/C-only, #2099/M/n=6] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
@@ -277,13 +276,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: reading a multiply-redefined item's id and full type on both sides in the shared script-replay boot, where the two sides agreeing bounds the risk — [experiments.md § Named experiments](../reference/experiments.md), row `X27`.
 
 <a id="x29"></a>
-### X29 — Does `MoodleFramework` load whole on `42.20.4`, does `MF_Config.lua` execute, and does a moodle registered through it render?
-- Whether `MoodleFramework` loads whole on `42.20.4`, whether its `MF_Config.lua` executes and whether a moodle registered through it renders is open [#1295/C/open].
-- Its wholeness is derived from the merge rule rather than measured, nothing has booted it, and it is the one corpus mod whose `mod.info` chain differs between the lint and the engine [#0884/C/C-only/open].
-- Whether it renders a registered moodle at a non-zero level on a client is unmeasured, and that render, with the boot, is what stays open: its registration surface, the value it draws and its missing multiplayer surface are read from its live tree ([moodleframework.md#what-it-does](../facts/other-mods/moodleframework.md#what-it-does), [moodleframework.md#mp](../facts/other-mods/moodleframework.md#mp)) [#2742/M/n=1/open].
-- A band-trait display also rests on the client-side trait route, measured arriving within about half a second with no push [#2759/M/n=3]; the mod's own push sent with the write brings it within tens of milliseconds ([mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)) [#2099/M/n=6].
-- Waiting on it: [new-nutrients.md](new-nutrients.md#open), [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
-- Settled by: one session reading its globals on both sides and, on the client, a registered moodle's level and draw count after a value past a threshold, beside a value that must leave it undrawn and a widget of the mod's own drawn the same way — [experiments.md § Named experiments](../reference/experiments.md), row `X29`.
 
 <a id="x30"></a>
 ### X30 — Does a file-scope `ZomboidGlobals.HungerIncrease` assignment from a mod actually change the drain?

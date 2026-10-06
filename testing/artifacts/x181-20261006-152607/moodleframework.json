@@ -1,0 +1,5140 @@
+{
+ "run_id": "x181-20261006-152607",
+ "session": "Plan 7 Task 4, gate X29: MoodleFramework loads whole (i), MF_Config.lua executes (ii), a framework moodle and the probe's own ISUIElement render on a dedicated-server client (iii), the MoodlesUI exposure fact, the lua.call / client lua.setpath smoke test; one boot of x18-moodleframework",
+ "user": "admin",
+ "profile": {
+  "name": "x18-moodleframework",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x18-moodleframework.toml",
+  "fixture": "default",
+  "description": "PZTestKit + MoodleFramework (workshop 3396446795) + TKX_MF - Plan 7 gate X29.",
+  "mods": [
+   "PZTestKit",
+   "MoodleFramework",
+   "TKX_MF"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "MoodleFramework": "D:\\SteamLibrary\\steamapps\\workshop\\content\\108600\\3396446795\\mods\\MoodleFramework",
+   "TKX_MF": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_MF"
+  },
+  "skip": [],
+  "workshop_items": {
+   "MoodleFramework": "3396446795"
+  },
+  "sandbox": {},
+  "users": [
+   "admin"
+  ]
+ },
+ "commit": "9de2bc6",
+ "probe_commit": "9de2bc6",
+ "probe_dirty": false,
+ "harness_lua_commit": "2f0d3d7",
+ "harness_lua_dirty": false,
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "mf_tree": {
+  "path": "D:/SteamLibrary/steamapps/workshop/content/108600/3396446795/mods/MoodleFramework",
+  "read": "2026-10-06 15:22 -0400",
+  "resolver_pick": "42.20/",
+  "folders": {
+   "42.0": "2026-08-12 00:03",
+   "42.13": "2026-08-12 00:03",
+   "42.20": "2026-08-15 23:36",
+   "common": "2026-09-07 21:54"
+  },
+  "config_file": "common/media/lua/client/MF_Config.lua (42.20/ ships none)",
+  "mod_info": "common/mod.info (42.20/ ships none; 42.0/mod.info also present)"
+ },
+ "baseline": {
+  "tick_run": "x161b-20261006-065751",
+  "tick_path": "body.json phases.J.tick.result.ticksPerSecond",
+  "tick": 10.104011887072808
+ },
+ "constants": {
+  "PROFILE": "x18-moodleframework",
+  "SESSION": "Plan 7 Task 4, gate X29: MoodleFramework loads whole (i), MF_Config.lua executes (ii), a framework moodle and the probe's own ISUIElement render on a dedicated-server client (iii), the MoodlesUI exposure fact, the lua.call / client lua.setpath smoke test; one boot of x18-moodleframework",
+  "ARTIFACT": "moodleframework.json",
+  "USER": "admin",
+  "MF_TREE": "D:/SteamLibrary/steamapps/workshop/content/108600/3396446795/mods/MoodleFramework",
+  "TREE_READ": "2026-10-06 15:22 -0400",
+  "X161B_RUN": "x161b-20261006-065751",
+  "X161B_TICK": 10.104011887072808,
+  "SETTLE_S": 3.0,
+  "GAP_S": 3.0,
+  "CONTROL_V": "0.5",
+  "RENDER_V": "0.95",
+  "PRED_LEVEL_RENDER": 4,
+  "PRED_GBN_RENDER": 1,
+  "TICK_S": 20,
+  "LOAD_PRED_SERVER": 1,
+  "LOAD_PRED_CLIENT": 2,
+  "LOAD_LIMIT_SERVER": 4,
+  "LOAD_LIMIT_CLIENT": 8,
+  "LOG_LIMIT": 80
+ },
+ "predictions": {
+  "F": {
+   "detected": true,
+   "created": true,
+   "moodleFound": true,
+   "errors": 0,
+   "ownOnUI": true,
+   "moodle_type": "table"
+  },
+  "i": {
+   "server_loading_lines": 1,
+   "client_loading_lines": 2,
+   "client_MF": "table",
+   "client_createMoodle": "function",
+   "server_MF": "nil"
+  },
+  "ii": {
+   "client_MF.key": "MoodleFramework",
+   "cfgKey": "MoodleFramework",
+   "client_MF.hasBorder": "function",
+   "server_MF.key": "nil"
+  },
+  "iii_control": {
+   "level": 0,
+   "gbn": 0,
+   "onUI": "nil or false",
+   "renders_delta": 0,
+   "ownRenders_delta": "> 0",
+   "ownRenders_first": "> 0"
+  },
+  "iii_render": {
+   "level": 4,
+   "gbn": 1,
+   "onUI": true,
+   "renders_delta": "> 0",
+   "ownRenders_delta": "> 0"
+  },
+  "iii_backoff": {
+   "level": 0,
+   "gbn": 0,
+   "onUI": false,
+   "renders_delta": 0
+  },
+  "X": {
+   "MoodlesUI": "resolved",
+   "moodlesUI": true,
+   "stackBox": "x, y, w, h all numbers"
+  },
+  "L": {
+   "getTimestampMs": "ok, numeric r1, both sides",
+   "MF.getMoodle": "ok, r1_keys > 0",
+   "MoodlesUI.getInstance": "ok, r1_type userdata",
+   "setpath": "ok, after 7"
+  },
+  "T": {
+   "server_tps": "near 10.104011887072808 (x161b-20261006-065751)",
+   "client_tps": "> 0"
+  }
+ },
+ "deviations": [
+  "The experiments.md X29 row names x13-moodleframework.toml and x131_moodleframework.py; the shipped profile is x18-moodleframework.toml and the driver x181_moodleframework.py (the plan's naming).",
+  "TKX_MF calls MF.createMoodle at OnGameBoot (behind the type test, #2547), not at file scope as the row words it; the widget of its own is built at OnCreatePlayer, not on the TKX_mf key.",
+  "A back-off write (TKX_mf 0.5 after 0.95) is added after the render leg: the widget leaving the UI manager is the row's control read the other way.",
+  "tick.rate is armed on both sides in one 20 s window."
+ ],
+ "world_changes": {
+  "restored": "the golden fixture restored into the run dir",
+  "left_in_place": [
+   "client player modData key TKX_mf (a string)",
+   "TKX_MF.setpathSmoke"
+  ]
+ },
+ "steps": [
+  {
+   "step": "F_tkv",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "side": "client",
+   "wall_before": 82.527,
+   "wall_after": 83.033,
+   "epoch_ms_before": 1791314850225,
+   "epoch_ms_after": 1791314850731,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "F_detected",
+   "cmd": "lua.global",
+   "args": "TKX_MF.detected",
+   "side": "client",
+   "wall_before": 83.033,
+   "wall_after": 83.542,
+   "epoch_ms_before": 1791314850731,
+   "epoch_ms_after": 1791314851240,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.detected",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "F_created",
+   "cmd": "lua.global",
+   "args": "TKX_MF.created",
+   "side": "client",
+   "wall_before": 83.542,
+   "wall_after": 84.05,
+   "epoch_ms_before": 1791314851240,
+   "epoch_ms_after": 1791314851748,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.created",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "F_moodleFound",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodleFound",
+   "side": "client",
+   "wall_before": 84.05,
+   "wall_after": 84.558,
+   "epoch_ms_before": 1791314851748,
+   "epoch_ms_after": 1791314852255,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodleFound",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "F_errors",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 84.558,
+   "wall_after": 85.068,
+   "epoch_ms_before": 1791314852255,
+   "epoch_ms_after": 1791314852766,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "F_lastError",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 85.068,
+   "wall_after": 85.577,
+   "epoch_ms_before": 1791314852766,
+   "epoch_ms_after": 1791314853275,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "F_ownOnUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownOnUI",
+   "side": "client",
+   "wall_before": 85.577,
+   "wall_after": 86.083,
+   "epoch_ms_before": 1791314853275,
+   "epoch_ms_after": 1791314853781,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownOnUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "F_moodlesUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodlesUI",
+   "side": "client",
+   "wall_before": 86.083,
+   "wall_after": 86.593,
+   "epoch_ms_before": 1791314853781,
+   "epoch_ms_after": 1791314854291,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodlesUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "F_cfgKey",
+   "cmd": "lua.global",
+   "args": "TKX_MF.cfgKey",
+   "side": "client",
+   "wall_before": 86.593,
+   "wall_after": 87.102,
+   "epoch_ms_before": 1791314854291,
+   "epoch_ms_after": 1791314854800,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.cfgKey",
+    "type": "string",
+    "resolved": true,
+    "value": "MoodleFramework"
+   }
+  },
+  {
+   "step": "F_lastSet",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastSet",
+   "side": "client",
+   "wall_before": 87.102,
+   "wall_after": 87.359,
+   "epoch_ms_before": 1791314854800,
+   "epoch_ms_after": 1791314855057,
+   "took": 0.257,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastSet",
+    "failedAt": "lastSet",
+    "resolved": false
+   }
+  },
+  {
+   "step": "F_level",
+   "cmd": "lua.global",
+   "args": "TKX_MF.level",
+   "side": "client",
+   "wall_before": 87.359,
+   "wall_after": 87.864,
+   "epoch_ms_before": 1791314855057,
+   "epoch_ms_after": 1791314855562,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.level",
+    "failedAt": "level",
+    "resolved": false
+   }
+  },
+  {
+   "step": "F_gbn",
+   "cmd": "lua.global",
+   "args": "TKX_MF.gbn",
+   "side": "client",
+   "wall_before": 87.864,
+   "wall_after": 88.37,
+   "epoch_ms_before": 1791314855562,
+   "epoch_ms_after": 1791314856068,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.gbn",
+    "failedAt": "gbn",
+    "resolved": false
+   }
+  },
+  {
+   "step": "F_onUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.onUI",
+   "side": "client",
+   "wall_before": 88.37,
+   "wall_after": 88.878,
+   "epoch_ms_before": 1791314856068,
+   "epoch_ms_after": 1791314856576,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.onUI",
+    "failedAt": "onUI",
+    "resolved": false
+   }
+  },
+  {
+   "step": "F_renders",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 88.878,
+   "wall_after": 89.387,
+   "epoch_ms_before": 1791314856576,
+   "epoch_ms_after": 1791314857085,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "F_ownRenders",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 89.387,
+   "wall_after": 89.894,
+   "epoch_ms_before": 1791314857085,
+   "epoch_ms_after": 1791314857592,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 559
+   }
+  },
+  {
+   "step": "F_moodle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle",
+   "side": "client",
+   "wall_before": 89.894,
+   "wall_after": 90.4,
+   "epoch_ms_before": 1791314857592,
+   "epoch_ms_after": 1791314858098,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 58
+   }
+  },
+  {
+   "step": "F_own",
+   "cmd": "lua.global",
+   "args": "TKX_MF.own",
+   "side": "client",
+   "wall_before": 90.4,
+   "wall_after": 90.908,
+   "epoch_ms_before": 1791314858098,
+   "epoch_ms_after": 1791314858606,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.own",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 23
+   }
+  },
+  {
+   "step": "F_box_x",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.x",
+   "side": "client",
+   "wall_before": 90.909,
+   "wall_after": 91.419,
+   "epoch_ms_before": 1791314858606,
+   "epoch_ms_after": 1791314859117,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.x",
+    "type": "number",
+    "resolved": true,
+    "value": 1238
+   }
+  },
+  {
+   "step": "F_box_y",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.y",
+   "side": "client",
+   "wall_before": 91.419,
+   "wall_after": 91.931,
+   "epoch_ms_before": 1791314859117,
+   "epoch_ms_after": 1791314859629,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.y",
+    "type": "number",
+    "resolved": true,
+    "value": 424
+   }
+  },
+  {
+   "step": "F_box_w",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.w",
+   "side": "client",
+   "wall_before": 91.931,
+   "wall_after": 92.439,
+   "epoch_ms_before": 1791314859629,
+   "epoch_ms_after": 1791314860137,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.w",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "F_box_h",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.h",
+   "side": "client",
+   "wall_before": 92.439,
+   "wall_after": 92.952,
+   "epoch_ms_before": 1791314860137,
+   "epoch_ms_after": 1791314860650,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.h",
+    "type": "number",
+    "resolved": true,
+    "value": 720
+   }
+  },
+  {
+   "step": "chk_F_tkerr",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 92.952,
+   "wall_after": 93.46,
+   "epoch_ms_before": 1791314860650,
+   "epoch_ms_after": 1791314861158,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "chk_F_tkle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 93.46,
+   "wall_after": 93.973,
+   "epoch_ms_before": 1791314861158,
+   "epoch_ms_after": 1791314861671,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "i_c_MF",
+   "cmd": "lua.global",
+   "args": "MF",
+   "side": "client",
+   "wall_before": 93.975,
+   "wall_after": 94.481,
+   "epoch_ms_before": 1791314861673,
+   "epoch_ms_after": 1791314862179,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "MF",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 27
+   }
+  },
+  {
+   "step": "i_c_MF.createMoodle",
+   "cmd": "lua.global",
+   "args": "MF.createMoodle",
+   "side": "client",
+   "wall_before": 94.481,
+   "wall_after": 94.993,
+   "epoch_ms_before": 1791314862179,
+   "epoch_ms_after": 1791314862691,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "MF.createMoodle",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "i_c_MF.getMoodle",
+   "cmd": "lua.global",
+   "args": "MF.getMoodle",
+   "side": "client",
+   "wall_before": 94.993,
+   "wall_after": 95.503,
+   "epoch_ms_before": 1791314862691,
+   "epoch_ms_after": 1791314863201,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "MF.getMoodle",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "i_c_MF.ISMoodle",
+   "cmd": "lua.global",
+   "args": "MF.ISMoodle",
+   "side": "client",
+   "wall_before": 95.503,
+   "wall_after": 96.013,
+   "epoch_ms_before": 1791314863201,
+   "epoch_ms_after": 1791314863711,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "MF.ISMoodle",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 31
+   }
+  },
+  {
+   "step": "i_c_MF.MoodlesStorage",
+   "cmd": "lua.global",
+   "args": "MF.MoodlesStorage",
+   "side": "client",
+   "wall_before": 96.013,
+   "wall_after": 96.521,
+   "epoch_ms_before": 1791314863711,
+   "epoch_ms_after": 1791314864218,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "MF.MoodlesStorage",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 1
+   }
+  },
+  {
+   "step": "i_s_MF",
+   "cmd": "lua.global",
+   "args": "MF",
+   "side": "server",
+   "wall_before": 96.521,
+   "wall_after": 97.028,
+   "epoch_ms_before": 1791314864219,
+   "epoch_ms_after": 1791314864726,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "MF",
+    "failedAt": "MF",
+    "resolved": false
+   }
+  },
+  {
+   "step": "i_s_MF.createMoodle",
+   "cmd": "lua.global",
+   "args": "MF.createMoodle",
+   "side": "server",
+   "wall_before": 97.028,
+   "wall_after": 98.038,
+   "epoch_ms_before": 1791314864726,
+   "epoch_ms_after": 1791314865736,
+   "took": 1.01,
+   "ack": {
+    "side": "server",
+    "name": "MF.createMoodle",
+    "failedAt": "MF",
+    "resolved": false
+   }
+  },
+  {
+   "step": "ii_c_MF.key",
+   "cmd": "lua.global",
+   "args": "MF.key",
+   "side": "client",
+   "wall_before": 98.049,
+   "wall_after": 98.562,
+   "epoch_ms_before": 1791314865747,
+   "epoch_ms_after": 1791314866260,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "MF.key",
+    "type": "string",
+    "resolved": true,
+    "value": "MoodleFramework"
+   }
+  },
+  {
+   "step": "ii_c_MF.hasBorder",
+   "cmd": "lua.global",
+   "args": "MF.hasBorder",
+   "side": "client",
+   "wall_before": 98.562,
+   "wall_after": 99.075,
+   "epoch_ms_before": 1791314866260,
+   "epoch_ms_after": 1791314866773,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "MF.hasBorder",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "ii_c_MF.hasBackground",
+   "cmd": "lua.global",
+   "args": "MF.hasBackground",
+   "side": "client",
+   "wall_before": 99.075,
+   "wall_after": 99.589,
+   "epoch_ms_before": 1791314866773,
+   "epoch_ms_after": 1791314867287,
+   "took": 0.514,
+   "ack": {
+    "side": "client",
+    "name": "MF.hasBackground",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "ii_c_MF.hasBGColor",
+   "cmd": "lua.global",
+   "args": "MF.hasBGColor",
+   "side": "client",
+   "wall_before": 99.589,
+   "wall_after": 100.097,
+   "epoch_ms_before": 1791314867287,
+   "epoch_ms_after": 1791314867795,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "MF.hasBGColor",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "ii_c_MF.overrideGray",
+   "cmd": "lua.global",
+   "args": "MF.overrideGray",
+   "side": "client",
+   "wall_before": 100.097,
+   "wall_after": 100.354,
+   "epoch_ms_before": 1791314867795,
+   "epoch_ms_after": 1791314868051,
+   "took": 0.257,
+   "ack": {
+    "side": "client",
+    "name": "MF.overrideGray",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "ii_c_MF.color",
+   "cmd": "lua.global",
+   "args": "MF.color",
+   "side": "client",
+   "wall_before": 100.354,
+   "wall_after": 100.866,
+   "epoch_ms_before": 1791314868051,
+   "epoch_ms_after": 1791314868564,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "MF.color",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 4
+   }
+  },
+  {
+   "step": "ii_cfgKey",
+   "cmd": "lua.global",
+   "args": "TKX_MF.cfgKey",
+   "side": "client",
+   "wall_before": 100.866,
+   "wall_after": 101.377,
+   "epoch_ms_before": 1791314868564,
+   "epoch_ms_after": 1791314869075,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.cfgKey",
+    "type": "string",
+    "resolved": true,
+    "value": "MoodleFramework"
+   }
+  },
+  {
+   "step": "ii_s_key",
+   "cmd": "lua.global",
+   "args": "MF.key",
+   "side": "server",
+   "wall_before": 101.378,
+   "wall_after": 101.885,
+   "epoch_ms_before": 1791314869075,
+   "epoch_ms_after": 1791314869583,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "MF.key",
+    "failedAt": "MF",
+    "resolved": false
+   }
+  },
+  {
+   "step": "L_c_ts",
+   "cmd": "lua.call",
+   "args": "getTimestampMs",
+   "side": "client",
+   "wall_before": 101.889,
+   "wall_after": 102.399,
+   "epoch_ms_before": 1791314869587,
+   "epoch_ms_after": 1791314870097,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "getTimestampMs",
+    "nargs": 0,
+    "r1": 1791314870045
+   }
+  },
+  {
+   "step": "L_s_ts",
+   "cmd": "lua.call",
+   "args": "getTimestampMs",
+   "side": "server",
+   "wall_before": 102.399,
+   "wall_after": 103.161,
+   "epoch_ms_before": 1791314870097,
+   "epoch_ms_after": 1791314870859,
+   "took": 0.762,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "getTimestampMs",
+    "nargs": 0,
+    "r1": 1791314870666
+   }
+  },
+  {
+   "step": "L_c_gm",
+   "cmd": "lua.call",
+   "args": "MF.getMoodle TKX 0",
+   "side": "client",
+   "wall_before": 103.161,
+   "wall_after": 103.415,
+   "epoch_ms_before": 1791314870859,
+   "epoch_ms_after": 1791314871113,
+   "took": 0.254,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "MF.getMoodle",
+    "nargs": 2,
+    "r1_keys": 58
+   }
+  },
+  {
+   "step": "L_c_gi",
+   "cmd": "lua.call",
+   "args": "MoodlesUI.getInstance",
+   "side": "client",
+   "wall_before": 103.416,
+   "wall_after": 103.921,
+   "epoch_ms_before": 1791314871113,
+   "epoch_ms_after": 1791314871618,
+   "took": 0.505,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "MoodlesUI.getInstance",
+    "nargs": 0,
+    "r1_type": "userdata"
+   }
+  },
+  {
+   "step": "L_c_miss",
+   "cmd": "lua.call",
+   "args": "TKX_MF.noSuchFn",
+   "side": "client",
+   "wall_before": 103.921,
+   "wall_after": 104.432,
+   "epoch_ms_before": 1791314871618,
+   "epoch_ms_after": 1791314872130,
+   "took": 0.511,
+   "ack": {
+    "ok": false,
+    "side": "client",
+    "path": "TKX_MF.noSuchFn",
+    "failedAt": "noSuchFn"
+   }
+  },
+  {
+   "step": "L_c_sp",
+   "cmd": "lua.setpath",
+   "args": "TKX_MF.setpathSmoke 7",
+   "side": "client",
+   "wall_before": 104.432,
+   "wall_after": 104.941,
+   "epoch_ms_before": 1791314872130,
+   "epoch_ms_after": 1791314872639,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "TKX_MF.setpathSmoke",
+    "before": "nil",
+    "after": "7"
+   }
+  },
+  {
+   "step": "L_c_sp_read",
+   "cmd": "lua.global",
+   "args": "TKX_MF.setpathSmoke",
+   "side": "client",
+   "wall_before": 104.941,
+   "wall_after": 105.447,
+   "epoch_ms_before": 1791314872639,
+   "epoch_ms_after": 1791314873145,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.setpathSmoke",
+    "type": "number",
+    "resolved": true,
+    "value": 7
+   }
+  },
+  {
+   "step": "iii_pre_moodle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle",
+   "side": "client",
+   "wall_before": 105.451,
+   "wall_after": 105.957,
+   "epoch_ms_before": 1791314873149,
+   "epoch_ms_after": 1791314873655,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 58
+   }
+  },
+  {
+   "step": "iii_pre_created",
+   "cmd": "lua.global",
+   "args": "TKX_MF.created",
+   "side": "client",
+   "wall_before": 105.957,
+   "wall_after": 106.464,
+   "epoch_ms_before": 1791314873655,
+   "epoch_ms_after": 1791314874161,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.created",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "iii_pre_wrapped",
+   "cmd": "lua.global",
+   "args": "TKX_MF_Wrapped",
+   "side": "client",
+   "wall_before": 106.464,
+   "wall_after": 106.969,
+   "epoch_ms_before": 1791314874161,
+   "epoch_ms_after": 1791314874667,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF_Wrapped",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "iii_pre_mrender",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.render",
+   "side": "client",
+   "wall_before": 106.969,
+   "wall_after": 107.484,
+   "epoch_ms_before": 1791314874667,
+   "epoch_ms_after": 1791314875182,
+   "took": 0.515,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.render",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "iii_control_set",
+   "cmd": "moddata.set",
+   "args": "TKX_mf 0.5",
+   "side": "client",
+   "wall_before": 107.484,
+   "wall_after": 107.99,
+   "epoch_ms_before": 1791314875182,
+   "epoch_ms_after": 1791314875688,
+   "took": 0.506,
+   "ack": "set TKX_mf",
+   "ack_shape": "str"
+  },
+  {
+   "step": "iii_control_lastSet",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastSet",
+   "side": "client",
+   "wall_before": 110.991,
+   "wall_after": 111.498,
+   "epoch_ms_before": 1791314878689,
+   "epoch_ms_after": 1791314879196,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastSet",
+    "type": "string",
+    "resolved": true,
+    "value": "0.5"
+   }
+  },
+  {
+   "step": "iii_control_level",
+   "cmd": "lua.global",
+   "args": "TKX_MF.level",
+   "side": "client",
+   "wall_before": 111.498,
+   "wall_after": 112.004,
+   "epoch_ms_before": 1791314879196,
+   "epoch_ms_after": 1791314879702,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.level",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_control_gbn",
+   "cmd": "lua.global",
+   "args": "TKX_MF.gbn",
+   "side": "client",
+   "wall_before": 112.004,
+   "wall_after": 112.51,
+   "epoch_ms_before": 1791314879702,
+   "epoch_ms_after": 1791314880208,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.gbn",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_control_onUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.onUI",
+   "side": "client",
+   "wall_before": 112.51,
+   "wall_after": 113.016,
+   "epoch_ms_before": 1791314880208,
+   "epoch_ms_after": 1791314880714,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.onUI",
+    "failedAt": "onUI",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_control_errors",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 113.016,
+   "wall_after": 113.522,
+   "epoch_ms_before": 1791314880714,
+   "epoch_ms_after": 1791314881220,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_control_lastError",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 113.522,
+   "wall_after": 114.028,
+   "epoch_ms_before": 1791314881220,
+   "epoch_ms_after": 1791314881726,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_control_m_addedToUIManager",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.addedToUIManager",
+   "side": "client",
+   "wall_before": 114.028,
+   "wall_after": 114.534,
+   "epoch_ms_before": 1791314881726,
+   "epoch_ms_after": 1791314882231,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.addedToUIManager",
+    "failedAt": "addedToUIManager",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_control_m_x",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.x",
+   "side": "client",
+   "wall_before": 114.534,
+   "wall_after": 115.041,
+   "epoch_ms_before": 1791314882231,
+   "epoch_ms_after": 1791314882739,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.x",
+    "type": "number",
+    "resolved": true,
+    "value": 1238
+   }
+  },
+  {
+   "step": "iii_control_m_y",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.y",
+   "side": "client",
+   "wall_before": 115.041,
+   "wall_after": 115.547,
+   "epoch_ms_before": 1791314882739,
+   "epoch_ms_after": 1791314883244,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.y",
+    "type": "number",
+    "resolved": true,
+    "value": 120
+   }
+  },
+  {
+   "step": "iii_control_m_width",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.width",
+   "side": "client",
+   "wall_before": 115.547,
+   "wall_after": 116.054,
+   "epoch_ms_before": 1791314883245,
+   "epoch_ms_after": 1791314883751,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.width",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "iii_control_m_height",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.height",
+   "side": "client",
+   "wall_before": 116.054,
+   "wall_after": 116.56,
+   "epoch_ms_before": 1791314883751,
+   "epoch_ms_after": 1791314884258,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.height",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "iii_control_m_name",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.name",
+   "side": "client",
+   "wall_before": 116.56,
+   "wall_after": 117.068,
+   "epoch_ms_before": 1791314884258,
+   "epoch_ms_after": 1791314884766,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.name",
+    "type": "string",
+    "resolved": true,
+    "value": "TKX"
+   }
+  },
+  {
+   "step": "iii_control_1_r",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 117.068,
+   "wall_after": 117.573,
+   "epoch_ms_before": 1791314884766,
+   "epoch_ms_after": 1791314885271,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_control_1_o",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 117.573,
+   "wall_after": 118.079,
+   "epoch_ms_before": 1791314885271,
+   "epoch_ms_after": 1791314885776,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 2239
+   }
+  },
+  {
+   "step": "iii_control_2_r",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 121.079,
+   "wall_after": 121.584,
+   "epoch_ms_before": 1791314888777,
+   "epoch_ms_after": 1791314889282,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_control_2_o",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 121.584,
+   "wall_after": 122.091,
+   "epoch_ms_before": 1791314889282,
+   "epoch_ms_after": 1791314889789,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 2479
+   }
+  },
+  {
+   "step": "chk_iii_control_tkerr",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 122.092,
+   "wall_after": 122.597,
+   "epoch_ms_before": 1791314889789,
+   "epoch_ms_after": 1791314890295,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "chk_iii_control_tkle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 122.597,
+   "wall_after": 122.852,
+   "epoch_ms_before": 1791314890295,
+   "epoch_ms_after": 1791314890550,
+   "took": 0.255,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_render_set",
+   "cmd": "moddata.set",
+   "args": "TKX_mf 0.95",
+   "side": "client",
+   "wall_before": 122.852,
+   "wall_after": 123.359,
+   "epoch_ms_before": 1791314890550,
+   "epoch_ms_after": 1791314891056,
+   "took": 0.507,
+   "ack": "set TKX_mf",
+   "ack_shape": "str"
+  },
+  {
+   "step": "iii_render_lastSet",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastSet",
+   "side": "client",
+   "wall_before": 126.359,
+   "wall_after": 126.865,
+   "epoch_ms_before": 1791314894057,
+   "epoch_ms_after": 1791314894563,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastSet",
+    "type": "string",
+    "resolved": true,
+    "value": "0.95"
+   }
+  },
+  {
+   "step": "iii_render_level",
+   "cmd": "lua.global",
+   "args": "TKX_MF.level",
+   "side": "client",
+   "wall_before": 126.865,
+   "wall_after": 127.371,
+   "epoch_ms_before": 1791314894563,
+   "epoch_ms_after": 1791314895069,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.level",
+    "type": "number",
+    "resolved": true,
+    "value": 4
+   }
+  },
+  {
+   "step": "iii_render_gbn",
+   "cmd": "lua.global",
+   "args": "TKX_MF.gbn",
+   "side": "client",
+   "wall_before": 127.371,
+   "wall_after": 127.881,
+   "epoch_ms_before": 1791314895069,
+   "epoch_ms_after": 1791314895579,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.gbn",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "iii_render_onUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.onUI",
+   "side": "client",
+   "wall_before": 127.881,
+   "wall_after": 128.389,
+   "epoch_ms_before": 1791314895579,
+   "epoch_ms_after": 1791314896087,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.onUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "iii_render_errors",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 128.389,
+   "wall_after": 128.9,
+   "epoch_ms_before": 1791314896087,
+   "epoch_ms_after": 1791314896598,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_render_lastError",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 128.9,
+   "wall_after": 129.413,
+   "epoch_ms_before": 1791314896598,
+   "epoch_ms_after": 1791314897111,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_render_m_addedToUIManager",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.addedToUIManager",
+   "side": "client",
+   "wall_before": 129.413,
+   "wall_after": 129.922,
+   "epoch_ms_before": 1791314897111,
+   "epoch_ms_after": 1791314897620,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.addedToUIManager",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "iii_render_m_x",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.x",
+   "side": "client",
+   "wall_before": 129.922,
+   "wall_after": 130.429,
+   "epoch_ms_before": 1791314897620,
+   "epoch_ms_after": 1791314898127,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.x",
+    "type": "number",
+    "resolved": true,
+    "value": 1238
+   }
+  },
+  {
+   "step": "iii_render_m_y",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.y",
+   "side": "client",
+   "wall_before": 130.429,
+   "wall_after": 130.937,
+   "epoch_ms_before": 1791314898127,
+   "epoch_ms_after": 1791314898635,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.y",
+    "type": "number",
+    "resolved": true,
+    "value": 120
+   }
+  },
+  {
+   "step": "iii_render_m_width",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.width",
+   "side": "client",
+   "wall_before": 130.937,
+   "wall_after": 131.444,
+   "epoch_ms_before": 1791314898635,
+   "epoch_ms_after": 1791314899142,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.width",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "iii_render_m_height",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.height",
+   "side": "client",
+   "wall_before": 131.444,
+   "wall_after": 131.956,
+   "epoch_ms_before": 1791314899142,
+   "epoch_ms_after": 1791314899654,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.height",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "iii_render_m_name",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.name",
+   "side": "client",
+   "wall_before": 131.956,
+   "wall_after": 132.463,
+   "epoch_ms_before": 1791314899654,
+   "epoch_ms_after": 1791314900160,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.name",
+    "type": "string",
+    "resolved": true,
+    "value": "TKX"
+   }
+  },
+  {
+   "step": "iii_render_1_r",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 132.463,
+   "wall_after": 132.973,
+   "epoch_ms_before": 1791314900160,
+   "epoch_ms_after": 1791314900671,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 569
+   }
+  },
+  {
+   "step": "iii_render_1_o",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 132.973,
+   "wall_after": 133.483,
+   "epoch_ms_before": 1791314900671,
+   "epoch_ms_after": 1791314901181,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 3169
+   }
+  },
+  {
+   "step": "iii_render_2_r",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 136.483,
+   "wall_after": 136.993,
+   "epoch_ms_before": 1791314904181,
+   "epoch_ms_after": 1791314904691,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 809
+   }
+  },
+  {
+   "step": "iii_render_2_o",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 136.993,
+   "wall_after": 137.503,
+   "epoch_ms_before": 1791314904691,
+   "epoch_ms_after": 1791314905201,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 3409
+   }
+  },
+  {
+   "step": "chk_iii_render_tkerr",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 137.503,
+   "wall_after": 138.014,
+   "epoch_ms_before": 1791314905201,
+   "epoch_ms_after": 1791314905712,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "chk_iii_render_tkle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 138.014,
+   "wall_after": 138.522,
+   "epoch_ms_before": 1791314905712,
+   "epoch_ms_after": 1791314906220,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_backoff_set",
+   "cmd": "moddata.set",
+   "args": "TKX_mf 0.5",
+   "side": "client",
+   "wall_before": 138.522,
+   "wall_after": 139.031,
+   "epoch_ms_before": 1791314906220,
+   "epoch_ms_after": 1791314906729,
+   "took": 0.509,
+   "ack": "set TKX_mf",
+   "ack_shape": "str"
+  },
+  {
+   "step": "iii_backoff_lastSet",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastSet",
+   "side": "client",
+   "wall_before": 142.031,
+   "wall_after": 142.544,
+   "epoch_ms_before": 1791314909729,
+   "epoch_ms_after": 1791314910242,
+   "took": 0.513,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastSet",
+    "type": "string",
+    "resolved": true,
+    "value": "0.5"
+   }
+  },
+  {
+   "step": "iii_backoff_level",
+   "cmd": "lua.global",
+   "args": "TKX_MF.level",
+   "side": "client",
+   "wall_before": 142.544,
+   "wall_after": 143.055,
+   "epoch_ms_before": 1791314910242,
+   "epoch_ms_after": 1791314910753,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.level",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_backoff_gbn",
+   "cmd": "lua.global",
+   "args": "TKX_MF.gbn",
+   "side": "client",
+   "wall_before": 143.055,
+   "wall_after": 143.563,
+   "epoch_ms_before": 1791314910753,
+   "epoch_ms_after": 1791314911261,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.gbn",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_backoff_onUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.onUI",
+   "side": "client",
+   "wall_before": 143.563,
+   "wall_after": 144.072,
+   "epoch_ms_before": 1791314911261,
+   "epoch_ms_after": 1791314911770,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.onUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": false
+   }
+  },
+  {
+   "step": "iii_backoff_errors",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 144.072,
+   "wall_after": 144.577,
+   "epoch_ms_before": 1791314911770,
+   "epoch_ms_after": 1791314912275,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "iii_backoff_lastError",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 144.577,
+   "wall_after": 145.084,
+   "epoch_ms_before": 1791314912275,
+   "epoch_ms_after": 1791314912782,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "iii_backoff_m_addedToUIManager",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.addedToUIManager",
+   "side": "client",
+   "wall_before": 145.084,
+   "wall_after": 145.59,
+   "epoch_ms_before": 1791314912782,
+   "epoch_ms_after": 1791314913288,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.addedToUIManager",
+    "type": "boolean",
+    "resolved": true,
+    "value": false
+   }
+  },
+  {
+   "step": "iii_backoff_m_x",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.x",
+   "side": "client",
+   "wall_before": 145.59,
+   "wall_after": 146.102,
+   "epoch_ms_before": 1791314913288,
+   "epoch_ms_after": 1791314913800,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.x",
+    "type": "number",
+    "resolved": true,
+    "value": 1238
+   }
+  },
+  {
+   "step": "iii_backoff_m_y",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.y",
+   "side": "client",
+   "wall_before": 146.102,
+   "wall_after": 146.359,
+   "epoch_ms_before": 1791314913800,
+   "epoch_ms_after": 1791314914057,
+   "took": 0.257,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.y",
+    "type": "number",
+    "resolved": true,
+    "value": 120
+   }
+  },
+  {
+   "step": "iii_backoff_m_width",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.width",
+   "side": "client",
+   "wall_before": 146.359,
+   "wall_after": 146.866,
+   "epoch_ms_before": 1791314914057,
+   "epoch_ms_after": 1791314914563,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.width",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "iii_backoff_m_height",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.height",
+   "side": "client",
+   "wall_before": 146.866,
+   "wall_after": 147.371,
+   "epoch_ms_before": 1791314914563,
+   "epoch_ms_after": 1791314915068,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.height",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "iii_backoff_m_name",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodle.name",
+   "side": "client",
+   "wall_before": 147.371,
+   "wall_after": 147.876,
+   "epoch_ms_before": 1791314915068,
+   "epoch_ms_after": 1791314915574,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodle.name",
+    "type": "string",
+    "resolved": true,
+    "value": "TKX"
+   }
+  },
+  {
+   "step": "iii_backoff_1_r",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 147.877,
+   "wall_after": 148.382,
+   "epoch_ms_before": 1791314915574,
+   "epoch_ms_after": 1791314916080,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 930
+   }
+  },
+  {
+   "step": "iii_backoff_1_o",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 148.382,
+   "wall_after": 148.891,
+   "epoch_ms_before": 1791314916080,
+   "epoch_ms_after": 1791314916589,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 4099
+   }
+  },
+  {
+   "step": "iii_backoff_2_r",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 151.891,
+   "wall_after": 152.396,
+   "epoch_ms_before": 1791314919589,
+   "epoch_ms_after": 1791314920094,
+   "took": 0.505,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 930
+   }
+  },
+  {
+   "step": "iii_backoff_2_o",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 152.396,
+   "wall_after": 152.903,
+   "epoch_ms_before": 1791314920094,
+   "epoch_ms_after": 1791314920601,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 4339
+   }
+  },
+  {
+   "step": "chk_iii_backoff_tkerr",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 152.903,
+   "wall_after": 153.415,
+   "epoch_ms_before": 1791314920601,
+   "epoch_ms_after": 1791314921113,
+   "took": 0.512,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "chk_iii_backoff_tkle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 153.415,
+   "wall_after": 153.926,
+   "epoch_ms_before": 1791314921113,
+   "epoch_ms_after": 1791314921623,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "X_cls",
+   "cmd": "lua.global",
+   "args": "MoodlesUI",
+   "side": "client",
+   "wall_before": 153.93,
+   "wall_after": 154.437,
+   "epoch_ms_before": 1791314921628,
+   "epoch_ms_after": 1791314922135,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "MoodlesUI",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 3
+   }
+  },
+  {
+   "step": "X_gi",
+   "cmd": "lua.global",
+   "args": "MoodlesUI.getInstance",
+   "side": "client",
+   "wall_before": 154.437,
+   "wall_after": 154.943,
+   "epoch_ms_before": 1791314922135,
+   "epoch_ms_after": 1791314922640,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "MoodlesUI.getInstance",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "X_flag",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodlesUI",
+   "side": "client",
+   "wall_before": 154.943,
+   "wall_after": 155.45,
+   "epoch_ms_before": 1791314922640,
+   "epoch_ms_after": 1791314923148,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodlesUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "X_box_x",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.x",
+   "side": "client",
+   "wall_before": 155.45,
+   "wall_after": 155.96,
+   "epoch_ms_before": 1791314923148,
+   "epoch_ms_after": 1791314923658,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.x",
+    "type": "number",
+    "resolved": true,
+    "value": 1238
+   }
+  },
+  {
+   "step": "X_box_y",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.y",
+   "side": "client",
+   "wall_before": 155.96,
+   "wall_after": 156.466,
+   "epoch_ms_before": 1791314923658,
+   "epoch_ms_after": 1791314924164,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.y",
+    "type": "number",
+    "resolved": true,
+    "value": 424
+   }
+  },
+  {
+   "step": "X_box_w",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.w",
+   "side": "client",
+   "wall_before": 156.466,
+   "wall_after": 156.976,
+   "epoch_ms_before": 1791314924164,
+   "epoch_ms_after": 1791314924674,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.w",
+    "type": "number",
+    "resolved": true,
+    "value": 32
+   }
+  },
+  {
+   "step": "X_box_h",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox.h",
+   "side": "client",
+   "wall_before": 156.976,
+   "wall_after": 157.484,
+   "epoch_ms_before": 1791314924674,
+   "epoch_ms_after": 1791314925181,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox.h",
+    "type": "number",
+    "resolved": true,
+    "value": 720
+   }
+  },
+  {
+   "step": "X_box",
+   "cmd": "lua.global",
+   "args": "TKX_MF.stackBox",
+   "side": "client",
+   "wall_before": 157.484,
+   "wall_after": 157.99,
+   "epoch_ms_before": 1791314925182,
+   "epoch_ms_after": 1791314925688,
+   "took": 0.506,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.stackBox",
+    "type": "table",
+    "resolved": true,
+    "keyCount": 4
+   }
+  },
+  {
+   "step": "T_arm_s",
+   "cmd": "tick.rate",
+   "args": "20",
+   "side": "server",
+   "wall_before": 157.994,
+   "wall_after": 159.002,
+   "epoch_ms_before": 1791314925692,
+   "epoch_ms_after": 1791314926700,
+   "took": 1.008,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 20,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "T_arm_c",
+   "cmd": "tick.rate",
+   "args": "20",
+   "side": "client",
+   "wall_before": 159.002,
+   "wall_after": 159.509,
+   "epoch_ms_before": 1791314926700,
+   "epoch_ms_after": 1791314927207,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "armed": true,
+    "seconds": 20,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "Z_detected",
+   "cmd": "lua.global",
+   "args": "TKX_MF.detected",
+   "side": "client",
+   "wall_before": 179.564,
+   "wall_after": 180.073,
+   "epoch_ms_before": 1791314947262,
+   "epoch_ms_after": 1791314947771,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.detected",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "Z_created",
+   "cmd": "lua.global",
+   "args": "TKX_MF.created",
+   "side": "client",
+   "wall_before": 180.073,
+   "wall_after": 180.582,
+   "epoch_ms_before": 1791314947771,
+   "epoch_ms_after": 1791314948280,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.created",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "Z_moodleFound",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodleFound",
+   "side": "client",
+   "wall_before": 180.582,
+   "wall_after": 181.091,
+   "epoch_ms_before": 1791314948280,
+   "epoch_ms_after": 1791314948789,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodleFound",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "Z_errors",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 181.091,
+   "wall_after": 181.6,
+   "epoch_ms_before": 1791314948789,
+   "epoch_ms_after": 1791314949298,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "Z_lastError",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 181.6,
+   "wall_after": 181.86,
+   "epoch_ms_before": 1791314949298,
+   "epoch_ms_after": 1791314949558,
+   "took": 0.26,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  },
+  {
+   "step": "Z_ownOnUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownOnUI",
+   "side": "client",
+   "wall_before": 181.86,
+   "wall_after": 182.37,
+   "epoch_ms_before": 1791314949558,
+   "epoch_ms_after": 1791314950068,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownOnUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "Z_moodlesUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.moodlesUI",
+   "side": "client",
+   "wall_before": 182.37,
+   "wall_after": 182.879,
+   "epoch_ms_before": 1791314950068,
+   "epoch_ms_after": 1791314950577,
+   "took": 0.509,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.moodlesUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "Z_cfgKey",
+   "cmd": "lua.global",
+   "args": "TKX_MF.cfgKey",
+   "side": "client",
+   "wall_before": 182.879,
+   "wall_after": 183.387,
+   "epoch_ms_before": 1791314950577,
+   "epoch_ms_after": 1791314951085,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.cfgKey",
+    "type": "string",
+    "resolved": true,
+    "value": "MoodleFramework"
+   }
+  },
+  {
+   "step": "Z_lastSet",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastSet",
+   "side": "client",
+   "wall_before": 183.387,
+   "wall_after": 183.895,
+   "epoch_ms_before": 1791314951085,
+   "epoch_ms_after": 1791314951592,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastSet",
+    "type": "string",
+    "resolved": true,
+    "value": "0.5"
+   }
+  },
+  {
+   "step": "Z_level",
+   "cmd": "lua.global",
+   "args": "TKX_MF.level",
+   "side": "client",
+   "wall_before": 183.895,
+   "wall_after": 184.402,
+   "epoch_ms_before": 1791314951592,
+   "epoch_ms_after": 1791314952100,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.level",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "Z_gbn",
+   "cmd": "lua.global",
+   "args": "TKX_MF.gbn",
+   "side": "client",
+   "wall_before": 184.402,
+   "wall_after": 184.91,
+   "epoch_ms_before": 1791314952100,
+   "epoch_ms_after": 1791314952608,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.gbn",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "Z_onUI",
+   "cmd": "lua.global",
+   "args": "TKX_MF.onUI",
+   "side": "client",
+   "wall_before": 184.91,
+   "wall_after": 185.42,
+   "epoch_ms_before": 1791314952608,
+   "epoch_ms_after": 1791314953118,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.onUI",
+    "type": "boolean",
+    "resolved": true,
+    "value": false
+   }
+  },
+  {
+   "step": "Z_renders",
+   "cmd": "lua.global",
+   "args": "TKX_MF.renders",
+   "side": "client",
+   "wall_before": 185.42,
+   "wall_after": 185.928,
+   "epoch_ms_before": 1791314953118,
+   "epoch_ms_after": 1791314953626,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.renders",
+    "type": "number",
+    "resolved": true,
+    "value": 930
+   }
+  },
+  {
+   "step": "Z_ownRenders",
+   "cmd": "lua.global",
+   "args": "TKX_MF.ownRenders",
+   "side": "client",
+   "wall_before": 185.928,
+   "wall_after": 186.435,
+   "epoch_ms_before": 1791314953626,
+   "epoch_ms_after": 1791314954133,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.ownRenders",
+    "type": "number",
+    "resolved": true,
+    "value": 6349
+   }
+  },
+  {
+   "step": "chk_Z_tkerr",
+   "cmd": "lua.global",
+   "args": "TKX_MF.errors",
+   "side": "client",
+   "wall_before": 186.435,
+   "wall_after": 186.943,
+   "epoch_ms_before": 1791314954133,
+   "epoch_ms_after": 1791314954640,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.errors",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "chk_Z_tkle",
+   "cmd": "lua.global",
+   "args": "TKX_MF.lastError",
+   "side": "client",
+   "wall_before": 186.943,
+   "wall_after": 187.454,
+   "epoch_ms_before": 1791314954641,
+   "epoch_ms_after": 1791314955151,
+   "took": 0.511,
+   "ack": {
+    "side": "client",
+    "name": "TKX_MF.lastError",
+    "failedAt": "lastError",
+    "resolved": false
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "F": {
+   "tk_version": {
+    "name": "TK.version",
+    "wall": 82.527,
+    "wall_after": 83.033,
+    "resolved": true,
+    "type": "number",
+    "value": 1
+   },
+   "tkx": {
+    "detected": {
+     "name": "TKX_MF.detected",
+     "wall": 83.033,
+     "wall_after": 83.542,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "created": {
+     "name": "TKX_MF.created",
+     "wall": 83.542,
+     "wall_after": 84.05,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "moodleFound": {
+     "name": "TKX_MF.moodleFound",
+     "wall": 84.05,
+     "wall_after": 84.558,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "errors": {
+     "name": "TKX_MF.errors",
+     "wall": 84.558,
+     "wall_after": 85.068,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "lastError": {
+     "name": "TKX_MF.lastError",
+     "wall": 85.068,
+     "wall_after": 85.577,
+     "resolved": false,
+     "type": null,
+     "failedAt": "lastError"
+    },
+    "ownOnUI": {
+     "name": "TKX_MF.ownOnUI",
+     "wall": 85.577,
+     "wall_after": 86.083,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "moodlesUI": {
+     "name": "TKX_MF.moodlesUI",
+     "wall": 86.083,
+     "wall_after": 86.593,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "cfgKey": {
+     "name": "TKX_MF.cfgKey",
+     "wall": 86.593,
+     "wall_after": 87.102,
+     "resolved": true,
+     "type": "string",
+     "value": "MoodleFramework"
+    },
+    "lastSet": {
+     "name": "TKX_MF.lastSet",
+     "wall": 87.102,
+     "wall_after": 87.359,
+     "resolved": false,
+     "type": null,
+     "failedAt": "lastSet"
+    },
+    "level": {
+     "name": "TKX_MF.level",
+     "wall": 87.359,
+     "wall_after": 87.864,
+     "resolved": false,
+     "type": null,
+     "failedAt": "level"
+    },
+    "gbn": {
+     "name": "TKX_MF.gbn",
+     "wall": 87.864,
+     "wall_after": 88.37,
+     "resolved": false,
+     "type": null,
+     "failedAt": "gbn"
+    },
+    "onUI": {
+     "name": "TKX_MF.onUI",
+     "wall": 88.37,
+     "wall_after": 88.878,
+     "resolved": false,
+     "type": null,
+     "failedAt": "onUI"
+    },
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 88.878,
+     "wall_after": 89.387,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 89.387,
+     "wall_after": 89.894,
+     "resolved": true,
+     "type": "number",
+     "value": 559
+    }
+   },
+   "moodle": {
+    "name": "TKX_MF.moodle",
+    "wall": 89.894,
+    "wall_after": 90.4,
+    "resolved": true,
+    "type": "table",
+    "keyCount": 58
+   },
+   "own": {
+    "name": "TKX_MF.own",
+    "wall": 90.4,
+    "wall_after": 90.908,
+    "resolved": true,
+    "type": "table",
+    "keyCount": 23
+   },
+   "stackBox_at_create": {
+    "x": {
+     "name": "TKX_MF.stackBox.x",
+     "wall": 90.909,
+     "wall_after": 91.419,
+     "resolved": true,
+     "type": "number",
+     "value": 1238
+    },
+    "y": {
+     "name": "TKX_MF.stackBox.y",
+     "wall": 91.419,
+     "wall_after": 91.931,
+     "resolved": true,
+     "type": "number",
+     "value": 424
+    },
+    "w": {
+     "name": "TKX_MF.stackBox.w",
+     "wall": 91.931,
+     "wall_after": 92.439,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "h": {
+     "name": "TKX_MF.stackBox.h",
+     "wall": 92.439,
+     "wall_after": 92.952,
+     "resolved": true,
+     "type": "number",
+     "value": 720
+    }
+   },
+   "client_seen": {
+    "in_game": 36.8,
+    "ready": 39.3
+   },
+   "server_errors_at_F": [],
+   "mod_error": [],
+   "parked": false
+  },
+  "i": {
+   "client": {
+    "MF": {
+     "name": "MF",
+     "wall": 93.975,
+     "wall_after": 94.481,
+     "resolved": true,
+     "type": "table",
+     "keyCount": 27
+    },
+    "MF.createMoodle": {
+     "name": "MF.createMoodle",
+     "wall": 94.481,
+     "wall_after": 94.993,
+     "resolved": true,
+     "type": "function",
+     "value": "function"
+    },
+    "MF.getMoodle": {
+     "name": "MF.getMoodle",
+     "wall": 94.993,
+     "wall_after": 95.503,
+     "resolved": true,
+     "type": "function",
+     "value": "function"
+    },
+    "MF.ISMoodle": {
+     "name": "MF.ISMoodle",
+     "wall": 95.503,
+     "wall_after": 96.013,
+     "resolved": true,
+     "type": "table",
+     "keyCount": 31
+    },
+    "MF.MoodlesStorage": {
+     "name": "MF.MoodlesStorage",
+     "wall": 96.013,
+     "wall_after": 96.521,
+     "resolved": true,
+     "type": "table",
+     "keyCount": 1
+    }
+   },
+   "server": {
+    "MF": {
+     "name": "MF",
+     "wall": 96.521,
+     "wall_after": 97.028,
+     "resolved": false,
+     "type": null,
+     "failedAt": "MF"
+    },
+    "MF.createMoodle": {
+     "name": "MF.createMoodle",
+     "wall": 97.028,
+     "wall_after": 98.038,
+     "resolved": false,
+     "type": null,
+     "failedAt": "MF"
+    }
+   },
+   "server_loading_lines_now": [
+    "LOG  : Mod          f:0 st:1,657,520,217> loading MoodleFramework"
+   ],
+   "client_loading_lines_now": [
+    "LOG  : Mod          f:0> loading MoodleFramework",
+    "LOG  : Mod          f:0 st:0> loading MoodleFramework"
+   ]
+  },
+  "ii": {
+   "client": {
+    "MF.key": {
+     "name": "MF.key",
+     "wall": 98.049,
+     "wall_after": 98.562,
+     "resolved": true,
+     "type": "string",
+     "value": "MoodleFramework"
+    },
+    "MF.hasBorder": {
+     "name": "MF.hasBorder",
+     "wall": 98.562,
+     "wall_after": 99.075,
+     "resolved": true,
+     "type": "function",
+     "value": "function"
+    },
+    "MF.hasBackground": {
+     "name": "MF.hasBackground",
+     "wall": 99.075,
+     "wall_after": 99.589,
+     "resolved": true,
+     "type": "function",
+     "value": "function"
+    },
+    "MF.hasBGColor": {
+     "name": "MF.hasBGColor",
+     "wall": 99.589,
+     "wall_after": 100.097,
+     "resolved": true,
+     "type": "function",
+     "value": "function"
+    },
+    "MF.overrideGray": {
+     "name": "MF.overrideGray",
+     "wall": 100.097,
+     "wall_after": 100.354,
+     "resolved": true,
+     "type": "function",
+     "value": "function"
+    },
+    "MF.color": {
+     "name": "MF.color",
+     "wall": 100.354,
+     "wall_after": 100.866,
+     "resolved": true,
+     "type": "table",
+     "keyCount": 4
+    }
+   },
+   "cfgKey": {
+    "name": "TKX_MF.cfgKey",
+    "wall": 100.866,
+    "wall_after": 101.377,
+    "resolved": true,
+    "type": "string",
+    "value": "MoodleFramework"
+   },
+   "server": {
+    "MF.key": {
+     "name": "MF.key",
+     "wall": 101.378,
+     "wall_after": 101.885,
+     "resolved": false,
+     "type": null,
+     "failedAt": "MF"
+    }
+   }
+  },
+  "L": {
+   "client_ts": {
+    "ok": true,
+    "side": "client",
+    "path": "getTimestampMs",
+    "nargs": 0,
+    "r1": 1791314870045
+   },
+   "server_ts": {
+    "ok": true,
+    "side": "server",
+    "path": "getTimestampMs",
+    "nargs": 0,
+    "r1": 1791314870666
+   },
+   "client_getMoodle": {
+    "ok": true,
+    "side": "client",
+    "path": "MF.getMoodle",
+    "nargs": 2,
+    "r1_keys": 58
+   },
+   "client_getInstance": {
+    "ok": true,
+    "side": "client",
+    "path": "MoodlesUI.getInstance",
+    "nargs": 0,
+    "r1_type": "userdata"
+   },
+   "client_missing": {
+    "ok": false,
+    "side": "client",
+    "path": "TKX_MF.noSuchFn",
+    "failedAt": "noSuchFn"
+   },
+   "client_setpath": {
+    "ok": true,
+    "side": "client",
+    "path": "TKX_MF.setpathSmoke",
+    "before": "nil",
+    "after": "7"
+   },
+   "client_setpath_read": {
+    "name": "TKX_MF.setpathSmoke",
+    "wall": 104.941,
+    "wall_after": 105.447,
+    "resolved": true,
+    "type": "number",
+    "value": 7
+   }
+  },
+  "iii_pre": {
+   "moodle": {
+    "name": "TKX_MF.moodle",
+    "wall": 105.451,
+    "wall_after": 105.957,
+    "resolved": true,
+    "type": "table",
+    "keyCount": 58
+   },
+   "created": {
+    "name": "TKX_MF.created",
+    "wall": 105.957,
+    "wall_after": 106.464,
+    "resolved": true,
+    "type": "boolean",
+    "value": true
+   },
+   "wrapped": {
+    "name": "TKX_MF_Wrapped",
+    "wall": 106.464,
+    "wall_after": 106.969,
+    "resolved": true,
+    "type": "boolean",
+    "value": true
+   },
+   "moodle_render": {
+    "name": "TKX_MF.moodle.render",
+    "wall": 106.969,
+    "wall_after": 107.484,
+    "resolved": true,
+    "type": "function",
+    "value": "function"
+   }
+  },
+  "iii_control": {
+   "value": "0.5",
+   "set_reply": "set TKX_mf",
+   "set_wall": 107.99,
+   "state": {
+    "lastSet": {
+     "name": "TKX_MF.lastSet",
+     "wall": 110.991,
+     "wall_after": 111.498,
+     "resolved": true,
+     "type": "string",
+     "value": "0.5"
+    },
+    "level": {
+     "name": "TKX_MF.level",
+     "wall": 111.498,
+     "wall_after": 112.004,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "gbn": {
+     "name": "TKX_MF.gbn",
+     "wall": 112.004,
+     "wall_after": 112.51,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "onUI": {
+     "name": "TKX_MF.onUI",
+     "wall": 112.51,
+     "wall_after": 113.016,
+     "resolved": false,
+     "type": null,
+     "failedAt": "onUI"
+    },
+    "errors": {
+     "name": "TKX_MF.errors",
+     "wall": 113.016,
+     "wall_after": 113.522,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "lastError": {
+     "name": "TKX_MF.lastError",
+     "wall": 113.522,
+     "wall_after": 114.028,
+     "resolved": false,
+     "type": null,
+     "failedAt": "lastError"
+    }
+   },
+   "moodle_fields": {
+    "addedToUIManager": {
+     "name": "TKX_MF.moodle.addedToUIManager",
+     "wall": 114.028,
+     "wall_after": 114.534,
+     "resolved": false,
+     "type": null,
+     "failedAt": "addedToUIManager"
+    },
+    "x": {
+     "name": "TKX_MF.moodle.x",
+     "wall": 114.534,
+     "wall_after": 115.041,
+     "resolved": true,
+     "type": "number",
+     "value": 1238
+    },
+    "y": {
+     "name": "TKX_MF.moodle.y",
+     "wall": 115.041,
+     "wall_after": 115.547,
+     "resolved": true,
+     "type": "number",
+     "value": 120
+    },
+    "width": {
+     "name": "TKX_MF.moodle.width",
+     "wall": 115.547,
+     "wall_after": 116.054,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "height": {
+     "name": "TKX_MF.moodle.height",
+     "wall": 116.054,
+     "wall_after": 116.56,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "name": {
+     "name": "TKX_MF.moodle.name",
+     "wall": 116.56,
+     "wall_after": 117.068,
+     "resolved": true,
+     "type": "string",
+     "value": "TKX"
+    }
+   },
+   "read1": {
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 117.068,
+     "wall_after": 117.573,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 117.573,
+     "wall_after": 118.079,
+     "resolved": true,
+     "type": "number",
+     "value": 2239
+    }
+   },
+   "read2": {
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 121.079,
+     "wall_after": 121.584,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 121.584,
+     "wall_after": 122.091,
+     "resolved": true,
+     "type": "number",
+     "value": 2479
+    }
+   },
+   "renders_delta": 0,
+   "renders_window_s": 4.011,
+   "ownRenders_delta": 240,
+   "ownRenders_window_s": 4.011,
+   "mod_error": [],
+   "parked": false
+  },
+  "iii_render": {
+   "value": "0.95",
+   "set_reply": "set TKX_mf",
+   "set_wall": 123.359,
+   "state": {
+    "lastSet": {
+     "name": "TKX_MF.lastSet",
+     "wall": 126.359,
+     "wall_after": 126.865,
+     "resolved": true,
+     "type": "string",
+     "value": "0.95"
+    },
+    "level": {
+     "name": "TKX_MF.level",
+     "wall": 126.865,
+     "wall_after": 127.371,
+     "resolved": true,
+     "type": "number",
+     "value": 4
+    },
+    "gbn": {
+     "name": "TKX_MF.gbn",
+     "wall": 127.371,
+     "wall_after": 127.881,
+     "resolved": true,
+     "type": "number",
+     "value": 1
+    },
+    "onUI": {
+     "name": "TKX_MF.onUI",
+     "wall": 127.881,
+     "wall_after": 128.389,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "errors": {
+     "name": "TKX_MF.errors",
+     "wall": 128.389,
+     "wall_after": 128.9,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "lastError": {
+     "name": "TKX_MF.lastError",
+     "wall": 128.9,
+     "wall_after": 129.413,
+     "resolved": false,
+     "type": null,
+     "failedAt": "lastError"
+    }
+   },
+   "moodle_fields": {
+    "addedToUIManager": {
+     "name": "TKX_MF.moodle.addedToUIManager",
+     "wall": 129.413,
+     "wall_after": 129.922,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "x": {
+     "name": "TKX_MF.moodle.x",
+     "wall": 129.922,
+     "wall_after": 130.429,
+     "resolved": true,
+     "type": "number",
+     "value": 1238
+    },
+    "y": {
+     "name": "TKX_MF.moodle.y",
+     "wall": 130.429,
+     "wall_after": 130.937,
+     "resolved": true,
+     "type": "number",
+     "value": 120
+    },
+    "width": {
+     "name": "TKX_MF.moodle.width",
+     "wall": 130.937,
+     "wall_after": 131.444,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "height": {
+     "name": "TKX_MF.moodle.height",
+     "wall": 131.444,
+     "wall_after": 131.956,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "name": {
+     "name": "TKX_MF.moodle.name",
+     "wall": 131.956,
+     "wall_after": 132.463,
+     "resolved": true,
+     "type": "string",
+     "value": "TKX"
+    }
+   },
+   "read1": {
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 132.463,
+     "wall_after": 132.973,
+     "resolved": true,
+     "type": "number",
+     "value": 569
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 132.973,
+     "wall_after": 133.483,
+     "resolved": true,
+     "type": "number",
+     "value": 3169
+    }
+   },
+   "read2": {
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 136.483,
+     "wall_after": 136.993,
+     "resolved": true,
+     "type": "number",
+     "value": 809
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 136.993,
+     "wall_after": 137.503,
+     "resolved": true,
+     "type": "number",
+     "value": 3409
+    }
+   },
+   "renders_delta": 240,
+   "renders_window_s": 4.02,
+   "ownRenders_delta": 240,
+   "ownRenders_window_s": 4.02,
+   "mod_error": [],
+   "parked": false
+  },
+  "iii_backoff": {
+   "value": "0.5",
+   "set_reply": "set TKX_mf",
+   "set_wall": 139.031,
+   "state": {
+    "lastSet": {
+     "name": "TKX_MF.lastSet",
+     "wall": 142.031,
+     "wall_after": 142.544,
+     "resolved": true,
+     "type": "string",
+     "value": "0.5"
+    },
+    "level": {
+     "name": "TKX_MF.level",
+     "wall": 142.544,
+     "wall_after": 143.055,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "gbn": {
+     "name": "TKX_MF.gbn",
+     "wall": 143.055,
+     "wall_after": 143.563,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "onUI": {
+     "name": "TKX_MF.onUI",
+     "wall": 143.563,
+     "wall_after": 144.072,
+     "resolved": true,
+     "type": "boolean",
+     "value": false
+    },
+    "errors": {
+     "name": "TKX_MF.errors",
+     "wall": 144.072,
+     "wall_after": 144.577,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "lastError": {
+     "name": "TKX_MF.lastError",
+     "wall": 144.577,
+     "wall_after": 145.084,
+     "resolved": false,
+     "type": null,
+     "failedAt": "lastError"
+    }
+   },
+   "moodle_fields": {
+    "addedToUIManager": {
+     "name": "TKX_MF.moodle.addedToUIManager",
+     "wall": 145.084,
+     "wall_after": 145.59,
+     "resolved": true,
+     "type": "boolean",
+     "value": false
+    },
+    "x": {
+     "name": "TKX_MF.moodle.x",
+     "wall": 145.59,
+     "wall_after": 146.102,
+     "resolved": true,
+     "type": "number",
+     "value": 1238
+    },
+    "y": {
+     "name": "TKX_MF.moodle.y",
+     "wall": 146.102,
+     "wall_after": 146.359,
+     "resolved": true,
+     "type": "number",
+     "value": 120
+    },
+    "width": {
+     "name": "TKX_MF.moodle.width",
+     "wall": 146.359,
+     "wall_after": 146.866,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "height": {
+     "name": "TKX_MF.moodle.height",
+     "wall": 146.866,
+     "wall_after": 147.371,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "name": {
+     "name": "TKX_MF.moodle.name",
+     "wall": 147.371,
+     "wall_after": 147.876,
+     "resolved": true,
+     "type": "string",
+     "value": "TKX"
+    }
+   },
+   "read1": {
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 147.877,
+     "wall_after": 148.382,
+     "resolved": true,
+     "type": "number",
+     "value": 930
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 148.382,
+     "wall_after": 148.891,
+     "resolved": true,
+     "type": "number",
+     "value": 4099
+    }
+   },
+   "read2": {
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 151.891,
+     "wall_after": 152.396,
+     "resolved": true,
+     "type": "number",
+     "value": 930
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 152.396,
+     "wall_after": 152.903,
+     "resolved": true,
+     "type": "number",
+     "value": 4339
+    }
+   },
+   "renders_delta": 0,
+   "renders_window_s": 4.014,
+   "ownRenders_delta": 240,
+   "ownRenders_window_s": 4.014,
+   "mod_error": [],
+   "parked": false
+  },
+  "X": {
+   "MoodlesUI": {
+    "name": "MoodlesUI",
+    "wall": 153.93,
+    "wall_after": 154.437,
+    "resolved": true,
+    "type": "table",
+    "keyCount": 3
+   },
+   "getInstance": {
+    "name": "MoodlesUI.getInstance",
+    "wall": 154.437,
+    "wall_after": 154.943,
+    "resolved": true,
+    "type": "function",
+    "value": "function"
+   },
+   "moodlesUI_flag": {
+    "name": "TKX_MF.moodlesUI",
+    "wall": 154.943,
+    "wall_after": 155.45,
+    "resolved": true,
+    "type": "boolean",
+    "value": true
+   },
+   "stackBox": {
+    "x": {
+     "name": "TKX_MF.stackBox.x",
+     "wall": 155.45,
+     "wall_after": 155.96,
+     "resolved": true,
+     "type": "number",
+     "value": 1238
+    },
+    "y": {
+     "name": "TKX_MF.stackBox.y",
+     "wall": 155.96,
+     "wall_after": 156.466,
+     "resolved": true,
+     "type": "number",
+     "value": 424
+    },
+    "w": {
+     "name": "TKX_MF.stackBox.w",
+     "wall": 156.466,
+     "wall_after": 156.976,
+     "resolved": true,
+     "type": "number",
+     "value": 32
+    },
+    "h": {
+     "name": "TKX_MF.stackBox.h",
+     "wall": 156.976,
+     "wall_after": 157.484,
+     "resolved": true,
+     "type": "number",
+     "value": 720
+    }
+   },
+   "stackBox_table": {
+    "name": "TKX_MF.stackBox",
+    "wall": 157.484,
+    "wall_after": 157.99,
+    "resolved": true,
+    "type": "table",
+    "keyCount": 4
+   }
+  },
+  "T": {
+   "arm_server": {
+    "side": "server",
+    "armed": true,
+    "seconds": 20,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   },
+   "arm_client": {
+    "side": "client",
+    "armed": true,
+    "seconds": 20,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   },
+   "result_server": {
+    "seconds": 20,
+    "ticks": 201,
+    "elapsedMs": 20096,
+    "startWall": 1791314926659,
+    "endWall": 1791314946755,
+    "worldAgeStart": 2.6715574264526367,
+    "worldAgeEnd": 2.760852813720703,
+    "ticksPerSecond": 10.001990445859873,
+    "worldMinutesPerSecond": 0.26660645084016643,
+    "complete": true,
+    "t": 1791314946755,
+    "side": "server",
+    "name": "tick-rate"
+   },
+   "result_client": {
+    "seconds": 20,
+    "ticks": 1201,
+    "elapsedMs": 20006,
+    "startWall": 1791314927046,
+    "endWall": 1791314947052,
+    "worldAgeStart": 2.673373222351074,
+    "worldAgeEnd": 2.762298583984375,
+    "ticksPerSecond": 60.03199040287914,
+    "worldMinutesPerSecond": 0.26669607607707924,
+    "complete": true,
+    "t": 1791314947052,
+    "side": "client",
+    "name": "tick-rate"
+   }
+  },
+  "Z": {
+   "tkx_final": {
+    "detected": {
+     "name": "TKX_MF.detected",
+     "wall": 179.564,
+     "wall_after": 180.073,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "created": {
+     "name": "TKX_MF.created",
+     "wall": 180.073,
+     "wall_after": 180.582,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "moodleFound": {
+     "name": "TKX_MF.moodleFound",
+     "wall": 180.582,
+     "wall_after": 181.091,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "errors": {
+     "name": "TKX_MF.errors",
+     "wall": 181.091,
+     "wall_after": 181.6,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "lastError": {
+     "name": "TKX_MF.lastError",
+     "wall": 181.6,
+     "wall_after": 181.86,
+     "resolved": false,
+     "type": null,
+     "failedAt": "lastError"
+    },
+    "ownOnUI": {
+     "name": "TKX_MF.ownOnUI",
+     "wall": 181.86,
+     "wall_after": 182.37,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "moodlesUI": {
+     "name": "TKX_MF.moodlesUI",
+     "wall": 182.37,
+     "wall_after": 182.879,
+     "resolved": true,
+     "type": "boolean",
+     "value": true
+    },
+    "cfgKey": {
+     "name": "TKX_MF.cfgKey",
+     "wall": 182.879,
+     "wall_after": 183.387,
+     "resolved": true,
+     "type": "string",
+     "value": "MoodleFramework"
+    },
+    "lastSet": {
+     "name": "TKX_MF.lastSet",
+     "wall": 183.387,
+     "wall_after": 183.895,
+     "resolved": true,
+     "type": "string",
+     "value": "0.5"
+    },
+    "level": {
+     "name": "TKX_MF.level",
+     "wall": 183.895,
+     "wall_after": 184.402,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "gbn": {
+     "name": "TKX_MF.gbn",
+     "wall": 184.402,
+     "wall_after": 184.91,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "onUI": {
+     "name": "TKX_MF.onUI",
+     "wall": 184.91,
+     "wall_after": 185.42,
+     "resolved": true,
+     "type": "boolean",
+     "value": false
+    },
+    "renders": {
+     "name": "TKX_MF.renders",
+     "wall": 185.42,
+     "wall_after": 185.928,
+     "resolved": true,
+     "type": "number",
+     "value": 930
+    },
+    "ownRenders": {
+     "name": "TKX_MF.ownRenders",
+     "wall": 185.928,
+     "wall_after": 186.435,
+     "resolved": true,
+     "type": "number",
+     "value": 6349
+    }
+   },
+   "client_seen": {
+    "in_game": 36.8,
+    "ready": 39.3
+   },
+   "mod_error": []
+  }
+ },
+ "phase_errors": {},
+ "phase_walls": {
+  "F": {
+   "start": 82.527,
+   "end": 93.973
+  },
+  "i": {
+   "start": 93.975,
+   "end": 98.047
+  },
+  "ii": {
+   "start": 98.049,
+   "end": 101.885
+  },
+  "L": {
+   "start": 101.889,
+   "end": 105.447
+  },
+  "iii": {
+   "start": 105.451,
+   "end": 153.926
+  },
+  "X": {
+   "start": 153.93,
+   "end": 157.99
+  },
+  "T": {
+   "start": 157.994,
+   "end": 179.557
+  },
+  "Z": {
+   "start": 179.564,
+   "end": 187.454
+  }
+ },
+ "verdicts": {
+  "F": {
+   "phase": "F",
+   "predicted": {
+    "detected": true,
+    "created": true,
+    "moodleFound": true,
+    "errors": 0,
+    "ownOnUI": true,
+    "moodle_type": "table"
+   },
+   "falsifier": "any of detected/created/moodleFound/ownOnUI not true, errors > 0, or TKX_MF.moodle not a table",
+   "observed": {
+    "detected": true,
+    "created": true,
+    "moodleFound": true,
+    "errors": 0,
+    "ownOnUI": true,
+    "moodle_type": "table"
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "i": {
+   "phase": "i",
+   "predicted": {
+    "server_loading_lines": 1,
+    "client_loading_lines": 2,
+    "client_MF": "table",
+    "client_createMoodle": "function",
+    "server_MF": "nil"
+   },
+   "falsifier": "no loading line on the server, MF or MF.createMoodle of the wrong type on the client, or MF resolved on the server",
+   "observed": {
+    "server_loading_lines": 1,
+    "client_loading_lines": 2,
+    "client_MF": "table",
+    "client_createMoodle": "function",
+    "server_MF_resolved": false,
+    "server_MF_failedAt": "MF"
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652,
+   "line_counts_exact": true
+  },
+  "ii": {
+   "phase": "ii",
+   "predicted": {
+    "client_MF.key": "MoodleFramework",
+    "cfgKey": "MoodleFramework",
+    "client_MF.hasBorder": "function",
+    "server_MF.key": "nil"
+   },
+   "falsifier": "MF.key nil or other on the client, cfgKey not read at OnGameBoot, MF.hasBorder not a function",
+   "observed": {
+    "client_MF.key": "MoodleFramework",
+    "cfgKey": "MoodleFramework",
+    "client_MF.hasBorder": "function",
+    "server_MF.key_resolved": false
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "iii_control": {
+   "phase": "iii_control",
+   "predicted": {
+    "level": 0,
+    "gbn": 0,
+    "onUI": "nil or false",
+    "renders_delta": 0,
+    "ownRenders_delta": "> 0",
+    "ownRenders_first": "> 0"
+   },
+   "falsifier": "level or gbn non-zero, onUI true, the framework count climbing, or the own count static",
+   "observed": {
+    "level": 0,
+    "gbn": 0,
+    "onUI": null,
+    "onUI_resolved": false,
+    "lastSet": "0.5",
+    "renders_1": 0,
+    "renders_2": 0,
+    "renders_delta": 0,
+    "ownRenders_1": 2239,
+    "ownRenders_2": 2479,
+    "ownRenders_delta": 240,
+    "window_s": 4.011,
+    "parked": false
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "iii_render": {
+   "phase": "iii_render",
+   "predicted": {
+    "level": 4,
+    "gbn": 1,
+    "onUI": true,
+    "renders_delta": "> 0",
+    "ownRenders_delta": "> 0"
+   },
+   "falsifier": "level not 4, gbn not 1, onUI not true, or the render count static across the window",
+   "observed": {
+    "level": 4,
+    "gbn": 1,
+    "onUI": true,
+    "onUI_resolved": true,
+    "lastSet": "0.95",
+    "renders_1": 569,
+    "renders_2": 809,
+    "renders_delta": 240,
+    "ownRenders_1": 3169,
+    "ownRenders_2": 3409,
+    "ownRenders_delta": 240,
+    "window_s": 4.02,
+    "parked": false
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "iii_backoff": {
+   "phase": "iii_backoff",
+   "predicted": {
+    "level": 0,
+    "gbn": 0,
+    "onUI": false,
+    "renders_delta": 0
+   },
+   "falsifier": "the widget still on the UI manager or its count still climbing after the value went neutral",
+   "observed": {
+    "level": 0,
+    "gbn": 0,
+    "onUI": false,
+    "onUI_resolved": true,
+    "lastSet": "0.5",
+    "renders_1": 930,
+    "renders_2": 930,
+    "renders_delta": 0,
+    "ownRenders_1": 4099,
+    "ownRenders_2": 4339,
+    "ownRenders_delta": 240,
+    "window_s": 4.014,
+    "parked": false
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "X": {
+   "phase": "X",
+   "predicted": {
+    "MoodlesUI": "resolved",
+    "moodlesUI": true,
+    "stackBox": "x, y, w, h all numbers"
+   },
+   "falsifier": "MoodlesUI unresolved on the client, or the stack box missing a number",
+   "observed": {
+    "MoodlesUI_resolved": true,
+    "MoodlesUI_type": "table",
+    "getInstance_type": "function",
+    "moodlesUI": true,
+    "stackBox": {
+     "x": 1238,
+     "y": 424,
+     "w": 32,
+     "h": 720
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "L": {
+   "phase": "L",
+   "predicted": {
+    "getTimestampMs": "ok, numeric r1, both sides",
+    "MF.getMoodle": "ok, r1_keys > 0",
+    "MoodlesUI.getInstance": "ok, r1_type userdata",
+    "setpath": "ok, after 7"
+   },
+   "falsifier": "lua.call not ok or no numeric r1, or lua.setpath not writing 7",
+   "observed": {
+    "client_ts": {
+     "ok": true,
+     "side": "client",
+     "path": "getTimestampMs",
+     "nargs": 0,
+     "r1": 1791314870045
+    },
+    "server_ts": {
+     "ok": true,
+     "side": "server",
+     "path": "getTimestampMs",
+     "nargs": 0,
+     "r1": 1791314870666
+    },
+    "client_getMoodle": {
+     "ok": true,
+     "side": "client",
+     "path": "MF.getMoodle",
+     "nargs": 2,
+     "r1_keys": 58
+    },
+    "client_getInstance": {
+     "ok": true,
+     "side": "client",
+     "path": "MoodlesUI.getInstance",
+     "nargs": 0,
+     "r1_type": "userdata"
+    },
+    "client_missing": {
+     "ok": false,
+     "side": "client",
+     "path": "TKX_MF.noSuchFn",
+     "failedAt": "noSuchFn"
+    },
+    "client_setpath": {
+     "ok": true,
+     "side": "client",
+     "path": "TKX_MF.setpathSmoke",
+     "before": "nil",
+     "after": "7"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  },
+  "T": {
+   "phase": "T",
+   "predicted": {
+    "server_tps": "near 10.104011887072808 (x161b-20261006-065751)",
+    "client_tps": "> 0"
+   },
+   "falsifier": "client tps absent or zero",
+   "observed": {
+    "server_tps": 10.001990445859873,
+    "client_tps": 60.03199040287914,
+    "server_ratio_to_x161b": 0.9899028779505433
+   },
+   "verdict": "as_predicted",
+   "wall": 197.652
+  }
+ },
+ "mod_error_checks": [
+  {
+   "after": "F",
+   "wall": 93.973,
+   "found": []
+  },
+  {
+   "after": "iii_control",
+   "wall": 122.852,
+   "found": []
+  },
+  {
+   "after": "iii_render",
+   "wall": 138.522,
+   "found": []
+  },
+  {
+   "after": "iii_backoff",
+   "wall": 153.926,
+   "found": []
+  },
+  {
+   "after": "Z",
+   "wall": 187.454,
+   "found": []
+  }
+ ],
+ "server_launch_wall": 1.333,
+ "server_started_wall": 41.677,
+ "client_start_wall": 41.732,
+ "session_ready_wall": 81.503,
+ "build": "42.20.4",
+ "boot": {
+  "server_launch_to_started_s": 40.3,
+  "client_markers_s": {
+   "in_game": 36.8,
+   "ready": 39.3
+  },
+  "server_started_wall": 41.677,
+  "client_start_wall": 41.732,
+  "session_ready_wall": 81.503
+ },
+ "verify": [
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TK.version",
+   "expect": "value",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TK.version",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "TKX_MF.detected",
+   "expect": "\"value\": true",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "TKX_MF.detected",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "client": []
+ },
+ "timeline": [
+  {
+   "t": 41.7,
+   "phase": "server_started"
+  },
+  {
+   "t": 81.5,
+   "phase": "session_ready"
+  },
+  {
+   "t": 82.0,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TK.version\", \"type\": \"number\", \"resolved\": true, \"value\": 1}"
+  },
+  {
+   "t": 82.5,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"TKX_MF.detected\", \"type\": \"boolean\", \"resolved\": true, \"value\": true}"
+  },
+  {
+   "t": 83.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "F_tkv",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 83.5,
+   "phase": "step",
+   "took": 0.509,
+   "name": "F_detected",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 84.0,
+   "phase": "step",
+   "took": 0.508,
+   "name": "F_created",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 84.6,
+   "phase": "step",
+   "took": 0.508,
+   "name": "F_moodleFound",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 85.1,
+   "phase": "step",
+   "took": 0.51,
+   "name": "F_errors",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 85.6,
+   "phase": "step",
+   "took": 0.509,
+   "name": "F_lastError",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 86.1,
+   "phase": "step",
+   "took": 0.506,
+   "name": "F_ownOnUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 86.6,
+   "phase": "step",
+   "took": 0.51,
+   "name": "F_moodlesUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 87.1,
+   "phase": "step",
+   "took": 0.509,
+   "name": "F_cfgKey",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 87.4,
+   "phase": "step",
+   "took": 0.257,
+   "name": "F_lastSet",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 87.9,
+   "phase": "step",
+   "took": 0.505,
+   "name": "F_level",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 88.4,
+   "phase": "step",
+   "took": 0.506,
+   "name": "F_gbn",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 88.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "F_onUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 89.4,
+   "phase": "step",
+   "took": 0.509,
+   "name": "F_renders",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 89.9,
+   "phase": "step",
+   "took": 0.507,
+   "name": "F_ownRenders",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 90.4,
+   "phase": "step",
+   "took": 0.506,
+   "name": "F_moodle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 90.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "F_own",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 91.4,
+   "phase": "step",
+   "took": 0.51,
+   "name": "F_box_x",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 91.9,
+   "phase": "step",
+   "took": 0.512,
+   "name": "F_box_y",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 92.4,
+   "phase": "step",
+   "took": 0.508,
+   "name": "F_box_w",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 93.0,
+   "phase": "step",
+   "took": 0.513,
+   "name": "F_box_h",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 93.5,
+   "phase": "step",
+   "took": 0.508,
+   "name": "chk_F_tkerr",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 94.0,
+   "phase": "step",
+   "took": 0.513,
+   "name": "chk_F_tkle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 94.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "i_c_MF",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 95.0,
+   "phase": "step",
+   "took": 0.512,
+   "name": "i_c_MF.createMoodle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 95.5,
+   "phase": "step",
+   "took": 0.51,
+   "name": "i_c_MF.getMoodle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 96.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "i_c_MF.ISMoodle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 96.5,
+   "phase": "step",
+   "took": 0.508,
+   "name": "i_c_MF.MoodlesStorage",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 97.0,
+   "phase": "step",
+   "took": 0.507,
+   "name": "i_s_MF",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 98.0,
+   "phase": "step",
+   "took": 1.01,
+   "name": "i_s_MF.createMoodle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 98.6,
+   "phase": "step",
+   "took": 0.513,
+   "name": "ii_c_MF.key",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 99.1,
+   "phase": "step",
+   "took": 0.513,
+   "name": "ii_c_MF.hasBorder",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 99.6,
+   "phase": "step",
+   "took": 0.514,
+   "name": "ii_c_MF.hasBackground",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 100.1,
+   "phase": "step",
+   "took": 0.508,
+   "name": "ii_c_MF.hasBGColor",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 100.4,
+   "phase": "step",
+   "took": 0.257,
+   "name": "ii_c_MF.overrideGray",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 100.9,
+   "phase": "step",
+   "took": 0.512,
+   "name": "ii_c_MF.color",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 101.4,
+   "phase": "step",
+   "took": 0.511,
+   "name": "ii_cfgKey",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 101.9,
+   "phase": "step",
+   "took": 0.507,
+   "name": "ii_s_key",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 102.4,
+   "phase": "step",
+   "took": 0.51,
+   "name": "L_c_ts",
+   "cmd": "lua.call"
+  },
+  {
+   "t": 103.2,
+   "phase": "step",
+   "took": 0.762,
+   "name": "L_s_ts",
+   "cmd": "lua.call"
+  },
+  {
+   "t": 103.4,
+   "phase": "step",
+   "took": 0.254,
+   "name": "L_c_gm",
+   "cmd": "lua.call"
+  },
+  {
+   "t": 103.9,
+   "phase": "step",
+   "took": 0.505,
+   "name": "L_c_gi",
+   "cmd": "lua.call"
+  },
+  {
+   "t": 104.4,
+   "phase": "step",
+   "took": 0.511,
+   "name": "L_c_miss",
+   "cmd": "lua.call"
+  },
+  {
+   "t": 104.9,
+   "phase": "step",
+   "took": 0.509,
+   "name": "L_c_sp",
+   "cmd": "lua.setpath"
+  },
+  {
+   "t": 105.4,
+   "phase": "step",
+   "took": 0.506,
+   "name": "L_c_sp_read",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 106.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_pre_moodle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 106.5,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_pre_created",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 107.0,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_pre_wrapped",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 107.5,
+   "phase": "step",
+   "took": 0.515,
+   "name": "iii_pre_mrender",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 108.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_set",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 111.5,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_control_lastSet",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 112.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_level",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 112.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_gbn",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 113.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_onUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 113.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_errors",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 114.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_lastError",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 114.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_m_addedToUIManager",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 115.0,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_control_m_x",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 115.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_m_y",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 116.1,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_control_m_width",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 116.6,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_m_height",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 117.1,
+   "phase": "step",
+   "took": 0.508,
+   "name": "iii_control_m_name",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 117.6,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_control_1_r",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 118.1,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_control_1_o",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 121.6,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_control_2_r",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 122.1,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_control_2_o",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 122.6,
+   "phase": "step",
+   "took": 0.505,
+   "name": "chk_iii_control_tkerr",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 122.9,
+   "phase": "step",
+   "took": 0.255,
+   "name": "chk_iii_control_tkle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 123.4,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_render_set",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 126.9,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_render_lastSet",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 127.4,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_render_level",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 127.9,
+   "phase": "step",
+   "took": 0.51,
+   "name": "iii_render_gbn",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 128.4,
+   "phase": "step",
+   "took": 0.508,
+   "name": "iii_render_onUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 128.9,
+   "phase": "step",
+   "took": 0.511,
+   "name": "iii_render_errors",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 129.4,
+   "phase": "step",
+   "took": 0.513,
+   "name": "iii_render_lastError",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 129.9,
+   "phase": "step",
+   "took": 0.509,
+   "name": "iii_render_m_addedToUIManager",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 130.4,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_render_m_x",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 130.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "iii_render_m_y",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 131.4,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_render_m_width",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 132.0,
+   "phase": "step",
+   "took": 0.512,
+   "name": "iii_render_m_height",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 132.5,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_render_m_name",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 133.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "iii_render_1_r",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 133.5,
+   "phase": "step",
+   "took": 0.51,
+   "name": "iii_render_1_o",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 137.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "iii_render_2_r",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 137.5,
+   "phase": "step",
+   "took": 0.51,
+   "name": "iii_render_2_o",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 138.0,
+   "phase": "step",
+   "took": 0.511,
+   "name": "chk_iii_render_tkerr",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 138.5,
+   "phase": "step",
+   "took": 0.508,
+   "name": "chk_iii_render_tkle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 139.0,
+   "phase": "step",
+   "took": 0.509,
+   "name": "iii_backoff_set",
+   "cmd": "moddata.set"
+  },
+  {
+   "t": 142.5,
+   "phase": "step",
+   "took": 0.513,
+   "name": "iii_backoff_lastSet",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 143.1,
+   "phase": "step",
+   "took": 0.511,
+   "name": "iii_backoff_level",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 143.6,
+   "phase": "step",
+   "took": 0.508,
+   "name": "iii_backoff_gbn",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 144.1,
+   "phase": "step",
+   "took": 0.509,
+   "name": "iii_backoff_onUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 144.6,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_backoff_errors",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 145.1,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_backoff_lastError",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 145.6,
+   "phase": "step",
+   "took": 0.506,
+   "name": "iii_backoff_m_addedToUIManager",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 146.1,
+   "phase": "step",
+   "took": 0.512,
+   "name": "iii_backoff_m_x",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 146.4,
+   "phase": "step",
+   "took": 0.257,
+   "name": "iii_backoff_m_y",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 146.9,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_backoff_m_width",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 147.4,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_backoff_m_height",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 147.9,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_backoff_m_name",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 148.4,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_backoff_1_r",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 148.9,
+   "phase": "step",
+   "took": 0.509,
+   "name": "iii_backoff_1_o",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 152.4,
+   "phase": "step",
+   "took": 0.505,
+   "name": "iii_backoff_2_r",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 152.9,
+   "phase": "step",
+   "took": 0.507,
+   "name": "iii_backoff_2_o",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 153.4,
+   "phase": "step",
+   "took": 0.512,
+   "name": "chk_iii_backoff_tkerr",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 153.9,
+   "phase": "step",
+   "took": 0.511,
+   "name": "chk_iii_backoff_tkle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 154.4,
+   "phase": "step",
+   "took": 0.507,
+   "name": "X_cls",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 154.9,
+   "phase": "step",
+   "took": 0.506,
+   "name": "X_gi",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 155.5,
+   "phase": "step",
+   "took": 0.507,
+   "name": "X_flag",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 156.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "X_box_x",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 156.5,
+   "phase": "step",
+   "took": 0.506,
+   "name": "X_box_y",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 157.0,
+   "phase": "step",
+   "took": 0.51,
+   "name": "X_box_w",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 157.5,
+   "phase": "step",
+   "took": 0.508,
+   "name": "X_box_h",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 158.0,
+   "phase": "step",
+   "took": 0.506,
+   "name": "X_box",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 159.0,
+   "phase": "step",
+   "took": 1.008,
+   "name": "T_arm_s",
+   "cmd": "tick.rate"
+  },
+  {
+   "t": 159.5,
+   "phase": "step",
+   "took": 0.507,
+   "name": "T_arm_c",
+   "cmd": "tick.rate"
+  },
+  {
+   "t": 180.1,
+   "phase": "step",
+   "took": 0.509,
+   "name": "Z_detected",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 180.6,
+   "phase": "step",
+   "took": 0.509,
+   "name": "Z_created",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 181.1,
+   "phase": "step",
+   "took": 0.509,
+   "name": "Z_moodleFound",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 181.6,
+   "phase": "step",
+   "took": 0.509,
+   "name": "Z_errors",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 181.9,
+   "phase": "step",
+   "took": 0.26,
+   "name": "Z_lastError",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 182.4,
+   "phase": "step",
+   "took": 0.51,
+   "name": "Z_ownOnUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 182.9,
+   "phase": "step",
+   "took": 0.509,
+   "name": "Z_moodlesUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 183.4,
+   "phase": "step",
+   "took": 0.508,
+   "name": "Z_cfgKey",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 183.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "Z_lastSet",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 184.4,
+   "phase": "step",
+   "took": 0.507,
+   "name": "Z_level",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 184.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "Z_gbn",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 185.4,
+   "phase": "step",
+   "took": 0.51,
+   "name": "Z_onUI",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 185.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "Z_renders",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 186.4,
+   "phase": "step",
+   "took": 0.507,
+   "name": "Z_ownRenders",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 186.9,
+   "phase": "step",
+   "took": 0.508,
+   "name": "chk_Z_tkerr",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 187.5,
+   "phase": "step",
+   "took": 0.511,
+   "name": "chk_Z_tkle",
+   "cmd": "lua.global"
+  },
+  {
+   "t": 189.7,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 197.6,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "F",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "i",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "ii",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "iii_control",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "iii_render",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "iii_backoff",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "X",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "L",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 197.7,
+   "phase": "verdict",
+   "name": "T",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "client_lua_error": false,
+ "client_seen": {
+  "in_game": 36.8,
+  "ready": 39.3
+ },
+ "server_t_started": 40.3,
+ "logs": {
+  "server": [
+   "LOG  : Mod          f:0 st:1,657,520,217> loading MoodleFramework",
+   "LOG  : Mod          f:0 st:1,657,520,218> mod \"MoodleFramework\" overrides media/lua/shared/translate/en/ui.json",
+   "LOG  : Mod          f:0 st:1,657,520,218> mod \"MoodleFramework\" overrides media/lua/client/mf_ismoodle.lua",
+   "LOG  : Mod          f:0 st:1,657,520,218> loading TKX_MF",
+   "LOG  : Mod          f:0 st:1,657,520,218> mod \"TKX_MF\" overrides",
+   "ERROR: General      f:0 st:1,657,533,125> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,126> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(nul",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,127> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,127> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,128> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\MoodleFramework\\common\\media\\AnimSets at WindowsException.translateToIOException(n",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,128> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\MoodleFramework\\common\\media\\actiongroups at WindowsException.translateToIOExcepti",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,129> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\MoodleFramework\\42.20\\media\\AnimSets at WindowsException.translateToIOException(nu",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,129> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\MoodleFramework\\42.20\\media\\actiongroups at WindowsException.translateToIOExceptio",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,130> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\TKX_MF\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,130> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\TKX_MF\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,131> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\TKX_MF\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:1,657,533,131> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\server\\mods\\TKX_MF\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: WorldGen     f:0 st:1,657,553,905> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+   "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderW at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderW",
+   "Stack trace:"
+  ],
+  "server_load": [
+   "LOG  : Mod          f:0 st:1,657,520,217> loading MoodleFramework"
+  ],
+  "limits": {
+   "log": 80,
+   "server_load": 4,
+   "client_load": 8
+  },
+  "patterns": {
+   "log": "MoodleFramework|MF_ISMoodle|MF_Config|TKX_MF|TKX|LuaError|STACK TRACE|lua error|attempted index|Exception",
+   "load": "loading MoodleFramework"
+  },
+  "client": [
+   "LOG  : Mod          f:0> loading MoodleFramework",
+   "LOG  : Mod          f:0> mod \"MoodleFramework\" overrides media/lua/shared/translate/en/ui.json",
+   "LOG  : Mod          f:0> mod \"MoodleFramework\" overrides media/lua/client/mf_ismoodle.lua",
+   "LOG  : Mod          f:0> loading TKX_MF",
+   "LOG  : Mod          f:0> mod \"TKX_MF\" overrides",
+   "LOG  : Mod          f:0 st:0> loading MoodleFramework",
+   "LOG  : Mod          f:0 st:0> mod \"MoodleFramework\" overrides media/lua/shared/translate/en/ui.json",
+   "LOG  : Mod          f:0 st:0> mod \"MoodleFramework\" overrides media/lua/client/mf_ismoodle.lua",
+   "LOG  : Mod          f:0 st:0> loading TKX_MF",
+   "LOG  : Mod          f:0 st:0> mod \"TKX_MF\" overrides",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOExcept",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\MoodleFramework\\common\\media\\AnimSets at WindowsException.translateToIOExce",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\MoodleFramework\\common\\media\\actiongroups at WindowsException.translateToIO",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\MoodleFramework\\42.20\\media\\AnimSets at WindowsException.translateToIOExcep",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\MoodleFramework\\42.20\\media\\actiongroups at WindowsException.translateToIOE",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\TKX_MF\\common\\media\\AnimSets at WindowsException.translateToIOException(nul",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\TKX_MF\\common\\media\\actiongroups at WindowsException.translateToIOException",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\TKX_MF\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+   "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+   "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x181-20261006-152607\\clients\\admin\\mods\\TKX_MF\\42.20\\media\\actiongroups at WindowsException.translateToIOException(",
+   "Stack trace:",
+   "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)"
+  ],
+  "client_load": [
+   "LOG  : Mod          f:0> loading MoodleFramework",
+   "LOG  : Mod          f:0 st:0> loading MoodleFramework"
+  ]
+ },
+ "wall_seconds": 197.7
+}

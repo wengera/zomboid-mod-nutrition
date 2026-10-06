@@ -475,3 +475,12 @@ x172b-20261006-130714,summaries.F_cola,"ok false, no rows",The arm took no readi
 x172b-20261006-130714,logs.server,80 lines,"The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
 x172b-20261006-130714,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",
 x172b-20261006-130714,logs.client_checksum,[],"The client's console log never carries the checksum kick's reason string, so an empty list here is not an absence reading.",cite `phases.Z.tk_version_client` and `client_seen`
+x181-20261006-152607,predictions,the driver's PRED table,"Written before the boot; not a reading.",cite `verdicts.<leg>.observed` or `phases.<leg>`
+x181-20261006-152607,constants,the driver's constants,"Settings of the driver (waits, limits, thresholds named), not readings.",
+x181-20261006-152607,mf_tree,the dated tree re-read,"Copied into the driver before the boot from a shell listing, not read by the run.",cite the driver's docstring as the dated re-read
+x181-20261006-152607,baseline,"tick 10.104011887072808","A constant copied from x161b-20261006-065751, not this run.",cite `x161b-20261006-065751` `body.json` `phases.J.tick.result.ticksPerSecond`
+x181-20261006-152607,verdicts.*.predicted,the driver's predictions,"Copies of `predictions` beside each grade; not readings.",cite `verdicts.<leg>.observed`
+x181-20261006-152607,logs.server,80 lines,"The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",cite `logs.server_load` for the loading line
+x181-20261006-152607,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",cite `logs.client_load` for the loading lines
+x181-20261006-152607,phases.iii_control.state.onUI,unresolved,"The flag is never set before the first non-neutral value, so the unresolved read is the field's absence and not a false.",cite `phases.iii_control.moodle_fields.addedToUIManager` with it
+x181-20261006-152607,verdicts.i.line_counts_exact,true,"A grade of the driver's, not a reading.",cite `logs.server_load` and `logs.client_load`
