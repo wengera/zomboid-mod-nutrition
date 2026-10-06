@@ -378,6 +378,50 @@ def test_the_listener_registers_at_file_scope_when_the_view_exists():
     assert len(rt.globals().NutritionRevamp.client.view.listeners) == 1
 
 
+def test_two_instances_of_one_type_with_other_macros_take_two_entries():
+    rt = rt_with(view=True)
+    t = T(rt)
+    a = rt.eval("NR_T.food('Base.PotOfStew', { cal = 300, foodType = 'Stew' })")
+    b = rt.eval("NR_T.food('Base.PotOfStew', { cal = 450, foodType = 'Stew' })")
+    la = seq(t.linesFor(a))
+    lb = seq(t.linesFor(b))
+    assert "calories: 300 kcal" in la and "calories: 450 kcal" in lb
+    assert t.stats.builds == 2
+    n = 0
+    for _ in t.cache.keys():
+        n += 1
+    assert n == 2
+
+
+def test_the_same_item_hovered_twice_builds_once_and_hits_once():
+    rt = rt_with(view=True)
+    t = T(rt)
+    a = rt.eval("NR_T.food('Base.PotOfStew', { cal = 300, foodType = 'Stew' })")
+    t.linesFor(a)
+    t.linesFor(a)
+    assert t.stats.builds == 1
+    assert t.stats.cacheHits == 1
+
+
+def test_the_cache_key_form():
+    rt = rt_with(view=True)
+    k = rt.eval("function() return NutritionRevamp.client.tooltip.keyOf('Base.Apple', nil, 3, 1, { calories = 95, carbs = 25, lipids = 0.3, proteins = 0.5 }) end")()
+    assert k == "Base.Apple|nil|3|1|95.000|25.000|0.300|0.500"
+
+
+def test_a_zero_hung_change_reads_ratio_one():
+    rt = rt_with(view=True)
+    lines = seq(T(rt).linesFor(rt.eval("NR_T.food('Base.Apple', { hung = 0 })")))
+    assert "calories: 95.0 kcal" in lines
+
+
+def test_a_ratio_below_one_is_clamped_to_one():
+    rt = rt_with(view=True)
+    lines = seq(T(rt).linesFor(rt.eval("NR_T.food('Base.Apple', { base = -0.08, hung = -0.16 })")))
+    assert "calories: 95.0 kcal" in lines
+    assert T(rt).wholeScale(rt.eval("NR_T.food('Base.Apple', { base = -0.08, hung = -0.16 })")) == 1
+
+
 # ------------------------------------------------------------------------------------------------ the source
 
 def test_no_padBottom_write_and_no_server_reach():

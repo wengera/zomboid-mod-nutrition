@@ -1,8 +1,10 @@
 -- NR_Client_Tooltip.lua -- the food-tooltip band (Plan 7 Task 6, ruling 8): one sentinel wrap of
 -- ISToolTipInv.render that draws the mod's own framed strip BELOW the engine's box, its lines the food's
--- nutrient vector through the intake's own source chain (K.vector.resolve, shared with NR_Server_Intake.lua's
--- IN.chainOne), so the band shows what the eat would land, laid out by K.view.tooltip at the client's
--- visibility level.
+-- nutrient vector through the intake's own per-item source chain (K.vector.resolve, shared with
+-- NR_Server_Intake.lua's IN.chainOne), laid out by K.view.tooltip at the client's visibility level. The band
+-- shows the per-item vector the intake's own chain resolves for a whole item at script scale; for an evolved
+-- dish or a craft output the intake uses its dish and craft sources instead (NR_Server_Intake.lua), which the
+-- band does not run (a scope gap stated, Plan 8+).
 --
 -- Why a band below the box (docs/platform/client-ui.md#tooltip):
 --  * The tooltip body is built in Java inside the one render method, which sizes the panel from its measure
@@ -28,8 +30,9 @@
 --  2. whether the setHeight below fights the next frame's recompute: the original sets the height to the
 --     measured tooltip on every render (ISToolTipInv.lua, `self:setHeight(th)`), so the band's setHeight is
 --     re-done each frame from that base and does not accumulate -- read from the code, not booted.
---  A third, from the same read: the original clamps the box to the screen from the measured height alone,
---  so near the bottom edge the band may run off the screen.
+--  3. (UNMEASURED UNTIL x183) the original clamps the box to the screen from the measured height alone, so
+--     near the bottom edge the band may run off the screen.
+--  With anchorBottomLeft the band runs below the anchor and may cover the slot it is anchored to (unmeasured).
 --
 -- What the band shows (the build block's rule, the reviewer's residual 8):
 --  * PER WHOLE ITEM, at script scale. K.vector.resolve returns the whole-type vector (the table's seed, a
@@ -41,8 +44,9 @@
 --    getBaseHunger / getHungChange (both non-zero, the ratio >= 1) back to the whole item; a never-eaten item
 --    reads ratio 1. The inferred vector is built from those whole-item macros too.
 --  * Never a thirst: a cooked food's thirst reads halved on a client (#1147); the band carries none.
---  * The cache is per type (fullType, declared string, level, sex): a butchered or split instance whose
---    base hunger is scaled off the script value shows the first instance's whole-item macros for the type.
+--  * The cache key is fullType|declared|level|sex plus the four whole-item macros (after the rescale, each
+--    %.3f): an evolved dish or a butchered instance with other macros takes its own entry, and the same-item
+--    fast path keys on that same string.
 --
 -- Shape (the client-file discipline of NR_Client_Effects.lua):
 --  * The sentinel NR_ClientTooltip_Installed = { class, original, wrapper } is a global of its own (#0943),
@@ -62,7 +66,8 @@
 --    missing option accessor reads the option's default, on; a missing view reads level 1.
 --  * The cache is cleared by NR.client.tooltip.invalidate, registered on NR.client.view.listeners (called on
 --    every view rebuild: a mirror arrival or a level change) at file scope when the view exists, else lazily
---    on the first linesFor; the hook closure lives on the sentinel and is registered once per listeners table.
+--    on the first linesFor; the hook closure lives on the global NR_ClientTooltip_Hook (not on the sentinel) and is registered once per
+--    listeners table.
 -- Draw calls in the vanilla argument order: ISUIElement:drawRect(x, y, w, h, a, r, g, b) (ISUIElement.lua:1191),
 -- drawRectBorder(x, y, w, h, a, r, g, b) (:1219), drawText(str, x, y, r, g, b, a, font) (:1293).
 -- Cadence: the wrapper runs per rendered frame while a tooltip is up; per frame it reads the hovered item's
@@ -170,7 +175,7 @@ function T.invalidate()
 end
 
 -- Register the invalidate hook on the view's listeners, once per listeners table. The closure lives on the
--- sentinel and looks NutritionRevamp.client.tooltip up per call, so a reload of this file adds no second one.
+-- global NR_ClientTooltip_Hook and looks NutritionRevamp.client.tooltip up per call, so a reload of this file adds no second one.
 function T.hook()
     local nr = NutritionRevamp
     local v = nil
@@ -239,46 +244,58 @@ function T.widthOf(lines)
     return w
 end
 
+-- The item's four whole-item macros at script scale (the live getters re-scaled by wholeScale).
+function T.macrosOf(item)
+    local s = T.wholeScale(item)
+    return {
+        calories = num(read(item, "getCalories")) * s,
+        carbs = num(read(item, "getCarbohydrates")) * s,
+        lipids = num(read(item, "getLipids")) * s,
+        proteins = num(read(item, "getProteins")) * s,
+    }
+end
+
+-- The cache key: fullType|declared|level|sex|cal|carb|lip|pro, each macro %.3f (never %d).
+function T.keyOf(fullType, declared, level, sex, m)
+    return fullType .. "|" .. tostring(declared) .. "|" .. tostring(level) .. "|" .. tostring(sex)
+        .. string.format("|%.3f|%.3f|%.3f|%.3f", m.calories, m.carbs, m.lipids, m.proteins)
+end
+
 -- The band entry of one item: { lines, source } (lines.width the widest line in pixels, set beside the array
 -- part), or nil for no item or a non-Food.
 function T.entryFor(item)
     if item == nil then return nil end
     T.hook()
     local level = T.level()
-    local last = T.last
-    if last ~= nil and last.item == item and last.level == level then
-        T.stats.cacheHits = T.stats.cacheHits + 1
-        return last.entry
-    end
     if read(item, "IsFood") ~= true then return nil end
     local fullType = read(item, "getFullType")
     if type(fullType) ~= "string" then return nil end
     local declared = T.declaredOf(item)
     local sex = T.sex()
-    local key = fullType .. "|" .. tostring(declared) .. "|" .. tostring(level) .. "|" .. tostring(sex)
+    local macros = T.macrosOf(item)
+    local key = T.keyOf(fullType, declared, level, sex, macros)
+    local last = T.last
+    if last ~= nil and last.item == item and last.key == key then
+        T.stats.cacheHits = T.stats.cacheHits + 1
+        return last.entry
+    end
     local entry = T.cache[key]
     if entry ~= nil then
         T.stats.cacheHits = T.stats.cacheHits + 1
-        T.last = { item = item, level = level, entry = entry }
+        T.last = { item = item, key = key, entry = entry }
         return entry
     end
-    entry = T.build(item, fullType, declared, level, sex)
+    entry = T.build(item, fullType, declared, level, sex, macros)
     T.cache[key] = entry
-    T.last = { item = item, level = level, entry = entry }
+    T.last = { item = item, key = key, entry = entry }
     return entry
 end
 
 -- Build one entry: the whole-item macros, the source chain, the item's own macros over the vector, the lines.
-function T.build(item, fullType, declared, level, sex)
+function T.build(item, fullType, declared, level, sex, macros)
     local nr = NutritionRevamp
     local K = nr.kernel
-    local s = T.wholeScale(item)
-    local macros = {
-        calories = num(read(item, "getCalories")) * s,
-        carbs = num(read(item, "getCarbohydrates")) * s,
-        lipids = num(read(item, "getLipids")) * s,
-        proteins = num(read(item, "getProteins")) * s,
-    }
+    macros = macros or T.macrosOf(item)
     local foodType = read(item, "getFoodType")
     if type(foodType) ~= "string" or foodType == "" then foodType = nil end
     local vector, source = K.vector.resolve(declared, macros, foodType, fullType, nr.data)
