@@ -197,9 +197,11 @@ end
 
 -- Draws rows onto el: each row's label left at x and its text right-aligned at x + w, one line apart from y, in
 -- font (nil: UIFont.Small); stops before a line would pass maxY (nil: no limit; the panel counts the rows left out
--- once per rebuild, in stats.overflowRows). Returns the y after the last row drawn. The caller holds the pcall (a render body); the row strings were
+-- once per rebuild, in stats.overflowRows); skips a row whose top sits above minY (nil: no clip), the scrolled
+-- panel's top clip, because the vanilla window clears its stencil before the subclass render (ISCollapsableWindow.lua:193-195).
+-- Returns the y after the last row drawn. The caller holds the pcall (a render body); the row strings were
 -- resolved at rebuild, and a row built elsewhere is resolved here.
-function V.draw(el, rows, x, y, w, font, maxY)
+function V.draw(el, rows, x, y, w, font, maxY, minY)
     if el == nil or rows == nil then return y end
     local f = font
     if f == nil then f = V.smallFont() end
@@ -213,6 +215,11 @@ function V.draw(el, rows, x, y, w, font, maxY)
             return yy
         end
         local r = rows[i]
+        if minY ~= nil and yy < minY then
+            yy = yy + lh
+            r = nil
+        end
+        if r ~= nil then
         local label = r.labelText
         if label == nil then label = text(r.label, nil) end
         local value = r.valueText
@@ -227,6 +234,7 @@ function V.draw(el, rows, x, y, w, font, maxY)
         drawLeft(el, label, x, yy, 1, 1, 1, 1, f)
         drawRight(el, value, x + w, yy, cr, cg, cb, 1, f)
         yy = yy + lh
+        end
     end
     return yy
 end

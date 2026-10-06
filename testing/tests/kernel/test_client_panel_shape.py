@@ -415,7 +415,9 @@ def test_the_wheel_scrolls_within_bounds_and_the_render_draws_from_the_offset():
     assert p.scrollY == n * 15 - room                             # clamped at the overflow
     rt.execute("NR_T.firstY = nil; function ISCollapsableWindow:drawText(s, x, y) NR_T.firstY = NR_T.firstY or y end")
     frame(rt, p)
-    assert G(rt).NR_T.firstY == 16 + 4 - (n * 15 - room)
+    start = 16 + 4 - (n * 15 - room)                                # the scrolled origin, above the title bar
+    first = G(rt).NR_T.firstY
+    assert first >= 16 + 4 and first < 16 + 4 + 15 and (first - start) % 15 == 0  # the first row at or below the top clip
 
 
 def test_close_leaves_the_ui_manager_and_counts():

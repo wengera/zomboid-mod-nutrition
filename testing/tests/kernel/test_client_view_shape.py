@@ -431,3 +431,22 @@ def test_draw_is_nil_safe():
     v = V(rt)
     assert v.draw(None, None, 0, 7, 10, None) == 7
     assert v.draw(rt.eval("{}"), rt.eval("{}"), 0, 7, 10, None) == 7
+
+
+def test_draw_skips_rows_above_min_y():
+    """The scrolled panel's top clip: a row whose top sits above minY is skipped and never drawn over the title bar."""
+    rt = rt_env()
+    rt.execute(r"""
+    NR_T.drawn = {}
+    local el = {
+        drawText = function(self, s, x, y) NR_T.drawn[#NR_T.drawn + 1] = y end,
+        drawTextRight = function(self, s, x, y) end,
+    }
+    local rows = {}
+    for i = 1, 5 do rows[i] = { key = "k" .. i, label = "UI_NR_Row_k" .. i, text = "v", isKey = false } end
+    getTextManager = function() return { getFontHeight = function(self, f) return 10 end } end
+    NR_T.endY = NutritionRevamp.client.view.draw(el, rows, 0, -15, 100, nil, 1000, 20)
+    """)
+    drawn = list(G(rt).NR_T.drawn.values())
+    assert drawn == [25], drawn              # rows 1-4 sit at -15, -5, 5, 15 (above minY 20); only the row at 25 draws
+    assert G(rt).NR_T.endY == 35

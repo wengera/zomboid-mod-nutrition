@@ -200,7 +200,7 @@ function PANEL.renderBody(self)
     if type(th) ~= "number" then th = 16 end -- px, ISCollapsableWindow.TitleBarHeight's floor when unread
     if type(w) ~= "number" then w = WIDTH end
     if type(h) ~= "number" then h = HEIGHT end
-    V.draw(self, V.rows, PAD, th + TITLE_GAP - (self.scrollY or 0), w - 2 * PAD, nil, h)
+    V.draw(self, V.rows, PAD, th + TITLE_GAP - (self.scrollY or 0), w - 2 * PAD, nil, h, th + TITLE_GAP)
 end
 
 -- OnCreatePlayer: one hidden instance per player number, off the UI manager; a second create for the same number (a
