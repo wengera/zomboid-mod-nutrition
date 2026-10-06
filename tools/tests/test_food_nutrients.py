@@ -321,6 +321,7 @@ class RealRetentionTest(unittest.TestCase):
 # ---- mapping ----
 
 import csv, io, json
+from unittest import mock
 
 def _item(pz_id, kind, display, food_type=None, basis=None, macros=(None, None, None, None),
           spice=None, cant_eat=None, is_cookable=None, fluid_ids=None):
@@ -359,6 +360,12 @@ class MapDir(unittest.TestCase):
             json.dump(self.DATA, handle)
         self.map = os.path.join(self.tmp, "map")
         fn.seed_map(self.map, self.dataset)
+        # Task 5: the FDC-backed referential checks skip here (their files are absent), so these
+        # synthetic ids ("1", "100") meet only the Task 3 rules; RefCheckTest points them at fixtures
+        absent = os.path.join(self.tmp, "absent")
+        patcher = mock.patch.dict(fn.REF_SOURCES, {"sr_legacy": absent, "retention": absent})
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def part(self, name):
         with open(os.path.join(self.map, name + ".csv"), encoding="utf-8", newline="") as handle:
@@ -798,6 +805,354 @@ class RealMapTest(unittest.TestCase):
         self.assertEqual(counts["rows"], 1066)
         self.assertEqual((counts["unmapped"], counts["orphans"], counts["duplicates"]), (0, 0, 0))
         self.assertLessEqual(counts["guesses"], 40)       # ruling 10's budget
+
+
+# ---- extract ----
+
+import datetime, hashlib
+
+SR_PREFIX = "FoodData_Central_sr_legacy_food_csv_2018-04/"
+EGG = 171287
+
+# The two-food zip: the Task 2 fixtures plus Egg's rows and the PUFA 18:3 rows, quoted verbatim.
+EXTRACT_NUTRIENT_CSV = NUTRIENT_CSV + '"1270","PUFA 18:3","G","619","13900.0"\n'   # nutrient.csv:273
+
+EXTRACT_FOOD_NUTRIENT_CSV = FOOD_NUTRIENT_CSV + "\n".join([
+    '"1631310","171688","1008","52","0","49","","","","",""',                 # food_nutrient.csv:347638
+    '"1631317","171688","1269","0.043","4","","","","","",""',                # food_nutrient.csv:347645
+    '"1631318","171688","1270","0.009","4","","","","","",""',                # food_nutrient.csv:347646
+    '"1597626","171287","1008","143","0","49","","","","",""',                # food_nutrient.csv:313954
+    '"1597683","171287","1003","12.56","12","1","11.81","13.06","","",""',    # food_nutrient.csv:314011
+    '"1597687","171287","1018","0","0","","","","","",""',                    # food_nutrient.csv:314015
+    '"1597694","171287","1104","540","0","","","","","",""',                  # food_nutrient.csv:314022
+    '"1597709","171287","1051","76.15","12","1","75.43","76.94","","",""',    # food_nutrient.csv:314037
+    '"1597714","171287","1004","9.51","12","1","8.78","10.3","","",""',       # food_nutrient.csv:314042
+    '"1597715","171287","1269","1.555","12","","1.317","2.01","","",""',      # food_nutrient.csv:314043
+    '"1597716","171287","1270","0.048","12","","0.034","0.059","","",""',     # food_nutrient.csv:314044
+    '"1597747","171287","1190","47","0","49","","","","",""',                 # food_nutrient.csv:314075
+    '"1597748","171287","1005","0.72","0","49","","","","",""',               # food_nutrient.csv:314076
+    '"1597756","171287","1079","0","1","1","","","","",""',                   # food_nutrient.csv:314084
+]) + "\n"
+
+EXTRACT_FOOD_CSV = FOOD_CSV + '"171287","sr_legacy_food","Egg, whole, raw, fresh","1","2019-04-01"\n'  # food.csv:3777
+
+EXTRACT_FOOD_CATEGORY_CSV = FOOD_CATEGORY_CSV + '"1","0100","Dairy and Egg Products"\n'        # food_category.csv:2
+
+EXTRACT_FOOD_PORTION_CSV = FOOD_PORTION_CSV + "\n".join([
+    '"88374","171287","1","1","9999","","large","50","","",""',                     # food_portion.csv:6827
+    '"88375","171287","2","1","9999","","extra large","56","","",""',               # food_portion.csv:6828
+    '"88378","171287","6","1","9999","","medium","44","","",""',                    # food_portion.csv:6831
+]) + "\n"
+
+# Synthetic side tables (the schema of the committed ones; the values are the fixture's own).
+IODINE_FIXTURE = ('key,food,iodine_ug_100g,page,note\n'
+                  'egg-whole-raw,"Egg, whole, raw, fresh",49,1,a note\n'
+                  'milk-whole,"Milk, whole, fluid",34,1,uncited\n')
+PHYTATE_FIXTURE = ('family,phytate_mg_100g,source,note\n'
+                   'lentils,890,a citation,a note\n'
+                   'peas,720,a citation,uncited\n')
+INSECT_FIXTURE = ('key,order_or_taxon,basis,protein_g_100g,fat_g_100g,fibre_g_100g,carb_g_100g,ash_g_100g,'
+                  'energy_kcal_100g,moisture_pct,source,page_or_table,note\n'
+                  'rumpold2013:orthoptera,Orthoptera,dm,61.32,13.41,9.55,12.98,3.85,426.25,,a source,Table 4,a note\n'
+                  'rumpold2013:diptera,Diptera,dm,49.48,22.75,13.56,6.01,10.31,409.78,,a source,Table 4,uncited\n')
+
+EXTRACT_DATA = {"meta": {}, "fluids": [], "items": [
+    _item("Base.Apple", "food", "Apple", "Fruits", "per_item", APPLE_MACROS),
+    _item("Base.Lentils", "food", "Lentils", "Bean", "per_item", (300.0, 50.0, 1.0, 20.0)),
+    _item("Base.Egg", "food", "Egg", "Egg", "per_item", (63.0, 0.4, 4.4, 5.6), is_cookable=True),
+    _item("Base.Cricket", "food", "Cricket", "Insect", "per_item", (20.0, 1.0, 1.0, 3.0), is_cookable=True),
+    _item("Base.Glue", "drainable", "Glue"),
+]}
+
+
+def _sha256(path):
+    with open(path, "rb") as handle:
+        return hashlib.sha256(handle.read()).hexdigest()
+
+
+class ExtractFixture(MapDir):
+    """A five-record dataset, its mapping filled, the two-food SR Legacy zip, the retention CSV, the
+    three side tables and a manifest, every REF_SOURCES path pointed at them."""
+
+    DATA = EXTRACT_DATA
+
+    def setUp(self):
+        super().setUp()
+        fdc = os.path.join(self.tmp, "fdc")
+        os.makedirs(fdc)
+        self.zip = os.path.join(fdc, os.path.basename(fn.SR_LEGACY_ZIP))
+        with zipfile.ZipFile(self.zip, "w") as archive:
+            for name, text in (("nutrient.csv", EXTRACT_NUTRIENT_CSV),
+                               ("food_nutrient.csv", EXTRACT_FOOD_NUTRIENT_CSV),
+                               ("food_portion.csv", EXTRACT_FOOD_PORTION_CSV), ("food.csv", EXTRACT_FOOD_CSV),
+                               ("food_category.csv", EXTRACT_FOOD_CATEGORY_CSV),
+                               ("measure_unit.csv", MEASURE_UNIT_CSV)):
+                archive.writestr(SR_PREFIX + name, text)
+        self.retention = os.path.join(fdc, "NutrientRetention.csv")
+        _write(fdc, "NutrientRetention.csv", RETENTION_CSV)
+        for name, text in (("iodine.csv", IODINE_FIXTURE), ("phytate.csv", PHYTATE_FIXTURE),
+                           ("insects.csv", INSECT_FIXTURE)):
+            _write(self.tmp, name, text)
+        self.manifest = os.path.join(fdc, "manifest.json")
+        self.write_manifest()
+        patcher = mock.patch.dict(fn.REF_SOURCES, {
+            "iodine": os.path.join(self.tmp, "iodine.csv"), "phytate": os.path.join(self.tmp, "phytate.csv"),
+            "insects": os.path.join(self.tmp, "insects.csv"), "sr_legacy": self.zip,
+            "retention": self.retention, "manifest": self.manifest})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.out = os.path.join(self.tmp, "fdc-extract.json")
+        self.edit("produce", "Base.Apple", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="exact",
+                  portion_grams="182", portion_source="vanilla_implied", state_baseline="raw",
+                  phytate_mg_100g="0", phytate_source="zero:fruit")
+        self.edit("grains-legumes", "Base.Lentils", fdc_id=str(APPLE), fdc_source="sr_legacy",
+                  confidence="proxy", notes="a synthetic stand-in", phytate_mg_100g="890",
+                  phytate_source="schlemmer2009:lentils")
+        self.edit("meat-fish-egg-dairy", "Base.Egg", fdc_id=str(EGG), fdc_source="sr_legacy",
+                  confidence="exact", cook_retention_code="1", iodine_ref="iodine:egg-whole-raw",
+                  phytate_mg_100g="0", phytate_source="zero:egg")
+        self.edit("meat-fish-egg-dairy", "Base.Cricket", fdc_id="rumpold2013:orthoptera",
+                  fdc_source="literature", confidence="guess", notes="the order mean, dry matter")
+        self.edit("no-nutrition", "Base.Glue", no_nutrition_reason="not_food")
+
+    def write_manifest(self, **override):
+        rows = []
+        for src in fn.fdc_fetch.sources():
+            row = {"name": src["name"], "filename": src["filename"], "url": src["url"],
+                   "fetched": "2026-10-06", "bytes": 1, "sha256": "0" * 64}
+            if src["filename"] == os.path.basename(self.zip):
+                row.update(bytes=os.path.getsize(self.zip), sha256=_sha256(self.zip))
+            if src["filename"] == os.path.basename(self.retention):
+                row.update(bytes=os.path.getsize(self.retention), sha256=_sha256(self.retention))
+            row.update(override.get(src["filename"], {}))
+            rows.append(row)
+        with open(self.manifest, "w", encoding="utf-8") as handle:
+            json.dump(rows, handle)
+
+    def build(self):
+        return fn.build_extract(self.map, self.dataset, self.out, out=io.StringIO())
+
+    def assert_violation(self, counts, needle):
+        self.assertTrue(any(needle in v for v in counts["violations"]), counts["violations"])
+
+
+class RefCheckTest(ExtractFixture):
+
+    def test_the_filled_fixture_passes(self):
+        counts = self.check(allow_unfilled=False)
+        self.assertEqual(counts["violations"], [])
+        self.assertEqual(counts["ref_checks_skipped"], [])
+        self.assertEqual(counts["cookable_without_code"], 1)       # the cricket: allowed, counted
+
+    def test_a_dangling_iodine_key(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", iodine_ref="iodine:egg-boiled")
+        self.assert_violation(self.check(), "iodine_ref 'iodine:egg-boiled'")
+
+    def test_an_iodine_ref_without_its_prefix(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", iodine_ref="egg-whole-raw")
+        self.assert_violation(self.check(), "iodine_ref 'egg-whole-raw'")
+
+    def test_a_dangling_phytate_family(self):
+        self.edit("grains-legumes", "Base.Lentils", phytate_source="schlemmer2009:beans")
+        self.assert_violation(self.check(), "phytate_source 'schlemmer2009:beans'")
+
+    def test_the_zero_families_are_closed(self):
+        self.assertEqual(fn.ZERO_PHYTATE_FAMILIES,
+                         ("dairy", "egg", "fish", "fruit", "meat", "oil", "sugar", "vegetable"))
+        self.edit("produce", "Base.Apple", phytate_source="zero:grain")
+        self.assert_violation(self.check(), "phytate_source 'zero:grain'")
+        self.edit("produce", "Base.Apple", phytate_source="gupta2015:apple")
+        self.assert_violation(self.check(), "phytate_source 'gupta2015:apple'")
+
+    def test_a_dangling_literature_key(self):
+        self.edit("meat-fish-egg-dairy", "Base.Cricket", fdc_id="rumpold2013:mantodea")
+        self.assert_violation(self.check(), "literature fdc_id 'rumpold2013:mantodea'")
+
+    def test_an_sr_legacy_id_absent_from_food_csv(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", fdc_id="174158")
+        self.assert_violation(self.check(), "sr_legacy fdc_id 174158 is not in food.csv")
+
+    def test_a_retention_code_absent_from_the_csv(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", cook_retention_code="77")
+        self.assert_violation(self.check(), "cook_retention_code 77 is not in")
+        self.edit("meat-fish-egg-dairy", "Base.Egg", cook_retention_code="5005")   # a defective code exists
+        self.assertEqual(self.check()["violations"], [])
+
+    def test_absent_fdc_files_skip_their_checks(self):
+        absent = os.path.join(self.tmp, "absent")
+        with mock.patch.dict(fn.REF_SOURCES, {"sr_legacy": absent, "retention": absent}):
+            self.edit("meat-fish-egg-dairy", "Base.Egg", fdc_id="174158", cook_retention_code="77")
+            counts = self.check()
+        self.assertEqual(counts["ref_checks_skipped"], ["retention", "sr_legacy"])
+        self.assertEqual(counts["violations"], [])
+
+    def test_the_checks_are_registered(self):
+        for check in (fn.check_iodine_refs, fn.check_phytate_sources, fn.check_literature_ids,
+                      fn.check_sr_legacy_ids, fn.check_retention_codes):
+            self.assertIn(check, fn.MAP_REF_CHECKS)
+
+
+class ExtractTest(ExtractFixture):
+
+    def test_the_shape(self):
+        got = self.build()
+        self.assertEqual(sorted(got), ["foods", "insects", "iodine", "meta", "phytate", "retention"])
+        self.assertEqual(sorted(got["foods"]), [str(EGG), str(APPLE)])
+        egg = got["foods"][str(EGG)]
+        self.assertEqual((egg["description"], egg["data_type"], egg["food_category"]),
+                         ("Egg, whole, raw, fresh", "sr_legacy_food", "Dairy and Egg Products"))
+        self.assertEqual(egg["nutrients"]["calories"], {"amount": 143.0, "unit": "KCAL", "nutrient_id": 1008})
+        self.assertEqual(egg["nutrients"]["folate"], {"amount": 47.0, "unit": "UG", "nutrient_id": 1190})
+        self.assertNotIn("phytate", egg["nutrients"])
+        self.assertEqual(set(egg["nutrients"]), set(fn.KEYS) - {"phytate"})
+        self.assertEqual([p["modifier"] for p in egg["portions"]], ["large", "extra large", "medium"])
+        self.assertEqual(egg["portions"][0], {"seq_num": 1, "amount": 1.0, "measure_unit": "undetermined",
+                                              "modifier": "large", "gram_weight": 50.0})
+
+    def test_a_summed_key_is_exact_decimal(self):
+        got = self.build()
+        # 1.555 + 0.048 in binary floats is 1.6030000000000002; the extract writes the decimal sum
+        self.assertEqual(got["foods"][str(EGG)]["nutrients"]["efa"],
+                         {"amount": 1.603, "unit": "G", "nutrient_id": [1269, 1270]})
+        self.assertEqual(got["foods"][str(APPLE)]["nutrients"]["efa"]["amount"], 0.052)
+        with open(self.out, encoding="utf-8") as handle:
+            self.assertIn('"amount": 1.603,', handle.read())
+
+    def test_the_amounts_equal_the_join_core(self):
+        with zipfile.ZipFile(self.zip) as archive:
+            cells = fn.load_food_nutrient_cells(archive, [APPLE, EGG])
+            core = fn.load_food_nutrients(archive, [APPLE, EGG])
+        for fid in (APPLE, EGG):
+            for key in set(fn.KEYS) - {"phytate"}:
+                self.assertAlmostEqual(cells[fid][key]["amount"] or 0.0, core[fid][key] or 0.0, places=12)
+                self.assertEqual(cells[fid][key]["amount"] is None, core[fid][key] is None, key)
+
+    def test_the_null_rule(self):
+        got = self.build()
+        apple, egg = got["foods"][str(APPLE)]["nutrients"], got["foods"][str(EGG)]["nutrients"]
+        self.assertIsNone(apple["iodine"]["amount"])                   # no row: null, never 0
+        self.assertEqual(apple["iodine"]["unit"], "UG")
+        self.assertEqual(apple["ethanol"]["amount"], 0.0)              # a 0 row: 0.0, never null
+        self.assertEqual(egg["fibre"]["amount"], 0.0)
+        self.assertEqual(apple["vitC"], {"amount": None, "unit": None, "nutrient_id": None})  # not in nutrient.csv
+        missing = got["meta"]["counts"]["missing_nutrients"]
+        self.assertEqual(set(missing), set(fn.KEYS) - {"phytate"})
+        self.assertEqual(missing["iodine"], [EGG, APPLE])          # by numeric id
+        self.assertEqual(missing["proteins"], [APPLE])
+        self.assertEqual(missing["ethanol"], [])
+        with open(self.out, encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIn('"amount": null', text)
+
+    def test_only_the_cited(self):
+        got = self.build()
+        self.assertEqual(got["retention"], {"1": {"description": "CHEESE,BAKED", "factors": {"301": 100}}})
+        self.assertEqual(got["iodine"], {"egg-whole-raw": {"food": "Egg, whole, raw, fresh",
+                                                           "iodine_ug_100g": 49.0, "page": 1}})
+        self.assertEqual(got["phytate"], {"lentils": {"phytate_mg_100g": 890.0, "source": "a citation"}})
+        self.assertEqual(list(got["insects"]), ["rumpold2013:orthoptera"])
+        cricket = got["insects"]["rumpold2013:orthoptera"]
+        self.assertEqual((cricket["protein_g_100g"], cricket["moisture_pct"], cricket["basis"]), (61.32, None, "dm"))
+        self.assertNotIn("key", cricket)
+
+    def test_the_meta(self):
+        meta = self.build()["meta"]
+        self.assertEqual((meta["build"], meta["jar_hash"], meta["tool"]),
+                         ("42.20.4", "b0bbce05d5", "tools/food_nutrients.py"))
+        self.assertEqual(meta["generated"], datetime.datetime.now(datetime.timezone.utc).date().isoformat())
+        self.assertEqual([s["name"] for s in meta["sources"]], [s["name"] for s in fn.fdc_fetch.sources()])
+        sr = meta["sources"][0]
+        self.assertEqual((sr["sha256"], sr["bytes"]), (_sha256(self.zip), os.path.getsize(self.zip)))
+        self.assertEqual(sr["licence"], "CC0-1.0")
+        counts = meta["counts"]
+        self.assertEqual({k: v for k, v in counts.items() if k != "missing_nutrients"},
+                         {"foods": 2, "retention_codes": 1, "defective_retention_rows": 1, "iodine_rows": 1,
+                          "phytate_rows": 1, "insect_rows": 1, "cookable_without_code": 1})
+        self.assertEqual(meta["defective_retention"],
+                         {"5005": {"description": "ALC BEV,STIRRED,BKD/SIMMRD 30 MIN",
+                                   "loadable_factors": {"221": 35},
+                                   "skipped": [{"line": 3, "nutr_no": 301, "retn_factor": "Sep-75"}]}})
+
+    def test_byte_stable_lf_and_sorted(self):
+        self.build()
+        with open(self.out, "rb") as handle:
+            first = handle.read()
+        self.build()
+        with open(self.out, "rb") as handle:
+            second = handle.read()
+        self.assertEqual(first, second)
+        self.assertNotIn(b"\r", first)
+        self.assertTrue(first.endswith(b"}\n"))
+        text = first.decode("utf-8")
+        self.assertEqual(text, json.dumps(json.loads(text), indent=1, sort_keys=True, ensure_ascii=False) + "\n")
+
+    def test_refuses_an_unfilled_mapping(self):
+        self.edit("no-nutrition", "Base.Glue", no_nutrition_reason="")
+        with self.assertRaises(fn.ExtractRefused) as caught:
+            self.build()
+        self.assertIn("unfilled", str(caught.exception))
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_refuses_a_dangling_reference(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", iodine_ref="iodine:egg-boiled")
+        with self.assertRaises(fn.ExtractRefused):
+            self.build()
+        self.assertFalse(os.path.exists(self.out))
+
+    def test_refuses_without_the_fdc_files(self):
+        with mock.patch.dict(fn.REF_SOURCES, {"retention": os.path.join(self.tmp, "absent")}):
+            with self.assertRaises(fn.ExtractRefused) as caught:
+                self.build()
+        self.assertIn("retention", str(caught.exception))
+
+    def test_refuses_a_file_the_manifest_does_not_hash(self):
+        self.write_manifest(**{os.path.basename(self.zip): {"sha256": "f" * 64}})
+        with self.assertRaises(fn.ExtractRefused) as caught:
+            self.build()
+        self.assertIn("sha256", str(caught.exception))
+
+    def test_the_cli(self):
+        buf = io.StringIO()
+        with mock.patch("sys.stdout", buf):
+            code = fn.main(["--build-extract", "--map-dir", self.map, "--dataset", self.dataset,
+                            "--extract", self.out])
+        self.assertEqual(code, 0)
+        self.assertIn("2 foods", buf.getvalue())
+        self.assertTrue(os.path.exists(self.out))
+
+
+@unittest.skipUnless(os.path.exists(fn.EXTRACT_JSON), "data/fdc-extract.json is not built")
+class RealExtractTest(unittest.TestCase):
+    """The committed extract holds everything the committed mapping cites, and nothing more."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(fn.EXTRACT_JSON, encoding="utf-8") as handle:
+            cls.extract = json.load(handle)
+        cls.rows, _errors = fn.read_map()
+
+    def test_the_cited_ids_codes_and_keys(self):
+        rows = self.rows
+        self.assertEqual(set(self.extract["foods"]),
+                         {r["fdc_id"] for r in rows if r["fdc_source"] == "sr_legacy"})
+        self.assertEqual(set(self.extract["retention"]), {r["cook_retention_code"] for r in rows if r["cook_retention_code"]})
+        self.assertEqual(set(self.extract["iodine"]), {r["iodine_ref"][len("iodine:"):] for r in rows if r["iodine_ref"]})
+        self.assertEqual(set(self.extract["phytate"]), {r["phytate_source"][len("schlemmer2009:"):]
+                                                        for r in rows if r["phytate_source"].startswith("schlemmer2009:")})
+        self.assertEqual(set(self.extract["insects"]), {r["fdc_id"] for r in rows if r["fdc_source"] == "literature"})
+
+    def test_the_counts(self):
+        meta = self.extract["meta"]
+        counts = meta["counts"]
+        self.assertEqual(counts["foods"], len(self.extract["foods"]))
+        self.assertEqual(counts["retention_codes"], len(self.extract["retention"]))
+        self.assertEqual(counts["defective_retention_rows"], 24)
+        self.assertEqual(meta["defective_retention"]["5005"]["loadable_factors"], {"221": 35, "421": 100})
+        self.assertEqual(len(meta["sources"]), 4)
+        self.assertTrue(all(len(s["sha256"]) == 64 for s in meta["sources"]))
+        for key, ids in counts["missing_nutrients"].items():
+            for fid in ids:
+                self.assertIsNone(self.extract["foods"][str(fid)]["nutrients"][key]["amount"])
 
 
 if __name__ == "__main__":

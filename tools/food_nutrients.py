@@ -652,6 +652,8 @@ def check_map(map_dir=MAP_DIR, dataset_path=DATASET_JSON, allow_unfilled=False, 
         "families": families, "families_split": split,
         "guesses": guesses,
         "unmapped": len(unmapped), "orphans": len(orphans), "duplicates": duplicates,
+        "cookable_without_code": cookable_without_code(rows, records),
+        "ref_checks_skipped": ref_checks_skipped(),
         "violations": violations,
     }
     for line in violations:
@@ -739,6 +741,345 @@ def implied_portion(pz_id, map_dir=MAP_DIR, dataset_path=DATASET_JSON, source=No
                 print("  no FDC portion: judgement", file=out)
     return results
 
+
+# ---- extract ----
+#
+# Task 5. The referential checks (appended to MAP_REF_CHECKS, so `check_map` always runs them) and
+# `build_extract`, which writes data/fdc-extract.json: the SR Legacy foods, the retention codes and
+# the side-table rows the merged mapping cites, and nothing else, with the sources' provenance. Every
+# path the checks and the build read is a REF_SOURCES entry. The two FDC files are gitignored: when one
+# is absent its check is skipped and named in check_map's `ref_checks_skipped` (a fresh clone still
+# checks the committed tables), and the build refuses. The three side tables are committed, so an
+# absent one is a violation.
+
+import datetime, decimal
+import fdc_fetch
+
+EXTRACT_JSON = os.path.join(REPO, "data", "fdc-extract.json")
+REF_SOURCES = {
+    "iodine": os.path.join(REPO, "data", "iodine-db-r4.csv"),        # key, food, iodine_ug_100g, page, note
+    "phytate": os.path.join(REPO, "data", "phytate-literature.csv"),  # family, phytate_mg_100g, source, note
+    "insects": os.path.join(REPO, "data", "insect-literature.csv"),   # key, ..., the literature cells
+    "sr_legacy": SR_LEGACY_ZIP,                                       # a zip, or a directory of its CSVs
+    "retention": RETENTION_CSV,
+    "manifest": os.path.join(FDC_DIR, "manifest.json"),               # tools/fdc_fetch.py's
+}
+FDC_REF_SOURCES = ("retention", "sr_legacy")    # the gitignored ones: absent -> skipped, never a violation
+
+IODINE_PREFIX = "iodine:"                       # iodine_ref = iodine:<key of the iodine table>
+PHYTATE_LIT_PREFIX = "schlemmer2009:"           # phytate_source = schlemmer2009:<family of the phytate table>
+PHYTATE_ZERO_PREFIX = "zero:"                   # phytate_source = zero:<one of the closed families>
+# The families the literature places at zero phytate (Task 4's amendment; the waves cite each one).
+ZERO_PHYTATE_FAMILIES = ("dairy", "egg", "fish", "fruit", "meat", "oil", "sugar", "vegetable")
+INSECT_NUMBER_COLUMNS = ("protein_g_100g", "fat_g_100g", "fibre_g_100g", "carb_g_100g", "ash_g_100g",
+                         "energy_kcal_100g", "moisture_pct")
+EXTRACT_SOURCES = ("sr_legacy", "literature")   # the fdc_source values the build resolves
+
+
+class ExtractRefused(ValueError):
+    """The build's refusal: the mapping does not check clean, an FDC file is absent, or a file the
+    build reads does not hash to its manifest row."""
+
+
+def read_table(path, key_col):
+    """`{key: row}` over a committed side table (all cells strings); a repeated key raises."""
+    with open(path, encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    out = {}
+    for row in rows:
+        if row[key_col] in out:
+            raise ValueError("%s: %s %r appears twice" % (os.path.basename(path), key_col, row[key_col]))
+        out[row[key_col]] = row
+    return out
+
+
+class _FdcSource(object):
+    """`with _FdcSource(path) as source:` -- a ZipFile over a zip path (closed on exit), or the
+    directory path itself (the loaders read either)."""
+
+    def __init__(self, path):
+        self.path, self.zip = path, None
+
+    def __enter__(self):
+        if os.path.isdir(self.path):
+            return self.path
+        self.zip = zipfile.ZipFile(self.path)
+        return self.zip
+
+    def __exit__(self, *exc):
+        if self.zip is not None:
+            self.zip.close()
+        return False
+
+
+def sr_legacy_ids(path):
+    """Every `fdc_id` of the SR Legacy food.csv, as ints."""
+    with _FdcSource(path) as source:
+        return {int(row["fdc_id"]) for row in read_rows(source, "food.csv")}
+
+
+def retention_codes(path):
+    """Every `Retn_Code` of the retention CSV, the defective rows' code included."""
+    with open(path, encoding="utf-8", newline="") as handle:
+        return {int(row["Retn_Code"]) for row in csv.DictReader(handle)}
+
+
+def retention_descriptions(path):
+    """`{retn_code: RetnDesc}` (the first row's description of each code)."""
+    out = {}
+    with open(path, encoding="utf-8", newline="") as handle:
+        for row in csv.DictReader(handle):
+            out.setdefault(int(row["Retn_Code"]), row["RetnDesc"])
+    return out
+
+
+def ref_checks_skipped():
+    """The FDC_REF_SOURCES whose file is absent (their checks did not run), sorted."""
+    return sorted(name for name in FDC_REF_SOURCES if not os.path.exists(REF_SOURCES[name]))
+
+
+def cookable_without_code(rows, records):
+    """Mapped IsCookable rows with no cook_retention_code (the literature insects): counted, allowed."""
+    return sum(1 for r in rows if r["fdc_id"] and not r["cook_retention_code"]
+               and (records.get(r["pz_id"]) or {}).get("is_cookable") is True)
+
+
+def _table_violation(name):
+    return ["referential: the %s table %s is absent" % (name, REF_SOURCES[name])]
+
+
+def check_iodine_refs(rows, records):
+    """Every `iodine_ref` is `iodine:<key>` with the key a row of the iodine table."""
+    if not os.path.exists(REF_SOURCES["iodine"]):
+        return _table_violation("iodine")
+    keys = read_table(REF_SOURCES["iodine"], "key")
+    out = []
+    for row in rows:
+        ref = row["iodine_ref"]
+        if ref and not (ref.startswith(IODINE_PREFIX) and ref[len(IODINE_PREFIX):] in keys):
+            out.append("%s %s: iodine_ref %r does not resolve to a key of %s"
+                       % (_where(row), row["pz_id"], ref, os.path.basename(REF_SOURCES["iodine"])))
+    return out
+
+
+def check_phytate_sources(rows, records):
+    """Every `phytate_source` is empty, `schlemmer2009:<family of the phytate table>` or
+    `zero:<one of ZERO_PHYTATE_FAMILIES>`."""
+    if not os.path.exists(REF_SOURCES["phytate"]):
+        return _table_violation("phytate")
+    families = read_table(REF_SOURCES["phytate"], "family")
+    out = []
+    for row in rows:
+        src = row["phytate_source"]
+        if not src:
+            continue
+        if src.startswith(PHYTATE_LIT_PREFIX) and src[len(PHYTATE_LIT_PREFIX):] in families:
+            continue
+        if src.startswith(PHYTATE_ZERO_PREFIX) and src[len(PHYTATE_ZERO_PREFIX):] in ZERO_PHYTATE_FAMILIES:
+            continue
+        out.append("%s %s: phytate_source %r resolves to neither a family of %s nor a zero family"
+                   % (_where(row), row["pz_id"], src, os.path.basename(REF_SOURCES["phytate"])))
+    return out
+
+
+def check_literature_ids(rows, records):
+    """Every `literature` row's fdc_id is a key of the insect literature table."""
+    if not os.path.exists(REF_SOURCES["insects"]):
+        return _table_violation("insects")
+    keys = read_table(REF_SOURCES["insects"], "key")
+    return ["%s %s: literature fdc_id %r is not a key of %s"
+            % (_where(r), r["pz_id"], r["fdc_id"], os.path.basename(REF_SOURCES["insects"]))
+            for r in rows if r["fdc_source"] == "literature" and r["fdc_id"] and r["fdc_id"] not in keys]
+
+
+def check_sr_legacy_ids(rows, records):
+    """Every `sr_legacy` fdc_id is a row of the zip's food.csv (skipped when the zip is absent)."""
+    if not os.path.exists(REF_SOURCES["sr_legacy"]):
+        return []
+    ids = sr_legacy_ids(REF_SOURCES["sr_legacy"])
+    return ["%s %s: sr_legacy fdc_id %s is not in food.csv" % (_where(r), r["pz_id"], r["fdc_id"])
+            for r in rows if r["fdc_source"] == "sr_legacy" and FDC_ID_RE.match(r["fdc_id"])
+            and int(r["fdc_id"]) not in ids]
+
+
+def check_retention_codes(rows, records):
+    """Every `cook_retention_code` is a Retn_Code of the retention CSV (skipped when it is absent)."""
+    if not os.path.exists(REF_SOURCES["retention"]):
+        return []
+    codes = retention_codes(REF_SOURCES["retention"])
+    return ["%s %s: cook_retention_code %s is not in %s"
+            % (_where(r), r["pz_id"], r["cook_retention_code"], os.path.basename(REF_SOURCES["retention"]))
+            for r in rows if r["cook_retention_code"].isdigit() and int(r["cook_retention_code"]) not in codes]
+
+
+MAP_REF_CHECKS.extend([check_iodine_refs, check_phytate_sources, check_literature_ids,
+                       check_sr_legacy_ids, check_retention_codes])
+
+
+def load_food_nutrient_cells(source, fdc_ids):
+    """`{fdc_id: {key: {"amount", "unit", "nutrient_id"}}}` for every FDC key (phytate has none):
+    `amount` per 100 g (None when no row carries a value, never 0), `unit` the FDC `unit_name`,
+    `nutrient_id` the `nutrient.id` the value came from -- for a "sum" key (efa) the list of the ids
+    summed, the sum taken in decimal on the CSV strings so it is never re-rounded by binary floats.
+    A key whose numbers are all absent from nutrient.csv reads all three None. The amounts equal
+    `load_food_nutrients`' (a test pins it)."""
+    nutrients = load_nutrients(source)
+    resolved = resolve_keys(nutrients, strict=False)
+    unit_by_id = {row["id"]: row["unit_name"] for row in nutrients.values()}
+    nids = {nid for rows in resolved.values() for _nbr, nid in rows}
+    wanted = {int(i) for i in fdc_ids}
+    raw = {i: {} for i in wanted}
+    for row in read_rows(source, "food_nutrient.csv"):
+        fid = int(row["fdc_id"])
+        if fid in wanted and row["amount"] != "":
+            nid = int(row["nutrient_id"])
+            if nid in nids:
+                raw[fid][nid] = row["amount"]
+    out = {}
+    for fid in wanted:
+        cells = {}
+        for key in KEYS:
+            if key in NO_FDC_KEYS:
+                continue
+            rows = resolved.get(key)
+            if not rows:
+                cells[key] = {"amount": None, "unit": None, "nutrient_id": None}
+                continue
+            present = [(nid, raw[fid][nid]) for _nbr, nid in rows if nid in raw[fid]]
+            if FDC_NUTRIENT_NBR[key][1] == "first":
+                nid, text = present[0] if present else (rows[0][1], None)
+                cells[key] = {"amount": None if text is None else float(text), "unit": unit_by_id[nid],
+                              "nutrient_id": nid}
+            else:
+                ids = [nid for nid, _text in present] or [nid for _nbr, nid in rows]
+                amount = float(sum(decimal.Decimal(text) for _nid, text in present)) if present else None
+                cells[key] = {"amount": amount, "unit": unit_by_id[ids[0]], "nutrient_id": ids}
+        out[fid] = cells
+    return out
+
+
+def _float_or_none(text):
+    return None if text == "" else float(text)
+
+
+def _verify_manifest(sources, read_paths):
+    """Each file the build reads must hash to its manifest row (by basename); raises otherwise."""
+    rows = {s["filename"]: s for s in sources}
+    for path in read_paths:
+        if os.path.isdir(path):
+            continue
+        row = rows.get(os.path.basename(path))
+        if row is None:
+            raise ExtractRefused("%s has no row in the manifest" % path)
+        if fdc_fetch.sha256_file(path) != row["sha256"]:
+            raise ExtractRefused("%s: sha256 differs from the manifest's %s (re-run tools/fdc_fetch.py)"
+                                 % (path, row["sha256"]))
+
+
+def extract_sources():
+    """`fdc_fetch.sources()` with each file's sha256 and bytes from the manifest (None when absent)."""
+    with open(REF_SOURCES["manifest"], encoding="utf-8") as handle:
+        manifest = {row["filename"]: row for row in json.load(handle)}
+    out = []
+    for src in fdc_fetch.sources():
+        row = manifest.get(src["filename"], {})
+        src["sha256"], src["bytes"] = row.get("sha256"), row.get("bytes")
+        out.append(src)
+    return out
+
+
+def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_JSON, out=None):
+    """Write data/fdc-extract.json from the merged mapping, the SR Legacy zip, the retention CSV and the
+    three side tables (every path a REF_SOURCES entry); return the extract. Refuses (ExtractRefused,
+    nothing written) unless `check_map` without --allow-unfilled is clean and both FDC files are
+    present and hash to the manifest. Byte-stable within one UTC day: sorted keys, indent 1, LF."""
+    out = sys.stdout if out is None else out
+    log = io.StringIO()
+    counts = check_map(map_dir, dataset_path, allow_unfilled=False, out=log)
+    if counts["violations"]:
+        raise ExtractRefused("the mapping does not check clean (%d violation(s)); the first: %s"
+                             % (len(counts["violations"]), "; ".join(counts["violations"][:5])))
+    if counts["ref_checks_skipped"]:
+        raise ExtractRefused("the build reads the FDC files; absent: %s (python tools/fdc_fetch.py)"
+                             % ", ".join("%s %s" % (n, REF_SOURCES[n]) for n in counts["ref_checks_skipped"]))
+    sources = extract_sources()
+    _verify_manifest(sources, [REF_SOURCES["sr_legacy"], REF_SOURCES["retention"]])
+    rows, _errors = read_map(map_dir)
+    records = load_dataset(dataset_path)
+    mapped = [r for r in rows if r["fdc_id"]]
+    unsupported = sorted({r["fdc_source"] for r in mapped} - set(EXTRACT_SOURCES))
+    if unsupported:
+        raise ExtractRefused("fdc_source %s: the extract resolves only %s"
+                             % (", ".join(unsupported), ", ".join(EXTRACT_SOURCES)))
+    sr_ids = sorted({int(r["fdc_id"]) for r in mapped if r["fdc_source"] == "sr_legacy"})
+    codes = sorted({int(r["cook_retention_code"]) for r in rows if r["cook_retention_code"]})
+    iodine_keys = sorted({r["iodine_ref"][len(IODINE_PREFIX):] for r in rows if r["iodine_ref"]})
+    families = sorted({r["phytate_source"][len(PHYTATE_LIT_PREFIX):] for r in rows
+                       if r["phytate_source"].startswith(PHYTATE_LIT_PREFIX)})
+    insect_keys = sorted({r["fdc_id"] for r in mapped if r["fdc_source"] == "literature"})
+
+    with _FdcSource(REF_SOURCES["sr_legacy"]) as source:
+        described = load_foods(source, sr_ids)
+        cells = load_food_nutrient_cells(source, sr_ids)
+        portions = load_portions(source, sr_ids)
+    foods = {}
+    for fid in sr_ids:
+        food = dict(described[fid])
+        food.update(nutrients=cells[fid], portions=portions.get(fid, []))
+        foods[str(fid)] = food
+
+    table, skipped = load_retention(REF_SOURCES["retention"], skip_defective=True)
+    descriptions = retention_descriptions(REF_SOURCES["retention"])
+    retention = {str(code): {"description": descriptions[code],
+                             "factors": {str(nbr): pct for nbr, pct in table.get(code, {}).items()}}
+                 for code in codes}
+    defective = {}
+    for row in skipped:
+        code = row["retn_code"]
+        entry = defective.setdefault(str(code), {
+            "description": descriptions[code], "skipped": [],
+            "loadable_factors": {str(nbr): pct for nbr, pct in table.get(code, {}).items()}})
+        entry["skipped"].append({"line": row["line"], "nutr_no": row["nutr_no"], "retn_factor": row["retn_factor"]})
+
+    iodine_table = read_table(REF_SOURCES["iodine"], "key")
+    iodine = {k: {"food": iodine_table[k]["food"], "iodine_ug_100g": float(iodine_table[k]["iodine_ug_100g"]),
+                  "page": int(iodine_table[k]["page"])} for k in iodine_keys}
+    phytate_table = read_table(REF_SOURCES["phytate"], "family")
+    phytate = {f: {"phytate_mg_100g": float(phytate_table[f]["phytate_mg_100g"]),
+                   "source": phytate_table[f]["source"]} for f in families}
+    insect_table = read_table(REF_SOURCES["insects"], "key")
+    insects = {}
+    for k in insect_keys:
+        cells_k = {col: (_float_or_none(v) if col in INSECT_NUMBER_COLUMNS else v)
+                   for col, v in insect_table[k].items() if col != "key"}
+        insects[k] = cells_k
+
+    missing = {key: [fid for fid in sr_ids if cells[fid][key]["amount"] is None]
+               for key in KEYS if key not in NO_FDC_KEYS}
+    meta = {
+        "build": food_scan.BUILD,
+        "jar_hash": food_scan.JAR_HASH,
+        "generated": datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
+        "tool": "tools/food_nutrients.py",
+        "sources": sources,
+        "counts": {"foods": len(foods), "retention_codes": len(retention),
+                   "defective_retention_rows": len(skipped), "iodine_rows": len(iodine),
+                   "phytate_rows": len(phytate), "insect_rows": len(insects),
+                   "cookable_without_code": counts["cookable_without_code"],
+                   "missing_nutrients": missing},
+        "defective_retention": defective,
+    }
+    extract = {"meta": meta, "foods": foods, "retention": retention, "iodine": iodine,
+               "phytate": phytate, "insects": insects}
+    text = json.dumps(extract, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
+    with open(out_path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
+    print("%d foods, %d retention codes, %d iodine, %d phytate, %d insect rows -> %s (%d bytes)"
+          % (len(foods), len(retention), len(iodine), len(phytate), len(insects), out_path,
+             len(text.encode("utf-8"))), file=out)
+    return extract
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="The item-pass pipeline: vanilla foods joined to FDC SR Legacy nutrient vectors "
@@ -755,6 +1096,10 @@ def main(argv=None):
                         help="print the four implied masses, their spread and the portion verdict")
     parser.add_argument("--fdc", type=int, metavar="FDC_ID",
                         help="with --implied-portion: join on this fdc_id instead of the row's")
+    parser.add_argument("--build-extract", action="store_true",
+                        help="write data/fdc-extract.json from the mapping, the FDC files and the side "
+                             "tables; refuses unless --check-map is clean")
+    parser.add_argument("--extract", default=EXTRACT_JSON, help="with --build-extract: the output path")
     parser.add_argument("--map-dir", default=MAP_DIR, help="the mapping directory")
     parser.add_argument("--dataset", default=DATASET_JSON, help="the food dataset JSON")
     args = parser.parse_args(argv)
@@ -765,6 +1110,13 @@ def main(argv=None):
     if args.check_map:
         counts = check_map(args.map_dir, args.dataset, allow_unfilled=args.allow_unfilled)
         return 1 if counts["violations"] else 0
+    if args.build_extract:
+        try:
+            build_extract(args.map_dir, args.dataset, args.extract)
+        except ExtractRefused as refused:
+            print("REFUSED " + str(refused), file=sys.stderr)
+            return 1
+        return 0
     if args.implied_portion:
         implied_portion(args.implied_portion, args.map_dir, args.dataset, fdc=args.fdc)
         return 0
