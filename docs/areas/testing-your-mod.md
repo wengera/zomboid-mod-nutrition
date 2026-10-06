@@ -249,7 +249,7 @@ An excess rung drives FOOD_SICKNESS to its floor at the net rate with POISON at 
 The Severity dial reaches the set at the next rebuild [#3085/M/n=1].
 INTOXICATION follows the gut lane's target rather than the drink writer's total, except for one update after each sip [#3086/M/n=1].
 The aim multiplier reaches the client's mirror and the swing stub and is applied nowhere [#3088/M/n=1].
-The fast step's bench cost sits inside 10 per cent of the Plan 4 reading [#3089/M/n=1], and the effects push is deduplicated to a fraction of its marks [#3090/M/n=1].
+On this boot the fast kernel step's two kept bench runs sat inside 10 per cent of the Plan 4 reading [#3089/M/n=1]; with the second boot's runs the verdict is unresolved (T14-1) [#3112/M/n=1], and the handler's Plan 5 writes are outside the bench; the effects push is deduplicated to a fraction of its marks [#3090/M/n=1].
 The second live boot of the Plan 5 build, with the PANIC floor a hold, ran 1341.8 s (22.4 minutes) of arms without a mod error [#3091/M/n=1], and the set on the record equalled the composer's replay at every whole read, the drains and their codes included [#3092/M/n=1].
 Night vision follows its day counter: with the retinol average edited over the requirement the counter ran one day per game day and granted the trait at 14, the client seeing it inside the round trip of the record read before the grant [#3093/M/n=1].
 An outside removal of the granted trait was undone by the next read [#3094/M/n=1], vitamin A at grade 2 withdrew it on both sides [#3095/M/n=1], a NIGHT_VISION the mod had not added stayed through about twelve slow minutes [#3096/M/n=1], and with no preformed retinol the counter only fell [#3097/M/n=1].

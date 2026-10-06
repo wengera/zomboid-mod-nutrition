@@ -216,6 +216,7 @@ The written timer counted down on the server near the unbandaged rate, 0.0356572
 An infected open wound's level rose at the untreated rate, 0.018090308722325733 per game hour, and with the part's alcohol level written to 1 it fell at 0.35913723562284106 per game hour [#3043/M/n=1].
 Twenty writes of an extra rise, each driven over the harness bus after a read about a second earlier, reached only 1.179928563584732 times the untreated slope rather than 2.3 times; the vanilla rise that each write overwrote predicts 1.1946730180991645 (arith., inference), so the shortfall is read as the overwritten gap, not measured as its cause [#3044/M/n=1].
 In a second session, with every fold of the mod idle, an unbandaged scratch counted down 0.017937586994153862 per game hour, a bleed 0.03585957751468073 and an infected scratch's level rose 0.017989861790033753 [#3113/M/n=1].
+The wound-infection level is capped at 10: every branch of the update's wound-infection section reaches a check that writes `setWoundInfectionLevel(10.0)` where the level reads above 10.0, so a fold that scales the level's rise saturates there [#3131/C/C-only].
 
 <a id="mood-surface"></a>
 ### The mood surface

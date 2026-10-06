@@ -75,7 +75,7 @@ A claim is minted in the commit that lands its evidence, never later.
 7. **Who runs the checker:** the committer, `--staged`, before every commit that touches its trigger paths (§ 3); an SDD reviewer re-runs it on the review package.
 8. **A science number:** a value the mod ships rests on a `settled` row of `docs/reference/science.tsv`; a writer files rows in a part file the controller applies with `tools/science_delta.py`, and every settled row's citation was resolved against its record before minting; the page is [reference/science](docs/reference/science.md).
 9. **A live row's text:** every number in a claim sits at a path its pointer names, unrounded beyond the sample; a mechanism read off the mod's own code is written in the bound as inference, never as the claim; the checker does not match a wildcard `do-not-cite` key (`phases.*.watch.raw`), so a wildcard is a review check (the five Plan 4 live reviews each returned five to nine such defects).
-10. **The apply tool rewrites plain provisional tags only:** a suffixed tag (`[T4.1/M/n=1]`) or a `#T4.1` form is rewritten by the controller by regex over every touched page, `experiments.md` included.
+10. **The apply tool rewrites plain provisional tags only:** a suffixed tag (`[T4.1/M/n=1]`) or a `#T4.1` form is rewritten by the controller by regex over every touched page, `experiments.md` included. The controller's regex runs over the touched pages only, never the register (old bounds carry stale provisional refs), and its `[##` cleanup matches tag brackets only (it hit a heading link once).
 
 ## 5. Harness rules
 
@@ -117,7 +117,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - In a delta a `supersede` names its successor in the `successor` cell; the add row may sit anywhere.
 - The register is read-only for page writers: a new or changed claim is a delta file the controller applies with `tools/claims_delta.py`, and a writer never runs `claims_check.py --fix-tags` (the controller runs it once per wave close).
 - A `status` row in a delta writes only `status` and `bound`: a correction pass that changes a claim, pointer, grade or kind is applied with `tools/claims_delta.py apply` AND the controller's fill step that copies those cells from the delta (the Plan 5 gate-1 lesson: every Plan 4 correction pass had landed status and bound only, and the claim and pointer cells were replayed at a8fc4b2); a verified apply re-reads one corrected claim from the register before committing.
-- An added `rule` row (an area page's own imperative) rests on register rows: its pointer is a C pointer copied from a row it rests on, its bound reads `inference; a reading of <ids>`, and its page line carries the resting row's tag beside its own.
+- An added `rule` row (an area page's own imperative) rests on register rows: its pointer is a C pointer copied from a row it rests on, its bound reads `inference; a reading of <ids>`, and its page line carries the resting row's tag beside its own; a rule resting only on M rows takes a `repo:` pointer to the line that carries its clause (ruling T15-1).
 - A rule copied from a page that states it outside `## Rules` is copied byte-identically and diffed by hand at review, because the checker's `rules-dup` rule reads `## Rules` lines only.
 - A skill's quoted rule line keeps the row's numbers; the skill's own text carries none.
 - A register `source` cell is harvest provenance and is never renumbered when the doc it names is rewritten.

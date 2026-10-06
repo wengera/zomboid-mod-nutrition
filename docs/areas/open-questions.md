@@ -396,6 +396,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 <a id="x81"></a>
 ### X81 — What steady core offset does a per-update TEMPERATURE target hold?
 - What offset a target written on every update holds is open [#3047/M/n=1/open]; one write moves the core halfway at the next tick [#3046/M/n=1].
+- Run `x161b-20261006-065751` could not take it: at rest the core sat about 0.45 under the set point, so the mod's -0.2 target never acted [#3115/M/n=1] [#3100/M/n=1].
 - Waiting on it: [health-surfaces.md](../facts/health-surfaces.md#thermal).
 - Settled by: a per-tick writer of an absolute target for game hours, reading the core and the set point — [experiments.md § Named experiments](../reference/experiments.md), row `X81`.
 
