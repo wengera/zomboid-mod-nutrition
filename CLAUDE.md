@@ -59,7 +59,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
 - `python tools/reference_gen.py cited-by --check` and `python tools/reference_gen.py contradictions --check` → in sync: the artifacts register's `Cited by` column and the mirrors' `## Contradictions` section are rendered from the register, the checker's rule 10 runs both (so `claims_check.py --staged` covers a commit touching the register, `docs/reference/artifacts.md` or `references/wiki-mirrors/`), and `--write` in place of `--check` regenerates them.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
-- `python -m pytest tools/tests testing/tests -q` green: 1216 passed on 2026-10-05 (676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 1545 passed on 2026-10-05 (1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 
@@ -94,7 +94,8 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Standing rule: live-server experiments and trial and error are encouraged, and the harness is improved as the work goes whenever that makes a measurement better — before the run, under the rules above.
 - A live boot of the mod never overlaps an offline edit under `mod/`: the boot loads the whole tree and a half-saved file parks the `-debug` client; a live task waits for the mod/ tree to be quiescent, and an offline mod/ task waits for the session to end (Plan 2 ruling).
 - An acceptance profile for the mod sets `Nutrition = false`, the design's precondition (ruling T18-1; x141b ran without it).
-- Row `#2808` is the living harness-inventory count tethered to the generated command table: a harness commit that changes the table's count line updates `#2808`'s claim text and quote in the same commit (rule 3b fails otherwise) — the one register edit a harness implementer may make.
+- Row `#2808` is the living harness-inventory count tethered to the generated command table: a harness commit that changes the table's count line updates `#2808`'s claim text and quote, and `#1235`'s quote, in the same commit (rule 3b fails otherwise) — the one register edit a harness implementer may make.
+- A profile's `[server]` keys (`SleepAllowed`, `SleepNeeded`) reach the server ini at seed; the fixture's default is false/false, so a sleep reading needs a profile that sets both true (x151s).
 
 ## 6. Process
 
