@@ -2433,3 +2433,49 @@ TK.register("bodypart.set", function(argv)
     end
     return out
 end)
+
+-- The health reading the three health commands reply with: BodyDamage:getOverallBodyHealth()
+-- and BodyDamage:getHealth(), plus the per-part health list through getBodyParts() (a Java
+-- list: walked by size()/get(i), never by #), each element read through BodyPart:getHealth().
+function P5.healthRead(p)
+    local bd = P5.hop(p, "getBodyDamage")
+    local r = { overall = P5.hop(bd, "getOverallBodyHealth"), health = P5.hop(bd, "getHealth"), parts = {} }
+    local list = P5.hop(bd, "getBodyParts")
+    local n = P5.hop(list, "size")
+    local i = 0
+    while n ~= nil and i < n do
+        r.parts[#r.parts + 1] = P5.hop(P5.hop(list, "get", i), "getHealth")
+        i = i + 1
+    end
+    return r
+end
+
+-- <user> <f>. BodyDamage:ReduceGeneralHealth(f), the engine call every health drain makes (it
+-- spreads f over the parts); the overall health is read before and after on the same tick, and
+-- the reply carries the per-part health after. The value is a float in the engine's own units
+-- (the drains pass fractions of the 0..100 scale). Server-side: the server owns BodyDamage.
+-- @args <user> <f>
+-- @reply {ok, side, requested, before, after, health, parts [, reason]} | string
+-- @purpose Calls BodyDamage:ReduceGeneralHealth(f) on a named player, replying the overall body health before and after and the per-part health.
+TK.register("health.reduce", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local f = tonumber(argv[2])
+    if f == nil then return "usage: health.reduce <user> <f>" end
+    local out = { ok = false, side = TK.side, requested = f }
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil or bd["ReduceGeneralHealth"] == nil then
+        out.reason = "no BodyDamage:ReduceGeneralHealth"
+        return out
+    end
+    out.before = P5.hop(bd, "getOverallBodyHealth")
+    local ran, err = pcall(bd["ReduceGeneralHealth"], bd, f)
+    if not ran then
+        out.reason = "ReduceGeneralHealth raised: " .. tostring(err)
+        return out
+    end
+    local r = P5.healthRead(p)
+    out.after, out.health, out.parts = r.overall, r.health, r.parts
+    out.ok = (out.after ~= nil)
+    return out
+end)
