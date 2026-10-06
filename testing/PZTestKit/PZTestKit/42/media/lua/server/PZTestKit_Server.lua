@@ -2599,3 +2599,40 @@ TK.register("regen.get", function(argv)
     r.side = TK.side
     return r
 end)
+
+-- <user>. One-tick reading of the thermoregulator's core temperature and the TEMPERATURE stat.
+-- getThermoregulator() answers nil off the server and can answer nil on it (#3010), so it is
+-- guarded: a nil regulator replies ok=false with the reason and still carries the stat. Each
+-- getter (getCoreTemperature, getSetPoint, getCoreHeatDelta, getCoreRateOfChange) is index-first
+-- under pcall and a missing one is written once as absent_<field>; the stat is
+-- Stats:get(CharacterStat.TEMPERATURE).
+-- @args <user>
+-- @reply {ok, side, core, setPoint, heatDelta, rateOfChange, temperature [, absent_<field>] [, reason]} | string
+-- @purpose Reads a named player's thermoregulator core temperature, set point, heat delta and rate of change beside the TEMPERATURE stat on one server tick.
+TK.register("temp.core", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local out = { ok = false, side = TK.side }
+    local stats = P5.hop(p, "getStats")
+    if CharacterStat ~= nil and CharacterStat["TEMPERATURE"] ~= nil then
+        out.temperature = P5.hop(stats, "get", CharacterStat["TEMPERATURE"])
+    else
+        out.absent_temperature = true
+    end
+    local bd = P5.hop(p, "getBodyDamage")
+    local th = P5.hop(bd, "getThermoregulator")
+    if th == nil then
+        out.reason = "no thermoregulator (nil off the server, or not yet created)"
+        return out
+    end
+    local fields = {
+        { "core", "getCoreTemperature" }, { "setPoint", "getSetPoint" },
+        { "heatDelta", "getCoreHeatDelta" }, { "rateOfChange", "getCoreRateOfChange" },
+    }
+    for _, g in ipairs(fields) do
+        local v = P5.hop(th, g[2])
+        if v == nil then out["absent_" .. g[1]] = true else out[g[1]] = v end
+    end
+    out.ok = (out.core ~= nil)
+    return out
+end)
