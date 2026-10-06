@@ -301,6 +301,7 @@ The fill path itself is unmeasured: `JustAteFood` fills the timer from the absol
 | Emaciated | 50 kg or less | 50 |
 
 The 100, 85, 75 and 80 kg edges are measured on the dedicated-server path, and the 45, 55, 95 and 105 kg interiors too; the 50 and 65 kg edges are read from the code only, because both probes read back 50.000099 and 65.000099 — the server had already nudged the weight past the boundary before the comparison ran, the gain arm firing because the primed store exceeded the threshold that [nutrition-core.md#weight-model](nutrition-core.md#weight-model) gives, which is minus 200 at 50 kg and 400 at 65 kg, both below the 500 kcal the probe had primed [#0531/M/n=1].
+Read since in one server tick, a weight write followed at once by the band apply gave Emaciated at 49.9 kg, Very Underweight at 50.1 and 64.9 kg and Underweight at 65.1 kg [#3069/M/n=1].
 The refresh runs only once every 2000 `updateWeight` calls, so a weight change is not reflected in the band traits until the counter rolls; the figure is read from the bytecode and the counter's phase was unknown at the probe, so the measurement bounds the period below rather than measuring it [#0534/C/C-only].
 Unforced, the refresh did not fire within 60 s of dedicated-server time: with weight moved from 80 to 105 and no forced refresh, 29 polls over 59.8 s all read the Obese trait false at a weight of 105 [#0535/M/n=1].
 `getNutrition():applyTraitFromWeight()` is public, Lua-reachable and applies the band trait instantly; it is the route every measured band reading used [#0536/M/n=1].

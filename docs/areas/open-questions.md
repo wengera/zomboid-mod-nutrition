@@ -113,7 +113,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2083/C/open] | Does `Fitness.update` tick on the server for a connected player? | [open-questions.md](#x36) | X36 | a seeded exercise, then two game-days without one, reading the server's regularity for the predicted fall |
 | [#2085/C/open] | What is the experience anti-cheat's check interval, and does a server-side burst of grants trip it? | [open-questions.md](#x40) | X40 | a desk read of what enables the check, then above- and below-bound server-side bursts, the lower sized off the bound the first trip logs, beside a console-grant control, timing the logged trips |
 | [#2087/C/open] | Which side evaluates the Strength experience protein branch for a connected player, and against which side's protein value? | [open-questions.md](#x48) | X48 | melee hits with the protein store raised on the server alone and then on the client alone, reading the Strength experience per hit |
-| [#2096/C/open] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
+| [#2096/C/C-only/open] | Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? | [open-questions.md](#x47) | X47 | a client write sampled in Lua every quarter second for four seconds, against the packet's cadence |
 | [#2742/M/n=1/open] | Whether a MoodleFramework moodle or a mod's own `ISUIElement` widget renders on a dedicated-server client is unmeasured: no run has drawn either, and X29's render leg is the reading that settles it. | [open-questions.md](#x29) | X29 | a framework moodle and a widget of the mod's own, each driven on the client and its draw calls counted, beside a value that must leave the moodle undrawn |
 | [#2829/M/n=1/open] | Two drink corners are unmeasured, cancel semantics and the 100 ms anim-event cadence under `settimespeed`, and when the new fill and the new calories arrive on the client is read only to a poll of 1.5 to 2 s: the client trailed the server by about one poll and reached the same totals. | [eating-pipeline.md](../facts/eating-pipeline.md#open) | — | a drink cancelled partway and a drink at a raised time speed, each read on both sides |
 | [#2946/M/n=1/open] | Whether the climate override moves an outdoor character's air and core, and whether a hot exposure with activity raises the fluids multiplier above 1, is unmeasured: the one run stood the character where the air read 22.0 under both overrides and walked it at 16 degrees. | [open-questions.md](#x51) | X51 | the climate override held over an outdoor character, idle and walking, reading the server's thermoregulator per tick |
@@ -121,6 +121,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2972/M/n=1/open] | Whether the mod's sweat term fires live is unmeasured: a 60 s walk took the server's `body.met` from 1.6 to 3.0 and never above the term's 3 MET floor, so `sweatLmin` stayed 0 and `sweatActive` false. | [open-questions.md](#x64) | X64 | a run or an activity the server classifies above 3 MET for game hours, reading the sweat fields |
 | [#2992/M/n=1/open] | Whether an unbroken sleep resets the mod's hours awake live is unmeasured: under the harness's sleep hold `sleptH` read at most 0.3195 at the 35 reads, below the one-hour nap threshold, and `awakeH` never reset across the hold. | [open-questions.md](#x69) | X69 | a client-initiated sleep, or a hold that keeps every minute asleep for over an hour, reading `acute.awakeH` and `sleptH` |
 | [#3045/M/n=1/open] | Whether halving the regeneration constants halves awake regeneration is unmeasured: run x161s-20261006-031534 wrote and read them back, but both windows ran at hunger moodle level 4, whose tier adds nothing. | [open-questions.md](#x80) | X80 | a damaged part read in two windows, before and after the halving, with the hunger, thirst and sickness moodles low enough that the regeneration tier is not 3 |
+| [#3063/M/n=1/open] | Whether the post-shot sum, the per-update aiming step and a client write between shots behave as the jar reads while a player really aims is unmeasured: run x161p-20261006-035559's harness aim flag did not hold. | [open-questions.md](#x86) | X86 | an aim held by input with the delay below the aiming time, sampled per client tick across shots |
 | [#3047/M/n=1/open] | What steady core offset a TEMPERATURE target written on every update holds is unmeasured: the probe had no per-tick writer, so run x161s-20261006-031534 read only one write. | [open-questions.md](#x81) | X81 | a per-tick writer of an absolute target for game hours, reading the server's core and set point |
 
 ## Decisions
@@ -350,7 +351,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x47"></a>
 ### X47 — Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold?
-- Whether a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window holds is open [#2096/C/open].
+- Whether a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window holds is open [#2096/C/C-only/open]; run x161p-20261006-035559 read the write gone by the first sample a quarter second after it, standing and in a walking arm whose movement was not confirmed, with no read-back in the writing tick [#3066/M/n=1].
 - Waiting on it: [perception-speed.md](../facts/perception-speed.md#open).
 - Settled by: a client write sampled in Lua every quarter second for four seconds, walking and standing, against the packet's cadence — [experiments.md § Named experiments](../reference/experiments.md), row `X47`.
 
@@ -395,6 +396,12 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - What offset a target written on every update holds is open [#3047/M/n=1/open]; one write moves the core halfway at the next tick [#3046/M/n=1].
 - Waiting on it: [health-surfaces.md](../facts/health-surfaces.md#thermal).
 - Settled by: a per-tick writer of an absolute target for game hours, reading the core and the set point — [experiments.md § Named experiments](../reference/experiments.md), row `X81`.
+
+<a id="x86"></a>
+### X86 — Does the aiming delay follow the jar's post-shot sum and per-update step while a player aims?
+- Whether the sum, the step and a write between shots behave as read while a player really aims is open [#3063/M/n=1/open]; a written aim flag does not hold and the delay then sits at the aiming time [#3062/M/n=1], and the three attack events fire on the shooting client [#3061/M/n=1].
+- Waiting on it: [perception-speed.md](../facts/perception-speed.md#combat).
+- Settled by: an aim held by input with the delay below the aiming time, sampled per client tick across shots, with a write between shots — [experiments.md § Named experiments](../reference/experiments.md), row `X86`.
 
 ## See also
 

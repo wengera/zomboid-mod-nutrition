@@ -89,6 +89,7 @@ The render settings that hold that floor are not exposed to Lua, and no Lua glob
 Night-vision goggles are a render flag with no packet: the setter's only reader is the per-player render-settings path [#2328/C/C-only].
 A server that sets the goggles flag on a player's server copy changes nothing that player's client draws.
 The trait is the lever that reaches the client; how a trait change travels is under [dynamic traits](#dynamic-traits).
+Measured live, a NIGHT_VISION add pushed in the same tick reached the owning client's trait list 14 ms after the push, in daylight; its render effects were not read [#3059/M/n=1].
 
 <a id="hearing"></a>
 ### Hearing
@@ -139,11 +140,14 @@ Whether Lua can read either field on an exposed class is a question the bytecode
 
 The movement levers a mod has are the server-side inputs of the formula.
 A write to the `WalkSpeed` or `RunSpeed` animation variable on the server lasts until the formula next runs.
-Whether a client-side write to `WalkSpeed` holds inside the window between two injury pushes is open, under [Open](#open).
+A client write of 0.3 to `WalkSpeed` was gone by the first sample a quarter second after it and stayed gone for about 4 s, standing and in a walking arm whose movement was not confirmed [#3066/M/n=1].
+No window of a quarter second or more was seen, and because the write was not read back in its own tick, whether it took at all is still open, under [Open](#open).
 
 A fall ends in a landing, and the jar has two landing paths.
 On a server, the falling state's exit packet makes the server run the landing on its copy of the player with the impact the client put in the packet, then push the damage; the state's own exit on the client only stores that impact [#3028/C/C-only].
 The character update also runs a landing when the player's next height would fall below the floor, with no side gate of its own, and these two are the jar's only callers of the landing; whether a connected player's fall lands once or on both paths is not read [#3032/C/C-only].
+Measured live, a client pushed up two tiles fell one level and landed once, on the server: the server's listener heard one `FALLDOWN` of about 5.8, the client's none, both sides' health fell about 6 and no leg fractured [#3064/M/n=1].
+A landing called directly on the client, `DoLand(2.0)`, fired no `FALLDOWN` on either side [#3065/M/n=1].
 
 <a id="combat"></a>
 ### Combat speed and reaction
@@ -163,12 +167,14 @@ A server-side write of melee delay therefore acts on the gate only if the value 
 The aiming delay is the reaction surface a mod can set, and the hit-chance computation reads it twice through `max(0, …)` [#2325/C/C-only].
 After each shot the combat manager rewrites the aiming delay as its current value plus the weapon's recoil and aiming-time terms, clamped between 0 and the primary weapon's aiming time, so a mod's written delay survives only as the base of that sum and never above that ceiling [#2326/C/C-only].
 The post-shot sum is not the delay's only writer: a per-update aiming step also writes it, and that step is listed under [walls](#walls) as not covered.
+Measured live, an aim flag a client sets by a write rather than by input does not hold: it read false at most ticks and the delay sat at the pistol's aiming time of 25, a delay written to 31.25 reading 25 again at the next sample [#3062/M/n=1].
+The post-shot sum, the per-update step and a write between shots while the player really aims are therefore unmeasured [#3063/M/n=1/open].
 Vanilla's rack-firearm action writes the aiming delay additively, adding a term scaled by the gun's aiming time and the Reloading perk to the current delay [#2340/C/C-only].
 A mod's own write composes with that call as long as it, too, adds to the current value rather than replacing it.
 Two Lua events bracket the swing that makes the post-shot write.
 `OnWeaponSwing` fires from the swing state's entry with the player and the weapon in use, after the attack call whose last act is the post-shot aiming-delay write, so a handler of it runs after that write in the same entry [#3026/C/C-only].
 `OnPlayerAttackFinished` fires from the swing state's exit with the character and the weapon once the attack has landed, and vanilla's reload action listens to it and to `OnWeaponSwingHitPoint` [#3031/C/C-only].
-Which side fires either event for a connected player's shot is not read.
+Measured live, all three fire on the shooting client, `OnWeaponSwingHitPoint` 16 to 20 ms after `OnWeaponSwing` and `OnPlayerAttackFinished` about 270 ms after it; the server side was not listened to [#3061/M/n=1].
 
 On an attacking client, critical chance against another, remote player reads the target's body weight on both the shove and the melee arm, moving the chance by (weight − 80)/2 around an 80.0 pivot [#2327/C/C-only].
 A lighter target is critted more often and a heavier one less.
@@ -179,6 +185,7 @@ The weight read is the attacking client's copy of the target, so it follows what
 
 The engine reads perception through a handful of traits by name, and the trait list is a perception lever that reaches both the client's rendering and the server's model.
 Short Sighted drives the native Short Sighted boolean, the blur, the reveal rate and the weapon sight range, all stated under [the rendered cone](#vision-cone).
+Measured live on the client, a pushed Short Sighted add collapsed a pistol's sight range from 6 to its minimum of 2, prescription glasses worn restored 6, and removing the trait restored it too [#3060/M/n=1].
 Eagle Eyed widens both cones, raises the reveal rate and lengthens weapon sight.
 Night Vision widens the rendered cone in the dark and raises the ambient floor, stated under [night vision](#night-vision).
 Deaf, Keen Hearing and Hard of Hearing set the hearing base, stated under [hearing](#hearing).
@@ -203,13 +210,14 @@ Not covered: the native side of the lighting bridge, and so what distance the Sh
 ## Open
 <a id="open"></a>
 
-- Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? — settled by a client write sampled in Lua every quarter second for four seconds, walking and standing, against the packet's cadence; -> [X47](../areas/open-questions.md#x47) [#2096/C/open].
+- Does a client-side write to the `WalkSpeed` animation variable inside the injuries-packet window hold? — settled by a client write sampled in Lua every quarter second for four seconds, walking and standing, against the packet's cadence; -> [X47](../areas/open-questions.md#x47) [#2096/C/C-only/open].
 - That no vanilla Lua outside the two creation tables grants clothing or an item keyed on Short Sighted or Night Vision, so that a runtime grant of either adds none, is unverified: it rests on a hand grep of the install's `media/lua`, not a committed dataset; re-measure by a committed sweep of vanilla Lua for both trait constants and both trait names [#2342/C/snapshot/unverified].
 - The design must decide which distance input a sight effect goes through, the Short Sighted boolean or the detection-range float the engine labels `perceptionDistance`, because both reach the native lighting and what the native side does with either is outside the bytecode [#2303/C/C-only].
 - The design must decide whether its perception effect is a dark-only effect, because the Night Vision term falls to nothing at full daylight [#2298/C/C-only].
 - The design must decide how a speed effect reaches the chain, because no nutrition term enters it and every modifier write is reset on the next speed update [#2315/C/C-only] [#2289/C/C-only].
 - The design must decide on which side a swing-speed effect is applied, because the attacking client computes its own player's combat speed and sends it to the server [#2322/C/C-only] [#2323/C/C-only].
 - The design must decide how a reaction effect keeps its aiming-delay scale, because the combat manager rewrites the delay after each shot [#2326/C/C-only].
+- Do the post-shot sum, the per-update aiming step and a client write between shots behave as the jar reads while a player really aims? — settled by an aim held by input with the delay below the aiming time; -> [X86](../areas/open-questions.md#x86) [#3063/M/n=1/open].
 - The design must decide whether it syncs a trait of its own for a perception effect, because how a receiving side resolves a trait name it has not registered is unread; the trait block's contract is in the player-fields section of [wire-packets.md](wire-packets.md#player-fields-packet).
 
 ## See also

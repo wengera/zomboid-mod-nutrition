@@ -192,6 +192,11 @@ FOOD_SICKNESS written to 30 at POISON 0 decayed, from 29.820615768432617 to 28.7
 The two sides' FOOD_SICKNESS copies read alike at 30, 60 and 95, and at 95 the SICK damage tag fired 287 times in 300 ticks; the SICK moodle levels themselves were not read [#3039/M/n=1].
 A PANIC and UNHAPPINESS write made by an `OnTick` handler on every server tick, outside the stat hook, survived each update: UNHAPPINESS rose the written 0.5 per tick and stayed at 100 after the writes stopped, while PANIC rose 0.32044067796610165 per tick and fell once they stopped [#3048/M/n=1].
 The client's copies of the two trailed the server's by up to about a second [#3049/M/n=1].
+With the drunk-reduction value written to 0 the decay stops: INTOXICATION written to 40 read 40 on both sides for 0.65 game hours, over which the default value removes about 4.9 [#3054/M/n=1].
+A beer drunk at that setting still added the drink writer's full amount, 400 times 0.05 times 0.3 litres, taking the stat from 40 to 46, where it then stayed [#3055/M/n=1].
+A write made inside the `CalculateStats` handler is the later write against the decay, as the order reads: with the reduction back at its default, INTOXICATION written to 25 in the handler on every update read 25 at every kept per-tick sample and on the client, and fell once the writes stopped [#3056/M/n=1].
+On a server with sleep neither allowed nor needed, a FATIGUE of 0.42 written in the handler after the reset read 0.42 on the server and on the client for as long as it was written [#3057/M/n=1].
+On the same server an `OnTick` write of 0.42, outside the player update, reached the client as well, while the server's own reads between frames gave the reset value of about 1e-4; that the push carries what stands at the frame's tail, after `OnTick`, is an inference from that pair [#3058/M/n=1].
 What these updaters leave to a mod's floors and the sickness stat they never touch are [the mood surface](health-surfaces.md#mood-surface) and [the poison section](health-surfaces.md#poison-infection).
 
 The frame's tail — `OnTick` and the network manager — is [the server tick order](../platform/server-lifecycle.md#tick-order), and the push that follows it is [the player-stats push](../platform/mp-model.md#packets).
