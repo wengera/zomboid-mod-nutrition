@@ -80,6 +80,7 @@ def test_bench_inputs_name_the_plan5_fields(bench_host):
     assert inp["solMul"] == 1 and inp["solAddH"] == 0 and inp["dmod"] == 1.1 and inp["stressTarget"] == 0.1
     out = NR.bench_fast()
     assert abs(out["fatigue"] - (inp["fS"] + inp["fCirc"] + inp["fOff"])) < 1e-9      # the owned FATIGUE writer runs
-    # the fold runs: a delta of 0.2 is at or above extEps (0.1), an external write, so it passes through unscaled
-    assert inp["endLast"] < inp["endurance"] and inp["endurance"] - inp["endLast"] >= 0.1
-    assert out["endurance"] == inp["endurance"]
+    # the fold takes its regeneration arm (a delta under extEps 0.1) with rmod off neutral, so the arithmetic runs
+    assert 0 < inp["endurance"] - inp["endLast"] < 0.1
+    assert abs(out["endurance"] - (inp["endLast"] + (inp["endurance"] - inp["endLast"]) * inp["rmod"])) < 1e-15
+    assert out["endurance"] != inp["endurance"]
