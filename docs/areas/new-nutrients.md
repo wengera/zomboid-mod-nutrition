@@ -22,13 +22,13 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-05 · scope: where a mod nutrie
 - Never register a moodle type of your own through the vanilla registry: a registered type reaches every character and is driven back to its lowest level every tick, and a duplicate id corrupts the registry before the call throws [#1140/C/C-only, #2060/C/inference].
 - Evaluate anything keyed on the Obese, Overweight, Underweight or Emaciated band server-side, or push the trait list after you write it as [the trait-push rule](../areas/mp-sync.md#rules) says: the band traits are not in the player-stats packet; they reach the affected player's client on the player-fields packet's trait block and on the timed experience packet, each as fresh as its last push, and no player-addressed push refreshes another client's copy [#2727/C/inference] [#2595/C/C-only] [#2606/C/C-only] [#2603/C/C-only] [#2612/C/C-only].
 - Put slow simulation such as nutrient decay on `EveryOneMinute` or `EveryTenMinutes`, use `OnPlayerUpdate` only for per-frame needs behind a cheap early-out, and avoid `OnTick`: 38 mods already share `OnPlayerUpdate` and `OnTick` is the expensive tier [#1071/C/snapshot].
-- Let every number a nutrient record carries rest on a settled row of the science register or on an open row the mod labels at the number, and ship none that has no row in either: the records built this way crossed their grades at the hours an offline replay of their kernel gives and ran three boots without a mod error [#3004/C/inference, #2978/M/n=1, #2976/M/n=1].
+- Let every number a nutrient record carries rest on a settled row of the science register or on an open row the mod labels at the number, and ship none that has no row in either: the records built this way crossed their grades at the hours an offline replay of their kernel gives and ran three boots without a mod error [#3004/C/inference, #2978/M/n=1, #2976/M/n=1, #2975/M/n=1, #2993/M/n=1].
 - Recompute every grade on the slow minute from the stored value, and rebuild a consumer's derived state only when the record's `epoch` counter has moved: the counter rises by one for each change of a record's grade or excess output, so a consumer that holds the last epoch it saw rebuilds on every change and on no other minute [#3005/C/inference, #1071/C/snapshot, #2978/M/n=1, #2979/M/n=1, #2991/M/n=1].
 - Write THIRST on the server every tick as the water pool's view, as hunger is written, and make every route that puts water into a character reach the pool: a drink-action wrapper sees the container drink only, `autoDrink` and the no-item world-water drink run on the server under no wrapper, and a drink queued on a container the server has never seen raises in the action's `new` and drinks nothing [#3006/C/inference, #2925/C/C-only, #2931/C/C-only, #2939/M/n=1, #2940/M/n=1, #2942/M/n=1, #2943/M/n=1, #2962/M/n=1, #2966/M/n=1].
 - Bracket `autoDrink` rather than switching it off: skip the handler's own call while a drop in THIRST is pending and land the litres that drop stands for, because the server's flag does not hold a Lua `setAutoDrink(false)` and every call that clears its gates with THIRST above 0.1 drinks `min(amount, 2 x thirst)` litres with no cooldown [#3007/C/inference, #2927/C/C-only, #2928/C/arith., #2929/C/C-only, #2939/M/n=1, #2941/M/n=1, #2965/M/n=1].
 - Cap a world-water drink at the litres its action planned, counting what landed on the action itself: `ISTakeWaterAction` plans `min(2 x THIRST, source litres)` once, and each step transfers its target share less what it counts as already drunk from the fall in THIRST, so a THIRST the mod writes for itself misleads that count [#3008/C/inference, #2930/C/C-only, #2931/C/C-only, #2970/M/n=1].
 - Freeze the sleep state at rested unless `SleepAllowed` and `SleepNeeded` are both true: on a server where either is false vanilla resets FATIGUE to its default on every update before the stat hook, a fatigue write made outside the hook was erased at the next update in the measured session, and a sleep state that went on moving would drift from the stat it is meant to drive [#3009/C/inference, #2723/C/C-only, #2793/C/C-only, #2947/M/n=1, #2948/M/n=1].
-- Read the thermoregulator's getters on the server only, and expect `getThermoregulator()` to answer nil: the server's body-damage tick is what updates it, and a client's copy read an air temperature of 27.0 and an energy multiplier of 1.0 at every paired poll against the server's computed values [#3010/C/inference, #2933/C/C-only, #2934/C/C-only, #2935/M/n=1, #2936/M/n=1].
+- Read the thermoregulator's getters on the server only, and guard against `getThermoregulator()` answering nil: the server's body-damage tick is what updates it, and a client's copy read an air temperature of 27.0 and an energy multiplier of 1.0 at every paired poll against the server's computed values [#3010/C/inference, #2933/C/C-only, #2934/C/C-only, #2935/M/n=1, #2936/M/n=1].
 - Hold the THIRST view at 0.83, which reads as moodle level 3, while the mod's deficiencies-can-kill dial is off: the level-4 health term is compiled into the body-damage tick and costs 11.88 health per game hour on the default day whatever a mod dial says [#3011/C/inference, #0518/C/arith., #0519/M/arith., #2969/M/n=1, #2971/M/n=1].
 
 ## How it works
@@ -174,33 +174,27 @@ None of those survivals is measured across a restart, which is why the store dec
 ### The record engine
 
 A record kept in modData and stepped on the slow minute is a number the engine never reads, so a live session can hold it to an offline replay of the arithmetic that steps it.
-The first three boots of the Plan 4 build ran their nutrient adapters for 1689, 3120 and 2261 minutes with no mod error [#2975/M/n=1, #2976/M/n=1, #2993/M/n=1].
-The records the onset dial scales crossed their grades at the hours the replay gives, the replay's grades equalling the read grades at all 54 intervals of the session [#2978/M/n=1].
-The record's `epoch` counter moved by the grade changes in each interval, the one interval holding an excess-dial flip counting its two output changes [#2979/M/n=1].
-Vitamin C takes no onset dial and held its first grade through the session [#2977/M/n=1].
-The excess dial forces a record's output and leaves its state integrating [#2988/M/n=1].
-The client's mirror carried the record keys as the snapshot of its last request [#2991/M/n=1].
+What the mod's record engine measured on itself is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
 
 <a id="fluids"></a>
 ### The fluids
 
 The thermoregulator's getters answer live on the server and read defaults on a client [#2935/M/n=1, #2936/M/n=1].
-Under the water pool's view the server's THIRST held each value for a slow minute, and the client's read stayed within 0.00085 of it at all 90 pairs [#2962/M/n=1].
-A litre drunk through the game's drink action landed in full and the view fell before the deficit [#2966/M/n=1].
+A server-written THIRST reaches the client within 0.00085 [#2962/M/n=1].
 `autoDrink` fired under a stat handler's call and no drink wrapper saw a sip [#2939/M/n=1, #2940/M/n=1], and the server's `setAutoDrink(false)` did not hold [#2941/M/n=1].
-A world-water drink ran on the server under no drink wrapper [#2942/M/n=1] and landed under twice the window's highest THIRST [#2970/M/n=1].
+A world-water drink ran on the server under no drink wrapper [#2942/M/n=1].
 A drink queued on a container the server had never seen raised in the action's `new` [#2943/M/n=1].
-The kill dial capped the view at 0.83 live, and the THIRST moodle read level 3 there and level 4 at 1 [#2969/M/n=1, #2971/M/n=1].
+The THIRST moodle read level 3 at 0.83 and level 4 at 1 [#2971/M/n=1].
+What the mod's fluids measured on themselves is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
 
 <a id="acute-states"></a>
 ### The acute states
 
 With sleep not both allowed and needed the fatigue reset erased each of three server writes at the next update, and with both true a write held [#2947/M/n=1, #2948/M/n=1].
-A held sleep on a server that allows and needs sleep ran the world clock about twenty times its waking rate [#2956/M/n=1], and under it the hours awake reset and the debt read 0 throughout [#3001/M/n=1, #3002/M/n=1].
+A held sleep on a server that allows and needs sleep ran the world clock about twenty times its waking rate [#2956/M/n=1].
 A beer drunk through the drink action raised INTOXICATION as the can emptied [#2950/M/n=1], and the value decays on a server at 7.5599 per game hour [#2951/M/n=1].
-A vitamin pill passed the eat and drink wrappers [#2953/M/n=1], `BodyDamage.JustTookPill` adds the item's fatigue and stress terms [#2954/C/C-only] and ends by calling the pill's `OnEat` [#2955/C/C-only], and whether a script `OnEat` a mod gives the pill runs on the server is unmeasured [#2960/C/C-only/open].
-At rest indoors a glycogen store moved toward its carbohydrate target with no shivering draw [#2999/M/n=1].
-A refeeding risk state was set at the day close a record edit made a low day [#2987/M/n=1].
+`BodyDamage.JustTookPill` adds the item's fatigue and stress terms [#2954/C/C-only] and ends by calling the pill's `OnEat` [#2955/C/C-only], and whether a script `OnEat` a mod gives the pill runs on the server is unmeasured [#2960/C/C-only/open].
+What the mod's acute states measured on themselves is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
 
 ## Options
 
