@@ -412,3 +412,16 @@ x161p-20261006-035559,boot1.logs.server_luaerr,40 lines,Vanilla engine lines and
 x161p-20261006-035559,boot1.logs.client_luaerr,16 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `boot1.client_lua_error`
 x161p-20261006-035559,boot2.logs.server_luaerr,35 lines,Vanilla engine lines and the harness's echo of the driver's error reads; none is a mod error.,cite `boot2.server_error_count`
 x161p-20261006-035559,boot2.logs.client_luaerr,16 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `boot2.client_lua_error`
+x161f-20261006-055908,watches[*].result.dmg.*.count,-1,"The reset sentinel: the tag never fired in that window.",cite the count as 0 with the sentinel stated
+x161f-20261006-055908,watches[*].result.dmg.*.sum,-1,"The reset sentinel: the tag never fired in that window.",—
+x161f-20261006-055908,summaries.A.identity,same_minute 0,"The first record only; no bracket fell inside one slow minute.",cite `brackets` with the post-run arithmetic
+x161f-20261006-055908,summaries.H.pairs,eq_f32 false,"The server read preceded the record read in each round.",cite `brackets`
+x161f-20261006-055908,summaries.B.sleep[*].S_pred,e.g. 0.5710596734818129,"A wholly asleep step; about 15 per cent of minutes stepped awake.",cite `summaries.B.sleep[*].S_live`
+x161f-20261006-055908,summaries.B.sleep[*].ratio_pred,e.g. 0.7831735112929856,"A wholly asleep step; about 15 per cent of minutes stepped awake.",cite `summaries.B.sleep[*].ratio_live`
+x161f-20261006-055908,summaries.D.x35_client_match_fold_on,12 of 73,"Counted over all of phase D, fold-off windows and the value 1 included.",cite `stats_all[137]` and `stats_all[138]`
+x161f-20261006-055908,summaries.D.kernel_fold_rest,e.g. 2.7599272630962624e-05,"A synthetic per-read delta, not a per-tick one.",—
+x161f-20261006-055908,summaries.F.unhappy_rise_slope_per_h,-2.802308852215408,"Fitted across a release, not a rise.",cite `stats_all[552]` to `stats_all[569]`
+x161f-20261006-055908,summaries.E.stress.slope_per_h_all,0.0056028670251019805,"Fitted across the hold, not the rise.",cite `summaries.E.rise_slope_per_h`
+x161f-20261006-055908,phases.I.result.shots,3,"The shots had no target.",—
+x161f-20261006-055908,logs.server_luaerr,40 lines,"Vanilla engine lines and the harness echo of the driver error reads; none is a mod error.",cite `server_error_count`
+x161f-20261006-055908,logs.client_luaerr,38 lines,"Vanilla AdvancedAnimator lines and the harness echo of the driver reads; none is a mod error.",cite `client_lua_error`
