@@ -5,7 +5,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: one workshop mod t
 <a id="techniques"></a>
 
 - A framework moodle is invisible until its value crosses a threshold: the widget joins the UI manager only while its polarity is non-neutral, and its stored value starts at 0.5, neutral under the default thresholds, so a registered but never-set moodle renders nothing and an absent render is not evidence that the framework failed [#2534/C/C-only].
-- A framework moodle renders on a dedicated-server client: set past its top good threshold it read level 4, joined the UI manager and was drawn at the client's frame cadence, and set back to a neutral value it left the UI manager and stopped drawing [#1295/C/open] [T4.5/M/n=1] [T4.6/M/n=1].
+- A framework moodle renders on a dedicated-server client: set to 0.95 it read level 4, joined the UI manager and its render calls climbed, and set back to 0.5 it left the UI manager and its render count held [#1295/M/n=1] [#3192/M/n=1] [#3193/M/n=1].
 - The framework never clamps: `:setValue` stores its argument with no range check, so the consumer holds its own value inside the 0-to-1 convention before the call [#2535/C/C-only].
 - A server-authoritative value reaches the moodle only over the consumer's own bus: the server sends it with `sendServerCommand`, and a client `OnServerCommand` handler receives it and calls `MF.getMoodle(name, playerNum):setValue(v)` [#2540/C/inference].
 - Detection is a type test, `type(MF) == "table" and type(MF.createMoodle) == "function"`, run at `OnGameBoot` or later: the framework defines `MF` at file-load time, before that event, while a test at the consumer's own file scope runs before the framework's file whenever the consumer's file [loads first](../../platform/loader-and-scripts.md#lua-load-order); `require "MF_ISMoodle"` is no detection, because it fails when the framework is absent [#2547/C/inference].
@@ -41,8 +41,8 @@ Polarity is a consequence of where the value sits, so there is no good-moodle fl
 A good level and a bad level of the same depth share one level number, and the polarity getter is what tells them apart.
 The consequence for a consumer is that it controls a moodle through one float and a threshold table, and nothing else.
 A design that wants the level itself to be authoritative has to send a value the thresholds map to that level, because there is nothing to send a level to.
-On a live client a value of 0.5, between the two inner thresholds, left the moodle at level 0, neutral, off the UI manager and with no render call in 4 s [T4.4/M/n=1].
-A value moved back to 0.5 after 0.95 took the widget off the UI manager again and held its render count [T4.6/M/n=1].
+On a live client a value of 0.5 left the moodle at level 0, polarity 0, off the UI manager and with no render call in about 4 s [#3191/M/n=1].
+A value moved back to 0.5 after 0.95 took the widget off the UI manager again and held its render count [#3193/M/n=1].
 
 <a id="architecture"></a>
 ### Architecture
@@ -52,19 +52,19 @@ Its `mod.info` sits in `42.0/`, and its config file has no copy in the newer fol
 That layout makes the layout lint and the engine open different `mod.info` files for it, though both declare the same id [#0824/C/snapshot].
 On `42.20.4` the resolver keeps one version folder, the highest at or below the running build [#0825/C/C-only], and the loader then lets that folder's files win a same-path collision while `common/` supplies everything the folder does not ship [#1310].
 Under that rule the mod is whole: the `42.20/` moodle file overwrites `common/`'s, and the config file, having no version-folder counterpart, survives and executes [#1319/C/snapshot].
-A boot confirms it: with a dedicated-server client the server logged one loading line for the mod and the client two, the client resolved the namespace table with both registration functions, and the session ran with no error on either side ([T4.1/M/n=1], [#0884/C/C-only/open]).
+A boot confirms it: with a dedicated-server client the server logged one loading line for the mod and the client two, the client resolved the namespace table with both registration functions, and the session ran with no error on either side ([#3188/M/n=1], [#0884/M/n=1]).
 The `42.0/` and `42.13/` folders are not loaded on this build [#0825/C/C-only]; of their moodle files only the `42.0/` copy, identical to `common/`'s, carries the dead calls set out under [Pitfalls](#pitfalls).
 
 MoodleFramework runs on the client only: every Lua file in its four folders sits under `media/lua/client/` (`MF_ISMoodle.lua` in each, `MF_Config.lua` in `42.0/` and `common/`), it ships no code file under `lua/server/` or `lua/shared/`, and `MF` is therefore nil on a dedicated server [#2536/C/C-only].
 Client-only by layout is the strong form of the property: no guard can be reached by the wrong branch, because the server never loads the files.
 The only other content under its `media/lua` is a translation tree for its own options page, which is data and not code.
 Every framework call a consumer makes therefore lives in the consumer's own client file, and a server file that names `MF` reads nil.
-A boot read exactly that: the server's `MF` and the two names under it failed at the table while the client resolved all three [T4.3/M/n=1].
+A boot read exactly that: the server's `MF` and the two names under it failed at the table while the client resolved all three [#3190/M/n=1].
 
 The `42.20` folder's `MF_ISMoodle.lua` calls `MF.hasBackground`, `MF.hasBGColor` and `MF.hasBorder` from `render()`, and all three are defined only in `MF_Config.lua`, so the config file is a hard runtime dependency of the moodle file and not an optional extra [#2541/C/C-only].
 The config file that executes is `common/`'s copy, byte-identical to the `42.0/` copy (`md5 559f9a62eb288ef78e452edfc329e631` both), because `42.20/` ships no counterpart for it [#2542/C/C-only].
 Which of the two identical copies executes is therefore bookkeeping and not behaviour.
-That the config file executes is measured: on the client the key it alone sets read the mod's name, and the four helpers it alone defines resolved as functions [T4.2/M/n=1].
+That the config file executes is measured: on the client `MF.key` read the mod's name and the four helpers the config file defines resolved as functions, and that no other file supplies them is a reading of the dated tree [#3189/M/n=1].
 The merge rule is load-bearing twice over here: it keeps the executing moodle file current, and it is the only thing that supplies that file's config dependency.
 Within the mod the Lua loader sorts each block case-insensitively [#0850/C/C-only], so the config file loads before the moodle file in the `common/` block and its options page is built at file scope.
 

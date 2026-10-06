@@ -399,7 +399,7 @@ What a client's copy of a server-owned object is and is not — a push, not a si
 <a id="walls"></a>
 
 - A zero-valued item-stats field is not trustworthy on a client: any of the twenty conditionally-written fields arrives carrying the previous packet's value whenever the sending item's own value is zero, so a client-side read on an item that should be zero may be reading another item's number; only the cooking time has been seen to carry over, and the other nineteen are read off the write and parse guard lists [#0361/M/n=1].
-- The unmodded actual-weight getter returns zero whenever an item's display name equals its full type: the same instance read a weight of 0.3 on the client, where the name resolved, and zero on the server, where a dedicated server resolves no display name at all [#0911/M/n=1].
+- The unmodded actual-weight getter returns zero whenever an item's display name equals its full type: the same instance read a weight of 0.3 on the client, where the name resolved, and zero on the server, where the mod item's display name read as its full type [#3207/M/n=1].
 - That last reading is the display-name guard and never a weight fact; the weight facts are the plain getter and the direction flags.
 - A mod cannot add a field to the item packet, nor depend on a field it omits: the class has no reset, no registry, no callback and no per-field opt-in [#1144/M/n=1].
 - A mod cannot trust a zero-valued packet field, for the reason the first line gives [#1146/M/n=1].

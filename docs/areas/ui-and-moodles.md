@@ -17,7 +17,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 - Read a food's numbers from the side that owns them and never build mod math on a getter whose value is transformed again on the wire: the item packet sends a cooked food's derived thirst getter and the receiver stores it as the raw field [#1084/M/n=2].
 - Treat a client's freshness display as arbitrarily stale: it is whatever the last full serialisation of the item said, and nothing re-sends the age until the item is serialised whole again [#0357/C/inference].
 - Ship a mod's item names in a B42 `ItemName.json` whose keys are the bare `Module.Name`: the B41 `ItemName_EN` table layout produces no name at all on this build [#1025/M/n=1].
-- Expect a mod translation to add keys rather than replace them: the reader merges into a shared map, so vanilla's keys survive beside the mod's [#0841/C/C-only].
+- Expect a mod translation to add keys and to win for a key it redefines, without displacing vanilla's other keys: the reader merges into a shared map key by key and a non-empty mod value overwrites vanilla's [#3210/C/inference, #3201/M/n=1].
 - Never branch on an item's display name server-side or reach for one through `getText`: a dedicated server resolves no mod display name and the text router carries no item-name prefix [#1026/M/n=2].
 
 ## How it works
@@ -68,13 +68,13 @@ Adopting the framework costs four things, and each is a different kind of cost.
 The first is a dependency: the framework is a separate workshop mod, so every server that runs this mod runs it too, and the declaration that orders two mods at load is the loader's to describe ([mod-anatomy.md#load-order-declarations](../platform/mod-anatomy.md#load-order-declarations)).
 The framework sits on the target server's approved list, which is what the platform's framework rule rests on, a reading bounded to that server's mod list on the sweep's date [#1070/C/snapshot].
 The second is its layout: its newest version folder ships a single file, and its configuration file lives only in an older tree and in `common/` [#1614].
-That the framework loads whole on this build follows from the merge rule applied to that layout [#1319/C/snapshot], and one boot confirmed it, its configuration file executing beside the newest folder's moodle file ([T4.1/M/n=1], [T4.2/M/n=1]).
+That the framework loads whole on this build follows from the merge rule applied to that layout [#1319/C/snapshot], and one boot confirmed it, its configuration file executing beside the newest folder's moodle file ([#3188/M/n=1], [#3189/M/n=1]).
 The moodle file that executes calls helpers only the configuration file defines, so the merge rule is what supplies a hard runtime dependency [#2541/C/C-only].
 Its older moodle files call an engine member this build lacks, and a release that stops shipping the newer version folders would put one of them back in play, invisibly to a consumer [#2543/C/C-only].
 It is also the one mod in the corpus whose `mod.info` chain differs between the layout lint and the engine, although the two files they open declare the same id [#0824/C/snapshot].
 The third is its guards: it contains no protected call anywhere, so every call a consumer makes into it is guarded by the consumer's own protected call or by nothing [#2546/C/C-only].
-The fourth was whether one of its moodles shows on a live client at all, and one session measured it: set to 0.95 a moodle read level 4, joined the UI manager and its render calls climbed from 569 to 809 in 4.02 s, while at 0.5 it stayed off the UI manager with no render call ([#1295/C/open], [T4.5/M/n=1], [T4.4/M/n=1]).
-A widget of the mod's own drew in the same session at the same cadence, so the framework is one working route and the mod's own widget a second ([#2742/M/n=1/open], [T4.7/M/n=1]).
+The fourth was whether one of its moodles shows on a live client at all, and one session measured it: set to 0.95 a moodle read level 4, joined the UI manager and its render calls climbed from 569 to 809 in 4.02 s, while at 0.5 it stayed off the UI manager with no render call ([#1295/M/n=1], [#3192/M/n=1], [#3191/M/n=1]).
+A widget of the mod's own drew in the same session, its render calls climbing by 240 in each read window of about 4 s beside the moodle's, so the framework is one working route and the mod's own widget a second ([#2742/M/n=1], [#3194/M/n=1]).
 
 Whatever widget draws it, the level has to be computed on a side that holds the nutrient.
 A nutrient the mod keeps on the server reaches a client only over a route the mod runs itself, because the player-stats push carries vanilla's fields and never a mod's own [#0129/M/n=1].
@@ -197,10 +197,10 @@ A display that reads such a field shows another item's number under this item's 
 The right source is again the server, or the script where the value is a definition rather than a state [#0651].
 
 The fifth way is a guard that reads as a quantity.
-The unmodded actual-weight getter answers zero whenever an item's display name equals its full type, which is the case for a mod item on a dedicated server and for any item without a translation entry on a client ([#0911/M/n=1], [#1023/M/n=1]).
+The unmodded actual-weight getter answers zero whenever an item's display name equals its full type, which is the case for a mod item on a dedicated server and for any item without a translation entry on a client ([#3207/M/n=1], [#1023/M/n=1]).
 That zero is the display-name guard and never a weight fact, so a panel that shows that getter shows the item's translation state rather than its weight.
 The guard also reaches the wire, because the packet's weight field is filled from that getter, so a new food shipped without a translation entry sends a weight of zero to every client [#1166/C/C-only].
-The weight facts are the plain weight getter and the direction flags, and the one thing that keeps the guard off a new item is a translation entry [#0911/M/n=1, #1166/C/C-only].
+The weight facts are the plain weight getter and the direction flags, and the one thing that keeps the guard off a new item is a translation entry [#3207/M/n=1, #1166/C/C-only].
 
 The sixth way is a scale somebody else chose.
 The torn-down viewer hard-codes display bands that encode vanilla's balance, so a rebalance that moves the macro numbers makes its colours and captions lie silently [#1514].
@@ -220,8 +220,8 @@ Tooltip text is keyed per item: `Tooltip` is one of the item-level keys the scri
 A script tooltip line also becomes an item-modData key on every side that builds the item, so the text surface is not free of the modData surface ([#1044], [loader-and-scripts.md#default-moddata](../platform/loader-and-scripts.md#default-moddata)).
 The vanilla food tooltip already carries a nutrition block, which either Nutritionist trait opens and which is the trait's one reader in the jar ([#0546/C/snapshot], [#0547/C/C-only]), and the same block also opens under the debug tooltip option and on a packaged food whose label the viewer can read [#2645/C/C-only].
 The tooltip body is built in Java and Lua only hosts the drawing, so a mod adds a line of its own by wrapping the tooltip panel's render, the shape [the tooltip option](#tooltip-line) costs ([#2490/C/C-only], [client-ui.md#tooltip](../platform/client-ui.md#tooltip)).
-Translation text resolves on the client alone: a mod's keys merge beside vanilla's, and a dedicated server resolves no display name at all ([#1163/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
-A mod's value for a vanilla key wins on the client, a redefined `Base.Apple` reading the mod's name there [T4.15/M/n=1], while the server keeps vanilla's strings and never sees the mod's ([T4.16/M/n=1], [T4.17/M/n=1]).
+Translation text resolves on the client alone: a mod's keys merge beside vanilla's, and a dedicated server resolves no mod item's display name ([#1163/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
+A mod's value for a vanilla key wins on the client, a redefined `Base.Apple` reading the mod's name there [#3202/M/n=1], while the server missed the mod's new key and kept vanilla's values in this run ([#3203/M/n=1], [#3204/M/n=1]).
 The text router carries no item-name prefix, so a feature that must know whether a translation loaded is gated on an interface key rather than on an item name [#1720/M/n=2].
 None of the three excludes the others: a design can show one nutrient as a moodle, the whole store in a panel and a food's character in its tooltip, and each choice is costed on its own.
 Each row below names what the surface costs and the wall it runs into, with the verdict rows that decide both, in the wall map's own row order; the four shapes after the table are the forms a panel, a tooltip line, a tab and an icon column take on this build.
@@ -231,9 +231,9 @@ Each row below names what the surface costs and the wall it runs into, with the 
 
 | option | what it costs | which wall it hits | tags |
 |---|---|---|---|
-| a moodle through `MoodleFramework` | a runtime dependency on a third-party client-only widget library with no transport, so the value comes over the mod's own bus to a client handler that sets it; the consumer guards every call, detects the framework by a type test and inherits its version-folder hazard; vanilla's moodle consumers ([body-and-weight.md#moodles](../facts/body-and-weight.md#moodles)) name only vanilla's own types | a mod's own registered type is pinned at its lowest level and vanilla's thresholds are unreachable, so a moodle is a widget beside the stack, the framework's or the mod's own; one session drew both on a dedicated-server client (`X29`) | [#1140/C/C-only], [#1141/C/C-only], [#2531/C/C-only], [#2537/C/C-only], [#2540/C/inference], [#2543/C/C-only], [#2546/C/C-only], [#2547/C/inference], [#1295/C/open], [#0513/M/n=1] |
+| a moodle through `MoodleFramework` | a runtime dependency on a third-party client-only widget library with no transport, so the value comes over the mod's own bus to a client handler that sets it; the consumer guards every call, detects the framework by a type test and inherits its version-folder hazard; vanilla's moodle consumers ([body-and-weight.md#moodles](../facts/body-and-weight.md#moodles)) name only vanilla's own types | a mod's own registered type is pinned at its lowest level and vanilla's thresholds are unreachable, so a moodle is a widget beside the stack, the framework's or the mod's own; one session drew both on a dedicated-server client (`X29`) | [#1140/C/C-only], [#1141/C/C-only], [#2531/C/C-only], [#2537/C/C-only], [#2540/C/inference], [#2543/C/C-only], [#2546/C/C-only], [#2547/C/inference], [#1295/M/n=1], [#0513/M/n=1] |
 | a client panel | the whole panel is client code the mod owns: it caches at the push cadence, fetches any mod-owned value over the command bus or a transmitted table, and shares the screen with a resident interface mod | a client reads a pushed mirror and cannot observe the player-stats write; a cooked food's thirst reads halved on a client; the band traits reach the owning client on server pushes addressed to it alone, the experience packet and a trait-block push, and another client on an authorized client's experience relay and on the connected-player packet the server sends at a join or on a player-data request, routes read from the code and not measured (`X4`) | [#1147/M/n=1], [#1149/M/n=1], [#2595/C/C-only], [#2603/C/C-only], [#2612/C/C-only], [#2734/C/C-only], [#2692/M/n=1] |
-| tooltip and translation text | text keyed per item or per interface key and resolved on the client alone; a script tooltip line becomes an item-modData key on every instance | a mod's keys merge rather than shadow, and a mod's value for a vanilla key displaces vanilla's on the client while the server keeps vanilla's (`X5`); a dedicated server resolves no mod display name; a new food without a translation entry ships a zero weight | [#1163/M/n=1], [#1164/C/C-only/open], [T4.15/M/n=1], [#1166/C/C-only], [#1167/M/n=1], [#1044] |
+| tooltip and translation text | text keyed per item or per interface key and resolved on the client alone; a script tooltip line becomes an item-modData key on every instance | a mod's keys merge rather than shadow, and a mod's value for a vanilla key displaces vanilla's on the client while the server keeps vanilla's (`X5`); a dedicated server resolves no mod display name; a new food without a translation entry ships a zero weight | [#1163/M/n=1], [#1164/M/n=1], [#3202/M/n=1], [#1166/C/C-only], [#1167/M/n=1], [#1044] |
 
 Which surface carries each nutrient the design shows: a moodle widget on a route no run has confirmed, a client panel the mod owns end to end, or keyed text that only a client resolves?
 
@@ -274,18 +274,18 @@ The tab rule is [client-ui.md](../platform/client-ui.md#character-info)'s, and t
 
 A mod that wants moodle-like icons without the framework draws a column of its own widgets, lined up against the vanilla stack.
 The vanilla moodle panel is in the exposer's class set with a public instance getter and readable bounds, so its box is an anchor for a mod's icon column, though the class offers no mutator [#2509/C/C-only].
-A live client read that box through the instance getter, so the anchor is real, though the design keeps its column at a fixed inset of its own ([T4.9/M/n=1], [T4.10/M/n=1]).
-The column is a derived widget on the UI manager drawn in its own `render()`, the same kind of object the framework draws [#2555/C/inference], and such a widget, added at player creation with no framework call, drew 240 times in each 4 s window of one session ([T4.7/M/n=1], [#2742/M/n=1/open]).
+A live client read that box through the instance getter, so the anchor is real ([#3196/M/n=1], [#3197/M/n=1]).
+The column is a derived widget on the UI manager drawn in its own `render()`, the same kind of object the framework draws [#2555/C/inference], and such a widget, added at player creation with no framework call, drew 240 times in each read window of about 4 s in one session ([#3194/M/n=1], [#2742/M/n=1]).
 Its icons are the mod's own textures, loaded in a client file behind a nil check, and its level logic is the mod's own Lua, since nothing in the engine maps a value to a level for it ([client-ui.md#textures](../platform/client-ui.md#textures)).
 The framework places its moodles by counting vanilla's and its own and nothing else, so a column beside a framework stack takes its own slot or overlaps it [#2549/C/C-only].
-The cost is a widget the mod writes whole, drawn every client frame once it is on the UI manager ([T4.8/M/n=1], [client-ui.md#cadence](../platform/client-ui.md#cadence)).
+The cost is a widget the mod writes whole, and the one session counted about one render call per client tick once it was on the UI manager, an inference from two equal counts and a later tick rate and not a per-frame trace ([#3195/M/n=1], [client-ui.md#cadence](../platform/client-ui.md#cadence)).
 
 ## Walls and bounds
 <a id="walls"></a>
 
 - A mod cannot register a new moodle type that works: registration reaches every character and the level is pinned at its lowest every tick ([#1140/C/C-only], [lua-platform.md#registries](../platform/lua-platform.md#registries)).
 - A mod cannot retune a vanilla moodle's thresholds nor change what a moodle does: the class that holds the thresholds is unreachable from Lua ([#1141/C/C-only], [lua-platform.md#registries](../platform/lua-platform.md#registries)).
-- Both moodle routes are measured on one session only: the framework loaded whole and its moodle and a widget of the mod's own each drew on a dedicated-server client, counted as render calls rather than seen on screen, with one fixture and one character ([#1295/C/open, #0884/C/C-only/open, #2742/M/n=1/open], [#2555/C/inference], [wall-map.md#d4](../reference/wall-map.md#d4)).
+- Both moodle routes are measured on one session only: the framework loaded whole and its moodle and a widget of the mod's own each drew on a dedicated-server client, counted as render calls rather than seen on screen, with one fixture and one character ([#1295/M/n=1, #0884/M/n=1, #2742/M/n=1], [#2555/C/inference], [wall-map.md#d4](../reference/wall-map.md#d4)).
 - `MoodleFramework` carries nothing between the sides: it is nil on a dedicated server and has no command, handler or modData transmit, so a server value reaches its moodle only over the mod's own bus ([#2536/C/C-only], [#2537/C/C-only]).
 - Nothing carries a moodle between the sides: each side recomputes its own from its own mirror, so a client's moodle is exactly as late as its stats ([#1143/C/C-only]).
 - A mod cannot trust a zero-valued item field on a client, because it can arrive holding another item's value ([#1146/M/n=1]).
@@ -295,8 +295,8 @@ The cost is a widget the mod writes whole, drawn every client frame once it is o
 - A band trait reaches the owning player's client on server pushes addressed to it alone, the timed experience push and a trait-block push that server Lua or a book read sends, and another client on an authorized client's experience relay and on the connected-player packet the server sends at a join or on a player-data request, neither of which a trait write triggers; the routes are traced from the code, and the owning client's arrival is measured on non-empty trait lists, within about half a second with no push [#2759/M/n=3] and within tens of milliseconds with the push [#2839/M/n=6] ([#2595/C/C-only], [#2603/C/C-only], [#2612/C/C-only], [#2734/C/C-only], [wall-map.md#g4](../reference/wall-map.md#g4), [mp-model.md#sync-globals](../platform/mp-model.md#sync-globals)).
 - A mod cannot test a trait by its string name, because the string form is removed on this build ([#1162/C/C-only]).
 - The character-info window has no tab registry, so a mod tab is a set of method wraps ([#2513/C/C-only], [client-ui.md#character-info](../platform/client-ui.md#character-info)).
-- Translations are client-only: a mod's keys merge beside vanilla's and a dedicated server resolves no display name ([#1163/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
-- A rename of a vanilla food reaches the client only: a mod's value for a vanilla key displaced vanilla's there in one session, while the dedicated server kept vanilla's strings ([#1164/C/C-only/open], [#1276/C/open], [T4.16/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
+- Translations are client-only: a mod's keys merge beside vanilla's and a dedicated server resolves no mod item's display name ([#1163/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
+- A rename of a vanilla food reaches the client only: a mod's value for a vanilla key displaced vanilla's there in one session, while the dedicated server kept vanilla's strings ([#1164/M/n=1], [#1276/M/n=1], [#3203/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
 - A mod cannot name its items through the older text-table layout ([#1165/M/n=1]).
 - A mod cannot ship a food absent from the translation table without every client receiving its weight as zero ([#1166/C/C-only]).
 - A mod cannot resolve or branch on an item name anywhere but the client's display-name getter ([#1167/M/n=1]).
@@ -319,7 +319,7 @@ Not covered: the vanilla food tooltip's layout beyond its gates; the character s
 - The design must decide whether a band label waits for the timed experience push or follows a trait-block push the mod sends after each write, because no Java code sends the trait bit [#2604/C/C-only, #2608/C/C-only].
 - The design must decide how stale a displayed value may be, because a client panel cannot observe the player-stats write and draws a mirror late by up to one push plus its own refresh interval [#1149/M/n=1, #1486/M/n=1].
 - The design must decide whether a cooked food's thirst is shown on a client at all, or re-derived from the script, because the client's getter reads a value halved once per hop [#1038/M/n=2].
-- The design must decide whether it renames any vanilla food, because a mod's value for a vanilla key displaces vanilla's on the client and not on the server [#1164/C/C-only/open].
+- The design must decide whether it renames any vanilla food, because a mod's value for a vanilla key displaces vanilla's on the client and not on the server [#1164/M/n=1].
 - The design must decide whether its numbers stay inside the display bands the torn-down viewer hard-codes, because those bands go wrong silently on a re-based scale [#1514, #1522].
 
 ## See also
