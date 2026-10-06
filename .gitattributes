@@ -2,3 +2,4 @@ testing/experiments/TKX_ItemOverride/42.20/media/lua/shared/Translate/EN/ItemNam
 docs/reference/** text eol=lf
 .claude/** text eol=lf
 mod/** text eol=lf
+testing/experiments/TKX_ChecksumCR/** text eol=crlf

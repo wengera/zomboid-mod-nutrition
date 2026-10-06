@@ -1,0 +1,5 @@
+name=TKX Checksum
+id=TKX_Checksum
+description=Plan 6 X16 experiment: one-byte script copy B (same mod id on both copies). Test profiles only.
+modversion=1.0
+versionMin=42.0.0

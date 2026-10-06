@@ -1,0 +1,10 @@
+module TKX
+{
+    item ChecksumProbe
+    {
+        DisplayCategory = Junk,
+        ItemType = base:normal,
+        Weight = 0.2,
+        Icon = Apple,
+    }
+}
