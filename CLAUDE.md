@@ -73,6 +73,8 @@ A claim is minted in the commit that lands its evidence, never later.
 6. **A rule line edit** re-syncs the skills that quote it in the same commit; the checker fails otherwise.
 7. **Who runs the checker:** the committer, `--staged`, before every commit that touches its trigger paths (§ 3); an SDD reviewer re-runs it on the review package.
 8. **A science number:** a value the mod ships rests on a `settled` row of `docs/reference/science.tsv`; a writer files rows in a part file the controller applies with `tools/science_delta.py`, and every settled row's citation was resolved against its record before minting; the page is [reference/science](docs/reference/science.md).
+9. **A live row's text:** every number in a claim sits at a path its pointer names, unrounded beyond the sample; a mechanism read off the mod's own code is written in the bound as inference, never as the claim; the checker does not match a wildcard `do-not-cite` key (`phases.*.watch.raw`), so a wildcard is a review check (the five Plan 4 live reviews each returned five to nine such defects).
+10. **The apply tool rewrites plain provisional tags only:** a suffixed tag (`[T4.1/M/n=1]`) or a `#T4.1` form is rewritten by the controller by regex over every touched page, `experiments.md` included.
 
 ## 5. Harness rules
 
@@ -84,6 +86,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A harness change lands before the run that uses it, in its own commit, with the balance check (`python tools/luabalance.py <lua files>`, the HEAD copies first, then the working tree) and the command table regenerated (`python tools/bus_inventory.py`); the next acceptance run is its smoke test.
 - A driver (`testing/experiments/*.py`) is never edited after its run; a post-run edit is a skew note.
 - A reading that comes back trivial, unmeasured or falsified is written as such and never re-run to make a number prettier.
+- An aborted boot that took no reading is not a run: its driver runs unchanged and its run folder is left as is (ruling B3-1, x151r2's first attempt, killed by the host for memory).
 - Artifacts are committed byte-identical to the run copy: a committed run's files go under `testing/artifacts/<run-id>/` and its row into the artifacts register, [reference/artifacts](docs/reference/artifacts.md).
 - A raising probe is gated on the server side with its profile's `[client] timeout` set low, and `pzt run` is expected to fail: the grade comes off the artifact.
 - A stray `ProjectZomboid64.exe` predating a session is Angus's own client: never kill it (`doctor` checks game Java only).
