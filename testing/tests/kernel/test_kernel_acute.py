@@ -45,7 +45,11 @@ def test_constants(host):
     assert (A.BETA, A.HANG_PEAK, A.HANG_H, A.IU_ALC_CAP) == (0.015, 0.05, 6, 2.0)
     assert [_list(host, k) for k in _list(host, A.IU_ALC_KNOTS)] == [[0, 0], [0.03, 0.30], [0.05, 1.00], [0.08, 1.60]]
     assert (A.GLYC_REF, A.GLYC_HIGH, A.GLYC_LOW, A.GLYC_PIVOT, A.GLYC_SPAN, A.GLYC_TAU_H, A.GLYC_MAX) == (462, 102, 253, 3, 3, 24, 600)
-    assert (A.USE_WORK, A.USE_MET_LO, A.USE_MET_SPAN, A.USE_MAX, A.USE_SHIVER, A.SHIVER_SPAN) == (51.5, 3, 4.5, 1.6, 52, 2.5)
+    assert (A.USE_WORK, A.USE_MET_LO, A.USE_MET_SPAN, A.USE_MAX, A.USE_SHIVER) == (51.5, 3, 4.5, 1.6, 52)
+    assert (A.SHIVER_FULL, A.SHIVER_DEADBAND) == (3.5, 1.05)                # ruling T17-3
+    assert A.SHIVER_SPAN is None                                            # replaced by the two above
+    assert A.GUT_T_HALF == 0.5                                              # ruling T17-2
+    assert A.BOUT_GAP_H == 10 / 60                                          # ruling T17-4
     assert (A.BG_NORMAL, A.BG_EXERTION, A.BG_EX_G, A.BG_EX_MET, A.BG_ALC_FAST, A.BG_ALC_FAST_H) == (5.0, 2.5, 0.2, 6, 3.0, 12)
     assert (A.BG_TAU_CHO_H, A.BG_TAU_H, A.BG_MIN, A.BG_MAX, A.IU_BG_HI, A.IU_BG_LO, A.IU_BG_MAX) == (0.25, 1, 2.0, 8.0, 3.5, 3.0, 0.90)
     assert (A.SLEEP_NEED_H, A.CHI_W, A.CHI_S, A.CHI_W_DEBT, A.CHI_W_DEBT_MAX, A.S_FLOOR_DEBT, A.S_FLOOR_MAX) == (7.5, 18.2, 4.2, 0.02, 20, 0.01, 0.25)
@@ -65,7 +69,8 @@ def test_new_state_shape(host):
     assert a == dict(av=1, caf=0, cafMean=0, cafTol=0, cafLowH=0, wdH=-1, wd=0, slowMet=False, alc=0, bac=0,
                      alcPeak=0, hangH=0, hang=0, glyc=462, g=1, bg=5.0, awakeH=0, debtH=0, sleptH=0,
                      winStartH=100.0, winSleptH=0, S=0.17, circ=0, frozen=False, starvedDays=0, lowDay=False,
-                     mass90max=0, mass90ageH=100.0, bmi=0, refeedRisk=0, refeedDayN=-1, refeedEvent=False, iu=0)
+                     mass90max=0, mass90ageH=100.0, bmi=0, refeedRisk=0, refeedDayN=-1, refeedEvent=False, iu=0,
+                     gutAlc=0, gutCaf=0, boutH=0, gapH=0)
 
 
 def test_draw_slow_met(host):
@@ -181,6 +186,94 @@ def test_withdrawal_not_gated(host):
     assert b.cafLowH == 0 and b.wd == 0 and b.wdH == -1
 
 
+# ---- the gut lane (ruling T17-2) ----
+
+GUT_F = 1 - math.exp(-math.log(2) * MIN / 0.5)
+
+
+def _gut_beer_py():
+    # the adapter's minute in doubles: absorbGut, then the Widmark step; female (r 0.55), 80 kg
+    gut, alc, rel30, best = 11.85, 0.0, 0.0, (0.0, 0)
+    for m in range(1, 601):
+        moved = gut * GUT_F
+        gut -= moved
+        if m <= 30:
+            rel30 += moved
+        alc = max(0.0, alc + moved - 0.015 * 0.55 * 80 * 10 * MIN)
+        bac = alc / (10 * 0.55 * 80)
+        if bac > best[0]:
+            best = (bac, m)
+    return rel30, best
+
+
+def _gut_coffee_py():
+    gut, caf, best = 107.0, 0.0, (0.0, 0)
+    for m in range(1, 901):
+        moved = gut * GUT_F
+        gut -= moved
+        caf = caf * math.exp(-math.log(2) * MIN / 5.0) + moved
+        if caf > best[0]:
+            best = (caf, m)
+    return best
+
+
+def test_absorb_gut_half_per_half_life(host):
+    A = host.K.acute
+    a = _new(host)
+    a.gutAlc = 10.0
+    a.gutCaf = 100.0
+    alc, caf = A.absorbGut(a, 0.5)
+    assert _close(alc, 5.0, 1e-12) and _close(caf, 50.0, 1e-12)
+    assert _close(a.gutAlc, 5.0, 1e-12) and _close(a.gutCaf, 50.0, 1e-12)
+    alc, caf = A.absorbGut(a, 0)
+    assert alc == 0 and caf == 0 and _close(a.gutAlc, 5.0, 1e-12)
+
+
+def test_gut_lane_beer_peak(host):
+    # 11.85 g at t = 0, an 80 kg female: the gut releases 5.925 g in the first 30 min (half), the bac
+    # peaks at 0.0062441 % at minute 39 (0.65 h) and then falls at beta. The fix brief's "0.0188 % at
+    # ~1.1 h" does not follow from GUT_T_HALF 0.5 h against the 6.6 g/h elimination: recomputed here.
+    A = host.K.acute
+    rel30_py, (peak_py, at_py) = _gut_beer_py()
+    assert _close(rel30_py, 5.925, 1e-9)
+    assert _close(peak_py, 0.006244101253612089, 1e-12) and at_py == 39
+    a = _new(host)
+    a.gutAlc = 11.85
+    rel30, peak, at, prev = 0.0, 0.0, 0, 0.0
+    falls = []
+    for m in range(1, 601):
+        dose, _ = A.absorbGut(a, MIN)
+        if m <= 30:
+            rel30 += dose
+        A.alcohol(a, dose, 80, 2, MIN)
+        if a.bac > peak:
+            peak, at = a.bac, m
+        if 60 <= m <= 70:
+            falls.append(prev - a.bac)
+        prev = a.bac
+    assert _close(rel30, 5.925, 1e-9)
+    assert abs(peak - 0.006244101253612089) < 1e-4 and abs(at - 39) <= 2
+    assert _close(peak, peak_py, 1e-12) and at == at_py
+    assert all(f > 0 for f in falls)  # falling after the peak
+    assert a.bac == 0 and a.alcPeak == 0  # cleared by 10 h; a sub-0.05 % peak leaves no hangover
+
+
+def test_gut_lane_coffee_peak(host):
+    # 107 mg at t = 0: caf peaks at 82.942 mg at minute 111 (1.85 h), not the fix brief's ~85 at ~1.3 h
+    A = host.K.acute
+    peak_py, at_py = _gut_coffee_py()
+    assert _close(peak_py, 82.94216766881858, 1e-9) and at_py == 111
+    a = _new(host)
+    a.gutCaf = 107.0
+    peak, at = 0.0, 0
+    for m in range(1, 901):
+        _, dose = A.absorbGut(a, MIN)
+        A.caffeine(a, dose, 80, MIN)
+        if a.caf > peak:
+            peak, at = a.caf, m
+    assert _close(peak, peak_py, 1e-9) and at == at_py
+
+
 # ---- alcohol ----
 
 def test_widmark_instantaneous_and_elimination(host):
@@ -261,8 +354,36 @@ def test_glycogen_work(host):
 def test_glycogen_shivering(host):
     A = host.K.acute
     a = _new(host)
-    A.glycogen(a, 1.0, 3.5, 6, 1.5)
+    A.glycogen(a, 3.0, 3.5, 6, 1.5)  # met 3: no work draw and not at rest, so no refill
     assert _close(a.glyc, 384.0)  # 462 - 52 * 1.5 = -78 (S0049: 410 -> 332)
+
+
+def test_glycogen_shiver_and_refill_coexist_at_rest(host):
+    # ruling T17-3: at met < 3 the refill runs beside the shiver draw
+    A = host.K.acute
+    a = _new(host)
+    A.glycogen(a, 1.0, 3.5, 6, 1.5)
+    assert _close(a.glyc, 394.90564869357434, 1e-9)  # 564 + (462 - 78 - 564) * exp(-1.5 / 24)
+    b = _new(host)
+    A.glycogen(b, 3.0, 2.275, 6, 1)  # (2.275 - 1.05) / (3.5 - 1.05) = 0.5 of the full draw
+    assert _close(b.glyc, 436.0, 1e-9)  # 462 - 26
+
+
+def test_glycogen_shiver_dead_band(host):
+    # x151r #2984: coldMult 1.007-1.010 indoors; at or below 1.05 there is no draw and the store refills
+    A = host.K.acute
+    a = _new(host)
+    a.glyc = 400
+    for _ in range(1440):
+        A.glycogen(a, 1.0, 1.01, 6, MIN)
+    assert _close(a.glyc, 503.66777164788346, 1e-9)  # 400 + (564 - 400) * (1 - exp(-1)): the dead band draws nothing
+    b = _new(host)
+    A.glycogen(b, 3.0, 1.05, 6, 1)
+    assert b.glyc == 462  # met 3 and coldMult at the band: no draw, no refill
+    c = _new(host)
+    c.glyc = 400
+    A.glycogen(c, 1.0, 1.008, 3, 24)
+    assert _close(c.glyc, 462 + (400 - 462) * math.exp(-1), 1e-9)  # the target 462 at 3 g/kg/day, one tau
 
 
 def test_glycogen_resting_repletion(host):
@@ -391,8 +512,13 @@ def test_sleep_window_short_sleep_accrues_debt(host):
     t = _sleep(host, a, 5, t)
     assert _close(a.debtH, 2.5, 1e-9)  # window closed at 24 h: 7.5 - 5
     assert a.winSleptH == 0 and _close(a.winStartH, 24)
-    A.sleepMinute(a, False, 3.0, 1.0, t + MIN, MIN, False)  # wake after 5 h asleep: awake resets
-    assert _close(a.awakeH, MIN) and a.sleptH == 0
+    # wake after 5 h asleep: the bout reset hours awake at its first hour; a gap under 10 min is still the
+    # bout (ruling T17-4), so the first awake minute reads 0, and the gap is credited once it reaches 10 min
+    A.sleepMinute(a, False, 3.0, 1.0, t + MIN, MIN, False)
+    assert a.awakeH == 0 and a.sleptH == 0 and _close(a.gapH, MIN)
+    for i in range(2, 11):
+        A.sleepMinute(a, False, 3.0, 1.0, t + i * MIN, MIN, False)
+    assert _close(a.awakeH, 10 * MIN, 1e-12) and a.boutH == 0 and a.gapH == 0
 
 
 def test_sleep_long_step_closes_every_window(host):
@@ -442,6 +568,61 @@ def test_nap_does_not_reset_awake(host):
     assert _close(a.awakeH, 10 + MIN) and a.sleptH == 0
 
 
+def test_bout_tolerates_short_gaps(host):
+    # ruling T17-4: 6 min asleep / 1 awake repeated for 2 h -> the bout reaches 1 h asleep after 10 cycles
+    # (70 game minutes) and hours awake reset there and hold at 0
+    A = host.K.acute
+    a = _new(host, 0.0)
+    a.awakeH = 22.0
+    reset_at = None
+    for m in range(1, 121):
+        asleep = (m - 1) % 7 < 6
+        A.sleepMinute(a, asleep, 2.0, 1.0, m / 60, MIN, False)
+        if reset_at is None and a.awakeH == 0:
+            reset_at = m
+    assert reset_at == 69  # the 60th asleep minute: cycle 10's sixth (9 x 7 + 6)
+    assert a.awakeH == 0
+    assert _close(a.boutH, (120 // 7) * 6 / 60 + min(120 % 7, 6) / 60, 1e-9)  # 103 asleep minutes
+    assert a.sleptH < 0.11  # the unbroken run never passed 6 minutes
+
+
+def test_short_nap_keeps_hours_awake_and_counts_the_gap(host):
+    # a 30-minute nap then 20 minutes awake: the pre-nap hours plus the gap (no reset under NAP_MIN_H)
+    A = host.K.acute
+    a = _new(host, 0.0)
+    a.awakeH = 10.0
+    for i in range(30):
+        A.sleepMinute(a, True, 14.0, 1.0, 1.0, MIN, False)
+    assert a.awakeH == 10.0 and _close(a.boutH, 0.5, 1e-12)
+    for i in range(20):
+        A.sleepMinute(a, False, 14.5, 1.0, 1.0, MIN, False)
+    assert _close(a.awakeH, 10.0 + 20 * MIN, 1e-9)
+    assert a.boutH == 0 and a.gapH == 0  # the bout ended at the 10th awake minute
+
+
+def test_long_bout_gap_of_ten_minutes_credits_the_gap(host):
+    A = host.K.acute
+    a = _new(host, 0.0)
+    a.awakeH = 18.0
+    for i in range(90):
+        A.sleepMinute(a, True, 2.0, 1.0, 1.0, MIN, False)
+    assert a.awakeH == 0 and _close(a.boutH, 1.5, 1e-9)
+    for i in range(9):
+        A.sleepMinute(a, False, 3.5, 1.0, 1.0, MIN, False)
+    assert a.awakeH == 0 and _close(a.gapH, 9 * MIN, 1e-12)  # tolerated: no accrual inside the bout
+    A.sleepMinute(a, True, 3.6, 1.0, 1.0, MIN, False)  # back asleep: the gap clears
+    assert a.gapH == 0 and _close(a.boutH, 1.5 + MIN, 1e-9)
+    for i in range(12):
+        A.sleepMinute(a, False, 4.0, 1.0, 1.0, MIN, False)
+    assert _close(a.awakeH, 12 * MIN, 1e-12)  # the 10-minute gap ended the bout; the whole wake counts
+    # a single long awake step after a long bout ends it at once and counts the step
+    b = _new(host, 0.0)
+    for i in range(70):
+        A.sleepMinute(b, True, 2.0, 1.0, 1.0, MIN, False)
+    A.sleepMinute(b, False, 3.0, 1.0, 1.0, 0.5, False)
+    assert _close(b.awakeH, 0.5, 1e-12) and b.boutH == 0
+
+
 def test_sleep_s_floor_and_debt_shortened_chi(host):
     A = host.K.acute
     a = _new(host, 0.0)
@@ -477,12 +658,15 @@ def test_sleep_freeze_holds_every_field(host):
     a.awakeH = 30
     a.debtH = 12
     a.sleptH = 2
+    a.boutH = 2
+    a.gapH = 0.1
     a.winSleptH = 3
     a.S = 0.9
     for i in range(1, 3 * 1440 + 1):
         A.sleepMinute(a, i % 2 == 0, 12.0, 1.0, i / 60, MIN, True)
     assert a.frozen is True
     assert (a.awakeH, a.debtH, a.sleptH, a.winSleptH, a.S) == (0, 0, 0, 0, 0.17)
+    assert (a.boutH, a.gapH) == (0, 0)
     assert _close(a.winStartH, 3 * 24)  # the window restarts at each frozen minute
     assert _close(a.circ, 0.12 * math.cos(2 * math.pi * 8 / 24), 1e-12)
     A.sleepMinute(a, False, 12.0, 1.0, 72 + MIN, MIN, False)  # re-enabled: a fresh window, no debt

@@ -230,6 +230,55 @@ def test_absorb_iron_control_and_a_fresh_vector(host):
     assert emptied.iron == 10
 
 
+# --- the meal context (ruling T17-1, x151r #2981): the factors read the buffer, not the minute's share ---
+
+def _bread_stomach(host):
+    st = host.K.stomach.new()
+    host.K.stomach.ingest(st, _vec(host, calories=532.0, lipids=6.66, fibre=4.4, water=65.0, iron=6.5,
+                                   phytate=400.0, calcium=95.0, magnesium=51.0, zinc=1.8))
+    return st
+
+
+def test_context_reads_the_buffer_into_a_kept_table(host):
+    st = _bread_stomach(host)
+    st.buffer.vitC = 12.0
+    out = host.rt.table()
+    got = host.K.stomach.context(st, out)
+    assert _same(host, got, out)
+    assert (out.phytate, out.vitC, out.calcium) == (400.0, 12.0, 95.0)
+    fresh = host.K.stomach.context(st)
+    assert not _same(host, fresh, out) and fresh.phytate == 400.0
+
+
+def test_absorb_with_the_meal_context_reads_the_whole_meal(host):
+    # the first minute of a 400 mg phytate loaf: 0.18 x exp(-0.0034 x 400) = 0.0461989 per mg emptied,
+    # not the 0.179 the minute's ~1 mg share gave (x151r); magnesium and zinc take exp(-0.00093 x 400)
+    st = _bread_stomach(host)
+    ctx = host.K.stomach.context(st, host.rt.table())
+    emptied = host.K.stomach.empty(st, 1 / 60)
+    out = host.py(host.K.stomach.absorb(emptied, ctx))
+    per_mg = out["iron"] / emptied.iron
+    assert abs(per_mg - 0.18 * math.exp(-0.0034 * 400)) < 1e-12
+    assert abs(per_mg - 0.046198939851640065) < 1e-12
+    assert abs(out["magnesium"] / emptied.magnesium - 0.325 * math.exp(-0.00093 * 400)) < 1e-12
+    assert abs(out["zinc"] / emptied.zinc - math.exp(-0.00093 * 400)) < 1e-12
+    share = host.py(host.K.stomach.absorb(emptied))  # no ctx: the Plan 2 per-share reading, unchanged
+    assert abs(share["iron"] / emptied.iron - 0.18 * math.exp(-0.0034 * emptied.phytate)) < 1e-12
+    assert share["iron"] / emptied.iron > 0.179
+
+
+def test_absorb_with_a_phytate_free_context_is_bare(host):
+    emptied = _vec(host, iron=1.0, phytate=0.0, magnesium=10.0)
+    ctx = host.rt.table()
+    ctx.phytate, ctx.vitC, ctx.calcium = 0.0, 0.0, 0.0
+    out = host.py(host.K.stomach.absorb(emptied, ctx))
+    assert abs(out["iron"] - 0.18) < 1e-15
+    assert abs(out["magnesium"] - 3.25) < 1e-12
+    ctx.vitC = 100.0  # the meal's vitamin C, not the share's
+    out = host.py(host.K.stomach.absorb(emptied, ctx))
+    assert abs(out["iron"] - 0.18 * math.exp(0.65)) < 1e-12
+
+
 def test_bioavail_lists_every_non_macro_key(host):
     keys = set(host.K.vector.KEYS.values()) - set(host.K.vector.MACROS.values())
     assert set(host.py(host.K.stomach.BIOAVAIL)) == keys

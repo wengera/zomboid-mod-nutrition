@@ -1,9 +1,15 @@
 -- NR_Kernel_Stomach.lua -- the stomach buffer, first-order gastric emptying and absorption into the
 -- pool (spec § 4.2, § 4.4). A meal vector lands in the stomach buffer (ingest); the slow clock empties
 -- a first-order fraction of every buffered nutrient per step (empty); absorption applies per-nutrient
--- bioavailability and the phytate/vitamin-C iron interaction read off the emptied vector itself
--- (absorb); the absorbed vector accumulates into the pool (toPool), the provisional accumulator Plan 4's
--- record engine replaces. The unabsorbed remainder is discarded, never returned to the stomach.
+-- bioavailability and the phytate/vitamin-C iron interaction (absorb); the absorbed vector accumulates
+-- into the pool (toPool), the provisional accumulator Plan 4's record engine replaces. The unabsorbed
+-- remainder is discarded, never returned to the stomach.
+-- Ruling T17-1 (x151r #2981): the factor reads the meal in the stomach, not the share emptied this
+-- minute. The slow clock takes K.stomach.context(stomach) -- the buffer's phytate, vitC and calcium
+-- BEFORE the minute's emptying -- and hands it to absorb(emptied, ctx), so a 400 mg phytate loaf reads
+-- 400 mg, not the ~1 mg a minute's share carries. absorb(emptied) with no ctx keeps the Plan 2 reading
+-- off the emptied vector itself. Caffeine and ethanol never enter the buffer (ruling T17-2: the intake
+-- landing diverts them to the acute kernel's gut lane), so their BIOAVAIL entries stay 1.0 and unused.
 -- The gastric-emptying constants rest on OPEN science rows and ship as labelled game choices
 -- (spec § 7 item 37); the absorption factors cite settled rows. Pure: tables in, tables out, no Java.
 -- Slow-clock code with no @fastpath region, so math.exp and the bounded `for` over K.vector.KEYS (a Lua
@@ -144,28 +150,49 @@ function K.stomach.fatFactor(lipidsG)
     return K.clamp(1 - math.exp(-lipidsG / 10), 0.05, 1.0) -- S0197, S0199
 end
 
+-- The meal context the interaction factors read (ruling T17-1): the buffer's phytate, vitC and calcium
+-- totals, taken BEFORE the minute's emptying. Written into out (a table the caller keeps and overwrites,
+-- so the slow clock allocates nothing per minute); a nil out gets a fresh table. Returns out.
+function K.stomach.context(stomach, out)
+    if out == nil then
+        out = {}
+    end
+    local b = stomach.buffer
+    out.phytate = b.phytate
+    out.vitC = b.vitC
+    out.calcium = b.calcium
+    return out
+end
+
 -- Absorb an emptied vector: a fresh vector. A macro passes unchanged; iron takes its bioavailability
--- times the meal-context factor read off the emptied vector's own phytate and vitC; magnesium and zinc take
--- their bioavailability times the phytate factor; phytate absorbs to
--- 0; vitamin D takes its bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor;
--- retinol, carotene, vitE and vitK take their bioavailability times the fat factor, both read off the
--- emptied vector's own lipids; any other key takes its bioavailability (1.0 when unlisted).
-function K.stomach.absorb(emptied)
+-- times the meal-context factor of phytate and vitC; magnesium and zinc take their bioavailability times
+-- the phytate factor; phytate absorbs to 0. The phytate and vitC the factors read are ctx's (the meal in
+-- the stomach, ruling T17-1) when ctx is given, else the emptied vector's own. Vitamin D takes its
+-- bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor; retinol, carotene, vitE
+-- and vitK take their bioavailability times the fat factor, both read off the emptied vector's own
+-- lipids; any other key takes its bioavailability (1.0 when unlisted).
+function K.stomach.absorb(emptied, ctx)
     local out = K.vector.new()
     local macros = K.retention.macroSet()
     local fat = K.stomach.fatFactor(emptied.lipids)
+    local phy = emptied.phytate
+    local vc = emptied.vitC
+    if ctx ~= nil then
+        phy = ctx.phytate
+        vc = ctx.vitC
+    end
     local keys = K.vector.KEYS
     for i = 1, #keys do
         local k = keys[i]
         if macros[k] then
             out[k] = emptied[k]
         elseif k == "iron" then
-            out[k] = emptied.iron * K.stomach.BIOAVAIL.iron * K.stomach.ironFactor(emptied.phytate, emptied.vitC)
+            out[k] = emptied.iron * K.stomach.BIOAVAIL.iron * K.stomach.ironFactor(phy, vc)
         elseif k == "magnesium" then
-            -- the phytate factor reads the emptied vector's own phytate (S0536 direction and slope, S1084 the zinc reuse)
-            out[k] = emptied.magnesium * K.stomach.BIOAVAIL.magnesium * K.interact.phytateMg(emptied.phytate)
+            -- the phytate factor reads the meal's phytate (S0536 direction and slope, S1084 the zinc reuse)
+            out[k] = emptied.magnesium * K.stomach.BIOAVAIL.magnesium * K.interact.phytateMg(phy)
         elseif k == "zinc" then
-            out[k] = emptied.zinc * K.stomach.BIOAVAIL.zinc * K.interact.phytateZn(emptied.phytate) -- S0536, S1084
+            out[k] = emptied.zinc * K.stomach.BIOAVAIL.zinc * K.interact.phytateZn(phy) -- S0536, S1084
         elseif k == "phytate" then
             out[k] = 0
         elseif k == "vitD" then

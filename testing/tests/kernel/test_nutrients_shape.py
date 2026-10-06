@@ -188,6 +188,9 @@ def nut_host(host):
     _load(host, os.path.join(SERVER, "NR_Server_Options.lua"), "@NR_Server_Options.lua")
     _load(host, os.path.join(SERVER, "NR_Server_Nutrients.lua"), "@NR_Server_Nutrients.lua")
     host.G.NutritionRevamp.server.readOptions("test")
+    # the gut lane's pending sums start empty here: an earlier module's landings never reach these records
+    host.G.NutritionRevamp.server.intake.pendingAlc = host.rt.table()
+    host.G.NutritionRevamp.server.intake.pendingCaf = host.rt.table()
     try:
         yield host
     finally:
@@ -636,6 +639,128 @@ def test_asleep_accrues_sleep(nut_host):
     record = fresh(h, p)
     alone(h, p, record, 100.0 + 1)
     assert abs(record["acute"]["sleptH"] - 1.0) < TOL
+
+
+# --- the x151r fix wave: the meal calcium and the gut lane (rulings T17-1, T17-2) -------------------------
+
+def test_calcium_iron_reads_the_meal_calcium_handoff(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    ab = vec(h, iron=1.0, calcium=10.0)
+    KIN(h).lastAbsorbed["admin"] = ab
+    KIN(h).lastMealCa["admin"] = 150.0                      # the buffer's calcium before the emptying
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert abs(ab["iron"] - 0.75) < TOL                     # 1 - 0.5 x 150/300, not 1 - 0.5 x 10/300
+    assert KIN(h).lastMealCa["admin"] is None               # consumed with the absorbed vector
+
+
+def test_the_chain_hands_the_bread_calcium_to_the_iron_factor(nut_host):
+    # a loaf in the stomach: the pool takes the stomach factor 0.18 x exp(-0.0034 x 400) per mg emptied,
+    # the record engine's absorbed iron that times 1 - 0.5 x 95/300 (0.0388841 per mg, the first minute)
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    st = record["stomach"]
+    for k in h.K.vector.KEYS.values():
+        st["buffer"][k] = 0
+    st["buffer"]["iron"] = 6.5
+    st["buffer"]["phytate"] = 400.0
+    st["buffer"]["calcium"] = 95.0
+    st["buffer"]["calories"] = 532.0
+    seen = {}
+    h.rt.execute("NR_TEST_SEEN = nil")
+    saved = h.K.nutrients.minute
+    spy = h.rt.eval("""function(orig) return function(n, recs, absorbed, ingested, ctx, dtM)
+        NR_TEST_SEEN = absorbed.iron
+        return orig(n, recs, absorbed, ingested, ctx, dtM) end end""")(saved)
+    h.K.nutrients.minute = spy
+    try:
+        chain(h, p, record, 100.0 + 1 / 60)
+    finally:
+        h.K.nutrients.minute = saved
+    emptied = 6.5 - st["buffer"]["iron"]
+    assert abs(h.G.NR_TEST_SEEN / emptied - 0.18 * math.exp(-0.0034 * 400) * (1 - 0.5 * 95 / 300)) < 1e-12
+    assert abs(h.G.NR_TEST_SEEN / emptied - 0.03888410770846372) < 1e-12
+
+
+def test_the_gut_lane_drains_and_releases(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    IN = h.G.NutritionRevamp.server.intake
+    IN.pendingAlc["admin"] = 11.85
+    IN.pendingCaf["admin"] = 107.0
+    alone(h, p, record, 100.0 + 1 / 60)
+    a = record["acute"]
+    f = 1 - math.exp(-math.log(2) * (1 / 60) / 0.5)
+    assert IN.pendingAlc["admin"] is None and IN.pendingCaf["admin"] is None
+    assert abs(a["gutAlc"] - 11.85 * (1 - f)) < 1e-12
+    assert abs(a["gutCaf"] - 107.0 * (1 - f)) < 1e-12
+    assert abs(a["caf"] - 107.0 * f) < 1e-12
+    assert abs(a["alc"] - (11.85 * f - 0.015 * 0.68 * 80 * 10 / 60)) < 1e-12   # male 80 kg
+    w0 = a["gutAlc"]
+    for i in range(2, 32):
+        alone(h, p, record, 100.0 + i / 60)
+    assert abs(a["gutAlc"] - w0 * (1 - f) ** 30) < 1e-9      # half again in the next 30 minutes
+    assert a["bac"] > 0
+
+
+def test_a_skipped_minute_keeps_the_pending_dose(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    IN = h.G.NutritionRevamp.server.intake
+    IN.pendingAlc["admin"] = 5.0
+    IN.pendingCaf["admin"] = None
+    alone(h, p, record, NAN)                                # an unreadable age: skipped before the drain
+    assert IN.pendingAlc["admin"] == 5.0
+    alone(h, p, record, 100.0)                              # dtM 0: drained onto the record, nothing released
+    assert IN.pendingAlc["admin"] is None
+    assert record["acute"]["gutAlc"] == 5.0 and record["acute"]["gutCaf"] == 0
+
+
+def test_a_landed_drink_reaches_the_blood_through_the_gut(nut_host):
+    # the full path: IN.land diverts, the next minutes drain and release; the stomach never holds either key
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    IN = h.G.NutritionRevamp.server.intake
+    v = vec(h, ethanol=10.0, caffeine=50.0, water=300.0)
+    IN.lastIngested = h.rt.table()
+    try:
+        IN.land(record, "admin", v)
+        assert record["stomach"]["buffer"]["ethanol"] == 0 and record["stomach"]["buffer"]["caffeine"] == 0
+        bacMax = 0
+        for i in range(1, 61):
+            chain(h, p, record, 100.0 + i / 60)
+            bacMax = max(bacMax, record["acute"]["bac"])
+    finally:
+        IN.lastIngested = None
+    a = record["acute"]
+    assert abs(a["gutAlc"] - 5.0 * 0.5) < 1e-9               # two half-times: a quarter left
+    assert abs(a["gutCaf"] - 12.5) < 1e-9
+    assert a["caf"] > 30 and bacMax > 0                     # the stomach lane never raised it (x151r #2983)
+    assert abs(record["acute"]["alcDayG"] - 10.0) < TOL      # the day total reads the ingested amount
+
+
+def test_the_new_acute_fields_are_backfilled(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    for k in ("gutAlc", "gutCaf", "boutH", "gapH"):
+        record["acute"][k] = None
+    alone(h, p, record, 100.0 + 1 / 60)
+    for k in ("gutAlc", "gutCaf", "boutH", "gapH"):
+        assert record["acute"][k] == 0, k
+    assert nonfinite(h, record) == ""
+
+
+def test_limitations_name_the_fix_wave(nut_host):
+    lims = list(NUT(nut_host).limitations.values())
+    assert "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (ruling T17-2; S1102 open): a drink with a meal peaks as early as one on an empty stomach" in lims
+    assert "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying (ruling T17-1): two meals in the buffer act as one meal, and the inhibition eases as the buffer empties" in lims
+    assert "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake" in lims
 
 
 # --- the heal --------------------------------------------------------------------------------------------

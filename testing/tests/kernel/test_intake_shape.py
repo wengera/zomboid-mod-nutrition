@@ -1118,6 +1118,36 @@ def test_land_survives_a_raising_acute_test(rec_host):
     I(h).lastError = None
 
 
+def test_land_diverts_ethanol_and_caffeine_to_the_gut_lane(rec_host):
+    # ruling T17-2: the landing sends ethanol and caffeine to the pending gut sums, never the stomach;
+    # the ingested sum (the excess ladder, alcDay) keeps them
+    h = rec_host
+    record = _record(h)
+    record["stomach"] = h.K.stomach.new()
+    IN = I(h)
+    IN.lastIngested["g"] = None
+    IN.pendingAlc["g"] = None
+    IN.pendingCaf["g"] = None
+    try:
+        IN.land(record, "g", _vec(h, ethanol=10.0, caffeine=50.0, water=300.0))
+        assert record["stomach"]["buffer"]["ethanol"] == 0
+        assert record["stomach"]["buffer"]["caffeine"] == 0
+        assert record["stomach"]["buffer"]["water"] == 300.0
+        assert IN.pendingAlc["g"] == 10.0 and IN.pendingCaf["g"] == 50.0
+        assert IN.lastIngested["g"]["ethanol"] == 10.0 and IN.lastIngested["g"]["caffeine"] == 50.0
+        IN.land(record, "g", _vec(h, ethanol=2.0))         # a second landing in the minute adds
+        assert IN.pendingAlc["g"] == 12.0 and IN.pendingCaf["g"] == 50.0
+    finally:
+        IN.lastIngested["g"] = None
+        IN.pendingAlc["g"] = None
+        IN.pendingCaf["g"] = None
+
+
+def test_limitations_name_the_gut_lane_window(intake_host):
+    lims = list(I(intake_host).limitations.values())
+    assert "a landed vector's ethanol and caffeine wait in a transient server table until the next slow minute moves them to record.acute: a server stop in that minute loses them (the ingested day totals keep them)" in lims
+
+
 def test_last_ingested_sums_two_eats_and_clears(rec_host):
     h = rec_host
     s1 = I(h).addIngested("u", _vec(h, calories=100.0, ethanol=14.0))

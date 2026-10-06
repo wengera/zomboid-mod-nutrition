@@ -252,3 +252,39 @@ def test_nan_bulk_and_a_nan_pool_key_resets_the_pool(kin_host):
     assert abs(record["stomach"]["bulk"] - K.stomach.FULL_BULK) < TOL
     for k in K.vector.KEYS.values():
         assert record["pool"][k] == 0
+
+
+BREAD = r"""
+function()
+    local K = NutritionRevamp.kernel
+    local r = { stomach = K.stomach.new(), pool = K.vector.new() }
+    local v = K.vector.new()
+    v.calories = 532.0
+    v.lipids = 6.66
+    v.fibre = 4.4
+    v.water = 65.0
+    v.iron = 6.5
+    v.phytate = 400.0
+    v.calcium = 95.0
+    K.stomach.ingest(r.stomach, v)
+    return r
+end
+"""
+
+
+def test_the_meal_context_is_passed_from_the_buffer(kin_host):
+    # ruling T17-1 (x151r #2981): the first minute of a 400 mg phytate loaf absorbs 0.18 x exp(-1.36)
+    # = 0.0461989 mg per mg of iron emptied, and the buffer's calcium before the emptying is handed on
+    h = kin_host
+    record = h.rt.eval(BREAD)()
+    run(h, record, 100.0)
+    run(h, record, 100.0 + 1 / 60)
+    emptied = 6.5 - record["stomach"]["buffer"]["iron"]
+    assert emptied > 0
+    assert abs(record["pool"]["iron"] / emptied - 0.046198939851640065) < 1e-12
+    assert KIN(h).lastMealCa["admin"] == 95.0
+    assert KIN(h).ctx.phytate == 400.0                     # the one context table, overwritten per step
+    run(h, record, 100.0 + 2 / 60)
+    assert KIN(h).lastMealCa["admin"] < 95.0               # the buffer before the second minute's emptying
+    run(h, record, 100.0 + 2 / 60)                         # no elapsed time: both handoffs cleared
+    assert KIN(h).lastAbsorbed["admin"] is None and KIN(h).lastMealCa["admin"] is None

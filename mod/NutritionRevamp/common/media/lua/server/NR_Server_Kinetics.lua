@@ -19,14 +19,19 @@
 -- Every field written on the record is a number or a table of numbers (global modData holds no
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
+-- Ruling T17-1 (x151r #2981): the factor reads the meal in the stomach, not the share emptied this
+-- minute -- the buffer's phytate, vitC and calcium are read into KIN.ctx BEFORE the emptying and absorb
+-- takes them; the calcium goes on to NR_Server_Nutrients' calcium x iron factor through lastMealCa.
 local NR = NutritionRevamp
 local K = NR.kernel
 -- lastAbsorbed: the absorbed vector of each player's last step, by username -- a transient server table,
 -- never on the record -- that NR_Server_Metabolism reads (the four macros) and NR_Server_Nutrients then
 -- consumes and clears on the same minute (both load after this file, so their onMinute entries run after
--- this one; Plan 4 ruling 17); nil when the step had no elapsed time.
+-- this one; Plan 4 ruling 17); nil when the step had no elapsed time. lastMealCa: the buffer's calcium mg
+-- before that step's emptying (a number by username, the same lifetime), the meal calcium the calcium x
+-- iron factor reads. ctx: the one meal-context table, overwritten every step (no per-minute allocation).
 NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false,
-                       lastAbsorbed = {} }
+                       lastAbsorbed = {}, lastMealCa = {}, ctx = {} }
 local KIN = NR.server.kinetics
 
 local function worldAge()
@@ -53,12 +58,15 @@ local function step(username, player, record)
     end
     record.kineticsAge = age
     if dtH > 0 then
+        local ctx = K.stomach.context(record.stomach, KIN.ctx)    -- the meal, before this minute's emptying
         local emptied = K.stomach.empty(record.stomach, dtH)
-        local absorbed = K.stomach.absorb(emptied)
+        local absorbed = K.stomach.absorb(emptied, ctx)
         K.stomach.toPool(record.pool, absorbed)
         KIN.lastAbsorbed[username] = absorbed          -- the handoff to Metabolism, then Nutrients
+        KIN.lastMealCa[username] = ctx.calcium
     else
         KIN.lastAbsorbed[username] = nil
+        KIN.lastMealCa[username] = nil
     end
     local fill = K.stomach.fill(record.stomach)
     -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing

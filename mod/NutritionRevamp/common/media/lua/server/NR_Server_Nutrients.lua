@@ -18,6 +18,14 @@
 -- (testing/tests/kernel/test_nutrients_shape.py). The whole minute runs under one pcall per player and
 -- never raises into the players walk. Every field written on the record is a number, a boolean, a
 -- string or a table of numbers (#1495). Slow-clock code: no @fastpath region in this file.
+--
+-- The x151r fix wave: the calcium x iron factor reads the meal calcium in the stomach before the minute's
+-- emptying (NR_Server_Kinetics' lastMealCa handoff; ruling T17-1, #2981), and caffeine and ethanol reach
+-- the acute states through the gut lane (ruling T17-2, #2982/#2983): the intake landing's pending sums are
+-- drained into record.acute.gutAlc / gutCaf, K.acute.absorbGut releases them, and the released doses feed
+-- the alcohol and caffeine steps, the urinary losses and the alcohol diuresis. The stomach's absorbed
+-- ethanol and caffeine, 0 for every vector landed since the fix, are added to the released doses, so a
+-- buffer that held them before the fix still delivers them.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.nutrients = {
@@ -43,6 +51,9 @@ NR.server.nutrients = {
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
         "Plan 4 writes no stat, moodle or health; INTOXICATION and FATIGUE are vanilla's until Plan 5",
+        "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (ruling T17-2; S1102 open): a drink with a meal peaks as early as one on an empty stomach",
+        "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying (ruling T17-1): two meals in the buffer act as one meal, and the inhibition eases as the buffer empties",
+        "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake",
     },
 }
 local NUT = NR.server.nutrients
@@ -222,6 +233,11 @@ local function ensure(record, body, ageH)
     if a.lastFedAgeH == nil then a.lastFedAgeH = ageH end
     if a.alc7 == nil then a.alc7 = 0 end
     if a.alcDayG == nil then a.alcDayG = 0 end
+    -- the fix wave's fields (rulings T17-2, T17-4) on a record made before them
+    if a.gutAlc == nil then a.gutAlc = 0 end
+    if a.gutCaf == nil then a.gutCaf = 0 end
+    if a.boutH == nil then a.boutH = 0 end
+    if a.gapH == nil then a.gapH = 0 end
 end
 
 -- The day close, when Metabolism's dayIndex has advanced since the last one seen here: the 7-day alcohol
@@ -247,15 +263,18 @@ local function closeDay(record, body, w, ageH)
 end
 
 -- The interaction factors on the absorbed vector before the engine (Task 10's contract): calcium x iron on
--- the minute's absorbed calcium (the meal-calcium proxy), the caffeine and
--- alcohol urinary losses off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
+-- the meal calcium caMeal (the stomach buffer's calcium before the minute's emptying, ruling T17-1; nil --
+-- a handoff set without Kinetics -- falls back to the minute's absorbed calcium, the Plan 4 proxy), the
+-- caffeine and alcohol urinary losses of this minute's released doses cafDose and alcDose (the gut lane,
+-- ruling T17-2) off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
 -- absorbed[ORDER key] = absorbed.vitA, so the folded amount (preformed retinol plus the carotene the liver
 -- gate passes) is written there; the ingested vitA the excess tests read is the preformed retinol alone.
-local function factors(absorbed, ingested, n, lm)
+local function factors(absorbed, ingested, n, lm, caMeal, cafDose, alcDose)
     if absorbed ~= EMPTY then
-        absorbed.iron = (absorbed.iron or 0) * K.interact.calciumIron(absorbed.calcium or 0)
-        local cafMg, cafCa = K.interact.caffeineLossMg(absorbed.caffeine or 0, lm)
-        local alcMg = K.interact.alcoholLossMg(absorbed.ethanol or 0)
+        if caMeal == nil then caMeal = absorbed.calcium or 0 end
+        absorbed.iron = (absorbed.iron or 0) * K.interact.calciumIron(caMeal)
+        local cafMg, cafCa = K.interact.caffeineLossMg(cafDose, lm)
+        local alcMg = K.interact.alcoholLossMg(alcDose)
         absorbed.magnesium = K.max(0, absorbed.magnesium - cafMg - alcMg)
         absorbed.calcium = K.max(0, (absorbed.calcium or 0) - cafCa)
         local vitA = n.vitA
@@ -279,6 +298,11 @@ local function step(username, player, record)
         absorbed = kin.lastAbsorbed[username] or EMPTY
         kin.lastAbsorbed[username] = nil
     end
+    local caMeal = nil
+    if kin ~= nil and kin.lastMealCa ~= nil then
+        caMeal = kin.lastMealCa[username]
+        kin.lastMealCa[username] = nil
+    end
     local intake = NR.server.intake
     local ingested = EMPTY
     if intake ~= nil and intake.lastIngested ~= nil then
@@ -298,6 +322,14 @@ local function step(username, player, record)
     ensure(record, body, ageH)
     heal(username, record, body, ageH)
     local n, f, a = record.nutrients, record.fluids, record.acute
+    -- the gut lane's pending doses move onto the record (ruling T17-2); drained here, after the record
+    -- exists, so a minute skipped above leaves them pending for the next one
+    if intake ~= nil and intake.pendingAlc ~= nil then
+        a.gutAlc = a.gutAlc + (intake.pendingAlc[username] or 0)
+        intake.pendingAlc[username] = nil
+        a.gutCaf = a.gutCaf + (intake.pendingCaf[username] or 0)
+        intake.pendingCaf[username] = nil
+    end
     local dtM = K.clamp((ageH - n.lastAgeH) * 60, 0, 60)    -- offline time is not integrated
     n.lastAgeH = ageH
     if dtM <= 0 then return end                             -- K.fluids.losses divides by dtM
@@ -306,8 +338,13 @@ local function step(username, player, record)
     local O = NR.server.options or EMPTY
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end
 
+    -- the gut lane's release this minute, plus any ethanol or caffeine a pre-fix buffer still empties
+    local alcDose, cafDose = K.acute.absorbGut(a, dtH)
+    alcDose = alcDose + (absorbed.ethanol or 0)
+    cafDose = cafDose + (absorbed.caffeine or 0)
+
     -- the records
-    factors(absorbed, ingested, n, body.lm)
+    factors(absorbed, ingested, n, body.lm, caMeal, cafDose, alcDose)
     local hSince = ageH - body.lastCloseAgeH
     local eeYest = K.energy.ree(body.lm)                    -- before the first close: the resting expenditure
     if finite(body.inDayClosed) then eeYest = body.inDayClosed - body.eb7[7] end
@@ -343,7 +380,7 @@ local function step(username, player, record)
     fctx.met = met
     fctx.thermoFluids = num(obj(obj(player, "getBodyDamage"), "getThermoregulator"), "getFluidsMultiplier", 1)
     fctx.coldMult = coldMult
-    fctx.ethanolAbsG = absorbed.ethanol or 0
+    fctx.ethanolAbsG = alcDose
     fctx.dehydPct = f.dehydPct
     K.fluids.losses(f, fctx, dtM)
     K.fluids.clearance(f, dtM)
@@ -376,8 +413,8 @@ local function step(username, player, record)
         local ok, gt = pcall(getGameTime)
         hourOfDay = num(ok and gt or nil, "getTimeOfDay", hourOfDay)
     end
-    K.acute.caffeine(a, absorbed.caffeine or 0, w, dtH)    -- the absorbed dose: CAF_ABSORB is the stomach's 1.0
-    K.acute.alcohol(a, absorbed.ethanol or 0, w, body.sex, dtH)
+    K.acute.caffeine(a, cafDose, w, dtH)                   -- the gut lane's dose (CAF_ABSORB applied there)
+    K.acute.alcohol(a, alcDose, w, body.sex, dtH)
     local ethIng = ingested.ethanol or 0
     body.alcDay = body.alcDay + ethIng                      -- Plan 3's alcohol gate, finally written
     a.alcDayG = a.alcDayG + ethIng

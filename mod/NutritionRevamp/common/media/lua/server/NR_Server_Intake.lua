@@ -42,7 +42,12 @@
 --     The ceiling is an ABSORPTION cap per meal, so it is applied where the per-eat amount is known, on
 --     the vector that goes into the stomach; K.stomach.BIOAVAIL.vitB12 stays 1.0, so the stomach absorbs
 --     what the ceiling let through;
---  4. K.stomach.ingest.
+--  4. the gut lane (ruling T17-2, x151r #2982/#2983): the vector's ethanol and caffeine are added to
+--     IN.pendingAlc[username] / IN.pendingCaf[username] (numbers, no table allocated) and zeroed on the
+--     vector, so neither enters the stomach; NR_Server_Nutrients drains them into record.acute.gutAlc /
+--     gutCaf on its next minute (the pending tables are the simpler of the two shapes the fix brief
+--     offered: the eat never has to create record.acute, whose slow-metaboliser draw is the adapter's);
+--  5. K.stomach.ingest.
 local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop = false,
@@ -50,7 +55,10 @@ NR.server.intake = { wrapped = false, wrappedComplete = false, wrappedServerStop
                      stats = { eats = 0, cancels = 0, sips = 0, worldSips = 0, landed = 0, failures = 0,
                                passthrough = 0, unreadableAfter = 0, acuteFlags = 0, acuteFailures = 0 },
                      lastIngested = {},
+                     pendingAlc = {},
+                     pendingCaf = {},
                      limitations = {
+                         "a landed vector's ethanol and caffeine wait in a transient server table until the next slow minute moves them to record.acute: a server stop in that minute loses them (the ingested day totals keep them)",
                          "a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water",
                          "a world-water source lands as the Water seed whatever its fluid (a tainted source included)",
                          "a drink's acute dose is tested per sip, not per drink: a dose split across sips can read a lower rung",
@@ -199,8 +207,9 @@ function IN.acuteAtEat(record, vec, records)
     return flagged
 end
 
--- The landing every route shares (the header's four steps): the ingested sum and the acute test read
--- the vector as ingested; the B12 ceiling then caps vitB12 in place; the stomach takes the result.
+-- The landing every route shares (the header's five steps): the ingested sum and the acute test read
+-- the vector as ingested; the B12 ceiling then caps vitB12 in place; the ethanol and caffeine leave the
+-- vector for the gut lane's pending sums; the stomach takes the result.
 -- The record's stomach must exist. The acute test runs under its own pcall: a raise there is counted
 -- and named, and the landing goes on.
 function IN.land(record, username, vec)
@@ -214,6 +223,10 @@ function IN.land(record, username, vec)
         NR.log.say(2, "intake: " .. IN.lastError)
     end
     vec.vitB12 = K.interact.b12Ceiling(vec.vitB12 or 0)
+    IN.pendingAlc[username] = (IN.pendingAlc[username] or 0) + (vec.ethanol or 0)
+    IN.pendingCaf[username] = (IN.pendingCaf[username] or 0) + (vec.caffeine or 0)
+    vec.ethanol = 0
+    vec.caffeine = 0
     K.stomach.ingest(record.stomach, vec)
     return vec
 end

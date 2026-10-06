@@ -13,6 +13,12 @@
 -- it by under 2e-5 over a week). Pure: numbers and Lua tables in, numbers and Lua tables out, no Java.
 -- Slow-clock code with no fast region. This file sorts after NR_Kernel.lua, and every K.clamp / K.min /
 -- K.max reference is at call time.
+-- The x151r fix wave (rulings T17-2..T17-4): caffeine and ethanol absorb from a gut lane (gutAlc, gutCaf;
+-- absorbGut) the intake landing feeds directly, bypassing the stomach's composition-scaled half-time
+-- (one beer built no blood alcohol through the stomach, #2983); the shiver draw starts above a dead band
+-- and glycogen refills whenever met < 3 (the thermoregulator's idle 1.007-1.010 indoors blocked every
+-- refill, #2984); a sleep bout (boutH, gapH) tolerates awake gaps under BOUT_GAP_H (the harness hold's
+-- isAsleep misses, #2840, never let a run reach the nap threshold, #2986).
 local K = NutritionRevamp.kernel
 K.acute = {}
 
@@ -35,6 +41,9 @@ K.acute.CAF_WD_ONSET_H = 12 -- S0805 (onset 12-24 h)
 K.acute.CAF_WD_PEAK_H = 36 -- S0805 (peak 20-51 h); the midpoint a game choice
 K.acute.CAF_WD_END_H = 120 -- S0805 (2-9 days); the point a game choice
 K.acute.CAF_EFFECT_MGKG = 3 -- S0531 (3-6 mg/kg band: full at 3); S0626 (caffeineActive at 3 mg/kg)
+
+-- The gut lane caffeine and ethanol absorb from (ruling T17-2): first order on this half-time, game hours.
+K.acute.GUT_T_HALF = 0.5 -- design-phase-v1 game choice; open S1102 (caffeine time to peak); the S0524 beer cross-check: 1 L of 4 % beer peaks ~1 h
 
 -- Alcohol.
 -- The Widmark distribution factor, indexed by sex.
@@ -68,7 +77,8 @@ K.acute.USE_MET_LO = 3 -- game choice: no glycogen draw at or below MET 3
 K.acute.USE_MET_SPAN = 4.5 -- MET 7.5 = 71 % VO2max: design-phase-v1 game choice (open row S1107: MET to per cent VO2max)
 K.acute.USE_MAX = 1.6 -- game choice: the draw's cap in units of the MET 7.5 rate
 K.acute.USE_SHIVER = 52 -- mmol/kg/h at coldMult 3.5, derived from S0049 (410 -> 332 in 90 min)
-K.acute.SHIVER_SPAN = 2.5 -- S0049 (3.5 x resting metabolic rate)
+K.acute.SHIVER_FULL = 3.5 -- S0049 (3.5 x resting metabolic rate): the full draw
+K.acute.SHIVER_DEADBAND = 1.05 -- game choice (ruling T17-3): the thermoregulator's idle multiplier sits at 1.007-1.010 indoors (x151r #2984); no shiver draw at or below it
 
 -- Blood glucose, mmol/L.
 K.acute.BG_NORMAL = 5.0 -- S0684 (fed range 4.2-5.2); no fall from fasting alone, S0896
@@ -95,6 +105,7 @@ K.acute.S_FLOOR_DEBT = 0.01 -- per debt hour: design-phase-v1 game choice (open 
 K.acute.S_FLOOR_MAX = 0.25 -- design-phase-v1 game choice (open row S1114: debt on the floor)
 K.acute.S_RESTED = 0.17 -- game choice: S on waking from a full night (the briefing's rested value)
 K.acute.NAP_MIN_H = 1 -- design-phase-v1 game choice (open row S1112: the sleep that resets hours awake)
+K.acute.BOUT_GAP_H = 10 / 60 -- design-phase-v1 game choice; open S1112 (the nap rule): an awake gap this long ends a sleep bout (ruling T17-4)
 K.acute.WINDOW_H = 24 -- game choice: the accounting window
 K.acute.DEBT_MAX = 40 -- S0742 (cumulative); the cap a game choice
 K.acute.REPAY = 0.5 -- S0743 (deficits persist); design-phase-v1 game choice (open row S1113: the repaid fraction)
@@ -141,11 +152,14 @@ K.acute.RESTART_LOW_KCAL_KG = 5 -- S0116 (BMI 14 or below)
 K.acute.RESTART_LOW_BMI = 14 -- S0116
 K.acute.REFEED_P = 0.23 -- S0117 (23 %); S0118's 35 % noted, both critically-ill populations: game choice
 
--- A fresh record.acute at world age ageH: no caffeine or alcohol on board, the reference glycogen and
--- normal glucose, rested, no debt, no refeeding risk. bmi 0 until the first refeedDay close.
+-- A fresh record.acute at world age ageH: no caffeine or alcohol on board or in the gut, the reference
+-- glycogen and normal glucose, rested, no debt or sleep bout, no refeeding risk. bmi 0 until the first
+-- refeedDay close.
 function K.acute.new(ageH)
     return {
         av = K.acute.AV,
+        gutAlc = 0,
+        gutCaf = 0,
         caf = 0,
         cafMean = 0,
         cafTol = 0,
@@ -164,6 +178,8 @@ function K.acute.new(ageH)
         awakeH = 0,
         debtH = 0,
         sleptH = 0,
+        boutH = 0,
+        gapH = 0,
         winStartH = ageH,
         winSleptH = 0,
         S = K.acute.S_RESTED,
@@ -184,6 +200,19 @@ end
 -- The slow-metaboliser draw: the adapter passes a uniform roll in [0, 1) once per character.
 function K.acute.drawSlowMet(roll)
     return roll < K.acute.CAF_SLOW_SHARE
+end
+
+-- One gut-lane step over dtH hours (ruling T17-2): the fraction 1 - exp(-ln2 x dtH / GUT_T_HALF) of the
+-- ethanol (g) and caffeine (mg) awaiting absorption moves out. Returns the ethanol and the caffeine
+-- absorbed this step (the caffeine at CAF_ABSORB), the doses alcohol and caffeine then take. The intake
+-- landing adds to gutAlc and gutCaf; neither key enters the stomach.
+function K.acute.absorbGut(a, dtH)
+    local f = 1 - math.exp(-0.6931471805599453 * dtH / K.acute.GUT_T_HALF)
+    local alc = a.gutAlc * f
+    local caf = a.gutCaf * f
+    a.gutAlc = a.gutAlc - alc
+    a.gutCaf = a.gutCaf - caf
+    return alc, caf * K.acute.CAF_ABSORB
 end
 
 -- One caffeine step: the body load decays first-order and takes this step's absorbed dose (mg); the
@@ -293,16 +322,17 @@ function K.acute.glycTarget(cho24)
     return A.GLYC_REF + A.GLYC_HIGH * hi - A.GLYC_LOW * lo
 end
 
--- One glycogen step: the work draw (above MET 3) and the shivering draw (above coldMult 1), mmol/kg/h;
--- with no draw the store relaxes toward the carbohydrate target on tau 24 h (resting repletion only: a
--- game choice, so a working step never refills). Clamped to [0, GLYC_MAX]; g = clamp(G / 462, 0, 1).
+-- One glycogen step: the work draw (above MET 3) and the shivering draw (above the coldMult dead band,
+-- full at 3.5), mmol/kg/h; at rest (met < 3, the S0683 work floor) the store also relaxes toward the
+-- carbohydrate target on tau 24 h, the refill and any shiver draw coexisting (ruling T17-3: a working
+-- step never refills, a cold resting one refills less). Clamped to [0, GLYC_MAX]; g = clamp(G / 462, 0, 1).
 function K.acute.glycogen(a, met, coldMult, cho24, dtH)
     local A = K.acute
     local work = A.USE_WORK * K.clamp((met - A.USE_MET_LO) / A.USE_MET_SPAN, 0, A.USE_MAX)
-    local shiver = A.USE_SHIVER * K.clamp((coldMult - 1) / A.SHIVER_SPAN, 0, 1)
+    local shiver = A.USE_SHIVER * K.clamp((coldMult - A.SHIVER_DEADBAND) / (A.SHIVER_FULL - A.SHIVER_DEADBAND), 0, 1)
     local use = work + shiver
     a.glyc = a.glyc - use * dtH
-    if use == 0 then
+    if met < A.USE_MET_LO then
         local target = A.glycTarget(cho24)
         a.glyc = target + (a.glyc - target) * math.exp(-dtH / A.GLYC_TAU_H)
     end
@@ -341,10 +371,15 @@ end
 -- One sleep step over dtH game hours at world age ageH. sleepDisabled (the server's SleepAllowed and
 -- SleepNeeded not both true, the reset ahead of the hook, run x151s) freezes the state at rested: hours
 -- awake, debt, the sleep run and the window's sleep are 0, S is S_RESTED and the window restarts at ageH,
--- so a later re-enable opens a fresh window; frozen is set and circ still computed. Otherwise: awake, a
--- sleep run of at least NAP_MIN_H that just ended resets hours awake, the run clears, hours awake accrue
--- and S rises toward 1 on chi_w shortened by the debt; asleep, the run and the window's sleep accrue
--- (hours awake hold) and S decays on chi_s to a debt floor capped at S_FLOOR_MAX. The 24 h window closes
+-- so a later re-enable opens a fresh window; frozen is set and circ still computed. Otherwise: asleep,
+-- the run (sleptH), the bout (boutH) and the window's sleep accrue, the bout's gap clears, hours awake
+-- reset to 0 once the bout reaches NAP_MIN_H (at that minute, ruling T17-4) and otherwise hold, and S
+-- decays on chi_s to a debt floor capped at S_FLOOR_MAX; awake, the run clears, a bout in progress counts
+-- its gap (gapH) and ends when the gap reaches BOUT_GAP_H -- a bout that had reset hours awake then
+-- credits the whole gap to them, the waking having begun at its start -- hours awake accrue unless a
+-- bout of at least NAP_MIN_H is in progress, and S rises toward 1 on chi_w shortened by the debt. A gap
+-- under BOUT_GAP_H inside a bout is so tolerated (the harness hold's isAsleep misses, #2840). sleptH is
+-- the unbroken run, kept for the readers; the reset reads the bout. The 24 h window closes
 -- when ageH has run WINDOW_H past its start: the shortfall against need (7.5 h x needFactor, the trait
 -- multiplier) adds to the debt, the excess repays REPAY of itself, clamped [0, DEBT_MAX].
 function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepDisabled)
@@ -355,6 +390,8 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
         a.awakeH = 0
         a.debtH = 0
         a.sleptH = 0
+        a.boutH = 0
+        a.gapH = 0
         a.winSleptH = 0
         a.winStartH = ageH
         a.S = A.S_RESTED
@@ -363,15 +400,29 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
     a.frozen = false
     if asleep then
         a.sleptH = a.sleptH + dtH
+        a.boutH = a.boutH + dtH
+        a.gapH = 0
         a.winSleptH = a.winSleptH + dtH
+        if a.boutH >= A.NAP_MIN_H then
+            a.awakeH = 0
+        end
         local floor = K.min(A.S_FLOOR_DEBT * a.debtH, A.S_FLOOR_MAX)
         a.S = K.max(a.S * math.exp(-dtH / A.CHI_S), floor)
     else
-        if a.sleptH >= A.NAP_MIN_H then
-            a.awakeH = 0
-        end
         a.sleptH = 0
-        a.awakeH = a.awakeH + dtH
+        if a.boutH > 0 then
+            a.gapH = a.gapH + dtH
+            if a.gapH >= A.BOUT_GAP_H then
+                if a.boutH >= A.NAP_MIN_H then
+                    a.awakeH = a.gapH - dtH -- the gap before this step; this step accrues below
+                end
+                a.boutH = 0
+                a.gapH = 0
+            end
+        end
+        if a.boutH < A.NAP_MIN_H then
+            a.awakeH = a.awakeH + dtH
+        end
         local chiW = A.CHI_W / (1 + A.CHI_W_DEBT * K.min(a.debtH, A.CHI_W_DEBT_MAX))
         a.S = 1 - (1 - a.S) * math.exp(-dtH / chiW)
     end
