@@ -1,0 +1,5 @@
+name=TKX Stat Watch
+id=TKX_StatWatch
+description=Plan 5 experiment: per-tick server samples of the effect-channel stats, the thermoregulator core and an OnPlayerGetDamage tag counter during a bus-armed window, plus an out-of-handler PANIC/UNHAPPINESS write arm (X88). Test profiles only.
+modversion=1.0
+versionMin=42.0.0
