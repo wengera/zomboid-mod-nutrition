@@ -2583,3 +2583,19 @@ TK.register("regen.set", function(argv)
     out.reason = err
     return out
 end)
+
+-- <user>. The server reading of the four regeneration constants through their getters; no write.
+-- Re-read it after a regen.set, a load or a day to see whether the engine kept the value.
+-- @args <user>
+-- @reply {ok, side, standard, reduced, severe, sleeping [, absent_<name>]} | string
+-- @purpose Reads the four BodyDamage regeneration constants (standard, reduced, severe, sleeping) of a named player through their getters.
+TK.register("regen.get", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil then return { ok = false, side = TK.side, reason = "no getBodyDamage()" } end
+    local r = P5.regenRead(bd)
+    r.ok = (r.standard ~= nil)
+    r.side = TK.side
+    return r
+end)
