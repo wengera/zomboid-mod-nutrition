@@ -852,7 +852,8 @@ IODINE_FIXTURE = ('key,food,iodine_ug_100g,page,note\n'
                   'milk-whole,"Milk, whole, fluid",34,1,uncited\n')
 PHYTATE_FIXTURE = ('family,phytate_mg_100g,source,note\n'
                    'lentils,890,a citation,a note\n'
-                   'peas,720,a citation,uncited\n')
+                   'peas,720,a citation,uncited\n'
+                   'flour,214.32,a fresh citation,basis=fresh; mg per 100 g edible portion\n')
 INSECT_FIXTURE = ('key,order_or_taxon,basis,protein_g_100g,fat_g_100g,fibre_g_100g,carb_g_100g,ash_g_100g,'
                   'energy_kcal_100g,moisture_pct,source,page_or_table,note\n'
                   'rumpold2013:orthoptera,Orthoptera,dm,61.32,13.41,9.55,12.98,3.85,426.25,,a source,Table 4,a note\n'
@@ -1051,7 +1052,8 @@ class ExtractTest(ExtractFixture):
         self.assertEqual(got["retention"], {"1": {"description": "CHEESE,BAKED", "factors": {"301": 100}}})
         self.assertEqual(got["iodine"], {"egg-whole-raw": {"food": "Egg, whole, raw, fresh",
                                                            "iodine_ug_100g": 49.0, "page": 1}})
-        self.assertEqual(got["phytate"], {"lentils": {"phytate_mg_100g": 890.0, "source": "a citation"}})
+        self.assertEqual(got["phytate"], {"lentils": {"phytate_mg_100g": 890.0, "source": "a citation",
+                                                     "basis": "dry"}})
         self.assertEqual(list(got["insects"]), ["rumpold2013:orthoptera"])
         cricket = got["insects"]["rumpold2013:orthoptera"]
         self.assertEqual((cricket["protein_g_100g"], cricket["moisture_pct"], cricket["basis"]), (61.32, None, "dm"))
@@ -1139,8 +1141,9 @@ class RealExtractTest(unittest.TestCase):
                          {r["fdc_id"] for r in rows if r["fdc_source"] == "sr_legacy"})
         self.assertEqual(set(self.extract["retention"]), {r["cook_retention_code"] for r in rows if r["cook_retention_code"]})
         self.assertEqual(set(self.extract["iodine"]), {r["iodine_ref"][len("iodine:"):] for r in rows if r["iodine_ref"]})
-        self.assertEqual(set(self.extract["phytate"]), {r["phytate_source"][len("schlemmer2009:"):]
-                                                        for r in rows if r["phytate_source"].startswith("schlemmer2009:")})
+        self.assertEqual(set(self.extract["phytate"]),
+                         {r["phytate_source"].split(":", 1)[1] for r in rows
+                          if r["phytate_source"].startswith(("schlemmer2009:", "phyfoodcomp2019:"))})
         self.assertEqual(set(self.extract["insects"]), {r["fdc_id"] for r in rows if r["fdc_source"] == "literature"})
 
     def test_the_counts(self):
@@ -1264,6 +1267,7 @@ class BuildFixture(ExtractFixture):
                   portion_source="judgement", state_baseline="dried")
         self.edit("meat-fish-egg-dairy", "Base.Egg", portion_grams="50", portion_source="fdc_portion:1",
                   state_baseline="raw")
+        self.prepare()
         self.edit("meat-fish-egg-dairy", "Base.Cricket", portion_grams="15.6", portion_source="judgement",
                   state_baseline="raw")
         self.edit("fluids", "Beer", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="close",
@@ -1284,11 +1288,53 @@ class BuildFixture(ExtractFixture):
         self.csv_out = os.path.join(self.tmp, "food-nutrients.csv")
         self.records = fn.load_dataset(self.dataset)
 
+    def prepare(self):
+        """A hook for a subclass's own row edits, run before the extract is built."""
+
     def run_build(self):
         return fn.build(self.map, self.dataset, self.out, self.json_out, self.csv_out, out=io.StringIO())
 
     def rec(self, result, pz_id):
         return [r for r in result["items"] + result["fluids"] if r["pz_id"] == pz_id][0]
+
+
+class PhytateBasisTest(BuildFixture):
+    """The phytate step's branches: a fresh family taken as eaten, a dry one converted by the entry's
+    water, and a fresh-prefixed family whose table row lacks the basis=fresh marker refused."""
+
+    def prepare(self):
+        self.edit("produce", "Base.Apple", phytate_mg_100g="214.32", phytate_source="phyfoodcomp2019:flour")
+
+    def test_a_fresh_row_is_taken_as_eaten(self):
+        result = self.run_build()
+        apple = self.rec(result, "Base.Apple")
+        self.assertEqual(apple["per_100g"]["phytate"], 214.32)         # no water conversion
+        self.assertFalse([n for n in apple["checks"]["notes"] if n.startswith("phytate:")])
+
+    def test_a_dry_row_is_converted(self):
+        lentils = self.rec(self.run_build(), "Base.Lentils")
+        self.assertAlmostEqual(lentils["per_100g"]["phytate"], 890 * (100 - lentils["per_100g"]["water"]) / 100,
+                               places=6)
+
+    def test_the_extract_carries_the_basis(self):
+        with open(self.out, encoding="utf-8") as handle:
+            phytate = json.load(handle)["phytate"]
+        self.assertEqual((phytate["flour"]["basis"], phytate["lentils"]["basis"]), ("fresh", "dry"))
+
+    def test_a_fresh_row_without_the_marker_raises(self):
+        with open(self.out, encoding="utf-8") as handle:
+            extract = json.load(handle)
+        extract["phytate"]["flour"]["basis"] = "dry"
+        row = {"pz_id": "Base.Apple", "iodine_ref": "", "phytate_source": "phyfoodcomp2019:flour",
+               "phytate_mg_100g": "214.32"}
+        with self.assertRaises(fn.ExtractRefused):
+            fn.sr_per_100g(extract["foods"][str(APPLE)], row, extract, [])
+
+    def test_the_checker_pairs_each_prefix_with_its_basis(self):
+        for source in ("schlemmer2009:flour", "phyfoodcomp2019:lentils"):
+            self.edit("produce", "Base.Apple", phytate_source=source)
+            counts = fn.check_map(self.map, self.dataset, allow_unfilled=False, out=io.StringIO())
+            self.assert_violation(counts, "phytate_source %r" % source)
 
 
 class BuildTest(BuildFixture, OutputShape):

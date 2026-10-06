@@ -769,7 +769,10 @@ FDC_REF_SOURCES = ("retention", "sr_legacy")    # the gitignored ones: absent ->
 
 IODINE_PREFIX = "iodine:"                       # iodine_ref = iodine:<key of the iodine table>
 PHYTATE_LIT_PREFIX = "schlemmer2009:"           # phytate_source = schlemmer2009:<family of the phytate table>
+PHYTATE_FRESH_PREFIX = "phyfoodcomp2019:"       # phytate_source = phyfoodcomp2019:<family>, a FRESH-weight (as eaten) value
+PHYTATE_FRESH_MARKER = "basis=fresh"            # the side table's `note` of every phyfoodcomp2019 family begins with it
 PHYTATE_ZERO_PREFIX = "zero:"                   # phytate_source = zero:<one of the closed families>
+PHYTATE_TABLE_PREFIXES = (PHYTATE_LIT_PREFIX, PHYTATE_FRESH_PREFIX)
 # The families the literature places at zero phytate (Task 4's amendment; the waves cite each one).
 ZERO_PHYTATE_FAMILIES = ("dairy", "egg", "fish", "fruit", "meat", "oil", "sugar", "vegetable")
 INSECT_NUMBER_COLUMNS = ("protein_g_100g", "fat_g_100g", "fibre_g_100g", "carb_g_100g", "ash_g_100g",
@@ -863,9 +866,14 @@ def check_iodine_refs(rows, records):
     return out
 
 
+def _fresh_family(entry):
+    """True where a phytate table row's `note` carries the fresh-weight marker."""
+    return entry["note"].startswith(PHYTATE_FRESH_MARKER)
+
+
 def check_phytate_sources(rows, records):
-    """Every `phytate_source` is empty, `schlemmer2009:<family of the phytate table>` or
-    `zero:<one of ZERO_PHYTATE_FAMILIES>`."""
+    """Every `phytate_source` is empty, `schlemmer2009:<a dry-weight family of the phytate table>`,
+    `phyfoodcomp2019:<a family whose note begins basis=fresh>` or `zero:<one of ZERO_PHYTATE_FAMILIES>`."""
     if not os.path.exists(REF_SOURCES["phytate"]):
         return _table_violation("phytate")
     families = read_table(REF_SOURCES["phytate"], "family")
@@ -874,11 +882,15 @@ def check_phytate_sources(rows, records):
         src = row["phytate_source"]
         if not src:
             continue
-        if src.startswith(PHYTATE_LIT_PREFIX) and src[len(PHYTATE_LIT_PREFIX):] in families:
+        if (src.startswith(PHYTATE_LIT_PREFIX) and src[len(PHYTATE_LIT_PREFIX):] in families
+                and not _fresh_family(families[src[len(PHYTATE_LIT_PREFIX):]])):
+            continue
+        if (src.startswith(PHYTATE_FRESH_PREFIX) and src[len(PHYTATE_FRESH_PREFIX):] in families
+                and _fresh_family(families[src[len(PHYTATE_FRESH_PREFIX):]])):
             continue
         if src.startswith(PHYTATE_ZERO_PREFIX) and src[len(PHYTATE_ZERO_PREFIX):] in ZERO_PHYTATE_FAMILIES:
             continue
-        out.append("%s %s: phytate_source %r resolves to neither a family of %s nor a zero family"
+        out.append("%s %s: phytate_source %r resolves to neither a family of %s on its own basis nor a zero family"
                    % (_where(row), row["pz_id"], src, os.path.basename(REF_SOURCES["phytate"])))
     return out
 
@@ -1015,8 +1027,8 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
     sr_ids = sorted({int(r["fdc_id"]) for r in mapped if r["fdc_source"] == "sr_legacy"})
     codes = sorted({int(r["cook_retention_code"]) for r in rows if r["cook_retention_code"]})
     iodine_keys = sorted({r["iodine_ref"][len(IODINE_PREFIX):] for r in rows if r["iodine_ref"]})
-    families = sorted({r["phytate_source"][len(PHYTATE_LIT_PREFIX):] for r in rows
-                       if r["phytate_source"].startswith(PHYTATE_LIT_PREFIX)})
+    families = sorted({r["phytate_source"][len(prefix):] for r in rows for prefix in PHYTATE_TABLE_PREFIXES
+                       if r["phytate_source"].startswith(prefix)})
     insect_keys = sorted({r["fdc_id"] for r in mapped if r["fdc_source"] == "literature"})
 
     with _FdcSource(REF_SOURCES["sr_legacy"]) as source:
@@ -1046,8 +1058,16 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
     iodine = {k: {"food": iodine_table[k]["food"], "iodine_ug_100g": float(iodine_table[k]["iodine_ug_100g"]),
                   "page": int(iodine_table[k]["page"])} for k in iodine_keys}
     phytate_table = read_table(REF_SOURCES["phytate"], "family")
+    fresh_cited = {r["phytate_source"][len(PHYTATE_FRESH_PREFIX):] for r in rows
+                   if r["phytate_source"].startswith(PHYTATE_FRESH_PREFIX)}
+    for f in families:
+        if (f in fresh_cited) != _fresh_family(phytate_table[f]):
+            raise ExtractRefused("phytate family %s: the %s prefix and the table note's %r marker disagree"
+                                 % (f, PHYTATE_FRESH_PREFIX if f in fresh_cited else PHYTATE_LIT_PREFIX,
+                                    PHYTATE_FRESH_MARKER))
     phytate = {f: {"phytate_mg_100g": float(phytate_table[f]["phytate_mg_100g"]),
-                   "source": phytate_table[f]["source"]} for f in families}
+                   "source": phytate_table[f]["source"],
+                   "basis": "fresh" if _fresh_family(phytate_table[f]) else "dry"} for f in families}
     insect_table = read_table(REF_SOURCES["insects"], "key")
     insects = {}
     for k in insect_keys:
@@ -1094,8 +1114,10 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
 #   iodine:  the iodine table's ug/100 g on a row with `iodine_ref`, else null (FDC has no iodine);
 #   phytate: on a `schlemmer2009:<family>` row, the table's mg/100 g DRY weight put on the as-eaten
 #            basis with the FDC entry's own water, `phytate = dry_mg_100g x (100 - water_g_100g) / 100`
-#            (wave 4a's conversion); `0.0` on a `zero:<family>` row; null otherwise (and null, with a
-#            note, where the entry carries no water);
+#            (wave 4a's conversion; null, with a note, where the entry carries no water); on a
+#            `phyfoodcomp2019:<family>` row, the table's mg/100 g as the database states it, a FRESH
+#            weight (the family's note begins `basis=fresh`), taken as eaten with no conversion; `0.0`
+#            on a `zero:<family>` row; null otherwise;
 # and a literature row's vector read off the insect table by `literature_per_100g`. `per_item` (an item)
 # or `per_litre` (a fluid, ruling 7: `portion_grams` is the litre's mass) is `per_100g x portion_grams /
 # 100`, except three named overrides on a fluid's per-litre block, each written into `checks.notes`:
@@ -1250,6 +1272,14 @@ def sr_per_100g(food, row, extract, notes):
     src = row["phytate_source"]
     if src.startswith(PHYTATE_ZERO_PREFIX):
         out["phytate"] = 0.0
+    elif src.startswith(PHYTATE_FRESH_PREFIX):
+        fresh = extract["phytate"][src[len(PHYTATE_FRESH_PREFIX):]]
+        if fresh.get("basis") != "fresh":
+            raise ExtractRefused("%s: %s is not a basis=fresh family of the phytate table" % (row["pz_id"], src))
+        out["phytate"] = _r6(fresh["phytate_mg_100g"])
+        cell = row["phytate_mg_100g"]
+        if cell and abs(float(cell) - out["phytate"]) > 0.05 + 1e-9:
+            notes.append("phytate: %s mg/100 g fresh against the mapping cell %s" % (out["phytate"], cell))
     elif src.startswith(PHYTATE_LIT_PREFIX):
         dry = extract["phytate"][src[len(PHYTATE_LIT_PREFIX):]]["phytate_mg_100g"]
         if out["water"] is None:
@@ -1404,8 +1434,9 @@ def _stale(rows, extract):
         if r["iodine_ref"] and r["iodine_ref"][len(IODINE_PREFIX):] not in extract["iodine"]:
             out.append("%s: %s" % (r["pz_id"], r["iodine_ref"]))
         src = r["phytate_source"]
-        if src.startswith(PHYTATE_LIT_PREFIX) and src[len(PHYTATE_LIT_PREFIX):] not in extract["phytate"]:
-            out.append("%s: %s" % (r["pz_id"], src))
+        for prefix in PHYTATE_TABLE_PREFIXES:
+            if src.startswith(prefix) and src[len(prefix):] not in extract["phytate"]:
+                out.append("%s: %s" % (r["pz_id"], src))
     unsupported = sorted({r["fdc_source"] for r in rows if r["fdc_id"]} - set(EXTRACT_SOURCES))
     out += ["fdc_source %s: the build resolves only %s" % (s, ", ".join(EXTRACT_SOURCES)) for s in unsupported]
     return out

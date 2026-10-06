@@ -31,7 +31,7 @@ never on the display name (231 rows share a name).
 | `state_baseline` | `raw`, `cooked`, `canned`, `dried`, `frozen`, `prepared` — the state as spawned (ruling 5) |
 | `iodine_ref` | the row of `data/iodine-db-r4.csv` the food's iodine comes from (ruling 8) |
 | `phytate_mg_100g` | phytate, mg per 100 g, from the literature (ruling 9); `0` where the literature places zero, empty where unknown |
-| `phytate_source` | the science row the phytate value rests on |
+| `phytate_source` | the side-table family the value rests on, with its prefix: `schlemmer2009:<family>` (a DRY-weight value, converted to the as-eaten basis with the FDC entry's water), `phyfoodcomp2019:<family>` (a FRESH-weight value, taken as eaten with no conversion; the family's note in `data/phytate-literature.csv` begins `basis=fresh`, and the build refuses a row whose prefix and note disagree) or `zero:<family>` |
 | `no_nutrition_reason` | `not_food`, `empty_container`, `fluid_sourced`, `inedible_body_part`, `hazard`, `vessel_only`, `spice_only`, `tobacco_or_drug` |
 | `notes` | free text; required on a `guess` and on a row that leaves its family's `fdc_id` |
 

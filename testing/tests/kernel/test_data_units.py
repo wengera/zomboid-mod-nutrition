@@ -166,7 +166,8 @@ def test_every_seed_phytate_is_zero_or_milligram_scale(units_host, block, loader
     for pz_id in _seed_ids(block):
         vec = get(pz_id)
         assert vec is not None, pz_id
-        assert vec["phytate"] == 0 or vec["phytate"] >= 10, (pz_id, vec["phytate"])
+        # the smallest mapped items (a maki roll, 3.6 mg) are single milligrams; a gram reading would be ~0.004
+        assert vec["phytate"] == 0 or vec["phytate"] >= 1, (pz_id, vec["phytate"])
 
 
 def test_a_legume_phytate_is_milligrams(units_host):

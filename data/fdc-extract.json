@@ -65070,7 +65070,7 @@
      174347
     ]
    },
-   "phytate_rows": 6,
+   "phytate_rows": 16,
    "retention_codes": 51
   },
   "defective_retention": {
@@ -65251,29 +65251,85 @@
   "tool": "tools/food_nutrients.py"
  },
  "phytate": {
+  "bread-white": {
+   "basis": "fresh",
+   "phytate_mg_100g": 20.0,
+   "source": "phyfoodcomp2019:01030050+01030051+01030052+01030053+01030054+01030055+01030056+01030058+01030059; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01030050, 01030051, 01030052, 01030053, 01030054, 01030055, 01030056, 01030058, 01030059); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
   "chickpeas": {
+   "basis": "dry",
    "phytate_mg_100g": 940.0,
    "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (content of phytic acid in major cereals, legumes, oilseeds and nuts), read as reproduced in Gupta RK, Gangoliya SS, Singh NK 2015, J Food Sci Technol 52(2):676-684, doi:10.1007/s13197-013-0978-y, Table 1"
   },
   "kidney-beans": {
+   "basis": "dry",
    "phytate_mg_100g": 1495.0,
    "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (content of phytic acid in major cereals, legumes, oilseeds and nuts), read as reproduced in Gupta RK, Gangoliya SS, Singh NK 2015, J Food Sci Technol 52(2):676-684, doi:10.1007/s13197-013-0978-y, Table 1"
   },
   "lentils": {
+   "basis": "dry",
    "phytate_mg_100g": 890.0,
    "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (content of phytic acid in major cereals, legumes, oilseeds and nuts), read as reproduced in Gupta RK, Gangoliya SS, Singh NK 2015, J Food Sci Technol 52(2):676-684, doi:10.1007/s13197-013-0978-y, Table 1"
   },
+  "maize": {
+   "basis": "dry",
+   "phytate_mg_100g": 1470.0,
+   "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (phytate content of plant foods), read as reproduced in Lesjak M, Srai SKS 2019, Pharmaceuticals 12(3):119, doi:10.3390/ph12030119, pmid:31398897, PMC6789581, Table 3 (phytate and iron content in selected foods; the phytate column cites Schlemmer 2009, ref 43)"
+  },
+  "oats-rolled": {
+   "basis": "fresh",
+   "phytate_mg_100g": 909.3,
+   "source": "phyfoodcomp2019:01060188+01060193; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01060188, 01060193); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
+  "pasta": {
+   "basis": "fresh",
+   "phytate_mg_100g": 244.2,
+   "source": "phyfoodcomp2019:01030113+01030114+01030123+01030124+01030132; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01030113, 01030114, 01030123, 01030124, 01030132); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
   "peanuts": {
+   "basis": "dry",
    "phytate_mg_100g": 2320.0,
    "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (content of phytic acid in major cereals, legumes, oilseeds and nuts), read as reproduced in Gupta RK, Gangoliya SS, Singh NK 2015, J Food Sci Technol 52(2):676-684, doi:10.1007/s13197-013-0978-y, Table 1"
   },
   "peas": {
+   "basis": "dry",
    "phytate_mg_100g": 720.0,
    "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (content of phytic acid in major cereals, legumes, oilseeds and nuts), read as reproduced in Gupta RK, Gangoliya SS, Singh NK 2015, J Food Sci Technol 52(2):676-684, doi:10.1007/s13197-013-0978-y, Table 1"
   },
+  "potato": {
+   "basis": "fresh",
+   "phytate_mg_100g": 50.51,
+   "source": "phyfoodcomp2019:02010020+02010002+02010003+02010004+02010005+02010006+02010007+02010010+02010013+02010015+02010016+02010018+02010019+02010021+02010022+02010023+02010025+02010026+02010027+02010028+02010029+02010030+02010031+02010032+02010034+02010035; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 02 Roots, tubers, plantains and their products, Food item IDs 02010020, 02010002, 02010003, 02010004, 02010005, 02010006, 02010007, 02010010, 02010013, 02010015, 02010016, 02010018, 02010019, 02010021, 02010022, 02010023, 02010025, 02010026, 02010027, 02010028, 02010029, 02010030, 02010031, 02010032, 02010034, 02010035); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
+  "potato-boiled": {
+   "basis": "fresh",
+   "phytate_mg_100g": 19.866,
+   "source": "phyfoodcomp2019:02010014+02010024+02010033; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 02 Roots, tubers, plantains and their products, Food item IDs 02010014, 02010024, 02010033); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
+  "rice-white": {
+   "basis": "fresh",
+   "phytate_mg_100g": 185.06,
+   "source": "phyfoodcomp2019:01010292+01010293+01010294+01010295+01010296+01010297+01010298+01010299+01010313+01010314+01010337+01010338+01010340+01010341+01010342+01010343; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01010292, 01010293, 01010294, 01010295, 01010296, 01010297, 01010298, 01010299, 01010313, 01010314, 01010337, 01010338, 01010340, 01010341, 01010342, 01010343); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
+  "rice-white-cooked": {
+   "basis": "fresh",
+   "phytate_mg_100g": 38.644,
+   "source": "phyfoodcomp2019:01010090+01010290+01010291+01010300+01010301+01010302+01010303+01010335; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01010090, 01010290, 01010291, 01010300, 01010301, 01010302, 01010303, 01010335); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
+  "shredded-wheat": {
+   "basis": "fresh",
+   "phytate_mg_100g": 1103.0,
+   "source": "phyfoodcomp2019:01030086; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01030086); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
+  },
   "soybeans": {
+   "basis": "dry",
    "phytate_mg_100g": 1610.0,
    "source": "Schlemmer U, Frolich W, Prieto RM, Grases F 2009, Mol Nutr Food Res 53(S2):S330-S375, doi:10.1002/mnfr.200900099, Table 1 (content of phytic acid in major cereals, legumes, oilseeds and nuts), read as reproduced in Gupta RK, Gangoliya SS, Singh NK 2015, J Food Sci Technol 52(2):676-684, doi:10.1007/s13197-013-0978-y, Table 1"
+  },
+  "wheat-flour-white": {
+   "basis": "fresh",
+   "phytate_mg_100g": 214.32,
+   "source": "phyfoodcomp2019:01030201+01030202+01030203+01030204+01030205+01030206+01030207+01030208+01030184; FAO/IZiNCG 2018, FAO/INFOODS/IZiNCG Global Food Composition Database for Phytate Version 1.0 - PhyFoodComp 1.0, Rome (workbook PhyFoodComp_1.0.xlsx from https://www.fao.org/fileadmin/templates/food_composition/documents/PhyFoodComp_1.0.xlsx, sheet 01 Cereals and their products, Food item IDs 01030201, 01030202, 01030203, 01030204, 01030205, 01030206, 01030207, 01030208, 01030184); described in Dahdouh S, Grande F, Najera Espinosa S, Vincent A, Gibson R, Bailey K, King J, Rittenschober D, Charrondiere UR 2019, J Food Compos Anal 78:42-48, doi:10.1016/j.jfca.2019.01.023, pmid:31057213, PMC6472536"
   }
  },
  "retention": {
