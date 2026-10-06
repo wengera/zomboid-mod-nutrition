@@ -1,0 +1,69 @@
+# testing/profiles/x16-body.toml - the Plan 5 body-effects acceptance boot (Task 12): the same mods and keys as
+# x16-fatigue (PZTestKit + NutritionRevamp Mode 1 + TKX_StatWatch + TKX_SleepWatch + TKX_BoozeWatch +
+# TKX_TraitProbe), for the healing, bleeding, bruise and drain arms.
+# OnsetSpeed 30.0 scales only the DIALLED records' deficiency onset, so within a session at DayLength 1 (a
+# game day is 15 real minutes) the records that cross are the dialled ones: vitamin D, folate, magnesium,
+# iodine and the rest. Vitamin C and thiamine take no dial (x151r, #2977), so they do NOT reach clinical by
+# the dial. The healing, bleeding, bruise and drain arms therefore use RECORD EDITS (globalmoddata.setpath)
+# to put vitamin C at clinical and the drain's `ah` where the arm needs it, and never the dial. A plain Lua
+# field (the fast handler's endFoldOn) is flipped with lua.setpath.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror, OnsetSpeed 30, Severity 1.0) + TKX_StatWatch + TKX_SleepWatch + TKX_BoozeWatch + TKX_TraitProbe, sleep on, DayLength 1 - the Plan 5 body-effects acceptance (record edits for vitC and the drain)."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StatWatch"
+path = "testing/experiments/TKX_StatWatch"
+
+[[mods]]
+id = "TKX_SleepWatch"
+path = "testing/experiments/TKX_SleepWatch"
+
+[[mods]]
+id = "TKX_BoozeWatch"
+path = "testing/experiments/TKX_BoozeWatch"
+
+[[mods]]
+id = "TKX_TraitProbe"
+path = "testing/experiments/TKX_TraitProbe"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
+OnsetSpeed = 30.0
+DeficienciesCanKill = true
+ExcessEffectsOn = true
+BalanceBonus = true
+Severity = 1.0

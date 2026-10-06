@@ -1,0 +1,65 @@
+# testing/profiles/x16-fatigue.toml - the Plan 5 fatigue and endurance acceptance boot (Task 12): PZTestKit +
+# NutritionRevamp (Mode 1, LegacyMirror) + TKX_StatWatch + TKX_SleepWatch + TKX_BoozeWatch + TKX_TraitProbe,
+# Nutrition = false (the design precondition), DayLength 1, [server] SleepAllowed/SleepNeeded true so
+# tiredness is live. Severity 1.0 is the dial's default, written so the run states it; DeficienciesCanKill
+# true opens the health drains. OnsetSpeed 30.0 (the declared maximum) is the Plan 4 setting.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror, OnsetSpeed 30, Severity 1.0) + TKX_StatWatch + TKX_SleepWatch + TKX_BoozeWatch + TKX_TraitProbe, sleep on, DayLength 1 - the Plan 5 fatigue acceptance."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = "\"resolved\": true" },
+  { side = "server", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_StatWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_SleepWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_BoozeWatch.version", expect = "\"value\": 1" },
+  { side = "server", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+  { side = "client", cmd = "lua.global", args = "TKX_TraitProbe.version", expect = "\"value\": 1" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_StatWatch"
+path = "testing/experiments/TKX_StatWatch"
+
+[[mods]]
+id = "TKX_SleepWatch"
+path = "testing/experiments/TKX_SleepWatch"
+
+[[mods]]
+id = "TKX_BoozeWatch"
+path = "testing/experiments/TKX_BoozeWatch"
+
+[[mods]]
+id = "TKX_TraitProbe"
+path = "testing/experiments/TKX_TraitProbe"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 240
+
+[sandbox]
+Nutrition = false            # the design precondition (spec ruling 5): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
+
+[sandbox.NR]
+Mode = 1
+LegacyMirror = true
+OnsetSpeed = 30.0
+DeficienciesCanKill = true
+ExcessEffectsOn = true
+BalanceBonus = true
+Severity = 1.0
