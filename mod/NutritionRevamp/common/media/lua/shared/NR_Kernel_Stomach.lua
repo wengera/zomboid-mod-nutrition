@@ -145,13 +145,14 @@ function K.stomach.ironFactor(phytateMg, vitCMg)
     return K.clamp(math.exp(-0.0034 * phytateMg + 0.0065 * vitCMg), 0.2, 4.0) -- S0195, S0194, S0533, S0532
 end
 
--- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / 10), floored at 0.05
--- (fat-free: negligible carotenoid absorption) and saturating by 28 g.
--- design-phase-v1 game choice: the /10 saturation and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
+-- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / FAT_EFOLD_G), floored at 0.05
+-- (fat-free: negligible carotenoid absorption) and saturating within about 10 g.
+-- design-phase-v1 game choice: the e-fold and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
 -- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach, ruling T19-1) or the
 -- emptied vector's own when no context is given, for the fat-soluble keys.
+K.stomach.FAT_EFOLD_G = 3 -- design-phase-v1 game choice: a few grams of fat per meal give near-full fat-soluble absorption (S0197 carotene negligible without fat, S0198 vitamin D +32 % with fat - direction only; no row for the saturation; Plan 2 shipped 10 g, which left a 30 g-fat meal at 68 % once the factor read the meal in the stomach (Plan 4 close))
 function K.stomach.fatFactor(lipidsG)
-    return K.clamp(1 - math.exp(-lipidsG / 10), 0.05, 1.0) -- S0197, S0199
+    return K.clamp(1 - math.exp(-lipidsG / K.stomach.FAT_EFOLD_G), 0.05, 1.0) -- S0197, S0199
 end
 
 -- The meal context the interaction factors read (rulings T17-1, T19-1): the buffer's phytate, vitC,

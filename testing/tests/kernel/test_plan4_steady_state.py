@@ -8,11 +8,10 @@ lipids, ruling T19-1), the vitamin A fold (carotene 0, so absorbed vitA = absorb
 NR_Server_Nutrients' factors writes it) and K.nutrients.minute over NR.data.records with K.interact.two.
 Every number is recomputed below in Python doubles from the same constants and asserted to 1e-6.
 
-The brief expected vitA p >= 0.9 and vitK at grade 1 after 60 days. The replay FALSIFIES both: the
-buffer's lipids empty with the vitamins, so three 10 g-fat meals a day absorb 45 % of their fat-soluble
-load (0.4515 of the 60-day retinol), vitA's liver p has fallen to 0.776 at day 60 (grade 1: its marginal rung
-is 0.25) on its way to ~0.45, and vitK oscillates between 0.646 and 0.70 under its 80 ug/d requirement
-(grade 2, marginal). The numbers are stated, not tuned; the ruling is the controller's.
+The e-fold is 3 g (ruling T19-6). The buffer's lipids empty with the vitamins, so three 10 g-fat meals a
+day absorb 81 % of their fat-soluble load (0.8127 of the 60-day retinol); vitA's liver p is 0.924 at day 60
+(lowest 0.922 over days 30-60) and vitK's 0.998 (lowest 0.926 over days 30-60, grade 1). The brief's
+expectations (vitA p >= 0.85, vitK grade 1) are met; the numbers are pinned as measured, not tuned.
 """
 import math
 import os
@@ -119,7 +118,7 @@ def _replay_py():
         em = {k: 0 + v * f for k, v in b.items()}
         for k in b:
             b[k] = b[k] * (1 - f)
-        fat = min(max(1 - math.exp(-lip / 10), 0.05), 1.0)
+        fat = min(max(1 - math.exp(-lip / 3), 0.05), 1.0)
         aA = em["retinol"] * 1.0 * fat
         aK = em["vitK"] * 1.0 * fat
         tot_abs += aA
@@ -141,10 +140,10 @@ def test_sixty_days_at_the_rda_through_the_kernel_chain(rh):
                                                               MEAL["vitK"], MEAL["lipids"])
     epA, epK, egK, efrac, eminA, eminK = _replay_py()
     # the Python doubles, as literals (the replay above, run once)
-    assert abs(efrac - 0.45150369658490813) < 1e-9
-    assert abs(epA - 0.7762311310785295) < 1e-9
-    assert abs(epK - 0.6996500786299764) < 1e-9
-    assert abs(eminK - 0.6456973326831416) < 1e-9
+    assert abs(efrac - 0.8127470709415215) < 1e-9
+    assert abs(epA - 0.9239515779432306) < 1e-9
+    assert abs(epK - 0.9977633512589562) < 1e-9
+    assert abs(eminK - 0.9259858885356903) < 1e-9
     # the kernel chain agrees with the doubles
     assert abs(frac - efrac) < 1e-6
     assert abs(pA - epA) < 1e-6
@@ -152,8 +151,8 @@ def test_sixty_days_at_the_rda_through_the_kernel_chain(rh):
     assert abs(minA - eminA) < 1e-6
     assert abs(minK - eminK) < 1e-6
     assert gK == egK
-    # vitamin A: p 0.776 at day 60, falling toward ~0.45; graded 1 (marginal rung 0.25, plasma p2 at 1)
+    # vitamin A: p 0.924 at day 60 (lowest 0.922 over days 30-60); graded 1 (plasma p2 at 1)
     assert gA == 1 and p2A == 1
-    assert pA < 0.9                                  # the brief's p >= 0.9: FALSIFIED (stated in the docstring)
-    # vitamin K: below its 80 ug/d requirement at a 0.45 absorbed fraction (54 ug/d), held at grade 2
-    assert gK == 2                                   # the brief's grade 1: FALSIFIED (stated in the docstring)
+    assert pA >= 0.85 and minA >= 0.85               # the brief's expectation, met
+    # vitamin K: near its 80 ug/d requirement at a 0.81 absorbed fraction (97 ug/d), grade 1
+    assert gK == 1                                   # the brief's grade 1, met

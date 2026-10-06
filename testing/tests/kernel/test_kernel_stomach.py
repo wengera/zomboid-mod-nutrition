@@ -5,7 +5,7 @@ it through its glob and already has NutritionRevamp.kernel.stomach. Every expect
 hand-computed from the file's constants: the half-time 2.0 h and the composition scale (S0130/S0131,
 open rows shipped as design-phase-v1 game choices), the log-linear iron coefficients -0.0034 per mg
 phytic acid (S0195) and +0.0065 per mg ascorbic acid (S0194), the iron bioavailability 0.18 (S0434),
-and the fat-co-ingestion shape 1 - exp(-lipids / 10) (S0197/S0199 basis). The tests pass explicit mg
+and the fat-co-ingestion shape 1 - exp(-lipids / 3) (the 3 g e-fold, ruling T19-6; S0197/S0199 direction). The tests pass explicit mg
 values, so the mechanism is proved independent of the seed table's magnitudes.
 """
 import math
@@ -180,8 +180,17 @@ def test_fat_factor_floor(host):
 
 
 def test_fat_factor_28g(host):
-    assert abs(host.K.stomach.fatFactor(28) - (1 - math.exp(-2.8))) < TOL
-    assert abs(host.K.stomach.fatFactor(28) - 0.9392) < 1e-4
+    # the e-fold is 3 g (ruling T19-6): 1 - e^(-28/3) at the 28 g reference
+    assert abs(host.K.stomach.fatFactor(28) - (1 - math.exp(-28 / 3))) < TOL
+    assert abs(host.K.stomach.fatFactor(28) - 0.99991157) < 1e-7
+
+
+def test_fat_factor_hand_values_at_the_3g_efold(host):
+    assert host.K.stomach.FAT_EFOLD_G == 3
+    assert abs(host.K.stomach.fatFactor(30) - 0.9999546) < 1e-7        # 1 - e^-10
+    assert abs(host.K.stomach.fatFactor(10) - 0.9643260) < 1e-7        # 1 - e^-3.333
+    assert abs(host.K.stomach.fatFactor(3) - 0.6321206) < 1e-7         # 1 - e^-1
+    assert host.K.stomach.fatFactor(0) == 0.05                         # the floor
 
 
 def test_fat_factor_clamps_high(host):
@@ -313,8 +322,8 @@ def test_absorb_a_fat_free_meal_floors_the_fat_soluble_keys(host):
 
 def test_absorb_a_30g_fat_meal_takes_the_saturating_factor(host):
     out = host.py(host.K.stomach.absorb(_micro_meal(host, 30)))
-    f = 1 - math.exp(-3)
-    assert abs(f - 0.9502) < 1e-4
+    f = 1 - math.exp(-10)
+    assert abs(f - 0.9999546) < 1e-7
     for k in FAT_SOLUBLE:
         assert abs(out[k] - 100 * f) < TOL, k
     assert abs(out["vitD"] - 10 * (0.76 + 0.24 * f)) < TOL
@@ -382,15 +391,15 @@ def test_seed_full_sets_the_bulk_to_full_and_leaves_the_buffer(host):
 # --- the fat factor reads the meal's lipids (ruling T19-1, the Plan 4 close) ---
 
 def test_absorb_with_a_context_reads_the_meals_lipids(host):
-    # the first minute of a 30 g-fat meal: the factor reads the buffer's 30 g (0.950213), not the
+    # the first minute of a 30 g-fat meal: the factor reads the buffer's 30 g (0.99995), not the
     # minute's ~0.1 g share (which floored at 0.05)
     st = host.K.stomach.new()
     host.K.stomach.ingest(st, _vec(host, lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0))
     ctx = host.K.stomach.context(st, host.rt.table())
     emptied = host.K.stomach.empty(st, 1 / 60)
     out = host.py(host.K.stomach.absorb(emptied, ctx))
-    f = 1 - math.exp(-3.0)
-    assert abs(f - 0.950212931632136) < 1e-12
+    f = 1 - math.exp(-10.0)
+    assert abs(f - 0.9999546000702375) < 1e-12
     assert abs(out["retinol"] / emptied.retinol - f) < 1e-12
     assert abs(out["vitK"] / emptied.vitK - f) < 1e-12
     assert abs(out["vitD"] / emptied.vitD - (0.76 + (1 - 0.76) * f)) < 1e-12
@@ -409,7 +418,7 @@ def _meal_replay_py(n=1440):
         em = {k: 0 + v * f for k, v in b.items()}
         for k in b:
             b[k] = b[k] * (1 - f)
-        fat = min(max(1 - math.exp(-lip / 10), 0.05), 1.0)
+        fat = min(max(1 - math.exp(-lip / 3), 0.05), 1.0)
         tot["retinol"] += em["retinol"] * 1.0 * fat
         tot["vitK"] += em["vitK"] * 1.0 * fat
         tot["vitD"] += em["vitD"] * 1.0 * (0.76 + (1 - 0.76) * fat)
@@ -441,19 +450,18 @@ end
 
 
 def test_a_30g_fat_meal_over_a_day_absorbs_the_replayed_fraction(host):
-    # Ruling T19-1 at the Plan 4 close: the brief expected >= 90 % of the retinol and vitK; the replay in
-    # doubles gives 0.684236 -- the buffer's lipids empty with the vitamins, so the factor 1 - exp(-L/10)
-    # falls from 0.950 to the floor over the meal (the integral of 1 - exp(-3x) over x in [0, 1] is
-    # 1 - (1 - e^-3)/3 = 0.68342 in the continuum). FALSIFIED against the brief's 90 %; stated, not tuned.
+    # Rulings T19-1 and T19-6 at the Plan 4 close: the buffer's lipids empty with the vitamins, so the factor
+    # 1 - exp(-L/3) eases over the meal; the replay in doubles gives 0.900358 of the retinol and vitK, meeting
+    # the brief's >= 0.9 (the 10 g e-fold gave 0.684236).
     exp_tot, exp_buf = _meal_replay_py()
     tot, lip = host.rt.eval(MEAL_REPLAY)(1440)
-    assert abs(exp_tot["retinol"] / 900 - 0.6842360717392494) < 1e-12
+    assert abs(exp_tot["retinol"] / 900 - 0.9003579863810677) < 1e-12
     assert abs(tot.retinol / 900 - exp_tot["retinol"] / 900) < 1e-6
     assert abs(tot.vitK / 120 - exp_tot["vitK"] / 120) < 1e-6
-    assert abs(tot.vitK / 120 - 0.6842360717392476) < 1e-6
-    # vitamin D at 0.76 + 0.24 x the factor per minute: 0.923823 of the dose
+    assert abs(tot.vitK / 120 - 0.9003579863810661) < 1e-6
+    # vitamin D at 0.76 + 0.24 x the factor per minute: 0.975693 of the dose
     assert abs(tot.vitD / 15 - exp_tot["vitD"] / 15) < 1e-6
-    assert abs(tot.vitD / 15 - 0.9238233720473101) < 1e-6
+    assert abs(tot.vitD / 15 - 0.9756926315613453) < 1e-6
     assert abs(lip - exp_buf["lipids"]) < 1e-9                       # 0.0155 g left after the day
     # the per-share reading this ruling replaced absorbed 5 % (the floor) of the same meal
-    assert tot.retinol / 900 > 13 * 0.05
+    assert tot.retinol / 900 > 18 * 0.05

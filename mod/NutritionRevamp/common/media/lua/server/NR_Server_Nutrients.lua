@@ -55,7 +55,7 @@ NR.server.nutrients = {
         "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake",
         "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)",
         "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed",
-        "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 68 % of its retinol and vitK and three 10 g-fat meals a day 45 %",
+        "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %",
     },
 }
 local NUT = NR.server.nutrients
