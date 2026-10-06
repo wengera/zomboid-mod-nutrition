@@ -22,7 +22,8 @@ class IconGenTests(unittest.TestCase):
         files = icon_gen.generate()
         self.assertEqual(sorted(files), sorted(c + ".png" for c in icon_gen.CLASSES))
         for name, data in files.items():
-            self.assertEqual(data[:8], bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), cls)
+            self.assertEqual(data[:8], bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), name)
+            self.assertEqual(data[12:16], b"IHDR", name)
             self.assertEqual(struct.unpack(">II", data[16:24]), (32, 32), name)
             self.assertEqual(data[24:29], bytes((8, 6, 0, 0, 0)), name)
 
@@ -49,9 +50,7 @@ class IconGenTests(unittest.TestCase):
         for cls in icon_gen.CLASSES:
             with open(os.path.join(COMMITTED, cls + ".png"), "rb") as f:
                 data = f.read()
-            self.assertEqual(data[:8], b"PNG
-
-", cls)
+            self.assertEqual(data[:8], bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), cls)
             pos, idat = 8, b""
             while pos < len(data):
                 (length,) = struct.unpack(">I", data[pos:pos + 4])
