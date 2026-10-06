@@ -984,3 +984,155 @@ TK.register("aim.fire", function(argv)
     TK.p5Aim.fire = TK.p5Aim.fire + n
     return { ok = true, queued = TK.p5Aim.fire }
 end)
+
+-- ---- Plan 5 Task 4: the gate-2 client reads (sight range, a local trait edit, event firings) -------
+
+-- [wear <fullType> | unwear]. X85 (#2331): HandWeapon:getMaxSightRange(character) collapses to the
+-- minimum for a Short Sighted character who is not wearing glasses, else scales by 1 + Aiming/30
+-- (x 1.2 Eagle Eyed). witness.chain cannot pass the player as an argument, so this reads both
+-- overloads on the local player's primary-hand weapon: getMaxSightRange(p) and getMinSightRange(p)
+-- (the character's), getMaxSightRange() and getMinSightRange() (the item's fields). With no ranged
+-- weapon in hand the first Base.Pistol in the local inventory is equipped (AddItem client-side when
+-- there is none, as aim.probe does). `wear <fullType>` first adds that item to the local inventory
+-- (client-side only, the server never hears of it) and wears it with
+-- setWornItem(item:getBodyLocation(), item); `unwear` removes the item the last `wear` put on with
+-- removeWornItem(item). Glasses are a client-side render and sight read here, so a client-only wear
+-- is the reading's whole scope. Every Java member is indexed first and called under pcall.
+-- @args [wear <fullType> | unwear]
+-- @reply {ok, side, weapon, equipped, maxSightChar, minSightChar, maxSightItem, minSightItem, aiming, shortSighted, eagleEyed, wearingGlasses, wearingVisualAid, worn [, wore] [, unwore] [, reason]} | string
+-- @purpose Reads the local player's primary weapon sight range through the character overloads (Short Sighted, glasses, Aiming) and the item's own fields, optionally wearing or removing an item first.
+TK.register("sight.range", function(argv)
+    local p = getPlayer and getPlayer() or nil
+    if p == nil then return { ok = false, reason = "no local player" } end
+    local out = { ok = false, side = TK.side }
+    local inv = P5.hop(p, "getInventory")
+    if argv[1] == "wear" then
+        if argv[2] == nil then return "usage: sight.range [wear <fullType> | unwear]" end
+        local item = P5.hop(inv, "AddItem", argv[2])
+        if item == nil then
+            out.reason = "AddItem gave nothing for " .. tostring(argv[2])
+            return out
+        end
+        local loc = P5.hop(item, "getBodyLocation")
+        local ran = pcall(function() p["setWornItem"](p, loc, item) end)
+        out.wore = { fullType = P5.hop(item, "getFullType"), ran = ran, visualAid = P5.hop(item, "isVisualAid") }
+        if ran then TK.p5Worn = item end
+    elseif argv[1] == "unwear" then
+        local item = TK.p5Worn
+        local ran = false
+        if item ~= nil then ran = pcall(function() p["removeWornItem"](p, item) end) end
+        out.unwore = { had = (item ~= nil), ran = ran }
+        if ran then TK.p5Worn = nil end
+    elseif argv[1] ~= nil then
+        return "usage: sight.range [wear <fullType> | unwear]"
+    end
+    local w = P5.hop(p, "getPrimaryHandItem")
+    out.equipped = false
+    if w == nil or P5.hop(w, "isRanged") ~= true then
+        w = P5.hop(inv, "getFirstTypeRecurse", "Base.Pistol")
+        if w == nil then w = P5.hop(inv, "AddItem", "Base.Pistol") end
+        if w ~= nil then
+            P5.hop(p, "setPrimaryHandItem", w)
+            out.equipped = (P5.hop(p, "getPrimaryHandItem") == w)
+        end
+    end
+    if w == nil then
+        out.reason = "no ranged weapon in hand and no Base.Pistol"
+        return out
+    end
+    out.weapon = P5.hop(w, "getFullType")
+    out.maxSightChar = P5.hop(w, "getMaxSightRange", p)
+    out.minSightChar = P5.hop(w, "getMinSightRange", p)
+    out.maxSightItem = P5.hop(w, "getMaxSightRange")
+    out.minSightItem = P5.hop(w, "getMinSightRange")
+    if Perks ~= nil then out.aiming = P5.hop(p, "getPerkLevel", Perks.Aiming) end
+    if CharacterTrait ~= nil then
+        out.shortSighted = P5.hop(p, "hasTrait", CharacterTrait.SHORT_SIGHTED)
+        out.eagleEyed = P5.hop(p, "hasTrait", CharacterTrait.EAGLE_EYED)
+    end
+    out.wearingGlasses = P5.hop(p, "isWearingGlasses")
+    out.wearingVisualAid = P5.hop(p, "isWearingVisualAid")
+    if TK.p5Worn ~= nil then out.worn = P5.hop(TK.p5Worn, "getFullType") end
+    out.ok = (out.maxSightChar ~= nil)
+    return out
+end)
+
+-- <TraitName> <add|remove> [sync]. X4b (#2620, #2740): the client's own copy of the trait list is
+-- edited with getCharacterTraits():add/remove(CharacterTrait.<TraitName>) -- no packet -- and with
+-- `sync`, in the SAME client tick, the Java global SyncXp(player) the admin panel calls sends this
+-- client's experience, trait list included, to the server, so the 1 Hz experience push cannot
+-- restore the client's list between the edit and the sync. The reply carries the local list before
+-- and after (TK.traitNames) and hasTrait either side of the edit; what the server keeps is read on
+-- the server.
+-- @args <TraitName> <add|remove> [sync]
+-- @reply {ok, side, trait, op, enumFound, before, after, listBefore, listAfter, synced [, callError] [, syncError] [, reason]} | string
+-- @purpose Adds or removes one CharacterTrait on the client's own copy (no packet) and optionally calls SyncXp in the same tick, so the server receives a trait list that differs from its own.
+TK.register("trait.local", function(argv)
+    local p = getPlayer and getPlayer() or nil
+    if p == nil then return { ok = false, reason = "no local player" } end
+    local name, op = argv[1], argv[2]
+    if name == nil or (op ~= "add" and op ~= "remove") then
+        return "usage: trait.local <TraitName> <add|remove> [sync]"
+    end
+    local out = { ok = false, side = TK.side, trait = name, op = op, synced = false }
+    local enum = CharacterTrait and CharacterTrait[name]
+    out.enumFound = (enum ~= nil)
+    local _, listB = TK.traitNames(p)
+    out.listBefore = listB
+    local _, coll = TK.call(p, "getCharacterTraits")
+    if coll == nil or enum == nil then
+        if coll == nil then out.reason = "no getCharacterTraits" else out.reason = "no CharacterTrait." .. tostring(name) end
+        return out
+    end
+    out.before = P5.hop(p, "hasTrait", enum)
+    local ran, err = pcall(function() coll[op](coll, enum) end)
+    if not ran then out.callError = tostring(err) end
+    if argv[3] == "sync" then
+        if SyncXp == nil then
+            out.syncError = "SyncXp not exposed to Lua"
+        else
+            local okS, errS = pcall(SyncXp, p)
+            out.synced = okS
+            if not okS then out.syncError = tostring(errS) end
+        end
+    end
+    local _, listA = TK.traitNames(p)
+    out.listAfter = listA
+    out.after = P5.hop(p, "hasTrait", enum)
+    out.ok = ran
+    return out
+end)
+
+TK.p5Events = TK.p5Events or {}
+
+-- <EventName> [read]. X86 (#3026, #3031): which Lua events fire on the CLIENT around a firearm shot
+-- (OnWeaponSwing, OnPlayerAttackFinished, OnWeaponSwingHitPoint). The first call for a name adds
+-- one listener to Events[<EventName>] (once per name, never removed) that counts every firing and
+-- keeps the first 40 as "n=.. wall=.. delay=.." with the local player's getAimingDelay() at the
+-- firing, all under pcall; `read` (or any later call) replies the count and the kept firings.
+-- @args <EventName> [read]
+-- @reply {ok, side, event, hooked, count, fires [, reason]} | string
+-- @purpose Installs a counting listener on one Lua event on the client and replies its firings with the wall clock and the local player's aiming delay at each.
+TK.register("event.watch", function(argv)
+    local name = argv[1]
+    if name == nil then return "usage: event.watch <EventName> [read]" end
+    local rec = TK.p5Events[name]
+    if rec == nil then
+        if Events == nil or Events[name] == nil or Events[name].Add == nil then
+            return { ok = false, side = TK.side, event = name, hooked = false, reason = "no Events." .. name }
+        end
+        rec = { count = 0, fires = {} }
+        TK.p5Events[name] = rec
+        Events[name].Add(function()
+            pcall(function()
+                rec.count = rec.count + 1
+                if rec.count <= 40 then
+                    local p = getPlayer and getPlayer() or nil
+                    rec.fires[#rec.fires + 1] = "n=" .. tostring(rec.count) .. " wall=" .. tostring(TK.now()) ..
+                        " delay=" .. p5Fmt(P5.hop(p, "getAimingDelay"), 4)
+                end
+            end)
+        end)
+    end
+    return { ok = true, side = TK.side, event = name, hooked = true, count = rec.count, fires = rec.fires }
+end)
