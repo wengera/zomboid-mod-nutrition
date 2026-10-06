@@ -9,7 +9,7 @@ never on the display name (231 rows share a name).
 
 ## Files
 
-`fluids.csv`, `grains-legumes.csv`, `manufactured.csv`, `meat-fish-egg-dairy.csv`, `no-nutrition.csv`,
+`fluids.csv`, `grains-legumes.csv`, `manufactured-1.csv` and `manufactured-2.csv` (one part split in two by sorted id for the curation waves), `meat-fish-egg-dairy.csv`, `no-nutrition.csv`,
 `produce.csv`. Each is UTF-8, LF, `csv.QUOTE_MINIMAL`, the header below on line 1, **no stamp row**
 (the dataset rule, `data/README.md`), sorted by `pz_id`.
 

@@ -3,3 +3,5 @@ docs/reference/** text eol=lf
 .claude/** text eol=lf
 mod/** text eol=lf
 testing/experiments/TKX_ChecksumCR/** text eol=crlf
+data/food-nutrient-map/** text eol=lf
+data/*.csv text eol=lf
