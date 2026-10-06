@@ -2521,3 +2521,65 @@ TK.register("health.get", function(argv)
     local r = P5.healthRead(p)
     return { ok = (r.overall ~= nil), side = TK.side, overall = r.overall, health = r.health, parts = r.parts }
 end)
+
+-- The four whole-body regeneration constants (#2354): reply key, getter, setter. The severe tier
+-- keeps the engine's own misspelling, setSeverlyReducedHealthAddition.
+P5.REGEN = {
+    { "standard", "getStandardHealthAddition", "setStandardHealthAddition" },
+    { "reduced", "getReducedHealthAddition", "setReducedHealthAddition" },
+    { "severe", "getSeverlyReducedHealthAddition", "setSeverlyReducedHealthAddition" },
+    { "sleeping", "getSleepingHealthAddition", "setSleepingHealthAddition" },
+}
+
+function P5.regenRead(bd)
+    local r = {}
+    for _, g in ipairs(P5.REGEN) do
+        local v = P5.hop(bd, g[2])
+        if v == nil then r["absent_" .. g[1]] = true else r[g[1]] = v end
+    end
+    return r
+end
+
+-- <user> <standard> <reduced> <severe> <sleeping>. The four BodyDamage regeneration setters
+-- (#2354: 0.002 / 0.0013 / 0.0008 / 0.02 by default), index-first under pcall; a "-" in place of
+-- a value leaves that constant alone. The reply carries the four values read before and after, so
+-- a setter the engine re-asserts shows as after ~= requested on a later regen.get.
+-- @args <user> <standard> <reduced> <severe> <sleeping>
+-- @reply {ok, side, before, after [, reason]} | string
+-- @purpose Writes the four BodyDamage regeneration constants (standard, reduced, severe, sleeping) of a named player through their setters, replying the four values before and after.
+TK.register("regen.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local out = { ok = false, side = TK.side }
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil then
+        out.reason = "no getBodyDamage()"
+        return out
+    end
+    local want = {}
+    for k = 1, 4 do
+        local a = argv[k + 1]
+        if a == nil then return "usage: regen.set <user> <standard> <reduced> <severe> <sleeping>  (- leaves one alone)" end
+        if a ~= "-" then
+            want[k] = tonumber(a)
+            if want[k] == nil then return "bad value " .. tostring(a) end
+        end
+    end
+    out.before = P5.regenRead(bd)
+    local err = nil
+    for k, g in ipairs(P5.REGEN) do
+        if want[k] ~= nil then
+            local setter = bd[g[3]]
+            if setter == nil then
+                err = "no " .. g[3]
+            else
+                local ran, e = pcall(setter, bd, want[k])
+                if not ran then err = g[3] .. " raised: " .. tostring(e) end
+            end
+        end
+    end
+    out.after = P5.regenRead(bd)
+    out.ok = (err == nil)
+    out.reason = err
+    return out
+end)
