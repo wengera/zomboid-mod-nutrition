@@ -1,5 +1,5 @@
 # Client UI
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the client-side interface a mod builds on this build — the `ISUI` panel toolkit, window geometry and `layout.ini`, keybinds and `PZAPI.ModOptions`, textures, the inventory-item tooltip, the character-info window, the UI events and their cadence, and the Java UI classes a mod can read; the moodle routes and what a panel may believe are handed off to `ui-and-moodles.md`, and the push behind any number a panel draws to `mp-model.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the client-side interface a mod builds on this build — the `ISUI` panel toolkit, window geometry and `layout.ini`, keybinds and `PZAPI.ModOptions`, textures, the inventory-item tooltip, the character-info window, the UI events and their cadence, and the Java UI classes a mod can read; the moodle routes and what a panel may believe are handed off to `ui-and-moodles.md`, and the push behind any number a panel draws to `mp-model.md`.
 
 ## Rules
 
@@ -154,6 +154,7 @@ A mod adds a character-info tab by wrapping `ISCharacterInfoWindow`'s `createChi
 `AutoCook` ships the worked example at a mod-unique path, wrapping the tab-tear-off and save methods beside it ([autocook.md](../facts/other-mods/autocook.md#architecture)).
 A mod tab must not write its own name into `layout.current`, because vanilla's `RestoreLayout` passes that key through `xpSystemText[...]` to `activateView` whenever it is not a floating vanilla tab, and `xpSystemText` carries no entry for a name vanilla does not own [#2502/C/C-only].
 `ISTabPanel` keys `getView` and `activateView` on a tab's displayed name, and the character-info window's `toggleView` looks the view up by that name, so a mod tab's name is a translated string and the same string is the toggle argument [#2503/C/C-only].
+A live client took a mod tab through the wrapped `createChildren` at first sight with no error, and its render count read 0 at every check [#3221/M/n=1].
 At a quit the character-info line the game wrote to `layout.ini` carried the mod tab's name after vanilla's five, with `current` on vanilla's tab [#3217/M/n=1].
 A key that opens the mod tab therefore passes the translated name, exactly as vanilla's own panel keys pass theirs.
 The tab rule at the top of this page follows from the build timing and the restore lookup above.

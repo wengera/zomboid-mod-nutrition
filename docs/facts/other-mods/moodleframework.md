@@ -1,11 +1,12 @@
 # MoodleFramework — the moodle widget library
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: one workshop mod torn down as a client-side moodle widget library — its registration surface, the value it draws, its version-folder layout, its data model, its missing multiplayer surface, and the techniques and costs a consuming mod inherits; the pinned-level wall belongs to [the wall map](../../reference/wall-map.md#d1), the merge rule to [mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs) and the command bus to [mp-model.md](../../platform/mp-model.md#command-bus).
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: one workshop mod torn down as a client-side moodle widget library — its registration surface, the value it draws, its version-folder layout, its data model, its missing multiplayer surface, and the techniques and costs a consuming mod inherits; the pinned-level wall belongs to [the wall map](../../reference/wall-map.md#d1), the merge rule to [mod-anatomy.md](../../platform/mod-anatomy.md#version-dirs) and the command bus to [mp-model.md](../../platform/mp-model.md#command-bus).
 
 ## Key facts
 <a id="techniques"></a>
 
 - A framework moodle is invisible until its value crosses a threshold: the widget joins the UI manager only while its polarity is non-neutral, and its stored value starts at 0.5, neutral under the default thresholds, so a registered but never-set moodle renders nothing and an absent render is not evidence that the framework failed [#2534/C/C-only].
 - A framework moodle renders on a dedicated-server client: set to 0.95 it read level 4, joined the UI manager and its render calls climbed, and set back to 0.5 it left the UI manager and its render count held [#1295/M/n=1] [#3192/M/n=1] [#3193/M/n=1].
+- A framework moodle set on its bad side reaches a level and joins the UI manager like a good-side one, and its plate is tinted by the polarity the value reaches, a blend of the engine's gray towards its bad or good highlight colour by level, a neutral value drawing in gray: the first bad-side reading read level 3 on the UI manager after a forced value [#3229/M/n=1] [#3234/C/C-only].
 - The framework never clamps: `:setValue` stores its argument with no range check, so the consumer holds its own value inside the 0-to-1 convention before the call [#2535/C/C-only].
 - A server-authoritative value reaches the moodle only over the consumer's own bus: the server sends it with `sendServerCommand`, and a client `OnServerCommand` handler receives it and calls `MF.getMoodle(name, playerNum):setValue(v)` [#2540/C/inference].
 - Detection is a type test, `type(MF) == "table" and type(MF.createMoodle) == "function"`, run at `OnGameBoot` or later: the framework defines `MF` at file-load time, before that event, while a test at the consumer's own file scope runs before the framework's file whenever the consumer's file [loads first](../../platform/loader-and-scripts.md#lua-load-order); `require "MF_ISMoodle"` is no detection, because it fails when the framework is absent [#2547/C/inference].
@@ -48,8 +49,8 @@ A value moved back to 0.5 after 0.95 took the widget off the UI manager again an
 ### Architecture
 
 MoodleFramework is workshop item `3396446795`, one mod declaring the id `MoodleFramework`, shipped as the folders `42.0/`, `42.13/`, `42.20/` and `common/` [#1319/C/snapshot].
-Its `mod.info` sits in `42.0/`, and its config file has no copy in the newer folders [#1614].
-That layout makes the layout lint and the engine open different `mod.info` files for it, though both declare the same id [#0824/C/snapshot].
+Its `mod.info` sat in `42.0/` alone when the tree was read on 2026-09-10, its config file has no copy in the newer folders, and a re-read on 2026-10-06 found a `common/mod.info` (modversion 2.8, dated 2026-09-07) beside the `42.0/` one [#1614] [#1319/C/snapshot].
+On the 2026-09-10 tree that layout made the layout lint and the engine open different `mod.info` files for it, though both declare the same id [#0824/C/snapshot]; the lint's chain was not re-run on the 2026-10-06 tree, so whether the two still differ is unread.
 On `42.20.4` the resolver keeps one version folder, the highest at or below the running build [#0825/C/C-only], and the loader then lets that folder's files win a same-path collision while `common/` supplies everything the folder does not ship [#1310].
 Under that rule the mod is whole: the `42.20/` moodle file overwrites `common/`'s, and the config file, having no version-folder counterpart, survives and executes [#1319/C/snapshot].
 A boot confirms it: with a dedicated-server client the server logged one loading line for the mod and the client two, the client resolved the namespace table with both registration functions, and the session ran with no error on either side ([#3188/M/n=1], [#0884/M/n=1]).
@@ -113,6 +114,7 @@ The harness client runs in debug mode, where an unguarded mod error [parks the c
 
 MoodleFramework positions its moodles at the frame cadence with no cache: `render()` calls `getXYPosition()` every frame for every visible moodle, and that walks every vanilla `MoodleType` in `Registries.MOODLE_TYPE`, reads a `getMoodleLevel` per type, walks another mod's `MoodleManager` modData table and sorts its own moodle-name list [#2549/C/C-only].
 That is a count of reads off the code, not a measured cost [#2549/C/C-only].
+Every moodle a consumer puts on the UI manager adds one such walk to each frame, so a consumer that registers six moodles adds up to six of them [#2549/C/C-only].
 Against the [read-cadence rule](../../areas/ui-and-moodles.md#read-cadence) this is the frame cadence and not the push cadence, and a consumer cannot cache it away because it is the framework's own code.
 What a consumer does control is how often it calls `:setValue`, and that is the cadence the read-cadence rule governs.
 
@@ -142,8 +144,7 @@ Not covered: vanilla's `PZAPI.ModOptions` signatures the config page assumes; `I
 <a id="open"></a>
 
 - That no vanilla Lua draws the moodle stack, the 29 moodle-named files under the install's `media/lua` all being translation files and the stack being the Java `MoodlesUI`, is unverified: it rests on a file-name match and a grep of the install's Lua whose output is not a committed dataset; re-measure by a committed scan of the install's `media/lua` [#2553/C/snapshot/unverified].
-- Where a mod-drawn fallback moodle lands relative to a framework moodle is unread on screen: the framework's offset counts vanilla, the other moodle manager and its own moodles and nothing else, so a private widget and a framework moodle drawn in one slot overlap, and the design decides which slot the fallback takes [#2549/C/C-only] [#2555/C/inference].
-- The design must decide whether it depends on the framework or detects it optionally, because a hard dependency inherits the version-folder hazard and an optional one needs its own fallback widget [#2543/C/C-only] [#2547/C/inference].
+- Where a mod-drawn column lands beside a framework moodle on screen is unread: the framework's offset counts vanilla, the other moodle manager and its own moodles and nothing else, so a private widget and a framework moodle drawn in one slot overlap [#2549/C/C-only] [#2555/C/inference]; the two were read in separate boots, the column at x 1184 and the framework moodle at x 1238 against a vanilla band from 1238, never together on one screen, and the framework moodle's y read 162 on its bad side where the first session's read 120, for a reason no run explains ([#3223/M/n=1], [#3229/M/n=1], [#3197/M/n=1]).
 
 ## See also
 

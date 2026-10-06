@@ -1,5 +1,5 @@
 # Mod anatomy
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-22 · scope: what a mod folder is on this build — `mod.info` and its keys, how the game finds a folder, which file supplies the id, the version dir against `common/`, translations, the missing-mod and version-gate failures, the join, the checksum gate and a one-sided mod; the block-level script merge and the Lua execution list are handed off to `loader-and-scripts.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: what a mod folder is on this build — `mod.info` and its keys, how the game finds a folder, which file supplies the id, the version dir against `common/`, translations, the missing-mod and version-gate failures, the join, the checksum gate and a one-sided mod; the block-level script merge and the Lua execution list are handed off to `loader-and-scripts.md`.
 
 ## Rules
 

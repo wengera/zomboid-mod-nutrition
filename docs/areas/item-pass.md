@@ -144,7 +144,7 @@ Foods a mod declares in its own module are outside the pass.
 A `module Base` item pass does not touch foods a mod declares in its own module, so on a server running both, `LongTermPreservation4220`'s 14 `module Skittles` foods keep their upstream numbers while vanilla's are re-based [#1030/M/n=1].
 That is the normal shape of a content mod rather than an exception: a new item in the mod's own module collides with nothing and grows the pool by exactly what it declares ([#1020/M/n=1], [#1440/C/snapshot]).
 The two sets still meet: some of that mod's foods feed vanilla evolved recipes and some vanilla items come out of its recipes, so a re-based vanilla ingredient flows into its dishes while its own foods stay where their author left them ([#1461/C/snapshot], [longtermpreservation.md#compat](../facts/other-mods/longtermpreservation.md#compat)).
-The display-name cost the route table gives a new item is the client's; a dedicated server resolves no mod item's display name even with the translation file shipped ([#1167/M/n=1]).
+The display-name cost the route table gives a new item is the client's; a dedicated server resolves no mod item's display name even with the translation file shipped ([#1167/M/n=1], [#3206/M/n=2]).
 
 Reaching such a food means a block in that mod's module, and the append arm that makes a block an override is taken only when the loader already holds the name ([#1002], [loader-and-scripts.md#bucket-append](../platform/loader-and-scripts.md#bucket-append)).
 A block naming another mod's food is therefore an override only while that mod is loaded; without it, the same block declares a new item from nothing but the keys it names, a reading of the append arm that no run has exercised.

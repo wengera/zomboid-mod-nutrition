@@ -61,7 +61,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
 - `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/` or `tools/README.md`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
 - `python tools/food_nutrients.py --check` → in sync before any commit that touches `data/food-nutrient-map/`, `data/fdc-extract.json`, `data/food-nutrients.*`, the generated mod files (`NR_Data_Nutrients.lua`, `NR_Data_Infer.lua`, `NR_ItemPass_Food.txt`) or the tool; `--write` regenerates, and a generated file is never edited by hand.
-- `python -m pytest tools/tests testing/tests -q` green: 2100 passed on 2026-10-06 (1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 2405 passed on 2026-10-06 (2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 
@@ -115,6 +115,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Rulings are written `Ruling: <what> — <why> — cost if wrong: <…>`. A ruling about the platform becomes a rule on [platform/lessons](docs/platform/lessons.md) with its mechanism row; a ruling about how this repository works becomes a rule in this file; a ruling a later agent must know is never only a ledger row.
 - Commits are pathspec commits (`git commit -m "…" -- <paths>`), never `--amend`, with no Claude attribution and a succinct subject line; implementers never push — the controller pushes at a plan's close.
 - Proceed to completion and ledger each decision for review instead of asking; ask only before a destructive action or one outside this worktree.
+- The controller's provisional-tag regex runs over the touched pages only and never over `docs/superpowers/`: a plan record carries its own T-numbering (Plan 7 Task 4).
 - A mapping curator's fix round that is small and spot-checked by the controller on its diff takes no separate re-review when the close's whole-pass review re-samples the merged data (Plan 6 ruling T4-11).
 - Implementers run in parallel only on disjoint files; reviewers are read-only, may overlap anything, and read an implementer's committed content with `git show <commit>:<path>`; research subagents are sent off as the work goes.
 - In a delta a `supersede` names its successor in the `successor` cell; the add row may sit anywhere.
@@ -132,6 +133,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Long Bash heredocs with apostrophes fail to parse: write briefs and long files with the Write tool, and keep Bash-embedded Python apostrophe-free.
 - CRLF survivors in the working tree: `tools/README.md` (CRLF with a few LF lines), `tools/mod_lint.py`, `tools/tests/test_mod_lint.py`, `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua`, `testing/experiments/s03_body.py`, `testing/fixtures/default/fixture.json` (which `file` reports as JSON without naming its endings) and the `references/wiki-mirrors/` pages; edit them with `newline=''` handling and preserve the endings, and check any other file with `file <path>` first.
 - `core.autocrlf=true` here; `.gitattributes` pins the `TKX_ItemOverride` translation file to CRLF and `docs/reference/**` and `.claude/**` to LF.
+- PNG and other binary files under `mod/` are pinned `binary` in `.gitattributes`: autocrlf rewrote six PNG blobs once (Plan 7 Task 9).
 - A stray `ProjectZomboid64.exe` predating a session is Angus's own client, never killed (§ 5).
 - `lupa` 2.8 is the kernel tests' Lua 5.1 host (`python -m pip install lupa==2.8`), and the kernel coverage gate is line-granular, so the kernel files `NR_Kernel*.lua` are written one statement per line.
 - The harness client runs `-debug`, so an unguarded mod Lua error parks it in the debugger: [the raising-probe rule](docs/platform/lessons.md#rules).

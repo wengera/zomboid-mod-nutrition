@@ -83,7 +83,7 @@ A mirror refreshed on the mod's own command is late by one round trip, while a m
 Two quantities have no owner at all, and both reach the player's screen.
 Moodles are recomputed on each side from that side's own stats and are absent from the player-stats packet, so a client's moodle is a function of its mirror [#1245/C/C-only].
 A client-side moodle read taken straight after a server-side write can therefore lag by up to one push [#0570/C/C-only].
-Item display names are the other gap: a dedicated server resolves none, so no server-side decision may branch on one [#0848/M/n=1].
+Mod item display names are the other gap: a dedicated server resolved none for a mod item, while it resolves a vanilla item's name in vanilla's strings, so no server-side decision may branch on a mod item's name [#0848/M/n=1] [#3206/M/n=2].
 
 Which side a file runs on is an authority question of its own, and the folder does not answer it.
 A mod's `server/` files also execute in the multiplayer client's Lua state, so a write the design gives to the server needs a runtime side test in the file [#1174/M/n=1].
@@ -103,7 +103,7 @@ The ownership reading, one line per quantity:
 | a per-item mod value in item modData | the last writer | a wholesale copy, measured client to server only | [#1241/M/one-side] |
 | the mod's per-player store | server, by this mod's design | a mirror on the route the options choose | [#1122/C/C-only, #0913/M/n=1] |
 | moodles | neither: each side recomputes | its own recompute from its own mirror | [#1245/C/C-only] |
-| item display names | client | nothing on a dedicated server | [#0848/M/n=1] |
+| mod item display names | client | nothing on a dedicated server | [#0848/M/n=1, #3206/M/n=2] |
 
 <a id="failure-modes"></a>
 ### How each route fails on a live server

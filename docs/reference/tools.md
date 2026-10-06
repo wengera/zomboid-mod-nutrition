@@ -1,5 +1,5 @@
 # Tools
-Verified against 42.20.4 (b0bbce05d5) · 2026-09-26 · scope: every tracked tool under `tools/` — what each reads and writes, its rules with their engine standing, its conventions — the register grammar the claims tools enforce, and the science register; the datasets the scanners write are `datasets.md`'s.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: every tracked tool under `tools/` — what each reads and writes, its rules with their engine standing, its conventions — the register grammar the claims tools enforce, and the science register; the datasets the scanners write are `datasets.md`'s.
 
 <a id="doc-lint"></a>
 ## `doc_lint.py` — the documentation lint
@@ -125,6 +125,13 @@ The generated script file is a `/* */` header and LF text with no date, so a reb
 
 `python tools/fdc_fetch.py [--dir tools/.fdc] [--verify]` downloads the four composition source files into the gitignored `tools/.fdc/`, writes a manifest of name, url, bytes and sha256, skips a file whose hash already matches and fails naming the URL on a 404 rather than guessing around it [#3177/C/C-only].
 `--dir` moves the directory and `--verify` re-hashes every file against the manifest; the files and their hashes are [the extract's sources](datasets.md#food-nutrients).
+
+<a id="icon-gen"></a>
+## `icon_gen.py` — the moodle icon generator
+
+`python tools/icon_gen.py --out <dir>` writes the six 32 x 32 RGBA class icons the mod's moodles load, `energy.png`, `hydration.png`, `deficiency.png`, `excess.png`, `stimulant.png` and `sleep.png`, into the directory it is given, and `python tools/icon_gen.py --check <dir>` compares each file there with the generator's output by sha256 and exits `1` on a missing or different file [#3242/C/C-only].
+The pixels are deterministic, drawn from a fixed palette and a glyph table by integer arithmetic, and the PNG is written by hand through `zlib` at level 9 with no ancillary chunk, so the bytes are the same on every run of one zlib implementation; a different zlib may emit other bytes for the same pixels, which is why the check pins bytes and a test of the pixels does not [#3242/C/C-only].
+It uses the standard library only, and the committed copies it checks sit under the mod's `common/media/ui/NutritionRevamp/`.
 
 <a id="workshop-search"></a>
 ## `workshop_search.py` — the Workshop sweep

@@ -65,7 +65,7 @@ The item pass's script files take mod-unique basenames with no `template_` prefi
 No corpus mod keeps a nutrition key under `common/`, so a pass whose script files sit there has the loader's two-pass reading behind it and no shipped precedent ([#1561/C/snapshot], [#0827/C/C-only]).
 The Lua tree takes the folder names the game uses, and the `server/` folder is no boundary: a `server/` file runs in the client's Lua state too, so every one carries a runtime side test ([#1174/M/n=1], [overview.md#two-lua-states](../platform/overview.md#two-lua-states)).
 A script hook's target is a global defined in a `shared/` file for the same reason, which [the hook page](eat-and-cook-hooks.md) reads in full [#0927/C/C-only].
-Item names ship in the B42 table layout, the only one this build reads, and they matter on the client alone, because a dedicated server resolves no display name ([#1025/M/n=1], [#1167/M/n=1], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
+Item names ship in the B42 table layout, the only one this build reads, and they matter on the client alone, because a dedicated server resolves no mod item's display name ([#1025/M/n=1], [#1167/M/n=1], [#3206/M/n=2], [mod-anatomy.md#translations](../platform/mod-anatomy.md#translations)).
 Every code path the mod runs is a file in this tree at load time, because no route on this build lets mod Lua compile a string into code ([#1172/C/C-only], [lua-platform.md#removed-apis](../platform/lua-platform.md#removed-apis)).
 A per-item handler, or a formula a server operator writes, is therefore data read by a handler the mod ships and never code the mod generates.
 
