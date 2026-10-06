@@ -382,3 +382,44 @@ def test_the_server_reads_visibility_mode(opt_rt, given, want):
 def test_the_default_options_carry_visibility_mode():
     # before any read: the file-scope table already names the option at its default, Symptoms
     assert fresh_options_rt().globals().NutritionRevamp.server.options.visibilityMode == 1
+
+
+# --- the moodle value map (Plan 7 Task 8, ruling 10): a class level onto MoodleFramework's 0..1 value ---------
+
+@pytest.mark.parametrize("cls", ["energy", "hydration", "stimulant", "sleep"])
+@pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.625), (2, 0.75), (3, 0.875), (4, 1.0)])
+def test_moodle_value_four_level_classes(host, cls, lv, want):
+    assert V(host).moodleValue(lv, cls) == pytest.approx(want)
+
+
+@pytest.mark.parametrize("cls", ["deficiency", "excess"])
+@pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.6667), (2, 0.8333), (3, 1.0), (4, 1.0)])
+def test_moodle_value_three_rung_classes_reach_the_top_at_three(host, cls, lv, want):
+    assert V(host).moodleValue(lv, cls) == pytest.approx(want, abs=1e-4)
+
+
+@pytest.mark.parametrize("lv,want", [(None, 0.5), ("2", 0.5), (float("nan"), 0.5), (-3, 0.5), (9, 1.0), (2.7, 0.75)])
+def test_moodle_value_reads_junk_as_neutral_and_clamps(host, lv, want):
+    assert V(host).moodleValue(lv, "energy") == pytest.approx(want)
+
+
+def test_moodle_value_with_no_class_uses_the_four_level_map(host):
+    assert V(host).moodleValue(2, None) == pytest.approx(0.75)
+
+
+@pytest.mark.parametrize("cls,top", [("energy", 4), ("sleep", 4), ("deficiency", 3), ("excess", 3)])
+def test_moodle_top(host, cls, top):
+    assert V(host).moodleTop(cls) == top
+
+
+@pytest.mark.parametrize("cls", ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"])
+def test_moodle_thresholds_sit_between_the_values(host, cls):
+    v = V(host)
+    top = v.moodleTop(cls)
+    for k in range(1, 5):
+        t = v.moodleThreshold(k, cls)
+        if k > top:
+            assert t is None
+            continue
+        # strictly above the value of level k - 1 and at or below the value of level k
+        assert v.moodleValue(k - 1, cls) < t < v.moodleValue(k, cls)
