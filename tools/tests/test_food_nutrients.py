@@ -73,6 +73,7 @@ RETENTION_CSV = "\n".join([
 ]) + "\n"
 
 APPLE = 171688
+APPLE_DESCRIPTION = "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)"   # food.csv:4178
 
 
 def _write(directory, name, text):
@@ -906,13 +907,13 @@ class ExtractFixture(MapDir):
         self.addCleanup(patcher.stop)
         self.out = os.path.join(self.tmp, "fdc-extract.json")
         self.edit("produce", "Base.Apple", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="exact",
-                  portion_grams="182", portion_source="vanilla_implied", state_baseline="raw",
+                  fdc_description=APPLE_DESCRIPTION, portion_grams="182", portion_source="vanilla_implied", state_baseline="raw",
                   phytate_mg_100g="0", phytate_source="zero:fruit")
         self.edit("grains-legumes", "Base.Lentils", fdc_id=str(APPLE), fdc_source="sr_legacy",
-                  confidence="proxy", notes="a synthetic stand-in", phytate_mg_100g="890",
+                  fdc_description=APPLE_DESCRIPTION, confidence="proxy", notes="a synthetic stand-in", phytate_mg_100g="890",
                   phytate_source="schlemmer2009:lentils")
         self.edit("meat-fish-egg-dairy", "Base.Egg", fdc_id=str(EGG), fdc_source="sr_legacy",
-                  confidence="exact", cook_retention_code="1", iodine_ref="iodine:egg-whole-raw",
+                  fdc_description="Egg, whole, raw, fresh", confidence="exact", cook_retention_code="1", iodine_ref="iodine:egg-whole-raw",
                   phytate_mg_100g="0", phytate_source="zero:egg")
         self.edit("meat-fish-egg-dairy", "Base.Cricket", fdc_id="rumpold2013:orthoptera",
                   fdc_source="literature", confidence="guess", notes="the order mean, dry matter")
@@ -975,6 +976,12 @@ class RefCheckTest(ExtractFixture):
         self.edit("meat-fish-egg-dairy", "Base.Egg", fdc_id="174158")
         self.assert_violation(self.check(), "sr_legacy fdc_id 174158 is not in food.csv")
 
+    def test_an_sr_legacy_description_not_verbatim(self):
+        self.edit("produce", "Base.Apple", fdc_description="Apples, raw, with skin")
+        got = [v for v in self.check()["violations"] if "fdc_description" in v]
+        self.assertEqual(len(got), 1, got)
+        self.assertIn("Base.Apple: fdc_description 'Apples, raw, with skin' is not food.csv's", got[0])
+
     def test_a_retention_code_absent_from_the_csv(self):
         self.edit("meat-fish-egg-dairy", "Base.Egg", cook_retention_code="77")
         self.assert_violation(self.check(), "cook_retention_code 77 is not in")
@@ -991,7 +998,7 @@ class RefCheckTest(ExtractFixture):
 
     def test_the_checks_are_registered(self):
         for check in (fn.check_iodine_refs, fn.check_phytate_sources, fn.check_literature_ids,
-                      fn.check_sr_legacy_ids, fn.check_retention_codes):
+                      fn.check_sr_legacy_ids, fn.check_retention_codes, fn.check_sr_legacy_descriptions):
             self.assertIn(check, fn.MAP_REF_CHECKS)
 
 
@@ -1263,7 +1270,8 @@ class BuildFixture(ExtractFixture):
 
     def setUp(self):
         super().setUp()
-        self.edit("grains-legumes", "Base.Lentils", fdc_id=str(EGG), portion_grams="100",
+        self.edit("grains-legumes", "Base.Lentils", fdc_id=str(EGG), fdc_description="Egg, whole, raw, fresh",
+                  portion_grams="100",
                   portion_source="judgement", state_baseline="dried")
         self.edit("meat-fish-egg-dairy", "Base.Egg", portion_grams="50", portion_source="fdc_portion:1",
                   state_baseline="raw")
@@ -1271,8 +1279,10 @@ class BuildFixture(ExtractFixture):
         self.edit("meat-fish-egg-dairy", "Base.Cricket", portion_grams="15.6", portion_source="judgement",
                   state_baseline="raw")
         self.edit("fluids", "Beer", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="close",
+                  fdc_description=APPLE_DESCRIPTION,
                   portion_grams="1010", portion_source="judgement", state_baseline="prepared")
         self.edit("fluids", "SimpleSyrup", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="proxy",
+                  fdc_description=APPLE_DESCRIPTION,
                   portion_grams="615", portion_source="judgement", state_baseline="prepared",
                   notes="a synthetic stand-in for the sugar entry")
         self.edit("fluids", "Water", no_nutrition_reason="not_food")

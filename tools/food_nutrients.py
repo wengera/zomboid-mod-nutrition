@@ -2060,5 +2060,29 @@ def main(argv=None):
     return 0
 
 
+# The close fix wave's check (D6), placed after main so no line above it moves: every `sr_legacy`
+# row's `fdc_description` is the zip's food.csv description for its id, verbatim (skipped when the
+# zip is absent, as check_sr_legacy_ids is; an id food.csv lacks is that check's violation, not this one's).
+
+def sr_legacy_descriptions(path):
+    """`{fdc_id: description}` over the SR Legacy food.csv."""
+    with _FdcSource(path) as source:
+        return {int(row["fdc_id"]): row["description"] for row in read_rows(source, "food.csv")}
+
+
+def check_sr_legacy_descriptions(rows, records):
+    """Every `sr_legacy` row's fdc_description equals food.csv's for its fdc_id (skipped when the zip is absent)."""
+    if not os.path.exists(REF_SOURCES["sr_legacy"]):
+        return []
+    descriptions = sr_legacy_descriptions(REF_SOURCES["sr_legacy"])
+    return ["%s %s: fdc_description %r is not food.csv's %r for sr_legacy fdc_id %s"
+            % (_where(r), r["pz_id"], r["fdc_description"], descriptions[int(r["fdc_id"])], r["fdc_id"])
+            for r in rows if r["fdc_source"] == "sr_legacy" and FDC_ID_RE.match(r["fdc_id"])
+            and int(r["fdc_id"]) in descriptions and r["fdc_description"] != descriptions[int(r["fdc_id"])]]
+
+
+MAP_REF_CHECKS.append(check_sr_legacy_descriptions)
+
+
 if __name__ == "__main__":
     sys.exit(main())

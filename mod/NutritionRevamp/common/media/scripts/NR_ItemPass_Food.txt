@@ -175,9 +175,9 @@ module Base
     item BalsamicVinegar
     {
         DisplayCategory = Food,
-        Calories = 224.40,
-        Carbohydrates = 43.43,
-        Proteins = 1.25,
+        Calories = 1250.04,
+        Carbohydrates = 241.91,
+        Proteins = 6.96,
         Lipids = 0.00,
     }
 
@@ -364,10 +364,10 @@ module Base
     item BouillonCube
     {
         DisplayCategory = Food,
-        Calories = 9.50,
-        Carbohydrates = 1.13,
-        Proteins = 0.70,
-        Lipids = 0.23,
+        Calories = 16.04,
+        Carbohydrates = 1.90,
+        Proteins = 1.18,
+        Lipids = 0.38,
     }
 
     item Bread
@@ -895,10 +895,10 @@ module Base
     item CannedMilkOpen
     {
         DisplayCategory = Food,
-        Calories = 471.95,
-        Carbohydrates = 35.36,
-        Proteins = 23.98,
-        Lipids = 26.63,
+        Calories = 494.46,
+        Carbohydrates = 37.05,
+        Proteins = 25.13,
+        Lipids = 27.90,
     }
 
     item CannedMushroomSoup
@@ -2209,10 +2209,10 @@ module Base
     item Garlic
     {
         DisplayCategory = Food,
-        Calories = 13.41,
-        Carbohydrates = 2.98,
-        Proteins = 0.57,
-        Lipids = 0.04,
+        Calories = 14.01,
+        Carbohydrates = 3.11,
+        Proteins = 0.60,
+        Lipids = 0.05,
     }
 
     item GingerPickled
@@ -2488,19 +2488,19 @@ module Base
     item IcecreamSandwich
     {
         DisplayCategory = Food,
-        Calories = 165.90,
-        Carbohydrates = 26.00,
-        Proteins = 3.00,
-        Lipids = 6.00,
+        Calories = 140.07,
+        Carbohydrates = 21.95,
+        Proteins = 2.54,
+        Lipids = 5.06,
     }
 
     item IcecreamSandwich_Melted
     {
         DisplayCategory = Food,
-        Calories = 165.90,
-        Carbohydrates = 26.00,
-        Proteins = 3.00,
-        Lipids = 6.00,
+        Calories = 140.07,
+        Carbohydrates = 21.95,
+        Proteins = 2.54,
+        Lipids = 5.06,
     }
 
     item Icing
@@ -2533,8 +2533,8 @@ module Base
     item JellyBeans
     {
         DisplayCategory = Food,
-        Calories = 41.25,
-        Carbohydrates = 10.29,
+        Calories = 40.12,
+        Carbohydrates = 10.01,
         Proteins = 0.00,
         Lipids = 0.01,
     }
@@ -2974,10 +2974,10 @@ module Base
     item Muskellunge
     {
         DisplayCategory = Food,
-        Calories = 174.24,
+        Calories = 159.02,
         Carbohydrates = 0.00,
-        Proteins = 38.13,
-        Lipids = 1.37,
+        Proteins = 34.80,
+        Lipids = 1.25,
     }
 
     item Mussels
@@ -3163,28 +3163,28 @@ module Base
     item Pancakes
     {
         DisplayCategory = Food,
-        Calories = 174.79,
-        Carbohydrates = 21.79,
-        Proteins = 4.93,
-        Lipids = 7.47,
+        Calories = 209.97,
+        Carbohydrates = 26.18,
+        Proteins = 5.92,
+        Lipids = 8.97,
     }
 
     item PancakesCraft
     {
         DisplayCategory = Food,
-        Calories = 174.79,
-        Carbohydrates = 21.79,
-        Proteins = 4.93,
-        Lipids = 7.47,
+        Calories = 209.97,
+        Carbohydrates = 26.18,
+        Proteins = 5.92,
+        Lipids = 8.97,
     }
 
     item PancakesRecipe
     {
         DisplayCategory = Food,
-        Calories = 174.79,
-        Carbohydrates = 21.79,
-        Proteins = 4.93,
-        Lipids = 7.47,
+        Calories = 209.97,
+        Carbohydrates = 26.18,
+        Proteins = 5.92,
+        Lipids = 8.97,
     }
 
     item Pasta
@@ -3595,10 +3595,10 @@ module Base
     item Processedcheese
     {
         DisplayCategory = Food,
-        Calories = 77.91,
-        Carbohydrates = 0.78,
-        Proteins = 3.81,
-        Lipids = 6.68,
+        Calories = 70.12,
+        Carbohydrates = 0.70,
+        Proteins = 3.43,
+        Lipids = 6.01,
     }
 
     item Pumpkin
@@ -3802,10 +3802,10 @@ module Base
     item Sauger
     {
         DisplayCategory = Food,
-        Calories = 147.87,
+        Calories = 159.03,
         Carbohydrates = 0.00,
-        Proteins = 30.43,
-        Lipids = 1.94,
+        Proteins = 32.73,
+        Lipids = 2.09,
     }
 
     item Sausage
@@ -3955,10 +3955,10 @@ module Base
     item Smore
     {
         DisplayCategory = Food,
-        Calories = 164.19,
-        Carbohydrates = 26.40,
-        Proteins = 1.56,
-        Lipids = 6.59,
+        Calories = 199.97,
+        Carbohydrates = 32.16,
+        Proteins = 1.90,
+        Lipids = 8.03,
     }
 
     item Snail
@@ -4108,10 +4108,10 @@ module Base
     item StripedBass
     {
         DisplayCategory = Food,
-        Calories = 154.23,
+        Calories = 158.98,
         Carbohydrates = 0.00,
-        Proteins = 28.19,
-        Lipids = 3.70,
+        Proteins = 29.06,
+        Lipids = 3.82,
     }
 
     item Sugar
@@ -4252,19 +4252,19 @@ module Base
     item TacoRecipe
     {
         DisplayCategory = Food,
-        Calories = 61.40,
-        Carbohydrates = 8.19,
-        Proteins = 0.83,
-        Lipids = 2.81,
+        Calories = 55.22,
+        Carbohydrates = 7.36,
+        Proteins = 0.74,
+        Lipids = 2.53,
     }
 
     item TacoShell
     {
         DisplayCategory = Food,
-        Calories = 61.40,
-        Carbohydrates = 8.19,
-        Proteins = 0.83,
-        Lipids = 2.81,
+        Calories = 55.22,
+        Carbohydrates = 7.36,
+        Proteins = 0.74,
+        Lipids = 2.53,
     }
 
     item Tadpole
@@ -4405,19 +4405,19 @@ module Base
     item TunaTin
     {
         DisplayCategory = Food,
-        Calories = 338.58,
+        Calories = 370.06,
         Carbohydrates = 0.00,
-        Proteins = 49.81,
-        Lipids = 14.04,
+        Proteins = 54.44,
+        Lipids = 15.34,
     }
 
     item TunaTinOpen
     {
         DisplayCategory = Food,
-        Calories = 338.58,
+        Calories = 370.06,
         Carbohydrates = 0.00,
-        Proteins = 49.81,
-        Lipids = 14.04,
+        Proteins = 54.44,
+        Lipids = 15.34,
     }
 
     item TurkeyEgg
@@ -4513,10 +4513,10 @@ module Base
     item Walleye
     {
         DisplayCategory = Food,
-        Calories = 147.87,
+        Calories = 159.03,
         Carbohydrates = 0.00,
-        Proteins = 30.43,
-        Lipids = 1.94,
+        Proteins = 32.73,
+        Lipids = 2.09,
     }
 
     item WaterPotForgedPasta

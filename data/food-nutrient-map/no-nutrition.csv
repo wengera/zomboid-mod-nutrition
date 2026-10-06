@@ -13,7 +13,7 @@ Base.Bag_HydrationBackpack,Hydration Pack,fluid_container,,,,,,,,,,,,,fluid_sour
 Base.Bag_HydrationBackpack_Camo,Hydration Pack,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.Bag_LeatherWaterBag,Leather Water Bag,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.BakingSoda,Baking Soda,drainable,,,,,,,,,,,,,not_food,
-Base.BalsamicVinegar,Balsamic Vinegar,food,1250.0|300.0|0.0|0.0,172241,sr_legacy,"Vinegar, balsamic",close,255,fdc_portion:2,,prepared,,,,,"fdc_portion:2 modifier ""1.0 cup""; the calorie-implied 1420 g is implausible for a 0.2 kg bottle (vanilla 1250 kcal is about 5x a real bottle); one cup = a 250 ml bottle; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.BalsamicVinegar,Balsamic Vinegar,food,1250.0|300.0|0.0|0.0,172241,sr_legacy,"Vinegar, balsamic",close,1420.5,judgement,,prepared,,,,,"kcal-implied (T4-5: vanilla kcal fits its Atwater value 1.042); the FDC serving fdc_portion:2, 255 g (1.0 cup) not taken; the kcal-implied 1420.5 g is implausible for a 0.2 kg bottle (vanilla 1250 kcal is about 5x a real bottle), but vanilla's 1 250 kcal stands under T4-5; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.BarleySeed,Barley Seeds,food,,,,,,,,,,,,,not_food,"planting seed, CantEat; its HungerChange is animal feed"
 Base.BarleySheaf,Barley Sheaf,food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
 Base.BarleySheafDried,Barley Sheaf (Dried),food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
@@ -31,7 +31,7 @@ Base.BlackSageDried,Black Sage (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_onl
 Base.Bleach,Bleach,fluid_container,,,,,,,,,,,,,hazard,
 Base.BlowTorch,Welding Torch,drainable,,,,,,,,,,,,,not_food,
 Base.BottleCrafted,Bottle,fluid_container,,,,,,,,,,,,,empty_container,
-Base.BouillonCube,Bouillon Cube,food,16.0|2.3|0.5|0.6,171563,sr_legacy,"Soup, chicken broth cubes, dry",close,4.8,fdc_portion:1,,dried,,,,,"chicken broth cubes, dry (beef 171561 the alternative); fdc_portion:1 modifier ""1.0 cube""; one cube; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
+Base.BouillonCube,Bouillon Cube,food,16.0|2.3|0.5|0.6,171563,sr_legacy,"Soup, chicken broth cubes, dry",close,8.1,judgement,,dried,,,,,"chicken broth cubes, dry (beef 171561 the alternative); kcal-implied (T4-5: vanilla kcal fits its Atwater value 0.994); the FDC serving fdc_portion:1, 4.8 g (1.0 cube) not taken; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.Bowl,Bowl,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Brandy,Brandy,fluid_container,2000.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.Bucket,Bucket,fluid_container,,,,,,,,,,,,,empty_container,
@@ -175,7 +175,7 @@ Base.Garbagebag_box,Box of Garbage Bags,drainable,,,,,,,,,,,,,not_food,
 Base.GardeningSprayAphids,Aphids Spray,drainable,,,,,,,,,,,,,not_food,
 Base.GardeningSprayCigarettes,Pest Flies Spray,drainable,,,,,,,,,,,,,hazard,"an insecticide spray (nicotine pest spray), not tobacco; corrected from tobacco_or_drug"
 Base.GardeningSprayMilk,Mildew Spray,drainable,,,,,,,,,,,,,not_food,
-Base.Garlic,Garlic,food,14.0|3.27|0.035|0.385,169230,sr_legacy,"Garlic, raw",close,9,fdc_portion:4,3460,raw,,0,zero:vegetable,,"cook retention VEG,ROOTS,ETC,SAUTEED (a pan ingredient); fdc_portion:4 modifier ""3.0 cloves""; three cloves; the calorie-implied 9.4 g is within 4 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.Garlic,Garlic,food,14.0|3.27|0.035|0.385,169230,sr_legacy,"Garlic, raw",close,9.4,judgement,3460,raw,,0,zero:vegetable,,"cook retention VEG,ROOTS,ETC,SAUTEED (a pan ingredient); kcal-implied (T4-5: vanilla kcal fits its Atwater value 0.937); the FDC serving fdc_portion:4, 9 g (3.0 cloves) not taken; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.GasmaskFilter,Gas Mask Filter,drainable,,,,,,,,,,,,,not_food,
 Base.GasmaskFilterCrafted,Gas Mask Filter - Crafted,drainable,,,,,,,,,,,,,not_food,
 Base.Gin,Gin,fluid_container,2630.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,

@@ -36871,182 +36871,6 @@
     }
    ]
   },
-  "172194": {
-   "data_type": "sr_legacy_food",
-   "description": "Milk, canned, evaporated, with added vitamin A",
-   "food_category": "Dairy and Egg Products",
-   "nutrients": {
-    "caffeine": {
-     "amount": null,
-     "nutrient_id": 1057,
-     "unit": "MG"
-    },
-    "calcium": {
-     "amount": 261.0,
-     "nutrient_id": 1087,
-     "unit": "MG"
-    },
-    "calories": {
-     "amount": 134.0,
-     "nutrient_id": 1008,
-     "unit": "KCAL"
-    },
-    "carbs": {
-     "amount": 10.04,
-     "nutrient_id": 1005,
-     "unit": "G"
-    },
-    "carotene": {
-     "amount": null,
-     "nutrient_id": 1107,
-     "unit": "UG"
-    },
-    "choline": {
-     "amount": null,
-     "nutrient_id": 1180,
-     "unit": "MG"
-    },
-    "efa": {
-     "amount": 0.245,
-     "nutrient_id": [
-      1269,
-      1270
-     ],
-     "unit": "G"
-    },
-    "ethanol": {
-     "amount": null,
-     "nutrient_id": 1018,
-     "unit": "G"
-    },
-    "fibre": {
-     "amount": 0.0,
-     "nutrient_id": 1079,
-     "unit": "G"
-    },
-    "folate": {
-     "amount": 8.0,
-     "nutrient_id": 1190,
-     "unit": "UG"
-    },
-    "iodine": {
-     "amount": null,
-     "nutrient_id": 1100,
-     "unit": "UG"
-    },
-    "iron": {
-     "amount": 0.19,
-     "nutrient_id": 1089,
-     "unit": "MG"
-    },
-    "lipids": {
-     "amount": 7.56,
-     "nutrient_id": 1004,
-     "unit": "G"
-    },
-    "magnesium": {
-     "amount": 24.0,
-     "nutrient_id": 1090,
-     "unit": "MG"
-    },
-    "niacin": {
-     "amount": 0.194,
-     "nutrient_id": 1167,
-     "unit": "MG"
-    },
-    "potassium": {
-     "amount": 303.0,
-     "nutrient_id": 1092,
-     "unit": "MG"
-    },
-    "proteins": {
-     "amount": 6.81,
-     "nutrient_id": 1003,
-     "unit": "G"
-    },
-    "retinol": {
-     "amount": null,
-     "nutrient_id": 1105,
-     "unit": "UG"
-    },
-    "riboflavin": {
-     "amount": 0.316,
-     "nutrient_id": 1166,
-     "unit": "MG"
-    },
-    "selenium": {
-     "amount": 2.3,
-     "nutrient_id": 1103,
-     "unit": "UG"
-    },
-    "sodium": {
-     "amount": 106.0,
-     "nutrient_id": 1093,
-     "unit": "MG"
-    },
-    "thiamine": {
-     "amount": 0.047,
-     "nutrient_id": 1165,
-     "unit": "MG"
-    },
-    "vitB12": {
-     "amount": 0.16,
-     "nutrient_id": 1178,
-     "unit": "UG"
-    },
-    "vitB6": {
-     "amount": 0.05,
-     "nutrient_id": 1175,
-     "unit": "MG"
-    },
-    "vitC": {
-     "amount": 1.9,
-     "nutrient_id": 1162,
-     "unit": "MG"
-    },
-    "vitD": {
-     "amount": null,
-     "nutrient_id": 1114,
-     "unit": "UG"
-    },
-    "vitE": {
-     "amount": null,
-     "nutrient_id": 1109,
-     "unit": "MG"
-    },
-    "vitK": {
-     "amount": null,
-     "nutrient_id": 1185,
-     "unit": "UG"
-    },
-    "water": {
-     "amount": 74.04,
-     "nutrient_id": 1051,
-     "unit": "G"
-    },
-    "zinc": {
-     "amount": 0.77,
-     "nutrient_id": 1095,
-     "unit": "MG"
-    }
-   },
-   "portions": [
-    {
-     "amount": 1.0,
-     "gram_weight": 31.5,
-     "measure_unit": "undetermined",
-     "modifier": "fl oz",
-     "seq_num": 1
-    },
-    {
-     "amount": 0.5,
-     "gram_weight": 126.0,
-     "measure_unit": "undetermined",
-     "modifier": "cup",
-     "seq_num": 2
-    }
-   ]
-  },
   "172200": {
    "data_type": "sr_legacy_food",
    "description": "Cheese sauce, prepared from recipe",
@@ -64222,11 +64046,6 @@
    "iodine_ug_100g": 8.7,
    "page": 6
   },
-  "tuna-canned-water": {
-   "food": "Fish, tuna, canned in water, drained",
-   "iodine_ug_100g": 8.7,
-   "page": 6
-  },
   "turkey-breast-roasted": {
    "food": "Turkey breast, oven-roasted",
    "iodine_ug_100g": 4.8,
@@ -64243,9 +64062,9 @@
   "counts": {
    "cookable_without_code": 33,
    "defective_retention_rows": 24,
-   "foods": 352,
+   "foods": 351,
    "insect_rows": 10,
-   "iodine_rows": 47,
+   "iodine_rows": 46,
    "missing_nutrients": {
     "caffeine": [
      167583,
@@ -64276,7 +64095,6 @@
      171960,
      171979,
      172192,
-     172194,
      172241,
      172518,
      172523,
@@ -64327,7 +64145,6 @@
      171970,
      171979,
      172192,
-     172194,
      172241,
      172476,
      172518,
@@ -64383,7 +64200,6 @@
      171960,
      171979,
      172192,
-     172194,
      172241,
      172518,
      172523,
@@ -64448,7 +64264,6 @@
      171960,
      171979,
      172192,
-     172194,
      172241,
      172518,
      172523,
@@ -64688,7 +64503,6 @@
      172186,
      172187,
      172192,
-     172194,
      172200,
      172226,
      172234,
@@ -64864,7 +64678,6 @@
      171829,
      171970,
      171979,
-     172194,
      172241,
      172476,
      172670,
@@ -64935,7 +64748,6 @@
      171979,
      172112,
      172192,
-     172194,
      172241,
      172518,
      172523,
@@ -64986,7 +64798,6 @@
      171960,
      171979,
      172192,
-     172194,
      172241,
      172518,
      172523,
@@ -65034,7 +64845,6 @@
      171960,
      171979,
      172192,
-     172194,
      172241,
      172518,
      172523,
@@ -65071,7 +64881,7 @@
     ]
    },
    "phytate_rows": 16,
-   "retention_codes": 51
+   "retention_codes": 50
   },
   "defective_retention": {
    "5005": {
@@ -65728,37 +65538,6 @@
     "404": 90,
     "405": 95,
     "406": 95,
-    "415": 90,
-    "417": 90,
-    "418": 90,
-    "421": 100,
-    "431": 90,
-    "432": 90
-   }
-  },
-  "2309": {
-   "description": "FINFISH,<5%FAT,FRIED,WO/COATING",
-   "factors": {
-    "221": 100,
-    "301": 100,
-    "303": 100,
-    "304": 100,
-    "305": 100,
-    "306": 100,
-    "307": 100,
-    "309": 100,
-    "312": 100,
-    "318": 85,
-    "321": 85,
-    "322": 85,
-    "334": 85,
-    "337": 85,
-    "338": 85,
-    "392": 85,
-    "401": 80,
-    "404": 85,
-    "405": 95,
-    "406": 100,
     "415": 90,
     "417": 90,
     "418": 90,
