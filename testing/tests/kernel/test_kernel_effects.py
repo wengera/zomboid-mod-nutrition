@@ -589,3 +589,9 @@ def test_the_exercise_credits_are_never_scaled_t6_2(kh):
         e = _compose(kh, sev=sev, **base)
         assert e.rNut == pytest.approx(1.1, abs=TOL)
         assert e.panicTarget == 0 and e.unhappyTarget == 0                # clamped at the floor, no penalty to offset
+    # the panic credit against a sleep penalty: iuS band 12 adds 20*sev (20 / 60, under the 64 cap), so an
+    # unscaled credit leaves the difference at exactly -11 (a scaled one would read -33 at Severity 3)
+    for sev in (1, 3):
+        with_ex = _compose(kh, sev=sev, b=_b(kh, ex=4, iuS=12)).panicTarget
+        without = _compose(kh, sev=sev, b=_b(kh, iuS=12)).panicTarget
+        assert with_ex - without == pytest.approx(-11, abs=TOL)
