@@ -966,3 +966,21 @@ TK.register("aim.bump", function(argv)
     out.ok = true
     return out
 end)
+
+-- [<n>]. Queues n shots (default 1, at most 20) inside the armed aim.probe window: the OnTick
+-- sampler faces the nearest zombie within 20 tiles when there is one, calls
+-- IsoPlayer:DoAttack(0) -- the route attack.melee uses -- and records the aiming delay before
+-- and after the shot (and after the standing aim.bump), one shot per 1200 ms. A firearm attack
+-- needs the pistol loaded and aimed (aim.probe does both) and a target for the hit roll
+-- (zombie.near first); with no zombie the shot still goes and the event says target=false. The
+-- DoAttack return value of every shot is in the artifact's events.
+-- @args [<n>]
+-- @reply {ok, queued [, reason]} | string
+-- @purpose Queues n firearm shots (DoAttack) at the nearest zombie inside the armed aim.probe window, one per 1200 ms, recording the aiming delay before and after each.
+TK.register("aim.fire", function(argv)
+    local n = tonumber(argv[1]) or 1
+    if n < 1 or n > 20 then return "usage: aim.fire [<n>]  (1 <= n <= 20)" end
+    if not TK.p5Aim.armed then return { ok = false, reason = "no aim.probe window is armed" } end
+    TK.p5Aim.fire = TK.p5Aim.fire + n
+    return { ok = true, queued = TK.p5Aim.fire }
+end)
