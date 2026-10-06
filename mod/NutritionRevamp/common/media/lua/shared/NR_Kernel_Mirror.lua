@@ -69,6 +69,8 @@ function K.mirror.body(m, body)
 end
 
 -- Plan 4 (Task 14): nut_<key>_g for each key of order, and the epoch; 0 when the sub-table or a key is absent.
+-- Plan 7 (Task 3, ruling 4): beside it nut_<key>_p (the pool fraction, 1 = replete) and nut_<key>_x (the excess
+-- rung, 0-3) for the interface's Numbers level and its excess class; 0 when absent, like the grade.
 function K.mirror.nutrients(m, nutrients, order)
     m.nutrients_epoch = 0
     if nutrients ~= nil then
@@ -80,8 +82,12 @@ function K.mirror.nutrients(m, nutrients, order)
     for i = 1, #order do
         local key = order[i]
         m["nut_" .. key .. "_g"] = 0
+        m["nut_" .. key .. "_p"] = 0
+        m["nut_" .. key .. "_x"] = 0
         if nutrients ~= nil and nutrients[key] ~= nil then
             m["nut_" .. key .. "_g"] = nutrients[key].g or 0
+            m["nut_" .. key .. "_p"] = nutrients[key].p or 0
+            m["nut_" .. key .. "_x"] = nutrients[key].x or 0
         end
     end
 end

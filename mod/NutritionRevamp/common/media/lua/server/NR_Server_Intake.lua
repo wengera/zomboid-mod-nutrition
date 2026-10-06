@@ -268,25 +268,11 @@ end
 -- note: step is "declared", "table", "inferred" or "missing" (vec nil); note is the declared string's
 -- unknown-key list, or its malformed reason (a string) when the chain fell through it, else nil. A
 -- declared vector's four macros are info.macros, the item's own: the script block owns them.
+-- Plan 7 (Task 3, ruling 8): the chain itself is K.vector.resolve (shared with the food tooltip); this
+-- adapter hands it the lookup and the templates in NR.data's shape, and IN.sourceOf maps its step.
 function IN.chainOne(fullType, lookup, templates, info)
-    local note = nil
-    if info ~= nil and info.declared ~= nil then
-        local vec, extra = K.vector.declared(info.declared)
-        note = extra
-        if vec ~= nil then
-            local m = info.macros or {}
-            vec.calories, vec.carbs, vec.lipids, vec.proteins = m.calories or 0, m.carbs or 0, m.lipids or 0,
-                m.proteins or 0
-            return vec, "declared", note
-        end
-    end
-    local seed = lookup(fullType)
-    if seed ~= nil then return seed, "table", note end
-    if templates ~= nil and info ~= nil and info.macros ~= nil and IN.isFinite(info.macros.calories)
-            and info.macros.calories > 0 then
-        return K.vector.infer(info.macros, info.foodType, templates), "inferred", note
-    end
-    return nil, "missing", note
+    local i = info or {}
+    return K.vector.resolve(i.declared, i.macros, i.foodType, fullType, { nutrients = { get = lookup }, infer = templates })
 end
 
 -- A fresh per-eat trace of the chain: the types that took a declared or an inferred vector, and the

@@ -371,3 +371,87 @@ def test_declared_a_malformed_string_is_nil_with_a_reason(host, text):
     v, reason = _declared(host, text)
     assert v is None
     assert isinstance(reason, str) and reason != ""
+
+
+# --- K.vector.resolve (Plan 7 Task 3, ruling 8): the chain declared -> table -> inferred -> missing, shared by
+# the intake (NR_Server_Intake.lua, IN.chainOne) and the food tooltip. data is NR.data's shape:
+# { nutrients = { get = fn(fullType) -> seed or nil }, infer = templates }.
+
+RESOLVE_LOOKUP = r"""
+function(seeds)
+    return { nutrients = { get = function(fullType) return seeds[fullType] end } }
+end
+"""
+RESOLVE_TEMPLATES = {"Fruits": {"n": 3, "density": {"fibre": 0.04, "vitC": 0.1}},
+                     "_default": {"n": 9, "density": {"fibre": 0.01}}}
+RESOLVE_MACROS = {"calories": 50.0, "carbs": 12.0, "lipids": 0.5, "proteins": 1.0}
+
+
+def _rdata(h, seeds=None, templates=True):
+    d = h.rt.eval(RESOLVE_LOOKUP)(h.table(seeds or {"Base.Apple": {"calories": 95.0, "fibre": 4.4}}))
+    if templates:
+        d["infer"] = h.table(RESOLVE_TEMPLATES)
+    return d
+
+
+def test_resolve_declared_wins_and_takes_the_items_macros(host):
+    vec, src, note = host.K.vector.resolve("fibre:12;vitC:3;calories:999", host.table(RESOLVE_MACROS), "Fruits",
+                                           "Base.Apple", _rdata(host))
+    assert src == "declared"
+    assert vec["fibre"] == 12 and vec["vitC"] == 3
+    assert vec["calories"] == 50.0 and vec["carbs"] == 12.0 and vec["lipids"] == 0.5 and vec["proteins"] == 1.0
+    assert len(host.py(note)) == 0
+
+
+def test_resolve_declared_without_macros_reads_zero_macros(host):
+    vec, src, note = host.K.vector.resolve("fibre:2", None, None, "Base.Apple", _rdata(host))
+    assert src == "declared" and vec["calories"] == 0 and vec["fibre"] == 2
+
+
+def test_resolve_malformed_declared_falls_to_the_table_with_its_reason(host):
+    vec, src, note = host.K.vector.resolve("fibre:lots", host.table(RESOLVE_MACROS), "Fruits", "Base.Apple",
+                                           _rdata(host))
+    assert src == "table" and vec["fibre"] == 4.4
+    assert isinstance(note, str) and "fibre:lots" in note
+
+
+def test_resolve_table_wins_over_inference(host):
+    vec, src, note = host.K.vector.resolve(None, host.table(RESOLVE_MACROS), "Fruits", "Base.Apple", _rdata(host))
+    assert src == "table" and vec["calories"] == 95.0 and note is None
+
+
+def test_resolve_untabled_with_macros_infers(host):
+    vec, src, note = host.K.vector.resolve(None, host.table(RESOLVE_MACROS), "Fruits", "Base.Kiwi", _rdata(host))
+    assert src == "inferred"
+    assert abs(vec["fibre"] - 2.0) < 1e-9 and abs(vec["vitC"] - 5.0) < 1e-9 and vec["calories"] == 50.0
+
+
+@pytest.mark.parametrize("macros", [None, {"carbs": 3.0}, {"calories": 0.0}, {"calories": float("nan")},
+                                    {"calories": float("inf")}, {"calories": "50"}])
+def test_resolve_nothing_to_infer_from_is_missing(host, macros):
+    m = host.table(macros) if macros is not None else None
+    vec, src, note = host.K.vector.resolve(None, m, "Fruits", "Base.Kiwi", _rdata(host))
+    assert vec is None and src == "missing"
+
+
+def test_resolve_without_templates_or_data_is_missing(host):
+    vec, src, _ = host.K.vector.resolve(None, host.table(RESOLVE_MACROS), "Fruits", "Base.Kiwi",
+                                        _rdata(host, templates=False))
+    assert vec is None and src == "missing"
+    vec, src, _ = host.K.vector.resolve(None, host.table(RESOLVE_MACROS), "Fruits", "Base.Apple", None)
+    assert vec is None and src == "missing"
+    vec, src, _ = host.K.vector.resolve("vitC:3", host.table(RESOLVE_MACROS), "Fruits", "Base.Apple", None)
+    assert src == "declared"                       # a declaration needs no data at all
+
+
+def test_resolve_data_without_a_table_still_infers(host):
+    d = host.table({"infer": RESOLVE_TEMPLATES})
+    vec, src, _ = host.K.vector.resolve(None, host.table(RESOLVE_MACROS), None, "Base.Kiwi", d)
+    assert src == "inferred" and abs(vec["fibre"] - 0.5) < 1e-9      # _default for a nil FoodType
+
+
+def test_resolve_over_the_shipped_data(data_host):
+    h = data_host
+    d = h.G.NutritionRevamp.data
+    vec, src, _ = h.K.vector.resolve(None, None, None, "Base.Apple", d)
+    assert src == "table" and vec["calories"] > 0

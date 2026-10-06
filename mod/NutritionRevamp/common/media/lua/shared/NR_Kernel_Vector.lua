@@ -250,3 +250,50 @@ function K.vector.declared(str)
     end
     return vec, unknown
 end
+
+-- A finite number: a number, not NaN (the one value unequal to itself) and not an infinity.
+function K.vector.finite(x)
+    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
+end
+
+-- One food type through the source chain declared -> table -> inferred -> missing (Plan 6 rulings 13-14), shared
+-- by the intake (NR_Server_Intake.lua, IN.chainOne) and the food tooltip (Plan 7 ruling 8), so the band shows what
+-- the eat would land. declared is the item's NR_Nutrients default-modData string or nil; macros the item's own
+-- { calories, carbs, lipids, proteins } or nil; foodType its FoodType or nil; data is NR.data's shape:
+-- { nutrients = { get = fn(fullType) -> seed or nil }, infer = templates } (either part, or data, may be nil).
+-- Returns vec, source, note: source is "declared", "table", "inferred" or "missing" (vec nil); note is the declared
+-- string's unknown-key list, or its malformed reason (a string) when the chain fell through it, else nil. A declared
+-- vector's four macros are the item's own (the script block owns them; a nil macros reads 0). The table's seed is
+-- returned as the lookup gives it. Inference needs templates and finite calories above 0.
+function K.vector.resolve(declared, macros, foodType, fullType, data)
+    local note = nil
+    if declared ~= nil then
+        local vec, extra = K.vector.declared(declared)
+        note = extra
+        if vec ~= nil then
+            local m = macros
+            if m == nil then
+                m = {}
+            end
+            vec.calories = m.calories or 0
+            vec.carbs = m.carbs or 0
+            vec.lipids = m.lipids or 0
+            vec.proteins = m.proteins or 0
+            return vec, "declared", note
+        end
+    end
+    if data == nil then
+        return nil, "missing", note
+    end
+    local seed = nil
+    if data.nutrients ~= nil then
+        seed = data.nutrients.get(fullType)
+    end
+    if seed ~= nil then
+        return seed, "table", note
+    end
+    if data.infer ~= nil and macros ~= nil and K.vector.finite(macros.calories) and macros.calories > 0 then
+        return K.vector.infer(macros, foodType, data.infer), "inferred", note
+    end
+    return nil, "missing", note
+end

@@ -20,5 +20,10 @@
     "Sandbox_NR_BalanceBonus": "Balanced-diet bonus",
     "Sandbox_NR_BalanceBonus_tooltip": "On: while every tracked nutrient is in its replete band, endurance regeneration and fatigue recovery run 5 percent faster. A game choice with no evidence claimed. Off: no bonus.",
     "Sandbox_NR_Severity": "Effect severity",
-    "Sandbox_NR_Severity_tooltip": "Scales every penalty a deficiency or an excess brings: fatigue, mood, sickness, slower healing, heavier bleeding, faster wound infection, colds, body temperature, bruising and Short Sighted. 1.0 is the default; 0 removes them all except the health drains, which Deficiencies can kill controls; 3 triples them. Short Sighted needs 1.0 or more. The few credits (exercise, vitamin C against colds, the balanced-diet bonus) are never scaled."
+    "Sandbox_NR_Severity_tooltip": "Scales every penalty a deficiency or an excess brings: fatigue, mood, sickness, slower healing, heavier bleeding, faster wound infection, colds, body temperature, bruising and Short Sighted. 1.0 is the default; 0 removes them all except the health drains, which Deficiencies can kill controls; 3 triples them. Short Sighted needs 1.0 or more. The few credits (exercise, vitamin C against colds, the balanced-diet bonus) are never scaled.",
+    "Sandbox_NR_VisibilityMode": "Who sees the numbers",
+    "Sandbox_NR_VisibilityMode_tooltip": "How much of each player's nutrition the interface shows. Symptoms: words and icons for everyone, and the exact figures only to a character with the Nutritionist trait. Bands: the nutrient grades and weight band for everyone as well. Numbers: every figure for everyone.",
+    "Sandbox_NR_VisibilityModeValues_option1": "Symptoms",
+    "Sandbox_NR_VisibilityModeValues_option2": "Bands",
+    "Sandbox_NR_VisibilityModeValues_option3": "Numbers"
 }

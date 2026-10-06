@@ -135,3 +135,36 @@ def test_mirror_effects_missing_fields_and_own_read_zero(host):
     m = host.py(host.call("mirror.build", rec(host, effects=eff), host.table(META)))
     assert m["effects_aimMul"] == 0.9 and m["effects_speedMul"] == 0 and m["effects_healMul"] == 0
     assert m["effects_nv"] is False and m["effects_ss"] is False
+
+
+# --- Plan 7 Task 3 (ruling 4): the pool fraction nut_<key>_p and the excess rung nut_<key>_x ----------
+
+def test_mirror_carries_the_pool_fraction_and_the_excess_rung(host):
+    r = rec(host, nutrients=host.table({"epoch": 2, "vitC": host.table({"g": 3, "p": 0.3125, "x": 0}),
+                                         "iron": host.table({"g": 1, "p": 1.0, "x": 2}), "zinc": host.table({})}))
+    m = host.py(host.call("mirror.build", r, host.table(META), host.table({1: "vitC", 2: "iron", 3: "zinc", 4: "iodine"})))
+    assert m["nut_vitC_p"] == 0.3125 and m["nut_vitC_x"] == 0 and m["nut_vitC_g"] == 3
+    assert m["nut_iron_p"] == 1.0 and m["nut_iron_x"] == 2
+    assert m["nut_zinc_p"] == 0 and m["nut_zinc_x"] == 0           # the sub-table without the fields
+    assert m["nut_iodine_p"] == 0 and m["nut_iodine_x"] == 0       # the key absent from the record
+    assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
+
+
+def test_mirror_without_nutrients_reads_zero_pools_and_rungs(host):
+    m = host.py(host.call("mirror.build", rec(host), host.table(META), host.table({1: "iron"})))
+    assert m["nut_iron_p"] == 0 and m["nut_iron_x"] == 0
+
+
+def test_mirror_nut_keys_are_three_per_order_key_over_the_shipped_order(host):
+    import os
+    shared = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                          "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+    with open(os.path.join(shared, "NR_Data_Records.lua"), encoding="utf-8") as fh:
+        host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@NR_Data_Records.lua")()
+    order = host.G.NutritionRevamp.data.records.ORDER
+    n = len(order)
+    m = host.py(host.call("mirror.build", rec(host), host.table(META), order))
+    assert len([k for k in m if k.startswith("nut_") and k.endswith("_p")]) == n
+    assert len([k for k in m if k.startswith("nut_") and k.endswith("_x")]) == n
+    assert len([k for k in m if k.startswith("nut_")]) == 3 * n
+    assert n == 27        # the pool and rung families add 2 x 27 = 54 scalars per push
