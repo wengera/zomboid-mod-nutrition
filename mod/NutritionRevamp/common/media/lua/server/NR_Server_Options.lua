@@ -9,9 +9,11 @@ local NR = NutritionRevamp
 -- deficienciesCanKill off caps the thirst view under vanilla's lethal level (ruling 8); excessEffectsOn off
 -- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
 -- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope.
+-- The Plan 5 dial (ruling 23): severity, a double 0-3 (default 1), scales every penalty row of the effects table
+-- after the fold (NR_Server_Effects); the double branch clamps it.
 NR.server.options = { mode = 1, logLevel = 2, legacyMirror = true, readAt = "default", changed = {},
                       nutritionOn = false, onsetSpeed = 1.0, deficienciesCanKill = true,
-                      excessEffectsOn = true, balanceBonus = true }
+                      excessEffectsOn = true, balanceBonus = true, severity = 1.0 }
 local O = NR.server.options
 
 local MODE_NAMES = { "takeover", "overlay" }
@@ -37,6 +39,7 @@ function NR.server.readOptions(where)
     local sv = SandboxVars and SandboxVars.NR or nil
     local oldMode, oldLog, oldMirror = O.mode, O.logLevel, O.legacyMirror
     local oldOnset, oldKill, oldExcess, oldBonus = O.onsetSpeed, O.deficienciesCanKill, O.excessEffectsOn, O.balanceBonus
+    local oldSeverity = O.severity
     O.mode = readLeaf(sv, "Mode", 1, 1, 2)
     O.logLevel = readLeaf(sv, "LogLevel", 2, 1, 3)
     O.legacyMirror = readLeaf(sv, "LegacyMirror", true)
@@ -44,14 +47,17 @@ function NR.server.readOptions(where)
     O.deficienciesCanKill = readLeaf(sv, "DeficienciesCanKill", true)
     O.excessEffectsOn = readLeaf(sv, "ExcessEffectsOn", true)
     O.balanceBonus = readLeaf(sv, "BalanceBonus", true)
+    O.severity = readLeaf(sv, "Severity", 1.0, 0, 3, true)
     O.readAt = where or "poll"
     NR.log.level = O.logLevel
     if oldMode ~= O.mode or oldLog ~= O.logLevel or oldMirror ~= O.legacyMirror or oldOnset ~= O.onsetSpeed
-        or oldKill ~= O.deficienciesCanKill or oldExcess ~= O.excessEffectsOn or oldBonus ~= O.balanceBonus then
+        or oldKill ~= O.deficienciesCanKill or oldExcess ~= O.excessEffectsOn or oldBonus ~= O.balanceBonus
+        or oldSeverity ~= O.severity then
         for i = 1, #O.changed do
             local ok, err = pcall(O.changed[i], { mode = oldMode, logLevel = oldLog, legacyMirror = oldMirror,
                                                   onsetSpeed = oldOnset, deficienciesCanKill = oldKill,
-                                                  excessEffectsOn = oldExcess, balanceBonus = oldBonus }, O)
+                                                  excessEffectsOn = oldExcess, balanceBonus = oldBonus,
+                                                  severity = oldSeverity }, O)
             if not ok then NR.log.say(2, "options: changed hook failed: " .. tostring(err)) end
         end
     end

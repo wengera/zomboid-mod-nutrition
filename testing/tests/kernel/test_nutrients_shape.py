@@ -1037,6 +1037,102 @@ def test_the_option_file_and_translations_declare_the_four_dials():
         assert tr["Sandbox_NR_" + name + "_tooltip"]
 
 
+def test_the_option_file_and_translations_declare_severity():
+    # Plan 5 ruling 23: NR.Severity, a double 0-3, default 1 (read and clamped: test_effects_shape.py)
+    import json
+    path = os.path.join(REPO, "mod", "NutritionRevamp", "42.20.4", "media", "sandbox-options.txt")
+    with open(path, encoding="utf-8") as fh:
+        src = fh.read()
+    assert ("option NR.Severity\n{\n    type = double, min = 0.0, max = 3.0, default = 1.0,\n"
+            "    page = NutritionRevamp, translation = NR_Severity,\n}") in src
+    with open(os.path.join(SHARED, "Translate", "EN", "Sandbox.json"), encoding="utf-8") as fh:
+        tr = json.load(fh)
+    assert tr["Sandbox_NR_Severity"] and tr["Sandbox_NR_Severity_tooltip"]
+
+
+# --- the effects call (Plan 5 ruling 22) -------------------------------------------------------------------
+
+EFFECTS_STUB = r"""
+function(raise)
+    NR_TEST_EFF = {}
+    NutritionRevamp.server.effects = {
+        minute = function(username, player, record, body, dtM, ageH)
+            NR_TEST_EFF[#NR_TEST_EFF + 1] = { username = username, record = record, body = body, dtM = dtM,
+                                              ageH = ageH, players = NutritionRevamp.server.nutrients.stats.players }
+            if raise then error("effects boom") end
+        end,
+    }
+end
+"""
+
+
+def test_the_minute_ends_with_one_effects_call(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    h.rt.eval(EFFECTS_STUB)(False)
+    try:
+        played = NUT(h).stats.players
+        alone(h, p, record, 100.0 + 2 / 60)
+        calls = h.G.NR_TEST_EFF
+        assert len(calls) == 1
+        c = calls[1]
+        same = h.rt.eval("rawequal")
+        assert c["username"] == "admin" and same(c["record"], record) and same(c["body"], record["body"])
+        assert abs(c["dtM"] - 2.0) < 1e-9 and abs(c["ageH"] - (100.0 + 2 / 60)) < TOL
+        assert c["players"] == played + 1                          # after every Nutrients stamp
+        h.G.NR_TEST_EFF = h.rt.table()
+        alone(h, p, record, 100.0 + 2 / 60)                        # dtM 0: no minute, no effects call
+        assert len(h.G.NR_TEST_EFF) == 0
+    finally:
+        h.G.NutritionRevamp.server.effects = None
+
+
+def test_a_raising_effects_step_is_counted_and_skips_no_stamp(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    h.rt.eval(EFFECTS_STUB)(True)
+    try:
+        errors = NUT(h).stats.effectsErrors
+        alone(h, p, record, 100.0 + 1 / 60)
+        assert NUT(h).stats.effectsErrors == errors + 1
+        assert abs(record["nutrients"]["lastAgeH"] - (100.0 + 1 / 60)) < TOL
+    finally:
+        h.G.NutritionRevamp.server.effects = None
+
+
+SLEEP_SPY = r"""
+function()
+    local K = NutritionRevamp.kernel
+    local orig = K.acute.sleepMinute
+    NR_TEST_SLEEP_ARGS = nil
+    K.acute.sleepMinute = function(a, asleep, hod, nf, ageH, dtH, sd, mAcc, rRec)
+        NR_TEST_SLEEP_ARGS = { mAcc = mAcc, rRec = rRec }
+        return orig(a, asleep, hod, nf, ageH, dtH, sd, mAcc, rRec)
+    end
+    return orig
+end
+"""
+
+
+@pytest.mark.parametrize("m, r, want_m, want_r", [(1.4, 0.8, 1.4, 0.8), (NAN, 0.0, None, None),
+                                                  (None, None, None, None)])
+def test_the_sleep_step_reads_last_minutes_multipliers(nut_host, m, r, want_m, want_r):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    if m is not None:
+        record["effects"] = h.table({"mAcc": m, "rRec": r})
+    orig = h.rt.eval(SLEEP_SPY)()
+    try:
+        alone(h, p, record, 100.0 + 1 / 60)
+        args = h.G.NR_TEST_SLEEP_ARGS
+        assert args["mAcc"] == want_m and args["rRec"] == want_r
+    finally:
+        h.K.acute.sleepMinute = orig
+
+
 # --- the wiring order ---------------------------------------------------------------------------------
 
 def test_nutrients_runs_after_metabolism_and_before_strength():

@@ -30,7 +30,7 @@ local NR = NutritionRevamp
 local K = NR.kernel
 NR.server.nutrients = {
     stats = { players = 0, minutes = 0, healed = 0, errors = 0, badAge = 0, noBody = 0, days = 0,
-              skippedDays = 0 },
+              skippedDays = 0, effectsErrors = 0 },
     lastError = nil,
     lastHealed = nil,
     wired = false,
@@ -478,11 +478,31 @@ local function step(username, player, record)
     K.acute.exerciseMinute(a, minuteBand(a, body, K.max(0, closedDays)), ageH, dtH)
     K.acute.coldMinute(a, coldMult, dtH)
     K.acute.retinolMinute(a, ingested.retinol or 0, dtM / 1440)
-    K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player), ageH, dtH, NUT.sleepDisabled)
+    -- Plan 5: the fatigue multipliers record.effects stamped LAST minute (NR_Server_Effects runs after this
+    -- step: a one-minute lag); absent, non-finite or non-positive reads nil (1 in the kernel, no division by 0)
+    local mAcc, rRec = nil, nil
+    local eff = record.effects
+    if type(eff) == "table" then
+        if finite(eff.mAcc) and eff.mAcc > 0 then mAcc = eff.mAcc end
+        if finite(eff.rRec) and eff.rRec > 0 then rRec = eff.rRec end
+    end
+    K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player), ageH, dtH, NUT.sleepDisabled, mAcc, rRec)
     K.acute.iu(a, f.dehydPct, n.ironGrade)
 
     heal(username, record, body, ageH)
     NUT.stats.players = NUT.stats.players + 1
+
+    -- Plan 5 ruling 22: the effects step, called here (its filename would sort it first) so it reads this
+    -- minute's epoch, fluids and acute stamps; last, under its own pcall, so a raise there never skips a
+    -- stamp of this minute
+    local effects = NR.server.effects
+    if effects ~= nil and effects.minute ~= nil then
+        local okE, errE = pcall(effects.minute, username, player, record, body, dtM, ageH)
+        if not okE then
+            NUT.stats.effectsErrors = NUT.stats.effectsErrors + 1
+            NR.log.say(2, "nutrients: the effects step failed for " .. tostring(username) .. ": " .. tostring(errE))
+        end
+    end
 end
 
 -- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.

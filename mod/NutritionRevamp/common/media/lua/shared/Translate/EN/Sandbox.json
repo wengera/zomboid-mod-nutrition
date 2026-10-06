@@ -14,9 +14,11 @@
     "Sandbox_NR_OnsetSpeed": "Deficiency onset speed",
     "Sandbox_NR_OnsetSpeed_tooltip": "Multiplies how fast the slow deficiencies develop and recover: the nutrients that take more than 90 days to reach a clinical deficiency at zero intake, such as folate, vitamins B12, A and D, iodine and magnesium. 1.0 is real time; 30 makes a slow deficiency thirty times faster. Vitamin C, the other fast vitamins, water, caffeine, alcohol, glycogen and sleep are never scaled.",
     "Sandbox_NR_DeficienciesCanKill": "Deficiencies can kill",
-    "Sandbox_NR_DeficienciesCanKill_tooltip": "On: when the body is dehydrated enough, thirst can reach vanilla's lethal top level. Off: the mod holds thirst just below that level.",
+    "Sandbox_NR_DeficienciesCanKill_tooltip": "On: the most severe states drain health until they are treated or the character dies: starvation with the fat reserves gone, long clinical scurvy, beriberi or pellagra, severe dehydration or low blood sodium, and an iron overdose. Off: they never drain health. Hunger and thirst never reach vanilla's lethal top level either way.",
     "Sandbox_NR_ExcessEffectsOn": "Excess effects",
     "Sandbox_NR_ExcessEffectsOn_tooltip": "On: an intake above a nutrient's upper limit raises that nutrient's excess level. Off: every excess level reads zero, while the intake is still tracked.",
     "Sandbox_NR_BalanceBonus": "Balanced-diet bonus",
-    "Sandbox_NR_BalanceBonus_tooltip": "On: while every tracked nutrient is in its replete band, endurance regeneration and fatigue recovery run 5 percent faster. A game choice with no evidence claimed. Off: no bonus."
+    "Sandbox_NR_BalanceBonus_tooltip": "On: while every tracked nutrient is in its replete band, endurance regeneration and fatigue recovery run 5 percent faster. A game choice with no evidence claimed. Off: no bonus.",
+    "Sandbox_NR_Severity": "Effect severity",
+    "Sandbox_NR_Severity_tooltip": "Scales every penalty a deficiency or an excess brings: fatigue, mood, sickness, slower healing, heavier bleeding, faster wound infection, colds, body temperature, bruising and Short Sighted. 1.0 is the default; 0 removes them all except the health drains, which Deficiencies can kill controls; 3 triples them. Short Sighted needs 1.0 or more. The few credits (exercise, vitamin C against colds, the balanced-diet bonus) are never scaled."
 }

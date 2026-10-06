@@ -46,3 +46,11 @@ option NR.BalanceBonus
     type = boolean, default = true,
     page = NutritionRevamp, translation = NR_BalanceBonus,
 }
+
+/* Plan 5 dial (ruling 23). Severity scales every deficiency and excess penalty of the effects table after the
+   fold; 0 leaves only the health drains, which DeficienciesCanKill gates; 1.0 is the default. */
+option NR.Severity
+{
+    type = double, min = 0.0, max = 3.0, default = 1.0,
+    page = NutritionRevamp, translation = NR_Severity,
+}
