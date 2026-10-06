@@ -1,0 +1,23 @@
+/* TKX_DeclaredFood: one module TKX food whose vector rides the NR_Nutrients script key (the Plan 6 item-pass contract,
+   key:value;key:value grammar, K.vector.KEYS names). The unrecognised key lands in default modData: X15 row #1281.
+   Test profiles only. */
+module TKX
+{
+    item DeclaredBar
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        Weight = 0.2,
+        Icon = Apple,
+        HungerChange = -15.0,
+        ThirstChange = 0.0,
+        Calories = 180.0,
+        Carbohydrates = 20.0,
+        Lipids = 6.0,
+        Proteins = 9.0,
+        FoodType = NoExplicit,
+        DaysFresh = 42,
+        DaysTotallyRotten = 84,
+        NR_Nutrients = fibre:9;vitC:40;iron:2;calcium:120;vitB12:0.5,
+    }
+}

@@ -1,0 +1,5 @@
+name=TKX Declared Food
+id=TKX_DeclaredFood
+description=Plan 6 Task 11 experiment: a module TKX food declaring its nutrient vector through the NR_Nutrients script key. Test profiles only.
+modversion=1.0
+versionMin=42.0.0
