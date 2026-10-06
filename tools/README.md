@@ -453,3 +453,5 @@ import patterns from there.
 Conventions: stdlib-only python, same parser style as
 `pz-b42/tools/insulation_scan.py` (proven against the generated-script DSL,
 including capital-`Scripts` mod dirs and version-folder resolution).
+
+- `icon_gen.py` — `python tools/icon_gen.py --out <dir> | --check <dir>`. Writes the six 32 x 32 RGBA symptom-class moodle icons (energy, hydration, deficiency, excess, stimulant, sleep) deterministically from a fixed palette and glyph table; `--check` compares sha256 against the committed copies under `mod/NutritionRevamp/common/media/ui/NutritionRevamp/` and exits 1 on a difference.
