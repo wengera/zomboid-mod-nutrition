@@ -2636,3 +2636,40 @@ TK.register("temp.core", function(argv)
     out.ok = (out.core ~= nil)
     return out
 end)
+
+-- <user> [value]. BodyDamage:getDrunkReductionValue() / setDrunkReductionValue(v), the per-player
+-- reduction the intoxication decay reads (platform briefing 6). With no value it only reads; with
+-- one it writes through the setter (index-first, pcall) and replies the value read before and
+-- after.
+-- @args <user> [<value>]
+-- @reply {ok, side, before, after [, requested] [, reason]} | string
+-- @purpose Reads, or with a value writes, BodyDamage's drunk-reduction value on a named player, replying it before and after.
+TK.register("intox.reduction", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local out = { ok = false, side = TK.side }
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil then
+        out.reason = "no getBodyDamage()"
+        return out
+    end
+    out.before = P5.hop(bd, "getDrunkReductionValue")
+    if argv[2] ~= nil then
+        local v = tonumber(argv[2])
+        if v == nil then return "usage: intox.reduction <user> [<value>]" end
+        out.requested = v
+        local setter = bd["setDrunkReductionValue"]
+        if setter == nil then
+            out.reason = "no setDrunkReductionValue"
+            return out
+        end
+        local ran, err = pcall(setter, bd, v)
+        if not ran then
+            out.reason = "setDrunkReductionValue raised: " .. tostring(err)
+            return out
+        end
+    end
+    out.after = P5.hop(bd, "getDrunkReductionValue")
+    out.ok = (out.after ~= nil)
+    return out
+end)
