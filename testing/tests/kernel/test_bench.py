@@ -80,4 +80,5 @@ def test_bench_inputs_name_the_plan5_fields(bench_host):
     assert inp["solMul"] == 1 and inp["solAddH"] == 0 and inp["dmod"] == 1 and inp["stressTarget"] == 0
     out = NR.bench_fast()
     assert out["fatigue"] == inp["fS"] + inp["fCirc"] + inp["fOff"]       # the owned FATIGUE writer runs
-    assert out["endurance"] == inp["endLast"] == inp["endurance"]           # the fold at rest: the identity
+    assert inp["endLast"] < inp["endurance"]                                # the fold takes its regeneration arm
+    assert out["endurance"] == inp["endLast"] + (inp["endurance"] - inp["endLast"]) * inp["rmod"] == 1.0
