@@ -345,6 +345,12 @@ def test_declared_parses_the_units_contract_string(host):
     assert unknown == []
 
 
+def test_declared_with_no_known_key_falls_through(host):
+    # the Task 10 review: a declaration made only of unknown keys must not land a zero vector over the table
+    v, reason = _declared(host, "omega9:1;unobtainium:2")
+    assert v is None and "no known key" in reason
+
+
 def test_declared_takes_the_macros_when_given_and_tolerates_spaces_and_a_trailing_semicolon(host):
     v, unknown = _declared(host, " calories: 120.5 ; carbs:30;proteins:2.5;lipids:0;iron:1e-1 ;")
     assert (v["calories"], v["carbs"], v["proteins"], v["lipids"]) == (120.5, 30, 2.5, 0)

@@ -464,7 +464,10 @@ function IN.typeInfo(fullType)
     if instanceItem == nil then return nil end
     local info = false
     local ok, item = pcall(instanceItem, fullType)
-    if ok and item ~= nil then info = IN.foodInfo(item) or false end
+    if ok and item ~= nil then
+        local okI, fi = pcall(IN.foodInfo, item)   -- a raising getter on the fresh instance caches false (the Task 10 review)
+        if okI then info = fi or false end
+    end
     IN.typeInfoCache[fullType] = info
     if info == false then return nil end
     return info

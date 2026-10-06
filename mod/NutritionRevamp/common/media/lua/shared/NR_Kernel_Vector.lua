@@ -209,6 +209,7 @@ function K.vector.declared(str)
     end
     local vec = K.vector.new()
     local unknown = {}
+    local knownRead = 0
     local pairsRead = 0
     local pos = 1
     local len = string.len(str)
@@ -235,6 +236,7 @@ function K.vector.declared(str)
             pairsRead = pairsRead + 1
             if known[key] then
                 vec[key] = value
+                knownRead = knownRead + 1
             else
                 unknown[#unknown + 1] = key
             end
@@ -242,6 +244,9 @@ function K.vector.declared(str)
     end
     if pairsRead == 0 then
         return nil, "no key:value pair"
+    end
+    if knownRead == 0 then
+        return nil, "no known key (the declaration falls through to the table)"
     end
     return vec, unknown
 end

@@ -1774,6 +1774,9 @@ function()
         made = made + 1
         if fullType == "Base.Rock" then return {} end
         if fullType == "Base.Raise" then error("stub: no such item") end
+        if fullType == "Base.BadGetter" then
+            return { getCalories = function(self) error("stub: getter raised") end }
+        end
         return {
             getCalories = function(self) return 50 end,
             getCarbohydrates = function(self) return 12 end,
@@ -1789,21 +1792,24 @@ function()
     local rock = IN.typeInfo("Base.Rock")
     local rock2 = IN.typeInfo("Base.Rock")
     local raised = IN.typeInfo("Base.Raise")
+    local bad = IN.typeInfo("Base.BadGetter")
+    local bad2 = IN.typeInfo("Base.BadGetter")
     instanceItem = nil
     local absent = IN.typeInfo("Base.Other")
     instanceItem = saved
     IN.typeInfoCache = {}
-    return a, a2, rock, rock2, raised, absent, made
+    return a, a2, rock, rock2, raised, absent, made, bad, bad2
 end
 """
 
 
 def test_type_info_reads_a_fresh_instance_once_per_type(intake_host):
     h = intake_host
-    a, a2, rock, rock2, raised, absent, made = h.rt.eval(TYPE_INFO)()
+    a, a2, rock, rock2, raised, absent, made, bad, bad2 = h.rt.eval(TYPE_INFO)()
+    assert bad is None and bad2 is None                  # a raising getter on the fresh instance caches false (the Task 10 review)
     assert a["declared"] == "fibre:3" and a["foodType"] == "Fruits"
     assert macros(a["macros"]) == [50, 12, 0, 1]
     assert h.rt.eval("function(x, y) return rawequal(x, y) end")(a, a2)     # the cached table
     assert rock is None and rock2 is None                # not a Food: no calories getter
     assert raised is None and absent is None
-    assert made == 3                                     # Kiwi, Rock and Raise, each once
+    assert made == 4                                     # Kiwi, Rock, Raise and BadGetter, each once
