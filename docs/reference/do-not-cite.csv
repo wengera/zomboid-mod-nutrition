@@ -370,3 +370,11 @@ x151r-20261005-192030,phases.S0.sentinels.NR_IntakeDrink_Installed,null,"lua.glo
 x151r-20261005-192030,phases.S0.sentinels.NR_IntakeWorld_Installed,null,"lua.global answers no value for a table.",—
 x151r-20261005-192030,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
 x151r-20261005-192030,logs.client_luaerr,20 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
+x151r2-20261005-202409,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the records.",cite `records` and the `summaries` named in the register
+x151r2-20261005-202409,summaries.B.intervals[*].perMg,e.g. 0.701889,"Where landed_inside is true a drink or meal landed inside the interval, so the buffer decrement is not what emptied.",cite the intervals with landed_inside false
+x151r2-20261005-202409,summaries.E.intervals[*].pred_dGlyc,e.g. -4.668673,"Where the two reads carry different MET the replay holds the first read's MET across the interval.",cite the same-MET intervals
+x151r2-20261005-202409,pending[*].lastMealCa,null,"The handoff lives inside one server tick; a bus read between ticks finds nothing.",cite `records[*].buffer.calcium`
+x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeDrink_Installed,null,"lua.global answers no value for a table.",cite `phases.C.counters_after`
+x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeWorld_Installed,null,"lua.global answers no value for a table.",—
+x151r2-20261005-202409,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
+x151r2-20261005-202409,logs.client_luaerr,20 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
