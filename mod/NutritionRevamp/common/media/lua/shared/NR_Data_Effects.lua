@@ -35,12 +35,12 @@ NR.data.effects = {
     -- The bleeding time a spontaneous bruise starts at (F4; the adapter's event write).
     BRUISE_T0 = 0.05, -- game choice: about 1.79 x damageScaler health per bruise (open S1153)
     SURF = {
-        mNut = { op = "mul", id = 1, lo = 1.0, hi = 2.0 }, -- fatigue accrual, nutritional part; game choice clamp above the 1.3 trait span #2270 (open S1133)
+        mNut = { op = "mul", id = 1, lo = 1.0, hi = 2.0 }, -- fatigue accrual, nutritional part; game choice clamp above the 1.3 trait span #2271 (open S1133)
         rNut = { op = "mul", id = 1, lo = 0.5, hi = 1.3 }, -- sleep recovery, nutritional part; game choice clamp (open S1133)
         stressTarget = { op = "add", id = 0, lo = 0, hi = 0.50 }, -- STRESS floor; game choice cap at the level-2 step 0.50 #2369 (open S1147)
         unhappyTarget = { op = "add", id = 0, lo = 0, hi = 59 }, -- UNHAPPINESS floor; game choice cap one under the level-3 step 60 #2369 (open S1147)
         panicTarget = { op = "add", id = 0, lo = 0, hi = 64 }, -- PANIC floor; game choice cap one under the level-3 step 65 #2369 (open S1147)
-        foodSickTarget = { op = "max", id = 0, lo = 0, hi = 85 }, -- FOOD_SICKNESS floor (T1-1): SICK levels from max(...)/100 #3019, never 90 or more (the red drain #2356); game choice (open S1165)
+        foodSickTarget = { op = "max", id = 0, lo = 0, hi = 85 }, -- FOOD_SICKNESS floor (T1-1): SICK levels from max(...)/100 #3130, #2369, never 90 or more (the red drain #2356); game choice (open S1165)
         poisonTarget = { op = "max", id = 0, lo = 0, hi = 30 }, -- no row drives it: POISON 0 at every rung (ruling 12); the drain caps at 30 #2358
         healMul = { op = "mul", id = 1, lo = 0.5, hi = 1.0 }, -- wound healing; game choice floor (open S1149)
         bleedMul = { op = "mul", id = 1, lo = 1.0, hi = 1.25 }, -- total bleeding damage; game choice range (open S1152)
@@ -329,7 +329,7 @@ NR.data.effects = {
             { ch = "trait", s = "shortSighted", v = 1, row = "S0143", gc = true }, -- the toggle at clinical; game choice (open S1143)
         } },
         -- D4 the direct speed write (min; computed and mirrored, unapplied until X47).
-        { src = "dehyd", on = "band", at = { 7, 8 }, list = { -- 6 % and above, the thirst level-4 region #0509
+        { src = "dehyd", on = "band", at = { 7, 8 }, list = { -- 6 % and above, the fluids kernel's 6 % knot, game choice (open S1098); #0509 gives the thirst value at it
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
         { src = "iu", on = "band", at = { 20, 25 }, list = { -- 2.0 IU and above, S0750 the unit's anchor
@@ -399,7 +399,7 @@ NR.data.effects = {
         { src = "dehyd", on = "band", at = { 6, 8 }, list = { -- 4 % and above, S1021
             { ch = "stat", s = "tempHeat", v = 0.3, row = "S1021", gc = true }, -- 0.3 x 1, held; game choice magnitude (open S1160)
         } },
-        -- H1 toxicity: FOOD_SICKNESS 30 at rung 1, 55 at rung 2, 85 at rung 3 (ruling T1-1; SICK 1/2/3, #3019), POISON 0.
+        -- H1 toxicity: FOOD_SICKNESS 30 at rung 1, 55 at rung 2, 85 at rung 3 (ruling T1-1; SICK 1/2/3, #3130, #2369), POISON 0.
         -- Rung 1 is the UL rung (every record with an ul); a rung row matches its rung and above, and max keeps the worst.
         { src = "vitC", on = "rung", at = { 1, 3 }, list = { -- UL 2000 mg/d, S1043
             { ch = "stat", s = "foodSickTarget", v = 30, row = "S1043", gc = true }, -- game choice (open S1165)

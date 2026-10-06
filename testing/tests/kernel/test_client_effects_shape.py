@@ -165,6 +165,23 @@ def test_the_mirror_read_is_nil_safe_on_an_absent_key_and_a_non_number():
     assert CE(rt).stats.reads == 0 and CE(rt).stats.noMirror == 1
 
 
+def test_a_mirrored_zero_multiplier_reads_absent():
+    # ruling T16-2: the mirror sends 0 before the server has an effects table
+    rt = client_rt()
+    receive(rt, "{ effects_aimMul = 0, effects_speedMul = 0 }")
+    assert CE(rt).aimMul() is None and CE(rt).speedMul() is None
+    swing(rt)
+    e = CE(rt)
+    assert e.stats.reads == 0 and e.stats.noMirror == 1
+    assert e.lastWouldBe is None and e.lastAimMul is None
+    receive(rt, "{ effects_aimMul = 0.8 }")
+    swing(rt)
+    assert CE(rt).lastWouldBe == 20
+    receive(rt, "{ effects_aimMul = 0 }")
+    swing(rt)
+    assert CE(rt).lastWouldBe == 20                # a 0 leaves the last reading untouched
+
+
 def test_speedMul_returns_the_mirrors_value_and_writes_nothing():
     rt = client_rt()
     assert CE(rt).speedMul() is None
@@ -218,6 +235,7 @@ def test_the_limitations_name_both_open_rows():
     rt = client_rt()
     lim = list(CE(rt).limitations.values())
     assert any("X86" in s for s in lim) and any("X47" in s for s in lim)
+    assert any("reads absent" in s and "T16-2" in s for s in lim)
 
 
 # ------------------------------------------------------------------------------------------- the bus push

@@ -31,7 +31,8 @@
 --    behind a nil check, so the file loads with no engine (testing/tests/kernel/test_client_effects_shape.py).
 --  * The body runs under one pcall: a mod error never reaches the event (the -debug client would park).
 --  * The mirror is read only through the stored table, never the engine per frame (spec § 6); the
---    mirror's effects_* keys are Task 11's, and an absent or non-finite key reads nil.
+--    mirror's effects_* keys are Task 11's, and an absent, non-finite or zero multiplier reads nil (the mirror
+--    sends 0 before the server has an effects table; ruling T16-2).
 -- Cadence: once per swing on the local client; no @fastpath region in this file.
 local NR = NutritionRevamp
 NR.client.effects = {
@@ -44,6 +45,7 @@ NR.client.effects = {
         "the aim multiplier is read from the mirror and logged after each swing but never applied: no seat was measured to keep a written aiming delay (X86 open; the engine cleared a written aim flag on most ticks)",
         "the speed multiplier is read from the mirror but no speed write is made (X47 open: a client WalkSpeed write was gone by the first sample, 266 ms after it)",
         "the client reads the mirror as last received: an effects change reaches it on the server's push, at most one per player per 60 s, or on a request",
+        "a multiplier the mirror carries as 0 reads absent (nil): the mirror sends 0 before the server has an effects table (ruling T16-2)",
     },
 }
 local CE = NR.client.effects
@@ -54,13 +56,19 @@ local function finite(v)
     return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
 end
 
--- The mirror's value under key, or nil when no mirror arrived or the value is not a finite number.
+-- The multiplier keys a mirrored 0 reads absent on (ruling T16-2): the mirror sends 0 before the server has
+-- an effects table, and no multiplier the server composes is 0.
+CE.MUL_KEYS = { effects_aimMul = true, effects_speedMul = true }
+
+-- The mirror's value under key, or nil when no mirror arrived, the value is not a finite number, or the key is
+-- a multiplier carried as 0.
 local function mirrorNumber(key)
     local m = NR.client.mirror
     if type(m) ~= "table" then return nil end
     local v = m[key]
-    if finite(v) then return v end
-    return nil
+    if not finite(v) then return nil end
+    if v == 0 and CE.MUL_KEYS[key] then return nil end
+    return v
 end
 
 function CE.aimMul()

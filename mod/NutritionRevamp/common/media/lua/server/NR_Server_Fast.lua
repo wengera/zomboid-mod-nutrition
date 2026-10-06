@@ -43,7 +43,7 @@ NR.server.fast = { h = {}, byChar = {}, lastInp = {}, mode = 2, closure = nil, r
                                    "INTOXICATION is the gut lane's bac every tick (T4-1): vanilla's per-drink jump is overwritten, so a drink the intake wrappers miss shows no intoxication; with no effects table yet vanilla's value stands undecayed (the reduction is 0)",
                                    "a PANIC target appears at once: the floor is a hold, not a rise (T13-1; x161f read the risen floor as a no-op under vanilla's decay)",
                                    "the UNHAPPINESS release subtracts the whole fall of the target once (T1-2), whether or not the floor had raised the stat that far",
-                                   "the TEMPERATURE target is written only while the core is on the adjustment's far side; the held equilibrium against the regulator is unmeasured (X81)" } }
+                                   "the TEMPERATURE target is written only while the core is on the adjustment's far side; the held equilibrium against the regulator is unmeasured (X81); at rest the core already sits about 0.45 °C under the set point (x161b), so a −0.2 target does not act at rest" } }
 local FAST = NR.server.fast
 local C = K.fast.defaults()
 -- The two rising handler floors' rates (ruling 9; GAME CHOICES, open S1146), per game-second: one moodle

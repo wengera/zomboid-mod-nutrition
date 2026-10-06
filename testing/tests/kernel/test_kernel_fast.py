@@ -779,6 +779,7 @@ def test_handler_limitations_and_region_strings():
     assert "and the effects floors for at most one slow-clock minute" in lims
     assert "X35" in lims and "INTOXICATION" in lims
     assert "a PANIC target appears at once: the floor is a hold, not a rise (T13-1" in lims
+    assert "0.45 °C under the set point (x161b), so a −0.2 target does not act at rest" in lims
     assert "moodRisePanic" not in src
     region = src[src.index("local function body(h)"):src.index("-- @endfastpath")]
     assert "local E = h.record.effects" in region and "local A = h.record.acute" in region

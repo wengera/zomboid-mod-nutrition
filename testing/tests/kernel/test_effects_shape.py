@@ -786,6 +786,13 @@ def test_the_limitations_name_the_plan_rulings(eff_host):
                    "FOOD_SICKNESS", "capped under moodle level 4", "dmod", "stale until relog", "X81",
                    "not saved (#3020)", "natively held", "Cat Eyes"):
         assert needle in joined, needle
+    # ruling T16-1: the sleep-onset latency terms ship unapplied
+    assert ("the sleep-onset latency terms (solAddH, solMul) reach only the fast kernel's delay mirror, which gates "
+            "nothing while the record owns FATIGUE (the acute kernel decays S from the first asleep minute): caffeine's, "
+            "exercise's and alcohol's onset latency is unapplied — a Plan 6 reading") in lims
+    assert any("the cold fold" in s and "X105" in s and "0.1 gate" in s for s in lims)
+    assert any("melee swings would drain scaled by dmod" in s and "shipped, they are unscaled" in s for s in lims)
+    assert any("X81" in s and "0.45 °C under the set point (x161b)" in s for s in lims)
 
 
 def test_the_file_names_no_stat_write_and_no_poison():

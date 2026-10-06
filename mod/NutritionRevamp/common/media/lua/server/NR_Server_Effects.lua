@@ -41,9 +41,9 @@ NR.server.effects = {
         "aimMul is computed and stamped but applied by no seat (X86 open: the engine clears a written aim flag on most updates)",
         "POISON ships 0 at every toxicity rung (ruling 12); the rungs act through FOOD_SICKNESS floors 30/55/85, never the SICKNESS stat (ruling T1-1)",
         "the HUNGER and THIRST views are capped under moodle level 4 always (ruling 14): the level-4 Hungry and Thirsty moodles never show",
-        "melee swings drain endurance scaled by dmod like any other drain (ruling 15)",
+        "while the endurance fold is on (it ships off, X35) melee swings would drain scaled by dmod like any other drain; shipped, they are unscaled",
         "a trait change is pushed to its owner only: other clients' copies of a player's traits stay stale until relog (#2603)",
-        "tempTarget is applied uncalibrated: the equilibrium of the held target against the regulator is unmeasured (X81)",
+        "tempTarget is applied uncalibrated: the equilibrium of the held target against the regulator is unmeasured (X81); at rest the core already sits about 0.45 °C under the set point (x161b), so a −0.2 target does not act at rest",
         "the regeneration constants are not saved (#3020): re-asserted at every rebuild, at every drain start or stop and at first sight",
         "a natively held Night Vision or Short Sighted (held when the mod would add it) is never removed; Evolving Traits World's Cat Eyes composes (it grants, never removes)",
         "whether the regeneration tier scales awake regeneration is unmeasured (X80 open); healMul reaches the four setters with that stated",
@@ -53,6 +53,8 @@ NR.server.effects = {
         "the refeeding sickness floor holds for the refeeding event's day (record.acute.refeedEvent is set at a day close and held to the next)",
         "a spontaneous bruise rolls with ZombRandFloat; with no ZombRandFloat the roll reads 1.0 and no bruise fires",
         "a dead character's record is stepped but no trait, body or health write is made",
+        "the sleep-onset latency terms (solAddH, solMul) reach only the fast kernel's delay mirror, which gates nothing while the record owns FATIGUE (the acute kernel decays S from the first asleep minute): caffeine's, exercise's and alcohol's onset latency is unapplied — a Plan 6 reading",
+        "the cold fold (catchACold's rise × coldMul) is unmeasured (X105): on the x161b fixture the thermoregulator's catch-a-cold delta stayed under the engine's 0.1 gate, so no rise was folded",
     },
 }
 local EFF = NR.server.effects
@@ -64,7 +66,7 @@ EFF.REGEN_REDUCED = 0.0013 -- VANILLA #2354
 EFF.REGEN_SEVERE = 0.0008 -- VANILLA #2354
 EFF.REGEN_SLEEPING = 0.02 -- VANILLA #2354
 -- The engine's cap on a part's wound-infection level (BodyPart.DamageUpdate @1296-@1309 L351-L352).
-EFF.INFECT_MAX = 10 -- VANILLA, the platform briefing § 3.3
+EFF.INFECT_MAX = 10 -- VANILLA #3131 (BodyPart.DamageUpdate caps the level at 10)
 -- The body-part packet masks: bit = key - 1 (#2626).
 EFF.MASK_BLEEDING = 8 -- key 4, bleeding (#2626)
 EFF.MASK_BLEEDING_TIME = 131072 -- key 18, bleedingTime (#2626)
@@ -74,12 +76,12 @@ EFF.SOL_CAF_H = 0.15 -- h at full caffeine saturation: S0795 (+9 min), S0798 (+8
 EFF.SOL_VIG_H = 0.15 -- h after vigorous exercise within 1 h: S0827 direction; game choice (open S1130)
 EFF.SOL_ALC_MUL = 0.6 -- at the alcohol band 2 (>= 0.85 g/kg): S0813 direction; game choice (open S1128)
 -- The engine factors (B3, B4): vanilla's own trait multipliers on accrual and recovery.
-EFF.TRAIT_NEEDS_LESS_ACC = 0.7 -- VANILLA #2270 (updateStats_Awake)
-EFF.TRAIT_NEEDS_MORE_ACC = 1.3 -- VANILLA #2270 (updateStats_Awake)
+EFF.TRAIT_NEEDS_LESS_ACC = 0.7 -- VANILLA #2271 (updateStats_Awake)
+EFF.TRAIT_NEEDS_MORE_ACC = 1.3 -- VANILLA #2271 (updateStats_Awake)
 EFF.FF_INSOMNIAC = 0.5 -- VANILLA #2276
 EFF.FF_NIGHT_OWL = 1.4 -- VANILLA #2276
-EFF.T_NEEDS_LESS = 0.75 -- VANILLA #2277
-EFF.T_NEEDS_MORE = 1.18 -- VANILLA #2277
+EFF.T_NEEDS_LESS = 0.75 -- VANILLA #2276
+EFF.T_NEEDS_MORE = 1.18 -- VANILLA #2276
 -- The exertion at which the dehydration heat side applies (G).
 EFF.MET_EXERT = 3 -- MET: game choice, the formulas briefing G (open S1160)
 -- The days of protein data the 7-day ring must hold before the protein side is read.

@@ -69,7 +69,7 @@ K.effects.DEHYD_EDGES = {
     2.5, -- game choice curve knot (open S1121)
     3, -- game choice curve knot (open S1121)
     4, -- S0895 / S0706 / S0707 (the 4 % line)
-    6, -- the thirst level-4 region #0509
+    6, -- the fluids kernel's 6 % knot, game choice (open S1098); #0509 gives the thirst value at it
     10, -- severe dehydration (open S1101)
 }
 K.effects.EX_STEP = 7.5 -- minutes of exEma: a quarter of EX_FULL 30, game choice (open S1148)
@@ -115,7 +115,7 @@ K.effects.CAF_SLEEP_ZERO = 32.1 -- mg = 0.3 x 107: S0797 x S0793 (2^(-8.8/5) = 0
 
 -- The engine part of accrual (B3) and recovery (B4): vanilla's own factors, clamped.
 K.effects.END_FLOOR = 0.3 -- the endDef floor, VANILLA #2270
-K.effects.REST_DIV = 1.5 -- sitting or resting divides the accrual, VANILLA #2270
+K.effects.REST_DIV = 1.5 -- sitting or resting divides the accrual, VANILLA #2271
 K.effects.M_LO = 0.2 -- game choice clamp (open S1133)
 K.effects.M_HI = 5.0 -- game choice clamp (open S1133)
 K.effects.R_LO = 0.25 -- game choice clamp (open S1133)
