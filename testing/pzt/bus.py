@@ -133,3 +133,55 @@ class CommandBus:
                 raise RuntimeError(f"process exited while waiting for result '{name}'")
             time.sleep(0.25)
         raise TimeoutError(f"no result '{name}' within {timeout}s")
+
+
+# ---- the drivers' side (Plan 8 Task 1) ------------------------------------------------------
+
+class UnknownSide(KeyError):
+    """A side naming a client the run did not attach. A KeyError, so a caller that expects a
+    lookup miss catches it; printed as the sentence, not KeyError's quoted repr."""
+
+    def __str__(self):
+        return str(self.args[0]) if self.args else ""
+
+
+def _by_user(clients):
+    """`{user: node}` from either shape the harness holds: the ordered dict
+    `session.attach_clients` returns, or the list the run path keeps for its teardown."""
+    if not clients:
+        return {}
+    if isinstance(clients, dict):
+        return dict(clients)
+    return {c.username: c for c in clients}
+
+
+def resolve_side(side, server, clients):
+    """The node a driver's `side` names: `"server"`, `"client"`, `"client:<user>"`, or a node
+    passed through as it is.
+
+    The bare `"client"` is the `admin` client (the first attached client when admin is not
+    attached), so every driver and every `[[verify]]` row written before a run had two clients
+    reads exactly as it did (Plan 8 ruling 3). `"client:<user>"` is that user's client; a user
+    the run did not attach raises `UnknownSide` (a KeyError) naming the attached users. A node
+    (anything with `send`) is returned unchanged: the drivers before Plan 8 pass the server or
+    client object itself. Anything else is a ValueError, never a silent server.
+    """
+    from .paths import ADMIN_USER          # local: an import line up top would move line 119 (#1761)
+    if not isinstance(side, str):
+        if hasattr(side, "send"):
+            return side
+        raise ValueError(f"side {side!r}: expected server, client, client:<user> or a node")
+    if side == "server":
+        return server
+    nodes = _by_user(clients)
+    if side == "client":
+        if not nodes:
+            raise UnknownSide("side 'client': no client attached")
+        return nodes.get(ADMIN_USER) or next(iter(nodes.values()))
+    if side.startswith("client:") and side[len("client:"):]:
+        user = side[len("client:"):]
+        if user in nodes:
+            return nodes[user]
+        raise UnknownSide(f"side '{side}': no client '{user}' attached "
+                          f"(attached: {', '.join(nodes) or 'none'})")
+    raise ValueError(f"side '{side}': expected server, client or client:<user>")

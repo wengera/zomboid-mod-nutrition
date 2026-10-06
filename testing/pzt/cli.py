@@ -11,8 +11,8 @@ from . import spikes
 from .paths import ADMIN_PW, ADMIN_USER, PZ_DIR, new_run_dir
 from .profile import DEFAULTS as PROFILE_DEFAULTS
 from .server import Server
-from .session import (Timeline, check_mods_loaded, fault_reasons, hold, make_client, make_server,
-                      mark_profile, opt, profile_args, say, teardown, verify, write_report)
+from .session import (Timeline, attach_clients, check_mods_loaded, fault_reasons, hold, make_client,
+                      make_server, mark_profile, opt, profile_args, say, teardown, verify, write_report)
 
 
 # `run` and `scenario` take a profile; the other subparsers keep their plain --fixture default.
@@ -147,14 +147,14 @@ def cmd_run(a):
         check_mods_loaded(tl, server)   # raises: no client is paid for on a broken mod set
         if rec.get("build") and server.build and server.build != rec["build"]:
             tl.mark("build_mismatch", fixture=rec["build"], installed=server.build)
-        for user in users:
-            c, restored = make_client(run_dir, user, server, rec, safemode=opt(a, prof, "safemode"),
-                                      launcher=opt(a, prof, "launcher"))
-            c.start()
-            clients.append(c)
-            tl.mark("client_launch", user=user, restored=restored)
-            tl.mark("client_ready", user=user,
-                    took=c.wait_ready(timeout=opt(a, prof, "client_timeout")))
+        # Every listed client in turn, each ready before the next launches (Plan 8 Task 1);
+        # `clients` takes each one as it starts, so the teardown below still reaches a client
+        # whose wait raised. Each takes its debug flag from the fixture record (make_client).
+        attach_clients(run_dir, prof, server, rec, tl, users=users, started=clients,
+                       safemode=opt(a, prof, "safemode"), launcher=opt(a, prof, "launcher"),
+                       timeout=opt(a, prof, "client_timeout"),
+                       make_client=make_client)     # the CLI's own name: its tests stub it
+        # (a `[[verify]]` row's side is "server", "client" = admin, or "client:<user>")
         tl.mark("ping", server=server.send("ping"), **{c.username: c.send("ping") for c in clients})
         tl.mark("session_ready", clients=len(clients))
         # The profile's own probes: proof the mods took effect, which no amount of clean boot

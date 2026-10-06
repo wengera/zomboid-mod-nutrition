@@ -1,0 +1,19 @@
+# testing/profiles/two-smoke.toml - the Plan 8 Task 1 smoke test of the two-client fixture: PZTestKit alone on fixture
+# `two`, both provisioned clients attached in order (`admin` -debug, then `bob` release), each ready before the next
+# launches. The verify rows are load gates only, one per side: the server's TK.version, then the same global on the
+# bare `client` (which resolves to admin) and on `client:bob` - certain to pass if each client's harness answers its bus.
+fixture = "two"
+description = "PZTestKit alone on fixture two; admin (debug) and bob (release) both attached - the two-client smoke test."
+clients = ["admin", "bob"]
+run = { hold = 5 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = '"resolved": true' },
+  { side = "client:bob", cmd = "lua.global", args = "TK.version", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[client]
+timeout = 240

@@ -28,8 +28,8 @@ The schema, in full (every key optional; the defaults are the CLI's own):
     [sandbox.NR]                             # a mod's own options, validated against its
     Mode = 2                                 # media/sandbox-options.txt
 
-`[[verify]]` is read here and run by the caller (cli/scenario), which owns the bus.
-"""
+`[[verify]]` is read here and run by the caller (cli/scenario), which owns the bus. A top-level
+`clients = ["admin", "bob"]` (before any table) lists the fixture users to attach (_clients)."""
 import difflib
 import glob
 import os
@@ -47,7 +47,7 @@ PROFILES, REPO = os.path.join(TESTING, "profiles"), os.path.dirname(TESTING)
 # first in Mods= (load order is the ini's order).
 HARNESS_ID = "PZTestKit"
 
-TOP_KEYS = {"fixture", "description", "mods", "sandbox", "server", "client", "run", "verify"}
+TOP_KEYS = {"fixture", "description", "mods", "sandbox", "server", "client", "run", "verify", "clients"}
 MOD_KEYS = {"id", "workshop_id", "path", "copy"}
 SERVER_KEYS = {"timeout", "SleepAllowed", "SleepNeeded"}   # the last two are server-ini booleans
 CLIENT_KEYS = {"timeout", "users", "safemode", "launcher"}
@@ -338,9 +338,12 @@ def load(name):
         if not isinstance(v, dict) or not v.get("cmd"):
             raise ProfileError(f"profile '{name}': every verify entry needs a cmd, got {v!r}")
         _check_keys(f"profile '{name}' verify {v.get('cmd')}", v, VERIFY_KEYS)
-        if v.get("side", "server") not in ("server", "client"):
+        # `client:<user>` names one attached client (Plan 8 ruling 3); checked against the
+        # attached list below, once that list is settled.
+        if not (v.get("side", "server") in ("server", "client")
+                or str(v.get("side")).startswith("client:")):
             raise ProfileError(f"profile '{name}': verify {v['cmd']} side must be "
-                               f"server or client, got '{v['side']}'")
+                               f"server, client or client:<user>, got '{v['side']}'")
         if "expect" in v:
             # Matched as a substring of json.dumps(ack), so it has to BE a string, and an
             # un-stringed one is a TypeError raised mid-run with no verdict in the report.
@@ -367,10 +370,16 @@ def load(name):
         raise ProfileError(f"profile '{name}': [client] users = [] is not a server-only run -- "
                            "it would fall back to the fixture's own clients. Name the accounts "
                            "to attach, or leave `users` out for the default ('" + ADMIN_USER + "')")
+    users = _clients(name, doc, clt, fixture, rec)
+    for v in verify:
+        side = v.get("side", "server")
+        if side.startswith("client:") and side[len("client:"):] not in users:
+            raise ProfileError(f"profile '{name}': verify {v['cmd']} side '{side}' names a client "
+                               f"this profile does not attach (clients: {', '.join(users)})")
     prof = Profile(
         name=os.path.splitext(os.path.basename(path))[0], path=path, fixture=fixture,
         mods=mods, sources=sources, skip=tuple(skip), items=items, sandbox=sandbox,
-        users=list(clt.get("users") or [ADMIN_USER]), verify=verify,
+        users=users, verify=verify,
         hold=_int(name, "[run] hold", run.get("hold", DEFAULTS["hold"])),
         safemode=_bool(name, "[client] safemode", clt.get("safemode", DEFAULTS["safemode"])),
         launcher=launcher,
@@ -379,4 +388,36 @@ def load(name):
         description=doc.get("description", ""))
     # server-ini overrides (booleans, written verbatim by Server.seed); empty leaves the fixture's ini alone
     prof.ini = {k: _bool(name, f"[server] {k}", srv[k]) for k in ("SleepAllowed", "SleepNeeded") if k in srv}
+    prof.clients = list(users)             # the Plan 8 name for the same list (`users` kept)
     return prof
+
+
+def _clients(name, doc, clt, fixture, rec):
+    """The accounts a run attaches, in launch order (Plan 8 ruling 3).
+
+    The top-level `clients = ["admin", "bob"]` lists fixture users: each must be a client the
+    fixture provisioned (its record's `clients` map), because a user it never provisioned would
+    walk the creation screens inside a test run. The older `[client] users` spelling is kept as
+    it was (unchecked against the fixture); naming both is allowed only when they agree. With
+    neither, `["admin"]` -- every profile written before Plan 8 attaches exactly what it did.
+    """
+    users = clt.get("users")
+    if "clients" not in doc:
+        return list(users or [ADMIN_USER])
+    clients = doc["clients"]
+    if (not isinstance(clients, list) or not clients
+            or not all(isinstance(u, str) and u for u in clients)):
+        raise ProfileError(f"profile '{name}': clients must be a non-empty list of user names, "
+                           f"got {clients!r}")
+    if len(set(clients)) != len(clients):
+        raise ProfileError(f"profile '{name}': clients names a user twice: {clients!r}")
+    known = list((rec or {}).get("clients") or {})
+    unknown = [u for u in clients if u not in known]
+    if unknown:
+        raise ProfileError(f"profile '{name}': clients {', '.join(unknown)} not provisioned in fixture "
+                           f"'{fixture}' (its clients: {', '.join(known) or 'none'}); provision with "
+                           f"pzt provision --name {fixture} --clients {','.join(known + unknown)}")
+    if users is not None and list(users) != clients:
+        raise ProfileError(f"profile '{name}': clients {clients!r} and [client] users {users!r} "
+                           "disagree; keep one (clients is the Plan 8 key)")
+    return list(clients)

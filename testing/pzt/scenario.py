@@ -38,8 +38,8 @@ import traceback
 from . import fixture as fx
 from .bus import parse_ack
 from .paths import ADMIN_USER, new_run_dir
-from .session import (Timeline, check_mods_loaded, fault_reasons, make_client, make_server,
-                      mark_profile, opt, profile_args, say, teardown, verify, write_report)
+from .session import (Timeline, attach_clients, check_mods_loaded, fault_reasons, make_client,
+                      make_server, mark_profile, opt, profile_args, say, teardown, verify, write_report)
 
 # name -> function(result_doc) -> (ok: bool, detail: dict). Filled by the scenario evaluator
 # modules (slice 04 T3), which are imported at the bottom of this file.
@@ -136,13 +136,13 @@ def run(a):
         tl.mark("server_started", took=server.t_started, build=server.build)
         check_mods_loaded(tl, server)   # raises: a scenario on a mod that did not load is not
                                         # evidence, and the client is 35 s that need not be spent
-        c, restored = make_client(run_dir, a.user, server, rec, safemode=opt(a, prof, "safemode"),
-                                  launcher=opt(a, prof, "launcher"))
-        c.start()
-        clients.append(c)
-        tl.mark("client_launch", user=a.user, restored=restored)
-        tl.mark("client_ready", user=a.user,
-                took=c.wait_ready(timeout=opt(a, prof, "client_timeout")))
+        # The subject first, then every other client the profile lists, each ready before the
+        # next launches (Plan 8 Task 1); `clients` takes each as it starts, for the teardown.
+        users = [a.user] + [u for u in (prof.users if prof else []) if u != a.user]
+        c = attach_clients(run_dir, prof, server, rec, tl, users=users, started=clients,
+                           safemode=opt(a, prof, "safemode"), launcher=opt(a, prof, "launcher"),
+                           timeout=opt(a, prof, "client_timeout"),
+                           make_client=make_client)[a.user]    # the CLI's name: tests stub it
         # The profile's own probes, the same call `pzt run` makes, as soon as both sides are up.
         # A scenario writes a COMMITTED artifact, and until this ran the artifact could only
         # evidence that the profile's mods LOADED, never that they took effect -- which is the

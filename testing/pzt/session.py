@@ -6,7 +6,7 @@ import time
 
 from . import fixture as fx
 from . import profile
-from .bus import parse_ack
+from .bus import UnknownSide, parse_ack, resolve_side
 from .client import Client
 from .paths import ADMIN_PW, ADMIN_USER
 from .profile import DEFAULTS as PROFILE_DEFAULTS
@@ -222,10 +222,10 @@ def verify(prof, server, clients, tl):
     out = []
     for v in prof.verify:
         side = v.get("side", "server")
-        node = server if side == "server" else (clients[0] if clients else None)
+        node, why = verify_node(side, server, clients)     # "client" = admin; "client:<user>"
         if node is None:
-            tl.mark("verify", side=side, cmd=v["cmd"], ok=False, got="no client attached")
-            out.append({**v, "ok": False, "got": "no client attached"})
+            tl.mark("verify", side=side, cmd=v["cmd"], ok=False, got=why)
+            out.append({**v, "ok": False, "got": why})
             continue
         ok, val = parse_ack(node.send(v["cmd"], v.get("args", "")))
         passed = bool(ok) and str(v.get("expect", "")) in json.dumps(val)
@@ -290,3 +290,52 @@ def teardown(tl, server, clients):
     if server.alive:
         rc = server.stop()
         tl.mark("server_stopped", rc=rc, errors=len(server.errors))
+
+
+# ---- Plan 8 Task 1: more than one client --------------------------------------------------------
+# Appended at the end of the file: the claims register holds `repo:` pointers into this file by
+# line number, so new sites go here and the edits above keep every line where it was.
+
+def verify_node(side, server, clients):
+    """`(node, None)` for a `[[verify]]` row's side, or `(None, why)` when the side names no
+    attached node -- a verdict for the row, never a raise (the session is already paid for).
+    The pre-Plan-8 wording stays for a client row on a session with no client at all."""
+    try:
+        return resolve_side(side, server, clients), None
+    except UnknownSide as e:
+        return None, ("no client attached" if not clients else str(e))
+
+
+def attach_clients(run_dir, prof, server, rec, tl, users=None, started=None, safemode=None,
+                   launcher=None, timeout=None, make_client=None):
+    """Launch each listed user in turn and wait for each to be ready before the next is
+    launched (two clients booting together is unmeasured); return `{user: Client}` in order.
+
+    `users` defaults to the profile's own list (`clients`, default `["admin"]`), and without a
+    profile to the fixture's provisioned clients -- the lists `pzt run` always used. Each client
+    is built by `make_client` from the fixture record, so it takes the record's own `debug` flag
+    (fixture `two`: `admin` debug, `bob` release). `started` (a list) receives each client the
+    moment it is launched, so a caller's teardown still reaches one whose wait raised. The
+    three run settings fall back from the argument to the profile to `profile.DEFAULTS`.
+    `make_client` is injectable because the CLI's tests stub the CLI's own name.
+    """
+    make = make_client or globals()["make_client"]
+    if users is None:
+        users = list(prof.users) if prof is not None else list(rec["clients"])
+
+    def pick(given, name):
+        if given is not None:
+            return given
+        return getattr(prof, name) if prof is not None else PROFILE_DEFAULTS[name]
+    safemode, launcher = pick(safemode, "safemode"), pick(launcher, "launcher")
+    timeout = pick(timeout, "client_timeout")
+    out = {}
+    for user in users:
+        c, restored = make(run_dir, user, server, rec, safemode=safemode, launcher=launcher)
+        c.start()
+        out[user] = c
+        if started is not None:
+            started.append(c)
+        tl.mark("client_launch", user=user, restored=restored)
+        tl.mark("client_ready", user=user, took=c.wait_ready(timeout=timeout))
+    return out

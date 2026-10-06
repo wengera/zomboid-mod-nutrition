@@ -1,0 +1,37 @@
+{
+ "created": "2026-10-06T18:27:32",
+ "build": "42.20.4",
+ "game_dir": "D:\\SteamLibrary\\steamapps\\common\\ProjectZomboid",
+ "provision_run": "prov-20261006-182552",
+ "server": {
+  "name": "pzt",
+  "port": 27261,
+  "rcon_port": 27015,
+  "mods": [
+   "PZTestKit"
+  ],
+  "sandbox": {
+   "Zombies": "6"
+  },
+  "admin_user": "admin",
+  "admin_password": "pzt-admin-pw"
+ },
+ "clients": {
+  "admin": {
+   "password": "pzt-admin-pw",
+   "debug": true
+  },
+  "bob": {
+   "password": "bob-pw",
+   "debug": false
+  }
+ },
+ "timings": {
+  "server_start": 16.9,
+  "client_admin_ready": 35.3,
+  "client_bob_ready": 35.3
+ },
+ "boot_errors": [],
+ "name": "two",
+ "size_mb": 14.8
+}
