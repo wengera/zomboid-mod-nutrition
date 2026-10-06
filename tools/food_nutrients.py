@@ -1080,6 +1080,448 @@ def build_extract(map_dir=MAP_DIR, dataset_path=DATASET_JSON, out_path=EXTRACT_J
     return extract
 
 
+# ---- build ----
+#
+# Task 6. `build` writes data/food-nutrients.json and its CSV twin from four committed inputs only: the
+# dataset, the merged mapping, the extract and the three side tables (through check_map's referential
+# checks). It never opens the FDC zips: with them absent, check_map skips its two zip-backed checks and
+# the build still runs. One record per dataset id, `{"meta", "items", "fluids"}` as food-items.json.
+#
+# The vectors. `per_100g` is the composition source per 100 g in the contract's units: an SR Legacy
+# entry's amounts from the extract (the FDC unit converted by identity, `contract_unit`, which raises
+# on any other unit), with two keys FDC lacks filled from the side tables --
+#   iodine:  the iodine table's ug/100 g on a row with `iodine_ref`, else null (FDC has no iodine);
+#   phytate: on a `schlemmer2009:<family>` row, the table's mg/100 g DRY weight put on the as-eaten
+#            basis with the FDC entry's own water, `phytate = dry_mg_100g x (100 - water_g_100g) / 100`
+#            (wave 4a's conversion); `0.0` on a `zero:<family>` row; null otherwise (and null, with a
+#            note, where the entry carries no water);
+# and a literature row's vector read off the insect table by `literature_per_100g`. `per_item` (an item)
+# or `per_litre` (a fluid, ruling 7: `portion_grams` is the litre's mass) is `per_100g x portion_grams /
+# 100`, except two named overrides on a fluid's per-litre block, each written into `checks.notes`:
+#   ethanol: the fluid's `alcohol` property x 789 g/L (the game's property is the design input; the
+#            FDC value and the ratio go to the note);
+#   water:   SimpleSyrup's litre is 1230 g of which the 615 g portion is the sugar entry, so its water
+#            is 1230 - 615 g (FLUID_LITRE_GRAMS).
+# A record with no composition (a `no_nutrition_reason`) has basis `none`, an all-null `per_100g` and no
+# per-basis block.
+#
+# The checks never clamp; a value outside its range is NAMED in `checks.out_of_range` and kept. On
+# per_100g: the Atwater ratio (`atwater`, fibre-aware, ethanol at 7 kcal/g) against the entry's own
+# energy, an outlier outside +/-10 % (+/-25 % where fibre is null); the per-key sanity ranges; the
+# proximate sum water + proteins + lipids + carbs <= 102 g; fibre <= carbs; and every factor of the
+# row's cited retention code <= 100. `energy_vs_fdc_ratio` (the record's per-item or per-litre energy over
+# vanilla's calories) is informational: the re-base factor, banded in `meta.counts.rebase_factor_bands`.
+
+NUTRIENTS_JSON = os.path.join(REPO, "data", "food-nutrients.json")
+NUTRIENTS_CSV = os.path.join(REPO, "data", "food-nutrients.csv")
+
+# Per-100 g plausibility, (low, high) in the contract's unit; the Plan 6 briefing's table (section E)
+# with its hardest real case, and a judgement (marked) for the keys that table does not list.
+SANITY_RANGES = {
+    "calories": (0.0, 900.0),        # oils at 884
+    "proteins": (0.0, 90.0),         # gelatin / dried egg white ~88
+    "lipids": (0.0, 100.0),          # pure oil at 100
+    "carbs": (0.0, 100.0),           # sugar at 100
+    "fibre": (0.0, 80.0),            # wheat bran ~43; psyllium higher
+    "water": (0.0, 100.0),           # water + protein + fat + carb + ash ~ 100
+    "vitC": (0.0, 2000.0),           # acerola ~1 678 mg
+    "iron": (0.0, 130.0),            # fortified cereal; dried spirulina
+    "phytate": (0.0, 7000.0),        # judgement: maize germ 6 390 mg/100 g dry, the side table's highest
+    "retinol": (0.0, 20000.0),       # the vitamin A RAE row: beef liver ~9 440 ug; cod-liver oil higher
+    "carotene": (0.0, 30000.0),      # judgement: paprika ~26 000 ug beta-carotene, the spice tail
+    "vitD": (0.0, 250.0),            # cod-liver oil ~250 ug
+    "vitE": (0.0, 150.0),            # wheat-germ oil ~149 mg
+    "vitK": (0.0, 1800.0),           # parsley / dried basil ~1 700 ug
+    "thiamine": (0.0, 25.0),         # fortified cereal
+    "riboflavin": (0.0, 25.0),       # fortified cereal
+    "niacin": (0.0, 100.0),          # fortified cereal
+    "vitB6": (0.0, 25.0),            # fortified cereal
+    "folate": (0.0, 2500.0),         # fortified cereal; brewer's yeast
+    "vitB12": (0.0, 100.0),          # clams ~98.9 ug
+    "choline": (0.0, 1500.0),        # judgement: raw egg yolk ~820 mg, dried yolk higher
+    "sodium": (0.0, 40000.0),        # table salt ~38 800 mg
+    "potassium": (0.0, 20000.0),     # cream of tartar ~16 500 mg
+    "calcium": (0.0, 8000.0),        # dried basil / fortified
+    "magnesium": (0.0, 1000.0),      # rice bran ~781 mg
+    "zinc": (0.0, 100.0),            # oysters ~78 mg
+    "iodine": (0.0, 3000.0),         # dried kelp; the wide tail is real
+    "selenium": (0.0, 2000.0),       # Brazil nuts ~1 917 ug
+    "efa": (0.0, 100.0),             # judgement: the table's omega-3 row (0-60 g, flaxseed oil ~53 ALA)
+                                     # does not bound efa, which adds linoleic 18:2 (safflower oil ~75 g)
+    "caffeine": (0.0, 6000.0),       # judgement: instant coffee / tea powders, a few thousand mg
+    "ethanol": (0.0, 100.0),         # judgement: pure ethanol
+}
+ATWATER_BAND = 0.10              # the Atwater ratio's band where fibre is known (briefing section E)
+ATWATER_BAND_NO_FIBRE = 0.25     # ... and where fibre is null
+ATWATER_MIN_KCAL = 10.0          # below this per-100 g energy the ratio is computed but never flagged:
+                                 # FDC rounds a near-zero energy (coffee, tea at 1-2 kcal) to a whole kcal
+PROXIMATE_MAX = 102.0            # water + proteins + lipids + carbs, allowing ash and rounding
+RETENTION_MAX = 100              # a cited retention factor, percent
+ETHANOL_G_PER_L = 789            # g of ethanol in a litre at alcohol = 1.0 (ruling 7)
+FLUID_LITRE_GRAMS = {"SimpleSyrup": 1230.0}   # the mapping note's litre mass where portion_grams is a
+                                              # solute's mass, not the litre's (the 1:1 syrup)
+INSECT_DM_FRACTION = 0.30        # the dry-matter fraction of a fresh invertebrate with no measured
+                                 # moisture: a game choice (science row S1188, open)
+INSECT_NFE_PREFIXES = ("rumpold2013:",)   # the side-table keys whose carb cell is the nitrogen-free
+                                          # extract (fibre excluded); the others' cell includes fibre
+REBASE_BANDS = ((None, 0.5, "<0.5"), (0.5, 0.8, "0.5-0.8"), (0.8, 0.95, "0.8-0.95"),
+                (0.95, 1.05, "0.95-1.05"), (1.05, 1.25, "1.05-1.25"), (1.25, 2.0, "1.25-2.0"),
+                (2.0, None, ">2.0"))
+VANILLA_FIELDS = (("calories", "calories"), ("carbohydrates", "carbohydrates"), ("lipids", "lipids"),
+                  ("proteins", "proteins"), ("hunger", "hunger_change"), ("thirst", "thirst_change"))
+RECORD_STRINGS = ("family", "fdc_id", "fdc_source", "fdc_description", "confidence", "state_baseline",
+                  "portion_source", "iodine_ref", "phytate_source", "no_nutrition_reason", "notes")
+CSV_HEAD = ("pz_id", "kind", "basis", "family", "fdc_id", "fdc_source", "fdc_description", "confidence",
+            "state_baseline", "cook_retention_code", "portion_grams", "portion_source", "iodine_ref",
+            "phytate_source", "no_nutrition_reason")
+CSV_CHECKS = ("atwater_ratio", "atwater_outlier", "energy_vs_fdc_ratio", "proximate_sum", "fibre_le_carb",
+              "retention_le_100", "out_of_range", "check_notes")
+CSV_COLUMNS = (CSV_HEAD + tuple("vanilla_" + name for name, _col in VANILLA_FIELDS) + KEYS
+               + tuple("p100_" + k for k in KEYS) + CSV_CHECKS)
+
+
+class BuildRefused(ValueError):
+    """The build's refusal: the mapping does not check clean, or the extract does not hold a row the
+    mapping cites (re-run --build-extract)."""
+
+
+def _r6(value):
+    return None if value is None else round(value, 6)
+
+
+def _rel(path):
+    """A path as the meta records it: relative to the repository with `/`, or its basename outside it."""
+    full = os.path.abspath(path)
+    if full.startswith(REPO + os.sep):
+        return os.path.relpath(full, REPO).replace(os.sep, "/")
+    return os.path.basename(full)
+
+
+def literature_per_100g(cells):
+    """A literature row's per-100 g fresh vector from its side-table cells (as the extract carries them):
+    each dry-matter value x the dry-matter fraction f, where f = (100 - moisture_pct) / 100 when the source
+    measured moisture, else INSECT_DM_FRACTION (0.30, a game choice), and f = 1 on a `fresh` basis. Keys:
+    proteins, lipids, fibre, water (100 - 100 f on dry matter; the moisture cell on a fresh basis), carbs
+    in FDC's by-difference convention (fibre included: the carb cell plus fibre where the cell is the
+    nitrogen-free extract, INSECT_NFE_PREFIXES' rows; the cell itself where it includes fibre; 100 - protein
+    - fat - ash where it is empty), and calories (the energy cell, or where empty `4 P + 9 F + 4 C`, C the
+    carb cell or by difference after fibre and ash -- the sum the side table's notes computed and the
+    mapping's portions rest on). Every other key is null."""
+    key = cells.get("_key", "")
+    protein, fat, fibre = cells["protein_g_100g"], cells["fat_g_100g"], cells["fibre_g_100g"]
+    carb, ash, energy, moisture = (cells["carb_g_100g"], cells["ash_g_100g"], cells["energy_kcal_100g"],
+                                   cells["moisture_pct"])
+    if cells["basis"] == "fresh":
+        frac, water = 1.0, moisture
+    else:
+        frac = (100.0 - moisture) / 100.0 if moisture is not None else INSECT_DM_FRACTION
+        water = 100.0 - 100.0 * frac
+    if carb is None:
+        carbs_dm = 100.0 - _zero(protein) - _zero(fat) - _zero(ash)
+        energy_carb = carbs_dm - _zero(fibre)
+    else:
+        carbs_dm = carb + _zero(fibre) if key.startswith(INSECT_NFE_PREFIXES) else carb
+        energy_carb = carb
+    if energy is None:
+        energy = 4.0 * _zero(protein) + 9.0 * _zero(fat) + 4.0 * energy_carb
+    out = dict.fromkeys(KEYS)
+    out.update(calories=energy * frac, proteins=None if protein is None else protein * frac,
+               lipids=None if fat is None else fat * frac, fibre=None if fibre is None else fibre * frac,
+               carbs=carbs_dm * frac, water=water)
+    return {k: _r6(v) for k, v in out.items()}
+
+
+def sr_per_100g(food, row, extract, notes):
+    """An SR Legacy row's per-100 g vector: the extract's amounts by identity unit, iodine and phytate
+    from the side tables (the module comment's rules). Appends a note where the phytate cannot convert
+    or differs from the mapping's own `phytate_mg_100g` cell by more than its 0.1 rounding."""
+    out = dict.fromkeys(KEYS)
+    for key, cell in food["nutrients"].items():
+        if cell["amount"] is not None:
+            contract_unit(key, cell["unit"])
+            out[key] = cell["amount"]
+    if row["iodine_ref"]:
+        out["iodine"] = extract["iodine"][row["iodine_ref"][len(IODINE_PREFIX):]]["iodine_ug_100g"]
+    src = row["phytate_source"]
+    if src.startswith(PHYTATE_ZERO_PREFIX):
+        out["phytate"] = 0.0
+    elif src.startswith(PHYTATE_LIT_PREFIX):
+        dry = extract["phytate"][src[len(PHYTATE_LIT_PREFIX):]]["phytate_mg_100g"]
+        if out["water"] is None:
+            notes.append("phytate: %s is %s mg/100 g dry weight and the entry carries no water; null"
+                         % (src, food_scan._cell(dry)))
+        else:
+            out["phytate"] = _r6(dry * (100.0 - out["water"]) / 100.0)
+            cell = row["phytate_mg_100g"]
+            if cell and abs(float(cell) - out["phytate"]) > 0.05 + 1e-9:
+                notes.append("phytate: %s mg/100 g as eaten against the mapping cell %s" % (out["phytate"], cell))
+    return out
+
+
+def record_checks(per_100g, factors=None):
+    """The per_100g checks, never clamping: `{atwater_ratio, atwater_outlier, proximate_sum, fibre_le_carb,
+    retention_le_100, out_of_range, notes}`. `factors` is the cited retention code's `{nutr_no: pct}`, or
+    None where the row cites none. A check whose inputs are null reads null."""
+    notes, cal = [], per_100g.get("calories")
+    ratio = outlier = None
+    if cal and any(per_100g.get(k) is not None for k in ("carbs", "lipids", "proteins")):
+        ratio = round(atwater(per_100g) / cal, 4)
+        band = ATWATER_BAND if fibre_known(per_100g) else ATWATER_BAND_NO_FIBRE
+        outlier = abs(ratio - 1.0) > band and cal >= ATWATER_MIN_KCAL
+        if outlier:
+            notes.append("atwater: %s kcal from the macros against %s, ratio %s outside +/-%d %%"
+                         % (_r6(atwater(per_100g)), food_scan._cell(cal), ratio, round(band * 100)))
+    proximate = None
+    parts = [per_100g.get(k) for k in ("water", "proteins", "lipids", "carbs")]
+    if all(v is not None for v in parts):
+        proximate = _r6(sum(parts))
+        if proximate > PROXIMATE_MAX:
+            notes.append("proximate: water + proteins + lipids + carbs = %s g > %s" % (proximate, PROXIMATE_MAX))
+    fibre, carbs = per_100g.get("fibre"), per_100g.get("carbs")
+    fibre_le_carb = None if fibre is None or carbs is None else fibre <= carbs
+    if fibre_le_carb is False:
+        notes.append("fibre %s g > carbs %s g" % (fibre, carbs))
+    retention_ok = None
+    if factors is not None:
+        over = sorted((int(n), pct) for n, pct in factors.items() if pct > RETENTION_MAX)
+        retention_ok = not over
+        for nbr, pct in over:
+            notes.append("retention: factor %d %% on nutrient %d > %d" % (pct, nbr, RETENTION_MAX))
+    out_of_range = []
+    for key in KEYS:
+        value = per_100g.get(key)
+        low, high = SANITY_RANGES[key]
+        if value is not None and not low <= value <= high:
+            out_of_range.append(key)
+            notes.append("range: %s %s %s/100 g outside %s-%s" % (key, food_scan._cell(value), UNIT_OF[key],
+                                                                  food_scan._cell(low), food_scan._cell(high)))
+    return {"atwater_ratio": ratio, "atwater_outlier": outlier, "proximate_sum": proximate,
+            "fibre_le_carb": fibre_le_carb, "retention_le_100": retention_ok, "out_of_range": out_of_range,
+            "notes": notes}
+
+
+def rebase_band(ratio):
+    """The REBASE_BANDS label of an energy_vs_fdc_ratio, `none` for a null ratio; bands are [low, high)."""
+    if ratio is None:
+        return "none"
+    for low, high, label in REBASE_BANDS:
+        if (low is None or ratio >= low) and (high is None or ratio < high):
+            return label
+
+
+def _alcohol(record):
+    raw = (record.get("properties_raw") or {}).get("alcohol")
+    return None if raw in (None, "") else raw
+
+
+def build_record(row, record, extract):
+    """One output record for a mapping row and its dataset record (the module comment's rules)."""
+    kind = record["kind"]
+    out = {"pz_id": row["pz_id"], "kind": kind}
+    for col in RECORD_STRINGS:
+        out[col] = row[col] or None
+    out["cook_retention_code"] = int(row["cook_retention_code"]) if row["cook_retention_code"] else None
+    out["portion_grams"] = float(row["portion_grams"]) if row["portion_grams"] else None
+    out["vanilla"] = {name: record.get(col) for name, col in VANILLA_FIELDS}
+    notes = []
+    if not row["fdc_id"]:
+        out["basis"] = "none"
+        out["per_100g"] = dict.fromkeys(KEYS)
+        checks = record_checks(out["per_100g"])
+        checks["energy_vs_fdc_ratio"] = None
+        out["checks"] = checks
+        return out
+    basis = "per_litre" if kind == "fluid" else "per_item"
+    out["basis"] = basis
+    if row["fdc_source"] == "literature":
+        cells = dict(extract["insects"][row["fdc_id"]], _key=row["fdc_id"])
+        per_100g = literature_per_100g(cells)
+    else:
+        per_100g = sr_per_100g(extract["foods"][row["fdc_id"]], row, extract, notes)
+    out["per_100g"] = per_100g
+    grams = out["portion_grams"]
+    block = {k: (None if v is None else _r6(v * grams / 100.0)) for k, v in per_100g.items()}
+    if basis == "per_litre":
+        alcohol = _alcohol(record)
+        if alcohol is not None:
+            grams_l = float(decimal.Decimal(alcohol) * ETHANOL_G_PER_L)
+            fdc = block["ethanol"]
+            given = "no value" if fdc is None else "%s g" % food_scan._cell(fdc)
+            ratio = "" if not fdc else ", ratio %s" % round(grams_l / fdc, 4)
+            notes.append("ethanol: per_litre %s g from the alcohol property %s x %d; the FDC entry gives %s%s"
+                         % (food_scan._cell(grams_l), alcohol, ETHANOL_G_PER_L, given, ratio))
+            block["ethanol"] = grams_l
+        litre = FLUID_LITRE_GRAMS.get(row["pz_id"])
+        if litre is not None:
+            water = _r6(litre - grams)
+            notes.append("water: per_litre %s g = the litre's %s g - the %s g portion; the entry gives %s g"
+                         % (food_scan._cell(water), food_scan._cell(litre), food_scan._cell(grams),
+                            food_scan._cell(block["water"])))
+            block["water"] = water
+    out[basis] = block
+    factors = None
+    if out["cook_retention_code"] is not None:
+        factors = extract["retention"][str(out["cook_retention_code"])]["factors"]
+    checks = record_checks(per_100g, factors)
+    checks["notes"] = notes + checks["notes"]
+    vanilla_kcal = out["vanilla"]["calories"]
+    energy = block["calories"]
+    checks["energy_vs_fdc_ratio"] = (round(energy / vanilla_kcal, 4)
+                                     if vanilla_kcal and energy is not None else None)
+    out["checks"] = checks
+    return out
+
+
+def _stale(rows, extract):
+    """The mapping citations the extract does not hold (each a refusal line)."""
+    out = []
+    for r in rows:
+        if r["fdc_source"] == "sr_legacy" and r["fdc_id"] and r["fdc_id"] not in extract["foods"]:
+            out.append("%s: sr_legacy %s" % (r["pz_id"], r["fdc_id"]))
+        if r["fdc_source"] == "literature" and r["fdc_id"] and r["fdc_id"] not in extract["insects"]:
+            out.append("%s: literature %s" % (r["pz_id"], r["fdc_id"]))
+        if r["cook_retention_code"] and r["cook_retention_code"] not in extract["retention"]:
+            out.append("%s: retention code %s" % (r["pz_id"], r["cook_retention_code"]))
+        if r["iodine_ref"] and r["iodine_ref"][len(IODINE_PREFIX):] not in extract["iodine"]:
+            out.append("%s: %s" % (r["pz_id"], r["iodine_ref"]))
+        src = r["phytate_source"]
+        if src.startswith(PHYTATE_LIT_PREFIX) and src[len(PHYTATE_LIT_PREFIX):] not in extract["phytate"]:
+            out.append("%s: %s" % (r["pz_id"], src))
+    unsupported = sorted({r["fdc_source"] for r in rows if r["fdc_id"]} - set(EXTRACT_SOURCES))
+    out += ["fdc_source %s: the build resolves only %s" % (s, ", ".join(EXTRACT_SOURCES)) for s in unsupported]
+    return out
+
+
+def _table_rows(name):
+    with open(REF_SOURCES[name], encoding="utf-8", newline="") as handle:
+        return sum(1 for _row in csv.DictReader(handle))
+
+
+def build_counts(records, rows, check_counts, dataset_ids):
+    """`meta.counts`, every counter the build computed."""
+    mapped = [r for r in records if r["basis"] != "none"]
+    seen = {r["pz_id"] for r in rows}
+    portion = _tally((r["portion_source"] or "").split(":")[0] for r in mapped)
+    out_of_range = dict((k, sum(1 for r in mapped if k in r["checks"]["out_of_range"])) for k in KEYS)
+    bands = dict((label, 0) for _lo, _hi, label in REBASE_BANDS)
+    bands["none"] = 0
+    for r in mapped:
+        bands[rebase_band(r["checks"]["energy_vs_fdc_ratio"])] += 1
+    return {
+        "items": sum(1 for r in records if r["kind"] != "fluid"),
+        "fluids": sum(1 for r in records if r["kind"] == "fluid"),
+        "by_kind": _tally(r["kind"] for r in records),
+        "by_basis": _tally(r["basis"] for r in records),
+        "mapped": len(mapped),
+        "no_nutrition": sum(1 for r in records if r["no_nutrition_reason"]),
+        "by_confidence": _tally(r["confidence"] for r in mapped),
+        "by_fdc_source": _tally(r["fdc_source"] for r in mapped),
+        "by_state_baseline": _tally(r["state_baseline"] for r in mapped),
+        "by_reason": _tally(r["no_nutrition_reason"] for r in records),
+        "by_portion_source": portion,
+        "cook_retention_set": sum(1 for r in records if r["cook_retention_code"] is not None),
+        "cookable_without_code": check_counts["cookable_without_code"],
+        "atwater_checked": sum(1 for r in mapped if r["checks"]["atwater_ratio"] is not None),
+        "atwater_outliers": sum(1 for r in mapped if r["checks"]["atwater_outlier"]),
+        "atwater_outlier_ids": sorted(r["pz_id"] for r in mapped if r["checks"]["atwater_outlier"]),
+        "out_of_range": out_of_range,
+        "out_of_range_records": sum(1 for r in mapped if r["checks"]["out_of_range"]),
+        "proximate_over_102": sum(1 for r in mapped if (r["checks"]["proximate_sum"] or 0) > PROXIMATE_MAX),
+        "fibre_over_carbs": sum(1 for r in mapped if r["checks"]["fibre_le_carb"] is False),
+        "retention_over_100": sum(1 for r in mapped if r["checks"]["retention_le_100"] is False),
+        "rebase_factor_bands": bands,
+        "guesses": sorted(r["pz_id"] for r in records if r["confidence"] == "guess"),
+        "unmapped": sorted(i for i in dataset_ids if i not in seen),
+        "orphan_mappings": sorted(i for i in seen if i not in dataset_ids),
+    }
+
+
+def write_nutrients_csv(path, records):
+    """The flat twin: one row per record (items then fluids, as the JSON), CSV_COLUMNS, the per-basis
+    block under the bare key names (the `basis` column says which), `per_100g` under `p100_`, a null as
+    the empty string, lists joined by `;`; LF, no stamp row. The mapping's free-text `notes` stays in the
+    JSON; `check_notes` joins the checks' notes by ` | `."""
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        writer = csv.writer(handle, quoting=csv.QUOTE_MINIMAL, lineterminator="\n")
+        writer.writerow(CSV_COLUMNS)
+        for rec in records:
+            block = rec.get(rec["basis"]) or {}
+            checks = rec["checks"]
+            row = [rec[c] for c in CSV_HEAD] + [rec["vanilla"][name] for name, _col in VANILLA_FIELDS]
+            row += [block.get(k) for k in KEYS] + [rec["per_100g"][k] for k in KEYS]
+            row += [checks[c] for c in CSV_CHECKS[:-1]] + [" | ".join(checks["notes"]) or None]
+            writer.writerow([food_scan._cell(v) for v in row])
+
+
+def build(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON, out_json=NUTRIENTS_JSON,
+          out_csv=NUTRIENTS_CSV, out=None):
+    """Write data/food-nutrients.json and .csv; return the output. Refuses (BuildRefused, nothing written)
+    unless check_map is clean without --allow-unfilled (the guess budget and the notes on a guess among
+    its rules), every proxy carries notes, every mapped row has portion_grams, and the extract holds every
+    citation. Reads no FDC zip.
+    Byte-stable within one UTC day: sorted keys, indent 1, LF."""
+    out = sys.stdout if out is None else out
+    counts = check_map(map_dir, dataset_path, allow_unfilled=False, out=io.StringIO())
+    refusals = list(counts["violations"])
+    rows, _errors = read_map(map_dir)
+    refusals += ["%s %s: a proxy without notes" % (_where(r), r["pz_id"])
+                 for r in rows if r["confidence"] == "proxy" and not r["notes"].strip()]
+    refusals += ["%s %s: an fdc_id without portion_grams" % (_where(r), r["pz_id"])
+                 for r in rows if r["fdc_id"] and not r["portion_grams"]]
+    guesses = [r["pz_id"] for r in rows if r["confidence"] == "guess"]
+    if len(guesses) > GUESS_BUDGET:
+        refusals.append("guess budget: %d guess rows, the budget is %d" % (len(guesses), GUESS_BUDGET))
+    if refusals:
+        raise BuildRefused("the mapping does not check clean (%d violation(s)); the first: %s"
+                           % (len(refusals), "; ".join(refusals[:5])))
+    with open(extract_path, encoding="utf-8") as handle:
+        extract = json.load(handle)
+    stale = _stale(rows, extract)
+    if stale:
+        raise BuildRefused("the extract does not hold %d citation(s) (re-run --build-extract): %s"
+                           % (len(stale), "; ".join(stale[:5])))
+    with open(dataset_path, encoding="utf-8") as handle:
+        dataset = json.load(handle)
+    records = load_dataset(dataset_path)
+    by_id = {r["pz_id"]: r for r in rows}
+    items = [build_record(by_id[pz_id], records[pz_id], extract)
+             for pz_id in sorted(records) if records[pz_id]["kind"] != "fluid"]
+    fluids = [build_record(by_id[pz_id], records[pz_id], extract)
+              for pz_id in sorted(records) if records[pz_id]["kind"] == "fluid"]
+    ext_meta = extract["meta"]
+    ext_counts = {k: v for k, v in ext_meta["counts"].items() if k != "missing_nutrients"}
+    ext_counts["missing_nutrients"] = {k: len(v) for k, v in ext_meta["counts"]["missing_nutrients"].items()}
+    parts = {}
+    for r in rows:
+        parts[r["_part"] + ".csv"] = parts.get(r["_part"] + ".csv", 0) + 1
+    meta = {
+        "build": food_scan.BUILD,
+        "jar_hash": food_scan.JAR_HASH,
+        "generated": datetime.datetime.now(datetime.timezone.utc).date().isoformat(),
+        "tool": "tools/food_nutrients.py",
+        "sources": ext_meta["sources"],
+        "inputs": {
+            "dataset": {"path": _rel(dataset_path), "generated": (dataset.get("meta") or {}).get("generated"),
+                        "build": (dataset.get("meta") or {}).get("build")},
+            "mapping": {"path": _rel(map_dir), "rows": len(rows), "parts": dict(sorted(parts.items()))},
+            "extract": {"path": _rel(extract_path), "generated": ext_meta.get("generated"), "counts": ext_counts},
+            "side_tables": {name: {"path": _rel(REF_SOURCES[name]), "rows": _table_rows(name)}
+                            for name in ("insects", "iodine", "phytate")},
+        },
+        "counts": build_counts(items + fluids, rows, counts, set(records)),
+    }
+    result = {"meta": meta, "items": items, "fluids": fluids}
+    text = json.dumps(result, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
+    with open(out_json, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
+    write_nutrients_csv(out_csv, items + fluids)
+    c = meta["counts"]
+    print("%d items, %d fluids, %d mapped, %d no_nutrition; %d Atwater outliers, %d out-of-range records -> %s "
+          "(%d bytes), %s" % (c["items"], c["fluids"], c["mapped"], c["no_nutrition"], c["atwater_outliers"],
+                               c["out_of_range_records"], out_json, len(text.encode("utf-8")), out_csv), file=out)
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="The item-pass pipeline: vanilla foods joined to FDC SR Legacy nutrient vectors "
@@ -1099,7 +1541,14 @@ def main(argv=None):
     parser.add_argument("--build-extract", action="store_true",
                         help="write data/fdc-extract.json from the mapping, the FDC files and the side "
                              "tables; refuses unless --check-map is clean")
-    parser.add_argument("--extract", default=EXTRACT_JSON, help="with --build-extract: the output path")
+    parser.add_argument("--extract", default=EXTRACT_JSON,
+                        help="the extract: written by --build-extract, read by --build")
+    parser.add_argument("--build", action="store_true",
+                        help="write data/food-nutrients.json and .csv from the dataset, the mapping, the "
+                             "extract and the side tables (never the FDC zips); refuses unless the mapping "
+                             "checks clean and the extract holds every citation")
+    parser.add_argument("--out-json", default=NUTRIENTS_JSON, help="with --build: the JSON path")
+    parser.add_argument("--out-csv", default=NUTRIENTS_CSV, help="with --build: the CSV path")
     parser.add_argument("--map-dir", default=MAP_DIR, help="the mapping directory")
     parser.add_argument("--dataset", default=DATASET_JSON, help="the food dataset JSON")
     args = parser.parse_args(argv)
@@ -1114,6 +1563,13 @@ def main(argv=None):
         try:
             build_extract(args.map_dir, args.dataset, args.extract)
         except ExtractRefused as refused:
+            print("REFUSED " + str(refused), file=sys.stderr)
+            return 1
+        return 0
+    if args.build:
+        try:
+            build(args.map_dir, args.dataset, args.extract, args.out_json, args.out_csv)
+        except BuildRefused as refused:
             print("REFUSED " + str(refused), file=sys.stderr)
             return 1
         return 0

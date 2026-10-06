@@ -30,6 +30,74 @@ script does not write has no value in this dataset.
 - **Per litre, not per item:** [`datasets.md#columns`](../docs/reference/datasets.md#columns); the drink probe that measured it, [`datasets.md#fidelity-links`](../docs/reference/datasets.md#fidelity-links).
 - **JSON:** [`datasets.md#schemas`](../docs/reference/datasets.md#schemas).
 
+## food-nutrients
+
+`data/food-nutrients.json` + `data/food-nutrients.csv`, written by
+`python tools/food_nutrients.py --build` (Plan 6) from four committed inputs
+and nothing else: `data/food-items.json`, the mapping
+`data/food-nutrient-map/*.csv`, the extract `data/fdc-extract.json` and the
+three side tables (`iodine-db-r4.csv`, `phytate-literature.csv`,
+`insect-literature.csv`). It never opens the FDC zips under `tools/.fdc/`,
+so a fresh clone rebuilds it. It refuses, writing nothing, unless
+`--check-map` is clean, every `proxy` carries `notes`, every mapped row has
+`portion_grams` and the extract holds every citation (else re-run
+`--build-extract`).
+
+`{"meta": {...}, "items": [...], "fluids": [...]}`, one record per dataset id
+(items and fluids each sorted by id), `indent=1`, sorted keys, LF, byte-stable
+within one UTC day (`meta.generated` is the UTC date).
+
+**The record.** The mapping's cells (`family`, `fdc_id` as a string,
+`fdc_source`, `fdc_description`, `confidence`, `state_baseline`,
+`cook_retention_code` as an integer, `portion_grams`, `portion_source`,
+`iodine_ref`, `phytate_source`, `no_nutrition_reason`, `notes`; an empty cell
+is `null`), `kind`, and:
+
+- `basis` — `per_item` (an item), `per_litre` (a fluid) or `none` (a
+  `no_nutrition_reason` record, which carries no per-basis block);
+- `per_100g` — the 31 `K.vector.KEYS` per 100 g in the units of
+  `NR.data.UNITS` (`NR_Data_Nutrients.lua`): the SR Legacy amounts by identity
+  unit, `iodine` from the iodine table, `phytate` the phytate table's dry-weight
+  value × (100 − the entry's water) / 100 (`0` on a `zero:` row), or a
+  literature row's dry matter × its dry-matter fraction; all `null` on a `none`
+  record;
+- `per_item` or `per_litre` — the same 31 keys, `per_100g × portion_grams / 100`
+  (a fluid's `portion_grams` is the litre's mass), save two overrides named in
+  `checks.notes`: a fluid's `ethanol` is its `alcohol` property × 789 g/L, and
+  SimpleSyrup's `water` is its 1230 g litre less the 615 g of sugar;
+- `vanilla` — the dataset's `calories`, `carbohydrates`, `lipids`, `proteins`,
+  `hunger` and `thirst`, `null` where absent;
+- `checks` — on `per_100g`, never clamping: `atwater_ratio` (fibre-aware
+  4/2/4/9 plus 7 kcal/g ethanol over the entry's energy) and `atwater_outlier`
+  (outside ±10 %, ±25 % where fibre is null, never flagged under 10 kcal),
+  `proximate_sum` (water + proteins + lipids + carbs; over 102 is noted),
+  `fibre_le_carb`, `retention_le_100` (every factor of the cited code; `null`
+  with no code), `out_of_range` (the keys outside the tool's `SANITY_RANGES`),
+  `energy_vs_fdc_ratio` (the per-basis energy over vanilla's calories, the
+  re-base factor; `null` where vanilla has no positive calories) and `notes`.
+
+Absence is `null` and never `0`, as in food-items.
+
+**`meta`:** `build`, `jar_hash`, `generated`, `tool`, `sources` (the extract's,
+with their sha256), `inputs` (the dataset's date and build, the mapping's
+parts and row counts, the extract's date and counts, the side tables' row
+counts) and `counts` — `items`, `fluids`, `by_kind`, `by_basis`, `mapped`,
+`no_nutrition`, `by_confidence`, `by_fdc_source`, `by_state_baseline`,
+`by_reason`, `by_portion_source` (`fdc_portion:<n>` counted as `fdc_portion`),
+`cook_retention_set`, `cookable_without_code`, `atwater_checked`,
+`atwater_outliers` with `atwater_outlier_ids`, `out_of_range` (per key) and
+`out_of_range_records`, `proximate_over_102`, `fibre_over_carbs`,
+`retention_over_100`, `rebase_factor_bands` (`<0.5`, `0.5-0.8`, `0.8-0.95`,
+`0.95-1.05`, `1.05-1.25`, `1.25-2.0`, `>2.0`, `none`; lower bound inclusive),
+`guesses` (the ids), `unmapped` and `orphan_mappings` (both `[]`).
+
+**The CSV twin:** one row per record in the JSON's order, no stamp row. The
+columns are the record's cells, `vanilla_<name>`, then the 31 per-basis values
+under the bare key names (the `basis` column says per item or per litre), then
+`p100_<key>` for `per_100g`, then the checks (`out_of_range` joined by `;`,
+`check_notes` joined by ` | `). The mapping's free-text `notes` stays in the
+JSON. Empty string for `null`, `true`/`false` for a boolean.
+
 ## recipes
 
 `data/recipes.json` + `data/recipes.csv`, written by

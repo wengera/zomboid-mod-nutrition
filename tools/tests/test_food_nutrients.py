@@ -1,4 +1,5 @@
-"""Tests for the FDC join core (tools/food_nutrients.py, Plan 6 Task 2).
+"""Tests for tools/food_nutrients.py (Plan 6): the FDC join core (Task 2), the mapping (Task 3), the
+extract (Task 5) and the output with its checks (Task 6).
 
 The CSV fixtures are quoted verbatim from the SR Legacy zip
 (`tools/.fdc/FoodData_Central_sr_legacy_food_csv_2018-04.zip`, sha256 b8081729...6e5c2081643e6fd0;
@@ -1153,6 +1154,488 @@ class RealExtractTest(unittest.TestCase):
         for key, ids in counts["missing_nutrients"].items():
             for fid in ids:
                 self.assertIsNone(self.extract["foods"][str(fid)]["nutrients"][key]["amount"])
+
+
+# ---- build ----
+
+def _fluid(pz_id, macros=(None, None, None, None), alcohol=None, hunger=None, thirst=None):
+    cal, carb, lip, pro = macros
+    props = {} if alcohol is None else {"alcohol": alcohol}
+    return {"id": pz_id, "kind": "fluid", "display_name": pz_id, "calories": cal, "carbohydrates": carb,
+            "lipids": lip, "proteins": pro, "hunger_change": hunger, "thirst_change": thirst,
+            "properties_raw": props}
+
+
+BUILD_DATA = {"meta": {"build": "42.20.4", "generated": "2026-09-10"},
+              "items": EXTRACT_DATA["items"],
+              "fluids": [_fluid("Beer", (500.0, 36.0, 0.0, 4.0), alcohol="0.05", hunger=-10.0, thirst=-20.0),
+                         _fluid("SimpleSyrup", (0.0, 0.0, 0.0, 0.0), thirst=-30.0),
+                         _fluid("Water", thirst=-50.0)]}
+
+# the record keys every output record carries (the per-basis block apart)
+RECORD_KEYS = {"pz_id", "kind", "basis", "family", "fdc_id", "fdc_source", "fdc_description", "confidence",
+               "state_baseline", "cook_retention_code", "portion_grams", "portion_source", "iodine_ref",
+               "phytate_source", "no_nutrition_reason", "notes", "per_100g", "vanilla", "checks"}
+CHECK_KEYS = {"atwater_ratio", "atwater_outlier", "energy_vs_fdc_ratio", "proximate_sum", "fibre_le_carb",
+              "retention_le_100", "out_of_range", "notes"}
+
+
+def _overridden(rec, record):
+    """The per-basis keys the build sets apart from per_100g x portion / 100 (the two fluid overrides)."""
+    keys = set()
+    if rec["basis"] == "per_litre":
+        if (record.get("properties_raw") or {}).get("alcohol") not in (None, ""):
+            keys.add("ethanol")
+        if rec["pz_id"] in fn.FLUID_LITRE_GRAMS:
+            keys.add("water")
+    return keys
+
+
+class OutputShape(object):
+    """The assertions a built output must pass, run on the fixture's and on the committed file."""
+
+    def assert_shape(self, result, records):
+        every = result["items"] + result["fluids"]
+        self.assertEqual([r["pz_id"] for r in result["items"]], sorted(r["pz_id"] for r in result["items"]))
+        self.assertEqual([r["pz_id"] for r in result["fluids"]], sorted(r["pz_id"] for r in result["fluids"]))
+        self.assertEqual(sorted(r["pz_id"] for r in every), sorted(records))          # every id, once
+        for rec in every:
+            block = {"per_item": "per_item", "per_litre": "per_litre", "none": None}[rec["basis"]]
+            want = RECORD_KEYS | ({block} if block else set())
+            self.assertEqual(set(rec), want, rec["pz_id"])
+            self.assertEqual(set(rec["per_100g"]), set(fn.KEYS), rec["pz_id"])
+            self.assertEqual(set(rec["checks"]), CHECK_KEYS, rec["pz_id"])
+            self.assertEqual(set(rec["vanilla"]), {"calories", "carbohydrates", "lipids", "proteins",
+                                                   "hunger", "thirst"})
+            # the basis is never mixed: a fluid is per litre, an item per item, a none record neither
+            if rec["basis"] == "none":
+                self.assertIsNone(rec["fdc_id"])
+                self.assertIsNotNone(rec["no_nutrition_reason"])
+                self.assertTrue(all(v is None for v in rec["per_100g"].values()))
+            else:
+                self.assertEqual(rec["basis"], "per_litre" if rec["kind"] == "fluid" else "per_item")
+                self.assertNotIn("per_item" if rec["basis"] == "per_litre" else "per_litre", rec)
+                self.assertEqual(set(rec[block]), set(fn.KEYS))
+                for k in fn.KEYS:      # null is never 0: a null per 100 g stays null per item
+                    if rec["per_100g"][k] is None and k not in _overridden(rec, records[rec["pz_id"]]):
+                        self.assertIsNone(rec[block][k], (rec["pz_id"], k))
+            for cell in ("fdc_id", "fdc_source", "confidence", "notes", "iodine_ref"):
+                self.assertNotEqual(rec[cell], "", (rec["pz_id"], cell))      # empty is null
+        self.assertTrue(all(r["kind"] == "fluid" for r in result["fluids"]))
+        self.assertTrue(all(r["kind"] != "fluid" for r in result["items"]))
+
+    def assert_round_trip(self, result, records):
+        for rec in result["items"] + result["fluids"]:
+            if rec["basis"] == "none":
+                continue
+            block, grams = rec[rec["basis"]], rec["portion_grams"]
+            for k in set(fn.KEYS) - _overridden(rec, records[rec["pz_id"]]):
+                if rec["per_100g"][k] is not None:
+                    self.assertAlmostEqual(block[k], rec["per_100g"][k] * grams / 100.0, delta=1e-6,
+                                           msg=(rec["pz_id"], k))
+
+    def assert_counts(self, meta, result, records):
+        counts = meta["counts"]
+        every = result["items"] + result["fluids"]
+        self.assertEqual(counts["unmapped"], [])
+        self.assertEqual(counts["orphan_mappings"], [])
+        self.assertEqual(counts["items"], len(result["items"]))
+        self.assertEqual(counts["fluids"], len(result["fluids"]))
+        self.assertEqual(counts["mapped"] + counts["no_nutrition"], len(every))
+        self.assertEqual(counts["guesses"], sorted(r["pz_id"] for r in every if r["confidence"] == "guess"))
+        self.assertLessEqual(len(counts["guesses"]), fn.GUESS_BUDGET)
+        self.assertEqual(sum(counts["rebase_factor_bands"].values()), counts["mapped"])
+        self.assertEqual(set(counts["out_of_range"]), set(fn.KEYS))
+        self.assertEqual(counts["atwater_outliers"], len(counts["atwater_outlier_ids"]))
+        self.assertEqual(sum(counts["by_confidence"].values()), counts["mapped"])
+
+
+class BuildFixture(ExtractFixture):
+    """ExtractFixture with three fluids and every mapped row's portion; the extract is built from the
+    fixture zip, then the FDC paths are pointed at nothing, so every build here runs without the zips."""
+
+    DATA = BUILD_DATA
+
+    def setUp(self):
+        super().setUp()
+        self.edit("grains-legumes", "Base.Lentils", fdc_id=str(EGG), portion_grams="100",
+                  portion_source="judgement", state_baseline="dried")
+        self.edit("meat-fish-egg-dairy", "Base.Egg", portion_grams="50", portion_source="fdc_portion:1",
+                  state_baseline="raw")
+        self.edit("meat-fish-egg-dairy", "Base.Cricket", portion_grams="15.6", portion_source="judgement",
+                  state_baseline="raw")
+        self.edit("fluids", "Beer", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="close",
+                  portion_grams="1010", portion_source="judgement", state_baseline="prepared")
+        self.edit("fluids", "SimpleSyrup", fdc_id=str(APPLE), fdc_source="sr_legacy", confidence="proxy",
+                  portion_grams="615", portion_source="judgement", state_baseline="prepared",
+                  notes="a synthetic stand-in for the sugar entry")
+        self.edit("fluids", "Water", no_nutrition_reason="not_food")
+        fn.build_extract(self.map, self.dataset, self.out, out=io.StringIO())
+        empty = os.path.join(self.tmp, "empty-fdc")     # tools/.fdc/ as a fresh clone has it: empty
+        os.makedirs(empty)
+        patcher = mock.patch.dict(fn.REF_SOURCES, {
+            name: os.path.join(empty, os.path.basename(fn.REF_SOURCES[name]))
+            for name in ("sr_legacy", "retention", "manifest")})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.json_out = os.path.join(self.tmp, "food-nutrients.json")
+        self.csv_out = os.path.join(self.tmp, "food-nutrients.csv")
+        self.records = fn.load_dataset(self.dataset)
+
+    def run_build(self):
+        return fn.build(self.map, self.dataset, self.out, self.json_out, self.csv_out, out=io.StringIO())
+
+    def rec(self, result, pz_id):
+        return [r for r in result["items"] + result["fluids"] if r["pz_id"] == pz_id][0]
+
+
+class BuildTest(BuildFixture, OutputShape):
+
+    def test_the_schema_and_the_basis(self):
+        result = self.run_build()
+        self.assertEqual(sorted(result), ["fluids", "items", "meta"])
+        self.assert_shape(result, self.records)
+        self.assertEqual([r["pz_id"] for r in result["fluids"]], ["Beer", "SimpleSyrup", "Water"])
+        self.assertEqual(self.rec(result, "Water")["basis"], "none")
+        self.assertEqual(self.rec(result, "Base.Glue")["basis"], "none")
+
+    def test_the_units_round_trip(self):
+        result = self.run_build()
+        self.assert_round_trip(result, self.records)
+        egg = self.rec(result, "Base.Egg")
+        self.assertEqual(egg["per_item"]["calories"], 71.5)              # 143 kcal/100 g x 50 g
+        self.assertEqual(egg["per_item"]["efa"], 0.8015)                 # the decimal sum 1.603, halved
+        self.assertEqual(egg["portion_grams"], 50.0)
+        self.assertEqual(egg["cook_retention_code"], 1)
+
+    def test_the_null_rule(self):
+        apple = self.rec(self.run_build(), "Base.Apple")
+        self.assertIsNone(apple["per_100g"]["vitC"])          # no nutrient row: null, never 0
+        self.assertIsNone(apple["per_item"]["vitC"])
+        self.assertIsNone(apple["per_100g"]["iodine"])        # no iodine_ref: null
+        self.assertEqual(apple["per_100g"]["ethanol"], 0.0)   # a measured 0 stays 0.0
+        self.assertEqual(apple["per_item"]["ethanol"], 0.0)
+        self.assertEqual(apple["vanilla"]["hunger"], None)
+
+    def test_iodine_and_phytate(self):
+        result = self.run_build()
+        egg, lentils, apple = (self.rec(result, i) for i in ("Base.Egg", "Base.Lentils", "Base.Apple"))
+        self.assertEqual(egg["per_100g"]["iodine"], 49.0)
+        self.assertEqual(egg["per_item"]["iodine"], 24.5)
+        self.assertEqual(apple["per_100g"]["phytate"], 0.0)                     # zero:fruit
+        # 890 mg/100 g dry x (100 - 76.15 g water) / 100, the as-eaten conversion
+        self.assertAlmostEqual(lentils["per_100g"]["phytate"], 890 * (100 - 76.15) / 100, places=6)
+        self.assertTrue(any(n.startswith("phytate:") for n in lentils["checks"]["notes"]))  # cell 890 differs
+
+    def test_phytate_without_water_is_null_with_a_note(self):
+        self.edit("grains-legumes", "Base.Lentils", fdc_id=str(APPLE))   # the apple fixture has no water row
+        lentils = self.rec(self.run_build(), "Base.Lentils")
+        self.assertIsNone(lentils["per_100g"]["phytate"])
+        self.assertIn("carries no water", " ".join(lentils["checks"]["notes"]))
+
+    def test_the_literature_row(self):
+        cricket = self.rec(self.run_build(), "Base.Cricket")
+        p = cricket["per_100g"]
+        self.assertAlmostEqual(p["proteins"], 61.32 * 0.3, places=6)
+        self.assertAlmostEqual(p["lipids"], 13.41 * 0.3, places=6)
+        self.assertAlmostEqual(p["fibre"], 9.55 * 0.3, places=6)
+        self.assertAlmostEqual(p["carbs"], (12.98 + 9.55) * 0.3, places=6)     # NFE + fibre
+        self.assertAlmostEqual(p["calories"], 426.25 * 0.3, places=6)
+        self.assertAlmostEqual(p["water"], 70.0, places=6)
+        self.assertIsNone(p["iron"])
+        self.assertAlmostEqual(cricket["per_item"]["calories"], 426.25 * 0.3 * 0.156, places=6)
+        self.assertEqual(cricket["fdc_source"], "literature")
+
+    def test_the_fluid_overrides(self):
+        result = self.run_build()
+        beer, syrup = self.rec(result, "Beer"), self.rec(result, "SimpleSyrup")
+        self.assertEqual(beer["per_100g"]["ethanol"], 0.0)                   # per_100g stays the entry's
+        self.assertEqual(beer["per_litre"]["ethanol"], 39.45)                # 0.05 x 789, the property
+        self.assertIn("alcohol property 0.05", " ".join(beer["checks"]["notes"]))
+        self.assertEqual(syrup["per_litre"]["water"], 615.0)                 # 1230 - 615
+        self.assertIn("the litre's 1230.0 g", " ".join(syrup["checks"]["notes"]))
+        self.assertIsNone(syrup["checks"]["energy_vs_fdc_ratio"])            # vanilla 0 kcal
+        self.assertNotIn("ethanol", " ".join(syrup["checks"]["notes"]))     # no alcohol property
+        self.assertAlmostEqual(beer["checks"]["energy_vs_fdc_ratio"], 52 * 10.1 / 500.0, places=4)
+
+    def test_the_checks_on_the_fixture(self):
+        result = self.run_build()
+        egg, apple = self.rec(result, "Base.Egg"), self.rec(result, "Base.Apple")
+        self.assertEqual(egg["checks"]["retention_le_100"], True)           # code 1: Ca 100
+        self.assertIsNone(apple["checks"]["retention_le_100"])               # no code cited
+        self.assertAlmostEqual(egg["checks"]["atwater_ratio"], round((4 * 0.72 + 4 * 12.56 + 9 * 9.51) / 143, 4))
+        self.assertIs(egg["checks"]["atwater_outlier"], False)
+        self.assertIsNone(apple["checks"]["proximate_sum"])                  # no water, no protein
+        self.assertEqual(egg["checks"]["fibre_le_carb"], True)
+        self.assertEqual(egg["checks"]["out_of_range"], [])
+
+    def test_the_meta(self):
+        result = self.run_build()
+        meta = result["meta"]
+        self.assertEqual((meta["build"], meta["jar_hash"], meta["tool"]),
+                         ("42.20.4", "b0bbce05d5", "tools/food_nutrients.py"))
+        self.assertEqual(meta["generated"], datetime.datetime.now(datetime.timezone.utc).date().isoformat())
+        with open(self.out, encoding="utf-8") as handle:
+            extract = json.load(handle)
+        self.assertEqual(meta["sources"], extract["meta"]["sources"])
+        inputs = meta["inputs"]
+        self.assertEqual(inputs["mapping"]["rows"], 8)
+        self.assertEqual(sum(inputs["mapping"]["parts"].values()), 8)
+        self.assertEqual(inputs["extract"]["generated"], extract["meta"]["generated"])
+        self.assertEqual(inputs["extract"]["counts"]["foods"], 2)
+        self.assertEqual(inputs["side_tables"]["iodine"]["rows"], 2)
+        self.assertEqual(inputs["dataset"]["generated"], "2026-09-10")
+        self.assert_counts(meta, result, self.records)
+        c = meta["counts"]
+        self.assertEqual((c["items"], c["fluids"], c["mapped"], c["no_nutrition"]), (5, 3, 6, 2))
+        self.assertEqual(c["by_confidence"], {"close": 1, "exact": 2, "guess": 1, "proxy": 2})
+        self.assertEqual(c["by_portion_source"], {"fdc_portion": 1, "judgement": 4, "vanilla_implied": 1})
+        self.assertEqual(c["by_reason"], {"not_food": 2})
+        self.assertEqual(c["guesses"], ["Base.Cricket"])
+        self.assertEqual(c["cook_retention_set"], 1)
+        self.assertEqual(c["cookable_without_code"], 1)
+        self.assertEqual(c["rebase_factor_bands"]["none"], 1)                # SimpleSyrup, vanilla 0 kcal
+
+    def test_byte_stable_lf_sorted_and_the_csv_twin(self):
+        self.run_build()
+        first = [open(p, "rb").read() for p in (self.json_out, self.csv_out)]
+        self.run_build()
+        second = [open(p, "rb").read() for p in (self.json_out, self.csv_out)]
+        self.assertEqual(first, second)
+        for blob in first:
+            self.assertNotIn(b"\r", blob)
+        text = first[0].decode("utf-8")
+        self.assertEqual(text, json.dumps(json.loads(text), indent=1, sort_keys=True, ensure_ascii=False) + "\n")
+
+    def test_the_csv_twin(self):
+        result = self.run_build()
+        with open(self.csv_out, encoding="utf-8", newline="") as handle:
+            lines = handle.read().split("\n")
+        self.assertEqual(lines[0], ",".join(fn.CSV_COLUMNS))                  # the header is line 1: no stamp
+        with open(self.csv_out, encoding="utf-8", newline="") as handle:
+            rows = list(csv.DictReader(handle))
+        every = result["items"] + result["fluids"]
+        self.assertEqual([r["pz_id"] for r in rows], [r["pz_id"] for r in every])
+        self.assertEqual(len(fn.CSV_COLUMNS), len(set(fn.CSV_COLUMNS)))
+        for key in fn.KEYS:
+            self.assertIn(key, fn.CSV_COLUMNS)
+            self.assertIn("p100_" + key, fn.CSV_COLUMNS)
+        by = {r["pz_id"]: r for r in rows}
+        self.assertEqual(by["Beer"]["basis"], "per_litre")
+        self.assertEqual(by["Beer"]["ethanol"], "39.45")                     # the per-litre value
+        self.assertEqual(by["Beer"]["p100_ethanol"], "0.0")
+        self.assertEqual(by["Base.Apple"]["vitC"], "")                        # null -> empty, never 0
+        self.assertEqual(by["Base.Glue"]["calories"], "")
+        self.assertEqual(by["Base.Egg"]["fibre_le_carb"], "true")
+        self.assertEqual(by["Base.Egg"]["cook_retention_code"], "1")
+
+    def test_runs_without_the_zips(self):
+        for name in ("sr_legacy", "retention", "manifest"):
+            self.assertFalse(os.path.exists(fn.REF_SOURCES[name]))
+        self.assertEqual(os.listdir(os.path.dirname(fn.REF_SOURCES["sr_legacy"])), [])
+        with mock.patch.object(fn.zipfile, "ZipFile", side_effect=AssertionError("the build opened a zip")):
+            result = self.run_build()
+        self.assertEqual(result["meta"]["counts"]["mapped"], 6)
+
+    def assert_refused(self, needle):
+        with self.assertRaises(fn.BuildRefused) as caught:
+            self.run_build()
+        self.assertIn(needle, str(caught.exception))
+        self.assertFalse(os.path.exists(self.json_out))
+        self.assertFalse(os.path.exists(self.csv_out))
+
+    def test_refuses_an_unfilled_mapping(self):
+        self.edit("fluids", "Water", no_nutrition_reason="")
+        self.assert_refused("unfilled")
+
+    def test_refuses_over_the_guess_budget(self):
+        with mock.patch.object(fn, "GUESS_BUDGET", 0):
+            self.assert_refused("guess budget")
+
+    def test_refuses_a_guess_or_a_proxy_without_notes(self):
+        self.edit("fluids", "SimpleSyrup", notes="")
+        self.assert_refused("a proxy without notes")
+        self.edit("fluids", "SimpleSyrup", notes="back")
+        self.edit("meat-fish-egg-dairy", "Base.Cricket", notes="")
+        self.assert_refused("a guess without notes")
+
+    def test_refuses_a_mapped_row_without_portion(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", portion_grams="")
+        self.assert_refused("without portion_grams")
+
+    def test_refuses_a_stale_extract(self):
+        self.edit("meat-fish-egg-dairy", "Base.Egg", iodine_ref="iodine:milk-whole")   # a table row, not extracted
+        self.assert_refused("re-run --build-extract")
+
+    def test_the_cli(self):
+        buf = io.StringIO()
+        with mock.patch("sys.stdout", buf):
+            code = fn.main(["--build", "--map-dir", self.map, "--dataset", self.dataset, "--extract", self.out,
+                            "--out-json", self.json_out, "--out-csv", self.csv_out])
+        self.assertEqual(code, 0)
+        self.assertIn("5 items, 3 fluids, 6 mapped", buf.getvalue())
+        self.edit("fluids", "Water", no_nutrition_reason="")
+        err = io.StringIO()
+        with mock.patch("sys.stdout", io.StringIO()), mock.patch("sys.stderr", err):
+            code = fn.main(["--build", "--map-dir", self.map, "--dataset", self.dataset, "--extract", self.out,
+                            "--out-json", self.json_out, "--out-csv", self.csv_out])
+        self.assertEqual(code, 1)
+        self.assertIn("REFUSED", err.getvalue())
+
+
+class RecordChecksTest(unittest.TestCase):
+    """Each check on a synthetic violation: named, never clamped."""
+
+    BASE = {"calories": 100.0, "carbs": 10.0, "fibre": 2.0, "proteins": 5.0, "lipids": 5.0, "water": 70.0}
+
+    def vector(self, **cells):
+        out = dict.fromkeys(fn.KEYS)
+        out.update(self.BASE)
+        out.update(cells)
+        return out
+
+    def test_a_clean_vector(self):
+        got = fn.record_checks(self.vector(calories=4 * 8 + 2 * 2 + 4 * 5 + 9 * 5.0))
+        self.assertEqual(got["out_of_range"], [])
+        self.assertEqual(got["notes"], [])
+        self.assertEqual((got["atwater_ratio"], got["atwater_outlier"]), (1.0, False))
+        self.assertEqual(got["proximate_sum"], 90.0)
+        self.assertIs(got["fibre_le_carb"], True)
+        self.assertIsNone(got["retention_le_100"])
+
+    def test_a_range_violation_is_named_not_clamped(self):
+        vec = self.vector(sodium=50000.0, proteins=-1.0)
+        got = fn.record_checks(vec)
+        self.assertEqual(got["out_of_range"], ["proteins", "sodium"])          # KEYS order
+        self.assertEqual(vec["sodium"], 50000.0)
+        self.assertIn("range: sodium 50000.0 mg/100 g outside 0.0-40000.0", got["notes"])
+
+    def test_every_key_has_a_range(self):
+        self.assertEqual(set(fn.SANITY_RANGES), set(fn.KEYS))
+        self.assertTrue(all(low <= high for low, high in fn.SANITY_RANGES.values()))
+
+    def test_the_known_good_extremes_pass(self):
+        self.assertEqual(fn.record_checks(self.vector(sodium=38758.0, iodine=2500.0, lipids=100.0))["out_of_range"],
+                         [])
+
+    def test_atwater_bands(self):
+        # 4(10 - 2) + 2*2 + 4*5 + 9*5 = 101 kcal from the macros
+        self.assertIs(fn.record_checks(self.vector(calories=101.0 / 1.11))["atwater_outlier"], True)
+        self.assertIs(fn.record_checks(self.vector(calories=101.0 / 1.09))["atwater_outlier"], False)
+        no_fibre = self.vector(calories=105.0 / 1.2, fibre=None)    # fibre null: 4*10 + 20 + 45 = 105
+        self.assertIs(fn.record_checks(no_fibre)["atwater_outlier"], False)
+        no_fibre["calories"] = 105.0 / 1.3
+        got = fn.record_checks(no_fibre)
+        self.assertIs(got["atwater_outlier"], True)
+        self.assertIn("+/-25 %", got["notes"][0])
+
+    def test_atwater_below_the_floor_is_not_flagged(self):
+        got = fn.record_checks(self.vector(calories=5.0, carbs=0.0, fibre=0.0, proteins=0.5, lipids=0.0))
+        self.assertEqual(got["atwater_ratio"], 0.4)
+        self.assertIs(got["atwater_outlier"], False)
+
+    def test_atwater_counts_ethanol(self):
+        vec = dict.fromkeys(fn.KEYS)
+        vec.update(calories=231.0, carbs=0.0, proteins=0.0, lipids=0.0, ethanol=33.4, water=66.6)
+        self.assertAlmostEqual(fn.record_checks(vec)["atwater_ratio"], round(7 * 33.4 / 231.0, 4))
+
+    def test_the_proximate_sum(self):
+        got = fn.record_checks(self.vector(water=95.0))
+        self.assertEqual(got["proximate_sum"], 115.0)
+        self.assertIn("proximate", got["notes"][-1])
+        self.assertEqual(got["out_of_range"], [])
+        self.assertIsNone(fn.record_checks(self.vector(water=None))["proximate_sum"])
+
+    def test_fibre_over_carbs(self):
+        got = fn.record_checks(self.vector(fibre=12.0))
+        self.assertIs(got["fibre_le_carb"], False)
+        self.assertIsNone(fn.record_checks(self.vector(fibre=None))["fibre_le_carb"])
+
+    def test_retention_over_100(self):
+        got = fn.record_checks(self.vector(), {"401": 120, "301": 100})
+        self.assertIs(got["retention_le_100"], False)
+        self.assertIn("retention: factor 120 % on nutrient 401 > 100", got["notes"])
+        self.assertIs(fn.record_checks(self.vector(), {"301": 100})["retention_le_100"], True)
+
+    def test_the_rebase_bands(self):
+        self.assertEqual([fn.rebase_band(x) for x in (None, 0.1, 0.5, 0.94, 0.95, 1.0, 1.05, 1.3, 2.0, 9.0)],
+                         ["none", "<0.5", "0.5-0.8", "0.8-0.95", "0.95-1.05", "0.95-1.05", "1.05-1.25",
+                          "1.25-2.0", ">2.0", ">2.0"])
+
+
+class LiteratureTest(unittest.TestCase):
+    """The side-table conversions, against the mapping notes' own arithmetic."""
+
+    def cells(self, key, **over):
+        base = {"basis": "dm", "protein_g_100g": None, "fat_g_100g": None, "fibre_g_100g": None,
+                "carb_g_100g": None, "ash_g_100g": None, "energy_kcal_100g": None, "moisture_pct": None,
+                "_key": key}
+        base.update(over)
+        return base
+
+    def test_a_measured_moisture_sets_the_fraction(self):
+        # kavle2023:eisenia-andrei: 83.68 % moisture, fresh = DM x 0.1632 -> 78.92 kcal (the Worm note)
+        got = fn.literature_per_100g(self.cells("kavle2023:eisenia-andrei", protein_g_100g=53.75,
+                                                fat_g_100g=19.3, carb_g_100g=23.26, ash_g_100g=3.69,
+                                                energy_kcal_100g=483.56, moisture_pct=83.68))
+        self.assertAlmostEqual(got["calories"], 78.92, places=2)
+        self.assertAlmostEqual(got["proteins"], 8.77, places=2)
+        self.assertAlmostEqual(got["water"], 83.68, places=6)
+        self.assertAlmostEqual(got["carbs"], 23.26 * 0.1632, places=6)        # the cell includes fibre
+        self.assertIsNone(got["fibre"])
+
+    def test_an_empty_energy_and_carb_by_difference(self):
+        # oonincx2012:porcellio-scaber: NFE 0.59 after NDF; 270.66 kcal DM x 0.3218 = 87.10 (the Pillbug note)
+        got = fn.literature_per_100g(self.cells("oonincx2012:porcellio-scaber", protein_g_100g=41.2,
+                                                fat_g_100g=11.5, fibre_g_100g=14.02, ash_g_100g=32.69,
+                                                moisture_pct=67.82))
+        self.assertAlmostEqual(got["calories"], (4 * 41.2 + 9 * 11.5 + 4 * 0.59) * 0.3218, places=4)
+        self.assertAlmostEqual(got["carbs"], (100 - 41.2 - 11.5 - 32.69) * 0.3218, places=6)
+
+    def test_an_nfe_cell_adds_fibre_and_an_empty_energy_sums(self):
+        # rumpold2013:blattodea: no energy; 4P + 9F + 4 NFE = 516.42 kcal DM (the Cockroach note)
+        got = fn.literature_per_100g(self.cells("rumpold2013:blattodea", protein_g_100g=57.3, fat_g_100g=29.9,
+                                                fibre_g_100g=5.31, carb_g_100g=4.53, ash_g_100g=2.94))
+        self.assertAlmostEqual(got["calories"], 516.42 * 0.3, places=4)
+        self.assertAlmostEqual(got["carbs"], (4.53 + 5.31) * 0.3, places=6)
+        self.assertGreaterEqual(got["carbs"], got["fibre"])
+
+    def test_a_fresh_basis_is_not_scaled(self):
+        got = fn.literature_per_100g(self.cells("x:y", basis="fresh", protein_g_100g=20.0, fat_g_100g=5.0,
+                                                carb_g_100g=1.0, energy_kcal_100g=129.0, moisture_pct=72.0))
+        self.assertEqual((got["proteins"], got["calories"], got["water"]), (20.0, 129.0, 72.0))
+
+
+@unittest.skipUnless(os.path.exists(fn.NUTRIENTS_JSON), "data/food-nutrients.json is not built")
+class RealNutrientsTest(unittest.TestCase, OutputShape):
+    """The committed output: every dataset id, the schema, the round trip, the guess budget."""
+
+    @classmethod
+    def setUpClass(cls):
+        with open(fn.NUTRIENTS_JSON, encoding="utf-8") as handle:
+            cls.result = json.load(handle)
+        cls.records = fn.load_dataset()
+
+    def test_the_schema_and_the_basis(self):
+        self.assert_shape(self.result, self.records)
+
+    def test_the_units_round_trip(self):
+        self.assert_round_trip(self.result, self.records)
+
+    def test_the_counts(self):
+        self.assert_counts(self.result["meta"], self.result, self.records)
+        counts = self.result["meta"]["counts"]
+        self.assertEqual(counts["fluids"], 61)
+        self.assertEqual(counts["items"] + counts["fluids"], len(self.records))
+
+    def test_the_csv_twin(self):
+        with open(fn.NUTRIENTS_CSV, encoding="utf-8", newline="") as handle:
+            text = handle.read()
+        self.assertNotIn("\r", text)
+        self.assertEqual(text.split("\n")[0], ",".join(fn.CSV_COLUMNS))
+        rows = list(csv.DictReader(io.StringIO(text)))
+        self.assertEqual([r["pz_id"] for r in rows],
+                         [r["pz_id"] for r in self.result["items"] + self.result["fluids"]])
 
 
 if __name__ == "__main__":
