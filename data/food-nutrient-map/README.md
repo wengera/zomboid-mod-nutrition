@@ -47,8 +47,9 @@ seeds beside non-CSV files such as this page, never over a part).
 
 1. a `fluid` record → `fluids`;
 2. a `drainable` or a `fluid_container` → `no-nutrition`;
-3. a `food` record whose `nutrition_basis` is empty, or `Spice = true`, or `CantEat = true` with
-   none of the four macros → `no-nutrition` (a `CantEat` food that carries macros — a sealed can —
+3. a `food` record whose `nutrition_basis` is empty, or `Spice = true` with none of the four macros or
+   under 5 kcal (a Spice food with 5 kcal or more is a food the pass re-bases and goes by rule 4), or
+   `CantEat = true` with none of the four macros → `no-nutrition` (a `CantEat` food that carries macros — a sealed can —
    stays a food record and goes by rule 4);
 4. the remaining foods by `FoodType`:
    - `produce`: `Berry`, `Citrus`, `Fruits`, `Greens`, `Herb`, `HotPepper`, `Mushroom`, `Nut`, `Seed`,
@@ -65,15 +66,16 @@ re-scan brings a new one.
 
 **The pre-filled reason**, first match wins (a guess; the curator confirms or clears it):
 
-1. `hazard` — the id contains `Bleach`, `RatPoison` or `CorrectionFluid` (any kind, the fluid `Bleach`
-   included);
-2. `tobacco_or_drug` — the id contains `Cigarette`, `Tobacco` or `Pills`;
+1. `hazard` — the id is in the exact set `Base.GardeningSprayCigarettes`, `Base.RatPoison`,
+   `Base.CorrectionFluid`, `Base.Bleach`, `Bleach`, else contains `Bleach`, `RatPoison` or
+   `CorrectionFluid` (any kind, the fluid `Bleach` included);
+2. `tobacco_or_drug` — the id contains `Cigarette`, `Cigar` (so `Cigarillo`), `Tobacco` or `Pills`;
 3. `inedible_body_part` — a `food` id with a token `Head`, `Skull`, `Corpse`, `Hide` or `Leather`
    after a `.` or `_` (`Base.Cow_Head_Angus`, `Base.CorpseAnimal`; not `Base.SunflowerHead`);
-4. `not_food` — every other `drainable` (the two vinegars included: their `Calories = 0.0` is not
-   nutrition);
+4. `spice_only` — a `drainable` with `Spice = true` (the two vinegars), else `not_food` — every other
+   `drainable`;
 5. `fluid_sourced` / `empty_container` — a `fluid_container` that lists a fluid / lists none;
-6. `spice_only` — `Spice = true`;
+6. `spice_only` — a `food` with `Spice = true` and none of the four macros or under 5 kcal;
 7. `vessel_only` — a `food` whose display name contains `Bowl`, `Pot` or `Pan` and which carries
    none of the four macros;
 8. else empty.
@@ -82,6 +84,9 @@ The seed of 2026-10-06: `produce` 95, `grains-legumes` 23, `meat-fish-egg-dairy`
 313, `fluids` 61, `no-nutrition` 485; reasons `not_food` 138, `fluid_sourced` 71, `empty_container`
 61, `spice_only` 109, `inedible_body_part` 42, `tobacco_or_drug` 15, `hazard` 4, `vessel_only` 0;
 626 rows unfilled; 342 families over the 644 per-item food rows (the empty tuple counted as one).
+The 2026-10-06 seed pre-filled `spice_only` on 54 calorie-bearing condiments by the first rule; wave
+4e mapped them in place in `no-nutrition.csv` (a part may hold any row; the tool requires uniqueness
+only).
 
 ## The check
 
@@ -97,11 +102,15 @@ counts (`rows`, `parts`, `by_kind`, `by_reason`, `by_confidence`, `filled`, `unf
 - `fdc_id` and `no_nutrition_reason` are never both set, and one of them is set unless
   `--allow-unfilled` (the curation waves run with it; the build refuses an unfilled row);
 - a row with an `fdc_id` names its `fdc_source` and `confidence`;
-- a `guess` carries `notes` (the guess budget is 40, ruling 10);
+- a `guess` carries `notes`, and more than 40 `guess` rows is a violation (ruling 10's budget);
+- `fluid_sourced` and `empty_container` sit only on a `fluid_container`, `inedible_body_part` and
+  `vessel_only` only on a `food`; any `no_nutrition_reason` on a record of 5 kcal or more needs
+  `notes`; an `fdc_id` under `sr_legacy` or `foundation` is digits only;
 - `cook_retention_code` is an integer and only on an `IsCookable` record;
 - `portion_grams` is a positive number and `phytate_mg_100g` a number ≥ 0;
-- in a family of per-item food rows whose mapped rows name more than one `fdc_id`, every row off the
-  family's most common `fdc_id` carries `notes` (`families_split` counts the split families, noted
+- in a family of per-item food rows whose mapped or reasoned rows name more than one source (an
+  `fdc_id`, or the row's reason), every row off the family's most common source (ties by numeric id)
+  carries `notes` (`families_split` counts the split families, noted
   or not);
 - the `iodine_ref` and `phytate_source` referential checks are Task 5's (`MAP_REF_CHECKS`).
 

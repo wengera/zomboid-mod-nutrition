@@ -350,6 +350,7 @@ FDC_SOURCES = ("sr_legacy", "foundation", "iodine_db_r4", "literature", "derived
 CONFIDENCES = ("exact", "close", "proxy", "guess")
 PORTION_SOURCES = ("vanilla_implied", "judgement")            # plus fdc_portion:<seq_num>
 PORTION_FDC_RE = re.compile(r"^fdc_portion:\d+$")
+FDC_ID_RE = re.compile(r"^\d+$")
 STATE_BASELINES = ("raw", "cooked", "canned", "dried", "frozen", "prepared")
 NO_NUTRITION_REASONS = ("not_food", "empty_container", "fluid_sourced", "inedible_body_part", "hazard",
                         "vessel_only", "spice_only", "tobacco_or_drug")
@@ -369,8 +370,11 @@ _BUCKET = dict([(t, "produce") for t in PRODUCE_TYPES] + [(t, "grains-legumes") 
                + [(t, "meat-fish-egg-dairy") for t in ANIMAL_TYPES])
 
 # The pre-filled reason guesses (the curator confirms), first match wins, in this order.
-HAZARD_IDS = ("Bleach", "RatPoison", "CorrectionFluid")
-TOBACCO_IDS = ("Cigarette", "Tobacco", "Pills")
+HAZARD_IDS = ("Base.GardeningSprayCigarettes", "Base.RatPoison", "Base.CorrectionFluid", "Base.Bleach", "Bleach")
+HAZARD_SUBSTRINGS = ("Bleach", "RatPoison", "CorrectionFluid")   # the fallback after the exact ids
+TOBACCO_IDS = ("Cigarette", "Cigar", "Tobacco", "Pills")          # Cigar also matches Cigarillo
+SPICE_ONLY_KCAL = 5       # a Spice record at or above this many kcal is a food the pass re-bases
+GUESS_BUDGET = 40         # ruling 10: the most `guess` rows the mapping may hold
 BODY_PART_RE = re.compile(r"[._](Head|Skull|Corpse|Hide|Leather)")   # an id token: not SunflowerHead
 VESSEL_RE = re.compile(r"Bowl|Pot|Pan")
 
@@ -408,6 +412,14 @@ def _has_macro(record):
     return any(record.get(col) is not None for col, _key in MACROS)
 
 
+def _spice_only(record):
+    """A Spice record with none of the four macros, or under SPICE_ONLY_KCAL kcal (ruling T3-1)."""
+    if record.get("spice") is not True:
+        return False
+    cal = record.get("calories")
+    return not _has_macro(record) or (cal is not None and cal < SPICE_ONLY_KCAL)
+
+
 def seed_part(record):
     """The part a dataset record seeds into (the README's part rule)."""
     kind = record.get("kind")
@@ -415,7 +427,7 @@ def seed_part(record):
         return "fluids"
     if kind in ("drainable", "fluid_container"):
         return "no-nutrition"
-    if not record.get("nutrition_basis") or record.get("spice") is True:
+    if not record.get("nutrition_basis") or _spice_only(record):
         return "no-nutrition"
     if record.get("cant_eat") is True and not _has_macro(record):
         return "no-nutrition"
@@ -425,17 +437,17 @@ def seed_part(record):
 def seed_reason(record):
     """The pre-filled `no_nutrition_reason` guess, or "" (the curator fills)."""
     pz_id, kind = record["id"], record.get("kind")
-    if any(s in pz_id for s in HAZARD_IDS):
+    if pz_id in HAZARD_IDS or any(s in pz_id for s in HAZARD_SUBSTRINGS):
         return "hazard"
     if any(s in pz_id for s in TOBACCO_IDS):
         return "tobacco_or_drug"
     if kind == "food" and BODY_PART_RE.search(pz_id):
         return "inedible_body_part"
     if kind == "drainable":
-        return "not_food"
+        return "spice_only" if record.get("spice") is True else "not_food"
     if kind == "fluid_container":
         return "fluid_sourced" if record.get("fluid_ids") else "empty_container"
-    if record.get("spice") is True:
+    if _spice_only(record):
         return "spice_only"
     if kind == "food" and not _has_macro(record) and VESSEL_RE.search(record.get("display_name") or ""):
         return "vessel_only"
@@ -531,6 +543,18 @@ def _row_violations(row, record, allow_unfilled):
                 out.append("%s %s: fdc_id without %s" % (where, pz_id, col))
     if row["confidence"] == "guess" and not row["notes"].strip():
         out.append("%s %s: a guess without notes" % (where, pz_id))
+    reason = row["no_nutrition_reason"]
+    if reason in ("fluid_sourced", "empty_container") and row["pz_kind"] != "fluid_container":
+        out.append("%s %s: %s on a kind other than fluid_container" % (where, pz_id, reason))
+    if reason in ("inedible_body_part", "vessel_only") and row["pz_kind"] != "food":
+        out.append("%s %s: %s on a kind other than food" % (where, pz_id, reason))
+    if reason and record is not None and not row["notes"].strip():
+        cal = record.get("calories")
+        if cal is not None and cal >= SPICE_ONLY_KCAL:
+            out.append("%s %s: no_nutrition_reason %s on a record with %s kcal, without notes"
+                       % (where, pz_id, reason, cal))
+    if row["fdc_id"] and row["fdc_source"] in ("sr_legacy", "foundation") and not FDC_ID_RE.match(row["fdc_id"]):
+        out.append("%s %s: fdc_id %r is not digits for %s" % (where, pz_id, row["fdc_id"], row["fdc_source"]))
     if row["cook_retention_code"]:
         if not row["cook_retention_code"].isdigit():
             out.append("%s %s: cook_retention_code %r is not an integer" % (where, pz_id, row["cook_retention_code"]))
@@ -543,6 +567,16 @@ def _row_violations(row, record, allow_unfilled):
     return out
 
 
+def _source_key(row):
+    """A family member's source: its fdc_id, or `reason:<reason>` for a row with no composition."""
+    return row["fdc_id"] or "reason:" + row["no_nutrition_reason"]
+
+
+def _id_order(key):
+    """The tie-break order: numeric ids by value, ahead of any non-numeric key, which goes by text."""
+    return (0, int(key), "") if key.isdigit() else (1, 0, key)
+
+
 def _family_violations(rows, records):
     """`(families, split, violations)` over the food rows whose dataset basis is per item; the empty
     tuple counts as one family (the briefing's 342) and is never split-checked."""
@@ -552,22 +586,22 @@ def _family_violations(rows, records):
         if rec is None or rec["kind"] != "food" or rec.get("nutrition_basis") != "per_item":
             continue
         families.add(row["family"])
-        if row["family"] and row["fdc_id"]:
+        if row["family"] and (row["fdc_id"] or row["no_nutrition_reason"]):
             members.setdefault(row["family"], []).append(row)
     split, out = 0, []
     for family in sorted(members):
         group = members[family]
         tally = {}
         for row in group:
-            tally[row["fdc_id"]] = tally.get(row["fdc_id"], 0) + 1
+            tally[_source_key(row)] = tally.get(_source_key(row), 0) + 1
         if len(tally) < 2:
             continue
         split += 1
-        modal = sorted(tally, key=lambda fid: (-tally[fid], fid))[0]
+        modal = sorted(tally, key=lambda k: (-tally[k],) + _id_order(k))[0]
         for row in group:
-            if row["fdc_id"] != modal and not row["notes"].strip():
-                out.append("%s %s: family %s splits (fdc_id %s against the family's %s) without notes"
-                           % (_where(row), row["pz_id"], family, row["fdc_id"], modal))
+            if _source_key(row) != modal and not row["notes"].strip():
+                out.append("%s %s: family %s splits (%s against the family's %s) without notes"
+                           % (_where(row), row["pz_id"], family, _source_key(row), modal))
     return len(families), split, out
 
 
@@ -602,6 +636,9 @@ def check_map(map_dir=MAP_DIR, dataset_path=DATASET_JSON, allow_unfilled=False, 
     violations += family_violations
     for check in MAP_REF_CHECKS:
         violations += check(rows, records)
+    guesses = sum(1 for r in rows if r["confidence"] == "guess")
+    if guesses > GUESS_BUDGET:
+        violations.append("guess budget: %d guess rows, the budget is %d" % (guesses, GUESS_BUDGET))
     filled = sum(1 for r in rows if r["fdc_id"] or r["no_nutrition_reason"])
     counts = {
         "rows": len(rows),
@@ -611,7 +648,7 @@ def check_map(map_dir=MAP_DIR, dataset_path=DATASET_JSON, allow_unfilled=False, 
         "by_confidence": _tally(r["confidence"] for r in rows),
         "filled": filled, "unfilled": len(rows) - filled,
         "families": families, "families_split": split,
-        "guesses": sum(1 for r in rows if r["confidence"] == "guess"),
+        "guesses": guesses,
         "unmapped": len(unmapped), "orphans": len(orphans), "duplicates": duplicates,
         "violations": violations,
     }
