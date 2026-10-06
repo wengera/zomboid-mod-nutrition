@@ -557,3 +557,30 @@ TK.register("bodypart.get", function(argv)
     out.ok = (#out.parts > 0)
     return out
 end)
+
+-- The client reading of overall and per-part health: getOverallBodyHealth(), getHealth() and
+-- BodyPart:getHealth() walked by size()/get(i) over getBodyParts() (a Java list, never #).
+function P5.healthRead(p)
+    local bd = P5.hop(p, "getBodyDamage")
+    local r = { overall = P5.hop(bd, "getOverallBodyHealth"), health = P5.hop(bd, "getHealth"), parts = {} }
+    local list = P5.hop(bd, "getBodyParts")
+    local n = P5.hop(list, "size")
+    local i = 0
+    while n ~= nil and i < n do
+        r.parts[#r.parts + 1] = P5.hop(P5.hop(list, "get", i), "getHealth")
+        i = i + 1
+    end
+    return r
+end
+
+-- <user>. The client twin of the server health.get: the local player's overall and per-part
+-- health as this side holds them, to be read beside the server's after a ReduceGeneralHealth.
+-- @args <user>
+-- @reply {ok, side, overall, health, parts [, reason]} | string
+-- @purpose Client twin of health.get: reads the local player's overall body health, BodyDamage health and per-part health list.
+TK.register("health.get", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, reason = why } end
+    local r = P5.healthRead(p)
+    return { ok = (r.overall ~= nil), side = TK.side, overall = r.overall, health = r.health, parts = r.parts }
+end)

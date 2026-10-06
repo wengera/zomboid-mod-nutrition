@@ -2508,3 +2508,16 @@ TK.register("health.add", function(argv)
     out.ok = (out.after ~= nil)
     return out
 end)
+
+-- <user>. The server reading of overall and per-part health, no write; the client twin reads the
+-- local player, so the two replies side by side say what the health surfaces carry to the owner
+-- (#2609, #2713 leave the carrier unread).
+-- @args <user>
+-- @reply {ok, side, overall, health, parts [, reason]} | string
+-- @purpose Reads a named player's overall body health (getOverallBodyHealth), BodyDamage health and the per-part health list on the server.
+TK.register("health.get", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local r = P5.healthRead(p)
+    return { ok = (r.overall ~= nil), side = TK.side, overall = r.overall, health = r.health, parts = r.parts }
+end)
