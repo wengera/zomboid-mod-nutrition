@@ -2673,3 +2673,93 @@ TK.register("intox.reduction", function(argv)
     out.ok = (out.after ~= nil)
     return out
 end)
+
+-- The landing listener (#2357 lists six tags; the jar adds FALLDOWN, fired by
+-- handleLandingImpact after ReduceGeneralHealth). Events.OnPlayerGetDamage hands the listener the
+-- character, a tag and the amount. The listener is installed once, lazily, by the first
+-- fall.probe on a side, and never raises: every body runs under pcall. It counts every tag and
+-- keeps up to 20 FALLDOWN records (side, amount, wall time) in P5.fall.
+P5.fall = { list = {}, counts = {}, hooked = false }
+
+function P5.fallHook()
+    if P5.fall.hooked or TK.p5FallHooked then
+        P5.fall.hooked = true
+        return true
+    end
+    if Events == nil or Events.OnPlayerGetDamage == nil then return false end
+    Events.OnPlayerGetDamage.Add(function(character, tag, amount)
+        pcall(function()
+            local t = tostring(tag)
+            P5.fall.counts[t] = (P5.fall.counts[t] or 0) + 1
+            if t == "FALLDOWN" and #P5.fall.list < 20 then
+                P5.fall.list[#P5.fall.list + 1] = { side = TK.side, amount = amount, wall = TK.now() }
+            end
+        end)
+    end)
+    TK.p5FallHooked = true
+    P5.fall.hooked = true
+    return true
+end
+
+-- Fracture times of every leg and foot part, and the largest fracture time on any part, read
+-- through getBodyParts() (walked by size()/get(i)) and BodyPartType.ToString for the name.
+function P5.legFractures(p)
+    local out = { legs = {}, maxFracture = 0 }
+    local bd = P5.hop(p, "getBodyDamage")
+    local list = P5.hop(bd, "getBodyParts")
+    local n = P5.hop(list, "size")
+    local i = 0
+    while n ~= nil and i < n do
+        local part = P5.hop(list, "get", i)
+        local ft = P5.hop(part, "getFractureTime")
+        local nm = nil
+        local t = P5.hop(part, "getType")
+        if t ~= nil and BodyPartType ~= nil and BodyPartType["ToString"] ~= nil then
+            local ran, s = pcall(BodyPartType["ToString"], t)
+            if ran then nm = s end
+        end
+        if ft ~= nil and ft > out.maxFracture then out.maxFracture = ft end
+        local low = string.lower(tostring(nm))
+        if ft ~= nil and (string.find(low, "leg", 1, true) or string.find(low, "foot", 1, true)) then
+            out.legs[#out.legs + 1] = tostring(nm) .. "=" .. tostring(ft)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- <user> [<z>]. The SERVER half of the landing probe. The first call installs the
+-- OnPlayerGetDamage listener on this side (so call it BEFORE the client's fall.probe, which
+-- installs the client's). With <z> it also tries a server-side height write,
+-- IsoMovingObject:setZ(z0 + z) on the named player: a connected player's position is the
+-- client's to report, so the read-back right after says only what the call did, never that the
+-- player fell. The reply is the listener's record so far -- FALLDOWN records (side, amount,
+-- wall), a count of every tag seen, and the leg and foot fracture times -- so call it again after
+-- the client's fall to read what the server heard.
+-- @args <user> [<z>]
+-- @reply {ok, side, hooked, zBefore, zAfter, fall, counts, legs, maxFracture [, reason]} | string
+-- @purpose Installs the server OnPlayerGetDamage listener for tag FALLDOWN, optionally tries a server setZ on the player, and replies the FALLDOWN records heard so far with the leg fracture times.
+TK.register("fall.probe", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local out = { ok = false, side = TK.side }
+    out.hooked = P5.fallHook()
+    if not out.hooked then out.reason = "no Events.OnPlayerGetDamage on this side" end
+    if argv[2] ~= nil then
+        local dz = tonumber(argv[2])
+        if dz == nil then return "usage: fall.probe <user> [<z>]" end
+        out.zBefore = P5.hop(p, "getZ")
+        local setter = p["setZ"]
+        if setter == nil or out.zBefore == nil then
+            out.reason = "no setZ/getZ on the player"
+        else
+            local ran, err = pcall(setter, p, out.zBefore + dz)
+            if not ran then out.reason = "setZ raised: " .. tostring(err) end
+        end
+        out.zAfter = P5.hop(p, "getZ")
+    end
+    local fr = P5.legFractures(p)
+    out.fall, out.counts, out.legs, out.maxFracture = P5.fall.list, P5.fall.counts, fr.legs, fr.maxFracture
+    out.ok = out.hooked
+    return out
+end)

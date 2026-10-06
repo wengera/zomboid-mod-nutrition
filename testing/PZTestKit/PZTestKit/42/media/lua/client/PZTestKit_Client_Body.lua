@@ -584,3 +584,136 @@ TK.register("health.get", function(argv)
     local r = P5.healthRead(p)
     return { ok = (r.overall ~= nil), side = TK.side, overall = r.overall, health = r.health, parts = r.parts }
 end)
+
+-- The client landing listener: the twin of the server's, installed once by the first
+-- fall.probe on this side, never raising (every body under pcall), keeping up to 20 FALLDOWN
+-- records (side, amount, wall) and a count of every tag in P5.fall.
+P5.fall = { list = {}, counts = {}, hooked = false }
+
+function P5.fallHook()
+    if P5.fall.hooked or TK.p5FallHooked then
+        P5.fall.hooked = true
+        return true
+    end
+    if Events == nil or Events.OnPlayerGetDamage == nil then return false end
+    Events.OnPlayerGetDamage.Add(function(character, tag, amount)
+        pcall(function()
+            local t = tostring(tag)
+            P5.fall.counts[t] = (P5.fall.counts[t] or 0) + 1
+            if t == "FALLDOWN" and #P5.fall.list < 20 then
+                P5.fall.list[#P5.fall.list + 1] = { side = TK.side, amount = amount, wall = TK.now() }
+            end
+        end)
+    end)
+    TK.p5FallHooked = true
+    P5.fall.hooked = true
+    return true
+end
+
+function P5.legFractures(p)
+    local out = { legs = {}, maxFracture = 0 }
+    local bd = P5.hop(p, "getBodyDamage")
+    local list = P5.hop(bd, "getBodyParts")
+    local n = P5.hop(list, "size")
+    local i = 0
+    while n ~= nil and i < n do
+        local part = P5.hop(list, "get", i)
+        local ft = P5.hop(part, "getFractureTime")
+        local nm = nil
+        local t = P5.hop(part, "getType")
+        if t ~= nil and BodyPartType ~= nil and BodyPartType["ToString"] ~= nil then
+            local ran, s = pcall(BodyPartType["ToString"], t)
+            if ran then nm = s end
+        end
+        if ft ~= nil and ft > out.maxFracture then out.maxFracture = ft end
+        local low = string.lower(tostring(nm))
+        if ft ~= nil and (string.find(low, "leg", 1, true) or string.find(low, "foot", 1, true)) then
+            out.legs[#out.legs + 1] = tostring(nm) .. "=" .. tostring(ft)
+        end
+        i = i + 1
+    end
+    return out
+end
+
+-- The fall watcher: after a push, an OnTick sampler records z, isbFalling and the fall time
+-- every 250 ms of wall time for up to 8 s, then writes fall-probe.json with the series, the
+-- FALLDOWN records this side heard and the leg fracture times. One window at a time.
+TK.p5FallWatch = TK.p5FallWatch or { armed = false }
+
+local function p5FallOnTick()
+    local w = TK.p5FallWatch
+    if not w.armed then return end
+    local now = TK.now()
+    if now < w.nextAt then return end
+    local p = getPlayer()
+    if p == nil then return end
+    w.nextAt = now + 250
+    local z = P5.hop(p, "getZ")
+    local f = P5.hop(p, "isbFalling")
+    w.series[#w.series + 1] = "dt=" .. tostring(now - w.start) .. " z=" .. tostring(z) .. " falling=" .. tostring(f)
+    if now >= w.deadline then
+        w.armed = false
+        local fr = P5.legFractures(p)
+        TK.result("fall-probe", { series = w.series, fall = P5.fall.list, counts = P5.fall.counts,
+                                  legs = fr.legs, maxFracture = fr.maxFracture, pushedZ = w.pushedZ })
+    end
+end
+
+if not TK.p5FallTickHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() p5FallOnTick() end)
+    TK.p5FallTickHooked = true
+end
+
+-- <user> <z> [land <f>]. The CLIENT half of the landing probe: installs this side's
+-- OnPlayerGetDamage listener, then raises the local player by z tiles with
+-- IsoMovingObject:setZ(z0 + z) and sets isbFalling true (setbFalling) with the fall time reset to
+-- 0 (setFallTime), so the engine's own falling state can land it; the client owns the position of
+-- its player, the server reads it from the position packets. With `land <f>` it ALSO calls
+-- IsoGameCharacter:DoLand(f) at once (the landing impact entry, which fires FALLDOWN when the
+-- damage is nonzero) -- a direct arm for the case the height push does not fall. An OnTick
+-- watcher samples z, isbFalling every 250 ms for 8 s and writes fall-probe.json with the series,
+-- this side's FALLDOWN records and the leg fracture times. Where no height write is accepted the
+-- reply is {ok=false, reason}; the listener half still stands.
+-- @args <user> <z> [land <f>]
+-- @reply {ok, side, hooked, zBefore, zAfter, falling, result, file [, landCalled] [, reason]} | string
+-- @purpose Installs the client OnPlayerGetDamage listener for FALLDOWN, raises the local player by z tiles and sets it falling (optionally calling DoLand directly), and writes the z series, the FALLDOWN records and the leg fracture times to fall-probe.json.
+TK.register("fall.probe", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, reason = why } end
+    local dz = tonumber(argv[2])
+    if dz == nil then return "usage: fall.probe <user> <z> [land <f>]" end
+    local out = { ok = false, side = TK.side }
+    out.hooked = P5.fallHook()
+    if TK.p5FallWatch.armed then
+        out.reason = "a fall.probe window is already armed"
+        return out
+    end
+    out.zBefore = P5.hop(p, "getZ")
+    local setter = p["setZ"]
+    if setter == nil or out.zBefore == nil then
+        out.reason = "no height write: no setZ/getZ on the player"
+        return out
+    end
+    local ran, err = pcall(setter, p, out.zBefore + dz)
+    if not ran then
+        out.reason = "no height write: setZ raised: " .. tostring(err)
+        return out
+    end
+    P5.hop(p, "setFallTime", 0)
+    P5.hop(p, "setbFalling", true)
+    out.zAfter = P5.hop(p, "getZ")
+    out.falling = P5.hop(p, "isbFalling")
+    if argv[3] == "land" then
+        local f = tonumber(argv[4])
+        if f == nil then return "usage: fall.probe <user> <z> [land <f>]" end
+        local landed = pcall(function() p["DoLand"](p, f) end)
+        out.landCalled = landed
+    end
+    local start = TK.now()
+    TK.p5FallWatch = { armed = true, start = start, nextAt = start, deadline = start + 8000,
+                       series = {}, pushedZ = dz }
+    out.result = "fall-probe"
+    out.file = "pzt-results/fall-probe.json"
+    out.ok = (out.zAfter ~= nil)
+    return out
+end)
