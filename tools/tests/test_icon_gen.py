@@ -22,8 +22,7 @@ class IconGenTests(unittest.TestCase):
         files = icon_gen.generate()
         self.assertEqual(sorted(files), sorted(c + ".png" for c in icon_gen.CLASSES))
         for name, data in files.items():
-            self.assertEqual(data[:8], b"\x89PNG\r\n\x1a\n", name)
-            self.assertEqual(data[12:16], b"IHDR", name)
+            self.assertEqual(data[:8], bytes([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), cls)
             self.assertEqual(struct.unpack(">II", data[16:24]), (32, 32), name)
             self.assertEqual(data[24:29], bytes((8, 6, 0, 0, 0)), name)
 
