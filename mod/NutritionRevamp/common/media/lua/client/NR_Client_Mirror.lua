@@ -22,6 +22,7 @@ if Events ~= nil then
             if not NR.isClient() then return end
             NR.client.mirror = args
             NR.client.received = NR.client.received + 1
+            if NR.client.view ~= nil and NR.client.view.onMirror ~= nil then pcall(NR.client.view.onMirror) end
         end)
     end
     if Events.OnGameStart ~= nil then
