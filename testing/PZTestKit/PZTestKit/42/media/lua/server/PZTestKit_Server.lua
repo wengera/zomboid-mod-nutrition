@@ -2479,3 +2479,32 @@ TK.register("health.reduce", function(argv)
     out.ok = (out.after ~= nil)
     return out
 end)
+
+-- <user> <f>. BodyDamage:AddGeneralHealth(f), the engine call the regeneration terms make; read
+-- and replied exactly as health.reduce, so a reduce and an add can be compared on the same
+-- scale.
+-- @args <user> <f>
+-- @reply {ok, side, requested, before, after, health, parts [, reason]} | string
+-- @purpose Calls BodyDamage:AddGeneralHealth(f) on a named player, replying the overall body health before and after and the per-part health.
+TK.register("health.add", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local f = tonumber(argv[2])
+    if f == nil then return "usage: health.add <user> <f>" end
+    local out = { ok = false, side = TK.side, requested = f }
+    local bd = P5.hop(p, "getBodyDamage")
+    if bd == nil or bd["AddGeneralHealth"] == nil then
+        out.reason = "no BodyDamage:AddGeneralHealth"
+        return out
+    end
+    out.before = P5.hop(bd, "getOverallBodyHealth")
+    local ran, err = pcall(bd["AddGeneralHealth"], bd, f)
+    if not ran then
+        out.reason = "AddGeneralHealth raised: " .. tostring(err)
+        return out
+    end
+    local r = P5.healthRead(p)
+    out.after, out.health, out.parts = r.overall, r.health, r.parts
+    out.ok = (out.after ~= nil)
+    return out
+end)
