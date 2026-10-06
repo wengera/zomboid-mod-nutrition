@@ -5,7 +5,7 @@ to a composition source: one row per dataset id, across six part CSVs. It is the
 input of the item-pass pipeline, `tools/food_nutrients.py` (Plan 6). The tool merges the parts in
 **filename order** and requires each dataset id **exactly once** across all of them; a row may live
 in any part, so a curator moves a row between parts freely. The rows are keyed on the dataset id,
-never on the display name (231 rows share a name).
+never on the display name (231 of the 1 005 item records share a name).
 
 ## Files
 
@@ -150,8 +150,8 @@ The rulings of the 2026-10-06 curation, kept as the mapping's rules (the ledger 
   every part.
 - **A sealed and an opened twin are one food (T4-8).** The opened row takes the sealed row's entry and portion.
 - **The staples are the enriched SR entries (T4-9).** Rice 168877, pasta 169736, bread 174924.
-- **Phytate rests on a named table (T4-10, T4-12, T4-13).** Insect orders rest on the paper's secondary copies, naming
-  both; the bread rows take the white-bread median of PhyFoodComp, rice the white-rice rows; a `zero:` family is one of
+- **Insect-order phytate rests on the paper's secondary copies (T4-10),** naming both.
+- **Phytate rests on a named table (T4-12, T4-13).** The bread rows take the white-bread median of PhyFoodComp, rice the white-rice rows; a `zero:` family is one of
   the closed set above.
 - **A mapping curator's small fix round is spot-checked on its diff (T4-11)** and the close's whole-pass review
   re-samples the merged mapping.

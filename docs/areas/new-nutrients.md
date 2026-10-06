@@ -197,10 +197,7 @@ The loader stores an unrecognised key in the item's default modData, as a Double
 That landing is measured: a second mod's block for the same food replaced the string key by key on the server, the client's copy and a client-local spawn, and a vanilla food that no block gave the key read it missing ([#1281/M/n=1], [#3133/M/n=1], [#3134/M/n=1]).
 No vanilla food the item pass re-bases carries the key ([#3150/M/n=1]).
 
-A consumer reads three sources for an eaten food, in the order declared, then the table, then an inferred template, and the order is the intake's code; each source was measured landing alone and no arm put one food in two of them.
-A declared food landed with its source recorded as declared, the keys the string names at the string's values and every other key 0 ([#3148/M/n=1]); a food with an entry in the table landed the table's vector ([#3145/M/n=1]); a food with neither and no `FoodType` landed the default template's densities times its own energy, recorded as inferred ([#3147/M/n=1]).
-A declaration the consumer cannot read is ignored whole and the food falls through to the table, and a key the consumer does not know is skipped and named: these are readings of the mod's parser, and no run fed it a malformed string.
-The four macros of a declared food are filled from the item's own script values, a reading of the mod's parser that the declared arm's 180 kcal, 20 g, 6 g and 9 g agree with ([#3148/M/n=1]).
+What the mod's intake did with each source, declared, table and inferred, is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs) ([#3148/M/n=1], [#3145/M/n=1], [#3147/M/n=1]).
 
 <a id="acute-states"></a>
 ### The acute states

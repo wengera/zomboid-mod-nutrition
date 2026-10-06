@@ -105,7 +105,7 @@ Whether an output mapper that writes only a `default` should resolve to that def
 `python tools/food_nutrients.py <flag>` joins the food dataset to a hand-curated mapping, a composition extract and three side tables, and emits the nutrient dataset and the mod's generated files; it is standard-library Python, reads the FDC zips only at extract time and never writes an input [#3175/C/C-only].
 The flags are in the order of the pipeline:
 
-- `--seed-map` writes the seven mapping parts once from the dataset and never overwrites a part; `--force` seeds beside non-CSV files in a non-empty directory.
+- `--seed-map` writes the six seed parts (the curation split manufactured into two) once from the dataset and never overwrites a part; `--force` seeds beside non-CSV files in a non-empty directory.
 - `--check-map` prints every violation and the mapping's counts and exits 1 on a violation; `--allow-unfilled` lets a row with neither a source nor a reason pass, for the curation waves, and the build refuses such a row.
 - `--implied-portion <pz_id|all>` prints each macro's implied mass, their spread and the portion verdict; `--fdc <id>` joins on another FDC id than the row's.
 - `--build-extract` writes `data/fdc-extract.json` from the mapping, the FDC files and the side tables, and refuses unless the mapping checks clean; `--extract` names another path.

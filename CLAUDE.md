@@ -61,7 +61,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
 - `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/` or `tools/README.md`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
 - `python tools/food_nutrients.py --check` → in sync before any commit that touches `data/food-nutrient-map/`, `data/fdc-extract.json`, `data/food-nutrients.*`, the generated mod files (`NR_Data_Nutrients.lua`, `NR_Data_Infer.lua`, `NR_ItemPass_Food.txt`) or the tool; `--write` regenerates, and a generated file is never edited by hand.
-- `python -m pytest tools/tests testing/tests -q` green: 2099 passed on 2026-10-06 (1855 before Plan 6's close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 2099 passed on 2026-10-06 (1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 

@@ -1,5 +1,5 @@
 name=Nutrition Revamp
 id=NutritionRevamp
-description=Realism nutrition overhaul for Build 42 dedicated servers: nutrients beyond the four macros, a two-compartment body and effects pinned to published evidence. Plan 6 build: the item pass re-basing 522 vanilla foods' four macros from USDA SR Legacy, a per-food and per-litre nutrient table with a FoodType inference and a declared-vector key, intake, the body model, the nutrient records and fluids, the effects table; no panel yet.
+description=Realism nutrition overhaul for Build 42 dedicated servers: nutrients beyond the four macros, a two-compartment body and effects pinned to published evidence. Plan 6 build: the item pass re-basing 522 vanilla foods' four macros from USDA SR Legacy and, for 18 invertebrates, the insect literature, a per-food and per-litre nutrient table with a FoodType inference and a declared-vector key, intake, the body model, the nutrient records and fluids, the effects table; no panel yet.
 modversion=0.1.0
 versionMin=42.20.4
