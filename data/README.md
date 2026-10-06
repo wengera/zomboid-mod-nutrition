@@ -38,8 +38,8 @@ and nothing else: `data/food-items.json`, the mapping
 `data/food-nutrient-map/*.csv`, the extract `data/fdc-extract.json` and the
 three side tables (`iodine-db-r4.csv`, `phytate-literature.csv`,
 `insect-literature.csv`). It reads no value from the FDC zips under
-`tools/.fdc/`; check_map's two referential checks open them when present and
-skip when absent, so a fresh clone rebuilds it. It refuses, writing nothing,
+`tools/.fdc/`; check_map's two checks that open them (`sr_legacy` ids, retention codes) run when
+they are present and skip when absent, so a fresh clone rebuilds it. It refuses, writing nothing,
 unless `--check-map` is clean, every `proxy` carries `notes`, every mapped row
 has `portion_grams` and the extract holds every citation (else `--build-extract`).
 
@@ -97,6 +97,16 @@ under the bare key names (the `basis` column says per item or per litre), then
 `p100_<key>` for `per_100g`, then the checks (`out_of_range` joined by `;`,
 `check_notes` joined by ` | `). The mapping's free-text `notes` stays in the
 JSON. Empty string for `null`, `true`/`false` for a boolean.
+
+## fdc-extract
+
+`data/fdc-extract.json`, written by `python tools/food_nutrients.py --build-extract` from the mapping, the
+FDC files under `tools/.fdc/` (fetched and hashed by `tools/fdc_fetch.py`) and the side tables; the only file
+that carries the FDC values `--build` reads. `{"meta", "foods", "retention", "iodine", "phytate", "insects"}`: `meta` holds the
+sources (name, release, bytes, sha256, licence, citation, url), `defective_retention`, the build and the counts (`foods`,
+`retention_codes`, `iodine_rows`, `insect_rows`, `phytate_rows`, `defective_retention_rows`,
+`cookable_without_code`, `missing_nutrients` per key). It refuses unless `--check-map` is clean and every
+file hashes to the manifest. The column authority is [`datasets.md#food-nutrient-map`](../docs/reference/datasets.md#food-nutrient-map).
 
 ## recipes
 

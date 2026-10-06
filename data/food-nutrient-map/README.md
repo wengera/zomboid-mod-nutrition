@@ -112,7 +112,13 @@ counts (`rows`, `parts`, `by_kind`, `by_reason`, `by_confidence`, `filled`, `unf
   `fdc_id`, or the row's reason), every row off the family's most common source (ties by numeric id)
   carries `notes` (`families_split` counts the split families, noted
   or not);
-- the `iodine_ref` and `phytate_source` referential checks are Task 5's (`MAP_REF_CHECKS`).
+- five referential checks (`MAP_REF_CHECKS`), the tool's own: an `iodine_ref` is `iodine:<key>` with the key a row of
+  `data/iodine-db-r4.csv`; a `phytate_source` is `schlemmer2009:<dry-weight family>` or `phyfoodcomp2019:<fresh-weight
+  family>` of `data/phytate-literature.csv` on its own basis, or `zero:<family>` with the family one of the closed set
+  `ZERO_PHYTATE_FAMILIES` (`dairy`, `egg`, `fish`, `fruit`, `meat`, `oil`, `sugar`, `vegetable`); a `literature` row's
+  `fdc_id` is a key of `data/insect-literature.csv`; an `sr_legacy` `fdc_id` is a row of the zip's `food.csv` and a
+  `cook_retention_code` a `Retn_Code` of the retention CSV, both skipped (and named in `ref_checks_skipped`) when the
+  gitignored `tools/.fdc/` file is absent.
 
 ## Curating
 
@@ -124,3 +130,28 @@ counts (`rows`, `parts`, `by_kind`, `by_reason`, `by_confidence`, `filled`, `unf
   fitting, the mass is a `judgement` with `notes`. Never `Weight`.
 - A `fluid` row is per litre; a container's composition lives on its fluids (`fluid_sourced`).
 - An evolved dish's base item is `vessel_only`: its composition is summed from its ingredients.
+
+## The curation rules
+
+The rulings of the 2026-10-06 curation, kept as the mapping's rules (the ledger of Plan 6 holds the cost of each):
+
+- **A vessel is not re-based (T4-2, T4-6).** An evolved-recipe vessel that carries macros, a macro-less drink or salad
+  vessel, a recipe-only result and the bowls a pot divides into are `vessel_only`; an item that spawns at its own script
+  tuple (loot, clutter, forage) is mapped even when a recipe can make it.
+- **A Spice food with calories is a food (T3-1).** `spice_only` only where the four macros are absent or under 5 kcal.
+- **Vanilla's silence is not re-based (T4-3).** A fluid or item vanilla declares with no nutrition keys is not given
+  nutrition (`AnimalBlood`, `AnimalGrease`, both keyed `not_food` today); the taxonomy's name for them is
+  `no_vanilla_nutrition`, which the tool's enum does not yet hold, so the rows stay `not_food` with the note and a
+  re-key waits for the enum. Water, tainted water and carbonated water are exempt: they are mapped for their minerals.
+- **The portion is the game's own energy where it is usable (T4-5).** The kcal-implied mass is the judgement and the
+  game's energy stands; an FDC serving is taken only where the vanilla kcal is off its own Atwater value by more than
+  15 % or no consistent implied mass exists, one policy per macro family.
+- **A family is one source (T4-7).** The 159|1|1|35 fish family takes the kcal-implied mass and retention code 2305 in
+  every part.
+- **A sealed and an opened twin are one food (T4-8).** The opened row takes the sealed row's entry and portion.
+- **The staples are the enriched SR entries (T4-9).** Rice 168877, pasta 169736, bread 174924.
+- **Phytate rests on a named table (T4-10, T4-12, T4-13).** Insect orders rest on the paper's secondary copies, naming
+  both; the bread rows take the white-bread median of PhyFoodComp, rice the white-rice rows; a `zero:` family is one of
+  the closed set above.
+- **A mapping curator's small fix round is spot-checked on its diff (T4-11)** and the close's whole-pass review
+  re-samples the merged mapping.

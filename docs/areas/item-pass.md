@@ -1,5 +1,5 @@
 # Item pass
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-design reading of overriding vanilla foods — the routes into a vanilla item's nutrition, the minimal override block, which records a `module Base` pass covers and the pass's own risks; the merge, the replay and the path collisions are `platform/loader-and-scripts.md`, the keys are `facts/food-item-model.md`, what an eat does with a value is `facts/eating-pipeline.md`, and every count is `reference/datasets.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-design reading of overriding vanilla foods — the routes into a vanilla item's nutrition, the minimal override block, which records a `module Base` pass covers, what the pass's pipeline rests on in the game and the pass's own risks; the merge, the replay and the path collisions are `platform/loader-and-scripts.md`, the keys are `facts/food-item-model.md`, what an eat does with a value is `facts/eating-pipeline.md`, and every count is `reference/datasets.md`.
 
 ## Rules
 <a id="rules"></a>
@@ -19,12 +19,20 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Declare a mod's own items in the mod's own module when the mod adds rather than rebalances: a new name collides with nothing and grows the pool by exactly what it declares [#1020/M/n=1].
 - Read per-item macro values off an instance getter or out of the script text: the script object carries no macro getter, its four macro fields are private, and the dialect publishes methods rather than fields [#1011/M/n=1, #2732/M/n=1].
 - Build a fresh instance through the `instanceItem` global to read a type's vanilla macros when no instance is at hand: the global reaches the item factory, which the exposer leaves out [#2679/C/C-only, #2680/C/C-only, #2741/C/inference].
+- Ship each block in the measured shape, `DisplayCategory` and the keys the pass re-bases with `ItemType` omitted: a partial block without `ItemType` still merged into the vanilla food on both sides with every key it left out at vanilla, and a whole pass of such blocks declared no item; whether `DisplayCategory` can go as well is unmeasured [#3153/C/inference, #1018/M/n=1, #1013/M/n=1, #1014/M/n=1, #1015/M/n=1, #3141/M/n=1, #3136/C/open].
+- Re-base the four macros only and keep the vector's macros equal to the block's values: the block names `Calories`, `Carbohydrates`, `Proteins` and `Lipids` and leaves `HungerChange` and `ThirstChange` to the script, each re-based getter reads the float32 of the block's two-decimal value on the server, the client's copy and a client-local spawn, and an eat lands the table's vector beside the item's own live macros [#3154/C/inference, #3143/M/n=1, #3145/M/n=1, #3148/M/n=1].
+- Treat an absent nutrient as unknown in the data and as zero in the shipped table, never as a measured zero in the data: an absent source value is `null` and a written zero is `0`, and the table carries 0 for a key with no value, which an eaten Apple landed as 0 on the eight keys its entry did not carry [#3155/C/inference, #0618, #3145/M/n=1].
+- Take the portion from the game's own macros where they agree with the food's Atwater value, from an FDC serving only where the game's energy is unusable, and never from `Weight`: the mapping's portion sources read `vanilla_implied` on 78 records, `fdc_portion` on 86 and `judgement` on 405, the kcal-implied mass being the judgement where the game's energy stands [#3156/C/inference, #3166/C/snapshot, #0602/C/snapshot, #1228/M/n=1].
+- Keep a drink's nutrition on its fluid, per litre, in the Lua table and never on the container's block: a fluid's properties are the effect of one litre and the container multiplies them by its litres, a `fluid` block stores no key of the mod's own, and 0.25 L of Coffee landed the fluid entry's per-litre vector times 0.25 [#3157/C/inference, #1881, #1891/C/C-only, #2682/C/C-only, #3149/M/n=1].
+- Declare a mod food's vector through the `NR_Nutrients` script key, a `key:value;key:value` string in the food's own block: the loader parks an unrecognised key in the item's default modData as a string, a second mod's block wins it key by key, and a declared vector landed with source declared on both sides of the eat [#3158/C/inference, #1187/C/C-only, #1281/M/n=1, #3148/M/n=1, #3150/M/n=1].
+- Present the inferred vector of an unmapped food as a labelled judgement and never as data: a food with no table entry took the density template of its `FoodType`, the default template where it had none, times the item's own energy, and was recorded as inferred [#3159/C/inference, #3147/M/n=1].
+- Regenerate the generated files with the tool and never edit them by hand: a script copy one byte off the server's disconnected the client while a copy differing only in line endings connected, so a hand-edited file on one side is a disconnect, and the tool's `--check` compares every generated file with a fresh emission [#3160/C/inference, #3176/C/C-only, #1282/M/n=1, #3138/M/n=1, #3152/M/n=1].
 
 ## How it works
 
 An item pass is a rebalance of vanilla foods shipped as script: one block per item, naming the vanilla item and the keys the rebalance owns.
 Everything it rests on is a mechanism another page owns — the merge, the replay and the file map are the loader's, the keys are the item model's, and what an eat does with a value is the eating pipeline's — and this page is the reading of those mechanisms for one design.
-It is in two parts: the smallest block that changes a key, and which records a pass over the base module reaches.
+It is in three parts: the smallest block that changes a key, what the engine does with the files a generated pass ships, and which records a pass over the base module reaches.
 The pass's numbers themselves come from the design and the dataset rather than from here, and every per-food value is [the dataset](../reference/datasets.md).
 The routes a mod can take into a vanilla food, script and Lua alike, are under [Options](#route-options), and the pass's own risks under [Walls and bounds](#walls).
 
@@ -93,6 +101,22 @@ The base module's food count standing where vanilla left it says every block hit
 An instance getter read on each side says the re-based value took, and the same getter on a key the block left out says the rest stayed upstream ([#1014/M/n=1]).
 None of those sees a misspelled key, which lands in default modData without a sound, so only a census of a re-based item's modData against a vanilla control would, excluding the custom-name key a deserialised copy carries and the tooltip key a block's own `Tooltip` line writes ([#0212], [#1415/M/n=1], [#1044]).
 Nothing about the block costs anything at run time, because both sides load it and no packet carries it, at the one price of the script checksum gate ([#1243/M/n=1], [mod-anatomy.md#checksum-gate](../platform/mod-anatomy.md#checksum-gate)).
+
+<a id="pipeline"></a>
+### The pipeline
+
+A pass generated from a dataset is a pipeline of files, and what the game does with each file is the part this library measures.
+The tool that writes the files and the conventions of the mapping behind them are [the tools page](../reference/tools.md#food-nutrients) and [the datasets page](../reference/datasets.md#food-nutrient-map); this section reads what the engine does with what they emit.
+
+The script file is a set of partial `module Base` blocks, 522 of them, one per mapped food, each naming `DisplayCategory` and the four macros [#3174/C/snapshot].
+The loader merges each block into the vanilla food per key and parks any key it does not know in the item's default modData, so a block that carried a mod key would put it on every instance of the food ([#1187/C/C-only], [#1281/M/n=1]).
+The pass carries no such key: `NR_Nutrients` read as missing on every vanilla food it re-bases, on the server, the client's copy and a client-local spawn [#3150/M/n=1].
+The getters then answer the block's value as a float32 and the script value is identical on both sides with no packet, which is the free agreement the route table above rests on ([#3143/M/n=1], [#3133/M/n=1]).
+A second mod's block for one of the same foods composes with the pass's per key, and the replay order that decides it is the stored path's ([#3144/M/n=1], [#1183/M/n=2]).
+Foods the pass reasons out of the table have no block and read their own script values, and a reasoned record a part file maps is re-based like any other ([#3151/M/n=1]).
+
+The first boot of the whole build loaded the 90 121-byte script file and the generated Lua tables without an error on either side, and its tick rate read 0.995 of the previous build's ([#3140/M/n=1], [#3142/M/n=1]).
+What an eat does with the table, the template and a declared string is measured on the mod's side of the line and sits in [testing-your-mod.md](testing-your-mod.md#scenario-inputs); the declared string's grammar is [new-nutrients.md](new-nutrients.md#declared-nutrients).
 
 <a id="scope"></a>
 ### What a `module Base` pass covers
@@ -201,7 +225,7 @@ The guard tests the state-modified getter, so a value above it fresh can fall un
 A pass that names `OnEat` or `OnCooked` on a vanilla block replaces the hook vanilla gave that block, the home-canning cook hook among them ([#0312/C/snapshot], [#1006/M/n=1]).
 The minimal block's `ItemType`-omitted arm and a second mod's partial block landing on an already-populated default modData table are each one boot of one item: the later body's string replaced the earlier one's, and the two mods sorted the same way under every candidate sort key ([#1018/M/n=1], [#1281/M/n=1], [loader-and-scripts.md#default-moddata](../platform/loader-and-scripts.md#default-moddata)).
 Foods declared in a mod's own module sit outside a `module Base` pass, so a server running both carries two sets of numbers side by side ([#1030/M/n=1]).
-Not covered: a script reload in a running session, the `fluid` blocks a drink's nutrition lives in, what a re-based block does to instances and dishes already in a save, the translation of a re-based item's name, and any single-player session — every reading here is of `item` blocks loaded once at boot on the dedicated-server path.
+Not covered: a script reload in a running session, what a re-based block does to instances and dishes already in a save, the translation of a re-based item's name, a drink of the Cola fluid (the harness found no fluid type of that name, so its arm took no reading [#3149/M/n=1]), and any single-player session — every reading here is of `item` blocks loaded once at boot on the dedicated-server path.
 
 ## Open
 <a id="open"></a>

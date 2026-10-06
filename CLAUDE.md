@@ -41,7 +41,7 @@ The pre-restructure library is readable at the tag `research-program-v1`, and th
 
 ## 2. Ground truth
 
-- **Build:** `42.20.4` · jar `b0bbce05d5`; a claim holds on this build and is re-read on any other.
+- **Build:** `42.20.4` · jar `b0bbce05d5`; a claim holds on this build and is re-read on any other; the food dataset is the 2026-09-10 scan, and the item pass reaches a later build's foods only after a re-scan.
 - The local install `D:\SteamLibrary\steamapps\common\ProjectZomboid` and the workshop folder `D:\SteamLibrary\steamapps\workshop\content\108600` are read-only, always.
 - The jar toolchain lives at `C:\Users\Angus\pz-b42`: read its `WORKSPACE.md` first, treat it as read-only from here, and verify every Java claim through `./pz.sh grep|methods|refs|dump <class> [method]`; [platform/jar-research](docs/platform/jar-research.md) turns a reading into a citable claim.
 - The library is dedicated-server multiplayer evidence; single-player is never claimed.
@@ -59,8 +59,9 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/doc_lint.py docs/reference/wall-map.md references` → 0 before any commit that touches the wall map or `references/`.
 - `python tools/reference_gen.py cited-by --check` and `python tools/reference_gen.py contradictions --check` → in sync: the artifacts register's `Cited by` column and the mirrors' `## Contradictions` section are rendered from the register, the checker's rule 10 runs both (so `claims_check.py --staged` covers a commit touching the register, `docs/reference/artifacts.md` or `references/wiki-mirrors/`), and `--write` in place of `--check` regenerates them.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
-- `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
-- `python -m pytest tools/tests testing/tests -q` green: 1855 passed on 2026-10-06 (1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/` or `tools/README.md`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
+- `python tools/food_nutrients.py --check` → in sync before any commit that touches `data/food-nutrient-map/`, `data/fdc-extract.json`, `data/food-nutrients.*`, the generated mod files (`NR_Data_Nutrients.lua`, `NR_Data_Infer.lua`, `NR_ItemPass_Food.txt`) or the tool; `--write` regenerates, and a generated file is never edited by hand.
+- `python -m pytest tools/tests testing/tests -q` green: 2099 passed on 2026-10-06 (1855 before Plan 6's close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 
@@ -113,6 +114,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Rulings are written `Ruling: <what> — <why> — cost if wrong: <…>`. A ruling about the platform becomes a rule on [platform/lessons](docs/platform/lessons.md) with its mechanism row; a ruling about how this repository works becomes a rule in this file; a ruling a later agent must know is never only a ledger row.
 - Commits are pathspec commits (`git commit -m "…" -- <paths>`), never `--amend`, with no Claude attribution and a succinct subject line; implementers never push — the controller pushes at a plan's close.
 - Proceed to completion and ledger each decision for review instead of asking; ask only before a destructive action or one outside this worktree.
+- A mapping curator's fix round that is small and spot-checked by the controller on its diff takes no separate re-review when the close's whole-pass review re-samples the merged data (Plan 6 ruling T4-11).
 - Implementers run in parallel only on disjoint files; reviewers are read-only, may overlap anything, and read an implementer's committed content with `git show <commit>:<path>`; research subagents are sent off as the work goes.
 - In a delta a `supersede` names its successor in the `successor` cell; the add row may sit anywhere.
 - The register is read-only for page writers: a new or changed claim is a delta file the controller applies with `tools/claims_delta.py`, and a writer never runs `claims_check.py --fix-tags` (the controller runs it once per wave close).

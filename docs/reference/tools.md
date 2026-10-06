@@ -99,6 +99,33 @@ An input amount is a count of uses unless its line carries `flags[ItemCount]` ([
 The entity build recipes that sit inside a `component CraftRecipe` are censused and not scanned ([#0681/C/snapshot], [datasets.md#counts](datasets.md#counts)).
 Whether an output mapper that writes only a `default` should resolve to that default is the scanner's open question, under [Open](#open).
 
+<a id="food-nutrients"></a>
+## `food_nutrients.py` — the item-pass pipeline
+
+`python tools/food_nutrients.py <flag>` joins the food dataset to a hand-curated mapping, a composition extract and three side tables, and emits the nutrient dataset and the mod's generated files; it is standard-library Python, reads the FDC zips only at extract time and never writes an input [#3175/C/C-only].
+The flags are in the order of the pipeline:
+
+- `--seed-map` writes the seven mapping parts once from the dataset and never overwrites a part; `--force` seeds beside non-CSV files in a non-empty directory.
+- `--check-map` prints every violation and the mapping's counts and exits 1 on a violation; `--allow-unfilled` lets a row with neither a source nor a reason pass, for the curation waves, and the build refuses such a row.
+- `--implied-portion <pz_id|all>` prints each macro's implied mass, their spread and the portion verdict; `--fdc <id>` joins on another FDC id than the row's.
+- `--build-extract` writes `data/fdc-extract.json` from the mapping, the FDC files and the side tables, and refuses unless the mapping checks clean; `--extract` names another path.
+- `--build` writes `data/food-nutrients.json` and `.csv` from the dataset, the mapping, the extract and the side tables and from no FDC zip, and refuses unless the mapping checks clean and the extract holds every citation; `--out-json` and `--out-csv` move the outputs.
+- `--emit-lua`, `--emit-scripts` and `--emit-infer` write `NR_Data_Nutrients.lua`, `NR_ItemPass_Food.txt` and `NR_Data_Infer.lua` from the JSON and the dataset.
+- `--check` and `--write` are the gate and its remedy, below; `--map-dir` and `--dataset` point every flag at another mapping directory or dataset.
+
+The module's functions are the interface a test or a later tool imports: the FDC readers (`load_nutrients`, `load_food_nutrients`, `load_portions`, `load_retention`), the mapping (`seed_map`, `read_map`, `check_map`, `implied_portion`), the extract (`build_extract`), the record builder (`build`, `build_record`, `record_checks`) and the emitters (`emit_lua`, `emit_scripts`, `emit_infer`).
+The mapping directory's README states the curation rules, and [the datasets page](datasets.md#food-nutrients) the dataset's schema and counts.
+
+`--check` is the gate that holds the generated files in sync: it rebuilds the JSON and the CSV in a scratch directory, emits the three mod files from the JSON, compares each with its file on disk and exits 1 naming the first differing line, and `--write` runs `--build` then every emitter [#3176/C/C-only].
+A generated file is therefore never edited by hand, and a commit touching the mapping, the extract, the dataset outputs, a generated mod file or the tool runs `--check` first ([item-pass.md](../areas/item-pass.md#rules)).
+The generated script file is a `/* */` header and LF text with no date, so a rebuild on another day leaves its hash, and the script checksum gate with it, unchanged.
+
+<a id="fdc-fetch"></a>
+## `fdc_fetch.py` — the source fetcher
+
+`python tools/fdc_fetch.py [--dir tools/.fdc] [--verify]` downloads the four composition source files into the gitignored `tools/.fdc/`, writes a manifest of name, url, bytes and sha256, skips a file whose hash already matches and fails naming the URL on a 404 rather than guessing around it [#3177/C/C-only].
+`--dir` moves the directory and `--verify` re-hashes every file against the manifest; the files and their hashes are [the extract's sources](datasets.md#food-nutrients).
+
 <a id="workshop-search"></a>
 ## `workshop_search.py` — the Workshop sweep
 

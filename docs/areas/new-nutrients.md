@@ -30,6 +30,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-05 · scope: where a mod nutrie
 - Freeze the sleep state at rested unless `SleepAllowed` and `SleepNeeded` are both true: on a server where either is false vanilla resets FATIGUE to its default on every update before the stat hook, a fatigue write made outside the hook was erased at the next update in the measured session, and a sleep state that went on moving would drift from the stat it is meant to drive [#3009/C/inference, #2723/C/C-only, #2793/C/C-only, #2947/M/n=1, #2948/M/n=1].
 - Read the thermoregulator's getters on the server only, and guard against `getThermoregulator()` answering nil: the server's body-damage tick is what updates it, and a client's copy read an air temperature of 27.0 and an energy multiplier of 1.0 at every paired poll against the server's computed values [#3010/C/inference, #2933/C/C-only, #2934/C/C-only, #2935/M/n=1, #2936/M/n=1].
 - Hold the THIRST view at 0.83, which reads as moodle level 3, with the mod's deficiencies-can-kill dial on or off: the level-4 health term is compiled into the body-damage tick and costs 11.88 health per game hour on the default day whatever a mod dial says [#3011/C/inference, #3123/C/inference, #0518/C/arith., #0519/M/arith., #2969/M/n=1, #2971/M/n=1].
+- Write a declared vector as `NR_Nutrients = key:value;key:value` in the item's own block, per item and in the units of the nutrient contract, as a string the loader will park rather than parse: a pair that parses as a bare number would be stored as a Double, and a declared vector landed with source declared, its listed keys at the string's values and every other key 0 [#3161/C/inference, #0212, #1281/M/n=1, #3148/M/n=1].
 
 ## How it works
 
@@ -186,6 +187,20 @@ A world-water drink ran on the server under no drink wrapper [#2942/M/n=1].
 A drink queued on a container the server had never seen raised in the action's `new` [#2943/M/n=1].
 The THIRST moodle read level 3 at 0.83 and level 4 at 1 [#2971/M/n=1].
 What the mod's fluids measured on themselves is a reading of the mod, [testing-your-mod.md](testing-your-mod.md#scenario-inputs).
+
+<a id="declared-nutrients"></a>
+### The declared-nutrients contract
+
+A food a mod declares in its own module can carry its nutrient vector in its own block, through one key the loader does not know.
+The key is `NR_Nutrients` and its value is a string of `key:value` pairs joined by semicolons, as in `fibre:9;vitC:40;iron:2`, per item and in the units of the nutrient contract the mod's table is written in.
+The loader stores an unrecognised key in the item's default modData, as a Double where the value parses as a number and as a string otherwise, and every instance receives a copy; a `key:value` string never parses as a number, so it arrives as a string ([#0212], [#1187/C/C-only], [#2676/C/C-only]).
+That landing is measured: a second mod's block for the same food replaced the string key by key on the server, the client's copy and a client-local spawn, and a vanilla food that no block gave the key read it missing ([#1281/M/n=1], [#3133/M/n=1], [#3134/M/n=1]).
+No vanilla food the item pass re-bases carries the key ([#3150/M/n=1]).
+
+A consumer reads three sources for an eaten food, in the order declared, then the table, then an inferred template, and the order is the intake's code; each source was measured landing alone and no arm put one food in two of them.
+A declared food landed with its source recorded as declared, the keys the string names at the string's values and every other key 0 ([#3148/M/n=1]); a food with an entry in the table landed the table's vector ([#3145/M/n=1]); a food with neither and no `FoodType` landed the default template's densities times its own energy, recorded as inferred ([#3147/M/n=1]).
+A declaration the consumer cannot read is ignored whole and the food falls through to the table, and a key the consumer does not know is skipped and named: these are readings of the mod's parser, and no run fed it a malformed string.
+The four macros of a declared food are filled from the item's own script values, a reading of the mod's parser that the declared arm's 180 kcal, 20 g, 6 g and 9 g agree with ([#3148/M/n=1]).
 
 <a id="acute-states"></a>
 ### The acute states

@@ -5,6 +5,8 @@
 # What the boot reads (Task 12 arms): a mapped vanilla food's rebalanced values against the record; the unmapped
 # FibreBar left at its script values; DeclaredBar's NR_Nutrients vector parsed into the item's vector; the
 # eat of each moving the mod's nutrient state; the items.count and item.script bus reads on the server.
+# Run x172-20261006-110409 (Plan 6 Task 12, one boot, 610.8 s): the build loaded clean on both sides, eleven re-based foods read the
+# block's float32 on the server, the client copy and a client-local spawn, and the table, inferred and declared vectors landed in the eat.
 fixture = "default"
 description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror) + TKX_ItemOverride + TKX_DeclaredFood, Nutrition off, DayLength 1 - the Plan 6 item-pass acceptance."
 run = { hold = 20 }
