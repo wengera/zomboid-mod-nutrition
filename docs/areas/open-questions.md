@@ -154,7 +154,7 @@ One line per decision the area pages' `## Open` sections leave to the design, ea
 - Whether a band label waits for the timed experience push or follows a trait-block push the mod sends after each write — forced by no Java code sending the trait bit [#2604/C/C-only, #2608/C/C-only] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - How stale a displayed value may be — forced by a client panel not observing the player-stats write and drawing a mirror late by up to one push plus its own refresh interval [#1149/M/n=1, #1486/M/n=1] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether a cooked food's thirst is shown on a client at all, or re-derived from the script — forced by the client's getter reading a value halved once per hop [#1038/M/n=2] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
-- Whether the design renames any vanilla food — forced by the translation override being unmeasured, and by the answer governing whether a rebalance may rename vanilla foods [#1164/C/C-only/open] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
+- Whether the design renames any vanilla food — forced by a mod's value for a vanilla key displacing vanilla's on the client and not on the server [#1164/C/C-only/open] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Whether the mod's numbers stay inside the display bands the torn-down viewer hard-codes — forced by those bands going wrong silently on a re-based scale [#1514, #1522] ([ui-and-moodles.md#open](ui-and-moodles.md#open)).
 - Which files ship in the version dir and which in `common/`, and whether the mod ships one version dir per supported build or one beside `common/` — forced by the version dir winning a same-relative-path collision while `common/` supplies the rest, and by the merge being measured only for a version dir that ships colliding files or none [#1318/M/n=1, #1170/M/n=2, #0825/C/C-only] ([packaging.md#open](packaging.md#open), [mod-anatomy.md#open](../platform/mod-anatomy.md#open)).
 - Whether the server's 60 s checksum arm acts on a mismatched client, not seen in the 157.806 s watched [#3178/C/open], [#1231/C/C-only] ([item-pass.md#open](item-pass.md#open)).
@@ -190,11 +190,6 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: a global read of `MoodleStat` beside two exposed controls that must answer in the same call, riding any session with a client — [experiments.md § Named experiments](../reference/experiments.md), row `X2`.
 
 <a id="x5"></a>
-### X5 — Does a mod JSON displace a vanilla translation key, or does the merge keep vanilla's?
-- Whether a mod translation file displaces a vanilla key, or the translator's merge keeps vanilla's, is open [#1276/C/open].
-- It also settles [#1164/C/C-only/open] on [wall-map.md](../reference/wall-map.md#h2).
-- Waiting on it: [ui-and-moodles.md](ui-and-moodles.md#open), [testing-your-mod.md](testing-your-mod.md#open).
-- Settled by: a mod that redefines one vanilla item-name key and one vanilla interface key beside a new interface key that must hit in the same run — [experiments.md § Named experiments](../reference/experiments.md), row `X5`.
 
 <a id="x9b"></a>
 ### X9b — What does the spice branch do beyond the herbal-tea sums?

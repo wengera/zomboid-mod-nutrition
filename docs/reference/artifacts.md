@@ -93,6 +93,7 @@ correct it.
 | `x172-20261006-110409` | `itempass.json` | `testing/experiments/x172_itempass.py` — one boot of `x17-itempass`, Plan 6 Task 12, the first boot of the item-pass build: `S0` first sight and the data loaders on both sides, `A` `items.count`, the boot times and three tick-rate windows, `C` an Apple eaten, `C2` a Bread eaten, `D` `TKX.FibreBar` eaten (inferred), `E` `TKX.DeclaredBar` eaten (declared), `F_coffee` and `F_cola` a drink each, `B` thirteen foods read on both sides, `I` two reasoned records' scripts, `Z` the close | [`areas/item-pass.md`](../areas/item-pass.md), [`areas/testing-your-mod.md`](../areas/testing-your-mod.md), [`platform/loader-and-scripts.md`](../platform/loader-and-scripts.md) |
 | `x172b-20261006-130714` | `itempass.json` | `testing/experiments/x172_itempass.py`, reused unedited — one boot of `x17-itempass`, Plan 6 Task 12b, the item pass on the close-wave build (`8da267e`): the same arms as `x172-20261006-110409` (`S0`, `A`, `C`, `C2`, `D`, `E`, `F_coffee`, `F_cola`, `B`, `I`, `Z`); the file's own `run_id` reads `x172-20261006-130714`, the driver's fixed prefix | [`areas/item-pass.md`](../areas/item-pass.md), [`areas/testing-your-mod.md`](../areas/testing-your-mod.md), [`platform/loader-and-scripts.md`](../platform/loader-and-scripts.md) |
 | `x181-20261006-152607` | `moodleframework.json` | `testing/experiments/x181_moodleframework.py` — one boot of `x18-moodleframework`, Plan 7 Task 4, gate X29: `F` first sight of the probe, `i` the loading lines and `MF` on both sides, `ii` the configuration file's globals, `L` the `lua.call` and client `lua.setpath` smoke test, `iii_control`, `iii_render` and `iii_backoff` a framework moodle at 0.5, 0.95 and 0.5 with its render count and the probe's own widget's, `X` the `MoodlesUI` exposure and the stack box, `T` one tick window on both sides, `Z` the close | — |
+| `x182-20261006-152945` | `translate.json` | `testing/experiments/x182_translate.py` — one boot of `x18-translate`, Plan 7 Task 4, gate X5: `P` the mandatory positive control `IGUI_TKX_Probe` on both sides, `K` the redefined `IGUI_invpanel_Type` on the client, `N` a client-spawned and an RCON-added `Base.Apple` read on both sides, `S` the server control, `L` `lua.call` of `getText` and `getItemNameFromFullType` on both sides, `Z` the close | — |
 
 ## Script/artifact skew
 
@@ -3097,3 +3098,24 @@ How to read it. `predictions` is written before the boot; `verdicts.<leg>` holds
 | `logs.server`, `logs.client` | 80 lines each | The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not counts; past the mod lines they are the harness mod's own `AdvancedAnimator` missing-folder exceptions. |
 | `phases.iii_control.state.onUI` | unresolved | The flag is never set before the first non-neutral value; read `moodle_fields.addedToUIManager` beside it, also unresolved, as the absence. |
 | `verdicts.i.line_counts_exact` | true | A grade of the driver's, not a reading; cite `logs.server_load` and `logs.client_load`. |
+
+**`x182-20261006-152945/translate.json`** — produced by `testing/experiments/x182_translate.py` on HEAD `97454e7` (probe `TKX_TranslateOverride` `ff0e50f`, clean; harness Lua `2f0d3d7`, clean) with the driver itself untracked at the run; it is committed unedited beside the artifact
+(84.2 s wall; 40431 bytes, sha256 `998f1d72…d69f4fd1`, byte-for-byte identical to the run copy). **Plan 7 Task 4, gate X5**: one boot of the default fixture, one admin character, build 42.20.4, profile `x18-translate` (PZTestKit, TKX_TranslateOverride). `doctor_clean` true; `server_error_count` 0; `client_lua_error` false; both `verify` rows `ok` (the client `IGUI_TKX_Probe` hit). HEAD moved to `97454e7` (Task 3's view kernel, under `mod/`, which this profile does not load) between the two sessions.
+
+How to read it. `predictions` is written before the boot, with its basis (the jar's fill order); `vanilla` holds the install's own EN values for the two redefined keys, read by the driver. `verdicts.<leg>` holds each leg's prediction, falsifier, observation and verdict: `P`, `K` and `N` `as_predicted`, `S` **falsified**, with `verdicts.S.LOUD` naming why. `phases.<leg>` holds every reply with its wall bracket, and `steps` every bus call. `positive_control_hit` is true, so every other reading in the file is readable.
+
+- **P**: client `text.get IGUI_TKX_Probe` `tkx-hit`, miss false (and again at `Z`); server the key itself, miss true.
+- **K**: client `text.get IGUI_invpanel_Type` `TKX Type`, miss false, against vanilla's `Item`.
+- **N**: no apple on either side before the spawn; the client `item.spawn` (`id=1883396734`) read `getDisplayName` `TKX Apple`, `getFullType` `Base.Apple`; the server did not see it; after RCON `additem` the server resolved its own apple (#1725605724) at the first try and read `getDisplayName` `Apple`, `getFullType` `Base.Apple`. The client's final read resolved the client-local apple again, not the replica of the server's.
+- **S**: server `text.get IGUI_invpanel_Type` `Item`, miss false — the server control's prediction (a miss, and a display name equal to the full type) is falsified: the server resolves vanilla's strings and not the mod's.
+- **L**: client `getText IGUI_TKX_Probe` `tkx-hit`, `getText IGUI_invpanel_Type` `TKX Type`, `getItemNameFromFullType Base.Apple` `TKX Apple`; server `IGUI_TKX_Probe` (the key), `Item`, `Apple`; every call `{ok true, nargs 1, r1 <string>}`.
+- **boot**: server launch to `SERVER STARTED` 15.0 s, the client `in_game` 35.3 s and `ready` 37.3 s after its start, session ready at driver wall 54.049.
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` boot, one fixture, one admin character, one language (EN), one item and two interface keys. |
+| `predictions`, `constants`, `verdicts.*.predicted` | the driver's tables | Written before the run; not readings. |
+| `vanilla` | `Item`, `Apple` | Read by the driver from the install's files at import, not from the game. |
+| `logs.server`, `logs.client` | 72 and 67 lines | Every line the driver's broad pattern matched (under its cap of 80, `logs.limits.log`), so not a count of anything the pattern names; past the mod lines they are the harness mod's own `AdvancedAnimator` missing-folder exceptions and one vanilla `Translation: Warning` line. |

@@ -484,3 +484,9 @@ x181-20261006-152607,logs.server,80 lines,"The first 80 matching lines the drive
 x181-20261006-152607,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",cite `logs.client_load` for the loading lines
 x181-20261006-152607,phases.iii_control.state.onUI,unresolved,"The flag is never set before the first non-neutral value, so the unresolved read is the field's absence and not a false.",cite `phases.iii_control.moodle_fields.addedToUIManager` with it
 x181-20261006-152607,verdicts.i.line_counts_exact,true,"A grade of the driver's, not a reading.",cite `logs.server_load` and `logs.client_load`
+x182-20261006-152945,predictions,the driver's PRED table,"Written before the boot, with its jar basis; not a reading.",cite `verdicts.<leg>.observed` or `phases.<leg>`
+x182-20261006-152945,constants,the driver's constants,"Settings of the driver, not readings.",
+x182-20261006-152945,verdicts.*.predicted,the driver's predictions,"Copies of `predictions` beside each grade; not readings.",cite `verdicts.<leg>.observed`
+x182-20261006-152945,vanilla,"Item, Apple","Read by the driver from the install's EN files at import, not from the game.",cite `D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/shared/Translate/EN/` directly
+x182-20261006-152945,logs.server,72 lines,"Every line the driver's broad pattern matched (under its cap of 80), not a count of anything the pattern names.",cite `logs.server_load` for the loading line
+x182-20261006-152945,logs.client,67 lines,"Every line the driver's broad pattern matched (under its cap of 80), not a count of anything the pattern names.",cite `logs.client_load` for the loading lines

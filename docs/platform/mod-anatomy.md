@@ -146,6 +146,8 @@ Only the B42 translation layout is read on this build: `Translator.tryFillMapFro
 It walks that pair through `tryFillMapFromFile`, which formats the translation path itself and merges into a shared map rather than replacing it, so mod translations do not shadow [#1314].
 Vanilla's keys survive and the mod's are added, which makes translations the one thing in a mod tree that does not shadow [#0841/C/C-only].
 A mod may therefore add keys at a vanilla relative path without displacing vanilla's, which is the opposite of what the file map does to every other file in the tree.
+A mod's value for a key vanilla already defines does displace vanilla's value: the map is filled from vanilla's folder first and from the mods after it, and the per-key fill puts any non-empty value over an existing key [T4.18/C/C-only].
+One session read exactly that on the client, a redefined interface key reading `TKX Type` against vanilla's `Item` and a redefined `Base.Apple` reading `TKX Apple` against `Apple` ([T4.14/M/n=1], [T4.15/M/n=1], [#1276/C/open]), beside a new interface key of the mod's that hit in the same run [T4.13/M/n=1].
 That exception is what the version-dir merge rule above is bounded against: everything else in a mod tree resolves through the file map, and translations do not.
 A mod's own `Mod.json` can translate its displayed `name` and `description` through `Translator.readModTranslation` [#0809/C/C-only].
 
@@ -155,6 +157,8 @@ A B41 `ItemName_EN.txt` entry is never loaded on this build: the item declared o
 An item declared only in a B41 `ItemName_EN` table therefore produces no name at all, the client reading its display name equal to its full type and `getActualWeightUnmodded` 0, again the display-name guard rather than a weight fact [#1022/M/n=1].
 An item with no translation entry anywhere reads the same way on the client, display name equal to full type and `getActualWeightUnmodded` 0 [#1023/M/n=1].
 A dedicated server resolves no item display name at all, JSON included: the server read the same item's display name as its full type on the same tick the client read the translated name [#0844/M/n=1, #1024/M/n=1, #1244/M/n=1].
+Those were a mod's items: a vanilla item's name and a vanilla interface key resolve on a dedicated server, a server-instantiated `Base.Apple` reading `Apple` and the interface key vanilla's `Item` [T4.16/M/n=1].
+What the server lacks is the mods' values: it missed the mod's new key and kept vanilla's strings for the two it redefined, although its log printed the mod's translation files as loaded [T4.17/M/n=1].
 `Translator.getTextInternal` is a prefix router over 25 key prefixes and `ItemName_` is not one of them; the item map is reached only by `getDisplayItemName`, which looks up the raw full type with spaces and hyphens folded to underscores [#0847/C/C-only, #1215/C/C-only].
 That router is why a translation-only load probe has to be gated on a `UI_` or `IGUI_` key: those prefixes are routed, an item name is not.
 Three items in one mod, one per translation state, is what makes those readings a discriminator rather than three unrelated observations, and each state was read once.
