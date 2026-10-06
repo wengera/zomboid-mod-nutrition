@@ -1215,3 +1215,47 @@ TK.register("lua.call", function(argv)
     end
     return out
 end)
+
+-- <EventName> [<arg1> ... <arg4>]. TEST-ONLY INSTRUMENT: the harness mod is installed only by test profiles
+-- and is never shipped. Registered ONCE here so BOTH sides answer. Fires a Lua event by name so a driver
+-- can press a key (`event.trigger OnKeyPressed 39`) or run a handler: the global triggerEvent is a
+-- LuaManager$GlobalObject member (jar: triggerEvent(String) through triggerEvent(String,Object x4), read
+-- with pz.sh methods) and is nil-guarded here. Up to four scalar args are parsed as lua.setpath parses
+-- them (`true`, `false`, `nil`, a number, else the string) and passed under pcall with exactly as many
+-- args as were given. A Lua-triggered event reaches the Lua handlers registered on it and not the
+-- engine's own Java listeners - a code reading of LuaEventManager.triggerEvent, stated as such.
+-- @args <EventName> [<arg1> ... <arg4>]
+-- @reply {ok, side, event, nargs} | {ok, side, event, err} | {ok, side, reason} | string
+-- @purpose Test-only: fires a Lua event by name on the side answering with up to four scalar args under pcall; it reaches Lua handlers only, not the engine's Java listeners (a code reading).
+TK.register("event.trigger", function(argv)
+    if argv[1] == nil then return "usage: event.trigger <EventName> [<arg1> ... <arg4>]" end
+    if triggerEvent == nil then return { ok = false, side = TK.side, reason = "no triggerEvent" } end
+    local out = { ok = false, side = TK.side, event = argv[1] }
+    local args = {}
+    local nargs = 0
+    for j = 2, 5 do
+        local raw = argv[j]
+        if raw ~= nil then
+            nargs = nargs + 1
+            local value = raw
+            if raw == "true" then value = true
+            elseif raw == "false" then value = false
+            elseif raw == "nil" then value = nil
+            elseif tonumber(raw) ~= nil then value = tonumber(raw) end
+            args[nargs] = value
+        end
+    end
+    local ran, err
+    if nargs == 0 then ran, err = pcall(triggerEvent, argv[1])
+    elseif nargs == 1 then ran, err = pcall(triggerEvent, argv[1], args[1])
+    elseif nargs == 2 then ran, err = pcall(triggerEvent, argv[1], args[1], args[2])
+    elseif nargs == 3 then ran, err = pcall(triggerEvent, argv[1], args[1], args[2], args[3])
+    else ran, err = pcall(triggerEvent, argv[1], args[1], args[2], args[3], args[4]) end
+    if not ran then
+        out.err = tostring(err)
+        return out
+    end
+    out.ok = true
+    out.nargs = nargs
+    return out
+end)
