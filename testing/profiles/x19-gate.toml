@@ -1,0 +1,39 @@
+# testing/profiles/x19-gate.toml - the Plan 8 live 1 boot (Task 5, run x191): PZTestKit + NutritionRevamp (by path)
+# + TKX_DeclaredFood, Nutrition = false, DayLength 1, NO [sandbox.NR] block: the Bands default of ruling T13-1/T13-3
+# (NR.VisibilityMode unset, so the server option and the client view both read 2), no sleep arm.
+# What the boot reads (x191_gate_race.py): the Nutritionist-gate race (#3241), the key press through event.trigger
+# (#3247), the panel wheel and the tab render through lua.callm (#3248, #3246), the store's version and the idle
+# reconciliation count on the Plan 8 build. A mod Lua error parks the -debug client, hence the 180 s client timeout.
+# The verify rows are load gates only, each certain to pass if the mod loaded: the server version global, the client
+# view level (a number 1..3), the shipped IGUI_NR_Loaded translation and the tooltip sentinel's saved original.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp + TKX_DeclaredFood, Nutrition off, DayLength 1, no NR.VisibilityMode (the Bands default) - the Plan 8 gate race and input commands."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.client.view.level", expect = '"type": "number"' },
+  { side = "client", cmd = "text.get", args = "IGUI_NR_Loaded", expect = "nr-loaded" },
+  { side = "client", cmd = "lua.global", args = "NR_ClientTooltip_Installed.original", expect = '"type": "function"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_DeclaredFood"
+path = "testing/experiments/TKX_DeclaredFood"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes

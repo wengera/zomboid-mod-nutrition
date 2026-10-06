@@ -519,3 +519,13 @@ x183b-20261006-175149,deviations,the driver's list,Written before the first boot
 x183b-20261006-175149,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
 x183b-20261006-175149,verdicts.I.verdict,falsified,"The pattern caught the harness's echoes of the driver's own server-side probes, not a mod line.",cite `logs.server_ui` and `logs.server_ui_mod`
 x183b-20261006-175149,logs.server,120 lines,"The first 120 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
+x191-20261006-191554,predictions,the driver's PRED table,"Written before the boot; not a reading.",cite `verdicts.<arm>.observed` or `phases.<arm>`
+x191-20261006-191554,constants,the driver's constants,"Settings of the driver (waits, caps, the move position), not readings.",
+x191-20261006-191554,baseline,"ticks 10.003..., 10.052..., 10.002...","Copied from x183b-20261006-175149, not this run.",cite that run's own file
+x191-20261006-191554,deviations,the driver's list,Written before the boot; not readings.,
+x191-20261006-191554,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
+x191-20261006-191554,phases.BC.C.*.first.after,0,"The driver's own write of 0 inside its lua.setpath read, not a reading.",cite the `.before` or `.value` beside it
+x191-20261006-191554,phases.BC.C.*.restored,the written-back value,"The driver's own write restoring the field, not a reading.",cite the `.before` or `.value` beside it
+x191-20261006-191554,phases.A.A3.action.set_remove.traitList,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A3.pairs`
+x191-20261006-191554,phases.A.A3.action.push.traitList,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A3.pairs`
+x191-20261006-191554,phases.BC.C.setY,ok true,"The call did not raise; not the position it left.",cite `phases.BC.C.y_moved.r1`
