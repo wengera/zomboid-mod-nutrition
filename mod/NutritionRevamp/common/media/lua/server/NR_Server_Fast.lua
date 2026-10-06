@@ -38,7 +38,7 @@ NR.server.fast = { h = {}, byChar = {}, lastInp = {}, mode = 2, closure = nil, r
                                    "tripping angle dropped (nothing reads it)",
                                    "after a respawn the fast clock may read the dead character's stomachFill and the effects floors for at most one slow-clock minute (the temperature and intoxication targets too) until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified (a Plan 8 reading)",
                                    "the endurance fold (dmod on a drain, rmod on a regeneration) is unapplied while X35 is open: awake ENDURANCE stays vanilla's, melee swings unscaled",
-                                   "INTOXICATION is the gut lane's bac every tick (T4-1): vanilla's per-drink jump is overwritten, so a drink the intake wrappers miss shows no intoxication; with no effects table yet vanilla's value stands",
+                                   "INTOXICATION is the gut lane's bac every tick (T4-1): vanilla's per-drink jump is overwritten, so a drink the intake wrappers miss shows no intoxication; with no effects table yet vanilla's value stands undecayed (the reduction is 0)",
                                    "the UNHAPPINESS release subtracts the whole fall of the target once (T1-2), whether or not the floor had raised the stat that far",
                                    "the TEMPERATURE target is written only while the core is on the adjustment's far side; the held equilibrium against the regulator is unmeasured (X81)" } }
 local FAST = NR.server.fast
@@ -171,7 +171,7 @@ local function hoist(username, p)
     h.setDrunk = want(h.bd, "setDrunkReductionValue")
     h.endFoldOn = FAST.endFoldOn == true
     h.intoxOwned = FAST.intoxOwned == true
-    h.moodFloor = { panic = 0, unhappy = 0, foodSick = 0 }   -- the last target each floor held (T1-2's release)
+    h.moodFloor = { unhappy = 0 }                             -- the last UNHAPPINESS target held (T1-2's release)
     -- endLast's seed: the stat as it stands, so the fold's first delta is vanilla's own change
     if h.get ~= nil then
         local okE, e0 = pcall(h.get, h.stats, h.ENDURANCE)
@@ -353,7 +353,6 @@ local function body(h)
                 set(stats, h.PANIC, v)
             end
         end
-        mf.panic = t
         t = E.unhappyTarget or 0
         if t ~= t then t = 0 end
         local last = mf.unhappy
@@ -381,7 +380,6 @@ local function body(h)
                 set(stats, h.FOOD_SICKNESS, v)
             end
         end
-        mf.foodSick = t
         -- ruling 16: the absolute target, written only while the core is on the adjustment's far side
         t = E.tempTarget or 0                             -- 0 means no write (no set point, or no adjustment)
         if t > 0 then
@@ -541,13 +539,17 @@ end
 local function onMinute(username, player, record)
     local h = FAST.h[username]
     if h == nil then return end
-    if record ~= nil then h.record = record end
+    if record ~= nil then
+        if record ~= h.record then h.moodFloor.unhappy = 0 end   -- a new record (respawn): no release against the old floor
+        h.record = record
+    end
     FAST.stats.perPlayer[username].calls = h.calls
     if FAST.lastError ~= nil then
         NR.log.say(2, "fast: handler failed (" .. tostring(FAST.stats.failures) .. " so far): " .. tostring(FAST.lastError))
         FAST.lastError = nil
     end
 end
+FAST.onMinute = onMinute                                  -- exposed for the handler tests (the respawn reset)
 
 -- Every file has loaded by OnServerStarted: read the options here (the order of the two
 -- OnServerStarted handlers is then irrelevant), wire the lists, hoist anyone already seen, apply.

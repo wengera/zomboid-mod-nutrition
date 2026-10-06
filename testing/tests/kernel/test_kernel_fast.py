@@ -558,8 +558,7 @@ def test_handler_hoist_ids_flags_and_last_input(hrt):
     assert h.TEMPERATURE == "TEMPERATURE" and h.INTOXICATION == "INTOXICATION"
     assert h.effOn is True
     assert hrt.eval("rawequal")(FAST.lastInp["u"], h.inp)   # the same table, no copy (Task 8 reads it)
-    mf = h.moodFloor
-    assert (mf.panic, mf.unhappy, mf.foodSick) == (0, 0, 0)
+    assert h.moodFloor.unhappy == 0 and h.moodFloor.panic is None   # only the UNHAPPINESS floor is remembered (the release)
     assert h.out.endurance == 0.7                            # endLast seeded from the stat at hoist
     assert h.endFoldOn is False                              # X35 open: the fold ships unapplied
     assert h.intoxOwned is True                              # X82 settled (gate 2, ruling T4-1)
@@ -665,6 +664,22 @@ def test_handler_unhappiness_floor_and_its_release(hrt):
     gets = _n(env.gets, "UNHAPPINESS")
     _tick(env, FAST, 2)
     assert _n(env.gets, "UNHAPPINESS") == gets
+
+
+def test_a_new_record_at_the_minute_resets_the_unhappiness_floor(hrt):
+    # the Task 9 review residual: after a respawn the old floor must not release against the new record
+    rec = _rec(hrt, effects=dict(unhappyTarget=4))
+    env, FAST, h = _handler(hrt, rec)
+    env.vals["UNHAPPINESS"] = 4
+    _tick(env, FAST)
+    assert h.moodFloor.unhappy == 4
+    FAST.onMinute("u", env.p, rec)                                                # the same record: untouched
+    assert h.moodFloor.unhappy == 4
+    FAST.onMinute("u", env.p, _rec(hrt, effects=dict(unhappyTarget=1)))           # a new record: reset
+    assert h.moodFloor.unhappy == 0
+    sets = _n(env.sets, "UNHAPPINESS")
+    _tick(env, FAST)
+    assert env.vals["UNHAPPINESS"] == 4 and _n(env.sets, "UNHAPPINESS") == sets   # no release fired
 
 
 @pytest.mark.parametrize("adj,target,core,written", [
