@@ -90,7 +90,7 @@ The predicate's thresholds, which read the weight-band traits, are stated at [bo
 The protein branch: when the perk is `Perks.Strength` and the character is an `IsoPlayer`, a protein store strictly between 50 and 300 multiplies the amount by 1.5, and a protein store below −300 multiplies it by 0.7 [#2112/C/C-only].
 The two tests run one after the other rather than as alternatives, and no sandbox option guards either [#2112/C/C-only].
 Both thresholds lie inside the protein store's clamp range, so both arms are reachable in play; neither is exercised on a live server [#0023/M/n=2, #2112/C/C-only].
-The branch reads the protein store of whichever side runs the body, and which side that is for a connected player's grants is under [# Open](#open).
+The branch reads the protein store of whichever side runs the body, and which side that is for a connected player's grants is under [## Open](#open).
 SkillRecoveryJournal ships a protein-keyed multiplier of the same shape for its own exercise grants, a copy of this vanilla branch [#1584].
 Protein's other reader outside the weight model, the recovery multiplier, and why its protein arms never fire under the store's clamp, are stated at [nutrition-core.md#macro-effects](nutrition-core.md#macro-effects).
 
@@ -222,7 +222,7 @@ The check is the server option `AntiCheatXP`, whose values 1 to 4 are ban, kick,
 A trip is acted on only for a connection whose role lacks `CantBeKickedByAnticheat`: it is counted and logged, and outside debug mode the second trip before the count decays, by 1 every 150 s, bans at value 1 and kicks at value 2 [#2865/C/C-only].
 The admin, moderator, gm and observer roles hold that capability, so only a user or priority connection can be kicked or banned by the check [#2866/C/C-only].
 On the admin connection a checker-free 1000-experience burst drew no kick and no line under `AntiCheatXP=2` [#2873/M/n=1]; whether it trips for a non-admin connection is open [#2085/C/open].
-Whether a server-side burst trips the check on a live server is under [# Open](#open).
+Whether a server-side burst trips the check on a live server is under [## Open](#open).
 
 <a id="skill-rust"></a>
 ### Skill rust
