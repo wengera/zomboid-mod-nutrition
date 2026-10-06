@@ -6,6 +6,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zlib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
@@ -43,9 +44,26 @@ class IconGenTests(unittest.TestCase):
         self.assertEqual(len(seen), 6)
 
     def test_committed_files_match(self):
-        for name, data in icon_gen.generate().items():
-            with open(os.path.join(COMMITTED, name), "rb") as f:
-                self.assertEqual(f.read(), data, name)
+        """The committed PNGs carry the generator's pixels: the IHDR and the inflated IDAT are compared, not the
+        compressed bytes, because another zlib build can emit a different stream for the same pixels (the
+        byte-exact pin stays on the --check CLI for the maintainer's machine)."""
+        for cls in icon_gen.CLASSES:
+            with open(os.path.join(COMMITTED, cls + ".png"), "rb") as f:
+                data = f.read()
+            self.assertEqual(data[:8], b"PNG
+
+", cls)
+            pos, idat = 8, b""
+            while pos < len(data):
+                (length,) = struct.unpack(">I", data[pos:pos + 4])
+                tag = data[pos + 4:pos + 8]
+                body = data[pos + 8:pos + 8 + length]
+                if tag == b"IHDR":
+                    self.assertEqual(body, struct.pack(">IIBBBBB", icon_gen.SIZE, icon_gen.SIZE, 8, 6, 0, 0, 0), cls)
+                elif tag == b"IDAT":
+                    idat += body
+                pos += 12 + length
+            self.assertEqual(zlib.decompress(idat), icon_gen.pixels(cls), cls)
 
     def test_cli_out_and_check(self):
         with tempfile.TemporaryDirectory() as d:
