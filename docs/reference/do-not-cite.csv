@@ -457,6 +457,8 @@ x172-20261006-110409,baseline,"total 5092, Base 722, tick 10.104011887072808","C
 x172-20261006-110409,constants,the driver's constants,"Settings of the driver, not readings; `EAT_FIELD_COUNT` 16 is one more than the 15 getters listed and grades nothing.",
 x172-20261006-110409,summaries.*.pred_buffer,the recomputed buffer vector,"A prediction recomputed after the run from live inputs, not a reading.",cite `summaries.<arm>.grade1.rows.<key>.measured` or `.buffer`
 x172-20261006-110409,summaries.*.pred_ingested,the recomputed ingested vector,"A prediction recomputed after the run from live inputs, not a reading.",cite `summaries.<arm>.grade1.rows.<key>.measured`
+x172-20261006-110409,summaries.*.grade*.rows.*.pred,the driver's per-key predictions,"A prediction recomputed after the run from live inputs, not a reading.",cite `summaries.<arm>.grade*.rows.<key>.measured` or `.buffer`
+x172-20261006-110409,summaries.B.*.*.rows.*.pred,the driver's per-getter predictions,"The float32 of the script file's value or the dataset's hunger and thirst, computed by the driver; not a reading.",cite `phases.B.<type>.fields_*`
 x172-20261006-110409,summaries.F_cola,"ok false, no rows",The arm took no reading: the server fluid.fill replied no FluidType for Cola and the bottle stayed empty; not a falsification.,cite `phases.F_cola.fill.reason`
 x172-20261006-110409,logs.server,80 lines,"The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
 x172-20261006-110409,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",

@@ -49,7 +49,7 @@ The pin holds against vanilla too, because a mod's body always replays after van
 A partial block pays none of that: it names what the rebalance owns and leaves every other key to whoever owns it upstream, including whatever a later patch changes it to.
 The pin is a property of naming a key, not of changing it, so a generated block that restates a key at the value vanilla already gives it changes nothing today and still holds that key against every later patch.
 Two blocks for one item inside the pass's own files are two bodies as well, so a pass split into one file per concern composes per key, the later body in stored-path order winning any key both name ([#1006/M/n=1], [#1055/M/n=2]).
-Another mod's block for one of the pass's foods composes the same way: beside a test mod whose script path sorts after the pass's, the test mod's full apple won all four macros and its one-key orange won only the calories ([#3144/M/n=1], [loader-and-scripts.md#sorted-replay](../platform/loader-and-scripts.md#sorted-replay)).
+Another mod's block for one of the pass's foods composes the same way: beside a test mod whose script path sorts after the pass's, the test mod's full apple won the calories and carbohydrates, the two bodies' lipids and proteins being equal (0.31 / 0.47 in both), and its one-key orange won only the calories ([#3144/M/n=1], [loader-and-scripts.md#sorted-replay](../platform/loader-and-scripts.md#sorted-replay)).
 Vanilla uses the same idiom on itself, its own scripts redefining some of their own item names, every one of them in the base module ([#1440/C/snapshot]).
 
 A block changes a key's value and never removes one.
