@@ -4,7 +4,8 @@
 # tiredness is live. Severity 1.0 is the dial's default, written so the run states it; DeficienciesCanKill
 # true opens the health drains. OnsetSpeed 30.0 (the declared maximum) is the Plan 4 setting.
 # Run x161f-20261006-055908 (Task 13, acceptance 1): the FATIGUE writer against the record, the Tired crossings,
-# the view caps, the endurance fold, the STRESS, UNHAPPINESS and FOOD_SICKNESS floors, INTOXICATION, aim and cost.
+# the HUNGER cap (the THIRST cap untested), the endurance fold, the STRESS, UNHAPPINESS and FOOD_SICKNESS floors,
+# the PANIC floor read as a no-op, INTOXICATION, aim and cost.
 fixture = "default"
 description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror, OnsetSpeed 30, Severity 1.0) + TKX_StatWatch + TKX_SleepWatch + TKX_BoozeWatch + TKX_TraitProbe, sleep on, DayLength 1 - the Plan 5 fatigue acceptance."
 run = { hold = 20 }

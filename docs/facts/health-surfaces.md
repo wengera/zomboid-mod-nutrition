@@ -237,6 +237,7 @@ What a player sees of them is the moodle each stat feeds, and `MoodleStat` fixes
 
 The hunger, thirst, endurance and heavy-load thresholds are stated at [body-and-weight.md#moodles](body-and-weight.md#moodles) [#0508/M/n=1] [#0509/M/n=1] [#0510/C/C-only].
 The comparison operator and evaluation order inside `Moodle.Update` were re-read for hunger and thirst only, so the mood rows above are the registered values and not a measured firing point [#2369/C/C-only].
+The SICK moodle's input was read as well: on a character whose health is not 0, `Moodle.Update` divides the apparent infection level, the largest of FOOD_SICKNESS, ZOMBIE_FEVER and ZOMBIE_INFECTION, by 100, adds SICKNESS straight onto it unscaled and passes each SICK threshold by a strict greater-than, so a FOOD_SICKNESS on its 0 to 100 scale is read against the 0 to 1 ladder as a hundredth [#3130/C/C-only].
 
 One ladder is not monotonic [#2370/C/C-only].
 The `HYPOTHERMIA` moodle's third threshold is `9.0`, below its first at `30` and its second at `70`, as shipped [#2370/C/C-only].

@@ -100,7 +100,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - An acceptance profile for the mod sets `Nutrition = false`, the design's precondition (ruling T18-1; x141b ran without it).
 - Row `#2808` is the living harness-inventory count tethered to the generated command table: a harness commit that changes the table's count line updates `#2808`'s claim text and quote, and `#1235`'s quote, in the same commit (rule 3b fails otherwise) — the one register edit a harness implementer may make.
 - A profile's `[server]` keys (`SleepAllowed`, `SleepNeeded`) reach the server ini at seed; the fixture's default is false/false, so a sleep reading needs a profile that sets both true (x151s).
-- `lua.setpath` is the drivers' only Lua-side setter (a dotted-path scalar from `_G`); no chunk runner exists because `loadstring` is removed on 42.20.x.
+- `lua.setpath` is the drivers' only setter of a plain Lua field (a dotted-path scalar from `_G`; `globalmoddata.setpath` assigns into a global modData table); no chunk runner exists because `loadstring` is removed on 42.20.x.
 
 ## 6. Process
 
