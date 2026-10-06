@@ -6,7 +6,7 @@ local NR = NutritionRevamp
 -- nutritionOn: true when SandboxVars.Nutrition read anything but false at boot (NR_Server_Metabolism's
 -- precondition check sets it; the option is the operator's and is never changed by the mod).
 -- The Plan 4 dials (ruling 16): onsetSpeed multiplies the rate of every slow deficiency record (ruling 5);
--- the HUNGER and THIRST views are capped under level 4 whatever the dial (Plan 5 ruling 14); the dial gates the mod's own drains; excessEffectsOn off
+-- the HUNGER and THIRST views are capped under level 4 whatever the dial (Plan 5 ruling 14); deficienciesCanKill gates the mod's own drains; excessEffectsOn off
 -- forces every excess rung to 0 at the output; balanceBonus is Plan 3's 1.05 while allReplete (spec
 -- ruling 16, a game choice). Read at every slow tick like the three above, never at file scope.
 -- The Plan 5 dial (ruling 23): severity, a double 0-3 (default 1), scales every penalty row of the effects table

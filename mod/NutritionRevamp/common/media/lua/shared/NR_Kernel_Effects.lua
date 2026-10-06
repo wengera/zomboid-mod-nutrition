@@ -69,7 +69,7 @@ K.effects.DEHYD_EDGES = {
     2.5, -- game choice curve knot (open S1121)
     3, -- game choice curve knot (open S1121)
     4, -- S0895 / S0706 / S0707 (the 4 % line)
-    6, -- the fluids kernel's 6 % knot, game choice (open S1098); #0509 gives the thirst value at it
+    6, -- the fluids kernel's 6 % knot, game choice (open S1098); #0509 the thirst moodle thresholds
     10, -- severe dehydration (open S1101)
 }
 K.effects.EX_STEP = 7.5 -- minutes of exEma: a quarter of EX_FULL 30, game choice (open S1148)

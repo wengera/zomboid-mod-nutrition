@@ -329,7 +329,7 @@ NR.data.effects = {
             { ch = "trait", s = "shortSighted", v = 1, row = "S0143", gc = true }, -- the toggle at clinical; game choice (open S1143)
         } },
         -- D4 the direct speed write (min; computed and mirrored, unapplied until X47).
-        { src = "dehyd", on = "band", at = { 7, 8 }, list = { -- 6 % and above, the fluids kernel's 6 % knot, game choice (open S1098); #0509 gives the thirst value at it
+        { src = "dehyd", on = "band", at = { 7, 8 }, list = { -- 6 % and above, the fluids kernel's 6 % knot, game choice (open S1098); #0509 the thirst moodle thresholds
             { ch = "stat", s = "speedMul", v = 0.85, row = "S1176", gc = true }, -- game choice (open S1176)
         } },
         { src = "iu", on = "band", at = { 20, 25 }, list = { -- 2.0 IU and above, S0750 the unit's anchor
