@@ -8,8 +8,11 @@
 -- minute. The slow clock takes K.stomach.context(stomach) -- the buffer's phytate, vitC and calcium
 -- BEFORE the minute's emptying -- and hands it to absorb(emptied, ctx), so a 400 mg phytate loaf reads
 -- 400 mg, not the ~1 mg a minute's share carries. absorb(emptied) with no ctx keeps the Plan 2 reading
--- off the emptied vector itself. Caffeine and ethanol never enter the buffer (ruling T17-2: the intake
--- landing diverts them to the acute kernel's gut lane), so their BIOAVAIL entries stay 1.0 and unused.
+-- off the emptied vector itself. Ruling T19-1 extends the context to the fat factor: ctx carries the
+-- buffer's lipids, so a fat-soluble vitamin reads the meal's fat in the stomach, not the minute's share
+-- (which floored every meal at 0.05); the factor still eases as the buffer empties. Caffeine and
+-- ethanol never enter the buffer (ruling T17-2: the intake landing diverts them to the acute kernel's
+-- gut lane), so their BIOAVAIL entries stay 1.0 and unused.
 -- The gastric-emptying constants rest on OPEN science rows and ship as labelled game choices
 -- (spec § 7 item 37); the absorption factors cite settled rows. Pure: tables in, tables out, no Java.
 -- Slow-clock code with no @fastpath region, so math.exp and the bounded `for` over K.vector.KEYS (a Lua
@@ -145,14 +148,16 @@ end
 -- The fat co-ingestion multiplier for a fat-soluble nutrient: 1 - exp(-lipids / 10), floored at 0.05
 -- (fat-free: negligible carotenoid absorption) and saturating by 28 g.
 -- design-phase-v1 game choice: the /10 saturation and the 0.05 floor are judgements; S0197/S0199 support only the direction and the 28 g reference.
--- absorb reads it once per emptied vector, off the vector's own lipids, for the fat-soluble keys.
+-- absorb reads it once per call, off ctx.lipids (the meal's lipids in the stomach, ruling T19-1) or the
+-- emptied vector's own when no context is given, for the fat-soluble keys.
 function K.stomach.fatFactor(lipidsG)
     return K.clamp(1 - math.exp(-lipidsG / 10), 0.05, 1.0) -- S0197, S0199
 end
 
--- The meal context the interaction factors read (ruling T17-1): the buffer's phytate, vitC and calcium
--- totals, taken BEFORE the minute's emptying. Written into out (a table the caller keeps and overwrites,
--- so the slow clock allocates nothing per minute); a nil out gets a fresh table. Returns out.
+-- The meal context the interaction factors read (rulings T17-1, T19-1): the buffer's phytate, vitC,
+-- calcium and lipids totals, taken BEFORE the minute's emptying. Written into out (a table the caller
+-- keeps and overwrites, so the slow clock allocates nothing per minute); a nil out gets a fresh table.
+-- Returns out.
 function K.stomach.context(stomach, out)
     if out == nil then
         out = {}
@@ -161,6 +166,7 @@ function K.stomach.context(stomach, out)
     out.phytate = b.phytate
     out.vitC = b.vitC
     out.calcium = b.calcium
+    out.lipids = b.lipids
     return out
 end
 
@@ -169,18 +175,21 @@ end
 -- the phytate factor; phytate absorbs to 0. The phytate and vitC the factors read are ctx's (the meal in
 -- the stomach, ruling T17-1) when ctx is given, else the emptied vector's own. Vitamin D takes its
 -- bioavailability times VITD_FAT_FREE + (1 - VITD_FAT_FREE) x the fat factor; retinol, carotene, vitE
--- and vitK take their bioavailability times the fat factor, both read off the emptied vector's own
--- lipids; any other key takes its bioavailability (1.0 when unlisted).
+-- and vitK take their bioavailability times the fat factor, both read off the meal's lipids in the
+-- stomach (ctx, ruling T17-1, extended by T19-1) or the emptied vector's when no context is given; any
+-- other key takes its bioavailability (1.0 when unlisted).
 function K.stomach.absorb(emptied, ctx)
     local out = K.vector.new()
     local macros = K.retention.macroSet()
-    local fat = K.stomach.fatFactor(emptied.lipids)
+    local lip = emptied.lipids
     local phy = emptied.phytate
     local vc = emptied.vitC
     if ctx ~= nil then
+        lip = ctx.lipids
         phy = ctx.phytate
         vc = ctx.vitC
     end
+    local fat = K.stomach.fatFactor(lip)
     local keys = K.vector.KEYS
     for i = 1, #keys do
         local k = keys[i]
@@ -192,7 +201,7 @@ function K.stomach.absorb(emptied, ctx)
             -- the phytate factor reads the meal's phytate (S0536 direction and slope, S1084 the zinc reuse)
             out[k] = emptied.magnesium * K.stomach.BIOAVAIL.magnesium * K.interact.phytateMg(phy)
         elseif k == "zinc" then
-            out[k] = emptied.zinc * K.stomach.BIOAVAIL.zinc * K.interact.phytateZn(phy) -- S0536, S1084
+            out[k] = emptied.zinc * K.stomach.BIOAVAIL.zinc * K.interact.phytateZn(phy) -- S0536 slope reused for zinc (open S1084: game choice)
         elseif k == "phytate" then
             out[k] = 0
         elseif k == "vitD" then

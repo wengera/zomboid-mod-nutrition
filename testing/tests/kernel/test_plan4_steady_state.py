@@ -1,0 +1,159 @@
+"""The 60-day kernel replay of a mixed diet at the RDA (Plan 4 close, ruling T19-5).
+
+No measured acceptance arm touched fat-soluble absorption, so this replay stands in for a fourth boot: a
+male 80 kg character eats three meals a day (08:00, 13:00, 19:00), each 300 ug retinol, 40 ug vitK and
+10 g fat (900 ug retinol, 120 ug vitK and 30 g fat a day), through the real kernel chain the slow clock
+runs -- K.stomach.ingest, then per minute K.stomach.context, empty, absorb (the fat factor on the meal's
+lipids, ruling T19-1), the vitamin A fold (carotene 0, so absorbed vitA = absorbed retinol, as
+NR_Server_Nutrients' factors writes it) and K.nutrients.minute over NR.data.records with K.interact.two.
+Every number is recomputed below in Python doubles from the same constants and asserted to 1e-6.
+
+The brief expected vitA p >= 0.9 and vitK at grade 1 after 60 days. The replay FALSIFIES both: the
+buffer's lipids empty with the vitamins, so three 10 g-fat meals a day absorb 45 % of their fat-soluble
+load (0.4515 of the 60-day retinol), vitA's liver p has fallen to 0.776 at day 60 (grade 1: its marginal rung
+is 0.25) on its way to ~0.45, and vitK oscillates between 0.646 and 0.70 under its 80 ug/d requirement
+(grade 2, marginal). The numbers are stated, not tuned; the ruling is the controller's.
+"""
+import math
+import os
+
+import pytest
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+DATA = os.path.join(SHARED, "NR_Data_Records.lua")
+
+DAYS = 60
+MEALS = (480, 780, 1140)            # minute of the day
+MEAL = dict(retinol=300.0, vitK=40.0, lipids=10.0)
+
+
+def _load(host, path):
+    with open(path, encoding="utf-8") as fh:
+        src = fh.read()
+    host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(src, "@" + os.path.basename(path))()
+
+
+@pytest.fixture(scope="module")
+def rh(host):
+    _load(host, DATA)
+    return host
+
+
+# The replay runs with the coverage line hook off (86 400 minutes x 27 records under a per-line hook
+# is minutes of wall time); every line it runs is covered by the kernel's own tests.
+REPLAY = r"""
+function(records, days, meals, retinol, vitK, lipids)
+    local K = NutritionRevamp.kernel
+    local hook, mask = debug.gethook()
+    debug.sethook()
+    local st = K.stomach.new()
+    local state = K.nutrients.newState(records)
+    local ctx = { sex = 1, w = 80, eeMJ = 10, pDay = 80, dial = 1, excessOn = true, two = K.interact.two,
+                  riboGrade = 1, rawEggDay = false, e24Zn = 0 }
+    local sctx = {}
+    local empty = {}
+    local meal = K.vector.new()
+    meal.retinol = retinol
+    meal.vitK = vitK
+    meal.lipids = lipids
+    meal.proteins = 25
+    meal.carbs = 75
+    meal.calories = 490
+    local totIn = 0
+    local totAbs = 0
+    local minK = 1
+    local minA = 1
+    for m = 0, days * 1440 - 1 do
+        local mod = m - math.floor(m / 1440) * 1440
+        if mod == meals[1] or mod == meals[2] or mod == meals[3] then
+            K.stomach.ingest(st, meal)
+            totIn = totIn + retinol
+        end
+        K.stomach.context(st, sctx)
+        local absorbed = K.stomach.absorb(K.stomach.empty(st, 1 / 60), sctx)
+        absorbed.vitA = absorbed.retinol
+        totAbs = totAbs + absorbed.retinol
+        K.nutrients.minute(state, records, absorbed, empty, ctx, 1)
+        if m >= 30 * 1440 then
+            minK = math.min(minK, state.vitK.p)
+            minA = math.min(minA, state.vitA.p)
+        end
+    end
+    debug.sethook(hook, mask)
+    return state.vitA.p, state.vitA.p2, state.vitA.g, state.vitK.p, state.vitK.g, totAbs / totIn, minA, minK
+end
+"""
+
+
+def _grade_hyst(p, ladder, g_prev, hyst=0.02):
+    g = 1 if p > ladder[0] else 2 if p > ladder[1] else 3 if p > ladder[2] else 4
+    if g >= g_prev:
+        return g
+    h = g_prev
+    while h > g and p > ladder[h - 2] + hyst:
+        h -= 1
+    return h
+
+
+def _replay_py():
+    """The same chain for retinol and vitK in doubles: the buffer, the meal-lipid factor, the ZOH step."""
+    b = dict(lipids=0.0, retinol=0.0, vitK=0.0)
+    kA = 0.008748517704155646                  # vitA k (the record)
+    kK = 0.25946357728426606                   # vitK k (the record)
+    RA = 900.0                                 # male RDA, no absorb field
+    RK = 1.0 * 80                              # 1 ug/kg x 80 kg
+    pA = pK = 1.0
+    gK = 1
+    tot_in = tot_abs = 0.0
+    minA = minK = 1.0
+    dtD = 1 / 1440
+    for m in range(DAYS * 1440):
+        if m % 1440 in MEALS:
+            for k, v in MEAL.items():
+                b[k] = b[k] + v * 1
+            tot_in += MEAL["retinol"]
+        lip = b["lipids"]
+        cs = min(max(1 + b["lipids"] / 40 + 0.0 / 15, 0.5), 3.0)
+        f = 1 - math.exp(-0.6931471805599453 * (1 / 60) / (2.0 * cs))
+        em = {k: 0 + v * f for k, v in b.items()}
+        for k in b:
+            b[k] = b[k] * (1 - f)
+        fat = min(max(1 - math.exp(-lip / 10), 0.05), 1.0)
+        aA = em["retinol"] * 1.0 * fat
+        aK = em["vitK"] * 1.0 * fat
+        tot_abs += aA
+        e = math.exp(-kA * dtD)
+        pA = pA * e + (1 - e) * (aA / dtD / RA)
+        e = math.exp(-kK * dtD)
+        pK = min(pK * e + (1 - e) * (aK / dtD / RK), 1.0)
+        gK = _grade_hyst(pK, (0.70, 0.45, 0.25), gK)
+        if m >= 30 * 1440:
+            minA = min(minA, pA)
+            minK = min(minK, pK)
+    return pA, pK, gK, tot_abs / tot_in, minA, minK
+
+
+def test_sixty_days_at_the_rda_through_the_kernel_chain(rh):
+    records = rh.G.NutritionRevamp.data.records
+    meals = rh.rt.table(*MEALS)
+    pA, p2A, gA, pK, gK, frac, minA, minK = rh.rt.eval(REPLAY)(records, DAYS, meals, MEAL["retinol"],
+                                                              MEAL["vitK"], MEAL["lipids"])
+    epA, epK, egK, efrac, eminA, eminK = _replay_py()
+    # the Python doubles, as literals (the replay above, run once)
+    assert abs(efrac - 0.45150369658490813) < 1e-9
+    assert abs(epA - 0.7762311310785295) < 1e-9
+    assert abs(epK - 0.6996500786299764) < 1e-9
+    assert abs(eminK - 0.6456973326831416) < 1e-9
+    # the kernel chain agrees with the doubles
+    assert abs(frac - efrac) < 1e-6
+    assert abs(pA - epA) < 1e-6
+    assert abs(pK - epK) < 1e-6
+    assert abs(minA - eminA) < 1e-6
+    assert abs(minK - eminK) < 1e-6
+    assert gK == egK
+    # vitamin A: p 0.776 at day 60, falling toward ~0.45; graded 1 (marginal rung 0.25, plasma p2 at 1)
+    assert gA == 1 and p2A == 1
+    assert pA < 0.9                                  # the brief's p >= 0.9: FALSIFIED (stated in the docstring)
+    # vitamin K: below its 80 ug/d requirement at a 0.45 absorbed fraction (54 ug/d), held at grade 2
+    assert gK == 2                                   # the brief's grade 1: FALSIFIED (stated in the docstring)

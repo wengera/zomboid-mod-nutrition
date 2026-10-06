@@ -245,7 +245,7 @@ def test_context_reads_the_buffer_into_a_kept_table(host):
     out = host.rt.table()
     got = host.K.stomach.context(st, out)
     assert _same(host, got, out)
-    assert (out.phytate, out.vitC, out.calcium) == (400.0, 12.0, 95.0)
+    assert (out.phytate, out.vitC, out.calcium, out.lipids) == (400.0, 12.0, 95.0, 6.66)
     fresh = host.K.stomach.context(st)
     assert not _same(host, fresh, out) and fresh.phytate == 400.0
 
@@ -270,7 +270,7 @@ def test_absorb_with_the_meal_context_reads_the_whole_meal(host):
 def test_absorb_with_a_phytate_free_context_is_bare(host):
     emptied = _vec(host, iron=1.0, phytate=0.0, magnesium=10.0)
     ctx = host.rt.table()
-    ctx.phytate, ctx.vitC, ctx.calcium = 0.0, 0.0, 0.0
+    ctx.phytate, ctx.vitC, ctx.calcium, ctx.lipids = 0.0, 0.0, 0.0, 0.0
     out = host.py(host.K.stomach.absorb(emptied, ctx))
     assert abs(out["iron"] - 0.18) < 1e-15
     assert abs(out["magnesium"] - 3.25) < 1e-12
@@ -377,3 +377,83 @@ def test_seed_full_sets_the_bulk_to_full_and_leaves_the_buffer(host):
     assert st["bulk"] == host.K.stomach.FULL_BULK
     assert host.K.stomach.fill(st) == 1.0
     assert all(st["buffer"][k] == 0 for k in host.K.vector.KEYS.values())
+
+
+# --- the fat factor reads the meal's lipids (ruling T19-1, the Plan 4 close) ---
+
+def test_absorb_with_a_context_reads_the_meals_lipids(host):
+    # the first minute of a 30 g-fat meal: the factor reads the buffer's 30 g (0.950213), not the
+    # minute's ~0.1 g share (which floored at 0.05)
+    st = host.K.stomach.new()
+    host.K.stomach.ingest(st, _vec(host, lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0))
+    ctx = host.K.stomach.context(st, host.rt.table())
+    emptied = host.K.stomach.empty(st, 1 / 60)
+    out = host.py(host.K.stomach.absorb(emptied, ctx))
+    f = 1 - math.exp(-3.0)
+    assert abs(f - 0.950212931632136) < 1e-12
+    assert abs(out["retinol"] / emptied.retinol - f) < 1e-12
+    assert abs(out["vitK"] / emptied.vitK - f) < 1e-12
+    assert abs(out["vitD"] / emptied.vitD - (0.76 + (1 - 0.76) * f)) < 1e-12
+    share = host.py(host.K.stomach.absorb(emptied))  # no ctx: the per-share reading, unchanged
+    assert abs(share["retinol"] / emptied.retinol - 0.05) < 1e-12
+
+
+def _meal_replay_py(n=1440):
+    """K.stomach.ingest/context/empty/absorb recomputed in doubles over n one-minute steps of one meal."""
+    b = dict(lipids=30.0, retinol=900.0, vitK=120.0, vitD=15.0)
+    tot = dict(retinol=0.0, vitK=0.0, vitD=0.0)
+    for _ in range(n):
+        lip = b["lipids"]                                            # the context, before the emptying
+        cs = min(max(1 + b["lipids"] / 40 + 0.0 / 15, 0.5), 3.0)
+        f = 1 - math.exp(-0.6931471805599453 * (1 / 60) / (2.0 * cs))
+        em = {k: 0 + v * f for k, v in b.items()}
+        for k in b:
+            b[k] = b[k] * (1 - f)
+        fat = min(max(1 - math.exp(-lip / 10), 0.05), 1.0)
+        tot["retinol"] += em["retinol"] * 1.0 * fat
+        tot["vitK"] += em["vitK"] * 1.0 * fat
+        tot["vitD"] += em["vitD"] * 1.0 * (0.76 + (1 - 0.76) * fat)
+    return tot, b
+
+
+MEAL_REPLAY = r"""
+function(n)
+    local K = NutritionRevamp.kernel
+    local st = K.stomach.new()
+    local meal = K.vector.new()
+    meal.lipids = 30
+    meal.retinol = 900
+    meal.vitK = 120
+    meal.vitD = 15
+    K.stomach.ingest(st, meal)
+    local ctx = {}
+    local tot = { retinol = 0, vitK = 0, vitD = 0 }
+    for i = 1, n do
+        K.stomach.context(st, ctx)
+        local out = K.stomach.absorb(K.stomach.empty(st, 1 / 60), ctx)
+        tot.retinol = tot.retinol + out.retinol
+        tot.vitK = tot.vitK + out.vitK
+        tot.vitD = tot.vitD + out.vitD
+    end
+    return tot, st.buffer.lipids
+end
+"""
+
+
+def test_a_30g_fat_meal_over_a_day_absorbs_the_replayed_fraction(host):
+    # Ruling T19-1 at the Plan 4 close: the brief expected >= 90 % of the retinol and vitK; the replay in
+    # doubles gives 0.684236 -- the buffer's lipids empty with the vitamins, so the factor 1 - exp(-L/10)
+    # falls from 0.950 to the floor over the meal (the integral of 1 - exp(-3x) over x in [0, 1] is
+    # 1 - (1 - e^-3)/3 = 0.68342 in the continuum). FALSIFIED against the brief's 90 %; stated, not tuned.
+    exp_tot, exp_buf = _meal_replay_py()
+    tot, lip = host.rt.eval(MEAL_REPLAY)(1440)
+    assert abs(exp_tot["retinol"] / 900 - 0.6842360717392494) < 1e-12
+    assert abs(tot.retinol / 900 - exp_tot["retinol"] / 900) < 1e-6
+    assert abs(tot.vitK / 120 - exp_tot["vitK"] / 120) < 1e-6
+    assert abs(tot.vitK / 120 - 0.6842360717392476) < 1e-6
+    # vitamin D at 0.76 + 0.24 x the factor per minute: 0.923823 of the dose
+    assert abs(tot.vitD / 15 - exp_tot["vitD"] / 15) < 1e-6
+    assert abs(tot.vitD / 15 - 0.9238233720473101) < 1e-6
+    assert abs(lip - exp_buf["lipids"]) < 1e-9                       # 0.0155 g left after the day
+    # the per-share reading this ruling replaced absorbed 5 % (the floor) of the same meal
+    assert tot.retinol / 900 > 13 * 0.05

@@ -699,8 +699,8 @@ end
 -- limitations: IN.limitations (the planned-litres cap and the fluid read as Water). a world-water drink lands at most the action's planned litres (waterUnit, sized from THIRST at its start); while the view holds THIRST, vanilla's updateUse re-transfers its cumulative target, so the SOURCE can lose more than was landed until the slow clock lands the water (ruling T1-1).
 -- The cap: readWorldBefore lands min(step, source, waterUnit - action.nrLanded); nrLanded is a field on the
 -- vanilla action object for its lifetime, never on the record.
--- Residual notes: after a respawn one minute's autoDrop can go to the dead character's record (the
--- respawn limitation of NR_Server_Fast gains the clause); if the slow clock never clears autoDrop for a
+-- Residual notes: after a respawn one minute's autoDrop can go to the dead character's record (stated
+-- here; Fast's respawn limitation names only stomachFill); if the slow clock never clears autoDrop for a
 -- player (a repeated raise), auto-drink stays skipped for that player -- the heal is Plan 8's.
 
 -- The before-snapshot of one world-water step, or nil when nothing is drunk (an item to fill, no

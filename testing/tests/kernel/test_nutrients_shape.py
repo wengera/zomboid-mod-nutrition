@@ -763,6 +763,47 @@ def test_limitations_name_the_fix_wave(nut_host):
     assert "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake" in lims
 
 
+def test_limitations_name_the_close_fix_wave(nut_host):
+    lims = list(NUT(nut_host).limitations.values())
+    # the vitamin D sun term ships 0: clinical at zero intake in ln(1/0.17)/(ln2/60) = 153.4 d, /30 = 5.1 d
+    k = math.log(2) / 60
+    assert abs(math.log(1 / 0.17) / k - 153.4) < 0.05 and abs(math.log(1 / 0.17) / k / 30 - 5.1) < 0.05
+    assert "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)" in lims
+    assert "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed" in lims
+    assert "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water" in lims
+    assert "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 68 % of its retinol and vitK and three 10 g-fat meals a day 45 %" in lims
+    assert not any("the ingested vector is empty" in x for x in lims)   # the stale Task 12 string is gone
+
+
+def test_niacin_takes_the_tryptophan_credit(nut_host):
+    # ruling T19-2 (S0270): 80 g protein x 1000 x 0.011 / 60 = 14.6667 mg NE
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    ab = vec(h, proteins=80.0, niacin=2.0)
+    KIN(h).lastAbsorbed["admin"] = ab
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert abs(80 * 1000 * 0.011 / 60 - 14.666666666666666) < 1e-12
+    assert abs(ab["niacin"] - (2.0 + 80 * 1000 * 0.011 / 60)) < TOL
+
+
+def test_choline_takes_the_female_rate(nut_host):
+    # ruling T19-3: kMul.choline = kFemale (0.57) on a female body, 1 on a male; thiamine's term unchanged
+    h = nut_host
+    thia = h.K.interact.thiamineAlcoholK(1, 0)
+    fem = player(h, female=True)
+    record = fresh(h, fem)
+    assert record["body"]["sex"] == 2
+    alone(h, fem, record, 100.0 + 1 / 60)
+    assert NUT(h).kMul.choline == 0.57
+    assert NUT(h).kMul.thiamine == thia
+    male = player(h)
+    record = fresh(h, male)
+    alone(h, male, record, 100.0 + 1 / 60)
+    assert NUT(h).kMul.choline == 1
+    assert NUT(h).kMul.thiamine == thia
+
+
 # --- the heal --------------------------------------------------------------------------------------------
 
 def test_non_finite_stamps_are_healed_and_counted(nut_host):

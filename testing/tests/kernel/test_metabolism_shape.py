@@ -914,6 +914,8 @@ def test_limitations_name_the_branch_and_the_neutral_inputs(met_host):
             "with the catch-up minute's age, so the first blend after an offline gap counts yesterday in "
             "full") in lim
     assert "the disuse arm needs a leg fracture or splint" in lim
+    assert ("rmod" + chr(39) + "s alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: "
+            "the arm resets at the day close, not on a rolling 24 h") in lim
     assert ("the nutrient scalars (glycogen, dehydration, iron, caffeine, sleep debt, alcohol, the balance "
             "dial) read the previous minute" + chr(39) + "s record sub-tables (a one-minute lag; NR_Server_Nutrients "
             "sorts after this file)") in lim

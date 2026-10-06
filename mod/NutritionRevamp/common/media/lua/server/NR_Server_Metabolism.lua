@@ -41,6 +41,7 @@ NR.server.metabolism = {
         "rmod scales the asleep regeneration arm only; under the harness's partial sleep hold it measured 0.904 for a predicted 0.848 (#2899)",
         "a day closes at 07:00 on the default fixture (#2890); the 24 h blends count hours since the last close",
         "an unreadable world age skips the minute; a first sight with an unreadable age sends its mirror without the body, which the next readable minute builds",
+        "rmod's alcohol arm reads body.alcDay, the day-so-far ethanol the partition close zeroes: the arm resets at the day close, not on a rolling 24 h",
     },
 }
 local MET = NR.server.metabolism

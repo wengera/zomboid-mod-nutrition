@@ -159,12 +159,6 @@ function K.nutrients.stepPool(s, rec, aAbs, R, kEff, dtD)
     return s.p
 end
 
--- One zero-order loss of L (p units per day) over dtD days, floored at 0 (iron's haemoglobin, A6).
-function K.nutrients.stepZeroOrder(s, L, dtD)
-    s.p = K.max(s.p - L * dtD, 0)
-    return s.p
-end
-
 -- The grade of p on the ladder: 1 replete (p > marginal), 2 marginal, 3 depleted, 4 clinical (p <= clinical).
 function K.nutrients.grade(p, ladder)
     if p > ladder[1] then

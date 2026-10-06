@@ -71,8 +71,9 @@ NR.data.records = {
             pCap = 1.0, -- plasma and cells saturate at 100-200 mg/d, S0220/S0221
             store = 1500, -- mg total body pool (display; the Store_eff cross-check closes), S0222
         },
-        -- Thiamine: energy-scaled requirement; the RDA rides as Rmin for Task 11 (the engine reads no Rmin). At the
-        -- fixture's ~10 MJ/d the per-MJ requirement is 1.0 mg/d against the 1.2 mg/d RDA. No UL (S0238). Alcohol
+        -- Thiamine: energy-scaled requirement; the RDA rides as Rmin, not read: the requirement is energy-scaled
+        -- only (ruling 6). At the fixture's ~10 MJ/d the per-MJ requirement is 1.0 mg/d against the 1.2 mg/d RDA.
+        -- No UL (S0238). Alcohol
         -- raises the drain (S0250 direction; the lambda magnitude is open S0553 and lives in K.interact, Task 10).
         thiamine = {
             key = "thiamine",
@@ -84,8 +85,8 @@ NR.data.records = {
                 0.1, -- female mg per MJ expended (EFSA PRI), S0236
             },
             Rmin = {
-                1.2, -- male RDA mg/d, S0235 (not read by the engine; Task 11)
-                1.1, -- female RDA mg/d, S0235 (not read by the engine; Task 11)
+                1.2, -- male RDA mg/d, S0235 (not read: the requirement is energy-scaled only (ruling 6))
+                1.1, -- female RDA mg/d, S0235 (not read: the requirement is energy-scaled only (ruling 6))
             },
             k = 0.05134423559703299, -- = ln2/13.5: K.nutrients.kFromHalfLife(13.5); the 9-18 d whole-body half-life midpoint, S0240
             ladder = {
@@ -107,7 +108,8 @@ NR.data.records = {
             k = 0.05134423559703299, -- = thiamine's ln2/13.5, design-phase-v1 game choice (open S1067; onset open S0260)
             pCap = 1.0, -- urinary excretion rises sharply above ~1 mg/d (tissue saturation), S0257
         },
-        -- Niacin (mg NE): energy-scaled; NE = niacin + tryptophan/60, the tryptophan read from protein at trpShare.
+        -- Niacin (mg NE): energy-scaled; NE = niacin + tryptophan/60, the tryptophan read from protein at trpShare
+        -- (ruling T19-2: NR_Server_Nutrients credits absorbed protein x 1000 x trpShare / trpPerNE to absorbed niacin).
         -- The UL is nicotinic acid only (S0269, S0274): it can only fire on a supplement item.
         niacin = {
             key = "niacin",
@@ -119,8 +121,8 @@ NR.data.records = {
                 1.6, -- female mg NE per MJ expended (EFSA PRI), S0268
             },
             Rmin = {
-                16, -- male RDA mg NE/d, S0267 (not read by the engine; Task 11)
-                14, -- female RDA mg NE/d, S0267 (not read by the engine; Task 11)
+                16, -- male RDA mg NE/d, S0267 (not read: the requirement is energy-scaled only (ruling 6))
+                14, -- female RDA mg NE/d, S0267 (not read: the requirement is energy-scaled only (ruling 6))
             },
             k = 0.025205352020361647, -- = ln(1/0.25)/55: K.nutrients.calib(0.25, 55); pellagra at 50-60 d, S0271; f 0.25 design-phase-v1 (open S1068)
             ladder = {
@@ -204,7 +206,8 @@ NR.data.records = {
             pCap = 1.0, -- design-phase-v1 game choice: the default cap, no saturation row (ruling 4)
             store = 2500, -- ug total body store at p = 1 (display), S0354
         },
-        -- Choline: the female rate x0.57 is for Task 11 (the engine reads one k). The UL is supplement-only.
+        -- Choline: the female rate x0.57 rides on NR_Server_Nutrients' kMul.choline (ruling T19-3; the engine reads
+        -- one k times ctx.kMul). The UL is supplement-only.
         choline = {
             key = "choline",
             unit = "mg",
@@ -258,8 +261,8 @@ NR.data.records = {
             },
         },
         -- Vitamin D: one compartment at the parent half-life; p in units of serum 25(OH)D / 75 nmol/L (the 75 a
-        -- design-phase-v1 game choice, open S1065). The cutaneous term kSun x outdoor daylight minutes is Task 11's
-        -- to set; it ships 0 here, so with no sun no diet keeps D replete (formulas briefing L3).
+        -- design-phase-v1 game choice, open S1065). kSun ships 0: no outdoor-daylight read exists on this build
+        -- (open S1064); with no sun no diet keeps D replete (formulas briefing L3).
         vitD = {
             key = "vitD",
             unit = "ug",
@@ -280,8 +283,8 @@ NR.data.records = {
                 store = 5, -- p >= 375/75 nmol/L, rung 2, S1030
             },
             sun = {
-                kSun = 0.0, -- p per outdoor daylight minute: 0 until Task 11 sets it, design-phase-v1 game choice (open S1064)
-                note = "cutaneous term labelled; open row S1064 (Task 1)",
+                kSun = 0.0, -- p per outdoor daylight minute: kSun ships 0: no outdoor-daylight read exists on this build (open S1064); with no sun no diet keeps D replete; design-phase-v1 game choice
+                note = "kSun ships 0: no outdoor-daylight read exists on this build (open S1064)",
             },
         },
         -- Vitamin E: a ledger (tracked, no grade); the adipose turnover is open (S0213); no dietary deficiency.
@@ -362,7 +365,6 @@ NR.data.records = {
                 hbShare = 0.6666666666666666, -- = 2/3, almost two-thirds in circulating haemoglobin, S0436
                 xMax = 30, -- mg/d store-to-Hb transfer ceiling, game choice (the Hb rise rate is open S0703)
                 etaK = 0.5, -- eta(p) = 1 - 0.5 x clamp(p): direction S0535, magnitude design-phase-v1 (open S1078)
-                anaemiaP2 = 0.88, -- the same cut as p2Clinical, design-phase-v1 game choice (open S1079)
             },
             ul = 45, -- mg/d ingested (GI), rung 1, S0433/S1031
             acute = {

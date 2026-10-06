@@ -230,7 +230,8 @@ def test_the_two_compartment_fields(rh):
     assert iron["two"]["totalPerKg"] == {1: 50, 2: 40}
     assert iron["two"]["storeShare"] == 0.25
     assert abs(iron["two"]["hbShare"] - 2 / 3) < 1e-12
-    assert (iron["two"]["xMax"], iron["two"]["etaK"], iron["two"]["anaemiaP2"]) == (30, 0.5, 0.88)
+    assert (iron["two"]["xMax"], iron["two"]["etaK"]) == (30, 0.5)
+    assert "anaemiaP2" not in iron["two"]                      # p2Clinical carries the anaemia cut (close fix wave)
     assert iron["absorb"] == 0.18
     assert "pCap" not in iron                                  # eta(p) is iron's repletion limit
     assert iron["ul"] == 45 and iron["acute"]["perKg"] == {1: 20, 2: 60}

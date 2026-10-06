@@ -222,11 +222,9 @@ def test_step_pool_degenerate(host):
     assert s2.p == pytest.approx(0.5 * math.exp(-1.0), abs=TOL)
 
 
-def test_step_zero_order(host):
-    N = host.K.nutrients
-    s = _s(host, p=0.5)
-    assert N.stepZeroOrder(s, 0.1, 2.0) == pytest.approx(0.3, abs=TOL)
-    assert N.stepZeroOrder(s, 0.1, 10.0) == 0
+def test_step_zero_order_is_gone(host):
+    # deleted at the Plan 4 close: no production caller; K.interact.ironTwo carries its own loss
+    assert host.K.nutrients.stepZeroOrder is None
 
 
 # -------------------------------------------------------------------------------------------------- grades

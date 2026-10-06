@@ -20,8 +20,9 @@
 -- function or Java object, #1495). Nothing runs at file scope but table setup: the registration is
 -- in the OnServerStarted handler behind the side test, so the file loads with no engine.
 -- Ruling T17-1 (x151r #2981): the factor reads the meal in the stomach, not the share emptied this
--- minute -- the buffer's phytate, vitC and calcium are read into KIN.ctx BEFORE the emptying and absorb
--- takes them; the calcium goes on to NR_Server_Nutrients' calcium x iron factor through lastMealCa.
+-- minute -- the buffer's phytate, vitC and calcium (and its lipids, ruling T19-1: the fat factor) are
+-- read into KIN.ctx BEFORE the emptying and absorb takes them; the calcium goes on to
+-- NR_Server_Nutrients' calcium x iron factor through lastMealCa.
 local NR = NutritionRevamp
 local K = NR.kernel
 -- lastAbsorbed: the absorbed vector of each player's last step, by username -- a transient server table,

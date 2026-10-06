@@ -45,8 +45,7 @@ NR.server.nutrients = {
         "the thirst view reads the water pool plus the stomach's pending water (ruling T1-1); the performance dehydration is the pool alone",
         "auto-drink litres land in the stomach once per slow minute (the fast handler skips its call while a drop is pending: Task 12)",
         "raw-egg biotin detection is absent until the food data carries an isRawEgg flag (rawEggDay is always false)",
-        "the ingested vector is empty until the intake wrapper's per-minute sum lands (Task 12): the excess ladder and the alcohol day total read 0",
-        "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it)",
+        "the first Nutrients minute on a new record integrates no time (its absorbed vector is dropped; Metabolism already credited it) and also drops that minute's absorbed water",
         "before the first day close the protein-scaled requirements read P_LOW x w (Plan 3's pPrevKg backfill)",
         "a step longer than 60 minutes (offline time) is integrated as 60 minutes; a multi-day jump closes one refeeding day",
         "the potassium-depletion refeeding criterion reads false (no row grades potassium)",
@@ -54,6 +53,9 @@ NR.server.nutrients = {
         "caffeine and ethanol absorb on a 0.5 h gut lane that a full stomach does not slow (ruling T17-2; S1102 open): a drink with a meal peaks as early as one on an empty stomach",
         "the interaction factors read the stomach buffer's phytate, vitC and calcium before each minute's emptying (ruling T17-1): two meals in the buffer act as one meal, and the inhibition eases as the buffer empties",
         "a sleep bout tolerates awake gaps under 10 game minutes (ruling T17-4, S1112 open): a real wake of under 10 minutes inside a night counts as sleep for hours awake",
+        "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)",
+        "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed",
+        "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 68 % of its retinol and vitK and three 10 g-fat meals a day 45 %",
     },
 }
 local NUT = NR.server.nutrients
@@ -269,6 +271,8 @@ end
 -- ruling T17-2) off magnesium and calcium (floored at 0), and the vitamin A fold: the engine reads
 -- absorbed[ORDER key] = absorbed.vitA, so the folded amount (preformed retinol plus the carotene the liver
 -- gate passes) is written there; the ingested vitA the excess tests read is the preformed retinol alone.
+-- Niacin's tryptophan credit (ruling T19-2, S0270): absorbed niacin gains the absorbed protein's tryptophan
+-- (protein g x 1000 x trpShare mg) over trpPerNE mg per mg NE, read off the niacin record.
 local function factors(absorbed, ingested, n, lm, caMeal, cafDose, alcDose)
     if absorbed ~= EMPTY then
         if caMeal == nil then caMeal = absorbed.calcium or 0 end
@@ -284,6 +288,10 @@ local function factors(absorbed, ingested, n, lm, caMeal, cafDose, alcDose)
         local off = nil
         if rec ~= nil and rec.two ~= nil then off = rec.two.caroteneOff end
         absorbed.vitA = (absorbed.retinol or 0) + K.interact.CAROTENE_RAE * K.interact.caroteneOn(p, off) * (absorbed.carotene or 0)
+        local nia = NR.data.records.REC.niacin
+        if nia ~= nil and nia.trpShare ~= nil and nia.trpPerNE ~= nil then
+            absorbed.niacin = (absorbed.niacin or 0) + (absorbed.proteins or 0) * 1000 * nia.trpShare / nia.trpPerNE
+        end
     end
     if ingested ~= EMPTY then
         ingested.vitA = ingested.retinol or 0
@@ -351,6 +359,9 @@ local function step(username, player, record)
     local ee24 = K.max(K.body.blend24(body.eeDay, eeYest, hSince), K.energy.ree(body.lm))
     local alcGkg = body.alcDay / w
     NUT.kMul.thiamine = K.interact.thiamineAlcoholK(1, alcGkg)
+    -- choline's female rate (ruling T19-3; S0378 the ratio, labelled on the record): x kFemale on a female body
+    local cho = NR.data.records.REC.choline
+    NUT.kMul.choline = (body.sex == 2 and cho ~= nil and cho.kFemale) or 1
     local ctx = NUT.ctx
     ctx.sex = body.sex
     ctx.w = w
