@@ -272,6 +272,12 @@ A food outside the table with no FoodType lands the `_default` template times it
 A coffee lands the fluid table's per-litre vector times the litres drunk, its caffeine on the gut lane, while the cola arm took no reading [#3149/M/n=1], and the second boot read the same [#3186/M/n=2].
 The item-pass build's 90 121-byte script file loaded the same on both sides under the admin bypass, so that boot says the copies agreed and nothing about the checksum gate itself [#3140/M/n=1, #3152/M/n=1], as the close-wave build's 90 124-byte file did on the second boot [#3179/M/n=2, #3187/M/n=2].
 The pass puts no mod key on a vanilla food [#3150/M/n=2], leaves a reasoned record's script alone and re-bases a mapped row whatever part file it sits in [#3151/M/n=2], and under the fixture's admin role the boot stayed connected with no checksum line, a reading under the bypass rather than of the gate [#3152/M/n=1, #3187/M/n=2].
+The first live boot of the interface build loaded clean, every surface's error counter at 0, the view at level 1 under the server's option and the moodles on their own column [T11.1/M/n=1], and the mirror carried the new pool-fraction and excess keys beside each grade [T11.2/M/n=1].
+The panel opened on its toggle, requested the mirror, drew while open and stopped drawing once closed [T11.3/M/n=1]; the tab was added at player creation and never drew, because nothing activated it [T11.10/M/n=1].
+On that boot a client-local Nutritionist trait did not flip the view to level 3: the requested mirror arrived and the view rebuilt, but its trait read came back false, and the run does not say whether the client's list had already lost the trait [T11.8/M/n=1].
+The tooltip probe resolved the intake's own source per item, `table` for the apple and `declared` for the declared bar, one line each at level 1, while the band's on-screen draw stays unmeasured because the harness cannot hover [T11.9/M/n=1].
+A clinical vitamin C written into the record reached the own moodle column within one effects push, the deficiency class reading 3 and the column drawing [T11.11/M/n=1], at a fixed inset clear of the vanilla moodle band [T11.12/M/n=1].
+The boot ticked at the item-pass build's server rate [T11.13/M/n=1], and the server's log carried no interface line from the mod [T11.14/M/n=1].
 
 <a id="owned-experiments"></a>
 ### The experiments this mod owns

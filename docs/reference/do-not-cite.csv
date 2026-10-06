@@ -490,3 +490,11 @@ x182-20261006-152945,verdicts.*.predicted,the driver's predictions,"Copies of `p
 x182-20261006-152945,vanilla,"Item, Apple","Read by the driver from the install's EN files at import, not from the game.",cite `D:/SteamLibrary/steamapps/common/ProjectZomboid/media/lua/shared/Translate/EN/` directly
 x182-20261006-152945,logs.server,72 lines,"Every line the driver's broad pattern matched (under its cap of 80), not a count of anything the pattern names.",cite `logs.server_load` for the loading line
 x182-20261006-152945,logs.client,67 lines,"Every line the driver's broad pattern matched (under its cap of 80), not a count of anything the pattern names.",cite `logs.client_load` for the loading lines
+x183-20261006-163238,predictions,the driver's PRED table,"Written before the boot, both routes in one table; not a reading.",cite `verdicts.<arm>.observed` or `phases.<arm>`
+x183-20261006-163238,constants,the driver's constants,"Settings of the driver (waits, limits, the predicted column box), not readings.",
+x183-20261006-163238,baseline,"ticks 10.05..., band 1238-1270","Copied from x172b-20261006-130714 and x181-20261006-152607, not this run.",cite those runs' own files
+x183-20261006-163238,deviations,the driver's list,Written before the boot; not readings.,
+x183-20261006-163238,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
+x183-20261006-163238,verdicts.I.verdict,falsified,"The pattern caught the harness's echoes of the driver's own server-side probes, not a mod line.",cite `logs.server_ui` and `logs.server_ui_mod`
+x183-20261006-163238,logs.server,120 lines,"The first 120 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
+x183-20261006-163238,logs.client,120 lines,"The first 120 matching lines the driver kept (its cap), not a count.",
