@@ -436,7 +436,6 @@ FAST_HANDLER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.p
                             "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Fast.lua")
 SHARED_DIR = os.path.dirname(KERNEL_FAST)
 S_TICK = 6.0
-RISE_PANIC = 24 / 3600                              # one PANIC band per game hour (ruling 9; open S1146)
 RISE_UNHAPPY = 22 / 3600                            # one UNHAPPINESS band per game hour
 RISE_SICK = 25 / 3600                               # one SICK level per game hour on FOOD_SICKNESS's 0-100 scale
 
@@ -595,22 +594,22 @@ def test_handler_inputs_read_neutral_on_nil_and_nan(hrt):
         assert env.vals["FATIGUE"] > 0.1                     # vanilla's awake accrual ran
 
 
-def test_handler_panic_floor_rises_holds_and_never_overshoots(hrt):
+def test_handler_panic_floor_is_a_hold_not_a_rise(hrt):
     rec = _rec(hrt, effects=dict(panicTarget=0.1))
     env, FAST, h = _handler(hrt, rec)
     env.vals["PANIC"] = 0
+    g0, s0 = _n(env.gets, "PANIC"), _n(env.sets, "PANIC")
     _tick(env, FAST)
-    assert env.vals["PANIC"] == pytest.approx(RISE_PANIC * S_TICK, rel=1e-12)    # 0.04
-    _tick(env, FAST)
-    assert env.vals["PANIC"] == pytest.approx(2 * RISE_PANIC * S_TICK, rel=1e-12)
-    _tick(env, FAST)
-    assert env.vals["PANIC"] == 0.1                                               # capped at the target
-    sets = _n(env.sets, "PANIC")
+    assert env.vals["PANIC"] == 0.1                                               # at once, exactly the target
+    assert _n(env.gets, "PANIC") - g0 == 1 and _n(env.sets, "PANIC") - s0 == 1    # one get, one set
     _tick(env, FAST, 3)
-    assert env.vals["PANIC"] == 0.1 and _n(env.sets, "PANIC") == sets             # held: no set at the floor
+    assert env.vals["PANIC"] == 0.1 and _n(env.sets, "PANIC") - s0 == 1           # held: no set at the floor
     env.vals["PANIC"] = 30                                                         # vanilla's own panic above
     _tick(env, FAST)
-    assert env.vals["PANIC"] == 30 and _n(env.sets, "PANIC") == sets
+    assert env.vals["PANIC"] == 30 and _n(env.sets, "PANIC") - s0 == 1
+    env.vals["PANIC"] = 0.05                                                       # vanilla's decay took it below
+    _tick(env, FAST)
+    assert env.vals["PANIC"] == 0.1 and _n(env.sets, "PANIC") - s0 == 2
 
 
 def test_handler_floors_read_and_write_nothing_at_target_zero(hrt):
@@ -779,6 +778,8 @@ def test_handler_limitations_and_region_strings():
     lims = src[src.index("limitations = {"):src.index("local FAST = NR.server.fast")]
     assert "and the effects floors for at most one slow-clock minute" in lims
     assert "X35" in lims and "INTOXICATION" in lims
+    assert "a PANIC target appears at once: the floor is a hold, not a rise (T13-1" in lims
+    assert "moodRisePanic" not in src
     region = src[src.index("local function body(h)"):src.index("-- @endfastpath")]
     assert "local E = h.record.effects" in region and "local A = h.record.acute" in region
     assert "inp.endLast = out.endurance" in region

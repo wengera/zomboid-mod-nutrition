@@ -15,7 +15,9 @@
 -- stamps them per slow minute) and h.record.body.dmod (the endurance fold, ruling 15), each nil/NaN read
 -- neutral by the self-inequality test (no call in the region). After the kernel it writes, outside the
 -- seven updaters (#2384): the PANIC, UNHAPPINESS and FOOD_SICKNESS floors (ruling 9, T1-1; each one get,
--- one compare, at most one set, and only while its target > 0), UNHAPPINESS's release when its target
+-- one compare, at most one set, and only while its target > 0; PANIC is held at its target (T13-1):
+-- vanilla's per-update decay, about 0.18 trait-scaled (X88, x161f), outruns any vanilla-scale rise, and a
+-- decay-matched rise would need the trait multipliers in the region), UNHAPPINESS's release when its target
 -- falls (T1-2: vanilla never decays it), the absolute TEMPERATURE target on the adjustment's side only
 -- (ruling 16), ENDURANCE every tick while the fold is on, and INTOXICATION from the gut lane's bac
 -- (ruling 19, T4-1). Owned and asleep, the kernel's timeOfSleep advance is gated on the STAT's
@@ -39,15 +41,15 @@ NR.server.fast = { h = {}, byChar = {}, lastInp = {}, mode = 2, closure = nil, r
                                    "after a respawn the fast clock may read the dead character's stomachFill and the effects floors for at most one slow-clock minute (the temperature and intoxication targets too) until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified (a Plan 8 reading)",
                                    "the endurance fold (dmod on a drain, rmod on a regeneration) is unapplied while X35 is open: awake ENDURANCE stays vanilla's, melee swings unscaled",
                                    "INTOXICATION is the gut lane's bac every tick (T4-1): vanilla's per-drink jump is overwritten, so a drink the intake wrappers miss shows no intoxication; with no effects table yet vanilla's value stands undecayed (the reduction is 0)",
+                                   "a PANIC target appears at once: the floor is a hold, not a rise (T13-1; x161f read the risen floor as a no-op under vanilla's decay)",
                                    "the UNHAPPINESS release subtracts the whole fall of the target once (T1-2), whether or not the floor had raised the stat that far",
                                    "the TEMPERATURE target is written only while the core is on the adjustment's far side; the held equilibrium against the regulator is unmeasured (X81)" } }
 local FAST = NR.server.fast
 local C = K.fast.defaults()
--- The three handler floors' rise rates (ruling 9; GAME CHOICES, open S1146), per game-second: one moodle
--- band per game hour (PANIC ~24, UNHAPPINESS ~22, #2369, ruling 10) and one SICK level per game hour on
+-- The two rising handler floors' rates (ruling 9; GAME CHOICES, open S1146), per game-second: one moodle
+-- band per game hour (UNHAPPINESS ~22, #2369, ruling 10) and one SICK level per game hour on
 -- FOOD_SICKNESS's 0-100 scale (25; S1146's "sickness 0.25 per game hour" was sized on SICKNESS's 0-1, and
 -- T1-1 moved the rungs to FOOD_SICKNESS).
-C.moodRisePanic = 24 / 3600
 C.moodRiseUnhappy = 22 / 3600
 C.moodRiseSick = 25 / 3600
 local DRUNK_REDUCTION_VANILLA = 0.0042                    -- BodyDamage's constructor value (#2919)
@@ -347,11 +349,7 @@ local function body(h)
         local t = E.panicTarget or 0                      -- nil reads 0; a NaN fails every compare below
         if t > 0 then
             local v = get(stats, h.PANIC)
-            if v < t then
-                v = v + C.moodRisePanic * s
-                if v > t then v = t end
-                set(stats, h.PANIC, v)
-            end
+            if v < t then set(stats, h.PANIC, t) end     -- a hold, not a rise (T13-1)
         end
         t = E.unhappyTarget or 0
         if t ~= t then t = 0 end
