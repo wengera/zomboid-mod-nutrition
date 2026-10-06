@@ -237,7 +237,7 @@ The first live boot of the whole Plan 5 build, the effects adapter and the fast 
 The coefficient set is on the record from the first read after a join, and its epoch counts the rebuilds through the session [#3071/M/n=1].
 The server's FATIGUE is the writer's `S + circ + fOff` from the record at every read bracketed by record reads, exactly, and the client's copy is a value the server held about a push earlier [#3072/M/n=1, #3073/M/n=1].
 An empty stomach no longer reaches the level-4 hunger drain: the HUNGER view held at 0.69 with the hungry moodle at level 3 and no `HUNGRY` damage tag in any probe window, while the thirst cap was not approached [#3074/M/n=1].
-The Tired thresholds fell within about a tenth of a game hour of the kernel's replay of the live record, roughly twelve, fourteen and sixteen and a half hours after a rested first sight near 10:00 [#3075/M/n=1].
+The Tired thresholds fell within about a tenth of a game hour of the kernel's replay of the live record, roughly twelve, fourteen and sixteen and a half hours after the record's birth near 10:05 [#3075/M/n=1].
 A scenario that holds sleep through the harness gets the recovery constant only on the minutes the record counts asleep, about 85 per cent of them, so S falls more slowly than a wholly asleep step [#3076/M/n=1].
 A coffee moves the fatigue offset by the kernel's caffeine term at every slow minute [#3077/M/n=1].
 The endurance fold switched on live scales a squat set's drop within the run's coarse band, while two resting windows do not isolate its regeneration arm [#3078/M/n=1].
