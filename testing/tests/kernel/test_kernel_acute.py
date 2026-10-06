@@ -38,7 +38,7 @@ def _list(host, t):
 
 def test_constants(host):
     A = host.K.acute
-    assert (A.AV, A.CAF_ABSORB, A.CAF_THALF_H, A.CAF_THALF_SLOW_H, A.CAF_SLOW_SHARE) == (1, 1.0, 5.0, 9.7, 0.5)
+    assert (A.AV, A.CAF_ABSORB, A.CAF_THALF_H, A.CAF_THALF_SLOW_H, A.CAF_SLOW_SHARE) == (2, 1.0, 5.0, 9.7, 0.5)  # av 2: Plan 5 Task 5
     assert (A.CAF_MEAN_H, A.CAF_TOL_REF, A.CAF_TOL_TAU_H, A.CAF_WD_TOL, A.CAF_WD_LOW_MG) == (168, 400, 168, 0.25, 10.7)
     assert (A.CAF_WD_ONSET_H, A.CAF_WD_PEAK_H, A.CAF_WD_END_H, A.CAF_EFFECT_MGKG) == (12, 36, 120, 3)
     assert _list(host, A.WIDMARK_R) == [0.68, 0.55]
@@ -51,7 +51,7 @@ def test_constants(host):
     assert A.GUT_T_HALF == 0.5                                              # ruling T17-2
     assert A.BOUT_GAP_H == 10 / 60                                          # ruling T17-4
     assert (A.BG_NORMAL, A.BG_EXERTION, A.BG_EX_G, A.BG_EX_MET, A.BG_ALC_FAST, A.BG_ALC_FAST_H) == (5.0, 2.5, 0.2, 6, 3.0, 12)
-    assert (A.BG_TAU_CHO_H, A.BG_TAU_H, A.BG_MIN, A.BG_MAX, A.IU_BG_HI, A.IU_BG_LO, A.IU_BG_MAX) == (0.25, 1, 2.0, 8.0, 3.5, 3.0, 0.90)
+    assert (A.BG_TAU_CHO_H, A.BG_TAU_H, A.BG_MIN, A.BG_MAX, A.IU_BG_HI, A.IU_BG_LO, A.IU_BG_MAX) == (0.25, 1, 2.0, 8.0, 3.0, 2.6, 0.90)  # ruling 21
     assert (A.SLEEP_NEED_H, A.CHI_W, A.CHI_S, A.CHI_W_DEBT, A.CHI_W_DEBT_MAX, A.S_FLOOR_DEBT, A.S_FLOOR_MAX) == (7.5, 18.2, 4.2, 0.02, 20, 0.01, 0.25)
     assert (A.S_RESTED, A.NAP_MIN_H, A.WINDOW_H, A.DEBT_MAX, A.REPAY, A.CIRC_AMP, A.CIRC_PEAK_H) == (0.17, 1, 24, 40, 0.5, 0.12, 4)
     assert (A.IU_SLEEP_ZERO_H, A.IU_SLEEP_SPAN_H, A.IU_SLEEP_DEBT_H, A.IU_SLEEP_MAX) == (16, 8, 10.5, 1.5)
@@ -59,6 +59,7 @@ def test_constants(host):
     assert _list(host, A.IU_IRON) == [0, 0, 0.38, 0.76]
     assert (A.CREDIT_BASE, A.CREDIT_GAIN, A.CREDIT_MG, A.IU_MAX) == (0.50, 0.60, 200, 2.5)
     assert A.CREDIT_BASE_MG == 100
+    assert (A.VIG_WINDOW_H, A.EX_TAU_H, A.COLD_ON, A.COLD_TAU_H, A.RET_TAU_D) == (1, 6, 1.05, 6, 14)  # Plan 5 Task 5
     assert (A.LOW_KCAL_KG, A.HEIGHT_M, A.MASS_WINDOW_H) == (5, 1.75, 2160)
     assert (A.RISK_BMI_HIGH, A.RISK_LOSS_HIGH, A.RISK_DAYS_HIGH, A.RISK_BMI_MOD, A.RISK_LOSS_MOD, A.RISK_DAYS_MOD) == (16, 0.15, 10, 18.5, 0.10, 5)
     assert (A.REFEED_DAYS, A.RESTART_KCAL_KG, A.RESTART_LOW_KCAL_KG, A.RESTART_LOW_BMI, A.REFEED_P) == (7, 10, 5, 14, 0.23)
@@ -66,11 +67,12 @@ def test_constants(host):
 
 def test_new_state_shape(host):
     a = host.py(_new(host, 100.0))
-    assert a == dict(av=1, caf=0, cafMean=0, cafTol=0, cafLowH=0, wdH=-1, wd=0, slowMet=False, alc=0, bac=0,
+    assert a == dict(av=2, caf=0, cafMean=0, cafTol=0, cafLowH=0, wdH=-1, wd=0, slowMet=False, alc=0, bac=0,
                      alcPeak=0, hangH=0, hang=0, glyc=462, g=1, bg=5.0, awakeH=0, debtH=0, sleptH=0,
                      winStartH=100.0, winSleptH=0, S=0.17, circ=0, frozen=False, starvedDays=0, lowDay=False,
                      mass90max=0, mass90ageH=100.0, bmi=0, refeedRisk=0, refeedDayN=-1, refeedEvent=False, iu=0,
-                     gutAlc=0, gutCaf=0, boutH=0, gapH=0)
+                     gutAlc=0, gutCaf=0, boutH=0, gapH=0,
+                     exEma=0, lastVigAgeH=-1e9, boutVig=False, coldH=0, retEma=0, iuSleep=0)  # Plan 5 Task 5
 
 
 def test_draw_slow_met(host):
@@ -467,11 +469,14 @@ def test_bg_clamp(host):
 
 
 def test_iu_glucose(host):
+    # Plan 5 ruling 21 moved the knee from 3.5-3.0 to 3.0-2.6 mmol/L (S0897/S0898): 3.25 now reads 0
     A = host.K.acute
     assert A.iuGlucose(5.0) == 0
     assert A.iuGlucose(3.5) == 0
-    assert _close(A.iuGlucose(3.25), 0.45)  # 0.9 * 0.25 / 0.5
-    assert _close(A.iuGlucose(3.0), 0.90)
+    assert A.iuGlucose(3.25) == 0           # 0.45 under the Plan 4 knee; 0 under ruling 21
+    assert A.iuGlucose(3.0) == 0
+    assert _close(A.iuGlucose(2.8), 0.45)   # 0.9 * (3.0 - 2.8) / 0.4 = 0.4500000000000005 in doubles
+    assert _close(A.iuGlucose(2.6), 0.90)
     assert _close(A.iuGlucose(2.0), 0.90)
 
 
@@ -708,7 +713,7 @@ def test_iu_terms_and_iron(host):
     assert _close(A.iu(a, 0, 4), 0.76)
     assert _close(a.iu, 0.76)
     a.bac = 0.065
-    a.bg = 3.25
+    a.bg = 2.8  # ruling 21: the Plan 4 case read bg 3.25 for 0.45; under the 3.0-2.6 knee 2.8 reads 0.45
     assert _close(A.iu(a, 3, 1), 1.30 + 0.67 + 0.45)  # 2.42, under the cap
 
 
@@ -843,3 +848,135 @@ def test_mass90_tracker(host):
     assert a.mass90max == 80  # a lower mass keeps the maximum
     A.refeedDay(a, 30, 75, 24.0 + 2160 + 1, False, False, False)
     assert a.mass90max == 75 and a.mass90ageH == 24.0 + 2161  # the maximum expired after 90 days
+
+
+# ---- Plan 5 Task 5: the accrual and recovery multipliers, the vigorous latch, the three memories ----
+
+# mNut for iron depleted x dehydration 2.5 % x EA 20 (formulas briefing I-B2): 1.11 * 1.21 * (1 + 10/15 * 0.25)
+M_NUT = 1.11 * 1.21 * (1 + (30 - 20) / 15 * 0.25)
+
+
+def test_chi_helpers_default_to_one(host):
+    A = host.K.acute
+    assert M_NUT == 1.5669500000000003
+    assert A.chiW(0, None) == 18.2
+    assert A.chiW(0, 1) == 18.2
+    assert A.chiS(None) == 4.2
+    assert A.chiS(1) == 4.2
+    assert _close(A.chiW(30, None), 18.2 / 1.4)  # the debt term capped at 20 h, unchanged from Plan 4
+
+
+def test_chi_w_eff_i_b2(host):
+    # I-B2: 18.2 / M_NUT = 11.614920705829794; 18.2 / (M_NUT * (1 + 0.02 * 10)) = 9.679100588191496
+    A = host.K.acute
+    assert _close(A.chiW(0, M_NUT), 11.614920705829794, 1e-12)
+    assert _close(A.chiW(10, M_NUT), 9.679100588191496, 1e-12)
+
+
+def test_s_awake_one_hour_i_b2e(host):
+    # I-B2e: 1 - 0.83 * exp(-1 / (18.2 / 1.56695)) = 0.23847001564473125; m 1: 0.21437416212964477
+    A = host.K.acute
+    a = _new(host, 0.0)
+    A.sleepMinute(a, False, 12.0, 1.0, 1.0, 1.0, False, 1.56695, None)
+    assert _close(a.S, 0.23847001564473125, 1e-12)
+    b = _new(host, 0.0)
+    A.sleepMinute(b, False, 12.0, 1.0, 1.0, 1.0, False)
+    assert _close(b.S, 0.21437416212964477, 1e-12)
+    c = _new(host, 0.0)
+    for i in range(1, 61):  # sixty one-minute steps: the exact step composes (0.23847001564473314 in doubles)
+        A.sleepMinute(c, False, 12.0, 1.0, i / 60, MIN, False, 1.56695, 1)
+    assert _close(c.S, 0.23847001564473125, 1e-12)
+
+
+def test_s_asleep_one_hour_i_b3b(host):
+    # I-B3b: 0.7 * exp(-1 / 4.2) = 0.5516893394217176; at rRec 1.05 * 1.15: 0.7 * exp(-1 / (4.2 / 1.2075)) = 0.5250955967396872
+    A = host.K.acute
+    a = _new(host, 0.0)
+    a.S = 0.7
+    A.sleepMinute(a, True, 2.0, 1.0, 1.0, 1.0, False, None, 1)
+    assert _close(a.S, 0.5516893394217176, 1e-12)
+    b = _new(host, 0.0)
+    b.S = 0.7
+    A.sleepMinute(b, True, 2.0, 1.0, 1.0, 1.0, False, 3.0, 1.05 * 1.15)  # mAcc acts only awake
+    assert _close(b.S, 0.5250955967396872, 1e-12)
+    c = _new(host, 0.0)
+    c.S = 0.7
+    c.debtH = 40
+    A.sleepMinute(c, True, 2.0, 1.0, 1.0, 10.0, False, 1, 2.0)
+    assert _close(c.S, 0.25)  # the floor min(0.4, 0.25) still holds under rRec
+
+
+def test_exercise_ema_and_vigorous_stamp(host):
+    # 30 one-minute band-1 steps: sum_{k=0..29} exp(-k/360) = 28.824007034363945 minutes; then 6 h of rest
+    # multiplies by exp(-1): 10.603759600123523 (minute-stepped 10.603759600123364)
+    A = host.K.acute
+    a = _new(host, 0.0)
+    for i in range(1, 31):
+        A.exerciseMinute(a, 1, i / 60, MIN)
+    assert _close(a.exEma, 28.824007034363945, 1e-9)
+    assert a.lastVigAgeH == -1e9  # band 1 stamps no vigorous minute
+    for i in range(31, 31 + 360):
+        A.exerciseMinute(a, 0, i / 60, MIN)
+    assert _close(a.exEma, 10.603759600123523, 1e-9)
+    A.exerciseMinute(a, 2, 7.0, MIN)
+    assert a.lastVigAgeH == 7.0
+    assert _close(a.exEma, 10.603759600123523 * math.exp(-1 / 360) + 1, 1e-9)  # band 2 credits too
+
+
+def test_bout_vig_latches_at_the_first_asleep_minute(host):
+    A = host.K.acute
+    for gapH, want in ((0.5, True), (1.0, True), (2.0, False)):
+        a = _new(host, 0.0)
+        A.exerciseMinute(a, 2, 10.0, MIN)
+        A.sleepMinute(a, True, 22.0, 1.0, 10.0 + gapH, MIN, False)
+        assert a.boutVig is want, gapH
+        A.exerciseMinute(a, 0, 10.0 + gapH + MIN, MIN)
+        A.sleepMinute(a, True, 22.0, 1.0, 10.0 + gapH + 5, MIN, False)  # later in the same bout: held
+        assert a.boutVig is want, gapH
+    b = _new(host, 0.0)
+    assert b.boutVig is False
+    A.sleepMinute(b, True, 22.0, 1.0, 1.0, MIN, False)
+    assert b.boutVig is False  # no band-2 minute on record (lastVigAgeH -1e9)
+    c = _new(host, 0.0)
+    A.exerciseMinute(c, 2, 1.0, MIN)
+    A.sleepMinute(c, False, 22.0, 1.0, 1.5, MIN, False)  # awake: no latch
+    assert c.boutVig is False
+    A.sleepMinute(c, True, 22.0, 1.0, 1.0, MIN, True)  # frozen: no latch
+    assert c.boutVig is False
+
+
+def test_cold_hours(host):
+    # 120 one-minute steps at coldMult 1.5: (1/60) * sum_{k=0..119} exp(-k/360) = 1.7031754692648786
+    A = host.K.acute
+    a = _new(host, 0.0)
+    for _ in range(120):
+        A.coldMinute(a, 1.5, MIN)
+    assert _close(a.coldH, 1.7031754692648786, 1e-9)
+    c = a.coldH
+    A.coldMinute(a, 1.05, 6.0)  # at the dead band: no credit, one e-fold
+    assert _close(a.coldH, c * math.exp(-1), 1e-12)
+
+
+def test_retinol_ema_fourteen_days(host):
+    # 900 ug/day held 14 days: 900 * (1 - exp(-1)) = 568.9085029457019 at any step (hourly here)
+    A = host.K.acute
+    a = _new(host, 0.0)
+    for _ in range(14 * 24):
+        A.retinolMinute(a, 900 / 24, 1 / 24)
+    assert _close(a.retEma, 568.9085029457019, 1e-9)
+    r = a.retEma
+    A.retinolMinute(a, 50, 0)  # a zero-length step changes nothing
+    assert a.retEma == r
+    b = _new(host, 0.0)
+    A.retinolMinute(b, 900, 1 / 1440)  # one 900 ug dose in one minute: 900 * 1440 * (1 - exp(-1/20160))
+    assert _close(b.retEma, 64.28411992435912, 1e-9)
+
+
+def test_iu_stores_the_sleep_term(host):
+    A = host.K.acute
+    a = _new(host)
+    a.awakeH = 20
+    a.caf = 200
+    A.iu(a, 0, 1)
+    assert _close(a.iuSleep, 0.5)  # the term before the caffeine credit
+    assert a.iu == 0

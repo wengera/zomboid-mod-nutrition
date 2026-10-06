@@ -19,11 +19,16 @@
 -- and glycogen refills whenever met < 3 (the thermoregulator's idle 1.007-1.010 indoors blocked every
 -- refill, #2984); a sleep bout (boutH, gapH) tolerates awake gaps under BOUT_GAP_H (the harness hold's
 -- isAsleep misses, #2840, never let a run reach the nap threshold, #2986).
+-- Plan 5 Task 5 (schema av 2; rulings 6, 11, 21): sleepMinute takes the accrual and recovery multipliers
+-- mAcc and rRec (nil reads 1, the Plan 4 behaviour) on chi_w and chi_s; three exponential memories join the
+-- state -- exEma (exercise minutes, exerciseMinute), coldH (cold hours, coldMinute), retEma (ingested
+-- retinol ug/day, retinolMinute) -- with lastVigAgeH (the last band-2 minute) and boutVig (latched at a
+-- bout's first asleep minute); iu stores its sleep term on iuSleep; the glucose knee moves to 3.0-2.6 mmol/L.
 local K = NutritionRevamp.kernel
 K.acute = {}
 
 -- The record.acute schema version.
-K.acute.AV = 1 -- schema version, no row needed
+K.acute.AV = 2 -- schema version, no row needed
 
 -- Caffeine.
 -- Absorption fraction of the gut lane, applied once in K.acute.absorbGut (ruling T17-2); alcohol and
@@ -91,9 +96,9 @@ K.acute.BG_TAU_CHO_H = 0.25 -- design-phase-v1 game choice (open row S1111: the 
 K.acute.BG_TAU_H = 1 -- design-phase-v1 game choice (open row S1111: the glucose recovery time course)
 K.acute.BG_MIN = 2.0 -- game choice: the clamp's floor
 K.acute.BG_MAX = 8.0 -- game choice: the clamp's ceiling
-K.acute.IU_BG_HI = 3.5 -- S0897 (impairment 2.6-3.0; the 3.5 upper bound the report's choice)
-K.acute.IU_BG_LO = 3.0 -- S0897, S0898 (-0.7 SD at 3.0)
-K.acute.IU_BG_MAX = 0.90 -- S0898 (-0.7 SD at 3.0, scaled to the unit)
+K.acute.IU_BG_HI = 3.0 -- S0897 (impairment 2.6-3.0: the knee's upper end, Plan 5 ruling 21)
+K.acute.IU_BG_LO = 2.6 -- S0897 (impairment 2.6-3.0: the knee's lower end, Plan 5 ruling 21)
+K.acute.IU_BG_MAX = 0.90 -- S0898 (-0.7 SD at 3.0, scaled to the unit; reached at 2.6 under ruling 21; magnitude open S0938)
 
 -- Sleep, game hours.
 K.acute.SLEEP_NEED_H = 7.5 -- S0740 (7-9 h, the midpoint)
@@ -116,6 +121,13 @@ K.acute.IU_SLEEP_ZERO_H = 16 -- design-phase-v1 game choice (open row S1115: the
 K.acute.IU_SLEEP_SPAN_H = 8 -- S0892 (24 h awake = 1 IU)
 K.acute.IU_SLEEP_DEBT_H = 10.5 -- derived from S0742 (about 21 h owed = 2 nights' deprivation = 2 IU)
 K.acute.IU_SLEEP_MAX = 1.5 -- game choice: the sleep term's cap
+K.acute.VIG_WINDOW_H = 1 -- design-phase-v1 game choice (open row S1130: vigorous exercise ending within 1 h of sleep)
+
+-- The Plan 5 memories (Task 5): exponential sums decaying on their time constant.
+K.acute.EX_TAU_H = 6 -- design-phase-v1 game choice (open row S1148: the exercise credit's memory, 6 h)
+K.acute.COLD_ON = 1.05 -- game choice: the coldMult above which an hour counts as cold, the shiver dead band (ruling T17-3)
+K.acute.COLD_TAU_H = 6 -- design-phase-v1 game choice (open row S1155: cold-exposed within 6 h)
+K.acute.RET_TAU_D = 14 -- design-phase-v1 game choice (open row S1140: the night-vision grant's 14 days; Plan 5 ruling 6)
 
 -- The impairment unit.
 K.acute.IU_DEHYD_FROM = 1 -- per cent: S0894 (1-6 % body-mass loss)
@@ -154,7 +166,8 @@ K.acute.REFEED_P = 0.23 -- S0117 (23 %); S0118's 35 % noted, both critically-ill
 
 -- A fresh record.acute at world age ageH: no caffeine or alcohol on board or in the gut, the reference
 -- glycogen and normal glucose, rested, no debt or sleep bout, no refeeding risk. bmi 0 until the first
--- refeedDay close.
+-- refeedDay close. The Plan 5 fields: no exercise, cold or retinol memory, no band-2 minute on record
+-- (lastVigAgeH far in the past), no vigorous latch, no sleep term.
 function K.acute.new(ageH)
     return {
         av = K.acute.AV,
@@ -194,6 +207,12 @@ function K.acute.new(ageH)
         refeedDayN = -1,
         refeedEvent = false,
         iu = 0,
+        exEma = 0,
+        lastVigAgeH = -1e9,
+        boutVig = false,
+        coldH = 0,
+        retEma = 0,
+        iuSleep = 0,
     }
 end
 
@@ -361,11 +380,25 @@ function K.acute.glucose(a, met, choAbsG, bac, stomachEmptyH, dtH)
     return a
 end
 
--- The glucose term of the impairment unit: 0 at or above 3.5 mmol/L, linear to 0.90 at 3.0, held below.
+-- The glucose term of the impairment unit: 0 at or above 3.0 mmol/L, linear to 0.90 at 2.6, held below
+-- (Plan 5 ruling 21; the Plan 4 knee was 3.5-3.0).
 function K.acute.iuGlucose(bg)
     local A = K.acute
     local x = K.clamp((A.IU_BG_HI - bg) / (A.IU_BG_HI - A.IU_BG_LO), 0, 1)
     return A.IU_BG_MAX * x
+end
+
+-- The effective build-up time constant, game hours: chi_w / (mAcc x (1 + CHI_W_DEBT x min(debtH, 20))),
+-- mAcc 1 when nil (Plan 5 ruling 11).
+function K.acute.chiW(debtH, mAcc)
+    local m = mAcc or 1
+    return K.acute.CHI_W / (m * (1 + K.acute.CHI_W_DEBT * K.min(debtH, K.acute.CHI_W_DEBT_MAX)))
+end
+
+-- The effective recovery time constant, game hours: chi_s / rRec, rRec 1 when nil (Plan 5 ruling 11).
+function K.acute.chiS(rRec)
+    local r = rRec or 1
+    return K.acute.CHI_S / r
 end
 
 -- One sleep step over dtH game hours at world age ageH. sleepDisabled (the server's SleepAllowed and
@@ -382,7 +415,11 @@ end
 -- the unbroken run, kept for the readers; the reset reads the bout. The 24 h window closes
 -- when ageH has run WINDOW_H past its start: the shortfall against need (7.5 h x needFactor, the trait
 -- multiplier) adds to the debt, the excess repays REPAY of itself, clamped [0, DEBT_MAX].
-function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepDisabled)
+-- Plan 5 (ruling 11): mAcc divides chi_w (the accrual multiplier) and rRec divides chi_s (the recovery
+-- multiplier), each 1 when nil; their clamps are the caller's. At a bout's first asleep minute (boutH 0
+-- before this step) boutVig latches whether a band-2 minute ended within VIG_WINDOW_H before ageH; it holds
+-- until the next bout starts.
+function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepDisabled, mAcc, rRec)
     local A = K.acute
     a.circ = A.CIRC_AMP * math.cos(2 * math.pi * (hourOfDay - A.CIRC_PEAK_H) / 24)
     if sleepDisabled then
@@ -399,6 +436,9 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
     end
     a.frozen = false
     if asleep then
+        if a.boutH == 0 then
+            a.boutVig = ageH - a.lastVigAgeH <= A.VIG_WINDOW_H
+        end
         a.sleptH = a.sleptH + dtH
         a.boutH = a.boutH + dtH
         a.gapH = 0
@@ -407,7 +447,7 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
             a.awakeH = 0
         end
         local floor = K.min(A.S_FLOOR_DEBT * a.debtH, A.S_FLOOR_MAX)
-        a.S = K.max(a.S * math.exp(-dtH / A.CHI_S), floor)
+        a.S = K.max(a.S * math.exp(-dtH / A.chiS(rRec)), floor)
     else
         a.sleptH = 0
         if a.boutH > 0 then
@@ -423,8 +463,7 @@ function K.acute.sleepMinute(a, asleep, hourOfDay, needFactor, ageH, dtH, sleepD
         if a.boutH < A.NAP_MIN_H then
             a.awakeH = a.awakeH + dtH
         end
-        local chiW = A.CHI_W / (1 + A.CHI_W_DEBT * K.min(a.debtH, A.CHI_W_DEBT_MAX))
-        a.S = 1 - (1 - a.S) * math.exp(-dtH / chiW)
+        a.S = 1 - (1 - a.S) * math.exp(-dtH / A.chiW(a.debtH, mAcc))
     end
     -- every elapsed window closes (a long step can span several); a window books at most its own WINDOW_H
     while ageH - a.winStartH >= A.WINDOW_H do
@@ -461,14 +500,56 @@ end
 
 -- The impairment unit (1 IU = 24 h awake = BAC 0.05 %): the sleep, alcohol, dehydration, glucose and iron
 -- terms summed, less the caffeine credit min(IU_sleep, 0.5 x min(1, caf / 100) + 0.6 x min(1, caf / 200)), clamped [0, 2.5].
--- Additive (ruling 14). Writes a.iu and returns it.
+-- Additive (ruling 14). Writes a.iu and a.iuSleep (the sleep term, for the Plan 5 readers) and returns a.iu.
 function K.acute.iu(a, dehydPct, ironGrade)
     local A = K.acute
     local sleep = A.iuSleep(a)
+    a.iuSleep = sleep
     local credit = K.min(sleep, A.CREDIT_BASE * K.min(1, a.caf / A.CREDIT_BASE_MG) + A.CREDIT_GAIN * K.min(1, a.caf / A.CREDIT_MG))
     local sum = sleep + A.iuAlcohol(a.bac) + A.iuDehyd(dehydPct) + A.iuGlucose(a.bg) + A.IU_IRON[ironGrade]
     a.iu = K.clamp(sum - credit, 0, A.IU_MAX)
     return a.iu
+end
+
+-- One exercise step (Plan 5, ruling 11): exEma, the moderate-or-harder minutes of the last ~6 h, decays on
+-- EX_TAU_H and takes this step's minutes (dtH x 60) when the training band is 1 or 2; a band-2 step stamps
+-- lastVigAgeH = ageH, the world age sleepMinute's vigorous latch reads. band is 0, 1 or 2.
+function K.acute.exerciseMinute(a, band, ageH, dtH)
+    local A = K.acute
+    local add = 0
+    if band >= 1 then
+        add = dtH * 60
+    end
+    a.exEma = a.exEma * math.exp(-dtH / A.EX_TAU_H) + add
+    if band == 2 then
+        a.lastVigAgeH = ageH
+    end
+    return a
+end
+
+-- One cold step: coldH, the cold hours of the last ~6 h, decays on COLD_TAU_H and takes dtH when the
+-- thermoregulator's coldMult is above COLD_ON.
+function K.acute.coldMinute(a, coldMult, dtH)
+    local A = K.acute
+    local add = 0
+    if coldMult > A.COLD_ON then
+        add = dtH
+    end
+    a.coldH = a.coldH * math.exp(-dtH / A.COLD_TAU_H) + add
+    return a
+end
+
+-- One retinol step (Plan 5 ruling 6): retEma, the 14-day EMA of the ingested preformed retinol in ug/day,
+-- relaxes toward this step's rate ingestedUg / dtD by the fraction 1 - exp(-dtD / RET_TAU_D), the exact
+-- step for a rate held over the step (a constant 900 ug/day reaches 900 x (1 - e^-1) in 14 days at any
+-- step length). A step of dtD <= 0 changes nothing.
+function K.acute.retinolMinute(a, ingestedUg, dtD)
+    if dtD <= 0 then
+        return a
+    end
+    local perDay = ingestedUg / dtD
+    a.retEma = a.retEma + (perDay - a.retEma) * (1 - math.exp(-dtD / K.acute.RET_TAU_D))
+    return a
 end
 
 -- One refeeding day close: kcalPerKg the day's absorbed kcal per kg, w the mass kg at the close, ageH the

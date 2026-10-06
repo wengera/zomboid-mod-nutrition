@@ -273,7 +273,7 @@ def test_fresh_record_gains_the_three_sub_tables(nut_host):
     assert f["fv"] == 1 and f["water"] == 0 and f["viewPct"] == 0
     assert abs(f["sweatK"] - 1.0) < TOL                     # 0.5 + 1.0 x the stub roll 0.5
     assert abs(f["naSweat"] - 30.0) < TOL                   # 10 + 80 x 0.5^2
-    assert a["av"] == 1 and a["slowMet"] is False           # roll 0.5 is not < 0.5
+    assert a["av"] == 2 and a["slowMet"] is False           # av 2 (Plan 5 Task 5); roll 0.5 is not < 0.5
     assert abs(a["lastFedAgeH"] - 100.0) < TOL and a["alc7"] == 0 and a["alcDayG"] == 0
     assert nonfinite(h, record) == ""
 
@@ -754,6 +754,123 @@ def test_the_new_acute_fields_are_backfilled(nut_host):
     for k in ("gutAlc", "gutCaf", "boutH", "gapH"):
         assert record["acute"][k] == 0, k
     assert nonfinite(h, record) == ""
+
+
+# --- Plan 5 Task 5: the av 2 fields and their feeds ---------------------------------------------------------
+
+PLAN5_FIELDS = ("exEma", "lastVigAgeH", "boutVig", "coldH", "retEma", "iuSleep", "lastB1", "lastB2")
+
+
+def test_an_av_1_record_is_backfilled_to_av_2(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    a = record["acute"]
+    a["av"] = 1
+    for k in PLAN5_FIELDS:
+        a[k] = None
+    record["body"]["band1Day"] = 12.0                       # a day already exercised before the upgrade
+    record["body"]["band2Day"] = 4.0
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert a["av"] == 2
+    assert a["lastVigAgeH"] == -1e9 and a["boutVig"] is False
+    assert (a["lastB1"], a["lastB2"]) == (12.0, 4.0)        # the baselines start at the accumulators
+    assert a["exEma"] == 0 and a["coldH"] == 0 and a["retEma"] == 0  # no credit for minutes it never saw
+    assert a["iuSleep"] == 0
+    assert nonfinite(h, record) == ""
+
+
+def test_the_minute_band_is_read_off_the_accumulators_growth(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    body, a = record["body"], record["acute"]
+    assert a["exEma"] == 0
+    body["band1Day"] = body["band1Day"] + 1.0               # band 1: Metabolism's sample added one minute
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert abs(a["exEma"] - 1.0) < TOL                      # 0 * exp(-1/360) + 60 * (1/60)
+    assert a["lastVigAgeH"] == -1e9
+    body["band1Day"] = body["band1Day"] + 1.0               # band 2 grows both accumulators
+    body["band2Day"] = body["band2Day"] + 1.0
+    alone(h, p, record, 100.0 + 2 / 60)
+    assert abs(a["exEma"] - (math.exp(-1 / 360) + 1.0)) < TOL
+    assert abs(a["lastVigAgeH"] - (100.0 + 2 / 60)) < TOL
+    alone(h, p, record, 100.0 + 3 / 60)                     # no growth: band 0, the memory decays
+    assert abs(a["exEma"] - (math.exp(-1 / 360) + 1.0) * math.exp(-1 / 360)) < TOL
+    assert (a["lastB1"], a["lastB2"]) == (body["band1Day"], body["band2Day"])
+
+
+def test_the_minute_band_across_a_day_close(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    body, a = record["body"], record["acute"]
+    body["band1Day"] = 30.0
+    body["band2Day"] = 10.0
+    alone(h, p, record, 100.0 + 1 / 60)                     # baselines 30 / 10 (a band-2 minute)
+    vig = a["lastVigAgeH"]
+    # Metabolism sampled a band-2 minute, then closed the day: slot 7 holds 31 / 11, the accumulators 0
+    body["dayIndex"] = body["dayIndex"] + 1
+    body["bandWeek"][7][1] = 31.0
+    body["bandWeek"][7][2] = 11.0
+    body["band1Day"] = 0.0
+    body["band2Day"] = 0.0
+    alone(h, p, record, 100.0 + 2 / 60)
+    assert abs(a["lastVigAgeH"] - (100.0 + 2 / 60)) < TOL and a["lastVigAgeH"] != vig
+    assert (a["lastB1"], a["lastB2"]) == (0.0, 0.0)
+    # a close with no exercise in the closing minute reads band 0
+    body["dayIndex"] = body["dayIndex"] + 1
+    body["bandWeek"][7][1] = 0.0
+    body["bandWeek"][7][2] = 0.0
+    e = a["exEma"]
+    alone(h, p, record, 100.0 + 3 / 60)
+    assert abs(a["exEma"] - e * math.exp(-1 / 360)) < TOL
+    # a two-day jump reads the new day's growth alone; a missing ring reads it too
+    body["dayIndex"] = body["dayIndex"] + 2
+    body["band1Day"] = 1.0
+    alone(h, p, record, 100.0 + 4 / 60)
+    assert abs(a["exEma"] - (e * math.exp(-2 / 360) + 1.0)) < TOL
+    body["dayIndex"] = body["dayIndex"] + 1
+    body["bandWeek"] = None
+    body["band1Day"] = 0.0
+    alone(h, p, record, 100.0 + 5 / 60)
+    assert abs(a["exEma"] - (e * math.exp(-2 / 360) + 1.0) * math.exp(-1 / 360)) < TOL
+    assert abs(a["lastVigAgeH"] - (100.0 + 2 / 60)) < TOL
+    lims = list(NUT(h).limitations.values())
+    assert "the minute's training band is read off the growth of Metabolism's day accumulators band1Day/band2Day (no per-minute band is stamped); a minute whose day close skipped days reads the new day's growth alone" in lims
+
+
+def test_a_vigorous_minute_latches_the_next_bout(nut_host):
+    h = nut_host
+    NUT(h).sleepDisabled = False
+    p = player(h)
+    record = fresh(h, p)
+    body, a = record["body"], record["acute"]
+    body["band1Day"] = body["band1Day"] + 1.0
+    body["band2Day"] = body["band2Day"] + 1.0
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert a["boutVig"] is False
+    sleeper = player(h, asleep=True)
+    alone(h, sleeper, record, 100.0 + 31 / 60)              # asleep 0.5 h after the band-2 minute
+    assert a["boutVig"] is True
+
+
+def test_cold_retinol_and_the_sleep_term_are_fed(nut_host):
+    h = nut_host
+    p = player(h)
+    record = fresh(h, p)
+    a = record["acute"]
+    record["body"]["coldMult"] = 1.5
+    IN = h.G.NutritionRevamp.server.intake
+    IN.lastIngested = h.table({"admin": h.table({"retinol": 900.0})})
+    try:
+        alone(h, p, record, 100.0 + 1 / 60)
+    finally:
+        IN.lastIngested = None
+    assert abs(a["coldH"] - 1 / 60) < TOL
+    # 900 ug in one minute: 900 * 1440 * (1 - exp(-(1/1440)/14)) = 64.28411992435912
+    assert abs(a["retEma"] - 64.28411992435912) < 1e-9
+    assert a["iuSleep"] == h.K.acute.iuSleep(a)
 
 
 def test_limitations_name_the_fix_wave(nut_host):

@@ -56,6 +56,7 @@ NR.server.nutrients = {
         "vitamin D has no cutaneous term (kSun 0, S1064 open): every character trends to its dietary steady state (clinical in ~153 d at zero intake; ~5 d at OnsetSpeed 30)",
         "SleepAllowed/SleepNeeded are read once at OnServerStarted; a runtime change of the server options is not followed",
         "the fat factor reads the stomach buffer's lipids before each minute's emptying (ruling T19-1): it eases as the meal empties, so a 30 g-fat meal absorbs 90 % of its retinol and vitK and three 10 g-fat meals a day 81 %",
+        "the minute's training band is read off the growth of Metabolism's day accumulators band1Day/band2Day (no per-minute band is stamped); a minute whose day close skipped days reads the new day's growth alone",
     },
 }
 local NUT = NR.server.nutrients
@@ -189,6 +190,8 @@ local function heal(username, record, body, ageH)
         NUT.refAcute = K.acute.new(0)
         NUT.refAcute.alc7 = 0
         NUT.refAcute.alcDayG = 0
+        NUT.refAcute.lastB1 = 0
+        NUT.refAcute.lastB2 = 0
         NUT.refNut = { nv = K.nutrients.NV, epoch = 0, ironGrade = 1, lastDayIndex = 0 }
     end
     local n = record.nutrients
@@ -240,6 +243,43 @@ local function ensure(record, body, ageH)
     if a.gutCaf == nil then a.gutCaf = 0 end
     if a.boutH == nil then a.boutH = 0 end
     if a.gapH == nil then a.gapH = 0 end
+    -- the Plan 5 fields (schema av 1 -> 2, Task 5) on a record made before them; the band baselines start at
+    -- the accumulators' current values, so a backfilled record credits no exercise it did not see
+    if a.exEma == nil then a.exEma = 0 end
+    if a.lastVigAgeH == nil then a.lastVigAgeH = -1e9 end
+    if a.boutVig == nil then a.boutVig = false end
+    if a.coldH == nil then a.coldH = 0 end
+    if a.retEma == nil then a.retEma = 0 end
+    if a.iuSleep == nil then a.iuSleep = 0 end
+    if a.lastB1 == nil then a.lastB1 = body.band1Day or 0 end
+    if a.lastB2 == nil then a.lastB2 = body.band2Day or 0 end
+    a.av = K.acute.AV
+end
+
+-- The minute's training band, 0/1/2 (Plan 5 Task 5): Metabolism's K.training.sample adds the minute to
+-- body.band1Day (band >= 1) and body.band2Day (band 2) and stamps no per-minute band, so the band is read
+-- off their growth since the last minute (record.acute.lastB1/lastB2). On a minute whose day close ran
+-- (closed: Metabolism samples, then closes, zeroing the accumulators) the growth is the closed day's ring
+-- slot 7 less the baseline, plus the new day's value; a multi-day close (days > 1) reads the new day alone.
+local function minuteBand(a, body, days)
+    local b1 = body.band1Day or 0
+    local b2 = body.band2Day or 0
+    local g1 = b1 - a.lastB1
+    local g2 = b2 - a.lastB2
+    if days > 0 then
+        g1 = b1
+        g2 = b2
+        local slot = type(body.bandWeek) == "table" and body.bandWeek[7] or nil
+        if days == 1 and type(slot) == "table" then
+            g1 = g1 + K.max(0, (slot[1] or 0) - a.lastB1)
+            g2 = g2 + K.max(0, (slot[2] or 0) - a.lastB2)
+        end
+    end
+    a.lastB1 = b1
+    a.lastB2 = b2
+    if g2 > 0 then return 2 end
+    if g1 > 0 then return 1 end
+    return 0
 end
 
 -- The day close, when Metabolism's dayIndex has advanced since the last one seen here: the 7-day alcohol
@@ -344,6 +384,7 @@ local function step(username, player, record)
     local dtH = dtM / 60
     local w = body.fm + body.lm
     local O = NR.server.options or EMPTY
+    local closedDays = body.dayIndex - n.lastDayIndex       -- read before closeDay moves lastDayIndex
     if body.dayIndex > n.lastDayIndex then closeDay(record, body, w, ageH) end
 
     -- the gut lane's release this minute, plus any ethanol or caffeine a pre-fix buffer still empties
@@ -433,6 +474,10 @@ local function step(username, player, record)
     K.acute.glycogen(a, met, coldMult, cho24, dtH)
     if (record.stomachFill or 0) > NUT.FED_FILL then a.lastFedAgeH = ageH end
     K.acute.glucose(a, met, absorbed.carbs or 0, a.bac, ageH - a.lastFedAgeH, dtH)
+    -- the Plan 5 memories (Task 5): the band before the sleep step, which latches boutVig off lastVigAgeH
+    K.acute.exerciseMinute(a, minuteBand(a, body, K.max(0, closedDays)), ageH, dtH)
+    K.acute.coldMinute(a, coldMult, dtH)
+    K.acute.retinolMinute(a, ingested.retinol or 0, dtM / 1440)
     K.acute.sleepMinute(a, asleep, hourOfDay, needFactor(player), ageH, dtH, NUT.sleepDisabled)
     K.acute.iu(a, f.dehydPct, n.ironGrade)
 
