@@ -208,3 +208,153 @@ if tkxServer() and TKX_StatWatch_Installed == nil then
         Events.OnPlayerGetDamage.Add(onDamage)
     end
 end
+
+-- ---- Plan 5 Task 4 (gate 2): the hold arm and the band arm ------------------------------------
+-- HOLD (X82, X83): `globalmoddata.set TKX_StatWatch holdFatigue <v>` and/or `... holdIntox <v>`
+-- (a negative value or absent = leave that stat alone), `... holdMode handler|tick`, then
+-- `... hold <seconds>` (0 < seconds <= 300) arms a hold window, independent of the sampling window.
+-- handler: the probe wraps NutritionRevamp.kernel.fast.step -- the call the takeover handler makes
+--   inside Hook.CalculateStats every update, after BodyDamage.Update and after the server's fatigue
+--   reset -- and after the original returns it sets out.fatigue = holdFatigue (the handler then
+--   writes FATIGUE from it) and writes INTOXICATION = holdIntox through Stats:set on the first
+--   online player, so both writes sit in the handler path. The wrap is installed once, at the
+--   first handler-mode arm, and passes through untouched while no hold is armed; the additions run
+--   under pcall so a fault never reaches the handler's rim guard. The original's own raise is not
+--   caught (the handler's behaviour unchanged).
+-- tick: the same two writes on this file's OnTick, outside the player update (the X88 seat).
+-- At the window end the table gets holdStatus=done, holdCalls (handler calls or ticks that wrote),
+-- holdWrapped (true when the wrap stands), holdMissing (why a write could not be made), and hold=0.
+-- BAND (X4b): `... bandW <kg>` makes the next poll set the first online player's weight with
+-- getNutrition():setWeight(kg) and call applyTraitFromWeight() in the SAME tick (the mod's weight
+-- minute cannot run between them), then write band_req, band_weight (read back), band_traits
+-- (getKnownTraits names, comma-joined), band_wall and band_status=done, and bandW=0.
+-- The keys are read every 10th tick while nothing is armed.
+local hold = { armed = false, idle = 0, wrapped = false, calls = 0, missing = "" }
+
+local function holdNum(t, key)
+    local v = tonumber(t[key])
+    if v == nil or v < 0 then return nil end
+    return v
+end
+
+local function holdWrites(p)
+    if hold.fatigueOnTick ~= nil then writeStat(p, "FATIGUE", hold.fatigueOnTick) end
+    if hold.intox ~= nil then writeStat(p, "INTOXICATION", hold.intox) end
+end
+
+local function holdFinish()
+    local t = ModData.getOrCreate(TABLE)
+    t["holdStatus"] = "done"
+    t["holdCalls"] = hold.calls
+    t["holdWrapped"] = hold.wrapped
+    t["holdMissing"] = hold.missing
+    t["hold"] = 0
+    hold.armed = false
+end
+
+local function holdInHandler(out)
+    if hold.fatigue ~= nil then out.fatigue = hold.fatigue end
+    if hold.intox ~= nil then
+        local p = firstPlayer()
+        if p ~= nil then writeStat(p, "INTOXICATION", hold.intox) end
+    end
+    hold.calls = hold.calls + 1
+end
+
+local function holdWrap()
+    if hold.wrapped then return true end
+    local NR = NutritionRevamp
+    if NR == nil or NR.kernel == nil or NR.kernel.fast == nil or NR.kernel.fast.step == nil then
+        hold.missing = "no NutritionRevamp.kernel.fast.step"
+        return false
+    end
+    local fast = NR.kernel.fast
+    local orig = fast.step
+    fast.step = function(inp, out, c)
+        orig(inp, out, c)
+        if hold.armed and hold.mode == "handler" then
+            pcall(holdInHandler, out)
+        end
+    end
+    hold.wrapped = true
+    return true
+end
+
+local function holdArm(t)
+    local secs = tonumber(t["hold"])
+    if secs == nil or secs <= 0 then return end
+    if secs > 300 then secs = 300 end
+    hold.mode = tostring(t["holdMode"] or "handler")
+    hold.fatigue = holdNum(t, "holdFatigue")
+    hold.intox = holdNum(t, "holdIntox")
+    hold.fatigueOnTick = nil
+    if hold.mode == "tick" then hold.fatigueOnTick = hold.fatigue end
+    hold.calls = 0
+    hold.missing = ""
+    t["hold"] = 0
+    if hold.mode == "handler" and not holdWrap() then
+        t["holdStatus"] = "failed"
+        t["holdMissing"] = hold.missing
+        return
+    end
+    hold.deadline = getTimestampMs() + secs * 1000
+    hold.armed = true
+    t["holdStatus"] = "armed"
+    t["holdModeUsed"] = hold.mode
+end
+
+local function bandRun(t)
+    local w = tonumber(t["bandW"])
+    if w == nil or w <= 0 then return end
+    t["bandW"] = 0
+    t["band_req"] = w
+    local p = firstPlayer()
+    local nu = hop(p, "getNutrition")
+    if nu == nil then
+        t["band_status"] = "no player or no getNutrition"
+        return
+    end
+    hop(nu, "setWeight", w)
+    hop(nu, "applyTraitFromWeight")
+    t["band_weight"] = hop(nu, "getWeight")
+    local names = {}
+    local known = hop(hop(p, "getCharacterTraits"), "getKnownTraits")
+    local n = hop(known, "size")
+    local i = 0
+    while n ~= nil and i < n do
+        local tr = hop(known, "get", i)
+        names[#names + 1] = tostring(hop(tr, "getName"))
+        i = i + 1
+    end
+    t["band_traits"] = table.concat(names, ",")
+    t["band_wall"] = getTimestampMs()
+    t["band_status"] = "done"
+end
+
+local function onHoldTick()
+    if hold.armed then
+        if hold.mode == "tick" then
+            local p = firstPlayer()
+            if p ~= nil then
+                holdWrites(p)
+                hold.calls = hold.calls + 1
+            end
+        end
+        if getTimestampMs() >= hold.deadline then holdFinish() end
+        return
+    end
+    hold.idle = hold.idle + 1
+    if hold.idle < 10 then return end
+    hold.idle = 0
+    if ModData == nil then return end
+    local t = ModData.getOrCreate(TABLE)
+    bandRun(t)
+    holdArm(t)
+end
+
+if tkxServer() and TKX_StatWatch_HoldInstalled == nil then
+    TKX_StatWatch_HoldInstalled = true
+    if Events ~= nil and Events.OnTick ~= nil then
+        Events.OnTick.Add(onHoldTick)
+    end
+end
