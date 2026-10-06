@@ -1223,7 +1223,10 @@ end)
 -- with pz.sh methods) and is nil-guarded here. Up to four scalar args are parsed as lua.setpath parses
 -- them (`true`, `false`, `nil`, a number, else the string) and passed under pcall with exactly as many
 -- args as were given. A Lua-triggered event reaches the Lua handlers registered on it and not the
--- engine's own Java listeners - a code reading of LuaEventManager.triggerEvent, stated as such.
+-- engine's own Java listeners - a code reading of LuaManager.triggerEvent -> checkEvent -> Event.trigger over the
+-- callback list, stated as such. `ok` means the call did not raise: an event name the engine does not know replies ok
+-- with no handler run, and off the main thread the event is queued rather than run, so a driver reads a handler's
+-- effect, never this reply.
 -- @args <EventName> [<arg1> ... <arg4>]
 -- @reply {ok, side, event, nargs} | {ok, side, event, err} | {ok, side, reason} | string
 -- @purpose Test-only: fires a Lua event by name on the side answering with up to four scalar args under pcall; it reaches Lua handlers only, not the engine's Java listeners (a code reading).
@@ -1270,7 +1273,7 @@ end)
 -- function or userdata as its type `r<n>_type`, nil omitted. It reaches an instance method that
 -- lua.call (a plain function) cannot, e.g. `lua.callm NR.panel.instances.0 refresh`.
 -- @args <a.b.c> <method> [<arg1> ... <arg4>]
--- @reply {ok, side, path, method, nargs, r1, r2, r3} | {ok, side, path, failedAt} | {ok, side, path, method, type} | {ok, side, path, method, err} | string
+-- @reply {ok, side, path, method, nargs, r1, r2, r3} | {ok, side, path, method, failedAt} | {ok, side, path, method, type} | {ok, side, path, method, err} | string
 -- @purpose Test-only: walks a dotted path from the globals on the side answering to a table and calls its method with the table as self and up to four scalar args, replying the first three returns as scalars (a table as its key count).
 TK.register("lua.callm", function(argv)
     if argv[1] == nil or argv[2] == nil then return "usage: lua.callm <a.b.c> <method> [<arg1> ... <arg4>]" end
