@@ -6,3 +6,4 @@ testing/experiments/TKX_ChecksumCR/** text eol=crlf
 data/food-nutrient-map/** text eol=lf
 data/*.csv text eol=lf
 data/*.json text eol=lf
+mod/**/*.png binary
