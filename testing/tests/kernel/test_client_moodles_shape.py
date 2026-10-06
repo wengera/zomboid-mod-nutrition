@@ -41,6 +41,7 @@ Events = {
     OnGameStart = event("OnGameStart"),
     OnServerCommand = event("OnServerCommand"),
     OnKeyPressed = event("OnKeyPressed"),
+    OnPlayerDeath = event("OnPlayerDeath"),
 }
 isClient = function() return NR_T.client ~= false end
 isServer = function() return false end
@@ -282,9 +283,27 @@ def test_the_column_sits_at_the_fixed_inset_and_joins_the_ui_manager():
     create(rt)
     col = M(rt).column
     assert col is not None and G(rt).NR_Client_MoodleColumn.Type == "NR_Client_MoodleColumn"
-    assert (col.x, col.y, col.width, col.height) == (1280 - 48, 240, 40, 6 * 44)
+    assert (col.x, col.y, col.width, col.height) == (1280 - 96, 240, 40, 6 * 44)
     assert col.onUI is True and col.managed is True
     assert M(rt).probe("deficiency") == (0, True, "own")
+
+
+def test_the_column_suspends_on_death_until_the_next_apply():
+    rt = rt_env()
+    boot(rt)
+    create(rt)
+    m = M(rt)
+    m.apply(classes(rt, energy=2, deficiency=3))
+    m.column.render(m.column)
+    assert m.lastDrawn == 2
+    fire(rt, "OnPlayerDeath", "NR_T.player")
+    assert m.levels.energy == 0 and m.levels.deficiency == 0
+    m.column.render(m.column)
+    assert m.lastDrawn == 0
+    assert m.stats.errors == 0
+    m.apply(classes(rt, energy=1))
+    m.column.render(m.column)
+    assert m.lastDrawn == 1
 
 
 def test_player_one_builds_no_column():
@@ -391,17 +410,17 @@ def test_the_route_is_framework_with_mf_and_six_moodles_are_created():
     assert m.column is None
 
 
-@pytest.mark.parametrize("cls,goods", [
-    ("energy", (0.5625, 0.6875, 0.8125, 0.9375)),
-    ("sleep", (0.5625, 0.6875, 0.8125, 0.9375)),
-    ("deficiency", (0.5 + 0.5 * 0.5 / 3, 0.5 + 0.5 * 1.5 / 3, 0.5 + 0.5 * 2.5 / 3, 100000)),
-    ("excess", (0.5 + 0.5 * 0.5 / 3, 0.75, 0.5 + 0.5 * 2.5 / 3, 100000)),
+@pytest.mark.parametrize("cls,bads", [
+    ("energy", (0.4375, 0.3125, 0.1875, 0.0625)),
+    ("sleep", (0.4375, 0.3125, 0.1875, 0.0625)),
+    ("deficiency", (0.5 - 0.5 * 0.5 / 3, 0.5 - 0.5 * 1.5 / 3, 0.5 - 0.5 * 2.5 / 3, -100000)),
+    ("excess", (0.5 - 0.5 * 0.5 / 3, 0.25, 0.5 - 0.5 * 2.5 / 3, -100000)),
 ])
-def test_the_thresholds_are_set_on_the_good_side_with_no_bad_side(rt_mf, cls, goods):
+def test_the_thresholds_are_set_on_the_bad_side_with_no_good_side(rt_mf, cls, bads):
     h = handle(rt_mf, cls)
     th = h.th
-    assert [th.good1, th.good2, th.good3, th.good4] == pytest.approx(list(goods))
-    assert th.bad1 == -100000 and th.bad4 == -100000
+    assert [th.bad1, th.bad2, th.bad3, th.bad4] == pytest.approx(list(bads))
+    assert th.good1 == 100000 and th.good4 == 100000
 
 
 @pytest.fixture
@@ -419,7 +438,7 @@ def test_apply_sets_each_value_and_the_framework_level_equals_the_class_level(rt
     h = handle(rt_mf, cls)
     for lv in range(0, top + 1):
         m.apply(classes(rt_mf, **{cls: lv}))
-        want = 0.5 + 0.5 * lv / top
+        want = 0.5 - 0.5 * lv / top
         assert h.value == pytest.approx(want)
         assert h.getLevel(h) == lv
         assert (h.addedToUIManager is True) == (lv > 0)
@@ -432,8 +451,8 @@ def test_apply_sets_six_values_per_call(rt_mf):
     m.apply(classes(rt_mf, energy=1, hydration=2, deficiency=3, excess=1, stimulant=4, sleep=2))
     assert m.stats.sets == sets0 + 6
     vals = {c: handle(rt_mf, c).value for c in CLASSES}
-    assert vals == pytest.approx({"energy": 0.625, "hydration": 0.75, "deficiency": 1.0, "excess": 0.5 + 0.5 / 3,
-                                  "stimulant": 1.0, "sleep": 0.75})
+    assert vals == pytest.approx({"energy": 0.375, "hydration": 0.25, "deficiency": 0.0, "excess": 0.5 - 0.5 / 3,
+                                  "stimulant": 0.0, "sleep": 0.25})
 
 
 def test_the_option_off_neutralises_every_framework_value(rt_mf):
@@ -448,7 +467,7 @@ def test_the_option_off_neutralises_every_framework_value(rt_mf):
     assert m.levels.energy == 4                # the levels are kept, so the option back on restores them
     option(rt_mf, True)
     m.apply(m.levels)
-    assert handle(rt_mf, "energy").value == 1.0
+    assert handle(rt_mf, "energy").value == 0.0
 
 
 def test_the_last_levels_are_set_again_on_create(rt_mf):
@@ -456,7 +475,7 @@ def test_the_last_levels_are_set_again_on_create(rt_mf):
     m.apply(classes(rt_mf, sleep=3))
     create(rt_mf)                               # a respawn: the framework builds fresh widgets at 0.5
     h = handle(rt_mf, "sleep")
-    assert h.value == pytest.approx(0.875) and h.getLevel(h) == 3
+    assert h.value == pytest.approx(0.125) and h.getLevel(h) == 3
 
 
 def test_the_pictures_are_the_mods_icons_when_they_load_and_untouched_otherwise():
@@ -465,7 +484,7 @@ def test_the_pictures_are_the_mods_icons_when_they_load_and_untouched_otherwise(
     create(rt)
     h = handle(rt, "excess")
     for lvl in range(1, 5):
-        assert h.pics["1:%d" % lvl].path == "media/ui/NutritionRevamp/excess.png"
+        assert h.pics["2:%d" % lvl].path == "media/ui/NutritionRevamp/excess.png"
     rt2 = rt_env(mf=True)
     boot(rt2)
     create(rt2)
@@ -475,8 +494,8 @@ def test_the_pictures_are_the_mods_icons_when_they_load_and_untouched_otherwise(
 def test_the_titles_and_descriptions_are_the_mods_keys(rt_mf):
     h = handle(rt_mf, "energy")
     # the stub getText answers the key itself, so NR.client.text falls back to the key's tail
-    assert h.titles["1:1"] == "energy lvl1" and h.titles["1:4"] == "energy lvl4"
-    assert h.descs["1:2"] == "Class energy 2"
+    assert h.titles["2:1"] == "energy lvl1" and h.titles["2:4"] == "energy lvl4"
+    assert h.descs["2:2"] == "Class energy 2"
 
 
 def test_a_nil_handle_is_counted_and_skipped():
@@ -509,4 +528,4 @@ def test_a_view_rebuild_calls_apply(rt_mf):
     assert nr.client.view.stats.listenerErrors == 0
     assert M(rt_mf).levels.sleep == 3 and M(rt_mf).levels.deficiency == 3
     h = handle(rt_mf, "deficiency")
-    assert h.value == 1.0 and h.getLevel(h) == 3
+    assert h.value == 0.0 and h.getLevel(h) == 3

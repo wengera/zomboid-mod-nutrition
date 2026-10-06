@@ -387,29 +387,42 @@ def test_the_default_options_carry_visibility_mode():
 # --- the moodle value map (Plan 7 Task 8, ruling 10): a class level onto MoodleFramework's 0..1 value ---------
 
 @pytest.mark.parametrize("cls", ["energy", "hydration", "stimulant", "sleep"])
-@pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.625), (2, 0.75), (3, 0.875), (4, 1.0)])
+@pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.375), (2, 0.25), (3, 0.125), (4, 0.0)])
 def test_moodle_value_four_level_classes(host, cls, lv, want):
     assert V(host).moodleValue(lv, cls) == pytest.approx(want)
 
 
 @pytest.mark.parametrize("cls", ["deficiency", "excess"])
-@pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.6667), (2, 0.8333), (3, 1.0), (4, 1.0)])
+@pytest.mark.parametrize("lv,want", [(0, 0.5), (1, 0.33333), (2, 0.16667), (3, 0.0), (4, 0.0)])
 def test_moodle_value_three_rung_classes_reach_the_top_at_three(host, cls, lv, want):
     assert V(host).moodleValue(lv, cls) == pytest.approx(want, abs=1e-4)
 
 
-@pytest.mark.parametrize("lv,want", [(None, 0.5), ("2", 0.5), (float("nan"), 0.5), (-3, 0.5), (9, 1.0), (2.7, 0.75)])
+@pytest.mark.parametrize("lv,want", [(None, 0.5), ("2", 0.5), (float("nan"), 0.5), (-3, 0.5), (9, 0.0), (2.7, 0.25)])
 def test_moodle_value_reads_junk_as_neutral_and_clamps(host, lv, want):
     assert V(host).moodleValue(lv, "energy") == pytest.approx(want)
 
 
 def test_moodle_value_with_no_class_uses_the_four_level_map(host):
-    assert V(host).moodleValue(2, None) == pytest.approx(0.75)
+    assert V(host).moodleValue(2, None) == pytest.approx(0.25)
 
 
 @pytest.mark.parametrize("cls,top", [("energy", 4), ("sleep", 4), ("deficiency", 3), ("excess", 3)])
 def test_moodle_top(host, cls, top):
     assert V(host).moodleTop(cls) == top
+
+
+@pytest.mark.parametrize("cls,want", [
+    ("energy", [0.4375, 0.3125, 0.1875, 0.0625]),
+    ("deficiency", [0.41667, 0.25, 0.08333, None]),
+])
+def test_moodle_thresholds_are_the_bad_side_table(host, cls, want):
+    got = [V(host).moodleThreshold(k, cls) for k in range(1, 5)]
+    for g, w in zip(got, want):
+        if w is None:
+            assert g is None
+        else:
+            assert g == pytest.approx(w, abs=1e-5)
 
 
 @pytest.mark.parametrize("cls", ["energy", "hydration", "deficiency", "excess", "stimulant", "sleep"])
@@ -421,5 +434,5 @@ def test_moodle_thresholds_sit_between_the_values(host, cls):
         if k > top:
             assert t is None
             continue
-        # strictly above the value of level k - 1 and at or below the value of level k
-        assert v.moodleValue(k - 1, cls) < t < v.moodleValue(k, cls)
+        # the bad side: strictly below the value of level k - 1 and above the value of level k
+        assert v.moodleValue(k - 1, cls) > t > v.moodleValue(k, cls)

@@ -23,21 +23,29 @@
 --   moodle:setTitle(goodBadNeutral, level, text)  :176
 --   moodle:setDescription(goodBadNeutral, level, text) :185
 -- The framework's defaults (MF_ISMoodle.lua:517): bad 0.1/0.2/0.3/0.4, good 0.6/0.7/0.8/0.9; the stored value starts
--- at 0.5 (:75). This file replaces them per class with K.view.moodleThreshold: the good side only, each threshold
--- midway between two class values, so the framework's level IS the class level -- four-level classes 0.5625 /
--- 0.6875 / 0.8125 / 0.9375 (values 0.625 / 0.75 / 0.875 / 1.0), deficiency and excess 0.5833 / 0.75 / 0.9167 and no
--- fourth (values 0.6667 / 0.8333 / 1.0); the bad side is left unreachable (nil, -MF.TooLargeValue). A class at level
--- 0 sets 0.5: neutral, off the UI manager. Every set re-sets the six after each player creation, because the
--- framework's value store is keyed by the character object and starts fresh (#2538).
+-- at 0.5 (:75). A symptom is a BAD moodle (ruling T8-1; vanilla's hunger is one, and the framework tints the plate by
+-- polarity: bad index 2, :123 and :222), so this file replaces the thresholds per class with K.view.moodleThreshold
+-- on the bad side only, each midway between two class values, so the framework's level IS the class level --
+-- four-level classes bad1..bad4 0.4375 / 0.3125 / 0.1875 / 0.0625 (values 0.375 / 0.25 / 0.125 / 0.0), deficiency
+-- and excess 0.41667 / 0.25 / 0.08333 and no fourth (values 0.33333 / 0.16667 / 0.0); the good side is left
+-- unreachable (nil, MF.TooLargeValue, :156-164). setThresholds takes (bad4, bad3, bad2, bad1, good1..good4) at
+-- :155, so the bad side is passed bad4 first. A class at level 0 sets 0.5: neutral, off the UI manager. The bad-side
+-- draw is unmeasured: x181 read the good side only (#3192); x183m's arm F is the first bad-side reading.
+-- Every set is repeated for the six after each player creation, because the framework's value
+-- store is keyed by the character object and starts fresh (#2538).
 -- The icon route: the framework's own default is a name lookup, media/ui/<size>/NR_<class>.png then
 -- media/ui/NR_<class>.png (:432-437, :595); this file instead hands it the mod's one icon,
--- media/ui/NutritionRevamp/<class>.png, through setPicture for good-side levels 1-4 behind a nil check (ruling 11;
+-- media/ui/NutritionRevamp/<class>.png, through setPicture for bad-side levels 1-4 behind a nil check (ruling 11;
 -- Task 9 ships the PNGs), so no sized copy is needed; a nil texture leaves the framework's own lookup in place.
 -- The tooltip text: setTitle from Moodles_NR_<class>_lvl<n> and setDescription from UI_NR_Class_<class>_<n>,
--- through NR.client.text (ruling 12), because the framework's own keys carry a _Good_ infix (:223, :242).
+-- through NR.client.text (ruling 12), because the framework's own keys carry a polarity infix (:223, :242).
+-- Ruling T8-3: both routes serve player 0 only, because the mirror and the view are the local player's and a
+-- player-1 widget would show player 0's levels; split-screen gets no NR moodles. Death: the framework suspends its
+-- moodles when the character dies (:549); the own column does the same through an OnPlayerDeath handler (added in
+-- the boot handler) that zeros the kept levels, so the column draws nothing until the next apply.
 --
 -- The own route (no framework): one NR_Client_MoodleColumn (an ISUIElement) for player 0 -- the mirror is the local
--- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 48, getPlayerScreenTop + 240, 40 x 6 * 44: a FIXED
+-- player's -- at getPlayerScreenLeft + getPlayerScreenWidth - 96, getPlayerScreenTop + 240, 40 x 6 * 44: a FIXED
 -- inset, NEVER anchored to the vanilla stack (ruling 10; MoodlesUI's exposure is a fact for the page only). Its
 -- render draws each class whose level > 0 top-down as its icon (a coloured rect when the texture is nil) with the
 -- level as a row of pips beneath; a respawn replaces the instance. It reads the cached levels only: nothing walks
@@ -54,6 +62,9 @@
 -- per call; every engine, toolkit and framework member is named only inside a function behind a nil check and
 -- reached index-first inside a pcall, so the file loads with no engine (testing/tests/kernel/
 -- test_client_moodles_shape.py); every handler body runs under one pcall. probe(cls) is TEST-ONLY for the driver.
+-- The inset (ruling T8-2): the column spans x 1184-1224 on a 1280 viewport, clear of the measured vanilla band
+-- 1238-1270 at the 32 px moodle size (x181); at 48 px the vanilla stack reaches 1222 and overlaps by 2 px, at 64 px
+-- more, and a repositioner mod that moves the stack left may overlap it (the page states this beside the caveat).
 -- Cadence: apply once per view rebuild (at most one push a minute plus requests); the column's render per frame
 -- draws at most 6 icons and 24 pips from cached fields.
 local NR = NutritionRevamp
@@ -77,8 +88,8 @@ local MOODLES = NR.client.moodles
 local PREFIX = "NR_" -- the framework moodle names, NR_<class> (ruling 10; #2556: no collision with the corpus)
 local ICON_DIR = "media/ui/NutritionRevamp/" -- the mod's icons, <class>.png (ruling 11)
 local NEUTRAL = 0.5 -- the framework's neutral value when the kernel is absent (K.view.MOODLE_NEUTRAL)
-local GOOD = 1 -- the framework's good polarity index (MF_ISMoodle.lua:122)
-local INSET_RIGHT = 48 -- px from the viewport's right edge (plan Task 8; ruling 10)
+local BAD = 2 -- MF_ISMoodle.lua:123 (the framework's bad polarity index; a symptom is a bad moodle)
+local INSET_RIGHT = 96 -- px from the viewport's right edge (ruling T8-2): the column spans 1184-1224 on 1280
 local INSET_TOP = 240 -- px below the viewport's top
 local COL_WIDTH = 40 -- px
 local SLOT = 44 -- px per class slot: a 32 px icon and the pip row
@@ -248,8 +259,9 @@ function MOODLES.buildColumn(playerNum)
     return col
 end
 
--- One framework moodle's thresholds (K.view.moodleThreshold), its icon for good-side levels 1-4 when the texture
--- loads, and its title and description per level.
+-- One framework moodle's thresholds (K.view.moodleThreshold, passed bad4..bad1 in setThresholds' own order,
+-- MF_ISMoodle.lua:155), its icon for bad-side levels 1-4 when the texture loads, and its title and description per
+-- level.
 function MOODLES.configure(h, c)
     local V = kview()
     if V == nil then return end
@@ -258,14 +270,14 @@ function MOODLES.configure(h, c)
     local t2 = V.moodleThreshold(2, c)
     local t3 = V.moodleThreshold(3, c)
     local t4 = V.moodleThreshold(4, c)
-    local okT = call(h, "setThresholds", nil, nil, nil, nil, t1, t2, t3, t4)
+    local okT = call(h, "setThresholds", t4, t3, t2, t1, nil, nil, nil, nil)
     if not okT then fail("setThresholds " .. c) end
     local tex = texture(ICON_DIR .. c .. ".png")
     for lvl = 1, 4 do
-        if tex ~= nil then call(h, "setPicture", GOOD, lvl, tex) end
+        if tex ~= nil then call(h, "setPicture", BAD, lvl, tex) end
         if lvl <= top then
-            call(h, "setTitle", GOOD, lvl, text("Moodles_NR_" .. c .. "_lvl" .. lvl, nil))
-            call(h, "setDescription", GOOD, lvl, text("UI_NR_Class_" .. c .. "_" .. lvl, nil))
+            call(h, "setTitle", BAD, lvl, text("Moodles_NR_" .. c .. "_lvl" .. lvl, nil))
+            call(h, "setDescription", BAD, lvl, text("UI_NR_Class_" .. c .. "_" .. lvl, nil))
         end
     end
 end
@@ -295,6 +307,24 @@ function MOODLES.onGameBoot()
             if not ok then fail(err) end
         end
         Events.OnCreatePlayer.Add(S.create)
+    end
+    if S.death == nil and Events ~= nil and Events.OnPlayerDeath ~= nil then
+        S.death = function(player)
+            local nr = NutritionRevamp
+            if nr == nil or nr.client == nil or nr.client.moodles == nil then return end
+            local ok, err = pcall(nr.client.moodles.onPlayerDeath, player)
+            if not ok then fail(err) end
+        end
+        Events.OnPlayerDeath.Add(S.death)
+    end
+end
+
+-- OnPlayerDeath: the framework suspends its moodles on death (:549); the own column's kept levels go to zero, so
+-- it draws nothing until the next apply (a respawn's create re-applies the view's classes).
+function MOODLES.onPlayerDeath(player)
+    local M = NutritionRevamp.client.moodles
+    for i = 1, #M.classes do
+        M.levels[M.classes[i]] = 0
     end
 end
 

@@ -384,10 +384,11 @@ function K.view.tooltip(vector, source, level, keys, data)
     return out
 end
 
--- The moodle value map (Plan 7 Task 8, ruling 10): a class level onto MoodleFramework's 0..1 value, which the
--- framework reads against eight thresholds (MF_ISMoodle.lua getLevel :127). Neutral is the framework's own stored
--- default, 0.5 (MF_ISMoodle.lua :75), where the moodle leaves the UI manager; each class's top level reaches 1.0,
--- so a four-level class steps 0.125 a level and deficiency and excess (top rung 3) step one sixth.
+-- The moodle value map (Plan 7 Task 8, rulings 10 and T8-1): a class level onto MoodleFramework's 0..1 value, which
+-- the framework reads against eight thresholds (MF_ISMoodle.lua getLevel :127). A symptom is a BAD moodle, so the
+-- map runs down the framework's bad side: neutral is the framework's own stored default, 0.5 (MF_ISMoodle.lua :75),
+-- where the moodle leaves the UI manager; each class's top level reaches 0.0, so a four-level class steps 0.125 a
+-- level down and deficiency and excess (top rung 3) step one sixth.
 K.view.MOODLE_NEUTRAL = 0.5 -- gc: the framework's default stored value (MF_ISMoodle.lua:75), neutral under its thresholds
 K.view.MOODLE_LEVELS = 4 -- the class ladders' top level (ENERGY_AT, HYDRATION_AT, STIMULANT_AT, SLEEP_AT)
 
@@ -399,8 +400,9 @@ function K.view.moodleTop(cls)
     return K.view.MOODLE_LEVELS
 end
 
--- The value a class level sets (floored, clamped 0..top; anything that is not a number reads 0): neutral at 0 and
--- 1.0 at the class's top, linear between, clamped 0..1 by the mod because the framework never clamps (#2535).
+-- The value a class level sets (floored, clamped 0..top; anything that is not a number reads 0): neutral 0.5 at 0
+-- and 0.0 at the class's top, linear between (four-level 0.375 / 0.25 / 0.125 / 0.0; deficiency and excess 0.33333 /
+-- 0.16667 / 0.0), clamped 0..1 by the mod because the framework never clamps (#2535).
 function K.view.moodleValue(level, cls)
     local top = K.view.moodleTop(cls)
     local n = level
@@ -408,16 +410,17 @@ function K.view.moodleValue(level, cls)
         n = 0
     end
     n = K.clamp(math.floor(n), 0, top)
-    return K.clamp(K.view.MOODLE_NEUTRAL + (1 - K.view.MOODLE_NEUTRAL) * n / top, 0, 1)
+    return K.clamp(K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * n / top, 0, 1)
 end
 
--- The framework's good-side threshold k (1..4) for a class: midway between the values of levels k - 1 and k, so
--- the framework's level equals the class level with no float tie; nil above the class's top (the framework then
--- reads that threshold as unreachable, MF_ISMoodle.lua setThresholds :155-158).
+-- The framework's bad-side threshold k (1..4, bad1 the nearest to neutral) for a class: midway between the values of
+-- levels k - 1 and k, so the framework's level equals the class level with no float tie (four-level 0.4375 / 0.3125 /
+-- 0.1875 / 0.0625; deficiency and excess 0.41667 / 0.25 / 0.08333 and nil); nil above the class's top (the framework
+-- then reads that threshold as unreachable, MF_ISMoodle.lua setThresholds :161-164).
 function K.view.moodleThreshold(k, cls)
     local top = K.view.moodleTop(cls)
     if k > top then
         return nil
     end
-    return K.view.MOODLE_NEUTRAL + (1 - K.view.MOODLE_NEUTRAL) * (k - 0.5) / top
+    return K.view.MOODLE_NEUTRAL - K.view.MOODLE_NEUTRAL * (k - 0.5) / top
 end
