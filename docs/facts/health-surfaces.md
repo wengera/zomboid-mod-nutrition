@@ -167,7 +167,7 @@ The cold updater only runs the course of a cold already caught [#3022/C/C-only].
 A cold weakens only while the character is in a room, dry, free of hypothermia and at fatigue 0.5 or less, hunger 0.25 or less and thirst 0.25 or less, or while a cold-reduction medicine acts; otherwise it strengthens up to 100 [#3022/C/C-only].
 When its strength falls below zero the cold ends and the accumulator is zeroed [#3022/C/C-only].
 Nothing else resets the accumulator per tick, and it is written into the character's save [#3023/C/C-only].
-Measured live, an indoor character under a climate override of -10 with WETNESS written to 100 kept the catch-a-cold delta at or under 0.022158874198794365 for about 55 s, so catchACold never left 0 [#3114/M/n=1].
+Measured live, a character under a climate override of -10 (the reply's final temperature 21.861122131347656 that tick, -10 by the window's end) with WETNESS written to 100 kept the catch-a-cold delta at or under 0.022158874198794365 for about 55 s, so catchACold never left 0 [#3114/M/n=1].
 
 <a id="pain"></a>
 ### Pain
@@ -262,7 +262,7 @@ Last, it writes the core back into the stat [#2373/C/C-only].
 A server-side write to the stat therefore moves the core halfway on the next update, after which the stat is driven from the core again [#2373/C/C-only].
 A mod that wants to hold a temperature must re-write the stat on every update, and one that writes it once sees half the step land [#2373/C/C-only].
 Measured live, one server write of the stat from 36.43119812011719 to 36.83125686645508 moved the core to 36.63 at the next tick, the window's maximum core reading 36.63119888305664, halfway, after which the core fell to 36.577354431152344 at about 8 s [#3046/M/n=1].
-At rest indoors on the default fixture the core sat about 0.45 degrees under the set point of 37, reading 36.55016326904297 to 36.548282623291016, and a 20-squat set raised it from 36.538387298583984 to 36.663856506347656 [#3115/M/n=1].
+At rest on the default fixture the core sat about 0.45 degrees under the set point of 37, reading 36.55016326904297 to 36.548282623291016, and a 20-game-minute squat set raised it from 36.538387298583984 to 36.663856506347656 [#3115/M/n=1].
 
 The core the regulator steers toward is readable but not writable [#3024/C/C-only].
 `Thermoregulator.getSetPoint()` is public on the exposed class and returns a private set point with no setter, which the update resets to 37 °C at its start and raises by twice the `SICKNESS` stat when that stat is above its minimum [#3024/C/C-only].

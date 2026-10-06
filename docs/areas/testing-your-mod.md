@@ -250,16 +250,16 @@ The Severity dial reaches the set at the next rebuild [#3085/M/n=1].
 INTOXICATION follows the gut lane's target rather than the drink writer's total, except for one update after each sip [#3086/M/n=1].
 The aim multiplier reaches the client's mirror and the swing stub and is applied nowhere [#3088/M/n=1].
 The fast step's bench cost sits inside 10 per cent of the Plan 4 reading [#3089/M/n=1], and the effects push is deduplicated to a fraction of its marks [#3090/M/n=1].
-The second live boot of the Plan 5 build, with the PANIC floor a hold, ran twenty-one minutes of arms without a mod error [#3091/M/n=1], and the set on the record equalled the composer's replay at every whole read, the drains and their codes included [#3092/M/n=1].
+The second live boot of the Plan 5 build, with the PANIC floor a hold, ran 1341.8 s (22.4 minutes) of arms without a mod error [#3091/M/n=1], and the set on the record equalled the composer's replay at every whole read, the drains and their codes included [#3092/M/n=1].
 Night vision follows its day counter: with the retinol average edited over the requirement the counter ran one day per game day and granted the trait at 14, the client seeing it inside the round trip of the record read before the grant [#3093/M/n=1].
 An outside removal of the granted trait was undone by the next read [#3094/M/n=1], vitamin A at grade 2 withdrew it on both sides [#3095/M/n=1], a NIGHT_VISION the mod had not added stayed through about twelve slow minutes [#3096/M/n=1], and with no preformed retinol the counter only fell [#3097/M/n=1].
 Clinical vitamin A put Short Sighted on both sides about a quarter of a second after the edit, collapsing the pistol's sight range from 6 to 2, and Severity 0.5 or a climb to grade 3 took it off again [#3098/M/n=1].
 Sleep debt raised the cold multiplier to 2.5 at the next rebuild [#3099/M/n=1].
-Iron's clinical grade stamped the temperature target 0.2 under the set point, but the core sat under the target at rest and through a squat set, so the steady offset read is the regulator's own and the target's held equilibrium stays open [#3100/M/n=1].
-The PANIC floor now holds its target from the first update after a rebuild, the client copying it within about a push [#3101/M/n=1], and a lower target lets PANIC fall at vanilla's decay and then holds it [#3102/M/n=1].
+Iron's clinical grade stamped the temperature target 0.2 under the set point, but the core sat under the target at rest and through a 20-game-minute squat set, so the steady offset read is the regulator's own and the target's held equilibrium stays open [#3100/M/n=1].
+The PANIC floor now holds its target from the first sample that left 0, the client copying it within about a push [#3101/M/n=1], and a lower target lets PANIC fall at vanilla's decay and then holds it [#3102/M/n=1].
 With a 7 per cent water deficit the THIRST view stopped at the 0.83 cap on both sides and the thirst damage never fired [#3103/M/n=1].
-Iron's lethal rung drained health at its stated rate with the regeneration constants at 0 and FOOD_SICKNESS held at 85 with POISON at 0 [#3104/M/n=1], and turning the kill dial off stopped the drain at once [#3105/M/n=1]; thirty days of clinical vitamin C drained at the scurvy rate and the code reached the client's mirror [#3106/M/n=1].
-The day close grades protein-energy from the starvation count, an edited BMI being recomputed from the mass before the grade reads it [#3107/M/n=1].
+Iron's lethal rung drained health at its stated rate with the regeneration constants at 0 and FOOD_SICKNESS held at 85 with POISON at 0 [#3104/M/n=1], and turning the kill dial off stopped the drain by the first record read, 7.8 s after the dial's reply [#3105/M/n=1]; thirty days of clinical vitamin C drained at the scurvy rate and the code reached the client's mirror [#3106/M/n=1].
+The day close grades protein-energy from the starvation count, not from an edited BMI [#3107/M/n=1].
 Protein-energy grade 3 with vitamin C at grade 3 slowed a scratch's countdown by 0.6785 against the predicted 0.68 [#3108/M/n=1].
 Clinical vitamin C slowed a bleed by 0.8002 against 1/1.25 [#3109/M/n=1] and gave one bruise in about two game days against 1.03 expected [#3110/M/n=1].
 Protein-energy grade 4 sped an infection by 2.3055 against 2.3, the client's copy following the folded level [#3111/M/n=1].
