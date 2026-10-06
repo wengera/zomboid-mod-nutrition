@@ -1026,3 +1026,44 @@ TK.register("attack.melee", function(argv)
              weapon = weapon and got(weapon, "getFullType") or "none", result = "attack-melee",
              file = "pzt-results/attack-melee.json" }
 end)
+-- <a.b.c> <value>. TEST-ONLY INSTRUMENT, the client twin of the server command: the harness mod is installed only by test profiles and is never
+-- shipped. Assigns a scalar to a field of any client-side Lua table reached by a dotted path from the
+-- globals, e.g. `NR.client.someFlag false`, so an acceptance driver can reach a plain Lua field
+-- that `globalmoddata.setpath` cannot (it assigns modData leaves only). It stands in for a chunk runner
+-- because `loadstring` is removed on 42.20.x (docs/platform/lessons.md). The value is `true`, `false`,
+-- `nil`, a number or else the string as given; every path segment but the last must already be a table
+-- (a numeric-looking segment is tried as a string key first, then as a number), and the field is never
+-- created on a missing parent. The bus is the harness's own file channel, so only the driver writes it.
+-- @args <a.b.c> <value>
+-- @reply {ok, side, path, before, after [, err]} | string
+-- @purpose Test-only: assigns a true, false, nil, number or string scalar to a field of a client Lua table reached by a dotted path from the globals, replying the value before and after.
+TK.register("lua.setpath", function(argv)
+    if argv[1] == nil or argv[2] == nil then return "usage: lua.setpath <a.b.c> <value>" end
+    local out = { ok = false, side = TK.side, path = argv[1] }
+    local raw = argv[2]
+    local value = raw
+    if raw == "true" then value = true
+    elseif raw == "false" then value = false
+    elseif raw == "nil" then value = nil
+    elseif tonumber(raw) ~= nil then value = tonumber(raw) end
+    local segs = {}
+    for seg in string.gmatch(argv[1], "[^%.]+") do segs[#segs + 1] = seg end
+    local node = _G
+    local i = 1
+    while i < #segs do
+        local nxt = node[segs[i]]
+        if nxt == nil and tonumber(segs[i]) ~= nil then nxt = node[tonumber(segs[i])] end
+        if type(nxt) ~= "table" then
+            out.err = "segment " .. segs[i] .. " is " .. type(nxt) .. ", not a table"
+            return out
+        end
+        node = nxt
+        i = i + 1
+    end
+    local last = segs[#segs]
+    out.before = tostring(node[last])
+    node[last] = value
+    out.after = tostring(node[last])
+    out.ok = true
+    return out
+end)

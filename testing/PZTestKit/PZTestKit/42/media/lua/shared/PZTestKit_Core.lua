@@ -1135,3 +1135,83 @@ TK.register("tick.rate", function(argv)
     return { side = TK.side, armed = true, seconds = seconds, result = "tick-rate",
              file = "pzt-results/tick-rate.json" }
 end)
+
+-- <a.b.c> [<arg1> ... <arg4>]. TEST-ONLY INSTRUMENT: the harness mod is installed only by test profiles
+-- and is never shipped. Registered ONCE here so BOTH sides answer, as lua.global is. Walks a dotted
+-- path from the globals index-first (a numeric-looking segment is tried as a string key first, then as a
+-- number), and CALLS the function it reaches with up to four scalar args parsed as lua.setpath parses
+-- them (`true`, `false`, `nil`, a number, else the string), under pcall with exactly as many args as
+-- were given. A nil step replies failedAt, a non-function target replies its type, a raise replies err.
+-- Each return value is replied as a scalar: a table return becomes its key count as `r<n>_keys`, a
+-- function or userdata return its type as `r<n>_type`. It is the reading path for a pure getter that
+-- lua.global (which never calls) cannot take, e.g. `lua.call NR.interface.someGetter 3`.
+-- @args <a.b.c> [<arg1> ... <arg4>]
+-- @reply {ok, side, path, nargs, r1, r2, r3} | {ok, side, path, failedAt} | {ok, side, path, type} | {ok, side, path, err} | string
+-- @purpose Test-only: walks a dotted path from the globals on the side answering and calls the function there with up to four scalar args, replying its first three returns as scalars (a table as its key count).
+TK.register("lua.call", function(argv)
+    if argv[1] == nil then return "usage: lua.call <a.b.c> [<arg1> ... <arg4>]" end
+    local out = { ok = false, side = TK.side, path = argv[1] }
+    local segs = {}
+    for seg in string.gmatch(argv[1], "[^%.]+") do segs[#segs + 1] = seg end
+    if #segs == 0 then return "usage: lua.call <a.b.c> [<arg1> ... <arg4>]" end
+    local node = _G
+    for i = 1, #segs do
+        if type(node) ~= "table" then
+            out.failedAt = segs[i]
+            return out
+        end
+        local nxt = node[segs[i]]
+        if nxt == nil and tonumber(segs[i]) ~= nil then nxt = node[tonumber(segs[i])] end
+        if nxt == nil then
+            out.failedAt = segs[i]
+            return out
+        end
+        node = nxt
+    end
+    if type(node) ~= "function" then
+        out.type = type(node)
+        return out
+    end
+    local args = {}
+    local nargs = 0
+    for j = 2, 5 do
+        local raw = argv[j]
+        if raw ~= nil then
+            nargs = nargs + 1
+            local value = raw
+            if raw == "true" then value = true
+            elseif raw == "false" then value = false
+            elseif raw == "nil" then value = nil
+            elseif tonumber(raw) ~= nil then value = tonumber(raw) end
+            args[nargs] = value
+        end
+    end
+    local r1, r2, r3
+    local ran, e1, e2, e3
+    if nargs == 0 then ran, e1, e2, e3 = pcall(node)
+    elseif nargs == 1 then ran, e1, e2, e3 = pcall(node, args[1])
+    elseif nargs == 2 then ran, e1, e2, e3 = pcall(node, args[1], args[2])
+    elseif nargs == 3 then ran, e1, e2, e3 = pcall(node, args[1], args[2], args[3])
+    else ran, e1, e2, e3 = pcall(node, args[1], args[2], args[3], args[4]) end
+    if not ran then
+        out.err = tostring(e1)
+        return out
+    end
+    out.ok = true
+    out.nargs = nargs
+    local rets = { e1, e2, e3 }
+    for n = 1, 3 do
+        local v = rets[n]
+        local t = type(v)
+        if t == "table" then
+            local k = 0
+            for _k in pairs(v) do k = k + 1 end
+            out["r" .. n .. "_keys"] = k
+        elseif t == "function" or t == "userdata" then
+            out["r" .. n .. "_type"] = t
+        elseif v ~= nil then
+            out["r" .. n] = v
+        end
+    end
+    return out
+end)
