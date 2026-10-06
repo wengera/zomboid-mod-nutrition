@@ -3,20 +3,20 @@ Base.AlcoholWipes,Alcohol Wipes,drainable,,,,,,,,,,,,,not_food,
 Base.AlcoholedCottonBalls,Cotton Balls Doused in Alcohol,drainable,,,,,,,,,,,,,not_food,
 Base.AnimalFeedBag,Animal Feed Bag,drainable,,,,,,,,,,,,,not_food,
 Base.AnimalMilkPowder,Milk Powder,drainable,,,,,,,,,,,,,not_food,
-Base.Animal_Brain,Animal Brain,food,,,,,,,,,,,,,,
-Base.Animal_Brain_Small,Small Animal Brain,food,,,,,,,,,,,,,,
-Base.Antibiotics,Antibiotics,food,,,,,,,,,,,,,,
-Base.BBQSauce,Barbecue Sauce,food,980.0|252.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.Animal_Brain,Animal Brain,food,,,,,,,,,,,,,inedible_body_part,a butchery part (brain-tanning); no vanilla nutrition
+Base.Animal_Brain_Small,Small Animal Brain,food,,,,,,,,,,,,,inedible_body_part,a butchery part (brain-tanning); no vanilla nutrition
+Base.Antibiotics,Antibiotics,food,,,,,,,,,,,,,not_food,a drug (FirstAid) with no nutrition; the taxonomy has no drug-food reason - named for the controller's widening
+Base.BBQSauce,Barbecue Sauce,food,980.0|252.0|0.0|0.0,171829,sr_legacy,"Sauce, barbecue, KC MASTERPIECE, original",close,638.5,vanilla_implied,,prepared,,,,,SR Legacy carries only branded barbecue sauces; KC MASTERPIECE original as the generic; vanilla_implied: spread 1.085; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.BBQStarterFluid,Barbecue Starter Fluid,drainable,,,,,,,,,,,,,not_food,
-Base.BaconBits,Bacon Bits,food,10.0|0.0|0.875|0.6125,,,,,,,,,,,,spice_only,
+Base.BaconBits,Bacon Bits,food,10.0|0.0|0.875|0.6125,168277,sr_legacy,"Pork, cured, bacon, unprepared",close,2.5,judgement,1456,raw,,0,zero:meat,,"cookable raw bacon pieces; cured bacon unprepared; cook retention BACON,BROILED/FRIED; judgement 2.5 g: the vanilla macros disagree (spread 1.90); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.Bag_HydrationBackpack,Hydration Pack,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.Bag_HydrationBackpack_Camo,Hydration Pack,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.Bag_LeatherWaterBag,Leather Water Bag,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.BakingSoda,Baking Soda,drainable,,,,,,,,,,,,,not_food,
-Base.BalsamicVinegar,Balsamic Vinegar,food,1250.0|300.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.BarleySeed,Barley Seeds,food,,,,,,,,,,,,,,
-Base.BarleySheaf,Barley Sheaf,food,,,,,,,,,,,,,,
-Base.BarleySheafDried,Barley Sheaf (Dried),food,,,,,,,,,,,,,,
+Base.BalsamicVinegar,Balsamic Vinegar,food,1250.0|300.0|0.0|0.0,172241,sr_legacy,"Vinegar, balsamic",close,255,fdc_portion:2,,prepared,,,,,"fdc_portion:2 modifier ""1.0 cup""; the calorie-implied 1420 g is implausible for a 0.2 kg bottle (vanilla 1250 kcal is about 5x a real bottle); one cup = a 250 ml bottle; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.BarleySeed,Barley Seeds,food,,,,,,,,,,,,,not_food,"planting seed, CantEat; its HungerChange is animal feed"
+Base.BarleySheaf,Barley Sheaf,food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
+Base.BarleySheafDried,Barley Sheaf (Dried),food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
 Base.Basil,Basil,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.BasilDried,Basil (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.BathTowel,Bath Towel,drainable,,,,,,,,,,,,,not_food,
@@ -31,7 +31,7 @@ Base.BlackSageDried,Black Sage (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_onl
 Base.Bleach,Bleach,fluid_container,,,,,,,,,,,,,hazard,
 Base.BlowTorch,Welding Torch,drainable,,,,,,,,,,,,,not_food,
 Base.BottleCrafted,Bottle,fluid_container,,,,,,,,,,,,,empty_container,
-Base.BouillonCube,Bouillon Cube,food,16.0|2.3|0.5|0.6,,,,,,,,,,,,spice_only,
+Base.BouillonCube,Bouillon Cube,food,16.0|2.3|0.5|0.6,171563,sr_legacy,"Soup, chicken broth cubes, dry",close,4.8,fdc_portion:1,,dried,,,,,"chicken broth cubes, dry (beef 171561 the alternative); fdc_portion:1 modifier ""1.0 cube""; one cube; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.Bowl,Bowl,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Brandy,Brandy,fluid_container,2000.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.Bucket,Bucket,fluid_container,,,,,,,,,,,,,empty_container,
@@ -53,23 +53,23 @@ Base.Bull_Head_Angus,Bull Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Bull_Head_Holstein,Bull Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Bull_Head_Simmental,Bull Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Bullhorn,Megaphone,drainable,,,,,,,,,,,,,not_food,
-Base.Butter,Butter,food,3200.0|0.0|352.0|0.0,,,,,,,,,,,,spice_only,
+Base.Butter,Butter,food,3200.0|0.0|352.0|0.0,173410,sr_legacy,"Butter, salted",exact,440.1,vanilla_implied,,prepared,,0,zero:dairy,,vanilla_implied: spread 1.028; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Calf_Head_Angus,Calf Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Calf_Head_Holstein,Calf Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Calf_Head_Simmental,Calf Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Candle,Candle,drainable,,,,,,,,,,,,,not_food,
 Base.CandleLit,Lit Candle,drainable,,,,,,,,,,,,,not_food,
-Base.Candycane,Candy Cane,food,16.6|4.33|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.Candycane,Candy Cane,food,16.6|4.33|0.0|0.0,167990,sr_legacy,"Candies, hard",close,4.3,vanilla_implied,,prepared,,0,zero:sugar,,a candy cane is a hard candy; vanilla_implied: spread 1.049; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Canteen,Canteen,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.CanteenClay,Canteen,fluid_container,,,,,,,,,,,,,empty_container,
 Base.CanteenCowboy,Western Canteen,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.CanteenMilitary,Canteen,fluid_container,,,,,,,,,,,,,empty_container,
 Base.CanteenMilitaryFull,Canteen,fluid_container,,,,,,,,,,,,,fluid_sourced,
-Base.Capers,Capers,food,10.0|2.0|0.0|1.0,,,,,,,,,,,,spice_only,
+Base.Capers,Capers,food,10.0|2.0|0.0|1.0,172238,sr_legacy,"Capers, canned",exact,42.3,vanilla_implied,,canned,,0,zero:vegetable,,vanilla_implied: spread 1.063; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.CarBattery1,Car Battery,drainable,,,,,,,,,,,,,not_food,
 Base.CarBattery2,Car Battery,drainable,,,,,,,,,,,,,not_food,
 Base.CarBattery3,Car Battery,drainable,,,,,,,,,,,,,not_food,
-Base.CatFoodBag,Dry Cat Food,food,,,,,,,,,,,,,,
+Base.CatFoodBag,Dry Cat Food,food,,,,,,,,,,,,,not_food,"a dry pet-food bag, CantEat, no macros; an animal feed and a stew ingredient carrying no macros"
 Base.CeramicCrucible,Large Ceramic Crucible,fluid_container,,,,,,,,,,,,,empty_container,
 Base.CeramicCrucibleSmall,Small Ceramic Crucible,fluid_container,,,,,,,,,,,,,empty_container,
 Base.CeramicCrucibleSmall_Iron,Small Ceramic Crucible with Iron,drainable,,,,,,,,,,,,,not_food,
@@ -81,7 +81,7 @@ Base.CeramicTeacup,Ceramic Teacup,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Chamomile,Chamomile,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.ChamomileDried,Chamomile (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Champagne,Champagne,fluid_container,581.0|25.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.ChickenFeather,Chicken Feather,food,,,,,,,,,,,,,,
+Base.ChickenFeather,Chicken Feather,food,,,,,,,,,,,,,inedible_body_part,an animal part (AnimalPart)
 Base.Chicken_Chick_Head,Chick Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Chicken_Hen_Brown_Head,Chicken Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Chicken_Hen_White_Head,Chicken Head,food,,,,,,,,,,,,,inedible_body_part,
@@ -91,7 +91,7 @@ Base.Chives,Chives,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.ChivesDried,Chives (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Cider,Cider,fluid_container,190.0|8.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.CigarettePack,Cigarette Pack,drainable,,,,,,,,,,,,,tobacco_or_drug,
-Base.CigaretteRollingPapers,Rolling Papers,drainable,,,,,,,,,,,,,tobacco_or_drug,
+Base.CigaretteRollingPapers,Rolling Papers,drainable,,,,,,,,,,,,,not_food,rolling papers; corrected from tobacco_or_drug
 Base.Cilantro,Cilantro,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.CilantroDried,Cilantro (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.CilantroSeed,Cilantro Seeds,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
@@ -104,8 +104,8 @@ Base.Claybag,Sack of Clay,drainable,,,,,,,,,,,,,not_food,
 Base.CleaningLiquid2,Cleaning Liquid,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.CoffeeLiquer,Coffee Liqueur,fluid_container,3260.0|21.0|16.0|2.0,,,,,,,,,,,,fluid_sourced,
 Base.Cologne,Cologne,fluid_container,,,,,,,,,,,,,fluid_sourced,
-Base.Comfrey,Comfrey,food,,,,,,,,,,,,,,
-Base.ComfreyDried,Comfrey (Dried),food,,,,,,,,,,,,,,
+Base.Comfrey,Comfrey,food,,,,,,,,,,,,,not_food,"a medicinal herb (FirstAid), CantEat"
+Base.ComfreyDried,Comfrey (Dried),food,,,,,,,,,,,,,not_food,"a medicinal herb (FirstAid), CantEat"
 Base.CommonMallow,Common Mallow,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.CommonMallowDried,Common Mallow (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.CompostBag,Compost Bag,drainable,,,,,,,,,,,,,not_food,
@@ -123,27 +123,27 @@ Base.Deer_Buck_Head,Stag Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Deer_Doe_Head,Doe Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Deer_Fawn_Head,Fawn Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.DentalFloss,Dental Floss,drainable,,,,,,,,,,,,,not_food,
-Base.DentedCan,Dented Unlabeled Can of Food,food,,,,,,,,,,,,,,
-Base.Dip_NachoCheese,Nacho Cheese,food,630.0|56.0|42.0|14.0,,,,,,,,,,,,spice_only,
-Base.Dip_Ranch,Ranch,food,867.0|29.0|72.0|14.5,,,,,,,,,,,,spice_only,
-Base.Dip_Salsa,Salsa,food,140.0|28.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.DentedCan,Dented Unlabeled Can of Food,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
+Base.Dip_NachoCheese,Nacho Cheese,food,630.0|56.0|42.0|14.0,172200,sr_legacy,"Cheese sauce, prepared from recipe",close,319.8,judgement,,prepared,,,,,no nacho-cheese dip entry; cheese sauce prepared from recipe (KRAFT CHEEZ WHIZ 172209 is the branded alternative); judgement 319.8 g: the vanilla macros disagree (spread 7.54); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.Dip_Ranch,Ranch,food,867.0|29.0|72.0|14.5,173592,sr_legacy,"Salad dressing, ranch dressing, regular",close,201.6,judgement,,prepared,,,,,"judgement 201.6 g: the vanilla macros disagree (spread 6.80); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.Dip_Salsa,Salsa,food,140.0|28.0|0.0|0.0,174524,sr_legacy,"Sauce, salsa, ready-to-serve",close,482.8,judgement,,prepared,,,,,"judgement 482.8 g: the vanilla macros disagree (spread 1.14); the calorie-implied mass keeps the item's vanilla energy; about a 16 oz jar; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Dirtbag,Sack of Dirt,drainable,,,,,,,,,,,,,not_food,
 Base.DishCloth,Dish Towel,drainable,,,,,,,,,,,,,not_food,
 Base.Disinfectant,Bottle of Disinfectant,fluid_container,,,,,,,,,,,,,fluid_sourced,
-Base.DogFoodBag,Dry Dog Food,food,,,,,,,,,,,,,,
+Base.DogFoodBag,Dry Dog Food,food,,,,,,,,,,,,,not_food,"a dry pet-food bag, CantEat, no macros; an animal feed and a stew ingredient carrying no macros"
 Base.DrinkingGlass,Drinking Glass,fluid_container,,,,,,,,,,,,,empty_container,
 Base.DuctTape,Duct Tape,drainable,,,,,,,,,,,,,not_food,
-Base.Dung_Chicken,Chicken Droppings,food,,,,,,,,,,,,,,
-Base.Dung_Cow,Cow Dung,food,,,,,,,,,,,,,,
-Base.Dung_Deer,Deer Droppings,food,,,,,,,,,,,,,,
-Base.Dung_Mouse,Mouse Droppings,food,,,,,,,,,,,,,,
-Base.Dung_Pig,Pig Dung,food,,,,,,,,,,,,,,
-Base.Dung_Rabbit,Rabbit Droppings,food,,,,,,,,,,,,,,
-Base.Dung_Raccoon,Raccoon Dung,food,,,,,,,,,,,,,,
-Base.Dung_Rat,Rat Droppings,food,,,,,,,,,,,,,,
-Base.Dung_Sheep,Sheep Dung,food,,,,,,,,,,,,,,
-Base.Dung_Turkey,Turkey Dung,food,,,,,,,,,,,,,,
-Base.EggCarton,Egg Carton,food,,,,,,,,,,,,,,
+Base.Dung_Chicken,Chicken Droppings,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Cow,Cow Dung,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Deer,Deer Droppings,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Mouse,Mouse Droppings,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Pig,Pig Dung,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Rabbit,Rabbit Droppings,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Raccoon,Raccoon Dung,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Rat,Rat Droppings,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Sheep,Sheep Dung,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.Dung_Turkey,Turkey Dung,food,,,,,,,,,,,,,not_food,"animal dung (Junk, compostable), CantEat"
+Base.EggCarton,Egg Carton,food,,,,,,,,,,,,,not_food,a carton that unpacks into eggs; no macros of its own
 Base.EmptyJar,Jar,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Epoxy,Epoxy,drainable,,,,,,,,,,,,,not_food,
 Base.Extinguisher,Extinguisher,drainable,,,,,,,,,,,,,not_food,
@@ -154,33 +154,33 @@ Base.FabricRoll_DenimDarkBlue,Dark Blue Denim Fabric Roll,drainable,,,,,,,,,,,,,
 Base.FeedingBottle,Feeding Bottle,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Fertilizer,Fertilizer,drainable,,,,,,,,,,,,,not_food,
 Base.FiberglassTape,Fiberglass Tape,drainable,,,,,,,,,,,,,not_food,
-Base.FishRoe,Fish Roe,food,63.0|0.32|4.18|5.55,,,,,,,,,,,,spice_only,
+Base.FishRoe,Fish Roe,food,63.0|0.32|4.18|5.55,175132,sr_legacy,"Fish, roe, mixed species, raw",close,44.1,judgement,,raw,,0,zero:fish,,"judgement 44.1 g: the vanilla macros disagree (spread 3.05); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.FishingLine,Fishing Line,drainable,,,,,,,,,,,,,not_food,
 Base.FlashLight_AngleHead,Flashlight - Angle Headed,drainable,,,,,,,,,,,,,not_food,
 Base.FlashLight_AngleHead_Army,Flashlight - Angle Headed,drainable,,,,,,,,,,,,,not_food,
 Base.Flashlight_Crafted,Flashlight - Improvised,drainable,,,,,,,,,,,,,not_food,
 Base.Flask,Flask,fluid_container,2630.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.Flax,Flax,food,,,,,,,,,,,,,,
-Base.FlaxRippled,Flax (Rippled),food,,,,,,,,,,,,,,
-Base.FlaxSeed,Flax Seeds,food,71.0|0.0|4.5|0.0,,,,,,,,,,,,spice_only,
-Base.Flour2,Flour,food,50.0|21.0|0.0|5.0,,,,,,,,,,,,spice_only,
+Base.Flax,Flax,food,,,,,,,,,,,,,not_food,"a fibre crop (Material), CantEat"
+Base.FlaxRippled,Flax (Rippled),food,,,,,,,,,,,,,not_food,"a fibre crop (Material), CantEat"
+Base.FlaxSeed,Flax Seeds,food,71.0|0.0|4.5|0.0,169414,sr_legacy,"Seeds, flaxseed",close,10.3,fdc_portion:1,,raw,,,,,"fdc_portion:1 modifier ""1.0 tbsp, whole""; one tablespoon whole; the fat-implied 10.7 g is within 4 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.Flour2,Flour,food,50.0|21.0|0.0|5.0,168894,sr_legacy,"Wheat flour, white, all-purpose, enriched, bleached",close,13.7,judgement,,prepared,,,,,"all-purpose enriched bleached (the US retail default); judgement 13.7 g: the vanilla macros disagree (spread 3.52); the calorie-implied mass keeps the item's vanilla energy; the item weighs 2 kg but the vanilla 50 kcal is a few spoonfuls, and re-basing to the bag would make it about 7300 kcal; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.FountainCup,Fountain Cup,fluid_container,,,,,,,,,,,,,empty_container,
 Base.FountainCupWater,Fountain Cup of Water,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.FourLeafClover,Four Leaf Clover,food,1.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.Frozen_ChickenNuggets,Bag of Chicken Nuggets,food,,,,,,,,,,,,,,
-Base.Frozen_FishFingers,Bag of Fish Fingers,food,,,,,,,,,,,,,,
-Base.Frozen_FrenchFries,Bag of Fries,food,,,,,,,,,,,,,,
-Base.Frozen_TatoDots,Bag of Tato Dots,food,,,,,,,,,,,,,,
+Base.Frozen_ChickenNuggets,Bag of Chicken Nuggets,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
+Base.Frozen_FishFingers,Bag of Fish Fingers,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
+Base.Frozen_FrenchFries,Bag of Fries,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
+Base.Frozen_TatoDots,Bag of Tato Dots,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
 Base.Garbagebag_box,Box of Garbage Bags,drainable,,,,,,,,,,,,,not_food,
 Base.GardeningSprayAphids,Aphids Spray,drainable,,,,,,,,,,,,,not_food,
-Base.GardeningSprayCigarettes,Pest Flies Spray,drainable,,,,,,,,,,,,,tobacco_or_drug,
+Base.GardeningSprayCigarettes,Pest Flies Spray,drainable,,,,,,,,,,,,,hazard,"an insecticide spray (nicotine pest spray), not tobacco; corrected from tobacco_or_drug"
 Base.GardeningSprayMilk,Mildew Spray,drainable,,,,,,,,,,,,,not_food,
-Base.Garlic,Garlic,food,14.0|3.27|0.035|0.385,,,,,,,,,,,,spice_only,
+Base.Garlic,Garlic,food,14.0|3.27|0.035|0.385,169230,sr_legacy,"Garlic, raw",close,9,fdc_portion:4,3460,raw,,0,zero:vegetable,,"cook retention VEG,ROOTS,ETC,SAUTEED (a pan ingredient); fdc_portion:4 modifier ""3.0 cloves""; three cloves; the calorie-implied 9.4 g is within 4 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.GasmaskFilter,Gas Mask Filter,drainable,,,,,,,,,,,,,not_food,
 Base.GasmaskFilterCrafted,Gas Mask Filter - Crafted,drainable,,,,,,,,,,,,,not_food,
 Base.Gin,Gin,fluid_container,2630.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.GingerPickled,Ginger (Pickled),food,23.0|0.22|1.18|2.55,,,,,,,,,,,,spice_only,
-Base.GingerRoot,Ginger Root,food,46.0|0.44|2.36|5.1,,,,,,,,,,,,spice_only,
+Base.GingerPickled,Ginger (Pickled),food,23.0|0.22|1.18|2.55,169765,sr_legacy,"Ginger root, pickled, canned, with artificial sweetener",close,115,judgement,,prepared,,0,zero:vegetable,,judgement 115 g: the vanilla macros disagree (spread 259.06); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.GingerRoot,Ginger Root,food,46.0|0.44|2.36|5.1,169231,sr_legacy,"Ginger root, raw",close,57.5,judgement,,raw,,0,zero:vegetable,,"judgement 57.5 g: the vanilla macros disagree (spread 127.08); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Ginseng,Ginseng,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.GlassChampagne,Champagne Glass,fluid_container,,,,,,,,,,,,,empty_container,
 Base.GlassTumbler,Tumbler,fluid_container,,,,,,,,,,,,,empty_container,
@@ -192,13 +192,13 @@ Base.Goblet_Silver,Silver Goblet,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Goblet_Wood,Wood Goblet,fluid_container,,,,,,,,,,,,,empty_container,
 Base.GoldCup,Gold Cup,fluid_container,,,,,,,,,,,,,empty_container,
 Base.GrassBag,Grass Bag,drainable,,,,,,,,,,,,,not_food,
-Base.GrassTuft,Grass Cutting,food,,,,,,,,,,,,,,
+Base.GrassTuft,Grass Cutting,food,,,,,,,,,,,,,not_food,"animal feed, CantEat"
 Base.Gravelbag,Sack of Gravel,drainable,,,,,,,,,,,,,not_food,
-Base.Gravy,Gravy,food,79.0|5.0|6.0|2.0,,,,,,,,,,,,spice_only,
+Base.Gravy,Gravy,food,79.0|5.0|6.0|2.0,171564,sr_legacy,"Gravy, beef, canned, ready-to-serve",close,149.1,judgement,,prepared,,,,,generic gravy; beef gravy canned ready-to-serve (the brown gravy); judgement 149.1 g: the vanilla macros disagree (spread 4.77); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.GravyMix,Gravy Mix,drainable,,,,,,,,,,,,,not_food,
 Base.GreenOnions,Green Onions,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Grenadine,Grenadine,fluid_container,2780.0|670.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.Guacamole,Guacamole,food,182.0|2.0|16.6|4.6,,,,,,,,,,,,spice_only,
+Base.Guacamole,Guacamole,food,182.0|2.0|16.6|4.6,171705,sr_legacy,"Avocados, raw, all commercial varieties",proxy,113.8,judgement,,prepared,,0,zero:fruit,,no guacamole entry in SR Legacy; raw avocado (its main ingredient) stands in; judgement 113.8 g: the vanilla macros disagree (spread 9.81); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.GunPowder,Gunpowder,drainable,,,,,,,,,,,,,not_food,
 Base.HairDyeCommon,Bottle of Hair Dye,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.HairDyeRare,Bottle of Hair Dye,fluid_container,,,,,,,,,,,,,fluid_sourced,
@@ -206,14 +206,14 @@ Base.HairDyeUncommon,Bottle of Hair Dye,fluid_container,,,,,,,,,,,,,fluid_source
 Base.Hairgel,Hair Gel,drainable,,,,,,,,,,,,,not_food,
 Base.Hairspray2,Hair Spray,drainable,,,,,,,,,,,,,not_food,
 Base.HandTorch,Flashlight,drainable,,,,,,,,,,,,,not_food,
-Base.HayTuft,Hay,food,,,,,,,,,,,,,,
-Base.HempBundle,Hemp,food,,,,,,,,,,,,,,
-Base.HempBundleDried,Hemp (Dried),food,,,,,,,,,,,,,,
-Base.Honey,Honey,food,660.0|187.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.Hops,Hops,food,,,,,,,,,,,,,,
-Base.HopsDried,Hops (Dried),food,,,,,,,,,,,,,,
+Base.HayTuft,Hay,food,,,,,,,,,,,,,not_food,"animal feed and tinder, CantEat"
+Base.HempBundle,Hemp,food,,,,,,,,,,,,,not_food,"a fibre crop, CantEat"
+Base.HempBundleDried,Hemp (Dried),food,,,,,,,,,,,,,not_food,"a fibre crop, CantEat"
+Base.Honey,Honey,food,660.0|187.0|0.0|0.0,169640,sr_legacy,Honey,exact,222,vanilla_implied,,raw,,0,zero:sugar,,vanilla_implied: spread 1.045; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.Hops,Hops,food,,,,,,,,,,,,,not_food,"a brewing ingredient, CantEat"
+Base.HopsDried,Hops (Dried),food,,,,,,,,,,,,,not_food,"a brewing ingredient, CantEat"
 Base.HotWaterBottle,Hot Water Bottle,fluid_container,,,,,,,,,,,,,empty_container,
-Base.Hotsauce,Hot Sauce,food,430.0|270.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.Hotsauce,Hot Sauce,food,430.0|270.0|0.0|0.0,171186,sr_legacy,"Sauce, hot chile, sriracha",close,150,judgement,,prepared,,,,,SR Legacy has no generic hot sauce; sriracha (the unbranded entry) stands in; judgement 150 g: the calorie-implied 462 g is about 3x a real 5 fl oz hot-sauce bottle and FDC carries only a teaspoon; 150 g = one 5 fl oz bottle; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.IndustrialDye,Industrial Dye,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.InsectRepellent,Insect Repellent,drainable,,,,,,,,,,,,,not_food,
 Base.JarCrafted,Jar,fluid_container,,,,,,,,,,,,,empty_container,
@@ -228,7 +228,7 @@ Base.JuiceGrape,Bottle,fluid_container,400.0|120.0|0.0|0.0,,,,,,,,,,,,fluid_sour
 Base.JuiceLemon,Bottle,fluid_container,400.0|120.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.JuiceOrange,Bottle,fluid_container,400.0|120.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.JuiceTomato,Bottle,fluid_container,420.0|130.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.Ketchup,Ketchup,food,1480.0|370.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.Ketchup,Ketchup,food,1480.0|370.0|0.0|0.0,168556,sr_legacy,Catsup,exact,1407.9,vanilla_implied,,prepared,,,,,vanilla_implied: spread 1.085; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Kettle,Kettle,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Kettle_Copper,Copper Kettle,fluid_container,,,,,,,,,,,,,empty_container,
 Base.KnapsackSprayer,Backpack Sprayer,fluid_container,,,,,,,,,,,,,empty_container,
@@ -245,30 +245,30 @@ Base.Lantern_Hurricane_GoldLit,Hurricane Lantern - Gold (Lit),drainable,,,,,,,,,
 Base.Lantern_Hurricane_Silver,Hurricane Lantern - Silver,drainable,,,,,,,,,,,,,not_food,
 Base.Lantern_Hurricane_SilverLit,Hurricane Lantern - Silver (Lit),drainable,,,,,,,,,,,,,not_food,
 Base.Lantern_Propane,Propane Lantern,drainable,,,,,,,,,,,,,not_food,
-Base.Lard,Lard,food,4095.0|0.0|454.0|0.0,,,,,,,,,,,,spice_only,
+Base.Lard,Lard,food,4095.0|0.0|454.0|0.0,171401,sr_legacy,Lard,exact,454,vanilla_implied,,prepared,,0,zero:oil,,vanilla_implied: spread 1.000; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Lavender,Lavender,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.LavenderPetalsDried,Lavender Petals (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.Lemon,Lemon,food,17.0|5.41|0.17|0.64,,,,,,,,,,,,spice_only,
+Base.Lemon,Lemon,food,17.0|5.41|0.17|0.64,167746,sr_legacy,"Lemons, raw, without peel",exact,57.9,vanilla_implied,,raw,,0,zero:fruit,,vanilla_implied: spread 1.034; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.LemonGrass,Lemongrass,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Lighter,Lighter,drainable,,,,,,,,,,,,,not_food,
 Base.LighterBBQ,Lighter - BBQ,drainable,,,,,,,,,,,,,not_food,
 Base.LighterDisposable,Lighter - Disposable,drainable,,,,,,,,,,,,,not_food,
 Base.LighterFluid,Lighter Fluid,drainable,,,,,,,,,,,,,not_food,
 Base.Lighter_Battery,Lighter - Improvised Battery,drainable,,,,,,,,,,,,,not_food,
-Base.Lime,Lime,food,17.0|5.41|0.17|0.64,,,,,,,,,,,,spice_only,
+Base.Lime,Lime,food,17.0|5.41|0.17|0.64,168155,sr_legacy,"Limes, raw",close,67,fdc_portion:1,,raw,,0,zero:fruit,,"fdc_portion:1 modifier ""1.0 fruit (2"" dia)""; one fruit; the calorie-implied 56.7 g is within 16 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Lipstick,Lipstick,drainable,,,,,,,,,,,,,not_food,
 Base.MagnesiumFirestarter,Magnesium Firestarter,drainable,,,,,,,,,,,,,not_food,
 Base.MakeupEyeshadow,Eye Makeup,drainable,,,,,,,,,,,,,not_food,
 Base.MakeupFoundation,Foundation Makeup,drainable,,,,,,,,,,,,,not_food,
-Base.MapleSyrup,Maple Syrup,food,1100.0|270.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.Margarine,Margarine,food,3255.0|4.0|368.0|1.0,,,,,,,,,,,,spice_only,
+Base.MapleSyrup,Maple Syrup,food,1100.0|270.0|0.0|0.0,169661,sr_legacy,"Syrups, maple",exact,412.9,vanilla_implied,,prepared,,0,zero:sugar,,vanilla_implied: spread 1.050; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.Margarine,Margarine,food,3255.0|4.0|368.0|1.0,171435,sr_legacy,"Margarine, regular, 80% fat, composite, stick, with salt, with added vitamin D",close,454,judgement,,prepared,,0,zero:oil,,"regular 80 % stick margarine with salt (the composite); judgement 454 g: the calorie-implied 454 g is a 1 lb pack, as Butter's 440 g; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.Marigold,Marigold,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.MarigoldDried,Marigold (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.Marinara,Marinara,food,350.0|55.0|7.5|10.0,,,,,,,,,,,,spice_only,
+Base.Marinara,Marinara,food,350.0|55.0|7.5|10.0,171192,sr_legacy,"Sauce, pasta, spaghetti/marinara, ready-to-serve",close,700,judgement,,prepared,,,,,"judgement 700 g: the vanilla macros disagree (spread 1.59); the calorie-implied mass keeps the item's vanilla energy; about a 24 oz jar; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Matchbox,Matchbox,drainable,,,,,,,,,,,,,not_food,
 Base.Matches,Matchbook,drainable,,,,,,,,,,,,,not_food,
 Base.MayonnaiseEmpty,Mayonnaise Bottle,fluid_container,,,,,,,,,,,,,empty_container,
-Base.MayonnaiseFull,Mayonnaise,food,3000.0|0.0|330.0|0.0,,,,,,,,,,,,spice_only,
+Base.MayonnaiseFull,Mayonnaise,food,3000.0|0.0|330.0|0.0,171009,sr_legacy,"Salad dressing, mayonnaise, regular",exact,441,vanilla_implied,,prepared,,,,,vanilla_implied: spread 1.001; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.MetalCup,Metal Cup,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Milk,Milk Carton,fluid_container,615.0|46.0|22.0|33.0,,,,,,,,,,,,fluid_sourced,
 Base.MilkBottle,Bottle,fluid_container,615.0|46.0|22.0|33.0,,,,,,,,,,,,fluid_sourced,
@@ -279,12 +279,12 @@ Base.MintHerbDried,Mint (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.MugSpiffo,Mug,fluid_container,,,,,,,,,,,,,empty_container,
 Base.MugWhite,Mug,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Mugl,Mug,fluid_container,,,,,,,,,,,,,empty_container,
-Base.Mustard,Mustard,food,510.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.MysteryCan,Unlabeled Can of Food,food,,,,,,,,,,,,,,
-Base.Nettles,Nettles,food,50.0|15.0|0.0|2.0,,,,,,,,,,,,spice_only,
-Base.OilOlive,Olive Oil,food,2480.0|0.0|150.0|0.0,,,,,,,,,,,,spice_only,
-Base.OilVegetable,Vegetable Oil,food,2120.0|0.0|130.0|0.0,,,,,,,,,,,,spice_only,
-Base.Olives,Olives,food,47.0|2.0|4.7|0.0,,,,,,,,,,,,spice_only,
+Base.Mustard,Mustard,food,510.0|0.0|0.0|0.0,172234,sr_legacy,"Mustard, prepared, yellow",close,249,fdc_portion:2,,prepared,,,,,"fdc_portion:2 modifier ""1.0 cup""; the calorie-implied 850 g is implausible for a 0.2 kg bottle (vanilla 510 kcal is about 3.4x a real bottle); one cup = a squeeze bottle; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.MysteryCan,Unlabeled Can of Food,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
+Base.Nettles,Nettles,food,50.0|15.0|0.0|2.0,169819,sr_legacy,"Stinging Nettles, blanched (Northern Plains Indians)",close,119,judgement,,raw,,0,zero:vegetable,,the one nettle entry is blanched; the game nettles are raw; judgement 119 g: the vanilla macros disagree (spread 2.71); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.OilOlive,Olive Oil,food,2480.0|0.0|150.0|0.0,171413,sr_legacy,"Oil, olive, salad or cooking",close,280.5,judgement,,prepared,,0,zero:oil,,"judgement 280.5 g: the vanilla macros disagree (spread 1.87); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.OilVegetable,Vegetable Oil,food,2120.0|0.0|130.0|0.0,171411,sr_legacy,"Oil, soybean, salad or cooking",close,239.8,judgement,,prepared,,0,zero:oil,,US retail vegetable oil is soybean oil; judgement 239.8 g: the vanilla macros disagree (spread 1.84); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.Olives,Olives,food,47.0|2.0|4.7|0.0,169094,sr_legacy,"Olives, ripe, canned (small-extra large)",close,40.5,judgement,,canned,,0,zero:fruit,,ripe canned olives (green pickled 169096 the alternative); judgement 40.5 g: the vanilla macros disagree (spread 1.30); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Oregano,Oregano,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.OreganoDried,Oregano (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Oxygen_Tank,Oxygen Tank,drainable,,,,,,,,,,,,,not_food,
@@ -310,13 +310,13 @@ Base.Parsley,Parsley,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.ParsleyDried,Parsley (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.PenLight,Penlight,drainable,,,,,,,,,,,,,not_food,
 Base.Pepper,Pepper,food,,,,,,,,,,,,,spice_only,
-Base.PepperHabanero,Habanero,food,15.0|0.0|0.21|0.0,,,,,,,,,,,,spice_only,
-Base.PepperHabaneroDried,Habanero (Dried),food,15.0|0.0|0.21|0.0,,,,,,,,,,,,spice_only,
-Base.PepperJalapeno,Jalapeno,food,15.0|0.0|0.21|0.0,,,,,,,,,,,,spice_only,
-Base.PepperJalapenoDried,Jalapeno (Dried),food,15.0|0.0|0.21|0.0,,,,,,,,,,,,spice_only,
+Base.PepperHabanero,Habanero,food,15.0|0.0|0.21|0.0,170106,sr_legacy,"Peppers, hot chili, red, raw",close,45,fdc_portion:1,3776,raw,,0,zero:vegetable,,"no habanero entry; hot chili red raw; cook retention VEG,OTHER,BLD,WATER USED (a pot ingredient); fdc_portion:1 modifier ""1.0 pepper""; one pepper; the calorie-implied 37.5 g is within 17 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
+Base.PepperHabaneroDried,Habanero (Dried),food,15.0|0.0|0.21|0.0,168570,sr_legacy,"Peppers, hot chile, sun-dried",close,4.6,judgement,,dried,,0,zero:vegetable,,no habanero entry; hot chile sun-dried; judgement 4.6 g: the vanilla macros disagree (spread 1.28); the calorie-implied mass keeps the item's vanilla energy; FDC's dried pepper is 0.5 g; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.PepperJalapeno,Jalapeno,food,15.0|0.0|0.21|0.0,168576,sr_legacy,"Peppers, jalapeno, raw",exact,54.2,vanilla_implied,3776,raw,,0,zero:vegetable,,"cook retention VEG,OTHER,BLD,WATER USED (a pot ingredient); vanilla_implied: spread 1.097; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
+Base.PepperJalapenoDried,Jalapeno (Dried),food,15.0|0.0|0.21|0.0,168570,sr_legacy,"Peppers, hot chile, sun-dried",close,4.6,judgement,,dried,,0,zero:vegetable,,no dried-jalapeno entry; hot chile sun-dried; judgement 4.6 g: the vanilla macros disagree (spread 1.28); the calorie-implied mass keeps the item's vanilla energy; FDC's dried pepper is 0.5 g; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Perfume,Perfume,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.PetrolCan,Gas Can,fluid_container,,,,,,,,,,,,,fluid_sourced,
-Base.Pickles,Pickle,food,5.0|1.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.Pickles,Pickle,food,5.0|1.0|0.0|0.0,168558,sr_legacy,"Pickles, cucumber, dill or kosher dill",exact,41.6,vanilla_implied,,prepared,,0,zero:vegetable,,vanilla_implied: spread 1.004; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Pig_Boar_Head_Black,Boar Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Pig_Boar_Head_Pink,Boar Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Pig_Piglet_Head_Black,Piglet Head,food,,,,,,,,,,,,,inedible_body_part,
@@ -328,8 +328,8 @@ Base.PillsAntiDep,Antidepressants,drainable,,,,,,,,,,,,,tobacco_or_drug,
 Base.PillsBeta,Beta Blockers,drainable,,,,,,,,,,,,,tobacco_or_drug,
 Base.PillsSleepingTablets,Sleeping Pills,drainable,,,,,,,,,,,,,tobacco_or_drug,
 Base.PillsVitamins,Caffeine Pills,drainable,,,,,,,,,,,,,tobacco_or_drug,
-Base.Plantain,Plantain,food,,,,,,,,,,,,,,
-Base.PlantainDried,Plantain (Dried),food,,,,,,,,,,,,,,
+Base.Plantain,Plantain,food,,,,,,,,,,,,,not_food,"plantain herb (Plantago, FirstAid poultice), CantEat - not the banana"
+Base.PlantainDried,Plantain (Dried),food,,,,,,,,,,,,,not_food,"plantain herb (Plantago, FirstAid poultice), CantEat - not the banana"
 Base.PlasticCup,Plastic Cup,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Pop,Diet Cola,fluid_container,0.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.Pop2,Cola,fluid_container,400.0|104.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
@@ -339,9 +339,9 @@ Base.Pop3Empty,Pop Can,fluid_container,,,,,,,,,,,,,empty_container,
 Base.PopBottle,Orange Soda,fluid_container,400.0|104.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.PopBottleRare,Bottle,fluid_container,400.0|104.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.PopEmpty,Pop Can,fluid_container,,,,,,,,,,,,,empty_container,
-Base.PoppyPods,Poppy Pods,food,,,,,,,,,,,,,,
-Base.PoppyPodsDried,Poppy Pods (Dried),food,,,,,,,,,,,,,,
-Base.PoppySeed,Poppy Seeds,food,31.0|3.0|2.0|1.6,,,,,,,,,,,,spice_only,
+Base.PoppyPods,Poppy Pods,food,,,,,,,,,,,,,not_food,"a gardening item, CantEat"
+Base.PoppyPodsDried,Poppy Pods (Dried),food,,,,,,,,,,,,,not_food,"a gardening item, CantEat"
+Base.PoppySeed,Poppy Seeds,food,31.0|3.0|2.0|1.6,171330,sr_legacy,"Spices, poppy seed",close,5.9,judgement,,dried,,,,,"judgement 5.9 g: the vanilla macros disagree (spread 2.22); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Port,Port,fluid_container,1570.0|129.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.Pot,Cooking Pot,fluid_container,,,,,,,,,,,,,empty_container,
 Base.PotForged,Cooking Pot,fluid_container,,,,,,,,,,,,,empty_container,
@@ -350,7 +350,7 @@ Base.PowderedOnion,Onion (Powdered),food,,,,,,,,,,,,,spice_only,
 Base.PremiumFishingLine,Premium Fishing Line,drainable,,,,,,,,,,,,,not_food,
 Base.PropaneTank,Propane Tank,drainable,,,,,,,,,,,,,not_food,
 Base.Propane_Refill,Propane Lantern Bottle,drainable,,,,,,,,,,,,,not_food,
-Base.PumpkinSeed,Pumpkin Seeds,food,155.0|14.12|5.48|4.34,,,,,,,,,,,,spice_only,
+Base.PumpkinSeed,Pumpkin Seeds,food,155.0|14.12|5.48|4.34,170556,sr_legacy,"Seeds, pumpkin and squash seed kernels, dried",close,28.35,fdc_portion:2,2203,raw,,,,,"dried kernels; cook retention NUTS,ROASTED (an oven roast of seeds); fdc_portion:2 modifier ""1.0 oz""; one ounce; the calorie-implied 27.7 g is within 3 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.Rabbit_Head_Appalachian,Rabbit Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Rabbit_Head_CottonTail,Rabbit Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Rabbit_Head_Swamp,Rabbit Head,food,,,,,,,,,,,,,inedible_body_part,
@@ -363,19 +363,19 @@ Base.Raccoon_Sow_Head,Raccoon Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.RagFilter,Rag Filter,drainable,,,,,,,,,,,,,not_food,
 Base.RatPoison,Rat Poison,drainable,,,,,,,,,,,,,hazard,
 Base.RemouladeEmpty,Remoulade Bottle,fluid_container,,,,,,,,,,,,,empty_container,
-Base.RemouladeFull,Remoulade,food,150.0|0.0|50.0|0.0,,,,,,,,,,,,spice_only,
+Base.RemouladeFull,Remoulade,food,150.0|0.0|50.0|0.0,171826,sr_legacy,"Sauce, tartar, ready-to-serve",close,299.4,judgement,,prepared,,,,,"remoulade is a mayonnaise sauce like tartar; tartar sauce is the nearest entry; judgement 299.4 g: the vanilla 150 kcal contradicts its own 50 g fat (450 kcal); the fat-implied 299 g is a jar, beside Mayonnaise's 441 g; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)"
 Base.RespiratorFilters,Respirator Filters,drainable,,,,,,,,,,,,,not_food,
 Base.RespiratorFiltersRecharged,Respirator Filters - Recharged,drainable,,,,,,,,,,,,,not_food,
-Base.RiceVinegar,Rice Vinegar,food,20.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.RiceVinegar,Rice Vinegar,food,20.0|0.0|0.0|0.0,172237,sr_legacy,"Vinegar, distilled",proxy,111.1,judgement,,prepared,,,,,no rice-vinegar entry in SR Legacy; distilled vinegar stands in; judgement 111.1 g: calories are the only usable macro; the calorie-implied mass; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.RosePetalsDried,Rose Petals (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.Rosehips,Rose Hips,food,81.0|19.0|0.0|2.0,,,,,,,,,,,,spice_only,
+Base.Rosehips,Rose Hips,food,81.0|19.0|0.0|2.0,168998,sr_legacy,"Rose Hips, wild (Northern Plains Indians)",close,50,judgement,,raw,,0,zero:fruit,,"judgement 50 g: the vanilla macros disagree (spread 2.51); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Rosemary,Rosemary,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.RosemaryDried,Rosemary (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Roses,Roses,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Rum,Rum,fluid_container,2310.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.RyeSeed,Rye Seeds,food,,,,,,,,,,,,,,
-Base.RyeSheaf,Rye Sheaf,food,,,,,,,,,,,,,,
-Base.RyeSheafDried,Rye Sheaf (Dried),food,,,,,,,,,,,,,,
+Base.RyeSeed,Rye Seeds,food,,,,,,,,,,,,,not_food,"planting seed, CantEat; its HungerChange is animal feed"
+Base.RyeSheaf,Rye Sheaf,food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
+Base.RyeSheafDried,Rye Sheaf (Dried),food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
 Base.Sage,Sage,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.SageDried,Sage (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Salt,Salt,food,,,,,,,,,,,,,spice_only,
@@ -393,7 +393,7 @@ Base.Seasoning_Rosemary,Rosemary (Dried),food,0.4|0.0|0.0|0.0,,,,,,,,,,,,spice_o
 Base.Seasoning_Sage,Sage (Dried),food,0.4|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Seasoning_Thyme,Thyme (Dried),food,0.4|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.Seaweed,Seaweed,food,3.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.SesameOil,Sesame Oil,food,120.0|0.0|14.0|0.0,,,,,,,,,,,,spice_only,
+Base.SesameOil,Sesame Oil,food,120.0|0.0|14.0|0.0,171016,sr_legacy,"Oil, sesame, salad or cooking",exact,13.8,vanilla_implied,,prepared,,0,zero:oil,,vanilla_implied: spread 1.031; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.SheepElectricShears,Shears - Electric,drainable,,,,,,,,,,,,,not_food,
 Base.Sheep_Ewe_Head_Black,Ewe Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Sheep_Ewe_Head_White,Ewe Head,food,,,,,,,,,,,,,inedible_body_part,
@@ -407,24 +407,24 @@ Base.SimpleSyrup,Bottle,fluid_container,0.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced
 Base.SlugRepellent,Slug Repellent,drainable,,,,,,,,,,,,,not_food,
 Base.Soap2,Soap,drainable,,,,,,,,,,,,,not_food,
 Base.SodaCan,Can of Soda,fluid_container,400.0|104.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.SourCream,Sour Cream,food,420.0|370.0|14.0|2.0,,,,,,,,,,,,spice_only,
-Base.Soysauce,Soy Sauce,food,20.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
+Base.SourCream,Sour Cream,food,420.0|370.0|14.0|2.0,171257,sr_legacy,"Cream, sour, cultured",close,230,fdc_portion:2,,prepared,,0,zero:dairy,,"fdc_portion:2 modifier ""1.0 cup""; one cup = an 8 oz tub; the vanilla 370 g carbohydrate is impossible (spread 110), the calorie-implied 212 g is within 8 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
+Base.Soysauce,Soy Sauce,food,20.0|0.0|0.0|0.0,174277,sr_legacy,Soy sauce made from soy and wheat (shoyu),close,37.7,judgement,,prepared,,,,,"judgement 37.7 g: calories are the only usable macro; the calorie-implied mass; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Sportsbottle,Sports Bottle,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.SprayPaint,Spray Paint,drainable,,,,,,,,,,,,,not_food,
 Base.Staples,Staples,drainable,,,,,,,,,,,,,not_food,
 Base.SteelWool,Steel Wool,drainable,,,,,,,,,,,,,not_food,
-Base.Sugar,White Sugar,food,387.0|100.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.SugarBrown,Brown Sugar,food,337.0|90.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.SugarCubes,Sugar Cubes,food,44.0|12.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.SugarPacket,Sugar Packet,food,11.0|3.0|0.0|0.0,,,,,,,,,,,,spice_only,
-Base.SunflowerHead,Sunflower Head,food,,,,,,,,,,,,,,
-Base.SunflowerHeadDried,Sunflower Head (Dried),food,,,,,,,,,,,,,,
-Base.SunflowerSeeds,Sunflower Seeds,food,355.0|0.0|22.5|0.0,,,,,,,,,,,,spice_only,
+Base.Sugar,White Sugar,food,387.0|100.0|0.0|0.0,169655,sr_legacy,"Sugars, granulated",exact,100,vanilla_implied,,prepared,,0,zero:sugar,,vanilla_implied: spread 1.000; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.SugarBrown,Brown Sugar,food,337.0|90.0|0.0|0.0,168833,sr_legacy,"Sugars, brown",exact,90.2,vanilla_implied,,prepared,,0,zero:sugar,,vanilla_implied: spread 1.035; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.SugarCubes,Sugar Cubes,food,44.0|12.0|0.0|0.0,169655,sr_legacy,"Sugars, granulated",exact,11.7,vanilla_implied,,prepared,,0,zero:sugar,,vanilla_implied: spread 1.056; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.SugarPacket,Sugar Packet,food,11.0|3.0|0.0|0.0,169655,sr_legacy,"Sugars, granulated",exact,2.9,vanilla_implied,,prepared,,0,zero:sugar,,vanilla_implied: spread 1.056; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
+Base.SunflowerHead,Sunflower Head,food,,,,,,,,,,,,,not_food,"a seed head, CantEat; processed into seeds by a recipe"
+Base.SunflowerHeadDried,Sunflower Head (Dried),food,,,,,,,,,,,,,not_food,"a seed head, CantEat; processed into seeds by a recipe"
+Base.SunflowerSeeds,Sunflower Seeds,food,355.0|0.0|22.5|0.0,170562,sr_legacy,"Seeds, sunflower seed kernels, dried",close,60.8,judgement,,dried,,,,,dried kernels (the dry-roasted entries 170563/169418 are the alternatives); judgement 60.8 g: the vanilla macros disagree (spread 1.39); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Teacup,Teacup,fluid_container,,,,,,,,,,,,,empty_container,
 Base.Tequila,Tequila,fluid_container,2100.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.TestDebugWater,WaterSource,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.TestWaterMug,Mug of Water,drainable,,,,,,,,,,,,,not_food,
-Base.Thistle,Thistles,food,45.0|18.0|0.0|3.0,,,,,,,,,,,,spice_only,
+Base.Thistle,Thistles,food,45.0|18.0|0.0|3.0,169205,sr_legacy,"Artichokes, (globe or french), raw",proxy,95.7,judgement,,raw,,0,zero:vegetable,,no thistle entry in SR Legacy; globe artichoke (a cultivated thistle) stands in; judgement 95.7 g: the vanilla macros disagree (spread 1.87); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Thread,Thread,drainable,,,,,,,,,,,,,not_food,
 Base.Thread_Aramid,Aramid Thread,drainable,,,,,,,,,,,,,not_food,
 Base.Thread_Sinew,Sinew Thread,drainable,,,,,,,,,,,,,not_food,
@@ -437,20 +437,20 @@ Base.Tobacco,Tobacco,food,,,,,,,,,,,,,tobacco_or_drug,
 Base.TobaccoChewing,Chewing Tobacco,drainable,,,,,,,,,,,,,tobacco_or_drug,
 Base.TobaccoLoose,Pouch of Tobacco,drainable,,,,,,,,,,,,,tobacco_or_drug,
 Base.ToiletPaper,Toilet Paper,drainable,,,,,,,,,,,,,not_food,
-Base.TomatoPaste,Tomato Paste,food,120.0|32.0|8.0|0.0,,,,,,,,,,,,spice_only,
+Base.TomatoPaste,Tomato Paste,food,120.0|32.0|8.0|0.0,170459,sr_legacy,"Tomato products, canned, paste, without salt added (Includes foods for USDA's Food Distribution Program)",close,170,fdc_portion:4,,prepared,,,,,"fdc_portion:4 modifier ""1.0 can (6 oz)""; one 6 oz can, the item as sold; the calorie-implied 146 g is within 16 %; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based); graded close: same food, but the vanilla macros do not imply one mass"
 Base.Torch,Flashlight - Heavy Duty,drainable,,,,,,,,,,,,,not_food,
 Base.TrophyBronze,Trophy,fluid_container,,,,,,,,,,,,,empty_container,
 Base.TrophyGold,Trophy,fluid_container,,,,,,,,,,,,,empty_container,
 Base.TrophySilver,Trophy,fluid_container,,,,,,,,,,,,,empty_container,
-Base.TurkeyFeather,Turkey Feather,food,,,,,,,,,,,,,,
+Base.TurkeyFeather,Turkey Feather,food,,,,,,,,,,,,,inedible_body_part,an animal part (AnimalPart)
 Base.Turkey_Gobbler_Head,Turkey Tom Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Turkey_Hen_Head,Turkey Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Turkey_Poult_Head,Turkey Poult Head,food,,,,,,,,,,,,,inedible_body_part,
 Base.Twine,Twine,drainable,,,,,,,,,,,,,not_food,
 Base.Vermouth,Vermouth,fluid_container,1110.0|33.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
-Base.Vinegar2,Vinegar,drainable,0.0|0.0|0.0|0.0,,,,,,,,,,,,not_food,
-Base.Vinegar_Jug,Jug of Vinegar,drainable,0.0|0.0|0.0|0.0,,,,,,,,,,,,not_food,
-Base.Violets,Violets,food,27.0|7.0|0.0|1.0,,,,,,,,,,,,spice_only,
+Base.Vinegar2,Vinegar,drainable,0.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,a consumed condiment carrying Calories 0.0; corrected from not_food
+Base.Vinegar_Jug,Jug of Vinegar,drainable,0.0|0.0|0.0|0.0,,,,,,,,,,,,spice_only,a consumed condiment carrying Calories 0.0; corrected from not_food
+Base.Violets,Violets,food,27.0|7.0|0.0|1.0,169226,sr_legacy,"Dandelion greens, raw",proxy,60,judgement,,raw,,0,zero:vegetable,,no violet entry in SR Legacy; dandelion greens (a foraged leaf-and-flower green) stand in; judgement 60 g: the vanilla macros disagree (spread 2.05); the calorie-implied mass keeps the item's vanilla energy; mapped in place from spice_only (controller correction T3-1: a Spice food at 5 kcal or more is re-based)
 Base.Vodka,Vodka,fluid_container,2310.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.Wallpaper_BeigeStripe,Wallpaper - Beige Stripe,drainable,,,,,,,,,,,,,not_food,
 Base.Wallpaper_BlackFloral,Wallpaper - Black Floral,drainable,,,,,,,,,,,,,not_food,
@@ -464,13 +464,13 @@ Base.WaterBottle,Water Bottle,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.WaterDish,Water Dish,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.WaterDispenserBottle,Dispenser Bottle,fluid_container,,,,,,,,,,,,,fluid_sourced,
 Base.WaterPurificationTablets,Water Purification Tablets,drainable,,,,,,,,,,,,,not_food,
-Base.WaterRationCan,Water Ration Can,food,,,,,,,,,,,,,,
+Base.WaterRationCan,Water Ration Can,food,,,,,,,,,,,,,not_food,a sealed/mystery container the eat path opens into another item
 Base.WaterRationCanEmpty,Tin Can,fluid_container,,,,,,,,,,,,,empty_container,
 Base.WateredCan,Watering Can,fluid_container,,,,,,,,,,,,,empty_container,
 Base.WeldingRods,Welding Rods,drainable,,,,,,,,,,,,,not_food,
-Base.WheatSeed,Wheat Seeds,food,,,,,,,,,,,,,,
-Base.WheatSheaf,Wheat Sheaf,food,,,,,,,,,,,,,,
-Base.WheatSheafDried,Wheat Sheaf (Dried),food,,,,,,,,,,,,,,
+Base.WheatSeed,Wheat Seeds,food,,,,,,,,,,,,,not_food,"planting seed, CantEat; its HungerChange is animal feed"
+Base.WheatSheaf,Wheat Sheaf,food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
+Base.WheatSheafDried,Wheat Sheaf (Dried),food,,,,,,,,,,,,,not_food,"a grain sheaf, CantEat; threshed into grain by a recipe"
 Base.Whiskey,Bottle of Whiskey,fluid_container,2500.0|0.0|0.0|0.0,,,,,,,,,,,,fluid_sourced,
 Base.WildGarlic2,Wild Garlic,food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
 Base.WildGarlicDried,Wild Garlic (Dried),food,0.1|0.0|0.0|0.0,,,,,,,,,,,,spice_only,
