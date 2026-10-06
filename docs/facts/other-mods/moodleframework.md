@@ -144,7 +144,7 @@ Not covered: vanilla's `PZAPI.ModOptions` signatures the config page assumes; `I
 <a id="open"></a>
 
 - That no vanilla Lua draws the moodle stack, the 29 moodle-named files under the install's `media/lua` all being translation files and the stack being the Java `MoodlesUI`, is unverified: it rests on a file-name match and a grep of the install's Lua whose output is not a committed dataset; re-measure by a committed scan of the install's `media/lua` [#2553/C/snapshot/unverified].
-- Where a mod-drawn column lands beside a framework moodle on screen is unread: the framework's offset counts vanilla, the other moodle manager and its own moodles and nothing else, so a private widget and a framework moodle drawn in one slot overlap [#2549/C/C-only] [#2555/C/inference]; the two were read in separate boots, the column at x 1184 and the framework moodle at x 1238 against a vanilla band from 1238, never together on one screen, and the framework moodle's y read 162 on its bad side where the first session's read 120, for a reason no run explains ([#3223/M/n=1], [#3229/M/n=1], [#3197/M/n=1]).
+- Where a mod-drawn column lands beside a framework moodle on screen is unread: the framework's offset counts vanilla, the other moodle manager and its own moodles and nothing else, so a private widget and a framework moodle drawn in one slot overlap [#2549/C/C-only] [#2555/C/inference]; the two were read in separate boots, the column at x 1184 and the framework moodle at x 1238 against a vanilla band from 1238, never together on one screen, and the framework moodle's y read 162 on its bad side where the first session's read 120, for a reason no run explains ([#3223/M/n=2], [#3229/M/n=1], [#3197/M/n=1]).
 
 ## See also
 
