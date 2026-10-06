@@ -207,19 +207,19 @@ The kill dial is live: off, it holds the target at 0.83 at a 9 % deficit, and on
 World water lands at the action's own scale, within twice the window's highest THIRST, the action's planned litres unread, and the view falls [#2970/M/n=1].
 The client's mirror copy answers a fresh request and is never read without one [#2974/M/n=1].
 The second boot of the Plan 4 build, with sleep allowed and the onset dial at its maximum, ran without a mod error through four day closes [#2976/M/n=1].
-A scenario that wants a deficiency inside a session dials a record that takes the dial: vitamin C does not, its replete-to-clinical time sitting under the kernel's dial threshold, so it stayed at grade 1 for four game days at the maximum dial [#2977/M/n=1].
+A scenario that wants a deficiency inside a session dials a record that takes the dial: vitamin C does not, staying at grade 1 at every read across 95.6 game hours at the maximum dial [#2977/M/n=1].
 The records that take it, and vitamin K, crossed their grades inside the read brackets the mod's kernel replay puts them in, the replay's grades equal to the read ones at every interval [#2978/M/n=1].
-The epoch counts one per grade or excess-output change and nothing else [#2979/M/n=1].
+The epoch counts one per grade or excess-output change and nothing else in the session [#2979/M/n=1].
 An eaten vitamin lands on its record through the zero-order-hold step, a lettuce's vitamin C to the decimal the step gives [#2980/M/n=1].
-The phytate factor on iron is applied to each game minute's emptied share of the stomach, so a loaf's phytate cuts its iron by about half a per cent rather than to a quarter [#2981/M/n=1].
+A loaf's phytate in the stomach buffer cut the iron absorbed per milligram emptied by about half a per cent (0.179 against 0.18), matching the kernel's per-minute value and not the meal-level one that would give a quarter [#2981/M/n=1].
 A coffee's caffeine lands whole and the body load halves every five game hours for a fast metaboliser, the drain coefficient carrying its effect [#2982/M/n=1].
-A single beer drunk through the drink action never raises the mod's blood alcohol, its ethanol leaving the stomach slower than the elimination removes it, while the day's alcohol total takes it at once [#2983/M/n=1].
-Glycogen draws only on minutes above 3 MET or a cold multiplier above 1, a squat set reaching 4.0 MET on the server, and at the fixture's indoor air the shivering term keeps the store from refilling at rest [#2984/M/n=1].
+A single beer drunk through the drink action read 0 blood alcohol at every read, at most 0.0663 g of ethanol a game minute leaving the stomach, while the day's alcohol total took it at once [#2983/M/n=1].
+Glycogen fell on the minutes read above 3 MET, a squat set reaching 4.0 MET on the server, and fell at rest at the fixture's indoor air under a cold multiplier above 1, so the store never refilled [#2984/M/n=1].
 With sleep allowed the sleep state runs from the record's creation and the impairment unit is the kernel's sum at every read [#2985/M/n=1].
-A scenario that holds sleep through the harness gets the asleep minutes booked into the debt windows but never a reset of hours awake, the hold's misses breaking every asleep run under the one-hour nap threshold [#2986/M/n=1].
+A scenario that holds sleep through the harness gets the asleep minutes booked into the debt windows but never a reset of hours awake: `sleptH` read at most 0.3195 at the 35 reads while `awakeH` rose from 22.87 to 32.62 [#2986/M/n=1].
 Record edits to the starvation count and the day's intake drive the refeeding risk at the next close, and the fasting closes of a held sleep keep it [#2987/M/n=1].
 The excess dial zeroes the output while the excess sum keeps integrating, and the output returns at the first read after the dial comes back [#2988/M/n=1].
-The bench's first call on the second boot ran above Plan 3's range and the two after it within it [#2989/M/n=1].
+The bench's first call on the second boot ran above Plan 3's range and the two after it within 5 per cent of its top [#2989/M/n=1].
 The client's mirror copy carries the record's grades, epoch and acute scalars at a fresh request [#2991/M/n=1].
 
 <a id="owned-experiments"></a>
