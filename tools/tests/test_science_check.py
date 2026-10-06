@@ -84,10 +84,13 @@ def test_a_mixed_citation_fails_the_schema(tmp_path):
 
 def test_staged_reads_the_index_blob(tmp_path):
     root = _tree(tmp_path, [ROW])
-    git = lambda *a: subprocess.run(["git", *a], cwd=str(root), capture_output=True, text=True)
-    git("init", "-q")
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}   # never let GIT_DIR/GIT_WORK_TREE aim this at the real repo
+    git = lambda *a: subprocess.run(["git", *a], cwd=str(root), capture_output=True, text=True, env=env)
+    assert git("init", "-q").returncode == 0
+    top = git("rev-parse", "--show-toplevel").stdout.strip().replace("\\", "/")
+    assert top.lower() == str(root).replace("\\", "/").lower(), "the scratch repo must be the git toplevel (2026-10-06: a fixture reached the real index)"
     sl.write_register(str(root / "docs" / "reference" / "science.tsv"), [dict(ROW, grade="nope")])
     git("add", "docs/reference/science.tsv")
     sl.write_register(str(root / "docs" / "reference" / "science.tsv"), [ROW])
-    r = subprocess.run([sys.executable, CLI, "--root", str(root), "--staged"], capture_output=True, text=True)
+    r = subprocess.run([sys.executable, CLI, "--root", str(root), "--staged"], capture_output=True, text=True, env=env)
     assert r.returncode == 1 and "grade" in r.stdout
