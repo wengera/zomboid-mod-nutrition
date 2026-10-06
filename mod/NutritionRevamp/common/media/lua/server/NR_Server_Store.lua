@@ -91,6 +91,8 @@ function S.forget(username)
 end
 
 -- A respawn: the character is new, the record starts fresh, the reset count carries over so
+-- (S.reset REPLACES the table — the one place a cached handle such as NR_Server_Fast's h.record goes
+-- stale for up to a minute, the respawn exception to the in-place load above; Fast's limitation names it)
 -- a later reading can tell a returning player from a new one.
 function S.reset(username, worldAgeHours)
     local t = S.attach()

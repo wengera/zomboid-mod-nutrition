@@ -38,10 +38,10 @@ NR.server.reconcile = {
     wired = false,
     limitations = {
         "a rise is reconciled as the four macros only; the nutrient vector of a missed intake is unknown and lands nothing",
-        "the baseline is the legacy mirror's last write when NR.LegacyMirror is on, else the last observed store value",
+        "the baseline is the legacy mirror's last write when NR.LegacyMirror is on, else the last observed store value, plus each wrapped eat's credited store movement",
         "a rise within RECONCILE_EPS kcal is ignored; a fall is vanilla's drain or another mod's write and is never reconciled",
-        "with Nutrition = true the vanilla update moves the stores every tick and the reconciliation would read its drain as nothing and its gain as an intake: the mod's precondition is Nutrition = false",
-        "a write by another writer inside a wrapped eat's original (a mod wrapping the same seat below this one) moves the stores inside the wrap and is credited to the baseline as part of the eat",
+        "with Nutrition = true the vanilla update only subtracts (its macro drain and calorie burn, #0453), so a missed intake is netted against that fall between two minutes and one smaller than the fall is lost: the mod's precondition is Nutrition = false",
+        "a write by another writer inside a wrapped eat's original (a mod wrapping the same seat below this one, or an item's OnEat hook, which runs inside Eat) moves the stores inside the wrap and is credited to the baseline as part of the eat",
     },
 }
 local RC = NR.server.reconcile
