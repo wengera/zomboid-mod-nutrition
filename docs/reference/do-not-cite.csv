@@ -400,3 +400,15 @@ x161s-20261006-031534,phases.X35.watch.dmg.BLEEDING,BLEEDING 151,"A stale counte
 x161s-20261006-031534,phases.X35.watch.dmg.SICK,SICK 287,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X76.watch_c.dmg.SICK`
 x161s-20261006-031534,summaries.X75.a_dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
 x161s-20261006-031534,summaries.X75.b_dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161p-20261006-035559,summaries,copies,Derived copies of phase keys made in the driver.,cite the `boot1.phases` and `boot2.phases` keys
+x161p-20261006-035559,boot1.phases.X82.a_watch.fields.intoxication.min,0,The window was armed before the write; the pre-write value.,cite `boot1.phases.X82.a_pairs`
+x161p-20261006-035559,boot1.phases.X82.c_watch.fields.intoxication.min,0,The window was armed before the hold; the pre-write value.,cite `boot1.phases.X82.c_watch.raw_strings`
+x161p-20261006-035559,boot1.phases.X86.W1_result.events,ret=false,DoAttack's return value; the shot fired.,cite `boot1.phases.X86.events_W1`
+x161p-20261006-035559,boot1.phases.X86.W2_result.events,ret=false,DoAttack's return value; the shot fired.,cite `boot1.phases.X86.events_W2`
+x161p-20261006-035559,boot1.phases.X86.W2_unbump,ok false,Sent after the window had closed.,
+x161p-20261006-035559,boot1.phases.X47.moving_server,moving false,"Read after the walking window, not during it.",
+x161p-20261006-035559,boot1.phases.X87.watch.dmg.HUNGRY,401,"The handler's HUNGER at level 4, not a landing reading.",cite `boot1.phases.X87.watch.dmg.FALLDOWN`
+x161p-20261006-035559,boot1.logs.server_luaerr,40 lines,Vanilla engine lines and the harness's echo of the driver's error reads; none is a mod error.,cite `boot1.server_error_count`
+x161p-20261006-035559,boot1.logs.client_luaerr,16 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `boot1.client_lua_error`
+x161p-20261006-035559,boot2.logs.server_luaerr,35 lines,Vanilla engine lines and the harness's echo of the driver's error reads; none is a mod error.,cite `boot2.server_error_count`
+x161p-20261006-035559,boot2.logs.client_luaerr,16 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `boot2.client_lua_error`
