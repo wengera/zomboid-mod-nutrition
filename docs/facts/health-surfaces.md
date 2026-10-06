@@ -167,6 +167,7 @@ The cold updater only runs the course of a cold already caught [#3022/C/C-only].
 A cold weakens only while the character is in a room, dry, free of hypothermia and at fatigue 0.5 or less, hunger 0.25 or less and thirst 0.25 or less, or while a cold-reduction medicine acts; otherwise it strengthens up to 100 [#3022/C/C-only].
 When its strength falls below zero the cold ends and the accumulator is zeroed [#3022/C/C-only].
 Nothing else resets the accumulator per tick, and it is written into the character's save [#3023/C/C-only].
+Measured live, an indoor character under a climate override of -10 with WETNESS written to 100 kept the catch-a-cold delta at or under 0.022158874198794365 for about 55 s, so catchACold never left 0 [#3114/M/n=1].
 
 <a id="pain"></a>
 ### Pain
@@ -214,6 +215,7 @@ It is not the only route: measured live, a server write of a hand's `bleedingTim
 The written timer counted down on the server near the unbandaged rate, 0.035657223114633624 per game hour, and bled through the `BLEEDING` damage tag on 151 ticks of an 18 s window [#3042/M/n=1].
 An infected open wound's level rose at the untreated rate, 0.018090308722325733 per game hour, and with the part's alcohol level written to 1 it fell at 0.35913723562284106 per game hour [#3043/M/n=1].
 Twenty writes of an extra rise, each driven over the harness bus after a read about a second earlier, reached only 1.179928563584732 times the untreated slope rather than 2.3 times; the vanilla rise that each write overwrote predicts 1.1946730180991645 (arith., inference), so the shortfall is read as the overwritten gap, not measured as its cause [#3044/M/n=1].
+In a second session, with every fold of the mod idle, an unbandaged scratch counted down 0.017937586994153862 per game hour, a bleed 0.03585957751468073 and an infected scratch's level rose 0.017989861790033753 [#3113/M/n=1].
 
 <a id="mood-surface"></a>
 ### The mood surface
@@ -260,6 +262,7 @@ Last, it writes the core back into the stat [#2373/C/C-only].
 A server-side write to the stat therefore moves the core halfway on the next update, after which the stat is driven from the core again [#2373/C/C-only].
 A mod that wants to hold a temperature must re-write the stat on every update, and one that writes it once sees half the step land [#2373/C/C-only].
 Measured live, one server write of the stat from 36.43119812011719 to 36.83125686645508 moved the core to 36.63 at the next tick, the window's maximum core reading 36.63119888305664, halfway, after which the core fell to 36.577354431152344 at about 8 s [#3046/M/n=1].
+At rest indoors on the default fixture the core sat about 0.45 degrees under the set point of 37, reading 36.55016326904297 to 36.548282623291016, and a 20-squat set raised it from 36.538387298583984 to 36.663856506347656 [#3115/M/n=1].
 
 The core the regulator steers toward is readable but not writable [#3024/C/C-only].
 `Thermoregulator.getSetPoint()` is public on the exposed class and returns a private set point with no setter, which the update resets to 37 °C at its start and raises by twice the `SICKNESS` stat when that stat is above its minimum [#3024/C/C-only].

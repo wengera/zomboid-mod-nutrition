@@ -191,6 +191,7 @@ The poison health drain waited for the sickness: at POISON about 24 with FOOD_SI
 FOOD_SICKNESS written to 30 at POISON 0 decayed, from 29.820615768432617 to 28.763460159301758 between two server reads [#3038/M/n=1].
 The two sides' FOOD_SICKNESS copies read alike at 30, 60 and 95, and at 95 the SICK damage tag fired 287 times in 300 ticks; the SICK moodle levels themselves were not read [#3039/M/n=1].
 A PANIC and UNHAPPINESS write made by an `OnTick` handler on every server tick, outside the stat hook, survived each update: UNHAPPINESS rose the written 0.5 per tick and stayed at 100 after the writes stopped, while PANIC rose 0.32044067796610165 per tick and fell once they stopped [#3048/M/n=1].
+A second reading of the decay, with no zombie in view, took PANIC from 19 to 11.099 over 44 per-tick samples, 0.17956818181818182 a tick [#3116/M/n=1].
 The client's copies of the two trailed the server's by up to about a second [#3049/M/n=1].
 With the drunk-reduction value written to 0 the decay stops: INTOXICATION written to 40 read 40 on both sides for 0.65 game hours, over which the default value removes about 4.9 [#3054/M/n=1].
 A beer drunk at that setting still added the drink writer's full amount, 400 times 0.05 times 0.3 litres, taking the stat from 40 to 46, where it then stayed [#3055/M/n=1].
