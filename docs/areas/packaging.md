@@ -1,5 +1,5 @@
 # Packaging
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-design reading of how this mod ships — its folder shape, what it does about the join checksum, the mods that will sit beside it on a live server and the seats it shares with them, the compatibility approaches open to it and how long any of this stays true; the id chain, the version dirs, the checksum gate and the missing-mod failure are `platform/mod-anatomy.md`, the file map and the path collisions `platform/loader-and-scripts.md`, and every corpus count `facts/other-mods/catalog.md`
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-design reading of how this mod ships — its folder shape, what it does about the join checksum, the mods that will sit beside it on a live server and the seats it shares with them, the compatibility approaches open to it and how long any of this stays true; the id chain, the version dirs, the checksum gate and the missing-mod failure are `platform/mod-anatomy.md`, the file map and the path collisions `platform/loader-and-scripts.md`, and every corpus count `facts/other-mods/catalog.md`
 
 ## Rules
 <a id="rules"></a>

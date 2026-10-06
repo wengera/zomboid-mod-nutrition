@@ -1,5 +1,5 @@
 # New nutrients
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-05 · scope: where a mod nutrient can live, which wire route each store forces, what each store survives and where the nutrient's effect can attach; the ownership, routes and packets are `platform/mp-model.md` and `facts/wire-packets.md`, the vanilla stores `facts/nutrition-core.md`, the registries `platform/lua-platform.md`, and the verdicts `reference/wall-map.md`.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: where a mod nutrient can live, which wire route each store forces, what each store survives and where the nutrient's effect can attach; the ownership, routes and packets are `platform/mp-model.md` and `facts/wire-packets.md`, the vanilla stores `facts/nutrition-core.md`, the registries `platform/lua-platform.md`, and the verdicts `reference/wall-map.md`.
 
 ## Rules
 <a id="rules"></a>

@@ -70,6 +70,7 @@ On a client with `GameClient.clientSave` set, `GameWindow.save` saves the world 
 A live client confirms both ends: after a first registration under a name the file does not carry the mod's `stats.restoredVisible` read false, the panel hidden [#3215/M/n=1], and at a quit to desktop the file's mtime fell between the quit and the exit, the file carrying the mod panel's line [#3216/M/n=1]; a second boot wrote the same lines and again left `ModOptions.ini` empty [#3230/M/n=2].
 So the layout file is the cheap, local and late route: nothing crosses the wire, nothing is written during play, and a crash between two clean exits forgets every move made in that session.
 Player modData is the immediate and remote route, and its cost is the transmit hazard described on [mp-model.md](mp-model.md#wipe-and-replace).
+A mod can therefore keep its panel's geometry in the layout file with no code of its own beyond the registration, accepting that the file is written only when a session ends ([#2476/C/C-only], [#3216/M/n=1]).
 The geometry rule at the top of this page follows from these rows, and the choice between the two routes is a decision under [Open](#open).
 The two routes are not exclusive: a mod can register with the layout manager for the position and keep only what must survive a crash in player modData.
 Neither route is authoritative over anything but the panel's own placement, so neither touches the numbers the panel draws.
@@ -136,7 +137,7 @@ A wrap that skips the test paints its band over an open context menu with no too
 The sentinel that keeps the wrap single belongs in a global of its own, for the reason [lua-platform.md](lua-platform.md#dev-loop) gives [#0943/C/C-only].
 The wrap reaches `self.item`, the Java tooltip object `self.tooltip`, the character it was given and the whole `ISPanel` draw surface, which is everything a line of mod text needs.
 The two tooltip rules at the top of this page follow from the Java-built body, the fixed height and the context-menu test above.
-Everything a nutrition mod wants to say about a food therefore goes through one wrapped method and one band below the engine's box.
+Everything a nutrition mod wants to say about a food therefore goes through one wrapped method and one band below the engine's box, and a mod can reach the screen that way because the band is framed and drawn after the original returns, while the in-box padding route rests on a field write Lua may not make ([#2517/C/inference], [#2510/C/snapshot/unverified]).
 The band's text is the mod's own, so it carries the mod's own numbers rather than echoing the engine's.
 
 The resident interface mod leaves this route alone.
@@ -217,8 +218,6 @@ Not covered: the tooltip band's on-screen draw below the box, its height against
 - That no tree of `CleanUI` ships a file named `ISToolTipInv.lua`, `ISUIElement.lua`, `ISPanel.lua`, `ISPanelJoypad.lua`, `ISCollapsableWindow.lua`, `ISTabPanel.lua`, `ISLayoutManager.lua`, `ISCharacterInfoWindow.lua` or `ISHealthPanel.lua` is unverified: the scan of the workshop tree is not a committed dataset; re-measure by extending the inventory census to record each mod's file list and reading `CleanUI`'s row [#2498/C/snapshot/unverified].
 - That no vanilla Lua file accesses a `padBottom` field on any object, the literal `.padBottom` being absent from the install's Lua, is unverified: the scan is not a committed dataset; re-measure by a committed grep of `media/lua`, and settle the write itself with a probe that sets the field from Lua and reads the tooltip height back [#2510/C/snapshot/unverified].
 - That no vanilla Lua other than `MainOptions:addModOptionsPanel` calls `PZAPI.ModOptions:load()` is unverified: the scan of the install's Lua is not a committed dataset; re-measure by a committed grep of `media/lua` for `ModOptions:load` [#2528/C/snapshot/unverified].
-- The design must choose where a panel's geometry lives, because `layout.ini` is written only when a session ends [#2476/C/C-only], while player modData crosses the wire on every save ([mp-model.md](mp-model.md#wipe-and-replace)).
-- The design must choose how its tooltip lines reach the screen, because the tooltip's height is fixed by Java before Lua runs and the in-box padding route rests on a field write Lua may not make [#2491/C/C-only].
 
 ## See also
 

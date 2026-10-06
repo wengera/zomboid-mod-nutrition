@@ -1,5 +1,5 @@
 # MP sync — the routes this mod's state travels
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: which side this mod owns each quantity on, the three routes its own state can travel between a dedicated server and its clients, how each route fails on a live server, the pushes server Lua can cause and which client each reaches, global modData as the world's store, and what no route offers; the packet mechanisms are `platform/mp-model.md` and the field contracts `facts/wire-packets.md`
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: which side this mod owns each quantity on, the three routes its own state can travel between a dedicated server and its clients, how each route fails on a live server, the pushes server Lua can cause and which client each reaches, global modData as the world's store, and what no route offers; the packet mechanisms are `platform/mp-model.md` and the field contracts `facts/wire-packets.md`
 
 ## Rules
 <a id="rules"></a>

@@ -114,7 +114,7 @@ The harness client runs in debug mode, where an unguarded mod error [parks the c
 
 MoodleFramework positions its moodles at the frame cadence with no cache: `render()` calls `getXYPosition()` every frame for every visible moodle, and that walks every vanilla `MoodleType` in `Registries.MOODLE_TYPE`, reads a `getMoodleLevel` per type, walks another mod's `MoodleManager` modData table and sorts its own moodle-name list [#2549/C/C-only].
 That is a count of reads off the code, not a measured cost [#2549/C/C-only].
-Every moodle a consumer puts on the UI manager adds one such walk to each frame, so a consumer that registers six moodles adds up to six of them [#2549/C/C-only].
+Every moodle a consumer puts on the UI manager adds one such walk to each frame, so a consumer that registers N moodles adds N walks [#2549/C/C-only].
 Against the [read-cadence rule](../../areas/ui-and-moodles.md#read-cadence) this is the frame cadence and not the push cadence, and a consumer cannot cache it away because it is the framework's own code.
 What a consumer does control is how often it calls `:setValue`, and that is the cadence the read-cadence rule governs.
 

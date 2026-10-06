@@ -1,5 +1,5 @@
 # Lessons
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the standing rules this library leaves behind — what the approved corpus converges on, what it does that this mod will not, what a measurement of this game is allowed to claim, and how fast the corpus itself moves underneath a count; every mechanism a rule rests on lives on the page this one cites for it.
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the standing rules this library leaves behind — what the approved corpus converges on, what it does that this mod will not, what a measurement of this game is allowed to claim, and how fast the corpus itself moves underneath a count; every mechanism a rule rests on lives on the page this one cites for it.
 
 ## Rules
 <a id="rules"></a>

@@ -130,8 +130,8 @@ The generated script file is a `/* */` header and LF text with no date, so a reb
 ## `icon_gen.py` — the moodle icon generator
 
 `python tools/icon_gen.py --out <dir>` writes the six 32 x 32 RGBA class icons the mod's moodles load, `energy.png`, `hydration.png`, `deficiency.png`, `excess.png`, `stimulant.png` and `sleep.png`, into the directory it is given, and `python tools/icon_gen.py --check <dir>` compares each file there with the generator's output by sha256 and exits `1` on a missing or different file [#3242/C/C-only].
-The pixels are deterministic, drawn from a fixed palette and a glyph table by integer arithmetic, and the PNG is written by hand through `zlib` at level 9 with no ancillary chunk, so the bytes are the same on every run of one zlib implementation; a different zlib may emit other bytes for the same pixels, which is why the check pins bytes and a test of the pixels does not [#3242/C/C-only].
-It uses the standard library only, and the committed copies it checks sit under the mod's `common/media/ui/NutritionRevamp/`.
+The pixels are deterministic, drawn from a fixed palette and a glyph table by integer arithmetic, and the PNG is written by hand through `zlib` at level 9 with no ancillary chunk, so the bytes are the same on every run of one zlib implementation; a different zlib may emit other bytes for the same pixels, which is why the committed test compares the inflated pixels and the `--check` pins the maintainer's bytes [#3242/C/C-only].
+The committed copies it checks sit under the mod's `common/media/ui/NutritionRevamp/`.
 
 <a id="workshop-search"></a>
 ## `workshop_search.py` — the Workshop sweep

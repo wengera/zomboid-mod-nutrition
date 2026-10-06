@@ -76,7 +76,7 @@ A claim is minted in the commit that lands its evidence, never later.
 7. **Who runs the checker:** the committer, `--staged`, before every commit that touches its trigger paths (§ 3); an SDD reviewer re-runs it on the review package.
 8. **A science number:** a value the mod ships rests on a `settled` row of `docs/reference/science.tsv`; a writer files rows in a part file the controller applies with `tools/science_delta.py`, and every settled row's citation was resolved against its record before minting; the page is [reference/science](docs/reference/science.md).
 9. **A live row's text:** every number in a claim sits at a path its pointer names, unrounded beyond the sample; a mechanism read off the mod's own code is written in the bound as inference, never as the claim; the checker does not match a wildcard `do-not-cite` key (`phases.*.watch.raw`), so a wildcard is a review check (the five Plan 4 live reviews each returned five to nine such defects).
-10. **The apply tool rewrites plain provisional tags only:** a suffixed tag (`[T4.1/M/n=1]`) or a `#T4.1` form is rewritten by the controller by regex over every touched page, `experiments.md` included. The controller's regex runs over the touched pages only, never the register (old bounds carry stale provisional refs), and its `[##` cleanup matches tag brackets only (it hit a heading link once).
+10. **The apply tool rewrites plain provisional tags only:** a suffixed tag (`[T4.1/M/n=1]`) or a `#T4.1` form is rewritten by the controller by regex over every touched page, `experiments.md` included. The controller's regex runs over the touched pages only, never the register (old bounds carry stale provisional refs) and never `docs/superpowers/` (a plan record carries its own T-numbering, Plan 7 Task 4), and its `[##` cleanup matches tag brackets only (it hit a heading link once).
 
 ## 5. Harness rules
 
@@ -115,7 +115,6 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Rulings are written `Ruling: <what> — <why> — cost if wrong: <…>`. A ruling about the platform becomes a rule on [platform/lessons](docs/platform/lessons.md) with its mechanism row; a ruling about how this repository works becomes a rule in this file; a ruling a later agent must know is never only a ledger row.
 - Commits are pathspec commits (`git commit -m "…" -- <paths>`), never `--amend`, with no Claude attribution and a succinct subject line; implementers never push — the controller pushes at a plan's close.
 - Proceed to completion and ledger each decision for review instead of asking; ask only before a destructive action or one outside this worktree.
-- The controller's provisional-tag regex runs over the touched pages only and never over `docs/superpowers/`: a plan record carries its own T-numbering (Plan 7 Task 4).
 - A mapping curator's fix round that is small and spot-checked by the controller on its diff takes no separate re-review when the close's whole-pass review re-samples the merged data (Plan 6 ruling T4-11).
 - Implementers run in parallel only on disjoint files; reviewers are read-only, may overlap anything, and read an implementer's committed content with `git show <commit>:<path>`; research subagents are sent off as the work goes.
 - In a delta a `supersede` names its successor in the `successor` cell; the add row may sit anywhere.
@@ -133,7 +132,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - Long Bash heredocs with apostrophes fail to parse: write briefs and long files with the Write tool, and keep Bash-embedded Python apostrophe-free.
 - CRLF survivors in the working tree: `tools/README.md` (CRLF with a few LF lines), `tools/mod_lint.py`, `tools/tests/test_mod_lint.py`, `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua`, `testing/experiments/s03_body.py`, `testing/fixtures/default/fixture.json` (which `file` reports as JSON without naming its endings) and the `references/wiki-mirrors/` pages; edit them with `newline=''` handling and preserve the endings, and check any other file with `file <path>` first.
 - `core.autocrlf=true` here; `.gitattributes` pins the `TKX_ItemOverride` translation file to CRLF and `docs/reference/**` and `.claude/**` to LF.
-- PNG and other binary files under `mod/` are pinned `binary` in `.gitattributes`: autocrlf rewrote six PNG blobs once (Plan 7 Task 9).
+- PNG files under `mod/` (`mod/**/*.png`) are pinned `binary` in `.gitattributes`: autocrlf rewrote six PNG blobs once (Plan 7 Task 9).
 - A stray `ProjectZomboid64.exe` predating a session is Angus's own client, never killed (§ 5).
 - `lupa` 2.8 is the kernel tests' Lua 5.1 host (`python -m pip install lupa==2.8`), and the kernel coverage gate is line-granular, so the kernel files `NR_Kernel*.lua` are written one statement per line.
 - The harness client runs `-debug`, so an unguarded mod Lua error parks it in the debugger: [the raising-probe rule](docs/platform/lessons.md#rules).
