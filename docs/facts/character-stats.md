@@ -197,6 +197,8 @@ A beer drunk at that setting still added the drink writer's full amount, 400 tim
 A write made inside the `CalculateStats` handler is the later write against the decay, as the order reads: with the reduction back at its default, INTOXICATION written to 25 in the handler on every update read 25 at every kept per-tick sample and on the client, and fell once the writes stopped [#3056/M/n=1].
 On a server with sleep neither allowed nor needed, a FATIGUE of 0.42 written in the handler after the reset read 0.42 on the server and on the client for as long as it was written [#3057/M/n=1].
 On the same server an `OnTick` write of 0.42, outside the player update, reached the client as well, while the server's own reads between frames gave the reset value of about 1e-4; that the push carries what stands at the frame's tail, after `OnTick`, is an inference from that pair [#3058/M/n=1].
+A takeover handler's endurance write, folded every tick, reached the owning client as written: one client copy equalled the server's value read mid-regeneration a push earlier [#3079/M/n=1].
+A drink action's per-sip INTOXICATION increment lands outside the hook and stands for one update before a handler's next write replaces it, on the server and on the client [#3087/M/n=1].
 What these updaters leave to a mod's floors and the sickness stat they never touch are [the mood surface](health-surfaces.md#mood-surface) and [the poison section](health-surfaces.md#poison-infection).
 
 The frame's tail — `OnTick` and the network manager — is [the server tick order](../platform/server-lifecycle.md#tick-order), and the push that follows it is [the player-stats push](../platform/mp-model.md#packets).

@@ -233,6 +233,23 @@ A scenario that doses caffeine or alcohol gets it through the gut lane, never th
 At rest indoors the glycogen store fell from the first-sight store of 460.78 on a day without carbohydrate, and after a record edit to 150 it held at MET 3.0 and rose from the first read at MET 2.5, its changes matching a replay with no shivering draw [#2999/M/n=1]; a squat set read mostly 3.0 MET on the server, where the store neither draws nor refills [#3000/M/n=1].
 A scenario that holds sleep through the harness now gets the hours-awake reset: one sleep bout spanned the whole hold across the missed asleep reads, `awakeH` reading 0 at every read after the first [#3001/M/n=1], with the sleep pressure falling and the debt and impairment readings trivial at a hold begun under 16 hours awake [#3002/M/n=1].
 The bench on the third boot read within Plan 3's range and 2.1 per cent above its top after a discarded warm-up call [#3003/M/n=1].
+The first live boot of the whole Plan 5 build, the effects adapter and the fast handler's new writes included, ran nineteen minutes of arms without a mod error [#3070/M/n=1].
+The coefficient set is on the record from the first read after a join, and its epoch counts the rebuilds through the session [#3071/M/n=1].
+The server's FATIGUE is the writer's `S + circ + fOff` from the record at every read bracketed by record reads, exactly, and the client's copy is a value the server held about a push earlier [#3072/M/n=1, #3073/M/n=1].
+An empty stomach no longer reaches the level-4 hunger drain: the HUNGER view held at 0.69 with the hungry moodle at level 3 and no `HUNGRY` damage tag in any probe window, while the thirst cap was not approached [#3074/M/n=1].
+The Tired thresholds fell within about a tenth of a game hour of the kernel's replay of the live record, roughly twelve, fourteen and sixteen and a half hours after a rested first sight near 10:00 [#3075/M/n=1].
+A scenario that holds sleep through the harness gets the recovery constant only on the minutes the record counts asleep, about 85 per cent of them, so S falls more slowly than a wholly asleep step [#3076/M/n=1].
+A coffee moves the fatigue offset by the kernel's caffeine term at every slow minute [#3077/M/n=1].
+The endurance fold switched on live scales a squat set's drop within the run's coarse band, while two resting windows do not isolate its regeneration arm [#3078/M/n=1].
+A clinical B-vitamin store drives STRESS up at the net rate and holds it on the floor, and the floor's removal hands the stat back to the decay [#3080/M/n=1].
+The set the record carries is the composer's on that record at every whole read [#3081/M/n=1].
+The PANIC floor does not lift PANIC: it stays at one update's rise whatever the target, so the panic rows act on nothing in this build [#3082/M/n=1].
+The UNHAPPINESS floor rises at its rate, holds and is released once when the target falls [#3083/M/n=1].
+An excess rung drives FOOD_SICKNESS to its floor at the net rate with POISON at 0, and the excess dial off hands it to vanilla's decay [#3084/M/n=1].
+The Severity dial reaches the set at the next rebuild [#3085/M/n=1].
+INTOXICATION follows the gut lane's target rather than the drink writer's total, except for one update after each sip [#3086/M/n=1].
+The aim multiplier reaches the client's mirror and the swing stub and is applied nowhere [#3088/M/n=1].
+The fast step's bench cost sits inside 10 per cent of the Plan 4 reading [#3089/M/n=1], and the effects push is deduplicated to a fraction of its marks [#3090/M/n=1].
 
 <a id="owned-experiments"></a>
 ### The experiments this mod owns

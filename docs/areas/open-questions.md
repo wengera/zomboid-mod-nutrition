@@ -329,6 +329,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether a `CalculateStats` handler's endurance write is the last write before the player-stats push, as the tick order reads, is open [#2082/C/open].
 - Run `x132r-20261005-072441` could not take it: no handler in the tree writes the sentinel, the mod having dropped its own and the probe mod's handlers writing no stat, and the harness run command only walked [#2840/M/n=2].
 - Run `x161s-20261006-031534` read only vanilla's awake endurance reaching the client, within about one push, no handler writing awake endurance on that boot (code inference; #3050's bound) [#3050/M/n=1].
+- Run `x161f-20261006-055908` read one discriminating resting pair with the endurance fold on: the client's copy equalled the handler-written value read mid-regeneration a push earlier; no running arm [#3079/M/n=1].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: a handler writing a sentinel endurance each tick, read in client-first pairs at rest and while running, beside an arm with the handler removed — [experiments.md § Named experiments](../reference/experiments.md), row `X35`.
 
