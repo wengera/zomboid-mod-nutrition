@@ -71,7 +71,7 @@ A live client confirms both ends: after a first registration under a name the fi
 So the layout file is the cheap, local and late route: nothing crosses the wire, nothing is written during play, and a crash between two clean exits forgets every move made in that session.
 Player modData is the immediate and remote route, and its cost is the transmit hazard described on [mp-model.md](mp-model.md#wipe-and-replace).
 A mod can therefore keep its panel's geometry in the layout file with no code of its own beyond the registration, accepting that the file is written only when a session ends ([#2476/C/C-only], [#3216/M/n=1]).
-The geometry rule at the top of this page follows from these rows, and a mod registers the layout manager for its position (the rule above) and keeps only crash-critical state in modData.
+The geometry rule at the top of this page follows from these rows.
 The two routes are not exclusive: a mod can register with the layout manager for the position and keep only what must survive a crash in player modData.
 Neither route is authoritative over anything but the panel's own placement, so neither touches the numbers the panel draws.
 

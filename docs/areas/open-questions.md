@@ -183,6 +183,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: a global read of `MoodleStat` beside two exposed controls that must answer in the same call, riding any session with a client — [experiments.md § Named experiments](../reference/experiments.md), row `X2`.
 
 <a id="x5"></a>
+### X5 — Does a mod JSON displace a vanilla translation key? (settled)
 - Settled by run x182: a mod translation JSON displaces a vanilla interface key on the client [#3201/M/n=1]; see [experiments.md § Named experiments](../reference/experiments.md), row `X5`.
 
 <a id="x9b"></a>
@@ -265,6 +266,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Settled by: reading a multiply-redefined item's id and full type on both sides in the shared script-replay boot, where the two sides agreeing bounds the risk — [experiments.md § Named experiments](../reference/experiments.md), row `X27`.
 
 <a id="x29"></a>
+### X29 — Does `MoodleFramework` load whole and render a registered moodle? (settled)
 - Settled by run x181: a moodle registered through MoodleFramework renders on a dedicated-server client [#3192/M/n=1]; see [experiments.md § Named experiments](../reference/experiments.md), row `X29`.
 
 <a id="x30"></a>
