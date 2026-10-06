@@ -385,7 +385,7 @@ def test_temperature_speed_fatigue_offset_and_short_sight(kh):
     e = _compose(kh, nut=_nut(kh, iron={"g": 4}), b=_b(kh, bg=3))
     assert e.tempOffset == pytest.approx(-0.4, abs=TOL)
     assert kh.K.effects.tempOffset(e) == e.tempOffset
-    assert _compose(kh, b=_b(kh, dehyd=6)).tempHeat == pytest.approx(0.3, abs=TOL)
+    assert _compose(kh, b=_b(kh, dehyd=7)).tempHeat == pytest.approx(0.3, abs=TOL)
     assert _compose(kh, b=_b(kh, dehyd=4)).tempHeat == pytest.approx(0.075, abs=TOL)
     e = _compose(kh, b=_b(kh, bg=2, iu=22))
     assert e.speedMul == pytest.approx(0.90, abs=TOL)                     # min(0.92, 0.90)
@@ -397,8 +397,8 @@ def test_temperature_speed_fatigue_offset_and_short_sight(kh):
     assert _compose(kh, nut=vitA, sev=0.5).shortSighted is False          # ruling 7
     assert _compose(kh, nut=_nut(kh, vitA={"g": 3})).shortSighted is False
     assert kh.K.effects.sevScale("or", True, 0.5, None) is True
-    assert kh.K.effects.sevScale("max", 30, 2, None) == 30
-    assert kh.K.effects.sevScale("min", 0.85, 2, None) == 0.85
+    assert kh.K.effects.sevScale("max", 30, 2, None) == 60
+    assert kh.K.effects.sevScale("min", 0.85, 2, None) == pytest.approx(0.70, abs=TOL)
 
 
 def test_bgroup_max(kh):
@@ -566,3 +566,26 @@ def test_the_cold_credit_gate(kh):
     assert c(2, 500, 120, 30, 2) is False                                 # not replete
     assert c(1, 199, 120, 30, 2) is False                                 # under 200 mg/d (S0980)
     assert c(1, 500, 120, 30, 0.24) is False                              # not cold-exposed
+
+
+def test_severity_scales_the_max_and_min_surfaces_t6_1(kh):
+    st = dict(nut=_nut(kh, iron={"x": 3}, vitC={"g": 4}), b=_b(kh, dehyd=7))
+    e0 = _compose(kh, sev=0, **st)
+    assert e0.foodSickTarget == 0 and e0.speedMul == 1 and e0.bruise == 0
+    e1 = _compose(kh, sev=1, **st)
+    assert e1.foodSickTarget == 85 and e1.speedMul < 1 and e1.bruise > 0
+    assert _compose(kh, sev=0.5, **st).foodSickTarget == 42.5
+    r1 = dict(nut=_nut(kh, iron={"x": 1}))
+    assert _compose(kh, sev=2, **r1).foodSickTarget == 60                 # 30 x 2, under the 85 clamp
+    assert _compose(kh, sev=2, nut=_nut(kh, iron={"x": 3})).foodSickTarget == 85
+    assert _compose(kh, sev=2, **st).speedMul == 0.75                     # 1 - 2 x 0.15 = 0.70, the floor
+    d0 = _compose(kh, sev=0, **st).drain
+    assert _compose(kh, sev=2, **st).drain == d0                          # the machine surface is unscaled
+
+
+def test_the_exercise_credits_are_never_scaled_t6_2(kh):
+    base = dict(b=_b(kh, ex=4))
+    for sev in (0.5, 1, 3):
+        e = _compose(kh, sev=sev, **base)
+        assert e.rNut == pytest.approx(1.1, abs=TOL)
+        assert e.panicTarget == 0 and e.unhappyTarget == 0                # clamped at the floor, no penalty to offset

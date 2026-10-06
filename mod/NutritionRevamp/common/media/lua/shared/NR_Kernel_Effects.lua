@@ -63,7 +63,7 @@ K.effects.IU_STEP = 0.1 -- IU: the aim multiplier's resolution 0.025: game choic
 K.effects.IU_BANDS = 25 -- 2.5 IU, K.acute.IU_MAX: game choice (open S1178)
 -- The dehydration edges, per cent body mass.
 K.effects.DEHYD_EDGES = {
-    1, -- S0894 (no effect below 1 %)
+    1, -- S0894 (the studied range starts at 1 %)
     1.5, -- S0098 / S0099 (1.36-1.59 %)
     2, -- S0706 / S0707 / S0895 (the 2 % line)
     2.5, -- game choice curve knot (open S1121)
@@ -434,13 +434,20 @@ function K.effects.foldRows(E, T, nut, b, pe, ea, flags, bonusOn, vitdOn, bonusP
 end
 
 -- The Severity dial on one folded surface (ruling 23): mul 1 + (v - 1) x sev, add v x sev, a boolean with
--- sevMin false below it; max, min and the machine surfaces untouched.
+-- sevMin false below it; a max surface (identity 0) v x sev, a min surface (identity 1) 1 - (1 - v) x sev; the
+-- machine surfaces untouched (surfaceStep skips them).
 function K.effects.sevScale(op, v, sev, sevMin)
     if op == "mul" then
         return 1 + (v - 1) * sev
     end
     if op == "add" then
         return v * sev
+    end
+    if op == "max" then
+        return v * sev
+    end
+    if op == "min" then
+        return 1 - (1 - v) * sev
     end
     if op == "or" and sevMin ~= nil and sev < sevMin then
         return false

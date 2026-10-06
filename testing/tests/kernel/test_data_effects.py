@@ -188,12 +188,16 @@ def test_the_vitamin_d_rows_are_the_two_gated_rows(eh):
     assert vitd_grade == gated                                          # no ungated vitamin D deficiency row
 
 
-def test_the_two_bonus_entries_are_the_named_exceptions(eh):
+def test_the_five_bonus_entries_are_the_named_exceptions(eh):
     bonus = [(r, e) for r, e in _entries(eh) if e.get("bonus")]
-    assert len(bonus) == 2
-    got = {(r["src"], e["s"], e["v"], r.get("gated")) for r, e in bonus}
-    assert got == {("allReplete", "rNut", 1.05, "BalanceBonus"), ("coldCredit", "coldMul", 0.50, None)}
+    got = {(r["src"], e["s"], r.get("gated")) for r, e in bonus}
+    assert got == {("allReplete", "rNut", "BalanceBonus"), ("coldCredit", "coldMul", None),
+                   ("ex", "rNut", None), ("ex", "panicTarget", None), ("ex", "unhappyTarget", None)}
     assert all(e["bonus"] is True for _, e in bonus)
+    ex = [e for r, e in bonus if r["src"] == "ex"]
+    assert len(ex) == 12 and all(e["row"] in ("S0826", "S0932") for e in ex)
+    assert [e["v"] for r, e in _entries(eh) if r["src"] == "boutVig"] == [0.95]
+    assert not [e for r, e in _entries(eh) if r["src"] == "boutVig" and e.get("bonus")]
 
 
 def test_the_rulings_the_table_encodes(eh):
@@ -253,7 +257,7 @@ def _d(b):
 
 def test_the_dehydration_accrual_at_each_lower_edge(eh):
     got = _band_values(eh, "dehyd", "mNut")
-    assert sorted(got) == [2, 3, 4, 5, 6, 7, 8]                           # band 1 (1 %) is d = 0: no row (S0894)
+    assert sorted(got) == [2, 3, 4, 5, 6, 7, 8]                           # band 1 (1 %) is d = 0: no row (S0894, the studied range starts at 1 %)
     for n, v in got.items():
         assert v == pytest.approx(1 + 0.30 * _d(DEHYD_EDGE[n]), abs=1e-12), n
     assert got[4] == 1.21 and got[2] == 1.0875                            # I-B2 / I-B2b

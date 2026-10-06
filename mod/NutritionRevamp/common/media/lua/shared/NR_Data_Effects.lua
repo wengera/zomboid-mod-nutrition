@@ -44,7 +44,7 @@ NR.data.effects = {
         poisonTarget = { op = "max", id = 0, lo = 0, hi = 30 }, -- no row drives it: POISON 0 at every rung (ruling 12); the drain caps at 30 #2358
         healMul = { op = "mul", id = 1, lo = 0.5, hi = 1.0 }, -- wound healing; game choice floor (open S1149)
         bleedMul = { op = "mul", id = 1, lo = 1.0, hi = 1.25 }, -- total bleeding damage; game choice range (open S1152)
-        infectMul = { op = "mul", id = 1, lo = 1.0, hi = 2.3 }, -- wound-infection progression; the top is S0954's OR 2.31
+        infectMul = { op = "mul", id = 1, lo = 1.0, hi = 2.3 }, -- wound-infection progression; S0954 OR 2.31, as 2.30
         coldMul = { op = "mul", id = 1, lo = 0.5, hi = 3.0 }, -- catchACold rises; game choice clamp under S0993/S0991 (open S1159)
         tempOffset = { op = "add", id = 0, lo = -0.5, hi = 0.3 }, -- core target offset, degrees C; game choice clamp around the -0.2 falls (S1016, open S1161) and the +0.3 rise (open S1160)
         tempHeat = { op = "add", id = 0, lo = 0, hi = 0.3 }, -- the exertion-gated heat side, degrees C; game choice magnitude (open S1160)
@@ -179,16 +179,20 @@ NR.data.effects = {
         -- Exercise earlier today: the ex band (exEma / 7.5 min, full at EX_FULL 30 min, open S1148) gives 1 + 0.10 q,
         -- q = band / 4, S0826 (+1.3 pp SWS), S0824; skipped while boutVig (the vigorous row replaces it, S0827/S0828).
         { src = "ex", on = "band", at = 1, unless = "boutVig", list = { -- q 0.25, S0826
-            { ch = "stat", s = "rNut", v = 1.025, row = "S0826", gc = true }, -- 1 + 0.10 x 0.25; game choice 0.10 (open S1129)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "rNut", v = 1.025, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 0.25; game choice 0.10 (open S1129)
         } },
         { src = "ex", on = "band", at = 2, unless = "boutVig", list = { -- q 0.50, S0826
-            { ch = "stat", s = "rNut", v = 1.05, row = "S0826", gc = true }, -- 1 + 0.10 x 0.50; game choice 0.10 (open S1129)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "rNut", v = 1.05, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 0.50; game choice 0.10 (open S1129)
         } },
         { src = "ex", on = "band", at = 3, unless = "boutVig", list = { -- q 0.75, S0826
-            { ch = "stat", s = "rNut", v = 1.075, row = "S0826", gc = true }, -- 1 + 0.10 x 0.75; game choice 0.10 (open S1129)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "rNut", v = 1.075, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 0.75; game choice 0.10 (open S1129)
         } },
         { src = "ex", on = "band", at = 4, unless = "boutVig", list = { -- q 1, S0826
-            { ch = "stat", s = "rNut", v = 1.10, row = "S0826", gc = true }, -- 1 + 0.10 x 1; game choice 0.10 (open S1129)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "rNut", v = 1.10, row = "S0826", gc = true, bonus = true }, -- 1 + 0.10 x 1; game choice 0.10 (open S1129)
         } },
         { src = "boutVig", on = "flag", list = {
             { ch = "stat", s = "rNut", v = 0.95, row = "S0827", gc = true }, -- vigorous ending 1 h or less before the bout, direction S0827 (none at 4 h, S0828); game choice (open S1130)
@@ -264,20 +268,28 @@ NR.data.effects = {
         -- E3 the exercise credit (target offsets only, ruling 9): q = ex band / 4; panic -11 q (S0932 anxiety SMD -0.47 x 24
         -- = 11.3), unhappiness -13 q (S0932 depression SMD -0.61 x 22 = 13.4).
         { src = "ex", on = "band", at = 1, list = { -- q 0.25, S0932
-            { ch = "stat", s = "panicTarget", v = -2.75, row = "S0932", gc = true }, -- -11 x 0.25; game choice convention (open S1144)
-            { ch = "stat", s = "unhappyTarget", v = -3.25, row = "S0932", gc = true }, -- -13 x 0.25; game choice convention (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "panicTarget", v = -2.75, row = "S0932", gc = true, bonus = true }, -- -11 x 0.25; game choice convention (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "unhappyTarget", v = -3.25, row = "S0932", gc = true, bonus = true }, -- -13 x 0.25; game choice convention (open S1144)
         } },
         { src = "ex", on = "band", at = 2, list = { -- q 0.50, S0932
-            { ch = "stat", s = "panicTarget", v = -5.5, row = "S0932", gc = true }, -- -11 x 0.50; game choice (open S1144)
-            { ch = "stat", s = "unhappyTarget", v = -6.5, row = "S0932", gc = true }, -- -13 x 0.50; game choice (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "panicTarget", v = -5.5, row = "S0932", gc = true, bonus = true }, -- -11 x 0.50; game choice (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "unhappyTarget", v = -6.5, row = "S0932", gc = true, bonus = true }, -- -13 x 0.50; game choice (open S1144)
         } },
         { src = "ex", on = "band", at = 3, list = { -- q 0.75, S0932
-            { ch = "stat", s = "panicTarget", v = -8.25, row = "S0932", gc = true }, -- -11 x 0.75; game choice (open S1144)
-            { ch = "stat", s = "unhappyTarget", v = -9.75, row = "S0932", gc = true }, -- -13 x 0.75; game choice (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "panicTarget", v = -8.25, row = "S0932", gc = true, bonus = true }, -- -11 x 0.75; game choice (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "unhappyTarget", v = -9.75, row = "S0932", gc = true, bonus = true }, -- -13 x 0.75; game choice (open S1144)
         } },
         { src = "ex", on = "band", at = 4, list = { -- q 1, S0932
-            { ch = "stat", s = "panicTarget", v = -11.0, row = "S0932", gc = true }, -- -11 x 1; game choice (open S1144)
-            { ch = "stat", s = "unhappyTarget", v = -13.0, row = "S0932", gc = true }, -- -13 x 1; game choice (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "panicTarget", v = -11.0, row = "S0932", gc = true, bonus = true }, -- -11 x 1; game choice (open S1144)
+            -- a behaviour credit the spec names (s4.5 "exercise improves recovery"; S0826/S0932), not an adequacy bonus: bonus-flagged so the Severity dial never amplifies it
+            { ch = "stat", s = "unhappyTarget", v = -13.0, row = "S0932", gc = true, bonus = true }, -- -13 x 1; game choice (open S1144)
         } },
         -- E3/F2 vitamin D (gated off, ruling 8): unhappiness (S0920 SMD -0.32 per 1000 IU x 22 = 7, halved) and colds
         -- (S0974 OR 0.94: at most 6 %). Semi-starvation mood: no row (S0113 symptom list, open S0937); omega-3: no row.
@@ -337,7 +349,7 @@ NR.data.effects = {
         } },
         { src = "pe", on = "pe", at = 4, list = { -- protein-energy clinical, S0951/S0954/S0955
             { ch = "body", s = "healMul", v = 0.74, row = "S0951" }, -- 1/1.35, the closure ratio 60.9/45.2 of S0951
-            { ch = "body", s = "infectMul", v = 2.30, row = "S0954" }, -- S0954 OR 2.31 (S0955's 2.60/3.44 the conservative end taken)
+            { ch = "body", s = "infectMul", v = 2.30, row = "S0954" }, -- S0954 OR 2.31, as 2.30
         } },
         { src = "vitC", on = "grade", at = 3, list = { -- vitamin C depleted, S0952/S0965
             { ch = "body", s = "healMul", v = 0.85, row = "S0216", gc = true }, -- game choice (open S0216); S0952 null at replete
@@ -356,7 +368,7 @@ NR.data.effects = {
             { ch = "body", s = "healMul", v = 0.85, row = "S1151", gc = true }, -- game choice (open S1151)
         } },
         { src = "coldCredit", on = "flag", list = { -- replete vitamin C, at least 200 mg/d, exerting and cold-exposed, S0980
-            { ch = "body", s = "coldMul", v = 0.50, row = "S0980", bonus = true }, -- S0980 RR 0.48 (S0979 null in the community: no credit otherwise)
+            { ch = "body", s = "coldMul", v = 0.50, row = "S0980", gc = true, bonus = true }, -- S0980 RR 0.48 taken as 0.50 (roughly halves); game choice (open S1155)
         } },
         { src = "ea", on = "ea", at = 1, list = { -- energy availability [20, 30) kcal/kg LBM, S0691/S0990
             { ch = "body", s = "coldMul", v = 1.3, row = "S1156", gc = true }, -- game choice rung (open S1156)
