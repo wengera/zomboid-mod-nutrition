@@ -71,7 +71,8 @@
 -- Draw calls in the vanilla argument order: ISUIElement:drawRect(x, y, w, h, a, r, g, b) (ISUIElement.lua:1191),
 -- drawRectBorder(x, y, w, h, a, r, g, b) (:1219), drawText(str, x, y, r, g, b, a, font) (:1293).
 -- Cadence: the wrapper runs per rendered frame while a tooltip is up; per frame it reads the hovered item's
--- type and modData and hits the cache (a same-item fast path first); the vector is built once per type.
+-- type, modData, base hunger, hunger and four macros (about nine guarded getters) to form the cache key and
+-- hits the cache (a same-item fast path first); the vector is built once per type and whole-item macro tuple.
 local NR = NutritionRevamp
 
 NR.client.tooltip = {
