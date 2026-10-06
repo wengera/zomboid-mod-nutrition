@@ -2347,3 +2347,89 @@ TK.register("bodypart.get", function(argv)
     out.ok = (#out.parts > 0)
     return out
 end)
+
+-- The writer table of bodypart.set: field name -> { setter, getter, kind, mask bit }. The mask bit
+-- is the body-part packet key minus one (#2626: bleedingTime 17, deepWoundTime 18, scratchTime 12,
+-- biteTime 13, fractureTime 27, cutTime 39, additionalPain 22, woundInfectionLevel 15,
+-- infectedWound 16, health 0); a field with no bit (bleeding, burnTime) replies synced=false with
+-- the reason when `sync` is asked. kind: "num" -> tonumber, "bool" -> true|false.
+P5.PART_SETTERS = {
+    health = { "SetHealth", "getHealth", "num", 0 },
+    bleedingTime = { "setBleedingTime", "getBleedingTime", "num", 17 },
+    bleeding = { "setBleeding", "bleeding", "bool", nil },
+    deepWoundTime = { "setDeepWoundTime", "getDeepWoundTime", "num", 18 },
+    scratchTime = { "setScratchTime", "getScratchTime", "num", 12 },
+    cutTime = { "setCutTime", "getCutTime", "num", 39 },
+    biteTime = { "setBiteTime", "getBiteTime", "num", 13 },
+    burnTime = { "setBurnTime", "getBurnTime", "num", nil },
+    fractureTime = { "setFractureTime", "getFractureTime", "num", 27 },
+    woundInfectionLevel = { "setWoundInfectionLevel", "getWoundInfectionLevel", "num", 15 },
+    infectedWound = { "setInfectedWound", "isInfectedWound", "bool", 16 },
+    additionalPain = { "setAdditionalPain", "getAdditionalPain", "num", 22 },
+}
+
+-- <user> <partIndex> <field> <value> [sync]. The matching BodyPart setter (index-first, under
+-- pcall) for one field of one part, read back through the getter before and after. `sync` then
+-- calls the Lua global syncBodyPart(part, mask) with the field's own packet bit (#2626; the long
+-- mask goes in as a double, 2^bit, which is exact to 2^53); the global is server-gated and the
+-- call returning says nothing about delivery, so `synced` records only that it ran -- delivery is
+-- the client twin's bodypart.get. The setter table is P5.PART_SETTERS above.
+-- @args <user> <partIndex> <field> <value> [sync]
+-- @reply {ok, side, part, field, requested, before, after, synced [, mask] [, reason]} | string
+-- @purpose Writes one wound field of one body part of a named player through its BodyPart setter, replying the value before and after and whether syncBodyPart ran with that field's packet bit.
+TK.register("bodypart.set", function(argv)
+    local p = findPlayer(argv[1])
+    if not p then return "no online player " .. tostring(argv[1]) end
+    local idx, field, raw = tonumber(argv[2]), argv[3], argv[4]
+    if idx == nil or field == nil or raw == nil then
+        return "usage: bodypart.set <user> <partIndex> <field> <value> [sync]"
+    end
+    local spec = P5.PART_SETTERS[field]
+    local out = { ok = false, side = TK.side, part = idx, field = field, synced = false }
+    if spec == nil then
+        out.reason = "no setter for " .. tostring(field)
+        return out
+    end
+    local v
+    if spec[3] == "bool" then
+        if raw == "true" or raw == "1" then v = true elseif raw == "false" or raw == "0" then v = false end
+    else
+        v = tonumber(raw)
+    end
+    if v == nil then
+        out.reason = "bad value " .. tostring(raw)
+        return out
+    end
+    out.requested = v
+    local part = P5.part(p, idx)
+    if part == nil then
+        out.reason = "no body part at index " .. idx
+        return out
+    end
+    out.before = P5.hop(part, spec[2])
+    local setter = part[spec[1]]
+    if setter == nil then
+        out.reason = "no " .. spec[1] .. " on BodyPart"
+        return out
+    end
+    local ran, err = pcall(setter, part, v)
+    if not ran then
+        out.reason = spec[1] .. " raised: " .. tostring(err)
+        return out
+    end
+    out.after = P5.hop(part, spec[2])
+    out.ok = (out.after ~= nil)
+    if argv[5] == "sync" then
+        if spec[4] == nil then
+            out.reason = "no packet bit for " .. field .. ": synced=false"
+        elseif syncBodyPart == nil then
+            out.reason = "no syncBodyPart global on this side"
+        else
+            out.mask = 2 ^ spec[4]
+            local ranS, errS = pcall(syncBodyPart, part, out.mask)
+            out.synced = ranS
+            if not ranS then out.reason = "syncBodyPart raised: " .. tostring(errS) end
+        end
+    end
+    return out
+end)
