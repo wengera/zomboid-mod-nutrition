@@ -1,0 +1,5 @@
+name=TKX Translate Override
+id=TKX_TranslateOverride
+description=Plan 7 experiment X5: JSON translations that redefine one vanilla item name and one vanilla IGUI key and add one new IGUI key. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

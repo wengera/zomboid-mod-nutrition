@@ -1,0 +1,20 @@
+# testing/profiles/x18-translate.toml - Plan 7 gate X5: does a mod JSON displace a vanilla translation key.
+# PZTestKit + TKX_TranslateOverride (Base.Apple -> "TKX Apple", IGUI_invpanel_Type -> "TKX Type", new IGUI_TKX_Probe -> "tkx-hit").
+# The IGUI_TKX_Probe row is the mandatory positive control: a hit proves the mod's translation tree loaded.
+fixture = "default"
+description = "PZTestKit + TKX_TranslateOverride - Plan 7 gate X5."
+run = { hold = 20 }
+verify = [
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "value" },
+  { side = "client", cmd = "text.get", args = "IGUI_TKX_Probe", expect = "tkx-hit" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "TKX_TranslateOverride"
+path = "testing/experiments/TKX_TranslateOverride"
+
+[client]
+timeout = 120

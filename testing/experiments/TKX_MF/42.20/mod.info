@@ -1,0 +1,5 @@
+name=TKX MF Probe
+id=TKX_MF
+description=Plan 7 experiment X29: registers one MoodleFramework moodle, records its level, polarity, UI-manager flag and render count, and draws an own ISUIElement widget beside it. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

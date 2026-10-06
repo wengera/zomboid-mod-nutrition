@@ -1,0 +1,25 @@
+# testing/profiles/x18-moodleframework.toml - Plan 7 gate X29: does MoodleFramework load whole on 42.20.4, does its
+# MF_Config.lua execute, and does a moodle registered through it render. PZTestKit + MoodleFramework (workshop 3396446795,
+# live tree re-read and dated by the driver) + TKX_MF (the probe; the driver sets the client player-modData key TKX_mf).
+# The verify rows are load gates only; the readings are the driver's.
+fixture = "default"
+description = "PZTestKit + MoodleFramework (workshop 3396446795) + TKX_MF - Plan 7 gate X29."
+run = { hold = 20 }
+verify = [
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = "value" },
+  { side = "client", cmd = "lua.global", args = "TKX_MF.detected", expect = '"value": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "MoodleFramework"
+workshop_id = "3396446795"
+
+[[mods]]
+id = "TKX_MF"
+path = "testing/experiments/TKX_MF"
+
+[client]
+timeout = 120
