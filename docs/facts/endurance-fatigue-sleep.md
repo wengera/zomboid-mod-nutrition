@@ -131,6 +131,8 @@ Read as written, the first test is dead weight and moderate heat costs no extra 
 None of the three multipliers has a setter; the missing setters are listed under [Walls and bounds](#walls).
 A mod moves `getRecoveryMod` only through the Fitness perk or the weight-band traits, and `getPacingMod` only through the Fitness perk.
 
+Measured live, vanilla's awake endurance reaches the owning client within about one push: with ENDURANCE written to 0.6 on the server and rising under a harness walk, the client's copies lay 369.61376953125 to 1162.46142578125 ms behind the server's series; the mod's handler wrote no awake endurance on that boot, so whether a handler's write is the one the push carries is still [X35](../areas/open-questions.md#x35)'s question [#3050/M/n=1] [#2082/C/open].
+
 <a id="writers"></a>
 ### Event writers
 
@@ -304,7 +306,7 @@ Not covered: the cadence of the injuries packet that carries the rebuilt speed f
 <a id="open"></a>
 
 - Does a `CalculateStats` handler that reproduces the skipped updaters, endurance and awake fatigue among them, track vanilla's stat trajectory stat by stat over several game-hours on a live server — settled by two boots of one fixture, one with and one without the handler; run x131c-20261004-181223 compared thirst and hunger but neither endurance arm nor the asleep fatigue, its sleep flag and run flag not holding; -> [X34](../areas/open-questions.md#x34) [#2081/C/open]
-- Is a `CalculateStats` handler's endurance write the last write before the player-stats push, as the tick order reads — settled by a handler writing a sentinel endurance each tick, read in client-first pairs; run x131c-20261004-181223 read the sentinel at rest only, its running pairs having walked ([character-stats.md](../facts/character-stats.md#tick-order)); -> [X35](../areas/open-questions.md#x35) [#2082/C/open]
+- Is a `CalculateStats` handler's endurance write the last write before the player-stats push, as the tick order reads — settled by a handler writing a sentinel endurance each tick, read in client-first pairs; run x131c-20261004-181223 read the sentinel at rest only, its running pairs having walked ([character-stats.md](../facts/character-stats.md#tick-order)), and run x161s-20261006-031534 read only vanilla's awake write reaching the client [#3050/M/n=1]; -> [X35](../areas/open-questions.md#x35) [#2082/C/open]
 - Decision: where a mod moves endurance recovery — `getRecoveryMod` multiplies every regeneration arm but has no setter, so the levers are the Fitness perk, the weight-band traits, the `EndRegen` option, or a replacement of the whole stat tick through the hook the two experiments above test [#2258/C/C-only] [#2287/C/C-only].
 - Decision: whether fatigue is modelled at all on a server that does not both allow and need sleep, where the server pins it every update ahead of the `CalculateStats` hook (see [character-stats.md](../facts/character-stats.md#tick-order)).
 - Decision: whether the mod's endurance costs ride the per-update model, the three event writers, or both — the event writers sit outside the per-update model, so a per-update replacement that ignores them loses the swing, vault and exercise costs [#2269/C/C-only].

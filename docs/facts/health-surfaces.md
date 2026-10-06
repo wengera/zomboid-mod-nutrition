@@ -35,6 +35,7 @@ Otherwise it divides the argument by the part count and each part's share again 
 Before any of that it calls `forceAwake` on its character whenever overall health is at or below `10`, so a drain that crosses that line wakes a sleeper [#2346/C/C-only].
 `AddGeneralHealth(f)` counts only the parts below `100` health, divides the argument among them and applies no damage modifier [#2347/C/C-only].
 A heal therefore concentrates on the damaged parts, while a loss lands on every part [#2346/C/C-only] [#2347/C/C-only].
+Measured live, a server `ReduceGeneralHealth(10)` reached the owning client's overall and per-part health within about a second, the client's later copies equalling server reads taken a fraction of a second before; the packet that carries them was not identified [#3040/M/n=1].
 
 The tick stops when overall body health is exactly zero [#2343/C/C-only].
 At that value `BodyDamage.Update` returns before its regeneration, the severe-moodle drain, poison, pain, infection, the per-part update and the overall-health recompute [#2343/C/C-only].
@@ -104,6 +105,7 @@ Their defaults are `0.002` standard, `0.0013` reduced, `0.0008` severely reduced
 Each has a public getter and setter on an exposed class, so a mod can retune the whole ladder for one character without touching another's [#2354/C/C-only].
 `BodyDamage` has no `setHealthAdditionModifier`: the ladder is moved by writing the four constants [#2354/C/C-only] [#2382/C/C-only].
 The four constants are not saved: no save or load body names them, so a mod's values are lost at a reload and the constructor's defaults return [#3020/C/inference].
+Within a session the written constants held: halved, they read back unchanged 31.9 s later; whether the halving halves awake regeneration is unmeasured, because the one window read ran at hunger moodle level 4, whose tier adds nothing [#3045/M/n=1/open].
 
 The severe-moodle constant sits beside them [#2355/C/C-only].
 `healthReductionFromSevereBadMoodles` defaults to `0.0165` and has a public getter and setter [#2355/C/C-only].
@@ -207,7 +209,11 @@ Four `BodyPart` setters are easy to mistake for healing rates [#2368/C/C-only].
 The `scratch`, `cut`, `burn` and `deepWound` speed modifiers have only one reader in the jar, `IsoGameCharacter.calculateInjurySpeed`, which is a movement and combat speed term [#2368/C/C-only].
 A mod that wants an injury to cripple harder can set them; a mod that wants slower healing must move a timer or a factor instead [#2368/C/C-only] [#2366/C/C-only].
 
-A server-side write to any per-part field reaches the owning client only through `syncBodyPart`, whose gate is stated among the sync globals of [../platform/mp-model.md](../platform/mp-model.md#sync-globals) and whose field mask with the body-part packet of [wire-packets.md](wire-packets.md).
+`syncBodyPart` sends a per-part field to the owning client at once; its gate is stated among the sync globals of [../platform/mp-model.md](../platform/mp-model.md#sync-globals) and its field mask with the body-part packet of [wire-packets.md](wire-packets.md).
+It is not the only route: measured live, a server write of a hand's `bleedingTime` with no sync reached the client 1.27 s after the write and then followed the server's countdown in steps about two seconds apart, while the same write with the sync read on the client at once; the carrier of the unsynced copy was not identified [#3041/M/n=1].
+The written timer counted down on the server near the unbandaged rate, 0.035657223114633624 per game hour, and bled through the `BLEEDING` damage tag on 151 ticks of an 18 s window [#3042/M/n=1].
+An infected open wound's level rose at the untreated rate, 0.018090308722325733 per game hour, and with the part's alcohol level written to 1 it fell at 0.35913723562284106 per game hour [#3043/M/n=1].
+An extra rise driven over the harness bus as a read and then a write about a second apart reached only 1.179928563584732 times the untreated slope rather than 2.3 times, because each write overwrote the rise since its read [#3044/M/n=1].
 
 <a id="mood-surface"></a>
 ### The mood surface
@@ -253,6 +259,7 @@ It then reads `CharacterStat.TEMPERATURE`, and when the stat and the core differ
 Last, it writes the core back into the stat [#2373/C/C-only].
 A server-side write to the stat therefore moves the core halfway on the next update, after which the stat is driven from the core again [#2373/C/C-only].
 A mod that wants to hold a temperature must re-write the stat on every update, and one that writes it once sees half the step land [#2373/C/C-only].
+Measured live, one server write of the stat from 36.43119812011719 to 36.83125686645508 moved the core to 36.63 at the next tick, the window's maximum core reading 36.63119888305664, halfway, after which the core fell to 36.577354431152344 at about 8 s [#3046/M/n=1].
 
 The core the regulator steers toward is readable but not writable [#3024/C/C-only].
 `Thermoregulator.getSetPoint()` is public on the exposed class and returns a private set point with no setter, which the update resets to 37 °C at its start and raises by twice the `SICKNESS` stat when that stat is above its minimum [#3024/C/C-only].
