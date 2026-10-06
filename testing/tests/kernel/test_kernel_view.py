@@ -248,10 +248,73 @@ def test_requirements_over_the_shipped_records(host):
             host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@" + name)()
     data = host.G.NutritionRevamp.data
     r = host.py(V(host).requirements(data.records, 1, data.UNITS))
-    assert r["vitC"] == 90 and "thiamine" not in r
+    assert r["vitC"] == 90
     assert all(isinstance(v, (int, float)) and v > 0 for v in r.values())
+    assert set(r) <= set(host.py(data.UNITS))                       # keyed by the vector key, never a record key
     graded = lst(V(host).gradedOrder(data.records))
     assert "caffeine" not in graded and "sodium" not in graded and "vitC" in graded
+
+
+def load_data(host):
+    for name in ("NR_Data_Nutrients.lua", "NR_Data_Records.lua"):
+        with open(os.path.join(SHARED, name), encoding="utf-8") as fh:
+            host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@" + name)()
+    return host.G.NutritionRevamp.data
+
+
+def test_the_five_keys_of_3240_are_rankable_over_the_shipped_records(host):
+    # Plan 8 ruling 13 (#3240): vitamin A under its vector key retinol, and the scaled thiamine, niacin, B6 and K
+    data = load_data(host)
+    for sex in (1, 2):
+        r = host.py(V(host).requirements(data.records, sex, data.UNITS))
+        for key in ("retinol", "thiamine", "niacin", "vitB6", "vitK"):
+            assert isinstance(r.get(key), (int, float)) and r[key] > 0, (sex, key)
+        assert "vitA" not in r
+    m = host.py(V(host).requirements(data.records, 1, data.UNITS))
+    f = host.py(V(host).requirements(data.records, 2, data.UNITS))
+    assert (m["retinol"], f["retinol"]) == (900, 700)               # R, the RDA ug RAE/d (S0133)
+    assert (m["thiamine"], f["thiamine"]) == (1.2, 1.1)             # per MJ: Rmin, the RDA (S0235)
+    assert (m["niacin"], f["niacin"]) == (16, 14)                   # per MJ: Rmin, the RDA (S0267)
+    assert (m["vitB6"], f["vitB6"]) == (1.3, 1.3)                   # per protein, max: the R floor (S0291)
+    assert (m["vitK"], f["vitK"]) == (70, 70)                       # per kg: R at the 70 kg reference
+
+
+def test_the_record_key_aliases_are_the_records_own_key_fields(host):
+    data = load_data(host)
+    aliases = host.py(V(host).RECORD_KEY)
+    assert aliases == {"retinol": "vitA"}
+    rec = host.py(data.records.REC)
+    mismatched = {r["key"]: name for name, r in rec.items() if "key" in r and r["key"] != name}
+    assert mismatched == aliases
+
+
+def test_a_rich_retinol_item_ranks_rich_in_the_band(host):
+    data = load_data(host)
+    R = V(host).requirements(data.records, 1, data.UNITS)
+    vec = {"calories": 150.0, "retinol": 300.0, "thiamine": 0.5, "vitK": 0.0}
+    lines = rows_of(host, V(host).tooltip(host.table(vec), "table", 2, arr(host, ["retinol", "thiamine", "vitK"]),
+                                         host.table({"R": host.py(R), "UNITS": host.py(data.UNITS)})))
+    rich = [l["key"] for l in lines if l["text"] == "UI_NR_Tip_Rich"]
+    assert rich == ["thiamine", "retinol"]                          # 0.5/1.2 = 42 %, 300/900 = 33 %
+    assert [l["key"] for l in lines if l["text"] == "UI_NR_Tip_Low"] == ["vitK"]
+
+
+SCALED = {"ORDER": {1: "a", 2: "b", 3: "c", 4: "d", 5: "e", 6: "f"},
+          "REC": {"a": {"unit": "mg", "scale": "perMJ", "R": {1: 0.1, 2: 0.1}, "Rmin": {1: 1.2, 2: 1.1}},
+                  "b": {"unit": "mg", "scale": "perMJ", "R": {1: 0.1, 2: 0.1}, "Rmin": {1: 1.2}},
+                  "c": {"unit": "ug", "scale": "perKg", "R": {1: 2, 2: 1}},
+                  "d": {"unit": "mg", "scale": "perProteinGMax", "R": {1: 1.3, 2: 1.4}, "Rscale": 0.016},
+                  "e": {"unit": "mg", "scale": "perProteinG", "R": {1: 0.02, 2: 0.02}},
+                  "vitA": {"unit": "ug", "R": {1: 900, 2: 700}}}}
+SCALED_UNITS = {"a": "mg", "b": "mg", "c": "ug", "d": "mg", "e": "mg", "f": "mg", "retinol": "ug", "calories": "kcal"}
+
+
+def test_requirements_by_scale_and_alias(host):
+    r1 = host.py(V(host).requirements(host.table(SCALED), 1, host.table(SCALED_UNITS)))
+    assert r1 == {"a": 1.2, "b": 1.2, "c": 140, "d": 1.3, "retinol": 900}
+    r2 = host.py(V(host).requirements(host.table(SCALED), 2, host.table(SCALED_UNITS)))
+    assert r2 == {"a": 1.1, "c": 70, "d": 1.4, "retinol": 700}     # b has no female Rmin; e's scale is unknown
+    assert V(host).REF_KG == 70
 
 
 # --- tooltip lines (ruling 8) -------------------------------------------------------------------------

@@ -1,0 +1,349 @@
+"""The store kernel (NR_Kernel_Store.lua, K.store; Plan 8 Task 3, ruling 5).
+
+The record's contract: VERSION, the closed INPUTS path list, the load that migrates a v1 record by keeping its
+inputs over the kernel constructors' defaults (the derived fields dropped), inputsOnly (what a save holds) and
+isInput. The classification tests walk every field each kernel constructor lays and require it to be either an
+input or in this file's DERIVED list, so a new field cannot land unclassified.
+"""
+import os
+
+import pytest
+
+REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared")
+
+ORDER = ["vitC", "iron", "vitB12", "calcium", "vitA"]
+
+# The fields each constructor lays that the store drops at load (derived or a schema stamp the constructor
+# re-lays), read off the owning steps (the kernel file's comments name them).
+DERIVED = {
+    "body": {"bv", "band", "delta", "dmod", "rmod", "energyState", "eb24h", "mirrorLast"},
+    "nutrients": {"nv", "allReplete", "ironGrade", "anaemia", "vitDClinical"},
+    "key": {"x"},
+    "acute": {"av", "wd", "wdH", "bac", "g", "circ", "frozen", "iu", "iuSleep"},
+    "fluids": {"fv", "dehydPct", "c", "naPlasma", "thirstTarget", "sweatLmin"},
+    "effects": {"ev", "key", "mNut", "rNut", "stressTarget", "unhappyTarget", "panicTarget", "foodSickTarget",
+                "poisonTarget", "healMul", "bleedMul", "infectMul", "coldMul", "tempOffset", "tempHeat", "speedMul",
+                "fOffNut", "bruise", "drain", "nightVision", "shortSighted", "aimMul", "fOff", "solAddH", "solMul",
+                "lethal", "intoxTarget", "tempTarget", "mAcc", "rRec"},
+    "stomach": set(),
+}
+
+
+def S(h):
+    return h.K.store
+
+
+def lst(t):
+    return [t[i] for i in range(1, len(t) + 1)]
+
+
+def arr(h, items):
+    return h.rt.table(*items)
+
+
+def order(h):
+    return arr(h, ORDER)
+
+
+def v1(h):
+    """A v1 record with every sub-table laid by its own constructor, then moved off the defaults."""
+    rec = h.table({"username": "admin", "firstSeen": 10.0, "lastSeen": 30.5, "resets": 2, "dead": False,
+                   "kineticsAge": 30.25, "stomachFill": 0.9, "junk": 7,
+                   "lastIntake": {"source": "baseline", "fullType": "Base.Apple"},
+                   "reconcile": {"count": 3, "baseline": {"calories": 100}}})
+    body = h.call("body.new", 82.0, 1, h.table({}), 5, 1.1, 1.2, 24.0)
+    body["tac"] = 1.3
+    body["dmod"] = 0.7
+    body["band"] = "stale"
+    body["shownL"] = 4
+    body["inDayClosed"] = 2100
+    body["met"] = 3.5
+    body["eb7"][7] = -250
+    body["bandWeek"][7][1] = 45
+    body["nHist"][14] = 0.4
+    rec["body"] = body
+    nut = h.call("nutrients.newState", h.table({"ORDER": {i + 1: k for i, k in enumerate(ORDER)}}))
+    nut["epoch"] = 9
+    nut["allReplete"] = False
+    nut["lastAgeH"] = 30.0
+    nut["lastDayIndex"] = 1
+    nut["vitC"]["p"] = 0.12
+    nut["vitC"]["g"] = 4
+    nut["vitC"]["gl"] = 3
+    nut["vitC"]["ah"] = 50
+    nut["vitC"]["x"] = 2
+    nut["iron"]["S"] = 400
+    nut["iron"]["H"] = 2500
+    nut["calcium"]["bone"] = 900
+    nut["retired"] = h.table({"p": 0.5})
+    rec["nutrients"] = nut
+    a = h.call("acute.new", 24.0)
+    a["caf"] = 120
+    a["bac"] = 0.04
+    a["cafTol"] = 0.6
+    a["slowMet"] = True
+    a["alc7"] = 0.2
+    rec["acute"] = a
+    f = h.call("fluids.new", 60, 1.1, 40)
+    f["water"] = -500
+    f["thirstTarget"] = 0.7
+    f["dehydPct"] = 0.6
+    f["autoDrop"] = 0.05
+    f["viewPct"] = 0.5
+    rec["fluids"] = f
+    e = h.call("effects.new")
+    e["dirty"] = True
+    e["epoch"] = 7
+    e["own"]["nv"] = True
+    e["nvDays"] = 3
+    e["pe"] = 2
+    e["ea"] = 22
+    e["lastDay"] = 1
+    e["exSeen"] = 80
+    e["mNut"] = 0.5
+    e["intoxTarget"] = 0.3
+    e["tempAdj"] = -0.2
+    rec["effects"] = e
+    st = h.call("stomach.new")
+    st["buffer"]["calories"] = 300
+    st["bulk"] = 4.0
+    rec["stomach"] = st
+    pool = h.call("vector.new")
+    pool["iron"] = 1.5
+    rec["pool"] = pool
+    return rec
+
+
+# --- the constants and the path list ------------------------------------------------------------------
+
+
+def test_version_is_two_and_inputs_are_dotted_strings(host):
+    assert S(host).VERSION == 2
+    paths = lst(S(host).INPUTS)
+    assert len(paths) == len(set(paths)) and all(isinstance(p, str) and p for p in paths)
+    assert len(lst(S(host).SEGS)) == len(paths)
+    assert lst(S(host).split("nutrients.*.p")) == ["nutrients", "*", "p"]
+    assert lst(S(host).split("v")) == ["v"]
+
+
+def test_identity_fields_are_inputs(host):
+    for p in ("v", "username", "firstSeen", "lastSeen", "resets", "dead"):
+        assert S(host).isInput(p), p
+
+
+def test_is_input_matches_a_star_and_anything_under_an_input(host):
+    assert S(host).isInput("nutrients.vitC.p") and S(host).isInput("nutrients.iron.S")
+    assert not S(host).isInput("nutrients.vitC.x")
+    assert S(host).isInput("body.bandWeek.3") and S(host).isInput("body.bandWeek.3.1")
+    assert S(host).isInput("stomach.buffer.calories") and S(host).isInput("pool.iron")
+    assert not S(host).isInput("body") and not S(host).isInput("body.dmod") and not S(host).isInput("stomachFill")
+    assert not S(host).isInput("lastIntake.source") and not S(host).isInput("reconcile.baseline.calories")
+    assert S(host).isInput("reconcile.count") and S(host).isInput("effects.own.nv")
+
+
+# --- the classification: every constructor field is an input or declared derived ----------------------
+
+
+def is_input(h, path, value):
+    # a table-valued field (a ring, the buffer) is an input when its slots are: path.<any> matches a `*` path
+    if S(h).isInput(path):
+        return True
+    return isinstance(value, dict) and S(h).isInput(path + ".slot")
+
+
+def classify(h, prefix, table, derived):
+    unclassified = []
+    for k, v in h.py(table).items():
+        inp = is_input(h, prefix + "." + str(k), v)
+        if not inp and k not in derived:
+            unclassified.append(k)
+        if inp and k in derived:
+            unclassified.append(("both", k))
+    return unclassified
+
+
+def test_every_body_field_is_classified(host):
+    body = host.call("body.new", 80.0, 2, host.table({}), 3, 1.0, 1.0, 48.0)
+    assert classify(host, "body", body, DERIVED["body"]) == []
+
+
+def test_the_adapter_body_fields_are_classified(host):
+    # NR_Server_Metabolism stamps met and coldMult every minute (derived) and inDayClosed / pPrevKg at a close
+    assert S(host).isInput("body.inDayClosed") and S(host).isInput("body.pPrevKg")
+    assert not S(host).isInput("body.met") and not S(host).isInput("body.coldMult")
+
+
+def test_every_nutrient_field_is_classified(host):
+    state = host.call("nutrients.newState", host.table({"ORDER": {1: "vitC"}}))
+    assert classify(host, "nutrients", state, DERIVED["nutrients"] | {"vitC"}) == []
+    assert classify(host, "nutrients.vitC", state["vitC"], DERIVED["key"]) == []
+    for k in ("S", "H", "bone"):
+        assert S(host).isInput("nutrients.iron." + k)
+
+
+def test_every_acute_fluids_effects_and_stomach_field_is_classified(host):
+    assert classify(host, "acute", host.call("acute.new", 0), DERIVED["acute"]) == []
+    for k in ("alc7", "alcDayG", "lastFedAgeH", "lastB1", "lastB2"):
+        assert S(host).isInput("acute." + k)
+    assert classify(host, "fluids", host.call("fluids.new", 60, 1, 40), DERIVED["fluids"]) == []
+    assert not S(host).isInput("fluids.viewPct") and not S(host).isInput("fluids.sweatActive")
+    eff = host.call("effects.new")
+    assert classify(host, "effects", eff, DERIVED["effects"] | {"own"}) == []
+    assert classify(host, "effects.own", eff["own"], set()) == []
+    assert classify(host, "stomach", host.call("stomach.new"), DERIVED["stomach"]) == []
+
+
+def test_every_order_key_has_its_per_key_input_paths(host):
+    for name in ("NR_Data_Nutrients.lua", "NR_Data_Records.lua"):
+        with open(os.path.join(SHARED, name), encoding="utf-8") as fh:
+            host.rt.eval("function(src, name) return assert(loadstring(src, name)) end")(fh.read(), "@" + name)()
+    data_order = lst(host.G.NutritionRevamp.data.records.ORDER)
+    assert len(data_order) > 20
+    for key in data_order:
+        for f in ("p", "p2", "g", "gl", "ah", "e24", "dmg", "ext", "ax", "axr"):
+            assert S(host).isInput("nutrients.%s.%s" % (key, f))
+    loaded = host.py(S(host).load(host.table({"nutrients": {}}), host.G.NutritionRevamp.data.records.ORDER))
+    assert set(k for k, v in loaded["nutrients"].items() if isinstance(v, dict)) == set(data_order)
+
+
+# --- K.store.new --------------------------------------------------------------------------------------
+
+
+def test_new_is_the_identity_record_at_version_two(host):
+    assert host.py(S(host).new("bob", 12.5)) == {"v": 2, "username": "bob", "firstSeen": 12.5, "lastSeen": 12.5,
+                                               "resets": 0, "dead": False}
+
+
+# --- the load: a v1 record migrated ------------------------------------------------------------------
+
+
+def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
+    raw = v1(host)
+    r = host.py(S(host).load(raw, order(host)))
+    assert r["v"] == 2
+    assert (r["username"], r["firstSeen"], r["lastSeen"], r["resets"], r["dead"]) == ("admin", 10.0, 30.5, 2, False)
+    assert "junk" not in r and "lastIntake" not in r
+    assert r["reconcile"] == {"count": 3}
+    assert r["kineticsAge"] == 30.25
+    b = r["body"]
+    assert b["tac"] == 1.3 and b["shownL"] == 4 and b["inDayClosed"] == 2100 and b["l0"] == 5
+    assert b["eb7"][7] == -250 and b["bandWeek"][7] == {1: 45, 2: 0} and b["nHist"][14] == 0.4
+    assert b["dmod"] == 1 and b["band"] == "normal" and "met" not in b       # rebuilt by K.body.new
+    n = r["nutrients"]
+    assert (n["vitC"]["p"], n["vitC"]["g"], n["vitC"]["gl"], n["vitC"]["ah"]) == (0.12, 4, 3, 50)
+    assert n["vitC"]["x"] == 0 and n["allReplete"] is True                   # derived: the constructor's
+    assert n["epoch"] == 9 and n["lastAgeH"] == 30.0 and n["lastDayIndex"] == 1
+    assert n["iron"]["S"] == 400 and n["iron"]["H"] == 2500 and n["calcium"]["bone"] == 900
+    assert "retired" not in n                                                # a key outside the order is dropped
+    a = r["acute"]
+    assert a["caf"] == 120 and a["cafTol"] == 0.6 and a["slowMet"] is True and a["alc7"] == 0.2
+    assert a["bac"] == 0 and a["av"] == host.K.acute.AV
+    f = r["fluids"]
+    assert f["water"] == -500 and f["autoDrop"] == 0.05 and f["sweatK"] == 1.1 and f["naSweat"] == 40
+    assert "thirstTarget" not in f and f["dehydPct"] == 0 and "viewPct" not in f
+    e = r["effects"]
+    assert e["dirty"] is True and e["epoch"] == 7 and e["own"] == {"nv": True, "ss": False}
+    assert (e["nvDays"], e["pe"], e["ea"], e["lastDay"], e["exSeen"]) == (3, 2, 22, 1, 80)
+    assert e["mNut"] == 1 and "intoxTarget" not in e and "tempAdj" not in e and e["key"]["ep"] == -1
+    assert r["stomach"]["buffer"]["calories"] == 300 and r["stomach"]["bulk"] == 4.0
+    assert r["stomachFill"] == 0.5                                           # recomputed: 4.0 / FULL_BULK 8.0
+    assert r["pool"]["iron"] == 1.5 and r["pool"]["calories"] == 0
+
+
+def test_load_of_a_record_with_no_version_and_with_v1_is_the_same(host):
+    raw = v1(host)
+    a = host.py(S(host).load(raw, order(host)))
+    raw["v"] = 1
+    b = host.py(S(host).load(raw, order(host)))
+    assert a == b and a["v"] == 2
+
+
+def test_load_copies_deep(host):
+    raw = v1(host)
+    r = S(host).load(raw, order(host))
+    r["body"]["bandWeek"][7][1] = 999
+    r["stomach"]["buffer"]["calories"] = 1
+    assert raw["body"]["bandWeek"][7][1] == 45 and raw["stomach"]["buffer"]["calories"] == 300
+
+
+def test_a_missing_input_keeps_the_constructor_default(host):
+    raw = host.table({"username": "admin", "firstSeen": 5.0,
+                      "acute": {"caf": 30}, "nutrients": {"iron": {"p": 0.5}}, "fluids": {"water": 10},
+                      "effects": {"dirty": True}, "stomach": {"bulk": 2.0}, "pool": {"iron": 1}})
+    r = host.py(S(host).load(raw, order(host)))
+    assert r["lastSeen"] == 5.0 and r["resets"] == 0 and r["dead"] is False
+    assert r["acute"]["caf"] == 30 and r["acute"]["cafTol"] == 0
+    assert r["acute"]["winStartH"] == 5.0                                    # stamped with the first sight
+    assert r["nutrients"]["iron"]["p"] == 0.5 and r["nutrients"]["iron"]["g"] == 1
+    assert r["nutrients"]["vitC"] == {"p": 1, "p2": 1, "g": 1, "gl": 1, "ah": 0, "x": 0, "e24": 0, "dmg": 0,
+                                      "ext": 0, "ax": 0, "axr": 0}
+    assert r["fluids"]["water"] == 10 and r["fluids"]["sweatK"] == 1
+    assert r["effects"]["epoch"] == 0 and r["effects"]["own"] == {"nv": False, "ss": False}
+    assert r["stomach"]["buffer"]["calories"] == 0 and r["stomachFill"] == 0.25
+    assert "body" not in r and "kineticsAge" not in r and "reconcile" not in r
+
+
+def test_load_with_no_clock_stamps_the_acute_clocks_at_zero(host):
+    r = host.py(S(host).load(host.table({"acute": {}}), order(host)))
+    assert r["acute"]["winStartH"] == 0 and r["acute"]["mass90ageH"] == 0
+
+
+def test_load_with_no_order_lays_the_stored_keys(host):
+    raw = host.table({"nutrients": {"epoch": 3, "zinc": {"p": 0.3, "g": 2}}})
+    n = host.py(S(host).load(raw, None))["nutrients"]
+    assert n["zinc"]["p"] == 0.3 and n["zinc"]["g"] == 2 and n["epoch"] == 3
+    assert set(k for k, v in n.items() if isinstance(v, dict)) == {"zinc"}
+
+
+def test_an_unusable_body_is_dropped(host):
+    for body in ({"lm": 60, "sex": 1, "lastAgeH": 1}, {"fm": 20, "sex": 1, "lastAgeH": 1},
+                 {"fm": 20, "lm": 60, "lastAgeH": 1}, {"fm": 20, "lm": 60, "sex": 1}):
+        r = host.py(S(host).load(host.table({"body": body}), order(host)))
+        assert "body" not in r, body
+
+
+def test_a_body_builds_at_its_sex_and_keeps_an_odd_one(host):
+    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 2, "lastAgeH": 50.0}}), None))
+    assert r["body"]["sex"] == 2 and r["body"]["fm"] == 20.0 and r["body"]["dayIndex"] == 2
+    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 3, "lastAgeH": 1.0}}), None))
+    assert r["body"]["sex"] == 3 and r["body"]["dmod"] == 1
+
+
+def test_load_of_a_non_table_is_nil(host):
+    assert S(host).load(None, order(host)) is None
+    assert S(host).load(5, order(host)) is None
+
+
+# --- inputsOnly: what a save holds, and the round trip ------------------------------------------------
+
+
+def test_inputs_only_holds_no_derived_field(host):
+    raw = v1(host)
+    out = host.py(S(host).inputsOnly(raw))
+    assert "v" not in out                                                    # a v1 record carries none
+    assert "junk" not in out and "stomachFill" not in out and "lastIntake" not in out
+    assert "dmod" not in out["body"] and "band" not in out["body"] and out["body"]["tac"] == 1.3
+    assert "x" not in out["nutrients"]["vitC"] and out["nutrients"]["vitC"]["g"] == 4
+    assert out["nutrients"]["retired"] == {"p": 0.5}                         # the save keeps what the record holds
+    assert "allReplete" not in out["nutrients"] and out["nutrients"]["epoch"] == 9
+    assert out["effects"] == {"dirty": True, "epoch": 7, "own": {"nv": True, "ss": False}, "nvDays": 3, "pe": 2,
+                              "ea": 22, "lastDay": 1, "exSeen": 80}
+    assert out["reconcile"] == {"count": 3}
+    assert raw["body"]["dmod"] == 0.7                                        # the record itself is untouched
+
+
+def test_inputs_only_copies_deep(host):
+    raw = v1(host)
+    out = S(host).inputsOnly(raw)
+    out["body"]["bandWeek"][7][1] = 1
+    assert raw["body"]["bandWeek"][7][1] == 45
+
+
+def test_a_v2_record_round_trips_through_load_and_inputs_only(host):
+    r1 = S(host).load(v1(host), order(host))
+    saved = S(host).inputsOnly(r1)
+    r2 = S(host).load(saved, order(host))
+    assert host.py(S(host).inputsOnly(r2)) == host.py(saved)
+    assert host.py(r2) == host.py(r1)
+    assert host.py(saved)["v"] == 2

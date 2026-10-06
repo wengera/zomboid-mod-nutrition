@@ -271,22 +271,64 @@ function K.view.gradedOrder(records)
     return out
 end
 
--- The per-key daily requirement map the tooltip's rich and low test reads: R[sex] (1 male, 2 female) of every
--- record with a numeric R and no scale (a per-MJ, per-kg or per-protein R is not a daily amount) whose unit is
--- the vector's own for that key (units is NR.data.UNITS). nil records or units read an empty map.
+-- The vector keys whose record sits under another key (Plan 8 ruling 13, #3240): the vector carries vitamin A as
+-- retinol, the record engine as vitA (NR_Data_Records.lua: REC.vitA.key = "retinol"). The test pins this table to
+-- every record whose own key field differs from its REC key; no other record differs.
+K.view.RECORD_KEY = { retinol = "vitA" }
+
+-- The body mass a per-kg requirement is read at for the band (Plan 8 ruling 13). gc: a game choice, the 70 kg
+-- reference adult of the DRI tables; the band ranks one item against a fixed daily amount, never the
+-- character's own mass (the client holds no body).
+K.view.REF_KG = 70
+
+-- The daily requirement of one record for a sex, or nil when it has none: R[sex] for an unscaled record; the
+-- floor R[sex] for a per-protein maximum (max(R, Rscale x protein) is never below it); R[sex] x REF_KG for a
+-- per-kg record; the record's RDA Rmin[sex] for a per-MJ record (its R is per MJ expended, not a daily amount;
+-- the engine never reads Rmin, the band does); nil for any other scale or a missing number.
+function K.view.dailyR(rec, sex)
+    if type(rec.R) ~= "table" or type(rec.R[sex]) ~= "number" then
+        return nil
+    end
+    local r = rec.R[sex]
+    local scale = rec.scale
+    if scale == nil or scale == "perProteinGMax" then
+        return r
+    end
+    if scale == "perKg" then
+        return r * K.view.REF_KG
+    end
+    if scale == "perMJ" and type(rec.Rmin) == "table" and type(rec.Rmin[sex]) == "number" then
+        return rec.Rmin[sex]
+    end
+    return nil
+end
+
+-- The per-key daily requirement map the tooltip's rich and low test reads, keyed by the VECTOR key (units is
+-- NR.data.UNITS, whose keys are the vector's): for each unit key, the record under it (through RECORD_KEY) when
+-- its unit is the vector's own, at K.view.dailyR for the sex (1 male, 2 female). nil records or units read an
+-- empty map.
 function K.view.requirements(records, sex, units)
     local out = {}
     if records == nil or units == nil then
         return out
     end
-    for i = 1, #records.ORDER do
-        local key = records.ORDER[i]
-        local rec = records.REC[key]
-        if rec ~= nil and rec.scale == nil and type(rec.R) == "table" and type(rec.R[sex]) == "number" and rec.unit == units[key] then
-            out[key] = rec.R[sex]
-        end
+    for key, unit in pairs(units) do
+        K.view.requirementOf(out, records, sex, key, unit)
     end
     return out
+end
+
+-- One unit key of the requirement map: the record under the key (through RECORD_KEY) when its unit is unit, at
+-- K.view.dailyR for the sex, written into out.
+function K.view.requirementOf(out, records, sex, key, unit)
+    local recKey = K.view.RECORD_KEY[key]
+    if recKey == nil then
+        recKey = key
+    end
+    local rec = records.REC[recKey]
+    if rec ~= nil and rec.unit == unit then
+        out[key] = K.view.dailyR(rec, sex)
+    end
 end
 
 -- The share of the daily requirement R[key] one item's vector gives (a missing or non-number value reads 0), or
