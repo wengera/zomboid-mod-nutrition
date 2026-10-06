@@ -71,8 +71,8 @@ NR.data.records = {
             pCap = 1.0, -- plasma and cells saturate at 100-200 mg/d, S0220/S0221
             store = 1500, -- mg total body pool (display; the Store_eff cross-check closes), S0222
         },
-        -- Thiamine: energy-scaled requirement; the RDA rides as Rmin, not read: the requirement is energy-scaled
-        -- only (ruling 6). At the fixture's ~10 MJ/d the per-MJ requirement is 1.0 mg/d against the 1.2 mg/d RDA.
+        -- Thiamine: energy-scaled requirement; the RDA rides as Rmin, read by the band only (K.view.dailyR), never by the engine: the
+        -- requirement is energy-scaled only (ruling 6). At the fixture's ~10 MJ/d the per-MJ requirement is 1.0 mg/d against the 1.2 mg/d RDA.
         -- No UL (S0238). Alcohol
         -- raises the drain (S0250 direction; the lambda magnitude is open S0553 and lives in K.interact, Task 10).
         thiamine = {
@@ -85,8 +85,8 @@ NR.data.records = {
                 0.1, -- female mg per MJ expended (EFSA PRI), S0236
             },
             Rmin = {
-                1.2, -- male RDA mg/d, S0235 (not read: the requirement is energy-scaled only (ruling 6))
-                1.1, -- female RDA mg/d, S0235 (not read: the requirement is energy-scaled only (ruling 6))
+                1.2, -- male RDA mg/d, S0235 (read by the band only (K.view.dailyR), never by the engine)
+                1.1, -- female RDA mg/d, S0235 (read by the band only (K.view.dailyR), never by the engine)
             },
             k = 0.05134423559703299, -- = ln2/13.5: K.nutrients.kFromHalfLife(13.5); the 9-18 d whole-body half-life midpoint, S0240
             ladder = {
@@ -121,8 +121,8 @@ NR.data.records = {
                 1.6, -- female mg NE per MJ expended (EFSA PRI), S0268
             },
             Rmin = {
-                16, -- male RDA mg NE/d, S0267 (not read: the requirement is energy-scaled only (ruling 6))
-                14, -- female RDA mg NE/d, S0267 (not read: the requirement is energy-scaled only (ruling 6))
+                16, -- male RDA mg NE/d, S0267 (read by the band only (K.view.dailyR), never by the engine)
+                14, -- female RDA mg NE/d, S0267 (read by the band only (K.view.dailyR), never by the engine)
             },
             k = 0.025205352020361647, -- = ln(1/0.25)/55: K.nutrients.calib(0.25, 55); pellagra at 50-60 d, S0271; f 0.25 design-phase-v1 (open S1068)
             ladder = {

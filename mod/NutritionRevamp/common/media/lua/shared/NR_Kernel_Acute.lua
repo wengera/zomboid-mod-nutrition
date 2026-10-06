@@ -356,8 +356,14 @@ function K.acute.glycogen(a, met, coldMult, cho24, dtH)
         a.glyc = target + (a.glyc - target) * math.exp(-dtH / A.GLYC_TAU_H)
     end
     a.glyc = K.clamp(a.glyc, 0, A.GLYC_MAX)
-    a.g = K.clamp(a.glyc / A.GLYC_REF, 0, 1)
+    a.g = A.glycG(a)
     return a
+end
+
+-- The glycogen state g read off the store: glyc over GLYC_REF clamped to [0, 1] (the glycogen step's own
+-- write, and the load's recompute of it from the stored glyc).
+function K.acute.glycG(a)
+    return K.clamp(a.glyc / K.acute.GLYC_REF, 0, 1)
 end
 
 -- One blood-glucose step: carbohydrate absorbed this step (choAbsG > 0) restores toward 5.0 on tau 15 min;

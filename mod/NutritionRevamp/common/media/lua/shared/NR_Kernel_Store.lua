@@ -210,7 +210,7 @@ end
 -- The default sub-tables for every sub-table raw carries, each from its own kernel constructor.
 function K.store.defaults(rec, raw, order)
     if type(raw.stomach) == "table" then
-        rec.stomach = K.stomach.new()
+        rec.stomach = K.stomach.seedFull(K.stomach.new()) -- as the kinetics constructor seeds; a stored bulk overwrites it
     end
     if type(raw.pool) == "table" then
         rec.pool = K.vector.new()
@@ -269,9 +269,45 @@ function K.store.overlayKey(dst, src, k, segs, i)
     K.store.overlay(dv, sv, segs, i + 1)
 end
 
+-- The four fields Metabolism reads before the Nutrients minute refreshes them, recomputed from the loaded
+-- inputs, each through the kernel's own function: nutrients.ironGrade (K.nutrients.gradeOf), nutrients.allReplete
+-- (K.nutrients.allRepleteOf, read off NR.data.records), acute.g (K.acute.glycG) and fluids.dehydPct
+-- (K.fluids.dehydPct at the body mass, no pending water). A part the record lacks keeps its constructor's value.
+function K.store.recompute(rec)
+    local n = rec.nutrients
+    if n ~= nil then
+        n.ironGrade = K.nutrients.gradeOf(n, "iron")
+        K.store.recomputeReplete(n)
+    end
+    if rec.acute ~= nil then
+        rec.acute.g = K.acute.glycG(rec.acute)
+    end
+    if rec.fluids ~= nil and rec.body ~= nil then
+        rec.fluids.dehydPct = K.fluids.dehydPct(rec.fluids, rec.body.fm + rec.body.lm, 0)
+    end
+end
+
+-- allReplete of a loaded nutrient state when the record data is present (call time).
+function K.store.recomputeReplete(n)
+    local records = NutritionRevamp.data.records
+    if records ~= nil then
+        n.allReplete = K.nutrients.allRepleteOf(n, records)
+    end
+end
+
+-- A loaded body with no stored closed-day stamp reads the resting expenditure as that day's absorbed kcal,
+-- the value Nutrients' close already uses for a body with no closed day (K.energy.ree), so the first close is
+-- not read as a 0 kcal day. (A stored stamp, copied from the record, is kept.)
+function K.store.closeDefault(rec)
+    if rec.body ~= nil and type(rec.body.inDayClosed) ~= "number" then
+        rec.body.inDayClosed = K.energy.ree(rec.body.lm)
+    end
+end
+
 -- Load a stored record (any version) into a fresh version-VERSION record: the constructors' defaults, every
--- INPUTS path present in raw copied over them, v set, the stomach fill recomputed. order is the nutrient
--- key list (NR.data.records.ORDER); nil reads the stored state's own keys. A non-table raw reads nil.
+-- INPUTS path present in raw copied over them, v set, the stomach fill and the four read-before-refresh
+-- fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
+-- keys. A non-table raw reads nil.
 function K.store.load(raw, order)
     if type(raw) ~= "table" then
         return nil
@@ -286,6 +322,8 @@ function K.store.load(raw, order)
     if rec.stomach ~= nil then
         rec.stomachFill = K.stomach.fill(rec.stomach)
     end
+    K.store.closeDefault(rec)
+    K.store.recompute(rec)
     return rec
 end
 
@@ -333,17 +371,31 @@ function K.store.inputsOnly(record)
     return out
 end
 
--- Whether the dotted path names an input or lies under one: some INPUTS path matches its leading segments,
+-- Whether the dotted path names an input, lies under one or is a container whose every slot is one: some INPUTS path matches its leading segments,
 -- a `*` matching any one segment.
 function K.store.isInput(path)
     local p = K.store.split(path)
     local segs = K.store.SEGS
     for i = 1, #segs do
-        if K.store.matches(segs[i], p) then
+        if K.store.matches(segs[i], p) or K.store.isContainer(segs[i], p) then
             return true
         end
     end
     return false
+end
+
+-- Whether p names the container of a pattern ending in `*` (body.eb7 for body.eb7.*): every slot of it is
+-- persisted, so the container is.
+function K.store.isContainer(pat, p)
+    if pat[#pat] ~= "*" or #p ~= #pat - 1 then
+        return false
+    end
+    for j = 1, #p do
+        if pat[j] ~= "*" and pat[j] ~= p[j] then
+            return false
+        end
+    end
+    return true
 end
 
 -- Whether pattern segments pat match the leading segments of p.

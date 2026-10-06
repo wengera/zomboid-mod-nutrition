@@ -232,7 +232,7 @@ def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
     assert b["dmod"] == 1 and b["band"] == "normal" and "met" not in b       # rebuilt by K.body.new
     n = r["nutrients"]
     assert (n["vitC"]["p"], n["vitC"]["g"], n["vitC"]["gl"], n["vitC"]["ah"]) == (0.12, 4, 3, 50)
-    assert n["vitC"]["x"] == 0 and n["allReplete"] is True                   # derived: the constructor's
+    assert n["vitC"]["x"] == 0 and n["allReplete"] is False                  # x derived; allReplete recomputed (vitC at grade 4)
     assert n["epoch"] == 9 and n["lastAgeH"] == 30.0 and n["lastDayIndex"] == 1
     assert n["iron"]["S"] == 400 and n["iron"]["H"] == 2500 and n["calcium"]["bone"] == 900
     assert "retired" not in n                                                # a key outside the order is dropped
@@ -241,7 +241,7 @@ def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
     assert a["bac"] == 0 and a["av"] == host.K.acute.AV
     f = r["fluids"]
     assert f["water"] == -500 and f["autoDrop"] == 0.05 and f["sweatK"] == 1.1 and f["naSweat"] == 40
-    assert "thirstTarget" not in f and f["dehydPct"] == 0 and "viewPct" not in f
+    assert "thirstTarget" not in f and "viewPct" not in f
     e = r["effects"]
     assert e["dirty"] is True and e["epoch"] == 7 and e["own"] == {"nv": True, "ss": False}
     assert (e["nvDays"], e["pe"], e["ea"], e["lastDay"], e["exSeen"]) == (3, 2, 22, 1, 80)
@@ -347,3 +347,63 @@ def test_a_v2_record_round_trips_through_load_and_inputs_only(host):
     assert host.py(S(host).inputsOnly(r2)) == host.py(saved)
     assert host.py(r2) == host.py(r1)
     assert host.py(saved)["v"] == 2
+
+
+# --- the fix round: the four recomputed fields, the containers, the stomach and close defaults -------------
+
+
+def test_load_recomputes_the_iron_grade_and_all_replete_through_the_nutrients_kernel(host):
+    raw = v1(host)
+    raw["nutrients"]["iron"]["g"] = 3
+    r = S(host).load(raw, order(host))
+    n = r["nutrients"]
+    assert n["ironGrade"] == host.K.nutrients.gradeOf(n, "iron") == 3
+    assert n["allReplete"] == host.K.nutrients.allRepleteOf(n, host.G.NutritionRevamp.data.records) is False
+    raw2 = host.table({"nutrients": {"iron": {"g": 1}}})
+    n2 = S(host).load(raw2, order(host))["nutrients"]
+    assert n2["ironGrade"] == 1 and n2["allReplete"] is True
+
+
+def test_load_recomputes_the_glucose_state_through_the_acute_kernel(host):
+    raw = host.table({"acute": {"glyc": 231.0, "bg": 4.5}})
+    a = S(host).load(raw, order(host))["acute"]
+    assert a["g"] == host.K.acute.glycG(a) == 0.5
+
+
+def test_load_recomputes_dehyd_pct_through_the_fluids_kernel(host):
+    raw = host.table({"fluids": {"water": -1640.0}, "body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 5.0}})
+    r = S(host).load(raw, order(host))
+    want = host.K.fluids.dehydPct(r["fluids"], r["body"]["fm"] + r["body"]["lm"], 0)
+    assert r["fluids"]["dehydPct"] == want == 2.0
+    assert S(host).load(host.table({"fluids": {"water": -1640.0}}), order(host))["fluids"]["dehydPct"] == 0
+
+
+def test_the_minute_and_the_load_agree_on_all_replete(host):
+    st = host.call("nutrients.newState", host.G.NutritionRevamp.data.records)
+    st["vitC"]["g"] = 2
+    assert host.K.nutrients.allRepleteOf(st, host.G.NutritionRevamp.data.records) is False
+    st["vitC"]["g"] = 1
+    assert host.K.nutrients.allRepleteOf(st, host.G.NutritionRevamp.data.records) is True
+
+
+def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
+    for p in ("body.eb7", "body.mass7", "body.p7", "body.carb7", "body.lip7", "body.bandWeek", "body.nHist",
+              "stomach.buffer", "pool", "nutrients.vitC.p"):
+        assert S(host).isInput(p), p
+    for p in ("body", "nutrients", "stomach", "acute", "body.dmod", "nutrients.vitC.x", "fluids", "reconcile.baseline"):
+        assert not S(host).isInput(p), p
+
+
+def test_a_stored_stomach_with_no_bulk_loads_full(host):
+    r = host.py(S(host).load(host.table({"stomach": {"buffer": {"calories": 50}}}), order(host)))
+    assert r["stomach"]["bulk"] == host.K.stomach.FULL_BULK and r["stomachFill"] == 1
+    r = host.py(S(host).load(host.table({"stomach": {"bulk": 0}}), order(host)))
+    assert r["stomach"]["bulk"] == 0 and r["stomachFill"] == 0
+
+
+def test_a_loaded_body_with_no_closed_day_stamp_reads_the_resting_expenditure(host):
+    raw = host.table({"body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 5.0}, "nutrients": {}})
+    b = S(host).load(raw, order(host))["body"]
+    assert b["inDayClosed"] == host.K.energy.ree(62.0) and b["inDayClosed"] > 0
+    raw["body"]["inDayClosed"] = 1800
+    assert S(host).load(raw, order(host))["body"]["inDayClosed"] == 1800

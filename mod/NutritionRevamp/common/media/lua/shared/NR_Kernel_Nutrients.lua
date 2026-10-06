@@ -282,6 +282,21 @@ function K.nutrients.gradeOf(state, key)
     return s.g
 end
 
+-- Whether every pool and pool2 record sits at grade 1 (the minute's allReplete, read off the grades the
+-- state holds; a key the state lacks reads grade 1).
+function K.nutrients.allRepleteOf(state, records)
+    for i = 1, #records.ORDER do
+        local key = records.ORDER[i]
+        local kind = records.REC[key].kind
+        if kind == "pool" or kind == "pool2" then
+            if K.nutrients.gradeOf(state, key) ~= 1 then
+                return false
+            end
+        end
+    end
+    return true
+end
+
 -- The anaemia aggregate (A8): iron, folate, B6 or copper clinical, or B12's functional p2 below 1.
 function K.nutrients.anaemic(state)
     if K.nutrients.gradeOf(state, "iron") == 4 then
@@ -317,7 +332,6 @@ function K.nutrients.minute(state, records, absorbed, ingested, ctx, dtM)
     if dial == nil then
         dial = 1
     end
-    local allReplete = true
     -- ORDER is a Lua table the record file built, so # is a Lua length, never a Java list (#0940).
     for i = 1, #records.ORDER do
         local key = records.ORDER[i]
@@ -373,13 +387,8 @@ function K.nutrients.minute(state, records, absorbed, ingested, ctx, dtM)
         if changed then
             state.epoch = state.epoch + 1
         end
-        if kind == "pool" or kind == "pool2" then
-            if g ~= 1 then
-                allReplete = false
-            end
-        end
     end
-    state.allReplete = allReplete
+    state.allReplete = K.nutrients.allRepleteOf(state, records)
     state.ironGrade = K.nutrients.gradeOf(state, "iron")
     state.anaemia = K.nutrients.anaemic(state)
     state.vitDClinical = K.nutrients.gradeOf(state, "vitD") == 4

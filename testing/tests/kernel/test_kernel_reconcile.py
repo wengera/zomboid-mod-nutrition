@@ -14,7 +14,7 @@ def R(h):
 
 
 def test_the_eps_and_the_note(host):
-    assert R(host).RECONCILE_EPS == 5
+    assert R(host).RECONCILE_EPS == 0.5
     assert R(host).NOTE == "reconciled: macros only, nutrient vector unknown"
 
 
@@ -50,8 +50,10 @@ def test_a_macro_fall_beside_a_calorie_rise_lands_zero(host):
 def test_no_intake_at_or_below_the_tolerance_or_on_a_fall(host):
     for cal in (5.0, 4.99, 0.0, -300.0):
         assert R(host).intake(host.table({"calories": cal, "carbs": 10}), 5) is None, cal
-    assert R(host).intake(host.table({"calories": 5.0}), None) is None          # eps nil reads RECONCILE_EPS
-    assert R(host).intake(host.table({"calories": 5.01}), None) is not None
+    assert R(host).intake(host.table({"calories": 0.5}), None) is None          # eps nil reads RECONCILE_EPS
+    assert R(host).intake(host.table({"calories": 0.4}), None) is None
+    assert R(host).intake(host.table({"calories": 0.6}), None) is not None      # a 0.6 kcal rise lands
+    assert R(host).intake(host.table({"calories": 0.99}), None) is not None     # RedRadish, the smallest item-pass food
     assert R(host).intake(host.table({"calories": 30.0}), 50) is None          # an explicit eps wins
     assert R(host).intake(None, 5) is None
 

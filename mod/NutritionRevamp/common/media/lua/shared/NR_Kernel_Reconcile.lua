@@ -11,11 +11,9 @@
 local K = NutritionRevamp.kernel
 K.reconcile = {}
 
--- The calorie rise below which a store movement is not an intake. gc: a game choice, about a nineteenth of
--- the smallest whole food the item pass read live (a Base.Apple at getCalories 95, #3134), so a whole eat
--- of any food clears it, and far above the float32 round trip of a written store value (the getters read
--- the float32 of the value written, #3143), which must never land.
-K.reconcile.RECONCILE_EPS = 5
+-- The calorie rise below which a store movement is not an intake.
+-- gc: half a kilocalorie clears every item-pass food, the smallest RedRadish at 0.99 kcal (NR_ItemPass_Food.txt), and sits far above the float32 round trip of a store value (#3143); rests on #3143
+K.reconcile.RECONCILE_EPS = 0.5
 
 -- The note a reconciled intake carries (lastIntake.note).
 K.reconcile.NOTE = "reconciled: macros only, nutrient vector unknown"
@@ -47,8 +45,8 @@ end
 -- The intake a delta implies: nil when the calorie rise is not above eps (a fall, no change, a NaN, or a
 -- rise inside the tolerance; eps nil reads RECONCILE_EPS); else a fresh vector (K.vector.new, every key 0)
 -- with the four macros set to their rises, and the note. A macro whose delta is not positive lands 0: the
--- stores move together on an eat, so a lone macro fall beside a calorie rise is vanilla's own drain or
--- another writer, never part of the intake.
+-- stores move together on an eat, so a lone macro fall beside a calorie rise is another writer (with Nutrition = false there is no
+-- vanilla drain), never part of the intake.
 function K.reconcile.intake(delta, eps)
     local e = eps
     if e == nil then
