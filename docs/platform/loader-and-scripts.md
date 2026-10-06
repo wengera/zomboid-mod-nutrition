@@ -136,13 +136,14 @@ A partial `item Orange` block naming only `DisplayCategory`, `ItemType` and `Cal
 The instance getters a partial block does not name stay at vanilla on both sides: `getCarbohydrates` 16.27, `getLipids` 0.30, `getProteins` 1.0 and `getHungChange` -0.12 [#1014/M/n=1].
 The script keys a partial block does not name stay at vanilla on both sides: `DaysFresh` 6, `DaysTotallyRotten` 9, `HungerChange` -12 and `ThirstChange` -8 [#1015/M/n=1].
 The instance of an item narrowed by a partial block keeps the vanilla shelf life the block never restated: `offAge` 6 and `offAgeMax` 9, read on the server only [#1016/M/one-side].
+The block does not need `ItemType`: the same Orange block with `ItemType` omitted, carrying `DisplayCategory = Food`, `Calories = 400.0` and one unrecognised key, booted as the only body after vanilla's, read `getCalories` 400 and `getCategory` Food on both sides with every unnamed getter at vanilla, and the base module's food count stayed at the 722 of the exp05-20260910-084109 baseline [#1018/M/n=1].
 
 The practical shape of this is that a partial block is the cheap route into a vanilla item: restate the keys the mod owns and every key it omits keeps whatever upstream says, including whatever a later patch changes it to.
 The same property is what makes a pass over many items robust for every key it does not declare and contested only on the keys two mods both declare.
 It also means a partial block cannot remove a key: there is no route from a script body to an absent value, only to a different one.
 
-The measured half of the merge is one item on one build with one key type, a float macro on a `base:food`, in one session against three mods written for it.
-The arm that omits `ItemType` from a partial block, and a second mod's partial block landing against an already-populated default modData table, are both unrun — see [the walls](#walls).
+The measured half of the merge is one item on one build with one key type, a float macro on a `base:food`, in one session against three mods written for it, plus one `ItemType`-omitted boot of the same item.
+That boot kept `DisplayCategory`, so a block omitting it as well is unmeasured ([T8.4], [item-pass.md#open](../areas/item-pass.md#open)).
 
 <a id="sorted-replay"></a>
 ### The sorted replay
@@ -185,6 +186,9 @@ An unrecognised key inside a vanilla `item` block becomes default modData on eve
 A census of an item's modData that does not exclude that key will report vanilla as a finding.
 The arm is a route and a hazard at once: it is the one way a script line can reach a Lua-readable per-item value, and it is also why a typo in a key name produces no error and no effect anyone will notice.
 A key that lands there is on the item's default table rather than on the script object, so the value is read from an instance's modData and never from a macro getter.
+A second mod's partial block lands on the already-populated table key by key: with two mods each declaring `NR_Nutrients` on `Base.Orange`, a spawned Orange read the later-sorting body's `fibre:13;vitC:4` on both sides, against `fibre:12;vitC:3` with the first mod alone [#1281/M/n=1].
+The two mods sort the same way under the mod id, the folder name, the stored script path and the display name, so that boot does not say which string ordered them — that is [the four-mod separator](../areas/open-questions.md#x19) [#1285/C/open].
+The key lands only on the item whose block declares it: a vanilla `Base.Apple` spawned in the same boots carried no `NR_Nutrients` on either side [T8.2].
 
 <a id="identity"></a>
 ### What a redefinition does to identity
@@ -212,6 +216,7 @@ A mod that changes a script key changes it on whichever side loaded the mod, wit
 
 Script data is loaded per side and never synced, so the two sides' definitions of an item are two readings rather than one: reached through the script manager's item getter with the game's own find call as the fallback, the two sides agreed field for field on a mod item [#0919/M/n=1].
 Item scripts load per side and never sync, so a script-declared value is identical on the client and the server for free [#1058/M/n=2].
+A client-local instance takes the client's own merged script: an Orange spawned into the client's inventory, which the server never sees, read `getCalories` 400 and the default-modData key of whichever bodies that boot loaded [T8.1].
 A workshop mod's item script read on the server and on the client came back identical field for field — hunger change -60, thirst change 20, 53 days fresh, 60 days to rotten, cookable true, 300 minutes to cook and 900 to burn — differing only in which side answered [#1393/M/n=1].
 Script data is owned by neither side and crosses no wire: both sides load it, so a script value is free on both sides, at the price of the checksum gate [#1243/M/n=1].
 That gate is [the script checksum](mod-anatomy.md#checksum-gate) and is the whole price of the route.
@@ -232,7 +237,7 @@ Whether the merge survives one is therefore [an open row](#open), not a fact thi
 The log lines that enumerate `common/` before the version dir come from `AdvancedAnimator.loadModMedia`'s media walk, not from the `activeFileMap` pass, so they corroborate the merge order and are never evidence about the map pass itself [#0834/C/C-only].
 Two loader log lines are routinely misread: the `common/`-enumerated-first lines are the media walk rather than the `activeFileMap` pass, and an empty-tail `overrides` line means the mod has no `common/` rather than a collision, a client printing twice as many of them as there are mods because it runs two Lua states [#1217/M/n=1].
 A malformed value on a known script key raises `InvalidParameterException` and aborts the load, and a line with no equals sign dies at the split's second element [#1188/C/C-only].
-The per-key merge is measured on one item of one build and one key type, and the arm that omits `ItemType` from a partial block, together with a second mod's partial block landing against an already-populated default modData table, has never been run and is [an open question with a purpose-built probe behind it](../areas/open-questions.md#x15) [#1281/C/open].
+The per-key merge is measured on one item of one build and one key type, and the `ItemType`-omitted block and a second mod's block on a populated default modData table on one boot each of that item, with `DisplayCategory` kept and one string key ([#1018/M/n=1], [#1281/M/n=1]).
 Which string orders the replay is read from the code alone, because the mod id, the folder name, the stored script path and the `mod.info` display name sort identically in every boot this library ran, and the boot that would separate them is [the four-mod separator](../areas/open-questions.md#x19) [#1285/C/open].
 The one-path-per-relative-path rule across two mods is a code reading: no session has shipped the same relative path from two different mods, for a script file or for a Lua file, and the sharpest arm — a mod file at a vanilla relative script path, which the same read predicts is dropped entirely — waits on [the collision probe](../areas/open-questions.md#x20) [#1286/C/open].
 Whether the per-body net-id reallocation ever puts a stale id on the wire is unread, which leaves a redefined item's net id a property this page describes and does not license, and it waits on [the identity probe](../areas/open-questions.md#x27) [#1293/C/open].

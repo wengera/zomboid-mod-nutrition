@@ -443,3 +443,7 @@ x161b-20261006-065751,summaries.G.G3.offset_last5_mean,-0.141107177734375,No tar
 x161b-20261006-065751,summaries.G.G4.offset_last5_mean,-0.10855484008789062,No target held.,cite `summaries.G.G1.offset_last5_mean`
 x161b-20261006-065751,logs.server_luaerr,40 lines,"The first 40 lines the driver kept (its cap, `logs.limits.luaerr`), not a count: the full run log matched 147 times, 118 harness echoes of the driver's error reads and 29 vanilla AdvancedAnimator and IsoPropertyType lines; none is a mod error.",cite `server_error_count`
 x161b-20261006-065751,logs.client_luaerr,24 lines,Vanilla AdvancedAnimator lines; none is a mod error.,cite `client_lua_error`
+x171p-20261006-090743,predictions,the driver's PRED_* tables,"The driver's own predictions (#1013-#1015's values and the two NR_Nutrients strings), written before the run; not a reading.",cite `phases.<boot>.C_orange.fields_*` and `moddata_*`
+x171p-20261006-090743,baseline,"total 5092, Base 722","The driver's constants copied from the exp05 baseline, not a reading of this run.","cite `exp05-20260910-084109` `food-scan.json` `items_count`, or `phases.<boot>.A` for this run"
+x171p-20261006-090743,phases.*.logs.server,up to 60 lines,"The first 60 matching lines the driver kept (its cap, `phases.<boot>.logs.limit`), not a count; the pattern also matches vanilla Juice Maker icon warnings and the harness's own echoes.",
+x171p-20261006-090743,phases.*.logs.client,up to 60 lines,"The first 60 matching lines the driver kept (its cap), not a count.",
