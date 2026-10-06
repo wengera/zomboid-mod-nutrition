@@ -34,6 +34,10 @@ function ISPanelJoypad:new(x, y, w, h)
 end
 function ISPanelJoypad:initialise() self.inited = true end
 function ISPanelJoypad:noBackground() self.background = false; return self end
+function ISPanelJoypad:setHeightAndParentHeight(h)
+    NR_T.parentHeights = (NR_T.parentHeights or 0) + 1
+    NR_T.parentHeight = h
+end
 function ISPanelJoypad:render()
     NR_T.baseRenders = (NR_T.baseRenders or 0) + 1
     if NR_T.baseRaises then error("base boom") end
@@ -343,3 +347,20 @@ def test_a_raising_base_render_is_caught_by_the_renders_pcall():
     w.nrView.render(w.nrView)
     assert tab(rt).stats.errors == 1
     assert "base boom" in tab(rt).lastError
+
+
+def test_the_tab_render_reasserts_its_height_on_the_window_each_frame():
+    """The window keeps the last vanilla view's height, so the tab calls setHeightAndParentHeight with its own
+    height on every render, as the vanilla views do (ISCharacterScreen.lua:245)."""
+    rt = rt_with()
+    rt.execute(
+        "NutritionRevamp.client.view = { rows = { 'r' }, refresh = function() end,"
+        " lineHeight = function() return 14 end,"
+        " draw = function(el, rows, x, y, w, font, maxY, minY) return y end }"
+    )
+    w = rt.eval("NR_T.newWindow()")
+    w.createChildren(w)
+    w.nrView.render(w.nrView)
+    w.nrView.render(w.nrView)
+    assert rt.eval("NR_T.parentHeights") == 2
+    assert rt.eval("NR_T.parentHeight") == 192

@@ -110,6 +110,11 @@ function T.renderBody(el)
     if sy > over then sy = over end
     if sy < 0 then sy = 0 end
     el.scrollY = sy
+    -- The window keeps whatever height the last vanilla view set from its own render (ISCharacterScreen.lua:245
+    -- setHeightAndParentHeight; ISUIElement.lua:321-330 walks the parents), so the tab re-asserts its own height
+    -- the same way each render, or its rows would paint past a window a shorter view left (the close re-review's
+    -- defect; unmeasured on screen, no click reaches the tab in the harness).
+    if el.setHeightAndParentHeight ~= nil then el:setHeightAndParentHeight(el.height) end
     view.draw(el, view.rows, PAD, PAD - sy, el.width - 2 * PAD, font, el.height, PAD)
 end
 
