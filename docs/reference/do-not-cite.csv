@@ -390,3 +390,13 @@ x161s-20261006-031534,summaries.X81.fraction_of_gap,0.49986,"Measured from the t
 x161s-20261006-031534,summaries.X80.pred_per_game_h,3.6 and 1.8,"Tier-0 predictions; both windows ran at tier 3.",—
 x161s-20261006-031534,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed and IsoPropertyType lookupOrDefaultStr lines and the harness echo of the driver's lastError and errors reads, which the driver's pattern matches; none is a mod error.",cite `server_error_count`
 x161s-20261006-031534,logs.client_luaerr,12 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
+x161s-20261006-031534,phases.X81.watch.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X88.watch.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X75.watch_a.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X75.watch_b.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X75.watch_c.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X76.watch_c.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X35.watch.dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,phases.X35.watch.dmg.SICK,SICK 287,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X76.watch_c.dmg.SICK`
+x161s-20261006-031534,summaries.X75.a_dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`
+x161s-20261006-031534,summaries.X75.b_dmg.BLEEDING,BLEEDING 151,"A stale counter: the probe never clears a previous window's tag keys.",cite `phases.X78.watch.dmg.BLEEDING`

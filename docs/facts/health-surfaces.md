@@ -105,7 +105,7 @@ Their defaults are `0.002` standard, `0.0013` reduced, `0.0008` severely reduced
 Each has a public getter and setter on an exposed class, so a mod can retune the whole ladder for one character without touching another's [#2354/C/C-only].
 `BodyDamage` has no `setHealthAdditionModifier`: the ladder is moved by writing the four constants [#2354/C/C-only] [#2382/C/C-only].
 The four constants are not saved: no save or load body names them, so a mod's values are lost at a reload and the constructor's defaults return [#3020/C/inference].
-Within a session the written constants held: halved, they read back unchanged 31.9 s later; whether the halving halves awake regeneration is unmeasured, because the one window read ran at hunger moodle level 4, whose tier adds nothing [#3045/M/n=1/open].
+Within a session the written constants held: halved, they read back unchanged 31.9 s later; whether the halving halves awake regeneration is unmeasured, because both windows ran at hunger moodle level 4, whose tier adds nothing [#3045/M/n=1/open].
 
 The severe-moodle constant sits beside them [#2355/C/C-only].
 `healthReductionFromSevereBadMoodles` defaults to `0.0165` and has a public getter and setter [#2355/C/C-only].
@@ -213,7 +213,7 @@ A mod that wants an injury to cripple harder can set them; a mod that wants slow
 It is not the only route: measured live, a server write of a hand's `bleedingTime` with no sync reached the client 1.27 s after the write and then followed the server's countdown in steps about two seconds apart, while the same write with the sync read on the client at once; the carrier of the unsynced copy was not identified [#3041/M/n=1].
 The written timer counted down on the server near the unbandaged rate, 0.035657223114633624 per game hour, and bled through the `BLEEDING` damage tag on 151 ticks of an 18 s window [#3042/M/n=1].
 An infected open wound's level rose at the untreated rate, 0.018090308722325733 per game hour, and with the part's alcohol level written to 1 it fell at 0.35913723562284106 per game hour [#3043/M/n=1].
-An extra rise driven over the harness bus as a read and then a write about a second apart reached only 1.179928563584732 times the untreated slope rather than 2.3 times, because each write overwrote the rise since its read [#3044/M/n=1].
+Twenty writes of an extra rise, each driven over the harness bus after a read about a second earlier, reached only 1.179928563584732 times the untreated slope rather than 2.3 times; the vanilla rise that each write overwrote predicts 1.1946730180991645 (arith., inference), so the shortfall is read as the overwritten gap, not measured as its cause [#3044/M/n=1].
 
 <a id="mood-surface"></a>
 ### The mood surface

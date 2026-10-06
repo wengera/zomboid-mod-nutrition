@@ -120,7 +120,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#2960/C/C-only/open] | Whether a script `OnEat` given to `Base.PillsVitamins` by a mod's item block runs on the server when the pill is taken is unmeasured: the pill path calls the drainable's `OnEat`, as the jar reads, and run x151s-20261005-165844 took the pill with none assigned. | [open-questions.md](#x59) | X59 | a pill taken with a script `OnEat` assigned, counting its calls on both sides |
 | [#2972/M/n=1/open] | Whether the mod's sweat term fires live is unmeasured: a 60 s walk took the server's `body.met` from 1.6 to 3.0 and never above the term's 3 MET floor, so `sweatLmin` stayed 0 and `sweatActive` false. | [open-questions.md](#x64) | X64 | a run or an activity the server classifies above 3 MET for game hours, reading the sweat fields |
 | [#2992/M/n=1/open] | Whether an unbroken sleep resets the mod's hours awake live is unmeasured: under the harness's sleep hold `sleptH` read at most 0.3195 at the 35 reads, below the one-hour nap threshold, and `awakeH` never reset across the hold. | [open-questions.md](#x69) | X69 | a client-initiated sleep, or a hold that keeps every minute asleep for over an hour, reading `acute.awakeH` and `sleptH` |
-| [#3045/M/n=1/open] | Whether halving the regeneration constants halves awake regeneration is unmeasured: run x161s-20261006-031534 wrote and read them back, but both windows ran at hunger moodle level 4, whose tier adds nothing. | [open-questions.md](#x80) | X80 | a damaged part read in two windows, before and after the halving, with the hunger, thirst and sickness moodles under level 2 |
+| [#3045/M/n=1/open] | Whether halving the regeneration constants halves awake regeneration is unmeasured: run x161s-20261006-031534 wrote and read them back, but both windows ran at hunger moodle level 4, whose tier adds nothing. | [open-questions.md](#x80) | X80 | a damaged part read in two windows, before and after the halving, with the hunger, thirst and sickness moodles low enough that the regeneration tier is not 3 |
 | [#3047/M/n=1/open] | What steady core offset a TEMPERATURE target written on every update holds is unmeasured: the probe had no per-tick writer, so run x161s-20261006-031534 read only one write. | [open-questions.md](#x81) | X81 | a per-tick writer of an absolute target for game hours, reading the server's core and set point |
 
 ## Decisions
@@ -327,7 +327,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 ### X35 — Is the handler's endurance write the last before the push, as the tick order reads?
 - Whether a `CalculateStats` handler's endurance write is the last write before the player-stats push, as the tick order reads, is open [#2082/C/open].
 - Run `x132r-20261005-072441` could not take it: no handler in the tree writes the sentinel, the mod having dropped its own and the probe mod's handlers writing no stat, and the harness run command only walked [#2840/M/n=2].
-- Run `x161s-20261006-031534` read only vanilla's awake endurance reaching the client, within about one push, the mod's handler writing no awake endurance at `d2301d6` [#3050/M/n=1].
+- Run `x161s-20261006-031534` read only vanilla's awake endurance reaching the client, within about one push, no handler writing awake endurance on that boot (code inference; #3050's bound) [#3050/M/n=1].
 - Waiting on it: [character-stats.md](../facts/character-stats.md#open), [endurance-fatigue-sleep.md](../facts/endurance-fatigue-sleep.md#open).
 - Settled by: a handler writing a sentinel endurance each tick, read in client-first pairs at rest and while running, beside an arm with the handler removed — [experiments.md § Named experiments](../reference/experiments.md), row `X35`.
 
@@ -388,7 +388,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 ### X80 — Does halving the regeneration constants halve awake regeneration?
 - Whether the halved constants halve the awake tier's regeneration is open [#3045/M/n=1/open]; the setters and getters answer and the values hold within a session, and they are not saved [#3020/C/inference].
 - Waiting on it: [health-surfaces.md](../facts/health-surfaces.md#regeneration).
-- Settled by: a damaged part read in two windows, at the defaults and halved, with the hunger, thirst and sickness moodles under level 2 — [experiments.md § Named experiments](../reference/experiments.md), row `X80`.
+- Settled by: a damaged part read in two windows, at the defaults and halved, with the hunger, thirst and sickness moodles low enough that the regeneration tier is not 3 [#2353/C/C-only] — [experiments.md § Named experiments](../reference/experiments.md), row `X80`.
 
 <a id="x81"></a>
 ### X81 — What steady core offset does a per-update TEMPERATURE target hold?

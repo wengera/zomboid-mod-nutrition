@@ -2858,7 +2858,7 @@ nothing of it is committed. **Skew-free.**
 How to read it. Every bus call is a row of `steps`. `stats_all` holds every `stats.all` reply on either side (`side`, the answering side's `sideWall` in ms on the one shared machine clock, `worldAge`, `mult`, `stats`
 keyed by registry id); `stats_get`, `health_reads`, `part_reads`, `part_writes`, `stat_writes`, `temp_reads`, `regen_reads` and `regen_writes` are the typed replies, each tagged. `watches` are the TKX_StatWatch
 windows in order (`X78`, `X81`, `X88`, `X75a`, `X75b`, `X75c`, `X76a`, `X76c`, `X35`): per field `first`, `last`, `min`, `max` at full precision, `raw` the first 60 ticks parsed from `raw_strings` (3 decimals,
-TEMPERATURE and core 2), `dmg` the `OnPlayerGetDamage` tag counts and sums, where `-1` is the value the driver wrote before the window (never fired in it). `phases.<X>` reference those rows by tag;
+TEMPERATURE and core 2), `dmg` the `OnPlayerGetDamage` tag counts and sums, where `-1` is the value the driver wrote before the window (never fired in it); a damage tag that neither reset nor fired in a window carries the previous window's count (`BLEEDING` reads 151 in every window after X78's, and `SICK` 287 in X35's). `phases.<X>` reference those rows by tag;
 `summaries` are derived in the driver (least-squares slopes, the session clock `summaries.clock`: 37.59185054444087 wall seconds per game hour, multiplier 4.5155–4.8053 per tick, 10.105 ticks per second).
 The character's HUNGER, which the mod's handler writes, rose from 0.0229 at first sight to 1 by world age 9.43 h, so the HUNGRY moodle read level 4 from the X80 phase on: every later window carries the HUNGRY
 drain (one tag per tick) and the regeneration tier 3.

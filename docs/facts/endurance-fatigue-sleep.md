@@ -131,7 +131,7 @@ Read as written, the first test is dead weight and moderate heat costs no extra 
 None of the three multipliers has a setter; the missing setters are listed under [Walls and bounds](#walls).
 A mod moves `getRecoveryMod` only through the Fitness perk or the weight-band traits, and `getPacingMod` only through the Fitness perk.
 
-Measured live, vanilla's awake endurance reaches the owning client within about one push: with ENDURANCE written to 0.6 on the server and rising under a harness walk, the client's copies lay 369.61376953125 to 1162.46142578125 ms behind the server's series; the mod's handler wrote no awake endurance on that boot, so whether a handler's write is the one the push carries is still [X35](../areas/open-questions.md#x35)'s question [#3050/M/n=1] [#2082/C/open].
+Measured live, vanilla's awake endurance reaches the owning client within about one push: with ENDURANCE written to 0.6 on the server and rising under a harness walk, the client's copies lay 369.61376953125 to 1162.46142578125 ms behind the server's series; no handler wrote awake endurance on that boot (code inference; #3050's bound), so whether a handler's write is the one the push carries is still [X35](../areas/open-questions.md#x35)'s question [#3050/M/n=1] [#2082/C/open].
 
 <a id="writers"></a>
 ### Event writers
