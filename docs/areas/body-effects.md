@@ -411,7 +411,7 @@ Which store the design treats as the truth decides which vanilla writer it fight
 
 A status icon the mod draws in its own column is anchored on the vanilla moodle stack's box, which is readable from Lua though the stack offers no mutator [#2509/C/C-only].
 The column is code the mod owns end to end, drawn on the client from whatever the client holds.
-A framework moodle rides a third-party mod whose wholeness on this build no run has confirmed [#1295/M/n=1].
+A framework moodle rides a third-party mod that one session read loading whole on this build and rendering a registered moodle at a value past its top threshold [#1295/M/n=1].
 A mod's own vanilla moodle type is not a third choice, as [the moodle route](ui-and-moodles.md#moodle-route) states.
 Which one a body effect uses decides whether the mod ships a runtime dependency.
 
