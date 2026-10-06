@@ -927,3 +927,42 @@ TK.register("aim.probe", function(argv)
     out.file = "pzt-results/aim-probe.json"
     return out
 end)
+
+-- <x> [now]. The write arm of the aiming-delay probe: adds x to the aiming delay. Without `now`
+-- it stands inside the armed aim.probe window and is applied right after EACH queued shot as
+-- setAimingDelay(delay + x) (the design's "re-applied after each shot"; the sampler's raw series
+-- then shows whether the per-update decay or the reset erases it before the next shot); x of 0
+-- clears it. With `now` it writes once at once, with no window needed, and replies the delay
+-- read before and after through getAimingDelay.
+-- @args <x> [now]
+-- @reply {ok, standing, x, now [, before, after] [, reason]} | string
+-- @purpose Adds x to the local player's aiming delay: once at once with `now`, else as a standing bump the aim.probe window applies after every shot.
+TK.register("aim.bump", function(argv)
+    local x = tonumber(argv[1])
+    if x == nil then return "usage: aim.bump <x> [now]" end
+    local out = { ok = false, x = x, now = (argv[2] == "now"), standing = false }
+    if out.now then
+        local p = getPlayer and getPlayer() or nil
+        if p == nil then
+            out.reason = "no local player"
+            return out
+        end
+        out.before = P5.hop(p, "getAimingDelay")
+        if out.before == nil then
+            out.reason = "no getAimingDelay()"
+            return out
+        end
+        P5.hop(p, "setAimingDelay", out.before + x)
+        out.after = P5.hop(p, "getAimingDelay")
+        out.ok = (out.after ~= nil)
+        return out
+    end
+    if not TK.p5Aim.armed then
+        out.reason = "no aim.probe window is armed (use `now`, or arm aim.probe first)"
+        return out
+    end
+    if x == 0 then TK.p5Aim.bumpX = nil else TK.p5Aim.bumpX = x end
+    out.standing = (TK.p5Aim.bumpX ~= nil)
+    out.ok = true
+    return out
+end)
