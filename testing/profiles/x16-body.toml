@@ -7,6 +7,8 @@
 # the dial. The healing, bleeding, bruise and drain arms therefore use RECORD EDITS (globalmoddata.setpath)
 # to put vitamin C at clinical and the drain's `ah` where the arm needs it, and never the dial. A plain Lua
 # field (the fast handler's endFoldOn) is flipped with lua.setpath.
+# Run x161b-20261006-065751 (Task 14, acceptance 2): night vision, Short Sighted, healing, bleeding, infection, the
+# cold and thermal arms, the toxicity and scurvy drains, the PANIC hold and the thirst cap.
 fixture = "default"
 description = "PZTestKit + NutritionRevamp (Mode 1, LegacyMirror, OnsetSpeed 30, Severity 1.0) + TKX_StatWatch + TKX_SleepWatch + TKX_BoozeWatch + TKX_TraitProbe, sleep on, DayLength 1 - the Plan 5 body-effects acceptance (record edits for vitC and the drain)."
 run = { hold = 20 }

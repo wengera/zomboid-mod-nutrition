@@ -123,6 +123,7 @@ The owner cell links the section that states the row; the X cell names the exper
 | [#3045/M/n=1/open] | Whether halving the regeneration constants halves awake regeneration is unmeasured: run x161s-20261006-031534 wrote and read them back, but both windows ran at hunger moodle level 4, whose tier adds nothing. | [open-questions.md](#x80) | X80 | a damaged part read in two windows, before and after the halving, with the hunger, thirst and sickness moodles low enough that the regeneration tier is not 3 |
 | [#3063/M/n=1/open] | Whether the post-shot sum, the per-update aiming step and a client write between shots behave as the jar reads while a player really aims is unmeasured: run x161p-20261006-035559's harness aim flag did not hold. | [open-questions.md](#x86) | X86 | an aim held by input with the delay below the aiming time, sampled per client tick across shots |
 | [#3047/M/n=1/open] | What steady core offset a TEMPERATURE target written on every update holds is unmeasured: the probe had no per-tick writer, so run x161s-20261006-031534 read only one write. | [open-questions.md](#x81) | X81 | a per-tick writer of an absolute target for game hours, reading the server's core and set point |
+| [#3129/M/n=1/open] | Whether the mod's cold fold scales a catchACold rise is unmeasured: run x161b-20261006-065751 held a climate override of -10 and a soaked character, the thermoregulator's catch-a-cold delta stayed under the 0.1 the accrual needs and catchACold read 0 at all 32 reads. | [open-questions.md](#x105) | X105 | an outdoor or wet-and-cold seat that lifts the delta over 0.1 for game hours, reading catchACold with the fold on and off |
 
 ## Decisions
 <a id="decisions"></a>
@@ -403,6 +404,12 @@ One subsection per surviving named experiment, in id order: the open rows this p
 - Whether the sum, the step and a write between shots behave as read while a player really aims is open [#3063/M/n=1/open]; a written aim flag does not hold and the delay then sits at the aiming time [#3062/M/n=1], and the three attack events fire on the shooting client [#3061/M/n=1].
 - Waiting on it: [perception-speed.md](../facts/perception-speed.md#combat).
 - Settled by: an aim held by input with the delay below the aiming time, sampled per client tick across shots, with a write between shots — [experiments.md § Named experiments](../reference/experiments.md), row `X86`.
+
+<a id="x105"></a>
+### X105 — Does the cold fold scale a catchACold rise?
+- Whether the fold that scales the cold accumulator's rise does so on a live server is open [#3129/M/n=1/open]; sleep debt raised the cold multiplier to 2.5 at the next rebuild [#3099/M/n=1], and the climate override and a soaked character never lifted the thermoregulator's delta over the 0.1 the accrual needs, so the fold made no write [#3114/M/n=1].
+- Waiting on it: [health-surfaces.md](../facts/health-surfaces.md#poison-infection).
+- Settled by: an outdoor or wet-and-cold seat that lifts the catch-a-cold delta past the accrual's gate for game hours, reading catchACold with the fold on and off — [experiments.md § Named experiments](../reference/experiments.md), row `X105`.
 
 ## See also
 

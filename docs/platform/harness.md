@@ -174,12 +174,13 @@ The command bus is a pair of files in each side's cachedir: the orchestrator wri
 One protocol runs on both sides, carried by the same reader and writer pair, and the dedicated server polls the command file from the tick event and from the once-a-minute one [#1717].
 A result is written as one complete JSON object and that completeness is the ready signal, because the file writer's extension allowlist rules out marker files; the orchestrator collects them into the run report and a bus helper blocks on one, a partial write never parsing [#1761].
 The command bus answers with no client attached: a server ping answered in 1.51 seconds, the version control read 1, and all ten echo checks passed, over two boots on the server alone [#0933/M/n=2].
-The live registration set, counted on 2026-10-04, is 63 distinct names over 72 registration sites, nine names being registered twice, once per side; the generated table counts the sites and not the names [#2808/C/snapshot].
+The live registration set, counted on 2026-10-06, is 106 distinct names over 121 registration sites, fifteen names being registered twice, once per side; the generated table counts the sites and not the names [#2808/C/snapshot].
 That table — one row per name and side, with the arguments, the reply keys and the purpose of each — is [`harness-commands.md`](../reference/harness-commands.md), and it is generated from the registration sites rather than written by hand.
 
 The test layer answers three bus commands: a sorted list of registered names, a run command whose acknowledgement is one of started, unknown, already running with the running name, or a player-resolution error — and only started leads to a result document — and a status reply carrying the running flag, name, clock, due minute, side and sample count [#1722].
 The bus answers a translation lookup on both sides because the command is registered once in the harness's shared file, which loads before the client file, and a reply distinguishes a Java null return from a translation miss [#0930].
 The harness's only string setter is the chef field on an item, and it is the only route from the bus into the cooking-experience branch of the food update, because an admin-command spawn leaves that field null; an empty value is refused rather than written, since an empty chef reads as no chef [#1723].
+`lua.setpath` is the drivers' only Lua-side setter: a server-side, test-only command that assigns a true, false, nil, number or string scalar to a field of a Lua table reached by a dotted path from the globals, never creating a parent, and it is unguarded because the bus is the harness's own file channel and has no admin concept; no chunk runner exists, because `loadstring` is removed on 42.20.x [#3078/M/n=1] [#1082/C/snapshot].
 
 The harness Lua is eight files split by load order and by which part of the work owns them [#1771].
 

@@ -1,5 +1,5 @@
 # UI and moodles — what a nutrition mod can show a player
-Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-design reading of the display surfaces — a moodle as a client widget through `MoodleFramework` or the mod's own, a client panel, a tooltip line, a character-info tab and translation text — what each costs and which wall it hits, how often a client-side reader should read, how the trait list reaches a client, and why a displayed number can be honest and still wrong; the widget toolkit and its wrap points are `platform/client-ui.md`, the moodle and trait registries `platform/lua-platform.md`, the translation tables `platform/mod-anatomy.md` and the packet contents `facts/wire-packets.md`
+Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-design reading of the display surfaces — a moodle as a client widget through `MoodleFramework` or the mod's own, the moodle level a stat value reaches, a client panel, a tooltip line, a character-info tab and translation text — what each costs and which wall it hits, how often a client-side reader should read, how the trait list reaches a client, and why a displayed number can be honest and still wrong; the widget toolkit and its wrap points are `platform/client-ui.md`, the moodle and trait registries `platform/lua-platform.md`, the translation tables `platform/mod-anatomy.md` and the packet contents `facts/wire-packets.md`
 
 ## Rules
 
@@ -25,7 +25,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 A nutrition overhaul tracks more than vanilla shows, and everything it shows has to reach the player through a surface the engine already draws or one the mod draws itself.
 This page owns no mechanism of those surfaces: it reads the registries, the widget toolkit, the packets and the translation tables owned by the pages below it, and states what each reading means for a display.
 The moodle surface is decided by the registries and by the widget a mod draws, a client panel by the packets its numbers travel on, and text by the translator.
-The four readings below take the moodle, the panel's read cadence and the trait list a label rests on in turn, and then the failure all of them share; the panel, tooltip, tab and icon-column shapes and the text surface are costed under [Options](#surface-options).
+The five readings below take the moodle, the level a stat value reaches, the panel's read cadence and the trait list a label rests on in turn, and then the failure all of them share; the panel, tooltip, tab and icon-column shapes and the text surface are costed under [Options](#surface-options).
 
 <a id="moodle-route"></a>
 ### A moodle is a client widget, drawn by `MoodleFramework` or by the mod
@@ -86,6 +86,21 @@ A moodle drawn through the framework also shares the screen with the mods reside
 The interface mod resident on the target server redraws the status surfaces, and drawing through the framework or through a panel of the mod's own is the rule that keeps this mod out of that mod's widgets [#1083/C/snapshot].
 The framework's configuration file also mutates the engine's shared gray colour object in place from its own options page, so a panel that draws with that object on a client running the framework draws in the framework's colour [#2550/C/C-only].
 Both server-specific readings are bounded to that server's mod list on the sweep's date, and both reopen the moment the list changes [#1070/C/snapshot, #1083/C/snapshot].
+
+<a id="stat-moodles"></a>
+### What a stat value shows as a moodle
+
+A mod that moves a stat on the server moves the moodle the stat feeds, because each side recomputes its own moodles from its own copy of the stats, and the level a value reaches is fixed by thresholds a mod cannot change [#1143/C/C-only] [#1141/C/C-only].
+The thresholds are on [the mood surface](../facts/health-surfaces.md#mood-surface), [the hunger and thirst moodles](../facts/body-and-weight.md#moodles) and [the tired moodle](../facts/endurance-fatigue-sleep.md#moodles) [#2369/C/C-only] [#0508/M/n=1] [#0509/M/n=1] [#2279/C/C-only].
+No reader of the mood, tired, sick or drunk moodle levels exists on the harness: its `stats.get` carries the hungry, thirst, food-eaten, heavy-load and endurance levels only, so every level below for those moodles is the registered threshold applied to a measured stat value, and no run has seen the level itself.
+The registered thresholds are not a measured firing point for the mood rows [#2369/C/C-only].
+
+The held hunger view read 0.69 and the held thirst view 0.83, under the level-4 thresholds of 0.70 and 0.84, which puts both moodles at level 3 and keeps them off the level-4 drain [#3074/M/n=1] [#3103/M/n=1] [#0508/M/n=1] [#0509/M/n=1].
+FATIGUE crossed 0.6, 0.7 and 0.8, the first three Tired thresholds, at world age 15.29, 17.19 and 19.68 h, about 12.2, 14.1 and 16.6 h after the record's birth [#3075/M/n=1] [#2279/C/C-only].
+FOOD_SICKNESS at 55 sits over the SICK moodle's second threshold of 0.50 and at 85 over its third of 0.75, on the stat's 0 to 100 scale read as a hundredth, so the SICK moodle stands at level 2 and then level 3, and a value of 95 would stand over the fourth [#2369/C/C-only] [#3084/M/n=1] [#3104/M/n=1] [#3039/M/n=1].
+PANIC floor targets of 10 to 19.25 sit between the first threshold of 6 and the second of 30, which is level 1, and a target of 35 sits between 30 and 65, which is level 2 [#2369/C/C-only] [#3082/M/n=1] [#3101/M/n=1].
+UNHAPPINESS floor targets of 22.92 and 25 sit between the UNHAPPY thresholds of 20 and 45, which is level 1, and the released 4.1667 sits under the first [#2369/C/C-only] [#3083/M/n=1].
+A STRESS floor of 0.06 sits under the STRESS moodle's first threshold of 0.25 and shows no moodle, and an INTOXICATION that peaked at 2.85 sits under the DRUNK moodle's first threshold of 10 [#2369/C/C-only] [#3080/M/n=1] [#3086/M/n=1].
 
 <a id="read-cadence"></a>
 ### Cache on the push, not on the frame
