@@ -103,6 +103,7 @@ The four constants live on the character's own `BodyDamage` and are set in its c
 Their defaults are `0.002` standard, `0.0013` reduced, `0.0008` severely reduced and `0.02` sleeping [#2354/C/C-only].
 Each has a public getter and setter on an exposed class, so a mod can retune the whole ladder for one character without touching another's [#2354/C/C-only].
 `BodyDamage` has no `setHealthAdditionModifier`: the ladder is moved by writing the four constants [#2354/C/C-only] [#2382/C/C-only].
+The four constants are not saved: no save or load body names them, so a mod's values are lost at a reload and the constructor's defaults return [#3020/C/inference].
 
 The severe-moodle constant sits beside them [#2355/C/C-only].
 `healthReductionFromSevereBadMoodles` defaults to `0.0165` and has a public getter and setter [#2355/C/C-only].
@@ -152,6 +153,18 @@ Infection resistance is a character field, not a stat [#2360/C/C-only].
 While `IsoGameCharacter.getReduceInfectionPower` is positive and overall health is above zero, it drains `ZOMBIE_FEVER` by the infection growth rate per multiplier unit [#2360/C/C-only].
 It decrements itself by the same amount and is floored at zero, so a value written to it is a budget that spends down [#2360/C/C-only].
 Its setter is public [#2360/C/C-only].
+
+The sickness stat behind the `SICK` moodle is not food sickness, and nothing in the engine's character classes lowers it.
+`CharacterStat.SICKNESS` is only read in the body-damage, character, player, thermoregulator, stats, moodle and item-stats classes — by the thermoregulator's set point and by the `SICK` moodle — so a value once written stays until something writes it again [#3019/C/inference].
+What the set point does with it is under [the thermal door](#thermal).
+
+Catching a cold is an accumulator, `catchACold`, filled by the wetness updater rather than the cold updater [#3021/C/C-only].
+While no cold is running and the thermoregulator's catch-a-cold delta is above 0.1, the delta, × 1.7 for Prone to Illness, × 0.45 for Resilient and × 0.25 for Outdoorsman, times 0.003 per multiplier unit is added, and at 100 the accumulator is zeroed and a cold of strength 20 starts [#3021/C/C-only].
+With the delta at or below 0.1 the accumulator falls by 0.175 on every update, with no game-time multiplier, floored at 0 [#3021/C/C-only].
+The cold updater only runs the course of a cold already caught [#3022/C/C-only].
+A cold weakens only while the character is in a room, dry, free of hypothermia and at fatigue 0.5 or less, hunger 0.25 or less and thirst 0.25 or less, or while a cold-reduction medicine acts; otherwise it strengthens up to 100 [#3022/C/C-only].
+When its strength falls below zero the cold ends and the accumulator is zeroed [#3022/C/C-only].
+Nothing else resets the accumulator per tick, and it is written into the character's save [#3023/C/C-only].
 
 <a id="pain"></a>
 ### Pain
@@ -241,6 +254,11 @@ Last, it writes the core back into the stat [#2373/C/C-only].
 A server-side write to the stat therefore moves the core halfway on the next update, after which the stat is driven from the core again [#2373/C/C-only].
 A mod that wants to hold a temperature must re-write the stat on every update, and one that writes it once sees half the step land [#2373/C/C-only].
 
+The core the regulator steers toward is readable but not writable [#3024/C/C-only].
+`Thermoregulator.getSetPoint()` is public on the exposed class and returns a private set point with no setter, which the update resets to 37 °C at its start and raises by twice the `SICKNESS` stat when that stat is above its minimum [#3024/C/C-only].
+The heat-delta step scales heat loss up when the core is above the set point and heat gain up when it is below, so the set point is the regulator's target [#3024/C/C-only].
+A held sickness is therefore a fever: `SICKNESS` 0.30, 0.55 and 0.90 put the target at 37.6, 38.1 and 38.8 °C while held [#3025/C/arith.].
+
 Everything else in the thermoregulator is closed [#2374/C/C-only] [#2375/C/C-only].
 Every step of the thermal update — `updateSetPoint`, `updateMetabolicRate`, `updateNodesHeatDelta`, `updateHeatDeltas`, `updateNodes`, `updateBodyMultipliers`, `updateClothing`, `updateCoreRateOfChange` and `updateThermalDamage` — is private, and only the whole `update()` is public [#2374/C/C-only].
 Beside its save-and-load pair, the class's whole public writable surface is the static `setSimulationMultiplier`, the two `setMetabolicTarget` overloads and `reset` [#2375/C/C-only].
@@ -273,7 +291,7 @@ What the thermoregulator's totals do to calorie burn, thirst and fatigue is stat
 - `BodyDamage.Update` runs the thermoregulator and then nine sub-updaters in a fixed order — dragging-corpse, wetness, cold, boredom, strength, panic state, temperature state, discomfort and illness — before regeneration and the drain, and their bodies are unread, so which of them overwrites a stat a mod writes between ticks is not established [#2384/C/C-only].
 - `damageScaler` has no setter and the moodle thresholds are unreachable from Lua, stated at [#wounds](#wounds) and [#mood-surface](#mood-surface) [#1141/C/C-only] [#2363/C/C-only].
 - No thermal node, insulation or thermal-resistance value has a setter; the temperature stat is the only door [#2376/C/C-only] [#2373/C/C-only].
-Not covered: the nine sub-updater bodies (`UpdatePanicState` and `UpdateBoredom` among them, where panic and boredom are driven), `BodyPartType.getDamageModifyer` and `getPainModifyer`, `CombatManager.applyDamage`, the `generate*` wound and fracture methods, `getGeneralWoundInfectionLevel` and `getApparentInfectionLevel`, `Kill`, `dieNetwork` and `addOnDiedListener`, the carrier of `IsoGameCharacter.health` to a client, the thermoregulator's own formulas beyond the fat, energy and fluid terms, and `ThermalNode.calculateInsulation`.
+Not covered: the sub-updater bodies other than panic state, boredom, cold and illness (read at [character-stats.md](character-stats.md#tick-order) and above), the thermoregulator's catch-a-cold delta, `BodyPartType.getDamageModifyer` and `getPainModifyer`, `CombatManager.applyDamage`, the `generate*` wound and fracture methods, `getGeneralWoundInfectionLevel` and `getApparentInfectionLevel`, `Kill`, `dieNetwork` and `addOnDiedListener`, the carrier of `IsoGameCharacter.health` to a client, the thermoregulator's own formulas beyond the fat, energy and fluid terms, and `ThermalNode.calculateInsulation`.
 
 ## Open
 <a id="open"></a>

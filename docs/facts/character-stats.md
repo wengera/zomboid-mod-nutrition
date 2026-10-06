@@ -178,6 +178,16 @@ The food writer adds 400 times a rescaled fraction, quartered for a beer or low-
 What the drink path hands its writer is [the fluid path's](eating-pipeline.md#fluid-path).
 Measured live, a 0.3-litre can of beer drunk through the game's drink action raised INTOXICATION as the can emptied, 0.630 with 0.244 litres left, 2.703 at 0.115 and 5.054 with the can empty 4.2 s after the first read, to a per-tick peak of 5.0947 at HUNGER 0.46, and the stat then read 0.0914 24.7 s after the 5.054 read and 0 at the next [#2950/M/n=1].
 
+Panic, boredom, unhappiness and food sickness are driven by three more body-damage sub-updaters, which run in the same tick before the hook and which the hook never skips.
+None of the three sets its stat to a level of its own: each adds or removes an amount from the stored value or resets the stat to its default on a named condition, so a value a `CalculateStats` handler writes after `BodyDamage.Update` is the base the next update's change starts from [#3017/C/inference].
+The panic updater counts the zombies newly in view since its last call, resets PANIC for a Desensitized character, and otherwise raises PANIC for new sightings or lets it decay [#3013/C/C-only].
+The rise is 7 per newly visible zombie, halved in a vehicle and scaled by the beta-blocker and the Cowardly, Brave and Desensitized traits, and the decay removes 0.06 times the thirty-FPS multiplier plus the months survived (at most 5), doubled asleep [#3014/C/C-only].
+The boredom updater does nothing for a sleeping player, otherwise moves BOREDOM up or down by its two rates according to idleness, speech, company, business, a vehicle and drink, and resets it whenever PANIC is above 5 [#3015/C/C-only].
+The same updater only ever raises UNHAPPINESS: by 0.0005 times the BORED moodle level per multiplier unit while that moodle is at level 2 or more, and by half that times the STRESS moodle level while stress is at level 2 or more, neither while reading [#3016/C/C-only].
+Across the body-damage, character, player and stats classes the only passive fall of UNHAPPINESS is the antidepressant's, while a pill's effect lasts [#3033/C/inference].
+The illness updater adds corpse sickness to FOOD_SICKNESS while the decaying-corpse option is on and that sickness is above zero, and otherwise removes 0.0015 per multiplier unit from FOOD_SICKNESS only while POISON is at its minimum [#3018/C/C-only].
+What these updaters leave to a mod's floors and the sickness stat they never touch are [the mood surface](health-surfaces.md#mood-surface) and [the poison section](health-surfaces.md#poison-infection).
+
 The frame's tail — `OnTick` and the network manager — is [the server tick order](../platform/server-lifecycle.md#tick-order), and the push that follows it is [the player-stats push](../platform/mp-model.md#packets).
 Which side runs the player's endurance model, and for whom it returns early, is [the ownership section](../platform/mp-model.md#ownership).
 

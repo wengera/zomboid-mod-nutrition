@@ -85,6 +85,7 @@ The engine's dark-vision mechanism is the trait `CharacterTrait.NIGHT_VISION`, w
 The bonus is largest in full darkness and falls to nothing at full daylight, the reverse of Eagle Eyed's term.
 `CharacterTrait.NIGHT_VISION` also raises the player's render ambient to a floor of 0.20 whenever the computed ambient is below it, independently of the view cone [#2339/C/C-only].
 So the trait brightens a dark scene as well as widening the cone in it.
+The render settings that hold that floor are not exposed to Lua, and no Lua global names them, so a mod sees the trait and never its render effect [#3027/C/C-only].
 Night-vision goggles are a render flag with no packet: the setter's only reader is the per-player render-settings path [#2328/C/C-only].
 A server that sets the goggles flag on a player's server copy changes nothing that player's client draws.
 The trait is the lever that reaches the client; how a trait change travels is under [dynamic traits](#dynamic-traits).
@@ -140,6 +141,10 @@ The movement levers a mod has are the server-side inputs of the formula.
 A write to the `WalkSpeed` or `RunSpeed` animation variable on the server lasts until the formula next runs.
 Whether a client-side write to `WalkSpeed` holds inside the window between two injury pushes is open, under [Open](#open).
 
+A fall ends in a landing, and the jar has two landing paths.
+On a server, the falling state's exit packet makes the server run the landing on its copy of the player with the impact the client put in the packet, then push the damage; the state's own exit on the client only stores that impact [#3028/C/C-only].
+The character update also runs a landing when the player's next height would fall below the floor, with no side gate of its own, and these two are the jar's only callers of the landing; whether a connected player's fall lands once or on both paths is not read [#3032/C/C-only].
+
 <a id="combat"></a>
 ### Combat speed and reaction
 
@@ -160,6 +165,10 @@ After each shot the combat manager rewrites the aiming delay as its current valu
 The post-shot sum is not the delay's only writer: a per-update aiming step also writes it, and that step is listed under [walls](#walls) as not covered.
 Vanilla's rack-firearm action writes the aiming delay additively, adding a term scaled by the gun's aiming time and the Reloading perk to the current delay [#2340/C/C-only].
 A mod's own write composes with that call as long as it, too, adds to the current value rather than replacing it.
+Two Lua events bracket the swing that makes the post-shot write.
+`OnWeaponSwing` fires from the swing state's entry with the player and the weapon in use, after the attack call whose last act is the post-shot aiming-delay write, so a handler of it runs after that write in the same entry [#3026/C/C-only].
+`OnPlayerAttackFinished` fires from the swing state's exit with the character and the weapon once the attack has landed, and vanilla's reload action listens to it and to `OnWeaponSwingHitPoint` [#3031/C/C-only].
+Which side fires either event for a connected player's shot is not read.
 
 On an attacking client, critical chance against another, remote player reads the target's body weight on both the shove and the melee arm, moving the chance by (weight − 80)/2 around an 80.0 pivot [#2327/C/C-only].
 A lighter target is critted more often and a heavier one less.

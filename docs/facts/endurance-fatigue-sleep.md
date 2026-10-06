@@ -251,6 +251,11 @@ Waking has its own fatigue write.
 `SleepingEvent.wakeUp` clears the asleep flag and, on a good bed with or without a pillow, removes a random 0.05 to 0.12 of fatigue scaled by the sleep event's sleeping time over 8 [#2278/C/C-only].
 The same method's other bed branches are not read here.
 
+No fatigue value wakes a sleeper.
+The player's waking check, run after the stat update for a sleeping player, wakes on the force-wake-up clock time, after more than 16 hours asleep, on aim or movement input in multiplayer, or on the force flag, and reads no stat; the sleeping event wakes a sleeper for very close zombies, a nightmare or intruders [#3029/C/C-only].
+Fatigue sets a bed sleep's length once, at its start, in the client's bed handler: the wake time is the time of day plus a random 10 to 13 hours per unit of fatigue plus one, shifted by the bed and the sleep traits and clamped to 3 to 16 hours, and the sleep dialog sets it from the hours the player picks instead [#3030/C/C-only].
+A fatigue write during sleep therefore neither wakes the player earlier nor keeps them asleep longer.
+
 On a server that allows and needs sleep, the harness's per-tick asleep hold read asleep at 1014 of 1200 server ticks over 120 s, and while the only player was held asleep the world clock ran about 20 times its waking rate, 61.764 game hours in 115.998 s of server wall time against 1.5095 game hours in 56.703 s awake [#2956/M/n=1].
 What the takeover handler did with that sleep is a reading of the mod, [testing-your-mod.md](../areas/testing-your-mod.md#scenario-inputs).
 
