@@ -498,3 +498,16 @@ x183-20261006-163238,verdicts.*.predicted,the driver's predictions,Copies of `pr
 x183-20261006-163238,verdicts.I.verdict,falsified,"The pattern caught the harness's echoes of the driver's own server-side probes, not a mod line.",cite `logs.server_ui` and `logs.server_ui_mod`
 x183-20261006-163238,logs.server,120 lines,"The first 120 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
 x183-20261006-163238,logs.client,120 lines,"The first 120 matching lines the driver kept (its cap), not a count.",
+x183m-20261006-163808,predictions,the driver's PRED table,"Written before the boot, both routes in one table; not a reading.",cite `verdicts.<arm>.observed` or `phases.<arm>`
+x183m-20261006-163808,constants,the driver's constants,"Settings of the driver, not readings.",
+x183m-20261006-163808,baseline,"ticks 10.05..., band 1238-1270","Copied from x172b-20261006-130714 and x181-20261006-152607, not this run.",cite those runs' own files
+x183m-20261006-163808,deviations,the driver's list,Written before the boot; not readings.,
+x183m-20261006-163808,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
+x183m-20261006-163808,verdicts.I.verdict,falsified,"The pattern caught the harness's echoes of the driver's own server-side probes, not a mod line.",cite `logs.server_ui` and `logs.server_ui_mod`
+x183m-20261006-163808,logs.server,120 lines,"The first 120 matching lines the driver kept (its cap), not a count.",
+x183m-20261006-163808,logs.client,120 lines,"The first 120 matching lines the driver kept (its cap), not a count.",
+x183m-20261006-163808,phases.F.column_renders_delta,0,The framework route builds no own column; not a stopped draw.,
+x183m-20261006-163808,phases.F.after_r1,0,The framework route builds no own column.,
+x183m-20261006-163808,phases.F.after_r2,0,The framework route builds no own column.,
+x183m-20261006-163808,phases.F.after.handle.value,unresolved,Not the framework's value field.,cite `phases.F.after.probe`
+x183m-20261006-163808,phases.F.before.handle.value,unresolved,Not the framework's value field.,cite `phases.F.before.probe`

@@ -278,6 +278,9 @@ On that boot a client-local Nutritionist trait did not flip the view to level 3:
 The tooltip probe resolved the intake's own source per item, `table` for the apple and `declared` for the declared bar, one line each at level 1, while the band's on-screen draw stays unmeasured because the harness cannot hover [T11.9/M/n=1].
 A clinical vitamin C written into the record reached the own moodle column within one effects push, the deficiency class reading 3 and the column drawing [T11.11/M/n=1], at a fixed inset clear of the vanilla moodle band [T11.12/M/n=1].
 The boot ticked at the item-pass build's server rate [T11.13/M/n=1], and the server's log carried no interface line from the mod [T11.14/M/n=1].
+The second boot, with MoodleFramework installed, loaded as clean on the framework route [T11.15/M/n=1], and there the same client-local trait flipped the view to level 3 within the first read after the request [T11.16/M/n=1], so the gate's client-local route read differently on the two boots.
+At level 3 the tooltip probe listed 24 lines for the apple and 10 for the declared bar [T11.17/M/n=1], the panel and the tab repeated the first boot's counts [T11.20/M/n=1], and the forced clinical vitamin C put the framework's deficiency moodle on its bad side at level 3 on the UI manager, the first bad-side reading of the framework [T11.18/M/n=1].
+That boot ticked at the same server rate [T11.21/M/n=1], and its server log again held no interface line from the mod [T11.22/M/n=1].
 
 <a id="owned-experiments"></a>
 ### The experiments this mod owns
