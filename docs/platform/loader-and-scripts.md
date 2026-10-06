@@ -156,7 +156,7 @@ In a boot whose `Mods=` named the watermelon probe first, `Base.Watermelon` read
 With the same three bodies permuted so that the probe sat in the middle of `Mods=`, `Base.Watermelon` still read 999 on both sides, where 111 would have said first-in-`Mods=` wins and 777 `Mods=`-last wins [#1054/M/n=1].
 Script bodies replay sorted by the stored script path, independent of `Mods=` position, with the last body winning per key, and `Mods=`-order-last-wins, first-in-`Mods=`-wins and alphabetical-first are all falsified [#1055/M/n=2].
 Three rival replay orderings are therefore dead: `Mods=`-last, first-in-`Mods=` and alphabetical-first [#1232/M/n=2].
-Two mods' bodies for one food composed per key in a boot of the item pass beside a test mod sorting after it: the test mod's full apple won all four macros and its one-key orange won only the calories, the pass's three other keys standing [T12.5].
+Two mods' bodies for one food composed per key in a boot of the item pass beside a test mod sorting after it: the test mod's full apple won all four macros and its one-key orange won only the calories, the pass's three other keys standing [#3144/M/n=1].
 The rule rests on two permutations of the same three mod bodies, in which the winner held the first and second `Mods=` slots, plus a third session's independent kills; the sort key itself is read from the code, because no boot separates the mod id from the folder name, the stored script path or the `mod.info` display name.
 
 The loader's own `loading` lines for each mod id walk `Mods=` order, which is a separate order from the body replay and is the reason the two are easy to confuse [#2001/M/n=3].
@@ -217,7 +217,7 @@ A mod that changes a script key changes it on whichever side loaded the mod, wit
 
 Script data is loaded per side and never synced, so the two sides' definitions of an item are two readings rather than one: reached through the script manager's item getter with the game's own find call as the fallback, the two sides agreed field for field on a mod item [#0919/M/n=1].
 Item scripts load per side and never sync, so a script-declared value is identical on the client and the server for free [#1058/M/n=2].
-The same held across a whole partial-block pass: eleven re-based foods read the float32 of each block's two-decimal macro on the server's instance, the client's copy and a client-local spawn, with the hunger and thirst no block names at the script's own values [T12.4].
+The same held across a whole partial-block pass: eleven re-based foods read the float32 of each block's two-decimal macro on the server's instance, the client's copy and a client-local spawn, with the hunger and thirst no block names at the script's own values [#3143/M/n=1].
 A client-local instance takes the client's own merged script: an Orange spawned into the client's inventory, whose id the server witness did not resolve (`phases.*.C2_local_orange.fields_server.reply.error`), read `getCalories` 400 and the default-modData key of whichever bodies that boot loaded [#3133/M/n=1].
 A workshop mod's item script read on the server and on the client came back identical field for field — hunger change -60, thirst change 20, 53 days fresh, 60 days to rotten, cookable true, 300 minutes to cook and 900 to burn — differing only in which side answered [#1393/M/n=1].
 Script data is owned by neither side and crosses no wire: both sides load it, so a script value is free on both sides, at the price of the checksum gate [#1243/M/n=1].

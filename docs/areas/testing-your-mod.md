@@ -264,13 +264,13 @@ Protein-energy grade 3 with vitamin C at grade 3 slowed a scratch's countdown by
 Clinical vitamin C slowed a bleed by 0.8002 against 1/1.25 [#3109/M/n=1] and gave one bruise in about two game days against 1.03 expected [#3110/M/n=1].
 Protein-energy grade 4 sped an infection by 2.3055 against 2.3, the client's copy following the folded level [#3111/M/n=1].
 On this boot the bench's first kept run read above the 10 per cent band over Plan 4's reading and the second inside it [#3112/M/n=1].
-The first boot of the item-pass build loaded the generated nutrient table, the inference templates and the item-pass script file on both sides without a mod error, the intake landing every eat and sip of the session with no failure [T12.1].
-Its boot reached ready about as fast as the Plan 5 build's second boot, and its tick rate sat about half a per cent under that boot's [T12.3].
-An eaten food on the table lands the table's vector with the four macros the live item delivered: a whole apple matched the table entry on every key, its macros those of the profile's restated test apple [T12.6], and a whole loaf landed the generated table's 40.02 mg of phytate [T12.7].
-A scenario that eats a food a test mod also restates reads the test mod's macros wherever its script path sorts after the pass's, as the acceptance profile's apple did [T12.5].
-A food outside the table with no FoodType lands the `_default` template times its calories [T12.8], and a food declaring `NR_Nutrients` lands its declared keys ahead of the table, its B12 through the per-eat ceiling [T12.9].
-A coffee lands the fluid table's per-litre vector times the litres drunk, its caffeine on the gut lane, while the cola arm took no reading [T12.10].
-The pass puts no mod key on a vanilla food [T12.11], leaves a reasoned record's script alone and re-bases a mapped row whatever part file it sits in [T12.12], and under the fixture's admin role the boot stayed connected with no checksum line, a reading under the bypass rather than of the gate [T12.13].
+The first boot of the item-pass build loaded the generated nutrient table, the inference templates and the item-pass script file on both sides without a mod error, the intake landing every eat and sip of the session with no failure [#3140/M/n=1].
+Its boot reached ready about as fast as the Plan 5 build's second boot, and its tick rate sat about half a per cent under that boot's [#3142/M/n=1].
+An eaten food on the table lands the table's vector with the four macros the live item delivered: a whole apple matched the table entry on every key, its macros those of the profile's restated test apple [#3145/M/n=1], and a whole loaf landed the generated table's 40.02 mg of phytate [#3146/M/n=1].
+A scenario that eats a food a test mod also restates reads the test mod's macros wherever its script path sorts after the pass's, as the acceptance profile's apple did [#3144/M/n=1].
+A food outside the table with no FoodType lands the `_default` template times its calories [#3147/M/n=1], and a food declaring `NR_Nutrients` lands its declared keys ahead of the table, its B12 through the per-eat ceiling [#3148/M/n=1].
+A coffee lands the fluid table's per-litre vector times the litres drunk, its caffeine on the gut lane, while the cola arm took no reading [#3149/M/n=1].
+The pass puts no mod key on a vanilla food [#3150/M/n=1], leaves a reasoned record's script alone and re-bases a mapped row whatever part file it sits in [#3151/M/n=1], and under the fixture's admin role the boot stayed connected with no checksum line, a reading under the bypass rather than of the gate [#3152/M/n=1].
 
 <a id="owned-experiments"></a>
 ### The experiments this mod owns
