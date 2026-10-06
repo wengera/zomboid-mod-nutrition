@@ -108,6 +108,7 @@ local function onCreatePlayer(playerNum)
 end
 
 local function apply(v)
+    if TKX_MF.stackBox == nil then pcall(readStackBox) end
     local m = TKX_MF.moodle
     if m ~= nil and type(m.setValue) == "function" then
         m:setValue(tonumber(v))
