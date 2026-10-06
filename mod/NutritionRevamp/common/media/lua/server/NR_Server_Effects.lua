@@ -297,7 +297,7 @@ end
 -- The two trait toggles and the one push (rule 3: only on a change, only to the owner).
 local function traits(player, record, body, E, nut, sev, dtD)
     local vitA = nut.vitA
-    local zinc, iron, ribo = nut.zinc, nut.riboflavin, nut.iron
+    local zinc, iron, ribo = nut.zinc, nut.iron, nut.riboflavin
     local sex = body.sex
     local rec = NR.data.records.REC.vitA
     local R = rec ~= nil and rec.R ~= nil and rec.R[sex] or nil
@@ -443,8 +443,7 @@ local function bruise(bd, L, E, dtM)
     local okP, part = NR.call(list, "get", i)
     if not okP or part == nil then return end
     local t0 = NR.data.effects.BRUISE_T0
-    NR.call(part, "setBleeding", true)
-    NR.call(part, "setBleedingTime", t0)
+    NR.call(part, "setBleedingTime", t0) -- the jar sets bleeding from a positive time unless the part is bandaged (BodyPart.setBleedingTime): a bruise respects a bandage, so no setBleeding(true)
     if syncBodyPart ~= nil then pcall(syncBodyPart, part, EFF.MASK_BLEEDING + EFF.MASK_BLEEDING_TIME) end
     local last = L.parts[i]
     if last ~= nil and last.bleed ~= nil then last.bleed = t0 end
@@ -498,7 +497,8 @@ local function step(username, player, record, body, dtM, ageH)
     F.bgroupMax = K.effects.bgroupMax(nut)
     F.coldCredit = K.effects.coldCredit(nut.vitC.g, nut.vitC.e24, body.band1Day or 0, body.band2Day or 0, a.coldH)
     F.boutVig = asleep and a.boutVig == true
-    local dials = sev * 1000 + (canKill and 100 or 0) + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
+    -- the Severity term sits above the flag terms at a 0.001 resolution, so no fractional dial can collide with a flag
+    local dials = math.floor(sev * 1000 + 0.5) * 1000000 + (canKill and 100 or 0) + (bonusOn and 10 or 0) + (excessOn and 1 or 0)
         + (F.coldCredit and 10000 or 0) + (F.boutVig and 100000 or 0)
 
     -- 3. the rebuild, only on a moved key

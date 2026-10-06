@@ -269,7 +269,7 @@ def test_a_fresh_record_composes_once_and_rebuilds_only_on_a_moved_key(eff_host)
     assert E["epoch"] == 3
     setopts(h, Severity=2.0)                                     # the dial snapshot moved
     minute(h, p, rec, ageH=100.0 + 5 / 60)
-    assert E["epoch"] == 4 and E["key"]["dials"] == 2000 + 100 + 10 + 1
+    assert E["epoch"] == 4 and E["key"]["dials"] == 2000 * 1000000 + 100 + 10 + 1
     assert E["dirty"] is True
 
 
@@ -279,13 +279,13 @@ def test_the_flags_outside_the_key_fold_into_the_dials(eff_host):
     p, _ = player(h, rec, asleep=True)
     minute(h, p, rec)
     E = rec["effects"]
-    assert E["key"]["dials"] == 1111
+    assert E["key"]["dials"] == 1000000000 + 111
     rec["acute"]["boutVig"] = True                                # read while asleep
     minute(h, p, rec, ageH=100.0 + 1 / 60)
-    assert E["key"]["dials"] == 101111 and E["epoch"] == 2
+    assert E["key"]["dials"] == 1000000000 + 100111 and E["epoch"] == 2
     awake, _ = player(h, rec)
     minute(h, awake, rec, ageH=100.0 + 2 / 60)                    # a latched boutVig awake reads false
-    assert E["key"]["dials"] == 1111 and E["epoch"] == 3
+    assert E["key"]["dials"] == 1000000000 + 111 and E["epoch"] == 3
 
 
 def test_a_non_finite_field_is_healed_and_counted(eff_host):
@@ -648,13 +648,46 @@ def test_the_bruise_rolls_at_clinical_vitamin_c_only(eff_host):
     minute(h, p, rec, ageH=100.0 + 1 / 60)
     assert abs(rec["effects"]["bruise"] - 1 / 2880) < TOL
     w = [x for x in lst(cfg["log"]["parts"]) if x["field"] in ("bleeding", "bleedingTime")]
-    assert [(x["part"], x["field"], x["v"]) for x in w] == [(1, "bleeding", True), (1, "bleedingTime", 0.05)]
+    assert [(x["part"], x["field"], x["v"]) for x in w] == [(1, "bleedingTime", 0.05)]        # no setBleeding: a bandage holds
     syncs = lst(h.G.NR_TEST_SYNCS)
     assert syncs[-1]["part"] == 1 and syncs[-1]["mask"] == 8 + 131072
     n = len(lst(cfg["log"]["parts"]))
     h.G.NR_TEST_ROLLS = h.table({1: 0.5})                         # a roll above p: nothing
     minute(h, p, rec, ageH=100.0 + 2 / 60)
     assert all(x["field"] != "bleeding" for x in lst(cfg["log"]["parts"])[n:])
+
+
+def test_iron_or_riboflavin_depletion_halves_the_night_vision_clock(eff_host):
+    # the review of 781eaa0: iron and riboflavin were swapped at the nvMinute call; the kernel reads them
+    # symmetrically today, so each is pinned on its own here
+    for nutrient in ("iron", "riboflavin"):
+        h = eff_host
+        rec = _nv_ready(record(h))
+        p, _ = player(h, rec)
+        minute(h, p, rec)
+        E = rec["effects"]
+        d0 = E["nvDays"]
+        rec["nutrients"][nutrient]["g"] = 3
+        minute(h, p, rec, ageH=100.0 + 1 / 60)
+        assert abs((E["nvDays"] - d0) - 0.5 * (1 / 60) / 24) < 1e-12, nutrient
+        rec["nutrients"][nutrient]["g"] = 1
+        d1 = E["nvDays"]
+        minute(h, p, rec, ageH=100.0 + 2 / 60)
+        assert abs((E["nvDays"] - d1) - (1 / 60) / 24) < 1e-12, nutrient
+
+
+def test_the_dial_key_separates_a_fractional_severity_from_the_kill_dial(eff_host):
+    h = eff_host
+    rec = record(h)
+    p, _ = player(h, rec)
+    minute(h, p, rec)
+    e0 = rec["effects"]["epoch"]
+    setopts(h, Severity=0.1, DeficienciesCanKill=False)
+    minute(h, p, rec, ageH=100.0 + 1 / 60)
+    e1 = rec["effects"]["epoch"]
+    setopts(h, Severity=0.0, DeficienciesCanKill=True)
+    minute(h, p, rec, ageH=100.0 + 2 / 60)
+    assert rec["effects"]["epoch"] > e1 > e0
 
 
 # --- the closed-day composites ---------------------------------------------------------------------------
