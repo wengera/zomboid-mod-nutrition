@@ -1,5 +1,5 @@
 name=Nutrition Revamp
 id=NutritionRevamp
-description=Realism nutrition overhaul for Build 42 dedicated servers: nutrients beyond the four macros, a two-compartment body and effects pinned to published evidence. Plan 4 build: intake, the body model, the nutrient records and the fluids; no effects table yet.
+description=Realism nutrition overhaul for Build 42 dedicated servers: nutrients beyond the four macros, a two-compartment body and effects pinned to published evidence. Plan 5 build: intake, the body model, the nutrient records and fluids, the effects table; no panel yet.
 modversion=0.1.0
 versionMin=42.20.4

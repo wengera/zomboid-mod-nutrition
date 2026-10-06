@@ -24,6 +24,7 @@ function K.mirror.build(record, meta, order)
     K.mirror.fluids(m, record.fluids)
     K.mirror.acute(m, record.acute)
     K.mirror.body(m, record.body)
+    K.mirror.effects(m, record.effects)
     return m
 end
 
@@ -117,4 +118,26 @@ function K.mirror.acute(m, acute)
     m.acute_debtH = acute.debtH or 0
     m.acute_iu = acute.iu or 0
     m.acute_refeedRisk = acute.refeedRisk or 0
+end
+
+-- Plan 5 (Task 11): the effects set as effects_<name>; 0 (false for the two trait flags) when record.effects or a
+-- field is absent. Numeric reads only, a copy of what the effects adapter stamped.
+local EFFECT_NUMBERS = { "epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
+    "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget", "fOff", "mAcc", "rRec" }
+
+function K.mirror.effects(m, eff)
+    for i = 1, #EFFECT_NUMBERS do
+        local k = EFFECT_NUMBERS[i]
+        local v = 0
+        if eff ~= nil and type(eff[k]) == "number" then
+            v = eff[k]
+        end
+        m["effects_" .. k] = v
+    end
+    m.effects_nv = false
+    m.effects_ss = false
+    if eff ~= nil and type(eff.own) == "table" then
+        m.effects_nv = eff.own.nv == true
+        m.effects_ss = eff.own.ss == true
+    end
 end

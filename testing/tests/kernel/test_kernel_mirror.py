@@ -15,6 +15,12 @@ BODY_ABSENT["body_band"] = ""
 PLAN4_SCALARS = ("nutrients_epoch", "fluids_dehydPct", "fluids_naPlasma", "fluids_thirstTarget", "acute_caf",
                  "acute_bac", "acute_g", "acute_bg", "acute_awakeH", "acute_debtH", "acute_iu", "acute_refeedRisk")
 PLAN4_ABSENT = {k: 0 for k in PLAN4_SCALARS}
+EFFECT_NUMBERS = ("epoch", "aimMul", "speedMul", "intoxTarget", "tempTarget", "healMul", "bleedMul", "infectMul",
+                  "coldMul", "drain", "lethal", "stressTarget", "panicTarget", "unhappyTarget", "foodSickTarget",
+                  "fOff", "mAcc", "rRec")
+PLAN5_ABSENT = {"effects_" + k: 0 for k in EFFECT_NUMBERS}
+PLAN5_ABSENT["effects_nv"] = False
+PLAN5_ABSENT["effects_ss"] = False
 META = {"mode": 1, "version": "0.1.0", "build": "42.20.4"}
 
 
@@ -24,6 +30,7 @@ def test_mirror_is_flat_scalars_only(host):
               "mode": 1, "version": "0.1.0", "build": "42.20.4", "stomachFill": 1}      # Plan 2: the fill, full by default
     expect.update(BODY_ABSENT)
     expect.update(PLAN4_ABSENT)
+    expect.update(PLAN5_ABSENT)
     assert m == expect
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
 
@@ -103,3 +110,28 @@ def test_mirror_body_scalars_from_a_present_body(host):
     assert m["body_dStr"] == 0.5 and m["body_dHyp"] == 0.5
     assert "body" not in m
     assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
+
+
+def test_mirror_of_a_pre_plan5_record_reads_zero_effects(host):
+    m = host.py(host.call("mirror.build", rec(host), host.table(META)))
+    for k, v in PLAN5_ABSENT.items():
+        assert m[k] == v and type(m[k]) is type(v)
+    assert len([k for k in m if k.startswith("effects_")]) == 20
+
+
+def test_mirror_carries_the_effects_set(host):
+    vals = {k: i + 0.5 for i, k in enumerate(EFFECT_NUMBERS)}
+    eff = host.table(dict(vals, own=host.table({"nv": True, "ss": False}), key=host.table({"ep": 3}), mNut=2.0))
+    m = host.py(host.call("mirror.build", rec(host, effects=eff), host.table(META)))
+    for k, v in vals.items():
+        assert m["effects_" + k] == v
+    assert m["effects_nv"] is True and m["effects_ss"] is False
+    assert sorted(k for k in m if k.startswith("effects_")) == sorted(PLAN5_ABSENT)
+    assert all(isinstance(v, (str, int, float, bool)) for v in m.values())
+
+
+def test_mirror_effects_missing_fields_and_own_read_zero(host):
+    eff = host.table({"aimMul": 0.9, "speedMul": "x"})
+    m = host.py(host.call("mirror.build", rec(host, effects=eff), host.table(META)))
+    assert m["effects_aimMul"] == 0.9 and m["effects_speedMul"] == 0 and m["effects_healMul"] == 0
+    assert m["effects_nv"] is False and m["effects_ss"] is False

@@ -41,23 +41,22 @@ BENCH_INP.bedFactor = 1
 BENCH_INP.minutesPerDay = 60
 BENCH_INP.fitnessLevel = 5
 BENCH_INP.energyState = 1
-BENCH_INP.rmod = 1
+BENCH_INP.rmod = 0.9
 BENCH_INP.thirstTarget = 0.3
--- Plan 5 (Task 7): the shipped steady state. The record owns FATIGUE (the writer reads the slow sleep
--- pressure, here equal to the stat read), the endurance fold is on and takes its regeneration arm (a
--- one-tick regeneration at rmod 1 lands exactly on the stat), the coefficients and latency terms neutral,
--- no stress floor.
+-- Plan 5 (Tasks 7, 11): the shipped steady state. The record owns FATIGUE (the writer runs with a slow sleep
+-- pressure, a circadian term and an offset), the endurance fold is on over a last value of 0.8, dmod and rmod sit
+-- off neutral, and a stress floor of 0.1 holds.
 BENCH_INP.fOwned = true
 BENCH_INP.fFrozen = false
-BENCH_INP.fS = 0.2
-BENCH_INP.fCirc = 0
-BENCH_INP.fOff = 0
+BENCH_INP.fS = 0.3
+BENCH_INP.fCirc = 0.05
+BENCH_INP.fOff = 0.02
 BENCH_INP.solAddH = 0
 BENCH_INP.solMul = 1
 BENCH_INP.endFold = true
-BENCH_INP.endLast = 0.9995
-BENCH_INP.dmod = 1
-BENCH_INP.stressTarget = 0
+BENCH_INP.endLast = 0.8
+BENCH_INP.dmod = 1.1
+BENCH_INP.stressTarget = 0.1
 
 -- One fast step over the reused tables; returns the output table. The target of bench.global.
 function NR.bench_fast()

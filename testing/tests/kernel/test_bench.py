@@ -66,7 +66,7 @@ def test_bench_fast_reuses_the_same_tables(bench_host):
 def test_bench_inputs_name_the_plan3_fields_and_hunger_follows_the_fill(bench_host):
     NR = bench_host.G.NutritionRevamp
     inp = NR.bench_fast_input()
-    assert inp["energyState"] == 1 and inp["rmod"] == 1
+    assert inp["energyState"] == 1 and inp["rmod"] == 0.9
     out = NR.bench_fast()
     h = out["hunger"]
     assert h == h and abs(h) != float("inf")
@@ -77,8 +77,9 @@ def test_bench_inputs_name_the_plan5_fields(bench_host):
     NR = bench_host.G.NutritionRevamp
     inp = NR.bench_fast_input()
     assert inp["fOwned"] is True and inp["fFrozen"] is False and inp["endFold"] is True
-    assert inp["solMul"] == 1 and inp["solAddH"] == 0 and inp["dmod"] == 1 and inp["stressTarget"] == 0
+    assert inp["solMul"] == 1 and inp["solAddH"] == 0 and inp["dmod"] == 1.1 and inp["stressTarget"] == 0.1
     out = NR.bench_fast()
-    assert out["fatigue"] == inp["fS"] + inp["fCirc"] + inp["fOff"]       # the owned FATIGUE writer runs
-    assert inp["endLast"] < inp["endurance"]                                # the fold takes its regeneration arm
-    assert out["endurance"] == inp["endLast"] + (inp["endurance"] - inp["endLast"]) * inp["rmod"] == 1.0
+    assert abs(out["fatigue"] - (inp["fS"] + inp["fCirc"] + inp["fOff"])) < 1e-9      # the owned FATIGUE writer runs
+    # the fold runs: a delta of 0.2 is at or above extEps (0.1), an external write, so it passes through unscaled
+    assert inp["endLast"] < inp["endurance"] and inp["endurance"] - inp["endLast"] >= 0.1
+    assert out["endurance"] == inp["endurance"]
