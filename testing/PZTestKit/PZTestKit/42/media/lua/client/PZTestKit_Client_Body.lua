@@ -780,3 +780,150 @@ TK.register("anim.probe", function(argv)
     return { ok = true, armed = true, var = var, value = value, ms = ms, n = n, result = "anim-probe",
              file = "pzt-results/anim-probe.json" }
 end)
+
+-- The aiming-delay sampler (Plan 5, platform briefing 5.1). One OnTick handler, installed once,
+-- whose first statement is the nil-cheap `armed` test. Per tick of an armed window it reads
+-- isAiming() (BEFORE any re-assert, so an engine that clears the flag shows) and
+-- getAimingDelay(), keeps the first 120 raw samples and a histogram of the delay at two
+-- decimals (at most 60 keys, the rest in d_other), then re-asserts setIsAiming(true). A queued
+-- shot (aim.fire) faces the nearest zombie within 20 tiles when there is one, reads the delay,
+-- calls IsoPlayer:DoAttack(0) (the route attack.melee uses) under pcall, reads the delay again
+-- and, when a bump is standing (aim.bump), writes setAimingDelay(delay + bump) at once and
+-- reads it a third time. Shots are spaced 1200 ms apart. At the deadline the window writes
+-- aim-probe.json and clears the aiming flag.
+TK.p5Aim = TK.p5Aim or { armed = false }
+
+local function p5Fmt(v, dec)
+    if type(v) ~= "number" then return tostring(v) end
+    return string.format("%." .. dec .. "f", v)
+end
+
+local function p5AimShot(p, w, now)
+    local nearest, bestD = nil, 400
+    local cell = getCell and getCell() or nil
+    local list = P5.hop(cell, "getZombieList")
+    local count = P5.hop(list, "size") or 0
+    local px, py = P5.hop(p, "getX"), P5.hop(p, "getY")
+    for i = 0, count - 1 do
+        local z = P5.hop(list, "get", i)
+        local zx, zy = P5.hop(z, "getX"), P5.hop(z, "getY")
+        if zx ~= nil and zy ~= nil and px ~= nil and py ~= nil then
+            local d = (zx - px) * (zx - px) + (zy - py) * (zy - py)
+            if d <= bestD then nearest, bestD = z, d end
+        end
+    end
+    if nearest ~= nil then P5.hop(p, "faceThisObject", nearest) end
+    local before = P5.hop(p, "getAimingDelay")
+    local ran, ret = pcall(function()
+        local f = p["DoAttack"]
+        if f == nil then return "no DoAttack" end
+        return f(p, 0)
+    end)
+    local after = P5.hop(p, "getAimingDelay")
+    w.shots = w.shots + 1
+    local line = "shot " .. w.shots .. " dt=" .. tostring(now - w.start) .. " target=" .. tostring(nearest ~= nil) ..
+        " ret=" .. (ran and tostring(ret) or ("error: " .. tostring(ret))) ..
+        " before=" .. p5Fmt(before, 3) .. " after=" .. p5Fmt(after, 3)
+    if w.bumpX ~= nil and after ~= nil then
+        P5.hop(p, "setAimingDelay", after + w.bumpX)
+        line = line .. " bump=" .. tostring(w.bumpX) .. " afterBump=" .. p5Fmt(P5.hop(p, "getAimingDelay"), 3)
+    end
+    w.events[#w.events + 1] = line
+end
+
+local function p5AimOnTick()
+    local w = TK.p5Aim
+    if not w.armed then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local now = TK.now()
+    local aiming = P5.hop(p, "isAiming")
+    local d = P5.hop(p, "getAimingDelay")
+    w.count = w.count + 1
+    local ds = p5Fmt(d, 2)
+    if w.count <= 120 then
+        w.raw[w.count] = "dt=" .. tostring(now - w.start) .. " d=" .. p5Fmt(d, 4) .. " aim=" .. tostring(aiming)
+    end
+    if aiming ~= true then w.notAiming = w.notAiming + 1 end
+    local key = "d_" .. string.gsub(ds, "[%.%-]", "_")
+    if w.hist[key] == nil and w.keys >= 60 then key = "d_other" elseif w.hist[key] == nil then w.keys = w.keys + 1 end
+    w.hist[key] = (w.hist[key] or 0) + 1
+    P5.hop(p, "setIsAiming", true)
+    if w.fire > 0 and now >= w.nextFireAt then
+        w.fire = w.fire - 1
+        w.nextFireAt = now + 1200
+        p5AimShot(p, w, now)
+    end
+    if now >= w.deadline then
+        w.armed = false
+        P5.hop(p, "setIsAiming", false)
+        TK.result("aim-probe", { weapon = w.weapon, samples = w.count, notAiming = w.notAiming, shots = w.shots,
+                                 windowMs = w.deadline - w.start, hist = w.hist, events = w.events, raw = w.raw })
+    end
+end
+
+if not TK.p5AimHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() p5AimOnTick() end)
+    TK.p5AimHooked = true
+end
+
+-- <user> <seconds>. Equips a loaded pistol on the local player and samples its aiming delay on
+-- every tick for `seconds` (1..300). The weapon is the first Base.Pistol in the local inventory
+-- (an RCON additem copy, which both sides hold) or, when there is none, one added CLIENT-side as
+-- item.spawn does -- the aiming delay and the hit roll are client state, so the server needs no
+-- copy. Loading is by the item's own flags, not the vanilla reload timed-action chain
+-- (ISReloadWeaponAction, which needs a magazine item in the inventory): setContainsClip(true),
+-- setCurrentAmmoCount(getClipSize()), setRoundChambered(true); `loaded` replies what was read
+-- back. The item is equipped with setPrimaryHandItem on the same tick it is found, the aiming
+-- flag set with setIsAiming(true) and re-asserted each tick; aim.fire queues shots at the
+-- nearest zombie within 20 tiles (zombie.near first), aim.bump adds a standing delay bump after
+-- each shot. The artifact is aim-probe.json: samples, the raw first 120 as "dt=.. d=.. aim=..",
+-- the delay histogram, the shot events with delay before, after and after bump.
+-- @args <user> <seconds>
+-- @reply {ok, armed, weapon, spawned, loaded, equipped, aiming, seconds, result, file [, reason]} | string
+-- @purpose Equips a loaded pistol, sets the aiming flag and samples getAimingDelay on every client tick for n seconds into aim-probe.json, the window aim.fire and aim.bump act inside.
+TK.register("aim.probe", function(argv)
+    local p, why = kineticsPlayer(argv[1])
+    if p == nil then return { ok = false, reason = why } end
+    local secs = tonumber(argv[2])
+    if secs == nil or secs < 1 or secs > 300 then return "usage: aim.probe <user> <seconds>  (1 <= seconds <= 300)" end
+    local out = { ok = false, armed = false, seconds = secs }
+    if not TK.p5AimHooked then
+        out.reason = "no Events.OnTick on this side"
+        return out
+    end
+    if TK.p5Aim.armed then
+        out.reason = "an aim.probe window is already armed"
+        return out
+    end
+    local inv = P5.hop(p, "getInventory")
+    local w = P5.hop(inv, "getFirstTypeRecurse", "Base.Pistol")
+    out.spawned = false
+    if w == nil then
+        w = P5.hop(inv, "AddItem", "Base.Pistol")
+        out.spawned = (w ~= nil)
+    end
+    if w == nil then
+        out.reason = "no Base.Pistol in the inventory and AddItem gave nothing"
+        return out
+    end
+    out.weapon = P5.hop(w, "getFullType")
+    P5.hop(w, "setContainsClip", true)
+    P5.hop(w, "setCurrentAmmoCount", P5.hop(w, "getClipSize") or 15)
+    P5.hop(w, "setRoundChambered", true)
+    out.loaded = { clip = P5.hop(w, "isContainsClip"), ammo = P5.hop(w, "getCurrentAmmoCount"),
+                   chambered = P5.hop(w, "isRoundChambered"), ranged = P5.hop(w, "isRanged") }
+    P5.hop(p, "setPrimaryHandItem", w)
+    out.equipped = (P5.hop(p, "getPrimaryHandItem") == w)
+    P5.hop(p, "setIsAiming", true)
+    out.aiming = P5.hop(p, "isAiming")
+    local start = TK.now()
+    TK.p5Aim = { armed = true, start = start, deadline = start + secs * 1000, weapon = out.weapon, count = 0,
+                 notAiming = 0, shots = 0, fire = 0, nextFireAt = start, hist = {}, keys = 0, raw = {}, events = {},
+                 bumpX = nil }
+    out.armed = true
+    out.ok = true
+    out.result = "aim-probe"
+    out.file = "pzt-results/aim-probe.json"
+    return out
+end)
