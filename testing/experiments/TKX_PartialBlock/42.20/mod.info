@@ -1,0 +1,5 @@
+name=TKX Partial Block
+id=TKX_PartialBlock
+description=Plan 6 X15 experiment: a partial Orange block with ItemType omitted, script under common/. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

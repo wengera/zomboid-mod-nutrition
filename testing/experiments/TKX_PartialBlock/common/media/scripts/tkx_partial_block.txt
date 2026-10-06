@@ -1,0 +1,9 @@
+module Base
+{
+    item Orange
+    {
+        DisplayCategory = Food,
+        Calories = 400.0,
+        NR_Nutrients = fibre:12;vitC:3,
+    }
+}

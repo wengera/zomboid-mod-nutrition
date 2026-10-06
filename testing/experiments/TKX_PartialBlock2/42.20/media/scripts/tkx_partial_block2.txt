@@ -1,0 +1,11 @@
+/* The replay sorts by the stored script PATH: tkx_partial_block.txt < tkx_partial_block2.txt
+   ('.' 0x2E sorts before '2' 0x32), so this block replays after TKX_PartialBlock's. */
+module Base
+{
+    item Orange
+    {
+        DisplayCategory = Food,
+        ItemType = base:food,
+        NR_Nutrients = fibre:13;vitC:4,
+    }
+}
