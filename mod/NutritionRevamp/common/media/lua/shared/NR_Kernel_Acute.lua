@@ -26,8 +26,8 @@ K.acute = {}
 K.acute.AV = 1 -- schema version, no row needed
 
 -- Caffeine.
--- Absorption through the stomach chain at this fraction (the intake side applies it; every function here
--- takes the dose already absorbed, so the kernel never re-applies it).
+-- Absorption fraction of the gut lane, applied once in K.acute.absorbGut (ruling T17-2); alcohol and
+-- caffeine take the dose absorbGut releases, so nothing re-applies it.
 K.acute.CAF_ABSORB = 1.0 -- design-phase-v1 game choice (open row S1102: caffeine absorption fraction)
 K.acute.CAF_THALF_H = 5.0 -- S0793 (5.0 h in men)
 K.acute.CAF_THALF_SLOW_H = 9.7 -- S0793's 9.7 h arm borrowed for the slow-metaboliser trait; S0794 (CYP1A2 polymorphism)
