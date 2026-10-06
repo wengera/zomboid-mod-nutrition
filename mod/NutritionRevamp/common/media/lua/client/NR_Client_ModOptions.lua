@@ -10,11 +10,10 @@
 -- name) :247; Options:addTickBox(id, name, value, tooltip) :64; Options:addKeyBind(id, name, key, tooltip) :182;
 -- option:getValue() (a tick's value, a bind's key); PZAPI.ModOptions:load() :292.
 --
--- The default key is K: Keyboard.KEY_K, the LWJGL code 37 -- read from the jar on 42.20.4 (org/lwjglx/input/
--- Keyboard.class, the ConstantValue of the static field KEY_K = 37; KEY_N = 49 is vanilla's vehicle engine).
--- NOTE: vanilla's shared/keyBinding.lua:198-199 binds "Display FPS" to 37 by default (ISFPS.onKeyPressed tests it
--- through getCore():isKey), so K is NOT free: the panel toggle and the FPS readout share the default until the
--- player rebinds either. A mod bind is not a core binding (#2485), so nothing arbitrates the two.
+-- The default key is the semicolon: Keyboard.KEY_SEMICOLON, the LWJGL code 39 -- read from the jar on 42.20.4
+-- (org/lwjglx/input/Keyboard.class, the ConstantValue of the static field KEY_SEMICOLON = 39 by a constant-pool
+-- parse; KEY_K = 37). `;` is unbound in shared/keyBinding.lua and read by no media/lua/client handler outside debug
+-- files; K is vanilla's Display FPS at keyBinding.lua:198. The code is named in one place (KEY_DEFAULT_CODE).
 --
 -- Unmeasured until x183 (the research's minimal shape 1, docs/superpowers/research/platform-client-ui.md, UNTESTED;
 -- each a reading of Task 11's acceptance boot):
@@ -25,10 +24,10 @@
 --
 -- Shape (NR_Client_Effects.lua's discipline):
 --  * Load order inside client/ is by path (#1055): _Effects, _Mirror, _ModOptions, _Options, _Panel, _Tab, _Tooltip,
---    _View. NR_Client_Options.lua loads AFTER this file and assigns NR.client.options = { mode, logLevel } by plain
---    assignment, wiping the accessors this file sets; so the accessors are re-attached by attach(), at file scope and
---    again from this file's OnGameStart handler (which runs after every file has loaded), and they read the page
---    through the global sentinel per call, never through a handle captured on NR.client.
+--    _View. NR_Client_Options.lua loads AFTER this file and merges mode and logLevel into the existing NR.client.options
+--    table (never replacing it), so the accessors attach() sets at file scope stay; attach() runs again from this
+--    file's OnGameStart handler, and the accessors read the page through the global sentinel per call, never
+--    through a handle captured on NR.client.
 --  * The sentinels are globals of their own (#0943: NR_Core re-creates NutritionRevamp on every load):
 --    NR_ClientModOptions_Page (the page), NR_ClientModOptions_Loaded (the one load), NR_ClientModOptions_Installed
 --    (the one OnGameStart listener closure, which looks NutritionRevamp up per call).
@@ -63,16 +62,16 @@ NR.client.text = NR.client.text or function(key, fallback)
 end
 
 -- The defaults, read when the page or its option is absent or getValue raises.
-local KEY_K_CODE = 37 -- the LWJGL code of K (Keyboard.KEY_K on 42.20.4, read from the jar; see the header)
+local KEY_DEFAULT_CODE = 39 -- the LWJGL code of the semicolon (Keyboard.KEY_SEMICOLON on 42.20.4, read from the jar; see the header)
 
 NR_ClientModOptions_Installed = NR_ClientModOptions_Installed or {}
 
--- Keyboard.KEY_K behind a nil check; the jar's 37 when the class is absent.
+-- Keyboard.KEY_SEMICOLON behind a nil check; KEY_DEFAULT_CODE when the class is absent.
 local function defaultKey()
-    if Keyboard == nil then return KEY_K_CODE end
-    local ok, k = pcall(function() return Keyboard.KEY_K end)
+    if Keyboard == nil then return KEY_DEFAULT_CODE end
+    local ok, k = pcall(function() return Keyboard.KEY_SEMICOLON end)
     if ok and type(k) == "number" then return k end
-    return KEY_K_CODE
+    return KEY_DEFAULT_CODE
 end
 
 -- One option row added through the page's method name, index-first inside a pcall; the handle or nil.
@@ -120,7 +119,7 @@ NR.client.modOptions = {
 }
 local MO = NR.client.modOptions
 
--- The panel key code: the bind's value when it is a number, else Keyboard.KEY_K (37).
+-- The panel key code: the bind's value when it is a number, else the default semicolon.
 function MO.key()
     local v = value("togglePanel")
     if type(v) == "number" then return v end
@@ -158,7 +157,7 @@ function MO.loadOnce()
     return ok
 end
 
--- Copies the accessors onto NR.client.options (re-created by NR_Client_Options.lua after this file loads).
+-- Copies the accessors onto NR.client.options (the table NR_Client_Options.lua merges into after this file loads).
 function MO.attach()
     local nr = NutritionRevamp
     if nr == nil or nr.client == nil or nr.client.modOptions == nil then return end

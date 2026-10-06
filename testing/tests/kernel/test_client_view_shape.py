@@ -54,7 +54,7 @@ getText = function(k)
 end
 getTextManager = function() return { getFontHeight = function(self, f) return 15 end } end
 UIFont = { Small = "small" }
-Keyboard = { KEY_K = 37 }
+Keyboard = { KEY_K = 37, KEY_SEMICOLON = 39 }
 CharacterTrait = { NUTRITIONIST = { id = "n1" }, NUTRITIONIST2 = { id = "n2" } }
 SandboxVars = { NR = { VisibilityMode = 1 } }
 PZAPI = { ModOptions = { loads = 0, pages = {} } }
@@ -138,7 +138,7 @@ def test_the_files_load_with_no_engine():
     g = G(rt)
     assert g.NR_ClientModOptions_Page is None
     assert NRC(rt).modOptions.loadOnce() is False
-    assert NRC(rt).modOptions.key() == 37
+    assert NRC(rt).modOptions.key() == 39
     assert NRC(rt).modOptions.tooltipLines() is True and NRC(rt).modOptions.moodles() is True
     assert NRC(rt).text("UI_NR_PanelTitle", "Nutrition") == "Nutrition"
     assert V(rt).readTrait(None) is False
@@ -154,7 +154,7 @@ def test_the_files_load_with_the_stand_ins_and_the_page_has_three_rows():
     page = g.NR_ClientModOptions_Page
     assert page is not None and page.id == "NutritionRevamp"
     assert g.NR_T.creates == 1
-    assert page.dict.togglePanel.key == 37
+    assert page.dict.togglePanel.key == 39
     assert page.dict.tooltipLines.value is True and page.dict.moodles.value is True
 
 
@@ -179,10 +179,12 @@ def test_a_reload_creates_no_second_page_and_adds_no_second_listener():
 def test_the_accessors_survive_the_options_file_and_are_reattached_at_game_start():
     rt = rt_env()
     o = NRC(rt).options
-    assert o.mode == 1                       # NR_Client_Options.lua assigned its own table after this file
+    assert o.mode == 1                       # NR_Client_Options.lua merged into the table, after this file
+    assert o.key() == 39 and o.tooltipLines() is True and o.moodles() is True   # present before OnGameStart
+    assert o.loadOnce is not None and o.logLevel == 2
     fire(rt, "OnGameStart")
     o = NRC(rt).options
-    assert o.key() == 37 and o.tooltipLines() is True and o.moodles() is True
+    assert o.key() == 39 and o.tooltipLines() is True and o.moodles() is True
     assert o.mode == 1 and o.toggleKey is not None
 
 
@@ -207,7 +209,7 @@ def test_the_accessors_fall_back_when_getValue_raises_or_answers_junk():
         d.moodles = nil
     """)
     o = NRC(rt).options
-    assert o.key() == 37 and o.tooltipLines() is True and o.moodles() is True
+    assert o.key() == 39 and o.tooltipLines() is True and o.moodles() is True
 
 
 def test_loadOnce_loads_once_across_two_calls_and_game_start():
@@ -387,7 +389,7 @@ def test_draw_paints_each_rows_resolved_label_and_text_and_returns_the_next_y():
     assert g.left[1].s == "Energy" and g.right[1].s == "fine"
     assert g.right[1].x == 272 and g.left[2].y == 35
     assert g.left[1].f == "small"
-    assert g.left[2].s == "hydration"                  # a label miss falls back to the row key
+    assert g.left[2].s == "Class hydration"            # a label miss reads the key's tail, never the raw key
     assert g.right[2].s == "Class hydration 0"         # a text-key miss falls back to the key's tail
     assert y == 20 + 6 * 15
 
@@ -402,14 +404,26 @@ def test_draw_resolves_no_text_per_frame():
     assert G(rt).NR_T.gets == 0
 
 
-def test_draw_stops_before_maxY_and_counts_the_clip():
+def test_the_labels_read_their_tails_before_any_translation_json():
+    rt = rt_env()
+    rt.execute("NR_T.texts = {}")
+    v = V(rt)
+    v.refresh(True)
+    for i in range(1, len(v.rows) + 1):
+        assert v.rows[i].labelText.startswith("UI_NR_") is False
+        assert "_" not in v.rows[i].labelText
+    t = NRC(rt).text("UI_NR_Row_vitC", None)
+    assert t == "vitC"
+
+
+def test_draw_stops_before_maxY():
     rt = rt_env()
     rt.execute(DRAW_EL)
     v = V(rt)
     v.refresh(True)
     y = v.draw(G(rt).NR_T.el, v.rows, 8, 0, 264, "small", 50)
     assert len(G(rt).NR_T.left) == 3 and y == 45
-    assert v.stats.clipped == 1
+    assert v.stats.overflowRows == 0                 # the panel counts the overflow, never the draw
 
 
 def test_draw_is_nil_safe():

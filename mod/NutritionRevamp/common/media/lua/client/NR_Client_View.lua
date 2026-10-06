@@ -36,7 +36,7 @@ NR.client.view = {
     lastReceived = -1,
     lastLevel = -1,
     listeners = {},
-    stats = { rebuilds = 0, traitReads = 0, listenerErrors = 0, errors = 0, clipped = 0 },
+    stats = { rebuilds = 0, traitReads = 0, listenerErrors = 0, errors = 0, overflowRows = 0 },
     lastError = nil,
 }
 local V = NR.client.view
@@ -88,12 +88,12 @@ local function levelOf(optionLevel, hasTrait)
     return K.view.level(optionLevel, hasTrait)
 end
 
--- Resolves every row's label and text once, at rebuild: labelText through text(label, key), valueText through
+-- Resolves every row's label and text once, at rebuild: labelText through text(label, nil), the key's tail, valueText through
 -- text(text, text) when the row's text is a key (isKey), else the formatted string as it is.
 local function resolveRows(rows)
     for i = 1, #rows do
         local r = rows[i]
-        r.labelText = text(r.label, r.key)
+        r.labelText = text(r.label, nil)
         if r.isKey then
             r.valueText = text(r.text, r.text)
         else
@@ -196,8 +196,8 @@ function V.smallFont()
 end
 
 -- Draws rows onto el: each row's label left at x and its text right-aligned at x + w, one line apart from y, in
--- font (nil: UIFont.Small); stops before a line would pass maxY (nil: no limit; stats.clipped counts the rows left
--- out). Returns the y after the last row drawn. The caller holds the pcall (a render body); the row strings were
+-- font (nil: UIFont.Small); stops before a line would pass maxY (nil: no limit; the panel counts the rows left out
+-- once per rebuild, in stats.overflowRows). Returns the y after the last row drawn. The caller holds the pcall (a render body); the row strings were
 -- resolved at rebuild, and a row built elsewhere is resolved here.
 function V.draw(el, rows, x, y, w, font, maxY)
     if el == nil or rows == nil then return y end
@@ -210,12 +210,11 @@ function V.draw(el, rows, x, y, w, font, maxY)
     local yy = y
     for i = 1, #rows do
         if maxY ~= nil and yy + lh > maxY then
-            V.stats.clipped = V.stats.clipped + 1
             return yy
         end
         local r = rows[i]
         local label = r.labelText
-        if label == nil then label = text(r.label, r.key) end
+        if label == nil then label = text(r.label, nil) end
         local value = r.valueText
         if value == nil then
             value = r.text or ""

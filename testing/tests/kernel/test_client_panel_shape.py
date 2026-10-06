@@ -3,7 +3,7 @@
 The pattern of test_client_effects_shape.py: a FRESH Lua 5.1 runtime per test, Lua stand-ins that count -- an
 ISCollapsableWindow with derive/new and the ISUIElement members the panel calls (initialise, prerender, render,
 titleBarHeight, setVisible, getIsVisible, addToUIManager, removeFromUIManager, bringToTop, setRenderThisPlayerOnly,
-setResizable, getWidth, getHeight, drawText, drawTextRight; visible by default, as an element is), an
+setResizable, getWidth, getHeight, getY, setHeight, drawText, drawTextRight; visible by default, as an element is), an
 ISLayoutManager.RegisterWindow that counts and can play the restore's re-add (DefaultRestoreWindow's
 addToUIManager + setVisible(true)), Events, Keyboard, PZAPI.ModOptions, getText, sendClientCommand counting. The
 kernel loads in this runtime of its own, so the session host's coverage gate is untouched. A stub proves the
@@ -51,7 +51,7 @@ end
 getText = function(k) return k end
 getTextManager = function() return { getFontHeight = function(self, f) return 15 end } end
 UIFont = { Small = "small" }
-Keyboard = { KEY_K = 37 }
+Keyboard = { KEY_K = 37, KEY_SEMICOLON = 39 }
 CharacterTrait = { NUTRITIONIST = { id = "n1" }, NUTRITIONIST2 = { id = "n2" } }
 SandboxVars = { NR = { VisibilityMode = 1 } }
 PZAPI = { ModOptions = { loads = 0 } }
@@ -99,6 +99,8 @@ function ISCollapsableWindow:setRenderThisPlayerOnly(n) self.renderPlayer = n en
 function ISCollapsableWindow:setResizable(r) self.resizable = r end
 function ISCollapsableWindow:getWidth() return self.width end
 function ISCollapsableWindow:getHeight() return self.height end
+function ISCollapsableWindow:getY() return self.y end
+function ISCollapsableWindow:setHeight(h) self.height = h end
 function ISCollapsableWindow:drawText(s, x, y, r, g, b, a, f) NR_T.ui.draws = NR_T.ui.draws + 1 end
 function ISCollapsableWindow:drawTextRight(s, x, y, r, g, b, a, f) NR_T.ui.rights = NR_T.ui.rights + 1 end
 ISLayoutManager = {
@@ -185,7 +187,7 @@ def test_the_file_loads_with_no_engine():
     assert G(rt).NR_Client_Panel is None
     assert P(rt).toggle(0) is False
     P(rt).onCreatePlayer(0, None)            # no class, no side: nothing built
-    P(rt).onKey(37)
+    P(rt).onKey(39)
     assert P(rt).stats.opens == 0
 
 
@@ -211,7 +213,7 @@ def test_a_reload_adds_no_second_listener_and_keeps_the_window():
     end""")
     assert count(g.NR_ClientPanel_Installed.create) == 1
     assert same(rt, inst(rt), w)
-    key(rt, 37)
+    key(rt, 39)
     assert P(rt).stats.opens == 1 and inst(rt).onUI is True
 
 
@@ -295,11 +297,11 @@ def test_the_key_handler_toggles_on_the_bound_key_and_ignores_other_keys():
     rt = rt_env()
     create(rt)
     key(rt, 49)
-    key(rt, 36)
+    key(rt, 37)
     assert P(rt).stats.opens == 0 and P(rt).stats.keyPresses == 0
-    key(rt, 37)
+    key(rt, 39)
     assert P(rt).stats.opens == 1 and inst(rt).onUI is True
-    key(rt, 37)
+    key(rt, 39)
     assert P(rt).stats.closes == 1
 
 
@@ -307,7 +309,7 @@ def test_the_key_follows_a_rebind():
     rt = rt_env()
     create(rt)
     G(rt).NR_ClientModOptions_Page.dict.togglePanel.key = 49
-    key(rt, 37)
+    key(rt, 39)
     assert P(rt).stats.opens == 0
     key(rt, 49)
     assert P(rt).stats.opens == 1
@@ -317,7 +319,7 @@ def test_the_key_handler_never_runs_on_the_server_side():
     rt = rt_env()
     create(rt)
     G(rt).NR_T.client = False
-    key(rt, 37)
+    key(rt, 39)
     assert P(rt).stats.keyPresses == 0
 
 
@@ -325,7 +327,7 @@ def test_a_raising_toolkit_member_is_caught():
     rt = rt_env()
     create(rt)
     rt.execute("function ISCollapsableWindow:addToUIManager() error('ui boom') end")
-    key(rt, 37)                                        # must not raise into the event
+    key(rt, 39)                                        # must not raise into the event
     assert P(rt).stats.opens == 1                       # the guard swallowed the one member that raised
 
 
@@ -364,8 +366,7 @@ def test_a_collapsed_panel_draws_no_rows():
     assert G(rt).NR_T.ui.renders == 1 and G(rt).NR_T.ui.draws == 0
 
 
-def test_the_rows_are_clipped_to_the_panel():
-    rt = rt_env()
+def big_mirror(rt):
     rt.execute("NR_T.player.hasTrait = function(self, e) return e == CharacterTrait.NUTRITIONIST end")
     rt.execute("""
         local m = {}
@@ -373,13 +374,71 @@ def test_the_rows_are_clipped_to_the_panel():
         NR_T.bigMirror = m
     """)
     fire(rt, "OnServerCommand", "'NutritionRevamp', 'mirror', NR_T.bigMirror")
+
+
+def test_the_height_follows_the_rows_and_is_capped_at_the_screen():
+    rt = rt_env()
     create(rt)
     p = inst(rt)
     frame(rt, p)
     v = G(rt).NutritionRevamp.client.view
-    assert v.level == 3
-    assert G(rt).NR_T.ui.draws == (320 - 4 - (16 + 4)) // 15
-    assert v.stats.clipped == 1
+    assert len(v.rows) == 6
+    assert p.height == 16 + 4 + 6 * 15 + 4 and p.width == 280      # the six class rows: no cap reached
+    assert v.stats.overflowRows == 0
+    big_mirror(rt)
+    rt.execute("getPlayerScreenHeight = function(n) return 300 end")
+    frame(rt, p)
+    assert v.level == 3 and len(v.rows) > 20
+    assert p.height == 300 - 200                                  # the cap: the screen minus the panel's top
+    fit = (100 - 16 - 8) // 15
+    assert v.stats.overflowRows == len(v.rows) - fit
+    frame(rt, p)
+    assert v.stats.overflowRows == len(v.rows) - fit              # once per rebuild, not per frame
+
+
+def test_the_wheel_scrolls_within_bounds_and_the_render_draws_from_the_offset():
+    rt = rt_env()
+    create(rt)
+    p = inst(rt)
+    assert p.onMouseWheel(p, 1) is False                          # no overflow: the event is not taken
+    big_mirror(rt)
+    rt.execute("getPlayerScreenHeight = function(n) return 300 end")
+    frame(rt, p)
+    n = len(G(rt).NutritionRevamp.client.view.rows)
+    room = 100 - 16 - 8
+    assert p.scrollY == 0
+    assert p.onMouseWheel(p, 1) is True and p.scrollY == 45       # 3 lines of 15 px
+    assert p.onMouseWheel(p, -1) is True and p.scrollY == 0
+    assert p.onMouseWheel(p, -1) is True and p.scrollY == 0       # clamped at the top
+    for _ in range(100):
+        p.onMouseWheel(p, 1)
+    assert p.scrollY == n * 15 - room                             # clamped at the overflow
+    rt.execute("NR_T.firstY = nil; function ISCollapsableWindow:drawText(s, x, y) NR_T.firstY = NR_T.firstY or y end")
+    frame(rt, p)
+    assert G(rt).NR_T.firstY == 16 + 4 - (n * 15 - room)
+
+
+def test_close_leaves_the_ui_manager_and_counts():
+    rt = rt_env()
+    create(rt)
+    P(rt).toggle(0)
+    p = inst(rt)
+    assert p.onUI is True
+    p.close(p)                                                    # the title-bar X
+    assert p.onUI is False and p.visible is False and P(rt).stats.closes == 1
+    p.close(p)                                                    # already hidden: no second count
+    assert P(rt).stats.closes == 1
+
+
+def test_the_title_falls_back_when_the_text_lookup_is_absent():
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    rt.execute(ENV)
+    _kernel(rt)
+    for path in (MIRROR, PANEL, VIEW):                            # no _ModOptions: no NR.client.text
+        _load(rt, path)
+    assert G(rt).NutritionRevamp.client.text is None
+    p = G(rt).NR_Client_Panel.new(G(rt).NR_Client_Panel, 0, 0, 280, 320, 0)
+    assert p.title == "Nutrition"
 
 
 def test_a_raising_render_is_caught():
