@@ -1,0 +1,15 @@
+[06-10-26 09:11:28.100] event="RakNet" message="connection-request-accepted" guid=1076361945945784947.
+[06-10-26 09:11:28.101] event="send-packet" message="login" guid=1076361945945784947.
+[06-10-26 09:11:28.206] event="receive-packet" message="connection-details" guid=1076361945945784947.
+[06-10-26 09:11:28.206] event="connect-state" message="start" guid=1076361945945784947.
+[06-10-26 09:11:28.207] event="connect-state-start" message="testtcp" guid=1076361945945784947.
+[06-10-26 09:11:28.222] event="connect-state-testtcp" message="checkmods" guid=1076361945945784947.
+[06-10-26 09:11:28.239] event="connect-state-checkmods" message="finish" guid=1076361945945784947.
+[06-10-26 09:11:33.050] event="connect-state-finish" message="lua-connected" guid=1076361945945784947.
+[06-10-26 09:11:33.102] event="connect-state-finish" message="exit" guid=1076361945945784947.
+[06-10-26 09:11:33.396] event="send-packet" message="login-queue-request" guid=1076361945945784947.
+[06-10-26 09:11:34.358] event="force-disconnect" message="checksum-File doesn't match the one on the server:
+media/scripts/tkx_checksum.txt
+C:\Users\Angus\repos\project_zomboid\testing\runs\x171c-20261006-091054\kick\clients\admin\mods\TKX_Checksum\42.20\media\scripts\tkx_checksum.txt" guid=1076361945945784947.
+[06-10-26 09:11:34.381] event="RakNet" message="disconnection-notification" guid="1076361945945784947".
+[06-10-26 09:11:34.381] event="disconnect" message="21" guid="0".

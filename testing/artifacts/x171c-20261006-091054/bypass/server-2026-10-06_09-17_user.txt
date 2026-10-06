@@ -1,0 +1,9 @@
+[06-10-26 09:18:25.151] Connection add index=0 guid=117095225757164392 id=null.
+[06-10-26 09:18:25.152] 127.0.0.1 "admin" attempting to join.
+[06-10-26 09:18:25.153] 127.0.0.1 "admin" allowed to join.
+[06-10-26 09:18:31.103] 127.0.0.1 "admin" attempting to join used preferred queue.
+[06-10-26 09:18:49.992] player admin loading time was: 18541 ms.
+[06-10-26 09:18:51.376] 127.0.0.1 "admin" fully connected (10721,10630,0).
+[06-10-26 09:20:24.475] Connection disconnect index=0 guid=117095225757164392 id=127.0.0.1.
+[06-10-26 09:20:24.478] Connection remove index=0 guid=117095225757164392 id=127.0.0.1.
+[06-10-26 09:20:24.494] 127.0.0.1 "admin" disconnected player (10721,10630,0).

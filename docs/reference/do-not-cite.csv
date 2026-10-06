@@ -447,3 +447,8 @@ x171p-20261006-090743,predictions,the driver's PRED_* tables,"The driver's own p
 x171p-20261006-090743,baseline,"total 5092, Base 722","The driver's constants copied from the exp05 baseline, not a reading of this run.","cite `exp05-20260910-084109` `food-scan.json` `items_count`, or `phases.<boot>.A` for this run"
 x171p-20261006-090743,phases.*.logs.server,up to 60 lines,"The first 60 matching lines the driver kept (its cap, `phases.<boot>.logs.limit`), not a count; the pattern also matches vanilla Juice Maker icon warnings and the harness's own echoes.",
 x171p-20261006-090743,phases.*.logs.client,up to 60 lines,"The first 60 matching lines the driver kept (its cap), not a count.",
+x171c-20261006-091054,predictions,the driver's prediction strings,"The driver's own predictions, written before the run; the kick-timing one is falsified.",cite `phases.kick.server_log.hits` and the kick boot's log files
+x171c-20261006-091054,reasons_jar,the four getReason strings,"Constants the driver copied from the jar, not a reading.",cite the client connections log of the kick boot
+x171c-20261006-091054,phases.*.reason_hits,0 everywhere,"The driver searched console.txt and the server stdout, and the reason string is written only to the client's Logs connections file, so a 0 here is not an absence.",cite `kick/client-2026-10-06_09-11_connections.txt` line 11
+x171c-20261006-091054,summary.*.reasons_client,0 everywhere,The same search as `phases.*.reason_hits`.,cite `kick/client-2026-10-06_09-11_connections.txt` line 11
+x171c-20261006-091054,phases.kick.client_alive_at_end,true,The process stayed alive in its loading state after the force-disconnect; it is not a connection.,cite `kick/client-2026-10-06_09-11_connections.txt` line 11 and `phases.kick.client_seen`

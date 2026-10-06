@@ -1,0 +1,1634 @@
+{
+ "run_id": "x171c-20261006-091054",
+ "session": "Plan 6 X16: the one-byte script checksum mismatch (kick, user role), the CRLF-only control (cr, user role) and the admin-role bypass (bypass): three boots of the default fixture",
+ "user": "admin",
+ "commit": "598f619",
+ "probe_commits": {
+  "A": "8ca63d0",
+  "B": "8ca63d0",
+  "CR": "8ca63d0"
+ },
+ "reasons_jar": [
+  "File doesn't match the one on the server",
+  "File doesn't exist on the server",
+  "File doesn't exist on the client",
+  "File status unknown"
+ ],
+ "predictions": {
+  "kick": "disconnected, never ready; timeout line >= 60 s after connect; LuaChecksum userlog row",
+  "cr": "connects; TK.version at ready and +90 s; no checksum line",
+  "bypass": "connects (admin role holds BypassLuaChecksum)"
+ },
+ "deviations": [
+  "Three boots, not two: the fixture's account is admin, whose role holds BypassLuaChecksum (jar), so the kick and the CR control run with the account demoted to the user role by RCON setaccesslevel, and a third boot reads the admin bypass.",
+  "The demoted boots run the client without -debug (a non-admin account is refused -debug).",
+  "pzt run is not run: a profile cannot give the client a different source."
+ ],
+ "phases": {
+  "kick": {
+   "name": "kick",
+   "profile": {
+    "name": "x17-checksum",
+    "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x17-checksum.toml",
+    "fixture": "default",
+    "description": "PZTestKit + TKX_ChecksumA on the server; the driver passes TKX_ChecksumB to the client.",
+    "mods": [
+     "PZTestKit",
+     "TKX_Checksum"
+    ],
+    "sources": {
+     "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+     "TKX_Checksum": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_ChecksumA"
+    },
+    "skip": [],
+    "workshop_items": {},
+    "sandbox": {},
+    "users": [
+     "admin"
+    ]
+   },
+   "client_source": "testing\\experiments\\TKX_ChecksumB",
+   "server_source": "testing\\experiments\\TKX_ChecksumA",
+   "demote": true,
+   "client_debug": false,
+   "doctor_clean": true,
+   "doctor": [
+    "ok   PZ java processes: none",
+    "ok   ports 27261/27262/27015: free",
+    "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+    "ok   workshop index: 233 mods",
+    "ok   pytest available"
+   ],
+   "server_started_wall": 16.929,
+   "ini": {
+    "Open": "true",
+    "DoLuaChecksum": "true",
+    "AntiCheatChecksum": "2"
+   },
+   "setaccesslevel": {
+    "wall": 17.438,
+    "ok": true,
+    "reply": ""
+   },
+   "files": [
+    {
+     "path": "clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\scripts\\tkx_checksum.txt",
+     "size": 158,
+     "cr": 0,
+     "sha256": "ed89b19dedaf06c826a8b3cf93997e5e163f60b34f9e1f14c1ad2440f652cf41",
+     "md5_cr_stripped": "04c93a71ed8310649117d5555086b831"
+    },
+    {
+     "path": "server\\mods\\TKX_Checksum\\42.20\\media\\scripts\\tkx_checksum.txt",
+     "size": 158,
+     "cr": 0,
+     "sha256": "7ef483e795b8a34a165e084bde5802149f15dd3bf8d1a7b2e178744c0527b00f",
+     "md5_cr_stripped": "b72caa3533e156d379e9566b83be8fd5"
+    }
+   ],
+   "client_start_wall": 17.526,
+   "reads": [],
+   "window_end_wall": 197.562,
+   "client_alive_at_end": true,
+   "client_seen": {},
+   "client_events": [
+    {
+     "t": 8.6,
+     "kind": "harness",
+     "msg": "core loaded (sp)"
+    },
+    {
+     "t": 8.6,
+     "kind": "harness",
+     "msg": "test layer loaded (sp)"
+    },
+    {
+     "t": 9.1,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 9.1,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 9.1,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 16.1,
+     "kind": "harness",
+     "msg": "main menu entered"
+    },
+    {
+     "t": 16.1,
+     "kind": "harness",
+     "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+    },
+    {
+     "t": 16.1,
+     "kind": "harness",
+     "msg": "popup visible; connecting as admin to 127.0.0.1:27261"
+    },
+    {
+     "t": 20.6,
+     "kind": "harness",
+     "msg": "core loaded (client)"
+    },
+    {
+     "t": 20.6,
+     "kind": "harness",
+     "msg": "test layer loaded (client)"
+    },
+    {
+     "t": 21.1,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 21.1,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 21.1,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 21.6,
+     "kind": "harness",
+     "msg": "main menu entered"
+    }
+   ],
+   "client_t0_wall": 17.521,
+   "server_log": {
+    "file": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server-stdout.log",
+    "lines_read": 2070,
+    "cap": 300,
+    "capped": false,
+    "hits": [
+     {
+      "wall": 17.498,
+      "n": 44,
+      "text": "LOG  : General      f:0 st:1,635,004,219>     Checksum: Warning"
+     },
+     {
+      "wall": 17.498,
+      "n": 94,
+      "text": "LOG  : Mod          f:0 st:1,635,006,378> loading TKX_Checksum"
+     },
+     {
+      "wall": 17.498,
+      "n": 95,
+      "text": "LOG  : Mod          f:0 st:1,635,006,378> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 17.498,
+      "n": 96,
+      "text": "LOG  : General      f:0 st:1,635,008,005> scriptChecksum: 3f7037dcc290bdc2bf2bd377cf5474d3"
+     },
+     {
+      "wall": 17.498,
+      "n": 1182,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1203,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1224,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1245,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1266,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\TKX_Checksum\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1287,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\TKX_Checksum\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1308,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\TKX_Checksum\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1329,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\mods\\TKX_Checksum\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 17.498,
+      "n": 1409,
+      "text": "LOG  : Lua          f:0 st:1,635,016,245> luaChecksum: 38f3e9c93dc75136ef2d43f328977f11"
+     },
+     {
+      "wall": 17.498,
+      "n": 1411,
+      "text": "LOG  : General      f:0 st:1,635,016,253> writing C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\Server\\pzt_SandboxVars.lua"
+     },
+     {
+      "wall": 17.498,
+      "n": 2003,
+      "text": "LOG  : General      f:0 st:1,635,017,481> Loading WorldDictionary:C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\server\\Saves\\Multiplayer\\pzt\\WorldDictionary.bin"
+     },
+     {
+      "wall": 33.917,
+      "n": 2047,
+      "text": "WARN : Packet       f:154 st:1,635,036,347 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, "
+     },
+     {
+      "wall": 33.917,
+      "n": 2048,
+      "text": "LOG  : Network      f:154 st:1,635,036,362> Connected new client 396318402232311265 ID # 0"
+     },
+     {
+      "wall": 39.756,
+      "n": 2049,
+      "text": "WARN : Multiplayer  f:213 st:1,635,042,282 at ChecksumPacket.parseServer          > user admin will be kicked in 60000ms because Lua/script checksums do not match"
+     },
+     {
+      "wall": 39.756,
+      "n": 2050,
+      "text": "WARN : Multiplayer  f:213 st:1,635,042,283 at AntiCheat.log                       > Anti-cheat=\"ChecksumUpdate\" is triggered for connection=\"admin\" server-option=\"AntiCheatChecksum\" reason=\"Script incorrect checksum\" counter=1/1 action=\"Kick\" ping=1"
+     }
+    ]
+   },
+   "client_log": {
+    "file": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\console.txt",
+    "lines_read": 520,
+    "cap": 300,
+    "capped": false,
+    "hits": [
+     {
+      "wall": 21.319,
+      "n": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_Checksum"
+     },
+     {
+      "wall": 21.319,
+      "n": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 34.929,
+      "n": 165,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_Checksum"
+     },
+     {
+      "wall": 34.929,
+      "n": 166,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 37.699,
+      "n": 180,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 210,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 240,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 270,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 300,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\TKX_Checksum\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 330,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\TKX_Checksum\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 360,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 37.699,
+      "n": 390,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\kick\\clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 38.47,
+      "n": 435,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SafetyDisconnectDelay"
+     },
+     {
+      "wall": 38.47,
+      "n": 449,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound"
+     },
+     {
+      "wall": 38.47,
+      "n": 458,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety"
+     },
+     {
+      "wall": 38.47,
+      "n": 459,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed"
+     },
+     {
+      "wall": 38.47,
+      "n": 460,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip"
+     },
+     {
+      "wall": 38.47,
+      "n": 461,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit"
+     },
+     {
+      "wall": 38.47,
+      "n": 462,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException"
+     },
+     {
+      "wall": 38.47,
+      "n": 463,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission"
+     },
+     {
+      "wall": 38.47,
+      "n": 464,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP"
+     },
+     {
+      "wall": 38.47,
+      "n": 465,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse"
+     },
+     {
+      "wall": 38.47,
+      "n": 466,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer"
+     },
+     {
+      "wall": 38.47,
+      "n": 467,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum"
+     },
+     {
+      "wall": 39.762,
+      "n": 517,
+      "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+     },
+     {
+      "wall": 40.026,
+      "n": 520,
+      "text": "LOG  : Lua          f:0 st:0> LuaEventManager: adding unknown event \"OnDisconnect\""
+     }
+    ]
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "reason_hits": {
+    "File doesn't match the one on the server": {
+     "client": [],
+     "server": []
+    },
+    "File doesn't exist on the server": {
+     "client": [],
+     "server": []
+    },
+    "File doesn't exist on the client": {
+     "client": [],
+     "server": []
+    },
+    "File status unknown": {
+     "client": [],
+     "server": []
+    }
+   },
+   "db": [
+    {
+     "db": "server\\db\\pzt.db",
+     "tables": [
+      "whitelist",
+      "sqlite_sequence",
+      "bannedip",
+      "role",
+      "capabilities",
+      "defaultRoles",
+      "allowedsteamid",
+      "bannedid",
+      "userlog",
+      "tickets"
+     ],
+     "userlog": {
+      "cols": [
+       "id",
+       "username",
+       "type",
+       "text",
+       "issuedBy",
+       "amount",
+       "lastUpdate"
+      ],
+      "rows": [
+       [
+        "1",
+        "admin",
+        "LuaChecksum",
+        "Script",
+        "ChecksumPacket",
+        "1",
+        "2026-10-06 09:11:34"
+       ]
+      ]
+     },
+     "whitelist_admin": {
+      "cols": [
+       "id",
+       "world",
+       "username",
+       "password",
+       "lastConnection",
+       "role",
+       "authType",
+       "googleKey",
+       "steamid",
+       "ownerid",
+       "displayName"
+      ],
+      "rows": [
+       [
+        "1",
+        "pzt",
+        "admin",
+        "$2a$12$O/BFHoDFPrfFaNPAACmWpuYND49RXwgpf4dympr8NyIddagWXiR4m",
+        "2026-10-06 09:11:28",
+        "2",
+        "1",
+        "None",
+        "None",
+        "None",
+        "None"
+       ]
+      ]
+     }
+    },
+    {
+     "db": "server\\Saves\\Multiplayer\\pzt\\players.db",
+     "tables": [
+      "localPlayers",
+      "networkPlayers"
+     ],
+     "userlog": null,
+     "whitelist_admin": null
+    },
+    {
+     "db": "server\\Saves\\Multiplayer\\pzt\\vehicles.db",
+     "tables": [
+      "vehicles"
+     ],
+     "userlog": null,
+     "whitelist_admin": null
+    }
+   ]
+  },
+  "cr": {
+   "name": "cr",
+   "profile": {
+    "name": "x17-checksum-cr",
+    "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x17-checksum-cr.toml",
+    "fixture": "default",
+    "description": "PZTestKit + TKX_ChecksumA on the server; the driver passes TKX_ChecksumCR to the client.",
+    "mods": [
+     "PZTestKit",
+     "TKX_Checksum"
+    ],
+    "sources": {
+     "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+     "TKX_Checksum": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_ChecksumA"
+    },
+    "skip": [],
+    "workshop_items": {},
+    "sandbox": {},
+    "users": [
+     "admin"
+    ]
+   },
+   "client_source": "testing\\experiments\\TKX_ChecksumCR",
+   "server_source": "testing\\experiments\\TKX_ChecksumA",
+   "demote": true,
+   "client_debug": false,
+   "doctor_clean": true,
+   "doctor": [
+    "ok   PZ java processes: none",
+    "ok   ports 27261/27262/27015: free",
+    "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+    "ok   workshop index: 233 mods",
+    "ok   pytest available"
+   ],
+   "server_started_wall": 281.545,
+   "ini": {
+    "Open": "true",
+    "DoLuaChecksum": "true",
+    "AntiCheatChecksum": "2"
+   },
+   "setaccesslevel": {
+    "wall": 282.069,
+    "ok": true,
+    "reply": ""
+   },
+   "files": [
+    {
+     "path": "clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\scripts\\tkx_checksum.txt",
+     "size": 168,
+     "cr": 10,
+     "sha256": "d74cc2eef86e783f63209493de1ed3d8d3b60e8e25e614d17fd961374f143c0f",
+     "md5_cr_stripped": "b72caa3533e156d379e9566b83be8fd5"
+    },
+    {
+     "path": "server\\mods\\TKX_Checksum\\42.20\\media\\scripts\\tkx_checksum.txt",
+     "size": 158,
+     "cr": 0,
+     "sha256": "7ef483e795b8a34a165e084bde5802149f15dd3bf8d1a7b2e178744c0527b00f",
+     "md5_cr_stripped": "b72caa3533e156d379e9566b83be8fd5"
+    }
+   ],
+   "client_start_wall": 282.147,
+   "ready_wall": 319.507,
+   "reads": [
+    {
+     "tag": "at_ready",
+     "wall": 320.015,
+     "reply": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "tag": "end_of_window",
+     "wall": 410.452,
+     "reply": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "window_end_wall": 410.452,
+   "client_alive_at_end": true,
+   "client_seen": {
+    "in_game": 34.7,
+    "ready": 37.2
+   },
+   "client_events": [
+    {
+     "t": 8.0,
+     "kind": "harness",
+     "msg": "core loaded (sp)"
+    },
+    {
+     "t": 8.0,
+     "kind": "harness",
+     "msg": "test layer loaded (sp)"
+    },
+    {
+     "t": 9.1,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 9.1,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 9.1,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 16.1,
+     "kind": "harness",
+     "msg": "main menu entered"
+    },
+    {
+     "t": 16.1,
+     "kind": "harness",
+     "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+    },
+    {
+     "t": 16.1,
+     "kind": "harness",
+     "msg": "popup visible; connecting as admin to 127.0.0.1:27261"
+    },
+    {
+     "t": 20.6,
+     "kind": "harness",
+     "msg": "core loaded (client)"
+    },
+    {
+     "t": 20.6,
+     "kind": "harness",
+     "msg": "test layer loaded (client)"
+    },
+    {
+     "t": 21.1,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 21.1,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 21.1,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 21.7,
+     "kind": "harness",
+     "msg": "main menu entered"
+    },
+    {
+     "t": 34.7,
+     "kind": "in_game",
+     "line": "LOG  : General      f:0 st:0> game loading took 13 seconds"
+    },
+    {
+     "t": 36.2,
+     "kind": "harness",
+     "msg": "OnGameStart - in world"
+    },
+    {
+     "t": 37.2,
+     "kind": "harness",
+     "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+    },
+    {
+     "t": 37.2,
+     "kind": "harness",
+     "msg": "player admin at 10722,10630,0"
+    },
+    {
+     "t": 37.2,
+     "kind": "ready",
+     "line": "LOG  : Lua          f:19 st:1,635,321,517> PZTK: player admin at 10722,10630,0"
+    },
+    {
+     "t": 38.2,
+     "kind": "harness",
+     "msg": "cmd #1 lua.global -> {\"side\":\"client\",\"name\":\"TK.version\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+    },
+    {
+     "t": 128.3,
+     "kind": "harness",
+     "msg": "cmd #2 lua.global -> {\"side\":\"client\",\"name\":\"TK.version\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+    }
+   ],
+   "client_t0_wall": 282.142,
+   "server_log": {
+    "file": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\server-stdout.log",
+    "lines_read": 2088,
+    "cap": 300,
+    "capped": false,
+    "hits": [
+     {
+      "wall": 282.126,
+      "n": 44,
+      "text": "LOG  : General      f:0 st:1,635,269,585>     Checksum: Warning"
+     },
+     {
+      "wall": 282.126,
+      "n": 94,
+      "text": "LOG  : Mod          f:0 st:1,635,271,678> loading TKX_Checksum"
+     },
+     {
+      "wall": 282.126,
+      "n": 95,
+      "text": "LOG  : Mod          f:0 st:1,635,271,678> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 282.126,
+      "n": 96,
+      "text": "LOG  : General      f:0 st:1,635,273,230> scriptChecksum: 3f7037dcc290bdc2bf2bd377cf5474d3"
+     },
+     {
+      "wall": 282.126,
+      "n": 1266,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\server\\mods\\TKX_Checksum\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 282.126,
+      "n": 1287,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\server\\mods\\TKX_Checksum\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 282.126,
+      "n": 1308,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\server\\mods\\TKX_Checksum\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 282.126,
+      "n": 1329,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\server\\mods\\TKX_Checksum\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 282.126,
+      "n": 1409,
+      "text": "LOG  : Lua          f:0 st:1,635,280,749> luaChecksum: 38f3e9c93dc75136ef2d43f328977f11"
+     },
+     {
+      "wall": 298.522,
+      "n": 2047,
+      "text": "WARN : Packet       f:156 st:1,635,301,035 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, "
+     },
+     {
+      "wall": 298.522,
+      "n": 2048,
+      "text": "LOG  : Network      f:156 st:1,635,301,050> Connected new client 905225160389764165 ID # 0"
+     }
+    ]
+   },
+   "client_log": {
+    "file": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\clients\\admin\\console.txt",
+    "lines_read": 871,
+    "cap": 300,
+    "capped": false,
+    "hits": [
+     {
+      "wall": 285.927,
+      "n": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_Checksum"
+     },
+     {
+      "wall": 285.927,
+      "n": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 299.779,
+      "n": 165,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_Checksum"
+     },
+     {
+      "wall": 299.779,
+      "n": 166,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 302.291,
+      "n": 300,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\clients\\admin\\mods\\TKX_Checksum\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 302.291,
+      "n": 330,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\clients\\admin\\mods\\TKX_Checksum\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 302.291,
+      "n": 360,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 302.291,
+      "n": 390,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\cr\\clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 303.307,
+      "n": 435,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SafetyDisconnectDelay"
+     },
+     {
+      "wall": 303.307,
+      "n": 449,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound"
+     },
+     {
+      "wall": 303.307,
+      "n": 458,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety"
+     },
+     {
+      "wall": 303.307,
+      "n": 459,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed"
+     },
+     {
+      "wall": 303.307,
+      "n": 460,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip"
+     },
+     {
+      "wall": 303.307,
+      "n": 461,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit"
+     },
+     {
+      "wall": 303.307,
+      "n": 462,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException"
+     },
+     {
+      "wall": 303.307,
+      "n": 463,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission"
+     },
+     {
+      "wall": 303.307,
+      "n": 464,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP"
+     },
+     {
+      "wall": 303.307,
+      "n": 465,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse"
+     },
+     {
+      "wall": 303.307,
+      "n": 466,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer"
+     },
+     {
+      "wall": 303.307,
+      "n": 467,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum"
+     },
+     {
+      "wall": 304.624,
+      "n": 517,
+      "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+     },
+     {
+      "wall": 304.624,
+      "n": 518,
+      "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum end"
+     }
+    ]
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "reason_hits": {
+    "File doesn't match the one on the server": {
+     "client": [],
+     "server": []
+    },
+    "File doesn't exist on the server": {
+     "client": [],
+     "server": []
+    },
+    "File doesn't exist on the client": {
+     "client": [],
+     "server": []
+    },
+    "File status unknown": {
+     "client": [],
+     "server": []
+    }
+   },
+   "db": [
+    {
+     "db": "server\\db\\pzt.db",
+     "tables": [
+      "whitelist",
+      "sqlite_sequence",
+      "bannedip",
+      "role",
+      "capabilities",
+      "defaultRoles",
+      "allowedsteamid",
+      "bannedid",
+      "userlog",
+      "tickets"
+     ],
+     "userlog": {
+      "cols": [
+       "id",
+       "username",
+       "type",
+       "text",
+       "issuedBy",
+       "amount",
+       "lastUpdate"
+      ],
+      "rows": []
+     },
+     "whitelist_admin": {
+      "cols": [
+       "id",
+       "world",
+       "username",
+       "password",
+       "lastConnection",
+       "role",
+       "authType",
+       "googleKey",
+       "steamid",
+       "ownerid",
+       "displayName"
+      ],
+      "rows": [
+       [
+        "1",
+        "pzt",
+        "admin",
+        "$2a$12$O/BFHoDFPrfFaNPAACmWpuYND49RXwgpf4dympr8NyIddagWXiR4m",
+        "2026-10-06 09:15:52",
+        "2",
+        "1",
+        "None",
+        "None",
+        "None",
+        "None"
+       ]
+      ]
+     }
+    },
+    {
+     "db": "server\\Saves\\Multiplayer\\pzt\\players.db",
+     "tables": [
+      "localPlayers",
+      "networkPlayers"
+     ],
+     "userlog": null,
+     "whitelist_admin": null
+    },
+    {
+     "db": "server\\Saves\\Multiplayer\\pzt\\vehicles.db",
+     "tables": [
+      "vehicles"
+     ],
+     "userlog": null,
+     "whitelist_admin": null
+    }
+   ]
+  },
+  "bypass": {
+   "name": "bypass",
+   "profile": {
+    "name": "x17-checksum",
+    "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x17-checksum.toml",
+    "fixture": "default",
+    "description": "PZTestKit + TKX_ChecksumA on the server; the driver passes TKX_ChecksumB to the client.",
+    "mods": [
+     "PZTestKit",
+     "TKX_Checksum"
+    ],
+    "sources": {
+     "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+     "TKX_Checksum": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\experiments\\TKX_ChecksumA"
+    },
+    "skip": [],
+    "workshop_items": {},
+    "sandbox": {},
+    "users": [
+     "admin"
+    ]
+   },
+   "client_source": "testing\\experiments\\TKX_ChecksumB",
+   "server_source": "testing\\experiments\\TKX_ChecksumA",
+   "demote": false,
+   "client_debug": null,
+   "doctor_clean": true,
+   "doctor": [
+    "ok   PZ java processes: none",
+    "ok   ports 27261/27262/27015: free",
+    "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+    "ok   workshop index: 233 mods",
+    "ok   pytest available"
+   ],
+   "server_started_wall": 438.936,
+   "ini": {
+    "Open": "true",
+    "DoLuaChecksum": "true",
+    "AntiCheatChecksum": "2"
+   },
+   "files": [
+    {
+     "path": "clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\scripts\\tkx_checksum.txt",
+     "size": 158,
+     "cr": 0,
+     "sha256": "ed89b19dedaf06c826a8b3cf93997e5e163f60b34f9e1f14c1ad2440f652cf41",
+     "md5_cr_stripped": "04c93a71ed8310649117d5555086b831"
+    },
+    {
+     "path": "server\\mods\\TKX_Checksum\\42.20\\media\\scripts\\tkx_checksum.txt",
+     "size": 158,
+     "cr": 0,
+     "sha256": "7ef483e795b8a34a165e084bde5802149f15dd3bf8d1a7b2e178744c0527b00f",
+     "md5_cr_stripped": "b72caa3533e156d379e9566b83be8fd5"
+    }
+   ],
+   "client_start_wall": 439.015,
+   "ready_wall": 478.369,
+   "reads": [
+    {
+     "tag": "at_ready",
+     "wall": 478.877,
+     "reply": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    },
+    {
+     "tag": "end_of_window",
+     "wall": 569.313,
+     "reply": {
+      "side": "client",
+      "name": "TK.version",
+      "type": "number",
+      "resolved": true,
+      "value": 1
+     }
+    }
+   ],
+   "window_end_wall": 569.313,
+   "client_alive_at_end": true,
+   "client_seen": {
+    "in_game": 36.7,
+    "ready": 39.2
+   },
+   "client_events": [
+    {
+     "t": 9.0,
+     "kind": "harness",
+     "msg": "core loaded (sp)"
+    },
+    {
+     "t": 9.0,
+     "kind": "harness",
+     "msg": "test layer loaded (sp)"
+    },
+    {
+     "t": 9.5,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 9.5,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 9.5,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 11.6,
+     "kind": "harness",
+     "msg": "main menu entered"
+    },
+    {
+     "t": 11.6,
+     "kind": "harness",
+     "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+    },
+    {
+     "t": 11.6,
+     "kind": "harness",
+     "msg": "popup visible; connecting as admin to 127.0.0.1:27261"
+    },
+    {
+     "t": 16.6,
+     "kind": "harness",
+     "msg": "core loaded (client)"
+    },
+    {
+     "t": 16.6,
+     "kind": "harness",
+     "msg": "test layer loaded (client)"
+    },
+    {
+     "t": 17.1,
+     "kind": "harness",
+     "msg": "client harness loaded"
+    },
+    {
+     "t": 17.1,
+     "kind": "harness",
+     "msg": "client harness Task 7 commands loaded"
+    },
+    {
+     "t": 17.1,
+     "kind": "harness",
+     "msg": "client body harness loaded"
+    },
+    {
+     "t": 17.6,
+     "kind": "harness",
+     "msg": "main menu entered"
+    },
+    {
+     "t": 36.7,
+     "kind": "in_game",
+     "line": "LOG  : General      f:0 st:0> game loading took 19 seconds"
+    },
+    {
+     "t": 38.2,
+     "kind": "harness",
+     "msg": "OnGameStart - in world"
+    },
+    {
+     "t": 39.2,
+     "kind": "harness",
+     "msg": "manifest loaded: user=admin server=127.0.0.1:27261"
+    },
+    {
+     "t": 39.2,
+     "kind": "harness",
+     "msg": "player admin at 10722,10630,0"
+    },
+    {
+     "t": 39.2,
+     "kind": "ready",
+     "line": "LOG  : Lua          f:18 st:1,635,480,340> PZTK: player admin at 10722,10630,0"
+    },
+    {
+     "t": 40.2,
+     "kind": "harness",
+     "msg": "cmd #1 lua.global -> {\"side\":\"client\",\"name\":\"TK.version\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+    },
+    {
+     "t": 130.3,
+     "kind": "harness",
+     "msg": "cmd #2 lua.global -> {\"side\":\"client\",\"name\":\"TK.version\",\"type\":\"number\",\"resolved\":true,\"value\":1}"
+    }
+   ],
+   "client_t0_wall": 439.011,
+   "server_log": {
+    "file": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\server-stdout.log",
+    "lines_read": 2088,
+    "cap": 300,
+    "capped": false,
+    "hits": [
+     {
+      "wall": 438.988,
+      "n": 44,
+      "text": "LOG  : General      f:0 st:1,635,424,776>     Checksum: Warning"
+     },
+     {
+      "wall": 438.988,
+      "n": 94,
+      "text": "LOG  : Mod          f:0 st:1,635,427,183> loading TKX_Checksum"
+     },
+     {
+      "wall": 438.988,
+      "n": 95,
+      "text": "LOG  : Mod          f:0 st:1,635,427,183> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 438.988,
+      "n": 96,
+      "text": "LOG  : General      f:0 st:1,635,428,848> scriptChecksum: 3f7037dcc290bdc2bf2bd377cf5474d3"
+     },
+     {
+      "wall": 438.988,
+      "n": 1266,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\server\\mods\\TKX_Checksum\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 438.988,
+      "n": 1287,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\server\\mods\\TKX_Checksum\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 438.988,
+      "n": 1308,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\server\\mods\\TKX_Checksum\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 438.988,
+      "n": 1329,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\server\\mods\\TKX_Checksum\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 438.988,
+      "n": 1409,
+      "text": "LOG  : Lua          f:0 st:1,635,437,641> luaChecksum: 38f3e9c93dc75136ef2d43f328977f11"
+     },
+     {
+      "wall": 450.87,
+      "n": 2047,
+      "text": "WARN : Packet       f:103 st:1,635,453,361 at PacketsCache.<init>                 > No packet handler for type: Drink, EatBody, SandboxOptions, ReceiveCommand, Ping, SpawnRegion, WorldMapPlayerPosition, WorldMap, AddAmbient, ZombieSound, PlaySoundEveryPlayer, "
+     },
+     {
+      "wall": 450.87,
+      "n": 2048,
+      "text": "LOG  : Network      f:103 st:1,635,453,373> Connected new client 117095225757164392 ID # 0"
+     }
+    ]
+   },
+   "client_log": {
+    "file": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\clients\\admin\\console.txt",
+    "lines_read": 3308,
+    "cap": 300,
+    "capped": false,
+    "hits": [
+     {
+      "wall": 443.048,
+      "n": 84,
+      "text": "LOG  : Mod          f:0> loading TKX_Checksum"
+     },
+     {
+      "wall": 443.048,
+      "n": 85,
+      "text": "LOG  : Mod          f:0> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 452.129,
+      "n": 164,
+      "text": "LOG  : Mod          f:0 st:0> loading TKX_Checksum"
+     },
+     {
+      "wall": 452.129,
+      "n": 165,
+      "text": "LOG  : Mod          f:0 st:0> mod \"TKX_Checksum\" overrides"
+     },
+     {
+      "wall": 454.904,
+      "n": 299,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\clients\\admin\\mods\\TKX_Checksum\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 454.904,
+      "n": 329,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\clients\\admin\\mods\\TKX_Checksum\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 454.904,
+      "n": 359,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\AnimSets at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 454.904,
+      "n": 389,
+      "text": "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x171c-20261006-091054\\bypass\\clients\\admin\\mods\\TKX_Checksum\\42.20\\media\\actiongroups at WindowsException.translateToIOException(null:-1)."
+     },
+     {
+      "wall": 456.169,
+      "n": 434,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: SafetyDisconnectDelay"
+     },
+     {
+      "wall": 456.169,
+      "n": 448,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: BanKickGlobalSound"
+     },
+     {
+      "wall": 456.169,
+      "n": 457,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafety"
+     },
+     {
+      "wall": 456.169,
+      "n": 458,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSpeed"
+     },
+     {
+      "wall": 456.169,
+      "n": 459,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatNoClip"
+     },
+     {
+      "wall": 456.169,
+      "n": 460,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatHit"
+     },
+     {
+      "wall": 456.169,
+      "n": 461,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException"
+     },
+     {
+      "wall": 456.169,
+      "n": 462,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPermission"
+     },
+     {
+      "wall": 456.169,
+      "n": 463,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatXP"
+     },
+     {
+      "wall": 456.169,
+      "n": 464,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatSafeHouse"
+     },
+     {
+      "wall": 456.169,
+      "n": 465,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPlayer"
+     },
+     {
+      "wall": 456.169,
+      "n": 466,
+      "text": "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum"
+     },
+     {
+      "wall": 460.7,
+      "n": 653,
+      "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum start"
+     },
+     {
+      "wall": 460.7,
+      "n": 654,
+      "text": "LOG  : General      f:0 st:0> client: DoLuaChecksum end"
+     }
+    ]
+   },
+   "server_errors": [],
+   "server_error_count": 0,
+   "reason_hits": {
+    "File doesn't match the one on the server": {
+     "client": [],
+     "server": []
+    },
+    "File doesn't exist on the server": {
+     "client": [],
+     "server": []
+    },
+    "File doesn't exist on the client": {
+     "client": [],
+     "server": []
+    },
+    "File status unknown": {
+     "client": [],
+     "server": []
+    }
+   },
+   "db": [
+    {
+     "db": "server\\db\\pzt.db",
+     "tables": [
+      "whitelist",
+      "sqlite_sequence",
+      "bannedip",
+      "role",
+      "capabilities",
+      "defaultRoles",
+      "allowedsteamid",
+      "bannedid",
+      "userlog",
+      "tickets"
+     ],
+     "userlog": {
+      "cols": [
+       "id",
+       "username",
+       "type",
+       "text",
+       "issuedBy",
+       "amount",
+       "lastUpdate"
+      ],
+      "rows": []
+     },
+     "whitelist_admin": {
+      "cols": [
+       "id",
+       "world",
+       "username",
+       "password",
+       "lastConnection",
+       "role",
+       "authType",
+       "googleKey",
+       "steamid",
+       "ownerid",
+       "displayName"
+      ],
+      "rows": [
+       [
+        "1",
+        "pzt",
+        "admin",
+        "$2a$12$O/BFHoDFPrfFaNPAACmWpuYND49RXwgpf4dympr8NyIddagWXiR4m",
+        "2026-10-06 09:18:25",
+        "7",
+        "1",
+        "None",
+        "None",
+        "None",
+        "None"
+       ]
+      ]
+     }
+    },
+    {
+     "db": "server\\Saves\\Multiplayer\\pzt\\players.db",
+     "tables": [
+      "localPlayers",
+      "networkPlayers"
+     ],
+     "userlog": null,
+     "whitelist_admin": null
+    },
+    {
+     "db": "server\\Saves\\Multiplayer\\pzt\\vehicles.db",
+     "tables": [
+      "vehicles"
+     ],
+     "userlog": null,
+     "whitelist_admin": null
+    }
+   ]
+  }
+ },
+ "notes": [],
+ "timeline": [
+  {
+   "t": 16.9,
+   "phase": "server_started",
+   "stage": "kick"
+  },
+  {
+   "t": 17.4,
+   "phase": "setaccesslevel",
+   "ok": true,
+   "reply": ""
+  },
+  {
+   "t": 17.5,
+   "phase": "client_start",
+   "stage": "kick"
+  },
+  {
+   "t": 257.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": null
+  },
+  {
+   "t": 265.5,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 281.5,
+   "phase": "server_started",
+   "stage": "cr"
+  },
+  {
+   "t": 282.1,
+   "phase": "setaccesslevel",
+   "ok": true,
+   "reply": ""
+  },
+  {
+   "t": 282.1,
+   "phase": "client_start",
+   "stage": "cr"
+  },
+  {
+   "t": 319.5,
+   "phase": "ready",
+   "stage": "cr"
+  },
+  {
+   "t": 412.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 420.5,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 438.9,
+   "phase": "server_started",
+   "stage": "bypass"
+  },
+  {
+   "t": 439.0,
+   "phase": "client_start",
+   "stage": "bypass"
+  },
+  {
+   "t": 478.4,
+   "phase": "ready",
+   "stage": "bypass"
+  },
+  {
+   "t": 571.8,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 579.3,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  }
+ ],
+ "summary": {
+  "kick": {
+   "ready_wall": null,
+   "client_start_wall": 17.526,
+   "tk_version_reads": [],
+   "client_alive_at_end": true,
+   "timeout_line": [],
+   "reasons_client": {
+    "File doesn't match the one on the server": 0,
+    "File doesn't exist on the server": 0,
+    "File doesn't exist on the client": 0,
+    "File status unknown": 0
+   },
+   "setaccesslevel": {
+    "wall": 17.438,
+    "ok": true,
+    "reply": ""
+   },
+   "error": null
+  },
+  "cr": {
+   "ready_wall": 319.507,
+   "client_start_wall": 282.147,
+   "tk_version_reads": [
+    [
+     "at_ready",
+     1
+    ],
+    [
+     "end_of_window",
+     1
+    ]
+   ],
+   "client_alive_at_end": true,
+   "timeout_line": [],
+   "reasons_client": {
+    "File doesn't match the one on the server": 0,
+    "File doesn't exist on the server": 0,
+    "File doesn't exist on the client": 0,
+    "File status unknown": 0
+   },
+   "setaccesslevel": {
+    "wall": 282.069,
+    "ok": true,
+    "reply": ""
+   },
+   "error": null
+  },
+  "bypass": {
+   "ready_wall": 478.369,
+   "client_start_wall": 439.015,
+   "tk_version_reads": [
+    [
+     "at_ready",
+     1
+    ],
+    [
+     "end_of_window",
+     1
+    ]
+   ],
+   "client_alive_at_end": true,
+   "timeout_line": [],
+   "reasons_client": {
+    "File doesn't match the one on the server": 0,
+    "File doesn't exist on the server": 0,
+    "File doesn't exist on the client": 0,
+    "File status unknown": 0
+   },
+   "setaccesslevel": null,
+   "error": null
+  }
+ },
+ "wall_seconds": 579.3
+}

@@ -120,6 +120,7 @@ A live dedicated server printed exactly five `overrides` lines for one workshop 
 The client's Lua state names the winning copy: `acceptIngredient` and `baseAcceptsSpice` resolved as functions although they are defined only in the version tree, the common-only `selectPreferedFood` and `ISContinue` resolved too, and `_G.AutoCook` carried a key count of 49 — 23 file-scope scalars plus 15, 4 and 7 functions from three files — where a common-wins state reads 47 [#1316/M/n=1].
 The console grep for a nil call, `HasTrait` or `getTypeString` returned 0 lines on the client and 0 on the server, and a common-wins state would have raised at three sites on the character-info window's build path, so the negative covers that whole path rather than one line [#1317/M/n=1].
 A version dir holding only a `mod.info` and no `media/` costs the mod nothing: the mod announced `loading`, its payload global resolved on both sides off `common/media`, and no required-mod-not-found line was printed [#0831/M/n=1].
+The same holds for a script: a mod whose only script sits under `common/media/scripts/`, beside a version dir holding only `mod.info`, had that script loaded on both sides, its `Calories = 400.0` reading 400 on a spawned `Base.Orange` [T8.3].
 For a mod shipping `common/` beside a version folder the version folder's file wins a same-relative-path collision, `common/` supplies everything the version folder does not ship, and both end up in one Lua state — with translations the exception, because the `Translator` merges rather than resolving through the file map [#1318/M/n=1].
 The wiki's statement of the mod file order — `common/` first, then the closest versioning folder, overwriting — agrees with the measurement [#0833/W/one-side].
 
@@ -197,10 +198,14 @@ What the join does to the client's Lua states, and the reload that follows it, i
 A mod cannot survive a multiplayer script mismatch: every loaded script file, mod files included, is fed to the checksummer, which drops every CR byte and folds the rest into one running MD5 that `ChecksumPacket.parseServer` compares, so the engine never inspects what a script says and a mismatch is a disconnect rather than a silent degrade [#1182/C/C-only].
 A script-checksum mismatch disconnects the client through `NetChecksum$Comparer.update`, which calls `forceDisconnect`, `serverDisconnected` and `kickReason`, while the server arm `AntiCheatChecksumUpdate.update` acts after a 60 s grace set by `IsoWorld.LUA_CHECKSUM_TIMEOUT_MS` [#1231/C/C-only].
 A role holding `Capability.BypassLuaChecksum` clears all three checksum flags [#1230/C/C-only].
-No arm of this path has ever been measured — not the kick, not the grace, not the role bypass — so every statement in this section is a code reading and none of them is a run [#1231/C/C-only].
+
+Measured, a one-byte difference kicks: a `user`-role client whose copy of one script file read `Weight = 0.3` against the server's `Weight = 0.2` was warned by the server, flagged by its anti-cheat with the action `Kick`, and force-disconnected by its own arm with the reason `File doesn't match the one on the server`, naming the file, without ever reaching the game [#1282/M/n=1].
+The kick is the client's arm and it is immediate: the client disconnected 0.290 s after the server's warning, and no timeout line followed in the 157.806 s the session was watched past it, so the 60 s grace never acted; the server recorded the kick as a `LuaChecksum` row in its user log [T8.5].
+A copy that differs only in line endings joins: the same file with every line ending CRLF connected, still answered the harness 90.437 s after its first read at ready, and left no checksum line in either log [T8.6].
+The admin role bypasses the gate in practice: the same one-byte mismatch under the fixture's `admin` role connected, still answered the harness 90.436 s after its first read at ready, and left no warning, no anti-cheat line and no user-log row [T8.7].
 The normalisation is the only tolerance the gate offers: line endings may differ between the two copies and nothing else may.
 The hash covers every loaded script file rather than only the mod's own, so a mod that ships no scripts at all still joins a session whose whole script set has to agree [#1182/C/C-only].
-The two arms also act at different times, so a check that watches only the client sees the kick and never the server-side act [#1231/C/C-only].
+The two arms act at different times, and on a one-byte mismatch the client's arm acts first: the server's timed act is the code's backstop, which by inference a client running the shipped arm never lets it reach ([#1231/C/C-only], [T8.5]).
 Script data loads per side and never crosses the wire, which is what makes the gate necessary and is [the per-side load](loader-and-scripts.md#per-side-load).
 
 <a id="client-only-mods"></a>
@@ -225,7 +230,7 @@ Neither of those two readings is the engine's, which scores the two names identi
 The corpus holds two three-part version folders, both named `42.20.1` and both a Skill Recovery Journal copy, and on both the tool reading and the mirror reading choose the same folder, so nothing observable differs today [#1660/C/snapshot].
 A mod shipping both `42.20` and `42.20.1` would separate those two readings and none does, so the disagreement is latent rather than live [#1660/C/snapshot].
 Everything measured about the `mod.info` chain, the version dirs and the folder name was measured on the dedicated-server path, and the client's own mod-list call site, which reaches `getModDetails` from the selector rather than from `loadMods`, has never booted — the question that bound leaves is [an open row](#open) [#0877/C/C-only/open].
-Every arm of the checksum gate is a code reading, which makes the packaging rule that rests on it a rule with no measurement behind it — see [the checksum gate](#checksum-gate).
+The checksum gate is measured on one script file of one probe mod, for a one-byte mismatch, a line-ending-only copy and the `admin` role, in one boot each on one fixture; the server's timed arm, the Lua and animation flags and any role but `user` and `admin` are code readings — see [the checksum gate](#checksum-gate) ([#1282/M/n=1], [#1231/C/C-only]).
 Not covered: the mod selector's own resolution path in the client UI, the Steam subscription and upload surface, the `pack=` and `tiledef=` asset pipelines, the animation and Lua arms of the checksum gate beyond the flag count the bypass clears, and any Lua route by which a mod reads the running build number — this library read none of them.
 
 ## Open
@@ -242,7 +247,7 @@ Not covered: the mod selector's own resolution path in the client UI, the Steam 
 - That a mod present only in the Steam workshop folder is not found under a no-Steam launch — the server booting with zero errors, the client showing the required-mod warning at 34.8 seconds with the mod inactive, and the same mod active on both sides once copied into both cachedirs — is unverified: the spike that measured it committed no artifact folder; re-measure by re-running its two variants under a committed artifact [#1864/M/uncommitted/unverified].
 - Decision the rows force: whether this mod ships one version dir per supported build or one version dir beside `common/`, given that the version folder's file wins a same-relative-path collision and `common/` supplies the rest [#1318/M/n=1, #0825/C/C-only].
 - Decision the rows force: whether this mod declares `versionMin` at all, given that a failed gate and an absent folder print the same line and a server operator reads that line [#0812/C/C-only, #0872/C/C-only].
-- Decision the rows force: whether this mod ships any script file at all on a server it does not control, given that the checksum gate is a content hash over every loaded script file and no arm of it has been measured [#1182/C/C-only, #1231/C/C-only].
+- Decision the rows force: whether this mod ships any script file at all on a server it does not control, given that the checksum gate is a content hash over every loaded script file and a one-byte mismatch disconnected a `user`-role client [#1182/C/C-only, #1282/M/n=1].
 
 ## Worked examples
 
