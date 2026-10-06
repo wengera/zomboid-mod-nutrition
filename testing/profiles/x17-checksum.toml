@@ -1,0 +1,17 @@
+# testing/profiles/x17-checksum.toml -- Plan 6 X16: the server holds TKX_ChecksumA (Weight 0.2).
+# The driver gives the client TKX_ChecksumB (Weight 0.3, one byte differing) through
+# session.make_client(mod_sources=...); a profile cannot name a per-side source.
+# `pzt run` is EXPECTED to fail (the client is refused on the script checksum): the grade comes
+# off the artifact. [client] timeout is low for that reason (raising-probe rule).
+fixture = "default"
+description = "PZTestKit + TKX_ChecksumA on the server; the driver passes TKX_ChecksumB to the client."
+run = { hold = 20 }
+
+[client]
+timeout = 60
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_Checksum"
+path = "testing/experiments/TKX_ChecksumA"

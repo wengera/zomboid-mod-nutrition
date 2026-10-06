@@ -1,0 +1,20 @@
+# testing/profiles/x17-partial.toml -- Plan 6 X15: two partial `item Orange` blocks on the fixture.
+# TKX_PartialBlock omits ItemType (script under common/); TKX_PartialBlock2 restates base:food.
+# The replay sorts by stored script path, so tkx_partial_block.txt replays before
+# tkx_partial_block2.txt.
+fixture = "default"
+description = "PZTestKit + TKX_PartialBlock + TKX_PartialBlock2 -- the ItemType-omitted and second-mod partial blocks."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "items.count", args = "", expect = "foodByModule" },
+  { side = "client", cmd = "lua.global",  args = "TK.version", expect = '"value"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_PartialBlock"
+path = "testing/experiments/TKX_PartialBlock"
+[[mods]]
+id = "TKX_PartialBlock2"
+path = "testing/experiments/TKX_PartialBlock2"

@@ -1,0 +1,19 @@
+# testing/profiles/x17-checksum-cr.toml -- Plan 6 X16 control: the server holds TKX_ChecksumA (LF).
+# The driver gives the client TKX_ChecksumCR (the same script with CRLF endings) through
+# session.make_client(mod_sources=...); a profile cannot name a per-side source.
+# Expected to connect.
+fixture = "default"
+description = "PZTestKit + TKX_ChecksumA on the server; the driver passes TKX_ChecksumCR to the client."
+run = { hold = 20 }
+verify = [
+  { side = "client", cmd = "lua.global", args = "TK.version", expect = '"value"' },
+]
+
+[client]
+timeout = 120
+
+[[mods]]
+id = "PZTestKit"
+[[mods]]
+id = "TKX_Checksum"
+path = "testing/experiments/TKX_ChecksumA"
