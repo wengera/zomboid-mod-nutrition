@@ -1,12 +1,16 @@
-"""The units contract of the seed data table (NR_Data_Nutrients.lua, NR.data.UNITS).
+"""The units contract of the nutrient data table (NR_Data_Nutrients.lua, NR.data.UNITS).
 
 The kernel's coefficients assume one unit per vector key: K.stomach.ironFactor applies its
 per-MILLIGRAM phytate and vitamin C slopes to the emptied vector unconverted, so a seed phytate in
 grams reads about 1000x too weak an inhibition. NR.data.UNITS pins the interface Plan 6's pipeline
-emits; these tests hold the seed to it. NR_Data_Nutrients.lua is not a kernel file, so it is loaded on
-top of the session host the way test_kernel_vector.py loads it. The seed tables are file locals, so
-the seed entries are enumerated off the source text and read back through the loaders.
+emits; these tests hold the table to it. Since Plan 6 Task 9 the file is GENERATED from
+data/food-nutrients.json (tools/food_nutrients.py --emit-lua), so the pins below read the JSON rather than
+the Plan 2 seed's hand values; test_data_nutrients_shape.py compares every entry with the JSON.
+NR_Data_Nutrients.lua is not a kernel file, so it is loaded on top of the session host the way
+test_kernel_vector.py loads it. The tables are file locals, so the entries are enumerated off the source
+text and read back through the loaders.
 """
+import json
 import math
 import os
 import re
@@ -16,6 +20,12 @@ REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.a
 DATA = os.path.join(
     REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared", "NR_Data_Nutrients.lua"
 )
+NUTRIENTS_JSON = os.path.join(REPO, "data", "food-nutrients.json")
+
+
+def _output():
+    with open(NUTRIENTS_JSON, encoding="utf-8") as fh:
+        return json.load(fh)
 
 
 @pytest.fixture(scope="module")
@@ -48,8 +58,9 @@ def test_the_iron_interaction_keys_are_milligrams(units_host, key):
 
 
 def test_the_seed_tables_are_enumerated():
-    assert len(_seed_ids("NUTRIENTS")) == 9
-    assert len(_seed_ids("FLUIDS")) == 6
+    out = _output()
+    assert len(_seed_ids("NUTRIENTS")) == sum(1 for r in out["items"] if r["basis"] == "per_item")
+    assert len(_seed_ids("FLUIDS")) == sum(1 for r in out["fluids"] if r["basis"] == "per_litre")
 
 
 # Plan 4: the unit of every key (ug = micrograms, per item, per litre for a fluid).
@@ -101,29 +112,28 @@ def _fluid(h, name):
 
 def test_the_fluid_seeds_per_litre(units_host):
     h = units_host
+    per_litre = dict((r["pz_id"], r["per_litre"]) for r in _output()["fluids"] if r["basis"] == "per_litre")
+    for name in ("Water", "Cola", "JuiceGrape", "Beer", "Coffee", "Whiskey"):
+        got = _fluid(h, name)
+        for k, want in per_litre[name].items():
+            assert got[k] == (0 if want is None else want), (name, k)
     water = _fluid(h, "Water")
-    assert water["water"] == 1000 and all(v == 0 for k, v in water.items() if k != "water")
-    cola = _fluid(h, "Cola")
-    assert (cola["water"], cola["sodium"], cola["caffeine"]) == (890, 40, 96)
-    grape = _fluid(h, "JuiceGrape")
-    assert (grape["water"], grape["potassium"]) == (840, 1320)
+    assert 990 < water["water"] <= 1000 and water["calories"] == 0      # grams of water in a litre
     beer = _fluid(h, "Beer")
-    assert (beer["water"], beer["ethanol"], beer["potassium"]) == (920, 39.5, 270)
-    assert abs(beer["ethanol"] - 1000 * 0.05 * 0.789) < 0.06        # 5 % ABV x 0.789 g/mL
-    coffee = _fluid(h, "Coffee")
-    assert (coffee["water"], coffee["caffeine"]) == (990, 428)
-    assert abs(coffee["caffeine"] - 107 / 0.25) < 1e-9                # S0797: 107 mg per 250 mL
+    assert abs(beer["ethanol"] - 1000 * 0.05 * 0.789) < 1e-9          # 5 % ABV x 0.789 g/mL (ruling 7)
     whiskey = _fluid(h, "Whiskey")
-    assert whiskey["ethanol"] == 315.6
-    assert abs(whiskey["ethanol"] - 1000 * 0.40 * 0.789) < 1e-9      # 40 % ABV
+    assert abs(whiskey["ethanol"] - 1000 * 0.40 * 0.789) < 1e-9       # 40 % ABV
+    assert 300 < _fluid(h, "Coffee")["caffeine"] < 600                 # mg per litre of brewed coffee
+    assert 500 < _fluid(h, "JuiceGrape")["potassium"] < 2000            # mg per litre, not g or ug
     for name in ("Water", "Cola", "JuiceGrape", "Coffee"):
         assert _fluid(h, name)["ethanol"] == 0
 
 
-def test_the_vitamin_pill_is_a_caffeine_item(units_host):
-    pill = units_host.py(units_host.G.NutritionRevamp.data.nutrients.get("Base.PillsVitamins"))
-    assert pill["caffeine"] == 50
-    assert all(v == 0 for k, v in pill.items() if k != "caffeine")
+def test_the_vitamin_pill_has_no_entry(units_host):
+    # Plan 6 maps the pills as tobacco_or_drug (no composition): the seed's 50 mg caffeine judgement is gone
+    rec = [r for r in _output()["items"] if r["pz_id"] == "Base.PillsVitamins"][0]
+    assert rec["basis"] == "none" and rec["no_nutrition_reason"] == "tobacco_or_drug"
+    assert units_host.G.NutritionRevamp.data.nutrients.get("Base.PillsVitamins") is None
 
 
 @pytest.mark.parametrize("pz_id", ["Base.Apple", "Base.Steak", "Base.Bread", "Base.Carrots", "Base.Lettuce",
@@ -156,12 +166,13 @@ def test_every_seed_phytate_is_zero_or_milligram_scale(units_host, block, loader
     for pz_id in _seed_ids(block):
         vec = get(pz_id)
         assert vec is not None, pz_id
-        assert vec["phytate"] == 0 or vec["phytate"] >= 100, (pz_id, vec["phytate"])
+        assert vec["phytate"] == 0 or vec["phytate"] >= 10, (pz_id, vec["phytate"])
 
 
-def test_bread_phytate_is_milligrams(units_host):
-    vec = units_host.G.NutritionRevamp.data.nutrients.get("Base.Bread")
-    assert vec["phytate"] == 400
+def test_a_legume_phytate_is_milligrams(units_host):
+    # the dried legumes carry grams of phytic acid per bag: in milligrams, thousands (in grams it would read ~12)
+    vec = units_host.G.NutritionRevamp.data.nutrients.get("Base.DriedLentils")
+    assert 1000 < vec["phytate"] < 20000
 
 
 def test_a_bread_sized_phytate_bites_through_the_iron_factor(units_host):

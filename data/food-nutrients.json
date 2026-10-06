@@ -52748,12 +52748,8 @@
     "atwater_ratio": 0.9978,
     "energy_vs_fdc_ratio": 1.0,
     "fibre_le_carb": true,
-    "notes": [
-     "range: calories 902.0 kcal/100 g outside 0.0-900.0"
-    ],
-    "out_of_range": [
-     "calories"
-    ],
+    "notes": [],
+    "out_of_range": [],
     "proximate_sum": 100.0,
     "retention_le_100": null
    },
@@ -92634,7 +92630,7 @@
    "out_of_range": {
     "caffeine": 0,
     "calcium": 0,
-    "calories": 1,
+    "calories": 0,
     "carbs": 0,
     "carotene": 0,
     "choline": 0,
@@ -92664,7 +92660,7 @@
     "water": 0,
     "zinc": 0
    },
-   "out_of_range_records": 1,
+   "out_of_range_records": 0,
    "proximate_over_102": 0,
    "rebase_factor_bands": {
     "0.5-0.8": 15,

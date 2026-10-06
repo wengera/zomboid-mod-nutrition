@@ -122,7 +122,7 @@ def test_unknown_type_is_nil(data_host):
 def test_cola_is_per_litre(data_host):
     v = data_host.G.NutritionRevamp.data.fluids.get("Cola")
     assert lua51.lua_type(v) == "table"
-    assert abs(v["calories"] - 400.0) < 1.0
+    assert abs(v["calories"] - 436.8) < 1.0           # the generated table: FDC 174852 per litre (Plan 6)
 
 
 def test_unknown_fluid_is_nil(data_host):

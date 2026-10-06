@@ -1118,7 +1118,7 @@ NUTRIENTS_CSV = os.path.join(REPO, "data", "food-nutrients.csv")
 # Per-100 g plausibility, (low, high) in the contract's unit; the Plan 6 briefing's table (section E)
 # with its hardest real case, and a judgement (marked) for the keys that table does not list.
 SANITY_RANGES = {
-    "calories": (0.0, 900.0),        # oils at 884
+    "calories": (0.0, 910.0),        # oils at 884; lard ~902
     "proteins": (0.0, 90.0),         # gelatin / dried egg white ~88
     "lipids": (0.0, 100.0),          # pure oil at 100
     "carbs": (0.0, 100.0),           # sugar at 100
@@ -1522,6 +1522,277 @@ def build(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
     return result
 
 
+# ---- emit ----
+#
+# Task 9. The two shipped artefacts, emitted from data/food-nutrients.json alone (and, for the script
+# file, the dataset's DisplayCategory), so each is a pure function of committed inputs:
+#   --emit-lua      mod/.../shared/NR_Data_Nutrients.lua: the per-type nutrient table and its loader. One
+#                   line per item record with basis `per_item` and an `fdc_id` (a reasoned record has no
+#                   entry: the loader returns nil and the intake's fallback takes over), then one per
+#                   fluid record with basis `per_litre`; every K.vector.KEYS key in order; a JSON null is
+#                   written `0` (the kernel sums numbers; the JSON keeps the absence) and every number
+#                   with Python's shortest round-trip `repr`, so `0.0` is a measured zero and `0` an
+#                   absence. The header's role, `NR.data.UNITS` and the loaders are literal text pinned
+#                   to the Plan 2 seed's (LUA_PREAMBLE, LUA_LOADERS).
+#   --emit-scripts  mod/.../scripts/NR_ItemPass_Food.txt: one partial `module Base` item block per mapped
+#                   FOOD record (kind `food`, `fdc_id`, basis `per_item`), sorted by id: DisplayCategory
+#                   (the dataset's value) and the four macros at `%.2f`; no ItemType (X15, #1018), never
+#                   HungerChange or ThirstChange, no drainable, container or fluid block. LF and no date,
+#                   so the file is byte-identical on every machine that emits it from the same JSON. Its
+#                   header is a `/* */` block: the engine's ScriptParser.stripComments removes block
+#                   comments only (#2426) and a block comment in a loaded item script is measured
+#                   stripped (#1446); a `//` line would run on into the next value.
+#   --check         every generated file against a fresh emission, byte for byte (the JSON against a
+#                   fresh --build with its `meta.generated` date taken from the file on disk); exit 1
+#                   naming the first differing line. --write regenerates everything.
+
+import shutil, tempfile
+
+LUA_DATA_PATH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", "shared",
+                             "NR_Data_Nutrients.lua")
+SCRIPT_PATH = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "scripts", "NR_ItemPass_Food.txt")
+SCRIPT_MACROS = (("Calories", "calories"), ("Carbohydrates", "carbs"), ("Proteins", "proteins"),
+                 ("Lipids", "lipids"))
+LUA_KEY_RE = re.compile(r"^[A-Za-z0-9_.\-]+$")     # a table key needs no escaping
+SCRIPT_NAME_RE = re.compile(r"^[A-Za-z0-9_]+$")    # an item name the script grammar takes bare
+# Further generated files, appended by later tasks (Task 10: NR_Data_Infer.lua) as
+# (path, emit(data, records) -> text); --check and --write cover them with the two below.
+EXTRA_EMITTERS = []
+
+LUA_PREAMBLE = r'''local NR = NutritionRevamp
+local K = NR.kernel
+NR.data = NR.data or {}
+NR.data.nutrients = {}
+NR.data.fluids = {}
+
+-- The units contract: the unit of every vector key, per item (per litre for a fluid). Plan 6's
+-- pipeline emits these units and the kernel's coefficients assume them -- K.stomach.ironFactor's
+-- per-MILLIGRAM phytate and vitamin C slopes (the rows cited there) and K.stomach.BIOAVAIL per the
+-- same key -- so a seed or generated value in any other unit misreads by the conversion factor
+-- (phytate in grams read about 1000x too weak an inhibition). Every K.vector.KEYS key is listed, and
+-- nothing else.
+-- The Plan 4 keys: micrograms for retinol, carotene (beta-carotene), vitD, vitK, folate (DFE), vitB12,
+-- iodine and selenium; grams for efa (linoleic plus alpha-linolenic acid) and ethanol; milligrams for
+-- the rest. ASCII "ug" rather than the micro sign, so the string is one byte per character.
+NR.data.UNITS = { calories = "kcal", carbs = "g", lipids = "g", proteins = "g", fibre = "g", water = "g",
+                  vitC = "mg", iron = "mg", phytate = "mg",
+                  retinol = "ug", carotene = "ug", vitD = "ug", vitE = "mg", vitK = "ug", thiamine = "mg",
+                  riboflavin = "mg", niacin = "mg", vitB6 = "mg", folate = "ug", vitB12 = "ug", choline = "mg",
+                  sodium = "mg", potassium = "mg", calcium = "mg", magnesium = "mg", zinc = "mg", iodine = "ug",
+                  selenium = "ug", efa = "g", caffeine = "mg", ethanol = "g" }
+'''
+
+LUA_LOADERS = r'''-- A fresh zeroed vector of the declared keys filled from the seed entry, so a reader cannot mutate
+-- the seed; nil if the entry is absent.
+local function copyOf(seed)
+    if seed == nil then
+        return nil
+    end
+    local v = K.vector.new()
+    for key, value in pairs(seed) do
+        v[key] = value
+    end
+    return v
+end
+
+-- The per-item loader every reader goes through.
+function NR.data.nutrients.get(fullType)
+    return copyOf(NUTRIENTS[fullType])
+end
+
+-- The per-litre fluid loader every reader goes through.
+function NR.data.fluids.get(fluidTypeString)
+    return copyOf(FLUIDS[fluidTypeString])
+end
+'''
+
+
+class EmitRefused(ValueError):
+    """A value the emitters will not write: negative, not finite, or an id that needs escaping."""
+
+
+def lua_number(value):
+    """`0` for a JSON null; else the float's shortest round-trip repr (`1.0`, `1e-05`, `94.588`)."""
+    if value is None:
+        return "0"
+    v = float(value)
+    if v != v or v in (float("inf"), float("-inf")) or v < 0:
+        raise EmitRefused("not a finite non-negative number: %r" % (value,))
+    return repr(v)
+
+
+def _lua_entry(key, block, comment):
+    if not LUA_KEY_RE.match(key):
+        raise EmitRefused("an id the emitter will not quote: %r" % (key,))
+    body = ", ".join("%s = %s" % (k, lua_number(block[k])) for k in KEYS)
+    return '    ["%s"] = { %s },  -- %s' % (key, body, comment)
+
+
+def lua_entries(data):
+    """(items, fluids): the records the Lua table carries, in the JSON's (id) order."""
+    items = [r for r in data["items"] if r["basis"] == "per_item" and r["fdc_id"]]
+    fluids = [r for r in data["fluids"] if r["basis"] == "per_litre" and r["fdc_id"]]
+    return items, fluids
+
+
+def emit_lua(data):
+    """The whole NR_Data_Nutrients.lua text from a food-nutrients output."""
+    meta = data["meta"]
+    items, fluids = lua_entries(data)
+    sources = "; ".join("%s %s (%s)" % (s["name"], s["release"], s["licence"]) for s in meta["sources"])
+    out = [
+        "-- NR_Data_Nutrients.lua -- not a kernel file: the per-type nutrient table and its loader "
+        "(spec § 4.2, § 4.6).",
+        "-- GENERATED by tools/food_nutrients.py from data/food-nutrients.json (generated %s; mapping %d rows; "
+        "extract %d foods); do not edit — regenerate with --write."
+        % (meta["generated"], meta["inputs"]["mapping"]["rows"], meta["inputs"]["extract"]["counts"]["foods"]),
+        "-- Sources: %s." % sources,
+        "-- Items per item, fluids per litre, every K.vector.KEYS key on every entry; a number is the JSON's",
+        "-- value exactly, `0.0` a measured zero and `0` an absence (null in the JSON). A food or fluid with",
+        "-- no entry has no mapping (a no_nutrition_reason): its loader returns nil. Each entry's trailing",
+        "-- comment is SOURCE <fdc_id> <confidence>. The script half of the item pass is NR_ItemPass_Food.txt.",
+        "-- A reader goes through the loaders, never the tables.",
+        "-- Units: NR.data.UNITS below (ug = micrograms).",
+    ]
+    text = "\n".join(out) + "\n" + LUA_PREAMBLE
+    text += "\n-- Per-item vectors (data/food-nutrients.json `per_item`).\nlocal NUTRIENTS = {\n"
+    text += "".join(_lua_entry(r["pz_id"], r["per_item"], "SOURCE %s %s" % (r["fdc_id"], r["confidence"])) + "\n"
+                    for r in items)
+    text += "}\n\n-- Per-litre fluid vectors (data/food-nutrients.json `per_litre`).\nlocal FLUIDS = {\n"
+    text += "".join(_lua_entry(r["pz_id"], r["per_litre"], "SOURCE %s %s" % (r["fdc_id"], r["confidence"])) + "\n"
+                    for r in fluids)
+    text += "}\n\n" + LUA_LOADERS
+    text += "\n-- %d items, %d fluids, %d keys\n" % (len(items), len(fluids), len(KEYS))
+    return text
+
+
+def script_records(data):
+    """The FOOD records the script file re-bases, in id order."""
+    return [r for r in data["items"] if r["kind"] == "food" and r["fdc_id"] and r["basis"] == "per_item"]
+
+
+def emit_scripts(data, records):
+    """The whole NR_ItemPass_Food.txt text; `records` is the dataset `{id: record}` (DisplayCategory)."""
+    lines = ["/* GENERATED by tools/food_nutrients.py from data/food-nutrients.json; do not edit - regenerate "
+             "with --write. Re-bases Calories, Carbohydrates, Proteins and Lipids on every mapped base:food "
+             "record; HungerChange and ThirstChange untouched (spec section 4.6). */",
+             "module Base", "{"]
+    for n, rec in enumerate(script_records(data)):
+        pz_id = rec["pz_id"]
+        source = records.get(pz_id)
+        if source is None or source.get("module") != "Base" or not pz_id.startswith("Base."):
+            raise EmitRefused("%s: not a Base record of the dataset" % pz_id)
+        name = pz_id[len("Base."):]
+        category = source.get("display_category")
+        if not SCRIPT_NAME_RE.match(name) or not category or not SCRIPT_NAME_RE.match(category):
+            raise EmitRefused("%s: a name or DisplayCategory the script grammar does not take bare" % pz_id)
+        if n:
+            lines.append("")
+        lines += ["    item %s" % name, "    {", "        DisplayCategory = %s," % category]
+        for script_key, key in SCRIPT_MACROS:
+            value = rec["per_item"][key]
+            lua_number(value)                                    # the same refusal on a bad value
+            lines.append("        %s = %.2f," % (script_key, float(value or 0.0)))
+        lines.append("    }")
+    lines.append("}")
+    return "\n".join(lines) + "\n"
+
+
+def _load_json(path):
+    with open(path, encoding="utf-8") as handle:
+        return json.load(handle)
+
+
+def generated_texts(nutrients_json=NUTRIENTS_JSON, dataset_path=DATASET_JSON, lua_path=LUA_DATA_PATH,
+                    script_path=SCRIPT_PATH):
+    """[(path, text)] for every file emitted from the output JSON."""
+    data = _load_json(nutrients_json)
+    records = load_dataset(dataset_path)
+    out = [(lua_path, emit_lua(data)), (script_path, emit_scripts(data, records))]
+    out += [(path, emit(data, records)) for path, emit in EXTRA_EMITTERS]
+    return out
+
+
+def write_text(path, text):
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
+
+
+def first_difference(expected, actual):
+    """`line <n>: expected <a!r> / on disk <b!r>` at the first differing line, or None if equal."""
+    if expected == actual:
+        return None
+    exp, act = expected.split("\n"), actual.split("\n")
+    for n in range(max(len(exp), len(act))):
+        a = exp[n] if n < len(exp) else "<end of file>"
+        b = act[n] if n < len(act) else "<end of file>"
+        if a != b:
+            return "line %d: expected %r / on disk %r" % (n + 1, a[:160], b[:160])
+    return "the files differ in their line endings or final newline"
+
+
+def _read_text(path):
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
+def check_generated(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
+                    nutrients_json=NUTRIENTS_JSON, nutrients_csv=NUTRIENTS_CSV, lua_path=LUA_DATA_PATH,
+                    script_path=SCRIPT_PATH, build_fresh=True):
+    """[(path, message)] for every generated file out of sync; empty when all are in sync."""
+    stale = []
+    if build_fresh:
+        tmp = tempfile.mkdtemp(prefix="food_nutrients_check_")
+        try:
+            fresh_json, fresh_csv = os.path.join(tmp, "out.json"), os.path.join(tmp, "out.csv")
+            try:
+                fresh = build(map_dir, dataset_path, extract_path, fresh_json, fresh_csv, out=io.StringIO())
+            except BuildRefused as refused:
+                return [(nutrients_json, "the build refuses: %s" % refused)]
+            on_disk = _read_text(nutrients_json)
+            if on_disk is None:
+                stale.append((nutrients_json, "missing"))
+            else:
+                try:
+                    fresh["meta"]["generated"] = json.loads(on_disk)["meta"]["generated"]
+                except (ValueError, KeyError, TypeError):
+                    pass
+                text = json.dumps(fresh, indent=1, sort_keys=True, ensure_ascii=False) + "\n"
+                diff = first_difference(text, on_disk)
+                if diff:
+                    stale.append((nutrients_json, diff))
+            on_disk_csv = _read_text(nutrients_csv)
+            diff = "missing" if on_disk_csv is None else first_difference(_read_text(fresh_csv), on_disk_csv)
+            if diff:
+                stale.append((nutrients_csv, diff))
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+        if stale:
+            return stale
+    for path, text in generated_texts(nutrients_json, dataset_path, lua_path, script_path):
+        on_disk = _read_text(path)
+        diff = "missing" if on_disk is None else first_difference(text, on_disk)
+        if diff:
+            stale.append((path, diff))
+    return stale
+
+
+def write_generated(map_dir=MAP_DIR, dataset_path=DATASET_JSON, extract_path=EXTRACT_JSON,
+                    nutrients_json=NUTRIENTS_JSON, nutrients_csv=NUTRIENTS_CSV, lua_path=LUA_DATA_PATH,
+                    script_path=SCRIPT_PATH, out=None):
+    """--write: --build, then every emitter. Returns [(path, bytes)]."""
+    out = sys.stdout if out is None else out
+    build(map_dir, dataset_path, extract_path, nutrients_json, nutrients_csv, out=out)
+    written = []
+    for path, text in generated_texts(nutrients_json, dataset_path, lua_path, script_path):
+        write_text(path, text)
+        written.append((path, len(text.encode("utf-8"))))
+        print("%s (%d bytes)" % (path, written[-1][1]), file=out)
+    return written
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="The item-pass pipeline: vanilla foods joined to FDC SR Legacy nutrient vectors "
@@ -1551,7 +1822,46 @@ def main(argv=None):
     parser.add_argument("--out-csv", default=NUTRIENTS_CSV, help="with --build: the CSV path")
     parser.add_argument("--map-dir", default=MAP_DIR, help="the mapping directory")
     parser.add_argument("--dataset", default=DATASET_JSON, help="the food dataset JSON")
+    parser.add_argument("--emit-lua", action="store_true",
+                        help="write NR_Data_Nutrients.lua (the per-type table and its loader) from the JSON")
+    parser.add_argument("--emit-scripts", action="store_true",
+                        help="write NR_ItemPass_Food.txt (the partial module Base blocks) from the JSON")
+    parser.add_argument("--check", action="store_true",
+                        help="every generated file against a fresh build and emission; exit 1 on a difference")
+    parser.add_argument("--write", action="store_true",
+                        help="regenerate everything: --build, then every emitter")
     args = parser.parse_args(argv)
+    if args.check:
+        stale = check_generated(args.map_dir, args.dataset, args.extract, args.out_json, args.out_csv)
+        for path, message in stale:
+            print("STALE %s: %s" % (_rel(path), message), file=sys.stderr)
+        if stale:
+            print("regenerate with: python tools/food_nutrients.py --write", file=sys.stderr)
+            return 1
+        print("in sync: the JSON, the CSV and %d emitted file(s)" % (2 + len(EXTRA_EMITTERS)))
+        return 0
+    if args.write:
+        try:
+            write_generated(args.map_dir, args.dataset, args.extract, args.out_json, args.out_csv)
+        except (BuildRefused, EmitRefused) as refused:
+            print("REFUSED " + str(refused), file=sys.stderr)
+            return 1
+        return 0
+    if args.emit_lua or args.emit_scripts:
+        data = _load_json(args.out_json)
+        try:
+            if args.emit_lua:
+                text = emit_lua(data)
+                write_text(LUA_DATA_PATH, text)
+                print("%s (%d bytes)" % (LUA_DATA_PATH, len(text.encode("utf-8"))))
+            if args.emit_scripts:
+                text = emit_scripts(data, load_dataset(args.dataset))
+                write_text(SCRIPT_PATH, text)
+                print("%s (%d bytes)" % (SCRIPT_PATH, len(text.encode("utf-8"))))
+        except EmitRefused as refused:
+            print("REFUSED " + str(refused), file=sys.stderr)
+            return 1
+        return 0
     if args.seed_map:
         sizes = seed_map(args.map_dir, args.dataset, force=args.force)
         print(json.dumps(sizes))
