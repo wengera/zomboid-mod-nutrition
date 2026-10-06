@@ -10,18 +10,47 @@
 -- last value until the slow clock stamps a target. autoDrink is bracketed (ruling 9): see the body.
 -- server/ files load alphabetically, so this file runs before NR_Server_Options and
 -- NR_Server_Players: every append to their lists happens in the OnServerStarted handler below.
+-- Plan 5 (Task 9): the region fills the kernel's Plan 5 inputs from h.record.acute (S, circ, frozen:
+-- the FATIGUE writer, ruling 11), h.record.effects (fOff, solAddH, solMul, stressTarget; NR_Server_Effects
+-- stamps them per slow minute) and h.record.body.dmod (the endurance fold, ruling 15), each nil/NaN read
+-- neutral by the self-inequality test (no call in the region). After the kernel it writes, outside the
+-- seven updaters (#2384): the PANIC, UNHAPPINESS and FOOD_SICKNESS floors (ruling 9, T1-1; each one get,
+-- one compare, at most one set, and only while its target > 0), UNHAPPINESS's release when its target
+-- falls (T1-2: vanilla never decays it), the absolute TEMPERATURE target on the adjustment's side only
+-- (ruling 16), ENDURANCE every tick while the fold is on, and INTOXICATION from the gut lane's bac
+-- (ruling 19, T4-1). Owned and asleep, the kernel's timeOfSleep advance is gated on the STAT's
+-- fatigue > 0 (Plan 1's asleep arm): a writer that ever puts FATIGUE at 0 while asleep stops the timer.
 local NR = NutritionRevamp
 local K = NR.kernel
 -- The limitations list is the handler's self-report. The mod ships no test hook: no sentinel arm
 -- (player modData is client-writable), so X35's running arm reads one from a probe mod's own handler.
-NR.server.fast = { h = {}, byChar = {}, mode = 2, closure = nil, registered = false, wired = false,
+-- lastInp[username] is the handler's input table itself (no copy), read once a slow minute by
+-- NR_Server_Effects for the engine part of accrual (B3). endFoldOn and intoxOwned are the two gate
+-- verdicts, read into each handle at hoist: endFoldOn false while X35 is open (#2082: the handler's
+-- endurance write is the last before the push only at rest, #2753; the running arm unmeasured), so the
+-- fold ships unapplied and ENDURANCE keeps Plan 1's asleep-only write; intoxOwned true from X82 (gate 2:
+-- a handler INTOXICATION hold reads back on both sides, ruling T4-1).
+NR.server.fast = { h = {}, byChar = {}, lastInp = {}, mode = 2, closure = nil, registered = false, wired = false,
+                   endFoldOn = false, intoxOwned = true,
                    stats = { calls = 0, failures = 0, disabledAt = nil, byCharHits = 0, perPlayer = {} },
                    limitations = { "idle-square timer mirrored (engine field frozen under takeover; boredom reads it)",
                                    "sleep delay mirrored with sleepDelayFraction (vanilla draws it at random)",
                                    "tripping angle dropped (nothing reads it)",
-                                   "after a respawn the fast clock may read the dead character's stomachFill for at most one slow-clock minute until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified (a Plan 8 reading)" } }
+                                   "after a respawn the fast clock may read the dead character's stomachFill and the effects floors for at most one slow-clock minute (the temperature and intoxication targets too) until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified (a Plan 8 reading)",
+                                   "the endurance fold (dmod on a drain, rmod on a regeneration) is unapplied while X35 is open: awake ENDURANCE stays vanilla's, melee swings unscaled",
+                                   "INTOXICATION is the gut lane's bac every tick (T4-1): vanilla's per-drink jump is overwritten, so a drink the intake wrappers miss shows no intoxication; with no effects table yet vanilla's value stands",
+                                   "the UNHAPPINESS release subtracts the whole fall of the target once (T1-2), whether or not the floor had raised the stat that far",
+                                   "the TEMPERATURE target is written only while the core is on the adjustment's far side; the held equilibrium against the regulator is unmeasured (X81)" } }
 local FAST = NR.server.fast
 local C = K.fast.defaults()
+-- The three handler floors' rise rates (ruling 9; GAME CHOICES, open S1146), per game-second: one moodle
+-- band per game hour (PANIC ~24, UNHAPPINESS ~22, #2369, ruling 10) and one SICK level per game hour on
+-- FOOD_SICKNESS's 0-100 scale (25; S1146's "sickness 0.25 per game hour" was sized on SICKNESS's 0-1, and
+-- T1-1 moved the rungs to FOOD_SICKNESS).
+C.moodRisePanic = 24 / 3600
+C.moodRiseUnhappy = 22 / 3600
+C.moodRiseSick = 25 / 3600
+local DRUNK_REDUCTION_VANILLA = 0.0042                    -- BodyDamage's constructor value (#2919)
 
 -- The ZomboidGlobals Lua table is what the Java constants are loaded from (defines.lua); a server
 -- that edits it is followed. Read once at install, never per tick.
@@ -55,6 +84,16 @@ local function worldAge()
     local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
     if okA and type(age) == "number" then return age end
     return 0
+end
+
+-- Ruling 19: while the handler owns INTOXICATION, vanilla's decay is stopped (reduction 0) so the stat
+-- holds what the handler writes; the value is not saved (#2920), so it is re-applied at every hoist
+-- (first sight, respawn, reconnect) while registered, and at install for every handle; uninstall puts
+-- the constructor value back, so a failover to vanilla never leaves a character's intoxication undecaying.
+local function drunkReduction(h, v)
+    if h == nil or not h.intoxOwned or h.setDrunk == nil then return end
+    local ok, err = pcall(h.setDrunk, h.bd, v)
+    if not ok then NR.log.say(1, "fast: setDrunkReductionValue failed for " .. tostring(h.username) .. ": " .. tostring(err)) end
 end
 
 -- Hoist: one table of handles per player, filled at first sight. A member that is nil here is
@@ -123,6 +162,23 @@ local function hoist(username, p)
             needsLess = CharacterTrait.NEEDS_LESS_SLEEP, needsMore = CharacterTrait.NEEDS_MORE_SLEEP,
             hemophobic = CharacterTrait.HEMOPHOBIC, deaf = CharacterTrait.DEAF,
             insomniac = CharacterTrait.INSOMNIAC, nightOwl = CharacterTrait.NIGHT_OWL }
+    -- Plan 5 (Task 9): the five stats the handler writes outside the seven updaters. A missing id turns
+    -- the effects writes off (h.effOn) rather than raising every tick into the failover.
+    h.PANIC, h.UNHAPPINESS, h.FOOD_SICKNESS = CharacterStat.PANIC, CharacterStat.UNHAPPINESS, CharacterStat.FOOD_SICKNESS
+    h.TEMPERATURE, h.INTOXICATION = CharacterStat.TEMPERATURE, CharacterStat.INTOXICATION
+    h.effOn = h.PANIC ~= nil and h.UNHAPPINESS ~= nil and h.FOOD_SICKNESS ~= nil and h.TEMPERATURE ~= nil and h.INTOXICATION ~= nil
+    if not h.effOn then h.missing[#h.missing + 1] = "CharacterStat PANIC/UNHAPPINESS/FOOD_SICKNESS/TEMPERATURE/INTOXICATION (the effects writes are off)" end
+    h.setDrunk = want(h.bd, "setDrunkReductionValue")
+    h.endFoldOn = FAST.endFoldOn == true
+    h.intoxOwned = FAST.intoxOwned == true
+    h.moodFloor = { panic = 0, unhappy = 0, foodSick = 0 }   -- the last target each floor held (T1-2's release)
+    -- endLast's seed: the stat as it stands, so the fold's first delta is vanilla's own change
+    if h.get ~= nil then
+        local okE, e0 = pcall(h.get, h.stats, h.ENDURANCE)
+        if okE and type(e0) == "number" and e0 == e0 then h.out.endurance = e0 end
+    end
+    if FAST.registered then drunkReduction(h, 0) end
+    FAST.lastInp[username] = h.inp
     if #h.missing > 0 then
         NR.log.say(1, "fast: " .. username .. " missing members: " .. table.concat(h.missing, ", ") .. " -- an optional term is disabled; a core member raises and the rim guard fails over to vanilla")
     end
@@ -212,14 +268,56 @@ local function body(h)
     local rec_body = h.record.body                        -- Plan 3: the slow clock stamps the two scalars here
     local es = 1
     local rm = 1
+    local dm = 1
     if rec_body ~= nil then
         es = rec_body.energyState
         rm = rec_body.rmod
+        dm = rec_body.dmod                                -- Plan 5: the fold's drain coefficient
     end
     if es == nil or es ~= es then es = 1 end              -- nil or NaN reads neutral, as the fill does
     if rm == nil or rm ~= rm then rm = 1 end
+    if dm == nil or dm ~= dm then dm = 1 end
     inp.energyState = es
     inp.rmod = rm
+    inp.dmod = dm
+    -- Plan 5 (Task 9): the FATIGUE writer's slow scalars (record.acute) and the per-minute scalars of the
+    -- coefficient set (record.effects); a missing table or an unreadable S hands FATIGUE to the Plan 1 arm
+    local A = h.record.acute
+    local E = h.record.effects
+    local fS = nil
+    local fCirc = 0
+    local frozen = false
+    if A ~= nil then
+        fS = A.S
+        fCirc = A.circ
+        frozen = A.frozen == true
+    end
+    if fS ~= nil and fS ~= fS then fS = nil end
+    if fCirc == nil or fCirc ~= fCirc then fCirc = 0 end
+    inp.fOwned = fS ~= nil
+    inp.fFrozen = frozen
+    inp.fS = fS or 0
+    inp.fCirc = fCirc
+    local fOff = 0
+    local solAddH = 0
+    local solMul = 1
+    local stT = 0
+    if E ~= nil then
+        fOff = E.fOff
+        solAddH = E.solAddH
+        solMul = E.solMul
+        stT = E.stressTarget
+    end
+    if fOff == nil or fOff ~= fOff then fOff = 0 end
+    if solAddH == nil or solAddH ~= solAddH then solAddH = 0 end
+    if solMul == nil or solMul ~= solMul then solMul = 1 end
+    if stT == nil or stT ~= stT then stT = 0 end
+    inp.fOff = fOff
+    inp.solAddH = solAddH
+    inp.solMul = solMul
+    inp.stressTarget = stT
+    inp.endFold = E ~= nil and h.endFoldOn
+    inp.endLast = out.endurance                           -- the handler's own last value (seeded at hoist)
 
     K.fast.step(inp, out, C)
 
@@ -233,11 +331,68 @@ local function body(h)
     set(stats, h.IDLENESS, out.idleness)
     set(stats, h.MORALE, out.morale)
     set(stats, h.FITNESS, out.fitness)
-    if asleep then
+    if inp.endFold then
+        set(stats, h.ENDURANCE, out.endurance)            -- ruling 15: the fold (and the cheat, the sleep arm) every tick
+        if asleep then h.setTimeOfSleep(p, out.timeOfSleep) end
+    elseif asleep then
         set(stats, h.ENDURANCE, out.endurance)            -- the sleep regeneration arm the hook skips (jar § 3)
         h.setTimeOfSleep(p, out.timeOfSleep)
     elseif inp.unlimitedEndurance then
         set(stats, h.ENDURANCE, 1)
+    end
+    -- Plan 5 (Task 9): the writes outside the seven updaters, from the coefficient set
+    if E ~= nil and h.effOn then
+        local s = inp.M * inp.D
+        local mf = h.moodFloor
+        local t = E.panicTarget or 0                      -- nil reads 0; a NaN fails every compare below
+        if t > 0 then
+            local v = get(stats, h.PANIC)
+            if v < t then
+                v = v + C.moodRisePanic * s
+                if v > t then v = t end
+                set(stats, h.PANIC, v)
+            end
+        end
+        mf.panic = t
+        t = E.unhappyTarget or 0
+        if t ~= t then t = 0 end
+        local last = mf.unhappy
+        if t < last or t > 0 then
+            -- T1-2: vanilla never decays UNHAPPINESS, so a fall of the target releases the difference once
+            local v0 = get(stats, h.UNHAPPINESS)
+            local v = v0
+            if t < last then
+                v = v - (last - t)
+                if v < 0 then v = 0 end
+            end
+            if v < t then
+                v = v + C.moodRiseUnhappy * s
+                if v > t then v = t end
+            end
+            if v ~= v0 then set(stats, h.UNHAPPINESS, v) end
+        end
+        mf.unhappy = t
+        t = E.foodSickTarget or 0                         -- T1-1: FOOD_SICKNESS, never SICKNESS
+        if t > 0 then
+            local v = get(stats, h.FOOD_SICKNESS)
+            if v < t then
+                v = v + C.moodRiseSick * s
+                if v > t then v = t end
+                set(stats, h.FOOD_SICKNESS, v)
+            end
+        end
+        mf.foodSick = t
+        -- ruling 16: the absolute target, written only while the core is on the adjustment's far side
+        t = E.tempTarget or 0                             -- 0 means no write (no set point, or no adjustment)
+        if t > 0 then
+            local adj = E.tempAdj or 0
+            local v = get(stats, h.TEMPERATURE)
+            if (adj < 0 and v > t) or (adj > 0 and v < t) then set(stats, h.TEMPERATURE, t) end
+        end
+        if h.intoxOwned then
+            t = E.intoxTarget                             -- ruling 19 / T4-1: overwrite every tick
+            if t ~= nil and t == t then set(stats, h.INTOXICATION, t) end
+        end
     end
     -- #2250: vanilla calls autoDrink on every pass. Ruling 9's bracket: the THIRST drop across the call is
     -- the sip (litres = 2 x the drop, x151w #2939-#2941), held in fl.autoDrop for the slow clock to land as
@@ -332,6 +487,7 @@ function FAST.install()
     FAST.closure = FAST.closure or function(character) handler(character) end
     Hook.CalculateStats.Add(FAST.closure)                 -- a dot, never a colon (jar § 11)
     FAST.registered, FAST.mode = true, 1
+    for _, h in pairs(FAST.h) do drunkReduction(h, 0) end -- ruling 19: the handler owns INTOXICATION from now
     NR.log.say(1, "fast: takeover handler registered")
     return true
 end
@@ -342,6 +498,7 @@ function FAST.uninstall()
         Hook.CalculateStats.Remove(FAST.closure)          -- the same closure object (jar § 11)
     end
     FAST.registered, FAST.mode = false, 2
+    for _, h in pairs(FAST.h) do drunkReduction(h, DRUNK_REDUCTION_VANILLA) end   -- vanilla's decay back
     NR.log.say(1, "fast: takeover handler removed")
 end
 
@@ -375,6 +532,7 @@ local function onDeparture(username)
     local h = FAST.h[username]
     if h ~= nil then FAST.byChar[h.p] = nil end
     FAST.h[username] = nil
+    FAST.lastInp[username] = nil
 end
 
 -- The per-player call and failure counts are read on the slow clock, never per tick. The record

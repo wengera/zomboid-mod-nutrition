@@ -423,3 +423,350 @@ def test_thirst_view_capped_under_level_4_whatever_the_target(host):
                dict(thirst=0.9, thirstTarget=float("nan")), dict(asleep=True, thirstTarget=0.84)):
         assert run(host, **kw)["thirst"] == 0.83
     assert run(host, thirstTarget=0.8)["thirst"] == 0.8
+
+
+# --- Plan 5 (Task 9): the fast HANDLER (NR_Server_Fast.lua) fills the Plan 5 inputs and writes the floors,
+# the temperature target, endurance under the fold and INTOXICATION. The file names Java at hoist, so it
+# is loaded in a runtime of its own over stubs (the shape of test_intake_shape.py's FAST_STUBS) with a
+# get/set counter per stat. s = M x D = 2 x 3 = 6 game-seconds per update.
+
+import lupa.lua51 as lua51
+
+FAST_HANDLER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+                            "mod", "NutritionRevamp", "common", "media", "lua", "server", "NR_Server_Fast.lua")
+SHARED_DIR = os.path.dirname(KERNEL_FAST)
+S_TICK = 6.0
+RISE_PANIC = 24 / 3600                              # one PANIC band per game hour (ruling 9; open S1146)
+RISE_UNHAPPY = 22 / 3600                            # one UNHAPPINESS band per game hour
+RISE_SICK = 25 / 3600                               # one SICK level per game hour on FOOD_SICKNESS's 0-100 scale
+
+HANDLER_STUBS = r"""
+function(withIds)
+    CharacterStat = { HUNGER = "HUNGER", THIRST = "THIRST", FATIGUE = "FATIGUE", ENDURANCE = "ENDURANCE",
+                      STRESS = "STRESS", ANGER = "ANGER", IDLENESS = "IDLENESS", MORALE = "MORALE",
+                      NICOTINE_WITHDRAWAL = "NICOTINE", FITNESS = "FITNESS" }
+    if withIds then
+        CharacterStat.PANIC = "PANIC"
+        CharacterStat.UNHAPPINESS = "UNHAPPINESS"
+        CharacterStat.FOOD_SICKNESS = "FOOD_SICKNESS"
+        CharacterStat.TEMPERATURE = "TEMPERATURE"
+        CharacterStat.INTOXICATION = "INTOXICATION"
+    end
+    MoodleType = { FOOD_EATEN = "FOOD_EATEN", PAIN = "PAIN", STRESS = "STRESSM" }
+    CharacterTrait = setmetatable({}, { __index = function(t, k) return k end })
+    Perks = { Fitness = "Fitness" }
+    IsoPlayer = { allPlayersAsleep = function() return false end }
+    local gt = { getMultiplier = function(s) return 2 end, getDeltaMinutesPerDay = function(s) return 3 end,
+                 getMinutesPerDay = function(s) return 60 end, getTimeOfDay = function(s) return 8 end,
+                 getWorldAgeHours = function(s) return 1 end }
+    getGameTime = function() return gt end
+    local so = { getStatsDecreaseMultiplier = function(s) return 1 end,
+                 getEnduranceRegenMultiplier = function(s) return 1 end }
+    getSandboxOptions = function() return so end
+    local env = { vals = { THIRST = 0.2, ENDURANCE = 0.7, MORALE = 1, FATIGUE = 0.1 }, gets = {}, sets = {},
+                  drunk = {}, asleep = false }
+    local stats = {
+        get = function(s, k)
+            env.gets[k] = (env.gets[k] or 0) + 1
+            return env.vals[k] or 0
+        end,
+        set = function(s, k, v)
+            env.sets[k] = (env.sets[k] or 0) + 1
+            env.vals[k] = v
+        end,
+        setLastEndurance = function(s, v) end,
+        getNumVeryCloseZombies = function(s) return 0 end,
+        getNumChasingZombies = function(s) return 0 end,
+    }
+    local bd = {
+        getThermoregulator = function(s) return nil end,
+        setDrunkReductionValue = function(s, v) env.drunk[#env.drunk + 1] = v end,
+    }
+    local F = function(s) return false end
+    local Z = function(s) return 0 end
+    local p = {
+        getStats = function(s) return stats end,
+        getCharacterTraits = function(s) return { get = function(t, k) return false end } end,
+        getMoodles = function(s) return { getMoodleLevel = function(m, k) return 0 end } end,
+        getBodyDamage = function(s) return bd end,
+        isAsleep = function(s) return env.asleep end,
+        isGhostMode = F, isSitOnGround = F, isSittingOnFurniture = F, isResting = F,
+        IsRunning = F, isPlayerMoving = F, isCurrentState = F, isCurrentlyIdle = F,
+        getCurrentSquare = function(s) return nil end, getLastSquare = function(s) return nil end,
+        getTotalBlood = Z, getBedType = function(s) return "none" end, getPerkLevel = function(s, k) return 5 end,
+        isUnlimitedEndurance = F, setTimeOfSleep = function(s, v) end, getRecoveryMod = function(s) return 1 end,
+        getX = Z, getY = Z, getZ = Z, getSleepingTabletEffect = Z, getIdleSquareTime = Z,
+        autoDrink = function(s) end,
+    }
+    env.p = p
+    return env
+end
+"""
+
+
+@pytest.fixture
+def hrt():
+    import glob
+    rt = lua51.LuaRuntime(unpack_returned_tuples=True)
+    load = rt.eval("function(src, name) return assert(loadstring(src, name)) end")
+    for path in [os.path.join(SHARED_DIR, "NR_Core.lua")] + sorted(glob.glob(os.path.join(SHARED_DIR, "NR_Kernel*.lua"))) + [FAST_HANDLER]:
+        with open(path, encoding="utf-8") as fh:
+            load(fh.read(), "@" + os.path.basename(path))()
+    rt.globals().NutritionRevamp.log.level = 0
+    return rt
+
+
+def _rec(rt, effects=None, acute=None, body=None):
+    rec = rt.eval("function() return {} end")()
+    if effects is not None:
+        rec.effects = rt.table_from(effects)
+    if acute is not None:
+        rec.acute = rt.table_from(acute)
+    if body is not None:
+        rec.body = rt.table_from(body)
+    return rec
+
+
+def _handler(rt, record, withIds=True, endFoldOn=None, intoxOwned=None, registered=False):
+    env = rt.eval(HANDLER_STUBS)(withIds)
+    FAST = rt.globals().NutritionRevamp.server.fast
+    if endFoldOn is not None:
+        FAST.endFoldOn = endFoldOn
+    if intoxOwned is not None:
+        FAST.intoxOwned = intoxOwned
+    FAST.registered = registered
+    h = FAST.adopt("u", env.p)
+    assert h is not None, FAST.lastError
+    h.record = record
+    return env, FAST, h
+
+
+def _tick(env, FAST, n=1):
+    for _ in range(n):
+        FAST.handler(env.p)
+        assert FAST.stats.failures == 0, FAST.lastError
+
+
+def _n(tbl, k):
+    v = tbl[k]
+    return 0 if v is None else v
+
+
+def test_handler_hoist_ids_flags_and_last_input(hrt):
+    env, FAST, h = _handler(hrt, _rec(hrt))
+    assert h.PANIC == "PANIC" and h.UNHAPPINESS == "UNHAPPINESS" and h.FOOD_SICKNESS == "FOOD_SICKNESS"
+    assert h.TEMPERATURE == "TEMPERATURE" and h.INTOXICATION == "INTOXICATION"
+    assert h.effOn is True
+    assert hrt.eval("rawequal")(FAST.lastInp["u"], h.inp)   # the same table, no copy (Task 8 reads it)
+    mf = h.moodFloor
+    assert (mf.panic, mf.unhappy, mf.foodSick) == (0, 0, 0)
+    assert h.out.endurance == 0.7                            # endLast seeded from the stat at hoist
+    assert h.endFoldOn is False                              # X35 open: the fold ships unapplied
+    assert h.intoxOwned is True                              # X82 settled (gate 2, ruling T4-1)
+    assert h.floor(2.5) == 2                                 # math.floor's handle is untouched
+
+
+def test_handler_fills_the_plan5_inputs(hrt):
+    rec = _rec(hrt, effects=dict(fOff=0.03, solAddH=0.15, solMul=0.6, stressTarget=0.25),
+               acute=dict(S=0.4, circ=0.05, frozen=False), body=dict(dmod=1.5, rmod=0.8, energyState=1.0))
+    env, FAST, h = _handler(hrt, rec, endFoldOn=True)
+    _tick(env, FAST)
+    i = h.inp
+    assert (i.fOwned, i.fFrozen, i.fS, i.fCirc, i.fOff) == (True, False, 0.4, 0.05, 0.03)
+    assert (i.solAddH, i.solMul, i.dmod, i.rmod, i.stressTarget) == (0.15, 0.6, 1.5, 0.8, 0.25)
+    assert i.endFold is True
+    assert env.vals["FATIGUE"] == pytest.approx(0.4 + 0.05 + 0.03, rel=1e-12)   # the owned writer reached the stat
+
+
+def test_handler_inputs_read_neutral_on_nil_and_nan(hrt):
+    nan = float("nan")
+    rec = _rec(hrt, effects=dict(fOff=nan, solAddH=nan, solMul=nan, stressTarget=nan),
+               acute=dict(S=0.3, circ=nan, frozen=True), body=dict(dmod=nan, rmod=nan))
+    env, FAST, h = _handler(hrt, rec, endFoldOn=True)
+    _tick(env, FAST)
+    i = h.inp
+    assert (i.fOwned, i.fFrozen, i.fS, i.fCirc, i.fOff) == (True, True, 0.3, 0, 0)
+    assert (i.solAddH, i.solMul, i.dmod, i.rmod, i.stressTarget) == (0, 1, 1, 1, 0)
+    # no acute table, or an unreadable S: the Plan 1 FATIGUE arm (never a written 0)
+    for acute in (None, dict(S=nan, circ=0.0, frozen=False)):
+        env, FAST, h = _handler(hrt, _rec(hrt, acute=acute))
+        _tick(env, FAST)
+        assert h.inp.fOwned is False and h.inp.endFold is False
+        assert h.inp.fS == 0 and h.inp.stressTarget == 0
+        assert env.vals["FATIGUE"] > 0.1                     # vanilla's awake accrual ran
+
+
+def test_handler_panic_floor_rises_holds_and_never_overshoots(hrt):
+    rec = _rec(hrt, effects=dict(panicTarget=0.1))
+    env, FAST, h = _handler(hrt, rec)
+    env.vals["PANIC"] = 0
+    _tick(env, FAST)
+    assert env.vals["PANIC"] == pytest.approx(RISE_PANIC * S_TICK, rel=1e-12)    # 0.04
+    _tick(env, FAST)
+    assert env.vals["PANIC"] == pytest.approx(2 * RISE_PANIC * S_TICK, rel=1e-12)
+    _tick(env, FAST)
+    assert env.vals["PANIC"] == 0.1                                               # capped at the target
+    sets = _n(env.sets, "PANIC")
+    _tick(env, FAST, 3)
+    assert env.vals["PANIC"] == 0.1 and _n(env.sets, "PANIC") == sets             # held: no set at the floor
+    env.vals["PANIC"] = 30                                                         # vanilla's own panic above
+    _tick(env, FAST)
+    assert env.vals["PANIC"] == 30 and _n(env.sets, "PANIC") == sets
+
+
+def test_handler_floors_read_and_write_nothing_at_target_zero(hrt):
+    nan = float("nan")
+    for t in (0, nan, None):
+        eff = dict(panicTarget=t, unhappyTarget=t, foodSickTarget=t, tempTarget=t, tempAdj=-0.2)
+        eff = {k: v for k, v in eff.items() if v is not None}
+        env, FAST, h = _handler(hrt, _rec(hrt, effects=eff), intoxOwned=False)
+        env.vals.PANIC, env.vals.UNHAPPINESS, env.vals.FOOD_SICKNESS, env.vals.TEMPERATURE = 5, 7, 9, 37
+        _tick(env, FAST, 3)
+        for k in ("PANIC", "UNHAPPINESS", "FOOD_SICKNESS", "TEMPERATURE", "INTOXICATION"):
+            assert _n(env.gets, k) == 0 and _n(env.sets, k) == 0, (t, k)
+
+
+def test_handler_food_sickness_floor_at_one_level_per_hour(hrt):
+    env, FAST, h = _handler(hrt, _rec(hrt, effects=dict(foodSickTarget=30)))
+    env.vals["FOOD_SICKNESS"] = 29.99
+    _tick(env, FAST)
+    assert env.vals["FOOD_SICKNESS"] == 30                                        # 29.99 + 0.0417 capped
+    env.vals["FOOD_SICKNESS"] = 10
+    _tick(env, FAST)
+    assert env.vals["FOOD_SICKNESS"] == pytest.approx(10 + RISE_SICK * S_TICK, rel=1e-12)
+
+
+def test_handler_unhappiness_floor_and_its_release(hrt):
+    rec = _rec(hrt, effects=dict(unhappyTarget=0.1))
+    env, FAST, h = _handler(hrt, rec)
+    env.vals["UNHAPPINESS"] = 0
+    _tick(env, FAST)
+    assert env.vals["UNHAPPINESS"] == pytest.approx(RISE_UNHAPPY * S_TICK, rel=1e-12)
+    _tick(env, FAST, 3)
+    assert env.vals["UNHAPPINESS"] == 0.1 and h.moodFloor.unhappy == 0.1
+    # a rise of the target: no release, the floor climbs
+    rec.effects.unhappyTarget = 10
+    env.vals["UNHAPPINESS"] = 10                                                   # say it reached it
+    _tick(env, FAST)
+    assert env.vals["UNHAPPINESS"] == 10 and h.moodFloor.unhappy == 10
+    env.vals["UNHAPPINESS"] = 14                                                   # vanilla's boredom added 4
+    # a fall of the target: the difference released ONCE
+    rec.effects.unhappyTarget = 4
+    _tick(env, FAST)
+    assert env.vals["UNHAPPINESS"] == 8 and h.moodFloor.unhappy == 4
+    sets = _n(env.sets, "UNHAPPINESS")
+    _tick(env, FAST, 3)
+    assert env.vals["UNHAPPINESS"] == 8 and _n(env.sets, "UNHAPPINESS") == sets   # never again
+    # a fall to 0 releases, floored at 0, and then reads nothing
+    env.vals["UNHAPPINESS"] = 2
+    rec.effects.unhappyTarget = 0
+    _tick(env, FAST)
+    assert env.vals["UNHAPPINESS"] == 0 and h.moodFloor.unhappy == 0
+    gets = _n(env.gets, "UNHAPPINESS")
+    _tick(env, FAST, 2)
+    assert _n(env.gets, "UNHAPPINESS") == gets
+
+
+@pytest.mark.parametrize("adj,target,core,written", [
+    (-0.2, 36.8, 37.0, True),       # cold side, core above the target: pulled down
+    (-0.2, 36.8, 36.5, False),      # cold side, core already below: its own fall never warmed
+    (0.3, 37.3, 37.0, True),        # heat side, core below: pushed up
+    (0.3, 37.3, 37.5, False),       # heat side, core above: never cooled
+    (0, 37.0, 36.0, False),         # no adjustment: no side
+])
+def test_handler_temperature_target_only_on_the_offset_side(hrt, adj, target, core, written):
+    env, FAST, h = _handler(hrt, _rec(hrt, effects=dict(tempTarget=target, tempAdj=adj)), intoxOwned=False)
+    env.vals["TEMPERATURE"] = core
+    _tick(env, FAST)
+    assert _n(env.gets, "TEMPERATURE") == 1
+    assert _n(env.sets, "TEMPERATURE") == (1 if written else 0)
+    assert env.vals["TEMPERATURE"] == (target if written else core)
+
+
+def test_handler_endurance_every_tick_under_the_fold(hrt):
+    rec = _rec(hrt, effects=dict(), body=dict(dmod=1.5, rmod=0.8))
+    env, FAST, h = _handler(hrt, rec, endFoldOn=True)
+    env.vals["ENDURANCE"] = 0.6999                          # vanilla drained 1e-4 since the seed 0.7
+    _tick(env, FAST)
+    assert _n(env.sets, "ENDURANCE") == 1
+    assert env.vals["ENDURANCE"] == pytest.approx(0.7 - 1e-4 * 1.5, rel=1e-12)
+    assert h.inp.endLast == 0.7
+    e1 = env.vals["ENDURANCE"]
+    env.vals["ENDURANCE"] = e1 + 1e-4                        # a regeneration since our write
+    _tick(env, FAST)
+    assert h.inp.endLast == e1
+    assert env.vals["ENDURANCE"] == pytest.approx(e1 + 1e-4 * 0.8, rel=1e-12)
+    assert _n(env.sets, "ENDURANCE") == 2
+
+
+def test_handler_endurance_asleep_only_without_the_fold(hrt):
+    for fold, eff in ((False, dict()), (True, None)):       # the switch off, or no effects table yet
+        env, FAST, h = _handler(hrt, _rec(hrt, effects=eff, body=dict(dmod=1.5)), endFoldOn=fold)
+        env.vals["ENDURANCE"] = 0.6999
+        _tick(env, FAST, 2)
+        assert h.inp.endFold is False
+        assert _n(env.sets, "ENDURANCE") == 0 and env.vals["ENDURANCE"] == 0.6999
+        env.asleep = True
+        _tick(env, FAST)
+        assert _n(env.sets, "ENDURANCE") == 1
+
+
+def test_handler_intoxication_from_the_target_when_owned(hrt):
+    rec = _rec(hrt, effects=dict(intoxTarget=25))
+    env, FAST, h = _handler(hrt, rec)
+    env.vals["INTOXICATION"] = 31                           # a beer's vanilla jump since the last tick
+    _tick(env, FAST)
+    assert env.vals["INTOXICATION"] == 25
+    _tick(env, FAST, 2)
+    assert _n(env.sets, "INTOXICATION") == 3                # every tick
+    rec.effects.intoxTarget = float("nan")
+    env.vals["INTOXICATION"] = 12
+    _tick(env, FAST)
+    assert env.vals["INTOXICATION"] == 12                   # a NaN target writes nothing
+    env, FAST, h = _handler(hrt, _rec(hrt, effects=dict(intoxTarget=25)), intoxOwned=False)
+    env.vals["INTOXICATION"] = 31
+    _tick(env, FAST, 2)
+    assert env.vals["INTOXICATION"] == 31 and _n(env.sets, "INTOXICATION") == 0
+    env, FAST, h = _handler(hrt, _rec(hrt), intoxOwned=True)   # no effects table yet: vanilla's stays
+    env.vals["INTOXICATION"] = 31
+    _tick(env, FAST)
+    assert env.vals["INTOXICATION"] == 31 and _n(env.sets, "INTOXICATION") == 0
+
+
+def test_handler_drunk_reduction_zeroed_at_hoist_when_owned_and_registered(hrt):
+    env, FAST, h = _handler(hrt, _rec(hrt), intoxOwned=True, registered=True)
+    assert list(env.drunk.values()) == [0]
+    env, FAST, h = _handler(hrt, _rec(hrt), registered=False)          # overlay: vanilla's decay stays
+    assert list(env.drunk.values()) == []
+    env, FAST, h = _handler(hrt, _rec(hrt), intoxOwned=False, registered=True)
+    assert list(env.drunk.values()) == []
+
+
+def test_handler_install_zeroes_and_uninstall_restores_the_drunk_reduction(hrt):
+    env, FAST, h = _handler(hrt, _rec(hrt), intoxOwned=True, registered=False)
+    hrt.execute("Hook = { CalculateStats = { Add = function(f) end, Remove = function(f) end } }")
+    assert FAST.install() is True
+    assert list(env.drunk.values()) == [0]
+    FAST.uninstall()
+    assert list(env.drunk.values()) == [0, 0.0042]                     # BodyDamage's constructor value, #2919
+
+
+def test_handler_missing_effect_ids_disable_the_writes_not_the_handler(hrt):
+    rec = _rec(hrt, effects=dict(panicTarget=10, unhappyTarget=10, foodSickTarget=30, intoxTarget=25,
+                                 tempTarget=36.8, tempAdj=-0.2))
+    env, FAST, h = _handler(hrt, rec, withIds=False)
+    assert h.effOn is False
+    _tick(env, FAST, 3)
+
+
+def test_handler_limitations_and_region_strings():
+    src = open(FAST_HANDLER, encoding="utf-8").read()
+    lims = src[src.index("limitations = {"):src.index("local FAST = NR.server.fast")]
+    assert "and the effects floors for at most one slow-clock minute" in lims
+    assert "X35" in lims and "INTOXICATION" in lims
+    region = src[src.index("local function body(h)"):src.index("-- @endfastpath")]
+    assert "local E = h.record.effects" in region and "local A = h.record.acute" in region
+    assert "inp.endLast = out.endurance" in region
+    assert "if dm == nil or dm ~= dm then" in region
+    assert "h.setDrunk" not in region                       # the reduction is set at the hoist, never per tick
+    assert "math." not in region
