@@ -1,0 +1,41 @@
+# testing/profiles/x18-interface.toml - the Plan 7 interface acceptance boot (Task 10 profile, Task 11 run): PZTestKit +
+# NutritionRevamp (by path) + TKX_DeclaredFood, Nutrition = false, DayLength 1, NR.VisibilityMode = 1, no sleep arm.
+# A load test of the interface build: a mod Lua error parks the -debug client, hence the 180 s client timeout.
+# What the boot reads (Task 11): the panel, the tooltip wrap, the character-info tab and the moodles on the client,
+# and the visibility level the view derives from the option. The verify rows are load gates only, each certain to
+# pass if the mod loaded: the server version global, the client view level (a number 1..3), the shipped
+# IGUI_NR_Loaded translation (a miss returns the key itself) and the tooltip sentinel's saved original (a function).
+fixture = "default"
+description = "PZTestKit + NutritionRevamp + TKX_DeclaredFood, Nutrition off, DayLength 1, NR.VisibilityMode 1 - the Plan 7 interface acceptance."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.client.view.level", expect = '"type": "number"' },
+  { side = "client", cmd = "text.get", args = "IGUI_NR_Loaded", expect = "nr-loaded" },
+  { side = "client", cmd = "lua.global", args = "NR_ClientTooltip_Installed.original", expect = '"type": "function"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[[mods]]
+id = "TKX_DeclaredFood"
+path = "testing/experiments/TKX_DeclaredFood"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
+
+[sandbox.NR]
+VisibilityMode = 1
