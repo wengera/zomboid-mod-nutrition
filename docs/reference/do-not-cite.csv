@@ -378,3 +378,15 @@ x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeDrink_Installed,null,"lua.gl
 x151r2-20261005-202409,phases.S0.sentinels.NR_IntakeWorld_Installed,null,"lua.global answers no value for a table.",—
 x151r2-20261005-202409,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `server_error_count` and `phases.Z.nutrients_stats.errors`
 x151r2-20261005-202409,logs.client_luaerr,20 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
+x161s-20261006-031534,verdicts,see_raw,"Every phase verdict is a placeholder; the grade is read off the raw.",cite `phases` and `watches`
+x161s-20261006-031534,summaries.X75.a_poison_watch,e.g. per_game_h 3.2368,"The window was armed before POISON was written, so first is the pre-write 0.",cite `summaries.X75.a_poison_statsall`
+x161s-20261006-031534,summaries.X75.a_fs_watch,e.g. per_game_h 5.3263,"The window was armed before POISON was written, so the rise starts mid-window.",cite `summaries.X75.a_fs_statsall`
+x161s-20261006-031534,phases.X76.watch_a.dmg,POISON 538,"The counters were not reset before this window; the values are X75c's.",—
+x161s-20261006-031534,summaries.X76.c_dmg,SICK 287,"A copy of the raw counters.",cite `phases.X76.watch_c.dmg`
+x161s-20261006-031534,summaries.X75.c_dmg,POISON 538,"A copy of the raw counters.",cite `phases.X75.watch_c.dmg`
+x161s-20261006-031534,phases.X75.c_health_after,c_health_after,"Both phases wrote the same tag.",cite `health_reads[109]`
+x161s-20261006-031534,phases.X76.c_health_after,c_health_after,"Both phases wrote the same tag.",cite `health_reads[137]`
+x161s-20261006-031534,summaries.X81.fraction_of_gap,0.49986,"Measured from the temp.core read before the write, not the stat the write replaced.",cite `phases.X81.write` and `phases.X81.watch.fields.core`
+x161s-20261006-031534,summaries.X80.pred_per_game_h,3.6 and 1.8,"Tier-0 predictions; both windows ran at tier 3.",—
+x161s-20261006-031534,logs.server_luaerr,40 lines,"Vanilla AdvancedAnimator visitFileFailed and IsoPropertyType lookupOrDefaultStr lines and the harness echo of the driver's lastError and errors reads, which the driver's pattern matches; none is a mod error.",cite `server_error_count`
+x161s-20261006-031534,logs.client_luaerr,12 lines,"Vanilla AdvancedAnimator visitFileFailed lines the driver's pattern matches; none is a mod error.",cite `client_lua_error`
