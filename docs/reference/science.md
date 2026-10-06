@@ -41,6 +41,7 @@ A row's grade is the source's, never the row's importance. A source graded with 
 - A value the mod ships rests on a `settled` row; an `open` or `unverified` row names what is missing and ships nothing.
 - Every `settled` row's citation was resolved against its record through Europe PMC or Crossref before the row was minted: title, first author and year matched.
 - A game choice — a saturation constant, a clamp, a cadence, a dial's default — is not a row; the row is the cited value the choice rests on, and the choice is named as one where it is made.
+- An `open` row's constant ships as a labelled game choice, never as a cited value, when the literature gives no basis for it: the insect dry-matter fraction of 0.30 (S1188) is the case, its direction read from the papers named in the row and its size the plan's.
 - `python tools/science_check.py` checks the register's schema before every commit that touches it; `python tools/science_check.py --scan <the mod's tree>` resolves every `S` id token the mod carries and fails a token that names no row or a superseded one; the scan is never given `tools/` or `docs/`, which carry the reserved illustration in prose.
 - A row is minted by the controller from a task's part file with `python tools/science_delta.py apply <part.tsv>`; a writer never edits the register.
 - An `open` row closes by `python tools/science_delta.py settle <id> …`, which fills its cells and settles it, or by `status <id> superseded --successor <id>`, which leaves its cells empty and points at the row that answers it.

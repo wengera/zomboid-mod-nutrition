@@ -462,3 +462,4 @@ x172-20261006-110409,summaries.B.*.*.rows.*.pred,the driver's per-getter predict
 x172-20261006-110409,summaries.F_cola,"ok false, no rows",The arm took no reading: the server fluid.fill replied no FluidType for Cola and the bottle stayed empty; not a falsification.,cite `phases.F_cola.fill.reason`
 x172-20261006-110409,logs.server,80 lines,"The first 80 matching lines the driver kept (its cap, `logs.limits.log`), not a count.",
 x172-20261006-110409,logs.client,80 lines,"The first 80 matching lines the driver kept (its cap), not a count.",
+x172-20261006-110409,logs.client_checksum,[],"The client's console log never carries the checksum kick's reason string, so an empty list here is not an absence reading.",cite `phases.Z.tk_version_client` and `client_seen`
