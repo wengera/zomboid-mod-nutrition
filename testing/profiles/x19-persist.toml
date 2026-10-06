@@ -1,0 +1,34 @@
+# testing/profiles/x19-persist.toml - the Plan 8 live 2 boots (Task 6, run x192): PZTestKit + NutritionRevamp (by path),
+# Nutrition = false, DayLength 1, no [sandbox.NR] block (the Bands default), no sleep arm.
+# What the boots read (x192_persist_mod.py, several server boots on ONE run dir, the x131p shape): the mod's record in
+# the global table NutritionRevamp.players across a reconnect, a clean restart, a respawn and a hard kill, a planted
+# version-1 record migrated at its first load, and a control boot on the restored fixture.
+# A mod Lua error parks the -debug client, hence the 180 s client timeout.
+# The verify rows are load gates only, each certain to pass if the mod loaded: the server version global, the client
+# view level (a number), the shipped IGUI_NR_Loaded translation.
+fixture = "default"
+description = "PZTestKit + NutritionRevamp, Nutrition off, DayLength 1, no NR.VisibilityMode - the Plan 8 persistence and lifecycle boots."
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.client.view.level", expect = '"type": "number"' },
+  { side = "client", cmd = "text.get", args = "IGUI_NR_Loaded", expect = "nr-loaded" },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "mod/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes

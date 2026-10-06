@@ -214,6 +214,7 @@ A client's request for a table fires a server event that names no player, so a s
 A key in a player's modData and one in a global table both survived a clean save and reload on a live server [#1294/M/n=1].
 With the world autosave off the server wrote the file only on a console save and a clean quit, never on a write or a transmit [#2097/M/n=1], and a value written a game-minute before a hard kill was gone after the restart [#2098/M/n=1].
 A world-scoped value is therefore as durable as the last save, and a write between saves is lost to a crash [#2097/M/n=1] [#2098/M/n=1].
+This mod's first-sight load runs in place on the stored record: at a reconnect it migrated a version-1 record with every input kept and a field outside the input list dropped [T6.2/M/n=1], after a reload it dropped that field again and carried the inputs with no migration [T6.4/M/n=1], and a version-1 record's first load kept its inputs and dropped a derived field [T6.5/M/n=1].
 
 ## Options
 

@@ -532,3 +532,15 @@ x191-20261006-191554,phases.BC.C.setY,ok true,"The call did not raise; not the p
 x191-20261006-191554,phases.A.A1.action.listBefore,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A1.action.after`
 x191-20261006-191554,phases.A.A2.action.local_remove.listBefore,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A2.pairs`
 x191-20261006-191554,phases.A.A2.action.local_remove.listAfter,{},"The empty Lua table the encoder writes as an object; an empty list.",cite `phases.A.A2.pairs`
+x192-20261006-194648,predictions,the driver's PRED table,"Written before the run; not a reading.",cite `verdicts.<arm>.observed`
+x192-20261006-194648,constants,the driver's constants,"Settings of the driver (waits, caps), not readings.",
+x192-20261006-194648,deviations,the driver's list,Written before the run; not readings.,
+x192-20261006-194648,world_changes,the driver's text,Written before the run; not readings.,
+x192-20261006-194648,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<arm>.observed`
+x192-20261006-194648,inputs,the kernel's K.store.INPUTS,"A copy of NR_Kernel_Store.lua taken at the run, not a reading.",cite the kernel file
+x192-20261006-194648,verdicts.B.verdict,falsified,"Falsified only on the layout.ini witness (the fixture's client snapshot carries the file).",cite the clauses in `verdicts.B.observed`
+x192-20261006-194648,boots.2.death.reduce.after,100,"Read in the call's own tick, before the server applied the death.",cite `verdicts.F.observed.isDead_wall`
+x192-20261006-194648,boots.1.A.set_vitC.after,0.05,"The driver's own write read back.",cite `verdicts.A.observed.record.vitC.p`
+x192-20261006-194648,boots.1.A.set_buffer.after,123.5,"The driver's own write read back.",cite `verdicts.A.observed.record.buffer.calories`
+x192-20261006-194648,boots.2.kill.set_vitC.after,0.07,"The driver's own write read back; the reading is its absence after the kill.",cite `verdicts.KILL.observed.pre3`
+x192-20261006-194648,log_lines.*.wall_seen,walls,"When the tail first saw the line, an upper bound on its time.",

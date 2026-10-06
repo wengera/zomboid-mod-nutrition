@@ -38,6 +38,7 @@ A new character is handed to the server's store at creation: `CreatePlayerPacket
 A handler on `OnNewGame` therefore runs on a character that already has its username and traits and has not yet been queued for the store, so whatever the handler writes onto the character is in the first copy the store receives [#2387/C/C-only] [#2404/C/C-only].
 On a client, `IsoWorld.init` takes the load path only when `ClientPlayerDB.clientLoadNetworkPlayer()` finds a network player and `isAliveMainNetworkPlayer()` says it is alive, and otherwise calls `GameClient.sendCreatePlayer`, which sends the `CreatePlayer` packet, so a client whose stored character is dead or absent creates a new one through `CreatePlayerPacket` when its world loads [#2420/C/C-only].
 The same event is therefore the hook for the character a client creates after a death, while a returning character with a living stored character never passes this way [#2411/C/inference].
+On a live server a respawn driven through the post-death UI and the coop creation's accept fired the mod's `OnNewGame` handler, which logged the record's reset 0.007 s after the accept and laid a fresh record whose reset count read 1 [T6.7/M/n=1].
 
 <a id="death"></a>
 ### Death: the event the server sees
@@ -64,6 +65,7 @@ The event's argument is whatever character died, not only a player, so a handler
 `PlayerHealthPacket` runs from server to client: its one sender, `NetworkPlayerAI.syncHealth`, is gated on `GameServer.server` and sends to the player's own fully connected connection, its `@PacketSetting` annotation carries `handlingType 2`, the bit `PacketSetting$HandlingType.getType` sets for a packet type that has a client-side process and no server-side one, and its `parse` writes each body part's health and then recomputes the overall value on the receiving client [#2405/C/C-only].
 `PlayerHealthPacket` therefore does not write the server's body health; the client's copy is the one it writes [#2405/C/C-only].
 The code establishes server-side entries into the chain, not that every cause of death, starvation included, reaches one of them on the server; [the open section](#open) carries the decision that forces [#2409/C/C-only].
+A server `ReduceGeneralHealth(110)` killed the character on a live server: the server read it dead at the first poll after the call, it stayed on the online list until its respawn, and the mod's sweep marked its record dead and kept it [T6.6/M/n=1].
 
 <a id="ids"></a>
 ### Addressing a player on the server
@@ -90,6 +92,7 @@ That table is also a channel the client writes: one client transmit makes the se
 After a reload the server hands the saved table to the client at join, a server-written key the client never held included [#2757/M/n=1].
 When the server rewrites a connected player's row after creation, and whether a client's own upload can overwrite it, lie outside the rows here; [the walls](#walls) name them.
 A mod's own table in global modData, keyed on the username, sits outside this blob altogether; the next section reads that store.
+After a hard kill the returning client loaded a living character with no `OnNewGame`, which character the store held not being read [T6.9/M/n=1].
 
 <a id="global-moddata"></a>
 ### Global modData: the world's own store
@@ -105,6 +108,8 @@ A key the server wrote into a player's modData, a key the client wrote and trans
 A global value written about one game-minute before the server process was hard-killed did not survive the restart, because no save ran in between [#2098/M/n=1].
 The kill lost the world's progress since the last save along with it, so the restart resumed from the previous clean quit's save [#2758/M/n=1].
 On a server whose autosave is off, a global table is therefore as durable as the last console save or clean quit [#2097/M/n=1] [#2098/M/n=1].
+A mod's own per-player table measured the same way: a clean quit and a reload carried its record equal in every leaf [T6.3/M/n=1], a hard kill took it back to the last clean quit's record, a respawn and a migration since then included [T6.8/M/n=1], and a boot on the restored fixture held no record until its first sight [T6.10/M/n=1].
+`OnInitGlobalModData` passed `true` on every boot of one restored fixture world, the reuse boots whose file held the previous boot's table included, so the flag did not separate a reload from a new world [T6.12/M/n=1].
 `ModData.transmit(name)` on a dedicated server sends the whole named table to every entry of `GameServer.udpEngine.connections`, with no per-player target and no `isFullyConnected` filter [#2398/C/C-only].
 A table keyed by username and transmitted from the server is therefore every player's values on every client [#2398/C/C-only].
 The per-player push a mod controls is the command bus's server send, which [mp-model.md](mp-model.md#command-bus) owns.
@@ -142,6 +147,7 @@ Where the stat updaters and the `CalculateStats` hook sit inside the player upda
 From that point the player is absent from `getOnlinePlayers()`, which skips that id [#2403/C/C-only] [#2391/C/C-only].
 A mod learns of the departure only by the player's absence from its next sweep of the online list [#2403/C/C-only].
 A per-player table keyed on the username keeps its row across the gap, and the returning character is found again by the same key under whatever online id its new slot gives it [#2392/C/C-only].
+On a live server a mod's sweep logged the departure 1.744 s after the client's clean quit, and the same account's return brought a new first sight with its stored state, its first-seen age kept [T6.1/M/n=1].
 
 ## Walls and bounds
 <a id="walls"></a>
