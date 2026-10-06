@@ -148,7 +148,7 @@ The rulings of the 2026-10-06 curation, kept as the mapping's rules (the ledger 
   15 % or no consistent implied mass exists, one policy per macro family.
 - **A family is one source (T4-7).** The 159|1|1|35 fish family takes the kcal-implied mass and retention code 2305 in
   every part.
-- **A sealed and an opened twin are one food (T4-8).** The opened row takes the sealed row's entry and portion.
+- **A sealed and an opened twin are one food (T4-8).** The opened row takes the sealed row's entry and portion. A twin pair whose vanilla tuples diverge (CannedRoe 150 vs 56 kcal) shares the entry and the baseline but keeps each row's own portion, with a note (T4-14).
 - **The staples are the enriched SR entries (T4-9).** Rice 168877, pasta 169736, bread 174924.
 - **Insect-order phytate rests on the paper's secondary copies (T4-10),** naming both.
 - **Phytate rests on a named table (T4-12, T4-13).** The bread rows take the white-bread median of PhyFoodComp, rice the white-rice rows; a `zero:` family is one of

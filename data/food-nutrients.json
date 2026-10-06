@@ -60657,7 +60657,7 @@
    "iodine_ref": null,
    "kind": "food",
    "no_nutrition_reason": null,
-   "notes": "= the sealed twin Base.TinnedBeans (manufactured-2); T4-8; kcal-implied (T4-5); canned pork and beans in tomato sauce; spread 1.68, the cup is 1.36x off; sealed twin in manufactured-1; retention LEGUMES,REHEATED (heated in the can); phytate unknown (processed legume)",
+   "notes": "= the sealed twin Base.TinnedBeans (manufactured-2); T4-8; kcal-implied (T4-5); canned baked beans, plain or vegetarian (the entry 175182); spread 1.68, the cup is 1.36x off; sealed twin TinnedBeans in manufactured-2; retention LEGUMES,REHEATED (heated in the can); phytate unknown (processed legume)",
    "per_100g": {
     "caffeine": 0.0,
     "calcium": 34.0,

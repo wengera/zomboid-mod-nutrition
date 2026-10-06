@@ -89,6 +89,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A driver (`testing/experiments/*.py`) is never edited after its run; a post-run edit is a skew note.
 - A reading that comes back trivial, unmeasured or falsified is written as such and never re-run to make a number prettier.
 - An aborted boot that took no reading is not a run: its driver runs unchanged and its run folder is left as is (ruling B3-1, x151r2's first attempt, killed by the host for memory).
+- A driver that crashes before any reading is taken (a TypeError at its first phase) is not a run either, and the one edit that fixes the crash is allowed before the real run, named in the artifact's reading guide — distinct from a host kill, where the driver runs unchanged (ruling B3-2, x171p's first attempt).
 - Artifacts are committed byte-identical to the run copy: a committed run's files go under `testing/artifacts/<run-id>/` and its row into the artifacts register, [reference/artifacts](docs/reference/artifacts.md).
 - A raising probe is gated on the server side with its profile's `[client] timeout` set low, and `pzt run` is expected to fail: the grade comes off the artifact.
 - A stray `ProjectZomboid64.exe` predating a session is Angus's own client: never kill it (`doctor` checks game Java only).
