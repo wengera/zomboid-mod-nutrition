@@ -717,3 +717,66 @@ TK.register("fall.probe", function(argv)
     out.ok = (out.zAfter ~= nil)
     return out
 end)
+
+-- The anim.probe sampler (X47). One OnTick handler, installed once, whose first statement is the
+-- nil-cheap `armed` test. Sample 0 is taken at the arm tick BEFORE the write (the control, which
+-- must differ from the written value or no revert is readable), then the variable is written
+-- once through IsoGameCharacter:setVariable(name, float) and every later sample is taken when
+-- the wall clock passes the next `ms` boundary. The series is written to anim-probe.json when
+-- `n` samples are in: a bus round trip takes about 1 s and cannot sample at 250 ms, so the
+-- command answers at once and the artifact carries the series.
+TK.p5AnimWatch = TK.p5AnimWatch or { armed = false }
+
+local function p5AnimOnTick()
+    local w = TK.p5AnimWatch
+    if not w.armed then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local now = TK.now()
+    if now < w.nextAt then return end
+    local v = P5.hop(p, "getVariableFloat", w.var, -1)
+    w.values[#w.values + 1] = v
+    w.dts[#w.dts + 1] = now - w.start
+    if #w.values == 1 then
+        w.control = v
+        w.writeRan = pcall(function() p["setVariable"](p, w.var, w.value) end)
+        w.wroteAt = now - w.start
+    end
+    w.nextAt = now + w.ms
+    if #w.values >= w.n then
+        w.armed = false
+        TK.result("anim-probe", { var = w.var, value = w.value, ms = w.ms, n = w.n, control = w.control,
+                                  writeRan = w.writeRan, wroteAt = w.wroteAt, values = w.values, dts = w.dts })
+    end
+end
+
+if not TK.p5AnimHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function() p5AnimOnTick() end)
+    TK.p5AnimHooked = true
+end
+
+-- <var> <value> <ms> <n>. X47 (#2096): does a client write to an animation variable hold? Reads
+-- getVariableFloat(var, -1) as the pre-write control at the arm tick, writes `value` through
+-- setVariable(var, value) (the float overload), and keeps sampling on its own Lua timer every
+-- `ms` of wall time until `n` samples are in (1 <= n <= 200, 50 <= ms <= 5000); it answers at
+-- once and writes anim-probe.json with the values and their wall offsets. Use it as
+-- `anim.probe WalkSpeed 0.3 250 16` with player.walk 20 0 for the walking arm and standing still
+-- for the second; player.stop after.
+-- @args <var> <value> <ms> <n>
+-- @reply {ok, armed, var, value, ms, n, result, file [, reason]} | string
+-- @purpose Samples an animation variable on the local player every ms for n samples around one setVariable write (X47: does the write hold across the injuries-packet window), writing anim-probe.json.
+TK.register("anim.probe", function(argv)
+    local p = getPlayer and getPlayer() or nil
+    if p == nil then return { ok = false, reason = "no local player" } end
+    local var, value, ms, n = argv[1], tonumber(argv[2]), tonumber(argv[3]), tonumber(argv[4])
+    if var == nil or value == nil or ms == nil or n == nil or ms < 50 or ms > 5000 or n < 1 or n > 200 then
+        return "usage: anim.probe <var> <value> <ms> <n>  (50 <= ms <= 5000, 1 <= n <= 200)"
+    end
+    if not TK.p5AnimHooked then return { ok = false, reason = "no Events.OnTick on this side" } end
+    if TK.p5AnimWatch.armed then return { ok = false, reason = "an anim.probe window is already armed" } end
+    local start = TK.now()
+    TK.p5AnimWatch = { armed = true, var = var, value = value, ms = ms, n = n, start = start, nextAt = start,
+                       values = {}, dts = {} }
+    return { ok = true, armed = true, var = var, value = value, ms = ms, n = n, result = "anim-probe",
+             file = "pzt-results/anim-probe.json" }
+end)
