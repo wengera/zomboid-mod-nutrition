@@ -16,7 +16,7 @@ local BENCH_OUT = K.fast.output()
 local BENCH_INP = K.fast.input()
 
 -- A steady-state awake update: one game-minute (M = 1, D = 24 -> sixty game-seconds), not asleep,
--- not a ghost, mid-range stats, every optional multiplier neutral, a real day length and a mid
+-- not a ghost, mid-range stats, the optional multipliers neutral except dmod and rmod (below), a real day length and a mid
 -- fitness level. Every trait and flag K.fast.input() seeds false stays false, except the two Plan 5
 -- ownership flags (fOwned, endFold) set below.
 BENCH_INP.M = 1

@@ -3,6 +3,8 @@
 -- Plan 2 (Task 11): the stomach fill. Plan 4 (Task 14, ruling 21): the pool_<key> keys are retired from the wire
 -- (record.pool stays a diagnostic); the nutrient grades, the fluids and the acute scalars take their place.
 -- A record whose kinetics has not yet run reads full (the seed) and zeros.
+-- Plan 5 (Task 11): the 20 effects_* keys (K.mirror.effects) — a multiplier reads 0, not 1, until the record has an
+-- effects table, so a reader that acts on one must treat 0 as absent.
 local K = NutritionRevamp.kernel
 K.mirror = {}
 
