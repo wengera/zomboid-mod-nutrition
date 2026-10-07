@@ -45,7 +45,7 @@ Plan 10 and Plan 10b's Global Constraints hold. Plan 10c adds:
 
 ## Execution order
 
-Task 0 → { H0 (Opus; harness) ∥ H1 (Opus; offline) ∥ H6 (Opus; jar plus offline) } → H2 (Opus; live) → H3 (Opus; live) → H4 (Opus; live) → H5 (Opus; live, optional) → Task M → Task Z. Every review is Opus. A scoped re-review is Sonnet.
+Task 0 → { H0 (Opus; harness) ∥ H1 (Opus; offline) ∥ H6 (Opus; jar plus offline) } → H2 (Opus; live) → H3 (Opus; live) → H4 (Opus; live) → H5 (Opus; live, optional) → Task M → Task Z. Task D (the durable record, added at Angus's request on 2026-10-07) starts beside H2 with the findings already in hand. Task M extends it with H2–H5's. Every review is Opus. A scoped re-review is Sonnet.
 
 ## File structure
 
@@ -228,6 +228,37 @@ These come from review-mod-architecture E1, E9, E10 and E12, and review-platform
 
 ---
 
+### Task D: The durable record — Opus implementer (harvest and pages), Opus reviewer
+
+**Why:** Angus asked, on 2026-10-07, that every finding worth keeping about the engine and performance be recorded somewhere durable, framed for future changes and additions. The decision memo is a program record and the workspace is gitignored, so neither qualifies. The reference library does: register rows, owner pages, lessons rules and routing.
+
+**Files:**
+- Create: `docs/platform/performance.md`.
+- Modify: `docs/platform/lessons.md` (`## Rules` plus the mechanism rows), `docs/platform/overview.md` (coverage and routing), `CLAUDE.md` § 1 (a routing row for "performance, hitching or server cost"), and the `.claude/skills/` description and `## Read first` that the routing row names (the checker syncs quoted rule lines).
+- The research reports are kept at `docs/superpowers/specs/2026-10-07-hitching-review-platform.md` and `…-mod-architecture.md`.
+
+- [ ] **Step 1: Harvest.** Take every platform finding from the two review reports and from Plans 10, 10b and 10c that a future change needs. Re-verify each jar claim with `./pz.sh` and mint it as a C row (jar pointer), or point at its existing row. Cover:
+  - **The server frame.** One thread, 100 ms frames, catch-up up to 300 ms, the clock smoothed, the 70 ms packet-drop guard, what a long frame does to clients.
+  - **The scheduling primitives.** The frame order; the clock events in one `GameTime.update`; `EveryOneMinute` at most once a frame and every frame under a fast clock; `OnPlayerUpdate` never firing for connected players on a dedicated server; no timer API; only `OnTick` spreads work; the coroutine limits.
+  - **The clocks.** Lua's 1 ms clock and the engine's frame-period counter (`getPerformanceLocal`), and which of its fields is unusable.
+  - **GC.** Kahlua tables are Java maps, the server runs ZGC, and `collectgarbage()` calls `System.gc()`.
+  - **The network.** `sendServerCommand` sends one packet a call and serialises on the main thread.
+  - **Global modData.** The save's thread and triggers, the buffer, the size per record, and the request exposure (H6's rows).
+  - **The measured costs and how to measure.** The takeover handler, the minute by step, the ghost load, bench.global, tick.ring, perf.local, lupa shares against Kahlua milliseconds, and the 60-player arithmetic, labelled.
+- [ ] **Step 2: The page.** Write `docs/platform/performance.md` in the platform page format (read two existing platform pages and `tools/page_lint.py`). Frame it for a future change: a "budget a change" section (judge by the worst frame and its frequency at 60 players; what to measure and with which tool), then the mechanisms, then the measured costs table with row tags. Every claim carries its tag. The mod's design is not in the page: it says what the engine does and what a mod can do, with this mod as the worked example where a row allows (ruling T12-1).
+- [ ] **Step 3: Rules.** Add the platform rulings to `docs/platform/lessons.md` `## Rules`, each with its mechanism row (CLAUDE.md § 6), for example:
+  - never run every player's work in one event;
+  - never keep per-player state in global modData;
+  - judge a per-tick site by its measured worst frame;
+  - spread a fixed per-minute workload with a budgeted queue that carries across minutes;
+  - measure frames with the engine's counter, not the 1 ms Lua clock.
+
+  Write a rule only where the evidence is settled. Experiments still running (H2–H5) add theirs at Task M.
+- [ ] **Step 4: Routing and gates.**
+  - Add the CLAUDE.md row, the overview routing entry, and the skill description with its `## Read first`.
+  - Run `page_lint` on each touched page, `claims_check --staged`, `reference_gen cited-by --check` and pytest.
+  - Hand over the delta (`T119.n`), the page drafts with provisional tags, and the report. The controller applies the delta and commits.
+
 ### Task M: The decision memo's Hitching section — Opus writer (per Plan 10b's ruling M-1), Opus review
 
 - [ ] Add a "Hitching (Plan 10c)" section to the memo, after the Performance section. It covers:
@@ -238,6 +269,7 @@ These come from review-mod-architecture E1, E9, E10 and E12, and review-platform
   - the scheduler table with Decision 6's measured answer;
   - whether a player notices;
   - the fake clients' result.
+- [ ] Extend `docs/platform/performance.md` and the lessons rules with H2–H5's settled findings (Task D's format).
 - [ ] Rewrite Decision 6 with the measured answer and its rule. Update the ranked refactor list and Decision 3 if H6 flipped it. Name what still needs Angus: the populated-server reading (E7), and the fairer band if (c) is in play.
 - [ ] The controller applies the deltas in task order (`T112` … `T118`), writes the owner sentences with the writer, runs the gates and commits.
 
