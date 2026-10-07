@@ -7,8 +7,8 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - A `#nnnn` is a row of the claims register, `docs/reference/claims.tsv`. Every number in the front sections is at its row or in the appendix named beside it.
 - **The takeover** is the mod's shipped `Hook.CalculateStats` handler. Registering it stops vanilla's seven stat updaters for every player (#2238), and the handler computes hunger, thirst, fatigue and the other stats itself, every tick.
 - **The zeroed-rates route** sets vanilla's hunger, thirst and fatigue rise rates to zero at boot and lets vanilla's updaters run. The mod then writes the three stats itself once a game minute.
-- **The hybrid** is the zeroed-rates route plus a small per-tick (`OnTick`) writer that holds PANIC, which vanilla decays every update.
-- **The slow minute** is the mod's once-a-game-minute work per player. **The stagger** spreads that work over the server's ticks so no tick runs every player.
+- **The hybrid** is the zeroed-rates route plus a once-a-minute write of PANIC and TEMPERATURE, which vanilla decays or resets every update. S1 first defined it with a per-tick (`OnTick`) PANIC hold; rule 6 (Angus 2026-10-07), Decision 1 and the Performance section replace the hold with the once-a-minute write.
+- **The slow minute** is the mod's once-a-game-minute work per player. **The stagger** spreads that work over the server's ticks so no tick runs every player. Under rule 6 (no per-tick work, Angus 2026-10-07) the drain becomes an `EveryOneMinute` round-robin of period m (Decision 1; Performance).
 - **The floors** are minimum values the mod's effects hold a vanilla stat at: PANIC, UNHAPPINESS, FOOD_SICKNESS and STRESS, plus the INTOXICATION target.
 - **`rmod`** is the mod's endurance-regeneration modifier. It scales vanilla's endurance recovery by the character's nutrition state (among its inputs glycogen, protein, iron, dehydration, sleep debt and alcohol).
 - **Draft ruling 2** is the draft's rule for the stagger: how many queued players run per tick. **Draft ruling 4** is the draft's rule for a respawn or a reconnect: which `IsoPlayer` object the mod keeps for a username.
@@ -25,7 +25,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - The route's own Lua writer costs about 11 µs (#3373).
 - The route also hands back vanilla's seven updaters, which the takeover had stopped. S1b timed them at about 1 to 11 µs per player per update (#3386). That is 6–66 µs per player per game minute (Appendix B § 5).
 - So the route costs about 17–77 µs against the takeover's 121 µs. The saving is a third to six-sevenths, about 0.57 at the mean (Appendix B § 5).
-- The hybrid's per-tick PANIC hold comes on top and is unmeasured.
+- The once-a-minute PANIC and TEMPERATURE write that rule 6 puts in place of a per-tick hold adds two stat sets a player a minute, under a microsecond by #3373's 0.6–0.9 µs per set (inference; not timed as such; Decision 1 (c)).
 - The slow minute's own work, about 377 µs per player (#3354), is the same under every option.
 
 **What the route reproduces, approximates and loses** (Appendix A § 5):
@@ -36,7 +36,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
   - `rmod` on sleep endurance, applied one interval late.
 - **Loses unless rewritten:** the sleep-onset terms `solMul` and `solAddH`. The writer could re-set vanilla's sleep delay through `setDelayToSleep` (#2787), one interval late; this is unmeasured.
 - **Loses:**
-  - the PANIC hold, because vanilla decays PANIC every update (#3116). A per-tick write outside the hook survives (#3048), so the hybrid's `OnTick` writer can keep it.
+  - the PANIC hold, because vanilla decays PANIC every update (#3116). A once-a-minute write keeps PANIC within 1.12 of its target between writes (#3392; the decay is about 1.12 a game minute, as Decision 1 (c) states). S1 first proposed a per-tick write outside the hook, which survives (#3048); rule 6 replaces it.
   - the TEMPERATURE target, because vanilla sets it every update. The takeover's own hold is itself unmeasured (X81).
   - the auto-drink bracket. The takeover throttled auto-drink inside its handler. Under the route the writer reads THIRST before each write, and that read holds the whole sip (#3382). S1b showed the sip must also be folded into the next THIRST target (below).
 - **Unchanged and moot:** the frozen-FATIGUE arm. On a server where sleep is not both allowed and needed, vanilla resets FATIGUE before the hook on every update, so neither route holds FATIGUE there.
@@ -49,7 +49,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - An eat between writes moves HUNGER at once, and the next write erases it (#3383). So the writer must run after the minute's eats land.
 - HUNGER stayed flat on a sprint leg whose run flag reached the server on 11 of 188 ticks (#3384). That reading also narrows #2877 to x141a's arms. The squats' exertion was not read, and the swing branch was never driven.
 
-**Recommendation.** The hybrid: zero the rates at the server's `OnGameBoot`; write the stats and the floors once a slow minute, stepping by elapsed world age; keep a thin `OnTick` PANIC hold (TEMPERATURE optionally); remove `Hook.CalculateStats` and its failover. The fork is Angus's (Decision 1). It is coupled to the hunger-feel choice (Decision 2).
+**Recommendation.** The hybrid: zero the rates at the server's `OnGameBoot`; write the stats and the floors once a slow minute, stepping by elapsed world age; keep a thin `OnTick` PANIC hold (TEMPERATURE optionally); remove `Hook.CalculateStats` and its failover. Rule 6 (no per-tick work, Angus 2026-10-07) replaces the `OnTick` PANIC hold with the once-a-minute PANIC and TEMPERATURE write (Decision 1 (c); Performance). The fork is Angus's (Decision 1). It is coupled to the hunger-feel choice (Decision 2).
 
 **Changes to the draft under Decision 1's (b) or (c).**
 - **Task 3** (takeover resilience) goes, with draft rulings 6 (the failover's strikes and re-arm) and 7 (the per-tick trim).
@@ -59,13 +59,13 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
   - writes HUNGER, THIRST and FATIGUE and the UNHAPPINESS, FOOD_SICKNESS, STRESS and INTOXICATION floors once a slow minute, stepping by elapsed world age, not by the event count (#3371);
   - runs the writer after the minute's eats land (#3383);
   - folds each auto-drink sip into the THIRST target before the write (#3382);
-  - adds the `OnTick` PANIC hold (and TEMPERATURE if kept);
+  - adds the once-a-minute PANIC and TEMPERATURE write;
   - adds a test that the takeover's arithmetic is gone or moved.
-- **Task 13** measures the writer, the hold and vanilla's updaters at 20 or more players, instead of the handler.
+- **Task 13** measures the writer, the hold and vanilla's updaters at 20 or more players, instead of the handler. Its re-based list is under Re-basing the draft, Task 13 (about :192–199).
 - **Task 12**'s CHANGELOG line "the stat takeover recovers after a fault" and the README sentence on the re-arm schedule go. The Overlay line is rewritten to say what the mode now chooses.
-- **Draft ruling 4**'s concern that `FAST.byChar` may be keyed by an object the online list never shows (Appendix C S3.3) leaves with the handler. The `OnTick` hold's per-player handle inherits it.
+- **Draft ruling 4**'s concern that `FAST.byChar` may be keyed by an object the online list never shows (Appendix C S3.3) leaves with the handler. The per-minute writer's handle inherits it.
 
-**Changes to the draft under Decision 1's (a).** Task 3 stays as drafted. Task 6 stays as drafted (Overlay is nutrients only). Draft ruling 4's fix must also re-key `FAST.byChar` to the object the list shows. No constant snapshot is needed, because nothing is zeroed.
+**Changes to the draft under Decision 1's (a)** ((a) withdrawn under rule 6; kept for the record)**.** Task 3 stays as drafted. Task 6 stays as drafted (Overlay is nutrients only). Draft ruling 4's fix must also re-key `FAST.byChar` to the object the list shows. No constant snapshot is needed, because nothing is zeroed.
 
 ### S2 and S3 — the real cost, the clock, the lifecycle (rows #3346–#3361)
 
@@ -82,17 +82,17 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - The version folder's `sandbox-options.txt` loads (#3361). That answers X22's first half for that shape.
 
 **Recommendation.**
-- **The stagger (draft ruling 2).** Keep the persistent queue. Size the per-tick share from a wall-time cycle: `perTick = ceil(N / CYCLE_TICKS)`, with `CYCLE_TICKS = (ticksLastMinute <= 1) and 10 or min(ticksLastMinute, 10)`. Every player then runs once per wall second under a fast clock.
+- **The stagger (draft ruling 2).** Keep the persistent queue. Size the per-tick share from a wall-time cycle: `perTick = ceil(N / CYCLE_TICKS)`, with `CYCLE_TICKS = (ticksLastMinute <= 1) and 10 or min(ticksLastMinute, 10)`. Every player then runs once per wall second under a fast clock. Rule 6 withdraws this wall-cycle per-tick share in favour of an `EveryOneMinute` round-robin of period m (Decision 1; Performance); kept for the record.
   - The peak is about 57 µs per player per tick, which allows 17, 35 or 87 players at 1, 2 or 5 % of a tick (Appendix C S2.4).
-  - That 57 µs includes the takeover handler's 19.33 µs. Under the hybrid the handler leaves the per-tick figure, and the writer's 11 µs and the unmeasured PANIC hold enter it.
+  - That 57 µs includes the takeover handler's 19.33 µs. Under the hybrid the handler leaves the per-tick figure, and the writer's 11 µs and the unmeasured PANIC hold enter it. Rule 6 withdraws the per-tick share altogether, so this figure is a record.
   - Every step must then accept a 60-game-minute interval. A test of that belongs in Task 2.
 - **The respawn (draft ruling 4).** `OnNewGame` evicts the dead object from the online table instead of storing the new one. The dead mark is guarded by the record's reset count, carried in the queue entry.
 
 **Changes to the draft.**
-- **Task 2:** draft rulings 2 and 4 are rewritten as above. Its tests change with them (Appendix C).
-- **Task 13:** A's options-file reading is done for this shape; it is re-read only for 1.0.1. B reads `drained` per wall second, not per event. F can copy the bench entries x222 used, and its budget is Appendix C's table.
-- **Task 14:** the lessons rule says "size the share from wall ticks, not from game-minute events: a fast clock delivers one event per tick". The narrowing of #2822–#2824 rests on #3353 and #3354.
-- **Task 3** (only under Decision 1's (a)): its cost case is now measured at 19 µs per player per tick (#3353), not the review's 60–130 µs estimate.
+- **Task 2:** draft ruling 2 becomes the `EveryOneMinute` round-robin, not the wall cycle (rule 6; Decision 1), and draft ruling 4 is rewritten as above. Its tests change with them (Appendix C).
+- **Task 13:** A's options-file reading is done for this shape; it is re-read only for 1.0.1. B reads `drained` per wall second, not per event. F can copy the bench entries x222 used, and its budget is Appendix C's table. The re-based Task 13 list (about :192–199) supersedes this item.
+- **Task 14:** the lessons rule says "drain the minute from `EveryOneMinute` as a round-robin of period m, never from `OnTick`; a fast clock delivers one event per tick, so ceil(N / m) players run an event" (rule 6; #3348). The narrowing of #2822–#2824 rests on #3353 and #3354.
+- **Task 3** (only under Decision 1's (a); (a) withdrawn under rule 6; kept for the record): its cost case is now measured at 19 µs per player per tick (#3353), not the review's 60–130 µs estimate.
 
 ### S4 — hunger feel (rows #3341–#3345)
 
@@ -103,7 +103,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - Under that scalar a meal's bulk, fibre and fat stop affecting hunger. The stomach then times absorption only.
 - Two risks hold for any option. The intake reads a food's raw hunger value, which leaves out vanilla's cooked ×1.3 and its stale, rotten and burnt reductions. And vanilla's freeze gate reads the HUNGER the mod last wrote.
 
-**Recommendation.** Option (a), vanilla's hunger plus the energy term, if the goal is "feels like vanilla, reads the energy balance" (Appendix D). It is the only option exact at every day length. If bulk must matter, option (c)'s relief scaling at a β chosen for taste. The choice is Angus's (Decision 2), and it is coupled to the takeover fork (Decision 1).
+**Recommendation.** Option (a), vanilla's hunger plus the energy term, if the goal is "feels like vanilla, reads the energy balance" (Appendix D). It is the only option exact at every day length. If bulk must matter, option (c)'s relief scaling at a β chosen for taste. The choice is Angus's (Decision 2), and it is coupled to the takeover fork (Decision 1). Under rule 6 the match holds within a slow minute's lag (the coupling at :124 and :453).
 
 **Changes to the draft under every option.**
 - `IN.readBefore` also captures the laddered `getHungerChange()`, and the relief uses it.
@@ -121,7 +121,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 
 **Changes under (b).** Task 9 keeps the half-time dial. Its default comes from the sweep at the day length Angus picks (4.5 h at DayLength 1; 4.25 h at DayLength 2 to 4), not from draft ruling 13's derivation.
 
-**The coupling with Decision 1.** Appendix D recommends homing S in `K.fast.step`, the takeover's per-tick kernel step. There S tracks vanilla tick for tick, and the exact match is testable to 1e-6. Decision 1's (b) and (c) remove the takeover hook, and with it that per-tick step. S would then step once per slow minute. It would lag vanilla by up to one game minute, at most 5.8e-4 hunger idle and 1.2e-3 exercising (Appendix D). The exact equality would be lost, so the test would need a tolerance. A per-tick home under the hybrid would be the `OnTick` hold; no spike has costed that. Under every Decision 1 option, vanilla's freeze gate reads the HUNGER the mod last wrote: the handler's under the takeover, the writer's under the hybrid.
+**The coupling with Decision 1.** Appendix D recommends homing S in `K.fast.step`, the takeover's per-tick kernel step. There S tracks vanilla tick for tick, and the exact match is testable to 1e-6. Decision 1's (b) and (c) remove the takeover hook, and with it that per-tick step. S would then step once per slow minute. It would lag vanilla by up to one game minute, at most 5.8e-4 hunger idle and 1.2e-3 exercising (Appendix D). The exact equality would be lost, so the test would need a tolerance. Rule 6 excludes a per-tick home, so S steps once a slow minute. Under every Decision 1 option, vanilla's freeze gate reads the HUNGER the mod last wrote: the handler's under the takeover, the writer's under the hybrid.
 
 ### S5 — food instance semantics (rows #3326–#3340)
 
@@ -181,8 +181,8 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 
 The draft's code samples predate the refactor. Per task:
 - **Task 1.** The helper set, `server_host.py` and `test_core_helpers.py` landed in Plan 10 R1; Steps 2, 3 and 5's `NR_Core.lua` append are done. What remains is the zero-age fix at the six sites above. Step 5's Kinetics sample is re-based: the step is `step(username, player, record, pipe)` (`NR_Server_Kinetics.lua:46`), and a nil age clears `pipe.absorbed` and `pipe.mealCa`, not `KIN.lastAbsorbed` and `KIN.lastMealCa`. Intake's `num(v)` was kept under its name, not renamed `numv`.
-- **Task 2.** `P.minute`'s `NR.worldAge() or 0` becomes the Players wrapper that Task 1 fixes. `P.work(username, player)` keeps calling `NR.server.minute.run` and then `P.onMinute`. `K.stagger.perTick` takes the wall-cycle form, and its "no tick in the last minute" tests go: that case never happens (#3348–#3350). The `OnNewGame` sample evicts instead of storing. The queue entry carries the record's `resets`. The respawn test brings the new object in three ticks after `OnNewGame` (#3358). A 60-game-minute step test is added. Step 9's dead options branch is at `NR_Server_Options.lua:88-110`.
-- **Task 3** (only under Decision 1's (a)). `onMinute` is now the pipeline's `"fast"` step, registered with `NR.server.minute.register("fast", onMinute)` (`NR_Server_Fast.lua:563`), with the signature `(username, player, record, ctx)`. A raise there outside its own `pcall` is caught by the pipeline, logged and counted. `FAST.stampSlow` is called from that step. The line ranges in its file list are re-read.
+- **Task 2.** `P.minute`'s `NR.worldAge() or 0` becomes the Players wrapper that Task 1 fixes. `P.work(username, player)` keeps calling `NR.server.minute.run` and then `P.onMinute`. `K.stagger.perTick`'s wall-cycle form is replaced by the `EveryOneMinute` round-robin of period m (rule 6; Decision 1), and its "no tick in the last minute" tests go: that case never happens (#3348–#3350). The `OnNewGame` sample evicts instead of storing. The queue entry carries the record's `resets`. The respawn test brings the new object in three ticks after `OnNewGame` (#3358). A 60-game-minute step test is added. Step 9's dead options branch is at `NR_Server_Options.lua:88-110`.
+- **Task 3** (only under Decision 1's (a); (a) withdrawn under rule 6; kept for the record). `onMinute` is now the pipeline's `"fast"` step, registered with `NR.server.minute.register("fast", onMinute)` (`NR_Server_Fast.lua:563`), with the signature `(username, player, record, ctx)`. A raise there outside its own `pcall` is caught by the pipeline, logged and counted. `FAST.stampSlow` is called from that step. The line ranges in its file list are re-read.
 - **Task 4.** `B.flushEffects` is the pipeline's `"bus"` step (`NR_Server_Bus.lua:113`), with the signature `(username, player, record)`. The `mirror.request` listener it rewrites holds one zero-age site (`NR_Server_Bus.lua:51-53`).
 - **Task 6.** Rewritten by Decision 1.
 - **Task 7.** The scale call moved into the kernel: `K.intake.assemble` calls `K.vector.meat(vec, b.instBase, b.scriptHunger)` at `NR_Kernel_Intake.lua:165`. `IN.readBefore` is at `NR_Server_Intake.lua:334`. Step 1 is answered (S5).
@@ -253,7 +253,7 @@ Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) as
   - About 100 µs of A is this session's instrument overhead, which leaves about 3.9 times (arithmetic, Appendix G).
   - Reconcile, strength and weight make the same `NR.call` counts in A and D2 but cost more in A. So part of the rise is cold interleaved running against a warm bench loop, not a longer interval (inference).
 - **Nutrients is half the minute (51.3 %), and its time is Lua, not Java:** it makes 9 `NR.call`s and 2 direct calls a run. Metabolism is the next fifth (21.4 %).
-- **A fast clock did not raise the per-run cost.** B cost 1358 µs a run against A's 1558, though each B run integrated several game minutes (#3389). A run's cost is therefore taken not to grow with its interval. This is an inference from B's flat cost, and it is the basis for dividing the minute by a round-robin period below.
+- **A fast clock did not raise the per-run cost.** B cost 1358 µs a run against A's 1558, though each B run integrated several game minutes (4.7 or 9.4, inference, #3389). A run's cost is therefore taken not to grow with its interval. This is an inference from B's flat cost, and it is the basis for dividing the minute by a round-robin period below.
 - **S2's player budget (Appendix C, S2.4) under-counts m by about 4×.** Plan 11 re-bases m on 1583 µs (`P.work` in play), not 377.
 
 **The Java share (P1 Step 4's estimate) and P4.**
@@ -316,9 +316,9 @@ Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) as
 **The burst and the round-robin** (#3391). The minute was driven from `EveryOneMinute` with the `OnTick` drain left on.
 - **Burst:** both players in one event cost 1228.8 µs per player-run and 2457.6 µs per event, at most 6 ms.
 - **Round-robin, m = 5:** one player an event cost 1721.3 µs per event, at most 4 ms. With two players each ran every second minute.
-- **The tick spike** (extrapolation, labelled). This assumes a constant 1.23–1.58 ms per player-run and a 100 ms tick:
+- **The tick spike** (extrapolation, labelled). This assumes a constant 1.23–1.58 ms per player-run for the burst, 1.23–1.72 ms for the round-robin (its measured 1721.3 µs per player-run, #3391) and a 100 ms tick:
   - a full burst costs 24.6–31.7 ms per event at 20 players and 49–63 ms at 40, once a game minute;
-  - a round-robin at m = 5 runs ceil(N / 5) players an event, 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40.
+  - a round-robin at m = 5 runs ceil(N / 5) players an event, 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40, on the round-robin's own 1.23–1.72 ms basis.
 - **Under a fast clock every tick carries one minute event** (#3348). So a burst there runs every player every tick, the shape S2 corrected in draft ruling 2 (inference). A round-robin bounds it at ceil(N / m) players a tick.
 
 **The all-in cost with no per-tick work**, per player per game minute (arithmetic on the readings; Appendix G):
@@ -337,28 +337,28 @@ So rule 6's design costs less than the takeover at both day lengths. Its own ris
 
 ### Ranked performance refactors for Plan 11
 
-Each item names its reading and its expected saving per player per game minute, and goes no further than that reading.
-1. **The Nutrients step's Lua.**
-   - The reading: 192 of the pipeline's 374 ms in play, 51.3 % ±3 % (#3387). It is also 395 of 823 ms under a fast clock (#3389) and 145 of 362 ms at a zero interval (#3390).
-   - Its Java is 9 `NR.call`s and 2 direct calls a run (#3388): under 0.3 % by the estimate, and under about 20 µs at the upper bound.
+Each item names its reading and its expected saving per player per game minute, and goes no further than that reading. The list is ordered by that saving, largest first. Item 4 is required by rule 6 whatever its saving.
+1. **The Nutrients step's Lua** (saving up to 800 µs).
+   - The reading: 192 ±6.2 ms (3 %), 51.3 % of the pipeline, of the pipeline's 374 ms in play (#3387). It is also 395 of 823 ms under a fast clock (#3389) and 145 of 362 ms at a zero interval (#3390).
+   - Its Java is 9 `NR.call`s and 2 direct calls a run (#3388): under 0.3 % by the estimate, and about 24 µs (11 calls × 2.2) at the upper bound.
    - The saving: at most its 800 µs at m = 1, or 800 ÷ m under a round-robin. No reading resolves where inside the step the time goes, so Plan 11's first performance task is a profile below the step, before any rewrite.
    - Metabolism, 333 µs (21.4 %, #3387), is next by the same reading. It carries more Java (30 `NR.call`s and 5 direct, about 77 µs at the upper bound).
-2. **A round-robin `EveryOneMinute` drain in place of the `OnTick` drain** (rule 6).
-   - The reading: #3391, with #3389's flat per-run cost and #3348's one event a tick under a fast clock.
-   - The saving at m = 1 is none on average: the 1583 µs moves from the tick to the event.
-   - What it buys is no per-tick work and a bounded spike: ceil(N / m) players an event instead of a 24.6–31.7 ms burst at 20 players (extrapolation).
-   - The period m is a coarse minute per player (item 3).
-3. **A coarse minute, only at k = 2 (a round-robin of m = 2), and only with first-sight alignment and event landing.**
+2. **A coarse minute at k = 2** (a round-robin of m = 2; saving about 790 µs), **conditional: it holds only if Angus adopts the fairer band of Appendix H.** Under ruling 4's band k = 2 fails (#3396, #3397). It also needs first-sight alignment and event landing, and event landing at its own minute was never run.
    - The reading: #3396–#3398, and the P2 review's fairer-band recomputation (Appendix H). Under the fairer band, k = 2 leaves one-minute back-dating and the first-sight lag, with no band or grade flip.
    - First-sight alignment means a joining player's first minute runs at the join, not at the next fired minute. Event landing means a dose is integrated from its own minute, not back-dated to the step's start.
    - The saving: about 790 µs, the minute ÷ 2 (arithmetic on #3387; flat cost per #3389, inference). That takes the all-in cost from 1600–1660 to 809–869 µs at DayLength 1, and the spike to 12.3–15.8 ms at 20 players (extrapolation).
    - k = 5 is not supported, because it is player-visible (#3396; Appendix H). k ≥ 15 misses a death.
-4. **The three dt biases: `exEma`, `coldH` and `cafMean`** (Appendix H), with the bruise roll and `fluids.sweatLmin` (#3399) beside them.
-   - The saving: none; this is correctness.
-   - It is a precondition of item 3. It already matters under a fast clock, where one run integrates several game minutes (#3389) (inference).
-5. **Caching Java reads: not supported.**
+3. **Caching Java reads: not supported** (saving at most about 66 µs).
    - The reading: #3388 with P1 Step 4's estimate. 0.214 µs a call gives 19.5 µs of 1558 (1.25 %).
    - The saving: at most about 66 µs per player-run at the 2.2 µs upper bound, where weight and strength reach about half (about 86 µs at +1 sd). That is about 4 % of the minute. P4 was not triggered.
+4. **A round-robin `EveryOneMinute` drain in place of the `OnTick` drain** (rule 6; saving zero on average, but required by rule 6).
+   - The reading: #3391, with #3389's flat per-run cost and #3348's one event a tick under a fast clock.
+   - The saving at m = 1 is none on average: the 1583 µs moves from the tick to the event.
+   - What it buys is no per-tick work and a bounded spike: ceil(N / m) players an event instead of a 24.6–31.7 ms burst at 20 players (extrapolation).
+   - The period m is a coarse minute per player (item 2).
+5. **The three dt biases: `exEma`, `coldH` and `cafMean`** (Appendix H), with the bruise roll and `fluids.sweatLmin` (#3399) beside them (saving zero).
+   - The saving: none; this is correctness.
+   - It is a precondition of item 2. It already matters under a fast clock, where one run integrates several game minutes (#3389) (inference).
 
 ## Angus's decisions
 
@@ -401,7 +401,7 @@ Each item names its reading and its expected saving per player per game minute, 
 
 - **The burst spike.** The burst measured at most 6 ms per event with two players, and the round-robin at m = 5 at most 4 ms (#3391).
   - Extrapolated at 1.23–1.58 ms per player-run (labelled extrapolation), a full burst costs 24.6–31.7 ms per event at 20 players and 49–63 ms at 40, a quarter to over half of a 100 ms tick, once a game minute.
-  - The m = 5 round-robin costs 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40.
+  - The m = 5 round-robin costs 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40, on its own basis of 1.23–1.72 ms, the round-robin's measured 1721.3 µs per player-run (#3391).
   - Under a fast clock every tick carries one minute event (#3348), so a burst there runs every player every tick (inference). The round-robin bounds that too.
 - **The round-robin's period is a coarse minute.** Each player then runs every m game minutes, which is P2's k = m.
   - m = 2 is nearly safe under the fairer band and needs first-sight alignment and event landing. Its all-in cost is 809–869 µs at DayLength 1 (arithmetic).
@@ -479,6 +479,7 @@ Each item names its reading and its expected saving per player per game minute, 
 ## Appendices
 
 The spike sections follow verbatim, each with its readings and rows.
+Appendices A–C, and the wall-cycle and `OnTick`-hold text in G and H, predate rule 6. Decision 1 and the Performance section supersede them; the appendices are records and are not edited.
 
 
 ## Appendix A. S1 — the zeroed-drains alternative
