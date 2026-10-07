@@ -300,8 +300,8 @@ row that did, H2, is settled by `x182`.**
 
 - **A `-debug` client is stopped dead** by the first mod Lua error reaching `KahluaUtil.fail` — it
   parks in `UIManager.debugBreakpoint`'s modal pump. A raising mod therefore cannot be *driven* on
-  the debug client, which is why I14's client half is C. A **release** client is `Core.debug`-gated
-  and unmeasured; gate every raising probe on the **server** and set `[client] timeout` low.
+  the debug client. I14's client half is now M n=1 (x202): a **release** client is `Core.debug`-gated
+  and, raised on once, answered through the raise without parking [#3317/M/n=1]; gate every raising probe on the **server** and set `[client] timeout` low all the same, because the -debug client parks [#3318/M/n=1].
 - **`server_errors` is a classifier's output, not a fault count**, and `pzt run` reporting FAIL on a
   raising probe is the profile working as designed. No count of trace blocks is evidence of a fault.
 - **Nothing on the bus executes a craft.** `recipes.craft` is a **reader**, and nothing on the bus
