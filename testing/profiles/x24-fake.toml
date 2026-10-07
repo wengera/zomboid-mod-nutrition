@@ -1,0 +1,31 @@
+# testing/profiles/x24-fake.toml - Plan 10c Task H5 (run x245): can the engine's own fake client
+# (zombie.network.FakeClientManager, jar 42.20.4) join the harness's -nosteam server, and what does vanilla's own
+# per-player load cost the server frame at N = 0, 5, ..., 60 fake players.
+# PZTestKit only (e15a9ca or later: tick.ring, perf.local, the gclog key). NO NutritionRevamp: this session reads
+# vanilla's denominator (E7), so no mod work runs. Fixture `two`; the driver attaches NO game client (a server-only
+# session plus one FakeClientManager JVM it launches itself, read-only from the install's classpath), boots the server
+# on port 16261 (FakeClientManager.Network.connect hard-codes it) and writes MaxPlayers = 64 and DoLuaChecksum = false
+# into the RUN copy of the ini (make_server's ini argument; the fixture cache is not touched).
+# DayLength 1 and Nutrition false keep the clock and the body update the x24 sessions ran with.
+# The driver is testing/experiments/x245_fake.py. `clients` names admin only because a profile must name one; the
+# driver never attaches it.
+fixture = "two"
+description = "PZTestKit only (no NutritionRevamp), fixture two, server-only plus the engine's FakeClientManager on 16261, Nutrition off, DayLength 1, gclog on - x245: do fake clients join 42.20.4, and vanilla's frame busy and end-to-end period at N = 0..60 in steps of 5."
+clients = ["admin"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the x24 sessions' setting (the body update the earlier idle arms ran with)
+DayLength = 1                 # a game day is 15 real minutes, as in x241-x244a
