@@ -399,8 +399,8 @@ A takeover registers the stat hook and runs every stat the seven updaters run, p
 It owns hunger, thirst, stress, morale and the rest outright, and it collides with any other mod that registers the same hook, because a second registrant cannot restore what the first suppressed [#2240/C/C-only].
 It cannot stop the server's fatigue reset or the player's endurance model, both of which run before it [#2723/C/C-only] [#2235/C/C-only].
 An overlay leaves the updaters running and corrects the stats after them from a server-side handler later in the frame, whose place in the frame is [the server tick order](../platform/server-lifecycle.md#tick-order).
-It owns nothing outright unless it also zeroes vanilla's hunger, thirst and fatigue rise rates before `Load` copies them, a choice fixed for the server's life because nothing short of an engine reset runs `Load` again [#3364/C/C-only] [#3365/C/C-only]; otherwise vanilla's rates keep running, and the only sandbox dial on them scales hunger, thirst and fatigue together and never calories [#0553].
-It composes with other mods, because nothing it does suppresses anyone else's code.
+It owns nothing outright: vanilla's hunger, thirst and fatigue rise rates keep running unless it also zeroes them before `Load` copies them, a choice fixed for the server's life because nothing short of an engine reset runs `Load` again [#3364/C/C-only] [#3365/C/C-only], and even then vanilla's sleep recovery still lowers fatigue [#3363/C/C-only]; and the only sandbox dial on them scales hunger, thirst and fatigue together and never calories [#0553].
+It composes with other mods, because nothing it does suppresses anyone else's code, though once it zeroes the rates any other mod that reads them sees no rise at all.
 The direction flags the sides read are vanilla's own while the `Nutrition` option is on [#2884/M/n=1].
 Which shape a design takes decides whether the seven formulas must be reproduced at all.
 
