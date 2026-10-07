@@ -376,7 +376,7 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 
 | round-robin period m | players a event | the event's cost (ms) | average a game minute (ms) | drift (P2) |
 |---|---|---|---|---|
-| 1 | 60 | 73.8 to 103.2 | 95 | exact |
+| 1 | 60 | 73.7 to 103.3 | 95 | exact |
 | 2 | 30 | 36.9 to 51.6 | 47.5 | unsafe under ruling 4; clean only under Appendix H's fairer band |
 | 5 | 12 | 14.8 to 20.6 | 19 | player-visible (#3396) |
 | 10 | 6 | 7.4 to 10.3 | 9.5 | 26 discrete mismatches (#3396) |
@@ -516,7 +516,7 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 ### 6. Spreading the minute at 60 players
 
 - **Answered in principle by Angus (2026-10-07):** a per-tick site is allowed when measured to reduce hitching. The choice between (a), (b) and (c) now waits on the hitching experiments that follow the architecture review.
-- At the 60-player design load, no per-tick work leaves a one-tick spike of 73.8 to 103.2 ms every game minute (arithmetic; The 60-player design load, above).
+- At the 60-player design load, no per-tick work leaves a one-tick spike of 73.7 to 103.3 ms every game minute (60 × 1228.81 and 1721.31 µs, x231 unrounded) (arithmetic; The 60-player design load, above).
 - Choose one: (a) keep rule 6 and make a player-run about 4.75 times cheaper (0.333 ms at m = 2, which also needs the fairer band); (b) allow a budgeted per-tick scheduler that only drains the minute's queue, with no simulation per tick (12.3 to 15.8 ms a tick at DayLength 1, flat; each player still runs every game minute, so it adds none of P2's drift, which is inference: P2 measured only coarser minutes); or (c) accept the spike.
 - Recommendation: (b) now, and (a) as Plan 11's performance target either way. (b) is the standard mitigation for a fixed per-minute workload. (a) depends on a profile that has not been run.
 
