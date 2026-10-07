@@ -113,6 +113,10 @@ correct it.
 | `x241-20261007-140414` | `smoke.json`, `MANIFEST.json`, `gc.log` | `testing/experiments/x241_smoke.py` — one boot of `x24-smoke` on fixture `two` with two clients (`admin` -debug, `bob` release), Plan 10c Task H0 Step 4, the smoke run of the harness's frame-time instrument and ghost load (harness `ed4ac93` + `f06d2e6`) on the staged copy of the tree at `9578eb9` (`release/hitch-9578eb9/NutritionRevamp/Contents/mods/NutritionRevamp`) with no instrument added: `S0` the load, `I` 120 s idle under `tick.ring` and `perf.local`, `B` 120 s of `ghost.load 20 burst` under both, `Z` the mod-error check; `MANIFEST.json` is the staged manifest copied byte-identical and `gc.log` the server JVM's `-Xlog:gc*` file from the profile's `gclog` flag | [`areas/testing-your-mod.md`](../areas/testing-your-mod.md), [`platform/harness.md`](../platform/harness.md), [`platform/lua-platform.md`](../platform/lua-platform.md), [`platform/performance.md`](../platform/performance.md) |
 | `x242-20261007-151339` | `costs.json`, `MANIFEST.json` | `testing/experiments/x242_costs.py` — one boot of `x24-costs` on fixture `two` with two clients (`admin` -debug, `bob` release), Plan 10c Task H2 on the staged copy of the tree at `9578eb9` (`release/hitch-x242/NutritionRevamp/Contents/mods/NutritionRevamp`) with the x242 instruments (kept as `testing/spikes/instruments/x242_NR_Server_{Bench,Nutrients,Metabolism,Effects,Strength}.lua`): `A` the slow minute by step and sub-block in play over two 60-minute windows each crossing 07:00 (two meals, a walk, a sleep), `B` the same with `bob` seeded deficient in vitamin C and iron; the driver was stopped by the host for memory at the start of phase `C`, so phases `C`, `D`, `G`, `F`, `E` and `Z` and the driver's grading never ran; `MANIFEST.json` is the staged manifest copied byte-identical | — |
 | `x242b-20261007-152926` | `costs.json`, `MANIFEST.json` | `testing/experiments/x242b_costs.py` — one boot of `x24-costs-b` on fixture `two` with two clients (`admin` -debug, `bob` release), Plan 10c Task H2b, the phases `x242-20261007-151339` never reached (ruling H2-1), on the same staged instrument copy (`release/hitch-x242/NutritionRevamp/Contents/mods/NutritionRevamp`, the tree at `9578eb9` with the x242 instruments): `C` the interleaved burst-source bench (a typical minute, a day close, a seven-close catch-up, first sight, one mirror send), `D` the client tooltip entry bench, `E` the global store's save at 0, 100, 500 and 2000 seeded records and a client's `ModData.request` of it at 2 and 60 records, `F` the ghost calibration (`ghost.bench`, unfed then fed), `E3` the request at 500 records, `Z` the mod-error check; `MANIFEST.json` is the staged manifest copied byte-identical | — |
+| `x243a-20261007-160539` | `shootout.json`, `MANIFEST.json`, `gc.log` | `testing/experiments/x243a_shootout.py` — one boot of `x24-shootout-a` on fixture `two` with two clients (`admin` -debug, `bob` release), Plan 10c Task H3 session a on the uninstrumented staged copy of the tree at `9578eb9` (`release/hitch-9578eb9/NutritionRevamp/Contents/mods/NutritionRevamp`), `DayLength` 1, gclog on: an idle baseline, then `budget10`, `rr2`, `burst`, `budget5`, `drainTicks`, `budget15` and `rr5` at N = 60 (58 fed ghost records), about 1020 frames each, read by `tick.ring`, `perf.local` and `ghost.stats`; `MANIFEST.json` is the staged manifest and `gc.log` the server's GC log, both copied byte-identical | — |
+| `x243a-20261007-162255` | `shootout.json`, `MANIFEST.json`, `gc.log` | `testing/experiments/x243b_shootout.py` — Plan 10c Task H3 session b, which kept x243a's run prefix and profile by a defect of the driver's copy: one boot of `x24-shootout-a` (the content of `x24-shootout-b` but for its header and description) on fixture `two` with two clients (`admin` -debug, `bob` release), the uninstrumented staged copy at `9578eb9`, `DayLength` 1, gclog on: an idle baseline, `burst`, `drainTicks` and `budget10` at N = 20 and 40, and the shipped drain's starvation at N = 60 (ruling 3); `MANIFEST.json` and `gc.log` copied byte-identical | — |
+| `x243c-20261007-163949` | `shootout.json`, `MANIFEST.json`, `gc.log` | `testing/experiments/x243c_shootout.py` — one boot of `x24-shootout-c` on fixture `two` with two clients (`admin` -debug, `bob` release), Plan 10c Task H3 session c on the uninstrumented staged copy at `9578eb9`: at `time.multiplier` 0.1674 (37 ticks a game minute, the `DayLength` 4 spacing) an idle baseline, `rr5`, `budget10`, `burst` and `drainTicks` at N = 60; then under `settimespeed 30` a fast idle baseline, `budget10` and `burst` at N = 60; `MANIFEST.json` and `gc.log` copied byte-identical | — |
+| `x243d-20261007-165535` | `shootout.json`, `MANIFEST.json`, `gc.log` | `testing/experiments/x243d_shootout.py` — one boot of `x24-shootout-d` on fixture `two` with two clients (`admin` -debug, `bob` release), Plan 10c Task H3 session d on the uninstrumented staged copy at `9578eb9`, `DayLength` 1: the budgeted drain's empty-queue check as an A/B (none, empty, empty, none; about 1520 frames each), then N = 60 across the mod's 07:00 day close under `budget10` and `burst`; `MANIFEST.json` and `gc.log` copied byte-identical | — |
 
 ## Script/artifact skew
 
@@ -3579,3 +3583,115 @@ How to read it. Every figure is a whole-millisecond total off `getTimestampMs` o
 | `meta.x242_A`, `verdicts.C1.observed.A_run_ms` | 1.459… | x242's phase A reading, copied at start-up; cite x242's `phases.A.acc`. |
 | `summaries.C.close_minus_typ`, `summaries.C.catch_minus_typ_per_close` | −0.112, −0.0116 | Differences of interleaved totals: a close or catch-up run read 0.08 to 0.11 ms cheaper than the typical run (close 112 ms under, catch 81 under over 1000 runs), beyond the truncation noise (about ±30 ms at 95 % (one sd about 15 ms) on a difference over 1000 runs), for an unmeasured reason; a difference is not a close's cost. Read `summaries.C.ms_per` and the CS sub-blocks. |
 | `phases.E.E1.*.saves.*.perf_read.avg`, `phases.E.E1.*.saves.*.perf_doc.avg`, `phases.E.E1.*.saves.*.perf_doc.samples_list.avg` | 4 to 5 | The engine's `avg-update-period` is no mean (x241's guide); read the window max. |
+
+**`x243a-20261007-160539/shootout.json`**, **`x243a-20261007-160539/MANIFEST.json`** and **`x243a-20261007-160539/gc.log`** — produced by `testing/experiments/x243a_shootout.py`, written before the boot and committed at `a0c5af1` with the profile `testing/profiles/x24-shootout-a.toml` before the run, unedited since, on HEAD `a0c5af1` (harness Lua `6af6595`, clean; harness Python `ed4ac93`; `mod/` not booted)
+(995.5 s wall; `shootout.json` 1432141 bytes, sha256 `5d15fcf2…8835bb2a`, `gc.log` 292020 bytes, sha256 `0d63642e…43e1d52f`, both byte-for-byte identical to the run copies, copied by the driver; `MANIFEST.json` sha256 `c86e295a…2415b389`, the staged manifest). **Plan 10c Task H3 session a, the scheduler shoot-out at N = 60, `DayLength` 1.** Fixture `two`, `admin` -debug then `bob` release, Nutrition false, gclog on; every verify row ok; `server_error_count` 0; `admin` not parked; free memory fell from 19.67 GB before the boot to 0.65 GB (`memory`). Phase order S0, I, `budget10`, `rr2`, `burst`, `budget5`, `drainTicks`, `budget15`, `rr5`, Z.
+
+How to read it. Each arm (`phases.<arm>`) is `ghost.stop` of the previous load, `ghost.load 60 <sched> feed` (58 ghost records, fed; `drainTicks` seeded `tpm6` from `TK.H0.tpmSeen`), `ghost.stats reset`, `perf.local 400`, `tick.ring 1500`, 101.5 s with no bus traffic, then `perf.local read`, `tick.ring read`, `ghost.stats` and `ghost.stop`; the two real players stay on the mod's own drain throughout. The arm's frames are its `tick.ring` document (`phases.<arm>.ring_doc.frames_list`, every frame's `start`, `stop`, `busy`, `period`, `endPeriod`, `minute`, `runs`, `ghostMs`, getTimestampMs epoch ms) and its windows the `perf.local` document (`phases.<arm>.perf_doc.samples_list`, one sample an engine window of about 1 s). `summaries.<arm>` is the driver's grading: the kept frames drop every frame that overlapped the ring arm or the perf read (`phases.<arm>.drop_windows`), the kept windows drop the first sample and any window that overlapped them; p50, p99 and max are nearest rank; `adds` is the arm minus `summaries.I` over the same population; `busy_ms_per_game_minute` is the kept busy sum over the kept minute frames. About 95 windows are kept an arm, so a window p99 is the window max. A ghost run is cost, not behaviour (`meta.cost_note`); `ghost_ms_per_run` is `ghost.stats` ms over runs, batch-timed at 1 ms. The mod's 07:00 day close fell in the `budget15` arm, about 869 s into the session by the two time snapshots (`phases.S0.time`, `phases.Z.time`); that arm's longest frame (31 ms busy, 134 ms period) started about 2 s later.
+
+| arm | busy p50 / p99 / max | minute busy p50 / p99 / max | period p99 / max | longest window | adds: period p99, longest window | total a game minute over idle | starved ghost-minutes / minute events | ghost ms a run |
+|---|---|---|---|---|---|---|---|---|
+| I | 2 / 10 / 13 | 3 / 12 / 13 | 108 / 111 | 115 | — | (12.7 absolute) | — | — |
+| budget10 | 10 / 16 / 26 | 12 / 21 / 26 | 113 / 123 | 124 | 5, 9 | 47.3 | 207 / 166 (34 events; 56.75 runs an event) | 0.857 |
+| rr2 | 1 / 40 / 48 | 31 / 45 / 48 | 140 / 147 | 146 | 32, 31 | 27.2 | 0 / 162 | 0.990 |
+| burst | 1 / 70 / 88 | 50 / 81 / 88 | 170 / 188 | 188 (all 95 windows over 133) | 62, 73 | 46.9 | 0 / 151 | 0.868 |
+| budget5 | 5 / 12 / 43 | 6 / 19 / 43 | 108 / 141 | 141 | 0, 26 | 21.6 | 6079 / 167 (21.52 runs an event) | 1.149 |
+| drainTicks | 10 / 19 / 22 | 12 / 20 / 22 | 115 / 119 | 119 | 7, 4 | 51.1 | 176 / 167 (44 events) | 0.959 |
+| budget15 | 11 / 19 / 31 | 16 / 28 / 31 | 121 / 134 | 134 | 13, 19 | 41.8 | 0 / 165 | 0.805 |
+| rr5 | 1 / 16 / 23 | 12 / 22 / 23 | 117 / 122 | 123 | 9, 8 | 4.4 | 0 / 165 (each ghost every 5 events) | 0.824 |
+
+- **The GC log**: 150 pauses, the largest 0.313 ms, at most 0.029 ms inside an arm; 30 allocation stalls, the longest 221.373 ms, all 37 s after the launch, before any arm (`gc`, `summaries.<arm>.gc`).
+- **Verdicts**: I, F, BURST, RR2, RR5, B5, B15, A6, S, G and Z as predicted; DRAIN falsified (176 starved ghost-minutes) and B10 falsified (207 starved ghost-minutes; its peaks met the bounds).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` run, one fixture, two characters, one host; ghost records are cost, not behaviour. |
+| `session`, `predictions`, `constants`, `deviations`, `world_changes`, `meta.calibration_note`, `meta.cost_note`, `meta.timer_note`, `meta.staging`, `verdicts.*.predicted` | the driver's tables and text | Written before the run; not readings. |
+| `summaries.*.n_eq_band`, `summaries.*.ghost_over_fed_calibration` | 43.8 to 60; ratios | Arithmetic on x242b's calibration, computed by the driver; read `summaries.<arm>.ghost_ms_per_run`. |
+| `phases.*.perf_read.avg`, `phases.*.perf_doc.avg`, `phases.*.perf_doc.samples_list.avg` | 3 to 8 | The engine's `avg-update-period` is no mean (x241's guide). |
+| `phases.<arm>.perf_read.max`, `phases.<arm>.perf_doc.max`, `phases.<arm>.ring_read.busy.max`, `phases.<arm>.ring_read.endPeriod.max` where they differ from the summaries (listed in `do-not-cite.csv`) | 130 to 190 | The harness's own summaries over every sample or frame, the first window (begun before the arm) and the frames that overlapped a bus step included; read `summaries.<arm>`. |
+
+**`x243a-20261007-162255/shootout.json`**, **`x243a-20261007-162255/MANIFEST.json`** and **`x243a-20261007-162255/gc.log`** — produced by `testing/experiments/x243b_shootout.py`, written before the boot and committed at `da3fdcb` with the profile `testing/profiles/x24-shootout-b.toml` before the run, unedited since, on HEAD `da3fdcb` (harness Lua `6af6595`, clean; harness Python `ed4ac93`; `mod/` not booted)
+(960.2 s wall; `shootout.json` 1347732 bytes, sha256 `089ab702…7f481c4d`, `gc.log` 339256 bytes, sha256 `9fd867bc…ec66b936`, both byte-for-byte identical to the run copies, copied by the driver; `MANIFEST.json` sha256 `c86e295a…2415b389`). **Plan 10c Task H3 session b.** The driver was made as a copy of `x243a_shootout.py` and kept its `PREFIX = "x243a"` and `PROFILE = "x24-shootout-a"`: the run id carries `x243a`, and the boot used `x24-shootout-a.toml`, whose content equals `x24-shootout-b.toml` but for its header comment and `description` (fixture `two`, the same staged copy, Nutrition false, `DayLength` 1, gclog on); `x24-shootout-b.toml` was committed and never booted. The arms, predictions and grading are session b's (`session`, `phases`, `verdicts`). Every verify row ok; `server_error_count` 0; `admin` not parked; free memory fell to 0.83 GB. Phase order S0, I, `burst20`, `drainTicks20`, `budget10_20`, `budget10_40`, `burst40`, `drainTicks40`, `shipped60`, Z.
+
+How to read it. As `x243a-20261007-160539`'s guide (the same arm procedure, the same kept populations and `adds` against this session's own `summaries.I`), with N per arm in its name (18 and 38 ghost records at N = 20 and 40) and `shipped60` 70 s long (ruling 3: starvation only; its ring is kept but graded only for its minute events). The mod's 07:00 day close fell in `drainTicks40`, about 860 s into the session.
+
+| arm | busy p50 / p99 / max | minute busy p50 / p99 / max | period p99 / max | longest window | adds: period p99, longest window | total a game minute over idle | starved / minute events | ghost ms a run |
+|---|---|---|---|---|---|---|---|---|
+| I | 1 / 8 / 15 | 3 / 14 / 15 | 107 / 114 | 115 | — | (11.8 absolute) | — | — |
+| burst20 | 1 / 26 / 36 | 18 / 35 / 36 | 125 / 135 | 135 | 18, 20 | 14.3 | 0 / 165 | 0.897 |
+| drainTicks20 | 4 / 10 / 15 | 5 / 14 / 15 | 108 / 115 | 115 | 1, 0 | 14.9 | 0 / 167 | 0.967 |
+| budget10_20 | 1 / 16 / 21 | 12 / 20 / 21 | 116 / 123 | 123 | 9, 8 | 10.8 | 0 / 166 | 0.799 |
+| budget10_40 | 8 / 15 / 40 | 11 / 22 / 40 | 115 / 139 | 139 | 8, 24 | 29.2 | 0 / 167 | 0.850 |
+| burst40 | 1 / 41 / 51 | 32 / 48 / 51 | 141 / 151 | 151 | 34, 36 | 25.8 | 0 / 161 | 0.800 |
+| drainTicks40 | 6 / 13 / 23 | 7 / 21 / 23 | 111 / 120 | 120 | 4, 5 | 27.9 | 88 / 166 | 0.859 |
+| shipped60 | 2 / 7 / 16 | 3 / 11 / 16 | 107 / 117 | 117 | 0, 2 | 1.9 | 6180 / 116 | 1.427 (one ghost a batch: whole-ms truncation dominates) |
+
+- **shipped60**: 4.26 ghost runs a minute event (494 over 116), 232 ticks yielded to the mod's own drain, 6180 queued ghost-minutes dropped, 53 of the 58 ghosts never ran, the longest 115.7 game minutes stale (`summaries.shipped60.ghost`).
+- **The GC log**: 174 pauses, the largest 0.179 ms, at most 0.042 ms inside an arm; 36 allocation stalls, the longest 127.306 ms, 36 to 37 s after the launch, before any arm.
+- **Verdicts**: I, F, B20, B40, LIN (1.78), SHIP, S, G and Z as predicted; Q falsified (drainTicks40's 88 starved ghost-minutes).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` run, one fixture, two characters, one host; ghost records are cost, not behaviour. |
+| `session`, `predictions`, `constants`, `deviations`, `world_changes`, `meta.calibration_note`, `meta.cost_note`, `meta.timer_note`, `meta.staging`, `verdicts.*.predicted` | the driver's tables and text | Written before the run; not readings. |
+| `profile.name`, `profile.description` | `x24-shootout-a`, x243a's description | The profile booted by the driver's defect; this run is session b. |
+| `summaries.*.n_eq_band`, `summaries.*.ghost_over_fed_calibration` | bands; ratios | Arithmetic on x242b's calibration, computed by the driver. |
+| `phases.*.perf_read.avg`, `phases.*.perf_doc.avg`, `phases.*.perf_doc.samples_list.avg` | 3 to 8 | The engine's `avg-update-period` is no mean. |
+| `phases.<arm>.perf_read.max`, `phases.<arm>.perf_doc.max`, `phases.<arm>.ring_read.busy.max`, `phases.<arm>.ring_read.endPeriod.max` where they differ from the summaries (listed in `do-not-cite.csv`) | 116 to 155 | The harness's own summaries over every sample or frame; read `summaries.<arm>`. |
+
+**`x243c-20261007-163949/shootout.json`**, **`x243c-20261007-163949/MANIFEST.json`** and **`x243c-20261007-163949/gc.log`** — produced by `testing/experiments/x243c_shootout.py`, written before the boot and committed at `c23586a` with the profile `testing/profiles/x24-shootout-c.toml` before the run, unedited since, on HEAD `c23586a` (harness Lua `6af6595`, clean; harness Python `ed4ac93`; `mod/` not booted)
+(918.2 s wall; `shootout.json` 1259797 bytes, sha256 `c93823c7…24e9c025`, `gc.log` 299987 bytes, sha256 `efdd82d9…a47f6f9e`; both byte-for-byte identical to the run copies, copied by the driver; `MANIFEST.json` sha256 `c86e295a…2415b389`). **Plan 10c Task H3 session c, N = 60 at the `DayLength` 4 spacing and under a fast clock.** Fixture `two`, Nutrition false, `DayLength` 1 in the profile; phase M set `time.multiplier 0.1674` live (the reply read the multiplier back as 0.7975, and `TK.H0.tpmSeen` was 37 ticks a game minute, 0.237 world minutes a wall second, `summaries.M`); phase FS set `settimespeed 30` (48.19 world minutes a wall second, `summaries.FS`) for the three fast arms; Z restored `settimespeed 1`. Every verify row ok; `server_error_count` 0; `admin` not parked; free memory fell to 0.55 GB. Phase order S0, M, I, `rr5`, `budget10`, `burst`, `drainTicks`, FS, `fastIdle`, `fastBudget10`, `fastBurst`, Z.
+
+How to read it. As `x243a-20261007-160539`'s guide, with two baselines: the slow arms' `adds` are against `summaries.I`, the fast arms' against `summaries.fastIdle` (61 s each, about 610 frames, every frame a minute frame). At 37 ticks a game minute 1000 frames hold 27 or 28 minute frames, so a slow arm's minute-frame p99 is its max (`do-not-cite.csv`); the totals a game minute divide by those 27 or 28 frames. Each fast arm crossed the mod's 07:00 about twice.
+
+| arm | busy p50 / p99 / max | minute busy p50 / max (n) | period p99 / max | longest window | adds: period p99, longest window | total a game minute over idle | starved / minute events | ghost ms a run |
+|---|---|---|---|---|---|---|---|---|
+| I | 1 / 5 / 18 | 3 / 14 (27) | 105 / 120 | 119 | — | (47.5 absolute) | — | — |
+| rr5 | 1 / 14 / 20 | 13 / 20 (27) | 113 / 121 | 121 | 8, 2 | 0.6 | 0 / 28 | 0.896 |
+| budget10 | 1 / 13 / 21 | 11 / 21 (28) | 112 / 120 | 121 | 7, 2 | 29.9 | 0 / 29 | 0.831 |
+| burst | 1 / 50 / 60 | 48 / 60 (27) | 149 / 161 | 161 | 44, 42 | 24.5 | 0 / 29 | 0.794 |
+| drainTicks | 2 / 7 / 11 | 4 / 11 (27) | 107 / 112 | 113 | 2, −6 | 43.2 | 0 / 29 | 1.107 |
+| fastIdle | 6 / 16 / 47 | all 610 | 113 / 145 | 145 | — | (6.2 absolute) | — | — |
+| fastBudget10 | 14 / 25 / 52 | all 610 | 116 / 138 | 138 | 3, −7 | 8.4 | 29715 / 623 (10.3 runs a run frame; 42.8 game minutes stale) | 0.854 |
+| fastBurst | 48 / 67 / 76 | all 609 | 123 / 134 | 134 | 10, −11 | 43.1 | 0 / 623 | 0.767 |
+
+- **The GC log**: 154 pauses, the largest 0.053 ms; 29 allocation stalls, the longest 274.56 ms, 36 s after the launch, before any arm.
+- **Verdicts**: every one as predicted (TPM 37; FAST 610 of 610 minute frames; FB10 29715 starved).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` run, one fixture, two characters, one host; ghost records are cost, not behaviour. |
+| `session`, `predictions`, `constants`, `deviations`, `world_changes`, `meta.calibration_note`, `meta.cost_note`, `meta.timer_note`, `meta.staging`, `verdicts.*.predicted` | the driver's tables and text | Written before the run; not readings. |
+| `summaries.I.busy_minute.p99`, `summaries.rr5.busy_minute.p99`, `summaries.budget10.busy_minute.p99`, `summaries.burst.busy_minute.p99`, `summaries.drainTicks.busy_minute.p99` | 14, 20, 21, 60, 11 | Nearest rank over 27 or 28 minute frames: the p99 is the max; read `.max`. |
+| `summaries.*.n_eq_band`, `summaries.*.ghost_over_fed_calibration` | bands; ratios | Arithmetic on x242b's calibration, computed by the driver. |
+| `phases.*.perf_read.avg`, `phases.*.perf_doc.avg`, `phases.*.perf_doc.samples_list.avg` | 3 to 8 | The engine's `avg-update-period` is no mean. |
+| `phases.<arm>.perf_read.max`, `phases.<arm>.perf_doc.max`, `phases.<arm>.ring_read.busy.max` where they differ from the summaries (listed in `do-not-cite.csv`) | 12 to 176 | The harness's own summaries over every sample or frame; read `summaries.<arm>`. |
+
+**`x243d-20261007-165535/shootout.json`**, **`x243d-20261007-165535/MANIFEST.json`** and **`x243d-20261007-165535/gc.log`** — produced by `testing/experiments/x243d_shootout.py`, written before the boot and committed at `b031fc9` with the profile `testing/profiles/x24-shootout-d.toml` before the run, unedited since, on HEAD `b031fc9` (harness Lua `6af6595`, clean; harness Python `ed4ac93`; `mod/` not booted)
+(909.3 s wall; `shootout.json` 1225604 bytes, sha256 `98bf0ff6…a4aabbf5`, `gc.log` 300035 bytes, sha256 `f639fb58…7d5c00a4`, both byte-for-byte identical to the run copies, copied by the driver; `MANIFEST.json` sha256 `c86e295a…2415b389`). **Plan 10c Task H3 session d, `DayLength` 1: the empty-queue check A/B and the day-boundary arm** (a session the H3 amendments' table does not list: it carries x243a's A/B and session b's day boundary, so that each session stayed near the 15-minute cap; `deviations`). Every verify row ok; `server_error_count` 0; `admin` not parked; free memory fell to 1.17 GB. Phase order S0, `none1`, `empty1`, `empty2`, `none2`, `db_budget10`, `db_burst`, Z.
+
+How to read it. The A/B arms are 151.5 s each (about 1520 frames); `none*` carry no load (the harness hooks on), `empty*` carry `ghost.load 3 budget10 feed`, ONE ghost run once a minute event, the queue empty on every other tick (`ghost.load 2` is refused with two players online). `summaries.AB` is the driver's A/B: `total_ms_per_frame` is (the empty arms' busy sum less the ghost ms their kept frames recorded) over their frames minus the none arms' busy sum over theirs; `quiet_ms_per_frame` the same on the frames with no ghost run and no minute event; `pairs` each adjacent pair alone. The day-boundary arms fast-forward with `settimespeed 30` to 05:30–06:25 (`phases.db_*.ff_polls`), go back to `settimespeed 1`, load 58 fed ghosts and read the ring from about 05:52 to past 07:08; `summaries.db_*.close` interpolates the 07:00 epoch from two time snapshots (`phases.db_*.snap0`, `snap1`) and reads the frames that start within two game minutes of it. Their `adds` are against `summaries.none1`.
+
+- **A/B** (3034 frames a side): empty 4972 ms busy less 384 ghost ms, 1.512 ms a frame; none 4747 ms, 1.565 ms a frame; −0.052 ms a frame by the totals, −0.077 by the quiet frames (2550 and 2549 frames). The pairs read −0.238 (`empty1`−`none1`) and +0.133 (`empty2`−`none2`) by the totals; the four arms read 1.873, 1.753, 1.525 and 1.256 ms a frame in order, a drift of about 0.6 ms a frame over the 10 minutes. The bound (0.1 ms a frame) is not contradicted and not resolved.
+- **db_burst**: the first minute frame after 07:00 read 67 ms busy, a 170 ms period and 58 runs; the arm's minute frames 50 at p50 and 76 at the max (74 frames), its longest window 175 ms, 58 ms over `none1`'s; 0 starved.
+- **db_budget10**: within two game minutes of 07:00 the frames read at most 20 ms busy (the arm's max) and a 114 ms period; 166 starved ghost-minutes over 86 minute events (30 of them); the longest window 119 ms.
+- **The GC log**: 152 pauses, the largest 0.695 ms (in `none1`); 36 allocation stalls, the longest 191.219 ms, 34 to 35 s after the launch, before any arm.
+- **Verdicts**: F, EC, ECQ, DBB (1.34), S, G and Z as predicted; DB10 falsified (starvation; its peak met the bound).
+
+**Do not cite from this file:**
+
+| Key | Value in the file | Why not |
+|---|---|---|
+| everything measured here, as a population | — | `n = 1` run, one fixture, two characters, one host; ghost records are cost, not behaviour. |
+| `session`, `predictions`, `constants`, `deviations`, `world_changes`, `meta.calibration_note`, `meta.cost_note`, `meta.timer_note`, `meta.staging`, `verdicts.*.predicted` | the driver's tables and text | Written before the run; not readings. |
+| `summaries.db_budget10.busy_minute.p99`, `summaries.db_burst.busy_minute.p99` | 20, 76 | Nearest rank over 82 and 74 minute frames: the p99 is the max. |
+| `summaries.*.n_eq_band`, `summaries.*.ghost_over_fed_calibration` | bands; ratios | Arithmetic on x242b's calibration, computed by the driver. |
+| `phases.*.perf_read.avg`, `phases.*.perf_doc.avg`, `phases.*.perf_doc.samples_list.avg` | 3 to 8 | The engine's `avg-update-period` is no mean. |
+| `phases.<arm>.perf_read.max`, `phases.<arm>.perf_doc.max`, `phases.<arm>.ring_read.busy.max`, `phases.<arm>.ring_read.endPeriod.max` where they differ from the summaries (listed in `do-not-cite.csv`) | 15 to 131 | The harness's own summaries over every sample or frame; read `summaries.<arm>`. |
