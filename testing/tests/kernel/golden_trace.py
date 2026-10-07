@@ -1,24 +1,41 @@
-r"""The golden trace of 1.0.0 (Plan 10 Task R0, ruling 3): the refactor's oracle.
+r"""The golden trace of 1.0.0 (Plan 10 Task R0, ruling 3; fix round 1): the refactor's oracle.
 
 run(host) drives six stand-in players g1..g6 through 240 slow minutes on server_host.Host, fully deterministic:
 ZombRandFloat (the only random global the mod's Lua calls; `grep -rn 'ZombRand\|math.random' mod/` finds it in
 NR_Server_Effects, NR_Server_Metabolism and NR_Server_Nutrients) and ZombRand are a seeded Park-Miller generator
 in the env, and getTimestampMs stays absent (the bus's push gap is then the slow minute itself).
 
-Each minute m = 1..240: the world age advances 1/60 h from 100.0; the minute's events apply; every EveryOneMinute
-listener fires (h.minute()), then 25 OnTick frames (h.tick(25)); at every 30th minute a snapshot is taken.
-Events: meals at minutes 10, 70 and 130 (IN.land with a fixed per-player vector from NR.data.nutrients.get);
-g2 drinks 0.25 L of water at minute 60 (K.vector.fluid of NR.data.fluids.get("Water")); g3 dies at minute 100
-(deadFlag) and at 101 OnNewGame fires for a new g3 object, which replaces the old one in the online list; g4
-departs at 150 and returns as a new object at 180; at 200 the bus answers one "mirror.request" by g5.
-A snapshot: every player's full store record, NR.server.<name>.stats for every adapter that has one (and the
-bus's effects stats, under "bus.effects"), and the count of sendServerCommand calls by command name.
+The stand-in player is server_host's PLAYER (untouched) under this file's decorator (DECORATE): a body-damage
+object whose thermoregulator answers a per-player metabolic rate (the class's engine MET times the engine's load
+factor, which the adapter divides out), body parts with wound, bleeding, infection and fracture fields, a
+catch-a-cold value and the regeneration and health setters, all counting; isAsleep (g6, minutes 40-90),
+isPlayerMoving (g2, minutes 20-60), the inventory and max weight, the max-weight delta, getFitness, isCurrentState,
+getMoodles, isFemale (g5), a trait collection, the Strength perk level, its XP and setPerkLevelDebug. getStats
+stays absent: the fast clock never hoists (ruling 4, out of scope). The globals beside it: CharacterTrait (17
+sentinels), Perks.Strength with the 75 L (L + 1) ladder, MoodleType, BodyPartType, and sendSyncPlayerFields and
+syncBodyPart counting. A small engine step (NR_T.engine) runs before each minute: wound timers fall, an infection
+and a catch-a-cold rise.
+
+Each minute m = 1..240: the world age is START_AGE + m/60 (118.5 -> 122.5: minute 90 closes a day); the engine
+step; the minute's events; every EveryOneMinute listener (h.minute()), then 25 OnTick frames (h.tick(25)); at every
+30th minute a snapshot.
+Events: meals at minutes 10, 70 and 130 through IN.readAfterAndLand (so IN.assemble) over a fixed before-snapshot
+per player -- g1 a whole Apple, g2 half a Bread, g3 an inferred type (no table entry), g4 a burnt and cooked Steak,
+g5 a Sandwich with a two-type craft map, g6 a thirst-only hot tea (half); g6's macro stores raised by an external
+writer at minute 45 (the reconciliation lands it); Wine for g1 and Tea for g5 at minute 50 and 0.25 L of water for
+g2 at minute 60 (K.vector.fluid, IN.land); g3 dies at minute 100 and at 101 OnNewGame fires for a new g3 object; a
+NaN written into g2's body (at, inDay) at minute 115 (the heal); g4 departs at 150 and returns as a new object at
+180; at 200 the bus answers one "mirror.request" by g5.
+A snapshot: every player's full store record, the stand-in player's own state (traits, perk, carry delta, the
+body-damage counters and parts, the Nutrition stores), the counters of a FIXED list of NR.server adapters
+(STATS_NAMES; a new module's stats never move the trace), the sendServerCommand counts by command name and the
+sync counts. The printed lines are counted, never kept.
 
 serialize(trace) is deterministic JSON: keys sorted, one value per line, every number written "%.17g" (a
 non-finite one as a quoted string), a table key that is a number written the same way.
 
-    python testing/tests/kernel/golden_trace.py --write    records golden/trace-1.0.0.json (never re-recorded in
-                                                           Plan 10: ruling 3)
+    python testing/tests/kernel/golden_trace.py --write    records golden/trace-1.0.0.json (from the 1.0.0 mod/
+                                                           tree only: ruling 3)
 """
 import json
 import math
@@ -35,12 +52,17 @@ import server_host  # noqa: E402
 
 GOLDEN = os.path.join(HERE, "golden", "trace-1.0.0.json")
 SEED = 20261007
-START_AGE = 100.0
+START_AGE = 118.5
 MINUTES = 240
 TICKS = 25
 SNAPSHOT_EVERY = 30
 MEAL_MINUTES = (10, 70, 130)
 NAMES = ("g1", "g2", "g3", "g4", "g5", "g6")
+
+# The adapters whose stats tables are traced, by name (bus.effects is NR.server.bus.effects.stats). Fixed: a
+# module added by the refactor (NR.server.minute) never enters the trace.
+STATS_NAMES = ("bus.effects", "effects", "fast", "intake", "kinetics", "metabolism", "nutrients", "reconcile",
+               "store", "strength", "training", "weight")
 
 # Starting macros (calories, carbs, lipids, proteins), distinct per player.
 MACROS = {
@@ -54,22 +76,17 @@ MACROS = {
 RESPAWN_G3 = (900.0, 110.0, 35.0, 55.0)
 RETURN_G4 = (1700.0, 200.0, 70.0, 90.0)
 
-# The fixed meal per player: a vanilla type read through the data loader (never the raw table).
-MEALS = {
-    "g1": "Base.Apple",
-    "g2": "Base.Bread",
-    "g3": "Base.TinnedBeans",
-    "g4": "Base.Steak",
-    "g5": "Base.Cheese",
-    "g6": "Base.Banana",
-}
 DRINK_LITRES = 0.25
+STORE_RAISE_G6 = (300.0, 40.0, 10.0, 12.0)      # minute 45: another writer's eat, the four stores raised
 
-# The env addendum: a Park-Miller minimal standard generator (16807 * state < 2^46, exact in doubles), the
-# sendServerCommand stand-in counting by command name.
-RANDOM_ENV = r"""
+# The env addendum: the generator, the command and sync counters, the globals, the decorator, the engine step
+# and the fixed meal snapshots.
+ENV = r"""
 NR_T.rng = %d
 NR_T.sent = {}
+NR_T.syncs = { players = {}, parts = {} }
+NR_T.m = 0
+NR_T.bodies = {}
 local function nextU()
     NR_T.rng = math.fmod(16807 * NR_T.rng, 2147483647)
     return NR_T.rng / 2147483647
@@ -83,11 +100,196 @@ sendServerCommand = function(player, module, command, args)
     local k = tostring(command)
     NR_T.sent[k] = (NR_T.sent[k] or 0) + 1
 end
+sendSyncPlayerFields = function(player, mask)
+    local k = tostring(player:getUsername()) .. ":" .. tostring(mask)
+    NR_T.syncs.players[k] = (NR_T.syncs.players[k] or 0) + 1
+end
+syncBodyPart = function(part, mask)
+    local k = tostring(part.st.name) .. ":" .. tostring(mask)
+    NR_T.syncs.parts[k] = (NR_T.syncs.parts[k] or 0) + 1
+end
+
+CharacterTrait = {}
+for _, n in ipairs({ "ATHLETIC", "FIT", "OUT_OF_SHAPE", "UNFIT", "STRONG", "STOUT", "WEAK", "FEEBLE",
+                     "NEEDS_MORE_SLEEP", "NEEDS_LESS_SLEEP", "NIGHT_VISION", "SHORT_SIGHTED",
+                     "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }) do
+    CharacterTrait[n] = "trait:" .. n
+end
+Perks = { Strength = { name = "Strength" } }
+Perks.Strength.getTotalXpForLevel = function(s, L) return 75 * L * (L + 1) end
+MoodleType = { HEAVY_LOAD = "moodle:HEAVY_LOAD", HYPERTHERMIA = "moodle:HYPERTHERMIA" }
+BodyPartType = {}
+NR_T.PARTS = { "Hand_L", "Hand_R", "UpperLeg_L", "UpperLeg_R", "LowerLeg_L", "LowerLeg_R" }
+for _, n in ipairs(NR_T.PARTS) do BodyPartType[n] = "part:" .. n end
+
+local WOUND_FIELDS = { "scratch", "cut", "deep", "bite", "burn", "fracture" }
+local GETSET = { scratch = "ScratchTime", cut = "CutTime", deep = "DeepWoundTime", bite = "BiteTime",
+                 burn = "BurnTime", fracture = "FractureTime", bleed = "BleedingTime",
+                 infect = "WoundInfectionLevel" }
+
+local function newPart(name, init)
+    local st = { name = name, scratch = 0, cut = 0, deep = 0, bite = 0, burn = 0, fracture = 0, bleed = 0,
+                 infect = 0, splint = false, writes = 0 }
+    for k, v in pairs(init or {}) do st[k] = v end
+    local part = { st = st }
+    for field, suffix in pairs(GETSET) do
+        part["get" .. suffix] = function(s) return s.st[field] end
+        part["set" .. suffix] = function(s, v) s.st[field] = v; s.st.writes = s.st.writes + 1 end
+    end
+    part.isSplint = function(s) return s.st.splint end
+    return part
+end
+
+-- The decorator: cfg = { cls, rate, inv, maxW, female, traits = {names}, heavy, asleep = {from, to},
+-- moving = {from, to}, parts = { name = {field = value} }, cold, coldRise }.
+NR_T.decorate = function(p, cfg)
+    local st = { traits = {}, perk = 5, xp = 260, delta = 1.0, perkWrites = 0, deltaWrites = 0 }
+    for _, n in ipairs(cfg.traits or {}) do st.traits[CharacterTrait[n]] = true end
+    p.st = st
+    local thermo = {}
+    local f = math.min(math.max(cfg.inv / cfg.maxW, 0), 1)
+    local rate = cfg.rate * (1 + 0.35 * f * f)
+    thermo.getMetabolicRate = function(s) return rate end
+    thermo.getEnergyMultiplier = function(s) return 1.0 end
+    thermo.getFluidsMultiplier = function(s) return 1.0 end
+    thermo.getSetPoint = function(s) return 37.0 end
+    local bst = { std = 0.002, red = 0.0013, sev = 0.0008, slp = 0.02, regenSets = 0, reduced = 0,
+                  reduceCalls = 0, added = 0, cold = cfg.cold or 0, coldRise = cfg.coldRise or 0, coldSets = 0 }
+    st.body = bst
+    local parts, byType = {}, {}
+    for i, n in ipairs(NR_T.PARTS) do
+        local part = newPart(n, cfg.parts and cfg.parts[n])
+        parts[i] = part
+        byType[BodyPartType[n]] = part
+    end
+    st.parts = {}
+    for i, part in ipairs(parts) do st.parts[part.st.name] = part.st end
+    local list = { size = function(s) return #parts end, get = function(s, i) return parts[i + 1] end }
+    local bd = { st = bst }
+    bd.getThermoregulator = function(s) return thermo end
+    bd.getBodyPart = function(s, t) return byType[t] end
+    bd.getBodyParts = function(s) return list end
+    bd.getCatchACold = function(s) return s.st.cold end
+    bd.setCatchACold = function(s, v) s.st.cold = v; s.st.coldSets = s.st.coldSets + 1 end
+    bd.setStandardHealthAddition = function(s, v) s.st.std = v; s.st.regenSets = s.st.regenSets + 1 end
+    bd.setReducedHealthAddition = function(s, v) s.st.red = v; s.st.regenSets = s.st.regenSets + 1 end
+    bd.setSeverlyReducedHealthAddition = function(s, v) s.st.sev = v; s.st.regenSets = s.st.regenSets + 1 end
+    bd.setSleepingHealthAddition = function(s, v) s.st.slp = v; s.st.regenSets = s.st.regenSets + 1 end
+    bd.ReduceGeneralHealth = function(s, v) s.st.reduced = s.st.reduced + v; s.st.reduceCalls = s.st.reduceCalls + 1 end
+    bd.AddGeneralHealth = function(s, v) s.st.added = s.st.added + v end
+    NR_T.bodies[#NR_T.bodies + 1] = bd
+    bd.parts = parts
+    p.getBodyDamage = function(s) return bd end
+    p.isAsleep = function(s)
+        return cfg.asleep ~= nil and NR_T.m >= cfg.asleep[1] and NR_T.m <= cfg.asleep[2]
+    end
+    p.isPlayerMoving = function(s)
+        return cfg.moving ~= nil and NR_T.m >= cfg.moving[1] and NR_T.m <= cfg.moving[2]
+    end
+    p.getInventoryWeight = function(s) return cfg.inv end
+    p.getMaxWeight = function(s) return cfg.maxW end
+    p.getMaxWeightDelta = function(s) return s.st.delta end
+    p.setMaxWeightDelta = function(s, v) s.st.delta = v; s.st.deltaWrites = s.st.deltaWrites + 1 end
+    local fitness = { getCurrentExe = function(s) return nil end }
+    p.getFitness = function(s) return fitness end
+    p.isCurrentState = function(s, state) return false end
+    local moodles = { getMoodleLevel = function(s, t)
+        if t == MoodleType.HEAVY_LOAD then return cfg.heavy or 0 end
+        return 0
+    end }
+    p.getMoodles = function(s) return moodles end
+    p.isFemale = function(s) return cfg.female == true end
+    local coll = {}
+    coll.get = function(c, t) return st.traits[t] == true end
+    coll.add = function(c, t) st.traits[t] = true end
+    coll.remove = function(c, t) st.traits[t] = nil end
+    p.getCharacterTraits = function(s) return coll end
+    p.getPerkLevel = function(s, perk) if perk == Perks.Strength then return s.st.perk end return 0 end
+    local xp = { getXP = function(x, perk) if perk == Perks.Strength then return st.xp end return 0 end }
+    p.getXp = function(s) return xp end
+    p.setPerkLevelDebug = function(s, perk, level)
+        if perk == Perks.Strength then s.st.perk = level; s.st.perkWrites = s.st.perkWrites + 1 end
+    end
+    return p
+end
+
+-- The engine's own minute on every decorated body: wound timers fall a game minute's worth, an infection rises,
+-- the catch-a-cold value rises by the body's rate.
+NR_T.engine = function()
+    for _, bd in ipairs(NR_T.bodies) do
+        for _, part in ipairs(bd.parts) do
+            local s = part.st
+            for _, k in ipairs(WOUND_FIELDS) do
+                if s[k] > 0 then s[k] = math.max(0, s[k] - 1 / 60) end
+            end
+            if s.bleed > 0 then s.bleed = math.max(0, s.bleed - 1 / 60) end
+            if s.infect > 0 then s.infect = math.min(10, s.infect + 0.01) end
+        end
+        if bd.st.coldRise > 0 then bd.st.cold = bd.st.cold + bd.st.coldRise end
+    end
+end
+
+-- The fixed before-snapshots (IN.readBefore's shape) and the raw readings after the original ran.
+NR_T.meals = {
+    g1 = { fullType = "Base.Apple", rawBefore = -0.16, rawAfter = 0, instBase = -0.16, thirstBefore = -0.07,
+           thirstAfter = 0, cal = 95, carb = 25.13, lip = 0.31, pro = 0.47, scriptHunger = -0.16,
+           scriptThirst = -0.07, foodType = "Fruits" },
+    g2 = { fullType = "Base.Bread", rawBefore = -0.30, rawAfter = -0.15, instBase = -0.30, thirstBefore = 0,
+           thirstAfter = 0, cal = 532, carb = 99, lip = 6.66, pro = 17.7, scriptHunger = -0.30, scriptThirst = 0,
+           foodType = "Bread" },
+    g3 = { fullType = "NRTrace.TrailMix", rawBefore = -0.20, rawAfter = 0, instBase = -0.20, thirstBefore = 0,
+           thirstAfter = 0, cal = 300, carb = 30, lip = 18, pro = 9, scriptHunger = -0.20, scriptThirst = 0,
+           foodType = "Seed" },
+    g4 = { fullType = "Base.Steak", rawBefore = -0.40, rawAfter = 0, instBase = -0.40, thirstBefore = 0,
+           thirstAfter = 0, cal = 220, carb = 0, lip = 9.35, pro = 31.62, scriptHunger = -0.40, scriptThirst = 0,
+           foodType = "Beef", cooked = true, burnt = true },
+    g5 = { fullType = "Base.Sandwich", rawBefore = -0.10, rawAfter = 0, instBase = -0.10, thirstBefore = 0,
+           thirstAfter = 0, cal = 360, carb = 42, lip = 8.5, pro = 5.8, scriptHunger = -0.10, scriptThirst = 0,
+           craftMap = { ["Base.Bread"] = 1, ["Base.Cheese"] = 2 } },
+    g6 = { fullType = "Base.HotDrinkTea", rawBefore = 0, rawAfter = 0, instBase = 0, thirstBefore = -0.20,
+           thirstAfter = -0.10, cal = 0, carb = 0, lip = 0, pro = 0, scriptHunger = 0, scriptThirst = -0.20 },
+}
+
+NR_T.eat = function(username)
+    local m = NR_T.meals[username]
+    local item = {}
+    item.getHungChange = function(s) return m.rawAfter end
+    item.getThirstChangeUnmodified = function(s) return m.thirstAfter end
+    local b = { item = item, username = username, rawBefore = m.rawBefore, fullType = m.fullType,
+                instBase = m.instBase, thirstBefore = m.thirstBefore, cal = m.cal, carb = m.carb, lip = m.lip,
+                pro = m.pro, cooked = m.cooked == true, burnt = m.burnt == true, rotten = false, frozen = false,
+                scriptHunger = m.scriptHunger, scriptThirst = m.scriptThirst, extraTypes = {},
+                craftMap = nil, declared = nil, foodType = m.foodType }
+    if m.craftMap ~= nil then
+        b.craftMap = {}
+        for k, v in pairs(m.craftMap) do b.craftMap[k] = v end
+    end
+    b.macros = { calories = b.cal, carbs = b.carb, lipids = b.lip, proteins = b.pro }
+    return NutritionRevamp.server.intake.readAfterAndLand(b)
+end
 """ % SEED
+
+# The decorator's per-player configuration: the activity class (its engine MET is the rate before the load
+# factor), the carried and max weight, the traits held at creation, the asleep and moving windows (minutes),
+# body parts with wounds, a catch-a-cold rise.
+PLAYER_CFG = {
+    "g1": {"rate": 1.5, "inv": 6, "maxW": 8, "traits": [], "cold": 0.0, "coldRise": 0.02,
+           "parts": {"Hand_L": {"cut": 5.0, "bleed": 2.0}}},
+    "g2": {"rate": 3.1, "inv": 6, "maxW": 8, "traits": ["FIT"], "moving": [20, 60],
+           "parts": {"Hand_R": {"scratch": 3.0, "infect": 0.5}}},
+    "g3": {"rate": 1.0, "inv": 6, "maxW": 8, "traits": ["OUT_OF_SHAPE"],
+           "parts": {"UpperLeg_L": {"deep": 8.0}}},
+    "g4": {"rate": 6.0, "inv": 12, "maxW": 8, "traits": ["STRONG"], "heavy": 2,
+           "parts": {"Hand_L": {"burn": 4.0}}},
+    "g5": {"rate": 1.1, "inv": 6, "maxW": 8, "traits": ["NEEDS_MORE_SLEEP"], "female": True,
+           "parts": {"LowerLeg_L": {"fracture": 30.0}}},
+    "g6": {"rate": 0.8, "inv": 6, "maxW": 8, "traits": ["NEEDS_LESS_SLEEP"], "asleep": [40, 90],
+           "parts": {"Hand_R": {"bite": 2.0}}},
+}
 
 
 def new_host():
-    return server_host.Host(extra_env=RANDOM_ENV)
+    return server_host.Host(extra_env=ENV)
 
 
 # --- the Lua value walk -------------------------------------------------------------------------------
@@ -178,51 +380,75 @@ def serialize(trace):
 def _stats(h):
     srv = h.NR.server
     out = {}
-    for name, mod in srv.items():
-        if lua51.lua_type(mod) != "table":
-            continue
-        st = mod["stats"]
-        if lua51.lua_type(st) == "table":
-            out[_key(name)] = walk(st)
-    bus = srv["bus"]
-    if bus is not None and bus["effects"] is not None and bus["effects"]["stats"] is not None:
-        out["bus.effects"] = walk(bus["effects"]["stats"])
+    for name in STATS_NAMES:
+        if name == "bus.effects":
+            bus = srv["bus"]
+            st = bus["effects"]["stats"] if bus is not None and bus["effects"] is not None else None
+        else:
+            mod = srv[name]
+            st = mod["stats"] if lua51.lua_type(mod) == "table" else None
+        out[name] = walk(st) if lua51.lua_type(st) == "table" else None
     return out
 
 
-def _snapshot(h, minute):
+def _player_state(p):
+    nut = p.nut
+    return {
+        "st": walk(p.st),
+        "nutrition": {k: walk(nut[k]) for k in ("cal", "carb", "lip", "pro", "weight", "sets", "traitApplies")},
+    }
+
+
+def _snapshot(h, minute, players):
     recs = h.NR.server.store.records
     return {
         "minute": minute,
         "age": _Num(h.T.age),
         "records": {n: walk(recs[n]) for n in NAMES},
+        "players": {n: _player_state(players[n]) for n in NAMES},
         "stats": _stats(h),
         "sent": walk(h.T.sent),
+        "syncs": walk(h.T.syncs),
     }
+
+
+def _new_player(h, name, macros):
+    p = h.player(name, *macros)
+    cfg = dict(PLAYER_CFG[name])
+    lcfg = h.rt.table()
+    for k, v in cfg.items():
+        if isinstance(v, list):
+            lcfg[k] = h.rt.table(*v)
+        elif isinstance(v, dict):
+            parts = h.rt.table()
+            for pn, fields in v.items():
+                parts[pn] = h.rt.table_from(fields)
+            lcfg[k] = parts
+        else:
+            lcfg[k] = v
+    return h.T.decorate(p, lcfg)
 
 
 def _meal(h, name):
     rec = h.record(name)
     if rec is None or rec["stomach"] is None:
         raise AssertionError("no record or stomach for %s at a meal" % name)
-    vec = h.NR.data.nutrients.get(MEALS[name])
-    if vec is None:
-        raise AssertionError("no data entry for %s" % MEALS[name])
-    h.NR.server.intake.land(rec, name, vec)
+    h.T.eat(name)
 
 
-def _drink(h, name):
+def _fluid(h, name, fluid, litres):
     rec = h.record(name)
     if rec is None or rec["stomach"] is None:
-        raise AssertionError("no record or stomach for %s at the drink" % name)
-    water = h.NR.data.fluids.get("Water")
-    vec = h.K.vector.fluid(water, DRINK_LITRES)
-    h.NR.server.intake.land(rec, name, vec)
+        raise AssertionError("no record or stomach for %s at a drink" % name)
+    src = h.NR.data.fluids.get(fluid)
+    if src is None:
+        raise AssertionError("no fluid entry for %s" % fluid)
+    h.NR.server.intake.land(rec, name, h.K.vector.fluid(src, litres))
 
 
 def run(host):
     h = host
-    players = {n: h.player(n, *MACROS[n]) for n in NAMES}
+    players = {n: _new_player(h, n, MACROS[n]) for n in NAMES}
     order = list(NAMES)
 
     def publish():
@@ -233,22 +459,37 @@ def run(host):
     snapshots = []
     for m in range(1, MINUTES + 1):
         h.T.age = START_AGE + m / 60.0
+        h.T.m = m
+        h.T.engine()
         if m in MEAL_MINUTES:
             for n in order:
                 _meal(h, n)
+        if m == 45:
+            nut = players["g6"].nut
+            nut.cal = nut.cal + STORE_RAISE_G6[0]
+            nut.carb = nut.carb + STORE_RAISE_G6[1]
+            nut.lip = nut.lip + STORE_RAISE_G6[2]
+            nut.pro = nut.pro + STORE_RAISE_G6[3]
+        if m == 50:
+            _fluid(h, "g1", "Wine", DRINK_LITRES)
+            _fluid(h, "g5", "Tea", DRINK_LITRES)
         if m == 60:
-            _drink(h, "g2")
+            _fluid(h, "g2", "Water", DRINK_LITRES)
         if m == 100:
             players["g3"].deadFlag = True
         if m == 101:
-            players["g3"] = h.player("g3", *RESPAWN_G3)
+            players["g3"] = _new_player(h, "g3", RESPAWN_G3)
             publish()
             h.fire("OnNewGame", players["g3"], None)
+        if m == 115:
+            body = h.record("g2")["body"]
+            body["at"] = float("nan")
+            body["inDay"] = float("nan")
         if m == 150:
             order.remove("g4")
             publish()
         if m == 180:
-            players["g4"] = h.player("g4", *RETURN_G4)
+            players["g4"] = _new_player(h, "g4", RETURN_G4)
             order.insert(3, "g4")
             publish()
         if m == 200:
@@ -256,7 +497,7 @@ def run(host):
         h.minute()
         h.tick(TICKS)
         if m % SNAPSHOT_EVERY == 0:
-            snapshots.append(_snapshot(h, m))
+            snapshots.append(_snapshot(h, m, players))
     return {"snapshots": snapshots, "printed_count": len(h.printed())}
 
 
