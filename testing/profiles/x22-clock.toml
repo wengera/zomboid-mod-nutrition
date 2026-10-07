@@ -1,0 +1,39 @@
+# testing/profiles/x22-clock.toml - Plan 10 Task S2+S3, boot 1 (run x222): PZTestKit + the FROZEN 1.0.0 spike copy
+# (release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp, staged by Task 0 at 42784ff; release/ is
+# gitignored) whose NR_Server_Bench.lua carries the S2+S3 bench entries and clock counters appended (its sha256 is in
+# the artifact). Fixture `two`, both clients (`admin` -debug, then `bob` release), Nutrition false, DayLength 1,
+# [sandbox.NR] Severity = 1.5 (S3.5: does the version dir's media/sandbox-options.txt load), sleep allowed and
+# needed (phase C's all-asleep fast-forward). The driver is testing/experiments/x222_clock_cost.py.
+# The verify rows are load gates only: the server version, the bench counters (the edited frozen copy booted),
+# and the version on both clients.
+fixture = "two"
+description = "PZTestKit + the frozen NutritionRevamp 1.0.0 spike copy with the S2+S3 bench entries, fixture two, admin and bob, Nutrition off, DayLength 1, Severity 1.5, sleep on - the clock, cost and lifecycle boot."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.server.bench.RING", expect = '"value": 64' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s
+
+[sandbox.NR]
+Severity = 1.5                # S3.5: read back as NutritionRevamp.server.options.severity

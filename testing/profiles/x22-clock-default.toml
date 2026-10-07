@@ -1,0 +1,31 @@
+# testing/profiles/x22-clock-default.toml - Plan 10 Task S2+S3, boot 2 (run x222d): the x22-clock stack with NO
+# DayLength override, so the fixture's own DayLength 4 (1 hour 30 minutes; the value every vanilla preset but
+# SixMonthsLater ships) holds, phase B only (S3.1's default-day-length half): OnTick calls between two EveryOneMinute
+# calls, read from the frozen copy's bench ring. No [sandbox.NR] block; sleep off as the fixture has it.
+fixture = "two"
+description = "PZTestKit + the frozen NutritionRevamp 1.0.0 spike copy with the S2+S3 bench entries, fixture two, admin and bob, Nutrition off, the fixture's DayLength - the default-day clock boot."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.server.bench.RING", expect = '"value": 64' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
