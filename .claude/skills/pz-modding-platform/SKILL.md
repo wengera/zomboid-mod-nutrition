@@ -1,6 +1,6 @@
 ---
 name: pz-modding-platform
-description: Writing, debugging or reviewing a Project Zomboid mod that is not about food or nutrition — weapons, UI, world, vehicles, sounds, tiles — through its `mod.info` (`id=`, `require=`), `common/` and version dirs, `media/scripts` blocks, `media/lua/client`, `server` and `shared` files, event and script hooks, `isServer()` guards, `sendClientCommand`, `OnClientCommand` and `sendServerCommand`, modData and `transmitModData`, `pcall` around Java members, translations, `Mods=` load order, or who owns what on a dedicated multiplayer server. Does not fire on a nutrition task (hunger, thirst, calories, macros, food items, eating, cooking, nutrition moodles, the nutrition mod's packaging or tests), which the nutrition skills own.
+description: Writing, debugging or reviewing a Project Zomboid mod that is not about food or nutrition — weapons, UI, world, vehicles, sounds, tiles — through its `mod.info` (`id=`, `require=`), `common/` and version dirs, `media/scripts` blocks, `media/lua/client`, `server` and `shared` files, event and script hooks, `isServer()` guards, `sendClientCommand`, `OnClientCommand` and `sendServerCommand`, modData and `transmitModData`, `pcall` around Java members, translations, `Mods=` load order, or who owns what on a dedicated multiplayer server; and the server performance of any mod, the nutrition mod's included — hitching, a handler's cost in the server frame, a per-player loop on `EveryOneMinute`, spreading work over `OnTick`, `getPerformanceLocal`, `collectgarbage`, the main-thread cost of a send or of the global modData save, and how to budget and measure a change. Does not fire on any other nutrition task (hunger, thirst, calories, macros, food items, eating, cooking, nutrition moodles, the nutrition mod's packaging or tests), which the nutrition skills own.
 ---
 ## Read first
 - docs/platform/overview.md
@@ -12,6 +12,7 @@ description: Writing, debugging or reviewing a Project Zomboid mod that is not a
   - docs/platform/server-lifecycle.md — a join, a creation, a death and a disconnect on the server, player ids, the player and world stores, the tick order
   - docs/platform/sandbox-options.md — a mod's own sandbox options: the declaration file, the `SandboxVars` mirror, the join sync, a runtime change
   - docs/platform/client-ui.md — the panel toolkit, layout, keybinds, textures, the tooltip, the character-info window, the UI events
+  - docs/platform/performance.md — the server frame, what a handler costs in it, the scheduling primitives, the clocks, the measured costs and how to budget a change
 - docs/platform/lessons.md
 
 ## Coverage
@@ -29,9 +30,11 @@ Every verdict is dedicated-server multiplayer; single-player is never claimed.
 - Wrap every third-party and engine-boundary call in `pcall` and fail soft: an unguarded raise aborts the rest of the handler body it fires in, while the handlers registered behind it still run [#1072/C/snapshot, #0948/M/n=1, #0949/M/n=1].
 - Reach every Java member by indexing first and calling second: a nil call never says which member was nil, aborts the body it sits in when unguarded and is session-ending on a debug client, and every Lua file in the experiment mods carries its own guard so that a mod never depends on the harness being installed [#0935/C/C-only].
 - Monkey-patch idempotently and keep the original, testing for your own wrapper before you replace the target: that shape is safe under a Lua reload, unwindable, and it composes when two mods wrap the same function [#1067/C/snapshot].
+- Budget work that runs for every player in one event as one frame's work, the per-player cost times the player count: an event's handlers all run on the server's main thread inside one frame, the minute event fires at most once a frame, and eighteen ghost records' minutes in one `EveryOneMinute` frame read 18 ms of the frame's busy time at the median and 39 ms at the worst [#3441/C/inference, #3426/C/C-only, #3348/C/C-only, #3405/M/n=1].
+- Read a server frame's length off the engine's counter, the `max-update-period` of `getPerformanceLocal()`, and use Lua's clock only for totals over many runs with their count: every clock Lua reads through the global API and the `os` library is 1 ms or coarser, the engine's per-window longest frame agreed with a Lua frame ring within 2 ms at the 99th percentile, and the counter's `avg-update-period` is no mean [#3443/C/inference, #3432/C/C-only, #3403/M/n=1, #3409/C/C-only].
 
 ## Also
 - docs/platform/jar-research.md — the next source when no page carries the topic (skill `pz-jar-research`).
 - docs/platform/harness.md — proving on a live server that the mod loaded and does what it claims (skill `pz-mod-testing`).
 - docs/reference/tools.md#mod-lint — the layout lint to run on the mod folder before any boot.
-- docs/platform/overview.md#coverage — which topics have a page, the server lifecycle, the sandbox options and the client UI among them, and which are only touched or absent.
+- docs/platform/overview.md#coverage — which topics have a page, the server lifecycle, the sandbox options, the client UI and server performance among them, and which are only touched or absent.

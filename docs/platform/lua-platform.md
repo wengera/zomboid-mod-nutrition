@@ -173,6 +173,8 @@ Each severe-moodle health term that comes out positive also fires `OnPlayerGetDa
 That event is a bytecode reading and has not been caught on the live server [#0517/C/C-only].
 `OnPlayerMove` has exactly two triggers: the player's second-stage update, gated to single player by requiring both network flags clear, and the remote-player update inside its server arm, which runs on a dedicated server only [#2245/C/C-only].
 On a multiplayer client it never fires for the local player, because the remote-player update returns false unless the player is remote [#2246/C/C-only].
+`OnTickEvenPaused` fires on a dedicated server, and the minute event runs after it and before `OnTick` in the same frame: a handler appended to each recorded the 18 ghost runs made from `EveryOneMinute` inside that span in all 193 minute frames [#3410/M/n=1].
+A long minute frame moves the frame's end and not the server loop's cadence: under a 39 ms minute frame the start-to-start period read p99 103 and max 104 ms, while the `OnTick`-to-`OnTick` gap read p99 124 ms and the engine's per-window longest frame p99 134 ms [#3406/M/n=1].
 There is no `OnAddXP` event on this build: the jar carries no such literal, and the experience event is registered as `AddXP` [#2247/C/C-only].
 
 <a id="hooks"></a>

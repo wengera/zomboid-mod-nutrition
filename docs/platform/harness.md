@@ -425,6 +425,11 @@ The one measurement of the once-a-minute event's own ceiling is 10.08 ticks per 
 A case-only folder subject can never answer the rename question: the filesystem is case-preserving so the listing shows which spelling was written, but path lookup is case-insensitive, so such a mod loads whichever name is used — the regression subject has to differ from its id by more than case [#1834].
 The counterfactual is out of reach from a profile rather than merely un-run: both profile branches return a non-empty source, so producing a mod left under its folder name in the run's mods directory would need it in the golden fixture's own mod list — a fixture re-provision and shared state [#1835].
 Two legs of the experiment map are stated but not yet measured, the Lua drink-driver path and a deliberate client/server script mismatch, while modData persistence across a save and reload is measured by run x131p-20261004-192310 [#1255/C/C-only].
+The frame ring and the engine's own frame counter agree within 2 ms at the 99th percentile: per statistics window the engine's `max-update-period` and the ring's largest `OnTick`-to-`OnTick` gap differed by p99 2 ms idle and under a burst of eighteen ghost records, so the engine's figure is the hitch reading and the ring attributes it [#3403/M/n=1] [#3443/C/inference].
+The idle baseline a frame reading is taken against is short and regular: with two players and the mod's own drain the frame's busy time read p50 1, p99 9 and max 13 ms over 1207 frames, and the start-to-start period p50 100 and max 104 ms [#3404/M/n=1].
+The ghost load ran 3474 runs of eighteen ghost records in 193 minute events with 0 failures and no ghost key in the mod's store, and `ghost.stop` cleared the 45 per-username entries the ghosts had left; its starvation count of 0 is trivial under a burst [#3407/M/n=1].
+The `gclog` key's log of one session held 128 ZGC pause lines, the largest 0.12 ms, and 18 allocation stalls, all at boot [#3408/M/n=1].
+The engine's `avg-update-period` is no mean of the frame period, being set each frame to about a 21st of it, while `max-update-period` and `min-update-period` are each window's extremes, so a driver reads the extremes and never the average [#3409/C/C-only] [#3443/C/inference].
 
 The design's own risk register names seven risks and what is done about each [#1844].
 
@@ -510,3 +515,4 @@ What a reading costs depends on which of five layers it needs, and every layer's
 - [`testing-your-mod.md`](../areas/testing-your-mod.md) — how a mod under development is put under this harness.
 - [`lessons.md`](lessons.md#testing-discipline) — the observation rules a driver works under, among them that a grep limit is a break and not a window.
 - [`wall-map.md`](../reference/wall-map.md) — the capability map whose evidence limits this page's walls carry.
+- [`performance.md`](performance.md#measure) — how the frame ring, the engine's counter and the ghost load measure a change's server cost.

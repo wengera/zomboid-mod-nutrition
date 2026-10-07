@@ -24,3 +24,4 @@ description: Planning or grading the nutrition mod's own tests — its profiles 
 - docs/reference/experiments.md — the specs of the owned experiments, their owners and the cost roll-up.
 - docs/facts/body-and-weight.md#hunger-thirst — the thirst clock that kills an unattended subject, and the body-side sandbox option.
 - docs/facts/wire-packets.md#staircase — the staircase a cross-side read draws and the band it is graded against.
+- docs/platform/performance.md#measure — measuring a change's server cost: the frame ring, the engine's counter, the ghost load and the bench pitfalls (skill `pz-modding-platform`).

@@ -178,7 +178,7 @@ A panel's own callbacks are the per-frame surface, and the global UI events are 
 `OnRenderTick` is the per-rendered-frame hook: `GameWindow.onRender`'s whole body is its trigger [#2507/C/C-only].
 Both run every rendered frame, so whatever a handler does there it does at the frame rate, and a value it reads is read at the frame rate unless the handler caches it.
 A widget's own `render()` was counted at about one call per client tick in the one live reading, an inference and not a per-frame trace: a framework moodle and a plain derived widget each counted 240 calls across a read window of about 4 s while the client's tick counter read 60.03 a second in a later window ([#3195/M/n=1], [#3198/M/n=1]).
-The simulation-tier rule for slow work — the minute hooks, a cheap early-out on the player update, and no steady `OnTick` — is [lessons.md](lessons.md#rules)'s [#1071/C/snapshot].
+The simulation-tier rule for slow work — the minute event on the server, never the player update or the slower clock events there, a client's per-frame need on the player update behind a cheap early-out, and no steady `OnTick` — is [lessons.md](lessons.md#rules)'s, and what a handler costs the server's frame is [performance.md](performance.md)'s [#3423/C/inference] [#3453/C/C-only].
 The value a panel draws changes at the push, not at the frame, and the cadence rule for reading it is [ui-and-moodles.md](../areas/ui-and-moodles.md#read-cadence)'s; the resident viewer's own render loop throttles its reads to a frame count ([simplestatus.md](../facts/other-mods/simplestatus.md#architecture)).
 
 The resident interface mod keeps its tick handlers short-lived.

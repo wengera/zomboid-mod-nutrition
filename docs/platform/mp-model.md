@@ -116,6 +116,9 @@ There is no client-to-server item-stats push at all: the send is server-originat
 A client-side `setCalories(3000)` never reached the server and was gone within 3 s: the server read 887.920 at that instant and the client read the server's 887.331 three seconds later [#0119/M/n=1].
 A client-side write to hunger, thirst, endurance, fatigue, calories, the macros or weight is erased by the next player-stats packet, so every one of them has exactly one owner: the server [#0568/M/n=2].
 The tightest bound on that erasure is the hunger arm: a client-side write of 0.9 against a server pinned to 0.3 read back as 0.9 at 0.51 s and as 0.3004 at 1.42 s while the server never left 0.3007, so the revert lands inside 1.5 s [#0572/M/n=1].
+One more route out of a client reads rather than writes: any logged-in client can request any global modData table by name, and the server sends that table, serialised whole, to the requesting connection with no check of who asked or which name [#3417/C/C-only].
+A mod cannot refuse the request: the server's handler fires no Lua event and consults no hook before it sends, so a mod's only control is what it keeps under a global modData name [#3418/C/C-only].
+The reply is written into the connection's fixed 1,000,000-byte send buffer, so a table that overflows it is sent truncated, which the stock client's parse is expected to reject [#3419/C/C-only].
 
 <a id="routes-server-to-client"></a>
 ### The routes from a server, and the cadence of each
