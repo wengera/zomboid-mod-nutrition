@@ -1,0 +1,38 @@
+# testing/profiles/x20-raise.toml - the Plan 9 live 2 boot (Task 5, run x202, X23): PZTestKit + the STAGED 1.0.0 build
+# (release/NutritionRevamp/Contents/mods/NutritionRevamp, as x20-release) + TKX_ClientRaise on fixture `two`, both
+# provisioned clients attached in order (`admin` -debug, then `bob` release). The probe is a client/ file: a custom
+# event TKX_ClientRaise whose middle handler raises unguarded, fired only by the harness (`event.trigger` on
+# `client:bob` first, then on `client:admin`), so no raise happens at boot and both clients reach ready.
+# A RAISING PROBE (CLAUDE.md s5): the [[verify]] gate sits on the SERVER only, because whether each client still
+# answers after the raise IS the reading; the client timeout is low; `pzt run` on this profile is EXPECTED to fail
+# (the -debug admin parks on the raise), and the grade comes off the x202 driver's artifact.
+# The one verify row is a load gate certain to pass if the staged mod loaded: the server's version global resolved.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp 1.0.0 build + TKX_ClientRaise on fixture two, admin (debug) and bob (release), Nutrition off - X23, the release client's unguarded raise."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"resolved": true' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[[mods]]
+id = "TKX_ClientRaise"
+path = "testing/experiments/TKX_ClientRaise"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 60
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1

@@ -1,0 +1,5 @@
+name=TKX Client Raise
+id=TKX_ClientRaise
+description=Plan 9 Task 5 (X23) experiment: what does a RELEASE client (no -debug) do when a client Lua handler raises unguarded? A custom event TKX_ClientRaise with three handlers (a counter, an unguarded nil call with a tail counter, a counter behind it), fired by the harness, every reading stored as a string; the debug and debugger-on-error flags read once at OnGameStart. Test profiles only.
+modversion=1.0
+versionMin=42.0.0
