@@ -363,8 +363,8 @@ Each item names its reading and its expected saving per player per game minute, 
 ### The 60-player design load (Angus, 2026-10-07)
 
 Angus set the design load at a 60-player average. Every figure below is arithmetic on the measured per-player costs (two players measured; linear extrapolation, unmeasured at 60). It assumes a 100 ms tick (10 ticks a second), a game minute of 6.27 ticks at DayLength 1 and 37.46 at DayLength 4 (#3346, #3347), and these per-player-run costs:
-- 1.583 ms for one player's minute in play (#3387);
-- 1.23 to 1.58 ms on the burst basis;
+- 1.583 ms for one player's minute in play: `P.work`'s 380 ms over 240 runs, around the pipeline's 1558.33 µs a run (#3387);
+- 1.23 to 1.58 ms on the burst basis: the burst's 1228.8 µs a player-run (#3391) to `P.work`'s 1.583 (#3387);
 - 1.23 to 1.72 ms on the round-robin basis (#3391).
 
 **The average load is affordable.** 60 players' minutes cost about 95 ms a game minute: about 15 % of the server's time at DayLength 1 and about 2.5 % at DayLength 4. The writer (#3373) and vanilla's updaters (#3386) add under 1 % at 60 players.
@@ -375,7 +375,7 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 |---|---|---|---|---|
 | 1 | 60 | 73.8 to 103.2 | 95 | exact |
 | 2 | 30 | 36.9 to 51.6 | 47.5 | unsafe under ruling 4; clean only under Appendix H's fairer band |
-| 5 | 12 | 14.8 to 20.6 | 19 | player-visible (#3396, #3397) |
+| 5 | 12 | 14.8 to 20.6 | 19 | player-visible (#3396) |
 | 10 | 6 | 7.4 to 10.3 | 9.5 | 26 discrete mismatches (#3396) |
 
 - At m = 1 one tick in every game minute costs about a whole tick's budget before vanilla's own work. At DayLength 1 that is once every 0.63 s.
@@ -512,7 +512,7 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 ### 6. Spreading the minute at 60 players
 
 - At the 60-player design load, no per-tick work leaves a one-tick spike of 73.8 to 103.2 ms every game minute (arithmetic; The 60-player design load, above).
-- Choose one: (a) keep rule 6 and make a player-run about 4.75 times cheaper (0.333 ms at m = 2, which also needs the fairer band); (b) allow a budgeted per-tick scheduler that only drains the minute's queue, with no simulation per tick (12.3 to 15.8 ms a tick at DayLength 1, flat); or (c) accept the spike.
+- Choose one: (a) keep rule 6 and make a player-run about 4.75 times cheaper (0.333 ms at m = 2, which also needs the fairer band); (b) allow a budgeted per-tick scheduler that only drains the minute's queue, with no simulation per tick (12.3 to 15.8 ms a tick at DayLength 1, flat; each player still runs every game minute, so it adds none of P2's drift, which is inference: P2 measured only coarser minutes); or (c) accept the spike.
 - Recommendation: (b) now, and (a) as Plan 11's performance target either way. (b) is the standard mitigation for a fixed per-minute workload. (a) depends on a profile that has not been run.
 
 ## Appendices
