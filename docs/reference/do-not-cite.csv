@@ -671,3 +671,20 @@ x223a-20261007-085224,phases.boot.bob_seen,{},The harness's marker parser saw no
 x223a-20261007-085224,client_seen,bob with no marker,The harness's marker parser saw none of its STATE markers; not a reading of where bob's client stood.,cite the bob connection log
 x223a-20261007-085224,phases.boot.bob_alive_at_end,true,"The process, not the connection.",cite `reads` players_at_end and the server user log
 x223b-20261007-085832,verdicts.b.verdict,falsified,"A defect of the driver's grade: its mismatch pattern matched non-mismatch lines; the observations are the prediction's.",cite `reads` and the server user log
+x224-20261007-092319,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x224-20261007-092319,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x224-20261007-092319,deviations,the driver's list,Written before the run; not readings.,
+x224-20261007-092319,world_changes,the driver's text,Written before the run; not readings.,
+x224-20261007-092319,meta.amendments,the amendments' path,The driver's own text; not a reading.,
+x224-20261007-092319,meta.targets,the written values,The driver's own constant; not a reading.,cite `phases.W.ring.rows`
+x224-20261007-092319,meta.ring_row,the ring row's layout,The driver's own text; not a reading.,
+x224-20261007-092319,meta.sample_row,the sample row's layout,The driver's own text; not a reading.,
+x224-20261007-092319,meta.zeroed_in_OnGameBoot,the probe's key list,The driver's own constant; not a reading.,cite `phases.A.server.bootSet`
+x224-20261007-092319,meta.jar_access,the access flags,The class-file read written into the driver before the run; not a run reading.,cite the jar
+x224-20261007-092319,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x224-20261007-092319,phases.U.size,50 us per call,A 20-call sizing run at 1 ms resolution.,cite `verdicts.U.observed.pairs`
+x224-20261007-092319,verdicts.U.observed.size,50 us per call,A copy of `phases.U.size`.,cite `verdicts.U.observed.pairs`
+x224-20261007-092319,verdicts.E.observed.drops_within_a_minute.fe_after,0,The FOOD_EATEN level at the drop tick; when the moodle rises after an eat was not read.,
+x224-20261007-092319,verdicts.X.observed.ticks_moving,865,The server's isPlayerMoving read true through the squat and melee legs while the player stood; what it carries there was not read.,cite `verdicts.X.observed.ticks_run_and_moving` with that caution
+x224-20261007-092319,verdicts.X.observed.ticks_swipe,0,"The swings did not attack (DoAttack returned false), so the swing branch was never driven.",
+x224-20261007-092319,verdicts.X.observed.melee_result,five swings returning false,The swings did not attack; not a reading that the swing branch cannot engage.,
