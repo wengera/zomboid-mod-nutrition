@@ -80,13 +80,13 @@ local DELAY_BED = { badBed = 1.3, badBedPillow = 1.25, goodBed = 0.8, goodBedPil
                     floorPillow = 1.45, averageBedPillow = 1.0 }
 
 -- The world age in hours, for a record the store creates at hoist time (its firstSeen stamp).
-local function worldAge()
-    if getGameTime == nil then return 0 end
-    local ok, gt = pcall(getGameTime)
-    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
-    if okA and type(age) == "number" then return age end
-    return 0
-end
+local function worldAge() return NR.worldAge() or 0 end
+
+
+
+
+
+
 
 -- Ruling 19: while the handler owns INTOXICATION, vanilla's decay is stopped (reduction 0) so the stat
 -- holds what the handler writes; the value is not saved (#2920), so it is re-applied at every hoist

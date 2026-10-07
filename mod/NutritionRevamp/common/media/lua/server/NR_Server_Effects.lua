@@ -106,29 +106,29 @@ EFF.ref = nil
 -- The options a load with no options file reads: one file-scope table, never written.
 local EMPTY = {}
 
-local function finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
-end
+local finite = NR.finite
+
+
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
-local function num(obj, name, dflt, ...)
-    local ok, v = NR.call(obj, name, ...)
-    if ok and finite(v) then return v end
-    return dflt
-end
+local num = NR.num
+
+
+
+
 
 -- An object read off obj:name(...), or nil.
-local function obj(o, name, ...)
-    local ok, v = NR.call(o, name, ...)
-    if ok then return v end
-    return nil
-end
+local obj = NR.obj
+
+
+
+
 
 -- A boolean read off obj:name(...): true only when the member is present and answers true.
-local function flag(o, name, ...)
-    local ok, v = NR.call(o, name, ...)
-    return ok and v == true
-end
+local flag = NR.flag
+
+
+
 
 -- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
 local function roll(dflt)

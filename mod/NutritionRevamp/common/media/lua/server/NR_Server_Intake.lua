@@ -128,9 +128,9 @@ function IN.fractionOf(rawBefore, rawAfter, instBase, thirstBefore, thirstAfter,
 end
 
 -- A finite number: a number, not NaN (the one value unequal to itself) and not an infinity. Pure.
-function IN.isFinite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
-end
+IN.isFinite = NR.finite
+
+
 
 -- The raw reading after the original, normalised: a finished item reads NaN, not 0 (#2832) -- Eat
 -- sets hungChange to 0, then Food.setCurrentUses calls consumeHunger(0), whose 0/0 writes NaN into
@@ -413,13 +413,13 @@ local function num(v)
     return 0
 end
 
-local function worldAge()
-    if getGameTime == nil then return 0 end
-    local ok, gt = pcall(getGameTime)
-    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
-    if okA and type(age) == "number" then return age end
-    return 0
-end
+local function worldAge() return NR.worldAge() or 0 end
+
+
+
+
+
+
 
 -- A Food's FoodType string (Food.getFoodType, the script's FoodType), or nil when absent or empty.
 function IN.foodTypeOf(item)

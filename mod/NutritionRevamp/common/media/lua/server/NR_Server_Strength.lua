@@ -52,38 +52,38 @@ STR.CARRY_EPS = 0.001
 -- The rise hold's per-minute step cap, hours.
 STR.MAX_DT_H = 1
 
-local function finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
-end
+local finite = NR.finite
+
+
 
 -- The world age, or nil when it cannot be read (the step is then skipped, never stamped 0).
-local function worldAge()
-    if getGameTime == nil then return nil end
-    local ok, gt = pcall(getGameTime)
-    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
-    if okA and finite(age) then return age end
-    return nil
-end
+local worldAge = NR.worldAge
+
+
+
+
+
+
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
-local function num(obj, name, dflt, ...)
-    local ok, v = NR.call(obj, name, ...)
-    if ok and finite(v) then return v end
-    return dflt
-end
+local num = NR.num
+
+
+
+
 
 -- A boolean read off obj:name(...): true only when the member is present and answers true.
-local function flag(obj, name, ...)
-    local ok, v = NR.call(obj, name, ...)
-    return ok and v == true
-end
+local flag = NR.flag
+
+
+
 
 -- An object read off obj:name(...), or nil.
-local function obj(o, name, ...)
-    local ok, v = NR.call(o, name, ...)
-    if ok then return v end
-    return nil
-end
+local obj = NR.obj
+
+
+
+
 
 -- The cumulative XP ladder, totals[0] = 0 and totals[L] = Perks.Strength:getTotalXpForLevel(L) for
 -- L = 1..10, read once per server; a nil or non-finite answer anywhere reads the #2102 ladder instead,

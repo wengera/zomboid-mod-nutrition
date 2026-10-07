@@ -9,13 +9,13 @@ NR.server.players = { online = {}, queue = {}, queueHead = 1, onFirstSight = {},
                       minutes = 0, drained = 0 }
 local P = NR.server.players
 
-local function worldAge()
-    if getGameTime == nil then return 0 end
-    local ok, gt = pcall(getGameTime)
-    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
-    if okA and type(age) == "number" then return age end
-    return 0
-end
+local function worldAge() return NR.worldAge() or 0 end
+
+
+
+
+
+
 
 local function fire(list, username, player, record)
     for i = 1, #list do

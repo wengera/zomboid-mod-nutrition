@@ -59,3 +59,35 @@ function NR.itemPassActive()
     if not okC or not present or type(v) ~= "number" then return "unread" end
     return tostring(math.abs(v - NR.itemPassSentinel.calories) < 0.01)
 end
+
+-- The shared adapter helpers (Plan 10 Task R1): one copy, one failure meaning. worldAge is nil when the
+-- clock cannot be read; an adapter whose old copy answered 0 keeps a local wrapper that says so.
+function NR.worldAge()
+    if getGameTime == nil then return nil end
+    local ok, gt = pcall(getGameTime)
+    if not ok or gt == nil then return nil end
+    local okA, present, age = pcall(NR.call, gt, "getWorldAgeHours")
+    if okA and present and NR.finite(age) then return age end
+    return nil
+end
+
+function NR.finite(x)
+    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
+end
+
+function NR.num(o, name, dflt, ...)
+    local ok, present, v = pcall(NR.call, o, name, ...)
+    if ok and present and NR.finite(v) then return v end
+    return dflt
+end
+
+function NR.obj(o, name, ...)
+    local ok, present, v = pcall(NR.call, o, name, ...)
+    if ok and present then return v end
+    return nil
+end
+
+function NR.flag(o, name, ...)
+    local ok, present, v = pcall(NR.call, o, name, ...)
+    return ok and present and v == true
+end

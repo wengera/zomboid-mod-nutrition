@@ -91,33 +91,33 @@ NUT.MG_DEPLETED_GRADE = 3 -- game choice: the depleted rung of the magnesium rec
 -- The litres one unit of THIRST drop stands for: Water's ThirstChange -50 per litre = 0.5 THIRST per litre (ruling 9).
 NUT.LITRES_PER_THIRST = 2 -- ruling 9 (Water ThirstChange -50 per litre, x151w #2932/#2939)
 
-local function finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
-end
+local finite = NR.finite
+
+
 
 -- The world age, or nil when it cannot be read or is not finite (the minute is then skipped and counted:
 -- the acute kernel's sleep-window loop needs a finite age).
-local function worldAge()
-    if getGameTime == nil then return nil end
-    local ok, gt = pcall(getGameTime)
-    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
-    if okA and finite(age) then return age end
-    return nil
-end
+local worldAge = NR.worldAge
+
+
+
+
+
+
 
 -- A number read off obj:name(...), or dflt when the member is absent or the answer is not finite.
-local function num(obj, name, dflt, ...)
-    local ok, v = NR.call(obj, name, ...)
-    if ok and finite(v) then return v end
-    return dflt
-end
+local num = NR.num
+
+
+
+
 
 -- An object read off obj:name(...), or nil.
-local function obj(o, name, ...)
-    local ok, v = NR.call(o, name, ...)
-    if ok then return v end
-    return nil
-end
+local obj = NR.obj
+
+
+
+
 
 -- A uniform roll in [0, 1) from ZombRandFloat, or dflt when the global is absent or the answer is not finite.
 local function roll(dflt)

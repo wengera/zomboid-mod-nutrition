@@ -51,9 +51,9 @@ WGT.BAND_TRAIT = {
 }
 -- The five band traits applyTraitFromWeight removes before it adds one back (#2722).
 WGT.BAND_TRAITS = { "OBESE", "OVERWEIGHT", "UNDERWEIGHT", "VERY_UNDERWEIGHT", "EMACIATED" }
-local function finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
-end
+local finite = NR.finite
+
+
 
 -- The hours since the body's last day close (world age less lastCloseAgeH), or 0 -- the full blend --
 -- when either is unreadable.

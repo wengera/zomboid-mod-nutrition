@@ -56,9 +56,9 @@ TRN.HEAVY_WEAPON = 2
 -- The open rep pair per username: true after a rep's Strength event, cleared by its Fitness partner.
 TRN.pairOpen = {}
 
-local function finite(x)
-    return type(x) == "number" and x == x and x ~= math.huge and x ~= -math.huge
-end
+local finite = NR.finite
+
+
 
 -- The username of a player owner, or nil (a zombie or a nil owner has none).
 local function username(owner)

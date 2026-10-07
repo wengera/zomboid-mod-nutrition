@@ -35,13 +35,13 @@ NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastE
                        lastAbsorbed = {}, lastMealCa = {}, ctx = {} }
 local KIN = NR.server.kinetics
 
-local function worldAge()
-    if getGameTime == nil then return 0 end
-    local ok, gt = pcall(getGameTime)
-    local okA, age = NR.call(ok and gt or nil, "getWorldAgeHours")
-    if okA and type(age) == "number" then return age end
-    return 0
-end
+local function worldAge() return NR.worldAge() or 0 end
+
+
+
+
+
+
 
 local function step(username, player, record)
     local age = worldAge()
