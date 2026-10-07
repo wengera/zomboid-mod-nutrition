@@ -1,0 +1,45 @@
+# testing/profiles/x24-costs.toml - Plan 10c Task H2 (run x242): sub-step and burst-source costs, the global store's
+# save and request (H6's arm E), the client tooltip bench and the ghost calibration. PZTestKit (6af6595: tick.ring,
+# perf.local, ghost.load/stats/stop/bench) + the STAGED copy of the tree at 9578eb9 (release/hitch-x242/NutritionRevamp/
+# Contents/mods/NutritionRevamp, staged fresh from mod/ by `python tools/release_pack.py stage mod/NutritionRevamp
+# --out release/hitch-x242`; MANIFEST sha256 c86e295a...b389, identical to hitch-9578eb9; release/ is gitignored; mod/
+# is never booted) with the x242 instruments: NR_Server_Bench.lua's appended section (kept as
+# testing/spikes/instruments/x242_NR_Server_Bench.lua) and one-line sub-block sites in NR_Server_Nutrients,
+# _Metabolism, _Effects and _Strength (kept as testing/spikes/instruments/x242_NR_Server_<Name>.lua; each line count
+# unchanged). The x23-perf shape: fixture `two`, both clients (`admin` -debug, then `bob` release), Nutrition false
+# (ruling T18-1), DayLength 1, sleep allowed and needed (admin sleeps in phase A). The driver is
+# testing/experiments/x242_costs.py.
+# The verify rows are load gates only: the version on the server and both clients, the instrument's run-ring cap on
+# the server, the H6 probe's store name on both clients (the instrumented copy booted on every side), and the
+# harness's ring cap.
+fixture = "two"
+description = "PZTestKit (6af6595) + the staged NutritionRevamp copy at 9578eb9 with the x242 sub-block, bench and H6 instruments, fixture two, admin and bob, Nutrition off, DayLength 1, sleep on - sub-step and burst-source costs, the store's save and request, the tooltip bench, the ghost calibration."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.server.bench.RING_MAX", expect = '"value": 4000' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NR_H6.NAME", expect = '"value": "NutritionRevamp.players"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NR_H6.NAME", expect = '"value": "NutritionRevamp.players"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/hitch-x242/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, x222)
