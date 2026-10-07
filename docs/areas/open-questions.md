@@ -231,7 +231,7 @@ One subsection per surviving named experiment, in id order: the open rows this p
 
 <a id="x22"></a>
 ### X22 — Does a version dir shipping `media/` that collides with nothing still load, and does a shadowed `common/` copy ever execute?
-- Whether a shadowed `common/` copy ever executes is open [#1288/C/open]; the first half, whether a version dir shipping `media/` that collides with nothing still loads, is settled for the shipped shape by run x222: the options file read 1.5 [#3361/M/n=1].
+- Whether a shadowed `common/` copy ever executes is open [#1288/C/open]; the first half, whether a version dir shipping `media/` that collides with nothing still loads, is settled for a version dir whose `media/` holds only the options file by run x222: the options file read 1.5 [#3361/M/n=1].
 - The two earlier arms had either a collision or an empty version dir, so the inertness of a shadowed `common/` file stays unrun [#0835/M/n=2/open].
 - Waiting on it: [packaging.md](packaging.md#open).
 - Settled by: a mod whose `common/` and version dir each ship a colliding and a non-colliding file, with a sentinel only the shadowed copy can set — [experiments.md § Named experiments](../reference/experiments.md), row `X22`.
