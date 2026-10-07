@@ -174,6 +174,8 @@ A profile lists the accounts a run attaches in a top-level `clients` key, `["adm
 A release client in that session answered the bus, read its debug flags false and its debugger error count 0, and had the mod's tooltip hook installed [#3297/M/n=1], and `event.trigger` addressed to the named client toggled that client's own panel [#3296/M/n=1].
 Two clients on one `pzt run` are one session: the profile's `clients` list is the whole set of client processes the run starts, launched one at a time with each ready before the next [#3304/C/snapshot].
 A client reads only its own player, so a second client's copy of the other player's character is not reachable from the bus [#3292/C/C-only].
+On fixture `two` the two players spawn at (10720.5, 10195.5) and (10911.5, 10037.5), about 248 tiles apart (arithmetic), and there the release client `bob` held no remote player in any frame, while the admin client held `bob` only at whole-tile positions that changed at most once an arm, by a whole-tile jump, with a player-packet stamp every 400 ms at the median [#3493/M/n=1].
+RCON `teleport "bob" "admin"` replied an empty string and moved neither player, while the debug menu's `/teleportto`, sent from the admin client through `lua.call DebugContextMenu.onTeleportValid`, put admin at (10913, 10037) beside `bob`, so a two-player reading that needs the players near each other moves one that way first [#3493/M/n=1].
 
 <a id="bus"></a>
 ### The command bus
@@ -428,6 +430,7 @@ Two legs of the experiment map are stated but not yet measured, the Lua drink-dr
 The frame ring and the engine's own frame counter agree within 2 ms at the 99th percentile: per statistics window the engine's `max-update-period` and the ring's largest `OnTick`-to-`OnTick` gap differed by p99 2 ms idle and under a burst of eighteen ghost records, so the engine's figure is the hitch reading and the ring attributes it [#3403/M/n=1] [#3443/C/inference].
 The idle baseline a frame reading is taken against is short and regular: with two players and the mod's own drain the frame's busy time read p50 1, p99 9 and max 13 ms over 1207 frames, and the start-to-start period p50 100 and max 104 ms [#3404/M/n=1].
 The ghost load ran 3474 runs of eighteen ghost records in 193 minute events with 0 failures and no ghost key in the mod's store, and `ghost.stop` cleared the 45 per-username entries the ghosts had left; its starvation count of 0 is trivial under a burst [#3407/M/n=1].
+A ghost's minute costs 0.778 of a real player's unfed and 0.978 fed: over forty interleaved pairs at `ghost.load 20` the ghost half took 35 ms against the real half's 45 unfed, and 45 against 46 with each ghost's fast-tier input pointed at its carrier's (`feed`), each record run at most once a minute event and never at a zero time step, so a load that stands in for players is fed, and forty pairs at the 1 ms clock resolve the ratio only coarsely [#3455/C/inference] [#3466/M/n=1].
 The `gclog` key's log of one session held 128 ZGC pause lines, the largest 0.12 ms, and 18 allocation stalls, all at boot [#3408/M/n=1].
 The engine's `avg-update-period` is no mean of the frame period, being set each frame to about a 21st of it, while `max-update-period` and `min-update-period` are each window's extremes, so a driver reads the extremes and never the average [#3409/C/C-only] [#3443/C/inference].
 

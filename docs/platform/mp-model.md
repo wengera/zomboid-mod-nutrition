@@ -119,6 +119,8 @@ The tightest bound on that erasure is the hunger arm: a client-side write of 0.9
 One more route out of a client reads rather than writes: any logged-in client can request any global modData table by name, and the server sends that table, serialised whole, to the requesting connection with no check of who asked or which name [#3417/C/C-only].
 A mod cannot refuse the request: the server's handler fires no Lua event and consults no hook before it sends, so a mod's only control is what it keeps under a global modData name [#3418/C/C-only].
 The reply is written into the connection's fixed 1,000,000-byte send buffer, so a table that overflows it is sent truncated, which the stock client's parse is expected to reject [#3419/C/C-only].
+Live, a `ModData.request` from a release client returned the mod's table with 2 keys 23 ms after the call and with 60 keys after 44 ms, and the server frames around each request peaked 4 and 5 ms over the median period of 100 ms, within the idle jitter [#3469/M/n=1].
+At 500 records the request failed on both sides and the requester kept its session: the server logged `GlobalModData.receiveRequest> Exception thrown` with a `java.nio.BufferOverflowException`, the requesting client logged `GlobalModDataPacket.parse> Exception thrown` with a `java.nio.BufferUnderflowException`, no `OnReceiveGlobalModData` event fired and no `IllegalMonitorStateException` line appeared [#3470/M/n=1].
 
 <a id="routes-server-to-client"></a>
 ### The routes from a server, and the cadence of each

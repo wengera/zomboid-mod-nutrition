@@ -8,7 +8,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - **The takeover** is the mod's shipped `Hook.CalculateStats` handler. Registering it stops vanilla's seven stat updaters for every player (#2238), and the handler computes hunger, thirst, fatigue and the other stats itself, every tick.
 - **The zeroed-rates route** sets vanilla's hunger, thirst and fatigue rise rates to zero at boot and lets vanilla's updaters run. The mod then writes the three stats itself once a game minute.
 - **The hybrid** is the zeroed-rates route plus a once-a-minute write of PANIC and TEMPERATURE, which vanilla decays or resets every update. S1 first defined it with a per-tick (`OnTick`) PANIC hold; rule 6 (Angus 2026-10-07), Decision 1 and the Performance section replace the hold with the once-a-minute write.
-- **The slow minute** is the mod's once-a-game-minute work per player. **The stagger** spreads that work over the server's ticks so no tick runs every player. Under rule 6 (no per-tick work, Angus 2026-10-07) the drain becomes an `EveryOneMinute` round-robin of period m (Decision 1; Performance).
+- **The slow minute** is the mod's once-a-game-minute work per player. **The stagger** spreads that work over the server's ticks so no tick runs every player. Under rule 6 (no per-tick work, Angus 2026-10-07) the drain becomes an `EveryOneMinute` round-robin of period m (Decision 1; Performance). Plan 10c's measurements replace that with a budgeted `OnTick` queue that runs every player every minute (Decision 6 (b); Hitching).
 - **The floors** are minimum values the mod's effects hold a vanilla stat at: PANIC, UNHAPPINESS, FOOD_SICKNESS and STRESS, plus the INTOXICATION target.
 - **`rmod`** is the mod's endurance-regeneration modifier. It scales vanilla's endurance recovery by the character's nutrition state (among its inputs glycogen, protein, iron, dehydration, sleep debt and alcohol).
 - **Draft ruling 2** is the draft's rule for the stagger: how many queued players run per tick. **Draft ruling 4** is the draft's rule for a respawn or a reconnect: which `IsoPlayer` object the mod keeps for a username.
@@ -183,6 +183,7 @@ The draft's code samples predate the refactor. Per task:
 - **Task 1.** The helper set, `server_host.py` and `test_core_helpers.py` landed in Plan 10 R1; Steps 2, 3 and 5's `NR_Core.lua` append are done. What remains is the zero-age fix at the six sites above. Step 5's Kinetics sample is re-based: the step is `step(username, player, record, pipe)` (`NR_Server_Kinetics.lua:46`), and a nil age clears `pipe.absorbed` and `pipe.mealCa`, not `KIN.lastAbsorbed` and `KIN.lastMealCa`. Intake's `num(v)` was kept under its name, not renamed `numv`.
 - **Task 2.** `P.minute`'s `NR.worldAge() or 0` becomes the Players wrapper that Task 1 fixes. `P.work(username, player)` keeps calling `NR.server.minute.run` and then `P.onMinute`. `K.stagger.perTick`'s wall-cycle form is replaced by the `EveryOneMinute` round-robin of period m (rule 6; Decision 1), and its "no tick in the last minute" tests go: that case never happens (#3348–#3350). The `OnNewGame` sample evicts instead of storing. The queue entry carries the record's `resets`. The respawn test brings the new object in three ticks after `OnNewGame` (#3358). A 60-game-minute step test is added. Step 9's dead options branch is at `NR_Server_Options.lua:88-110`.
   - **The shipped drain starves players on a normal clock (architecture review, 2026-10-07).** `P.minute` rebuilds the queue each game minute (`NR_Server_Players.lua:49`) and `P.drain` serves one player a tick (`:82-95`). Whenever more players are online than there are ticks in a game minute, the tail of the online list never runs its minute: about 53-54 of 60 at DayLength 1 and 22-23 at DayLength 4 (arithmetic on #3346, #3347). Task 2 must cover this case, not only the fast clock (#3352). Plan 10c measures the replacement scheduler.
+  - **Confirmed live, and the replacement chosen (Plan 10c; Hitching).** A mirror of the drain at N = 60 and DayLength 1 left 53 of 58 ghosts never run, the longest 115.7 game minutes stale (#3482). Under Decision 6 (b) Task 2 replaces both the drain and the round-robin of period m above with a budgeted `OnTick` queue that carries unserved players forward, under a budget sized to the minute's work. A 15 ms budget starved none in nine draws at both spacings (#3489, #3490). Task 2's tests cover a normal clock with more players than the minute has ticks, and a fast clock.
 - **Task 3** (only under Decision 1's (a); (a) withdrawn under rule 6; kept for the record). `onMinute` is now the pipeline's `"fast"` step, registered with `NR.server.minute.register("fast", onMinute)` (`NR_Server_Fast.lua:563`), with the signature `(username, player, record, ctx)`. A raise there outside its own `pcall` is caught by the pipeline, logged and counted. `FAST.stampSlow` is called from that step. The line ranges in its file list are re-read.
 - **Task 4.** `B.flushEffects` is the pipeline's `"bus"` step (`NR_Server_Bus.lua:113`), with the signature `(username, player, record)`. The `mirror.request` listener it rewrites holds one zero-age site (`NR_Server_Bus.lua:51-53`).
 - **Task 6.** Rewritten by Decision 1.
@@ -219,7 +220,7 @@ The draft's code samples predate the refactor. Per task:
 
 ## Performance (Plan 10b)
 
-**Rule 6, as Angus restated it on 2026-10-07.** The rule's goal is no noticeable performance degradation or hitching, which Angus names the mod's primary point of potential failure. Per-tick work is the default suspect, not banned: it is admitted where a measurement proves it alleviates hitching rather than aggravating it. Every "rule 6" below that reads "no per-tick work" is read this way. A design is judged by its worst tick and how often that tick comes, at the 60-player design load. An architecture review pass and a further experiment plan follow, and they supersede Decision 6.
+**Rule 6, as Angus restated it on 2026-10-07.** The rule's goal is no noticeable performance degradation or hitching, which Angus names the mod's primary point of potential failure. Per-tick work is the default suspect, not banned: it is admitted where a measurement proves it alleviates hitching rather than aggravating it. Every "rule 6" below that reads "no per-tick work" is read this way. A design is judged by its worst tick and how often that tick comes, at the 60-player design load. An architecture review pass and a further experiment plan follow, and they supersede Decision 6 (Plan 10c; Hitching, below, and Decision 6 as rewritten).
 
 Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) asked where the mod's server time goes, before Plan 11 is written. P1 profiled the slow minute by step in live play. P2 ran the minute every k game minutes offline against the golden trace. P3 measured what a design with no per-tick work gives up and pays (rule 6, Angus 2026-10-07: no per-tick work). P4, the caching of Java reads, was gated on P1 and did not trigger.
 - The live run is `x231-20261007-111042` on the tree staged at `dc619d0`, with fixture `two`, Nutrition false and DayLength 1; its rows are #3387–#3394. P2's rows are #3395–#3399.
@@ -341,6 +342,8 @@ So rule 6's design costs less than the takeover at both day lengths. Its own ris
 ### Ranked performance refactors for Plan 11
 
 Each item names its reading and its expected saving per player per game minute, and goes no further than that reading. The list is ordered by that saving, largest first. Item 4 is required by rule 6 whatever its saving.
+
+**Re-ranked by Plan 10c.** The order below is superseded by Hitching's "Ranked refactors for Plan 11": heal once before the step first, then the budgeted scheduler, then send staggering, then the store's move. Item 4 (the round-robin drain) is superseded by Decision 6 (b).
 1. **The Nutrients step's Lua** (saving up to 800 µs).
    - The reading: 192 ±6.2 ms (3 %), 51.3 % of the pipeline, of the pipeline's 374 ms in play (#3387). It is also 395 of 823 ms under a fast clock (#3389) and 145 of 362 ms at a zero interval (#3390).
    - Its Java is 9 `NR.call`s and 2 direct calls a run (#3388): under 0.3 % by the estimate, and about 24 µs (11 calls × 2.2) at the upper bound.
@@ -393,8 +396,166 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
   - The per-tick drain spreads it: 10 players a tick at DayLength 1 is 12.3 to 15.8 ms every tick, and 2 at DayLength 4 is 2.5 to 3.2 ms. That is a flat load with no spike.
   - The drain does no simulation per tick; it only schedules the minute's work.
   - Rule 6 as written excludes it. Whether a budgeted scheduler counts as the per-tick anti-pattern is Angus's call (a new decision, 6, below).
+  - Plan 10c measured it with 58 ghost records beside two players. A 15 ms budget held the frame within 13 ms of idle at the 99th percentile, where the burst added 43 to 56 ms. At N = 60 the burst's minute frame read 50 ms of busy at the median and 88 at the worst, below this table's 73.7 to 103.3 ms arithmetic (#3472, #3489, #3490; Decision 6).
 
 **What it changes in the ranked list.** At 60 players, item 1 (the Nutrients step) becomes a cost target for the whole pipeline: about 0.33 ms a player-run, against 1.583 today. Plan 11's first performance task, the profile below the step, is a blocker for a 60-player release, not insurance. A live run at 20 or more players (Task 13) is needed before any 60-player figure is trusted.
+
+## Hitching (Plan 10c)
+
+Plan 10c (`docs/superpowers/plans/2026-10-07-plan-10c-hitching-experiments.md`) asked where the mod can make a player notice a hitch at the 60-player design load, and which scheduler keeps the worst server frame lowest, before Plan 11 is written. It changed nothing under `mod/`: every instrument and prototype ran in a staged copy or under `testing/spikes/`.
+- **Rows.** H0 (the frame instrument and the ghost load) #3403–#3410; H1 (offline prototypes) #3411–#3416; H6 (the global store) #3417–#3422; Task D's durable record #3423–#3456; H2 (sub-step and burst-source costs, runs `x242` and `x242b`) #3457–#3470; H3 (the scheduler shoot-out, four `x243` sessions) #3471–#3484; H4 (does a player notice, three `x244` sessions) #3485–#3493; H5 (the engine's fake clients, one `x245` session) #3494–#3496; the three new lessons rules #3497–#3499. The H1–H6 task memos are Appendices J–O, verbatim, and keep their own provisional ids, which each appendix's first line maps: a figure in this section that rests on a memo and on no row names its appendix, and a figure computed here is labelled (arithmetic).
+- **The durable record.** Every finding below that a future change needs is also on `docs/platform/performance.md` (the frame, the scheduling primitives, the measured costs, the shoot-out, how to measure) and in `docs/platform/lessons.md`'s rules. This section is the decision record; those pages are what a reader cites.
+- **Scope.** Every live figure is one session on one host, fixture `two`, Nutrition false. Ghost records are cost, never behaviour. Both clients ran on the server's host.
+
+### The frame instrument, and how far it can be trusted
+
+- **Two readings of a frame.** The harness's `tick.ring` stamps each frame at `OnTickEvenPaused` and `OnTick`. It gives the frame's **busy** time (start to the end of `OnTick`), the **start-to-start** period and the **end-to-end** period (a frame's start to the next frame's end). `perf.local` reads the engine's own per-window `max-update-period`, the hitch reading.
+  - The two agree within 2 ms at the 99th percentile, idle and under a burst (#3403).
+  - The engine's `avg-update-period` is no mean, so no driver reads it (#3409).
+  - The minute's work runs between the frame's `OnTickEvenPaused` and its `OnTick` (#3410).
+  - Idle, with two players: busy p50 1, p99 9, max 13 ms; start-to-start p50 100 ms (#3404).
+- **The ghost load.** `ghost.load <N>` runs N minus the online count of ghost records through the real pipeline against the real players, under a named scheduler.
+  - Over forty interleaved pairs, a fed ghost's minute cost 0.978 of a real player's and an unfed one 0.778 (#3466). Forty pairs at the 1 ms clock resolve that ratio only coarsely, so H3 and H4 read the ghosts' cost off `ghost.stats`' batch totals over whole arms (0.762–1.107 ms a run across the arms: #3472, #3473, #3476, #3478, #3491).
+  - So N = 60 is a cost stand-in for about 44 to 60 players' minutes (inference). It carries none of vanilla's own per-player work, which H5 could not read: the engine's fake clients were kicked at join (#3494).
+- **What it cannot resolve.**
+  - The Lua clock is 1 ms, so every Lua figure is a total over many runs with its count.
+  - Two no-load arms of one session drifted from 1.873 to 1.256 ms of busy a frame (#3483). So a total compared across arms on busy over idle carries about 0.6 ms a frame of drift. The drift-immune total is the ghosts' own batch-timed ms a minute event (#3479, #3491; rule #3499).
+- **GC is not a factor.** ZGC pauses inside the measured arms were at most 0.695 ms over four sessions, and every allocation stall fell during boot, before any arm (#3484; #3408).
+
+### Where the minute's time goes, and the refactor targets (H2)
+
+Run `x242` (phases A and B, by ruling H2-1) and run `x242b` (phases C to F), on the staged copy with sub-block timers.
+- **The live minute** is 356 ms over 244 runs with the timers on, 1.459 ms a run (#3457). By step: nutrients 173, metabolism 79, effects 38, kinetics 18, strength 15, weight 13, reconcile 9, bus 2, fast 0 ms.
+  - Timer overhead: the profiled bench's typical run is 1.080× the unprofiled one (about ±0.04; the `x242b` guide), and the un-bracketed remainder bounds the cost outside the brackets at about 5.6 % (the `x242` guide; both guides are in `docs/reference/artifacts.md`, and Appendix K).
+- **The heals are the top block live too.** The Nutrients heal pair is the two largest sub-blocks: `heal.pre` 62 and `heal.post` 39 ms, 28.4 % of the minute. The seven heal passes together are 143 ms, 40.2 % (#3458).
+  - Offline the same pair is 38.4 % of the C-Lua pipeline (#3411). The shares are not like-for-like: the live minute holds Java-interop blocks lupa stubs, the scenarios differ, and about 30 bracket pairs were on.
+- **The 15 %-of-step targets** (#3459): `nutrients/heal.pre`, `nutrients/heal.post` and `nutrients/records`; `metabolism/readActivity` (9.0 % of the minute, the next live target after the heals) and `metabolism/heal.post`. The effects and strength targets rest on 5–9 ms totals, at the noise.
+- **What is not a burst source** at the plan's rules:
+  - a day close: 0.901 of the typical minute over 1000 bench runs, and a seven-day catch-up no costlier (#3462); in play at N = 60 the burst's first minute frame after 07:00 read 1.34× the minute p50, not a separate burst (#3481);
+  - first sight, per joiner: 0.861 ms, a floor (#3463); sixty joiners in one frame would cost at least 51.7 ms (arithmetic), so a mass join is open;
+  - a deficient player: no burst at 1 ms resolution, the onset unmeasured (#3461);
+  - the client tooltip: 7–18 µs a call on an unchanged item (#3465).
+- **The send is one.** One mirror send of the 138-key payload costs about 0.1 ms, so 60 in one frame are about 6.12 ms (#3464). That is over the plan's 5 ms jitter rule. It is the per-send cost times 60, not a 60-player reading. Rule #3498 spreads the pushes.
+
+### The prototypes (H1, offline)
+
+- **Heal once, before the step, saves about 28 % and keeps the trace.** It reproduces the golden byte for byte and saves 27.7 % of the pipeline's C-Lua time (IQR 23.9–28.8), and it keeps every input-NaN heal (#3413).
+  - A probe-free re-timing put all seven heals at 55.7 % and the Nutrients pair at 41.6 % (the H1 review's probe-free re-timing; Appendix J).
+  - Its cost: a NaN the step's own arithmetic makes may sit in the record until the next minute (#3413). Keep a post-step guard where a step's NaN would leak in the same minute (Metabolism's masses at least), and enumerate the cross-step reads before settling it (Appendix J).
+  - Healing once **after** the step changes the trace (#3412): a finding, not a fix (ruling 4).
+- **Hoisted constants** save nothing measurable (0.3 %, #3414).
+- **A slow tier for the records** (K = 5, the rebuild check kept every minute) takes about 7.2 % off the average minute, not the worst player-run (#3415, #3416).
+
+### The global store (H6 and H2b)
+
+- **Size.** A record is about 10.8 KB in the save's format (#3422); live, each seeded copy added 10877 bytes to `global_mod_data.bin` (#3468). So 1 MB is reached at about 92 records (arithmetic, 1,000,000 / 10877), 500 records are about 5.4 MB, and 2000 about 21.8 MB. An inputs-only record is only 19 % smaller.
+- **The save is a hitch source.** It runs on the main loop for the console save and the autosave (#3420). The first save at a new size pays far more than the next (#3467):
+
+| seeded records | first save (ms) | second save (ms) |
+|---|---|---|
+| 0 | 11 | 9 |
+| 100 | 22 | 16 |
+| 500 | 153 | 50 |
+| 2000 | 2770 | 193 |
+
+  - At 2000 the first save made a 2990 ms server frame and logged `Pausing clients…`.
+  - At 500 the second save adds 41 ms over 0, so H6's 25 ms rule fires.
+  - That the first save at a size pays the buffer's growth restarts is inference (#3421). So the save that stalls is the first after the store passes its last high-water mark, an autosave after a long uptime among them.
+- **The request leak is confirmed live.** Any logged-in client can request the store by name, and a mod cannot refuse (#3417, #3418).
+  - Live, a release client received the whole table at 2 and 60 records (#3469).
+  - At 500 records the request failed on both sides, and the client kept its session (#3470). The truncated send and the client's parse rejection are confirmed (#3419). The `IllegalMonitorStateException` H6 inferred did not appear.
+  - The request's frame cost at 60 records was within the 4–5 ms idle jitter (#3469). Above 60 and repeated, it is unmeasured.
+- **Consequence:** the store leaves global modData in Plan 11 (Decision 3).
+
+### The scheduler shoot-out (H3 and H4): a headroom reading
+
+N = 60 means 58 fed ghost records beside the two real players, who stayed on the mod's own drain. Adds are over the same session's idle arm. The p99 add is on the ring's end-to-end period (about 1020 frames an arm); the max add is on the engine's per-window longest frame (about 95 windows an arm). Starvation is ghost-minutes not run within their period.
+
+| scheduler | spacing | busy p50 / max (ms) | longest window (ms) | adds p99 / max (ms) | starved | rows |
+|---|---|---|---|---|---|---|
+| idle | DayLength 1 | 2 / 13 | 115 | — | — | #3471 |
+| burst (one event) | DayLength 1 | 50 / 88, minute frames | 188 | +62 / +73 | — | #3472 |
+| burst, six draws | DayLength 1 | — | 164–176 | +46 to +56 / +48 to +61 | — | #3489 |
+| round-robin of two | DayLength 1 | 31 / 48, minute frames | 146 | +32 / +31 | none; each ghost every second minute by design | #3475 |
+| ceil(N / ticks) a tick (the draft) | DayLength 1 | 10 / 22 | 119 | — / +4 | 176 over 167 events | #3478 |
+| 5 ms budget | DayLength 1 | — / 43 | 141 | — / +26 | every event | #3477 |
+| 10 ms budget | DayLength 1 | 10 / 26 | 124 | +5 / +9 | 207 over 166 (34 events), at most one event late | #3476 |
+| 15 ms budget | DayLength 1 | 11 / 31 | 134 | +13 / +19 | none | #3477 |
+| 15 ms budget, six draws | DayLength 1 | — | 127–139 | +12 to +13 / +11 to +25 | none | #3489 |
+| burst | 37 ticks | 48 / 60, minute frames | 161 | +44 / +42 | — | #3473 |
+| burst, three draws | 37 ticks | — | 153–173 | +43 to +46 / +47 to +67 | — | #3490 |
+| 15 ms budget, three draws | 37 ticks | — | 123 | +12 to +13 / +17 | none | #3490 |
+| the shipped 1.0.0 drain (mirrored) | DayLength 1 | — | — | — | 53 of 58 never ran | #3482 |
+
+- **The headroom framing.** The loop's start-to-start cadence held under both the burst and the budget at N = 60 on this host, one unexplained 136 ms period in `x244a` aside (#3486).
+  - The one exception is a single unexplained 136 ms start-to-start period in `x244a`'s burst2; the period held at 103–106 ms in every other `x244` arm.
+  - In the `x244` sessions the burst's busy, 46–51 ms at the minute-frame median and 56–77 ms at the frame max, fits inside the 100 ms period; so did the 88 ms frame max of `x243a` (#3472).
+  - So the 153–188 ms "worst frames" are end-to-end periods: the burst moves the frame's end, not the loop's cadence.
+  - The burst's busy is linear in N, 18, 32 and 50 ms at the median at N = 20, 40 and 60 (#3474). Extrapolated linearly (inference), the worst minute frame at N = 60, 88 ms of busy (#3472), crosses the 100 ms period near N = 68–74 on this host, and the median minute frame, about 50 ms, near N = 120. The H4 review's estimate of N = 85–95 sits inside the 68–107 that the frame maxima of 56–88 ms across the H3 and H4 sessions give (arithmetic). None of these counts vanilla's own per-player load at 60 real players, which is unmeasured: H5's fake clients could not join (#3494).
+  - So (b) buys headroom for more players, heavier minutes and slower hosts. It is not relief from a stall players see today at 60 on this host.
+- **A budget sized to the minute's work keeps the worst frame flat.**
+  - A 15 ms budget added 12–13 ms at p99 in all nine draws at both spacings and starved no ghost, against the burst's 43–56 (#3489, #3490).
+  - A 10 ms budget runs at the margin of the minute's work. It served 56.75 of 58 a minute event, each ghost at most one event late: bounded lateness, not loss (#3476).
+  - A 5 ms budget starved every event (#3477).
+  - The drafted ceil(N / ticks) spread starved at N = 40 and 60 at DayLength 1, because its count comes from the last minute's 6 or 7 ticks (#3478, inference).
+  - Rule #3497 states it: a per-tick cap with headroom over the minute's work divided by the minute's ticks.
+- **The total.** On the drift-immune measure, the 15 ms budget ran 1.053, 1.061 and 1.060× the burst's ghost ms a minute event in three sessions (#3491). That settles H3's 1.22× for the 10 ms budget at 37 ticks as drift: its ghost ms a minute event read 1.046× (#3479). The 5–6 % excess is not resolved from the spread between arms.
+- **The empty-queue check is not resolved** (#3483).
+  - The A/B (about 3000 frames a side, none, empty, empty, none) reads −0.052 ms a frame by the totals and −0.077 by the quiet frames. The two pairs read −0.238 and +0.133, against about 0.6 ms a frame of drift.
+  - In A-B-B-A order the arms read 1.873, 1.635, 1.389 and 1.256 ms a frame, the empty arms net of their ghost ms. A fit of a linear drift plus an empty-side offset gives −0.053 ms a frame.
+  - **Caveat:** the fit's largest residual, 0.018, is the curvature a one-degree-of-freedom fit leaves, not an error bar. The offset's standard error is about 0.03 ms. So the reading weakly supports the ≤ 0.1 ms bound and no more.
+- **A fast clock.** Under `settimespeed 30` every frame is a minute frame. The burst then ran 58 ghosts every frame at busy up to 76 ms, yet the end-to-end period stayed at 123 ms at p99. A 10 ms budget there starved 29715 ghost-minutes over 623 events, up to 42.8 game minutes stale (#3480). So the budget must scale with the clock, or run everything when every frame is a minute frame (inference; for Plan 11).
+- **The starvation bug is confirmed live** (ruling 3). The shipped drain, mirrored at N = 60, ran 4.26 ghost minutes a minute event, dropped 6180 queued ghost-minutes and left 53 of 58 ghosts never run, the longest 115.7 game minutes stale (#3482). #3444's rule and #3439 carry this as a status note.
+
+### Does a player notice? (H4)
+
+Session `x244c` put admin 1.58 tiles from bob (arithmetic off #3493's coordinates). Fixture `two` spawns them about 248 tiles apart, and an RCON `teleport` moves nobody; the debug menu's `/teleportto` through `lua.call` does (#3493).
+- **The clients' own frames** never reached 100 ms, at most 32 ms under the burst (#3486).
+- **The other player's motion** showed no minute-aligned gap above chance. Gaps of 100 ms or more lined up with a minute frame 32–43 times an arm under the burst against 30–41 in a shifted control, and 35–44 against 28–38 under the 15 ms budget (#3486).
+- **The packet-stamp test was blind** (#3487, #3488).
+  - A remote player's `getLastRemoteUpdate()` is stamped at each player packet (#3485). It advanced every 201–400 ms at the median.
+  - Every stamp gap was at least 167 ms, so the 100 ms rule counted every gap, and the windows cover 32–37 % of the time. A stamp test cannot see a frame shorter than the packet cadence.
+  - The near-player stamps stayed within one or two client frames of the 200 ms grid in every arm, burst frames included.
+- **The supported reading:** at N = 60 on loopback, with no zombies, the burst has no visible effect on another player's updates (#3488). The plan's prediction, evidence for (b), was falsified.
+- **What it does not cover:**
+  - a player's own actions on server-owned state (timed-action completion, container transfers, hits, eating), which wait on the frame;
+  - real network latency, jitter and loss;
+  - zombies;
+  - more than one session per geometry.
+- **Ruling H4-2 (restated by the H4 review): ruling 2's thresholds stay as written.** H4 could not have loosened them: its stamp test was blind at the 200–400 ms packet cadence, and no tick started late in any arm (one unexplained 136 ms period in x244a aside), so there was no stall to see. Hitching is the mod's primary failure risk (Angus). Cost if wrong: a tighter budget than needed, which costs nothing in hitching.
+
+### The fake clients (H5)
+
+Run `x245`: one server-only session with PZTestKit only, no NutritionRevamp and no game client, the server on port 16261 with `Open=true` and `DoLuaChecksum=false`, and the fake JVM run read-only from the install (Appendix N).
+- **Not reachable on 42.20.4.** The engine's `FakeClientManager` connects, logs in and passes the login queue, then the server kicks it at `player-connect` with `UI_LoadPlayerProfileError`. Over about five minutes its one connected client, `Client1`, was allowed to join and kicked 23 times, and no fake player was ever online (#3494).
+- **Why.** The server kicks a joining player for whom it finds no saved character, and the fake client sends `PlayerConnect` straight after the login queue with no character of its own (#3495).
+- **One JVM, one connection.** At each connect round all but one of the clients due failed, and the server only ever saw `Client1`, so one JVM gave one connected client (inference). That JVM held 133.3–180.9 MB (#3496), so sixty JVMs would need about 8–11 GB (arithmetic).
+- **What it leaves unmeasured.** Vanilla's own frame at each N, the denominator E7 asked for, and H4's burst and budget15 arms on real players: neither ran. With nobody online, the idle server-only baseline read busy p99 3–4 ms and an end-to-end period p99 of 105 ms, with no client and no mod, so it is no per-player reading (Appendix N).
+- **What would make it reachable** (not tried; a new task and a new session): a saved character for each fake username before it connects, and one JVM per client with `-id=<n>` (Appendix N). Until then E7 stays Angus's to supply.
+
+### Ranked refactors for Plan 11 (re-ranked by Plan 10c)
+
+This supersedes the order of the Plan 10b list above. Each item names its reading. The list ranks by expected saving, and the budgeted scheduler (item 2) is a correctness fix on top: it fixes the 1.0.0 starvation, confirmed live by #3482.
+1. **Heal once, before the step.**
+   - The reading: offline it saves 27.7 % of the pipeline and keeps the golden trace byte for byte (#3413). Live the heals are the top block: the Nutrients pair is 28.4 % of the minute and the seven heals 40.2 % (#3458).
+   - The saving: about a quarter of the minute, about 0.4 ms a player-run on the profiled 1.459 ms (arithmetic), if the offline share holds live (unpriced).
+   - Conditions: a post-step guard where a step's NaN would leak in the same minute, and the cross-step reads enumerated first (#3413). The trace is unchanged, so no re-record.
+   - Then the remaining heal walk (cheaper finiteness checks) and `metabolism/readActivity` (9.0 % of the live minute, #3458).
+2. **The budgeted per-tick scheduler (Decision 6 (b)).**
+   - It fixes the 1.0.0 drain's starvation bug: 53 of 58 never ran live at N = 60 (#3482; Re-basing, Task 2).
+   - It keeps the worst frame flat: +12 to +13 ms at p99 against the burst's +43 to +56 (#3489, #3490).
+   - Its shape: a queue that carries unserved players forward, drained on `OnTick` under a budget sized to the minute's work (15 ms at 60 on this host; a minute-sized adaptive budget is Plan 11's to build and measure), plus a fast-clock rule (#3480).
+   - The saving on average: none (1.053–1.061× the burst's total, #3491). What it buys is headroom.
+3. **Stagger the per-player sends.** Sixty mirror sends in one frame are about 6.12 ms (#3464). The push gap's wall-time phase lock keeps players first seen together pushing in the same minute (#3456), so the push needs its own per-player offset or a share of the spread queue. Rule #3498.
+4. **Move the store out of global modData (Decision 3).** It is a privacy and griefing blocker (#3417–#3419, #3469, #3470) and a save hitch: 2770 ms on the first save at 2000 records, and the second save at 500 added 41 ms over the second at 0 (#3467). The recommended home is a server-local file through `getFileWriter`.
+
+Below these, the Plan 10b list's other items stand:
+- the slow tier for the records (K = 5, about 7.2 % offline, #3415, #3416);
+- a coarse minute (conditional on the fairer band, and no longer needed for the spike once (b) is adopted);
+- caching Java reads (not supported);
+- the dt biases (correctness).
+
+Plan 10b's item 4, the `EveryOneMinute` round-robin drain, is superseded by item 2: Decision 6's (c) is excluded.
 
 ## Angus's decisions
 
@@ -466,6 +627,7 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
   - m = 1 keeps every-minute behaviour and pays the burst;
   - m = 2 halves the cost and the spike, at P2's one-minute back-dating, once the first sight is aligned and events land at their own minute, and only if Angus adopts Appendix H's fairer band (under ruling 4, k = 2 fails, #3396, #3397; event landing was never run);
   - m = 5 is player-visible.
+- **Under Decision 6 (b) (Plan 10c)** every player runs every game minute through a budgeted `OnTick` queue. So the period m above matters only if (b) is not adopted, and (c)'s writes land in each player's own minute run.
 
 ### 2. Hunger feel
 
@@ -491,13 +653,38 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 
 **Recommendation:** (a), if the goal is "feels like vanilla, reads the energy balance" (Appendix D). If bulk must matter, (c)'s relief scaling at a β Angus picks.
 
-### 3. Record pruning default
+### 3. Record pruning default, and where the store lives
 
-- **Off by default, operators opt in** (the draft's ruling 14). Cost: the record table grows with every player who ever joined.
+**Read by Plan 10c H6 (jar and offline) and H2b (live); Hitching, The global store.** The answer changes in two ways.
+
+**First, the store must leave global modData in Plan 11, whatever the pruning default.** This is a privacy and griefing blocker.
+- Any logged-in client can request the store by name, and the server sends it whole. A mod cannot refuse, because the handler fires no Lua event and consults no hook (#3417, #3418).
+- Live, a release client received every record at 2 and 60 records (#3469). Above about 92 records (arithmetic, 1,000,000 / 10877) the reply is truncated (#3419); at 500 it failed on both sides, and the client kept its session (#3470).
+- What leaks (inference from what a record holds; Appendix O): the username of everyone who ever joined, and their health state.
+- The griefing half: a ~30-byte request (Appendix O) makes the server serialise up to 1 MB on its main loop. A modified client can repeat it at will. At 60 records its frame cost was within the idle jitter (#3469); above that, and repeated, it is unmeasured.
+- Pruning or an inputs-only record shrinks the leak but does not close it.
+- **The storage candidates** (H6; Appendix O, with their jar cites):
+  1. **A server-local file through `getFileWriter` and `getFileReader`: recommended.** It sits under the server's Lua cache folder, and no network route reads it. Its costs:
+     - the mod writes its own JSON serialiser;
+     - the file name must carry the server or world name, because the folder is per host;
+     - the write still runs on the main thread;
+     - it is not atomic with the world save: after a hard kill the world rolls back (#2098, #2758) and the file does not.
+  2. **Global modData under a secret name**, possibly one table per player. The secret must live in option 1's file. It still pays the main-thread save, and it shrinks a request from a guessed name to one record.
+  3. **Player modData: rejected.** Any mod on the owning client can replace the server's copy (#1085), and the server's copy is empty at join (#1432).
+  4. **`getModFileWriter`: rejected.** It writes into the mod's own folder, which a Workshop update replaces (#1866).
+
+  Plan 11 needs a jar read of the chosen route before it builds on it.
+
+**Second, the recommendation flips to pruning on by default.**
+- **The size.** A record is about 10.8 KB in the save's format (#3422), and 10877 bytes on disk live (#3468). So 500 records are about 5.4 MB, over the rule's 1 MB, and 2000 about 21.8 MB. An inputs-only record is only 19 % smaller, so it is not a size fix on its own.
+- **The save.** While the store stays in global modData, its size is a hitch (#3467). The first console save at 2000 records took 2770 ms, made a 2990 ms server frame and paused the clients. At 500 the second save added 41 ms over the second at 0.
+- In a server-local file the size still sets the write's main-thread cost, so pruning keeps paying after the move (inference).
+
+**The options.**
 - **On by default, with a keep of N game days.** Cost: a player away longer than N days returns to a fresh record.
-- No spike measured this; it is a judgement.
-- **Recommendation:** off, as the draft proposes.
-- **Open, read by Plan 10c H6 (architecture review, 2026-10-07).** A client may be able to `ModData.request` the store's key and receive every player's record. If it can, closing that is a privacy fix for Plan 11 whatever this decision says. H6 also measures the store's size and save cost, which may flip this recommendation.
+- **Off by default, operators opt in** (the draft's ruling 14). Cost: the store grows with every player who ever joined, about 10.9 KB each, and with it the save or the write.
+
+**Recommendation:** pruning on by default, with N Angus's to set; and the store moves to a server-local file in Plan 11 (the blocker above), whichever default he picks.
 
 ### 4. Internal ids in shipped comments
 
@@ -515,15 +702,45 @@ Angus set the design load at a 60-player average. Every figure below is arithmet
 
 ### 6. Spreading the minute at 60 players
 
-- **Answered in principle by Angus (2026-10-07):** a per-tick site is allowed when measured to reduce hitching. The choice between (a), (b) and (c) now waits on the hitching experiments that follow the architecture review.
-- At the 60-player design load, no per-tick work leaves a one-tick spike of 73.7 to 103.3 ms every game minute (60 × 1228.81 and 1721.31 µs, x231 unrounded) (arithmetic; The 60-player design load, above).
-- Choose one: (a) keep rule 6 and make a player-run about 4.75 times cheaper (0.333 ms at m = 2, which also needs the fairer band); (b) allow a budgeted per-tick scheduler that only drains the minute's queue, with no simulation per tick (12.3 to 15.8 ms a tick at DayLength 1, flat; each player still runs every game minute, so it adds none of P2's drift, which is inference: P2 measured only coarser minutes); or (c) accept the spike.
-- Recommendation: (b) now, and (a) as Plan 11's performance target either way. (b) is the standard mitigation for a fixed per-minute workload. (a) depends on a profile that has not been run.
+**Measured by Plan 10c (H3, H4; Hitching, The scheduler shoot-out).** Angus answered the principle on 2026-10-07: a per-tick site is allowed where it is measured to reduce hitching. The choice was then read against ruling 2's rules at N = 60, at DayLength 1 and at 37 ticks a game minute (the DayLength 4 spacing). The options carry ruling 2's letters:
+- **(a) The one-event design:** every player's minute in one `EveryOneMinute` event. This is the earlier "(c) accept the spike", and "(a) make a player-run cheaper" at m = 1. It is admissible only if the burst itself stays at most 25 ms at N = 60.
+- **(b) A budgeted per-tick scheduler.** The minute event queues the players, and `OnTick` drains the queue under a per-tick budget, carrying the unserved forward, with no simulation per tick.
+- **(c) A round-robin of m = 2.** This is the earlier "(a)" at m = 2. It is admissible only if it meets (b)'s bounds and Angus adopts Appendix H's fairer band.
+
+**The answer.**
+- **(a) is excluded.** The burst added 47 to 67 ms to the longest frame in nine of nine draws, at both spacings (#3489, #3490). Its minute frame is 50 ms of busy at the median and 88 at the worst at N = 60 (#3472).
+- **(c) is excluded on H3's evidence.** A round-robin of two added 32 ms at the 99th percentile and 31 at the maximum (#3475).
+- **(b) is adopted, provisionally, with a 15 ms budget at both measured spacings.** In nine draws (#3489–#3492):
+  - it added 12 to 13 ms at the 99th percentile and 11 to 25 ms at the maximum (one draw exactly at 25);
+  - no ghost starved;
+  - its total was 1.053 to 1.061 times the burst's on the drift-immune measure.
+  - The burst met the alternative clause in every draw: more than 33 ms added, or a frame over 133 ms.
+  - The empty-queue clause (at most 0.1 ms a frame) is **weakly supported, not measured to 0.1 ms.** `x243d`'s A-B-B-A estimate is −0.053 ms a frame with a standard error of about 0.03, inside a drift of about 0.6 ms a frame (#3483).
+- **The budget must be sized to the minute's work** (rule #3497).
+  - At N = 60 and DayLength 1, a 10 ms budget ran at the margin: 56.75 of 58 a minute event, each ghost at most one event late (#3476).
+  - A 5 ms budget starved every event (#3477).
+  - The draft's ceil(N / ticks) spread starved at N = 40 and 60 (#3478).
+  - Under a fast clock a 10 ms budget left ghosts up to 42.8 game minutes stale (#3480).
+- **Caveat: (b) is headroom, not relief.** Ruling 2's thresholds are read on the end-to-end period. On the loop's own cadence neither design delayed a tick at N = 60 on this host, one unexplained 136 ms period aside: the burst's busy of 56 to 77 ms at the frame max (x244; x243a's 88 ms also fits) (46 to 51 at the minute-frame median) fits inside the 100 ms period (#3486). So (b) buys headroom for larger N, heavier minutes and slower hosts. The burst's busy is linear in N (#3474). Extrapolated (inference), the worst minute frame at N = 60, 88 ms (#3472), crosses the period near N = 68–74 and the median minute frame, about 50 ms, near N = 120; the H4 review's 85–95 sits inside the 68–107 the frame maxima give (arithmetic). None of it counts vanilla's own per-player load at a real 60, which is unmeasured: H5's fake clients could not join (#3494).
+- **The client reading does not loosen ruling 2** (ruling H4-2, restated). The stamp test was blind at the 200–400 ms packet cadence. Another player's motion showed no minute-aligned gap above chance on loopback with no zombies (#3486, #3488). And no tick started late (one unexplained 136 ms period in x244a aside), so there was no stall to see.
+
+**Open items for Plan 11's scheduler task:**
+1. A minute-sized adaptive budget: the per-run cost times the queue over the minute's ticks, with headroom, and scaled to the clock (ruling H4-1). The 15 ms budget is a fixed cap that suits 60 players on this host only.
+2. A direct bench of the empty-check loop (ruling H4-1). The A/B could not resolve 0.1 ms above the drift.
+3. A player's own-action latency under the burst and under (b): timed-action completion and a container round trip. This is the noticeability reading H4 did not take.
+4. Real network latency and jitter, on a second host or behind a latency shim (E7, Angus's to supply).
+5. Zombies near the players: the fixture has none.
+
+**Still Angus's:**
+- the populated-server reading (E7), which also gives vanilla's own frame at a real 60. H5's fake clients are not an answer: on 42.20.4 they are kicked at join for want of a saved character (#3494, #3495), so vanilla's per-player load at 60 stays unmeasured. It is Angus's to supply from a populated server, or a new task that saves a character per fake client and runs one JVM each (#3496; Hitching, The fake clients);
+- the fairer band, which matters for Decision 6 only if (c) comes back into play.
+
+**Recommendation:** (b), a budgeted `OnTick` queue that carries unserved players forward, with a budget sized to the minute's work (15 ms at N = 60 on this host is the smallest measured cap that starved none; the true floor lies between 10 and 15 ms), a fast-clock rule, and the per-player sends staggered (#3464). The cheaper run stays Plan 11's performance target either way: heal once before the step first (Hitching, Ranked refactors).
 
 ## Appendices
 
 The spike sections follow verbatim, each with its readings and rows.
-Appendices A–D, and the per-tick text in G and H (the wall cycle, the `OnTick` hold, a per-tick home for S), predate rule 6. Decision 1 and the Performance section supersede them; the appendices are records and are not edited.
+Appendices A–D, and the per-tick text in G and H (the wall cycle, the `OnTick` hold, a per-tick home for S), predate rule 6. Decision 1 and the Performance section supersede them; the appendices are records and are not edited. Appendices J–O are Plan 10c's H1–H6 task memos, verbatim, their headings demoted one level.
 
 
 ## Appendix A. S1 — the zeroed-drains alternative
@@ -1470,3 +1687,596 @@ For the decision memo's Performance section ("The once-a-minute PANIC write: a s
 - The arithmetic stands: the decay is linear and per game time, so the slow spacing does not deepen the sawtooth. The memo's "about 1.12" is the mean; the worst gap at `DayLength` 1 is 1.2556 (a 7-tick minute), so a flicker window above each threshold is about [T_h, T_h + 1.26) at `DayLength` 1 and [T_h, T_h + 1.14) at the slow spacing, not [T_h, T_h + 1.12).
 - A floor at 10 or 20 is clear of every threshold by a wide margin, so for the mod's realistic floors (c) shows no inferred moodle flicker. A floor placed within about 1.3 above 6, 30, 65 or 80 flickers once a game minute; a design that must sit near a threshold can write the target plus the per-minute fall (about 1.26) so the floor stays at or above it.
 - Still unread: the moodle itself (client and server), and vanilla's panic rise from zombies between writes.
+
+## Appendix J. H1 — offline prototypes against the golden trace
+
+Provisional ids map T113.n -> #(3410+n), minted (the Rows bullet).
+
+### H1 — offline prototypes against the golden trace (memo section draft; rows T113.1–T113.6)
+
+**Question.** Which behaviour-free refactors cut the slow minute's cost, by what share, and which slow-tier period K stays inside P2's fairer band?
+
+**Method.** `testing/spikes/proto_run.py` (commit 024fe2d) runs the golden scenario (six stand-ins, 240 game minutes, about 1410 pipeline runs) on `server_host.Host` under lupa, with the mod tree pinned at 9578eb9 (`testing/spikes/proto/BASE.sha256`) and each prototype an overlay of whole-file copies under `testing/spikes/proto/<name>/`. Nothing under `mod/` or `testing/tests/` is touched. lupa is C Lua 5.1, not Kahlua, so every figure below is a share or a ratio of C-Lua time, never a server millisecond. The full outputs are `testing/spikes/out/proto-summary.md` and `proto-results.json`.
+
+**The baseline profile (E1's offline half)** [T113.1]
+- The unmodified copy reproduces the golden byte for byte, and so does the probed copy, so the probes change no state.
+- Over 28200 pipeline runs, the seven heal passes are **52.1 %** of the pipeline (a repeat profile gives 52.3 %). The two Nutrients heals alone are 38.4 %.
+- The Nutrients step is 57.3 % of the pipeline, and its record engine (`K.nutrients.minute`) is 10.9 %.
+- The ten largest sub-blocks by share of the pipeline:
+  1. `nutrients/heal.pre` 19.5 %
+  2. `nutrients/heal.post` 18.9 %
+  3. `nutrients/records` 10.9 %
+  4. `metabolism/heal.pre` 4.2 %
+  5. `metabolism/heal.post` 4.1 %
+  6. `nutrients/acute` 3.2 %
+  7. `metabolism/readActivity` 3.2 %
+  8. `effects/heal.pre` 2.7 %
+  9. `effects/heal.post` 2.5 %
+  10. `nutrients/fluids` 2.1 %
+- E1's rule is met: a heal total of 20 % or more adopts E2.
+- **For H2:** the live sub-block timers should sit at least around the seven heals, `K.nutrients.minute`, `readActivity`, the acute and fluids blocks, and Strength's perk block (43.1 % of its step). Kahlua's table walk may weigh differently from C Lua's.
+
+**Heal once (E2): the placement decides it**
+- **heal1, one heal after the step (the plan's wording)** [T113.2].
+  - It does **not** reproduce the golden. This is a finding under ruling 4, not a fix.
+  - The first differing leaf is g2's stand-in calories at the minute-120 snapshot: heal1 −357.05911773776234 against the golden −478.88257398338897.
+  - The cause: the golden's own minute-115 NaN in g2's body (`at`, `inDay`) reaches Metabolism's arithmetic before any heal.
+  - With one NaN written into a record between minutes, the state matches the shipped tree in only 11 of 18 injections. Seven of them steer the stand-in's stores or the regeneration writes before the post heal stamps the field.
+  - In five more, the step absorbs the NaN silently: `K.max` or an overwrite clears it, with no heal line and no heal count.
+- **heal1pre, one heal before the step** [T113.3].
+  - It reproduces the golden byte for byte.
+  - Under all 18 input NaNs it matches the shipped tree's state and heal log. Each of the 17 mutants that remove its remaining heal is killed.
+  - It saves **27.7 %** of the pipeline's C-Lua time: the paired median over 40 interleaved scenario runs, IQR 23.9 to 28.8. That is close to the 25.5 % base share of the heals it removes plus the lazy prefixes.
+  - Its cost is the other class. A NaN the step's own arithmetic leaves now stays in the record until the next minute (6 of 6 injections).
+  - In 1 of 6 (`body.fm` out of the energy step) the state changes (`proto-results.json` `mutation.arithmetic[0]`). Under heal1pre that NaN spreads in the same minute to 16 fields in body, nutrients, fluids, acute and effects: `thiamine.p`, the iron pools, `acute.bac/alc/glyc/g`, `fluids.dehydPct/thirstTarget/viewPct` and `effects.intoxTarget`.
+  - The weight step skips its write for that minute, and the next minute's pre-step heals reset those pools fresh: BAC, glycogen and the iron pools. The shipped tree never makes that loss, because Metabolism's post heal contains the NaN.
+  - The arithmetic injections are synthetic and sampled (6 fields), so "5 of 6" is not a rate.
+  - `fm` cannot in fact go NaN out of the partition step: `K.max(NaN, FM_MIN)` returns `FM_MIN` (`NR_Kernel_Partition.lua:174`, `NR_Kernel.lua:20`), and `K.energy.minute` never writes `fm`.
+  - That the mirror or a save could read such a NaN within that minute is inference, unmeasured.
+- **The remaining heal is still the largest block.** In heal1pre, `nutrients/heal.pre` is 25.8 % of the pipeline.
+  - The walk itself is the cost: `pairs` over 27 keys of 11 fields, plus fluids and acute. Building the prefix strings is not.
+  - A cheaper heal is the next target (inference, untested): one finiteness check on a running sum, or healing only the fields the step wrote.
+- **What Plan 11 can take:** heal before the step, once, with lazy prefixes.
+  - Keep a post-step guard only where a step's NaN would leak in the same minute: Metabolism's masses, at least.
+  - Or accept a one-minute NaN window, which needs Angus's ruling.
+  - Before settling the guard, enumerate every cross-step read and inject each one: Nutrients reads `body.lm`, eeDay, alcDay and dayIndex; Effects reads the fluids and acute fields.
+
+- **The review's probe-free re-measurement of the heal share** (probes around the pipeline only, no probes inside it).
+  - All seven heals removed saves **55.7 %** of the pipeline (IQR 52.3–57.8). The two Nutrients heals alone save 41.6 % (IQR 39.8–45.4).
+  - The profile's 52.1 % stays the profile figure (T113.1); this is the cross-check, and it agrees within the profile's probe error.
+- **Kahlua points for a shipped version.**
+  - Kahlua has no weak tables (`./pz.sh grep '__mode'` finds nothing), so a shipped hoist drops its metatable; the prototype's weak keys are offline only.
+  - `string.byte` exists (`StringLib.stringByte`), so the slot hash can use it.
+
+**Hoisted constants (E3)** [T113.4]
+- The variant caches the dial exponent across minutes, reads the ladder once per record and computes one `exp(-dtD)` a pass. It reproduces the golden byte for byte.
+- Its saving is not distinguished from zero: 0.3 % of the pipeline (paired median, IQR −2.5 to 2.7).
+- The record engine's block falls from 23.54 to 21.22 C-Lua µs a run, about 1 % of the pipeline. It is a correctness-neutral tidy, not a hitch fix.
+
+**A slow tier (E4)** [T113.5, T113.6]
+- **The design.** The 27 nutrient records and the effects rebuild run every K minutes in a per-player slot (hash(username) mod K). The absorbed and ingested amounts and dtM are summed between slow steps. At K = 1 the tier reproduces the golden.
+- **How it is judged.** Against k = 1, with P2's `compare` and Appendix H's fairer band.
+  - 550 band and grade paths are followed minute by minute.
+  - A band change matches when it lands at most K online minutes off.
+  - A change within K minutes before g4's departure or the run's end is clipped.
+- **K = 5 is the largest K of 5, 10, 30 and 60 with no band or grade flip.**
+  - Every band change lands at most 4 minutes late.
+  - One change is clipped: g4's insulin band 6, crossed at minute 148, two minutes before its departure. This is P2's k = 5 finding again.
+  - Of the 896 leaves outside the fairer band, 894 are explained by the tier's delay. The 2 that are not are g1's vitamin A pool p, a drift of about 3e-5 against a 1.45e-5 band.
+- **K = 10 never shows g4's exercise band 2** (slot 12, minutes 17–24 in the base run). K = 30 and 60 skip more.
+- **The rebuild gate causes the flips, not the records** [T113.6].
+  - With the rebuild check kept every minute (records only on the slow tier), no band or grade leaf changes at any K.
+  - The unexplained continuous leaves grow from 2 and 4 at K = 5 and 10 to 67 and 81 at K = 30 and 60. They are mostly the one-day excess sums e24, which lose their decay inside the summed step.
+  - No nutrient grade moves in the 240-minute scenario, so the records' own grade delays are untested.
+- **The share it takes off the minute.**
+  - The base shares of the records and the rebuild are 11.7 % of the pipeline.
+  - At K = 5 the tier moves **7.2 %** off the average player-minute: the paired median, IQR 3.8 to 9.4, against 9.3 % by arithmetic. The summing it adds costs 1.6 %, every minute.
+  - At K = 10, 30 and 60 it moves 9.3 %, 10.1 % and 9.9 %.
+  - The slot minute still pays the records whole, so the tier lowers the average, not the worst player-run.
+- **What Plan 11 can take:** the records alone on a slow tier, with the rebuild check kept every minute.
+  - It takes about a tenth off the average minute (offline, C-Lua).
+  - It needs a stored accumulator (this prototype's is transient) and an e24 that integrates the intake's decay within the step.
+  - The heal fix is worth roughly three times as much (offline, C-Lua).
+
+**Determinism.** Every variant's trace was run twice, with identical sha256:
+- the golden's `df7806d8…daa9e8b3` for base, heal1pre and hoist;
+- `b91803cb…` for heal1;
+- `381c98bd…`, `df69168f…`, `df689d8e…` and `15ff263b…` for slowK at K = 5, 10, 30 and 60.
+
+The profiles' shares agree to 0.2 points between two 20-run profiles.
+
+**What this does not settle.**
+- C Lua is not Kahlua: H2's live timers give the milliseconds.
+- One scenario of 240 minutes, with no nutrient grade moving.
+- K from 6 to 9 was not run.
+- The one-minute NaN window under heal1pre is unmeasured live.
+
+**Page sentences for the controller** (owner `docs/areas/testing-your-mod.md#walls`, one per row):
+- T113.1: "An offline profile of the golden scenario in lupa, with the trace unchanged, puts the seven heal passes at about half of the slow minute's C-Lua time, and the record engine at a tenth [T113.1]."
+- T113.2: "Healing only after the step does not keep the golden trace: a NaN written between minutes reaches the step's arithmetic before the heal [T113.2]."
+- T113.3: "Healing once before the step keeps the golden trace and every input-NaN heal, and cuts the minute's C-Lua time by 27.7 %; a NaN the step itself makes may spread to later steps and reset their fields at the next heal [T113.3]."
+- T113.4: "Hoisting the record engine's constants keeps the trace but saves nothing measurable offline, C-Lua [T113.4]."
+- T113.5: "A slow tier that also gates the effects rebuild keeps every band change only up to K = 5; at K = 10 a short exercise band is never shown [T113.5]."
+- T113.6: "With the rebuild check kept every minute, the records alone on a slow tier change no band in the golden scenario, but their one-day excess sums drift beyond the band from K = 30 [T113.6]."
+
+## Appendix K. H2 — sub-step and burst-source costs, live (runs x242 and x242b)
+
+Provisional ids in this appendix are its source memo's own; they map at the mint as T114.n -> #(3456+n), T115.n -> #(3470+n), T116.n -> #(3484+n), T117.n -> #(3493+n), T120.n -> #(3496+n).
+
+
+## H2 — sub-step and burst-source costs, live (memo section; runs x242 and x242b)
+
+Two runs on the same staged instrument copy (`release/hitch-x242/`, the tree at `9578eb9` with the x242 instruments, MANIFEST `c86e295a…`). `x242-20261007-151339` (driver `fadf200`) was stopped by the host for memory at the start of its phase C; by ruling H2-1 it stands for phases A and B. `x242b-20261007-152926` (driver `198fd27`, 645 s wall) ran the unreached phases C, D, E and F. Fixture `two`, Nutrition false, DayLength 1, n = 1 each; every per-run figure is a whole-ms total over its runs. Provisional rows `T114.1`–`T114.14` (delta `task-H2-claims-delta.tsv`).
+
+### Where the minute's time goes (x242 A, in play, sub-blocks on)
+
+- The minute is 356 ms over 244 runs: 195/122 for admin plus 161/122 for bob, 1.459 ms a run [T114.1]. The two players differ 1.21x, inside the noise. By step: nutrients 173, metabolism 79, effects 38, kinetics 18, strength 15, weight 13, reconcile 9, bus 2, fast 0 ms.
+- The Nutrients heal pair is the top two sub-blocks: heal.pre 62 and heal.post 39 ms, 28.4 % of the minute [T114.2]. The seven heals together are 143 ms (40.2 %). Next come nutrients/records 34, metabolism/readActivity 32 (9.0 %), nutrients/acute 20, and metabolism/heal.post 15 and heal.pre 11 ms.
+- **Against H1:** the Nutrients heal pair is the top two blocks on both hosts, 38.4 % offline and 28.4 % live. This is not a Kahlua effect. The shares differ for three reasons:
+  - the live denominator holds Java-interop blocks that lupa stubs (`metabolism/readActivity` 9.0 %);
+  - the scenarios differ (H1's six golden stand-ins against two healthy players);
+  - about 30 bracket pairs were on.
+- **Timer overhead:** the un-bracketed remainder of the four sub-timed steps is 20 of 356 ms (nutrients 6, metabolism 6, effects 6, strength 2). That bounds the timer cost outside the brackets at about 5.6 %. x231's A without sub-block timers ran 1.558 ms a run against 1.459 here, but x231 carried an `NR.call` counter, so that comparison is a sanity bound only.
+- **15 %-of-step refactor targets** [T114.3]: nutrients heal.pre (35.8 % of its step), heal.post (22.5 %) and records (19.7 %); metabolism readActivity (40.5 %) and heal.post (19.0 %). The effects (heal.post, heal.pre, scalars) and strength (perk, carry) targets rest on 5–9 ms totals and are at the noise.
+- **The in-play day close:** four close runs took 1 or 2 ms against a plain p50 of 1 ms [T114.4]. n = 4 at 1 ms does not settle the 3x rule; the bench below does.
+
+### A deficient player (x242 B)
+
+bob held at vitamin C and iron grade 4 for 60 game minutes: 93 ms over 63 runs against admin's 89 over 63 [T114.5]. The 4 ms gap is inside the 1 ms noise and crosses players (1.21x apart already in A). bob against himself is 1.320 ms a run in A and 1.476 in B. The grades were read 7 to 10 game minutes after the seeds (vitC.g at about 7.7, iron.g at about 10), the wait having reached 2 bench minutes after `profStart`; the counter's measured rate is 0.627 s a game minute against DayLength's nominal 0.625. Their change began before the profile started. So B is the steady deficient minute, and the onset is unmeasured. `effects.stats.rebuilds` is server-wide; bob's own rebuilds in the window are the two composes of his accumulator. **Reading: no burst at 1 ms resolution; the onset unmeasured.**
+
+### The burst sources (x242b C, 1000 interleaved bench sets on copies of admin's record)
+
+| Kind | ms / runs | ms a run | Plan rule | Verdict |
+|---|---|---|---|---|
+| typical minute | 1134 / 1000 | 1.134 | — | see the note below on the x242 A comparison |
+| one day close | 1022 / 1000 | 1.022 | over 3x typical → scheduler | 0.901x: does not fire [T114.6] |
+| seven-close catch-up | 1053 / 1000 (7000 closes) | 1.053, max 5 | — | no extra cost visible [T114.6] |
+| first sight, measured parts (load + ensureBody + hooks, re-hoist skipped, sends stubbed) | 698 + 74 + 89 / 1000 | 0.861, a floor | over 2 ms → queue | does not fire [T114.7] |
+| mirror send (138-key payload) | 102 / 1000 | 0.102 (60 sends 6.12 ms) | 60 over 5 ms → jitter | **fires** [T114.8] |
+| payload build alone | 42 / 1000 | 0.042 | — | — |
+
+- The 0.777 ratio of the bench's typical run to x242 A's 1.459 ms compares an unprofiled bench with a profiled in-play minute. The profiled bench typical run (CS) is 1.225 ms, 0.840 of A. Profiled against unprofiled typical is 1.080x (about 0.04, approximate either way), a direct estimate of the whole timer overhead, above the 5.6 % outside-the-brackets bound under Timer overhead [T114.1].
+- A close or catch-up run read 0.08 to 0.11 ms cheaper than the typical run (close 112 ms under, catch 81 under over 1000 runs), beyond the truncation noise (about 22 ms either way on a difference over 1000 runs), for an unmeasured reason; a difference is not a close's cost [T114.6].
+- The day close is not a burst source: `metabolism/closeDay` took 20 ms over 1400 closes in the profiled sets.
+- The one rule that fires is the send: at 60 players a same-frame mirror push is about 6 ms. That is the per-send total times 60, not a 60-player reading. A per-player jitter (or spreading the push) is warranted.
+- First sight's hooks ran with Fast's re-hoist skipped, because admin's handle existed, and sends were stubbed. The 0.861 ms is the measured parts only, a floor [T114.7].
+
+### The client tooltip (x242b D)
+
+`T.entryFor` on the same item costs 7–18 µs a call over 1000 calls (9.4 and 14.7 µs over 10000), against the 50 µs rule [T114.9]. A build each call costs 108–218 µs. The rule does not fire: the same-item check need not move.
+
+### The global store (x242b E, H6's arm)
+
+**The save** [T114.11, T114.12] (`Saving GlobalModData` to `Saving finish`, two console saves about 32 s apart at each size, `phases.E.E1.0.saves[k].save.wall` 270.3 and 302.4 s):
+
+| Seeded records | First save (ms) | Second save (ms) | `global_mod_data.bin` (bytes) |
+|---|---|---|---|
+| 0 (the session's first console save) | 11 | 9 | 21633 |
+| 100 | 22 | 16 | 1109333 |
+| 500 | 153 | 50 | 5460133 |
+| 2000 | 2770 | 193 | 21775633 |
+
+- The second save at 500 adds 41 ms over 0, so H6's 25 ms rule fires. The save is a hitch source in its own right, and the store's move or pruning is a performance fix too.
+- The first save at a new size pays far more. At 2000 it made a 2990 ms server frame and logged `Pausing clients…`. That the first save at a size pays the 512 KiB buffer-growth restarts (#3421) is inference. The `Pausing clients` line came 2769 ms after `Saving GlobalModData` began, so clients were told to pause only after the stall (#3421). In practice the first save after the store grows past its last high-water mark is the hitch, and an autosave after a long uptime is exactly that case.
+- Each record is 10877 bytes on disk against 10821.8, H6's record with its store entry and the figure the driver graded against (ratio 1.0051). Of the 55 B gap, about 4 B is the nine-character seeded username against admin's five; about 51 B is admin's live record against H6's offline mean of six golden records (10877 lies within their 10684 to 10883, and every seed copies one record), the attribution being inference. The cleanup save returned the file to 21633.
+
+**The request** [T114.13, T114.14]:
+
+- At 2 and 60 records the table arrived whole (2 and 60 keys, 23 and 44 ms). The frames around each request peaked 4 and 5 ms over a 100 ms median, which is the idle jitter, so the request's cost is not distinguishable from the 4 to 5 ms idle jitter in the frame period. H6's 5 ms griefing rule does not fire at 60 records (the driver's E2 verdict reads `falsified` on this clause alone: the pre-registered prediction, more than 5 ms, was falsified at exactly 5 ms).
+- At 500 records (run after F) the request failed on both sides, and bob stayed in the session:
+  - the server logged a `BufferOverflowException` in `GlobalModData.receiveRequest` (`:193`);
+  - bob's client logged a `BufferUnderflowException` in `GlobalModDataPacket.parse` (`:53`);
+  - no receive event fired.
+
+  This is #3419's truncated reply, live. H6 also expected an `IllegalMonitorStateException` line; none appeared, and the handler logged the `BufferOverflowException` itself, so that inference of #3419 is not borne out. #3417's table also reached a release client at 2 and 60 keys live [T114.13], so its "not exercised on a live server" is superseded.
+- The privacy finding stands (any client reads every record, whole up to about 90 records by H6's inference, and 60 arrived whole here). The hitch-vector half is not measured at 60 records.
+
+### Ghost calibration (x242b F, for H3)
+
+| | Ghost ms / 40 | Real ms / 40 | Ratio | Zero-dt (g/r) | Failures (g/r) | Reason |
+|---|---|---|---|---|---|---|
+| Unfed | 35 | 45 | 0.778 | 0 / 0 | 0 / 0 | none |
+| Fed | 45 | 46 | 0.978 | 0 / 0 | 0 / 0 | none |
+
+Both benches had 83 waits and 20 minute events [T114.10]. **H3 scales by the fed ratio, 0.978**: a fed ghost costs a real player's minute within the bench's resolution (40 pairs at 1 ms).
+
+### For Plan 11 and H3
+
+1. Spread or jitter the mirror push (T114.8).
+2. Take the store out of global modData for privacy (H6), and also for the save hitch: about 2.8 s at 2000 records on the first save at that size, and 41 ms over baseline at 500 on every later save (T114.11).
+3. Heal-once remains the largest lever (T114.2); readActivity is the next live target. The effects and strength targets are at the noise.
+4. The day close, first sight, a deficient player and the tooltip are not burst sources at these rules.
+
+## Appendix L. H3 — the scheduler shoot-out (four x243 sessions)
+
+Provisional ids in this appendix are its source memo's own; they map at the mint as T114.n -> #(3456+n), T115.n -> #(3470+n), T116.n -> #(3484+n), T117.n -> #(3493+n), T120.n -> #(3496+n).
+
+
+## H3 — the scheduler shoot-out at N = 20, 40, 60 (memo section; runs x243a, session b, x243c, x243d)
+
+Four short live sessions on the uninstrumented staged copy `release/hitch-9578eb9/` (MANIFEST `c86e295a…`), fixture `two`, Nutrition false, gclog on, n = 1 each, one host:
+
+| session | run id | driver commit | content |
+|---|---|---|---|
+| a | `x243a-20261007-160539` | `a0c5af1` | DayLength 1, N = 60: idle, then budget10, rr2, burst, budget5, drainTicks, budget15, rr5 |
+| b | `x243a-20261007-162255` (sic) | `da3fdcb` | DayLength 1: idle, then burst20, drainTicks20, budget10_20, budget10_40, burst40, drainTicks40, shipped60 |
+| c | `x243c-20261007-163949` | `c23586a` | 37 ticks a game minute (`time.multiplier 0.1674`), N = 60: idle, rr5, budget10, burst, drainTicks; then `settimespeed 30`: fastIdle, fastBudget10, fastBurst |
+| d | `x243d-20261007-165535` | `b031fc9` | DayLength 1: the empty-check A/B (none, empty, empty, none), then N = 60 across 07:00 under budget10 and burst |
+
+Provisional rows `T115.1`–`T115.14` (delta `task-H3-claims-delta.tsv`, owners on `platform/performance.md#costs`, `#measure`, `#gc`).
+
+**Session b's id.** Driver b was a copy of driver a and kept `PREFIX = "x243a"` and `PROFILE = "x24-shootout-a"`. So its run id carries `x243a`, and it booted `x24-shootout-a.toml`. That profile's content equals `x24-shootout-b.toml` except for the header comment and `description`. The arms, predictions and grading are session b's. The defect was found after the run, so the driver was not edited. Drivers c and d were fixed before their commits.
+
+**Deviation from the amendments: four sessions, not three.** The A/B (2 × 3000 frames) alone is about 10 minutes, so session a with the A/B would have run about 27 minutes against the 15-minute cap. The A/B and the day-boundary arm went to a fourth session, d. Every session ran 909–996 s of wall, boot included. Free memory fell from about 20 GB to 0.55–1.17 GB in each, as in x242b. No session was killed.
+
+**Deviation: arm sizes.** The fast arms hold about 610 frames each (`summaries.fastIdle.frames`, `fastBudget10`, `fastBurst` in x243c) and the day-boundary arms 515 kept frames each (`summaries.db_budget10.frames`, `summaries.db_burst.frames` in x243d), under the amendments' sizing rule of at least 1000 frames an arm. Their p99s rest on fewer frames than the rule asks.
+
+**How the arms were run.** Every ghost was loaded with `feed`. Between arms: `ghost.stop`, a fresh `ghost.load`, then `ghost.stats reset`. drainTicks got `tpm<n>` from `TK.H0.tpmSeen`, and `tpmSource` was never "none". `ghost.bench` was never called. The **two real players stayed on the mod's own drain** throughout; ghosts are cost, not behaviour.
+
+**The cost-equivalent N.** On x242b's calibration, a fed ghost is 0.72–1.0 of a real player, so N = 60 is a cost-equivalent 43.8–60 players. Batch-timed ghost cost read 0.767–1.149 ms a run across the arms (most 0.80–0.90). shipped60's 1.427 is one ghost a batch, dominated by 1 ms truncation.
+
+### The populations (amendments' rules)
+
+- **Ring frames** (`tick.ring`, about 1020 an arm). Readings: `busy` (frame start to the end of `OnTick`, the ghost batches inside it) and `endPeriod` (the end-to-end period).
+  - Kept frames are every frame minus those that overlapped the ring arm or the `perf.local read` bus step.
+  - The `tick.ring read` writes its document after its own ring's last frame, so it is in no ring and in no kept window.
+- **Perf windows** (`perf.local` max-update-period, the hitch reading per #3443; about 95 kept an arm). The first sample and any window over a bus step are dropped.
+  - Below 100 windows, the window p99 by nearest rank IS the window max. So every "longest window" below is both the p99 and the max of that population.
+- **Adds** are the arm's figure minus the same session's idle arm, over the same population. The fast arms' baseline is fastIdle; session d's DB arms' baseline is none1.
+- **Total a game minute** is the kept busy sum over the kept minute frames.
+
+### N × scheduler × spacing
+
+Units: ms. "Worst" is the longest engine window (= its p99), then the longest end-to-end period, then the max busy. "p99" is the ring endPeriod's p99, then busy's p99. "Adds" are over idle: the period's p99, then the longest window. "Total" is busy a game minute over idle. "Starved" is starved ghost-minutes over minute events. "Stale" is the most game minutes a ghost waited. "Ghost" is ms a run.
+
+| N | sched | spacing | worst (window / period / busy) | p99 (period / busy) | adds (p99 / max) | total | starved | stale | ghost |
+|---|---|---|---|---|---|---|---|---|---|
+| idle | — | DL1 (a) | 115 / 111 / 13 | 108 / 10 | — | (12.7) | — | — | — |
+| 60 | burst | DL1 | **188** / 188 / 88 | 170 / 70 | **+62 / +73** | 46.9 | 0 / 151 | 1.13 | 0.868 |
+| 60 | rr2 | DL1 | 146 / 147 / 48 | 140 / 40 | +32 / +31 | 27.2 (29 a minute) | 0 / 162 | 2.13 | 0.990 |
+| 60 | rr5 | DL1 | 123 / 122 / 23 | 117 / 16 | +9 / +8 | 4.4 (12 a minute) | 0 / 165 | 5.10 | 0.824 |
+| 60 | drainTicks | DL1 | 119 / 119 / 22 | 115 / 19 | +7 / +4 | 51.1 | **176 / 167** | 1.28 | 0.959 |
+| 60 | budget5 | DL1 | 141 / 141 / 43 | 108 / 12 | 0 / +26 | 21.6 (21.5 a minute) | **6079 / 167** | 4.12 | 1.149 |
+| 60 | budget10 | DL1 | 124 / 123 / 26 | 113 / 16 | +5 / +9 | 47.3 (56.75 a minute) | **207 / 166** | 2.08 | 0.857 |
+| 60 | budget15 | DL1 | 134 / 134 / 31 | 121 / 19 | +13 / +19 | 41.8 | 0 / 165 | 1.11 | 0.805 |
+| idle | — | DL1 (b) | 115 / 114 / 15 | 107 / 8 | — | (11.8) | — | — | — |
+| 20 | burst | DL1 | 135 / 135 / 36 | 125 / 26 | +18 / +20 | 14.3 | 0 / 165 | 1.11 | 0.897 |
+| 20 | drainTicks | DL1 | 115 / 115 / 15 | 108 / 10 | +1 / 0 | 14.9 | 0 / 167 | 1.12 | 0.967 |
+| 20 | budget10 | DL1 | 123 / 123 / 21 | 116 / 16 | +9 / +8 | 10.8 | 0 / 166 | 1.12 | 0.799 |
+| 40 | burst | DL1 | 151 / 151 / 51 | 141 / 41 | +34 / +36 | 25.8 | 0 / 161 | 1.09 | 0.800 |
+| 40 | drainTicks | DL1 | 120 / 120 / 23 | 111 / 13 | +4 / +5 | 27.9 | **88 / 166** | 1.28 | 0.859 |
+| 40 | budget10 | DL1 | 139 / 139 / 40 | 115 / 15 | +8 / +24 | 29.2 | 0 / 167 | 1.12 | 0.850 |
+| 60 | shipped (ruling 3) | DL1 | 117 / 117 / 16 | 107 / 7 | 0 / +2 | 1.9 (4.26 a minute) | **6180 / 116; 53 of 58 never ran** | 115.7 | (1.427) |
+| idle | — | DL4 (c) | 119 / 120 / 18 | 105 / 5 | — | (47.5) | — | — | — |
+| 60 | burst | DL4 | **161** / 161 / 60 | 149 / 50 | **+44 / +42** | 24.5 | 0 / 29 | 1.01 | 0.794 |
+| 60 | rr5 | DL4 | 121 / 121 / 20 | 113 / 14 | +8 / +2 | 0.6 (12 a minute) | 0 / 28 | 5.01 | 0.896 |
+| 60 | drainTicks | DL4 | 113 / 112 / 11 | 107 / 7 | +2 / −6 | 43.2 | 0 / 29 | 1.02 | 1.107 |
+| 60 | budget10 | DL4 | 121 / 120 / 21 | 112 / 13 | +7 / +2 | 29.9 | 0 / 29 | 1.02 | 0.831 |
+| idle | — | fast (c) | 145 / 145 / 47 | 113 / 16 | — | (6.2) | — | — | — |
+| 60 | burst | settimespeed 30 | 134 / 134 / 76 | 123 / 67 | +10 / −11 | 43.1 | 0 / 623 | 4.82 | 0.767 |
+| 60 | budget10 | settimespeed 30 | 138 / 138 / 52 | 116 / 25 | +3 / −7 | 8.4 (10.3 a frame) | **29715 / 623** | 42.8 | 0.854 |
+
+Notes on the table:
+- **DL4 minute frames.** At 37 ticks a game minute an arm holds 27 or 28 minute frames, so the minute-frame p99 is not reachable. The table reads the ring's frame p99 (about 1030 frames) and the max.
+- **Day closes inside arms.** The mod's 07:00 day close fell inside budget15 in session a. Its longest frame (31 ms busy, 134 ms period) started about 2 s after the interpolated 07:00 (inference). It also fell inside drainTicks40 in session b. Each fast arm crossed 07:00 about twice.
+
+### Decision 6 (ruling 2), provisional
+
+These are H3's answers on ruling 2's thresholds as they stand. H4 may rewrite the thresholds by ruling before Task M. Populations:
+- every **p99** threshold is read on the ring's end-to-end period (about 1020 frames, adds over idle);
+- every **max** threshold, and "over 133 ms", on the engine's per-window longest frame (adds over idle);
+- the totals on ring busy a game minute.
+
+**(a) the one-event design: excluded.** The burst itself must stay at most 25 ms at N = 60.
+- At DayLength 1 it adds 73 ms to the longest window (188 ms) and 62 ms to the period's p99. Its minute frames read busy 50/81/88 ms, and every one of 95 windows held a frame over 133 ms.
+- At the DayLength 4 spacing it adds 42 ms (161 ms) and 44 ms at p99.
+- Across 07:00 it adds 58 ms (175 ms). The first minute frame after the interpolated 07:00 is 67 ms busy, 1.34× the arm's minute p50, and 11 ms of it lay outside its 56 ghost ms. That it is the day close's frame is inference: the previous minute frame started 61 ms before the interpolated close, inside the interpolation's one game minute (`summaries.db_burst.close`). Either way, the day close is not a separate burst.
+- Growth is linear: the minute frame's busy p50 is 18, 32 and 50 ms at N = 20, 40 and 60.
+
+**The alternative clause of (b) holds.** The burst adds more than 33 ms and pushes a frame over 133 ms at both spacings.
+
+**(b) the budgeted per-tick scheduler: it meets the peak clauses and the alternative clause where measured; adoption is pending.** The no-aggravation clauses (the empty check and the total at DayLength 4) and a minute-sized budget at both spacings are not yet read. Each budget at N = 60:
+
+| budget | spacing | adds at p99 (≤ 20) | adds at max (≤ 25) | starvation | total vs the burst (≤ 1.1×) |
+|---|---|---|---|---|---|
+| budget10 | DL1 | +5 ✓ | +9 ✓ | **starved** | 47.3 vs 46.9, 1.01× ✓ |
+| budget10 | DL4 | +7 ✓ | +2 ✓ | none ✓ | 29.9 vs 24.5, **1.22×** |
+| budget15 | DL1 | +13 ✓ | +19 ✓ | none ✓ | 41.8, 0.89× ✓ |
+| budget5 | DL1 | — | **+26 ✗** (one frame 40 ms outside the ghost runs) | starved every minute | — |
+
+- **budget10 at DayLength 1** runs at the edge of capacity. It served 56.75 of the 58 ghosts a minute (207 starved ghost-minutes over 166 events, 34 of them), each ghost at most one event late (2.08 game minutes). The day-boundary session repeated it: 166 over 86.
+  - Mechanism (inference, from the ring's per-frame `runs` and `ghostMs`, `phases.budget10.ring_doc.frames_list`): both caps bind. Run-capped frames ran mostly 11–13 ghosts in 7–9 ghost ms; time-capped frames mostly 6–10 ghosts in 10 ms. That averages 9.61 runs a run frame (`summaries.budget10.ghost.meanRunsPerRunFrame`).
+  - The ring's minutes were 6 ticks in 119 of 163 and 7 in the rest. A 6-tick minute at 9.61 runs a tick serves about 57.7 of the 58 due.
+  - So the starvation is a design property of a 10 ms budget at this load: bounded lateness (each ghost at most one minute event late), not loss (inference).
+- **budget10's 1.22× at DayLength 4** is a 5.4 ms a game minute difference, 0.15 ms a frame. Session d's two no-load arms drifted 0.62 ms a frame over 10 minutes, about 23 ms a game minute at 37 ticks. So the 1.22× is **not resolved** by the totals.
+  - Drift-immune reading (inference): the ghosts' own batch-timed ms over the arm's minute events (`summaries.<arm>.ghost_ms_per_minute_event`) reads 48.21 under budget10 against the burst's 46.07 at 37 ticks, 1.046×. At DayLength 1 budget10 reads 48.64 and budget15 46.70 against the burst's 50.32, 0.97× and 0.93×. So the 1.22× is drift. This reading leaves out any scheduler cost outside the runs, which the empty check bounds near zero.
+- **budget15 at DayLength 1** is the one budget that met every bound measured with no starvation. Its longest frame was probably the day close. budget15 was **not run at the DayLength 4 spacing** (a gap).
+- **budget5**: one 43 ms frame (ring frame 4746) set the 141 ms window (`summaries.budget5.perf_max`). Its busy time outside the ghost runs was 40 ms (3 ghosts, 3 ghost ms). Frames like it (30 ms or more outside the ghost runs) appeared in 3 of the 22 loaded slow arms (this one, session b's `budget10_40` frame 4635, x243d's `empty2` frame 4609) and in 0 of the 5 no-load arms, cause unknown. So the max is not attributed to the 5 ms budget. budget5 still fails on starvation.
+- **The empty-queue check (x243d A/B, about 3000 frames a side): ≤ 0.1 ms a frame is not contradicted and not resolved.**
+  - The A/B reads −0.052 ms a frame by the totals and −0.077 by the quiet frames.
+  - The two pairs read −0.238 and +0.133, and the drift is about 0.6 ms a frame over the session.
+  - A per-tick early-out sits below this host's session-to-session resolution of about ±0.2 ms a frame.
+  - Drift-immune reading (inference): in A-B-B-A order the arms read 1.873, 1.635, 1.389 and 1.256 ms a frame, the empty arms net of their ghost ms (`summaries.<arm>.busy_sum` less `ghostMs_sum`, over `frames`). A fit of a linear drift plus an empty-side offset gives −0.053 ms a frame with residuals of at most 0.018. That weakly supports ≤ 0.1 ms.
+
+**(c) the round-robin of m = 2: excluded on the bounds.** It adds 32 ms at p99 and 31 ms at the max (146 ms) at DayLength 1. rr5 meets the bounds (+9/+8), but it serves each ghost once in five minutes (5.1 game minutes stale) and is not a design under ruling 2.
+
+**Provisional answer.**
+- (a) and (c) are excluded.
+- (b) meets the peak and alternative clauses where measured.
+- Adoption of (b) is pending:
+  - the no-aggravation clauses: the empty check (weakly supported, below) and the total at DayLength 4 (drift-immune reading below: 1.046×, inside 1.1×, inference);
+  - a minute-sized budget at both spacings. At N = 60 and DayLength 1 a 10 ms budget starves at the margin, and a 15 ms budget does not. One budget expressed per minute (N × per-run ÷ ticks a minute, with headroom) would serve both spacings, but that is inference, unmeasured.
+- H4 adds budget15 at the 37-tick spacing, and repeats.
+
+**drainTicks** (the drafted per-tick spread) met the peak bounds everywhere. It starved at DayLength 1 at N = 40 (88) and N = 60 (176): ceil(N / T) with T taken from the last minute's 6 or 7 ticks under-serves a 6-tick minute (inference). It did not starve at 37 ticks. Its totals ran 1.09× (DayLength 1) and 1.76× (DayLength 4) the burst's, both inside or near the drift.
+
+### The other arms
+
+- **Fast clock** (`settimespeed 30`, every frame a minute frame).
+  - The burst ran 58 ghosts every frame at busy 48/67/76 ms, yet the end-to-end period stayed at 123 ms p99, and the longest window was 134 against fastIdle's 145. A load present on every frame moves every frame's end alike and does not lengthen the period while busy stays under 100 ms (inference).
+  - budget10 under the fast clock served about 10.3 a frame against 58 due. It starved 29715 ghost-minutes over 623 events, with ghosts up to 42.8 game minutes stale.
+  - So under a fast clock the budget trades staleness for nothing the frame needed. A fast-clock rule (run all when every frame is a minute frame, or scale the budget to the clock) is for Plan 11 (inference).
+- **Shipped drain (ruling 3), starvation only.** It ran 4.26 ghost minutes a minute event, about 6.27 ticks less the two real players' ticks. It dropped 6180 queued ghost-minutes over 116 events, and 53 of 58 ghosts never ran (115.7 game minutes stale). Ruling 3 is confirmed live. #3444's rule and #3439 have their live reading here (a status note for Task M).
+
+### GC against the minute frames (X6)
+
+- ZGC pauses inside the measured arms were at most 0.695 ms over the four sessions; most were under 0.06 ms.
+- Every allocation stall fell at 32.4–35.1 s of the server JVM's uptime (a 34.7–35.1, b 34.2–34.6, c 34.1–34.4, d 32.4–32.9; `gc.events[*].up_ms`), during boot, before any arm: 29–36 a session, the longest 274.56 ms.
+- No minute frame has a pause or stall within 1 s that could explain its length. The gc.log stamps are JVM uptime, mapped to epoch from the driver's launch epoch, aligned within about 1 s.
+- The minute frames' cost is the mod's work, not the collector.
+
+### Readings for Task M
+
+- The burst's per-minute frame at N = 60 is 50 ms busy at p50 and 81–88 at the top on this host. That is about 0.86 ms a ghost run, linear in N, and below #3440's 73.7–103.3 ms arithmetic on in-play runs. Its effect on the engine's frame is +62–77 ms at DayLength 1.
+- Every live number is one host, one session each; idle drift between arms in one session is about 0.6 ms a frame. Totals compared across arms are reliable only to about ±4 ms a game minute at DayLength 1 and ±23 at 37 ticks.
+- H4 should judge whether a 124–139 ms longest window (budget10/15) is noticeable against a 188 ms one (burst). The ruling thresholds stand until then.
+
+
+**Re-review residuals (H3 fix-1 re-review).** Spikes of 30 ms or more outside the ghost runs also appear in the fast arms, the fast idle arm included (fastIdle frame 5856, 47 ms busy with no ghost; fastBudget10 frame 7049), so they are not unique to loaded arms; the slow-arm count (3 of 22 loaded, 0 of 5 no-load) holds only in its slow-arm scope. The 1.046x drift-immune total rests on ghost ms alone, so it assumes the scheduler costs little outside its runs, the weakly supported 0.1 ms bound. budget10's 11-13 runs in 7-9 ms describes most run-capped frames, not a bound (one frame ran 14 in 12 ms). The x243d guide's A/B line should carry the same one-degree-of-freedom caveat as T115.13; Task M applies it.
+
+## Appendix M. H4 — does a player notice (three x244 sessions)
+
+Provisional ids in this appendix are its source memo's own; they map at the mint as T114.n -> #(3456+n), T115.n -> #(3470+n), T116.n -> #(3484+n), T117.n -> #(3493+n), T120.n -> #(3496+n).
+
+
+## H4 — does a player notice the minute burst; Decision 6's evidence completed (ruling H4-1)
+
+Three live sessions on the uninstrumented staged copy `release/hitch-9578eb9/` (MANIFEST `c86e295a…`), fixture `two`, Nutrition false, gclog on, N = 60 (58 fed ghosts), n = 1 each, one host, both clients on the server's host:
+
+| session | run id | driver commit | spacing | client geometry |
+|---|---|---|---|---|
+| a | `x244a-20261007-174509` | `48d7378` | DayLength 1 | players 248 tiles apart (spawn points): admin sees bob as a far player only; bob sees nobody |
+| b | `x244b-20261007-181148` | `71271bc`, edited once before its boot at `dbb78a8` | 37 ticks a game minute (`time.multiplier 0.1674`) | as a: the RCON `teleport` replied an empty string and moved nobody |
+| c | `x244c-20261007-182845` | `6df7f07` | DayLength 1 | admin teleported 1.58 tiles from bob (debug menu `/teleportto` through `lua.call` on admin's client) |
+
+Arm order in every session: idle, burst, budget15, burst, budget15, budget15, burst; each arm about 1020 server frames (101.5 s); both clients paced ±6 tiles. Harness: `world.posring` (client), committed `e15a9ca` before any run. Provisional rows `T116.1`–`T116.9` (delta `task-H4-claims-delta.tsv`; owners `platform/performance.md#measure`, `#costs`, `platform/harness.md#driven-client`).
+
+**Deviation: a third session.** The amendments name two sessions. Sessions a and b never brought the players together (fixture `two` spawns them 248 tiles apart, and the RCON `teleport` I added to driver b before its boot did nothing), so their client reading is only admin's far-player stream (whole-tile positions, a stamp every 400 ms, bob's client blind). Session c moved admin beside bob with the vanilla debug menu's own `/teleportto` and repeated session a's arms. Ruling H4-1 named one more live session as its cost if wrong; no harness change was needed for c.
+
+**Deviation: no zombies.** Fixture `two` has `Zombies = 6` (none); `zombie.near` spawns one tile from the first player and the harness has no god mode, so a 15-minute session would put the subjects under attack. The reading rests on the other player (the plan's "or"); zombie columns read -1. Also: `IsoZombie` has no `lastRemoteUpdate` getter (T116.1).
+
+### The client reading (session c, players beside each other)
+
+What the clients can read (T116.1, jar): a remote player's `getLastRemoteUpdate()` is stamped with the client's wall clock each time it processes a `PlayerPacket` for that player. Live, that stamp advances every 201–400 ms at the median, while the remote player's position changes nearly every client frame (the client's own interpolation, inference). So the ring records three series: stamp gaps (packet arrivals), move gaps (frames between position changes) and the client's own frame intervals.
+
+Per arm, both clients (gap ms; "lined" = gaps of 100 ms or more overlapping a server minute frame widened ±100 ms; "control" = the same against minute frames shifted by half their spacing, ~313–340 ms):
+
+| arm | client frame p50 / p99 / max | stamp p50 / p99 / max | stamp ≥100 lined / control | move p50 / p99 / max | move ≥100 lined / control |
+|---|---|---|---|---|---|
+| I | 17 / 19–20 / 23–29 | 400 / 801–817 / 817–818 | 181/180, 194/183 | 17 / 135–149 / 584–667 | 46/41, 48/45 |
+| burst1 | 17 / 19 / 23–32 | 201–400 / 801–816 / 817 | 211/231, 192/180 | 17 / 51–66 / 716–733 | 32/31, 34/36 |
+| b15_1 | 17 / 19 / 22–27 | 399–400 / 801 / 816–817 | 214/210, 200/185 | 17 / 68 / 502–567 | 35/28, 40/38 |
+| burst2 | 17 / 19 / 20–22 | 201 / 801 / 816–817 | 212/227, 235/218 | 17 / 100–132 / 634–850 | 40/41, 43/36 |
+| b15_2 | 17 / 19–20 / 21 | 201–399 / 801 / 801–816 | 206/210, 244/224 | 17 / 66 / 553–834 | 36/31, 37/35 |
+| b15_3 | 17 / 19 / 20–21 | 399–400 / 816 / 817 | 208/206, 197/184 | 17 / 50–116 / 518–634 | 44/38, 37/37 |
+| burst3 | 17 / 18–19 / 21–23 | 383–400 / 801–816 / 817 | 175/182, 226/205 | 17 / 50–83 / 616–783 | 39/30, 37/37 |
+
+(admin first, then bob, where two values are given; the full per-client table is in the x244c guide in `artifacts.md`.)
+
+- **No client frame reached 100 ms in any arm** (max 32 ms, under burst1); the clients' own frames do not feel the server's minute frame. The burst's busy (at most 74 ms in this session) ran inside an unbroken 100 ms start-to-start cadence: the start-to-start period held at 104-105 ms in every x244c arm and 103-106 ms in the x244a and x244b arms (`summaries.<arm>.period`), so no tick started late; the 176 ms figure is the end-to-end period (`endPeriod`).
+- **The other player's motion shows no minute-aligned gap above chance.** Move gaps of 100 ms or more lined up 32–43 times an arm under the burst against 30–41 in the control, 35–44 against 28–38 under budget15, and 46–48 against 41–45 at idle. The long move gaps (500–850 ms) are the pacing's own stops (a walk ends; the next is queued ≥500 ms later), which are random against the minute frames.
+- **Packet stamps:** median 201-400 ms, max 801-818 ms in every arm (idle included); lined against control 175-244 vs 180-231. **The stamp test was blind at this cadence (inference):** every stamp gap was at least 167 ms, so the 100 ms threshold counted every gap (`stamp.ge_gap` equals `gaps.n` in all arms), and the windows cover 32-37 % of the time, so a gap that long overlaps a window about 70 % of the time in the control too; lined above twice the control was out of reach. Near-player stamps stayed within one or two client frames of the 200 ms grid in every arm (at most 18 ms off on admin, 33 on bob in the burst arms, 34 on bob in any arm), including about 135-180 gaps per client in a burst arm that spanned a frame with 30 ms or more of busy.
+- **The client rule (plan Step 3; the driver's SHOWS/NONE):** no burst draw and no budget15 draw SHOWS on either client. Its outcome "not noticeable at this load" follows from the rule's construction, not from a reading (the stamp test above could not have shown an effect). The prediction "evidence for (b)" was falsified. **The supported reading (T116.4), resting on the move series (which resolves an effect present at about half the minute frames or more) and on the near-player stamp grid:** at N = 60 on loopback, the burst has no visible effect on another player's updates. No zombies were present (the fixture has none; the zombie columns read -1): the other player only.
+
+**Sessions a and b (far-player stream only):** the same outcome on admin's client — no lined excess (a: 192-221 vs 190-210; b: 39-42 vs 36-41; the same blind stamp test); the stamp max was 801 ms in idle and budget15 arms and 834-850 ms in the burst arms in a, 817-818 in every arm in b. The x244a hint of a ~33-49 ms stretch is not attributed to the burst: stamp gaps more than 30 ms off the 200 ms grid also occur in all three x244a budget15 arms (28-32 an arm, 0 at idle), and the burst-arm ones overlap a busy frame of 30 ms or more 21/42, 29/55 and 35/63 times, below the ~70 % chance rate. Bob's series are empty; driver a graded bob "not noticeable" on an empty series (driver a had no empty-series guard; flagged in `do-not-cite.csv`; drivers b and c grade it "unmeasured").
+
+**What this does not show (for the controller's ruling on ruling 2's thresholds):**
+- It measures what a client renders of **another** player (packet arrivals and interpolated motion). A player's **own** actions on server-owned state (timed-action completion, container transfers, hit registration, eating) wait on the server frame and were not measured; a 176 ms end-to-end period delays those by up to ~76 ms over nominal (inference), though no tick started late at N = 60 here (the start-to-start period held at 100 ms).
+- Loopback only: both clients on the server's host, no network latency, jitter or loss. Interpolation that hides a 50–75 ms relay delay on loopback may not hide it on top of real jitter.
+- n = 1 session per geometry; the alignment test with ±100 ms windows covers 32-37 % of the time, so a small effect (a few extra lined gaps an arm) is below its resolution, and the stamp test had none at this cadence (above).
+
+### Decision 6 — the three draws (ruling H4-1)
+
+Adds over each session's own idle arm: p99 on the ring end-to-end period (~1020 frames), max on the engine's per-window longest frame (~95 windows); "ghost ms/ev" = `ghost.stats` ms ÷ `minuteEventsSince` (drift-immune).
+
+| session | arm | p99 add | max add (window) | starved | ghost ms/ev | busy/min over idle |
+|---|---|---|---|---|---|---|
+| a DL1 | burst1 / 2 / 3 | 56 / 49 / 50 | 57 (171) / 52 (166) / 61 (175) | 0 | 48.74 / 44.78 / 45.15 | 47.81 / 40.56 / 39.90 |
+| a DL1 | b15_1 / 2 / 3 | 13 / 13 / 12 | 15 (129) / 25 (139) / 15 (129) | 0 | 52.13 / 46.82 / 47.07 | 50.06 / 42.46 / 42.48 |
+| b 37 ticks | burst1 / 2 / 3 | 46 / 45 / 43 | 67 (173) / 63 (169) / 47 (153) | 0 | 48.66 / 47.72 / 44.83 | 39.66 / 29.05 / 20.01 |
+| b 37 ticks | b15_1 / 2 / 3 | 13 / 12 / 12 | 17 (123) / 17 (123) / 17 (123) | 0 | 49.61 / 49.62 / 50.64 | 35.41 / 26.41 / 31.00 |
+| c DL1 | burst1 / 2 / 3 | 51 / 48 / 46 | 53 (169) / 48 (164) / 60 (176) | 0 | 46.59 / 45.24 / 44.22 | 44.24 / 41.46 / 39.09 |
+| c DL1 | b15_1 / 2 / 3 | 13 / 13 / 12 | 13 (129) / 11 (127) / 12 (128) | 0 | 50.67 / 47.15 / 46.42 | 48.34 / 42.60 / 41.94 |
+
+Totals (budget15 mean ÷ burst mean): ghost ms a minute event **1.053 (a), 1.061 (b), 1.060 (c)**; busy a game minute over idle 1.052, 1.046, 1.065 (the busy figure carries the idle drift: b's burst draws read 20.01 to 39.66). Ghost ms a run spreads 0.762-0.874 between arms within x244c (`summaries.<arm>.ghost_ms_per_run`), so the budget's 5-6 % excess over the burst is not resolved from drift (its cause, per-batch overhead or 1 ms truncation, is inference and unmeasured); the 1.1x clause holds either way.
+
+Notes: a's b15_2 25 ms add was one 41 ms frame (139 ms window), exactly at the 25 ms bound. c's burst3 spans the mod's 07:00 day close (interpolated, inference): its frame nearest 07:00 read 72 ms busy; the arm's 74 ms frame came ~25 s earlier with 70 ghost ms. No 07:00 in a or b. GC: in-arm pauses ≤ 0.058 ms; allocation stalls only at boot (28.97–34.19 s JVM uptime).
+
+**Ruling 2 applied to budget15 (T116.8), at N = 60:**
+- **Peak clauses** (≤ 20 ms at p99, ≤ 25 ms at the max): held in all nine draws, at DayLength 1 (six draws: p99 +12–13, max +11–25) and at 37 ticks (three draws: +12–13, +17).
+- **No starvation:** 0 starved ghost-minutes in all nine draws.
+- **Total ≤ 1.1× the burst:** held in all three sessions on the drift-immune measure (1.053, 1.061, 1.060). This settles H3's open "1.22× at 37 ticks" (drift) for budget15.
+- **Empty-queue check ≤ 0.1 ms a frame:** not measured (ruling H4-1 leaves it to Plan 11; H3's x243d A/B −0.052 ms, unresolved).
+- **The alternative clause** (the burst adds > 33 ms or pushes a frame over 133 ms, read on the end-to-end period): held in every burst draw at both spacings (+43–56 at p99, windows 153–176 ms, every window over 133 ms in the DL1 burst arms).
+- **(a) the one-event design** (the burst ≤ 25 ms at N = 60): not admissible on all nine draws (max adds +47–67).
+
+**Decision 6 for Task M:**
+- (a) is excluded (max adds +47-67 in nine of nine draws); (c) is excluded on H3's evidence.
+- (b) budget15 is adopted provisionally at both spacings, with nine draws: p99 adds +12 to +13, max adds +11 to +25 (one exactly at 25), no starvation, total 1.053-1.061x on ghost ms.
+- The empty-check clause rests on x243d's weak support (A-B-B-A, -0.053 ms, se about 0.03), not on a measurement here.
+- **Caveat:** ruling 2's thresholds are read on the end-to-end period. On the loop's own cadence neither design delayed a tick at N = 60 on this host, because the burst's busy of 56-77 ms at the frame max (46-51 ms at the minute-frame median) fits inside the 100 ms period. So (b) buys headroom, not relief from a stall players see today. H3 found the burst's busy linear in N, so it would overrun the period at roughly N = 85-95 here (inference).
+- The client reading does not loosen ruling 2: its stamp test was blind at this cadence, and it covers only another player's updates on loopback, not a player's own-action latency.
+
+### Open items for Task M / Plan 11
+
+- The empty-queue clause (Plan 11's scheduler task, ruling H4-1); a minute-sized adaptive budget (ruling H4-1).
+- A player's own-action latency under the burst (timed-action completion delay, container transfer round trip) — the noticeability reading H4 did not take.
+- A run with real network latency (a second host or a latency shim) — Angus's to supply, as E7.
+- Fixture `two`'s 248-tile spawn separation (T116.9): any two-player reading that needs proximity must move a player first; `lua.call DebugContextMenu.onTeleportValid nil x y z` on admin's client works; RCON `teleport` does not.
+
+## Appendix N. H5 — the engine's fake clients (run x245)
+
+Provisional ids in this appendix are its source memo's own; they map at the mint as T114.n -> #(3456+n), T115.n -> #(3470+n), T116.n -> #(3484+n), T117.n -> #(3493+n), T120.n -> #(3496+n).
+
+
+## H5: the engine's fake clients (run x245): not reachable on 42.20.4
+
+One server-only session, `x245-20261007-192340`. The driver `testing/experiments/x245_fake.py` and the profile `x24-fake` were committed at `0086c08` before the boot. The session loaded PZTestKit only: no NutritionRevamp and no game client. The server ran on port 16261, which the fake hard-codes. The run copy of the ini set `MaxPlayers=64` and `DoLuaChecksum=false`, with `Open=true` and no password. The fake JVM ran read-only from the install's `jre64` and classpath. Its working directory and cache dir were in the run folder. Provisional rows are `T117.1`–`T117.3`, plus a `#3452` status row (delta `task-H5-claims-delta.tsv`; owner `platform/performance.md#measure`).
+
+### The answer
+
+**The shipped fake client gives no player load on 42.20.4 (T117.1).** It connects and logs in, and `Open=true` creates its account. It passes the login queue. Then the server kicks it at `player-connect` with `UI_LoadPlayerProfileError`. Over about five minutes `Client1` went through that cycle 23 times, and no fake player was ever online.
+
+The jar gives the cause (T117.2). `GameServer.receivePlayerConnect` kicks whenever `ServerPlayerDB.serverLoadNetworkCharacter` finds no saved character for the username in `networkPlayers`. The fake never creates one: it goes from the login queue straight to `PlayerConnect`.
+
+**One JVM carries one connection (T117.3).** At each connect round all but one of the clients due failed with RakNet code 4 (24 lines, Client1's own thread among them), and the server only ever saw the username Client1. That code 4 means "attempt already in progress" is inference. `-id=<n>` gives each JVM its own port, but each such JVM runs only one client. Sixty players would need about 60 JVMs at roughly 133–181 MB each, about 8–11 GB.
+
+### Vanilla's frame (no player online)
+
+E7's per-player denominator is **unmeasured**. The three windows had nobody online. `N05` and `N10` are only the scheduled fake counts.
+
+As an idle server-only baseline, each window had about 1050 kept frames:
+- busy p50 0 ms, p99 3–4 ms, max 5–37 ms;
+- end-to-end period p50 100 ms, p99 105 ms, max 112–138 ms;
+- perf.local window max: p99 112–138 ms, max 112–175 ms.
+
+This idle p99 of 105 ms is 3 ms below the x24 sessions' two-client idle p99 of 108 ms. That gap is a comparison across sessions, n = 1 each, and x245 had no client and no NutritionRevamp.
+
+### Memory at each step (free GB / server working set MB / fake JVM MB)
+
+| step | free | server | fake |
+|---|---|---|---|
+| preboot | 19.22 | — | — |
+| ready (server up) | 15.44 | 3792 | — |
+| after N00 | 15.44 | 3552 | — |
+| before group 0 | 15.27 | 3554 | 133 |
+| after group 0's window | 14.27 | 3585 | 175 |
+| before group 1 | 14.01 | 3588 | 177 |
+| after group 1's window | 13.07 | 3613 | 178 |
+| Z (fake killed) | 13.09 | 3614 | — |
+
+Free memory never came near the 2 GB stop or the 1 GB watcher kill. The roughly 2.4 GB that drifted down over the session was not this session's load: the server's working set rose only 61 MB.
+
+### The scheduler arms
+
+The arms were not run, for two reasons. No player joined. And the harness's schedulers drive only harness-held ghost records, so no command runs `P.work` for the online usernames on a schedule. A burst or budget15 reading on real players needs a harness change, which I have reported and not made.
+
+### What would make it reachable (not tried; the plan's no-retry rule)
+
+1. Provision a saved character for each `Client<n>` username before the fakes connect. This could be done by a real client logging in once per name, or by seeding `networkPlayers` in a fixture.
+2. Run one JVM per client with `-id=<n>`. Memory allows about 60 on this host only without game clients.
+
+Both are a new task and a new session. Whether the fake's later packets (`PlayerConnect` data, `ExtraInfo`, `Equip`) parse on 42.20.4 is still unread past the profile check.
+
+### For Task M
+
+- E7 stays Angus's to supply (a populated-server reading). The engine's fake client is not a substitute on 42.20.4 as shipped.
+- `#3452`'s open half is answered (status row).
+
+## Appendix O. H6 — the global store: its save, its size, and who can request it
+
+Provisional ids map T118.n -> #(3416+n), minted (the Rows bullet).
+
+## H6 memo section: the global store — its save, its size, and who can request it
+
+For Task M to fold into the decision memo's Hitching section and Decision 3. Provisional ids are this task's delta (`task-H6-claims-delta.tsv`, T118.1–T118.6). Build 42.20.4, jar b0bbce05d5.
+
+### The request: a privacy blocker for Plan 11
+
+- **Any logged-in client can request any global modData table by name and receive it** [T118.1].
+  - `ModData.request(name)` is exposed to Lua and sends a `GlobalModDataRequest` packet carrying only the name.
+  - That packet type requires only `Capability.LoginOnServer`, which the built-in `user` role holds.
+  - The server's parse calls `GlobalModData.receiveRequest`. It looks the name up and sends that table, serialised whole, to the requesting connection. It never checks who asked or which name.
+  - The store's name, `NutritionRevamp.players`, is in the mod's shipped Lua. Any client, any other mod on the server, or a modified client can ask for it.
+- **A mod cannot refuse** [T118.2]. `receiveRequest` fires no Lua event and calls no hook before it sends. The `SendCustomModData` event (#2406) belongs to a different packet. A mod's only control is what it keeps under a global modData name.
+- **The size cap does not close the leak** [T118.3]. The reply is written into the connection's fixed 1,000,000-byte send buffer.
+  - Below that size, about 92 records, the requester's `OnReceiveGlobalModData` receives every player's full record.
+  - Above it, the serialise overflows. The handler then still sends the buffer as it stands: the store's leading bytes, about 92 records, in plain form. The stock client's parse fails on the truncated table, so no Lua event fires, but the bytes still reach the client. This is inference from the bytecode.
+- **It is also a hitch source.** The server parses packets in `GameServer.main`'s `mainLoopDealWithNetData` (`@157 L1612` → `PacketType.onServerPacket`). So every request serialises up to 1 MB on the main loop, and a modified client can repeat it at will: a stock client cancels its own over-limit packet (`PacketType.send @0–@22 L932–L934`), and only the server side just logs (`onServerPacket @23–@48 L956–L957`). The cost is unmeasured; the live arm below reads it.
+- **Consequence for Plan 11.** The store must leave global modData, whatever Decision 3 says. Pruning or an inputs-only record shrinks the leak but does not close it. The candidates are under "Storage candidates for the privacy fix" below; Plan 11 needs a jar read of the chosen route before it builds on it.
+- **Severity.** The stronger reason for "blocker" is the hitch and griefing vector. A ~30-byte request makes the server serialise about 1 MB on its main loop (`mainLoopDealWithNetData @157 L1612`) and send about 1 MB back. The leaked data is the usernames of everyone who ever joined, plus their health state. No write vector exists today (#2399; the mod has no `OnReceiveGlobalModData` handler), and Plan 11 must keep it that way.
+
+#### Storage candidates for the privacy fix
+
+1. **A server-local file through `getFileWriter`/`getFileReader`: recommended.** It is rooted at the server's Lua cache folder (`LuaManager.getLuaCacheDir`, `LuaManager$GlobalObject.getFileWriter @0–@105 L5848–L5859`, #1866). Only the ini, cfg, txt, log and json extensions are allowed (#1120). No network route reads it. Costs:
+   - the mod writes its own JSON serialiser;
+   - the folder is per host, so the file name must carry the server or world name;
+   - the write still runs on the main thread;
+   - it is not atomic with the world save: after a hard kill the world rolls back (#2098, #2758) and the file does not.
+
+   `getFileOutput` (`@0–@8 L5076–L5077`) skips the extension check, but whether `DataOutputStream` is exposed to Lua is unread.
+2. **Global modData under a secret name, possibly one table per player.** No packet lists table names: `GlobalModData`'s only network methods are `transmit`, `request` and `receiveRequest`, and `collectTableNames`/`getTableNames` are local. The secret must live in option 1's file. It still pays T118.5's main-thread save. It shrinks a request from a guessed name to one record.
+3. **Player modData: rejected.** Any mod on the owning client can replace the server's copy with `transmitModData` (#0914, #1091, #1088, #1336), and the server's copy is empty at join (#1432).
+4. **`getModFileWriter`: rejected.** It writes into the mod's own folder (#1866), which a Workshop update replaces.
+
+### The save: thread, trigger, frequency
+
+- **Thread** [T118.4]: the console save and the autosave run on the server's main loop. The quit save runs on the JVM shutdown-hook thread. The main-loop chain is:
+  - `GameServer.main @3466 L978` → `ServerMap.preupdate`;
+  - when `queuedSaveAll` is set and no zip backup runs, `@544–@551 L957–L958` → `ServerMap.QueuedSaveAll(false)`;
+  - `@143–@146 L856` → `GlobalModData.save()`.
+
+  The quit chain: `QuitCommand.Command @10–@13 L25` → `ServerMap.QueueQuit @0–@2 L193` sets `queuedQuit` → `ServerMap.preupdate @554–@562 L960–L961` calls `System.exit(0)`. The hook `GameServer$1`, registered at `GameServer.main @0–@6 L400`, then runs `run @28–@35 L375–L376` → `ServerMap.QueuedQuit` → `QueuedSaveAll(true)` → `GlobalModData.save`. The same hook runs on any JVM termination unless `softReset`.
+- **Triggers:**
+  - the console `save` (`SaveCommand.Command` → `QueueSaveAll`, which queues for the next frame);
+  - `SaveWorldEveryMinutes` above 0, counted in real-time minutes (`currentTimeMillis` against `lastSaved + minutes × 60 × 1000`, `preupdate @483–@528 L948–L953`);
+  - the quit (`QueuedQuit` → `QueuedSaveAll(true)`).
+
+  The fixture runs at 0, so only the console save and quit write the file (#2097).
+- **Frequency:** once per operator-set autosave interval, plus each console save and the quit. `GlobalModData.save` is one step of the whole world save: the player DB, chunks, map collision, radio and more.
+- **Shape** [T118.5]:
+  - Every table is serialised into one heap buffer. It starts at 1 MiB on the process's first save, and each `BufferOverflowException` grows it by 512 KiB and re-serialises the overflowing table from its start.
+  - The save then writes `global_mod_data.tmp` and copies it over `.bin`, on the same thread.
+  - `checkClientPause` runs between the world save's steps (`QueuedSaveAll L828–L869`), never during `GlobalModData.save` (`@139 L854`). It sends `StartPause` at the first check after 600 ms, and returns at once on a quit save (`saveQuitFlag`, `L815`) [T118.5].
+- **First-save restarts.** These are modelled, not measured: the first save after a boot re-serialises the store 9 times at 500 records (about 33.7 MB written in all against 5.4 MB) and 40 times at 2000. Later saves in the same process start at the grown size (`store-size.json`, `first_save_*`).
+
+### The size (offline, `testing/spikes/store_size.py`, commit 3001c68)
+
+The golden scenario's six final records are serialised in the save's own format, read from the jar. Every number is a Double of 8 bytes, every string a short length plus UTF-8, and every table an int count plus typed key-value pairs [T118.6].
+
+| | per record | 100 | 500 | 2000 |
+|---|---|---|---|---|
+| full record, as saved (bytes) | 10,807.8 mean (10,684–10,883; 619–625 leaves) | 1,082,082 | 5,411,040 | 21,643,790 |
+| inputs only, `K.store.inputsOnly` (bytes) | 8,774.2 mean (507–508 leaves) | 878,850 | 4,394,132 | 17,576,382 |
+
+- 1 MB is reached at about 92 full records. The design load of 60 online players is 649,351 bytes for 60 records, but the store counts every player who ever joined.
+- The inputs-only store saves only 19 %, so it is not a size fix on its own.
+
+### Decision 3's rule
+
+- **Outcome: flips.** 500 full records are 5,411,040 bytes, over the 1 MB bound. So the recommendation becomes **pruning on by default**, with an inputs-only store as a Plan 11 candidate.
+- The size prong decides it alone, so no save timing is needed for the flip.
+- H6 adds that pruning is not enough. The privacy blocker moves the store out of global modData altogether, and the inputs-only record cuts the size by only 19 %.
+- Suggested memo text for Decision 3's open bullet: "Read by H6. Any client can request the store and a mod cannot refuse (T118.1–T118.3): the store must leave global modData in Plan 11. At 500 records the store is 5.4 MB (T118.6), over the rule's 1 MB, so the recommendation flips to pruning on."
+
+### Step 3: the live arm (spec for H2's arm E)
+
+The jar settles the save's thread and trigger, not its cost. Decision 3 does not need the cost, but rule 6 does: how much the mod adds to each world-save frame at 60 players, and what one request costs the main loop. Recommended, and cheap.
+
+- **Staged copy only.** Add one bench helper to the instrument file, `NR_H6.seed(n)`. It deep-copies the first live record into `n` synthetic usernames `h6p000001…` under `NR.server.store.records`, and `NR_H6.clear()` removes them. Never edit `mod/`.
+- **Arm E1, the save.** For n in 0, 100, 500 and 2000:
+  - seed with `lua.call NR_H6.seed <n>`;
+  - issue the RCON `save` twice, 30 s apart. The first save after a process start pays the buffer-growth restarts and the second does not, so record which save is the first of the process;
+  - read the server log's `Saving GlobalModData` stamp, the next save step's stamp, and `QueuedSaveAll`'s own `Saving finish` elapsed-ms line (`L871–L872`);
+  - read the H0 frame ring and `perf.local` across the save frame, and whether `Pausing clients because saving is taking longer than 600ms` appears;
+  - compare `global_mod_data.bin` as the change over n = 0, against `store-size.json`'s file bytes for that n. n = 60 means 59 seeded records plus the real one. A small difference is expected from the real record and username lengths.
+- **Arm E2, the request.** At n = 0, 60 and 500, the client runs `lua.call ModData.request NutritionRevamp.players`.
+  - The server's frame ring gives the request's frame cost.
+  - A client-side `OnReceiveGlobalModData` probe, in the instrument file and gated to the client, records the name, whether the table arrived and its key count.
+  - Expected at 0 and 60: a table of every record. Expected at 500: no event, and three log lines: the server's `printException` (`receiveRequest L196`), the IllegalMonitorStateException message (`L204`), and the client's parse exception (`GlobalModDataPacket.parse L56–L57`).
+  - This turns T118.1 and T118.3 into M rows.
+- **Dependency:** arm E depends on H0's `tick.ring` and `perf.local` landing first.
+- **Rule.**
+  - If the second save at 500 records adds more than 25 ms over n = 0 on the main thread, the save is a hitch source in its own right, and the store's move or pruning is a performance fix too.
+  - If one request at 60 records costs more than 5 ms of server frame, the request is a griefing hitch vector to note in the memo. That stays true until the store leaves global modData.
+- **Cleanup:** `NR_H6.clear()` and one more save, or a fixture restore.

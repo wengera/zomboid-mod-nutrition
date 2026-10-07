@@ -138,6 +138,7 @@ A wrap that skips the test paints its band over an open context menu with no too
 The sentinel that keeps the wrap single belongs in a global of its own, for the reason [lua-platform.md](lua-platform.md#dev-loop) gives [#0943/C/C-only].
 The wrap reaches `self.item`, the Java tooltip object `self.tooltip`, the character it was given and the whole `ISPanel` draw surface, which is everything a line of mod text needs.
 The two tooltip rules at the top of this page follow from the Java-built body, the fixed height and the context-menu test above.
+A cached entry keeps a tooltip line cheap: in the worked example, this mod's `T.entryFor` on an unchanged item took 18, 12 and 17 ms over 1000 calls on one client and 12, 11 and 7 ms on the other, 7 to 18 µs a call, and 147 and 94 ms over 10000, while with its cache cleared before each call it took 217, 207 and 218 ms and 135, 134 and 108 ms over 1000 [#3465/M/n=1].
 Everything a nutrition mod wants to say about a food therefore goes through one wrapped method and one band below the engine's box, and a mod can reach the screen that way because the band is framed and drawn after the original returns, while the in-box padding route rests on a field write Lua may not make ([#2517/C/inference], [#2510/C/snapshot/unverified]).
 The band's text is the mod's own, so it carries the mod's own numbers rather than echoing the engine's.
 
