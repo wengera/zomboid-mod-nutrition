@@ -1,0 +1,35 @@
+# testing/profiles/x24-shootout-b.toml - Plan 10c Task H3 (run x243b): the shoot-out at N = 20 and 40, and the shipped drain at 60, DayLength 1.
+# PZTestKit (6af6595: tick.ring, perf.local, ghost.load/stats/stop/bench, the gclog key) + the UNINSTRUMENTED staged
+# copy of the tree at 9578eb9 (release/hitch-9578eb9/NutritionRevamp/Contents/mods/NutritionRevamp, staged by Task 0,
+# MANIFEST sha256 c86e295a...b389; release/ is gitignored; mod/ is never booted; no sub-block timer, so no arm is
+# inflated by an instrument). The x24-smoke shape: fixture `two`, both clients (`admin` -debug, then `bob` release),
+# Nutrition false (ruling T18-1), DayLength 1 (a game minute is 0.625 s, about 6.27 ticks, #3346), gclog on.
+# The driver is testing/experiments/x243b_shootout.py.
+# The verify rows are load gates only: the version on the server and both clients, and the harness's ring cap.
+fixture = "two"
+description = "PZTestKit (6af6595) + the uninstrumented staged NutritionRevamp copy at 9578eb9, fixture two, admin and bob, Nutrition off, DayLength 1, gclog on - x243b: an idle baseline, burst, drainTicks and budget10 at N = 20 and 40, and the shipped drain's starvation at N = 60."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/hitch-9578eb9/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+gclog = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, #3346)
