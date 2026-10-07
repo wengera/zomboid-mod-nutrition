@@ -2838,7 +2838,7 @@ end)
 --   `read` writes pzt-results/perf-local-<tag>.json; `now` replies the table as it stands.
 --
 -- ghost.load <N> <burst|rr<m>|drainTicks|budget<ms>|shipped> [feed] [tpm<n>], ghost.stop, ghost.stats [reset],
---   ghost.bench <n>. N - (online players) ghost records, so the two real players plus the ghosts make N. THE CHOICE (Plan 10c H0 Step 1): a ghost reaches the
+--   ghost.bench <n> | read. N - (online players) ghost records, so the two real players plus the ghosts make N. THE CHOICE (Plan 10c H0 Step 1): a ghost reaches the
 --   pipeline through NutritionRevamp.server.minute.run(ghostName, carrier, ghostRecord) -- the call P.work makes
 --   -- with P.work's own two lines kept here on the ghost's record (record.lastSeen = the world age, and the dead
 --   flag read off the carrier) and P.onMinute fired after it as P.work fires it. P.work itself is not called,
@@ -2876,6 +2876,8 @@ end)
 --                 ran one (P.queue[P.queueHead] nil and P.drained unchanged; the mod's OnTick handler runs first),
 --                 so the real players then the ghosts drain one a tick as one queue of N would (yielded counts the
 --                 ticks given to the real drain). Ruling 3's shipped-drain starvation arm reads dropped and starved.
+--                 The load refuses shipped (a usage error) unless NR.server.players.drained is non-nil and
+--                 NR.server.players.queue is a table: the scheduler reads them on every tick.
 --     budget<ms>  on EveryOneMinute enqueue every ghost not already queued (carried, never rebuilt, so nothing
 --                 starves); on OnTick run at least one queued ghost, then more until getTimestampMs has moved
 --                 <ms> or the run count reaches floor(<ms> / mean), the mean a running mean (0.8/0.2) of the
@@ -2894,12 +2896,26 @@ end)
 --   cumulative counter and maximum (runs, failures, lastError, ms, suppressed, syncs, bodySyncs, dropped, yielded,
 --   starvedEvents, starvedMinutes, maxStaleMinutes, maxStaleGameMinutes, the frame counts, each ghost's run
 --   counts) and restarts wallSince/gameMinutesSince; the stamps are kept, so a ghost stale at the reset stays stale.
---   ghost.bench <n>: in one call, n ghost minutes (H0.work, the ghosts in turn, fed if the load is) and n real
---   P.work minutes (the online players in turn), interleaved and alternating which goes first, each bracketed by
---   getTimestampMs stamps that telescope (the two sums add to the call's wall), the sends swapped as in a batch;
---   replies both means and the ghost-to-real ratio. Every run is back to back at a game time near zero, so it
---   is a warm per-run cost, and the real players' records are run outside their drain (the mod's minute.stats
---   counts them): no behaviour reading may follow it. It needs an active load.
+--   minuteEvents is the scheduler's own minute count since the load (the reset keeps it, the staleness rests on it);
+--   minuteEventsSince counts the minute events since the load or the last reset, which zeroes it.
+--   ghost.bench <n> arms a bench of n ghost minutes (H0.work, the ghosts in turn, fed if the load is) and n real
+--   P.work minutes (the online players in turn) as n pairs, the first of each pair alternating, run from OnTick
+--   (after the scheduler's work, so the bench's ms land in that frame's busy but not in its ghostMs or runs), at
+--   most ONE pair a tick, and a pair runs only when both its records are fresh: neither has run in the bench since
+--   the last minute event, the world age has moved since either last ran in it, and neither record's
+--   nutrients.lastAgeH has caught up with the world age. The world age is constant within one Lua call and a run
+--   at dtM 0 returns at NR_Server_Nutrients :379 before it stamps pipe.body, so Effects returns at once: the gate
+--   keeps every run a full minute's work, with the game time since that record last ran (the ghost's scheduler
+--   run or the real player's drain run earlier in the minute). Each record so runs at most once a minute event,
+--   so n pairs take about n / (online count) game minutes. Each half counts the runs that would still meet dtM 0
+--   (ghostZeroDt, realZeroDt; expected 0), so a skewed bench shows itself; waits counts the ticks a pair waited.
+--   The sends are swapped (counted, sendServerCommand suppressed) around the ghost half ONLY; the real half runs
+--   P.work with the real sends, as the mod's drain does, so B.flushEffects pushes a real player's pending
+--   effects mirror for real and the real arm's ms include that send, the cost the real drain also pays.
+--   ghost.bench read replies the bench as it stands (done once n pairs ran): both sums and means, the ratio,
+--   failures, the zero-dt counts, the minute events the pairs spanned and the wall from the arm to done. The real
+--   players' records run outside their drain (the mod's minute.stats counts them): no behaviour reading may follow
+--   a bench. It needs an active load; ghost.stop or a new load ends it with a reason.
 TK.H0 = TK.H0 or {}
 local H0 = TK.H0
 H0.RING_MAX = 20000
@@ -3393,6 +3409,7 @@ function H0.onMinuteLate()
     G.starvedEvents = G.starvedEvents + starved
     if starved > 0 then G.starvedMinutes = G.starvedMinutes + 1 end
     G.minuteNo = G.minuteNo + 1
+    G.minuteSince = G.minuteSince + 1
     local kind = G.sched.kind
     if kind == "burst" then
         H0.batch(H0.burstBody)
@@ -3437,6 +3454,14 @@ function H0.onTickLate()
             G.framesWithRuns = G.framesWithRuns + 1
             G.runsInFrames = G.runsInFrames + H0.frameRuns
             if H0.frameRuns > G.maxRunsFrame then G.maxRunsFrame = H0.frameRuns end
+        end
+    end
+    if H0.bench ~= nil and not H0.bench.done then
+        local okB, eB = pcall(H0.benchTick)
+        if not okB then
+            H0.bench.done = true
+            H0.bench.reason = "bench: " .. tostring(eB)
+            H0.bench.doneAt = H0.now()
         end
     end
     local now = H0.now()
@@ -3492,6 +3517,12 @@ TK.register("ghost.load", function(argv)
         out.reason = "NutritionRevamp.server.minute.run or .store is absent"
         return out
     end
+    if sched.kind == "shipped" then
+        local Ps = NR.server.players
+        if Ps == nil or Ps.drained == nil or type(Ps.queue) ~= "table" then
+            return usage .. "  (shipped needs NutritionRevamp.server.players.drained and a .queue table)"
+        end
+    end
     local records = NR.server.store.attach()
     if records == nil then
         out.reason = "the store is not attached"
@@ -3517,7 +3548,7 @@ TK.register("ghost.load", function(argv)
                 syncs = 0, starvedEvents = 0, starvedMinutes = 0, maxStaleMinutes = 0, frames = 0,
                 framesWithRuns = 0, runsInFrames = 0, maxRunsFrame = 0, loadedAt = H0.now(),
                 loadedAge = H0.worldAge(), feed = feed, bodySyncs = 0, dropped = 0, yielded = 0, maxStaleGame = 0,
-                lastDrained = nil, tpmSeed = nil, tpmSource = nil }
+                lastDrained = nil, tpmSeed = nil, tpmSource = nil, minuteSince = 0 }
     G.sinceAt, G.sinceAge = G.loadedAt, G.loadedAge
     local Pl = NR.server.players
     if Pl ~= nil then G.lastDrained = Pl.drained end
@@ -3587,7 +3618,7 @@ function H0.stats()
     out.ghosts = #G.ghosts
     out.runs, out.failures, out.lastError, out.ms = G.runs, G.failures, G.lastError, G.ms
     if G.runs > 0 then out.usPerRun = G.ms * 1000 / G.runs end
-    out.minuteEvents = G.minuteNo
+    out.minuteEvents, out.minuteEventsSince = G.minuteNo, G.minuteSince
     out.tpmLast, out.meanMs = G.tpmLast, G.meanMs
     out.queued = G.qt - G.qh + 1
     out.starvedEvents, out.starvedMinutes, out.maxStaleMinutes = G.starvedEvents, G.starvedMinutes, G.maxStaleMinutes
@@ -3616,6 +3647,7 @@ function H0.resetStats()
     G.suppressed, G.syncs, G.bodySyncs, G.dropped, G.yielded = 0, 0, 0, 0, 0
     G.starvedEvents, G.starvedMinutes, G.maxStaleMinutes, G.maxStaleGame = 0, 0, 0, 0
     G.frames, G.framesWithRuns, G.runsInFrames, G.maxRunsFrame = 0, 0, 0, 0
+    G.minuteSince = 0
     for i = 1, #G.ghosts do
         G.ghosts[i].runs = 0
         G.ghosts[i].okRuns = 0
@@ -3625,8 +3657,8 @@ function H0.resetStats()
 end
 
 -- @args [reset]
--- @reply {ok, side, active, scheduler, m, cap, period, ghosts, runs, failures, lastError, ms, usPerRun, minuteEvents, tpmLast, meanMs, queued, starvedEvents, starvedMinutes, maxStaleMinutes, neverRun, staleMinuteEvents, staleGameMinutes, maxStaleGameMinutes, staleGameNowMax, frames, framesWithRuns, maxRunsPerFrame, meanRunsPerRunFrame, meanRunsPerFrame, suppressed, syncs, bodySyncs, dropped, yielded, feed, tpmSeed, tpmSource, storeGhostKeys, wallSinceLoad, gameMinutesSinceLoad, resetAt} | {ok, side, reset, before} | {ok, side, reason} | string
--- @purpose Test-only: the ghost load's counters -- runs, failures, ms, starvation per minute event, per-ghost staleness, runs per frame, the counted sends, the dropped and the store-leak guard; reset replies them and zeroes every cumulative counter and maximum.
+-- @reply {ok, side, active, scheduler, m, cap, period, ghosts, runs, failures, lastError, ms, usPerRun, minuteEvents, minuteEventsSince, tpmLast, meanMs, queued, starvedEvents, starvedMinutes, maxStaleMinutes, neverRun, staleMinuteEvents, staleGameMinutes, maxStaleGameMinutes, staleGameNowMax, frames, framesWithRuns, maxRunsPerFrame, meanRunsPerRunFrame, meanRunsPerFrame, suppressed, syncs, bodySyncs, dropped, yielded, feed, tpmSeed, tpmSource, storeGhostKeys, wallSinceLoad, gameMinutesSinceLoad, resetAt} | {ok, side, reset, before} | {ok, side, reason} | string
+-- @purpose Test-only: the ghost load's counters -- runs, failures, ms, starvation per minute event, per-ghost staleness, runs per frame, the counted sends, the dropped and the store-leak guard; reset replies them and zeroes every cumulative counter and maximum, minuteEventsSince with them (minuteEvents is kept).
 TK.register("ghost.stats", function(argv)
     local a = argv ~= nil and argv[1] or nil
     if a == nil then return H0.stats() end
@@ -3677,52 +3709,139 @@ TK.register("ghost.stop", function()
 end)
 
 -- ---- ghost.bench ------------------------------------------------------------------------------------------
--- n ghost minutes and n real P.work minutes, interleaved, the first of each pair alternating; the stamps
--- telescope, so B.gms + B.rms is the body's wall
-function H0.benchBody(n, on, B)
-    local G = H0.g
-    local P = NutritionRevamp.server.players
-    local t = H0.now()
-    local t0 = t
-    for i = 1, n do
-        local g = G.ghosts[((i - 1) % #G.ghosts) + 1]
-        local r = on[((i - 1) % #on) + 1]
-        for half = 1, 2 do
-            local ghostTurn = (half == 1) == (i % 2 == 1)
-            if ghostTurn then
-                if G.feed then H0.feedOne(g) end
-                local okG, eG = pcall(H0.work, g)
-                if not okG then
-                    B.gf = B.gf + 1
-                    B.err = "ghost: " .. tostring(eG)
-                end
-                local t1 = H0.now()
-                B.gms = B.gms + (t1 - t)
-                t = t1
-            else
-                local okR, eR = pcall(P.work, r.name, r.p)
-                if not okR then
-                    B.rf = B.rf + 1
-                    B.err = "real: " .. tostring(eR)
-                end
-                local t1 = H0.now()
-                B.rms = B.rms + (t1 - t)
-                t = t1
-            end
-        end
-    end
-    B.wall = t - t0
+-- One pair a tick at most, from H0.onTickLate, and only when both its records are fresh: neither has run in the
+-- bench since the last minute event, the world age has moved since either last ran in the bench, and neither
+-- record's nutrients.lastAgeH has caught up with the world age (else NR_Server_Nutrients :379 returns at dtM 0
+-- before it stamps pipe.body and Effects returns at once, so the run would be a cheap partial one). A pair that
+-- is not fresh waits for a later tick (waits). Each half checks dtM itself just before it runs and counts a
+-- zero (ghostZeroDt, realZeroDt), so a skewed bench shows itself.
+function H0.benchFresh(B, key, rec, age, mn)
+    if B.lastMin[key] ~= nil and B.lastMin[key] >= mn then return false end
+    if B.lastAge[key] ~= nil and age <= B.lastAge[key] then return false end
+    local nut = type(rec) == "table" and rec.nutrients or nil
+    if type(nut) == "table" and type(nut.lastAgeH) == "number" and age <= nut.lastAgeH then return false end
+    return true
 end
 
--- @args <n>
--- @reply {ok, side, n, ghostMs, realMs, ghostMeanMs, realMeanMs, ratio, wall, ghostFailures, realFailures, lastError, suppressed, syncs, bodySyncs, reals, feed} | {ok, side, reason} | string
--- @purpose Test-only: in one call times n ghost minutes and n real-player P.work minutes interleaved, the sends swapped as in a ghost batch, and replies both means and the ghost-to-real ratio (warm, back-to-back runs; no behaviour reading may follow).
+function H0.zeroDt(rec, age)
+    local nut = type(rec) == "table" and rec.nutrients or nil
+    return type(nut) == "table" and type(nut.lastAgeH) == "number" and age <= nut.lastAgeH
+end
+
+function H0.benchWork(g)
+    if H0.g.feed then H0.feedOne(g) end
+    H0.work(g)
+end
+
+-- the ghost half: the sends swapped in around it alone (the run under pcall, so the restore always runs), its ms stamped inside the swap
+function H0.benchGhost(B, g, age)
+    if H0.zeroDt(g.rec, age) then B.gZero = B.gZero + 1 end
+    H0.swapIn(B.C)
+    local t0 = H0.now()
+    local ok, err = pcall(H0.benchWork, g)
+    local t1 = H0.now()
+    H0.swapOut()
+    B.gms = B.gms + (t1 - t0)
+    if not ok then
+        B.gf = B.gf + 1
+        B.err = "ghost: " .. tostring(err)
+    end
+end
+
+-- the real half: P.work with the real sends, as the mod's drain runs it (its ms include any push it sends)
+function H0.benchReal(B, r, recs, age)
+    if H0.zeroDt(recs ~= nil and recs[r.name] or nil, age) then B.rZero = B.rZero + 1 end
+    local t0 = H0.now()
+    local ok, err = pcall(B.P.work, r.name, r.p)
+    local t1 = H0.now()
+    B.rms = B.rms + (t1 - t0)
+    if not ok then
+        B.rf = B.rf + 1
+        B.err = "real: " .. tostring(err)
+    end
+end
+
+function H0.benchTick()
+    local B = H0.bench
+    if B == nil or B.done then return end
+    local G = H0.g
+    if G == nil or G ~= B.G or not G.active then
+        B.done = true
+        B.reason = "the ghost load stopped before the bench finished"
+        B.doneAt = H0.now()
+        return
+    end
+    local i = B.pairs + 1
+    local g = G.ghosts[((i - 1) % #G.ghosts) + 1]
+    local r = B.on[((i - 1) % #B.on) + 1]
+    local age = H0.worldAge()
+    local mn = H0.hookMinutes or 0
+    local recs = NutritionRevamp.server.store.attach()
+    local rrec = recs ~= nil and recs[r.name] or nil
+    if not H0.benchFresh(B, "g:" .. g.name, g.rec, age, mn) or not H0.benchFresh(B, "r:" .. r.name, rrec, age, mn) then
+        B.waits = B.waits + 1
+        return
+    end
+    local ok, err = true, nil
+    if i % 2 == 1 then
+        H0.benchGhost(B, g, age)
+        ok, err = pcall(H0.benchReal, B, r, recs, age)
+    else
+        ok, err = pcall(H0.benchReal, B, r, recs, age)
+        H0.benchGhost(B, g, age)
+    end
+    if not ok then
+        B.rf = B.rf + 1
+        B.err = "real: " .. tostring(err)
+    end
+    B.lastMin["g:" .. g.name], B.lastAge["g:" .. g.name] = mn, age
+    B.lastMin["r:" .. r.name], B.lastAge["r:" .. r.name] = mn, age
+    B.pairs = i
+    if B.firstMinute == nil then B.firstMinute = mn end
+    B.lastMinute = mn
+    if B.pairs >= B.n then
+        B.done = true
+        B.doneAt = H0.now()
+    end
+end
+
+function H0.benchReply()
+    local B = H0.bench
+    local out = { ok = true, side = TK.side, n = B.n, done = B.done, pairs = B.pairs, ghostMs = B.gms,
+                  realMs = B.rms, ghostFailures = B.gf, realFailures = B.rf, lastError = B.err,
+                  ghostZeroDt = B.gZero, realZeroDt = B.rZero, waits = B.waits, suppressed = B.C.suppressed,
+                  syncs = B.C.syncs, bodySyncs = B.C.bodySyncs, reals = B.reals, feed = B.feed,
+                  armedAt = B.armedAt, doneAt = B.doneAt, reason = B.reason }
+    if B.pairs > 0 then
+        out.ghostMeanMs = B.gms / B.pairs
+        out.realMeanMs = B.rms / B.pairs
+        out.minuteEvents = B.lastMinute - B.firstMinute + 1
+    end
+    if B.rms > 0 then out.ratio = B.gms / B.rms end
+    local e = B.doneAt
+    if e == nil then e = H0.now() end
+    out.wallSpan = e - B.armedAt
+    if B.reason ~= nil then out.ok = false end
+    return out
+end
+
+-- @args <n> | read
+-- @reply {ok, side, armed, n, reals, feed} | {ok, side, n, done, pairs, ghostMs, realMs, ghostMeanMs, realMeanMs, ratio, ghostFailures, realFailures, lastError, ghostZeroDt, realZeroDt, waits, minuteEvents, suppressed, syncs, bodySyncs, reals, feed, armedAt, doneAt, wallSpan [, reason]} | {ok, side, reason} | string
+-- @purpose Test-only: arms a bench of n ghost minutes and n real-player P.work minutes, one interleaved pair a tick and each record at most once a minute event and never at dtM 0, the sends swapped around the ghost half only; read replies both means, the ghost-to-real ratio and each arm's zero-dt count (no behaviour reading may follow).
 TK.register("ghost.bench", function(argv)
-    local usage = "usage: ghost.bench <n>  (1 <= n <= 10000; needs an active ghost load)"
-    local n = tonumber(argv[1])
+    local usage = "usage: ghost.bench <n> | read  (1 <= n <= 10000; needs an active ghost load)"
+    local a = argv ~= nil and argv[1] or nil
+    if a == "read" then
+        if H0.bench == nil then return { ok = false, side = TK.side, reason = "no bench armed" } end
+        return H0.benchReply()
+    end
+    local n = tonumber(a)
     if n == nil or n < 1 or n > 10000 or n ~= math.floor(n) then return usage end
     local G = H0.g
     if G == nil or not G.active then return { ok = false, side = TK.side, reason = "no active ghost load" } end
+    if H0.bench ~= nil and not H0.bench.done then
+        return { ok = false, side = TK.side, reason = "a bench is running; ghost.bench read until done" }
+    end
     local NR = NutritionRevamp
     local P = NR ~= nil and NR.server ~= nil and NR.server.players or nil
     if P == nil or P.work == nil then
@@ -3730,18 +3849,12 @@ TK.register("ghost.bench", function(argv)
     end
     local on = H0.online()
     if #on == 0 then return { ok = false, side = TK.side, reason = "no online player" } end
-    local C = { suppressed = 0, syncs = 0, bodySyncs = 0 }
-    local B = { gms = 0, rms = 0, gf = 0, rf = 0, err = nil, wall = nil }
-    H0.swapIn(C)
-    local ok, err = pcall(H0.benchBody, n, on, B)
-    H0.swapOut()
     local reals = {}
     for i = 1, #on do reals[#reals + 1] = on[i].name end
-    local out = { ok = ok, side = TK.side, n = n, ghostMs = B.gms, realMs = B.rms, ghostMeanMs = B.gms / n,
-                  realMeanMs = B.rms / n, wall = B.wall, ghostFailures = B.gf, realFailures = B.rf,
-                  lastError = B.err, suppressed = C.suppressed, syncs = C.syncs, bodySyncs = C.bodySyncs,
-                  reals = reals, feed = G.feed }
-    if B.rms > 0 then out.ratio = B.gms / B.rms end
-    if not ok then out.reason = "bench: " .. tostring(err) end
-    return out
+    H0.ensureHooks()
+    H0.bench = { n = n, G = G, P = P, on = on, reals = reals, feed = G.feed, pairs = 0, gms = 0, rms = 0, gf = 0,
+                 rf = 0, err = nil, gZero = 0, rZero = 0, waits = 0, lastMin = {}, lastAge = {},
+                 C = { suppressed = 0, syncs = 0, bodySyncs = 0 }, armedAt = H0.now(), doneAt = nil, done = false,
+                 firstMinute = nil, lastMinute = nil, reason = nil }
+    return { ok = true, side = TK.side, armed = true, n = n, reals = reals, feed = G.feed }
 end)
