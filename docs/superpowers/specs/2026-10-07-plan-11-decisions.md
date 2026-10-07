@@ -170,7 +170,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - **Changes the trace cannot see, accepted by ruling** (R1-1, R2-1, R3-1):
   - R1-1, first difference: a shared helper now returns its default where an old copy raised on a throwing getter.
   - R1-1, second difference: a non-finite world age now reads 0 in the four wrappers, where the old copies passed NaN or infinity through.
-  - Both are unreachable on 42.20.4 (the R1 review's jar reads).
+  - No reachable raise was found on 42.20.4 for either (the R1 review's jar reads; the bug review did not check every Effects and Nutrients call site).
   - R2-1: a step raising outside its own guard logs `minute: <step> failed for <user>` and counts `NR.server.minute.stats.failures`.
   - R2-1: a third-party minute listener added at file load now runs after the pipeline, not before it.
   - R2-1's two changes go into Task 12's operator notes (the CHANGELOG and the README).
@@ -193,6 +193,12 @@ The draft's code samples predate the refactor. Per task:
 - **Tasks 5, 8 and 11** touch no refactored interface.
 
 ### Refactor follow-ups for Plan 11
+- The shared helpers' pcall swallows a raising getter without a log line: log it once per member (the bug review's should-fix).
+- `K.intake.assemble` builds its chained-lookup closure before the nothing-eaten guard: one allocation per no-op eat (bug review nit 3).
+- The gitignored `release/NutritionRevamp` build predates Plan 10: re-stage it with `tools/release_pack.py stage` before any upload (bug review nit 5).
+- R1's line-count padding (about 80 blank lines across Effects, Fast, Kinetics, Nutrients, Players, Strength, Training and Weight, and `NR_Server_Metabolism.lua:252`) is collapsed at each file's first Plan 11 edit, with the re-anchor in that commit (whole-pass review).
+- The minute context is named `pipe` in the adapters and `ctx` in `NR_Server_Minute.lua` and this memo: pick one name (whole-pass review).
+
 
 - `test_core_helpers.py` does not pin `NR.obj`, `NR.flag`, `NR.worldAge`'s rejection of infinity, or the four wrappers (R1 review).
 - Metabolism's limitation string at `NR_Server_Metabolism.lua:35` is still true, but its reason ("NR_Server_Nutrients sorts after this file") is wrong since R2: the pipeline's `ORDER` sets the order. The string is shipped and pinned by `testing/tests/kernel/test_metabolism_shape.py:922`, so the rewording changes both.
@@ -201,7 +207,7 @@ The draft's code samples predate the refactor. Per task:
 - `testing/experiments/x151_records2.py:160` reads `NutritionRevamp.server.kinetics.lastMealCa`, which no longer exists. A driver is never edited after its run (CLAUDE.md § 5), so a re-run needs a new driver.
 - The six zero-age sites (above).
 - `IN.pendingAlc`, `IN.pendingCaf` and `FAST.lastInp` remain outside the context. `FAST.lastInp` leaves with the handler under Decision 1's (b) or (c).
-- `NR_Server_Effects.lua:47` carries a 142-character comment line (R2 review).
+- `NR_Server_Effects.lua:9` carries a 142-character comment line (R2 review); reflow it at the file's first edit.
 
 ## Angus's decisions
 
@@ -209,7 +215,7 @@ The draft's code samples predate the refactor. Per task:
 
 **(a) Keep the takeover and harden it** (draft Task 3).
 - Cost: about 121 µs per player per game minute at a 15-minute day and 724 µs at a 90-minute day (#3353; Appendix A § 7).
-- For it: the mode switches live, with no restart (#3357). A fault fails over to vanilla's own update, so players keep getting hungry. PANIC and TEMPERATURE are held every tick inside the hook. Other mods that read the `ZomboidGlobals` rates, QualityCooking among them (#2564), read their real values.
+- For it: the mode switches live, with no restart (#3357). A fault fails over to vanilla's own update, so players keep getting hungry. PANIC is held every tick inside the hook; whether its TEMPERATURE target holds is unmeasured (X81). Other mods that read the `ZomboidGlobals` rates, QualityCooking among them (#2564), read their real values.
 - Against it: the highest cost of the three. Task 3's strike and re-arm work. The re-implemented vanilla arms stay limitations.
 
 **(b) Zeroed rates with per-minute writes, no per-tick hold.**
@@ -247,7 +253,7 @@ The draft's code samples predate the refactor. Per task:
 - For it: no migration, and bulk shapes hunger.
 
 **(c) A blend in which bulk shapes relief.**
-- Evidence: it equals (a) wherever a meal covers the hunger it meets. On the light menu β 0.25 makes the character less hungry than vanilla for 111 minutes (MAD 0.0348), and β 1 for 894 minutes (MAD 0.1372) (Appendix D). The fill-floor form is inert below w 1.
+- Evidence: it equals (a) on the main menu for β 0.5 or less; at β 1 it departs from (a) even there, hungrier for 76, 137 and 158 minutes on the 30-, 60- and 90-minute days (MAD 0.0097, 0.0167, 0.0188). On the light menu β 0.25 makes the character less hungry than vanilla for 111 minutes (MAD 0.0348), and β 1 for 894 minutes (MAD 0.1372) (Appendix D). The fill-floor form is inert below w 1.
 - For it: a bulky meal sates more.
 - Cost: a vanilla-relative feel that varies with the menu, at a β chosen by taste. It carries (a)'s migration too.
 
