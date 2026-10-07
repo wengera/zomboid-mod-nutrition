@@ -643,7 +643,7 @@ x221-20261007-083259,phases.D.mid_pair.client,fatigue 0.09977,The client's copy 
 x221-20261007-083259,verdicts.D.observed.mid_pair.client,fatigue 0.09977,A copy of `phases.D.mid_pair.client`.,
 x221-20261007-083259,verdicts.B.observed.autodrink_before,no container,Auto-drink had no source; not an auto-drink reading.,
 x221-20261007-083259,verdicts.B.observed.autodrink_after,no container,Auto-drink had no source; not an auto-drink reading.,
-x223a-20261007-085224,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.a.observed` and the log files
+x223a-20261007-085224,predictions,the driver's PRED table,Written before the run; not a reading.,"cite reads, db, logs.*_mismatch.hits and the log files"
 x223a-20261007-085224,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
 x223a-20261007-085224,deviations,the driver's list,Written before the run; not readings.,
 x223a-20261007-085224,meta.edit,the edit's description,The driver's own text; not a reading.,cite `meta.copy_file` and `phases.boot.deployed_NR_Core`
@@ -655,7 +655,7 @@ x223a-20261007-085224,verdicts.a.observed.server_mismatch_lines,3,"Counts the pa
 x223a-20261007-085224,verdicts.a.observed.bob_mismatch_lines,1,Counts `client: DoLuaChecksum start/end` lines; not mismatches.,cite `logs.bob_console_tail`
 x223a-20261007-085224,verdicts.a.observed.admin_mismatch_lines,3,"Counts DoLuaChecksum lines (and in boot a an admin-chat echo); not mismatches.",cite `logs.admin_mismatch.hits`
 x223a-20261007-085224,live.bob.hits,the settings-table lines,A wide pattern's matches; not checksum lines.,cite `logs.bob_console_tail`
-x223b-20261007-085832,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.b.observed` and the log files
+x223b-20261007-085832,predictions,the driver's PRED table,Written before the run; not a reading.,"cite reads, db, logs.*_mismatch.hits and the log files"
 x223b-20261007-085832,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
 x223b-20261007-085832,deviations,the driver's list,Written before the run; not readings.,
 x223b-20261007-085832,meta.edit,the edit's description,The driver's own text; not a reading.,cite `meta.copy_file` and `phases.boot.deployed_NR_Core`
