@@ -1,0 +1,37 @@
+# testing/profiles/x20-release.toml - the Plan 9 live 1 boot (Task 4, run x201): PZTestKit + the STAGED 1.0.0 build
+# (release/NutritionRevamp/Contents/mods/NutritionRevamp, written by `python tools/release_pack.py stage
+# mod/NutritionRevamp --out release` before the boot; release/ is gitignored) on fixture `two`, both provisioned
+# clients attached in order (`admin` -debug, then `bob` release, each ready before the next launches), Nutrition =
+# false, DayLength 1, no TKX mod and no [sandbox.NR] block (every NR option at its sandbox-options.txt default).
+# What the boot reads (x201_release.py): the server and client self-report lines, bob's join with no checksum line,
+# the staged files' sha256 against the repository's, the version and build on all three sides.
+# A mod Lua error parks the -debug client, hence the 180 s client timeout.
+# The verify rows are load gates only, each certain to pass if the staged mod loaded: the server version global
+# resolved, then the version string "1.0.0" on the bare `client` (admin) and on `client:bob`.
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp 1.0.0 build on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1 - the Plan 9 release boot."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"resolved": true' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = false
+SleepNeeded = false
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game-hour is 37.5 s; a game day is 15 real minutes
