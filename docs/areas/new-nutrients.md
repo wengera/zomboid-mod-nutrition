@@ -274,7 +274,7 @@ Which surface does each mod nutrient's effect attach to, and which vanilla quant
 - Item modData's crossing is measured in the client-to-server direction only [#1126/M/one-side].
 - Every verdict this page leans on is bounded to one build on a dedicated server with one client, one fixture and one admin character, and single player is never claimed [#1256/C/one-fixture]; the two-client readings of who receives the mod's own mirror are the one exception [#3288/M/n=1].
 
-Not covered: the save and load path beyond one clean reload and one hard kill of the player and global scopes; the global store's own transmit and receive path, read only off one corpus mod's code; the mod file writer as a store of last resort; any session with more than one client attached; and what a second nutrition mod writing the same modData scopes would do beside this one.
+Not covered: the save and load path beyond one clean reload and one hard kill of the player and global scopes; the global store's own transmit and receive path, read only off one corpus mod's code; the mod file writer as a store of last resort; what a second attached client's copy of another player holds; and what a second nutrition mod writing the same modData scopes would do beside this one.
 
 ## Open
 <a id="open"></a>
