@@ -21,7 +21,7 @@ description: Shipping the nutrition mod — its folder, `mod.info` (`id=`, `requ
 - Detect an optional framework with a type test on its global at `OnGameBoot` or later, never with `require`: the framework defines its global at file-load time and a test at the mod's own file scope can run before the framework's file, so a type test from `OnGameBoot` on reads its presence without going through the loader, while a `require` of its file goes through the loader and, with the framework absent, logs a warning and returns nothing on every server that runs without it [#2547/C/inference, #2717/C/inference].
 - Stage a release from one command and never edit the staged bytes: the staged tree matched the repository byte for byte and every deployed copy matched it [#3315/M/n=1, #1182/C/C-only, #3321/C/inference].
 - Diff the manifest before every Workshop update and treat any script file added, removed or changed as a server event: update the server first, then the clients, because the join checksum hashes every loaded script file [#1182/C/C-only, #2077/C/inference, #3322/C/inference].
-- Read the mod's self-report line before any bug report: it names the version, the mode, the item pass, the legacy mirror and the framework the client found [#3312/M/n=1, #3313/M/n=1, #0871/C/C-only, #3323/C/inference].
+- Read the mod's self-report line before any bug report: it names the version, the mode, the item pass, the legacy mirror and the framework the client found [#3312/M/n=1, #3313/M/n=1, #3323/C/inference].
 - Run the layout lint before every boot: the harness does, and stops on an ERROR [#3311/C/inference, #3324/C/inference].
 
 ## Also
