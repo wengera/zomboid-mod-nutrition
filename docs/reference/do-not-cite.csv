@@ -698,3 +698,21 @@ x231-20261007-111042,verdicts.C4.observed.panic_fall_per_tick_mean,0.0,A defect 
 x231-20261007-111042,phases.C.C1.stats.gaps,per-gap panic_fall_per_tick lists,"A defect of the driver's summary, as above.",read `phases.C.C1.t.rows`
 x231-20261007-111042,phases.C.C4.stats.gaps,per-gap panic_fall_per_tick lists,"A defect of the driver's summary, as above.",read `phases.C.C4.t.rows`
 x231-20261007-111042,phases.C.tpm4_mult.ticks_per_minute,28.25,A 10 s probe straddling the multiplier change.,`verdicts.C4.observed.ticks_per_gap_mean` (37.4)
+x231-20261007-111042,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x231-20261007-111042,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x231-20261007-111042,deviations,the driver's list,Written before the run; not readings.,
+x231-20261007-111042,world_changes,the driver's text,Written before the run; not readings.,
+x231-20261007-111042,meta.bench_note,the driver's text,The driver's own text; not a reading.,
+x231-20261007-111042,meta.timer_note,the driver's text,The driver's own text; not a reading.,
+x231-20261007-111042,meta.call_counter_note,the driver's text,"The driver's own text, written before the run; the call-counter mechanism is read off the staged `NR_Core.lua`, not off this note.",cite `phases.A.prof.text` for the counts
+x231-20261007-111042,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x231-20261007-111042,phases.A.actions.0.result.admin.calories,-184.22833251953125,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut0 read); a negative calorie value is not a reading of this task.,
+x231-20261007-111042,phases.A.actions.0.result.bob.calories,-62.09136199951172,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut0 read); a negative calorie value is not a reading of this task.,
+x231-20261007-111042,phases.A.actions.2.result.admin.calories,-195.41954040527344,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut1 read); a negative calorie value is not a reading of this task.,
+x231-20261007-111042,phases.A.actions.2.result.bob.calories,-71.69290161132812,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut1 read); a negative calorie value is not a reading of this task.,
+x231-20261007-111042,phases.A.actions.7.result.admin.calories,-290.369873046875,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut2 read); a negative calorie value is not a reading of this task.,
+x231-20261007-111042,phases.A.actions.7.result.bob.calories,-167.69642639160156,The vanilla Nutrition block under Nutrition false beside the mod's mirror (the nut2 read); a negative calorie value is not a reading of this task.,
+x231-20261007-111042,verdicts.C1.observed.amp_panic_max,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C1.t.rows`
+x231-20261007-111042,verdicts.C1.observed.amp_panic_min,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C1.t.rows`
+x231-20261007-111042,verdicts.C4.observed.amp_panic_max,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C4.t.rows`
+x231-20261007-111042,verdicts.C4.observed.amp_panic_min,0.5,"PANIC runs 0 to 100, so the plan's target of 0.5 decays to the floor within a gap at both clocks: the amplitude is the clipped target, not a sawtooth.",`phases.C.C4.t.rows`
