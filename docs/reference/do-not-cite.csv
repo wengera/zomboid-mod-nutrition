@@ -751,3 +751,27 @@ x232-20261007-121312,phases.C.C3s.stats.gaps.*.inferred_level_changes,inferred,I
 x232-20261007-121312,phases.C.tpm_slow.ticks_per_minute,40.0,A 10 s probe of three game minutes just after the multiplier change.,`verdicts.C2.observed.ticks_per_gap_mean` (37.4)
 x232-20261007-121312,phases.C.mult_set.raw,mult=0.8016318678855896,"The read-back of the per-tick game-time multiplier at that tick, not the value set.",
 x232-20261007-121312,phases.C.mult_restore.raw,mult=4.788897514343262,"The read-back of the per-tick game-time multiplier at that tick, not the value set.",
+x241-20261007-140414,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x241-20261007-140414,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x241-20261007-140414,deviations,the driver's list,Written before the run; not readings.,
+x241-20261007-140414,world_changes,the driver's text,Written before the run; not readings.,
+x241-20261007-140414,meta.instrument_note,the driver's text,The driver's own text; not a reading.,
+x241-20261007-140414,meta.ghost_note,the driver's text,The driver's own text; not a reading.,
+x241-20261007-140414,meta.timer_note,the driver's text,The driver's own text; not a reading.,
+x241-20261007-140414,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x241-20261007-140414,gc.stall_lines,68,The pattern also matched ZGC's per-cycle statistics rows (Allocation Stalls: 0 0 0 0); the stall events are the 18 Allocation Stall (<thread>) <ms> lines of gc.log.,the `Allocation Stall (` lines of `gc.log`
+x241-20261007-140414,verdicts.G.observed.stall_lines,68,The pattern also matched ZGC's per-cycle statistics rows (Allocation Stalls: 0 0 0 0); the stall events are the 18 Allocation Stall (<thread>) <ms> lines of gc.log.,the `Allocation Stall (` lines of `gc.log`
+x241-20261007-140414,phases.I.perf_doc.samples_list.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,phases.B.perf_doc.samples_list.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,phases.I.perf_read.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,phases.B.perf_read.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,phases.I.perf_doc.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,phases.B.perf_doc.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,summaries.I.perf.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,summaries.B.perf.avg,3 to 8,The engine's avg-update-period is no mean: PerformanceStatistic.addUpdate L44 sets it to (long)((ms - avg) * 0.05), about a 21st of the period.,the window max and min
+x241-20261007-140414,phases.B.perf_read.max.max,168,"The last window, past the ring's end, holds the frame in which tick.ring read burst wrote its own result document.",`summaries.X0b.engine_max`
+x241-20261007-140414,phases.B.perf_read.cur.max,168,"The last window, past the ring's end, holds the frame in which tick.ring read burst wrote its own result document.",`summaries.X0b.engine_max`
+x241-20261007-140414,phases.B.perf_doc.max.max,168,"The last window, past the ring's end, holds the frame in which tick.ring read burst wrote its own result document.",`summaries.X0b.engine_max`
+x241-20261007-140414,phases.B.perf_doc.cur.max,168,"The last window, past the ring's end, holds the frame in which tick.ring read burst wrote its own result document.",`summaries.X0b.engine_max`
+x241-20261007-140414,summaries.B.perf.max.max,168,"The last window, past the ring's end, holds the frame in which tick.ring read burst wrote its own result document.",`summaries.X0b.engine_max`
+x241-20261007-140414,summaries.B.perf.cur.max,168,"The last window, past the ring's end, holds the frame in which tick.ring read burst wrote its own result document.",`summaries.X0b.engine_max`
