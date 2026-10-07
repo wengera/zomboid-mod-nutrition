@@ -137,7 +137,7 @@ class Host:
 - [ ] **Step 3: Write the failing tests.** `test_core_helpers.py`:
 
 ```python
-from server_host import Host
+from .server_host import Host
 
 def test_worldAge_is_nil_when_the_clock_read_fails():
     h = Host()
@@ -195,7 +195,7 @@ function NR.worldAge()
     local ok, gt = pcall(getGameTime)
     if not ok or gt == nil then return nil end
     local okA, present, age = pcall(NR.call, gt, "getWorldAgeHours")
-    if okA and present and type(age) == "number" and age == age then return age end
+    if okA and present and NR.finite(age) then return age end   -- as landed at Plan 10 R1 (b098533)
     return nil
 end
 
