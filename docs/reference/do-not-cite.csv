@@ -623,3 +623,23 @@ x222-20261007-075752,phases.D.tick_bench.ticksPerSecond,9.769,"The window held t
 x222-20261007-075752,verdicts.D.observed.ticksPerSecond.tick_bench,9.769,"The window held the benches, which block the server for about 0.7 s.",cite `phases.D.tick_baseline.ticksPerSecond`
 x222-20261007-075752,verdicts.C2.observed.speed1_worldMinutesPerSecond,1.600,A copy of phase B's rate.,cite `phases.B.tick_rate.worldMinutesPerSecond`
 x222-20261007-075752,phases.F.mult_set.raw,mult=0.0479,"The getter's product, not the value set (0.01).",cite `phases.F.time0.mult` and `phases.F.time1`
+x221-20261007-083259,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x221-20261007-083259,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x221-20261007-083259,deviations,the driver's list,Written before the run; not readings.,
+x221-20261007-083259,world_changes,the driver's text,Written before the run; not readings.,
+x221-20261007-083259,meta.desk,the desk file's path,The driver's own text; not a reading.,
+x221-20261007-083259,meta.routes,the probe's key groups,The driver's own constant; not a reading.,cite `phases.A.server.fileScope` and `phases.A.server.bootSet`
+x221-20261007-083259,meta.targets,the written values,The driver's own constant; not a reading.,cite `verdicts.B.observed.ring`
+x221-20261007-083259,meta.ring_row,the ring row's layout,The driver's own text; not a reading.,
+x221-20261007-083259,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,
+x221-20261007-083259,phases.A.admin.bootFired,1,The client's OnGameBoot position against its own Load was not read; the client's statics play no part in the updaters.,
+x221-20261007-083259,phases.A.admin.bootSet,the four keys 0,The client's OnGameBoot position against its own Load was not read.,
+x221-20261007-083259,verdicts.A.observed.admin.bootFired,1,A copy of `phases.A.admin.bootFired`.,
+x221-20261007-083259,verdicts.A.observed.admin.bootSet,the four keys 0,A copy of `phases.A.admin.bootSet`.,
+x221-20261007-083259,phases.A.server.fileScopeDayLength,4,Only that the file scope did not see the profile's 1; the source of 4 was not read.,cite `phases.A.server.bootDayLength`
+x221-20261007-083259,verdicts.A.observed.server.fileScopeDayLength,4,A copy of `phases.A.server.fileScopeDayLength`.,
+x221-20261007-083259,verdicts.D.observed.ring.admin.awake,13 rows,Minutes inside the sleep hold whose isAsleep read false at the minute; not an awake reading.,cite `verdicts.D.observed.ring.admin.asleep`
+x221-20261007-083259,phases.D.mid_pair.client,fatigue 0.09977,The client's copy at one instant inside a write minute.,
+x221-20261007-083259,verdicts.D.observed.mid_pair.client,fatigue 0.09977,A copy of `phases.D.mid_pair.client`.,
+x221-20261007-083259,verdicts.B.observed.autodrink_before,no container,Auto-drink had no source; not an auto-drink reading.,
+x221-20261007-083259,verdicts.B.observed.autodrink_after,no container,Auto-drink had no source; not an auto-drink reading.,
