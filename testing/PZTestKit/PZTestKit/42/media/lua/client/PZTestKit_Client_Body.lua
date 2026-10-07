@@ -1136,3 +1136,209 @@ TK.register("event.watch", function(argv)
     end
     return { ok = true, side = TK.side, event = name, hooked = true, count = rec.count, fires = rec.fires }
 end)
+
+-- ---- Plan 10c Task H4: world.posring (client) ----------------------------------------------------
+-- <n> [pace <dx>] | read <tag> | off. Does a server frame a player can feel show on a client
+-- (review-platform X2)? Arms a ring of the last n CLIENT OnTick frames. Each frame records the local
+-- wall (getTimestampMs, 1 ms), the first remote player's position in thousandths of a tile, that
+-- remote player's getLastRemoteUpdate() stamp, and a tracked zombie's position (thousandths of a
+-- tile) with its isRemoteZombie flag. The remote stamp is the client's own record of a received
+-- player packet: PlayerPacket.processClient calls GameClient.rememberPlayerPosition (@59), which
+-- skips a local player and ends in IsoPlayer.setLastRemoteUpdate(System.currentTimeMillis())
+-- (GameClient.rememberPlayerPosition @103-@107 L2875, jar 42.20.4). A zombie's lastRemoteUpdate is
+-- a field with no getter on IsoZombie, so a zombie is read by its position only. Absent values are
+-- -1 (never nil: the result arrays must stay JSON arrays). The tracked zombie is the nearest one in
+-- the client cell's zombie list (walked by size()/get(i), index-first), re-picked every 60 frames
+-- or when it is lost or dead; `zi` carries a re-pick counter so a position jump at a re-pick is
+-- visible. `pace <dx>` keeps the local player walking: on any frame with no timed action and at
+-- least 500 ms after the last queue, it queues the game's own ISWalkToTimedAction to the anchor
+-- square (the position at arming) or to dx tiles east of it, alternately (player.walk's route).
+-- `read` replies the frame count and writes every frame to world-posring-<tag>.json; `off`
+-- disarms and stops the pacing. The OnTick body runs under pcall (a raise is counted, never
+-- propagated, so the -debug client cannot park on it). The ring costs the client a few Java calls
+-- a frame and nothing on the server.
+TK.POSRING_MAX = 20000
+
+local function prQ(v)
+    if v == nil then return -1 end
+    return math.floor(v * 1000 + 0.5)
+end
+
+local function prOther(p)
+    if getOnlinePlayers == nil then return nil end
+    local list = getOnlinePlayers()
+    local _, n = TK.call(list, "size")
+    if n == nil then return nil end
+    for i = 0, n - 1 do
+        local _, q = TK.call(list, "get", i)
+        if q ~= nil and q ~= p then
+            local _, loc = TK.call(q, "isLocalPlayer")
+            if loc ~= true then return q end
+        end
+    end
+    return nil
+end
+
+local function prZombie(p)
+    local cell = getCell and getCell() or nil
+    if cell == nil then return nil end
+    local _, list = TK.call(cell, "getZombieList")
+    local _, n = TK.call(list, "size")
+    if n == nil then return nil end
+    local px, py = p:getX(), p:getY()
+    local best, bestD = nil, nil
+    for i = 0, n - 1 do
+        local _, z = TK.call(list, "get", i)
+        if z ~= nil then
+            local _, dead = TK.call(z, "isDead")
+            if dead ~= true then
+                local ex, ey = z:getX() - px, z:getY() - py
+                local d = ex * ex + ey * ey
+                if bestD == nil or d < bestD then best, bestD = z, d end
+            end
+        end
+    end
+    return best
+end
+
+local function posringOnTick()
+    local R = TK.posring
+    if R == nil then return end
+    local p = getPlayer()
+    if p == nil then return end
+    local now = TK.now()
+    R.frames = R.frames + 1
+    if R.other == nil or R.frames % 60 == 0 then R.other = prOther(p) end
+    if R.zombie ~= nil then
+        local _, dead = TK.call(R.zombie, "isDead")
+        if dead == true then R.zombie = nil end
+    end
+    if R.zombie == nil or R.frames % 60 == 0 then
+        local z = prZombie(p)
+        if z ~= R.zombie then R.zid = R.zid + 1 end
+        R.zombie = z
+    end
+    local i = R.next
+    R.t[i] = now
+    local o = R.other
+    if o ~= nil then
+        R.ox[i] = prQ(o:getX())
+        R.oy[i] = prQ(o:getY())
+        local okL, lr = TK.call(o, "getLastRemoteUpdate")
+        if okL and lr ~= nil then R.olr[i] = lr else R.olr[i] = -1 end
+    else
+        R.ox[i], R.oy[i], R.olr[i] = -1, -1, -1
+    end
+    local z = R.zombie
+    if z ~= nil then
+        R.zx[i] = prQ(z:getX())
+        R.zy[i] = prQ(z:getY())
+        local _, rz = TK.call(z, "isRemoteZombie")
+        if rz == true then R.zr[i] = 1 else R.zr[i] = 0 end
+    else
+        R.zx[i], R.zy[i], R.zr[i] = -1, -1, -1
+    end
+    R.zi[i] = R.zid
+    R.count = R.count + 1
+    R.next = i + 1
+    if R.next > R.cap then R.next = 1 end
+    local P = R.pace
+    if P ~= nil and now - P.last >= 500 and ISTimedActionQueue ~= nil and ISWalkToTimedAction ~= nil then
+        if not ISTimedActionQueue.isPlayerDoingAction(p) then
+            local tx = P.x0
+            if P.out then tx = P.x0 + P.dx end
+            local okS, sq = TK.call(getCell(), "getGridSquare", tx, P.y0, P.z0)
+            if okS and sq ~= nil then
+                ISTimedActionQueue.add(ISWalkToTimedAction:new(p, sq))
+                P.queued = P.queued + 1
+            else
+                P.noSquare = P.noSquare + 1
+            end
+            P.out = not P.out
+            P.last = now
+        end
+    end
+end
+
+if not TK.posringHooked and Events ~= nil and Events.OnTick ~= nil then
+    Events.OnTick.Add(function()
+        local R = TK.posring
+        if R == nil then return end
+        local ok, err = pcall(posringOnTick)
+        if not ok then
+            R.errors = R.errors + 1
+            R.lastError = tostring(err)
+        end
+    end)
+    TK.posringHooked = true
+end
+
+-- the ring oldest first, as parallel arrays
+local function posringLinear(R)
+    local n = R.count
+    if n > R.cap then n = R.cap end
+    local first = 1
+    if R.count > R.cap then first = R.next end
+    local out = { t = {}, ox = {}, oy = {}, olr = {}, zx = {}, zy = {}, zr = {}, zi = {} }
+    local j = first
+    for _k = 1, n do
+        for key, arr in pairs(out) do arr[#arr + 1] = R[key][j] end
+        j = j + 1
+        if j > R.cap then j = 1 end
+    end
+    return out, n
+end
+
+-- @args <n> [pace <dx>] | read <tag> | off
+-- @reply {ok, side, armed, cap, hooked [, pace]} | {ok, side, tag, frames, recorded, cap, other, zombies, zidMax, errors, lastError, armedAt [, paceQueued, paceNoSquare], result, file} | {ok, side, off} | string
+-- @purpose Test-only: arms a ring of the last n client OnTick frames recording the wall, the first remote player's position and getLastRemoteUpdate stamp and the nearest zombie's position and remote flag (optionally pacing the local player dx tiles out and back), or writes every frame to world-posring-<tag>.json.
+TK.register("world.posring", function(argv)
+    local usage = "usage: world.posring <n> [pace <dx>] | read <tag> | off  (1 <= n <= 20000)"
+    local a = argv[1]
+    if a == "off" then
+        TK.posring = nil
+        return { ok = true, side = TK.side, off = true }
+    end
+    if a == "read" then
+        local tag = argv[2]
+        if tag == nil then return usage end
+        local R = TK.posring
+        if R == nil then return { ok = false, side = TK.side, reason = "no ring armed" } end
+        local L, n = posringLinear(R)
+        local seenO, seenZ = 0, 0
+        for i = 1, n do
+            if L.olr[i] ~= -1 then seenO = seenO + 1 end
+            if L.zx[i] ~= -1 then seenZ = seenZ + 1 end
+        end
+        local out = { ok = true, side = TK.side, tag = tag, frames = n, recorded = R.count, cap = R.cap,
+                      other = seenO, zombies = seenZ, zidMax = R.zid, errors = R.errors, lastError = R.lastError,
+                      armedAt = R.armedAt }
+        if R.pace ~= nil then
+            out.paceQueued = R.pace.queued
+            out.paceNoSquare = R.pace.noSquare
+        end
+        local doc = {}
+        for k, v in pairs(out) do doc[k] = v end
+        doc.frames_list = L
+        out.result = "world-posring-" .. tag
+        out.file = "pzt-results/world-posring-" .. tag .. ".json"
+        TK.result(out.result, doc)
+        return out
+    end
+    local n = tonumber(a)
+    if n == nil or n < 1 or n > TK.POSRING_MAX or n ~= math.floor(n) then return usage end
+    local pace = nil
+    if argv[2] == "pace" then
+        local dx = tonumber(argv[3])
+        if dx == nil or dx == 0 or dx ~= math.floor(dx) then return usage end
+        local p = getPlayer()
+        if p == nil then return "no local player" end
+        pace = { dx = dx, x0 = math.floor(p:getX()), y0 = math.floor(p:getY()), z0 = math.floor(p:getZ()),
+                 out = true, last = 0, queued = 0, noSquare = 0 }
+    end
+    TK.posring = { cap = n, next = 1, count = 0, frames = 0, armedAt = TK.now(), zid = 0, errors = 0,
+                   pace = pace, t = {}, ox = {}, oy = {}, olr = {}, zx = {}, zy = {}, zr = {}, zi = {} }
+    local out = { ok = true, side = TK.side, armed = true, cap = n, hooked = TK.posringHooked == true }
+    if pace ~= nil then out.pace = { dx = pace.dx, x0 = pace.x0, y0 = pace.y0, z0 = pace.z0 } end
+    return out
+end)
