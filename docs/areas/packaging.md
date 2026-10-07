@@ -24,10 +24,10 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: the nutrition-desi
 - Name in the mod's description every installed mod whose numbers its model makes inert or contradicts: a resident already writes the player's calories on the server once every five seconds per player, residents wrap the eat action on both sides, and a viewer drawing a re-based macro against hard-coded bands goes wrong silently, so the description is where an operator learns which of them this mod overrides [#1588, #2566/C/snapshot, #1522, #2091/M/n=1, #2715/C/inference].
 - Print one self-report line at boot naming the mod's version and the optional frameworks it detected: an absent, a version-gated and an unsatisfied mod all print one not-found line and the server drops the id and boots clean, so no line the loader prints names the mod's own version or what it found beside it [#0871/C/C-only, #1793, #0872/C/C-only, #2547/C/inference, #2716/C/inference].
 - Detect an optional framework with a type test on its global at `OnGameBoot` or later, never with `require`: the framework defines its global at file-load time and a test at the mod's own file scope can run before the framework's file, so a type test from `OnGameBoot` on reads its presence without going through the loader, while a `require` of its file goes through the loader and, with the framework absent, logs a warning and returns nothing on every server that runs without it [#2547/C/inference, #2717/C/inference].
-- Stage a release from one command and never edit the staged bytes: the staged tree matched the repository byte for byte and every deployed copy matched it [#3315/M/n=1, #1182/C/C-only, T7.1/C/inference].
-- Diff the manifest before every Workshop update and treat any script file added, removed or changed as a server event: update the server first, then the clients, because the join checksum hashes every loaded script file [#1182/C/C-only, #2077/C/inference, T7.2/C/inference].
-- Read the mod's self-report line before any bug report: it names the version, the mode, the item pass, the legacy mirror and the framework the client found [#3312/M/n=1, #3313/M/n=1, #0871/C/C-only, T7.3/C/inference].
-- Run the layout lint before every boot: the harness does, and stops on an ERROR [#3311/C/inference, T7.4/C/inference].
+- Stage a release from one command and never edit the staged bytes: the staged tree matched the repository byte for byte and every deployed copy matched it [#3315/M/n=1, #1182/C/C-only, #3321/C/inference].
+- Diff the manifest before every Workshop update and treat any script file added, removed or changed as a server event: update the server first, then the clients, because the join checksum hashes every loaded script file [#1182/C/C-only, #2077/C/inference, #3322/C/inference].
+- Read the mod's self-report line before any bug report: it names the version, the mode, the item pass, the legacy mirror and the framework the client found [#3312/M/n=1, #3313/M/n=1, #0871/C/C-only, #3323/C/inference].
+- Run the layout lint before every boot: the harness does, and stops on an ERROR [#3311/C/inference, #3324/C/inference].
 
 ## How it works
 
@@ -110,7 +110,7 @@ Every update that touches a script file is therefore a server event, reaching pl
 A mismatch surfaces as a disconnect, with the two sides' separate arms acting at their own times, which the anatomy page states [#1231/C/C-only].
 A player who cannot stay connected after an update is therefore this section's failure mode before it is anyone else's.
 How the script files reach every side as one set of bytes is settled as staging from one command: the staged tree is the only copy a server or a client is given, and the harness deployed it to the server and both clients with all 65 files equal ([#3315/M/n=1], [#3314/M/n=1]).
-A release tool can hash every script file with the gate's own tolerance, every CR byte dropped, and name the files whose hash moved between two releases, so an update that will fail the join checksum is known before it ships [T7.5/C/inference].
+A release tool can hash every script file with the gate's own tolerance, every CR byte dropped, and name the files whose hash moved between two releases, so an update that will fail the join checksum is known before it ships [#3325/C/inference].
 
 The bypass role is an operator's lever, and the plan never leans on it.
 A role that clears the flags seats a client whose scripts differ, and because each side keeps the definitions it loaded with nothing reconciling them, that client plays on item values the server does not hold ([#1230/C/C-only], [#3139/M/n=1], [#0648/C/inference]).
