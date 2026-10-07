@@ -9,7 +9,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: how a relative pat
 - Never assume a `require` reaches your own copy: it resolves through the same merged map, with no per-mod search path, to whatever absolute path that map currently holds [#0853/C/C-only].
 - Do not derive body order from `Mods=`: bodies replay sorted by the stored script path, so a mod's position in `Mods=` decides nothing about which body wins a key [#1055/M/n=2].
 - Keep `template_` out of a script file's basename: the replay comparator pre-sorts every `template_`-prefixed basename ahead of every other file before it compares paths at all [#1233/C/C-only].
-- Assign a mod's own file-scope Lua globals at file scope: the mod tree executes inside `LoadDirBase` ahead of the engine's own `Load`, and an assignment from an event handler or a bus command afterwards is inert [#1216/C/C-only].
+- Assign a `ZomboidGlobals` value at file scope or, on a dedicated server, in an `OnGameBoot` handler: the mod tree executes inside `LoadDirBase` ahead of the engine's own `Load`, the server fires `OnGameBoot` one instruction before it, and an assignment from any later event handler or a bus command is inert [#1216/C/C-only] [#3364/C/C-only].
 - Put a per-type value in the item script, or in a Lua table keyed by full type where no script key reaches, rather than in per-instance Lua state: script data loads per side and never crosses the wire, so the two sides agree for free [#1058/M/n=2, #2682/C/C-only].
 - Reach a new nutrient on an item through an unrecognised key inside the vanilla `item` block, and on a drink's fluid through a Lua table keyed by the fluid's type string: the parser's default arm rawsets the key into the item's default modData and every instance receives a deep copy, while a `fluid` block has no default arm and stores no unrecognised key [#1089, #1187/C/C-only, #2676/C/C-only, #2682/C/C-only, #2684/C/C-only].
 - Spell a script value for the type its key parses as: an int, a float, a bool where only the literal `true` is true, a semicolon-split list or a bare string [#0214].
@@ -61,7 +61,10 @@ The two facts together make shadowing a Lua file a door and a trap at once: a mo
 There is also no partial replacement to reach for: whatever entry the map holds is the entire body that executes at that path [#1176/C/C-only].
 
 A mod's file-scope assignment to `ZomboidGlobals` lands because the mod tree executes inside `LoadDirBase` ahead of `Load()`, on the client through `GameWindow.init` and on a dedicated server through `GameServer.doMinimumInit`, while an assignment from an event handler, `OnGameStart`, `OnInitGlobalModData` or a bus command is inert — the one exception being `OnGameBoot` on the dedicated server, one instruction before `Load` [#1216/C/C-only].
-That branch is read from the code and unmeasured: no run has assigned one of those globals and read the drain back.
+On a dedicated server `ZomboidGlobals.Load` runs once, inside `GameServer.doMinimumInit`: after `LoadDirBase` runs every mod file's file scope, after the server's sandbox is loaded into `SandboxVars`, and one instruction after the `OnGameBoot` trigger; `OnInitGlobalModData` (inside `IsoWorld.init`) and `OnServerStarted` (inside `startServer`) fire later, and no other server path calls `Load`. [#3364/C/C-only]
+A mod reaches the rise rates on a dedicated server only by assigning the Lua `ZomboidGlobals` keys at file scope or in an `OnGameBoot` handler: `ZomboidGlobals` declares no setter and is not exposed, and every exposed path that re-runs `Load` goes through `Core.ResetLua`, which resets the whole engine state. [#3365/C/C-only]
+`ZomboidGlobals.Load` casts each key to `Double` and calls `doubleValue`, so a mod sets a rate to `0`, never to `nil`. [#3366/C/C-only]
+Measured live, a mod that assigned the two thirst rise keys 0 at file scope and the four hunger and fatigue keys 0 in an `OnGameBoot` handler saw the handler run on the server with the server's `DayLength` of 1 already in `SandboxVars`, and read all seven rise keys 0 from the Lua table at `OnServerStarted`. [#3367/M/n=1]
 
 <a id="script-dsl"></a>
 ### The script grammar

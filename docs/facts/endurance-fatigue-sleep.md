@@ -243,6 +243,8 @@ The bed factor is 0.6 on a floor, 0.75 on a floor with a pillow, 0.9 in a bad be
 Insomniac halves the rate and Night Owl multiplies it by 1.4, while Needs Less Sleep scales the nominal hours by 0.75 and Needs More Sleep by 1.18 [#2276/C/C-only].
 The nominal hours are the code's own constants, and the clock that drives them is the game's.
 The sleep fatigue clock `dt` equals the per-update advance of `GameTime.timeOfDay`, so it is game-hours and the 5- and 7-hour constants of sleep restoration are game-hours. [#2785/C/C-only]
+Fatigue's recovery while asleep is built from literals and the game clock, not from a `ZomboidGlobals` rate, so zeroing the Lua rates cannot stop it: `ZomboidGlobals.sleepFatigueReduction` is loaded and read by nothing. [#3363/C/C-only]
+Measured live with the rise rates zeroed and a player held asleep, HUNGER and THIRST did not move between per-minute writes over 92 asleep write intervals, while FATIGUE fell by vanilla's sleep recovery in every one, by 4.56e-4 to 7.99e-4 and 6.15e-4 on average from 0.1, until the next write restored it. [#3372/M/n=1]
 
 Restoration waits for sleep to take hold: fatigue comes off only once `timeOfSleep` exceeds `delayToActuallySleep`, and `timeOfSleep` advances by `1 ÷ minutesPerDay ÷ 60 × multiplier ÷ 2` on each call [#2277/C/C-only].
 `timeOfSleep` is set to the time of day when the player falls asleep and `delayToActuallySleep` to the time of day plus a random 0 to `d` hours, `d` built from Insomniac, pain, stress, bed type, Night Owl and sleeping tablets and capped at 2. [#2786/C/C-only]
