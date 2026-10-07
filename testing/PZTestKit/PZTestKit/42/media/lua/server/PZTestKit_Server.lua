@@ -2905,8 +2905,8 @@ end)
 --   the last minute event, the world age has moved since either last ran in it, and neither record's
 --   nutrients.lastAgeH has caught up with the world age. The world age is constant within one Lua call and a run
 --   at dtM 0 returns at NR_Server_Nutrients :379 before it stamps pipe.body, so Effects returns at once: the gate
---   keeps every run a full minute's work, with the game time since that record last ran (the ghost's scheduler
---   run or the real player's drain run earlier in the minute). Each record so runs at most once a minute event,
+--   keeps every run > 0 dtM, the game time since that record last ran (a scheduler or drain run, or the bench's
+--   own; the bench may run a record before its drain or scheduler run in the same minute). Each record so runs at most once a minute event,
 --   so n pairs take about n / (online count) game minutes. Each half counts the runs that would still meet dtM 0
 --   (ghostZeroDt, realZeroDt; expected 0), so a skewed bench shows itself; waits counts the ticks a pair waited.
 --   The sends are swapped (counted, sendServerCommand suppressed) around the ghost half ONLY; the real half runs
@@ -3748,7 +3748,7 @@ function H0.benchGhost(B, g, age)
     end
 end
 
--- the real half: P.work with the real sends, as the mod's drain runs it (its ms include any push it sends)
+-- the real half: P.work with the real sends, as the mod's drain runs it (its ms include any push it sends; a push goes at most once a real minute a player, B.PUSH_GAP_MS, so a bench push is moved from the drain, not added)
 function H0.benchReal(B, r, recs, age)
     if H0.zeroDt(recs ~= nil and recs[r.name] or nil, age) then B.rZero = B.rZero + 1 end
     local t0 = H0.now()
