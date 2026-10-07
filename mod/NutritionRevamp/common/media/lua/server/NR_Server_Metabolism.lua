@@ -259,110 +259,110 @@ local function closeDay(body, w, immobilised, ageH, ironGrade, debtH)
     MET.stats.days = MET.stats.days + 1
 end
 
--- The self-heal (the #2833 pattern), run before the minute's arithmetic and again after its stamps: a
--- non-finite scalar or ring slot is stamped its neutral and the pass counts one failure. Masses heal to
--- their creation values (a non-finite creation value to the current mass, else the 80 kg split); rmod's
--- protein input to the neutral P_LOW; dayIndex to the day of the world age (a NaN would stop every day
--- close); lastAgeH and lastCloseAgeH to the world age; a ring slot to 0 (mass7's to the current mass).
--- The backfill, uncounted: a field or ring a record made before it existed lacks (pPrevKg,
--- lastCloseAgeH, exKcalDay; the p7, carb7 and lip7 rings of a pre-Task-15 body; an absent nHist or
--- bandWeek) is created at its neutral. The creation scalars heal too: r and traitCarry to 1, l0 to the
--- Strength level read now, tDisuse to 0, lm0dis to the current lean mass, nPeak to 0 and tPeakD to
--- dayIndex; every nHist and bandWeek slot to 0. Every healed field is named in the pass's counted
--- failure. This file owns the rings: the Weight mirror and the partition ring read them and rebuild
--- nothing.
-MET.NEUTRAL = { energyState = 1, dmod = 1, rmod = 1, tac = 1, at = 0, n = 0, vStr = 0, vHyp = 0,
-                vStrHigh = 0, inDay = 0, eeDay = 0, ebDay = 0, actKcalDay = 0, exKcalDay = 0, pDay = 0,
-                carbDay = 0, lipDay = 0, alcDay = 0, metMinDay = 0, band1Day = 0, band2Day = 0, cumDef = 0,
-                r = 1, traitCarry = 1, tDisuse = 0, nPeak = 0 }
-MET.NEUTRAL_KEYS = { "energyState", "dmod", "rmod", "tac", "at", "n", "vStr", "vHyp", "vStrHigh", "inDay",
-                     "eeDay", "ebDay", "actKcalDay", "exKcalDay", "pDay", "carbDay", "lipDay", "alcDay",
-                     "metMinDay", "band1Day", "band2Day", "cumDef", "r", "traitCarry", "tDisuse", "nPeak" }
--- The rings whose slots heal to 0 (slot 7 is yesterday); mass7 heals to the current mass.
-MET.ZERO_RINGS = { "eb7", "p7", "carb7", "lip7" }
+-- The self-heal (the #2833 pattern), run before the minute's arithmetic and again after its stamps: the pure
+-- part is the kernel's (NR_Kernel_Heal.lua, K.heal.body, Plan 10 Task R3), which stamps every non-finite scalar
+-- or ring slot its neutral, backfills the fields and rings an older record lacks, and returns the healed names.
+-- The adapter keeps its one engine read -- the Strength level, read only when body.l0 is not finite, and passed
+-- in -- and the count and the log: a pass that healed anything counts one failure and names every field. This
+-- file owns the rings: the Weight mirror and the partition ring read them and rebuild nothing. The neutrals,
+-- their order and the zero-healed rings are the kernel's tables (K.heal.NEUTRAL, K.heal.NEUTRAL_KEYS,
+-- K.heal.ZERO_RINGS), read at call time: nothing here names the kernel at file scope, so the file loads in a
+-- runtime that holds NR_Core alone (the wiring tests).
+
 
 local function heal(username, body, ageH, player)
-    local bad = nil
-    local function mark(name)
-        if bad == nil then bad = name else bad = bad .. "," .. name end
-    end
-    if body.pPrevKg == nil then body.pPrevKg = K.aerobic.P_LOW end
-    if body.lastCloseAgeH == nil then body.lastCloseAgeH = ageH end
-    if body.exKcalDay == nil then body.exKcalDay = 0 end
-    for r = 1, #MET.ZERO_RINGS do
-        local key = MET.ZERO_RINGS[r]
-        if type(body[key]) ~= "table" then
-            local ring = {}
-            for j = 1, 7 do ring[j] = 0 end
-            body[key] = ring
-        end
-    end
-    if type(body.mass7) ~= "table" then body.mass7 = {} end
-    if type(body.nHist) ~= "table" then
-        local hist = {}
-        for j = 1, K.strength.MEM_HOLD_DAYS do hist[j] = 0 end
-        body.nHist = hist
-    end
-    if type(body.bandWeek) ~= "table" then body.bandWeek = {} end
-    for i = 1, 7 do
-        if type(body.bandWeek[i]) ~= "table" then body.bandWeek[i] = { 0, 0 } end
-    end
-    if not finite(body.fm0) or not finite(body.lm0) then
-        local fmS, lmS = K.body.split(80, body.sex == 2 and 2 or 1, {})
-        if not finite(body.fm0) then
-            if finite(body.fm) then body.fm0 = body.fm else body.fm0 = fmS end
-            mark("fm0")
-        end
-        if not finite(body.lm0) then
-            if finite(body.lm) then body.lm0 = body.lm else body.lm0 = lmS end
-            mark("lm0")
-        end
-    end
-    if not finite(body.fm) then body.fm = body.fm0; mark("fm") end
-    if not finite(body.lm) then body.lm = body.lm0; mark("lm") end
-    if not finite(body.fmRef) then body.fmRef = body.fm; mark("fmRef") end
-    if not finite(body.pPrevKg) then body.pPrevKg = K.aerobic.P_LOW; mark("pPrevKg") end
-    if not finite(body.dayIndex) then body.dayIndex = math.floor(ageH / 24); mark("dayIndex") end
-    if not finite(body.lastAgeH) then body.lastAgeH = ageH; mark("lastAgeH") end
-    if not finite(body.lastCloseAgeH) then body.lastCloseAgeH = ageH; mark("lastCloseAgeH") end
-    local keys = MET.NEUTRAL_KEYS
-    for i = 1, #keys do
-        local k = keys[i]
-        if not finite(body[k]) then body[k] = MET.NEUTRAL[k]; mark(k) end
-    end
+    local l0 = nil
     if not finite(body.l0) then
-        local l0 = 0
+        l0 = 0
         local perk = Perks ~= nil and Perks.Strength or nil
         if perk ~= nil then l0 = num(player, "getPerkLevel", 0, perk) end
-        body.l0 = l0
-        mark("l0")
     end
-    if not finite(body.lm0dis) then body.lm0dis = body.lm; mark("lm0dis") end
-    if not finite(body.tPeakD) then body.tPeakD = body.dayIndex; mark("tPeakD") end
-    for i = 1, K.strength.MEM_HOLD_DAYS do
-        if not finite(body.nHist[i]) then body.nHist[i] = 0; mark("nHist") end
-    end
-    for i = 1, 7 do
-        local slot = body.bandWeek[i]
-        if not finite(slot[1]) then slot[1] = 0; mark("bandWeek") end
-        if not finite(slot[2]) then slot[2] = 0; mark("bandWeek") end
-    end
-    for i = 1, 7 do
-        if not finite(body.mass7[i]) then body.mass7[i] = body.fm + body.lm; mark("mass7") end
-    end
-    for r = 1, #MET.ZERO_RINGS do
-        local key = MET.ZERO_RINGS[r]
-        local ring = body[key]
-        for i = 1, 7 do
-            if not finite(ring[i]) then ring[i] = 0; mark(key) end
-        end
-    end
+    local bad = K.heal.body(body, ageH, l0)
     if bad ~= nil then
         MET.stats.failures = MET.stats.failures + 1
         MET.lastError = "metabolism: non-finite " .. bad .. " for " .. tostring(username) .. "; stamped neutral"
         NR.log.say(2, MET.lastError)
     end
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 local function step(username, player, record, pipe)
     local ageH = worldAge()
