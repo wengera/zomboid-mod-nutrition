@@ -588,3 +588,38 @@ x202-20261006-220437,verdicts.X23_admin.observed.raw_tail_last,null,No read answ
 x202-20261006-220437,verdicts.X23_admin.observed.behind_last,null,No read answered; null is an absent reply.,cite `verdicts.X23_admin.observed.reads_timed_out`
 x202-20261006-220437,verdicts.X23.observed.console_flagged_count,8,"A count of flagged lines, a trace's header lines counted apiece.",cite `phases.B.console.flagged`
 x202-20261006-220437,verdicts.X23_admin.observed.console_flagged_count,4,"A count of flagged lines, a trace's header lines counted apiece.",cite `phases.C.console.flagged`
+x222-20261007-075752,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x222-20261007-075752,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x222-20261007-075752,deviations,the driver's list,Written before the run; not readings.,
+x222-20261007-075752,world_changes,the driver's text,Written before the run; not readings.,
+x222-20261007-075752,meta.staged_mod,the frozen folder's path,The driver's own constant; not a reading.,
+x222-20261007-075752,meta.staged_manifest,the manifest's path,The driver's own constant; not a reading.,
+x222-20261007-075752,meta.staging_command,the staging command,The driver's own text; not a reading.,
+x222-20261007-075752,meta.bench_note,the driver's note,The driver's own text; not a reading.,
+x222-20261007-075752,meta.frozen_at,42784ff,The driver's own constant; not a reading.,
+x222-20261007-075752,meta.bench_file,the bench file's path,The driver's own constant; not a reading.,cite `meta.bench_sha256`
+x222-20261007-075752,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<phase>.observed`
+x222-20261007-075752,phases.B.hist,h0 and h1 counts,"Spans the poll window and the ring read, not the ring's minutes.",cite `phases.B.ring.stats`
+x222-20261007-075752,verdicts.B.observed.hist,h0 and h1 counts,A copy of `phases.B.hist`; spans the poll window.,cite `phases.B.ring.stats`
+x222d-20261007-080709,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x222d-20261007-080709,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x222d-20261007-080709,deviations,the driver's list,Written before the run; not readings.,
+x222d-20261007-080709,world_changes,the driver's text,Written before the run; not readings.,
+x222d-20261007-080709,meta.staged_mod,the frozen folder's path,The driver's own constant; not a reading.,
+x222d-20261007-080709,meta.staged_manifest,the manifest's path,The driver's own constant; not a reading.,
+x222d-20261007-080709,meta.staging_command,the staging command,The driver's own text; not a reading.,
+x222d-20261007-080709,meta.bench_note,the driver's note,The driver's own text; not a reading.,
+x222d-20261007-080709,meta.frozen_at,42784ff,The driver's own constant; not a reading.,
+x222d-20261007-080709,meta.bench_file,the bench file's path,The driver's own constant; not a reading.,cite `meta.bench_sha256`
+x222d-20261007-080709,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<phase>.observed`
+x222d-20261007-080709,phases.B.hist,h0 and h1 counts,"Spans the poll window and the ring read, not the ring's minutes.",cite `phases.B.ring.stats`
+x222d-20261007-080709,verdicts.B.observed.hist,h0 and h1 counts,A copy of `phases.B.hist`; spans the poll window.,cite `phases.B.ring.stats`
+x222-20261007-075752,verdicts.C1.verdict,falsified,"Falsified against the pre-run band (hmax >= 2), not the mechanism.",cite `verdicts.C1.observed`
+x222-20261007-075752,verdicts.C2.verdict,falsified,Falsified against the pre-run band (hmax >= 2); the fast-forward did run.,cite `verdicts.C2.observed`
+x222-20261007-075752,verdicts.D.verdict,falsified,Falsified on the handler band's 20 us floor (18 and 19 us read).,cite `verdicts.D.observed`
+x222-20261007-075752,verdicts.E.verdict,as_predicted,Graded only on OnNewGame firing; the predicted order is falsified (the new object entered after OnNewGame).,cite `phases.E.events.rows`
+x222-20261007-075752,verdicts.F.verdict,as_predicted,Graded on the new object only; one minute fell inside the reconnect.,cite `verdicts.F.observed.minutes_during_reconnect`
+x222-20261007-075752,phases.D.tick_bench.ticksPerSecond,9.769,"The window held the benches, which block the server for about 0.7 s.",cite `phases.D.tick_baseline.ticksPerSecond`
+x222-20261007-075752,verdicts.D.observed.ticksPerSecond.tick_bench,9.769,"The window held the benches, which block the server for about 0.7 s.",cite `phases.D.tick_baseline.ticksPerSecond`
+x222-20261007-075752,verdicts.C2.observed.speed1_worldMinutesPerSecond,1.600,A copy of phase B's rate.,cite `phases.B.tick_rate.worldMinutesPerSecond`
+x222-20261007-075752,phases.F.mult_set.raw,mult=0.0479,"The getter's product, not the value set (0.01).",cite `phases.F.time0.mult` and `phases.F.time1`

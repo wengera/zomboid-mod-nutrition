@@ -1,0 +1,6670 @@
+{
+ "run_id": "x222-20261007-075752",
+ "session": "Plan 10 Task S2+S3: the clock (OnTick per EveryOneMinute at DayLength 1, under settimespeed 30 and an all-asleep fast-forward), the options-file load, the real per-player cost (the takeover handler and the slow-minute work) with the tick rate under takeover and overlay, a reconnect and a driven respawn on the frozen 1.0.0 spike copy; one boot of x22-clock",
+ "boot": "clock",
+ "users": [
+  "admin",
+  "bob"
+ ],
+ "profile": {
+  "name": "x22-clock",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x22-clock.toml",
+  "fixture": "two",
+  "description": "PZTestKit + the frozen NutritionRevamp 1.0.0 spike copy with the S2+S3 bench entries, fixture two, admin and bob, Nutrition off, DayLength 1, Severity 1.5, sleep on - the clock, cost and lifecycle boot.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\spike-1.0.0\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1,
+   "NR": {
+    "Severity": 1.5
+   }
+  },
+  "users": [
+   "admin",
+   "bob"
+  ]
+ },
+ "fixture": {
+  "name": "two",
+  "provision_run": "prov-20261006-182552",
+  "clients": {
+   "admin": {
+    "debug": true
+   },
+   "bob": {
+    "debug": false
+   }
+  }
+ },
+ "argv": [],
+ "commit": "e94c36e",
+ "mod_commit": "b848fc6",
+ "mod_dirty_not_booted": false,
+ "harness_lua_commit": "fadf698",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "78ba25b",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "staged_mod": "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "frozen_at": "42784ff",
+  "staged_manifest": "release/spike-1.0.0/NutritionRevamp/MANIFEST.json",
+  "bench_file": "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/server/NR_Server_Bench.lua",
+  "staging_command": "python tools/release_pack.py stage mod/NutritionRevamp --out release/spike-1.0.0",
+  "bench_note": "bench.global ...handler advances the benched player's stats by one tick's game time per call and ...minute runs one whole slow minute per call: the reading is cost, not behaviour.",
+  "bench_sha256": "8eec9f2fb92daea436c02321bf1a3898ac67a999e65fa4d5de674110839ad9de",
+  "staged_manifest_sha256": "b22ba31ba686fc15f73a320a8e0ba91c704a34c99225be4ef32a39e225c207a9",
+  "deployed_bench_sha256": {
+   "clients/admin/mods/NutritionRevamp/common/media/lua/server/NR_Server_Bench.lua": "8eec9f2fb92daea436c02321bf1a3898ac67a999e65fa4d5de674110839ad9de",
+   "clients/bob/mods/NutritionRevamp/common/media/lua/server/NR_Server_Bench.lua": "8eec9f2fb92daea436c02321bf1a3898ac67a999e65fa4d5de674110839ad9de",
+   "server/mods/NutritionRevamp/common/media/lua/server/NR_Server_Bench.lua": "8eec9f2fb92daea436c02321bf1a3898ac67a999e65fa4d5de674110839ad9de"
+  }
+ },
+ "constants": {
+  "DEFAULT_BOOT": false,
+  "PROFILE": "x22-clock",
+  "PREFIX": "x222",
+  "SESSION": "Plan 10 Task S2+S3: the clock (OnTick per EveryOneMinute at DayLength 1, under settimespeed 30 and an all-asleep fast-forward), the options-file load, the real per-player cost (the takeover handler and the slow-minute work) with the tick rate under takeover and overlay, a reconnect and a driven respawn on the frozen 1.0.0 spike copy; one boot of x22-clock",
+  "ARTIFACT": "clock.json",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "BOB": "client:bob",
+  "ADMIN": "client:admin",
+  "SRV": "server",
+  "CLIENT_SIDES": [
+   "client:bob",
+   "client:admin"
+  ],
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_ROOT": "release/spike-1.0.0/NutritionRevamp",
+  "STAGE_MOD": "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "BENCH_FILE": "release/spike-1.0.0/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/server/NR_Server_Bench.lua",
+  "FROZEN_AT": "42784ff",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "NR": "NutritionRevamp",
+  "BENCH": "NutritionRevamp.server.bench",
+  "USER": "admin",
+  "EXPECT_SEVERITY": 1.5,
+  "B_MINUTES": 22,
+  "B_CAP_S": 45.0,
+  "B_TICK_S": 10,
+  "B_BAND": [
+   4.0,
+   8.0
+  ],
+  "C_SPEED": 30,
+  "C_S": 20,
+  "C_SLEEP_S": 30,
+  "C_SLEEP_WINDOW_S": 20,
+  "D_TICK_S": 15,
+  "D_HANDLER_N": 1000,
+  "D_MINUTE_N": 200,
+  "D_FAST_N": 100000,
+  "D_REPEAT": 3,
+  "D_MODE_WAIT_S": 6.0,
+  "D_CALLS_S": 5.0,
+  "HANDLER_BAND_US": [
+   20.0,
+   300.0
+  ],
+  "MINUTE_BAND_US": [
+   50.0,
+   5000.0
+  ],
+  "TICK_CAP": 10.0,
+  "F_MULT": 0.01,
+  "F_PROBE_S": 5.0,
+  "F_WATCH_TICKS": 4000,
+  "E_WATCH_TICKS": 3000,
+  "DEATH_CAP_S": 20.0,
+  "UI_CAP_S": 30.0,
+  "CREATE_CAP_S": 15.0,
+  "E_RESPAWN_CAP_S": 60.0,
+  "E_SETTLE_S": 5.0,
+  "E_DEAD_GAP_S": 2.0,
+  "KILL_HEALTH": 110,
+  "POLL_S": 0.5,
+  "LOG_LIMIT": 400,
+  "ECHO_RX": "PZTK: ",
+  "MOD_LIFE_RX": "players: first sight of |players: \\w+ left|players: \\w+ is dead|store: reset record|fast: |options: ",
+  "LOG_RX": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|NR_Client|NR_Kernel|NR_Server|failed:"
+ },
+ "predictions": {
+  "A": {
+   "server options.severity": 1.5
+  },
+  "B": {
+   "mean ticks per game minute": [
+    4.0,
+    8.0
+   ],
+   "gaps of 0 ticks at speed 1": 0
+  },
+  "C1": {
+   "hmax": ">= 2",
+   "mean minutes per tick": "> 1",
+   "mult restored": true
+  },
+  "C2": {
+   "world minutes per wall second": "> 3x boot 1's speed-1 rate",
+   "hmax": ">= 2",
+   "asleep reads": "both true at the window's middle"
+  },
+  "D": {
+   "handler us per call": [
+    20.0,
+    300.0
+   ],
+   "minute us per call": [
+    50.0,
+    5000.0
+   ],
+   "ticks per second": "within 5 % of 10.0 in every window",
+   "overlay": "registered false, mode 2",
+   "handler calls per tick": "~2 takeover, ~0 overlay"
+  },
+  "F": {
+   "bob's objId after the rejoin": "new",
+   "EveryOneMinute calls during the reconnect": "0 if the slowed clock read back"
+  },
+  "E": {
+   "dead object in the list after death": true,
+   "OnNewGame object": "new",
+   "new object in the list at the OnNewGame tick": true,
+   "dead object leaves the list": "by the OnNewGame tick",
+   "mod P.online at the OnNewGame tick": "the dead object"
+  },
+  "Z": {
+   "mod_error": "none",
+   "admin_lua_error": false
+  }
+ },
+ "deviations": [
+  "The Overlay tick rate is taken in this session through the sandbox route (sandbox.var NR.Mode 2, which the mod's options poll applies at the next EveryOneMinute), not in a third boot.",
+  "S3.4's 'inside one game minute' is approached by slowing the game clock (time.multiplier) so one game minute spans the reconnect; whether the multiplier took is read back and the minutes counter says whether a minute fell inside the reconnect.",
+  "The phase order is F before E so the respawn (which replaces admin's object and the bench's cached player) comes last."
+ ],
+ "world_changes": {
+  "restored": "fixture two restored into the run dir (server and both client caches)",
+  "left_in_place": [],
+  "settimespeed": "restored to 1 after C1",
+  "sleep": "both holds cancelled and both players set awake after C2",
+  "mode": "NR.Mode set to 2 for the overlay reading, then back to 1",
+  "multiplier": "time.multiplier set back to 1 after F"
+ },
+ "steps": [
+  {
+   "step": "S0_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 145.187,
+   "wall_after": 145.697,
+   "epoch_ms_before": 1791374418138,
+   "epoch_ms_after": 1791374418648,
+   "took": 0.51,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "S0_time",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 145.697,
+   "wall_after": 146.205,
+   "epoch_ms_before": 1791374418648,
+   "epoch_ms_after": 1791374419156,
+   "took": 0.508,
+   "ack": {
+    "worldAge": 4.851080894470215,
+    "hour": 11,
+    "minutes": 51,
+    "mult": 4.7567033767700195,
+    "wall": 1791374419109
+   }
+  },
+  {
+   "step": "A_severity",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.options.severity",
+   "phase": "A",
+   "wall_before": 146.206,
+   "wall_after": 146.965,
+   "epoch_ms_before": 1791374419157,
+   "epoch_ms_after": 1791374419916,
+   "took": 0.759,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.options.severity",
+    "type": "number",
+    "resolved": true,
+    "value": 1.5
+   }
+  },
+  {
+   "step": "A_readAt",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.options.readAt",
+   "phase": "A",
+   "wall_before": 146.965,
+   "wall_after": 147.473,
+   "epoch_ms_before": 1791374419916,
+   "epoch_ms_after": 1791374420424,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.options.readAt",
+    "type": "string",
+    "resolved": true,
+    "value": "poll"
+   }
+  },
+  {
+   "step": "A_mode",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.options.mode",
+   "phase": "A",
+   "wall_before": 147.473,
+   "wall_after": 148.23,
+   "epoch_ms_before": 1791374420424,
+   "epoch_ms_after": 1791374421181,
+   "took": 0.757,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.options.mode",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "A_sv_severity",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "SandboxVars.NR.Severity",
+   "phase": "A",
+   "wall_before": 148.23,
+   "wall_after": 148.737,
+   "epoch_ms_before": 1791374421181,
+   "epoch_ms_after": 1791374421688,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "SandboxVars.NR.Severity",
+    "type": "number",
+    "resolved": true,
+    "value": 1.5
+   }
+  },
+  {
+   "step": "A_sv_mode",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "SandboxVars.NR.Mode",
+   "phase": "A",
+   "wall_before": 148.737,
+   "wall_after": 149.494,
+   "epoch_ms_before": 1791374421688,
+   "epoch_ms_after": 1791374422445,
+   "took": 0.757,
+   "ack": {
+    "side": "server",
+    "name": "SandboxVars.NR.Mode",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "A_version",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "phase": "A",
+   "wall_before": 149.494,
+   "wall_after": 150.003,
+   "epoch_ms_before": 1791374422445,
+   "epoch_ms_after": 1791374422954,
+   "took": 0.509,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "step": "A_bob_sv_severity",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "SandboxVars.NR.Severity",
+   "phase": "A",
+   "wall_before": 150.003,
+   "wall_after": 150.51,
+   "epoch_ms_before": 1791374422954,
+   "epoch_ms_after": 1791374423460,
+   "took": 0.507,
+   "ack": {
+    "side": "client",
+    "name": "SandboxVars.NR.Severity",
+    "type": "number",
+    "resolved": true,
+    "value": 1.5
+   }
+  },
+  {
+   "step": "A_admin_sv_severity",
+   "side": "client:admin",
+   "cmd": "lua.global",
+   "args": "SandboxVars.NR.Severity",
+   "phase": "A",
+   "wall_before": 150.51,
+   "wall_after": 150.763,
+   "epoch_ms_before": 1791374423460,
+   "epoch_ms_after": 1791374423714,
+   "took": 0.253,
+   "ack": {
+    "side": "client",
+    "name": "SandboxVars.NR.Severity",
+    "type": "number",
+    "resolved": true,
+    "value": 1.5
+   }
+  },
+  {
+   "step": "B_reset",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.resetHist",
+   "phase": "B",
+   "wall_before": 150.765,
+   "wall_after": 151.272,
+   "epoch_ms_before": 1791374423716,
+   "epoch_ms_after": 1791374424223,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.resetHist",
+    "nargs": 0,
+    "r1": 1009,
+    "r2": 160
+   }
+  },
+  {
+   "step": "B_start_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 151.272,
+   "wall_after": 152.031,
+   "epoch_ms_before": 1791374424223,
+   "epoch_ms_after": 1791374424982,
+   "took": 0.759,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1016
+   }
+  },
+  {
+   "step": "B_start_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 152.031,
+   "wall_after": 152.286,
+   "epoch_ms_before": 1791374424982,
+   "epoch_ms_after": 1791374425237,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 162
+   }
+  },
+  {
+   "step": "B_time0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "B",
+   "wall_before": 152.286,
+   "wall_after": 152.543,
+   "epoch_ms_before": 1791374425237,
+   "epoch_ms_after": 1791374425494,
+   "took": 0.257,
+   "ack": {
+    "worldAge": 5.018320083618164,
+    "hour": 12,
+    "minutes": 1,
+    "mult": 4.773466110229492,
+    "wall": 1791374425413
+   }
+  },
+  {
+   "step": "B_poll_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 152.543,
+   "wall_after": 153.301,
+   "epoch_ms_before": 1791374425494,
+   "epoch_ms_after": 1791374426252,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1028
+   }
+  },
+  {
+   "step": "B_poll_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 153.301,
+   "wall_after": 153.809,
+   "epoch_ms_before": 1791374426252,
+   "epoch_ms_after": 1791374426760,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 164
+   }
+  },
+  {
+   "step": "B_poll_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 155.81,
+   "wall_after": 156.32,
+   "epoch_ms_before": 1791374428760,
+   "epoch_ms_after": 1791374429270,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1059
+   }
+  },
+  {
+   "step": "B_poll_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 156.32,
+   "wall_after": 157.076,
+   "epoch_ms_before": 1791374429270,
+   "epoch_ms_after": 1791374430027,
+   "took": 0.756,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 169
+   }
+  },
+  {
+   "step": "B_poll_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 159.076,
+   "wall_after": 159.585,
+   "epoch_ms_before": 1791374432027,
+   "epoch_ms_after": 1791374432536,
+   "took": 0.509,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1091
+   }
+  },
+  {
+   "step": "B_poll_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 159.585,
+   "wall_after": 160.093,
+   "epoch_ms_before": 1791374432536,
+   "epoch_ms_after": 1791374433044,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 174
+   }
+  },
+  {
+   "step": "B_poll_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 162.093,
+   "wall_after": 162.353,
+   "epoch_ms_before": 1791374435044,
+   "epoch_ms_after": 1791374435303,
+   "took": 0.26,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1119
+   }
+  },
+  {
+   "step": "B_poll_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 162.353,
+   "wall_after": 162.617,
+   "epoch_ms_before": 1791374435303,
+   "epoch_ms_after": 1791374435568,
+   "took": 0.264,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 178
+   }
+  },
+  {
+   "step": "B_poll_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 164.618,
+   "wall_after": 165.13,
+   "epoch_ms_before": 1791374437569,
+   "epoch_ms_after": 1791374438081,
+   "took": 0.512,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1147
+   }
+  },
+  {
+   "step": "B_poll_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 165.13,
+   "wall_after": 165.641,
+   "epoch_ms_before": 1791374438081,
+   "epoch_ms_after": 1791374438591,
+   "took": 0.511,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 183
+   }
+  },
+  {
+   "step": "B_poll_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "B",
+   "wall_before": 167.641,
+   "wall_after": 168.151,
+   "epoch_ms_before": 1791374440592,
+   "epoch_ms_after": 1791374441102,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1178
+   }
+  },
+  {
+   "step": "B_poll_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "B",
+   "wall_before": 168.151,
+   "wall_after": 168.414,
+   "epoch_ms_before": 1791374441102,
+   "epoch_ms_after": 1791374441365,
+   "took": 0.263,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 188
+   }
+  },
+  {
+   "step": "B_ring",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.ringText",
+   "phase": "B",
+   "wall_before": 168.414,
+   "wall_after": 168.921,
+   "epoch_ms_before": 1791374441365,
+   "epoch_ms_after": 1791374441872,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.ringText",
+    "nargs": 0,
+    "r1": "783,125,4.383796691894531,1791374401505;790,126,4.402412414550781,1791374402205;796,127,4.418386459350586,1791374402804;802,128,4.434357643127441,1791374403404;808,129,4.450342178344727,1791374404005;815,130,4.468985557556152,1791374404702;821,131,4.484963417053223,1791374405307;827,132,4.500949859619141,1791374405912;833,133,4.516933441162109,1791374406502;840,134,4.5355730056762695,1791374407207;846,135,4.55156135559082,1791374407803;852,136,4.567538261413574,1791374408404;858,137,4.583526611328125,1791374409003;865,138,4.602184295654297,1791374409705;871,139,4.618175506591797,1791374410304;877,140,4.634156227111816,1791374410904;883,141,4.650143623352051,1791374411508;890,142,4.668789863586426,1791374412208;896,143,4.684782028198242,1791374412806;902,144,4.700762748718262,1791374413402;908,145,4.7167463302612305,1791374414003;915,146,4.735401153564453,1791374414702;921,147,4.751448631286621,1791374415369;927,148,4.767184257507324,1791374415918;934,149,4.785370826721191,1791374416617;940,150,4.80107307434082,1791374417202;946,151,4.816800117492676,1791374417803;953,152,4.835245132446289,1791374418518;959,153,4.851080894470215,1791374419110;965,154,4.866939544677734,1791374419709;972,155,4.8854780197143555,1791374420409;978,156,4.901391983032227,1791374421012;984,157,4.917319297790527,1791374421611;991,158,4.935903549194336,1791374422310;997,159,4.951848030090332,1791374422913;1003,160,4.967807769775391,1791374423506;1009,161,4.983765602111816,1791374424112;1016,162,5.002384185791016,1791374424823;1022,163,5.018320083618164,1791374425414;1028,164,5.034239768981934,1791374426010;1034,165,5.050164222717285,1791374426610;1041,166,5.068768501281738,1791374427305;1047,167,5.084711074829102,1791374427907;1053,168,5.10067081451416,1791374428502;1060,169,5.1193037033081055,1791374429203;1066,170,5.135259628295898,1791374429809;1072,171,5.1512298583984375,1791374430402;1078,172,5.167200088500977,1791374431010;1085,173,5.185851097106934,1791374431703;1091,174,5.2018232345581055,1791374432312;1097,175,5.217807769775391,1791374432909;1103,176,5.233791351318359,1791374433505;1110,177,5.25242805480957,1791374434205;1116,178,5.2684173583984375,1791374434805;1122,179,5.284404754638672,1791374435412;1128,180,5.3003692626953125,1791374436004;1135,181,5.318995475769043,1791374436705;1141,182,5.334969520568848,1791374437318;1147,183,5.3509321212768555,1791374437915;1153,184,5.366877555847168,1791374438512;1160,185,5.385473251342773,1791374439202;1166,186,5.4014177322387695,1791374439805;1172,187,5.417376518249512,1791374440403;1178,188,5.433337211608887,1791374441013",
+    "r2": 188,
+    "r3": 1185
+   }
+  },
+  {
+   "step": "B_hist",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.histText",
+   "phase": "B",
+   "wall_before": 168.921,
+   "wall_after": 169.428,
+   "epoch_ms_before": 1791374441872,
+   "epoch_ms_after": 1791374442379,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.histText",
+    "nargs": 0,
+    "r1": "h0=153 h1=29 h2=0 h3=0 h4=0 h5=0 hmax=1",
+    "r2": 1191,
+    "r3": 189
+   }
+  },
+  {
+   "step": "B_time1",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "B",
+   "wall_before": 169.43,
+   "wall_after": 170.187,
+   "epoch_ms_before": 1791374442381,
+   "epoch_ms_after": 1791374443138,
+   "took": 0.757,
+   "ack": {
+    "worldAge": 5.483868598937988,
+    "hour": 12,
+    "minutes": 29,
+    "mult": 4.787895202636719,
+    "wall": 1791374442907
+   }
+  },
+  {
+   "step": "B_tick_arm",
+   "side": "server",
+   "cmd": "tick.rate",
+   "args": "10",
+   "phase": "B",
+   "wall_before": 170.187,
+   "wall_after": 170.694,
+   "epoch_ms_before": 1791374443138,
+   "epoch_ms_after": 1791374443645,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 10,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "B_p_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.minutes",
+   "phase": "B",
+   "wall_before": 180.969,
+   "wall_after": 181.479,
+   "epoch_ms_before": 1791374453920,
+   "epoch_ms_after": 1791374454430,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 208
+   }
+  },
+  {
+   "step": "B_p_drained",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.drained",
+   "phase": "B",
+   "wall_before": 181.479,
+   "wall_after": 181.987,
+   "epoch_ms_before": 1791374454430,
+   "epoch_ms_after": 1791374454938,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.drained",
+    "type": "number",
+    "resolved": true,
+    "value": 214
+   }
+  },
+  {
+   "step": "C1_time0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 181.992,
+   "wall_after": 182.249,
+   "epoch_ms_before": 1791374454943,
+   "epoch_ms_after": 1791374455200,
+   "took": 0.257,
+   "ack": {
+    "worldAge": 5.808721542358398,
+    "hour": 12,
+    "minutes": 48,
+    "mult": 4.795252323150635,
+    "wall": 1791374455109
+   }
+  },
+  {
+   "step": "C1_p0_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.minutes",
+   "phase": "C",
+   "wall_before": 182.249,
+   "wall_after": 182.506,
+   "epoch_ms_before": 1791374455200,
+   "epoch_ms_after": 1791374455457,
+   "took": 0.257,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 210
+   }
+  },
+  {
+   "step": "C1_p0_drained",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.drained",
+   "phase": "C",
+   "wall_before": 182.506,
+   "wall_after": 183.27,
+   "epoch_ms_before": 1791374455457,
+   "epoch_ms_after": 1791374456221,
+   "took": 0.764,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.drained",
+    "type": "number",
+    "resolved": true,
+    "value": 218
+   }
+  },
+  {
+   "step": "C1_reset",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.resetHist",
+   "phase": "C",
+   "wall_before": 183.27,
+   "wall_after": 183.776,
+   "epoch_ms_before": 1791374456221,
+   "epoch_ms_after": 1791374456727,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.resetHist",
+    "nargs": 0,
+    "r1": 1335,
+    "r2": 212
+   }
+  },
+  {
+   "step": "C1_start_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "C",
+   "wall_before": 183.776,
+   "wall_after": 184.283,
+   "epoch_ms_before": 1791374456727,
+   "epoch_ms_after": 1791374457234,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1339
+   }
+  },
+  {
+   "step": "C1_start_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "C",
+   "wall_before": 184.283,
+   "wall_after": 184.538,
+   "epoch_ms_before": 1791374457234,
+   "epoch_ms_after": 1791374457488,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 213
+   }
+  },
+  {
+   "step": "C1_speed",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 30",
+   "phase": "C",
+   "wall_before": 184.538,
+   "wall_after": 184.715,
+   "ack": {
+    "ok": true,
+    "reply": "Multiplier was set on the following value: 30.0"
+   }
+  },
+  {
+   "step": "C1_time_fast",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 184.715,
+   "wall_after": 184.971,
+   "epoch_ms_before": 1791374457666,
+   "epoch_ms_after": 1791374457922,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 6.032452583312988,
+    "hour": 13,
+    "minutes": 1,
+    "mult": 144.83753967285156,
+    "wall": 1791374457729
+   }
+  },
+  {
+   "step": "C1_tick_arm",
+   "side": "server",
+   "cmd": "tick.rate",
+   "args": "20",
+   "phase": "C",
+   "wall_before": 184.971,
+   "wall_after": 185.227,
+   "epoch_ms_before": 1791374457922,
+   "epoch_ms_after": 1791374458177,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 20,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "C1_hist",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.histText",
+   "phase": "C",
+   "wall_before": 205.27,
+   "wall_after": 205.526,
+   "epoch_ms_before": 1791374478221,
+   "epoch_ms_after": 1791374478477,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.histText",
+    "nargs": 0,
+    "r1": "h0=7 h1=209 h2=0 h3=0 h4=0 h5=0 hmax=1",
+    "r2": 1551,
+    "r3": 421
+   }
+  },
+  {
+   "step": "C1_end_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "C",
+   "wall_before": 205.526,
+   "wall_after": 205.782,
+   "epoch_ms_before": 1791374478477,
+   "epoch_ms_after": 1791374478733,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1553
+   }
+  },
+  {
+   "step": "C1_end_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "C",
+   "wall_before": 205.782,
+   "wall_after": 206.038,
+   "epoch_ms_before": 1791374478733,
+   "epoch_ms_after": 1791374478988,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 426
+   }
+  },
+  {
+   "step": "C1_ring",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.ringText",
+   "phase": "C",
+   "wall_before": 206.038,
+   "wall_after": 206.295,
+   "epoch_ms_before": 1791374478988,
+   "epoch_ms_after": 1791374479246,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.ringText",
+    "nargs": 0,
+    "r1": "1494,365,17.87433624267578,1791374472613;1495,366,17.953445434570312,1791374472706;1496,367,18.032352447509766,1791374472810;1497,368,18.111461639404297,1791374472908;1498,369,18.190614700317383,1791374473013;1499,370,18.26992416381836,1791374473107;1500,371,18.348974227905273,1791374473215;1501,372,18.42842674255371,1791374473306;1502,373,18.507471084594727,1791374473410;1503,374,18.586748123168945,1791374473508;1504,375,18.66602325439453,1791374473605;1505,376,18.745126724243164,1791374473710;1506,377,18.824460983276367,1791374473803;1507,378,18.903533935546875,1791374473913;1508,379,18.983041763305664,1791374474006;1509,380,19.06232261657715,1791374474113;1510,381,19.141860961914062,1791374474205;1511,382,19.22103500366211,1791374474307;1512,383,19.300289154052734,1791374474403;1513,384,19.379497528076172,1791374474509;1514,385,19.458969116210938,1791374474607;1515,386,19.538429260253906,1791374474713;1516,387,19.61810302734375,1791374474804;1517,388,19.69740104675293,1791374474909;1518,389,19.776885986328125,1791374475003;1519,390,19.856189727783203,1791374475110;1520,391,19.935752868652344,1791374475203;1521,392,20.01508331298828,1791374475312;1522,393,20.09480857849121,1791374475404;1523,394,20.17410659790039,1791374475505;1524,395,20.253555297851562,1791374475603;1525,396,20.332908630371094,1791374475703;1526,397,20.412296295166016,1791374475809;1527,398,20.491899490356445,1791374475903;1528,399,20.57131576538086,1791374476009;1529,400,20.650985717773438,1791374476105;1530,401,20.730504989624023,1791374476209;1531,402,20.810203552246094,1791374476304;1532,403,20.88966178894043,1791374476412;1533,404,20.969440460205078,1791374476504;1534,405,21.048978805541992,1791374476614;1535,406,21.128833770751953,1791374476705;1536,407,21.208351135253906,1791374476811;1537,408,21.288116455078125,1791374476903;1538,409,21.3675479888916,1791374477009;1539,410,21.44719696044922,1791374477105;1540,411,21.52674102783203,1791374477212;1541,412,21.60660171508789,1791374477307;1542,413,21.686216354370117,1791374477408;1543,414,21.765850067138672,1791374477505;1544,415,21.845420837402344,1791374477616;1545,416,21.925373077392578,1791374477704;1546,417,22.00478744506836,1791374477813;1547,418,22.084592819213867,1791374477905;1548,419,22.1640625,1791374478003;1549,420,22.243392944335938,1791374478115;1550,421,22.32330322265625,1791374478204;1551,422,22.402576446533203,1791374478318;1552,423,22.48242950439453,1791374478405;1553,424,22.56169891357422,1791374478513;1554,425,22.64126205444336,1791374478605;1555,426,22.720504760742188,1791374478708;1556,427,22.799861907958984,1791374478814;1557,428,22.87950897216797,1791374478907",
+    "r2": 428,
+    "r3": 1558
+   }
+  },
+  {
+   "step": "C1_p1_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.minutes",
+   "phase": "C",
+   "wall_before": 206.296,
+   "wall_after": 206.551,
+   "epoch_ms_before": 1791374479247,
+   "epoch_ms_after": 1791374479502,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 431
+   }
+  },
+  {
+   "step": "C1_p1_drained",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.players.drained",
+   "phase": "C",
+   "wall_before": 206.551,
+   "wall_after": 206.807,
+   "epoch_ms_before": 1791374479502,
+   "epoch_ms_after": 1791374479758,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.players.drained",
+    "type": "number",
+    "resolved": true,
+    "value": 443
+   }
+  },
+  {
+   "step": "C1_restore",
+   "side": "server",
+   "cmd": "rcon",
+   "args": "settimespeed 1",
+   "phase": "C",
+   "wall_before": 206.807,
+   "wall_after": 206.822,
+   "ack": {
+    "ok": true,
+    "reply": ""
+   }
+  },
+  {
+   "step": "C1_time1",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 206.822,
+   "wall_after": 207.077,
+   "epoch_ms_before": 1791374479773,
+   "epoch_ms_after": 1791374480028,
+   "took": 0.255,
+   "ack": {
+    "worldAge": 23.51760482788086,
+    "hour": 6,
+    "minutes": 31,
+    "mult": 4.764427661895752,
+    "wall": 1791374479815
+   }
+  },
+  {
+   "step": "C2_hold_admin",
+   "side": "server",
+   "cmd": "player.sleep.hold",
+   "args": "admin 30",
+   "phase": "C",
+   "wall_before": 207.08,
+   "wall_after": 207.587,
+   "epoch_ms_before": 1791374480031,
+   "epoch_ms_after": 1791374480538,
+   "took": 0.507,
+   "ack": {
+    "user": "admin",
+    "seconds": 30,
+    "armed": true,
+    "before": false,
+    "after": true,
+    "deadlineWall": 1791374510412
+   }
+  },
+  {
+   "step": "C2_hold_bob",
+   "side": "server",
+   "cmd": "player.sleep.hold",
+   "args": "bob 30",
+   "phase": "C",
+   "wall_before": 207.587,
+   "wall_after": 208.346,
+   "epoch_ms_before": 1791374480538,
+   "epoch_ms_after": 1791374481297,
+   "took": 0.759,
+   "ack": {
+    "user": "bob",
+    "seconds": 30,
+    "armed": true,
+    "before": false,
+    "after": true,
+    "deadlineWall": 1791374511110
+   }
+  },
+  {
+   "step": "C2_reset",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.resetHist",
+   "phase": "C",
+   "wall_before": 210.347,
+   "wall_after": 210.603,
+   "epoch_ms_before": 1791374483298,
+   "epoch_ms_after": 1791374483553,
+   "took": 0.256,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.resetHist",
+    "nargs": 0,
+    "r1": 1601,
+    "r2": 460
+   }
+  },
+  {
+   "step": "C2_start_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "C",
+   "wall_before": 210.603,
+   "wall_after": 210.863,
+   "epoch_ms_before": 1791374483553,
+   "epoch_ms_after": 1791374483814,
+   "took": 0.26,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1604
+   }
+  },
+  {
+   "step": "C2_start_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "C",
+   "wall_before": 210.863,
+   "wall_after": 211.119,
+   "epoch_ms_before": 1791374483814,
+   "epoch_ms_after": 1791374484070,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 466
+   }
+  },
+  {
+   "step": "C2_time0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 211.119,
+   "wall_after": 211.375,
+   "epoch_ms_before": 1791374484070,
+   "epoch_ms_after": 1791374484326,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 25.142566680908203,
+    "hour": 8,
+    "minutes": 8,
+    "mult": 94.44512176513672,
+    "wall": 1791374484109
+   }
+  },
+  {
+   "step": "C2_tick_arm",
+   "side": "server",
+   "cmd": "tick.rate",
+   "args": "20",
+   "phase": "C",
+   "wall_before": 211.375,
+   "wall_after": 211.631,
+   "epoch_ms_before": 1791374484326,
+   "epoch_ms_after": 1791374484582,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 20,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "C2_asleep_admin",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "admin isAsleep",
+   "phase": "C",
+   "wall_before": 221.632,
+   "wall_after": 221.889,
+   "epoch_ms_before": 1791374494583,
+   "epoch_ms_after": 1791374494840,
+   "took": 0.257,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "true"
+   }
+  },
+  {
+   "step": "C2_asleep_bob",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob isAsleep",
+   "phase": "C",
+   "wall_before": 221.889,
+   "wall_after": 222.149,
+   "epoch_ms_before": 1791374494840,
+   "epoch_ms_after": 1791374495100,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "true"
+   }
+  },
+  {
+   "step": "C2_hist",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.histText",
+   "phase": "C",
+   "wall_before": 231.677,
+   "wall_after": 231.937,
+   "epoch_ms_before": 1791374504628,
+   "epoch_ms_after": 1791374504888,
+   "took": 0.26,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.histText",
+    "nargs": 0,
+    "r1": "h0=0 h1=214 h2=0 h3=0 h4=0 h5=0 hmax=1",
+    "r2": 1815,
+    "r3": 674
+   }
+  },
+  {
+   "step": "C2_end_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "C",
+   "wall_before": 231.937,
+   "wall_after": 232.194,
+   "epoch_ms_before": 1791374504888,
+   "epoch_ms_after": 1791374505145,
+   "took": 0.257,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1817
+   }
+  },
+  {
+   "step": "C2_end_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "C",
+   "wall_before": 232.195,
+   "wall_after": 232.455,
+   "epoch_ms_before": 1791374505145,
+   "epoch_ms_after": 1791374505406,
+   "took": 0.26,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 679
+   }
+  },
+  {
+   "step": "C2_ring",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.ringText",
+   "phase": "C",
+   "wall_before": 232.455,
+   "wall_after": 232.713,
+   "epoch_ms_before": 1791374505406,
+   "epoch_ms_after": 1791374505664,
+   "took": 0.258,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.ringText",
+    "nargs": 0,
+    "r1": "1759,619,33.1083984375,1791374499104;1760,620,33.16156768798828,1791374499202;1761,621,33.214630126953125,1791374499310;1762,622,33.267906188964844,1791374499405;1763,623,33.321041107177734,1791374499506;1764,624,33.37421417236328,1791374499611;1765,625,33.427520751953125,1791374499702;1766,626,33.480567932128906,1791374499804;1767,627,33.53370666503906,1791374499912;1768,628,33.58702850341797,1791374500006;1769,629,33.64018249511719,1791374500107;1770,630,33.6933708190918,1791374500209;1771,631,33.74664306640625,1791374500305;1772,632,33.799808502197266,1791374500405;1773,633,33.85300827026367,1791374500515;1774,634,33.90643310546875,1791374500604;1775,635,33.959495544433594,1791374500702;1776,636,34.01251220703125,1791374500813;1777,637,34.06581115722656,1791374500906;1778,638,34.1189079284668,1791374501004;1779,639,34.171966552734375,1791374501115;1780,640,34.225318908691406,1791374501206;1781,641,34.27838134765625,1791374501305;1782,642,34.331424713134766,1791374501405;1783,643,34.384483337402344,1791374501513;1784,644,34.43777847290039,1791374501603;1785,645,34.490745544433594,1791374501707;1786,646,34.54385757446289,1791374501810;1787,647,34.59703063964844,1791374501907;1788,648,34.65016174316406,1791374502007;1789,649,34.70330047607422,1791374502110;1790,650,34.756500244140625,1791374502205;1791,651,34.80959701538086,1791374502303;1792,652,34.86262512207031,1791374502408;1793,653,34.91579055786133,1791374502505;1794,654,34.96888732910156,1791374502605;1795,655,35.02201843261719,1791374502711;1796,656,35.075286865234375,1791374502804;1797,657,35.12835693359375,1791374502902;1798,658,35.181419372558594,1791374503013;1799,659,35.23473358154297,1791374503104;1800,660,35.287845611572266,1791374503205;1801,661,35.340972900390625,1791374503308;1802,662,35.39415740966797,1791374503403;1803,663,35.447242736816406,1791374503505;1804,664,35.50041961669922,1791374503606;1805,665,35.55357360839844,1791374503705;1806,666,35.60673904418945,1791374503803;1807,667,35.659828186035156,1791374503905;1808,668,35.7130126953125,1791374504008;1809,669,35.76625061035156,1791374504105;1810,670,35.81944274902344,1791374504205;1811,671,35.87261199951172,1791374504311;1812,672,35.92591857910156,1791374504404;1813,673,35.97914123535156,1791374504503;1814,674,36.03228759765625,1791374504613;1815,675,36.08566665649414,1791374504713;1816,676,36.139041900634766,1791374504805;1817,677,36.19221496582031,1791374504912;1818,678,36.24554443359375,1791374505007;1819,679,36.29876708984375,1791374505104;1820,680,36.35191345214844,1791374505213;1821,681,36.4052848815918,1791374505303;1822,682,36.45832824707031,1791374505404",
+    "r2": 682,
+    "r3": 1823
+   }
+  },
+  {
+   "step": "C2_time1",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 232.714,
+   "wall_after": 232.972,
+   "epoch_ms_before": 1791374505664,
+   "epoch_ms_after": 1791374505923,
+   "took": 0.258,
+   "ack": {
+    "worldAge": 36.61787414550781,
+    "hour": 19,
+    "minutes": 37,
+    "mult": 95.54933166503906,
+    "wall": 1791374505709
+   }
+  },
+  {
+   "step": "C2_cancel_admin",
+   "side": "server",
+   "cmd": "player.sleep.hold",
+   "args": "admin 0",
+   "phase": "C",
+   "wall_before": 232.972,
+   "wall_after": 233.234,
+   "epoch_ms_before": 1791374505923,
+   "epoch_ms_after": 1791374506184,
+   "took": 0.262,
+   "ack": {
+    "user": "admin",
+    "seconds": 0,
+    "armed": false,
+    "before": true,
+    "after": true
+   }
+  },
+  {
+   "step": "C2_cancel_bob",
+   "side": "server",
+   "cmd": "player.sleep.hold",
+   "args": "bob 0",
+   "phase": "C",
+   "wall_before": 233.234,
+   "wall_after": 233.492,
+   "epoch_ms_before": 1791374506184,
+   "epoch_ms_after": 1791374506443,
+   "took": 0.258,
+   "ack": {
+    "user": "bob",
+    "seconds": 0,
+    "armed": false,
+    "before": true,
+    "after": true
+   }
+  },
+  {
+   "step": "C2_wake_admin",
+   "side": "server",
+   "cmd": "player.sleep",
+   "args": "admin false",
+   "phase": "C",
+   "wall_before": 233.492,
+   "wall_after": 233.998,
+   "epoch_ms_before": 1791374506443,
+   "epoch_ms_after": 1791374506949,
+   "took": 0.506,
+   "ack": {
+    "requested": false,
+    "before": false,
+    "setAsleep": true,
+    "after": false,
+    "held": true
+   }
+  },
+  {
+   "step": "C2_wake_bob",
+   "side": "server",
+   "cmd": "player.sleep",
+   "args": "bob false",
+   "phase": "C",
+   "wall_before": 233.998,
+   "wall_after": 234.254,
+   "epoch_ms_before": 1791374506949,
+   "epoch_ms_after": 1791374507205,
+   "took": 0.256,
+   "ack": {
+    "requested": false,
+    "before": false,
+    "setAsleep": true,
+    "after": false,
+    "held": true
+   }
+  },
+  {
+   "step": "C2_time2",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "C",
+   "wall_before": 237.254,
+   "wall_after": 237.765,
+   "epoch_ms_before": 1791374510205,
+   "epoch_ms_after": 1791374510716,
+   "took": 0.511,
+   "ack": {
+    "worldAge": 37.0511474609375,
+    "hour": 20,
+    "minutes": 3,
+    "mult": 4.7971110343933105,
+    "wall": 1791374510611
+   }
+  },
+  {
+   "step": "C2_asleep_after_admin",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "admin isAsleep",
+   "phase": "C",
+   "wall_before": 237.765,
+   "wall_after": 238.273,
+   "epoch_ms_before": 1791374510716,
+   "epoch_ms_after": 1791374511223,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "false"
+   }
+  },
+  {
+   "step": "C2_asleep_after_bob",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "bob isAsleep",
+   "phase": "C",
+   "wall_before": 238.273,
+   "wall_after": 239.034,
+   "epoch_ms_before": 1791374511223,
+   "epoch_ms_after": 1791374511985,
+   "took": 0.761,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "false"
+   }
+  },
+  {
+   "step": "D_reg0",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.registered",
+   "phase": "D",
+   "wall_before": 239.038,
+   "wall_after": 239.795,
+   "epoch_ms_before": 1791374511988,
+   "epoch_ms_after": 1791374512746,
+   "took": 0.757,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.registered",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "D_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "D",
+   "wall_before": 239.795,
+   "wall_after": 240.307,
+   "epoch_ms_before": 1791374512746,
+   "epoch_ms_after": 1791374513257,
+   "took": 0.512,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "D_tk_calls0",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "phase": "D",
+   "wall_before": 240.307,
+   "wall_after": 240.818,
+   "epoch_ms_before": 1791374513257,
+   "epoch_ms_after": 1791374513769,
+   "took": 0.511,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 2524
+   }
+  },
+  {
+   "step": "D_tk_k0_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "D",
+   "wall_before": 240.818,
+   "wall_after": 241.579,
+   "epoch_ms_before": 1791374513769,
+   "epoch_ms_after": 1791374514529,
+   "took": 0.761,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1912
+   }
+  },
+  {
+   "step": "D_tk_k0_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "D",
+   "wall_before": 241.579,
+   "wall_after": 242.086,
+   "epoch_ms_before": 1791374514530,
+   "epoch_ms_after": 1791374515037,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 704
+   }
+  },
+  {
+   "step": "D_tk_calls1",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "phase": "D",
+   "wall_before": 247.087,
+   "wall_after": 247.845,
+   "epoch_ms_before": 1791374520037,
+   "epoch_ms_after": 1791374520796,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 2662
+   }
+  },
+  {
+   "step": "D_tk_k1_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "D",
+   "wall_before": 247.845,
+   "wall_after": 248.352,
+   "epoch_ms_before": 1791374520796,
+   "epoch_ms_after": 1791374521303,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 1979
+   }
+  },
+  {
+   "step": "D_tk_k1_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "D",
+   "wall_before": 248.352,
+   "wall_after": 248.607,
+   "epoch_ms_before": 1791374521303,
+   "epoch_ms_after": 1791374521558,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 714
+   }
+  },
+  {
+   "step": "D_base_tick_arm",
+   "side": "server",
+   "cmd": "tick.rate",
+   "args": "15",
+   "phase": "D",
+   "wall_before": 248.607,
+   "wall_after": 249.114,
+   "epoch_ms_before": 1791374521558,
+   "epoch_ms_after": 1791374522065,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 15,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "D_bench_tick_arm",
+   "side": "server",
+   "cmd": "tick.rate",
+   "args": "15",
+   "phase": "D",
+   "wall_before": 264.145,
+   "wall_after": 264.402,
+   "epoch_ms_before": 1791374537096,
+   "epoch_ms_after": 1791374537353,
+   "took": 0.257,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 15,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "D_handler_0",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.server.bench.handler 1000",
+   "phase": "D",
+   "wall_before": 264.402,
+   "wall_after": 264.666,
+   "epoch_ms_before": 1791374537353,
+   "epoch_ms_after": 1791374537616,
+   "took": 0.264,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.handler",
+    "n": 1000,
+    "ms": 19,
+    "usPerCall": 19
+   }
+  },
+  {
+   "step": "D_handler_1",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.server.bench.handler 1000",
+   "phase": "D",
+   "wall_before": 264.666,
+   "wall_after": 265.426,
+   "epoch_ms_before": 1791374537616,
+   "epoch_ms_after": 1791374538376,
+   "took": 0.76,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.handler",
+    "n": 1000,
+    "ms": 21,
+    "usPerCall": 21
+   }
+  },
+  {
+   "step": "D_handler_2",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.server.bench.handler 1000",
+   "phase": "D",
+   "wall_before": 265.426,
+   "wall_after": 265.933,
+   "epoch_ms_before": 1791374538376,
+   "epoch_ms_after": 1791374538884,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.handler",
+    "n": 1000,
+    "ms": 18,
+    "usPerCall": 18
+   }
+  },
+  {
+   "step": "D_minute_0",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.server.bench.minute 200",
+   "phase": "D",
+   "wall_before": 265.933,
+   "wall_after": 266.446,
+   "epoch_ms_before": 1791374538884,
+   "epoch_ms_after": 1791374539397,
+   "took": 0.513,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minute",
+    "n": 200,
+    "ms": 78,
+    "usPerCall": 390
+   }
+  },
+  {
+   "step": "D_minute_1",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.server.bench.minute 200",
+   "phase": "D",
+   "wall_before": 266.446,
+   "wall_after": 266.701,
+   "epoch_ms_before": 1791374539397,
+   "epoch_ms_after": 1791374539652,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minute",
+    "n": 200,
+    "ms": 79,
+    "usPerCall": 395
+   }
+  },
+  {
+   "step": "D_minute_2",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.server.bench.minute 200",
+   "phase": "D",
+   "wall_before": 266.701,
+   "wall_after": 267.469,
+   "epoch_ms_before": 1791374539652,
+   "epoch_ms_after": 1791374540420,
+   "took": 0.768,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minute",
+    "n": 200,
+    "ms": 69,
+    "usPerCall": 345
+   }
+  },
+  {
+   "step": "D_fast_0",
+   "side": "server",
+   "cmd": "bench.global",
+   "args": "NutritionRevamp.bench_fast 100000",
+   "phase": "D",
+   "wall_before": 267.469,
+   "wall_after": 268.481,
+   "epoch_ms_before": 1791374540420,
+   "epoch_ms_after": 1791374541432,
+   "took": 1.012,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.bench_fast",
+    "n": 100000,
+    "ms": 436,
+    "usPerCall": 4.36
+   }
+  },
+  {
+   "step": "D_bench_u",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.u",
+   "phase": "D",
+   "wall_before": 279.256,
+   "wall_after": 279.515,
+   "epoch_ms_before": 1791374552207,
+   "epoch_ms_after": 1791374552465,
+   "took": 0.259,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.u",
+    "type": "string",
+    "resolved": true,
+    "value": "admin"
+   }
+  },
+  {
+   "step": "D_fs_calls",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "phase": "D",
+   "wall_before": 279.515,
+   "wall_after": 280.022,
+   "epoch_ms_before": 1791374552465,
+   "epoch_ms_after": 1791374552973,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 6300
+   }
+  },
+  {
+   "step": "D_fs_failures",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.failures",
+   "phase": "D",
+   "wall_before": 280.022,
+   "wall_after": 280.529,
+   "epoch_ms_before": 1791374552973,
+   "epoch_ms_after": 1791374553480,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.failures",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "D_fs_byCharHits",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.byCharHits",
+   "phase": "D",
+   "wall_before": 280.529,
+   "wall_after": 281.287,
+   "epoch_ms_before": 1791374553480,
+   "epoch_ms_after": 1791374554238,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.byCharHits",
+    "type": "number",
+    "resolved": true,
+    "value": 6325
+   }
+  },
+  {
+   "step": "D_fs_disabledAt",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.disabledAt",
+   "phase": "D",
+   "wall_before": 281.287,
+   "wall_after": 282.049,
+   "epoch_ms_before": 1791374554238,
+   "epoch_ms_after": 1791374555000,
+   "took": 0.762,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.disabledAt",
+    "failedAt": "disabledAt",
+    "resolved": false
+   }
+  },
+  {
+   "step": "D_mode2",
+   "side": "server",
+   "cmd": "sandbox.var",
+   "args": "NR.Mode 2",
+   "phase": "D",
+   "wall_before": 282.054,
+   "wall_after": 282.564,
+   "epoch_ms_before": 1791374555005,
+   "epoch_ms_after": 1791374555515,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "path": "NR.Mode",
+    "requested": 2,
+    "before": 1,
+    "after": 2
+   }
+  },
+  {
+   "step": "D_mode_read",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.options.mode",
+   "phase": "D",
+   "wall_before": 288.565,
+   "wall_after": 288.828,
+   "epoch_ms_before": 1791374561516,
+   "epoch_ms_after": 1791374561779,
+   "took": 0.263,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.options.mode",
+    "type": "number",
+    "resolved": true,
+    "value": 2
+   }
+  },
+  {
+   "step": "D_reg_overlay",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.registered",
+   "phase": "D",
+   "wall_before": 288.828,
+   "wall_after": 289.334,
+   "epoch_ms_before": 1791374561779,
+   "epoch_ms_after": 1791374562285,
+   "took": 0.506,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.registered",
+    "type": "boolean",
+    "resolved": true,
+    "value": false
+   }
+  },
+  {
+   "step": "D_ov_calls0",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "phase": "D",
+   "wall_before": 289.334,
+   "wall_after": 290.093,
+   "epoch_ms_before": 1791374562285,
+   "epoch_ms_after": 1791374563044,
+   "took": 0.759,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 6350
+   }
+  },
+  {
+   "step": "D_ov_k0_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "D",
+   "wall_before": 290.093,
+   "wall_after": 290.602,
+   "epoch_ms_before": 1791374563044,
+   "epoch_ms_after": 1791374563553,
+   "took": 0.509,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 2399
+   }
+  },
+  {
+   "step": "D_ov_k0_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "D",
+   "wall_before": 290.602,
+   "wall_after": 291.361,
+   "epoch_ms_before": 1791374563553,
+   "epoch_ms_after": 1791374564312,
+   "took": 0.759,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 781
+   }
+  },
+  {
+   "step": "D_ov_calls1",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.stats.calls",
+   "phase": "D",
+   "wall_before": 296.361,
+   "wall_after": 296.617,
+   "epoch_ms_before": 1791374569312,
+   "epoch_ms_after": 1791374569568,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.stats.calls",
+    "type": "number",
+    "resolved": true,
+    "value": 6350
+   }
+  },
+  {
+   "step": "D_ov_k1_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "D",
+   "wall_before": 296.617,
+   "wall_after": 296.878,
+   "epoch_ms_before": 1791374569568,
+   "epoch_ms_after": 1791374569828,
+   "took": 0.261,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 2462
+   }
+  },
+  {
+   "step": "D_ov_k1_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "D",
+   "wall_before": 296.878,
+   "wall_after": 297.639,
+   "epoch_ms_before": 1791374569828,
+   "epoch_ms_after": 1791374570589,
+   "took": 0.761,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 791
+   }
+  },
+  {
+   "step": "D_overlay_tick_arm",
+   "side": "server",
+   "cmd": "tick.rate",
+   "args": "15",
+   "phase": "D",
+   "wall_before": 297.639,
+   "wall_after": 298.149,
+   "epoch_ms_before": 1791374570589,
+   "epoch_ms_after": 1791374571100,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "armed": true,
+    "seconds": 15,
+    "result": "tick-rate",
+    "file": "pzt-results/tick-rate.json"
+   }
+  },
+  {
+   "step": "D_mode1",
+   "side": "server",
+   "cmd": "sandbox.var",
+   "args": "NR.Mode 1",
+   "phase": "D",
+   "wall_before": 313.432,
+   "wall_after": 313.939,
+   "epoch_ms_before": 1791374586383,
+   "epoch_ms_after": 1791374586890,
+   "took": 0.507,
+   "ack": {
+    "ok": true,
+    "path": "NR.Mode",
+    "requested": 1,
+    "before": 2,
+    "after": 1
+   }
+  },
+  {
+   "step": "D_mode_read2",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.options.mode",
+   "phase": "D",
+   "wall_before": 319.94,
+   "wall_after": 320.195,
+   "epoch_ms_before": 1791374592891,
+   "epoch_ms_after": 1791374593146,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.options.mode",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "D_reg_restored",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.fast.registered",
+   "phase": "D",
+   "wall_before": 320.195,
+   "wall_after": 320.702,
+   "epoch_ms_before": 1791374593146,
+   "epoch_ms_after": 1791374593653,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.fast.registered",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "F_mult",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "0.01",
+   "phase": "F",
+   "wall_before": 320.707,
+   "wall_after": 321.21,
+   "epoch_ms_before": 1791374593658,
+   "epoch_ms_after": 1791374594161,
+   "took": 0.503,
+   "ack": "mult=0.04791102185845375",
+   "ack_shape": "str"
+  },
+  {
+   "step": "F_time0",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "F",
+   "wall_before": 321.21,
+   "wall_after": 322.727,
+   "epoch_ms_before": 1791374594161,
+   "epoch_ms_after": 1791374595678,
+   "took": 1.517,
+   "ack": {
+    "worldAge": 39.251495361328125,
+    "hour": 22,
+    "minutes": 15,
+    "mult": 0.047856297343969345,
+    "wall": 1791374595464
+   }
+  },
+  {
+   "step": "F_time1",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "F",
+   "wall_before": 327.727,
+   "wall_after": 328.742,
+   "epoch_ms_before": 1791374600678,
+   "epoch_ms_after": 1791374601693,
+   "took": 1.015,
+   "ack": {
+    "worldAge": 39.25309753417969,
+    "hour": 22,
+    "minutes": 15,
+    "mult": 0.04800484701991081,
+    "wall": 1791374601458
+   }
+  },
+  {
+   "step": "F_evn",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.evText 1 0",
+   "phase": "F",
+   "wall_before": 328.742,
+   "wall_after": 330.758,
+   "epoch_ms_before": 1791374601693,
+   "epoch_ms_after": 1791374603709,
+   "took": 2.016,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.evText",
+    "nargs": 2,
+    "r1": "",
+    "r2": 0,
+    "r3": 2799
+   }
+  },
+  {
+   "step": "F_watch",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.watch 4000",
+   "phase": "F",
+   "wall_before": 330.758,
+   "wall_after": 332.519,
+   "epoch_ms_before": 1791374603709,
+   "epoch_ms_after": 1791374605470,
+   "took": 1.761,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.watch",
+    "nargs": 1,
+    "r1": 2819,
+    "r2": 6819
+   }
+  },
+  {
+   "step": "F_before_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "F",
+   "wall_before": 333.519,
+   "wall_after": 334.529,
+   "epoch_ms_before": 1791374606470,
+   "epoch_ms_after": 1791374607480,
+   "took": 1.01,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 2839
+   }
+  },
+  {
+   "step": "F_before_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "F",
+   "wall_before": 334.529,
+   "wall_after": 336.54,
+   "epoch_ms_before": 1791374607480,
+   "epoch_ms_after": 1791374609491,
+   "took": 2.011,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 830
+   }
+  },
+  {
+   "step": "F_after_quit_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "F",
+   "wall_before": 339.096,
+   "wall_after": 340.605,
+   "epoch_ms_before": 1791374612047,
+   "epoch_ms_after": 1791374613556,
+   "took": 1.509,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 2899
+   }
+  },
+  {
+   "step": "F_after_quit_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "F",
+   "wall_before": 340.605,
+   "wall_after": 342.615,
+   "epoch_ms_before": 1791374613556,
+   "epoch_ms_after": 1791374615566,
+   "took": 2.01,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 830
+   }
+  },
+  {
+   "step": "F_players_q",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "F",
+   "wall_before": 342.615,
+   "wall_after": 344.629,
+   "epoch_ms_before": 1791374615566,
+   "epoch_ms_after": 1791374617579,
+   "took": 2.014,
+   "ack": [
+    "admin"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "F_after_rejoin_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "F",
+   "wall_before": 437.727,
+   "wall_after": 438.739,
+   "epoch_ms_before": 1791374710677,
+   "epoch_ms_after": 1791374711689,
+   "took": 1.012,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 3879
+   }
+  },
+  {
+   "step": "F_after_rejoin_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "F",
+   "wall_before": 438.739,
+   "wall_after": 440.751,
+   "epoch_ms_before": 1791374711689,
+   "epoch_ms_after": 1791374713702,
+   "took": 2.012,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 831
+   }
+  },
+  {
+   "step": "F_players_r",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "F",
+   "wall_before": 440.751,
+   "wall_after": 442.012,
+   "epoch_ms_before": 1791374713702,
+   "epoch_ms_after": 1791374714963,
+   "took": 1.261,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "F_bob_version",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "phase": "F",
+   "wall_before": 442.012,
+   "wall_after": 472.076,
+   "epoch_ms_before": 1791374714963,
+   "epoch_ms_after": 1791374745027,
+   "took": 30.064,
+   "ack": {
+    "error": "TimeoutError: no ack for #1 lua.global within 30s"
+   }
+  },
+  {
+   "step": "F_ev1",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.evText 1 40",
+   "phase": "F",
+   "wall_before": 472.076,
+   "wall_after": 472.584,
+   "epoch_ms_before": 1791374745027,
+   "epoch_ms_after": 1791374745535,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.evText",
+    "nargs": 2,
+    "r1": "2819|830|1791374605458|watch|4000\n2820|830|1791374605458|online|n=2 [admin#1:A,bob#2:A] mod{admin=#1,bob=#2}\n2867|830|1791374610154|online|n=1 [admin#1:A] mod{admin=#1,bob=#2}\n3289|831|1791374652351|online|n=1 [admin#1:A] mod{admin=#1}\n3516|831|1791374675051|online|n=2 [admin#1:A,bob#3:A] mod{admin=#1}\n3914|832|1791374714862|online|n=2 [admin#1:A,bob#3:A] mod{admin=#1,bob=#3}",
+    "r2": 6,
+    "r3": 4219
+   }
+  },
+  {
+   "step": "F_time2",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "F",
+   "wall_before": 472.584,
+   "wall_after": 474.597,
+   "epoch_ms_before": 1791374745535,
+   "epoch_ms_after": 1791374747548,
+   "took": 2.013,
+   "ack": {
+    "worldAge": 39.29206085205078,
+    "hour": 22,
+    "minutes": 17,
+    "mult": 0.04792027175426483,
+    "wall": 1791374747457
+   }
+  },
+  {
+   "step": "F_mult1",
+   "side": "server",
+   "cmd": "time.multiplier",
+   "args": "1",
+   "phase": "F",
+   "wall_before": 474.597,
+   "wall_after": 476.608,
+   "epoch_ms_before": 1791374747548,
+   "epoch_ms_after": 1791374749559,
+   "took": 2.011,
+   "ack": "mult=4.792501926422119",
+   "ack_shape": "str"
+  },
+  {
+   "step": "F_time3",
+   "side": "server",
+   "cmd": "time.snapshot",
+   "args": "",
+   "phase": "F",
+   "wall_before": 476.608,
+   "wall_after": 476.864,
+   "epoch_ms_before": 1791374749559,
+   "epoch_ms_after": 1791374749815,
+   "took": 0.256,
+   "ack": {
+    "worldAge": 39.30059814453125,
+    "hour": 22,
+    "minutes": 18,
+    "mult": 4.794404983520508,
+    "wall": 1791374749760
+   }
+  },
+  {
+   "step": "E_evn",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.evText 1 0",
+   "phase": "E",
+   "wall_before": 476.869,
+   "wall_after": 477.626,
+   "epoch_ms_before": 1791374749820,
+   "epoch_ms_after": 1791374750577,
+   "took": 0.757,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.evText",
+    "nargs": 2,
+    "r1": "",
+    "r2": 6,
+    "r3": 4269
+   }
+  },
+  {
+   "step": "E_watch",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.watch 3000",
+   "phase": "E",
+   "wall_before": 477.626,
+   "wall_after": 478.132,
+   "epoch_ms_before": 1791374750577,
+   "epoch_ms_after": 1791374751083,
+   "took": 0.506,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.watch",
+    "nargs": 1,
+    "r1": 4275,
+    "r2": 7275
+   }
+  },
+  {
+   "step": "E_ng0",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.newGameN",
+   "phase": "E",
+   "wall_before": 478.132,
+   "wall_after": 478.637,
+   "epoch_ms_before": 1791374751083,
+   "epoch_ms_after": 1791374751588,
+   "took": 0.505,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.newGameN",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "E_rec0_dead",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.dead",
+   "phase": "E",
+   "wall_before": 478.637,
+   "wall_after": 478.896,
+   "epoch_ms_before": 1791374751588,
+   "epoch_ms_after": 1791374751846,
+   "took": 0.259,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.dead",
+    "type": "boolean",
+    "resolved": true,
+    "value": false
+   }
+  },
+  {
+   "step": "E_rec0_resets",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.resets",
+   "phase": "E",
+   "wall_before": 478.896,
+   "wall_after": 479.403,
+   "epoch_ms_before": 1791374751846,
+   "epoch_ms_after": 1791374752353,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.resets",
+    "type": "number",
+    "resolved": true,
+    "value": 0
+   }
+  },
+  {
+   "step": "E_reduce",
+   "side": "server",
+   "cmd": "health.reduce",
+   "args": "admin 110",
+   "phase": "E",
+   "wall_before": 479.403,
+   "wall_after": 480.162,
+   "epoch_ms_before": 1791374752353,
+   "epoch_ms_after": 1791374753113,
+   "took": 0.759,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 98.67778015136719,
+    "parts": [
+     34.467323303222656,
+     34.467323303222656,
+     67.24604797363281,
+     67.24604797363281,
+     78.1724853515625,
+     78.1724853515625,
+     81.29431915283203,
+     83.63546752929688,
+     89.09823608398438,
+     90.65965270996094,
+     83.63546752929688,
+     78.1724853515625,
+     78.1724853515625,
+     67.24604797363281,
+     67.24604797363281,
+     67.24604797363281,
+     67.24604797363281
+    ],
+    "health": 98.67778015136719,
+    "after": 98.67778015136719
+   }
+  },
+  {
+   "step": "E_isDead",
+   "side": "server",
+   "cmd": "witness.chain",
+   "args": "admin isDead",
+   "phase": "E",
+   "wall_before": 480.162,
+   "wall_after": 480.673,
+   "epoch_ms_before": 1791374753113,
+   "epoch_ms_after": 1791374753624,
+   "took": 0.511,
+   "ack": {
+    "ok": true,
+    "hops": 1,
+    "value": "true"
+   }
+  },
+  {
+   "step": "E_after_death_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "E",
+   "wall_before": 480.673,
+   "wall_after": 481.432,
+   "epoch_ms_before": 1791374753624,
+   "epoch_ms_after": 1791374754383,
+   "took": 0.759,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 4306
+   }
+  },
+  {
+   "step": "E_after_death_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "E",
+   "wall_before": 481.432,
+   "wall_after": 481.939,
+   "epoch_ms_before": 1791374754383,
+   "epoch_ms_after": 1791374754890,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 840
+   }
+  },
+  {
+   "step": "E_ui",
+   "side": "client:admin",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 getIsVisible",
+   "phase": "E",
+   "wall_before": 481.945,
+   "wall_after": 482.453,
+   "epoch_ms_before": 1791374754896,
+   "epoch_ms_after": 1791374755404,
+   "took": 0.508,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "E_onRespawn",
+   "side": "client:admin",
+   "cmd": "lua.callm",
+   "args": "ISPostDeathUI.instance.0 onRespawn",
+   "phase": "E",
+   "wall_before": 482.453,
+   "wall_after": 482.962,
+   "epoch_ms_before": 1791374755404,
+   "epoch_ms_after": 1791374755913,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "E_spawn_vis",
+   "side": "client:admin",
+   "cmd": "lua.callm",
+   "args": "CoopMapSpawnSelect.instance getIsVisible",
+   "phase": "E",
+   "wall_before": 482.962,
+   "wall_after": 483.472,
+   "epoch_ms_before": 1791374755913,
+   "epoch_ms_after": 1791374756423,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopMapSpawnSelect.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "E_prof_vis",
+   "side": "client:admin",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationProfession.instance getIsVisible",
+   "phase": "E",
+   "wall_before": 483.472,
+   "wall_after": 483.981,
+   "epoch_ms_before": 1791374756423,
+   "epoch_ms_after": 1791374756932,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationProfession.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": false
+   }
+  },
+  {
+   "step": "E_main_vis",
+   "side": "client:admin",
+   "cmd": "lua.callm",
+   "args": "CharacterCreationMain.instance getIsVisible",
+   "phase": "E",
+   "wall_before": 483.981,
+   "wall_after": 484.491,
+   "epoch_ms_before": 1791374756932,
+   "epoch_ms_after": 1791374757442,
+   "took": 0.51,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CharacterCreationMain.instance",
+    "method": "getIsVisible",
+    "nargs": 0,
+    "r1": true
+   }
+  },
+  {
+   "step": "E_accept",
+   "side": "client:admin",
+   "cmd": "lua.callm",
+   "args": "CoopCharacterCreation.instance accept",
+   "phase": "E",
+   "wall_before": 484.491,
+   "wall_after": 485.0,
+   "epoch_ms_before": 1791374757442,
+   "epoch_ms_after": 1791374757951,
+   "took": 0.509,
+   "ack": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0
+   }
+  },
+  {
+   "step": "E_ng",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.newGameN",
+   "phase": "E",
+   "wall_before": 485.0,
+   "wall_after": 485.26,
+   "epoch_ms_before": 1791374757951,
+   "epoch_ms_after": 1791374758211,
+   "took": 0.26,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.newGameN",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "E_after_respawn_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "E",
+   "wall_before": 490.261,
+   "wall_after": 490.516,
+   "epoch_ms_before": 1791374763212,
+   "epoch_ms_after": 1791374763467,
+   "took": 0.255,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 4399
+   }
+  },
+  {
+   "step": "E_after_respawn_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "E",
+   "wall_before": 490.516,
+   "wall_after": 490.772,
+   "epoch_ms_before": 1791374763467,
+   "epoch_ms_after": 1791374763723,
+   "took": 0.256,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 854
+   }
+  },
+  {
+   "step": "E_ev7",
+   "side": "server",
+   "cmd": "lua.call",
+   "args": "NutritionRevamp.server.bench.evText 7 46",
+   "phase": "E",
+   "wall_before": 490.772,
+   "wall_after": 491.284,
+   "epoch_ms_before": 1791374763723,
+   "epoch_ms_after": 1791374764234,
+   "took": 0.512,
+   "ack": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.evText",
+    "nargs": 2,
+    "r1": "4275|834|1791374751067|watch|3000\n4276|835|1791374751068|online|n=2 [admin#1:A,bob#3:A] mod{admin=#1,bob=#3}\n4296|838|1791374753054|online|n=2 [admin#1:D,bob#3:A] mod{admin=#1,bob=#3}\n4344|845|1791374757953|newgame|admin#4 IsoPlayer{  Name:null,  ID:27 } n=2 [admin#1:D,bob#3:A] mod{admin=#1,bob=#3}\n4346|846|1791374758051|online|n=1 [bob#3:A] mod{admin=#1,bob=#3}\n4347|846|1791374758152|online|n=2 [admin#5:A,bob#3:A] mod{admin=#1,bob=#3}\n4351|847|1791374758557|online|n=2 [admin#5:A,bob#3:A] mod{admin=#5,bob=#3}",
+    "r2": 13,
+    "r3": 4406
+   }
+  },
+  {
+   "step": "E_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "E",
+   "wall_before": 491.284,
+   "wall_after": 492.04,
+   "epoch_ms_before": 1791374764234,
+   "epoch_ms_after": 1791374764991,
+   "took": 0.756,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "E_rec0_dead",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.dead",
+   "phase": "E",
+   "wall_before": 492.04,
+   "wall_after": 492.547,
+   "epoch_ms_before": 1791374764991,
+   "epoch_ms_after": 1791374765497,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.dead",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "E_rec0_resets",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.resets",
+   "phase": "E",
+   "wall_before": 492.547,
+   "wall_after": 493.308,
+   "epoch_ms_before": 1791374765497,
+   "epoch_ms_after": 1791374766259,
+   "took": 0.761,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.resets",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "E_rec0_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "E",
+   "wall_before": 493.308,
+   "wall_after": 493.815,
+   "epoch_ms_before": 1791374766259,
+   "epoch_ms_after": 1791374766766,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 4431
+   }
+  },
+  {
+   "step": "E_rec0_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "E",
+   "wall_before": 493.815,
+   "wall_after": 494.577,
+   "epoch_ms_before": 1791374766766,
+   "epoch_ms_after": 1791374767528,
+   "took": 0.762,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 860
+   }
+  },
+  {
+   "step": "E_rec1_dead",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.dead",
+   "phase": "E",
+   "wall_before": 496.577,
+   "wall_after": 497.088,
+   "epoch_ms_before": 1791374769528,
+   "epoch_ms_after": 1791374770039,
+   "took": 0.511,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.dead",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "E_rec1_resets",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.resets",
+   "phase": "E",
+   "wall_before": 497.088,
+   "wall_after": 497.595,
+   "epoch_ms_before": 1791374770039,
+   "epoch_ms_after": 1791374770546,
+   "took": 0.507,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.resets",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "E_rec1_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "E",
+   "wall_before": 497.595,
+   "wall_after": 498.352,
+   "epoch_ms_before": 1791374770546,
+   "epoch_ms_after": 1791374771303,
+   "took": 0.757,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 4475
+   }
+  },
+  {
+   "step": "E_rec1_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "E",
+   "wall_before": 498.352,
+   "wall_after": 498.609,
+   "epoch_ms_before": 1791374771303,
+   "epoch_ms_after": 1791374771560,
+   "took": 0.257,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 867
+   }
+  },
+  {
+   "step": "E_rec2_dead",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.dead",
+   "phase": "E",
+   "wall_before": 500.609,
+   "wall_after": 501.367,
+   "epoch_ms_before": 1791374773560,
+   "epoch_ms_after": 1791374774318,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.dead",
+    "type": "boolean",
+    "resolved": true,
+    "value": true
+   }
+  },
+  {
+   "step": "E_rec2_resets",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.store.records.admin.resets",
+   "phase": "E",
+   "wall_before": 501.367,
+   "wall_after": 502.125,
+   "epoch_ms_before": 1791374774318,
+   "epoch_ms_after": 1791374775076,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.store.records.admin.resets",
+    "type": "number",
+    "resolved": true,
+    "value": 1
+   }
+  },
+  {
+   "step": "E_rec2_ticks",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.ticks",
+   "phase": "E",
+   "wall_before": 502.125,
+   "wall_after": 502.635,
+   "epoch_ms_before": 1791374775076,
+   "epoch_ms_after": 1791374775586,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.ticks",
+    "type": "number",
+    "resolved": true,
+    "value": 4519
+   }
+  },
+  {
+   "step": "E_rec2_minutes",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.minutes",
+   "phase": "E",
+   "wall_before": 502.635,
+   "wall_after": 503.145,
+   "epoch_ms_before": 1791374775586,
+   "epoch_ms_after": 1791374776096,
+   "took": 0.51,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.minutes",
+    "type": "number",
+    "resolved": true,
+    "value": 874
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "S0": {
+   "ready": [
+    {
+     "t": 48.9,
+     "phase": "client_launch",
+     "user": "admin",
+     "restored": true
+    },
+    {
+     "t": 88.7,
+     "phase": "client_ready",
+     "took": 39.3,
+     "user": "admin"
+    },
+    {
+     "t": 88.8,
+     "phase": "client_launch",
+     "user": "bob",
+     "restored": true
+    },
+    {
+     "t": 143.6,
+     "phase": "client_ready",
+     "took": 54.4,
+     "user": "bob"
+    }
+   ],
+   "players": {
+    "wall": 145.187,
+    "wall_after": 145.697,
+    "side": "server",
+    "raw": [
+     "admin",
+     "bob"
+    ]
+   },
+   "time": {
+    "worldAge": 4.851080894470215,
+    "hour": 11,
+    "minutes": 51,
+    "mult": 4.7567033767700195,
+    "wall": 145.697,
+    "wall_after": 146.205,
+    "side": "server"
+   },
+   "seen": {
+    "bob": {
+     "in_game": 51.9,
+     "ready": 54.4
+    },
+    "admin": {
+     "in_game": 36.8,
+     "ready": 39.3
+    }
+   }
+  },
+  "A": {
+   "severity": {
+    "name": "NutritionRevamp.server.options.severity",
+    "side": "server",
+    "wall": 146.206,
+    "wall_after": 146.965,
+    "resolved": true,
+    "type": "number",
+    "value": 1.5
+   },
+   "readAt": {
+    "name": "NutritionRevamp.server.options.readAt",
+    "side": "server",
+    "wall": 146.965,
+    "wall_after": 147.473,
+    "resolved": true,
+    "type": "string",
+    "value": "poll"
+   },
+   "mode": {
+    "name": "NutritionRevamp.server.options.mode",
+    "side": "server",
+    "wall": 147.473,
+    "wall_after": 148.23,
+    "resolved": true,
+    "type": "number",
+    "value": 1
+   },
+   "sandboxvars_severity": {
+    "name": "SandboxVars.NR.Severity",
+    "side": "server",
+    "wall": 148.23,
+    "wall_after": 148.737,
+    "resolved": true,
+    "type": "number",
+    "value": 1.5
+   },
+   "sandboxvars_mode": {
+    "name": "SandboxVars.NR.Mode",
+    "side": "server",
+    "wall": 148.737,
+    "wall_after": 149.494,
+    "resolved": true,
+    "type": "number",
+    "value": 1
+   },
+   "version": {
+    "name": "NutritionRevamp.version",
+    "side": "server",
+    "wall": 149.494,
+    "wall_after": 150.003,
+    "resolved": true,
+    "type": "string",
+    "value": "1.0.0"
+   },
+   "client_sandboxvars_severity": {
+    "bob": {
+     "name": "SandboxVars.NR.Severity",
+     "side": "client:bob",
+     "wall": 150.003,
+     "wall_after": 150.51,
+     "resolved": true,
+     "type": "number",
+     "value": 1.5
+    },
+    "admin": {
+     "name": "SandboxVars.NR.Severity",
+     "side": "client:admin",
+     "wall": 150.51,
+     "wall_after": 150.763,
+     "resolved": true,
+     "type": "number",
+     "value": 1.5
+    }
+   }
+  },
+  "B": {
+   "reset": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.resetHist",
+    "nargs": 0,
+    "r1": 1009,
+    "r2": 160,
+    "wall": 150.765,
+    "wall_after": 151.272
+   },
+   "start": {
+    "ticks": 1016,
+    "minutes": 162,
+    "wall": 151.272,
+    "wall_after": 152.286
+   },
+   "time_start": {
+    "worldAge": 5.018320083618164,
+    "hour": 12,
+    "minutes": 1,
+    "mult": 4.773466110229492,
+    "wall": 152.286,
+    "wall_after": 152.543,
+    "side": "server"
+   },
+   "polls": [
+    {
+     "ticks": 1028,
+     "minutes": 164,
+     "wall": 152.543,
+     "wall_after": 153.809
+    },
+    {
+     "ticks": 1059,
+     "minutes": 169,
+     "wall": 155.81,
+     "wall_after": 157.076
+    },
+    {
+     "ticks": 1091,
+     "minutes": 174,
+     "wall": 159.076,
+     "wall_after": 160.093
+    },
+    {
+     "ticks": 1119,
+     "minutes": 178,
+     "wall": 162.093,
+     "wall_after": 162.617
+    },
+    {
+     "ticks": 1147,
+     "minutes": 183,
+     "wall": 164.618,
+     "wall_after": 165.641
+    },
+    {
+     "ticks": 1178,
+     "minutes": 188,
+     "wall": 167.641,
+     "wall_after": 168.414
+    }
+   ],
+   "end": {
+    "ticks": 1178,
+    "minutes": 188,
+    "wall": 167.641,
+    "wall_after": 168.414
+   },
+   "ring": {
+    "call": {
+     "ok": true,
+     "r2": 188,
+     "r3": 1185,
+     "err": null,
+     "failedAt": null,
+     "wall": 168.414,
+     "wall_after": 168.921
+    },
+    "text": "783,125,4.383796691894531,1791374401505;790,126,4.402412414550781,1791374402205;796,127,4.418386459350586,1791374402804;802,128,4.434357643127441,1791374403404;808,129,4.450342178344727,1791374404005;815,130,4.468985557556152,1791374404702;821,131,4.484963417053223,1791374405307;827,132,4.500949859619141,1791374405912;833,133,4.516933441162109,1791374406502;840,134,4.5355730056762695,1791374407207;846,135,4.55156135559082,1791374407803;852,136,4.567538261413574,1791374408404;858,137,4.583526611328125,1791374409003;865,138,4.602184295654297,1791374409705;871,139,4.618175506591797,1791374410304;877,140,4.634156227111816,1791374410904;883,141,4.650143623352051,1791374411508;890,142,4.668789863586426,1791374412208;896,143,4.684782028198242,1791374412806;902,144,4.700762748718262,1791374413402;908,145,4.7167463302612305,1791374414003;915,146,4.735401153564453,1791374414702;921,147,4.751448631286621,1791374415369;927,148,4.767184257507324,1791374415918;934,149,4.785370826721191,1791374416617;940,150,4.80107307434082,1791374417202;946,151,4.816800117492676,1791374417803;953,152,4.835245132446289,1791374418518;959,153,4.851080894470215,1791374419110;965,154,4.866939544677734,1791374419709;972,155,4.8854780197143555,1791374420409;978,156,4.901391983032227,1791374421012;984,157,4.917319297790527,1791374421611;991,158,4.935903549194336,1791374422310;997,159,4.951848030090332,1791374422913;1003,160,4.967807769775391,1791374423506;1009,161,4.983765602111816,1791374424112;1016,162,5.002384185791016,1791374424823;1022,163,5.018320083618164,1791374425414;1028,164,5.034239768981934,1791374426010;1034,165,5.050164222717285,1791374426610;1041,166,5.068768501281738,1791374427305;1047,167,5.084711074829102,1791374427907;1053,168,5.10067081451416,1791374428502;1060,169,5.1193037033081055,1791374429203;1066,170,5.135259628295898,1791374429809;1072,171,5.1512298583984375,1791374430402;1078,172,5.167200088500977,1791374431010;1085,173,5.185851097106934,1791374431703;1091,174,5.2018232345581055,1791374432312;1097,175,5.217807769775391,1791374432909;1103,176,5.233791351318359,1791374433505;1110,177,5.25242805480957,1791374434205;1116,178,5.2684173583984375,1791374434805;1122,179,5.284404754638672,1791374435412;1128,180,5.3003692626953125,1791374436004;1135,181,5.318995475769043,1791374436705;1141,182,5.334969520568848,1791374437318;1147,183,5.3509321212768555,1791374437915;1153,184,5.366877555847168,1791374438512;1160,185,5.385473251342773,1791374439202;1166,186,5.4014177322387695,1791374439805;1172,187,5.417376518249512,1791374440403;1178,188,5.433337211608887,1791374441013",
+    "rows": [
+     {
+      "ticks": 783.0,
+      "minutes": 125.0,
+      "age": 4.383796691894531,
+      "ms": 1791374401505.0
+     },
+     {
+      "ticks": 790.0,
+      "minutes": 126.0,
+      "age": 4.402412414550781,
+      "ms": 1791374402205.0
+     },
+     {
+      "ticks": 796.0,
+      "minutes": 127.0,
+      "age": 4.418386459350586,
+      "ms": 1791374402804.0
+     },
+     {
+      "ticks": 802.0,
+      "minutes": 128.0,
+      "age": 4.434357643127441,
+      "ms": 1791374403404.0
+     },
+     {
+      "ticks": 808.0,
+      "minutes": 129.0,
+      "age": 4.450342178344727,
+      "ms": 1791374404005.0
+     },
+     {
+      "ticks": 815.0,
+      "minutes": 130.0,
+      "age": 4.468985557556152,
+      "ms": 1791374404702.0
+     },
+     {
+      "ticks": 821.0,
+      "minutes": 131.0,
+      "age": 4.484963417053223,
+      "ms": 1791374405307.0
+     },
+     {
+      "ticks": 827.0,
+      "minutes": 132.0,
+      "age": 4.500949859619141,
+      "ms": 1791374405912.0
+     },
+     {
+      "ticks": 833.0,
+      "minutes": 133.0,
+      "age": 4.516933441162109,
+      "ms": 1791374406502.0
+     },
+     {
+      "ticks": 840.0,
+      "minutes": 134.0,
+      "age": 4.5355730056762695,
+      "ms": 1791374407207.0
+     },
+     {
+      "ticks": 846.0,
+      "minutes": 135.0,
+      "age": 4.55156135559082,
+      "ms": 1791374407803.0
+     },
+     {
+      "ticks": 852.0,
+      "minutes": 136.0,
+      "age": 4.567538261413574,
+      "ms": 1791374408404.0
+     },
+     {
+      "ticks": 858.0,
+      "minutes": 137.0,
+      "age": 4.583526611328125,
+      "ms": 1791374409003.0
+     },
+     {
+      "ticks": 865.0,
+      "minutes": 138.0,
+      "age": 4.602184295654297,
+      "ms": 1791374409705.0
+     },
+     {
+      "ticks": 871.0,
+      "minutes": 139.0,
+      "age": 4.618175506591797,
+      "ms": 1791374410304.0
+     },
+     {
+      "ticks": 877.0,
+      "minutes": 140.0,
+      "age": 4.634156227111816,
+      "ms": 1791374410904.0
+     },
+     {
+      "ticks": 883.0,
+      "minutes": 141.0,
+      "age": 4.650143623352051,
+      "ms": 1791374411508.0
+     },
+     {
+      "ticks": 890.0,
+      "minutes": 142.0,
+      "age": 4.668789863586426,
+      "ms": 1791374412208.0
+     },
+     {
+      "ticks": 896.0,
+      "minutes": 143.0,
+      "age": 4.684782028198242,
+      "ms": 1791374412806.0
+     },
+     {
+      "ticks": 902.0,
+      "minutes": 144.0,
+      "age": 4.700762748718262,
+      "ms": 1791374413402.0
+     },
+     {
+      "ticks": 908.0,
+      "minutes": 145.0,
+      "age": 4.7167463302612305,
+      "ms": 1791374414003.0
+     },
+     {
+      "ticks": 915.0,
+      "minutes": 146.0,
+      "age": 4.735401153564453,
+      "ms": 1791374414702.0
+     },
+     {
+      "ticks": 921.0,
+      "minutes": 147.0,
+      "age": 4.751448631286621,
+      "ms": 1791374415369.0
+     },
+     {
+      "ticks": 927.0,
+      "minutes": 148.0,
+      "age": 4.767184257507324,
+      "ms": 1791374415918.0
+     },
+     {
+      "ticks": 934.0,
+      "minutes": 149.0,
+      "age": 4.785370826721191,
+      "ms": 1791374416617.0
+     },
+     {
+      "ticks": 940.0,
+      "minutes": 150.0,
+      "age": 4.80107307434082,
+      "ms": 1791374417202.0
+     },
+     {
+      "ticks": 946.0,
+      "minutes": 151.0,
+      "age": 4.816800117492676,
+      "ms": 1791374417803.0
+     },
+     {
+      "ticks": 953.0,
+      "minutes": 152.0,
+      "age": 4.835245132446289,
+      "ms": 1791374418518.0
+     },
+     {
+      "ticks": 959.0,
+      "minutes": 153.0,
+      "age": 4.851080894470215,
+      "ms": 1791374419110.0
+     },
+     {
+      "ticks": 965.0,
+      "minutes": 154.0,
+      "age": 4.866939544677734,
+      "ms": 1791374419709.0
+     },
+     {
+      "ticks": 972.0,
+      "minutes": 155.0,
+      "age": 4.8854780197143555,
+      "ms": 1791374420409.0
+     },
+     {
+      "ticks": 978.0,
+      "minutes": 156.0,
+      "age": 4.901391983032227,
+      "ms": 1791374421012.0
+     },
+     {
+      "ticks": 984.0,
+      "minutes": 157.0,
+      "age": 4.917319297790527,
+      "ms": 1791374421611.0
+     },
+     {
+      "ticks": 991.0,
+      "minutes": 158.0,
+      "age": 4.935903549194336,
+      "ms": 1791374422310.0
+     },
+     {
+      "ticks": 997.0,
+      "minutes": 159.0,
+      "age": 4.951848030090332,
+      "ms": 1791374422913.0
+     },
+     {
+      "ticks": 1003.0,
+      "minutes": 160.0,
+      "age": 4.967807769775391,
+      "ms": 1791374423506.0
+     },
+     {
+      "ticks": 1009.0,
+      "minutes": 161.0,
+      "age": 4.983765602111816,
+      "ms": 1791374424112.0
+     },
+     {
+      "ticks": 1016.0,
+      "minutes": 162.0,
+      "age": 5.002384185791016,
+      "ms": 1791374424823.0
+     },
+     {
+      "ticks": 1022.0,
+      "minutes": 163.0,
+      "age": 5.018320083618164,
+      "ms": 1791374425414.0
+     },
+     {
+      "ticks": 1028.0,
+      "minutes": 164.0,
+      "age": 5.034239768981934,
+      "ms": 1791374426010.0
+     },
+     {
+      "ticks": 1034.0,
+      "minutes": 165.0,
+      "age": 5.050164222717285,
+      "ms": 1791374426610.0
+     },
+     {
+      "ticks": 1041.0,
+      "minutes": 166.0,
+      "age": 5.068768501281738,
+      "ms": 1791374427305.0
+     },
+     {
+      "ticks": 1047.0,
+      "minutes": 167.0,
+      "age": 5.084711074829102,
+      "ms": 1791374427907.0
+     },
+     {
+      "ticks": 1053.0,
+      "minutes": 168.0,
+      "age": 5.10067081451416,
+      "ms": 1791374428502.0
+     },
+     {
+      "ticks": 1060.0,
+      "minutes": 169.0,
+      "age": 5.1193037033081055,
+      "ms": 1791374429203.0
+     },
+     {
+      "ticks": 1066.0,
+      "minutes": 170.0,
+      "age": 5.135259628295898,
+      "ms": 1791374429809.0
+     },
+     {
+      "ticks": 1072.0,
+      "minutes": 171.0,
+      "age": 5.1512298583984375,
+      "ms": 1791374430402.0
+     },
+     {
+      "ticks": 1078.0,
+      "minutes": 172.0,
+      "age": 5.167200088500977,
+      "ms": 1791374431010.0
+     },
+     {
+      "ticks": 1085.0,
+      "minutes": 173.0,
+      "age": 5.185851097106934,
+      "ms": 1791374431703.0
+     },
+     {
+      "ticks": 1091.0,
+      "minutes": 174.0,
+      "age": 5.2018232345581055,
+      "ms": 1791374432312.0
+     },
+     {
+      "ticks": 1097.0,
+      "minutes": 175.0,
+      "age": 5.217807769775391,
+      "ms": 1791374432909.0
+     },
+     {
+      "ticks": 1103.0,
+      "minutes": 176.0,
+      "age": 5.233791351318359,
+      "ms": 1791374433505.0
+     },
+     {
+      "ticks": 1110.0,
+      "minutes": 177.0,
+      "age": 5.25242805480957,
+      "ms": 1791374434205.0
+     },
+     {
+      "ticks": 1116.0,
+      "minutes": 178.0,
+      "age": 5.2684173583984375,
+      "ms": 1791374434805.0
+     },
+     {
+      "ticks": 1122.0,
+      "minutes": 179.0,
+      "age": 5.284404754638672,
+      "ms": 1791374435412.0
+     },
+     {
+      "ticks": 1128.0,
+      "minutes": 180.0,
+      "age": 5.3003692626953125,
+      "ms": 1791374436004.0
+     },
+     {
+      "ticks": 1135.0,
+      "minutes": 181.0,
+      "age": 5.318995475769043,
+      "ms": 1791374436705.0
+     },
+     {
+      "ticks": 1141.0,
+      "minutes": 182.0,
+      "age": 5.334969520568848,
+      "ms": 1791374437318.0
+     },
+     {
+      "ticks": 1147.0,
+      "minutes": 183.0,
+      "age": 5.3509321212768555,
+      "ms": 1791374437915.0
+     },
+     {
+      "ticks": 1153.0,
+      "minutes": 184.0,
+      "age": 5.366877555847168,
+      "ms": 1791374438512.0
+     },
+     {
+      "ticks": 1160.0,
+      "minutes": 185.0,
+      "age": 5.385473251342773,
+      "ms": 1791374439202.0
+     },
+     {
+      "ticks": 1166.0,
+      "minutes": 186.0,
+      "age": 5.4014177322387695,
+      "ms": 1791374439805.0
+     },
+     {
+      "ticks": 1172.0,
+      "minutes": 187.0,
+      "age": 5.417376518249512,
+      "ms": 1791374440403.0
+     },
+     {
+      "ticks": 1178.0,
+      "minutes": 188.0,
+      "age": 5.433337211608887,
+      "ms": 1791374441013.0
+     }
+    ],
+    "stats": {
+     "n": 63,
+     "mean": 6.26984126984127,
+     "min": 6.0,
+     "max": 7.0,
+     "zero_gaps": 0,
+     "hist": {
+      "7": 17,
+      "6": 46
+     },
+     "span_ms": 39508.0,
+     "minutes_span": 63.0,
+     "age_span_h": 1.0495405197143555
+    }
+   },
+   "hist": {
+    "text": "h0=153 h1=29 h2=0 h3=0 h4=0 h5=0 hmax=1",
+    "ticks": 1191,
+    "minutes": 189,
+    "hist": {
+     "h0": 153.0,
+     "h1": 29.0,
+     "h2": 0.0,
+     "h3": 0.0,
+     "h4": 0.0,
+     "h5": 0.0,
+     "hmax": 1.0
+    },
+    "ok": true,
+    "err": null,
+    "wall": 168.921
+   },
+   "time_end": {
+    "worldAge": 5.483868598937988,
+    "hour": 12,
+    "minutes": 29,
+    "mult": 4.787895202636719,
+    "wall": 169.43,
+    "wall_after": 170.187,
+    "side": "server"
+   },
+   "tick_rate": {
+    "arm": {
+     "side": "server",
+     "armed": true,
+     "seconds": 10,
+     "result": "tick-rate",
+     "file": "pzt-results/tick-rate.json"
+    },
+    "result": {
+     "seconds": 10,
+     "ticks": 102,
+     "elapsedMs": 10084,
+     "startWall": 1791374443621,
+     "endWall": 1791374453705,
+     "worldAgeStart": 5.502480506896973,
+     "worldAgeEnd": 5.7714080810546875,
+     "ticksPerSecond": 10.115033716779056,
+     "worldMinutesPerSecond": 1.6001243999864032,
+     "complete": true,
+     "t": 1791374453705,
+     "side": "server",
+     "name": "tick-rate"
+    },
+    "inside": null,
+    "ticksPerSecond": 10.115033716779056,
+    "worldMinutesPerSecond": 1.6001243999864032
+   },
+   "players_stats": {
+    "minutes": {
+     "name": "NutritionRevamp.server.players.minutes",
+     "side": "server",
+     "wall": 180.969,
+     "wall_after": 181.479,
+     "resolved": true,
+     "type": "number",
+     "value": 208
+    },
+    "drained": {
+     "name": "NutritionRevamp.server.players.drained",
+     "side": "server",
+     "wall": 181.479,
+     "wall_after": 181.987,
+     "resolved": true,
+     "type": "number",
+     "value": 214
+    }
+   }
+  },
+  "C": {
+   "C1": {
+    "time_before": {
+     "worldAge": 5.808721542358398,
+     "hour": 12,
+     "minutes": 48,
+     "mult": 4.795252323150635,
+     "wall": 181.992,
+     "wall_after": 182.249,
+     "side": "server"
+    },
+    "players_before": {
+     "minutes": {
+      "name": "NutritionRevamp.server.players.minutes",
+      "side": "server",
+      "wall": 182.249,
+      "wall_after": 182.506,
+      "resolved": true,
+      "type": "number",
+      "value": 210
+     },
+     "drained": {
+      "name": "NutritionRevamp.server.players.drained",
+      "side": "server",
+      "wall": 182.506,
+      "wall_after": 183.27,
+      "resolved": true,
+      "type": "number",
+      "value": 218
+     }
+    },
+    "reset": {
+     "ok": true,
+     "side": "server",
+     "path": "NutritionRevamp.server.bench.resetHist",
+     "nargs": 0,
+     "r1": 1335,
+     "r2": 212,
+     "wall": 183.27,
+     "wall_after": 183.776
+    },
+    "start": {
+     "ticks": 1339,
+     "minutes": 213,
+     "wall": 183.776,
+     "wall_after": 184.538
+    },
+    "speed": {
+     "ok": true,
+     "reply": "Multiplier was set on the following value: 30.0"
+    },
+    "time_fast": {
+     "worldAge": 6.032452583312988,
+     "hour": 13,
+     "minutes": 1,
+     "mult": 144.83753967285156,
+     "wall": 184.715,
+     "wall_after": 184.971,
+     "side": "server"
+    },
+    "tick_rate": {
+     "arm": {
+      "side": "server",
+      "armed": true,
+      "seconds": 20,
+      "result": "tick-rate",
+      "file": "pzt-results/tick-rate.json"
+     },
+     "result": {
+      "seconds": 20,
+      "ticks": 202,
+      "elapsedMs": 20106,
+      "startWall": 1791374458009,
+      "endWall": 1791374478115,
+      "worldAgeStart": 6.271081924438477,
+      "worldAgeEnd": 22.243392944335938,
+      "ticksPerSecond": 10.04675221326967,
+      "worldMinutesPerSecond": 47.66431220500585,
+      "complete": true,
+      "t": 1791374478115,
+      "side": "server",
+      "name": "tick-rate"
+     },
+     "inside": null,
+     "ticksPerSecond": 10.04675221326967,
+     "worldMinutesPerSecond": 47.66431220500585
+    },
+    "hist": {
+     "text": "h0=7 h1=209 h2=0 h3=0 h4=0 h5=0 hmax=1",
+     "ticks": 1551,
+     "minutes": 421,
+     "hist": {
+      "h0": 7.0,
+      "h1": 209.0,
+      "h2": 0.0,
+      "h3": 0.0,
+      "h4": 0.0,
+      "h5": 0.0,
+      "hmax": 1.0
+     },
+     "ok": true,
+     "err": null,
+     "wall": 205.27
+    },
+    "end": {
+     "ticks": 1553,
+     "minutes": 426,
+     "wall": 205.526,
+     "wall_after": 206.038
+    },
+    "ring": {
+     "call": {
+      "ok": true,
+      "r2": 428,
+      "r3": 1558,
+      "err": null,
+      "failedAt": null,
+      "wall": 206.038,
+      "wall_after": 206.295
+     },
+     "text": "1494,365,17.87433624267578,1791374472613;1495,366,17.953445434570312,1791374472706;1496,367,18.032352447509766,1791374472810;1497,368,18.111461639404297,1791374472908;1498,369,18.190614700317383,1791374473013;1499,370,18.26992416381836,1791374473107;1500,371,18.348974227905273,1791374473215;1501,372,18.42842674255371,1791374473306;1502,373,18.507471084594727,1791374473410;1503,374,18.586748123168945,1791374473508;1504,375,18.66602325439453,1791374473605;1505,376,18.745126724243164,1791374473710;1506,377,18.824460983276367,1791374473803;1507,378,18.903533935546875,1791374473913;1508,379,18.983041763305664,1791374474006;1509,380,19.06232261657715,1791374474113;1510,381,19.141860961914062,1791374474205;1511,382,19.22103500366211,1791374474307;1512,383,19.300289154052734,1791374474403;1513,384,19.379497528076172,1791374474509;1514,385,19.458969116210938,1791374474607;1515,386,19.538429260253906,1791374474713;1516,387,19.61810302734375,1791374474804;1517,388,19.69740104675293,1791374474909;1518,389,19.776885986328125,1791374475003;1519,390,19.856189727783203,1791374475110;1520,391,19.935752868652344,1791374475203;1521,392,20.01508331298828,1791374475312;1522,393,20.09480857849121,1791374475404;1523,394,20.17410659790039,1791374475505;1524,395,20.253555297851562,1791374475603;1525,396,20.332908630371094,1791374475703;1526,397,20.412296295166016,1791374475809;1527,398,20.491899490356445,1791374475903;1528,399,20.57131576538086,1791374476009;1529,400,20.650985717773438,1791374476105;1530,401,20.730504989624023,1791374476209;1531,402,20.810203552246094,1791374476304;1532,403,20.88966178894043,1791374476412;1533,404,20.969440460205078,1791374476504;1534,405,21.048978805541992,1791374476614;1535,406,21.128833770751953,1791374476705;1536,407,21.208351135253906,1791374476811;1537,408,21.288116455078125,1791374476903;1538,409,21.3675479888916,1791374477009;1539,410,21.44719696044922,1791374477105;1540,411,21.52674102783203,1791374477212;1541,412,21.60660171508789,1791374477307;1542,413,21.686216354370117,1791374477408;1543,414,21.765850067138672,1791374477505;1544,415,21.845420837402344,1791374477616;1545,416,21.925373077392578,1791374477704;1546,417,22.00478744506836,1791374477813;1547,418,22.084592819213867,1791374477905;1548,419,22.1640625,1791374478003;1549,420,22.243392944335938,1791374478115;1550,421,22.32330322265625,1791374478204;1551,422,22.402576446533203,1791374478318;1552,423,22.48242950439453,1791374478405;1553,424,22.56169891357422,1791374478513;1554,425,22.64126205444336,1791374478605;1555,426,22.720504760742188,1791374478708;1556,427,22.799861907958984,1791374478814;1557,428,22.87950897216797,1791374478907",
+     "rows": [
+      {
+       "ticks": 1494.0,
+       "minutes": 365.0,
+       "age": 17.87433624267578,
+       "ms": 1791374472613.0
+      },
+      {
+       "ticks": 1495.0,
+       "minutes": 366.0,
+       "age": 17.953445434570312,
+       "ms": 1791374472706.0
+      },
+      {
+       "ticks": 1496.0,
+       "minutes": 367.0,
+       "age": 18.032352447509766,
+       "ms": 1791374472810.0
+      },
+      {
+       "ticks": 1497.0,
+       "minutes": 368.0,
+       "age": 18.111461639404297,
+       "ms": 1791374472908.0
+      },
+      {
+       "ticks": 1498.0,
+       "minutes": 369.0,
+       "age": 18.190614700317383,
+       "ms": 1791374473013.0
+      },
+      {
+       "ticks": 1499.0,
+       "minutes": 370.0,
+       "age": 18.26992416381836,
+       "ms": 1791374473107.0
+      },
+      {
+       "ticks": 1500.0,
+       "minutes": 371.0,
+       "age": 18.348974227905273,
+       "ms": 1791374473215.0
+      },
+      {
+       "ticks": 1501.0,
+       "minutes": 372.0,
+       "age": 18.42842674255371,
+       "ms": 1791374473306.0
+      },
+      {
+       "ticks": 1502.0,
+       "minutes": 373.0,
+       "age": 18.507471084594727,
+       "ms": 1791374473410.0
+      },
+      {
+       "ticks": 1503.0,
+       "minutes": 374.0,
+       "age": 18.586748123168945,
+       "ms": 1791374473508.0
+      },
+      {
+       "ticks": 1504.0,
+       "minutes": 375.0,
+       "age": 18.66602325439453,
+       "ms": 1791374473605.0
+      },
+      {
+       "ticks": 1505.0,
+       "minutes": 376.0,
+       "age": 18.745126724243164,
+       "ms": 1791374473710.0
+      },
+      {
+       "ticks": 1506.0,
+       "minutes": 377.0,
+       "age": 18.824460983276367,
+       "ms": 1791374473803.0
+      },
+      {
+       "ticks": 1507.0,
+       "minutes": 378.0,
+       "age": 18.903533935546875,
+       "ms": 1791374473913.0
+      },
+      {
+       "ticks": 1508.0,
+       "minutes": 379.0,
+       "age": 18.983041763305664,
+       "ms": 1791374474006.0
+      },
+      {
+       "ticks": 1509.0,
+       "minutes": 380.0,
+       "age": 19.06232261657715,
+       "ms": 1791374474113.0
+      },
+      {
+       "ticks": 1510.0,
+       "minutes": 381.0,
+       "age": 19.141860961914062,
+       "ms": 1791374474205.0
+      },
+      {
+       "ticks": 1511.0,
+       "minutes": 382.0,
+       "age": 19.22103500366211,
+       "ms": 1791374474307.0
+      },
+      {
+       "ticks": 1512.0,
+       "minutes": 383.0,
+       "age": 19.300289154052734,
+       "ms": 1791374474403.0
+      },
+      {
+       "ticks": 1513.0,
+       "minutes": 384.0,
+       "age": 19.379497528076172,
+       "ms": 1791374474509.0
+      },
+      {
+       "ticks": 1514.0,
+       "minutes": 385.0,
+       "age": 19.458969116210938,
+       "ms": 1791374474607.0
+      },
+      {
+       "ticks": 1515.0,
+       "minutes": 386.0,
+       "age": 19.538429260253906,
+       "ms": 1791374474713.0
+      },
+      {
+       "ticks": 1516.0,
+       "minutes": 387.0,
+       "age": 19.61810302734375,
+       "ms": 1791374474804.0
+      },
+      {
+       "ticks": 1517.0,
+       "minutes": 388.0,
+       "age": 19.69740104675293,
+       "ms": 1791374474909.0
+      },
+      {
+       "ticks": 1518.0,
+       "minutes": 389.0,
+       "age": 19.776885986328125,
+       "ms": 1791374475003.0
+      },
+      {
+       "ticks": 1519.0,
+       "minutes": 390.0,
+       "age": 19.856189727783203,
+       "ms": 1791374475110.0
+      },
+      {
+       "ticks": 1520.0,
+       "minutes": 391.0,
+       "age": 19.935752868652344,
+       "ms": 1791374475203.0
+      },
+      {
+       "ticks": 1521.0,
+       "minutes": 392.0,
+       "age": 20.01508331298828,
+       "ms": 1791374475312.0
+      },
+      {
+       "ticks": 1522.0,
+       "minutes": 393.0,
+       "age": 20.09480857849121,
+       "ms": 1791374475404.0
+      },
+      {
+       "ticks": 1523.0,
+       "minutes": 394.0,
+       "age": 20.17410659790039,
+       "ms": 1791374475505.0
+      },
+      {
+       "ticks": 1524.0,
+       "minutes": 395.0,
+       "age": 20.253555297851562,
+       "ms": 1791374475603.0
+      },
+      {
+       "ticks": 1525.0,
+       "minutes": 396.0,
+       "age": 20.332908630371094,
+       "ms": 1791374475703.0
+      },
+      {
+       "ticks": 1526.0,
+       "minutes": 397.0,
+       "age": 20.412296295166016,
+       "ms": 1791374475809.0
+      },
+      {
+       "ticks": 1527.0,
+       "minutes": 398.0,
+       "age": 20.491899490356445,
+       "ms": 1791374475903.0
+      },
+      {
+       "ticks": 1528.0,
+       "minutes": 399.0,
+       "age": 20.57131576538086,
+       "ms": 1791374476009.0
+      },
+      {
+       "ticks": 1529.0,
+       "minutes": 400.0,
+       "age": 20.650985717773438,
+       "ms": 1791374476105.0
+      },
+      {
+       "ticks": 1530.0,
+       "minutes": 401.0,
+       "age": 20.730504989624023,
+       "ms": 1791374476209.0
+      },
+      {
+       "ticks": 1531.0,
+       "minutes": 402.0,
+       "age": 20.810203552246094,
+       "ms": 1791374476304.0
+      },
+      {
+       "ticks": 1532.0,
+       "minutes": 403.0,
+       "age": 20.88966178894043,
+       "ms": 1791374476412.0
+      },
+      {
+       "ticks": 1533.0,
+       "minutes": 404.0,
+       "age": 20.969440460205078,
+       "ms": 1791374476504.0
+      },
+      {
+       "ticks": 1534.0,
+       "minutes": 405.0,
+       "age": 21.048978805541992,
+       "ms": 1791374476614.0
+      },
+      {
+       "ticks": 1535.0,
+       "minutes": 406.0,
+       "age": 21.128833770751953,
+       "ms": 1791374476705.0
+      },
+      {
+       "ticks": 1536.0,
+       "minutes": 407.0,
+       "age": 21.208351135253906,
+       "ms": 1791374476811.0
+      },
+      {
+       "ticks": 1537.0,
+       "minutes": 408.0,
+       "age": 21.288116455078125,
+       "ms": 1791374476903.0
+      },
+      {
+       "ticks": 1538.0,
+       "minutes": 409.0,
+       "age": 21.3675479888916,
+       "ms": 1791374477009.0
+      },
+      {
+       "ticks": 1539.0,
+       "minutes": 410.0,
+       "age": 21.44719696044922,
+       "ms": 1791374477105.0
+      },
+      {
+       "ticks": 1540.0,
+       "minutes": 411.0,
+       "age": 21.52674102783203,
+       "ms": 1791374477212.0
+      },
+      {
+       "ticks": 1541.0,
+       "minutes": 412.0,
+       "age": 21.60660171508789,
+       "ms": 1791374477307.0
+      },
+      {
+       "ticks": 1542.0,
+       "minutes": 413.0,
+       "age": 21.686216354370117,
+       "ms": 1791374477408.0
+      },
+      {
+       "ticks": 1543.0,
+       "minutes": 414.0,
+       "age": 21.765850067138672,
+       "ms": 1791374477505.0
+      },
+      {
+       "ticks": 1544.0,
+       "minutes": 415.0,
+       "age": 21.845420837402344,
+       "ms": 1791374477616.0
+      },
+      {
+       "ticks": 1545.0,
+       "minutes": 416.0,
+       "age": 21.925373077392578,
+       "ms": 1791374477704.0
+      },
+      {
+       "ticks": 1546.0,
+       "minutes": 417.0,
+       "age": 22.00478744506836,
+       "ms": 1791374477813.0
+      },
+      {
+       "ticks": 1547.0,
+       "minutes": 418.0,
+       "age": 22.084592819213867,
+       "ms": 1791374477905.0
+      },
+      {
+       "ticks": 1548.0,
+       "minutes": 419.0,
+       "age": 22.1640625,
+       "ms": 1791374478003.0
+      },
+      {
+       "ticks": 1549.0,
+       "minutes": 420.0,
+       "age": 22.243392944335938,
+       "ms": 1791374478115.0
+      },
+      {
+       "ticks": 1550.0,
+       "minutes": 421.0,
+       "age": 22.32330322265625,
+       "ms": 1791374478204.0
+      },
+      {
+       "ticks": 1551.0,
+       "minutes": 422.0,
+       "age": 22.402576446533203,
+       "ms": 1791374478318.0
+      },
+      {
+       "ticks": 1552.0,
+       "minutes": 423.0,
+       "age": 22.48242950439453,
+       "ms": 1791374478405.0
+      },
+      {
+       "ticks": 1553.0,
+       "minutes": 424.0,
+       "age": 22.56169891357422,
+       "ms": 1791374478513.0
+      },
+      {
+       "ticks": 1554.0,
+       "minutes": 425.0,
+       "age": 22.64126205444336,
+       "ms": 1791374478605.0
+      },
+      {
+       "ticks": 1555.0,
+       "minutes": 426.0,
+       "age": 22.720504760742188,
+       "ms": 1791374478708.0
+      },
+      {
+       "ticks": 1556.0,
+       "minutes": 427.0,
+       "age": 22.799861907958984,
+       "ms": 1791374478814.0
+      },
+      {
+       "ticks": 1557.0,
+       "minutes": 428.0,
+       "age": 22.87950897216797,
+       "ms": 1791374478907.0
+      }
+     ],
+     "stats": {
+      "n": 63,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "zero_gaps": 0,
+      "hist": {
+       "1": 63
+      },
+      "span_ms": 6294.0,
+      "minutes_span": 63.0,
+      "age_span_h": 5.0051727294921875
+     }
+    },
+    "players_after": {
+     "minutes": {
+      "name": "NutritionRevamp.server.players.minutes",
+      "side": "server",
+      "wall": 206.296,
+      "wall_after": 206.551,
+      "resolved": true,
+      "type": "number",
+      "value": 431
+     },
+     "drained": {
+      "name": "NutritionRevamp.server.players.drained",
+      "side": "server",
+      "wall": 206.551,
+      "wall_after": 206.807,
+      "resolved": true,
+      "type": "number",
+      "value": 443
+     }
+    },
+    "restore": {
+     "ok": true,
+     "reply": ""
+    },
+    "time_after": {
+     "worldAge": 23.51760482788086,
+     "hour": 6,
+     "minutes": 31,
+     "mult": 4.764427661895752,
+     "wall": 206.822,
+     "wall_after": 207.077,
+     "side": "server"
+    }
+   },
+   "C2": {
+    "holds": {
+     "admin": {
+      "user": "admin",
+      "seconds": 30,
+      "armed": true,
+      "before": false,
+      "after": true,
+      "deadlineWall": 1791374510412,
+      "wall": 207.08,
+      "wall_after": 207.587,
+      "side": "server"
+     },
+     "bob": {
+      "user": "bob",
+      "seconds": 30,
+      "armed": true,
+      "before": false,
+      "after": true,
+      "deadlineWall": 1791374511110,
+      "wall": 207.587,
+      "wall_after": 208.346,
+      "side": "server"
+     }
+    },
+    "reset": {
+     "ok": true,
+     "side": "server",
+     "path": "NutritionRevamp.server.bench.resetHist",
+     "nargs": 0,
+     "r1": 1601,
+     "r2": 460,
+     "wall": 210.347,
+     "wall_after": 210.603
+    },
+    "start": {
+     "ticks": 1604,
+     "minutes": 466,
+     "wall": 210.603,
+     "wall_after": 211.119
+    },
+    "time_start": {
+     "worldAge": 25.142566680908203,
+     "hour": 8,
+     "minutes": 8,
+     "mult": 94.44512176513672,
+     "wall": 211.119,
+     "wall_after": 211.375,
+     "side": "server"
+    },
+    "tick_rate": {
+     "arm": {
+      "side": "server",
+      "armed": true,
+      "seconds": 20,
+      "result": "tick-rate",
+      "file": "pzt-results/tick-rate.json"
+     },
+     "result": {
+      "seconds": 20,
+      "ticks": 202,
+      "elapsedMs": 20093,
+      "startWall": 1791374484410,
+      "endWall": 1791374504503,
+      "worldAgeStart": 25.300403594970703,
+      "worldAgeEnd": 35.97914123535156,
+      "ticksPerSecond": 10.05325237644951,
+      "worldMinutesPerSecond": 31.887934027912785,
+      "complete": true,
+      "t": 1791374504503,
+      "side": "server",
+      "name": "tick-rate"
+     },
+     "inside": {
+      "admin": {
+       "ok": true,
+       "hops": 1,
+       "value": "true",
+       "wall": 221.632,
+       "wall_after": 221.889,
+       "side": "server"
+      },
+      "bob": {
+       "ok": true,
+       "hops": 1,
+       "value": "true",
+       "wall": 221.889,
+       "wall_after": 222.149,
+       "side": "server"
+      }
+     },
+     "ticksPerSecond": 10.05325237644951,
+     "worldMinutesPerSecond": 31.887934027912785
+    },
+    "hist": {
+     "text": "h0=0 h1=214 h2=0 h3=0 h4=0 h5=0 hmax=1",
+     "ticks": 1815,
+     "minutes": 674,
+     "hist": {
+      "h0": 0.0,
+      "h1": 214.0,
+      "h2": 0.0,
+      "h3": 0.0,
+      "h4": 0.0,
+      "h5": 0.0,
+      "hmax": 1.0
+     },
+     "ok": true,
+     "err": null,
+     "wall": 231.677
+    },
+    "end": {
+     "ticks": 1817,
+     "minutes": 679,
+     "wall": 231.937,
+     "wall_after": 232.455
+    },
+    "ring": {
+     "call": {
+      "ok": true,
+      "r2": 682,
+      "r3": 1823,
+      "err": null,
+      "failedAt": null,
+      "wall": 232.455,
+      "wall_after": 232.713
+     },
+     "text": "1759,619,33.1083984375,1791374499104;1760,620,33.16156768798828,1791374499202;1761,621,33.214630126953125,1791374499310;1762,622,33.267906188964844,1791374499405;1763,623,33.321041107177734,1791374499506;1764,624,33.37421417236328,1791374499611;1765,625,33.427520751953125,1791374499702;1766,626,33.480567932128906,1791374499804;1767,627,33.53370666503906,1791374499912;1768,628,33.58702850341797,1791374500006;1769,629,33.64018249511719,1791374500107;1770,630,33.6933708190918,1791374500209;1771,631,33.74664306640625,1791374500305;1772,632,33.799808502197266,1791374500405;1773,633,33.85300827026367,1791374500515;1774,634,33.90643310546875,1791374500604;1775,635,33.959495544433594,1791374500702;1776,636,34.01251220703125,1791374500813;1777,637,34.06581115722656,1791374500906;1778,638,34.1189079284668,1791374501004;1779,639,34.171966552734375,1791374501115;1780,640,34.225318908691406,1791374501206;1781,641,34.27838134765625,1791374501305;1782,642,34.331424713134766,1791374501405;1783,643,34.384483337402344,1791374501513;1784,644,34.43777847290039,1791374501603;1785,645,34.490745544433594,1791374501707;1786,646,34.54385757446289,1791374501810;1787,647,34.59703063964844,1791374501907;1788,648,34.65016174316406,1791374502007;1789,649,34.70330047607422,1791374502110;1790,650,34.756500244140625,1791374502205;1791,651,34.80959701538086,1791374502303;1792,652,34.86262512207031,1791374502408;1793,653,34.91579055786133,1791374502505;1794,654,34.96888732910156,1791374502605;1795,655,35.02201843261719,1791374502711;1796,656,35.075286865234375,1791374502804;1797,657,35.12835693359375,1791374502902;1798,658,35.181419372558594,1791374503013;1799,659,35.23473358154297,1791374503104;1800,660,35.287845611572266,1791374503205;1801,661,35.340972900390625,1791374503308;1802,662,35.39415740966797,1791374503403;1803,663,35.447242736816406,1791374503505;1804,664,35.50041961669922,1791374503606;1805,665,35.55357360839844,1791374503705;1806,666,35.60673904418945,1791374503803;1807,667,35.659828186035156,1791374503905;1808,668,35.7130126953125,1791374504008;1809,669,35.76625061035156,1791374504105;1810,670,35.81944274902344,1791374504205;1811,671,35.87261199951172,1791374504311;1812,672,35.92591857910156,1791374504404;1813,673,35.97914123535156,1791374504503;1814,674,36.03228759765625,1791374504613;1815,675,36.08566665649414,1791374504713;1816,676,36.139041900634766,1791374504805;1817,677,36.19221496582031,1791374504912;1818,678,36.24554443359375,1791374505007;1819,679,36.29876708984375,1791374505104;1820,680,36.35191345214844,1791374505213;1821,681,36.4052848815918,1791374505303;1822,682,36.45832824707031,1791374505404",
+     "rows": [
+      {
+       "ticks": 1759.0,
+       "minutes": 619.0,
+       "age": 33.1083984375,
+       "ms": 1791374499104.0
+      },
+      {
+       "ticks": 1760.0,
+       "minutes": 620.0,
+       "age": 33.16156768798828,
+       "ms": 1791374499202.0
+      },
+      {
+       "ticks": 1761.0,
+       "minutes": 621.0,
+       "age": 33.214630126953125,
+       "ms": 1791374499310.0
+      },
+      {
+       "ticks": 1762.0,
+       "minutes": 622.0,
+       "age": 33.267906188964844,
+       "ms": 1791374499405.0
+      },
+      {
+       "ticks": 1763.0,
+       "minutes": 623.0,
+       "age": 33.321041107177734,
+       "ms": 1791374499506.0
+      },
+      {
+       "ticks": 1764.0,
+       "minutes": 624.0,
+       "age": 33.37421417236328,
+       "ms": 1791374499611.0
+      },
+      {
+       "ticks": 1765.0,
+       "minutes": 625.0,
+       "age": 33.427520751953125,
+       "ms": 1791374499702.0
+      },
+      {
+       "ticks": 1766.0,
+       "minutes": 626.0,
+       "age": 33.480567932128906,
+       "ms": 1791374499804.0
+      },
+      {
+       "ticks": 1767.0,
+       "minutes": 627.0,
+       "age": 33.53370666503906,
+       "ms": 1791374499912.0
+      },
+      {
+       "ticks": 1768.0,
+       "minutes": 628.0,
+       "age": 33.58702850341797,
+       "ms": 1791374500006.0
+      },
+      {
+       "ticks": 1769.0,
+       "minutes": 629.0,
+       "age": 33.64018249511719,
+       "ms": 1791374500107.0
+      },
+      {
+       "ticks": 1770.0,
+       "minutes": 630.0,
+       "age": 33.6933708190918,
+       "ms": 1791374500209.0
+      },
+      {
+       "ticks": 1771.0,
+       "minutes": 631.0,
+       "age": 33.74664306640625,
+       "ms": 1791374500305.0
+      },
+      {
+       "ticks": 1772.0,
+       "minutes": 632.0,
+       "age": 33.799808502197266,
+       "ms": 1791374500405.0
+      },
+      {
+       "ticks": 1773.0,
+       "minutes": 633.0,
+       "age": 33.85300827026367,
+       "ms": 1791374500515.0
+      },
+      {
+       "ticks": 1774.0,
+       "minutes": 634.0,
+       "age": 33.90643310546875,
+       "ms": 1791374500604.0
+      },
+      {
+       "ticks": 1775.0,
+       "minutes": 635.0,
+       "age": 33.959495544433594,
+       "ms": 1791374500702.0
+      },
+      {
+       "ticks": 1776.0,
+       "minutes": 636.0,
+       "age": 34.01251220703125,
+       "ms": 1791374500813.0
+      },
+      {
+       "ticks": 1777.0,
+       "minutes": 637.0,
+       "age": 34.06581115722656,
+       "ms": 1791374500906.0
+      },
+      {
+       "ticks": 1778.0,
+       "minutes": 638.0,
+       "age": 34.1189079284668,
+       "ms": 1791374501004.0
+      },
+      {
+       "ticks": 1779.0,
+       "minutes": 639.0,
+       "age": 34.171966552734375,
+       "ms": 1791374501115.0
+      },
+      {
+       "ticks": 1780.0,
+       "minutes": 640.0,
+       "age": 34.225318908691406,
+       "ms": 1791374501206.0
+      },
+      {
+       "ticks": 1781.0,
+       "minutes": 641.0,
+       "age": 34.27838134765625,
+       "ms": 1791374501305.0
+      },
+      {
+       "ticks": 1782.0,
+       "minutes": 642.0,
+       "age": 34.331424713134766,
+       "ms": 1791374501405.0
+      },
+      {
+       "ticks": 1783.0,
+       "minutes": 643.0,
+       "age": 34.384483337402344,
+       "ms": 1791374501513.0
+      },
+      {
+       "ticks": 1784.0,
+       "minutes": 644.0,
+       "age": 34.43777847290039,
+       "ms": 1791374501603.0
+      },
+      {
+       "ticks": 1785.0,
+       "minutes": 645.0,
+       "age": 34.490745544433594,
+       "ms": 1791374501707.0
+      },
+      {
+       "ticks": 1786.0,
+       "minutes": 646.0,
+       "age": 34.54385757446289,
+       "ms": 1791374501810.0
+      },
+      {
+       "ticks": 1787.0,
+       "minutes": 647.0,
+       "age": 34.59703063964844,
+       "ms": 1791374501907.0
+      },
+      {
+       "ticks": 1788.0,
+       "minutes": 648.0,
+       "age": 34.65016174316406,
+       "ms": 1791374502007.0
+      },
+      {
+       "ticks": 1789.0,
+       "minutes": 649.0,
+       "age": 34.70330047607422,
+       "ms": 1791374502110.0
+      },
+      {
+       "ticks": 1790.0,
+       "minutes": 650.0,
+       "age": 34.756500244140625,
+       "ms": 1791374502205.0
+      },
+      {
+       "ticks": 1791.0,
+       "minutes": 651.0,
+       "age": 34.80959701538086,
+       "ms": 1791374502303.0
+      },
+      {
+       "ticks": 1792.0,
+       "minutes": 652.0,
+       "age": 34.86262512207031,
+       "ms": 1791374502408.0
+      },
+      {
+       "ticks": 1793.0,
+       "minutes": 653.0,
+       "age": 34.91579055786133,
+       "ms": 1791374502505.0
+      },
+      {
+       "ticks": 1794.0,
+       "minutes": 654.0,
+       "age": 34.96888732910156,
+       "ms": 1791374502605.0
+      },
+      {
+       "ticks": 1795.0,
+       "minutes": 655.0,
+       "age": 35.02201843261719,
+       "ms": 1791374502711.0
+      },
+      {
+       "ticks": 1796.0,
+       "minutes": 656.0,
+       "age": 35.075286865234375,
+       "ms": 1791374502804.0
+      },
+      {
+       "ticks": 1797.0,
+       "minutes": 657.0,
+       "age": 35.12835693359375,
+       "ms": 1791374502902.0
+      },
+      {
+       "ticks": 1798.0,
+       "minutes": 658.0,
+       "age": 35.181419372558594,
+       "ms": 1791374503013.0
+      },
+      {
+       "ticks": 1799.0,
+       "minutes": 659.0,
+       "age": 35.23473358154297,
+       "ms": 1791374503104.0
+      },
+      {
+       "ticks": 1800.0,
+       "minutes": 660.0,
+       "age": 35.287845611572266,
+       "ms": 1791374503205.0
+      },
+      {
+       "ticks": 1801.0,
+       "minutes": 661.0,
+       "age": 35.340972900390625,
+       "ms": 1791374503308.0
+      },
+      {
+       "ticks": 1802.0,
+       "minutes": 662.0,
+       "age": 35.39415740966797,
+       "ms": 1791374503403.0
+      },
+      {
+       "ticks": 1803.0,
+       "minutes": 663.0,
+       "age": 35.447242736816406,
+       "ms": 1791374503505.0
+      },
+      {
+       "ticks": 1804.0,
+       "minutes": 664.0,
+       "age": 35.50041961669922,
+       "ms": 1791374503606.0
+      },
+      {
+       "ticks": 1805.0,
+       "minutes": 665.0,
+       "age": 35.55357360839844,
+       "ms": 1791374503705.0
+      },
+      {
+       "ticks": 1806.0,
+       "minutes": 666.0,
+       "age": 35.60673904418945,
+       "ms": 1791374503803.0
+      },
+      {
+       "ticks": 1807.0,
+       "minutes": 667.0,
+       "age": 35.659828186035156,
+       "ms": 1791374503905.0
+      },
+      {
+       "ticks": 1808.0,
+       "minutes": 668.0,
+       "age": 35.7130126953125,
+       "ms": 1791374504008.0
+      },
+      {
+       "ticks": 1809.0,
+       "minutes": 669.0,
+       "age": 35.76625061035156,
+       "ms": 1791374504105.0
+      },
+      {
+       "ticks": 1810.0,
+       "minutes": 670.0,
+       "age": 35.81944274902344,
+       "ms": 1791374504205.0
+      },
+      {
+       "ticks": 1811.0,
+       "minutes": 671.0,
+       "age": 35.87261199951172,
+       "ms": 1791374504311.0
+      },
+      {
+       "ticks": 1812.0,
+       "minutes": 672.0,
+       "age": 35.92591857910156,
+       "ms": 1791374504404.0
+      },
+      {
+       "ticks": 1813.0,
+       "minutes": 673.0,
+       "age": 35.97914123535156,
+       "ms": 1791374504503.0
+      },
+      {
+       "ticks": 1814.0,
+       "minutes": 674.0,
+       "age": 36.03228759765625,
+       "ms": 1791374504613.0
+      },
+      {
+       "ticks": 1815.0,
+       "minutes": 675.0,
+       "age": 36.08566665649414,
+       "ms": 1791374504713.0
+      },
+      {
+       "ticks": 1816.0,
+       "minutes": 676.0,
+       "age": 36.139041900634766,
+       "ms": 1791374504805.0
+      },
+      {
+       "ticks": 1817.0,
+       "minutes": 677.0,
+       "age": 36.19221496582031,
+       "ms": 1791374504912.0
+      },
+      {
+       "ticks": 1818.0,
+       "minutes": 678.0,
+       "age": 36.24554443359375,
+       "ms": 1791374505007.0
+      },
+      {
+       "ticks": 1819.0,
+       "minutes": 679.0,
+       "age": 36.29876708984375,
+       "ms": 1791374505104.0
+      },
+      {
+       "ticks": 1820.0,
+       "minutes": 680.0,
+       "age": 36.35191345214844,
+       "ms": 1791374505213.0
+      },
+      {
+       "ticks": 1821.0,
+       "minutes": 681.0,
+       "age": 36.4052848815918,
+       "ms": 1791374505303.0
+      },
+      {
+       "ticks": 1822.0,
+       "minutes": 682.0,
+       "age": 36.45832824707031,
+       "ms": 1791374505404.0
+      }
+     ],
+     "stats": {
+      "n": 63,
+      "mean": 1.0,
+      "min": 1.0,
+      "max": 1.0,
+      "zero_gaps": 0,
+      "hist": {
+       "1": 63
+      },
+      "span_ms": 6300.0,
+      "minutes_span": 63.0,
+      "age_span_h": 3.3499298095703125
+     }
+    },
+    "time_end": {
+     "worldAge": 36.61787414550781,
+     "hour": 19,
+     "minutes": 37,
+     "mult": 95.54933166503906,
+     "wall": 232.714,
+     "wall_after": 232.972,
+     "side": "server"
+    },
+    "cancel": {
+     "admin": {
+      "user": "admin",
+      "seconds": 0,
+      "armed": false,
+      "before": true,
+      "after": true,
+      "wall": 232.972,
+      "wall_after": 233.234,
+      "side": "server"
+     },
+     "bob": {
+      "user": "bob",
+      "seconds": 0,
+      "armed": false,
+      "before": true,
+      "after": true,
+      "wall": 233.234,
+      "wall_after": 233.492,
+      "side": "server"
+     }
+    },
+    "wake": {
+     "admin": {
+      "requested": false,
+      "before": false,
+      "setAsleep": true,
+      "after": false,
+      "held": true,
+      "wall": 233.492,
+      "wall_after": 233.998,
+      "side": "server"
+     },
+     "bob": {
+      "requested": false,
+      "before": false,
+      "setAsleep": true,
+      "after": false,
+      "held": true,
+      "wall": 233.998,
+      "wall_after": 234.254,
+      "side": "server"
+     }
+    },
+    "time_after": {
+     "worldAge": 37.0511474609375,
+     "hour": 20,
+     "minutes": 3,
+     "mult": 4.7971110343933105,
+     "wall": 237.254,
+     "wall_after": 237.765,
+     "side": "server"
+    },
+    "asleep_after": {
+     "admin": {
+      "ok": true,
+      "hops": 1,
+      "value": "false",
+      "wall": 237.765,
+      "wall_after": 238.273,
+      "side": "server"
+     },
+     "bob": {
+      "ok": true,
+      "hops": 1,
+      "value": "false",
+      "wall": 238.273,
+      "wall_after": 239.034,
+      "side": "server"
+     }
+    }
+   }
+  },
+  "D": {
+   "registered_before": {
+    "name": "NutritionRevamp.server.fast.registered",
+    "side": "server",
+    "wall": 239.038,
+    "wall_after": 239.795,
+    "resolved": true,
+    "type": "boolean",
+    "value": true
+   },
+   "players": {
+    "wall": 239.795,
+    "wall_after": 240.307,
+    "side": "server",
+    "raw": [
+     "admin",
+     "bob"
+    ]
+   },
+   "calls_takeover": {
+    "calls0": 2524,
+    "calls1": 2662,
+    "ticks0": 1912,
+    "ticks1": 1979,
+    "calls_per_tick": 2.0597014925373136
+   },
+   "tick_baseline": {
+    "arm": {
+     "side": "server",
+     "armed": true,
+     "seconds": 15,
+     "result": "tick-rate",
+     "file": "pzt-results/tick-rate.json"
+    },
+    "result": {
+     "seconds": 15,
+     "ticks": 152,
+     "elapsedMs": 15090,
+     "startWall": 1791374521914,
+     "endWall": 1791374537004,
+     "worldAgeStart": 37.35185241699219,
+     "worldAgeEnd": 37.75406265258789,
+     "ticksPerSecond": 10.072895957587807,
+     "worldMinutesPerSecond": 1.59924546956542,
+     "complete": true,
+     "t": 1791374537004,
+     "side": "server",
+     "name": "tick-rate"
+    },
+    "inside": null,
+    "ticksPerSecond": 10.072895957587807,
+    "worldMinutesPerSecond": 1.59924546956542
+   },
+   "tick_bench": {
+    "arm": {
+     "side": "server",
+     "armed": true,
+     "seconds": 15,
+     "result": "tick-rate",
+     "file": "pzt-results/tick-rate.json"
+    },
+    "result": {
+     "seconds": 15,
+     "ticks": 147,
+     "elapsedMs": 15047,
+     "startWall": 1791374537107,
+     "endWall": 1791374552154,
+     "worldAgeStart": 37.75673294067383,
+     "worldAgeEnd": 38.132572174072266,
+     "ticksPerSecond": 9.769389247025986,
+     "worldMinutesPerSecond": 1.498661128723749,
+     "complete": true,
+     "t": 1791374552154,
+     "side": "server",
+     "name": "tick-rate"
+    },
+    "inside": {
+     "handler": [
+      {
+       "side": "server",
+       "name": "NutritionRevamp.server.bench.handler",
+       "n": 1000,
+       "ms": 19,
+       "usPerCall": 19,
+       "wall": 264.402,
+       "wall_after": 264.666
+      },
+      {
+       "side": "server",
+       "name": "NutritionRevamp.server.bench.handler",
+       "n": 1000,
+       "ms": 21,
+       "usPerCall": 21,
+       "wall": 264.666,
+       "wall_after": 265.426
+      },
+      {
+       "side": "server",
+       "name": "NutritionRevamp.server.bench.handler",
+       "n": 1000,
+       "ms": 18,
+       "usPerCall": 18,
+       "wall": 265.426,
+       "wall_after": 265.933
+      }
+     ],
+     "minute": [
+      {
+       "side": "server",
+       "name": "NutritionRevamp.server.bench.minute",
+       "n": 200,
+       "ms": 78,
+       "usPerCall": 390,
+       "wall": 265.933,
+       "wall_after": 266.446
+      },
+      {
+       "side": "server",
+       "name": "NutritionRevamp.server.bench.minute",
+       "n": 200,
+       "ms": 79,
+       "usPerCall": 395,
+       "wall": 266.446,
+       "wall_after": 266.701
+      },
+      {
+       "side": "server",
+       "name": "NutritionRevamp.server.bench.minute",
+       "n": 200,
+       "ms": 69,
+       "usPerCall": 345,
+       "wall": 266.701,
+       "wall_after": 267.469
+      }
+     ],
+     "bench_fast": [
+      {
+       "side": "server",
+       "name": "NutritionRevamp.bench_fast",
+       "n": 100000,
+       "ms": 436,
+       "usPerCall": 4.36,
+       "wall": 267.469,
+       "wall_after": 268.481
+      }
+     ]
+    },
+    "ticksPerSecond": 9.769389247025986,
+    "worldMinutesPerSecond": 1.498661128723749
+   },
+   "bench_user": {
+    "name": "NutritionRevamp.server.bench.u",
+    "side": "server",
+    "wall": 279.256,
+    "wall_after": 279.515,
+    "resolved": true,
+    "type": "string",
+    "value": "admin"
+   },
+   "fast_stats": {
+    "calls": {
+     "name": "NutritionRevamp.server.fast.stats.calls",
+     "side": "server",
+     "wall": 279.515,
+     "wall_after": 280.022,
+     "resolved": true,
+     "type": "number",
+     "value": 6300
+    },
+    "failures": {
+     "name": "NutritionRevamp.server.fast.stats.failures",
+     "side": "server",
+     "wall": 280.022,
+     "wall_after": 280.529,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    },
+    "byCharHits": {
+     "name": "NutritionRevamp.server.fast.stats.byCharHits",
+     "side": "server",
+     "wall": 280.529,
+     "wall_after": 281.287,
+     "resolved": true,
+     "type": "number",
+     "value": 6325
+    },
+    "disabledAt": {
+     "name": "NutritionRevamp.server.fast.stats.disabledAt",
+     "side": "server",
+     "wall": 281.287,
+     "wall_after": 282.049,
+     "resolved": false,
+     "type": null,
+     "failedAt": "disabledAt"
+    }
+   },
+   "mode_set": {
+    "ok": true,
+    "path": "NR.Mode",
+    "requested": 2,
+    "before": 1,
+    "after": 2,
+    "wall": 282.054,
+    "wall_after": 282.564,
+    "side": "server"
+   },
+   "overlay_mode": {
+    "name": "NutritionRevamp.server.options.mode",
+    "side": "server",
+    "wall": 288.565,
+    "wall_after": 288.828,
+    "resolved": true,
+    "type": "number",
+    "value": 2
+   },
+   "overlay_registered": {
+    "name": "NutritionRevamp.server.fast.registered",
+    "side": "server",
+    "wall": 288.828,
+    "wall_after": 289.334,
+    "resolved": true,
+    "type": "boolean",
+    "value": false
+   },
+   "calls_overlay": {
+    "calls0": 6350,
+    "calls1": 6350,
+    "ticks0": 2399,
+    "ticks1": 2462,
+    "calls_per_tick": 0.0
+   },
+   "tick_overlay": {
+    "arm": {
+     "side": "server",
+     "armed": true,
+     "seconds": 15,
+     "result": "tick-rate",
+     "file": "pzt-results/tick-rate.json"
+    },
+    "result": {
+     "seconds": 15,
+     "ticks": 152,
+     "elapsedMs": 15095,
+     "startWall": 1791374571057,
+     "endWall": 1791374586152,
+     "worldAgeStart": 38.63574981689453,
+     "worldAgeEnd": 39.037994384765625,
+     "ticksPerSecond": 10.069559456773765,
+     "worldMinutesPerSecond": 1.5988522075035194,
+     "complete": true,
+     "t": 1791374586152,
+     "side": "server",
+     "name": "tick-rate"
+    },
+    "inside": null,
+    "ticksPerSecond": 10.069559456773765,
+    "worldMinutesPerSecond": 1.5988522075035194
+   },
+   "mode_restore": {
+    "ok": true,
+    "path": "NR.Mode",
+    "requested": 1,
+    "before": 2,
+    "after": 1,
+    "wall": 313.432,
+    "wall_after": 313.939,
+    "side": "server"
+   },
+   "restored_mode": {
+    "name": "NutritionRevamp.server.options.mode",
+    "side": "server",
+    "wall": 319.94,
+    "wall_after": 320.195,
+    "resolved": true,
+    "type": "number",
+    "value": 1
+   },
+   "restored_registered": {
+    "name": "NutritionRevamp.server.fast.registered",
+    "side": "server",
+    "wall": 320.195,
+    "wall_after": 320.702,
+    "resolved": true,
+    "type": "boolean",
+    "value": true
+   }
+  },
+  "F": {
+   "mult_set": {
+    "wall": 320.707,
+    "wall_after": 321.21,
+    "side": "server",
+    "raw": "mult=0.04791102185845375"
+   },
+   "time0": {
+    "worldAge": 39.251495361328125,
+    "hour": 22,
+    "minutes": 15,
+    "mult": 0.047856297343969345,
+    "wall": 321.21,
+    "wall_after": 322.727,
+    "side": "server"
+   },
+   "time1": {
+    "worldAge": 39.25309753417969,
+    "hour": 22,
+    "minutes": 15,
+    "mult": 0.04800484701991081,
+    "wall": 327.727,
+    "wall_after": 328.742,
+    "side": "server"
+   },
+   "ev_start": 0,
+   "watch": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.watch",
+    "nargs": 1,
+    "r1": 2819,
+    "r2": 6819,
+    "wall": 330.758,
+    "wall_after": 332.519
+   },
+   "before": {
+    "ticks": 2839,
+    "minutes": 830,
+    "wall": 333.519,
+    "wall_after": 336.54
+   },
+   "quit_wall": 336.54,
+   "quit_rc": 0,
+   "quit_done_wall": 339.096,
+   "after_quit": {
+    "ticks": 2899,
+    "minutes": 830,
+    "wall": 339.096,
+    "wall_after": 342.615
+   },
+   "players_after_quit": {
+    "wall": 342.615,
+    "wall_after": 344.629,
+    "side": "server",
+    "raw": [
+     "admin"
+    ]
+   },
+   "new_client": {
+    "base": "cbob2",
+    "restored": true,
+    "start_wall": 344.713,
+    "ready_wall": 434.726
+   },
+   "after_rejoin": {
+    "ticks": 3879,
+    "minutes": 831,
+    "wall": 437.727,
+    "wall_after": 440.751
+   },
+   "players_after_rejoin": {
+    "wall": 440.751,
+    "wall_after": 442.012,
+    "side": "server",
+    "raw": [
+     "admin",
+     "bob"
+    ]
+   },
+   "bob_version": {
+    "name": "NutritionRevamp.version",
+    "side": "client:bob",
+    "wall": 442.012,
+    "wall_after": 472.076,
+    "resolved": null,
+    "type": null,
+    "error": "TimeoutError: no ack for #1 lua.global within 30s"
+   },
+   "events": {
+    "count": 6,
+    "rows": [
+     {
+      "ticks": 2819.0,
+      "minutes": 830.0,
+      "ms": 1791374605458.0,
+      "kind": "watch",
+      "text": "4000"
+     },
+     {
+      "ticks": 2820.0,
+      "minutes": 830.0,
+      "ms": 1791374605458.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:A,bob#2:A] mod{admin=#1,bob=#2}"
+     },
+     {
+      "ticks": 2867.0,
+      "minutes": 830.0,
+      "ms": 1791374610154.0,
+      "kind": "online",
+      "text": "n=1 [admin#1:A] mod{admin=#1,bob=#2}"
+     },
+     {
+      "ticks": 3289.0,
+      "minutes": 831.0,
+      "ms": 1791374652351.0,
+      "kind": "online",
+      "text": "n=1 [admin#1:A] mod{admin=#1}"
+     },
+     {
+      "ticks": 3516.0,
+      "minutes": 831.0,
+      "ms": 1791374675051.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:A,bob#3:A] mod{admin=#1}"
+     },
+     {
+      "ticks": 3914.0,
+      "minutes": 832.0,
+      "ms": 1791374714862.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:A,bob#3:A] mod{admin=#1,bob=#3}"
+     }
+    ]
+   },
+   "time2": {
+    "worldAge": 39.29206085205078,
+    "hour": 22,
+    "minutes": 17,
+    "mult": 0.04792027175426483,
+    "wall": 472.584,
+    "wall_after": 474.597,
+    "side": "server"
+   },
+   "mult_restore": {
+    "wall": 474.597,
+    "wall_after": 476.608,
+    "side": "server",
+    "raw": "mult=4.792501926422119"
+   },
+   "time3": {
+    "worldAge": 39.30059814453125,
+    "hour": 22,
+    "minutes": 18,
+    "mult": 4.794404983520508,
+    "wall": 476.608,
+    "wall_after": 476.864,
+    "side": "server"
+   }
+  },
+  "E": {
+   "ev_start": 6,
+   "watch": {
+    "ok": true,
+    "side": "server",
+    "path": "NutritionRevamp.server.bench.watch",
+    "nargs": 1,
+    "r1": 4275,
+    "r2": 7275,
+    "wall": 477.626,
+    "wall_after": 478.132
+   },
+   "newGameN0": 0,
+   "record_before": {
+    "dead": {
+     "name": "NutritionRevamp.server.store.records.admin.dead",
+     "side": "server",
+     "wall": 478.637,
+     "wall_after": 478.896,
+     "resolved": true,
+     "type": "boolean",
+     "value": false
+    },
+    "resets": {
+     "name": "NutritionRevamp.server.store.records.admin.resets",
+     "side": "server",
+     "wall": 478.896,
+     "wall_after": 479.403,
+     "resolved": true,
+     "type": "number",
+     "value": 0
+    }
+   },
+   "reduce": {
+    "ok": true,
+    "side": "server",
+    "requested": 110,
+    "before": 98.67778015136719,
+    "parts": [
+     34.467323303222656,
+     34.467323303222656,
+     67.24604797363281,
+     67.24604797363281,
+     78.1724853515625,
+     78.1724853515625,
+     81.29431915283203,
+     83.63546752929688,
+     89.09823608398438,
+     90.65965270996094,
+     83.63546752929688,
+     78.1724853515625,
+     78.1724853515625,
+     67.24604797363281,
+     67.24604797363281,
+     67.24604797363281,
+     67.24604797363281
+    ],
+    "health": 98.67778015136719,
+    "after": 98.67778015136719,
+    "wall": 479.403,
+    "wall_after": 480.162
+   },
+   "reduce_wall": 480.162,
+   "isDead_polls": [
+    {
+     "wall": 480.162,
+     "value": "true",
+     "ok": true,
+     "error": null
+    }
+   ],
+   "isDead_wall": 480.162,
+   "after_death": {
+    "ticks": 4306,
+    "minutes": 840,
+    "wall": 480.673,
+    "wall_after": 481.939
+   },
+   "ui_polls": [
+    {
+     "wall": 481.945,
+     "ok": true,
+     "r1": true,
+     "failedAt": null,
+     "err": null
+    }
+   ],
+   "ui_wall": 481.945,
+   "onRespawn": {
+    "ok": true,
+    "side": "client",
+    "path": "ISPostDeathUI.instance.0",
+    "method": "onRespawn",
+    "nargs": 0,
+    "wall": 482.453,
+    "wall_after": 482.962
+   },
+   "screens": [
+    {
+     "wall": 482.962,
+     "spawn": false,
+     "profession": false,
+     "main": true
+    }
+   ],
+   "accept": {
+    "ok": true,
+    "side": "client",
+    "path": "CoopCharacterCreation.instance",
+    "method": "accept",
+    "nargs": 0,
+    "wall": 484.491,
+    "wall_after": 485.0
+   },
+   "accept_wall": 485.0,
+   "newGame_polls": [
+    {
+     "wall": 485.26,
+     "newGameN": 1
+    }
+   ],
+   "after_respawn": {
+    "ticks": 4399,
+    "minutes": 854,
+    "wall": 490.261,
+    "wall_after": 490.772
+   },
+   "events": {
+    "count": 13,
+    "rows": [
+     {
+      "ticks": 4275.0,
+      "minutes": 834.0,
+      "ms": 1791374751067.0,
+      "kind": "watch",
+      "text": "3000"
+     },
+     {
+      "ticks": 4276.0,
+      "minutes": 835.0,
+      "ms": 1791374751068.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:A,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4296.0,
+      "minutes": 838.0,
+      "ms": 1791374753054.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:D,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4344.0,
+      "minutes": 845.0,
+      "ms": 1791374757953.0,
+      "kind": "newgame",
+      "text": "admin#4 IsoPlayer{  Name:null,  ID:27 } n=2 [admin#1:D,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4346.0,
+      "minutes": 846.0,
+      "ms": 1791374758051.0,
+      "kind": "online",
+      "text": "n=1 [bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4347.0,
+      "minutes": 846.0,
+      "ms": 1791374758152.0,
+      "kind": "online",
+      "text": "n=2 [admin#5:A,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4351.0,
+      "minutes": 847.0,
+      "ms": 1791374758557.0,
+      "kind": "online",
+      "text": "n=2 [admin#5:A,bob#3:A] mod{admin=#5,bob=#3}"
+     }
+    ]
+   },
+   "players_after": {
+    "wall": 491.284,
+    "wall_after": 492.04,
+    "side": "server",
+    "raw": [
+     "admin",
+     "bob"
+    ]
+   },
+   "record_after": [
+    {
+     "wall": 492.04,
+     "dead": true,
+     "resets": 1,
+     "minutes": 860
+    },
+    {
+     "wall": 496.577,
+     "dead": true,
+     "resets": 1,
+     "minutes": 867
+    },
+    {
+     "wall": 500.609,
+     "dead": true,
+     "resets": 1,
+     "minutes": 874
+    }
+   ]
+  },
+  "Z": {
+   "server_mod_error_lines": [],
+   "admin_parked": false
+  }
+ },
+ "phase_errors": {},
+ "phase_walls": {
+  "S0": {
+   "start": 145.187,
+   "end": 146.205
+  },
+  "A": {
+   "start": 146.206,
+   "end": 150.763
+  },
+  "B": {
+   "start": 150.765,
+   "end": 181.987
+  },
+  "C": {
+   "start": 181.992,
+   "end": 239.034
+  },
+  "D": {
+   "start": 239.038,
+   "end": 320.702
+  },
+  "F": {
+   "start": 320.707,
+   "end": 476.864
+  },
+  "E": {
+   "start": 476.869,
+   "end": 505.146
+  },
+  "Z": {
+   "start": 505.153,
+   "end": 505.153
+  }
+ },
+ "verdicts": {
+  "A": {
+   "phase": "A",
+   "predicted": {
+    "server options.severity": 1.5
+   },
+   "falsifier": "severity 1.0: the option undeclared or unread",
+   "observed": {
+    "severity": 1.5,
+    "readAt": "poll",
+    "SandboxVars.NR.Severity": 1.5,
+    "mode": 1
+   },
+   "verdict": "as_predicted",
+   "wall": 544.13
+  },
+  "B": {
+   "phase": "B",
+   "predicted": {
+    "mean ticks per game minute": [
+     4.0,
+     8.0
+    ],
+    "gaps of 0 ticks at speed 1": 0
+   },
+   "falsifier": "a mean outside the band or a zero gap",
+   "observed": {
+    "ring": {
+     "n": 63,
+     "mean": 6.26984126984127,
+     "min": 6.0,
+     "max": 7.0,
+     "zero_gaps": 0,
+     "hist": {
+      "7": 17,
+      "6": 46
+     },
+     "span_ms": 39508.0,
+     "minutes_span": 63.0,
+     "age_span_h": 1.0495405197143555
+    },
+    "hist": {
+     "h0": 153.0,
+     "h1": 29.0,
+     "h2": 0.0,
+     "h3": 0.0,
+     "h4": 0.0,
+     "h5": 0.0,
+     "hmax": 1.0
+    },
+    "ticksPerSecond": 10.115033716779056,
+    "worldMinutesPerSecond": 1.6001243999864032
+   },
+   "verdict": "as_predicted",
+   "wall": 544.13
+  },
+  "C1": {
+   "phase": "C1",
+   "predicted": {
+    "hmax": ">= 2",
+    "mean minutes per tick": "> 1",
+    "mult restored": true
+   },
+   "falsifier": "hmax <= 1",
+   "observed": {
+    "hist": {
+     "h0": 7.0,
+     "h1": 209.0,
+     "h2": 0.0,
+     "h3": 0.0,
+     "h4": 0.0,
+     "h5": 0.0,
+     "hmax": 1.0
+    },
+    "ticks": 214,
+    "minutes": 213,
+    "minutes_per_tick": 0.9953271028037384,
+    "ring": {
+     "n": 63,
+     "mean": 1.0,
+     "zero_gaps": 0,
+     "hist": {
+      "1": 63
+     }
+    },
+    "worldMinutesPerSecond": 47.66431220500585,
+    "ticksPerSecond": 10.04675221326967,
+    "speed_ack": {
+     "ok": true,
+     "reply": "Multiplier was set on the following value: 30.0"
+    },
+    "restore_ack": {
+     "ok": true,
+     "reply": ""
+    },
+    "mult_fast": 144.83753967285156,
+    "mult_after": 4.764427661895752,
+    "mult_before": 4.795252323150635
+   },
+   "verdict": "falsified",
+   "wall": 544.13
+  },
+  "C2": {
+   "phase": "C2",
+   "predicted": {
+    "world minutes per wall second": "> 3x boot 1's speed-1 rate",
+    "hmax": ">= 2",
+    "asleep reads": "both true at the window's middle"
+   },
+   "falsifier": "no fast-forward with both asleep",
+   "observed": {
+    "hist": {
+     "h0": 0.0,
+     "h1": 214.0,
+     "h2": 0.0,
+     "h3": 0.0,
+     "h4": 0.0,
+     "h5": 0.0,
+     "hmax": 1.0
+    },
+    "ticks": 213,
+    "minutes": 213,
+    "minutes_per_tick": 1.0,
+    "worldMinutesPerSecond": 31.887934027912785,
+    "speed1_worldMinutesPerSecond": 1.6001243999864032,
+    "ticksPerSecond": 10.05325237644951,
+    "asleep_mid": {
+     "admin": "true",
+     "bob": "true"
+    },
+    "holds": {
+     "admin": {
+      "armed": true,
+      "after": true,
+      "error": null
+     },
+     "bob": {
+      "armed": true,
+      "after": true,
+      "error": null
+     }
+    },
+    "ring": {
+     "n": 63,
+     "mean": 1.0,
+     "zero_gaps": 0,
+     "hist": {
+      "1": 63
+     }
+    },
+    "mult_start": 94.44512176513672,
+    "mult_end": 95.54933166503906,
+    "mult_after": 4.7971110343933105
+   },
+   "verdict": "falsified",
+   "wall": 544.131
+  },
+  "D": {
+   "phase": "D",
+   "predicted": {
+    "handler us per call": [
+     20.0,
+     300.0
+    ],
+    "minute us per call": [
+     50.0,
+     5000.0
+    ],
+    "ticks per second": "within 5 % of 10.0 in every window",
+    "overlay": "registered false, mode 2",
+    "handler calls per tick": "~2 takeover, ~0 overlay"
+   },
+   "falsifier": "a figure outside its band",
+   "observed": {
+    "handler_usPerCall": [
+     19,
+     21,
+     18
+    ],
+    "minute_usPerCall": [
+     390,
+     395,
+     345
+    ],
+    "bench_fast_usPerCall": [
+     4.36
+    ],
+    "handler_ms": [
+     19,
+     21,
+     18
+    ],
+    "minute_ms": [
+     78,
+     79,
+     69
+    ],
+    "bench_errors": [],
+    "bench_user": "admin",
+    "ticksPerSecond": {
+     "tick_baseline": 10.072895957587807,
+     "tick_bench": 9.769389247025986,
+     "tick_overlay": 10.069559456773765
+    },
+    "calls_per_tick": {
+     "takeover": 2.0597014925373136,
+     "overlay": 0.0
+    },
+    "registered": {
+     "before": true,
+     "overlay": false,
+     "restored": true
+    },
+    "overlay_mode": 2,
+    "restored_mode": 1
+   },
+   "verdict": "falsified",
+   "wall": 544.131
+  },
+  "F": {
+   "phase": "F",
+   "predicted": {
+    "bob's objId after the rejoin": "new",
+    "EveryOneMinute calls during the reconnect": "0 if the slowed clock read back"
+   },
+   "falsifier": "the same objId after the rejoin",
+   "observed": {
+    "bob_object_ids_seen": [
+     "#2",
+     "#3"
+    ],
+    "minutes_during_reconnect": 1,
+    "mult_set": {
+     "wall": 320.707,
+     "wall_after": 321.21,
+     "side": "server",
+     "raw": "mult=0.04791102185845375"
+    },
+    "time0": {
+     "worldAge": 39.251495361328125,
+     "hour": 22,
+     "minutes": 15,
+     "mult": 0.047856297343969345,
+     "wall": 321.21,
+     "wall_after": 322.727,
+     "side": "server"
+    },
+    "time1": {
+     "worldAge": 39.25309753417969,
+     "hour": 22,
+     "minutes": 15,
+     "mult": 0.04800484701991081,
+     "wall": 327.727,
+     "wall_after": 328.742,
+     "side": "server"
+    },
+    "ready": true,
+    "quit_rc": 0,
+    "online_events": [
+     "n=2 [admin#1:A,bob#2:A] mod{admin=#1,bob=#2}",
+     "n=1 [admin#1:A] mod{admin=#1,bob=#2}",
+     "n=1 [admin#1:A] mod{admin=#1}",
+     "n=2 [admin#1:A,bob#3:A] mod{admin=#1}",
+     "n=2 [admin#1:A,bob#3:A] mod{admin=#1,bob=#3}"
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 544.131
+  },
+  "E": {
+   "phase": "E",
+   "predicted": {
+    "dead object in the list after death": true,
+    "OnNewGame object": "new",
+    "new object in the list at the OnNewGame tick": true,
+    "dead object leaves the list": "by the OnNewGame tick",
+    "mod P.online at the OnNewGame tick": "the dead object"
+   },
+   "falsifier": "graded by hand from the event order (the order is the reading); no OnNewGame event is unmeasured",
+   "observed": {
+    "events": [
+     {
+      "ticks": 4275.0,
+      "minutes": 834.0,
+      "ms": 1791374751067.0,
+      "kind": "watch",
+      "text": "3000"
+     },
+     {
+      "ticks": 4276.0,
+      "minutes": 835.0,
+      "ms": 1791374751068.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:A,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4296.0,
+      "minutes": 838.0,
+      "ms": 1791374753054.0,
+      "kind": "online",
+      "text": "n=2 [admin#1:D,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4344.0,
+      "minutes": 845.0,
+      "ms": 1791374757953.0,
+      "kind": "newgame",
+      "text": "admin#4 IsoPlayer{  Name:null,  ID:27 } n=2 [admin#1:D,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4346.0,
+      "minutes": 846.0,
+      "ms": 1791374758051.0,
+      "kind": "online",
+      "text": "n=1 [bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4347.0,
+      "minutes": 846.0,
+      "ms": 1791374758152.0,
+      "kind": "online",
+      "text": "n=2 [admin#5:A,bob#3:A] mod{admin=#1,bob=#3}"
+     },
+     {
+      "ticks": 4351.0,
+      "minutes": 847.0,
+      "ms": 1791374758557.0,
+      "kind": "online",
+      "text": "n=2 [admin#5:A,bob#3:A] mod{admin=#5,bob=#3}"
+     }
+    ],
+    "isDead_wall": 480.162,
+    "accept_wall": 485.0,
+    "accept": {
+     "ok": true,
+     "err": null,
+     "failedAt": null
+    },
+    "newGame_polls_last": {
+     "wall": 485.26,
+     "newGameN": 1
+    },
+    "record_after": [
+     {
+      "wall": 492.04,
+      "dead": true,
+      "resets": 1,
+      "minutes": 860
+     },
+     {
+      "wall": 496.577,
+      "dead": true,
+      "resets": 1,
+      "minutes": 867
+     },
+     {
+      "wall": 500.609,
+      "dead": true,
+      "resets": 1,
+      "minutes": 874
+     }
+    ]
+   },
+   "verdict": "as_predicted",
+   "wall": 544.131,
+   "note": "the verdict here says only whether OnNewGame fired; the order is read off the events"
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": {
+    "mod_error": "none",
+    "admin_lua_error": false
+   },
+   "falsifier": "a mod error line, admin parked",
+   "observed": {
+    "server_mod_error_lines": [],
+    "admin_lua_error": false
+   },
+   "verdict": "as_predicted",
+   "wall": 544.131
+  }
+ },
+ "lint_errors": [],
+ "server_launch_wall": 1.925,
+ "server_started_wall": 48.853,
+ "session_ready_wall": 143.567,
+ "build": "42.20.4",
+ "boot_info": {
+  "server_launch_to_started_s": 46.9,
+  "client_debug": {
+   "admin": true,
+   "bob": false
+  }
+ },
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.server.bench.RING",
+   "expect": "\"value\": 64",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.server.bench.RING",
+    "type": "number",
+    "resolved": true,
+    "value": 64
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "admin": [],
+  "bob": []
+ },
+ "timeline": [
+  {
+   "t": 48.9,
+   "phase": "server_started"
+  },
+  {
+   "t": 48.9,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 88.7,
+   "phase": "client_ready",
+   "took": 39.3,
+   "user": "admin"
+  },
+  {
+   "t": 88.8,
+   "phase": "client_launch",
+   "user": "bob",
+   "restored": true
+  },
+  {
+   "t": 143.6,
+   "phase": "client_ready",
+   "took": 54.4,
+   "user": "bob"
+  },
+  {
+   "t": 143.6,
+   "phase": "session_ready"
+  },
+  {
+   "t": 143.8,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 144.3,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.server.bench.RING\", \"type\": \"number\", \"resolved\": true, "
+  },
+  {
+   "t": 144.8,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 145.1,
+   "phase": "verify",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 184.7,
+   "phase": "rcon",
+   "cmd": "settimespeed 30",
+   "ok": true
+  },
+  {
+   "t": 206.8,
+   "phase": "rcon",
+   "cmd": "settimespeed 1",
+   "ok": true
+  },
+  {
+   "t": 344.7,
+   "phase": "client_launch",
+   "user": "bob2",
+   "restored": true
+  },
+  {
+   "t": 434.7,
+   "phase": "client_ready",
+   "took": 89.9,
+   "user": "bob2"
+  },
+  {
+   "t": 508.0,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 536.3,
+   "phase": "client_quit",
+   "user": "bob",
+   "rc": 0
+  },
+  {
+   "t": 544.1,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "A",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "B",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "C1",
+   "verdict": "falsified"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "C2",
+   "verdict": "falsified"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "D",
+   "verdict": "falsified"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "F",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "E",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 544.1,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_errors": [],
+ "server_error_count": 0,
+ "admin_lua_error": false,
+ "client_seen": [
+  {
+   "user": "admin",
+   "in_game": 36.8,
+   "ready": 39.3
+  },
+  {
+   "user": "bob",
+   "in_game": 51.9,
+   "ready": 54.4
+  },
+  {
+   "user": "bob",
+   "in_game": 56.3,
+   "ready": 89.9
+  }
+ ],
+ "logs": {
+  "patterns": {
+   "life": "players: first sight of |players: \\w+ left|players: \\w+ is dead|store: reset record|fast: |options: ",
+   "log": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+   "echo_excluded": "PZTK: "
+  },
+  "limits": {
+   "log": 400
+  },
+  "clients": {
+   "admin": [
+    {
+     "console": "clients\\admin\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\admin\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+      "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped"
+     ],
+     "echo_lines_excluded": 0
+    }
+   ],
+   "bob": [
+    {
+     "console": "clients\\bob\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\clients\\bob\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+      "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped"
+     ],
+     "echo_lines_excluded": 0
+    },
+    {
+     "console": "cbob2\\clients\\bob\\console.txt",
+     "lines": [
+      "LOG  : Mod          f:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+      "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+      "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\cbob2\\clients\\bob\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+      "Stack trace:",
+      "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+      "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+      "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped"
+     ],
+     "echo_lines_excluded": 0
+    }
+   ]
+  },
+  "server": {
+   "life_lines": [
+    "LOG  : Lua          f:0 st:1,717,070,021> [NutritionRevamp] fast: takeover handler registered",
+    "LOG  : Lua          f:370 st:1,717,108,525> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:916 st:1,717,162,918> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:2319 st:1,717,303,574> [NutritionRevamp] fast: takeover handler removed",
+    "LOG  : Lua          f:2632 st:1,717,334,874> [NutritionRevamp] fast: takeover handler registered",
+    "LOG  : Lua          f:3289 st:1,717,400,567> [NutritionRevamp] players: bob left",
+    "LOG  : Lua          f:3914 st:1,717,463,077> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:4301 st:1,717,501,770> [NutritionRevamp] players: admin is dead; record kept until respawn",
+    "LOG  : Lua          f:4344 st:1,717,506,169> [NutritionRevamp] store: reset record for admin (reset 1)",
+    "LOG  : Lua          f:4345 st:1,717,506,178> [NutritionRevamp] players: admin is dead; record kept until respawn",
+    "LOG  : Lua          f:4558 st:1,717,527,470> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:4841 st:1,717,555,768> [NutritionRevamp] players: bob left"
+   ],
+   "life_echo_excluded": 0,
+   "lines": [
+    "LOG  : Mod          f:0 st:1,717,026,998> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:1,717,027,000> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:1,717,027,000> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:1,717,027,000> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:1,717,027,000> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "ERROR: General      f:0 st:1,717,041,679> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,680> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,681> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,681> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,682> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,682> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,683> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,717,041,683> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x222-20261007-075752\\server\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "LOG  : Lua          f:0 st:1,717,065,580> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:1,717,065,580> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:1,717,065,580> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:1,717,065,580> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "ERROR: WorldGen     f:0 st:1,717,066,051> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderW at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderW",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,717,066,051> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderS at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderS",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,717,066,052> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderE at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderE",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,717,066,052> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderN at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderN",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,717,066,053> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: WindowShape at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: WindowShape",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:1,717,067,107> [NutritionRevamp] store attached (new world: true)",
+    "LOG  : Lua          f:0 st:1,717,070,021> [NutritionRevamp] fast: takeover handler registered",
+    "LOG  : Lua          f:0 st:1,717,070,021> [NutritionRevamp] intake: wrappers true drink true world true",
+    "LOG  : Lua          f:0 st:1,717,070,022> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=server mode=takeover itemPass=true legacyMirror=on frameworks=n/a hook=true limitations=9 nutritionOn=false log=2",
+    "LOG  : Lua          f:370 st:1,717,108,525> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:916 st:1,717,162,918> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:2319 st:1,717,303,574> [NutritionRevamp] fast: takeover handler removed",
+    "LOG  : Lua          f:2632 st:1,717,334,874> [NutritionRevamp] fast: takeover handler registered",
+    "LOG  : Lua          f:3289 st:1,717,400,567> [NutritionRevamp] players: bob left",
+    "LOG  : Lua          f:3914 st:1,717,463,077> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:4301 st:1,717,501,770> [NutritionRevamp] players: admin is dead; record kept until respawn",
+    "LOG  : Lua          f:4344 st:1,717,506,169> [NutritionRevamp] store: reset record for admin (reset 1)",
+    "LOG  : Lua          f:4345 st:1,717,506,178> [NutritionRevamp] players: admin is dead; record kept until respawn",
+    "LOG  : Lua          f:4558 st:1,717,527,470> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:4841 st:1,717,555,768> [NutritionRevamp] players: bob left"
+   ],
+   "echo_lines_excluded": 104
+  }
+ },
+ "wall_seconds": 544.1
+}
