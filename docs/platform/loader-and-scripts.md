@@ -65,6 +65,7 @@ On a dedicated server `ZomboidGlobals.Load` runs once, inside `GameServer.doMini
 A mod reaches the rise rates on a dedicated server only by assigning the Lua `ZomboidGlobals` keys at file scope or in an `OnGameBoot` handler: `ZomboidGlobals` declares no setter and is not exposed, and every exposed path that re-runs `Load` goes through `Core.ResetLua`, which resets the whole engine state. [#3365/C/C-only]
 `ZomboidGlobals.Load` casts each key to `Double` and calls `doubleValue`, so a mod sets a rate to `0`, never to `nil`. [#3366/C/C-only]
 Measured live, a mod that assigned the two thirst rise keys 0 at file scope and the four hunger and fatigue keys 0 in an `OnGameBoot` handler saw the handler run on the server with the server's `DayLength` of 1 already in `SandboxVars`, and read all seven rise keys 0 from the Lua table at `OnServerStarted`. [#3367/M/n=1]
+Measured live, a mod's own sandbox options already hold the operator's values in a dedicated server's `OnGameBoot` handler: with Mode 2 and Severity 1.5 set, the handler read `SandboxVars.NR.Mode` 2 and `SandboxVars.NR.Severity` 1.5 while the same file's file scope read the defaults 1 and 1, so a mod can gate its zeroing of the rise rates on its own option one instruction before `ZomboidGlobals.Load` [#3380/M/n=1].
 
 <a id="script-dsl"></a>
 ### The script grammar

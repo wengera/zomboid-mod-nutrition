@@ -3,7 +3,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-09-30 · scope: a mod's own sandbo
 
 ## Rules
 
-- Read a sandbox value at event time, at `OnServerStarted`, `OnGameStart` or later, never at file scope: every mod Lua file runs before the operator's values reach `SandboxVars` on both sides, and `OnGameBoot` fires before them on a joining client [#2460/C/inference] [#2442/C/C-only] [#2443/C/C-only] [#2444/C/C-only] [#2446/C/C-only].
+- Read a sandbox value at event time, at `OnServerStarted`, `OnGameStart` or later, never at file scope: every mod Lua file runs before the operator's values reach `SandboxVars` on both sides, and `OnGameBoot` fires before them on a joining client (on a dedicated server `OnGameBoot` already holds them, the one read point before `ZomboidGlobals.Load` [#2446/C/C-only] [#3380/M/n=1]) [#2460/C/inference] [#2442/C/C-only] [#2443/C/C-only] [#2444/C/C-only] [#2446/C/C-only].
 - Capture the sub-table, never a value, when a file must hold a reference at load time: `toTable` reuses the sub-table object and rewrites only its leaves, so a captured table sees every later value while a captured value keeps the declared default [#2461/C/inference] [#2445/C/C-only] [#2444/C/C-only].
 - End every key and value pair in the declaration file with a comma, the last one before the closing brace included: the reader erases the newlines, and only a comma ends a value [#2462/C/inference] [#2425/C/C-only].
 - Never write `//` in the declaration file, and comment with `/* */` alone: the parser strips block comments only, so `//` text runs on into the next value [#2463/C/inference] [#2426/C/C-only].
@@ -140,6 +140,7 @@ On a dedicated server the custom options register before all three `LuaManager.L
 Mod Lua file scope therefore precedes the operator's values on the server too [#2443/C/C-only].
 A mod Lua file that reads a sandbox value at file scope gets the mod's declared default on the server and on every joining client, never the operator's setting [#2444/C/C-only].
 `OnGameBoot` fires after the values land on a dedicated server and before them on a joining client, so it is not a symmetric read point [#2446/C/C-only].
+Measured live, a dedicated server's `OnGameBoot` handler read a mod's own options at the operator's values while its file scope read the defaults, and a joining client's handler read the defaults until `OnGameStart` [#3380/M/n=1] [#3381/M/n=1].
 `OnServerStarted` and `OnGameStart` both fire after the values land [#2446/C/C-only].
 
 What each read point returns, by side [#2444/C/C-only] [#2445/C/C-only] [#2446/C/C-only]:
@@ -148,7 +149,7 @@ What each read point returns, by side [#2444/C/C-only] [#2445/C/C-only] [#2446/C
 |---|---|---|
 | a value at file scope | the declared default | the declared default |
 | the sub-table at file scope, its leaf read later | the server's value | the file's value |
-| a value in an `OnGameBoot` handler | the declared default | the file's value |
+| a value in an `OnGameBoot` handler | the declared default [#3381/M/n=1] | the file's value [#3380/M/n=1] |
 | a value at `OnGameStart` (client) or `OnServerStarted` (server), or any later event | the server's value | the file's value |
 
 <a id="runtime-change"></a>

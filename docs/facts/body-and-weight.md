@@ -93,7 +93,7 @@ Sustained running at the running branch's rate crosses the whole 5 900 kcal rang
 `Nutrition.update` returns early for a dead or god-mode character, and its only caller is the second internal player update step, itself gated by the character-stats disabler [#0466].
 The store this burn drains is clamped at both ends, so an idle starving character reaches the floor and the burn stops mattering ([nutrition-core.md#clamps](nutrition-core.md#clamps)).
 
-The moving flag of a client-driven walk reaches the server's copy of the player in part of its ticks (226 of 301 on a walk, 53 of 141 on a sprint leg), but the run and sprint flags never do, so the server's running and sprinting branches are unreachable on the harness routes [#2877/M/n=1][#0591/M/n=1/open].
+The moving flag of a client-driven walk reaches the server's copy of the player in part of its ticks (226 of 301 on a walk, 53 of 141 on a sprint leg); the run and sprint flags reached it on no tick of x141a's arms [#2877/M/n=1] but on 11 of 188 sampled ticks of x224's 15 s `player.sprint` leg, 8 of them with the moving flag [#3384/M/n=1], so the server's running branch is reachable on the harness's sprint route, intermittently [#0591/M/n=1/open].
 
 <a id="metabolic-rate"></a>
 ### The metabolic-rate classes
@@ -418,7 +418,7 @@ Not covered: the temperature model behind the thermoregulator's primary and seco
 ## Open
 <a id="open"></a>
 
-- The walking, running and sprinting burn constants are unmeasured — the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character — settled by the walk, run and sprint ratio tests against idle, 4.875, 8.125 and 10.5625; running never reaches the server [#2877/M/n=1] [#0591/M/n=1/open].
+- The walking, running and sprinting burn constants are unmeasured — the run's server saw the moving flag in 5 of 52 samples, one consecutive pair, and never saw the running flag, so the run flag did not reach the server's copy of the character — settled by the walk, run and sprint ratio tests against idle, 4.875, 8.125 and 10.5625; running reached the server on none of x141a's ticks [#2877/M/n=1] and on 11 of 188 of x224's sprint leg [#3384/M/n=1] [#0591/M/n=1/open].
 - The asleep burn branch is unmeasured: the sleep write held on the immediate read-back but did not persist, and the next row's 52 server samples all read the character awake with idle-rate burn about 27 s later, so whether the sleep was walked off or never persisted is undetermined — settled by a sleep arm that verifies the state on the server before the window opens [#0592/M/n=1/open].
 - Whether the 1.2 running thirst factor ever fires on a dedicated server is unknown: it is gated on the character being the local player instance, which on a headless server is probably never true, so running may not raise thirst in multiplayer at all — settled by the same running branch the burn constants need [#0593/C/C-only/open].
 - The real range of the thermoregulator's energy multiplier is unknown: the primary and secondary totals are written by a node loop that was not traced, so the size of the cold-weather burn bonus is unbounded here, and the reading near 1.005 seen in the run is one uncontrolled fixture — settled by a temperature-controlled pair of idle windows [#0594/C/C-only/open].
