@@ -448,7 +448,7 @@ def main():
                  "meals: min less hungry | meals: minutes at hunger 0 (vanilla's) | meals: mean abs diff | "
                  "light: level agreement (min) | light: min hungrier | light: min less hungry | "
                  "light: minutes at hunger 0 (vanilla's) | light: mean abs diff |")
-    index.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+    index.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
 
     for daylen, setting in DAY_LENGTHS:
         name = day_name(daylen, setting)
