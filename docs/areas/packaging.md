@@ -149,7 +149,7 @@ The viewers — a status bar and a cooking automation — define nothing this mo
 A skill mod's protein ladder would join them only once its author wires it, since the shipped ladder sits under a not-yet-implemented marker with its other copy block-commented, which a re-read of the live tree on 2026-10-04 found unchanged ([#1584], [#2092/C/snapshot/unverified]).
 
 A neighbour's failure reaches this mod only as far as the dispatch that carries it.
-An unguarded raise aborts the rest of the raising handler's body while the handlers behind it keep running, so this mod's own handlers on the same event survive a neighbour's raise, while a call this mod makes into a neighbour's code needs a protected call of its own — measured on the server's Lua state only [#1179/M/n=1].
+An unguarded raise aborts the rest of the raising handler's body while the handlers behind it keep running, so this mod's own handlers on the same event survive a neighbour's raise, while a call this mod makes into a neighbour's code needs a protected call of its own — measured on the server's Lua state and, since x202, on a release client [#1179/M/n=1] [#3317/M/n=1].
 Whether the interface mod's protected dispatch changes that inside its own event is a resident run-time question with a probe of its own ([#1292/C/open], [open-questions.md#x26](open-questions.md#x26)).
 
 The residents' own foods are the item pass's boundary: a base-module pass does not touch a food another mod declares in its own module, and a block naming one is an override only while that mod loads ([#1030/M/n=1], [item-pass.md#scope](item-pass.md#scope)).
@@ -243,7 +243,7 @@ Which approach does this mod take toward each resident it shares a file or a key
 - No two mods both load a file at one relative script path: one file wins and the other's blocks are never parsed ([#1175/C/C-only], [open-questions.md#x20](open-questions.md#x20)).
 - No mod replaces part of a shadowed Lua file: the one entry at a relative path is the whole body that runs [#1176/C/C-only].
 - No mod diagnoses a build gate from the loader's error text: a failed version gate prints the line an absent folder prints [#1177/C/C-only].
-- This mod survives its own or a neighbour's unguarded raise only with a workaround, a protected call at every boundary, measured on the server's Lua state only [#1179/M/n=1].
+- This mod survives its own or a neighbour's unguarded raise only with a workaround, a protected call at every boundary, measured on the server's Lua state and, since x202, on a release client [#1179/M/n=1] [#3317/M/n=1].
 - A mod can rely on the replay order, which is the stored script path rather than `require=` or `Mods=`, so a patch mod wins a contested key only through its own file names [#1183/M/n=2].
 - Every reading of the resident stack is a static read of a dated snapshot of an installed tree that drifts, and no two resident mods were booted together ([#1964/C/snapshot], [catalog.md#walls](../facts/other-mods/catalog.md#walls)).
 

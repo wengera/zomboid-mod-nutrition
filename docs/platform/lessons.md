@@ -129,7 +129,7 @@ A client-side console grep sees each engine load line once per Lua state, so a c
 Every named experiment inherits the same six clauses of profile, driver, provenance and verdict discipline, and a rider on an existing session is preferred to a session of its own ([`harness.md`](harness.md#experiment-contract), [`../reference/experiments.md`](../reference/experiments.md)).
 A probe built to raise makes the run report failure by construction, which is the harness working rather than the probe failing, so the grade comes off the artifact and not off the console line ([`harness.md`](harness.md#driver-rules)).
 The one rule that belongs to both this page and that one is the last of the imperatives above, the server-side gate and the low client timeout a raising probe is given [#1963/M/n=2].
-Its release-client half is measured: a release client given the same unguarded raise did not park, so the gate guards the debug client and a release client's survival is itself readable over the bus [#3317/M/n=1] [#3318/M/n=1].
+Its release-client half is measured: a release client given an unguarded raise of a second shape (a custom event) did not park, so the gate guards the debug client and a release client's survival is itself readable over the bus [#3317/M/n=1] [#3318/M/n=1].
 
 <a id="corpus-drift"></a>
 ### The corpus moves while you are counting it
