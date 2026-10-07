@@ -36,7 +36,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
   - `rmod` on sleep endurance, applied one interval late.
 - **Loses unless rewritten:** the sleep-onset terms `solMul` and `solAddH`. The writer could re-set vanilla's sleep delay through `setDelayToSleep` (#2787), one interval late; this is unmeasured.
 - **Loses:**
-  - the PANIC hold, because vanilla decays PANIC every update (#3116). A once-a-minute write keeps PANIC within 1.12 of its target between writes (#3392; the decay is about 1.12 a game minute, as Decision 1 (c) states). S1 first proposed a per-tick write outside the hook, which survives (#3048); rule 6 replaces it.
+  - the PANIC hold, because vanilla decays PANIC every update (#3116). A once-a-minute write keeps PANIC within 1.2556 of its target between writes, measured at a target of 10 (#3400; Decision 1 (c)). S1 first proposed a per-tick write outside the hook, which survives (#3048); rule 6 replaces it.
   - the TEMPERATURE target, because vanilla sets it every update. The takeover's own hold is itself unmeasured (X81).
   - the auto-drink bracket. The takeover throttled auto-drink inside its handler. Under the route the writer reads THIRST before each write, and that read holds the whole sip (#3382). S1b showed the sip must also be folded into the next THIRST target (below).
 - **Unchanged and moot:** the frozen-FATIGUE arm. On a server where sleep is not both allowed and needed, vanilla resets FATIGUE before the hook on every update, so neither route holds FATIGUE there.
@@ -196,7 +196,7 @@ The draft's code samples predate the refactor. Per task:
   - So F no longer measures the cost on 1.0.1. At most it re-reads `bench.minute`, which still calls `NR.server.players.work(u, p)`, for continuity with #3390. `bench.handler` leaves with the takeover (Decision 1).
   - Its budget table is re-based on the minute's cost = 1583 µs (#3387), not 377.
   - B reads the drain under its `EveryOneMinute` round-robin (each player's ages advance within m game minutes), not the `OnTick` share per wall second.
-  - Still unmeasured, and Task 13's if Plan 11 wants them: vanilla's updaters at 20 or more players; the PANIC sawtooth at a realistic target, near 10 or 20; and DayLength 4 set as the option rather than through `time.multiplier` (#3394).
+  - Still unmeasured, and Task 13's if Plan 11 wants them: vanilla's updaters at 20 or more players; the PANIC moodle itself (no harness command reads it); and DayLength 4 set as the option rather than through `time.multiplier` (#3394).
 - **Tasks 5, 8 and 11** touch no refactored interface.
 
 ### Refactor follow-ups for Plan 11
@@ -301,10 +301,10 @@ Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) as
 
 **The once-a-minute PANIC write: a sawtooth.** It was measured under Overlay, with no stat hook registered.
 - Vanilla's decay is linear and per game time: 0.17969 a tick at DayLength 1 and 0.030086 a tick at the DayLength 4 tick spacing. Both are **about 1.12 PANIC a game minute** (#3392, agreeing with #3116).
-- The plan's 0.5 target was on the wrong scale (PANIC spans 0–100), so the measured amplitude is the clipped target. The sawtooth at a real target is arithmetic on the measured decay: a floor T written once a minute falls to about T − 1.12 just before the next write, at any day length.
-- The PANIC moodle thresholds are 6, 30, 65 and 80 (#2369). So a player sees a flicker only when T sits in [6, 7.12), [30, 31.12), [65, 66.12) or [80, 81.12), one level up and down once a game minute.
+- The plan's 0.5 target was on the wrong scale (PANIC spans 0–100), so x231's amplitude is the clipped target. The follow-up run x232 measured a target of 10 (#3400): PANIC fell linearly, 0.17916 a tick at DayLength 1 and 0.030061 at the slow spacing, within #3392's range, and read 8.7444 to 8.9287 before each write at DayLength 1 (a loss of 1.0713 to 1.2556, mean 1.1260) and 8.8560 to 8.8921 at the slow spacing. The floor is the target less the fall per tick times the gap's ticks (#3402), so a 7-tick minute loses 1.2556, more than the 1.12 mean.
+- The PANIC moodle thresholds are 6, 30, 65 and 80 (#2369). At a target of 10 the stat never went under 6 at either spacing; at 6.5 it went under 6 in every game minute at both (#3401). So a floor within about 1.26 above a threshold flickers one level once a game minute (inferred: the moodle itself was not read); a target of 10 or 20 does not.
 - The targets the earlier holds wrote sit outside all four windows: 10, 12.75 and 14.5 (#3101), and 19.25, 35 and 14.75 (#3082).
-- Vanilla's panic rise from zombies in view adds on top between writes. No reading covers it. A short hold at a target near 10 or 20 would measure the real sawtooth.
+- Vanilla's panic rise from zombies in view adds on top between writes. No reading covers it.
 
 **The once-a-minute TEMPERATURE write: it held** (#3393).
 - At 37.5, 0.5 above the set point, the pre-write read settled at 37.47803–37.48045 at DayLength 1 (about 0.02 °C under) and 37.46046–37.46208 at the DayLength 4 tick spacing (0.04 under).
@@ -382,13 +382,13 @@ Each item names its reading and its expected saving per player per game minute, 
 - Against it: the PANIC floor is lost, because vanilla decays PANIC by about 1.12 a game minute (#3392) and nothing restores it. The TEMPERATURE target is lost too.
 
 **(c) The hybrid, re-shaped for rule 6: (b) plus a once-a-minute PANIC and TEMPERATURE write.** S1 defined the hybrid with a per-tick `OnTick` PANIC hold, and rule 6 replaces that hold with this write.
-- **PANIC saw-tooths.** Vanilla decays PANIC linearly by about 1.12 a game minute at either clock (#3392). A floor T written once a minute therefore falls to about T − 1.12 before the next write.
-  - The moodle flickers one level once a game minute only when T sits in [6, 7.12), [30, 31.12), [65, 66.12) or [80, 81.12). The thresholds are #2369's; the windows are arithmetic on the measured decay, not a reading at such a target.
+- **PANIC saw-tooths.** Vanilla decays PANIC linearly, the same per game minute at either clock (#3392, #3400). A floor of 10 written once a minute read 8.7444 to 8.9287 before each write at DayLength 1 (#3400).
+  - The moodle flickers one level once a game minute only when the floor sits within about 1.26 above 6, 30, 65 or 80 (#2369's thresholds; a 6.5 floor went under 6 every minute, #3401). The moodle itself was not read, so the flicker is inferred. A floor that must sit near a threshold can be written about 1.26 higher so it never dips under.
   - The targets the earlier holds wrote sit outside all four windows: 10, 12.75 and 14.5 (#3101), and 19.25, 35 and 14.75 (#3082).
   - Vanilla's own rise from zombies in view adds on top between writes, and no reading covers it.
 - **TEMPERATURE held.** Written to 37.5 once a game minute, it held within about 0.02 °C at DayLength 1 and 0.04 °C at the DayLength 4 tick spacing, and the thermoregulator's core followed it (#3393). This is the per-minute write, not the takeover's own path, so X81 stays unmeasured, and with (a) withdrawn it is moot.
 - Cost: (b)'s, plus two more stat sets a player a minute. By #3373's three sets at 0.6–0.9 µs that is under a microsecond (inference; not timed as such).
-- For it: (b)'s cost, with PANIC kept within 1.12 of its floor and TEMPERATURE within 0.04 °C of its target.
+- For it: (b)'s cost, with PANIC kept within 1.2556 of its floor (#3400) and TEMPERATURE within 0.04 °C of its target.
 - Against it: the PANIC sawtooth near a threshold, and vanilla's panic rise between writes, which is unread.
 
 **The design's all-in cost with no per-tick work** (per player per game minute; arithmetic on #3373, #3386, #3387; Performance, above). The slow minute moves from the `OnTick` drain to `EveryOneMinute`, run for every player in one event (m = 1, the burst) or for ceil(N / m) players an event in a rotation (a round-robin of period m).
@@ -423,7 +423,7 @@ Each item names its reading and its expected saving per player per game minute, 
   - the measured boot-time mode read;
   - the measured auto-drink and eat behaviour;
   - a measured TEMPERATURE hold;
-  - a PANIC sawtooth that stays within 1.12 of its floor;
+  - a PANIC sawtooth that stays within 1.2556 of its floor (#3400);
   - an all-in cost below the withdrawn takeover's at both day lengths.
 - It asks Angus to accept a restart-only mode, an outage with no vanilla fallback, and the PANIC sawtooth.
 - The drain's period is Angus's:
@@ -1406,3 +1406,23 @@ No kernel assumes dt = 1: the fluids are dt-correct and the exponentials are exa
 - T109.3: "At k = 2 the effects key already differs (g4's insulin band one lower at its departure), and aligning the first sight does not remove the failure [T109.3]."
 - T109.4: "The drift grows with k: the stamped stomach fill by up to 0.0052 at k = 2 and 0.25 at k = 30 [T109.4]."
 - T109.5: "`fluids.sweatLmin` is the step's sweat litres, not a per-minute rate, so a coarse minute multiplies it by k [T109.5]."
+
+## Appendix I. P3b — the PANIC sawtooth at a target of 10 (run x232)
+
+Provisional ids map T111.n -> #(3399+n).
+
+### Task P3b memo section: the PANIC sawtooth at a realistic target (run x232-20261007-121312)
+
+For the decision memo's Performance section ("The once-a-minute PANIC write: a sawtooth") and Decision 1 (c). Tags are provisional (T111.n; the dry run mints #3400-#3402).
+
+**Measured, not arithmetic.** Under Overlay (no stat hook), with no panic source, a PANIC of 10 written once a game minute:
+- falls linearly, not in proportion to its value: 0.17916 a tick at `DayLength` 1 and 0.030061 a tick at the `time.multiplier` 0.1674 spacing, within #3392's range at a 0.5 target (0.17969, 0.17889 to 0.18069; 0.030086, 0.029987 to 0.030320) [T111.1];
+- reads 8.7444 to 8.9287 just before each write at `DayLength` 1 (a loss of 1.0713 to 1.2556, mean 1.1260, on gaps of 6 or 7 ticks) and 8.8560 to 8.8921 at the slow spacing (1.1079 to 1.1440, mean 1.1243) [T111.1];
+- the floor is the target less the fall per tick times the gap's ticks: the `OnTick` read carrying the write's tick count sits one fall above the handler's pre-write read (the frame order is inference), and the next `OnTick` reads the written value unchanged [T111.3].
+
+**The moodle.** It was not read: no harness command reads the PANIC moodle. Against the thresholds 6, 30, 65 and 80 (#2369), a target of 10 never brought the stat under 6 at either spacing, so the level is inferred unchanged. A target of 6.5 brought it under 6 in every game minute at both spacings (5.2459 to 5.4297 before each write at `DayLength` 1, 66 of 126 tick reads under 6; 5.3561 to 5.3883 at the slow spacing, 429 of 786) [T111.2]: the inferred level drops and returns once a game minute, under 6 for about half of each minute at either clock.
+
+**What it changes in Decision 1 (c).**
+- The arithmetic stands: the decay is linear and per game time, so the slow spacing does not deepen the sawtooth. The memo's "about 1.12" is the mean; the worst gap at `DayLength` 1 is 1.2556 (a 7-tick minute), so a flicker window above each threshold is about [T_h, T_h + 1.26) at `DayLength` 1 and [T_h, T_h + 1.14) at the slow spacing, not [T_h, T_h + 1.12).
+- A floor at 10 or 20 is clear of every threshold by a wide margin, so for the mod's realistic floors (c) shows no inferred moodle flicker. A floor placed within about 1.3 above 6, 30, 65 or 80 flickers once a game minute; a design that must sit near a threshold can write the target plus the per-minute fall (about 1.26) so the floor stays at or above it.
+- Still unread: the moodle itself (client and server), and vanilla's panic rise from zombies between writes.
