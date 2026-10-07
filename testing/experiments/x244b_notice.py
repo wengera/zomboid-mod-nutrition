@@ -7,7 +7,9 @@ MANIFEST.json sha256 c86e295a...b389; release/ is gitignored; mod/ is never boot
 (fixture two, admin -debug then bob release, Nutrition false, DayLength 1 in the profile, gclog true). Artifact: `notice.json`, the
 staged MANIFEST.json, the server's gc.log and every client ring document (`posring/world-posring-<arm>_<user>.json`)
 copied byte-identical beside it. Shape: x244a_notice.py (its sibling, a copy with
-PREFIX, PROFILE, SLOW_MULT, MIN_MINUTE_FRAMES and this docstring changed) and x243c_shootout.py's phase M. Written BEFORE the boot with
+PREFIX, PROFILE, SLOW_MULT, MIN_MINUTE_FRAMES and this docstring changed, and, after x244a's run showed the two
+players 248 tiles apart and bob's ring empty, the RCON teleport in S0 and the empty-series guard in the rule added
+before this driver's boot) and x243c_shootout.py's phase M. Written BEFORE the boot with
 every prediction in it and never edited after the run (CLAUDE.md s5, B3-1/B3-2). The driver asserts that its PREFIX
 and PROFILE match its own file name (H3 session b's slip).
 
@@ -56,6 +58,12 @@ wait until both records exist and the mod's minute ran MIN_RUNS times), then the
 ghost.load N <sched> feed and ghost.stats reset (not for idle); world.posring CLIENT_RING_N pace +-PACE_DX on admin
 then bob; perf.local PERF_N; tick.ring RING_N; ARM_WALL_S of wall with NO server bus traffic; perf.local read,
 tick.ring read, ghost.stats; world.posring read on admin then bob; ghost.stop.
+
+S0 TELEPORT (added after x244a, before this boot): x244a found admin and bob 248 tiles apart at spawn, so admin's ring
+read bob only through the far-player updates (about 2.5 a second, whole-tile positions) and bob's ring never saw admin.
+S0 here sends RCON `teleport "bob" "admin"` (TeleportPlayerCommand, `/teleport user1 user2`), waits TELEPORT_WAIT_S,
+re-reads both positions, and if they are still over NEAR_TILES apart sends `teleport bob admin` once and re-reads.
+The client rule treats an empty stamp series as unmeasured (x244a's bob was graded on an empty series).
 
 DEVIATIONS (stated before the run): no zombie is spawned. Fixture two's sandbox has Zombies = 6 (none), the only
 spawner (zombie.near) places zombies one tile from the first player, and the harness has no god mode, so a 15-minute
@@ -159,6 +167,8 @@ SHOW_RATE = 0.5
 SHOW_OVER_CONTROL = 2.0
 NONE_MARGIN = 0.05
 S0_WAIT_S = 90.0
+TELEPORT_WAIT_S = 20.0
+NEAR_TILES = 20.0
 MIN_RUNS = 4
 MIN_FREE_GB = 12.0
 RESULT_WAIT_S = 30.0
@@ -543,6 +553,24 @@ def phase_S0():
         P["distance"] = math.hypot(float(a["x"]) - float(b["x"]), float(a["y"]) - float(b["y"]))
     except (KeyError, TypeError, ValueError):
         P["distance"] = None
+    P["teleports"] = []
+    for cmd in ('teleport "bob" "admin"', "teleport bob admin"):
+        P["teleports"].append(rcon(cmd, "S0_teleport"))
+        out["world_changes"]["left_in_place"].append(f"S0: RCON {cmd}")
+        time.sleep(TELEPORT_WAIT_S)
+        pos = {who(s): keep(step(f"S0_pos2_{who(s)}", s, "player.stats")) for s in CLIENT_SIDES}
+        try:
+            dist = math.hypot(float(pos["admin"]["x"]) - float(pos["bob"]["x"]),
+                              float(pos["admin"]["y"]) - float(pos["bob"]["y"]))
+        except (KeyError, TypeError, ValueError):
+            dist = None
+        P["teleports"][-1]["pos"] = pos
+        P["teleports"][-1]["distance"] = dist
+        P["distance_after"] = dist
+        if dist is not None and dist <= NEAR_TILES:
+            break
+    if P.get("distance_after") is None or P["distance_after"] > NEAR_TILES:
+        note(f"S0: the players are not within {NEAR_TILES} tiles after the teleports: {P.get('distance_after')}")
     end = time.time() + S0_WAIT_S
     polls = []
     while True:
@@ -557,6 +585,21 @@ def phase_S0():
     if not ok:
         note("S0: the real players' records or MIN_RUNS were not reached inside S0_WAIT_S")
     P["minstats"] = minstats("S0")
+
+
+def rcon(cmd, tag):
+    t_before, e_before = wall(), time.time()
+    try:
+        ok, rep = server.rcon(cmd)
+    except Exception as e:                     # noqa: BLE001
+        ok, rep = False, f"{type(e).__name__}: {e}"
+    row = {"step": tag, "side": SRV, "cmd": "rcon", "args": cmd, "phase": cur_phase["name"], "wall_before": t_before,
+           "wall_after": wall(), "epoch_ms_before": int(e_before * 1000), "epoch_ms_after": int(time.time() * 1000),
+           "ack": {"ok": ok, "reply": str(rep)[:300]}}
+    out["steps"].append(row)
+    tl.mark("rcon", cmd=cmd, ok=ok)
+    return {"cmd": cmd, "ok": ok, "reply": str(rep)[:300], "wall": t_before, "epoch_ms_before": row["epoch_ms_before"],
+            "epoch_ms_after": row["epoch_ms_after"]}
 
 
 def rate_probe(tag):
@@ -881,7 +924,7 @@ def client_summary(A, user):
 def shows(cs):
     st = (cs or {}).get("stamp") or {}
     nl, nc, nm = st.get("ge_gap_lined"), st.get("ge_gap_control"), st.get("minute_frames")
-    if nl is None or not nm:
+    if nl is None or not nm or not g(st, "gaps", "n"):
         return None
     return nl >= SHOW_RATE * nm and nl > SHOW_OVER_CONTROL * (nc or 0)
 
@@ -889,7 +932,7 @@ def shows(cs):
 def none_(cs, idle_cs):
     r = g(cs, "stamp", "ge_gap_lined_per_minute")
     ri = g(idle_cs, "stamp", "ge_gap_lined_per_minute")
-    if r is None or ri is None:
+    if r is None or ri is None or not g(cs, "stamp", "gaps", "n") or not g(idle_cs, "stamp", "gaps", "n"):
         return None
     return r <= ri + NONE_MARGIN
 
