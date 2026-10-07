@@ -8,3 +8,4 @@ data/*.csv text eol=lf
 data/*.json text eol=lf
 mod/**/*.png binary
 data/vanilla-relative-paths.txt text eol=lf
+testing/spikes/** text eol=lf

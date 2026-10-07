@@ -1,34 +1,67 @@
-"""Plan 10 Task S4: hunger feel and the satiety default -- an offline simulation.
+"""Plan 10 Task S4 (fix round 1): hunger feel and the satiety default, an offline simulation across day lengths.
 
-Simulates vanilla's HUNGER and the mod's takeover HUNGER over game days in one-game-minute steps, at
-DayLength = 1 (a 60-minute real day, so one game minute is 2.5 real seconds), and writes one CSV per
-half-time plus a summary. Deterministic: no randomness, no clock, no environment read; the outputs
-are a pure function of the repository's kernel files and the constants below.
+Simulates vanilla's HUNGER and five takeover HUNGER models over game days in one-game-minute steps, on
+four day lengths, and writes one CSV per (day length, model, parameter) plus a summary per day length
+and an index. Deterministic: no randomness, no clock, no environment read; the outputs are a pure
+function of the repository's kernel files and the constants below.
 
-Vanilla (each figure's register row is named beside it; the memo section carries the citations):
-  * awake, idle, FOOD_EATEN down: dH/dt = 9.6e-6 x (1 - H) per game-second at StatsDecrease 3
-    (#0470, #0474, #2773); closed form per step, so the step size never biases the curve;
-  * asleep, FOOD_EATEN down: 1.0e-6 x (1 - H) per game-second (#0472, #2783);
-  * FOOD_EATEN up (healthFromFoodTimer > 0): hunger frozen, awake or asleep (#0473, #0524, #2783);
-  * the timer decays DayLength/30 = 2.0 units per game-second on the 60-minute day (#0529);
-  * an eat adds getHungerChange x f to HUNGER, clamped to [0, 1] (#0017, #0021); getHungerChange is
-    the script HungerChange / 100 (#0011) times 1.3 when cooked (#0029);
-  * then JustAteFood: only when HUNGER is at its minimum after that write, the timer gains
-    (int)(|getHungerChange| x f x 13000), doubled when cooked, capped at 11000 (#0054, #0503, #0637);
+The day lengths. The sandbox DayLength setting k maps to the real minutes of a game day through
+SandboxOptions.getDayLengthMinutes (jar L556-L561: 1 -> 15, 2 -> 30, 3 -> 60, 4 -> 90; the harness
+table at docs/platform/harness.md:153 reads 1 = 15 min, 4 = 1 h 30 m). Every name below is "a
+<N>-minute day (DayLength <k>)". The fixture runs DayLength 4, the mod's acceptance profile
+DayLength 1, vanilla's default is DayLength 3.
+
+What depends on the day length. Every stat rate carries deltaMinutesPerDay, so hunger per game-second
+is the same on every day (#2773). The health-from-food timer does not: it decays by the day length in
+real minutes over 30 units per game-second (#0529; 0.5 on a 15-minute day, 2.0 on a 60-minute day,
+3.0 on a 90-minute day). So vanilla's FOOD_EATEN freeze lasts six times longer in game time on a
+15-minute day than on a 90-minute one, and only the models that read the timer move with the day.
+
+Vanilla (each figure's register row beside it):
+  * per game-second, dH = rate x StatsDecrease x appetite x (1 - H), appetite = the trait factor
+    (Hearty Appetite 1.5, Light Eater 0.75; #0485, #0474, #2773, #2783);
+  * rate: awake idle 9.6e-6 with the FOOD_EATEN moodle down (#0470) and 0 with it up (#0473);
+    exercising 6.4e-6 down and 1.92e-5 up, so exercise never freezes (#0471, #2773); asleep 1.0e-6
+    down and 0 up (#0472, #2783);
+  * the moodle is up while healthFromFoodTimer > 0 (#0511), and the timer decays as above (#0529);
+  * an eat adds getHungerChange x f to HUNGER, clamped to [0, 1] (#0017, #0021); getHungerChange is the
+    script HungerChange / 100 (#0011) times 1.3 when cooked (#0029);
+  * then JustAteFood: only when HUNGER sits at its minimum after that write, the timer becomes
+    (int)(timer + |getHungerChange| x f x 13000), and again for a cooked item, capped at 11000
+    (#0054, #0503; jar BodyDamage.JustAteFood @461 L650, @491 L653, @516 L656, @532 L660);
   * the HUNGRY moodle: strictly above 0.15, 0.25, 0.45, 0.70 (#0508, #0507).
-  The plan's "linear rise" reference (vanilla_lin) is also written: 0.03456 per game-hour with no
-  appetite damping and no freeze, the per-hour figure at H = 0 (#0574).
+  Each minute is integrated in closed form over its frozen and open seconds, so the step size never
+  biases the curve.
 
-The mod: the repository's kernels loaded under lupa as testing/tests/kernel/conftest.py loads them
-(NR_Core.lua then every NR_Kernel*.lua, sorted), plus NR_Data_Nutrients.lua for the seed vectors,
-without the coverage hook. A meal lands as NR_Server_Intake.lua lands it: the seed vector
-(NR.data.nutrients.get), the instance scale K.vector.meat(seed, instBase, scriptHunger) = 1 for an
-unscaled item, times the share 1, the four macros as Eat delivers them (the seed's, which the item
-pass writes), K.retention.apply with the item's cooked flag, then K.stomach.ingest (IN.land's last
-step; ethanol and caffeine are zero for these foods). Each game minute the stomach empties over
-1/60 h (NR_Server_Kinetics.lua's step), and HUNGER = clamp(K.fast.hungerTarget(fill, 1), 0,
-hungerCap) with hungerCap 0.69 (K.fast.defaults, ruling 14), as K.fast.step writes it.
-K.stomach.HALF_TIME_H is set per run; nothing in mod/ is edited.
+The takeover (the mod) still runs vanilla's Eat and JustAteFood: the eat writes the item's relief onto
+the stat the takeover last wrote, and the timer fills when that write leaves the stat at 0. The runner
+models that for every takeover model (the column model_timer), so the freeze a takeover model reads is
+the one its own displayed hunger earns. Every takeover model is capped at hungerCap 0.69
+(K.fast.defaults, ruling 14) at energyState 1.
+
+Models:
+  vanilla            the reference above.
+  stomach-<T>        the shipped design: the kernels loaded under lupa as
+                     testing/tests/kernel/conftest.py loads them, a meal landed as NR_Server_Intake.lua
+                     lands it (seed vector, instance scale 1, share 1, retention, K.stomach.ingest), the
+                     stomach emptied every game minute, HUNGER = clamp(K.fast.hungerTarget(fill, 1), 0,
+                     0.69). K.stomach.HALF_TIME_H = T; nothing in mod/ is edited. No freeze.
+  decoupled          a satiety scalar S on [0, 1]: an eat raises it by the relief |getHungerChange| x f,
+                     clamped at 1; it decays as vanilla's (1 - H) decays, with vanilla's awake, asleep
+                     and exercise rates and the appetite traits, but never frozen; HUNGER = 1 - S.
+  decoupled-freeze   the same S held while the timer is above 0 and the character is not exercising,
+                     exactly vanilla's gate.
+  blend-relief-b<B>  decoupled-freeze, with the relief scaled by the food's bulk: m = clamp(r / r0,
+                     0.25, 4) ^ B, r = (bulk / FULL_BULK) / relief, r0 the menu day's total fill over
+                     its total relief (so the day's mean is unchanged and only the ranking moves).
+  blend-floor-w<W>-T<T>  decoupled-freeze, with the stomach (half-time T) as a floor on satiety:
+                     HUNGER = 1 - max(S, W x fill).
+
+Scenarios: `meals` (the menu day: 07:00, 12:00, 19:00, awake all day, the fixture's SleepNeeded false,
+no exercise, no traits), `sleep` (asleep 23:00-07:00), `water` (0.3 L at 10:00, 16:00, 22:00; only
+the stomach sees water), `light` (07:00 a banana, 12:00 bread slices, 19:00 opened beans: no meal
+covers the hunger it meets, so no eat clamps S at 1 and the blends' bulk terms can act), and `active` (the code-path check: exercising 17:00-17:59 under Hearty
+Appetite, vanilla and the two decoupled models only). Day 3 of 3 is reported.
 
 Run: python testing/spikes/satiety_sim.py   (writes testing/spikes/out/)
 """
@@ -45,15 +78,20 @@ SHARED = os.path.join(REPO, "mod", "NutritionRevamp", "common", "media", "lua", 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "out")
 
 # --- vanilla constants (rows in the module docstring) ---
-HUNGER_INCREASE = 9.6e-6          # per game-second, awake idle, FOOD_EATEN down (#0470)
-HUNGER_ASLEEP = 1.0e-6            # per game-second, asleep, FOOD_EATEN down (#0472)
+RATE_IDLE = 9.6e-6                # HungerIncrease, awake idle, moodle down (#0470)
+RATE_FED = 0.0                    # HungerIncreaseWhenWellFed, idle or asleep with the moodle up (#0473, #2783)
+RATE_ASLEEP = 1.0e-6              # HungerIncreaseWhileAsleep, moodle down (#0472)
+RATE_EX_FED = 1.92e-5             # HungerIncreaseWhenExercise, exercising, moodle up (#0471)
+RATE_EX = RATE_EX_FED / 3.0       # exercising, moodle down (#0471)
 STATS_DECREASE = 1.0              # the default StatsDecrease setting 3 maps to 1.0 (#0483)
-TIMER_DECAY_PER_S = 60.0 / 30.0   # DayLength 60 real minutes / 30 (#0529)
 TIMER_PER_HUNGER = 13000.0        # getHealthFromFoodTimeByHunger (#0503)
 TIMER_CAP = 11000.0               # (#0054)
 COOKED_HUNGER = 1.3               # getHungerChange cooked ladder (#0029)
 HUNGRY_AT = (0.15, 0.25, 0.45, 0.70)   # strict greater-than (#0508, #0507)
-LINEAR_PER_H = HUNGER_INCREASE * 3600.0   # 0.03456 per game-hour at H = 0 (#0574)
+HEARTY = 1.5                      # Hearty Appetite (#0485)
+
+# --- the day lengths: (real minutes per game day, DayLength setting); jar getDayLengthMinutes L556-L561 ---
+DAY_LENGTHS = ((15, 1), (30, 2), (60, 3), (90, 4))
 
 # --- the day ---
 DAYS = 3                          # two warm-up days, the third reported
@@ -62,10 +100,20 @@ MEALS = {                          # game minute of the day -> [(fullType, scrip
     12 * 60: [("Base.OpenBeans", -24.0, False), ("Base.BreadSlices", -10.0, False)],
     19 * 60: [("Base.Steak", -40.0, True)],
 }
-DRINKS = {10 * 60: 0.3, 16 * 60: 0.3, 22 * 60: 0.3}   # litres of Water, the "water" scenario only
-SLEEP = (23 * 60, 7 * 60)         # asleep from 23:00 to 07:00, the "sleep" scenario only
+LIGHT = {                          # the `light` scenario: meals smaller than the hunger they meet, so no eat saturates
+    7 * 60: [("Base.Banana", -16.0, False)],
+    12 * 60: [("Base.BreadSlices", -10.0, False)],
+    19 * 60: [("Base.OpenBeans", -24.0, False)],
+}
+DRINKS = {10 * 60: 0.3, 16 * 60: 0.3, 22 * 60: 0.3}   # litres of Water, the `water` scenario only
+SLEEP = (23 * 60, 7 * 60)         # asleep 23:00-07:00, the `sleep` scenario only
+EXERCISE = (17 * 60, 18 * 60)     # exercising 17:00-17:59, the `active` scenario only
 
-HALF_TIMES = (2.0, 3.0, 4.0, 5.0, 6.0, 8.0)   # the plan's 2-6, plus the draft dial's upper bound 8
+SWEEP = [q / 4.0 for q in range(4, 33)]          # stomach half-times 1.00 to 8.00 h by 0.25
+CSV_HALF_TIMES = (2.0, 4.25)                     # the shipped 2 h and the c57c82e sweep best, at every day
+BETAS = (0.25, 0.5, 1.0)
+FLOOR_WS = (0.25, 0.5, 0.75, 1.0)
+FLOOR_T = 2.0                                    # the stomach keeps the shipped absorption half-time
 
 
 def level(h):
@@ -74,6 +122,56 @@ def level(h):
         if h > t:
             lv = i + 1
     return lv
+
+
+def day_name(daylen, setting):
+    return "a %d-minute day (DayLength %d)" % (daylen, setting)
+
+
+def relief(script_hunger, cooked, ladder=True):
+    """|getHungerChange| x f at f = 1 (ladder) or the raw |getHungChange| (no cooked ladder, #0002)."""
+    r = abs(script_hunger) / 100.0
+    if cooked and ladder:
+        r = r * COOKED_HUNGER
+    return r
+
+
+def hunger_rate(asleep, exercising, fed):
+    if asleep:
+        return RATE_FED if fed else RATE_ASLEEP
+    if exercising:
+        return RATE_EX_FED if fed else RATE_EX
+    return RATE_FED if fed else RATE_IDLE
+
+
+def decay_factor(asleep, exercising, trait, fed_s):
+    """exp of minus the integrated rate over one game minute: fed_s seconds with the moodle up, the rest down."""
+    k_fed = hunger_rate(asleep, exercising, True)
+    k_open = hunger_rate(asleep, exercising, False)
+    return math.exp(-(k_fed * fed_s + k_open * (60.0 - fed_s)) * STATS_DECREASE * trait)
+
+
+class Timer:
+    """BodyDamage.healthFromFoodTimer: filled by JustAteFood, decayed by the day length / 30 per game-second."""
+
+    def __init__(self, decay):
+        self.value = 0.0
+        self.decay = decay
+
+    def just_ate(self, stat_after, script_hunger, cooked):
+        if stat_after > 0.0:
+            return
+        add = relief(script_hunger, cooked) * TIMER_PER_HUNGER
+        self.value = float(int(self.value + add))
+        if cooked:
+            self.value = float(int(self.value + add))
+        if self.value > TIMER_CAP:
+            self.value = TIMER_CAP
+
+    def minute(self):
+        fed_s = min(60.0, self.value / self.decay)
+        self.value = max(0.0, self.value - self.decay * 60.0)
+        return fed_s
 
 
 def load_kernel():
@@ -87,13 +185,13 @@ def load_kernel():
     return rt, rt.globals().NutritionRevamp
 
 
-class Mod:
-    """The mod's stomach and HUNGER view at one half-time."""
+class Stomach:
+    """The mod's stomach at one half-time (the kernels, unedited)."""
 
     def __init__(self, rt, NR, half_time):
         self.NR = NR
         self.K = NR.kernel
-        self.K.stomach.HALF_TIME_H = half_time
+        self.half_time = half_time
         self.cap = self.K.fast.defaults().hungerCap
         self.stomach = self.K.stomach.seedFull(self.K.stomach.new())   # a new record starts full
         self.flags = rt.table()
@@ -122,205 +220,370 @@ class Mod:
         K.stomach.ingest(self.stomach, vec)
 
     def minute(self):
+        self.K.stomach.HALF_TIME_H = self.half_time   # set per step: several stomachs share one kernel
         self.K.stomach.empty(self.stomach, 1.0 / 60.0)
-        fill = self.K.stomach.fill(self.stomach)
-        h = self.K.fast.hungerTarget(fill, 1)
-        return min(max(h, 0.0), self.cap), fill, self.stomach.bulk
+        return self.K.stomach.fill(self.stomach)
 
 
 class Vanilla:
-    """Vanilla HUNGER with the appetite damping and the FOOD_EATEN freeze."""
+    """Vanilla HUNGER, integrated on H itself."""
+    name = "vanilla"
 
-    def __init__(self):
+    def __init__(self, *_):
         self.h = 0.0
-        self.timer = 0.0
-        self.lin = 0.0
+        self.fill = None
+        self.s = None
 
-    def eat(self, script_hunger, cooked):
-        hc = script_hunger / 100.0
-        if cooked:
-            hc = hc * COOKED_HUNGER
-        self.h = min(max(self.h + hc, 0.0), 1.0)
-        self.lin = min(max(self.lin + hc, 0.0), 1.0)
-        if self.h <= 0.0:
-            add = abs(hc) * TIMER_PER_HUNGER
-            if cooked:
-                add = add * 2.0
-            self.timer = float(int(self.timer + add))
-            if self.timer > TIMER_CAP:
-                self.timer = TIMER_CAP
+    def view(self):
+        return self.h
 
-    def minute(self, asleep):
-        frozen_s = min(60.0, self.timer / TIMER_DECAY_PER_S)
-        self.timer = max(0.0, self.timer - TIMER_DECAY_PER_S * 60.0)
-        open_s = 60.0 - frozen_s
-        rate = (HUNGER_ASLEEP if asleep else HUNGER_INCREASE) * STATS_DECREASE
-        self.h = 1.0 - (1.0 - self.h) * math.exp(-rate * open_s)
-        self.lin = min(1.0, self.lin + (LINEAR_PER_H / 60.0 if not asleep else HUNGER_ASLEEP * 60.0))
+    def eat(self, full_type, script_hunger, cooked):
+        self.h = min(max(self.h - relief(script_hunger, cooked), 0.0), 1.0)
+
+    def drink(self, litres):
+        pass
+
+    def minute(self, asleep, exercising, trait, fed_s):
+        self.h = 1.0 - (1.0 - self.h) * decay_factor(asleep, exercising, trait, fed_s)
+        return self.h
+
+
+class StomachModel:
+    def __init__(self, rt, NR, half_time):
+        self.st = Stomach(rt, NR, half_time)
+        self.cap = self.st.cap
+        self.h = 0.0
+        self.fill = 1.0
+        self.s = None
+
+    def view(self):
+        return self.h
+
+    def eat(self, full_type, script_hunger, cooked):
+        self.st.eat(full_type, script_hunger, cooked)
+
+    def drink(self, litres):
+        self.st.drink(litres)
+
+    def minute(self, asleep, exercising, trait, fed_s):
+        self.fill = self.st.minute()
+        self.h = min(max(self.st.K.fast.hungerTarget(self.fill, 1), 0.0), self.cap)
         return self.h
 
 
 class Decoupled:
-    """The proposed decoupled satiety term (the memo's design): a satiety scalar S on [0, 1] that an eat
-    raises by the hunger relief vanilla's Eat writes (|getHungerChange| x f, cooked x 1.3), clamped at
-    1 so an overshoot is discarded as vanilla discards it (#0021), and that decays first-order at
-    vanilla's own rate (awake 9.6e-6, asleep 1.0e-6 per game-second, x StatsDecrease); HUNGER = 1 - S
-    at energyState 1. No FOOD_EATEN freeze: the only term it drops from vanilla."""
+    """The satiety scalar S; freeze, relief getter, bulk modulation (beta) and fill floor (w) are parameters."""
 
-    def __init__(self):
-        self.s = 1.0
+    def __init__(self, rt, NR, freeze=False, ladder=True, beta=None, r0=None, bulks=None, floor_w=None,
+                 floor_t=FLOOR_T):
+        self.cap = NR.kernel.fast.defaults().hungerCap
+        self.freeze = freeze
+        self.ladder = ladder
+        self.beta = beta
+        self.r0 = r0
+        self.bulks = bulks
+        self.full_bulk = NR.kernel.stomach.FULL_BULK
+        self.floor_w = floor_w
+        self.st = Stomach(rt, NR, floor_t) if floor_w is not None else None
+        self.s = 1.0                      # a new record: S = 1 (the migration seeds 1 - HUNGER instead)
+        self.fill = 1.0 if self.st else None
+        self.h = 0.0
 
-    def eat(self, script_hunger, cooked):
-        hc = abs(script_hunger) / 100.0
-        if cooked:
-            hc = hc * COOKED_HUNGER
-        self.s = min(1.0, self.s + hc)
+    def view(self):
+        return self.h
 
-    def minute(self, asleep):
-        rate = (HUNGER_ASLEEP if asleep else HUNGER_INCREASE) * STATS_DECREASE
-        self.s = self.s * math.exp(-rate * 60.0)
-        return 1.0 - self.s
+    def eat(self, full_type, script_hunger, cooked):
+        r = relief(script_hunger, cooked, self.ladder)
+        if self.beta is not None:
+            ratio = (self.bulks[full_type] / self.full_bulk) / relief(script_hunger, cooked)
+            r = r * min(max(ratio / self.r0, 0.25), 4.0) ** self.beta
+        self.s = min(1.0, self.s + r)
+        if self.st is not None:
+            self.st.eat(full_type, script_hunger, cooked)
+
+    def drink(self, litres):
+        if self.st is not None:
+            self.st.drink(litres)
+
+    def minute(self, asleep, exercising, trait, fed_s):
+        self.s = self.s * decay_factor(asleep, exercising, trait, fed_s if self.freeze else 0.0)
+        s_eff = self.s
+        if self.st is not None:
+            self.fill = self.st.minute()
+            s_eff = max(s_eff, self.floor_w * self.fill)
+        self.h = min(max(1.0 - s_eff, 0.0), self.cap)   # (1 - S) x energyState + 0, energyState 1
+        return self.h
 
 
-def asleep_at(mod_minute, scenario):
-    if scenario != "sleep":
-        return False
-    return mod_minute >= SLEEP[0] or mod_minute < SLEEP[1]
+def state_at(m, scenario):
+    asleep = scenario == "sleep" and (m >= SLEEP[0] or m < SLEEP[1])
+    exercising = scenario == "active" and EXERCISE[0] <= m < EXERCISE[1]
+    trait = HEARTY if scenario == "active" else 1.0
+    return asleep, exercising, trait
 
 
-def run(rt, NR, half_time, scenario):
-    van = Vanilla()
-    dec = Decoupled()
-    mod = Mod(rt, NR, half_time)
+def run(model, daylen, scenario):
+    """One model on one day length; returns the reported day's rows (minute, H, timer, S, fill)."""
+    timer = Timer(daylen / 30.0)
     rows = []
-    bulks = {}
     for day in range(DAYS):
         for m in range(1440):
-            for full_type, hc, cooked in MEALS.get(m, ()):
-                b = mod.eat(full_type, hc, cooked)
-                bulks[full_type] = b
-                van.eat(hc, cooked)
-                dec.eat(hc, cooked)
+            meal = (LIGHT if scenario == "light" else MEALS).get(m, ())
+            if meal:
+                stat = model.view()                 # the stat as the model last wrote it
+                for full_type, hc, cooked in meal:
+                    stat = min(max(stat - relief(hc, cooked), 0.0), 1.0)   # vanilla's Eat write (#0017, #0021)
+                    timer.just_ate(stat, hc, cooked)                        # then JustAteFood (#0054)
+                    model.eat(full_type, hc, cooked)
             if scenario == "water" and m in DRINKS:
-                mod.drink(DRINKS[m])
-            asleep = asleep_at(m, scenario)
-            vh = van.minute(asleep)
-            dh = dec.minute(asleep)
-            mh, fill, bulk = mod.minute()
+                model.drink(DRINKS[m])
+            asleep, exercising, trait = state_at(m, scenario)
+            fed_s = timer.minute()                  # exercising, the fed seconds read RATE_EX_FED: no freeze
+            h = model.minute(asleep, exercising, trait, fed_s)
             if day == DAYS - 1:
-                rows.append((m, vh, level(vh), van.lin, level(van.lin), van.timer, mh, level(mh), fill, bulk,
-                             dh, level(dh)))
-    return rows, bulks
+                rows.append((m, h, timer.value, model.s, model.fill))
+    return rows
+
+
+def compare(rows, van):
+    counts = [0, 0, 0, 0, 0]
+    agree = hungrier = lighter = 0
+    mad = 0.0
+    zeros = 0
+    for r, v in zip(rows, van):
+        lm, lv = level(r[1]), level(v[1])
+        counts[lm] += 1
+        agree += lm == lv
+        hungrier += lm > lv
+        lighter += lm < lv
+        mad += abs(r[1] - v[1])
+        zeros += r[1] <= 0.0
+    pre = [rows[k - 1][1] for k in sorted(MEALS)]
+    return {"counts": counts, "agree": agree, "hungrier": hungrier, "lighter": lighter,
+            "mad": mad / len(rows), "zeros": zeros, "max": max(r[1] for r in rows), "pre": pre}
 
 
 def fmt(x):
     return "%.6f" % x
 
 
-def write_csv(path, rows):
+def write_csv(path, rows, van):
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator="\n")
-    w.writerow(["minute", "clock", "vanilla_hunger", "vanilla_level", "vanilla_linear_hunger",
-                "vanilla_linear_level", "vanilla_food_timer", "mod_hunger", "mod_level", "mod_fill", "mod_bulk",
-                "decoupled_hunger", "decoupled_level"])
-    for (m, vh, vl, lh, ll, timer, mh, ml, fill, bulk, dh, dl) in rows:
-        w.writerow([m, "%02d:%02d" % (m // 60, m % 60), fmt(vh), vl, fmt(lh), ll, "%.1f" % timer,
-                    fmt(mh), ml, fmt(fill), fmt(bulk), fmt(dh), dl])
+    w.writerow(["minute", "clock", "vanilla_hunger", "vanilla_level", "vanilla_food_timer", "model_hunger",
+                "model_level", "model_food_timer", "model_satiety", "model_fill"])
+    for r, v in zip(rows, van):
+        m = r[0]
+        w.writerow([m, "%02d:%02d" % (m // 60, m % 60), fmt(v[1]), level(v[1]), "%.1f" % v[2], fmt(r[1]),
+                    level(r[1]), "%.1f" % r[2], "" if r[3] is None else fmt(r[3]),
+                    "" if r[4] is None else fmt(r[4])])
     with open(path, "w", encoding="utf-8", newline="") as fh:
         fh.write(buf.getvalue())
 
 
-def per_level(rows, idx):
-    counts = [0, 0, 0, 0, 0]
-    for r in rows:
-        counts[r[idx]] += 1
-    return counts
+def line(label, param, st, with_cmp=True):
+    pre = " / ".join("%.3f" % x for x in st["pre"])
+    tail = ("| %d | %d | %d | %.4f |" % (st["agree"], st["hungrier"], st["lighter"], st["mad"])) if with_cmp \
+        else "| - | - | - | - |"
+    return "| %s | %s | %s | %.3f | %s | %d %s" % (label, param, " | ".join(str(c) for c in st["counts"]),
+                                                   st["max"], pre, st["zeros"], tail)
 
 
-def stats(rows, h_idx=6, l_idx=7):
-    van = per_level(rows, 2)
-    lin = per_level(rows, 4)
-    mod = per_level(rows, l_idx)
-    agree = sum(1 for r in rows if r[2] == r[l_idx])
-    mae = sum(abs(r[1] - r[h_idx]) for r in rows) / len(rows)
-    pre = {}
-    for meal in sorted(MEALS):
-        r = rows[meal - 1]
-        pre[meal] = (r[1], r[h_idx])
-    zv = sum(1 for r in rows if r[1] <= 0.0)
-    zm = sum(1 for r in rows if r[h_idx] <= 0.0)
-    return van, lin, mod, agree, mae, max(r[1] for r in rows), max(r[h_idx] for r in rows), pre, zv, zm
+HEADER = ("| model | parameter | L0 | L1 | L2 | L3 | L4 | max hunger | hunger before 07:00 / 12:00 / 19:00 | "
+          "minutes at hunger 0 | level agreement (min) | min hungrier than vanilla | min less hungry than vanilla | "
+          "mean abs diff |")
+RULE = "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"
 
 
-def row_line(scenario, t, model, counts, vmax, pre_vals, zeros, agree="-", mae="-"):
-    pv = " / ".join("%.3f" % x for x in pre_vals)
-    return "| %s | %s | %s | %s | %.3f | %s | %d | %s | %s |" % (
-        scenario, t, model, " | ".join(str(c) for c in counts), vmax, pv, zeros, agree, mae)
+def g(x):
+    return ("%.2f" % x).rstrip("0").rstrip(".")
 
 
 def main():
     os.makedirs(OUT, exist_ok=True)
     rt, NR = load_kernel()
-    th = HUNGRY_AT[0]
-    # Plan 11 draft Task 9 Step 2: T* = H_vanilla / log2(1 / (1 - threshold)); H_vanilla first-order (#0492)
-    h_first = -math.log(1.0 - th) / (HUNGER_INCREASE * STATS_DECREASE) / 3600.0
-    t_star = round((h_first / math.log2(1.0 / (1.0 - th))) * 4.0) / 4.0
-    halves = list(HALF_TIMES) + [t_star]
-    lines = []
-    lines.append("# S4 satiety simulation: minutes of the reported game day at each HUNGRY level")
-    lines.append("")
-    lines.append("Generated by testing/spikes/satiety_sim.py (deterministic). DayLength = 1: one game minute is 2.5 real seconds, so divide game minutes by 24 for real minutes.")
-    lines.append("Day %d of %d simulated (two warm-up days); meals at 07:00, 12:00, 19:00. Scenario `meals`: awake all day (the fixture default SleepNeeded false). `sleep`: asleep 23:00-07:00 (vanilla's asleep rate; the mod's stomach empties unchanged). `water`: `meals` plus 0.3 L of water at 10:00, 16:00 and 22:00. The mod at energyState 1." % (DAYS, DAYS))
-    lines.append("")
-    lines.append("H_vanilla (hunger 0 to the first moodle, 0.15, first-order, no freeze) = %.4f game-hours; the Plan 11 draft Task 9 formula gives T* = %.2f h (rounded to 0.25 h), simulated as the last half-time." % (h_first, t_star))
-    meal_bulk = None
-    table = []
-    for scenario in ("meals", "sleep", "water"):
-        first = True
-        for t in halves:
-            rows, bulks = run(rt, NR, t, scenario)
-            if scenario == "meals":
-                write_csv(os.path.join(OUT, "satiety-%g.csv" % t), rows)
-                meal_bulk = bulks
-            van, lin, mod, agree, mae, vmax, mmax, pre, zv, zm = stats(rows)
-            if first:
-                first = False
-                table.append(row_line(scenario, "-", "vanilla", van, vmax, [pre[k][0] for k in sorted(pre)], zv))
-                if scenario == "meals":
-                    table.append("| meals | - | vanilla, linear (the plan's reference) | %s | - | - | - | - | - |" % " | ".join(str(c) for c in lin))
-                dv, dl, dm, dag, dmae, _, dmax, dpre, _, dz = stats(rows, 10, 11)
-                table.append(row_line(scenario, "-", "decoupled satiety (proposed)", dm, dmax, [dpre[k][1] for k in sorted(dpre)], dz, str(dag), "%.4f" % dmae))
-            table.append(row_line(scenario, "%g" % t, "mod", mod, mmax, [pre[k][1] for k in sorted(pre)], zm, str(agree), "%.4f" % mae))
-    total_kcal = 0.0
+    K = NR.kernel
+    # the menu's bulks, landed once through the kernel (bulk does not depend on the half-time)
+    probe = Stomach(rt, NR, 2.0)
+    bulks = {}
     for meal in MEALS.values():
         for full_type, hc, cooked in meal:
-            total_kcal += NR.data.nutrients.get(full_type).calories
-    lines.append("")
-    lines.append("Meal bulks (K.stomach.bulkOf of each landed vector, FULL_BULK 8): " + ", ".join(
-        "%s %.3f" % (k, meal_bulk[k]) for k in sorted(meal_bulk)) + "; the day's three meals carry %.2f kcal." % total_kcal)
-    lines.append("")
-    lines.append("| scenario | half-time h | model | L0 | L1 | L2 | L3 | L4 | max hunger | hunger before 07:00 / 12:00 / 19:00 | minutes at hunger 0 | level agreement with vanilla (min) | mean abs diff |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|")
-    lines.extend(table)
-    # the sweep: every 0.25 h from 1 to 8, the meals scenario only (no CSVs)
-    lines.append("")
-    lines.append("## Sweep, scenario `meals`, half-time 1.00 to 8.00 h by 0.25")
-    lines.append("")
-    lines.append("| half-time h | L0 | L1 | L2 | L3 | L4 | max hunger | minutes at hunger 0 | level agreement (min) | mean abs diff |")
-    lines.append("|---|---|---|---|---|---|---|---|---|---|")
-    best = None
-    for q in range(4, 33):
-        t = q / 4.0
-        rows, _ = run(rt, NR, t, "meals")
-        van, lin, mod, agree, mae, vmax, mmax, pre, zv, zm = stats(rows)
-        lines.append("| %.2f | %s | %.3f | %d | %d | %.4f |" % (t, " | ".join(str(c) for c in mod), mmax, zm, agree, mae))
-        if best is None or mae < best[1] - 1e-12:
-            best = (t, mae, agree)
-    lines.append("")
-    lines.append("Least mean absolute difference in the sweep: %.2f h (%.4f; level agreement %d of 1440 minutes)." % best)
+            bulks[full_type] = probe.eat(full_type, hc, cooked)
+    fill_total = sum(bulks[ft] / K.stomach.FULL_BULK for meal in MEALS.values() for ft, _, _ in meal)
+    relief_total = sum(relief(hc, c) for meal in MEALS.values() for _, hc, c in meal)
+    r0 = fill_total / relief_total
+    kcal = sum(NR.data.nutrients.get(ft).calories for meal in MEALS.values() for ft, _, _ in meal)
+
+    def make(kind, param=None):
+        if kind == "vanilla":
+            return Vanilla()
+        if kind == "stomach":
+            return StomachModel(rt, NR, param)
+        if kind == "decoupled":
+            return Decoupled(rt, NR)
+        if kind == "decoupled-freeze":
+            return Decoupled(rt, NR, freeze=True)
+        if kind == "decoupled-freeze-raw":
+            return Decoupled(rt, NR, freeze=True, ladder=False)
+        if kind == "blend-relief":
+            return Decoupled(rt, NR, freeze=True, beta=param, r0=r0, bulks=bulks)
+        if kind == "blend-floor":
+            return Decoupled(rt, NR, freeze=True, floor_w=param)
+        raise ValueError(kind)
+
+    index = []
+    index.append("# S4 satiety simulation across day lengths: the index")
+    index.append("")
+    index.append("Generated by testing/spikes/satiety_sim.py (deterministic). One table per day length in "
+                 "satiety-<N>-summary.md; the CSVs are satiety-<N>-<model>-<parameter>.csv. The menu day "
+                 "(scenario `meals`) and the `light` menu (a banana, bread slices, opened beans), day 3 of 3, "
+                 "energyState 1, no exercise, no traits. \"Hungrier\" and \"less hungry\" count the minutes the "
+                 "model's HUNGRY level sits above or below vanilla's own level at that minute.")
+    index.append("")
+    index.append("Meal bulks (K.stomach.bulkOf, FULL_BULK %g): %s; the day's three meals carry %.2f kcal; "
+                 "the menu's fill over relief r0 = %.4f (the blend-relief normaliser)." % (
+                     K.stomach.FULL_BULK, ", ".join("%s %.3f" % (k, bulks[k]) for k in sorted(bulks)), kcal, r0))
+    index.append("")
+    index.append("| day | option | model | parameter | meals: level agreement (min) | meals: min hungrier | "
+                 "meals: min less hungry | meals: minutes at hunger 0 (vanilla's) | meals: mean abs diff | "
+                 "light: level agreement (min) | light: min hungrier | light: min less hungry | "
+                 "light: minutes at hunger 0 (vanilla's) | light: mean abs diff |")
+    index.append("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+
+    for daylen, setting in DAY_LENGTHS:
+        name = day_name(daylen, setting)
+        van_rows = {sc: run(make("vanilla"), daylen, sc) for sc in ("meals", "light", "sleep", "water", "active")}
+        van = van_rows["meals"]
+        vst = compare(van, van)
+        lines = []
+        lines.append("# S4 satiety simulation on %s" % name)
+        lines.append("")
+        lines.append("Generated by testing/spikes/satiety_sim.py (deterministic). On %s one game minute lasts "
+                     "%g real seconds; the food timer decays %g units per game-second (#0529), so the "
+                     "11000 cap freezes hunger for %.1f game-minutes. Day 3 of 3; meals at 07:00, 12:00, "
+                     "19:00; energyState 1; every takeover model capped at 0.69." % (
+                         name, daylen * 60.0 / 1440.0, daylen / 30.0, TIMER_CAP / (daylen / 30.0) / 60.0))
+        lines.append("")
+        lines.append("## Scenario `meals` (the menu day: awake, no exercise, no traits)")
+        lines.append("")
+        lines.append(HEADER)
+        lines.append(RULE)
+        lines.append(line("vanilla", "-", vst, with_cmp=False))
+        csvs = {("vanilla", "na"): van}
+
+        res = {}
+        for kind in ("decoupled", "decoupled-freeze", "decoupled-freeze-raw"):
+            rows = run(make(kind), daylen, "meals")
+            res[kind] = compare(rows, van)
+            if kind != "decoupled-freeze-raw":
+                csvs[(kind, "na")] = rows
+            lines.append(line(kind, "-", res[kind]))
+
+        sweep = []
+        for t in SWEEP:
+            rows = run(make("stomach", t), daylen, "meals")
+            st = compare(rows, van)
+            sweep.append((t, st))
+            if t in CSV_HALF_TIMES:
+                csvs[("stomach", g(t))] = rows
+        best_t, best_st = min(sweep, key=lambda x: (round(x[1]["mad"], 12), x[0]))
+        if best_t not in CSV_HALF_TIMES:
+            csvs[("stomach", g(best_t))] = run(make("stomach", best_t), daylen, "meals")
+        for t, st in sweep:
+            if t in CSV_HALF_TIMES or t == best_t:
+                tag = " (shipped)" if t == 2.0 else (" (sweep best)" if t == best_t else "")
+                lines.append(line("stomach" + tag, "T %s h" % g(t), st))
+
+        blends = []
+        for b in BETAS:
+            rows = run(make("blend-relief", b), daylen, "meals")
+            st = compare(rows, van)
+            blends.append(("blend-relief", "beta %s" % g(b), "b" + g(b), rows, st))
+        for wv in FLOOR_WS:
+            rows = run(make("blend-floor", wv), daylen, "meals")
+            st = compare(rows, van)
+            blends.append(("blend-floor", "w %s, T %s h" % (g(wv), g(FLOOR_T)), "w%s-T%s" % (g(wv), g(FLOOR_T)),
+                           rows, st))
+        for kind, label, tag, rows, st in blends:
+            lines.append(line(kind, label, st))
+        best_relief = min((x for x in blends if x[0] == "blend-relief"), key=lambda x: x[4]["mad"])
+        best_floor = min((x for x in blends if x[0] == "blend-floor"), key=lambda x: x[4]["mad"])
+        csvs[("blend-relief", best_relief[2])] = best_relief[3]
+        csvs[("blend-floor", best_floor[2])] = best_floor[3]
+
+        for (kind, tag), rows in csvs.items():
+            write_csv(os.path.join(OUT, "satiety-%d-%s-%s.csv" % (daylen, kind, tag)), rows, van)
+
+        lines.append("")
+        lines.append("Rows: `decoupled-freeze-raw` is decoupled-freeze with the relief read off the raw "
+                     "`getHungChange` (no cooked ladder, #0002), the getter `IN.readBefore` captures today. "
+                     "\"Hungrier\" and \"less hungry\" count the minutes the model's HUNGRY level is above or "
+                     "below vanilla's own level at that minute. Minutes at hunger 0 are counted at the end of "
+                     "each game minute, so a freeze that ends inside a minute does not count that minute.")
+
+        lines.append("")
+        lines.append("## Other scenarios")
+        lines.append("")
+        lines.append(HEADER)
+        lines.append(RULE)
+        light = {}
+        for sc in ("light", "sleep", "water", "active"):
+            v = van_rows[sc]
+            lines.append(line("vanilla", sc, compare(v, v), with_cmp=False))
+            kinds = [("decoupled", None), ("decoupled-freeze", None)]
+            if sc != "active":
+                kinds += [("stomach", 2.0), ("stomach", best_t)]
+            if sc == "light":
+                kinds += [("blend-relief", b) for b in BETAS] + [("blend-floor", wv) for wv in FLOOR_WS]
+            elif sc != "active":
+                kinds += [("blend-relief", 1.0), ("blend-floor", 0.75)]
+            for kind, p in kinds:
+                rows = run(make(kind, p), daylen, sc)
+                st = compare(rows, v)
+                if sc == "light":
+                    light[(kind, p)] = st
+                label = kind if p is None else "%s %s" % (kind, g(p))
+                lines.append(line(label, sc, st))
+        lines.append("")
+        lines.append("`sleep`: asleep 23:00-07:00. `water`: 0.3 L of water at 10:00, 16:00 and 22:00, which only "
+                     "the stomach sees. `active`: exercising 17:00-17:59 under Hearty Appetite (x1.5), the "
+                     "code-path check of the exercise rates and the appetite trait. `light`: a banana, bread slices "
+                     "and opened beans, no meal covering the hunger it meets.")
+
+        lines.append("")
+        lines.append("## Stomach sweep, scenario `meals`, half-time 1.00 to 8.00 h by 0.25")
+        lines.append("")
+        lines.append("| half-time h | L0 | L1 | L2 | L3 | L4 | max hunger | minutes at hunger 0 | level agreement (min) | "
+                     "min hungrier | min less hungry | mean abs diff |")
+        lines.append("|---|---|---|---|---|---|---|---|---|---|---|---|")
+        for t, st in sweep:
+            lines.append("| %.2f | %s | %.3f | %d | %d | %d | %d | %.4f |" % (
+                t, " | ".join(str(c) for c in st["counts"]), st["max"], st["zeros"], st["agree"], st["hungrier"],
+                st["lighter"], st["mad"]))
+        lines.append("")
+        lines.append("Least mean absolute difference in the sweep: %.2f h (%.4f; level agreement %d of 1440 minutes)."
+                     % (best_t, best_st["mad"], best_st["agree"]))
+        with open(os.path.join(OUT, "satiety-%d-summary.md" % daylen), "w", encoding="utf-8", newline="") as fh:
+            fh.write("\n".join(lines) + "\n")
+
+        vl = compare(van_rows["light"], van_rows["light"])
+
+        def idx(option, model, param, st, lst):
+            index.append("| %d min (DayLength %d) | %s | %s | %s | %d | %d | %d | %d (%d) | %.4f | %d | %d | %d | %d (%d) | %.4f |" % (
+                daylen, setting, option, model, param, st["agree"], st["hungrier"], st["lighter"], st["zeros"],
+                vst["zeros"], st["mad"], lst["agree"], lst["hungrier"], lst["lighter"], lst["zeros"], vl["zeros"],
+                lst["mad"]))
+        idx("(a)", "decoupled-freeze", "-", res["decoupled-freeze"], light[("decoupled-freeze", None)])
+        idx("(a) without the freeze", "decoupled", "-", res["decoupled"], light[("decoupled", None)])
+        idx("(b) sweep best", "stomach", "T %s h" % g(best_t), best_st, light[("stomach", best_t)])
+        idx("(b) shipped", "stomach", "T 2 h", dict(sweep)[2.0], light[("stomach", 2.0)])
+        for kind, label, tag, rows, st in blends:
+            p = float(label.split()[1].rstrip(","))
+            idx("(c)", kind, label, st, light[(kind, p)])
+
     with open(os.path.join(OUT, "satiety-summary.md"), "w", encoding="utf-8", newline="") as fh:
-        fh.write("\n".join(lines) + "\n")
-    print("\n".join(lines))
+        fh.write("\n".join(index) + "\n")
+    print("\n".join(index))
 
 
 if __name__ == "__main__":
