@@ -68,6 +68,8 @@ The event's argument is whatever character died, not only a player, so a handler
 `PlayerHealthPacket` therefore does not write the server's body health; the client's copy is the one it writes [#2405/C/C-only].
 The code establishes server-side entries into the chain, not that every cause of death, starvation included, reaches one of them on the server; [the open section](#open) carries the decision that forces [#2409/C/C-only].
 A server `ReduceGeneralHealth(110)` killed the character on a live server: the server read it dead at the first poll after the call, no departure was logged before the respawn, and the mod's sweep marked its record dead and kept it [#3278/M/n=1].
+On a driven respawn the dead character stayed in `getOnlinePlayers` marked dead from its death until two ticks after `OnNewGame` fired, and the new character entered the list one tick later: death at tick 4296, `OnNewGame` at 4344 with the list still holding only the dead object, the dead object gone at 4346, the new one present at 4347; the mod's own online table kept the dead object until the next game-minute event, at tick 4351. [#3358/M/n=1]
+The respawn left the new record marked dead: the server logged `store: reset record for admin (reset 1)` at frame 4344 and `players: admin is dead; record kept until respawn` at frame 4345, and the record read `dead` true with `resets` 1 at three reads spanning 8.6 s of wall after the respawn. [#3359/M/n=1]
 
 <a id="ids"></a>
 ### Addressing a player on the server
@@ -140,6 +142,12 @@ GameServer.main loop
 
 A value a handler writes on `EveryOneMinute` or `OnTick` is therefore in place before the same pass's stats push runs [#2402/C/C-only]; the push and its cadence are [mp-model.md](mp-model.md#packets)'s.
 Where the stat updaters and the `CalculateStats` hook sit inside the player update is [character-stats.md](../facts/character-stats.md#tick-order)'s.
+`GameTime.update` fires `EveryOneMinute` at most once per update: when the stored previous minute stamp differs from the current one it triggers the event once and copies the current stamp over, however many game minutes the update advanced. [#3348/C/C-only]
+A dedicated server fast-forwards while every live player in its player list is asleep: `GameServer.main` counts the live and the sleeping players each frame and calls `setFastForward` true only when `SleepAllowed` is on, at least one is live and the two counts are equal. [#3351/C/C-only]
+At `DayLength` 1 (a fifteen-minute day) a dedicated server running at its ten-tick lock delivered 63 consecutive game minutes at a mean 6.270 `OnTick` calls each — 46 minutes of 6 ticks, 17 of 7, none of 0 — at 10.115 ticks and 1.600 world minutes per wall second. [#3346/M/n=1]
+At the fixture's `DayLength` 4 (ninety minutes, the value every vanilla preset but SixMonthsLater ships) the same server delivered 50 consecutive game minutes at a mean 37.46 `OnTick` calls each — 28 of 38, 20 of 37, one of 29 and one of 40, none of 0 — at 10.011 ticks and 0.2665 world minutes per wall second. [#3347/M/n=1]
+Under `settimespeed 30` at `DayLength` 1 the server delivered 213 `EveryOneMinute` calls in 214 ticks and never more than one between two ticks, while the world advanced 47.66 minutes per wall second at 10.05 ticks per second — about 4.7 game minutes per tick, each tick's 4.7 game minutes reaching Lua as one call. [#3349/M/n=1]
+With both players held asleep on a server that allows sleep, the server fast-forwarded to 31.89 world minutes per wall second against 1.600 at speed 1, and delivered 213 `EveryOneMinute` calls in 213 ticks, never more than one between two ticks. [#3350/M/n=1]
 
 <a id="disconnect"></a>
 ### Disconnect: the player leaves with no event
@@ -149,6 +157,7 @@ From that point the player is absent from `getOnlinePlayers()`, which skips that
 A mod learns of the departure only by the player's absence from its next sweep of the online list [#2403/C/C-only].
 A per-player table keyed on the username keeps its row across the gap, and the returning character is found again by the same key under whatever online id its new slot gives it [#2392/C/C-only].
 On a live server a mod's sweep logged the departure, seen within 1.744 s of the start of the client's clean quit, and the same account's return brought a new first sight with its stored state, its first-seen age kept [#3273/M/n=1].
+A client's quit and rejoin under the same username brought a new `IsoPlayer`: `bob` left the list at tick 2867 and a different object entered at tick 3516, and the mod logged the departure (frame 3289) and a new first sight (frame 3914) because one game-minute event fell between them; a log frame is read as the bench tick of the same number (inference). [#3360/M/n=1]
 
 ## Walls and bounds
 <a id="walls"></a>
@@ -158,7 +167,7 @@ The engine has no Lua event for a returning character's join and none for a disc
 `getPlayerFromUsername` has no server branch, so there is no server-side Lua lookup of a player by name [#2390/C/C-only].
 A server-side global modData transmit cannot be aimed at one player [#2398/C/C-only].
 The wiki mirror marks `OnNewGame` client-only, in its load-order line and in its event list, while the jar fires it on a dedicated server from `CreatePlayerPacket.processServer` with the new `IsoPlayer` [#2421/C/C-only].
-Every row tagged C is a static read of the bytecode; the live readings are one fixture's with the world autosave off, the persistence readings under [the player store](#player-store) and [Global modData](#global-moddata) and the lifecycle readings of one reconnect, one driven respawn, one hard kill and one `ReduceGeneralHealth` death [#3273/M/n=1, #3279/M/n=1, #3280/M/n=1, #3278/M/n=1]; the join of a returning character beside the engine's own steps, the order of the engine's steps inside each of those events and every cause of death but one have no session behind them.
+Every row tagged C is a static read of the bytecode; the live readings are one fixture's with the world autosave off, the persistence readings under [the player store](#player-store) and [Global modData](#global-moddata) and the lifecycle readings of one reconnect, one driven respawn, one hard kill and one `ReduceGeneralHealth` death [#3273/M/n=1, #3279/M/n=1, #3280/M/n=1, #3278/M/n=1]; the join of a returning character beside the engine's own steps, the order of the engine's steps inside each of those events, apart from the list order of one driven respawn [#3358/M/n=1], and every cause of death but one have no session behind them.
 Not covered: the SQL write of a connected player's row and how often it runs (`ServerPlayerDB.process`, its save thread and the `charactersToSave` drain), the client-driven character upload and whether it can overwrite a server-side edit to the same blob, the delayed disconnect and its username-keyed map, where in the code the server calls `GlobalModData.save()` and the save-cycle events around it, the save cadence under a non-zero `SaveWorldEveryMinutes`, the body of `NetworkPlayerManager.update`, the side of `OnCreateLivingCharacter` and `OnCharacterCreateStats`, the player-data, player-stats, player-fields, extra-info and load-profile packets, the shipped server Lua beyond its per-player sweep, every cause of death's entry into the death chain, and single player — none of them was read.
 
 ## Open

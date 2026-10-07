@@ -151,7 +151,7 @@ The curated event table carries 13 events with the side each fires on, its caden
 |---|---|---|---|
 | `OnClientCommand(module, command, player, args)` | **server** | once per `sendClientCommand` | the server arm of the harness bus; corpus 54 / 20 |
 | `OnServerCommand(module, command, args)` | **client** | once per `sendServerCommand` | the client arm, which is where the witness replies land; corpus 43 / 14 |
-| `EveryOneMinute` | **both** — measured | one game minute | the nutrient probe's whole drive train, one arm per tick; over one session the counter read **58 client / 38 server**, because the client VM ran the `server/` file's handler as well as the `client/` one. Also the harness's belt-and-braces server poll; corpus 22 / 10 |
+| `EveryOneMinute` | **both** — measured | one game minute, and at most once per `GameTime.update` however many minutes the update advanced [#3348/C/C-only] | the nutrient probe's whole drive train, one arm per tick; over one session the counter read **58 client / 38 server**, because the client VM ran the `server/` file's handler as well as the `client/` one. Also the harness's belt-and-braces server poll; corpus 22 / 10 |
 | `EveryTenMinutes` | not exercised here | ten game minutes | named as the other slow tier and **never registered by this library**; it is below the corpus histogram's top-12 cut, so its absence there is a floor artifact, not a zero |
 | `OnTick` | **both** | every frame | the harness's server poll, deliberately throttled `ticks % 20`; the expensive tier — corpus 70 / 15 |
 | `OnPlayerUpdate` | client | per player, per frame | **never registered by this library**; recorded because it is the corpus's most *widely* shared hook (55 / 39) and therefore the shared perf hotspot to stay off |
