@@ -65,8 +65,8 @@ The game hashes every script file a mod ships and compares the hashes when a cli
 1. Stop the server, update the mod on the server, start it.
 2. Then let clients update. A client holding different script files than the server fails the join check until both hold the same release.
 
-Never give a player a checksum-bypass role to get them in: the bypass skips the check but leaves the difference, and that player then plays on food values the server does not hold. Each release's notes say whether it changes a script file.
+Never give a player a checksum-bypass role to get them in: the bypass skips the check but leaves the difference, and that player then plays on food values the server does not hold. The Lua files are hashed too (both clients printed a Lua checksum line at the join), and what that check does with a changed `.lua` file is unread, so treat any update that changes a `.lua` file as a server event as well until it is read. Each release's notes say whether it changes a script file.
 
 ## When another mod raises an error
 
-What a release client does with an unguarded Lua error from any mod is unmeasured as of this build; the mod guards every handler.
+A release client was tested with one mod that raises an error in an event handler, and the reading was one shape: the raising handler stops, and the handlers around it and the client go on. A client run with `-debug` stops in the Lua debugger instead, so a player on a release client does not see that stop.

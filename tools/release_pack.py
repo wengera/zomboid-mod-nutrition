@@ -50,8 +50,8 @@ VERSION_RX = re.compile(r"^42(\.\d+){0,2}$")
 VANILLA_LIST = HERE.parent / "data" / "vanilla-relative-paths.txt"
 VERSION_DIR_ALLOWED = {"mod.info", "media/sandbox-options.txt"}
 CORE_VERSION_RX = re.compile(r'\bversion\s*=\s*"([^"]*)"')
-# Translation JSON is merged key by key by the Translator, never resolved through the file map
-# (#1318), so a mod file at a vanilla Translate path is the supported shape, not a shadow.
+# A .json file at a vanilla Translate path is merged key by key (#1318), never a shadow;
+# any other file there, a .lua file above all, is an ordinary vanilla-path shadow.
 TRANSLATE_MERGED = "lua/shared/Translate/"
 TAGS = "Build 42;Multiplayer;Realistic;Food"
 
@@ -121,7 +121,7 @@ def check(mod_dir):
         parts = rel.split("/", 1)
         if len(parts) == 2 and (parts[0] == "common" or parts[0] in vdirs) and parts[1].startswith("media/"):
             media_rel = parts[1][len("media/"):]
-            if media_rel in vanilla and not media_rel.startswith(TRANSLATE_MERGED):
+            if media_rel in vanilla and not (media_rel.startswith(TRANSLATE_MERGED) and media_rel.endswith(".json")):
                 out.append(Finding(ERROR, "no-vanilla-path", "%s sits at the vanilla path media/%s" % (rel, media_rel)))
 
     for rel, p in files:

@@ -83,6 +83,17 @@ def test_vanilla_translate_path_allowed(mod):
     assert "no-vanilla-path" not in rules(rp.check(mod))
 
 
+def test_lua_under_translate_at_vanilla_path_is_error(mod, tmp_path, monkeypatch):
+    # the vanilla list holds no .lua under Translate, so a list with one is stood in
+    vt = "lua/shared/Translate/EN/Zz_Vanilla.lua"
+    fake = tmp_path / "vanilla.txt"
+    fake.write_text(vt + "\n", encoding="utf-8")
+    monkeypatch.setattr(rp, "VANILLA_LIST", fake)
+    put(mod / "common" / "media" / vt, "x=1\n")
+    found = [f for f in rp.check(mod) if f.rule == "no-vanilla-path"]
+    assert found and vt in found[0].detail
+
+
 def test_lf_no_bom(mod):
     put(mod / "common" / "media" / "lua" / "shared" / "A.lua", "a=1\r\n")
     put(mod / "common" / "media" / "lua" / "shared" / "B.lua", b"\xef\xbb\xbfb=1\n")
