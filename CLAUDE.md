@@ -62,7 +62,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
 - `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/` or `tools/README.md`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
 - `python tools/food_nutrients.py --check` → in sync before any commit that touches `data/food-nutrient-map/`, `data/fdc-extract.json`, `data/food-nutrients.*`, the generated mod files (`NR_Data_Nutrients.lua`, `NR_Data_Infer.lua`, `NR_ItemPass_Food.txt`) or the tool; `--write` regenerates, and a generated file is never edited by hand.
-- `python -m pytest tools/tests testing/tests -q` green: 2544 passed on 2026-10-06 (2506 at the Plan 8 close; 2416 at the Plan 7 close; 2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 2634 passed on 2026-10-07 (2544 at the Plan 9 close; 2506 at the Plan 8 close; 2416 at the Plan 7 close; 2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 
@@ -135,6 +135,10 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 - A controller fix after a FAIL takes a scoped re-review unless the fix is a pointer-only, comment-only or tag-only edit that the full checker and the gate it fell under verify mechanically; a wording change to a claim always takes one (ruling T9-1, Plan 8).
 - A `C/inference` row whose evidence is the mod's own line may own an area-page sentence when the sentence states what a mod can do and the mod's line is the worked example (ruling T12-1, Plan 7).
 - The controller runs a test in its own call and never chains a commit after it in one command: a chained command commits past a red test (Plan 7's icon_gen residual took three commits).
+- A refactor of the server adapters is proven by the golden trace (`testing/tests/kernel/test_golden_trace.py`) reproduced byte for byte. The trace is re-recorded only by a plan that names the behaviour change it records, in the same commit; an oracle's own review rounds may re-record it from a frozen tree until the first refactor commit lands (Plan 10 rulings 3 and R0-1).
+- An oracle (a golden trace, a property harness) is accepted only after a mutation pass: its reviewer patches the code it guards and shows each plausible change fails it; Plan 10's first trace missed six of seventeen mutations.
+- A commit that adds an artifacts-register row re-anchors, in the same commit, every `repo:docs/reference/artifacts.md:` pointer the row shifts (`#1254`, `#1504` and any other the full checker names); five Plan 10 artifact commits left the checker red until a follow-up.
+- The controller reads the checker's findings count before committing and stops on a non-zero count; a grep of the count in a chained command is not a gate (Plan 10: 1de05d0, 8593c10).
 
 ## 7. Environment gotchas
 
