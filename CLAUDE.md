@@ -85,7 +85,8 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 
 - `python testing/pzt doctor` before every boot.
 - A release profile boots the STAGED copy (`tools/release_pack.py stage`), never `mod/` directly, so the bytes a server would download are the bytes under test (x201).
-- A raising probe on a release client answers through the raise; only a `-debug` client parks (x202).
+- A release client raised on once (x202) answered through the raise, and the `-debug` client parked, so the server-side gate stays: [platform/lua-platform#debug-break](docs/platform/lua-platform.md#debug-break).
+- `pzt run`, `pzt provision` and `pzt scenario` run the layout lint on every `path=` mod folder and stop on an ERROR before seeding (Plan 9 Task 3).
 - One live game session at a time, repository-wide.
 - A two-client run is one session: `pzt run` attaches the profile's `clients` one at a time, each ready before the next (Plan 8 Task 1).
 - Never `-safemode`.
@@ -137,7 +138,7 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 
 ## 7. Environment gotchas
 
-- `release/` is gitignored staging; `preview.png` beside the mod folder is Angus's, 256×256.
+- `release/` is gitignored staging; `preview.png` beside the staged item is Angus's to supply, 256×256 (absent on 2026-10-06; `stage` WARNs).
 - The Bash tool's cwd resets between calls: `cd /c/Users/Angus/repos/project_zomboid` in every call, or edits land in the home directory.
 - Long Bash heredocs with apostrophes fail to parse: write briefs and long files with the Write tool, and keep Bash-embedded Python apostrophe-free.
 - CRLF survivors in the working tree: `tools/README.md` (CRLF with a few LF lines), `tools/mod_lint.py`, `tools/tests/test_mod_lint.py`, `testing/PZTestKit/PZTestKit/42/media/lua/shared/PZTestKit_Core.lua`, `testing/PZTestKit/PZTestKit/42/media/lua/server/PZTestKit_Server.lua`, `testing/experiments/s03_body.py`, `testing/fixtures/default/fixture.json` (which `file` reports as JSON without naming its endings) and the `references/wiki-mirrors/` pages; edit them with `newline=''` handling and preserve the endings, and check any other file with `file <path>` first.
