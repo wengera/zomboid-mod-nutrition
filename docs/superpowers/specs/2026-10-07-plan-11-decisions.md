@@ -26,7 +26,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
 - The route also hands back vanilla's seven updaters, which the takeover had stopped. S1b timed them at about 1 to 11 µs per player per update (#3386). That is 6–66 µs per player per game minute (Appendix B § 5).
 - So the route costs about 17–77 µs against the takeover's 121 µs. The saving is a third to six-sevenths, about 0.57 at the mean (Appendix B § 5).
 - The once-a-minute PANIC and TEMPERATURE write that rule 6 puts in place of a per-tick hold adds two stat sets a player a minute, under a microsecond by #3373's 0.6–0.9 µs per set (inference; not timed as such; Decision 1 (c)).
-- The slow minute's own work, about 377 µs per player (#3354), is the same under every option.
+- The slow minute's own work is the same under every option: 1583 µs per player measured in play (#3387); 377 µs (#3354) is the zero-interval lower bound.
 
 **What the route reproduces, approximates and loses** (Appendix A § 5):
 - **Reproduces:** hunger from the stomach; thirst from the pool; INTOXICATION; UNHAPPINESS; the HUNGER and THIRST caps under moodle level 4 (by inference, no run read them). Each lags by up to one write interval.
@@ -61,7 +61,7 @@ Plan 10 (`docs/superpowers/plans/2026-10-07-plan-10-spikes-and-refactor.md`) ran
   - folds each auto-drink sip into the THIRST target before the write (#3382);
   - adds the once-a-minute PANIC and TEMPERATURE write;
   - adds a test that the takeover's arithmetic is gone or moved.
-- **Task 13** measures the writer, the hold and vanilla's updaters at 20 or more players, instead of the handler. Its re-based list is under Re-basing the draft, Task 13 (about :192–199).
+- **Task 13** measures what the re-based list leaves: vanilla's updaters at 20 or more players. Its re-based list is under Re-basing the draft, Task 13 (about :192–199).
 - **Task 12**'s CHANGELOG line "the stat takeover recovers after a fault" and the README sentence on the re-arm schedule go. The Overlay line is rewritten to say what the mode now chooses.
 - **Draft ruling 4**'s concern that `FAST.byChar` may be keyed by an object the online list never shows (Appendix C S3.3) leaves with the handler. The per-minute writer's handle inherits it.
 
@@ -194,7 +194,7 @@ The draft's code samples predate the refactor. Per task:
   - the burst and the round-robin (#3391);
   - the once-a-minute PANIC and TEMPERATURE write that replaces the hold (#3392, #3393).
   - So F no longer measures the cost on 1.0.1. At most it re-reads `bench.minute`, which still calls `NR.server.players.work(u, p)`, for continuity with #3390. `bench.handler` leaves with the takeover (Decision 1).
-  - Its budget table is re-based on m = 1583 µs (#3387), not 377.
+  - Its budget table is re-based on the minute's cost = 1583 µs (#3387), not 377.
   - B reads the drain under its `EveryOneMinute` round-robin (each player's ages advance within m game minutes), not the `OnTick` share per wall second.
   - Still unmeasured, and Task 13's if Plan 11 wants them: vanilla's updaters at 20 or more players; the PANIC sawtooth at a realistic target, near 10 or 20; and DayLength 4 set as the option rather than through `time.multiplier` (#3394).
 - **Tasks 5, 8 and 11** touch no refactored interface.
@@ -254,7 +254,7 @@ Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) as
   - Reconcile, strength and weight make the same `NR.call` counts in A and D2 but cost more in A. So part of the rise is cold interleaved running against a warm bench loop, not a longer interval (inference).
 - **Nutrients is half the minute (51.3 %), and its time is Lua, not Java:** it makes 9 `NR.call`s and 2 direct calls a run. Metabolism is the next fifth (21.4 %).
 - **A fast clock did not raise the per-run cost.** B cost 1358 µs a run against A's 1558, though each B run integrated several game minutes (4.7 or 9.4, inference, #3389). A run's cost is therefore taken not to grow with its interval. This is an inference from B's flat cost, and it is the basis for dividing the minute by a round-robin period below.
-- **S2's player budget (Appendix C, S2.4) under-counts m by about 4×.** Plan 11 re-bases m on 1583 µs (`P.work` in play), not 377.
+- **S2's player budget (Appendix C, S2.4) under-counts the minute's cost by about 4×.** Plan 11 re-bases the minute's cost on 1583 µs (`P.work` in play), not 377.
 
 **The Java share (P1 Step 4's estimate) and P4.**
 - 79 of the pipeline's 91 Java calls a run go through `NR.call` (#3388), and 12 are direct (86.8 % and 13.2 %).
@@ -341,12 +341,12 @@ Each item names its reading and its expected saving per player per game minute, 
 1. **The Nutrients step's Lua** (saving up to 800 µs).
    - The reading: 192 ±6.2 ms (3 %), 51.3 % of the pipeline, of the pipeline's 374 ms in play (#3387). It is also 395 of 823 ms under a fast clock (#3389) and 145 of 362 ms at a zero interval (#3390).
    - Its Java is 9 `NR.call`s and 2 direct calls a run (#3388): under 0.3 % by the estimate, and about 24 µs (11 calls × 2.2) at the upper bound.
-   - The saving: at most its 800 µs at m = 1, or 800 ÷ m under a round-robin. No reading resolves where inside the step the time goes, so Plan 11's first performance task is a profile below the step, before any rewrite.
+   - The saving: at most its 800 µs at m = 1, or 800 ÷ m under a round-robin. No reading resolves where inside the step the time goes, so Plan 11's first performance task is a profile below the step, before any rewrite. The x231 instruments (the per-step timers, the call counter, the hold and the burst; sha256 c20f645d…0f8d, as perf.json's `meta` records) are kept at `testing/spikes/instruments/x231_NR_Server_Bench.lua`; they are appended to a staged copy's bench file, never to `mod/`.
    - Metabolism, 333 µs (21.4 %, #3387), is next by the same reading. It carries more Java (30 `NR.call`s and 5 direct, about 77 µs at the upper bound).
 2. **A coarse minute at k = 2** (a round-robin of m = 2; saving about 790 µs), **conditional: it holds only if Angus adopts the fairer band of Appendix H.** Under ruling 4's band k = 2 fails (#3396, #3397). It also needs first-sight alignment and event landing, and event landing at its own minute was never run.
    - The reading: #3396–#3398, and the P2 review's fairer-band recomputation (Appendix H). Under the fairer band, k = 2 leaves one-minute back-dating and the first-sight lag, with no band or grade flip.
    - First-sight alignment means a joining player's first minute runs at the join, not at the next fired minute. Event landing means a dose is integrated from its own minute, not back-dated to the step's start.
-   - The saving: about 790 µs, the minute ÷ 2 (arithmetic on #3387; flat cost per #3389, inference). That takes the all-in cost from 1600–1660 to 809–869 µs at DayLength 1, and the spike to 12.3–15.8 ms at 20 players (extrapolation).
+   - The saving: about 790 µs, the minute ÷ 2 (arithmetic on #3387; flat cost per #3389, inference). That takes the all-in cost from 1600–1660 to 809–869 µs at DayLength 1, and the spike to 12.3–17.2 ms at 20 players (extrapolation on the round-robin's 1.23–1.72 ms basis, #3391).
    - k = 5 is not supported, because it is player-visible (#3396; Appendix H). k ≥ 15 misses a death.
 3. **Caching Java reads: not supported** (saving at most about 66 µs).
    - The reading: #3388 with P1 Step 4's estimate. 0.214 µs a call gives 19.5 µs of 1558 (1.25 %).
@@ -404,7 +404,7 @@ Each item names its reading and its expected saving per player per game minute, 
   - The m = 5 round-robin costs 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40, on its own basis of 1.23–1.72 ms, the round-robin's measured 1721.3 µs per player-run (#3391).
   - Under a fast clock every tick carries one minute event (#3348), so a burst there runs every player every tick (inference). The round-robin bounds that too.
 - **The round-robin's period is a coarse minute.** Each player then runs every m game minutes, which is P2's k = m.
-  - m = 2 is nearly safe under the fairer band and needs first-sight alignment and event landing. Its all-in cost is 809–869 µs at DayLength 1 (arithmetic).
+  - m = 2 holds only if Angus adopts Appendix H's fairer band; under ruling 4, k = 2 fails (#3396, #3397), and event landing at its own minute was never run. It also needs first-sight alignment. Its all-in cost is 809–869 µs at DayLength 1 (arithmetic).
   - m = 5 is player-visible (#3396; Appendix H).
   - Appendix C's wall-cycle share is an `OnTick` share, so it leaves with rule 6.
 
@@ -428,7 +428,7 @@ Each item names its reading and its expected saving per player per game minute, 
 - It asks Angus to accept a restart-only mode, an outage with no vanilla fallback, and the PANIC sawtooth.
 - The drain's period is Angus's:
   - m = 1 keeps every-minute behaviour and pays the burst;
-  - m = 2 halves the cost and the spike, at P2's one-minute back-dating, once the first sight is aligned and events land at their own minute;
+  - m = 2 halves the cost and the spike, at P2's one-minute back-dating, once the first sight is aligned and events land at their own minute, and only if Angus adopts Appendix H's fairer band (under ruling 4, k = 2 fails, #3396, #3397; event landing was never run);
   - m = 5 is player-visible.
 
 ### 2. Hunger feel
@@ -479,7 +479,7 @@ Each item names its reading and its expected saving per player per game minute, 
 ## Appendices
 
 The spike sections follow verbatim, each with its readings and rows.
-Appendices A–C, and the wall-cycle and `OnTick`-hold text in G and H, predate rule 6. Decision 1 and the Performance section supersede them; the appendices are records and are not edited.
+Appendices A–D, and the per-tick text in G and H (the wall cycle, the `OnTick` hold, a per-tick home for S), predate rule 6. Decision 1 and the Performance section supersede them; the appendices are records and are not edited.
 
 
 ## Appendix A. S1 — the zeroed-drains alternative
