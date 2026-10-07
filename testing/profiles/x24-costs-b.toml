@@ -1,0 +1,40 @@
+# testing/profiles/x24-costs-b.toml - Plan 10c Task H2b (run x242b): the phases run x242 never reached (ruling H2-1) -
+# the burst-source benches, the client tooltip bench, H6's arm E (the global store's save and request) and the ghost
+# calibration. A copy of x24-costs.toml (fadf200) with this header and the description changed only: the same
+# PZTestKit (6af6595) and the same staged instrument copy, release/hitch-x242/NutritionRevamp/Contents/mods/
+# NutritionRevamp (MANIFEST sha256 c86e295a...b389, the five instrument files kept as testing/spikes/instruments/
+# x242_NR_Server_<Name>.lua; release/ is gitignored; mod/ is never booted). Fixture `two`, both clients (`admin`
+# -debug, then `bob` release), Nutrition false (ruling T18-1), DayLength 1, sleep allowed and needed (unused here).
+# The driver is testing/experiments/x242b_costs.py.
+# The verify rows are load gates only, as in x24-costs.toml.
+fixture = "two"
+description = "PZTestKit (6af6595) + the staged NutritionRevamp copy at 9578eb9 with the x242 instruments (x242b), fixture two, admin and bob, Nutrition off, DayLength 1, sleep on - the burst-source benches, the tooltip bench, the store's save and request, the ghost calibration."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.server.bench.RING_MAX", expect = '"value": 4000' },
+  { side = "server", cmd = "lua.global", args = "TK.H0.RING_MAX", expect = '"value": 20000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client", cmd = "lua.global", args = "NR_H6.NAME", expect = '"value": "NutritionRevamp.players"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NR_H6.NAME", expect = '"value": "NutritionRevamp.players"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/hitch-x242/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, x222)
