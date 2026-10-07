@@ -24,7 +24,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-06 · scope: this mod's test pl
 - Record the measured window rather than the requested sleep, and name a snapshot tag by its measured offset rather than its intended one: one driver's window field read 10.0 seconds where the reads' own wall stamps give 12.54, and its tag named for three seconds after a transmit actually opened 7.58 seconds after it, so that driver's own window and tag keys are do-not-cite for exactly this reason [#1708/M/n=1].
 - Treat a scenario verdict as the test and the evaluator and a clean session together: exit code 0 needs the harness test's own pass, the evaluator's agreement and no environment fault, each of which turns the result into a failure naming its count, marks the timeline and lands in the faults block of both the report and the committed artifact [#1785].
 - Copy every piece of measured evidence a document cites into a tracked per-run artifact folder as JSON, kept byte-identical: the full run directories with their logs stay local and untracked [#1705].
-- Compare a raised vanilla store against `record.reconcile.baseline` read after the write, or accept an error bounded by one slow minute's legacy drift: the x193 driver read the store 4.573 s before its write, several slow minutes at the fixture's day length, and the legacy mirror rewrote it between. [#3309/C/inference] [#3293/M/n=1] [#3294/M/n=1].
+- Compare a raised vanilla store against `record.reconcile.baseline` read after the write, or accept an error bounded by one slow minute's legacy drift: the x193 driver read the store 4.573 s before its write, and the legacy mirror rewrote it between [#3309/C/inference] [#3293/M/n=1] [#3294/M/n=1].
 
 ## How it works
 
