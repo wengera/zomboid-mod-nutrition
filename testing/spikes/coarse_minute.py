@@ -106,7 +106,7 @@ def run_k(k, ticks="fired", host=None, first=False):
             for n in order:
                 rec = h.record(n)
                 if rec is None or rec["stomach"] is None:
-                    # a meal before the player's first fired minute (k > 10: the minute-10 round): the golden's
+                    # a meal before the player's first fired minute (k >= 10: the minute-10 round): the golden's
                     # guard is a scenario check, so the mod's own path runs (IN.readAfterAndLand creates the
                     # record through store.get and seeds the stomach full), and the meal is counted
                     pre_sight.append("m%d:%s" % (m, n))
