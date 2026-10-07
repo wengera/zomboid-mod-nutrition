@@ -19,6 +19,7 @@ paths: ["testing/**"]
 - Copy every piece of measured evidence a document cites into a tracked per-run artifact folder as JSON, kept byte-identical: the full run directories with their logs stay local and untracked [#1705].
 
 ## Also
+- docs/platform/harness.md#driven-client — the two-client fixture, the named `client:<user>` side, the profile's `clients` key and the release client.
 - docs/reference/experiments.md — the named experiment specs a driver implements.
 - docs/platform/lua-platform.md#kahlua-limits — the dialect every harness Lua edit must parse under.
 - docs/reference/tools.md#claims-tools — the bus inventory generator and the Lua balance check a harness commit runs.

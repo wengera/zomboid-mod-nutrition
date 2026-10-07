@@ -46,6 +46,7 @@ A character is dead when its own `health` field or its overall body health is at
 `IsoGameCharacter.updateInternal` then calls `die()`, and only when the process is a server [#2349/C/C-only].
 The engine's own fatal move is `ReduceGeneralHealth(110.0f)`, used on both lethal arms of the zombie-infection path — at once under the mortality option's first value, and when the mortality clock completes [#2348/C/C-only].
 The recompute caps the damage sum at `100`, so after that call overall health reads exactly zero and the next tick stops at once [#2348/C/C-only] [#2345/C/C-only] [#2343/C/C-only].
+Run on a live dedicated server through the harness's `health.reduce admin 110`, that call killed the character: the server read it dead at the first poll after the call and its overall health 0 at the next read [#3278/M/n=1]; the engine's own two zombie-infection arms were not exercised.
 
 `IsoGameCharacter.setHealth` writes the character's separate `health` field [#2350/C/C-only].
 It refuses only the exact value zero, and only while the character is invulnerable; any other value, negative or above the usual range, is stored unclamped [#2350/C/C-only].

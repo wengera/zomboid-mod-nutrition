@@ -61,7 +61,7 @@ Run every gate a commit's paths trigger; each ends at zero findings or green.
 - `python tools/bus_inventory.py --check` → in sync after any harness edit.
 - `PYTHONIOENCODING=utf-8 python tools/claims_check.py` (the full run, not `--staged`) → 0 after any commit that touches `mod/` or `tools/README.md`: a mod edit shifts the register's `repo:mod/…` pointers and the staged gate does not trigger on `mod/` (Plan 5: #3012 after 6307559).
 - `python tools/food_nutrients.py --check` → in sync before any commit that touches `data/food-nutrient-map/`, `data/fdc-extract.json`, `data/food-nutrients.*`, the generated mod files (`NR_Data_Nutrients.lua`, `NR_Data_Infer.lua`, `NR_ItemPass_Food.txt`) or the tool; `--write` regenerates, and a generated file is never edited by hand.
-- `python -m pytest tools/tests testing/tests -q` green: 2416 passed on 2026-10-06 (2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
+- `python -m pytest tools/tests testing/tests -q` green: 2506 passed on 2026-10-06 (2416 at the Plan 7 close; 2100 at the Plan 6 close; 1855 at the Plan 5 close; 1552 at the Plan 4 close on 2026-10-05, 1216 at the Plan 3 close, 676 at the Plan 2 close the same day; 489 at the 2026-10-04 Plan 1 close), and the count never drops.
 
 ## 4. Extending the reference
 
@@ -84,9 +84,11 @@ The instrument is [platform/harness](docs/platform/harness.md) (the run procedur
 
 - `python testing/pzt doctor` before every boot.
 - One live game session at a time, repository-wide.
+- A two-client run is one session: `pzt run` attaches the profile's `clients` one at a time, each ready before the next (Plan 8 Task 1).
 - Never `-safemode`.
 - A harness change lands before the run that uses it, in its own commit, with the balance check (`python tools/luabalance.py <lua files>`, the HEAD copies first, then the working tree) and the command table regenerated (`python tools/bus_inventory.py`); the next acceptance run is its smoke test.
 - A driver (`testing/experiments/*.py`) is never edited after its run; a post-run edit is a skew note.
+- A driver's store read precedes its write by at most one slow minute when the legacy mirror is on, or the landing measures the mirror's rewrite (x193's D, falsified on its amount by a seven-minute gap).
 - A reading that comes back trivial, unmeasured or falsified is written as such and never re-run to make a number prettier.
 - An aborted boot that took no reading is not a run: its driver runs unchanged and its run folder is left as is (ruling B3-1, x151r2's first attempt, killed by the host for memory).
 - A driver that crashes before any reading is taken (a TypeError at its first phase) is not a run either, and the one edit that fixes the crash is allowed before the real run, named in the artifact's reading guide — distinct from a host kill, where the driver runs unchanged (ruling B3-2, x171p's first attempt).

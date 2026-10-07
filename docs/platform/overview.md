@@ -205,13 +205,13 @@ A tag marked unverified is not an answer at all: it is listed under its page's o
 <a id="coverage"></a>
 
 `platform/` is not a modding manual.
-It holds what this library measured or read while building a nutrition mod on a dedicated `42.20.4` server with one client.
+It holds what this library measured or read while building a nutrition mod on a dedicated `42.20.4` server with one client, and in one session a second, release client beside it [#3298/M/n=1].
 A topic marked absent has no page, no rule and no claim here; an agent asked about it says so and reads the jar or the mirror, and never infers a wall from silence.
 Every verdict is dedicated-server multiplayer; single-player is never claimed.
 
 The full event roster lives on the wiki and the full command inventory lives in the testing reference: the curated Lua surface carries a row only where this library used or measured it [#0887/W/one-side].
 That surface is curated and not an inventory, so an absence in it is a coverage boundary and never a statement that the API does not exist [#0887/W/one-side].
-Every verdict in the wall map is bounded to build `42.20.4` on a dedicated server with one client, one fixture and one admin character, and single-player is never claimed [#1256/C/one-fixture].
+Every verdict in the wall map is bounded to build `42.20.4` on a dedicated server with one client, one fixture and one admin character, and single-player is never claimed [#1256/C/one-fixture]; the sync build's two-client session is the one reading with a second client attached [#3298/M/n=1].
 Every wall-map row that rests on the live platform sessions took one of three branches — the artifact settles it and the row is graded M on that run id and key, the artifact is inconclusive and the row states the verdict the remaining evidence supports, or the artifact is missing and the row is classified from C alone — so the C-only rows of that set are `H2`, `G4`, `I8`, `I10`, `I11` and `J5` [#1257/C/C-only].
 
 | Topic | Status | Where |

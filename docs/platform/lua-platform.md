@@ -75,7 +75,7 @@ A rim protected call therefore protects the handler's own body rather than the o
 The break is a client-only branch of the failure helper, and it ends a session rather than logging one.
 
 A debug client does not survive an unguarded mod raise: on two independent boots the harness client reached the in-game state, printed one complete trace and then stopped — console dead, the ready line never printed, the bus never answering, the process still alive [#0954/M/n=2].
-That reading is bounded to the harness's admin client, which launches with the debug flag; a release client is unmeasured [#0954/M/n=2].
+That reading is bounded to the harness's admin client, which launches with the debug flag; a release client booted once without it and answered the bus [#3297/M/n=1], but none has been raised on, so its behaviour on a raise is unmeasured [#0954/M/n=2] [#0958/C/C-only/open].
 The break runs through the Kahlua utility failure helper: it tests the debug flag against the UI's default thread, and on the true arm prints its failure message and calls the UI breakpoint on the current file and the previous line before the throw — and the breakpoint returns unless the debugger-on-error flag is set, returns at once on a server so no server ever breaks, and otherwise swaps to the debug thread, raises the break callback and enters the modal UI sync pump [#0955/C/C-only].
 What sets the debugger-on-error flag is unread [#0955/C/C-only].
 The two sides took different arms of that helper: the client's log carries the printed failure message and never the throw, and the server's carries only the throw, so the client never left the breakpoint [#0956/M/n=2].
