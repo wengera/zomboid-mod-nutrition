@@ -10,7 +10,7 @@ the fixture was built; `steamapps/workshop/content/108600/`, read-only), and eac
 *restored per-run copy* of the fixture, so nothing here mutates either. Everything a
 profile asks for is resolved and validated before a single process starts (`testing/pzt/profile.py`),
 because the game's own reaction to a mod it cannot find is a WARN and a clean boot (spike S3-A) —
-a run that looks green while the thing under test was never loaded. Fifty-one profiles ship (the directory's `.toml` count on 2026-10-06), of which the first eleven are:
+a run that looks green while the thing under test was never loaded. Fifty-four profiles ship (the directory's `.toml` count on 2026-10-06), of which the first eleven are:
 **`mod-under-test.toml`** — PZTestKit + KeenPerception (workshop `3685392864`) on `default` with
 `DayLength = 1`, the T1 acceptance case and the template for slices 09–11, whose `[[verify]]`
 probes read `trait.check` back on both sides. **Copy its `[sandbox]` with care**: `DayLength = 1`
@@ -141,6 +141,8 @@ Plan 7 added two gate profiles, each with `[client] timeout = 120` and rows cert
 Plan 7 then added the two interface acceptance profiles, each with `[client] timeout = 180`, `Nutrition = false`, `DayLength = 1` and `[sandbox.NR] VisibilityMode = 1`: **`x18-interface.toml`** � PZTestKit + `NutritionRevamp` (by path) + `TKX_DeclaredFood`, gated on server `NutritionRevamp.version`, client `NutritionRevamp.client.view.level` (a number), client `text.get IGUI_NR_Loaded` expecting `nr-loaded` and client `NR_ClientTooltip_Installed.original` (a function); and **`x18-interface-mf.toml`** � the same plus `MoodleFramework` (workshop `3396446795`), whose detection runs at OnGameBoot after every file loaded, so its position in the list does not matter.
 
 Plan 8 added the top-level **`clients`** key and the first two-client profile. `clients = ["admin", "bob"]` (a bare key, so before the first table) lists the fixture users a run attaches, in launch order, each ready before the next launches (`session.attach_clients`); every name must be a client the fixture provisioned (its `fixture.json` `clients` map), the default is `["admin"]` so every earlier profile attaches what it did, and the older `[client] users` spelling still works but must agree with `clients` when both are written. A `[[verify]]` row's `side` is `server`, `client` (the `admin` client, or the first attached when admin is not) or `client:<user>` (`bus.resolve_side`, which the drivers share). **`two-smoke.toml`** — PZTestKit alone on fixture `two` (`admin` -debug, `bob` release), `clients = ["admin", "bob"]`, `[client] timeout = 240`, gated on `lua.global TK.version` on the server, on `client` and on `client:bob`.
+
+The three Plan 8 live profiles share the mod and `TKX_DeclaredFood` by path, `Nutrition = false` and `DayLength = 1`: **`x19-gate.toml`** (fixture `default`, NO `[sandbox.NR]` block so the Bands default is read live, `[client] timeout = 180`; run x191) ; **`x19-persist.toml`** (fixture `default`; the four-boot persistence driver x192 restores and reuses one run dir, so the profile seeds only the first boot) ; **`x19-two.toml`** (fixture `two`, `clients = ["admin", "bob"]`, gated on both clients; run x193). Each is gated on server `NutritionRevamp.version` and client `TK.version`.
 
 Use one with `python testing/pzt run --profile <name>` or
 `python testing/pzt scenario <test> --profile <name>`; the profile's own fixture wins over a typed
