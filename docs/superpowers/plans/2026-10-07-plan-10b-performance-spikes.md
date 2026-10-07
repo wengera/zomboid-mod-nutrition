@@ -5,11 +5,11 @@
 **Goal:** Find out where the mod's server time actually goes and which performance refactors are worth making, before Plan 11 is written. Four questions:
 - What does each step of one player's slow minute cost, in real play, and how much of it is Java calls?
 - Can the minute run every 5 or 10 game minutes instead of every one, with negligible drift?
-- What do a trimmed takeover and the hybrid's per-tick hold cost, for a fair takeover fork?
+- Can the mod do no per-tick work at all? Measure the panic and temperature sawtooth when they are written once a minute, and the burst cost of the slow minute driven from `EveryOneMinute` instead of an `OnTick` drain.
 - If Java reads dominate, does caching them pay?
 
 **Architecture:** Measurement only, with no change to `mod/`.
-- **The live spikes** boot a copy of the current tree staged at the plan's commit, as Plan 10 ruling 2 did. Their instruments live in that copy only: per-step timers wrapped around `NR.server.minute`'s registered steps, a Java-call counter wrapped around `NR.call`, and bench entries.
+- **The live spikes** boot a copy of the current tree staged at the plan's commit, as Plan 10 ruling 2 did. Their instruments live in that copy only: per-step timers wrapped around `NR.server.minute`'s registered steps, a Java-call counter wrapped around `NR.call`, a per-minute panic and temperature writer, and an `EveryOneMinute`-driven variant of the player drain.
 - **The offline spike** reuses the golden-trace machinery (`testing/tests/kernel/golden_trace.py`, `server_host.Host`). It runs the same scenario with the minute fired every k game minutes and measures the drift against k = 1.
 - **The outputs:** register rows, a "Performance" section in the decision memo (`docs/superpowers/specs/2026-10-07-plan-11-decisions.md`), and an updated cost column for Decision 1.
 
@@ -36,6 +36,7 @@ Plan 10's Global Constraints hold (`docs/superpowers/plans/2026-10-07-plan-10-sp
   3. **P4's trigger.** P4 runs only when Java calls (counted through `NR.call`, `NR.num`, `NR.obj`, `NR.flag` and the adapters' direct method calls) account for at least half of one or more step's measured time, by the estimate in P1 Step 4. Otherwise P4 is written "not triggered", with P1's numbers.
   4. **The coarse minute's acceptance band.** A k is "safe" when, over the golden scenario, no discrete state differs from k = 1: grades, bands, traits written, deaths, `allReplete`, the effects key. The continuous state must also differ by at most 1 % of the field's range over the run, or 1e-3 absolute for fields under 0.1. Anything else is a finding and is reported, never tuned away.
   5. **Not this plan:** making any change to the mod, which is Plan 11's job, nor recommending one beyond what a reading supports.
+  6. **The design target is no per-tick work** (Angus, 2026-10-07; the lessons rule against simulation on `OnTick`, #1071, #1080). The takeover hook is per-tick by nature, so this plan measures no takeover variant. P3 instead measures what the mod gives up and what it pays when nothing runs per tick.
 
 ## Execution order
 
@@ -61,7 +62,7 @@ Task 0 → { P2 (Opus, offline) ∥ P1+P3 (Opus, one live session) } → P4 (Opu
 
 ---
 
-### Task P1+P3: The slow minute by step, and the takeover fork's costs — Opus implementer (live), Opus reviewer
+### Task P1+P3: The slow minute by step, and the cost of no per-tick work — Opus implementer (live), Opus reviewer
 
 **Files:**
 - Modify, in the staged copy only: `release/perf-<HEAD>/NutritionRevamp/Contents/mods/NutritionRevamp/common/media/lua/server/NR_Server_Bench.lua` (append).
@@ -70,7 +71,7 @@ Task 0 → { P2 (Opus, offline) ∥ P1+P3 (Opus, one live session) } → P4 (Opu
 **Interfaces (all in the staged copy's bench file):**
 - `NR.server.bench.prof = { on = false, ms = {}, runs = {}, calls = {} }`, keyed by step name.
 - `NR.server.bench.profStart()` and `NR.server.bench.profStop()`.
-- `NR.server.bench.trimmedHandler()` and `NR.server.bench.holdTick()`.
+- `B.minuteHold`, `B.burst` and `B.burstRR(m)`, with their switches `B.holdOn` and `B.burstOn` and targets `B.panicTarget` and `B.tempTarget`.
 - The existing `NR.server.bench.handler()` and `NR.server.bench.minute()`, re-added as in Plan 10 S2.
 
 - [ ] **Step 1: The per-step timers.** Append to the staged copy's bench file. The wrap runs at `OnServerStarted`, after every adapter has registered:
@@ -116,9 +117,11 @@ end
 
 Read whether the adapters reach Java through `NR.call`, `NR.num`, `NR.obj` and `NR.flag` (which route through `NR.call`) or through direct colon calls. Count the direct calls per step by reading each adapter's minute function; they cannot be counted at run time. State the share each route carries in the report.
 
-- [ ] **Step 2: The fork's cost entries.** Append these to the same staged copy:
-  - `B.trimmedHandler()`: the takeover handler with the Plan 11 draft's Task 3 per-tick trim applied. It drops the six dead reads (`highThirst`, `lowThirst`, `heartyAppetite`, `lightEater`, `foodEaten`, `thermoFluids`) and moves the seven slow reads (six traits and the Fitness perk) out of the body. Build it as a copy of the staged `NR_Server_Fast.lua` body function, edited in the copy only, registered as a bench-only local that runs on the first online player. Never register it as the live hook.
-  - `B.holdTick()`: the hybrid's per-tick PANIC hold for one player, one `get` and one `set` of `CharacterStat.PANIC` on the first online player's stats. Read the takeover's own PANIC write in `NR_Server_Fast.lua` and use the same handles.
+- [ ] **Step 2: The no-per-tick entries** (rule 6). Append these to the same staged copy:
+  - `B.minuteHold()`: an `EveryOneMinute` handler, server-gated, active only while `B.holdOn` is true. Once per game minute, for every online player, it writes `CharacterStat.PANIC` to `B.panicTarget` and `CharacterStat.TEMPERATURE` to `B.tempTarget` through the stats setters `NR_Server_Fast.lua` uses (read its handles). A ring records each write's pre-write value, the per-tick decay between writes for the first player, and the time of each write.
+  - `B.burst()`: an `EveryOneMinute` handler, active only while `B.burstOn` is true. It runs `NR.server.minute.run` for every online player in one event, the shape of a drain with no `OnTick`, and accumulates the event's total ms and player count. Bracket it with `getTimestampMs`; with two players and 1 ms resolution, report the total over many events, ms ÷ events.
+  - A round-robin variant `B.burstRR(m)`: one event processes ⌈N ÷ m⌉ players in a persistent rotation, so each player runs every m game minutes. Its elapsed-time integration is the kernels' own.
+  - Leave the live `OnTick` drain in place while these run. They measure cost and decay shape only, and their state changes are noted in the artifact as cost-not-behaviour.
 - [ ] **Step 3: The profile and the driver.** `x23-perf.toml` uses the `x22-clock.toml` shape: fixture `two`, two clients, `DayLength = 1`, the staged copy by path, and `Nutrition = false`. The driver `x231_perf.py` runs these phases:
   - **A. In-play profile.** Call `profStart`, then play 120 game minutes at speed 1. Within that window:
     - each player eats two meals through the eat route at game minutes 20 and 70;
@@ -127,7 +130,8 @@ Read whether the adapters reach Java through `NR.call`, `NR.num`, `NR.obj` and `
 
     Then call `profStop` and read `B.prof` (flatten it to scalars if `lua.global` cannot return tables). This gives real minutes, with elapsed time, meals, sleep and movement.
   - **B. The same profile under `settimespeed 30` for 60 wall seconds.** Each run's elapsed time is then about 4.7 game minutes, the fast-clock shape.
-  - **C. The fork costs.** Run 1000 calls each of `bench.global NutritionRevamp.server.bench.handler`, `…trimmedHandler` and `…holdTick`, three times each, interleaved: handler, trimmed, hold, then repeat. Interleave because the S1b review flagged the hook-off-first order as unbalanced.
+  - **C. The once-a-minute hold.** In Overlay mode (`sandbox.var NR.Mode 2`, so the takeover is not registered and vanilla's updaters run), set `B.panicTarget` to 0.5 and `B.tempTarget` to 37.5, turn `B.holdOn` on, and give `admin` a panic source if the harness has one (read the table); otherwise write the floor only. Read the ring across 20 game minutes at DayLength 1, then at DayLength 4. The reading is panic's and temperature's decay per tick between writes and the sawtooth amplitude at each day length.
+  - **C2. The burst.** With the minute work's own drain left on, turn `B.burstOn` on for 60 game minutes at DayLength 1 and read ms ÷ events ÷ players. Repeat with `B.burstRR(5)`. Then measure the tick-time spike a burst causes: the event's total ms against the 100 ms tick, at the measured per-player cost, extrapolated to 20 and 40 players and labelled as extrapolation.
   - **D. The per-call baseline.** Run 1000 calls of `bench.minute` at an unchanged world age (S2's measure), for continuity with #3354.
 
   Commit the profile and the driver BEFORE the run. Every reading sits at a path, and the server-log pattern excludes the probe names.
@@ -136,10 +140,9 @@ Read whether the adapters reach Java through `NR.call`, `NR.num`, `NR.obj` and `
   - Java calls per run per step;
   - an estimate of the Java share. Use S2's 4.36 µs pure step against the handler's 19.33 µs as the per-call calibration, giving roughly (19.33 − 4.36) ÷ (the handler's counted Java calls) µs per Java call. Say plainly that this is an estimate.
 
-  From C, compute:
-  - trimmed against untrimmed handler µs per tick;
-  - the hold's µs per tick;
-  - the fork's per-player per-game-minute costs at DayLength 1 and DayLength 4: the takeover (untrimmed and trimmed), and the hybrid's writer plus hold. Take the writer from S1's 11 µs (#3373) plus vanilla's updaters from S1b (#3386).
+  From C, give panic's and temperature's sawtooth under a once-a-minute write (amplitude and shape, per day length). Say whether a player would notice: read the moodle thresholds for panic from `docs/facts/character-stats.md`, and judge whether the swing crosses one. Also say whether the takeover's temperature target ever held (Decision 1 marks it unmeasured, X81).
+
+  From C2, give the burst's cost per player per event, the spike at 20 and 40 players, and the round-robin's spike. Give the all-in per-player per-game-minute cost of a design with no per-tick work: S1's writer (#3373), plus vanilla's updaters (#3386), plus the minute work, divided by the round-robin period if one is used.
 
   State P4's trigger result.
 - [ ] **Step 5: Commit the artifact,** byte-identical, with its `artifacts.md` row, which re-anchors in the same commit every `artifacts.md` pointer the row shifts (CLAUDE.md § 6), and its `do-not-cite` rows. Write the delta `task-P1P3-claims-delta.tsv` (M rows, n=1, provisional ids `T108.n`), the memo section `task-P1P3-memo.md` and the report.
@@ -203,7 +206,7 @@ Read whether the adapters reach Java through `NR.call`, `NR.num`, `NR.obj` and `
   - P3's fork costs;
   - P4's result, or "not triggered".
   - Then a ranked list of performance refactors for Plan 11. Each item names the reading that supports it and its expected saving per player per game minute.
-- [ ] Rewrite Decision 1's cost lines with P3's figures: trimmed takeover, untrimmed takeover, and hybrid writer plus hold. Add any refactor the readings make cheap to all three options, such as a coarse minute.
+- [ ] Rewrite Decision 1 for the no-per-tick target (rule 6). The takeover option leaves the table. The hybrid's per-tick hold becomes a once-a-minute panic and temperature write. Give the measured sawtooth and the design's all-in cost from P3, and the drain's move from `OnTick` to an `EveryOneMinute` round-robin from C2 and P2.
 - [ ] Update the "Re-basing the draft" list for Task 13, since the measurements are now done.
 - [ ] An Opus reviewer checks every number against its row, and that no recommendation goes beyond its reading. Run the fix round and its re-review.
 
@@ -220,10 +223,10 @@ Read whether the adapters reach Java through `NR.call`, `NR.num`, `NR.obj` and `
 - **Coverage:** every spike Angus asked for has a task.
   - Profile the minute by step: P1.
   - Run it less often: P2.
-  - Trimmed takeover and hybrid costs: P3, folded into P1's session to save a boot.
+  - No per-tick work (rule 6): P3 measures the once-a-minute panic and temperature sawtooth and the `EveryOneMinute` burst and round-robin, folded into P1's session to save a boot.
   - Java-read caching: P4, gated on P1 by ruling 3.
 - **Placeholders:**
   - `<HEAD>` and `<stamp>` are filled at dispatch and at run time.
   - P3's trimmed handler is built by copying and editing the staged body. The edit is named exactly (the six reads dropped, the seven moved), so the copy is concrete.
   - P4's cached reads depend on P1's ranking. That is the point of its trigger, and the selection rule is stated.
-- **Interfaces:** `B.prof`, `profStart`, `profStop`, `trimmedHandler` and `holdTick` (P1+P3). `run_k` and `compare` (P2).
+- **Interfaces:** `B.prof`, `profStart`, `profStop`, `minuteHold`, `burst` and `burstRR` (P1+P3). `run_k` and `compare` (P2).
