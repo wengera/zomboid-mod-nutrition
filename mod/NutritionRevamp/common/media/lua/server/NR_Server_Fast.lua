@@ -560,7 +560,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
             local P = NR.server.players
             P.onFirstSight[#P.onFirstSight + 1] = onFirstSight
             P.onDeparture[#P.onDeparture + 1] = onDeparture
-            P.onMinute[#P.onMinute + 1] = onMinute
+            NR.server.minute.register("fast", onMinute)
             NR.server.options.changed[#NR.server.options.changed + 1] = function(old, new) applyMode(new) end
             for username, player in pairs(P.online) do
                 local h = hoist(username, player)

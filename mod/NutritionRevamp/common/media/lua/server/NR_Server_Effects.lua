@@ -4,9 +4,9 @@
 -- toggles (Night Vision, Short Sighted), the four regeneration setters, the per-part wound, bleeding and
 -- infection folds, the catchACold fold, the health drains and the spontaneous bruise.
 --
--- Order (ruling 22): this file would sort FIRST of the minute adapters, so it registers no onMinute entry;
--- NR_Server_Nutrients calls EFF.minute explicitly at the end of its own minute, under its own pcall, so the
--- step reads this minute's epoch, fluids and acute stamps with zero lag. Strength follows and reads the raw
+-- Order (ruling 22, made explicit by the pipeline, Plan 10 R2): the effects step runs right after the
+-- nutrients step in NR_Server_Minute's ORDER, on the body, dtM and ageH Nutrients stamps on the context at
+-- the end of its own minute, so the step reads this minute's epoch, fluids and acute stamps with zero lag. Strength follows and reads the raw
 -- sub-tables as before. The fatigue multipliers mAcc and rRec stamped here feed the NEXT minute's
 -- K.acute.sleepMinute (a one-minute lag, stated).
 --
@@ -577,8 +577,8 @@ local function step(username, player, record, body, dtM, ageH)
     heal(username, E, body)
 end
 
--- One player's minute, called by NR_Server_Nutrients at the end of its own minute (ruling 22). One pcall
--- around the body: a failure is kept and logged on the slow clock, never raised into the Nutrients minute.
+-- One player's minute, called by EFF.step on the inputs Nutrients stamped (ruling 22). One pcall around
+-- the body: a failure is kept and logged on the slow clock, never raised into the pipeline.
 function EFF.minute(username, player, record, body, dtM, ageH)
     if record == nil then return end
     EFF.stats.minutes = EFF.stats.minutes + 1
@@ -590,13 +590,27 @@ function EFF.minute(username, player, record, body, dtM, ageH)
     end
 end
 
--- Wiring: no onMinute entry (Nutrients calls EFF.minute); the transient memory is forgotten at first sight
+-- The pipeline's effects step: it runs only when the nutrients step reached the end of its minute and
+-- stamped ctx.body, ctx.dtM and ctx.ageH (where 1.0.0's hand call sat), and keeps that call's guard, its
+-- counter (NR.server.nutrients.stats.effectsErrors) and its log line.
+function EFF.step(username, player, record, ctx)
+    if ctx == nil or ctx.body == nil then return end
+    local okE, errE = pcall(EFF.minute, username, player, record, ctx.body, ctx.dtM, ctx.ageH)
+    if not okE then
+        local NUT = NR.server.nutrients
+        if NUT ~= nil then NUT.stats.effectsErrors = NUT.stats.effectsErrors + 1 end
+        NR.log.say(2, "nutrients: the effects step failed for " .. tostring(username) .. ": " .. tostring(errE))
+    end
+end
+
+-- Wiring: the effects step registered by name; the transient memory is forgotten at first sight
 -- (a join, a respawn) and departure, so the regeneration constants are re-asserted after a load.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         if EFF.wired then return end
         EFF.wired = true
+        NR.server.minute.register("effects", EFF.step)
         local P = NR.server.players
         if P == nil then return end
         P.onFirstSight[#P.onFirstSight + 1] = EFF.forget

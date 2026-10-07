@@ -22,6 +22,7 @@ CORE = os.path.join(LUA, "shared", "NR_Core.lua")
 CLIENT_EFFECTS = os.path.join(LUA, "client", "NR_Client_Effects.lua")
 CLIENT_MIRROR = os.path.join(LUA, "client", "NR_Client_Mirror.lua")
 BUS = os.path.join(LUA, "server", "NR_Server_Bus.lua")
+MINUTE = os.path.join(LUA, "server", "NR_Server_Minute.lua")
 
 ENV = r"""
 NR_T = { adds = {}, aimWrites = 0, varWrites = 0, sends = 0, sent = {}, delay = 25, now = 1000000 }
@@ -87,6 +88,7 @@ def bus_rt():
     rt.execute(ENV)
     _load(rt, CORE)
     rt.execute(STUBS)
+    _load(rt, MINUTE)
     _load(rt, BUS)
     rt.execute("for _, f in ipairs(NR_T.adds.OnServerStarted) do f() end")
     return rt
@@ -252,16 +254,18 @@ def rec(rt, username="admin", dirty=None):
 
 
 def minute(rt, r, username="admin"):
-    for i in range(1, len(G(rt).NutritionRevamp.server.players.onMinute) + 1):
-        G(rt).NutritionRevamp.server.players.onMinute[i](username, G(rt).NR_T.local_, r)
+    G(rt).NutritionRevamp.server.minute.run(username, G(rt).NR_T.local_, r)   # the pipeline's run (Plan 10 R2)
 
 
 def test_the_flush_is_wired_once():
     rt = bus_rt()
     P = G(rt).NutritionRevamp.server.players
-    assert len(P.onMinute) == 1
+    MIN = G(rt).NutritionRevamp.server.minute
+    same = rt.eval("rawequal")
+    assert same(MIN.steps["bus"], BUS_(rt).flushEffects) and len(P.onMinute) == 0
     rt.execute("for _, f in ipairs(NR_T.adds.OnServerStarted) do f() end")
-    assert len(P.onMinute) == 1 and len(P.onFirstSight) == 1 and len(P.onDeparture) == 1
+    assert same(MIN.steps["bus"], BUS_(rt).flushEffects) and len(P.onMinute) == 0
+    assert len(P.onFirstSight) == 1 and len(P.onDeparture) == 1
 
 
 def test_no_mark_no_send():

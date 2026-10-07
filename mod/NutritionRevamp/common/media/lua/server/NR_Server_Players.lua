@@ -16,7 +16,6 @@ local function worldAge() return NR.worldAge() or 0 end
 
 
 
-
 local function fire(list, username, player, record)
     for i = 1, #list do
         local ok, err = pcall(list[i], username, player, record)
@@ -24,8 +23,8 @@ local function fire(list, username, player, record)
     end
 end
 
--- One player's minute work. Plan 1: refresh lastSeen and the dead flag; later plans append to
--- P.onMinute. Called from the OnTick drain, one player per tick.
+-- One player's minute work: refresh lastSeen and the dead flag, then the slow minute's pipeline
+-- (NR_Server_Minute.lua), then P.onMinute, kept empty by the mod for a third party's append.
 P.onMinute = {}
 function P.work(username, player)
     local r = NR.server.store.get(username, worldAge())
@@ -36,6 +35,7 @@ function P.work(username, player)
         r.dead = true
         NR.log.say(2, "players: " .. tostring(username) .. " is dead; record kept until respawn")
     end
+    NR.server.minute.run(username, player, r)
     fire(P.onMinute, username, player, r)
 end
 

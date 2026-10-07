@@ -5,11 +5,11 @@
 --
 -- The effects push (Plan 5 Task 10): the effects adapter calls B.markEffects(username) when the coefficient
 -- set is rebuilt or a trait changes (it also sets record.effects.dirty, the flag that survives a save). The
--- flush rides the players' slow minute (P.onMinute, wired at OnServerStarted): when either flag is up and at
+-- flush rides the slow minute (the pipeline's bus step, NR_Server_Minute): when either flag is up and at
 -- least PUSH_GAP_MS of server wall clock (getTimestampMs) has passed since this player's last effects push,
 -- it sends the WHOLE mirror through B.sendMirror -- the request-time sender, unchanged (ruling T14-1 holds
 -- for client reads) -- and clears both flags; a mark inside the gap stays up and goes out at the first slow
--- minute after it. A failed send keeps the flags. This file sorts before NR_Server_Nutrients, so the flush
+-- minute after it. A failed send keeps the flags. The bus step is first in the pipeline's ORDER, so the flush
 -- runs first in a player's minute and a mark made in one minute goes out with the next one's flush, carrying
 -- the whole of the marking minute's state. First sight and departure forget the transient state (the
 -- first-sight mirror, NR_Server_Metabolism's, carries the set).
@@ -110,7 +110,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         local P = NR.server.players
         if P == nil then return end
         B.wired = true
-        P.onMinute[#P.onMinute + 1] = B.flushEffects
+        NR.server.minute.register("bus", B.flushEffects)
         P.onFirstSight[#P.onFirstSight + 1] = B.forgetEffects
         P.onDeparture[#P.onDeparture + 1] = B.forgetEffects
     end)

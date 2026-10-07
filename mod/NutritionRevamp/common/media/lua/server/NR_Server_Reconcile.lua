@@ -18,12 +18,12 @@
 --    already landed is not landed twice and a write by another writer earlier in the same minute is not
 --    absorbed into the baseline.
 --
--- The minute order (hooks run in registration order; the OnServerStarted handlers run in file order, Bus,
--- Fast, Kinetics, Metabolism, Nutrients, Reconcile, Store, Strength, Weight): this file's handler inserts
--- RC.minute into P.onMinute BEFORE NR_Server_Kinetics' minute (else before Metabolism's or Nutrients', else
--- at the end, which is still before Strength's and Weight's, registered after this file's), so a player's
--- minute runs: the bus's effects flush, the fast clock's handle refresh, THIS step, the stomach (Kinetics),
--- Metabolism, Nutrients (with Effects), Strength, Weight (the legacy write). A reconciled intake is then
+-- The minute order (the pipeline's declared ORDER, NR_Server_Minute): the reconcile step runs after the bus's
+-- effects flush and the fast clock's handle refresh and before the stomach (Kinetics), so a player's minute
+-- runs: the bus's effects flush, the fast clock's handle refresh, THIS step, the stomach (Kinetics),
+-- Metabolism, Nutrients, Effects, Strength, Weight (the legacy write). The order is the one 1.0.0's splice
+-- into P.onMinute produced (before Kinetics' minute); the pipeline names it rather than inserting into a
+-- list. A reconciled intake is then
 -- emptied by the same minute's Kinetics step.
 --
 -- Every Java read goes through NR.call (index-first); every Java global is named only inside a function
@@ -107,7 +107,7 @@ local function step(username, player, record)
     rc.baseline = K.reconcile.baselineAfter(store)
 end
 
--- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work, under
+-- One player's minute: the pipeline's reconcile step (NR_Server_Minute.run, called from P.work), under
 -- one pcall: a failure is counted and logged on the slow clock, never raised into the players walk.
 function RC.minute(username, player, record)
     if record == nil then return end
@@ -149,31 +149,6 @@ function RC.credit(record, before, after)
     return true
 end
 
--- Insert fn into list before the first entry that is one of anchors, else at the end.
-function RC.insertBefore(list, fn, anchors)
-    for i = 1, #list do
-        for j = 1, #anchors do
-            if list[i] == anchors[j] then
-                table.insert(list, i, fn)
-                return i
-            end
-        end
-    end
-    list[#list + 1] = fn
-    return #list
-end
-
--- The anchors the step must precede, in the order their handlers registered.
-local function anchors()
-    local out = {}
-    local names = { "kinetics", "metabolism", "nutrients", "strength", "weight" }
-    for i = 1, #names do
-        local a = NR.server[names[i]]
-        if a ~= nil and a.minute ~= nil then out[#out + 1] = a.minute end
-    end
-    return out
-end
-
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
@@ -181,7 +156,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         local P = NR.server.players
         if P == nil then return end
         RC.wired = true
-        RC.insertBefore(P.onMinute, RC.minute, anchors())
+        NR.server.minute.register("reconcile", RC.minute)
         P.onFirstSight[#P.onFirstSight + 1] = RC.onFirstSight
     end)
 end

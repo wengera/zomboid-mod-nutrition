@@ -22,17 +22,17 @@
 -- Ruling T17-1 (x151r #2981): the factor reads the meal in the stomach, not the share emptied this
 -- minute -- the buffer's phytate, vitC and calcium (and its lipids, ruling T19-1: the fat factor) are
 -- read into KIN.ctx BEFORE the emptying and absorb takes them; the calcium goes on to
--- NR_Server_Nutrients' calcium x iron factor through lastMealCa.
+-- NR_Server_Nutrients' calcium x iron factor through the pipeline context's mealCa.
 local NR = NutritionRevamp
 local K = NR.kernel
--- lastAbsorbed: the absorbed vector of each player's last step, by username -- a transient server table,
--- never on the record -- that NR_Server_Metabolism reads (the four macros) and NR_Server_Nutrients then
--- consumes and clears on the same minute (both load after this file, so their onMinute entries run after
--- this one; Plan 4 ruling 17); nil when the step had no elapsed time. lastMealCa: the buffer's calcium mg
--- before that step's emptying (a number by username, the same lifetime), the meal calcium the calcium x
--- iron factor reads. ctx: the one meal-context table, overwritten every step (no per-minute allocation).
+-- The hand-offs ride the pipeline's per-player context (NR_Server_Minute; Plan 10 R2): pipe.absorbed is the
+-- absorbed vector of this player's step -- transient, never on the record -- that NR_Server_Metabolism reads
+-- (the four macros) and NR_Server_Nutrients then consumes on the same minute (the pipeline's ORDER runs both
+-- after this step; Plan 4 ruling 17); nil when the step had no elapsed time. pipe.mealCa: the buffer's calcium
+-- mg before that step's emptying (the same lifetime), the meal calcium the calcium x iron factor reads. The
+-- context is cleared at the start of each player's run. ctx: the one meal-context table, overwritten every step.
 NR.server.kinetics = { stats = { minutes = 0, players = 0, failures = 0 }, lastError = nil, wired = false,
-                       lastAbsorbed = {}, lastMealCa = {}, ctx = {} }
+                       ctx = {} }
 local KIN = NR.server.kinetics
 
 local function worldAge() return NR.worldAge() or 0 end
@@ -43,7 +43,7 @@ local function worldAge() return NR.worldAge() or 0 end
 
 
 
-local function step(username, player, record)
+local function step(username, player, record, pipe)
     local age = worldAge()
     if record.stomach == nil then
         record.stomach = K.stomach.new()
@@ -63,11 +63,11 @@ local function step(username, player, record)
         local emptied = K.stomach.empty(record.stomach, dtH)
         local absorbed = K.stomach.absorb(emptied, ctx)
         K.stomach.toPool(record.pool, absorbed)
-        KIN.lastAbsorbed[username] = absorbed          -- the handoff to Metabolism, then Nutrients
-        KIN.lastMealCa[username] = ctx.calcium
-    else
-        KIN.lastAbsorbed[username] = nil
-        KIN.lastMealCa[username] = nil
+        if pipe ~= nil then pipe.absorbed = absorbed end          -- the handoff to Metabolism, then Nutrients
+        if pipe ~= nil then pipe.mealCa = ctx.calcium end
+    elseif pipe ~= nil then
+        pipe.absorbed = nil
+        pipe.mealCa = nil
     end
     local fill = K.stomach.fill(record.stomach)
     -- the self-heal for #2833: a non-finite fill (a stomach a NaN intake poisoned before the landing
@@ -96,13 +96,13 @@ local function step(username, player, record)
     KIN.stats.players = KIN.stats.players + 1
 end
 
--- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
+-- One player's minute: the pipeline's kinetics step (NR_Server_Minute.run, from P.work); pipe is its context.
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function KIN.minute(username, player, record)
+function KIN.minute(username, player, record, pipe)
     if record == nil then return end
     KIN.stats.minutes = KIN.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record)
+    local ok, err = pcall(step, username, player, record, pipe)
     if not ok then
         KIN.stats.failures = KIN.stats.failures + 1
         KIN.lastError = err
@@ -115,7 +115,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         if not NR.isServer() then return end
         if KIN.wired then return end
         KIN.wired = true
-        local P = NR.server.players
-        P.onMinute[#P.onMinute + 1] = KIN.minute
+        local MIN = NR.server.minute
+        MIN.register("kinetics", KIN.minute)
     end)
 end

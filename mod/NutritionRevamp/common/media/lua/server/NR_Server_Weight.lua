@@ -1,6 +1,6 @@
 -- NR_Server_Weight.lua -- the body model's weight adapter (Plan 3, spec § 4.3): once per player per game
--- minute, last in the per-player minute (this file sorts after NR_Server_Metabolism.lua,
--- NR_Server_Strength.lua and NR_Server_Training.lua, so its handler registers after theirs and reads
+-- minute, last in the per-player minute (the pipeline's ORDER, NR_Server_Minute, runs the weight step
+-- last, after the metabolism and strength steps, so it reads
 -- the fm and lm Metabolism stamped this minute), it writes the model's total mass into the vanilla
 -- weight slot, the three direction flags off the 7-day trend, refreshes the weight band trait when the
 -- band changes or its trait has gone missing and pushes the trait block, and, under the NR.LegacyMirror
@@ -186,7 +186,7 @@ local function step(username, player, record)
     end
 end
 
--- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
+-- One player's minute: the pipeline's weight step (NR_Server_Minute.run, called from P.work).
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
 function WGT.minute(username, player, record)
@@ -200,14 +200,14 @@ function WGT.minute(username, player, record)
     end
 end
 
--- Wiring: appended to the players' onMinute list at OnServerStarted. This file sorts last of the body
--- adapters, so its handler registers after Metabolism's and Strength's and reads this minute's masses.
+-- Wiring: registered as the pipeline's weight step at OnServerStarted. ORDER runs it last, after the
+-- metabolism and strength steps, so it reads this minute's masses.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         if WGT.wired then return end
         WGT.wired = true
-        local P = NR.server.players
-        P.onMinute[#P.onMinute + 1] = WGT.minute
+        local MIN = NR.server.minute
+        MIN.register("weight", WGT.minute)
     end)
 end

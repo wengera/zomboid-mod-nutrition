@@ -591,21 +591,23 @@ def test_weight_runs_last_in_the_players_list():
         NutritionRevamp.server.players = { onMinute = {} }
     """)
     names = sorted(["NR_Server_Weight.lua", "NR_Server_Training.lua", "NR_Server_Strength.lua",
-                    "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua"])
-    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Strength.lua",
-                     "NR_Server_Training.lua", "NR_Server_Weight.lua"]
+                    "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua"])
+    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua",
+                     "NR_Server_Strength.lua", "NR_Server_Training.lua", "NR_Server_Weight.lua"]
     for n in names:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")   # a second start wires nothing twice
     G = rt.globals()
-    on = G.NutritionRevamp.server.players.onMinute
-    assert len(on) == 4
+    S = G.NutritionRevamp.server
+    assert len(S.players.onMinute) == 0                     # the pipeline's named steps (Plan 10 R2)
     same = rt.eval("rawequal")
-    assert same(on[3], G.NutritionRevamp.server.strength.minute)
-    assert same(on[4], G.NutritionRevamp.server.weight.minute)
-    assert G.NutritionRevamp.server.weight.wired is True
+    assert same(S.minute.steps["strength"], S.strength.minute)
+    assert same(S.minute.steps["weight"], S.weight.minute)
+    order = [S.minute.ORDER[i] for i in range(1, len(S.minute.ORDER) + 1)]
+    assert order[-1] == "weight" and order.index("strength") < order.index("weight")
+    assert S.weight.wired is True
 
 
 # --- the legacy-mirror option text (whole-pass issue 14) ---------------------------------------------

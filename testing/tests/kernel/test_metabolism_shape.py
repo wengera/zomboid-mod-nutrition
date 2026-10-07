@@ -113,9 +113,9 @@ end
 """
 
 MINUTE = r"""
-function(player, record, age)
+function(player, record, age, pipe)
     NR_TEST_AGE = age
-    NutritionRevamp.server.metabolism.minute("admin", player, record)
+    NutritionRevamp.server.metabolism.minute("admin", player, record, pipe)
     return record
 end
 """
@@ -195,8 +195,8 @@ def player(h, **kw):
     return h.rt.eval(PLAYER)(cfg(h, **kw))
 
 
-def minute(h, p, record, age):
-    return h.rt.eval(MINUTE)(p, record, age)
+def minute(h, p, record, age, pipe=None):
+    return h.rt.eval(MINUTE)(p, record, age, pipe)
 
 
 def nonfinite(h, record):
@@ -309,21 +309,21 @@ def test_minute_dt_is_clamped_to_an_hour(met_host):
 
 def test_lastabsorbed_is_read_not_cleared(met_host):
     # Plan 4 ruling 17: Metabolism reads the handoff's macros and leaves it for NR_Server_Nutrients, which
-    # runs after it on the same minute and clears it (test_nutrients_shape.py); Kinetics rewrites it
-    # every minute, so the clear stands in for Nutrients here
+    # runs after it on the same minute (test_nutrients_shape.py); the handoff rides the pipeline's context
+    # (Plan 10 R2), cleared at the start of each player's run, so a fresh context stands in for that here
     h = met_host
     p = player(h)
     record = fresh(h, p)
     vec = h.K.vector.new()
     vec.calories = 500
     vec.proteins = 20
-    KIN(h).lastAbsorbed["admin"] = vec
-    minute(h, p, record, 100.0 + 1 / 60)
+    pipe = h.rt.table()
+    pipe.absorbed = vec
+    minute(h, p, record, 100.0 + 1 / 60, pipe)
     assert abs(record["body"]["inDay"] - 500) < TOL
     assert abs(record["body"]["pDay"] - 20) < TOL
-    assert KIN(h).lastAbsorbed["admin"] is not None
-    KIN(h).lastAbsorbed["admin"] = None
-    minute(h, p, record, 100.0 + 2 / 60)
+    assert pipe.absorbed is not None
+    minute(h, p, record, 100.0 + 2 / 60, h.rt.table())
     assert abs(record["body"]["inDay"] - 500) < TOL
 
 
@@ -335,16 +335,17 @@ def test_kinetics_hands_off_the_absorbed_vector(met_host):
     K.stomach.seedFull(record.stomach)
     record.stomach.buffer.calories = 400
     record.pool = K.vector.new()
+    pipe = h.rt.table()                        # the pipeline's context (Plan 10 R2)
     h.G.NR_TEST_AGE = 100.0
-    KIN(h).minute("admin", None, record)       # first step: dtH 0
-    assert KIN(h).lastAbsorbed["admin"] is None
+    KIN(h).minute("admin", None, record, pipe)       # first step: dtH 0
+    assert pipe.absorbed is None
     h.G.NR_TEST_AGE = 101.0
-    KIN(h).minute("admin", None, record)
-    handed = KIN(h).lastAbsorbed["admin"]
+    KIN(h).minute("admin", None, record, pipe)
+    handed = pipe.absorbed
     assert handed is not None and handed["calories"] > 0
     assert abs(handed["calories"] - record["pool"]["calories"]) < TOL
-    KIN(h).minute("admin", None, record)       # same age: dtH 0 clears it
-    assert KIN(h).lastAbsorbed["admin"] is None
+    KIN(h).minute("admin", None, record, pipe)       # same age: dtH 0 clears it
+    assert pipe.absorbed is None
 
 
 # --- the activity read (ruling T5-2) ----------------------------------------------------------------
@@ -952,20 +953,22 @@ def test_metabolism_runs_after_kinetics_in_the_players_list():
         isServer = function() return true end
         NutritionRevamp.server.players = { onMinute = {} }
     """)
-    names = sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua"])
-    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua"]
+    names = sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua"])
+    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua"]
     for n in names:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")   # a second start wires nothing twice
     G = rt.globals()
-    on = G.NutritionRevamp.server.players.onMinute
-    assert len(on) == 2
+    S = G.NutritionRevamp.server
+    assert len(S.players.onMinute) == 0                     # the pipeline's named steps (Plan 10 R2)
     same = rt.eval("rawequal")
-    assert same(on[1], G.NutritionRevamp.server.kinetics.minute)
-    assert same(on[2], G.NutritionRevamp.server.metabolism.minute)
-    assert G.NutritionRevamp.server.metabolism.wired is True
+    assert same(S.minute.steps["kinetics"], S.kinetics.minute)
+    assert same(S.minute.steps["metabolism"], S.metabolism.minute)
+    order = [S.minute.ORDER[i] for i in range(1, len(S.minute.ORDER) + 1)]
+    assert order.index("kinetics") < order.index("metabolism")
+    assert S.metabolism.wired is True
 
 
 # --- first sight's mirror and the precondition (ruling T18-1) ----------------------------------------
@@ -1051,7 +1054,7 @@ def _players_runtime():
             return true
         end }
     """)
-    for n in ["NR_Server_Metabolism.lua", "NR_Server_Players.lua"]:
+    for n in ["NR_Server_Metabolism.lua", "NR_Server_Minute.lua", "NR_Server_Players.lua"]:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
     rt.execute("for i = 1, #NR_HANDLERS.OnServerStarted do NR_HANDLERS.OnServerStarted[i]() end")
@@ -1138,7 +1141,8 @@ def test_wiring_checks_the_precondition_once_and_hooks_first_sight():
         SandboxVars = { Nutrition = true }
         NutritionRevamp.server.players = { onMinute = {}, onFirstSight = {} }
     """)
-    for n in sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Options.lua"]):
+    for n in sorted(["NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Minute.lua",
+                     "NR_Server_Options.lua"]):
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")

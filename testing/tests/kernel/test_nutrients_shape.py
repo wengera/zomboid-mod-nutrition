@@ -109,23 +109,24 @@ function(cfg)
 end
 """
 
-# One slow-clock minute in the game's order: the stomach, the body, then this file.
+# One slow-clock minute in the game's order: the stomach, the body, then this file, on one context.
 CHAIN = r"""
 function(player, record, age)
     NR_TEST_AGE = age
     local S = NutritionRevamp.server
-    S.kinetics.minute("admin", player, record)
-    S.metabolism.minute("admin", player, record)
-    S.nutrients.minute("admin", player, record)
+    local pipe = {}
+    S.kinetics.minute("admin", player, record, pipe)
+    S.metabolism.minute("admin", player, record, pipe)
+    S.nutrients.minute("admin", player, record, pipe)
     return record
 end
 """
 
-# This file's minute alone (the handoff set by hand).
+# This file's minute alone (the handoff set by hand on a context, or none).
 ALONE = r"""
-function(player, record, age)
+function(player, record, age, pipe)
     NR_TEST_AGE = age
-    NutritionRevamp.server.nutrients.minute("admin", player, record)
+    NutritionRevamp.server.nutrients.minute("admin", player, record, pipe)
     return record
 end
 """
@@ -216,8 +217,16 @@ def chain(h, p, record, age):
     return h.rt.eval(CHAIN)(p, record, age)
 
 
-def alone(h, p, record, age):
-    return h.rt.eval(ALONE)(p, record, age)
+def alone(h, p, record, age, pipe=None):
+    return h.rt.eval(ALONE)(p, record, age, pipe)
+
+
+def handed(h, absorbed, mealCa=None):
+    # the pipeline's context (Plan 10 R2) carrying Kinetics' handoffs, set by hand
+    pipe = h.rt.table()
+    pipe.absorbed = absorbed
+    pipe.mealCa = mealCa
+    return pipe
 
 
 def fresh(h, p, age=100.0):
@@ -291,16 +300,15 @@ def test_draws_fall_back_without_zombrandfloat(nut_host):
     assert record["acute"]["slowMet"] is False              # fallback roll 0.75
 
 
-def test_zero_dt_returns_and_still_clears_the_handoff(nut_host):
+def test_zero_dt_returns_and_lands_nothing_of_the_handoff(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
     played = NUT(h).stats.players
-    KIN(h).lastAbsorbed["admin"] = vec(h, water=500)
-    alone(h, p, record, 100.0)                              # same age: dtM 0
+    alone(h, p, record, 100.0, handed(h, vec(h, water=500)))  # same age: dtM 0
     assert NUT(h).stats.players == played
     assert record["fluids"]["water"] == 0
-    assert KIN(h).lastAbsorbed["admin"] is None
+    assert KIN(h).lastAbsorbed is None                      # the handoff rides the context (Plan 10 R2)
 
 
 def test_unreadable_age_and_missing_body_are_counted(nut_host):
@@ -354,8 +362,7 @@ def test_the_interaction_factors_and_the_vitamin_a_fold(nut_host):
     lm = record["body"]["lm"]
     ab = vec(h, iron=1.0, calcium=150.0, magnesium=10.0, zinc=2.0, caffeine=100.0, ethanol=1.0,
              retinol=100.0, carotene=50.0)
-    KIN(h).lastAbsorbed["admin"] = ab
-    alone(h, p, record, 100.0 + 1 / 60)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, ab))
     assert abs(ab["iron"] - 0.75) < TOL                     # 1 - 0.5 x 150/300
     cafLoss = 0.02 * 100 * 60 / lm
     assert abs(ab["magnesium"] - (10.0 - cafLoss - 2.0)) < 1e-9
@@ -364,18 +371,15 @@ def test_the_interaction_factors_and_the_vitamin_a_fold(nut_host):
     assert abs(ab["vitA"] - 100.0) < TOL                    # liver p = 1: carotene conversion off (S0202)
     record["nutrients"]["vitA"]["p"] = 0.5
     ab2 = vec(h, retinol=100.0, carotene=50.0, magnesium=1.0, caffeine=1000.0)
-    KIN(h).lastAbsorbed["admin"] = ab2
-    alone(h, p, record, 100.0 + 2 / 60)
+    alone(h, p, record, 100.0 + 2 / 60, handed(h, ab2))
     assert abs(ab2["vitA"] - 125.0) < TOL                   # 100 + 0.5 x 50 (the 2:1 equivalence)
     record["nutrients"]["vitA"]["p"] = 0.5
     ab3 = vec(h, carotene=1000.0)
-    KIN(h).lastAbsorbed["admin"] = ab3
-    alone(h, p, record, 100.0 + 3 / 60)
+    alone(h, p, record, 100.0 + 3 / 60, handed(h, ab3))
     assert abs(ab3["vitA"] - 500.0) < TOL                   # 1000 ug carotene at p 0.5 adds 500
     record["nutrients"]["vitA"]["p"] = 1.0
     ab4 = vec(h, carotene=1000.0)
-    KIN(h).lastAbsorbed["admin"] = ab4
-    alone(h, p, record, 100.0 + 4 / 60)
+    alone(h, p, record, 100.0 + 4 / 60, handed(h, ab4))
     assert abs(ab4["vitA"]) < TOL                           # at p 1.0 adds 0
     assert ab2["magnesium"] == 0                            # floored at 0
 
@@ -420,9 +424,8 @@ def test_the_day_close_reads_the_closed_day_and_the_alcohol_mean(nut_host):
     record = fresh(h, p, 119.0)                             # day 4, closing at 120
     IN = h.G.NutritionRevamp.server.intake
     IN.lastIngested = h.table({"admin": h.table({"ethanol": 28.0})})
-    KIN(h).lastAbsorbed["admin"] = vec(h, calories=400.0)
     try:
-        alone(h, p, record, 119.5)
+        alone(h, p, record, 119.5, handed(h, vec(h, calories=400.0)))
     finally:
         IN.lastIngested = None
     assert abs(record["body"]["alcDay"] - 28.0) < TOL
@@ -458,9 +461,8 @@ def test_one_litre_of_water_lands_then_clears(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    KIN(h).lastAbsorbed["admin"] = vec(h, water=1000.0)
-    alone(h, p, record, 100.0 + 1 / 60)
-    assert KIN(h).lastAbsorbed["admin"] is None             # consumed and cleared here (ruling 17)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, water=1000.0)))
+    assert KIN(h).lastAbsorbed is None                      # the handoff rides the context (Plan 10 R2)
     f = record["fluids"]
     w1 = 1000.0 - 3700 / 1440 - 320 / 60                    # landed, the basal minute, the clearance minute
     assert abs(f["water"] - w1) < 1e-6
@@ -570,8 +572,7 @@ def test_beer_raises_then_clears_blood_alcohol(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    KIN(h).lastAbsorbed["admin"] = vec(h, ethanol=14.0)
-    alone(h, p, record, 100.0 + 1 / 60)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, ethanol=14.0)))
     a = record["acute"]
     peak = a["bac"]
     assert abs(peak - (14.0 - 0.015 * 0.68 * 80 * 10 / 60) / (10 * 0.68 * 80)) < 1e-9
@@ -587,8 +588,7 @@ def test_caffeine_glycogen_and_glucose_step(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    KIN(h).lastAbsorbed["admin"] = vec(h, caffeine=100.0, carbs=30.0)
-    alone(h, p, record, 100.0 + 1 / 60)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, vec(h, caffeine=100.0, carbs=30.0)))
     a = record["acute"]
     assert abs(a["caf"] - 100.0) < TOL
     assert a["bg"] == 5.0
@@ -648,11 +648,10 @@ def test_calcium_iron_reads_the_meal_calcium_handoff(nut_host):
     p = player(h)
     record = fresh(h, p)
     ab = vec(h, iron=1.0, calcium=10.0)
-    KIN(h).lastAbsorbed["admin"] = ab
-    KIN(h).lastMealCa["admin"] = 150.0                      # the buffer's calcium before the emptying
-    alone(h, p, record, 100.0 + 1 / 60)
+    pipe = handed(h, ab, 150.0)                             # the buffer's calcium before the emptying
+    alone(h, p, record, 100.0 + 1 / 60, pipe)
     assert abs(ab["iron"] - 0.75) < TOL                     # 1 - 0.5 x 150/300, not 1 - 0.5 x 10/300
-    assert KIN(h).lastMealCa["admin"] is None               # consumed with the absorbed vector
+    assert KIN(h).lastMealCa is None                        # the handoff rides the context (Plan 10 R2)
 
 
 def test_the_chain_hands_the_bread_calcium_to_the_iron_factor(nut_host):
@@ -898,8 +897,7 @@ def test_niacin_takes_the_tryptophan_credit(nut_host):
     p = player(h)
     record = fresh(h, p)
     ab = vec(h, proteins=80.0, niacin=2.0)
-    KIN(h).lastAbsorbed["admin"] = ab
-    alone(h, p, record, 100.0 + 1 / 60)
+    alone(h, p, record, 100.0 + 1 / 60, handed(h, ab))
     assert abs(80 * 1000 * 0.011 / 60 - 14.666666666666666) < 1e-12
     assert abs(ab["niacin"] - (2.0 + 80 * 1000 * 0.011 / 60)) < TOL
 
@@ -1050,56 +1048,33 @@ def test_the_option_file_and_translations_declare_severity():
     assert tr["Sandbox_NR_Severity"] and tr["Sandbox_NR_Severity_tooltip"]
 
 
-# --- the effects call (Plan 5 ruling 22) -------------------------------------------------------------------
+# --- the effects hand-off (Plan 5 ruling 22, made explicit by the pipeline in Plan 10 R2) ------------------
+# The Effects step itself, its guard and its effectsErrors counter: test_minute_pipeline.py.
 
-EFFECTS_STUB = r"""
-function(raise)
-    NR_TEST_EFF = {}
-    NutritionRevamp.server.effects = {
-        minute = function(username, player, record, body, dtM, ageH)
-            NR_TEST_EFF[#NR_TEST_EFF + 1] = { username = username, record = record, body = body, dtM = dtM,
-                                              ageH = ageH, players = NutritionRevamp.server.nutrients.stats.players }
-            if raise then error("effects boom") end
-        end,
-    }
-end
-"""
-
-
-def test_the_minute_ends_with_one_effects_call(nut_host):
+def test_the_minute_ends_by_stamping_the_effects_inputs_on_the_context(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    h.rt.eval(EFFECTS_STUB)(False)
-    try:
-        played = NUT(h).stats.players
-        alone(h, p, record, 100.0 + 2 / 60)
-        calls = h.G.NR_TEST_EFF
-        assert len(calls) == 1
-        c = calls[1]
-        same = h.rt.eval("rawequal")
-        assert c["username"] == "admin" and same(c["record"], record) and same(c["body"], record["body"])
-        assert abs(c["dtM"] - 2.0) < 1e-9 and abs(c["ageH"] - (100.0 + 2 / 60)) < TOL
-        assert c["players"] == played + 1                          # after every Nutrients stamp
-        h.G.NR_TEST_EFF = h.rt.table()
-        alone(h, p, record, 100.0 + 2 / 60)                        # dtM 0: no minute, no effects call
-        assert len(h.G.NR_TEST_EFF) == 0
-    finally:
-        h.G.NutritionRevamp.server.effects = None
+    played = NUT(h).stats.players
+    pipe = h.rt.table()
+    alone(h, p, record, 100.0 + 2 / 60, pipe)
+    same = h.rt.eval("rawequal")
+    assert same(pipe.body, record["body"])
+    assert abs(pipe.dtM - 2.0) < 1e-9 and abs(pipe.ageH - (100.0 + 2 / 60)) < TOL
+    assert NUT(h).stats.players == played + 1
+    pipe = h.rt.table()
+    alone(h, p, record, 100.0 + 2 / 60, pipe)                     # dtM 0: no minute, no stamp, no effects step
+    assert pipe.body is None and pipe.dtM is None and pipe.ageH is None
 
 
-def test_a_raising_effects_step_is_counted_and_skips_no_stamp(nut_host):
+def test_a_minute_with_no_context_stamps_every_record_table(nut_host):
     h = nut_host
     p = player(h)
     record = fresh(h, p)
-    h.rt.eval(EFFECTS_STUB)(True)
-    try:
-        errors = NUT(h).stats.effectsErrors
-        alone(h, p, record, 100.0 + 1 / 60)
-        assert NUT(h).stats.effectsErrors == errors + 1
-        assert abs(record["nutrients"]["lastAgeH"] - (100.0 + 1 / 60)) < TOL
-    finally:
-        h.G.NutritionRevamp.server.effects = None
+    errors = NUT(h).stats.errors
+    alone(h, p, record, 100.0 + 1 / 60)
+    assert NUT(h).stats.errors == errors
+    assert abs(record["nutrients"]["lastAgeH"] - (100.0 + 1 / 60)) < TOL
 
 
 SLEEP_SPY = r"""
@@ -1147,9 +1122,11 @@ def test_nutrients_runs_after_metabolism_and_before_strength():
         NutritionRevamp.server.players = { onMinute = {} }
     """)
     names = sorted(["NR_Server_Weight.lua", "NR_Server_Training.lua", "NR_Server_Strength.lua",
-                    "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Nutrients.lua"])
-    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Nutrients.lua",
-                     "NR_Server_Strength.lua", "NR_Server_Training.lua", "NR_Server_Weight.lua"]
+                    "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua", "NR_Server_Nutrients.lua",
+                    "NR_Server_Minute.lua"])
+    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua",
+                     "NR_Server_Nutrients.lua", "NR_Server_Strength.lua", "NR_Server_Training.lua",
+                     "NR_Server_Weight.lua"]
     for n in names:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
@@ -1157,13 +1134,12 @@ def test_nutrients_runs_after_metabolism_and_before_strength():
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")   # a second start wires nothing twice
     G = rt.globals()
     S = G.NutritionRevamp.server
-    on = S.players.onMinute
-    assert len(on) == 5
+    assert len(S.players.onMinute) == 0                     # the pipeline's named steps (Plan 10 R2)
     same = rt.eval("rawequal")
-    assert same(on[1], S.kinetics.minute)
-    assert same(on[2], S.metabolism.minute)
-    assert same(on[3], S.nutrients.minute)
-    assert same(on[4], S.strength.minute)
+    for name in ("kinetics", "metabolism", "nutrients", "strength", "weight"):
+        assert same(S.minute.steps[name], S[name].minute), name
+    order = [S.minute.ORDER[i] for i in range(1, len(S.minute.ORDER) + 1)]
+    assert [n for n in order if n in ("kinetics", "metabolism", "nutrients", "strength", "weight")] ==         ["kinetics", "metabolism", "nutrients", "strength", "weight"]
     assert S.nutrients.wired is True
     assert S.nutrients.sleepDisabled is False               # no getServerOptions: not disabled
 

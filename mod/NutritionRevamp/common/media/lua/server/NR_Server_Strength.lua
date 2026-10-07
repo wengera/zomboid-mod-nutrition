@@ -1,6 +1,6 @@
 -- NR_Server_Strength.lua -- the body model's Strength adapter (Plan 3, spec § 4.3): once per player per
--- game minute, after the metabolism step (this file sorts after NR_Server_Metabolism.lua, so its
--- handler registers after that one), it reads the XP-implied Strength level, sets the ceiling the lean
+-- game minute, after the metabolism step (the pipeline's ORDER, NR_Server_Minute, runs the strength
+-- step after metabolism, nutrients and effects), it reads the XP-implied Strength level, sets the ceiling the lean
 -- ratio and the functional factor allow, moves the shown level one step by the write policy, writes it
 -- when the Java level differs, re-applies vanilla's band remap and pushes the trait block when the
 -- trait set changed, and re-asserts the carry delta.
@@ -176,8 +176,8 @@ local function heal(username, body, ageH)
     end
 end
 
--- The carry delta's acute inputs off the record's Plan 4 sub-tables. This file sorts after
--- NR_Server_Nutrients.lua, whose handler registers first, so these are the CURRENT minute's stamps. An
+-- The carry delta's acute inputs off the record's Plan 4 sub-tables. The pipeline's ORDER runs the
+-- nutrients step before this one, so these are the CURRENT minute's stamps. An
 -- absent sub-table (a record made before Plan 4) or an absent or non-finite field reads the neutral the
 -- Plan 3 stub passed. Read: fluids.dehydPct, fluids.sweatActive (true), acute.awakeH, acute.caf (through
 -- K.acute.caffeineActive) and nutrients.vitDClinical (true). w is the body mass, kg.
@@ -253,7 +253,7 @@ local function step(username, player, record)
     carry(player, record, body, ageH)
 end
 
--- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
+-- One player's minute: the pipeline's strength step (NR_Server_Minute.run, called from P.work).
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
 function STR.minute(username, player, record)
@@ -267,15 +267,15 @@ function STR.minute(username, player, record)
     end
 end
 
--- Wiring: appended to the players' onMinute list at OnServerStarted. This file sorts after
--- NR_Server_Metabolism.lua, whose handler registers first, so the body exists and its day has closed
+-- Wiring: registered as the pipeline's strength step at OnServerStarted. ORDER runs it after the
+-- metabolism step, so the body exists and its day has closed
 -- before this step reads it.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         if STR.wired then return end
         STR.wired = true
-        local P = NR.server.players
-        P.onMinute[#P.onMinute + 1] = STR.minute
+        local MIN = NR.server.minute
+        MIN.register("strength", STR.minute)
     end)
 end

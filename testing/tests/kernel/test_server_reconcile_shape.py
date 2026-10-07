@@ -143,31 +143,20 @@ def seeded(h, cal=1000.0, carb=100.0, lip=40.0, pro=60.0):
 
 # --- the wiring: the minute order --------------------------------------------------------------------
 
-INDEX = r"""
-function(list, fn)
-    local at, n = nil, 0
-    for i = 1, #list do
-        if rawequal(list[i], fn) then
-            if at == nil then at = i end
-            n = n + 1
-        end
-    end
-    return at, n
-end
-"""
-
-
 def test_the_reconciliation_runs_before_kinetics_nutrients_and_the_weight_write(h):
-    om = h.NR.server.players.onMinute
+    # the pipeline's declared ORDER (Plan 10 R2), the same order 1.0.0's splice into P.onMinute produced
+    M = h.NR.server.minute
     srv = h.NR.server
-    index = h.rt.eval(INDEX)
+    same = h.rt.eval("rawequal")
+    order = [M.ORDER[i] for i in range(1, len(M.ORDER) + 1)]
     idx = {}
     for name in ("reconcile", "kinetics", "metabolism", "nutrients", "strength", "weight"):
-        at, n = index(om, getattr(srv, name).minute)
-        assert n == 1, name
-        idx[name] = at
+        assert same(M.steps[name], getattr(srv, name).minute), name
+        assert order.count(name) == 1, name
+        idx[name] = order.index(name)
     assert idx["reconcile"] < idx["kinetics"] < idx["metabolism"] < idx["nutrients"] < idx["strength"] < idx["weight"]
-    assert index(om, srv.bus.flushEffects)[0] < idx["reconcile"]
+    assert same(M.steps["bus"], srv.bus.flushEffects) and order.index("bus") < idx["reconcile"]
+    assert len(srv.players.onMinute) == 0
 
 
 def test_the_first_sight_seeds_the_baseline_from_the_stores(h):

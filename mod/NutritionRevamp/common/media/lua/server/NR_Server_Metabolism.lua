@@ -90,7 +90,7 @@ local obj = NR.obj
 
 
 -- The nutrient scalars dmod, rmod and TAC read, off the record's Plan 4 sub-tables (NR_Server_Nutrients
--- writes record.nutrients, record.fluids and record.acute). That file sorts after this one, so these are
+-- writes record.nutrients, record.fluids and record.acute). Its step runs after this one, so these are
 -- the PREVIOUS minute's stamps: a one-minute lag. A sub-table that is absent (a record made before Plan 4,
 -- or the first minute before NR_Server_Nutrients has run) or a field that is absent, non-finite or out of
 -- range reads the neutral the Plan 3 stubs passed: iron grade 1, not all replete, dehydration 0, glycogen
@@ -364,7 +364,7 @@ local function heal(username, body, ageH, player)
     end
 end
 
-local function step(username, player, record)
+local function step(username, player, record, pipe)
     local ageH = worldAge()
     if ageH == nil then
         MET.stats.badReads = MET.stats.badReads + 1   -- skipped: no stamp of a 0 age
@@ -374,11 +374,11 @@ local function step(username, player, record)
     heal(username, body, ageH, player)
     local dtM = K.clamp((ageH - body.lastAgeH) * 60, 0, 60)  -- offline time is not integrated
     local w = body.fm + body.lm
-    -- read, never cleared here: NR_Server_Nutrients (after this file) consumes and clears the handoff
-    -- (Plan 4 ruling 17), and Kinetics rewrites it every minute, so this read sees each vector once
-    local handoff = NR.server.kinetics and NR.server.kinetics.lastAbsorbed
-    if handoff ~= nil and handoff[username] ~= nil then
-        K.energy.intake(body, handoff[username], dtM)
+    -- read, never cleared here: NR_Server_Nutrients (the next step) consumes the handoff (Plan 4 ruling 17),
+    -- and the pipeline's context lives one player's minute, so this read sees each vector once
+    local handoff = pipe and pipe.absorbed
+    if handoff ~= nil then
+        K.energy.intake(body, handoff, dtM)
     end
     local className, moving, modifier, loadKg, heavyLevel, coldMult, exercising, swiping, immobilised,
         hourOfDay, maxW, heatLevel, climbClass = MET.readActivity(player, ageH)
@@ -424,13 +424,13 @@ local function step(username, player, record)
     heal(username, body, ageH, player)
 end
 
--- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
+-- One player's minute: the pipeline's metabolism step (NR_Server_Minute.run, from P.work); pipe its context.
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function MET.minute(username, player, record)
+function MET.minute(username, player, record, pipe)
     if record == nil then return end
     MET.stats.minutes = MET.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record)
+    local ok, err = pcall(step, username, player, record, pipe)
     if not ok then
         MET.stats.failures = MET.stats.failures + 1
         MET.lastError = err
@@ -473,9 +473,9 @@ function MET.checkPrecondition()
     return true
 end
 
--- Wiring: appended to the players' onMinute list at OnServerStarted. This file sorts after
--- NR_Server_Kinetics.lua, whose handler registers first, so the stomach step runs before this one. It
--- sorts before NR_Server_Options.lua, so the precondition flag is set before the boot self-report.
+-- Wiring: registered as the pipeline's metabolism step at OnServerStarted; ORDER runs the stomach
+-- (kinetics) step before this one. This file sorts before NR_Server_Options.lua, so its handler sets
+-- the precondition flag before the boot self-report.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
@@ -483,7 +483,7 @@ if Events ~= nil and Events.OnServerStarted ~= nil then
         MET.wired = true
         MET.checkPrecondition()
         local P = NR.server.players
-        P.onMinute[#P.onMinute + 1] = MET.minute
+        NR.server.minute.register("metabolism", MET.minute)
         if P.onFirstSight ~= nil then P.onFirstSight[#P.onFirstSight + 1] = MET.onFirstSight end
     end)
 end

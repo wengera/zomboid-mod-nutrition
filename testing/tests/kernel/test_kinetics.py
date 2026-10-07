@@ -41,7 +41,8 @@ end
 CASE = r"""
 function(record, age)
     NR_TEST_AGE = age
-    NutritionRevamp.server.kinetics.minute("admin", nil, record)
+    NR_TEST_PIPE = NR_TEST_PIPE or {}        -- the pipeline's context (Plan 10 R2), kept across calls here
+    NutritionRevamp.server.kinetics.minute("admin", nil, record, NR_TEST_PIPE)
     return record
 end
 """
@@ -282,9 +283,11 @@ def test_the_meal_context_is_passed_from_the_buffer(kin_host):
     emptied = 6.5 - record["stomach"]["buffer"]["iron"]
     assert emptied > 0
     assert abs(record["pool"]["iron"] / emptied - 0.046198939851640065) < 1e-12
-    assert KIN(h).lastMealCa["admin"] == 95.0
+    assert h.G.NR_TEST_PIPE.mealCa == 95.0                 # the handoff rides the pipeline's context
     assert KIN(h).ctx.phytate == 400.0                     # the one context table, overwritten per step
     run(h, record, 100.0 + 2 / 60)
-    assert KIN(h).lastMealCa["admin"] < 95.0               # the buffer before the second minute's emptying
+    assert h.G.NR_TEST_PIPE.mealCa < 95.0                  # the buffer before the second minute's emptying
+    assert h.G.NR_TEST_PIPE.absorbed is not None
     run(h, record, 100.0 + 2 / 60)                         # no elapsed time: both handoffs cleared
-    assert KIN(h).lastAbsorbed["admin"] is None and KIN(h).lastMealCa["admin"] is None
+    assert h.G.NR_TEST_PIPE.absorbed is None and h.G.NR_TEST_PIPE.mealCa is None
+    assert KIN(h).lastAbsorbed is None and KIN(h).lastMealCa is None   # the per-username tables are gone

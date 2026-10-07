@@ -5,11 +5,11 @@
 -- the water and electrolyte pools and the thirst view (K.fluids), and the acute states (K.acute), and
 -- stamps every result on three record sub-tables: record.nutrients, record.fluids and record.acute.
 --
--- Order (plan ruling 17): P.onMinute is filled by the OnServerStarted handlers in registration order,
--- which is load order, which is alphabetical for server/ files: Kinetics, Metabolism, Nutrients (this
--- file), Strength, Training, Weight. NR_Server_Options loads before NR_Server_Players and so polls on
+-- Order (plan ruling 17): the pipeline's declared ORDER (NR_Server_Minute, Plan 10 R2) runs Kinetics,
+-- Metabolism, Nutrients (this file), Effects, Strength, Weight; each registers its step at OnServerStarted
+-- (Training has no minute step). NR_Server_Options loads before NR_Server_Players and so polls on
 -- EveryOneMinute directly, ahead of the drain. Metabolism reads the absorbed handoff's four macros first;
--- this file then consumes and clears it (the clear moved here from Metabolism). Metabolism's dmod/rmod
+-- this file then consumes it (the context lives one player's minute). Metabolism's dmod/rmod
 -- read the PREVIOUS minute's scalars stamped here (a one-minute lag, stated in the limitations).
 --
 -- Plan 4 writes no stat, moodle or health: every value here is mod state for Plan 5 and the mirror.
@@ -20,7 +20,7 @@
 -- string or a table of numbers (#1495). Slow-clock code: no @fastpath region in this file.
 --
 -- The x151r fix wave: the calcium x iron factor reads the meal calcium in the stomach before the minute's
--- emptying (NR_Server_Kinetics' lastMealCa handoff; ruling T17-1, #2981), and caffeine and ethanol reach
+-- emptying (NR_Server_Kinetics' mealCa handoff on the context; ruling T17-1, #2981), and caffeine and ethanol reach
 -- the acute states through the gut lane (ruling T17-2, #2982/#2983): the intake landing's pending sums are
 -- drained into record.acute.gutAlc / gutCaf, K.acute.absorbGut releases them, and the released doses feed
 -- the alcohol and caffeine steps, the urinary losses and the alcohol diuresis. The stomach's absorbed
@@ -338,18 +338,14 @@ local function factors(absorbed, ingested, n, lm, caMeal, cafDose, alcDose)
     end
 end
 
-local function step(username, player, record)
-    -- the handoffs are consumed first, so no early return leaves them for a later minute
-    local kin = NR.server.kinetics
+local function step(username, player, record, pipe)
+    -- the handoffs are read first off the pipeline's context (Kinetics wrote them this minute); the context
+    -- is cleared at the start of each player's run, so no early return leaves them for a later minute
     local absorbed = EMPTY
-    if kin ~= nil and kin.lastAbsorbed ~= nil then
-        absorbed = kin.lastAbsorbed[username] or EMPTY
-        kin.lastAbsorbed[username] = nil
-    end
     local caMeal = nil
-    if kin ~= nil and kin.lastMealCa ~= nil then
-        caMeal = kin.lastMealCa[username]
-        kin.lastMealCa[username] = nil
+    if pipe ~= nil then
+        absorbed = pipe.absorbed or EMPTY
+        caMeal = pipe.mealCa
     end
     local intake = NR.server.intake
     local ingested = EMPTY
@@ -492,26 +488,23 @@ local function step(username, player, record)
     heal(username, record, body, ageH)
     NUT.stats.players = NUT.stats.players + 1
 
-    -- Plan 5 ruling 22: the effects step, called here (its filename would sort it first) so it reads this
-    -- minute's epoch, fluids and acute stamps; last, under its own pcall, so a raise there never skips a
-    -- stamp of this minute
-    local effects = NR.server.effects
-    if effects ~= nil and effects.minute ~= nil then
-        local okE, errE = pcall(effects.minute, username, player, record, body, dtM, ageH)
-        if not okE then
-            NUT.stats.effectsErrors = NUT.stats.effectsErrors + 1
-            NR.log.say(2, "nutrients: the effects step failed for " .. tostring(username) .. ": " .. tostring(errE))
-        end
+    -- Plan 5 ruling 22, made explicit (Plan 10 R2): the effects step runs next in the pipeline and reads this
+    -- minute's epoch, fluids and acute stamps; its inputs are stamped on the context last, so the step runs
+    -- only on a minute that reached here (as the hand call did), and a raise there never skips a stamp here
+    if pipe ~= nil then
+        pipe.body = body
+        pipe.dtM = dtM
+        pipe.ageH = ageH
     end
 end
 
--- One player's minute: the (username, player, record) callback NR_Server_Players fires from P.work.
+-- One player's minute: the pipeline's nutrients step (NR_Server_Minute.run, from P.work); pipe its context.
 -- One pcall around the body: a failure is kept and logged on the slow clock, never raised into the
 -- players walk.
-function NUT.minute(username, player, record)
+function NUT.minute(username, player, record, pipe)
     if record == nil then return end
     NUT.stats.minutes = NUT.stats.minutes + 1
-    local ok, err = pcall(step, username, player, record)
+    local ok, err = pcall(step, username, player, record, pipe)
     if not ok then
         NUT.stats.errors = NUT.stats.errors + 1
         NUT.lastError = err
@@ -519,15 +512,15 @@ function NUT.minute(username, player, record)
     end
 end
 
--- Wiring: appended to the players' onMinute list at OnServerStarted, after Kinetics and Metabolism (both
--- sort before this file, so their handlers register first) and before Strength, Training and Weight.
+-- Wiring: registered as the pipeline's nutrients step at OnServerStarted; ORDER runs it after Kinetics and
+-- Metabolism and before Effects, Strength and Weight.
 if Events ~= nil and Events.OnServerStarted ~= nil then
     Events.OnServerStarted.Add(function()
         if not NR.isServer() then return end
         if NUT.wired then return end
         NUT.wired = true
         NUT.readSleepOptions()
-        local P = NR.server.players
-        P.onMinute[#P.onMinute + 1] = NUT.minute
+        local MIN = NR.server.minute
+        MIN.register("nutrients", NUT.minute)
     end)
 end

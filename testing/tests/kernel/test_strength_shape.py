@@ -600,20 +600,24 @@ def test_strength_runs_after_metabolism_in_the_players_list():
         isServer = function() return true end
         NutritionRevamp.server.players = { onMinute = {} }
     """)
-    names = sorted(["NR_Server_Strength.lua", "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua"])
-    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Strength.lua"]
+    names = sorted(["NR_Server_Strength.lua", "NR_Server_Metabolism.lua", "NR_Server_Kinetics.lua",
+                    "NR_Server_Minute.lua"])
+    assert names == ["NR_Server_Kinetics.lua", "NR_Server_Metabolism.lua", "NR_Server_Minute.lua",
+                     "NR_Server_Strength.lua"]
     for n in names:
         with open(os.path.join(SERVER, n), encoding="utf-8") as fh:
             load(fh.read(), "@" + n)()
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")
     rt.execute("for i = 1, #NR_STARTED do NR_STARTED[i]() end")   # a second start wires nothing twice
     G = rt.globals()
-    on = G.NutritionRevamp.server.players.onMinute
-    assert len(on) == 3
+    S = G.NutritionRevamp.server
+    assert len(S.players.onMinute) == 0                     # the pipeline's named steps (Plan 10 R2)
     same = rt.eval("rawequal")
-    assert same(on[2], G.NutritionRevamp.server.metabolism.minute)
-    assert same(on[3], G.NutritionRevamp.server.strength.minute)
-    assert G.NutritionRevamp.server.strength.wired is True
+    assert same(S.minute.steps["metabolism"], S.metabolism.minute)
+    assert same(S.minute.steps["strength"], S.strength.minute)
+    order = [S.minute.ORDER[i] for i in range(1, len(S.minute.ORDER) + 1)]
+    assert order.index("metabolism") < order.index("strength")
+    assert S.strength.wired is True
 
 
 # --- the Plan 4 acute inputs: the current minute's fluids, acute and nutrients sub-tables ---------------
