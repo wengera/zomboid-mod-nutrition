@@ -271,13 +271,13 @@ end
 
 -- The four fields Metabolism reads before the Nutrients minute refreshes them, recomputed from the loaded
 -- inputs, each through the kernel's own function: nutrients.ironGrade (K.nutrients.gradeOf), nutrients.allReplete
--- (K.nutrients.allRepleteOf, read off NR.data.records), acute.g (K.acute.glycG) and fluids.dehydPct
+-- (K.nutrients.allRepleteOf, read off the records argument), acute.g (K.acute.glycG) and fluids.dehydPct
 -- (K.fluids.dehydPct at the body mass, no pending water). A part the record lacks keeps its constructor's value.
-function K.store.recompute(rec)
+function K.store.recompute(rec, records)
     local n = rec.nutrients
     if n ~= nil then
         n.ironGrade = K.nutrients.gradeOf(n, "iron")
-        K.store.recomputeReplete(n)
+        K.store.recomputeReplete(n, records)
     end
     if rec.acute ~= nil then
         rec.acute.g = K.acute.glycG(rec.acute)
@@ -287,9 +287,8 @@ function K.store.recompute(rec)
     end
 end
 
--- allReplete of a loaded nutrient state when the record data is present (call time).
-function K.store.recomputeReplete(n)
-    local records = NutritionRevamp.data.records
+-- allReplete of a loaded nutrient state when the records argument is present (nil leaves it, no global read).
+function K.store.recomputeReplete(n, records)
     if records ~= nil then
         n.allReplete = K.nutrients.allRepleteOf(n, records)
     end
@@ -307,8 +306,9 @@ end
 -- Load a stored record (any version) into a fresh version-VERSION record: the constructors' defaults, every
 -- INPUTS path present in raw copied over them, v set, the stomach fill and the four read-before-refresh
 -- fields recomputed. order is the nutrient key list (NR.data.records.ORDER); nil reads the stored state's own
--- keys. A non-table raw reads nil.
-function K.store.load(raw, order)
+-- keys. A non-table raw reads nil. records is the nutrient data (NR.data.records),
+-- passed by the caller and never read from a global.
+function K.store.load(raw, order, records)
     if type(raw) ~= "table" then
         return nil
     end
@@ -323,7 +323,7 @@ function K.store.load(raw, order)
         rec.stomachFill = K.stomach.fill(rec.stomach)
     end
     K.store.closeDefault(rec)
-    K.store.recompute(rec)
+    K.store.recompute(rec, records)
     return rec
 end
 
@@ -331,8 +331,8 @@ end
 -- cleared and the loaded record's keys are set on it, so a handle held on target (NR_Server_Fast's h.record)
 -- reads the loaded record with no re-point. raw may be target itself: load copies every input deep before the
 -- clear. Returns target, or nil with target untouched when raw is not a table.
-function K.store.fillInPlace(target, raw, order)
-    local rec = K.store.load(raw, order)
+function K.store.fillInPlace(target, raw, order, records)
+    local rec = K.store.load(raw, order, records)
     if rec == nil then
         return nil
     end

@@ -46,6 +46,10 @@ def order(h):
     return arr(h, ORDER)
 
 
+def recs(h):
+    return h.G.NutritionRevamp.data.records
+
+
 def v1(h):
     """A v1 record with every sub-table laid by its own constructor, then moved off the defaults."""
     rec = h.table({"username": "admin", "firstSeen": 10.0, "lastSeen": 30.5, "resets": 2, "dead": False,
@@ -203,7 +207,7 @@ def test_every_order_key_has_its_per_key_input_paths(host):
     for key in data_order:
         for f in ("p", "p2", "g", "gl", "ah", "e24", "dmg", "ext", "ax", "axr"):
             assert S(host).isInput("nutrients.%s.%s" % (key, f))
-    loaded = host.py(S(host).load(host.table({"nutrients": {}}), host.G.NutritionRevamp.data.records.ORDER))
+    loaded = host.py(S(host).load(host.table({"nutrients": {}}), host.G.NutritionRevamp.data.records.ORDER, recs(host)))
     assert set(k for k, v in loaded["nutrients"].items() if isinstance(v, dict)) == set(data_order)
 
 
@@ -220,7 +224,7 @@ def test_new_is_the_identity_record_at_version_two(host):
 
 def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
     raw = v1(host)
-    r = host.py(S(host).load(raw, order(host)))
+    r = host.py(S(host).load(raw, order(host), recs(host)))
     assert r["v"] == 2
     assert (r["username"], r["firstSeen"], r["lastSeen"], r["resets"], r["dead"]) == ("admin", 10.0, 30.5, 2, False)
     assert "junk" not in r and "lastIntake" not in r
@@ -253,15 +257,15 @@ def test_load_of_a_v1_record_keeps_the_inputs_and_drops_the_derived(host):
 
 def test_load_of_a_record_with_no_version_and_with_v1_is_the_same(host):
     raw = v1(host)
-    a = host.py(S(host).load(raw, order(host)))
+    a = host.py(S(host).load(raw, order(host), recs(host)))
     raw["v"] = 1
-    b = host.py(S(host).load(raw, order(host)))
+    b = host.py(S(host).load(raw, order(host), recs(host)))
     assert a == b and a["v"] == 2
 
 
 def test_load_copies_deep(host):
     raw = v1(host)
-    r = S(host).load(raw, order(host))
+    r = S(host).load(raw, order(host), recs(host))
     r["body"]["bandWeek"][7][1] = 999
     r["stomach"]["buffer"]["calories"] = 1
     assert raw["body"]["bandWeek"][7][1] == 45 and raw["stomach"]["buffer"]["calories"] == 300
@@ -271,7 +275,7 @@ def test_a_missing_input_keeps_the_constructor_default(host):
     raw = host.table({"username": "admin", "firstSeen": 5.0,
                       "acute": {"caf": 30}, "nutrients": {"iron": {"p": 0.5}}, "fluids": {"water": 10},
                       "effects": {"dirty": True}, "stomach": {"bulk": 2.0}, "pool": {"iron": 1}})
-    r = host.py(S(host).load(raw, order(host)))
+    r = host.py(S(host).load(raw, order(host), recs(host)))
     assert r["lastSeen"] == 5.0 and r["resets"] == 0 and r["dead"] is False
     assert r["acute"]["caf"] == 30 and r["acute"]["cafTol"] == 0
     assert r["acute"]["winStartH"] == 5.0                                    # stamped with the first sight
@@ -285,13 +289,13 @@ def test_a_missing_input_keeps_the_constructor_default(host):
 
 
 def test_load_with_no_clock_stamps_the_acute_clocks_at_zero(host):
-    r = host.py(S(host).load(host.table({"acute": {}}), order(host)))
+    r = host.py(S(host).load(host.table({"acute": {}}), order(host), recs(host)))
     assert r["acute"]["winStartH"] == 0 and r["acute"]["mass90ageH"] == 0
 
 
 def test_load_with_no_order_lays_the_stored_keys(host):
     raw = host.table({"nutrients": {"epoch": 3, "zinc": {"p": 0.3, "g": 2}}})
-    n = host.py(S(host).load(raw, None))["nutrients"]
+    n = host.py(S(host).load(raw, None, recs(host)))["nutrients"]
     assert n["zinc"]["p"] == 0.3 and n["zinc"]["g"] == 2 and n["epoch"] == 3
     assert set(k for k, v in n.items() if isinstance(v, dict)) == {"zinc"}
 
@@ -299,20 +303,20 @@ def test_load_with_no_order_lays_the_stored_keys(host):
 def test_an_unusable_body_is_dropped(host):
     for body in ({"lm": 60, "sex": 1, "lastAgeH": 1}, {"fm": 20, "sex": 1, "lastAgeH": 1},
                  {"fm": 20, "lm": 60, "lastAgeH": 1}, {"fm": 20, "lm": 60, "sex": 1}):
-        r = host.py(S(host).load(host.table({"body": body}), order(host)))
+        r = host.py(S(host).load(host.table({"body": body}), order(host), recs(host)))
         assert "body" not in r, body
 
 
 def test_a_body_builds_at_its_sex_and_keeps_an_odd_one(host):
-    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 2, "lastAgeH": 50.0}}), None))
+    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 2, "lastAgeH": 50.0}}), None, recs(host)))
     assert r["body"]["sex"] == 2 and r["body"]["fm"] == 20.0 and r["body"]["dayIndex"] == 2
-    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 3, "lastAgeH": 1.0}}), None))
+    r = host.py(S(host).load(host.table({"body": {"fm": 20.0, "lm": 50.0, "sex": 3, "lastAgeH": 1.0}}), None, recs(host)))
     assert r["body"]["sex"] == 3 and r["body"]["dmod"] == 1
 
 
 def test_load_of_a_non_table_is_nil(host):
-    assert S(host).load(None, order(host)) is None
-    assert S(host).load(5, order(host)) is None
+    assert S(host).load(None, order(host), recs(host)) is None
+    assert S(host).load(5, order(host), recs(host)) is None
 
 
 # --- inputsOnly: what a save holds, and the round trip ------------------------------------------------
@@ -341,9 +345,9 @@ def test_inputs_only_copies_deep(host):
 
 
 def test_a_v2_record_round_trips_through_load_and_inputs_only(host):
-    r1 = S(host).load(v1(host), order(host))
+    r1 = S(host).load(v1(host), order(host), recs(host))
     saved = S(host).inputsOnly(r1)
-    r2 = S(host).load(saved, order(host))
+    r2 = S(host).load(saved, order(host), recs(host))
     assert host.py(S(host).inputsOnly(r2)) == host.py(saved)
     assert host.py(r2) == host.py(r1)
     assert host.py(saved)["v"] == 2
@@ -355,27 +359,41 @@ def test_a_v2_record_round_trips_through_load_and_inputs_only(host):
 def test_load_recomputes_the_iron_grade_and_all_replete_through_the_nutrients_kernel(host):
     raw = v1(host)
     raw["nutrients"]["iron"]["g"] = 3
-    r = S(host).load(raw, order(host))
+    r = S(host).load(raw, order(host), recs(host))
     n = r["nutrients"]
     assert n["ironGrade"] == host.K.nutrients.gradeOf(n, "iron") == 3
     assert n["allReplete"] == host.K.nutrients.allRepleteOf(n, host.G.NutritionRevamp.data.records) is False
     raw2 = host.table({"nutrients": {"iron": {"g": 1}}})
-    n2 = S(host).load(raw2, order(host))["nutrients"]
+    n2 = S(host).load(raw2, order(host), recs(host))["nutrients"]
     assert n2["ironGrade"] == 1 and n2["allReplete"] is True
+
+
+def test_load_reads_the_records_argument_never_the_global(host):
+    other = host.table({"ORDER": host.table({}), "REC": host.table({})})
+    raw = v1(host)
+    raw["nutrients"]["iron"]["g"] = 3
+    assert S(host).load(raw, order(host), recs(host))["nutrients"]["allReplete"] is False
+    assert S(host).load(raw, order(host), other)["nutrients"]["allReplete"] is True       # the argument's records, not the global's
+    n = host.table({"iron": {"g": 3}})
+    S(host).recomputeReplete(n, other)
+    assert n["allReplete"] is True
+    m = host.table({"iron": {"g": 3}})
+    S(host).recomputeReplete(m, None)
+    assert m["allReplete"] is None
 
 
 def test_load_recomputes_the_glucose_state_through_the_acute_kernel(host):
     raw = host.table({"acute": {"glyc": 231.0, "bg": 4.5}})
-    a = S(host).load(raw, order(host))["acute"]
+    a = S(host).load(raw, order(host), recs(host))["acute"]
     assert a["g"] == host.K.acute.glycG(a) == 0.5
 
 
 def test_load_recomputes_dehyd_pct_through_the_fluids_kernel(host):
     raw = host.table({"fluids": {"water": -1640.0}, "body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 5.0}})
-    r = S(host).load(raw, order(host))
+    r = S(host).load(raw, order(host), recs(host))
     want = host.K.fluids.dehydPct(r["fluids"], r["body"]["fm"] + r["body"]["lm"], 0)
     assert r["fluids"]["dehydPct"] == want == 2.0
-    assert S(host).load(host.table({"fluids": {"water": -1640.0}}), order(host))["fluids"]["dehydPct"] == 0
+    assert S(host).load(host.table({"fluids": {"water": -1640.0}}), order(host), recs(host))["fluids"]["dehydPct"] == 0
 
 
 def test_the_minute_and_the_load_agree_on_all_replete(host):
@@ -395,25 +413,25 @@ def test_is_input_is_true_for_a_container_whose_every_slot_is_persisted(host):
 
 
 def test_a_stored_stomach_with_no_bulk_loads_full(host):
-    r = host.py(S(host).load(host.table({"stomach": {"buffer": {"calories": 50}}}), order(host)))
+    r = host.py(S(host).load(host.table({"stomach": {"buffer": {"calories": 50}}}), order(host), recs(host)))
     assert r["stomach"]["bulk"] == host.K.stomach.FULL_BULK and r["stomachFill"] == 1
-    r = host.py(S(host).load(host.table({"stomach": {"bulk": 0}}), order(host)))
+    r = host.py(S(host).load(host.table({"stomach": {"bulk": 0}}), order(host), recs(host)))
     assert r["stomach"]["bulk"] == 0 and r["stomachFill"] == 0
 
 
 def test_a_loaded_body_with_no_closed_day_stamp_reads_the_resting_expenditure(host):
     raw = host.table({"body": {"fm": 20.0, "lm": 62.0, "sex": 1, "lastAgeH": 5.0}, "nutrients": {}})
-    b = S(host).load(raw, order(host))["body"]
+    b = S(host).load(raw, order(host), recs(host))["body"]
     assert b["inDayClosed"] == host.K.energy.ree(62.0) and b["inDayClosed"] > 0
     raw["body"]["inDayClosed"] = 1800
-    assert S(host).load(raw, order(host))["body"]["inDayClosed"] == 1800
+    assert S(host).load(raw, order(host), recs(host))["body"]["inDayClosed"] == 1800
 
 
 # --- fillInPlace (Plan 8 Task 4, ruling T4-1): the load laid into the record's own table ----------------
 
 def test_fill_in_place_keeps_the_table_and_drops_the_derived_fields(host):
     rec = v1(host)
-    same = S(host).fillInPlace(rec, rec, order(host))
+    same = S(host).fillInPlace(rec, rec, order(host), recs(host))
     assert host.G.rawequal(same, rec)
     assert rec["v"] == 2 and rec["username"] == "admin" and rec["resets"] == 2
     assert rec["junk"] is None and rec["lastIntake"] is None
@@ -424,7 +442,7 @@ def test_fill_in_place_keeps_the_table_and_drops_the_derived_fields(host):
 def test_fill_in_place_from_another_raw_clears_every_old_key(host):
     target = host.table({"username": "old", "stale": 1, "body": {"fm": 1}})
     raw = host.table({"username": "admin", "firstSeen": 3.0})
-    out = S(host).fillInPlace(target, raw, order(host))
+    out = S(host).fillInPlace(target, raw, order(host), recs(host))
     assert host.G.rawequal(out, target)
     assert target["username"] == "admin" and target["stale"] is None and target["body"] is None
     assert target["v"] == 2 and target["firstSeen"] == 3.0
@@ -432,5 +450,5 @@ def test_fill_in_place_from_another_raw_clears_every_old_key(host):
 
 def test_fill_in_place_of_a_non_table_raw_leaves_the_target(host):
     target = host.table({"username": "admin", "junk": 1})
-    assert S(host).fillInPlace(target, 5, order(host)) is None
+    assert S(host).fillInPlace(target, 5, order(host), recs(host)) is None
     assert target["junk"] == 1

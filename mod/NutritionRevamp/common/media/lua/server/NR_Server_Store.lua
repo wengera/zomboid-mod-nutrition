@@ -51,7 +51,7 @@ function S.load(username, r)
     local old = r.v
     if old == nil then old = 1 end
     local records = NR.data and NR.data.records
-    local ok, err = pcall(NR.kernel.store.fillInPlace, r, r, records and records.ORDER)
+    local ok, err = pcall(NR.kernel.store.fillInPlace, r, r, records and records.ORDER, records)
     if not ok then
         S.stats.failures = S.stats.failures + 1
         NR.log.say(2, "store: load failed for " .. tostring(username) .. ": " .. tostring(err))
