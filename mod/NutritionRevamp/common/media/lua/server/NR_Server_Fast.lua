@@ -38,7 +38,7 @@ NR.server.fast = { h = {}, byChar = {}, lastInp = {}, mode = 2, closure = nil, r
                    limitations = { "idle-square timer mirrored (engine field frozen under takeover; boredom reads it)",
                                    "sleep delay mirrored with sleepDelayFraction (vanilla draws it at random)",
                                    "tripping angle dropped (nothing reads it)",
-                                   "after a respawn the fast clock may read the dead character's stomachFill and the effects floors for at most one slow-clock minute (the temperature and intoxication targets too) until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified (a Plan 8 reading)",
+                                   "after a respawn the fast clock may read the dead character's stomachFill and the effects floors for at most one slow-clock minute (the temperature and intoxication targets too) until onMinute refreshes h.record; the adopt-before-OnNewGame order is unverified; no run has read the adopt-before-OnNewGame order",
                                    "the endurance fold (dmod on a drain, rmod on a regeneration) is unapplied while X35 is open: awake ENDURANCE stays vanilla's, melee swings unscaled",
                                    "INTOXICATION is the gut lane's bac every tick (T4-1): vanilla's per-drink jump is overwritten, so a drink the intake wrappers miss shows no intoxication; with no effects table yet vanilla's value stands undecayed (the reduction is 0)",
                                    "a PANIC target appears at once: the floor is a hold, not a rise (T13-1; x161f read the risen floor as a no-op under vanilla's decay)",

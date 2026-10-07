@@ -1271,7 +1271,7 @@ end)
 -- lua.setpath parses them. A non-table target or a non-function method replies its type, a raise
 -- replies err. Each return is replied as lua.call replies it: a table as its key count `r<n>_keys`, a
 -- function or userdata as its type `r<n>_type`, nil omitted. It reaches an instance method that
--- lua.call (a plain function) cannot, e.g. `lua.callm NR.panel.instances.0 refresh`.
+-- lua.call (a plain function) cannot, e.g. `lua.callm NutritionRevamp.client.panel.instances.0 refresh`.
 -- @args <a.b.c> <method> [<arg1> ... <arg4>]
 -- @reply {ok, side, path, method, nargs, r1, r2, r3} | {ok, side, path, method, failedAt} | {ok, side, path, method, type} | {ok, side, path, method, err} | string
 -- @purpose Test-only: walks a dotted path from the globals on the side answering to a table and calls its method with the table as self and up to four scalar args, replying the first three returns as scalars (a table as its key count).
