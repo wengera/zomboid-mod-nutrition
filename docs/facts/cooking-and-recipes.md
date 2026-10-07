@@ -364,6 +364,8 @@ None of the three `ReplaceOnCooked` links moves a macro: `Base.BaguetteDough` to
 
 Baking a baguette does move −15.0 of thirst, because `Base.BaguetteDough` writes `ThirstChange = 15` and `Base.Baguette` writes no thirst line at all — an absent-against-written substitution named in that row's `absentMacros`, while the other two cooked links' thirst 0 is a both-sides-absent zero [#0753/C/arith.].
 
+A `ReplaceOnCooked` replacement is added to the container by name and then calls `copyConditionStatesFrom` with the original, which copies condition, repair counts, head condition, sharpness, favourite, blood level, a drainable's uses and the original's modData keys that start with `condition:`, and no nutrition field, so the replacement holds its own script's values even when the original was part-eaten [#3337/C/C-only].
+
 The cook transition, and with it every `ReplaceOnCooked` swap, is driven by server-owned state: `Food.update` gates the age update on the server and both item-stats sends in the cooking block are server-gated [#0758].
 
 The `ReplaceOnRotten` melts and the `ReplaceOnUse` and `ReplaceOnDeplete` links are [facts/spoilage.md](spoilage.md#sealed)'s, and their counts and deltas are not repeated here.
@@ -397,6 +399,10 @@ That is the shape a mod value can take across a split: an `OnCreate` function re
 
 A second craft summation runs in Java: `RecipeCodeOnCreate.copyFoodValuesFromList` sums the consumed foods' `baseHunger` and four macros, skipping a spice unless it is fish roe, and writes the sums over the first created item's `baseHunger`, `hungChange` and macros, touching no modData; the omelette's `OnCreate` calls it over the consumed eggs [#2668/C/C-only].
 It sums each input's full-portion `baseHunger` rather than what is left of it, while the macros it sums are the input's current ones [#2668/C/C-only].
+A craft output is a fresh `InventoryItemFactory.CreateItem` instance of the output script, so an output from a recipe without `InheritFood`, such as each of the four `Base.Hotdog_single` that `OpenHotdogPack` makes from one `Base.HotdogPack`, holds its own script's calories, macros and hunger with `baseHunger` equal to `hungChange`, whatever the input held [#3336/C/C-only].
+Of the craft input flags only `InheritFood` copies food values, nine fields at one over the output count; `InheritUses` and `InheritUsesAndEmpty` set the output's current uses from the input's share, which, on a `Food` with a non-zero `baseHunger`, runs `consumeHunger` into `multiplyFoodValues` and scales its macros and `hungChange` but not its `baseHunger`; `InheritCooked`, `InheritFoodAge` and `InheritFreezingTime` copy the cooked and burnt, age and frozen states; `InheritWeight` sets half the input's weight [#3338/C/C-only].
+Five Java craft `OnCreate` functions write food values onto a created item: `copyFoodValuesFromList` through `makeOmelette` and `makeJar`, which sum the consumed foods' `baseHunger` and current macros, `cutFish`, `cutSmallAnimal`, and `makeCoffee`, which sets `baseHunger` and `hungChange` to -0.05 and leaves the macros at the output script's [#3339/C/C-only].
+
 
 <a id="butchering"></a>
 ### Butchered meat and its scale
@@ -411,6 +417,9 @@ The live butchering scale is therefore Lua: `ButcheringUtil.modifyMeat` takes a 
 
 Because each field carries an independent draw, a meat instance yields the butcher scale only per field: a factor recovered from one field lies within 10 per cent either side of the shared ratio, and factors recovered from two fields can disagree by up to 1.1 over 0.9, about 1.22 — the arithmetic is the part a re-reader redoes [#2672/C/arith.].
 Nothing in that function records the shared ratio on the meat item [#2671/C/C-only].
+`ButcheringUtil.modifyMeat` sets `baseHunger` from the state-modified `getHungerChange()` on the line after it scales `hungChange` and before it sets the meat's age, so a butchered cut leaves with `baseHunger` equal to `hungChange`, and its hunger and calories sit at the script's times one shared ratio and two independent `ZombRandFloat(0.9, 1.1)` draws [#3330/C/C-only].
+`RecipeCodeOnCreate.cutSmallAnimal`, the `ButcherSmallAnimal` craft's `OnCreate`, sets each created cut's `baseHunger` and `hungChange` to the consumed animal's remaining `hungChange` and its four macros to three quarters of the animal's current ones, so the cut's hunger and macros relate to the cut's own script by different factors [#3331/C/C-only].
+`RecipeCodeOnCreate.cutFish`, the `SliceFillet` craft's `OnCreate`, sets each of the two fillets' `baseHunger` and `hungChange` to half of the larger of the fish's `baseHunger` and `hungChange` and its four macros to half of the fish's current ones, and creates fish guts, when the fish is uncooked, at the guts script's own larger of `baseHunger` and `hungChange`, and a roe sac, when a month and chance roll gives a roe fraction above zero, at the fish's larger hunger times 0.05, 0.10 or 0.15 by the fish's size name, with the guts' and the roe sac's macros left at their scripts' values [#3332/C/C-only].
 Recovering a per-field factor needs the type's unscaled value, which Lua reads as [food-item-model.md](food-item-model.md#script-keys) states.
 
 <a id="dataset-fidelity"></a>

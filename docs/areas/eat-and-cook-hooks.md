@@ -21,6 +21,7 @@ Verified against 42.20.4 (b0bbce05d5) · 2026-10-01 · scope: the nutrition-desi
 - Branch on the side inside a cook hook as inside an eat hook: the cook dispatch is not side-gated, so a client copy that reaches the cook transition makes the same call in the client's state [#1394/C/C-only, #2066/C/inference].
 - Write a `ReplaceOnCooked` item's cooked nutrition into the replacement's script, never into a cook hook on the item it replaces: the cook block swaps the item and returns before it sets the cooked flag or calls the hook [#0266, #0257, #2067/C/inference].
 - Put item data in scripts and reach for a Lua field write only when the field is in `ItemStatsPacket` or the value may stay server-only: a script value is identical on both sides for free, while a Lua write to a live item never leaves the server [#1074/M/n=1].
+- Scale an eaten item's mod nutrients to the calories `Eat` delivered: the item's `getCalories()` read before the eat times `Eat`'s own fraction, over the table's calories, and fall back to the hunger ratio against the script only when the table's or the item's calories are zero or absent, because fish, cut fish, small-animal cuts and foraged wild food scale their macros and their hunger by independent factors while a partial eat scales calories and `hungChange` together [#3326/C/C-only, #3329/C/arith., #3330/C/C-only, #3331/C/C-only, #3332/C/C-only, #3333/C/C-only, #3340/C/inference].
 
 ## How it works
 
