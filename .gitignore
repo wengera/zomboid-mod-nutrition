@@ -49,3 +49,6 @@ __pycache__/
 .superpowers/
 
 tools/.fdc/
+
+# release staging output (tools/release_pack.py)
+release/
