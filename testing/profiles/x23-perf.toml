@@ -1,0 +1,39 @@
+# testing/profiles/x23-perf.toml - Plan 10b Task P1+P3 (run x231): the slow minute by step, and the cost of no
+# per-tick work. PZTestKit + the STAGED copy of the tree at dc619d0 (release/perf-dc619d0/NutritionRevamp/Contents/
+# mods/NutritionRevamp, staged by Task 0; release/ is gitignored; mod/ is never booted, Plan 10b's Global
+# Constraints) whose server/NR_Server_Bench.lua carries the P1+P3 instruments appended (the per-step timers, the
+# NR.call counter, the once-a-minute PANIC/TEMPERATURE hold with its rings, the EveryOneMinute burst and round-robin,
+# and Plan 10 S2's bench handler and minute; its sha256 is in the artifact). The x22-clock shape: fixture `two`, both
+# clients (`admin` -debug, then `bob` release), Nutrition false (ruling T18-1), DayLength 1, sleep allowed and
+# needed (admin sleeps alone in phase A, so no fast-forward; the server's fatigue reset does not run, #2723).
+# The driver is testing/experiments/x231_perf.py.
+# The verify rows are load gates only: the version on the server and both clients, and the hold ring's size (the
+# edited staged copy booted).
+fixture = "two"
+description = "PZTestKit + the staged NutritionRevamp copy at dc619d0 with the P1+P3 instruments, fixture two, admin and bob, Nutrition off, DayLength 1, sleep on - the slow minute by step and the no-per-tick costs."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "server", cmd = "lua.global", args = "NutritionRevamp.server.bench.HOLD_MAX", expect = '"value": 4000' },
+  { side = "client", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+  { side = "client:bob", cmd = "lua.global", args = "NutritionRevamp.version", expect = '"value": "1.0.0"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "NutritionRevamp"
+path = "release/perf-dc619d0/NutritionRevamp/Contents/mods/NutritionRevamp"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                 # a game day is 15 real minutes; a game minute 0.625 s (6.27 ticks, x222)
