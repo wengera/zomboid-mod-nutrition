@@ -189,7 +189,14 @@ The draft's code samples predate the refactor. Per task:
 - **Task 9.** Rewritten by Decision 2. The Kinetics call to `K.stomach.empty` is at `NR_Server_Kinetics.lua:63`.
 - **Task 10.** `S.prune` already guards a nil age; the sample stands.
 - **Task 12.** Adds R2-1's operator notes and the lines each decision changes.
-- **Task 13.** `bench.minute` still calls `NR.server.players.work(u, p)`. `bench.handler` exists only under Decision 1's (a).
+- **Task 13.** Its bench measurements are done (Plan 10b; Performance, below):
+  - the minute by step in play, under a fast clock and at a zero interval (#3387–#3390);
+  - the burst and the round-robin (#3391);
+  - the once-a-minute PANIC and TEMPERATURE write that replaces the hold (#3392, #3393).
+  - So F no longer measures the cost on 1.0.1. At most it re-reads `bench.minute`, which still calls `NR.server.players.work(u, p)`, for continuity with #3390. `bench.handler` leaves with the takeover (Decision 1).
+  - Its budget table is re-based on m = 1583 µs (#3387), not 377.
+  - B reads the drain under its `EveryOneMinute` round-robin (each player's ages advance within m game minutes), not the `OnTick` share per wall second.
+  - Still unmeasured, and Task 13's if Plan 11 wants them: vanilla's updaters at 20 or more players; the PANIC sawtooth at a realistic target, near 10 or 20; and DayLength 4 set as the option rather than through `time.multiplier` (#3394).
 - **Tasks 5, 8 and 11** touch no refactored interface.
 
 ### Refactor follow-ups for Plan 11
@@ -209,36 +216,220 @@ The draft's code samples predate the refactor. Per task:
 - `IN.pendingAlc`, `IN.pendingCaf` and `FAST.lastInp` remain outside the context. `FAST.lastInp` leaves with the handler under Decision 1's (b) or (c).
 - `NR_Server_Effects.lua:9` carries a 142-character comment line (R2 review); reflow it at the file's first edit.
 
+## Performance (Plan 10b)
+
+Plan 10b (`docs/superpowers/plans/2026-10-07-plan-10b-performance-spikes.md`) asked where the mod's server time goes, before Plan 11 is written. P1 profiled the slow minute by step in live play. P2 ran the minute every k game minutes offline against the golden trace. P3 measured what a design with no per-tick work gives up and pays (rule 6, Angus 2026-10-07: no per-tick work). P4, the caching of Java reads, was gated on P1 and did not trigger.
+- The live run is `x231-20261007-111042` on the tree staged at `dc619d0`, with fixture `two`, Nutrition false and DayLength 1; its rows are #3387–#3394. P2's rows are #3395–#3399.
+- The full sections, with every reading, are Appendix G (P1 and P3) and Appendix H (P2).
+- Every live figure is n = 1. #3387–#3391 are cost readings, not behaviour; #3392–#3394 are behaviour.
+
+### P1 — where the slow minute goes
+
+`getTimestampMs` has 1 ms resolution, so each per-run figure is a step's total over its runs divided by the count. A step's total is a sum of 1 ms truncations, and its noise is the binomial sd given beside it (Appendix G).
+- **A, in play:** 240 runs over 120 game minutes, both players, with meals, a walk and one player's sleep (#3387). The µs per run are the row's ms totals ÷ 240.
+- **B, a fast clock:** `settimespeed 30`, 606 runs (#3389).
+- **D2, the bench:** the bench minute at an unchanged world age, 1004 runs of the pipeline (#3390).
+- **Marks:** † means indicative only, because the step's noise in A is above 10 % of its total. ‡ means below the 1 ms resolution in D2 (a truncation floor, not a cost).
+- **Java columns:** `NR.call`s are counted at run time (#3388). Direct Java calls are a static count of the staged adapters.
+
+| step | A µs/run | A share of the pipeline | A's total, ms ±1 sd | B µs/run | D2 µs/run | `NR.call`/run | direct Java/run |
+|---|---|---|---|---|---|---|---|
+| bus | 8.3 † | 0.5 % | 2 ±1.4 (70 %) | 11.6 | 1.0 ‡ | 0 | 1 |
+| fast | 4.2 † | 0.3 % | 1 ±1.0 (100 %) | 3.3 | 1.0 ‡ | 0 | 0 |
+| reconcile | 58.3 † | 3.7 % | 14 ±3.6 (26 %) | 44.6 | 11.0 (±30 %) | 5 | 0 |
+| kinetics | 58.3 † | 3.7 % | 14 ±3.6 (26 %) | 107.3 | 2.0 ‡ | 1 | 1 |
+| metabolism | 333.3 | 21.4 % | 80 ±7.3 (9 %) | 272.3 | 135.5 | 30 | 5 |
+| **nutrients** | **800.0** | **51.3 %** | 192 ±6.2 (3 %) | 651.8 | 144.4 | 9 | 2 |
+| effects | 120.8 † | 7.8 % | 29 ±5.0 (17 %) | 123.8 | 1.0 ‡ | 7 | 0 |
+| strength | 70.8 † | 4.5 % | 17 ±4.0 (23 %) | 59.4 | 29.9 | 11 | 2 |
+| weight | 70.8 † | 4.5 % | 17 ±4.0 (23 %) | 47.9 | 25.9 | 16 | 1 |
+| the pipeline | **1558.3** | 100 % | 374 ±7.7 (2 %) | 1358.1 | 360.6 | 79 | 12 |
+| `P.work` | 1583.3 | — | 380 | 1376.2 | 362.5 | 82 | — |
+
+**What the table says.**
+- **One in-play player-run costs about 1.56 ms** (#3387). That is about 4.1 times S2's 377 µs (#3354).
+  - At an unchanged world age the same session read 430, 389 and 333 µs (#3390), which agrees with #3354.
+  - So S2's figure was the shape of the work at a zero interval, where Nutrients returns early.
+  - About 100 µs of A is this session's instrument overhead, which leaves about 3.9 times (arithmetic, Appendix G).
+  - Reconcile, strength and weight make the same `NR.call` counts in A and D2 but cost more in A. So part of the rise is cold interleaved running against a warm bench loop, not a longer interval (inference).
+- **Nutrients is half the minute (51.3 %), and its time is Lua, not Java:** it makes 9 `NR.call`s and 2 direct calls a run. Metabolism is the next fifth (21.4 %).
+- **A fast clock did not raise the per-run cost.** B cost 1358 µs a run against A's 1558, though each B run integrated several game minutes (#3389). A run's cost is therefore taken not to grow with its interval. This is an inference from B's flat cost, and it is the basis for dividing the minute by a round-robin period below.
+- **S2's player budget (Appendix C, S2.4) under-counts m by about 4×.** Plan 11 re-bases m on 1583 µs (`P.work` in play), not 377.
+
+**The Java share (P1 Step 4's estimate) and P4.**
+- 79 of the pipeline's 91 Java calls a run go through `NR.call` (#3388), and 12 are direct (86.8 % and 13.2 %).
+- The calibration is the handler less the pure step over the handler's 70 calls: (19.33 − 4.36) ÷ 70 = 0.214 µs a call (#3353, #3356). The whole pipeline's Java is then 91 × 0.214 = 19.5 µs of 1558 (1.25 %). The largest step share is weight's 5.1 %.
+- An in-session upper bound comes from D2's reconcile step (5 `NR.call`s for 11.0 µs ±30 %). It gives at most 2.2 µs per `NR.call`-routed call, or about 2.9 µs at +1 sd.
+  - At 2.2 µs, weight's Java is about half its 71 µs and strength's about 40 %.
+  - At 2.9 µs both cross half.
+  - Together the two steps are about 9 % of the minute.
+- **P4: not triggered** (ruling 3). No step reaches half by the estimate P1 Step 4 names. At the upper bound, caching would save at most about 37 + 29 µs per player-run (about 49 + 37 at +1 sd), about 4 % of the minute.
+
+### P2 — running the minute less often
+
+- **The harness is sound.** The golden scenario re-run with the minute fired every k game minutes reproduces the golden byte for byte at k = 1. Ticking off-minutes changes nothing (#3395).
+- **Under ruling 4's band no k from 2 to 30 is safe** (#3396):
+  - k = 2, 5, 10, 15 and 30 leave 1130, 5543, 6092, 5906 and 6618 of about 9600 continuous leaves outside the band;
+  - they have 5, 13, 26, 35 and 45 discrete mismatches.
+- **k = 2 fails on g4's insulin band at its departure** (6 against 5) (#3397). With the first sight aligned it still leaves 489 leaves and a pending push. The flip is the 0.6 edge crossed a minute late, at minute 148, because minute 149 never runs before g4 leaves. That attribution is the P2 review's re-derivation and sits in no output (Appendix H).
+- **The drift grows with k** (#3398):
+  - the stamped stomach fill drifts up to 0.0052 at k = 2 and 0.25 at k = 30, against a range of 0.552;
+  - the water pool drifts up to 30 g at k = 2 and 853 g at k = 30.
+  - Most of the fat mass's and the water pool's drift is the first-sight and departure lag.
+- **`fluids.sweatLmin` holds the step's litres**, so it reads k times a per-minute value. No reader uses it (#3399).
+- **The verdict under a fairer band.** This is the P2 review's recomputation in Appendix H, not a register row. It aligns the first sight, uses an absolute band for constant leaves and takes the range per field.
+  - **k = 2 is nearly safe.** It leaves 75 leaves in 19 fields with no band or grade flip. What remains is one-minute back-dating (the minute-50 drinks, g6's sleep onset, meal back-dating into the day close) and g4's push pending at departure.
+  - **k = 5 is player-visible.** It leaves 1309 leaves in 154 fields and 8 discrete mismatches. g4's insulin band 6 is never shown before its departure. g6's caffeine band goes 0 → 1 four minutes early.
+  - **k ≥ 15 misses a death.** g3 dies at minute 100 and respawns at minute 101, between fired minutes.
+- **What a coarse minute does to the player** (inference from the code, unmeasured live):
+  - HUNGER, read off the stomach fill stamped once a slow minute, holds for k minutes and then jumps.
+  - A change reaches the client up to 2k − 1 game minutes late, against up to 1 now.
+  - The moodles inherit that lag.
+  - A joining player's record starts at the first fired minute, up to k − 1 minutes late.
+  - Under Decision 1's (b) or (c), Decision 2's satiety scalar S would also step every k minutes (the coupling in Decision 2).
+- **The saving is the minute ÷ k:** about 790 µs per player per game minute at k = 2 and 317 at k = 5, on P1's 1583 µs. This assumes a run integrating k minutes costs what a one-minute run costs, which #3389's flat cost supports (inference). P2's own 188.3 and 75.3 µs used S2's 377 µs and are superseded by this re-base.
+
+**The dt-correctness findings for Plan 11** (the P2 review; Appendix H). No kernel assumes dt = 1: the fluids are dt-correct and the exponentials are exact. What grows with the step is the following:
+- **Event back-dating.** A dose that lands between fired minutes is integrated from the step's start (`NR_Server_Nutrients.lua:371-376`, `:387`).
+- **End-of-step sampling.** Asleep and moving are sampled at the step's end and applied to the whole step (`NR_Kernel_Acute.lua:448-451`).
+- **Three biased integrators:**
+  - `exEma` (`NR_Kernel_Acute.lua:529`) and `coldH` (`:544`) add the step's inflow undecayed, a bias of about +dtM/2. The exact form is r·τ·(1 − e^(−dt/τ)).
+  - `cafMean` (`:251`) is explicit Euler, which is fine while dtH ≪ 168.
+- **Two more:** `fluids.sweatLmin` is named per minute (#3399), and the bruise roll (`NR_Server_Effects.lua:440`) is one Bernoulli per step at `E.bruise × dtM`, which undercounts at large steps.
+
+### P3 — what no per-tick work gives up and pays
+
+**The once-a-minute PANIC write: a sawtooth.** It was measured under Overlay, with no stat hook registered.
+- Vanilla's decay is linear and per game time: 0.17969 a tick at DayLength 1 and 0.030086 a tick at the DayLength 4 tick spacing. Both are **about 1.12 PANIC a game minute** (#3392, agreeing with #3116).
+- The plan's 0.5 target was on the wrong scale (PANIC spans 0–100), so the measured amplitude is the clipped target. The sawtooth at a real target is arithmetic on the measured decay: a floor T written once a minute falls to about T − 1.12 just before the next write, at any day length.
+- The PANIC moodle thresholds are 6, 30, 65 and 80 (#2369). So a player sees a flicker only when T sits in [6, 7.12), [30, 31.12), [65, 66.12) or [80, 81.12), one level up and down once a game minute.
+- The targets the earlier holds wrote sit outside all four windows: 10, 12.75 and 14.5 (#3101), and 19.25, 35 and 14.75 (#3082).
+- Vanilla's panic rise from zombies in view adds on top between writes. No reading covers it. A short hold at a target near 10 or 20 would measure the real sawtooth.
+
+**The once-a-minute TEMPERATURE write: it held** (#3393).
+- At 37.5, 0.5 above the set point, the pre-write read settled at 37.47803–37.48045 at DayLength 1 (about 0.02 °C under) and 37.46046–37.46208 at the DayLength 4 tick spacing (0.04 under).
+- The thermoregulator's core moved with it, from 36.2675 to 37.4277.
+- This is the per-minute absolute write a no-per-tick design would use, not the takeover's own path. X81, whether the takeover's target holds, stays unmeasured.
+
+**DayLength 4 on a live server.** `SandboxOptions:set` read back 4 but left the clock at 6.47 ticks a game minute for the next 10 s (#3394). So every "DayLength 4" reading above ran under `time.multiplier` 0.1674, which gives the same tick spacing. That the decay matches under the real option is inference.
+
+**The burst and the round-robin** (#3391). The minute was driven from `EveryOneMinute` with the `OnTick` drain left on.
+- **Burst:** both players in one event cost 1228.8 µs per player-run and 2457.6 µs per event, at most 6 ms.
+- **Round-robin, m = 5:** one player an event cost 1721.3 µs per event, at most 4 ms. With two players each ran every second minute.
+- **The tick spike** (extrapolation, labelled). This assumes a constant 1.23–1.58 ms per player-run and a 100 ms tick:
+  - a full burst costs 24.6–31.7 ms per event at 20 players and 49–63 ms at 40, once a game minute;
+  - a round-robin at m = 5 runs ceil(N / 5) players an event, 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40.
+- **Under a fast clock every tick carries one minute event** (#3348). So a burst there runs every player every tick, the shape S2 corrected in draft ruling 2 (inference). A round-robin bounds it at ceil(N / m) players a tick.
+
+**The all-in cost with no per-tick work**, per player per game minute (arithmetic on the readings; Appendix G):
+- the writer, Lua side, is 11 µs (#3373);
+- vanilla's updaters, which run again when no hook is registered, are 1.0–10.6 µs per update (#3386) × 6.27 ticks (#3346) or × 37.46 (#3347);
+- the minute is 1583 µs (#3387) ÷ the round-robin period m.
+
+| design | DayLength 1 | DayLength 4 |
+|---|---|---|
+| no per-tick work, m = 1 (the burst) | 1600–1660 µs | 1631–1991 µs |
+| no per-tick work, round-robin m = 2 (arithmetic, as above) | 809–869 µs | 840–1200 µs |
+| no per-tick work, round-robin m = 5 | 334–394 µs | 365–725 µs |
+| the takeover, for the record: 19.33 µs a tick (#3353) × the ticks, plus the minute | 121 + 1583 = 1704 µs | 724 + 1583 = 2307 µs |
+
+So rule 6's design costs less than the takeover at both day lengths. Its own risk is the burst, which the round-robin spreads. Under the round-robin, each player runs every m game minutes, which is P2's coarse minute at k = m.
+
+### Ranked performance refactors for Plan 11
+
+Each item names its reading and its expected saving per player per game minute, and goes no further than that reading.
+1. **The Nutrients step's Lua.**
+   - The reading: 192 of the pipeline's 374 ms in play, 51.3 % ±3 % (#3387). It is also 395 of 823 ms under a fast clock (#3389) and 145 of 362 ms at a zero interval (#3390).
+   - Its Java is 9 `NR.call`s and 2 direct calls a run (#3388): under 0.3 % by the estimate, and under about 20 µs at the upper bound.
+   - The saving: at most its 800 µs at m = 1, or 800 ÷ m under a round-robin. No reading resolves where inside the step the time goes, so Plan 11's first performance task is a profile below the step, before any rewrite.
+   - Metabolism, 333 µs (21.4 %, #3387), is next by the same reading. It carries more Java (30 `NR.call`s and 5 direct, about 77 µs at the upper bound).
+2. **A round-robin `EveryOneMinute` drain in place of the `OnTick` drain** (rule 6).
+   - The reading: #3391, with #3389's flat per-run cost and #3348's one event a tick under a fast clock.
+   - The saving at m = 1 is none on average: the 1583 µs moves from the tick to the event.
+   - What it buys is no per-tick work and a bounded spike: ceil(N / m) players an event instead of a 24.6–31.7 ms burst at 20 players (extrapolation).
+   - The period m is a coarse minute per player (item 3).
+3. **A coarse minute, only at k = 2 (a round-robin of m = 2), and only with first-sight alignment and event landing.**
+   - The reading: #3396–#3398, and the P2 review's fairer-band recomputation (Appendix H). Under the fairer band, k = 2 leaves one-minute back-dating and the first-sight lag, with no band or grade flip.
+   - First-sight alignment means a joining player's first minute runs at the join, not at the next fired minute. Event landing means a dose is integrated from its own minute, not back-dated to the step's start.
+   - The saving: about 790 µs, the minute ÷ 2 (arithmetic on #3387; flat cost per #3389, inference). That takes the all-in cost from 1600–1660 to 809–869 µs at DayLength 1, and the spike to 12.3–15.8 ms at 20 players (extrapolation).
+   - k = 5 is not supported, because it is player-visible (#3396; Appendix H). k ≥ 15 misses a death.
+4. **The three dt biases: `exEma`, `coldH` and `cafMean`** (Appendix H), with the bruise roll and `fluids.sweatLmin` (#3399) beside them.
+   - The saving: none; this is correctness.
+   - It is a precondition of item 3. It already matters under a fast clock, where one run integrates several game minutes (#3389) (inference).
+5. **Caching Java reads: not supported.**
+   - The reading: #3388 with P1 Step 4's estimate. 0.214 µs a call gives 19.5 µs of 1558 (1.25 %).
+   - The saving: at most about 66 µs per player-run at the 2.2 µs upper bound, where weight and strength reach about half (about 86 µs at +1 sd). That is about 4 % of the minute. P4 was not triggered.
+
 ## Angus's decisions
 
 ### 1. The takeover fork
 
-**(a) Keep the takeover and harden it** (draft Task 3).
-- Cost: about 121 µs per player per game minute at a 15-minute day and 724 µs at a 90-minute day (#3353; Appendix A § 7).
-- For it: the mode switches live, with no restart (#3357). A fault fails over to vanilla's own update, so players keep getting hungry. PANIC is held every tick inside the hook; whether its TEMPERATURE target holds is unmeasured (X81). Other mods that read the `ZomboidGlobals` rates, QualityCooking among them (#2564), read their real values.
-- Against it: the highest cost of the three. Task 3's strike and re-arm work. The re-implemented vanilla arms stay limitations.
+**The design target is no per-tick work** (rule 6, Angus 2026-10-07; the lessons rule against simulation on `OnTick`, #1071, #1080). Plan 10b measured the fork under that target (Performance, above). The options below are lettered as before, so the cross-references in Decision 2 and the appendices still resolve.
 
-**(b) Zeroed rates with per-minute writes, no per-tick hold.**
-- Cost: about 17–77 µs per player per game minute at a 15-minute day (#3373, #3386; Appendix B § 5). That saves a third to six-sevenths against (a), about 0.57 at the mean. At a 90-minute day it is 48–408 µs against 724 µs (Appendix B § 5).
+**(a) Keep the takeover — withdrawn.**
+- **Why it leaves the table:** `Hook.CalculateStats` runs once per player per tick by nature, so it cannot meet rule 6. Plan 10b measured no takeover variant.
+- **Its measured cost, for the record:** the handler is 19.33 µs per player per tick (#3353). That makes 121 µs per player per game minute at DayLength 1 and 724 µs at DayLength 4 (#3346, #3347). With the in-play minute of 1583 µs (#3387), the all-in cost is 121 + 1583 = 1704 µs at DayLength 1 and 724 + 1583 = 2307 µs at DayLength 4.
+- **What leaves with it:**
+  - the live mode switch (#3357);
+  - the failover to vanilla's own update;
+  - PANIC held every tick inside the hook;
+  - other mods reading the real `ZomboidGlobals` rates (#2564);
+  - draft Task 3 and draft rulings 6 and 7.
+
+**(b) Zeroed rates with per-minute writes, and no PANIC or TEMPERATURE write.**
+- Cost: the writer's 11 µs (#3373), plus vanilla's updaters at 6–66 µs per player per game minute at DayLength 1 or 37–397 µs at DayLength 4 (#3386), plus the minute. The all-in table is below.
 - For it: the lowest cost. Vanilla runs its own arms again.
-- Against it: the PANIC hold and the TEMPERATURE target are lost.
+- Against it: the PANIC floor is lost, because vanilla decays PANIC by about 1.12 a game minute (#3392) and nothing restores it. The TEMPERATURE target is lost too.
 
-**(c) The hybrid: (b) plus a thin `OnTick` PANIC hold** (and TEMPERATURE optionally).
-- Cost: (b)'s 17–77 µs plus the hold, which is unmeasured.
-- For it: (b)'s saving, with PANIC kept (#3048 shows a per-tick write outside the hook survives).
-- Against it: the hold's cost is unknown until Task 13.
+**(c) The hybrid, re-shaped for rule 6: (b) plus a once-a-minute PANIC and TEMPERATURE write.** S1 defined the hybrid with a per-tick `OnTick` PANIC hold, and rule 6 replaces that hold with this write.
+- **PANIC saw-tooths.** Vanilla decays PANIC linearly by about 1.12 a game minute at either clock (#3392). A floor T written once a minute therefore falls to about T − 1.12 before the next write.
+  - The moodle flickers one level once a game minute only when T sits in [6, 7.12), [30, 31.12), [65, 66.12) or [80, 81.12). The thresholds are #2369's; the windows are arithmetic on the measured decay, not a reading at such a target.
+  - The targets the earlier holds wrote sit outside all four windows: 10, 12.75 and 14.5 (#3101), and 19.25, 35 and 14.75 (#3082).
+  - Vanilla's own rise from zombies in view adds on top between writes, and no reading covers it.
+- **TEMPERATURE held.** Written to 37.5 once a game minute, it held within about 0.02 °C at DayLength 1 and 0.04 °C at the DayLength 4 tick spacing, and the thermoregulator's core followed it (#3393). This is the per-minute write, not the takeover's own path, so X81 stays unmeasured, and with (a) withdrawn it is moot.
+- Cost: (b)'s, plus two more stat sets a player a minute. By #3373's three sets at 0.6–0.9 µs that is under a microsecond (inference; not timed as such).
+- For it: (b)'s cost, with PANIC kept within 1.12 of its floor and TEMPERATURE within 0.04 °C of its target.
+- Against it: the PANIC sawtooth near a threshold, and vanilla's panic rise between writes, which is unread.
+
+**The design's all-in cost with no per-tick work** (per player per game minute; arithmetic on #3373, #3386, #3387; Performance, above). The slow minute moves from the `OnTick` drain to `EveryOneMinute`, run for every player in one event (m = 1, the burst) or for ceil(N / m) players an event in a rotation (a round-robin of period m).
+
+| design | DayLength 1 | DayLength 4 |
+|---|---|---|
+| (b) or (c), m = 1 (the burst) | 1600–1660 µs | 1631–1991 µs |
+| (b) or (c), round-robin m = 5 | 334–394 µs | 365–725 µs |
+| (a), withdrawn, for the record | 1704 µs | 2307 µs |
+
+- **The burst spike.** The burst measured at most 6 ms per event with two players, and the round-robin at m = 5 at most 4 ms (#3391).
+  - Extrapolated at 1.23–1.58 ms per player-run (labelled extrapolation), a full burst costs 24.6–31.7 ms per event at 20 players and 49–63 ms at 40, a quarter to over half of a 100 ms tick, once a game minute.
+  - The m = 5 round-robin costs 4.9–6.9 ms at 20 players and 9.8–13.8 ms at 40.
+  - Under a fast clock every tick carries one minute event (#3348), so a burst there runs every player every tick (inference). The round-robin bounds that too.
+- **The round-robin's period is a coarse minute.** Each player then runs every m game minutes, which is P2's k = m.
+  - m = 2 is nearly safe under the fairer band and needs first-sight alignment and event landing. Its all-in cost is 809–869 µs at DayLength 1 (arithmetic).
+  - m = 5 is player-visible (#3396; Appendix H).
+  - Appendix C's wall-cycle share is an `OnTick` share, so it leaves with rule 6.
 
 **What (b) and (c) share.**
 - The mode becomes a restart-only choice. It can be read at the server's `OnGameBoot` (#3380), but no mod route re-runs the engine's load of the rates (#3365).
 - A writer outage is not a vanilla fallback. With the rates zeroed and the writer stopped, players stop getting hungry, thirsty or tired.
 - Any other mod reading the rates reads zero (#2564).
-- Fatigue asleep, the STRESS and FOOD_SICKNESS floors and `rmod` are approximated, one write interval late (Appendix A § 5).
+- Fatigue asleep, the STRESS and FOOD_SICKNESS floors and `rmod` are approximated, one write interval late (Appendix A § 5). Under a round-robin, the interval is m game minutes.
 - Still unmeasured: the exercise arm's swing branch, the `setDelayToSleep` rewrite, and the updaters' cost under non-zero rates and many players.
 - Obligations on the build: fold each auto-drink sip into the THIRST target (#3382); run the writer after the minute's eats (#3383); never read the mode at the client's `OnGameBoot` (#3381); step by elapsed world age (#3371); set each rate to `0`, never `nil` (#3366).
 
-**Coupled with Decision 2.** Under Decision 2's (a) or (c) the satiety scalar S needs a home. Under (a) here it lives in the takeover's per-tick step and matches vanilla exactly. Under (b) or (c) here it steps once a slow minute, lags by up to a minute and loses the exact match (the S4 coupling above).
+**Coupled with Decision 2.** Under Decision 2's (a) or (c) the satiety scalar S needs a home. With the takeover withdrawn, S steps once a slow minute: it lags by up to a minute and loses the exact match (the S4 coupling above). Under a round-robin of period m it steps every m minutes (Performance, P2).
 
-**Recommendation:** (c), the hybrid, as S1 and S1b recommend. It rests on the measured boot-time mode read, the measured auto-drink and eat behaviour, and a cost margin of roughly half. It asks Angus to accept a restart-only mode and an outage with no vanilla fallback.
+**Recommendation:** (c), the once-a-minute hybrid.
+- It rests on:
+  - the measured boot-time mode read;
+  - the measured auto-drink and eat behaviour;
+  - a measured TEMPERATURE hold;
+  - a PANIC sawtooth that stays within 1.12 of its floor;
+  - an all-in cost below the withdrawn takeover's at both day lengths.
+- It asks Angus to accept a restart-only mode, an outage with no vanilla fallback, and the PANIC sawtooth.
+- The drain's period is Angus's:
+  - m = 1 keeps every-minute behaviour and pays the burst;
+  - m = 2 halves the cost and the spike, at P2's one-minute back-dating, once the first sight is aligned and events land at their own minute;
+  - m = 5 is player-visible.
 
 ### 2. Hunger feel
 
@@ -260,6 +451,7 @@ The draft's code samples predate the refactor. Per task:
 **Which day length the feel is tuned for.** This matters for (b) and for (c)'s β. It does not matter for (a), which reads the same timer vanilla reads. The acceptance profile runs a 15-minute day, the fixture a 90-minute day and vanilla's default a 60-minute day. A (b) tuned at 15 minutes (4.5 h) is not the best at 60 minutes (4.25 h).
 
 **Coupled with Decision 1.** (a) and (c) are exact only where S updates every tick, in the takeover's step. Under Decision 1's hybrid, S steps once a slow minute and the match is within a minute's lag, not exact (the S4 coupling above). (b) does not depend on Decision 1.
+- A coarse minute or a round-robin of period m (Decision 1; Performance, P2) steps S every k or m minutes instead, multiplying that lag: about 5.8e-3 idle and 1.2e-2 exercising at k = 10, by linear scaling and unmeasured (Appendix H).
 
 **Recommendation:** (a), if the goal is "feels like vanilla, reads the energy balance" (Appendix D). If bulk must matter, (c)'s relief scaling at a β Angus picks.
 
@@ -999,3 +1191,217 @@ Keep the bypass-role warning as it is. A bypass role clears the Lua flag too (#1
   - the rule T106.5 belongs in `## Rules`.
 - `docs/platform/harness.md`: its profile key table (:56–:70) does not list `client_overrides`. `testing/profiles/README.md` documents the key (commit `aaa51f4`). The harness page's count sentence ("seventeen leaves") is unchanged, since the key is new and outside both figures, the same as `clients`.
 - The animation arm stays unread.
+
+## Appendix G. P1 and P3 — the slow minute by step, and the cost of no per-tick work
+
+Its provisional rows T108.1–T108.8 are #3387–#3394.
+
+## P1+P3 — the slow minute by step, and the cost of no per-tick work (memo section)
+
+Run: `x231-20261007-111042` (profile `x23-perf`; phases S0 A B D C2 C Z). The run booted the staged copy of the tree at `dc619d0` (MANIFEST sha256 `c86e295a…2415b389`). Its `NR_Server_Bench.lua` had the P1+P3 instruments appended (sha256 `c20f645d…0f8d`, the same on all three deployed copies).
+- Fixture `two`: `admin` -debug, `bob` release. Nutrition false, DayLength 1, sleep on, one host.
+- The driver and profile were committed at `105c0d3` before the run; the artifact at `061630a`.
+- The provisional rows `T108.1`–`T108.8` are in `task-P1P3-claims-delta.tsv`. Every figure is n = 1 and a cost, not behaviour.
+- `getTimestampMs` has 1 ms resolution, so every per-run figure is a total divided by a count. Each step's total is a sum of 1 ms truncations, so it carries a binomial noise of sd = sqrt(sum d(1-d)) over the runs (d the fractional ms of each run): in A (240 runs) bus 2 ms ±1.4 (70 %), fast 1 ±1.0 (100 %), reconcile and kinetics 14 ±3.6 (26 %, ±15 µs a run), strength and weight 17 ±4.0 (23 %), effects 29 ±5.0 (17 %), metabolism 80 ±7.3 (9 %, ±30 µs a run), nutrients 192 ±6.2 (3 %), `__run` 374 ±7.7 (2 %) (arithmetic on the totals). So A's bus, fast, reconcile, kinetics, strength, weight and effects µs/run are indicative only; only metabolism, nutrients and `__run` carry a figure to better than 10 %.
+
+### P1 — the slow minute by step
+
+The wrap ran at the first `profStart`, not at `OnServerStarted`. `NR_Server_Bench.lua` loads before every adapter, so an `OnServerStarted` handler there would have wrapped nothing. This is the artifact's first deviation.
+
+**Per step**, in µs per run. A is in play (240 runs, 120 game minutes, both players: two apples each, a walk out and back, `admin` asleep for minutes 80–110). B is `settimespeed 30` (606 runs). D2 is the bench minute at an unchanged world age (1000 bench calls plus 4 drain runs, 1004 runs of the pipeline). In D2 bus, fast and effects (1 ms each) and kinetics (2 ms) are below the resolution and meaningless as µs/run (the table's 1.0, 1.0, 2.0 and 1.0 are truncation floors, not costs); reconcile's 11 ms is ±30 % (about ±3.3 ms). NR.call is counted at run time; direct calls are the static count.
+
+| step | A µs/run | A share of `__run` | B µs/run | D2 µs/run | NR.call/run (A) | direct Java/run (static) |
+|---|---|---|---|---|---|---|
+| bus | 8.3 | 0.5 % | 11.6 | 1.0 | 0 | 1 |
+| fast | 4.2 | 0.3 % | 3.3 | 1.0 | 0 | 0 |
+| reconcile | 58.3 | 3.7 % | 44.6 | 11.0 | 5 | 0 |
+| kinetics | 58.3 | 3.7 % | 107.3 | 2.0 | 1 | 1 |
+| metabolism | 333.3 | 21.4 % | 272.3 | 135.5 | 30 | 5 |
+| **nutrients** | **800.0** | **51.3 %** | 651.8 | 144.4 | 9 | 2 |
+| effects | 120.8 | 7.8 % | 123.8 | 1.0 | 7 | 0 |
+| strength | 70.8 | 4.5 % | 59.4 | 29.9 | 11 | 2 |
+| weight | 70.8 | 4.5 % | 47.9 | 25.9 | 16 | 1 |
+| `__run` (the pipeline) | **1558.3** | 100 % | 1358.1 | 360.6 | 79 | 12 |
+| `__work` (`P.work`) | 1583.3 | — | 1376.2 | 362.5 | 82 | not recounted |
+
+A's step totals in ms: 2, 1, 14, 14, 80, 192, 29, 17, 17. They sum to 366 of `__run`'s 374; the rest is `MIN.run`'s loop and pcalls plus truncation [T108.1]. B's totals are in [T108.3], the bench in [T108.4].
+
+**What this changes.**
+- **One in-play player-run costs about 1.56 ms**, about 4.1 times S2's 377 µs (#3354). S2's figure was taken at a zero interval, where Nutrients returns early and Effects never runs; this session's bench at a zero interval read 333–430 µs, agreeing with #3354 [T108.4]. The 4.1 is not all elapsed-time work, and not all of it is the pipeline: A's `__run` includes about 100 µs of this session's instrument overhead (step timers and the call counter), which leaves about 3.9 times (arithmetic). Reconcile, strength and weight make the same NR.call counts in A and D2 (5, 11 and 16 a run) yet cost 58, 71 and 71 µs in A against 11, 30 and 26 in D2, so a part of the rise is cold interleaved running against the warm tight bench loop, not integration of a longer interval (inference; reconcile's D2 figure is itself ±30 %).
+- **The S2 player budget (Appendix C, S2.4) under-counts m by about 4×.** With m = 1583 µs, the per-player-per-tick rows rise accordingly (arithmetic below).
+- **Nutrients is half the minute, and it is Lua, not Java.** It makes 9 NR.calls and 2 direct calls a run. Metabolism is the next fifth.
+- A fast clock did not raise the per-run cost: B's 606 runs cost 1358 µs a run against A's 1558 [T108.3]. The minute counter advanced 607 events over 631 ticks in B (`verdicts.B.observed.start` and `end`: minutes 288 to 895, ticks 1806 to 2437), about one event a tick, and 606 runs, one player drained an event, so each player ran every second event. Under `settimespeed 30` (`phases.B.time_fast.mult` 142.8, 60 s wall by `constants.B_S`) the game minutes a tick are arithmetic, about 4.7, not a field of the file, so a run integrated about 4.7 game minutes if a run's interval is one event's or about 9.4 if it is the player's own gap of two events (inference, from the closed-form steps integrating from each player's own last age). The steps integrate elapsed time in closed form, so a run's cost is taken not to grow with its interval; that is an inference from B's flat cost, and the basis for dividing the minute by the round-robin period below.
+
+**Java calls per run.** The run-time counter wraps `NR.call`. `NR.num`, `NR.obj` and `NR.flag` call it as `pcall(NR.call, …)`, a table lookup at call time, and the adapters' local `num`/`obj`/`flag` aliases capture those three, not `NR.call`. So every NR.call-routed call is counted [T108.2].
+- A static read of the adapters (one typical awake minute, no day close, healthy) counted 82 NR.call-routed calls in `P.work` (79 in the pipeline `__run`, 3 outside it) and, recounted from the staged adapters for `__run`, 12 direct ones: 8 `getGameTime` (kinetics 1, metabolism 2, nutrients 2, strength 2, weight 1), 1 `NR.isServer` in the bus step's `flushEffects` and 3 state `.instance()` in metabolism (`SwipeStatePlayer`, `ClimbOverFenceState`, `ClimbThroughWindowState`). The earlier 14 had two direct calls with no location; none was found in `bus`, `fast`, `reconcile`, `kinetics`, `effects` (its `ZombRandFloat` roll is gated on `E.bruise` above 0, so it is not a typical minute's) or the `OnServerStarted` registrations. The per-step column above is the 12.
+- The static and run-time NR.call counts agree step by step: metabolism 30, weight 16, strength 11, nutrients 9, effects 7, reconcile 5, kinetics 1.
+- **Route shares, on the `__run` basis:** 79 of 91 Java calls go through NR.call (86.8 %) and 12 (13.2 %) are direct.
+- The takeover handler's `body(h)`: about 70 Java calls a call, typical (66–82), all through hoisted handles.
+
+**The Java-share estimate (P1 Step 4; an estimate).**
+- Calibration: (19.33 − 4.36) ÷ 70 = **0.214 µs per Java call**, from the handler (#3353) less the pure step (#3356) over the handler's 70 static calls.
+- Java µs per run in A: bus 0.21 (2.6 %), reconcile 1.07 (1.8 %), kinetics 0.43 (0.7 %), metabolism 7.5 (2.2 %), nutrients 2.4 (0.3 %), effects 1.5 (1.2 %), strength 2.8 (3.9 %), weight 3.6 (5.1 %).
+- The whole pipeline: 91 calls × 0.214 = 19.5 µs of `__run`'s 1558 (1.25 %).
+- **The caution.** The calibration is for hoisted handle calls. An NR.call-routed call also pays a pcall, an index, a vararg pass and this session's counter wrapper.
+- An in-session upper bound comes from D2's reconcile step: 11.0 µs per run for 5 NR.calls and a small kernel compare, so at most **2.2 µs per NR.call-routed call**. That bound rests on a step of 11 ms ±3.3 ms (the binomial noise above); at +1 sd (14.3 ms) it is about 2.9 µs a call.
+- At that bound, weight's 17 calls are about 37 µs of its 71 in play (about half) and of all its 26 µs at D2. Strength's 13 are about 29 of 71 (40 %), metabolism's 35 about 77 of 333 (23 %). At +1 sd (2.9 µs a call) weight's 17 would be about 49 of 71 and strength's 13 about 37 of 71, so strength would also cross half (arithmetic). The two small steps would then be Java-bound, but each is about 70 µs of a 1583 µs minute.
+
+**P4's trigger (ruling 3): NOT TRIGGERED** by the estimate P1 Step 4 names. No step's Java share reaches half; the largest is weight at 5.1 %. P4 stays not triggered by rule 3's letter: its estimate is 0.214 µs a call, and the largest share it gives is weight's 5.1 %. The controller should note the bound above: at 2.2 µs per NR.call-routed call, weight (and nearly strength) would reach half, for a saving of at most about 37 µs + 29 µs per player-run (at +1 sd about 49 + 37) (4 % of the minute). The step that matters for cost is Nutrients' Lua.
+
+### P3 — what no per-tick work gives up and pays
+
+#### C — the once-a-minute PANIC and TEMPERATURE write (Overlay: `options.mode` 2, `fast.registered` false)
+
+**PANIC [T108.6].** Vanilla's decay is linear and per game time.
+- At DayLength 1 it fell **0.17969 a tick** (44 falls, 0.17889–0.18069), from 0.5 to 0.32, 0.14, then 0. That agrees with #3116.
+- At the slowed clock (37 or 38 ticks a game minute) it fell **0.030086 a tick** (336 falls).
+- Both are **about 1.12 PANIC a game minute** (0.17969 × 6.24 = 1.121; 0.030086 × 37.4 = 1.125). The day length changes ticks, not the per-minute fall.
+- **The plan's target of 0.5 was the wrong scale.** PANIC spans 0–100, so 0.5 decays to 0 within three ticks at DayLength 1 and within 17 at the slowed clock. Both recorded amplitudes are the clipped target, 0.5. The driver's C1 "falsified" and C4 "as_predicted" (ratio 1.0) are therefore trivial and are listed in do-not-cite.
+- **The sawtooth at a real target (arithmetic on the measured linear decay; not measured at such a target):** a floor written once a minute at T drops to about T − 1.12 just before the next write, at any day length.
+- The PANIC moodle thresholds are 6, 30, 65 and 80 (#2369).
+- **So a player sees a flicker only when T sits within 1.12 above a threshold**: the four windows are [6, 7.12), [30, 31.12), [65, 66.12) and [80, 81.12), each flickering one level up and down once a game minute (arithmetic on the measured decay and #2369's thresholds). The targets the earlier holds wrote sit outside all four: 10, 12.75 and 14.5 (#3101) and 19.25, 35 and 14.75 (#3082; 35 is #3082's, not #3101's).
+- A floor that releases between writes is also not the takeover's hold (T13-1). Vanilla's panic rise from zombies in view adds on top between writes, which no reading here covers.
+
+**TEMPERATURE [T108.7]: the write held.** Written to 37.5 once a game minute (0.5 above the set point 37):
+- At DayLength 1 the pre-write read climbed 36.3309 → 36.9170 → 37.2068 → 37.3503 and then sat 37.47803–37.48045 for the last ten writes, about 0.02 °C under the target. The tick after each late write read 0.011–0.013 under it.
+- At the slowed clock the last ten pre-writes read 37.46046–37.46208 (0.04 °C under).
+- The thermoregulator's core moved with it: 36.2675 before, 37.4277 after (`temp.core`). The stat write moves the core, and the regulator pulls back only a few hundredths a minute.
+- **Answer to "did the takeover's temperature target ever hold" (X81):** this is not the takeover path. The takeover writes only on the adjustment's far side, every tick. It is the once-a-minute absolute write a no-per-tick design would use, and **under Overlay it held within 0.04 °C**. X81 for the takeover's own path stays unmeasured.
+
+**The day-length route [T108.8].** `sandbox.set DayLength 4` read back 4 but left the clock at 6.47 ticks a minute for 10 s. C4 therefore ran under `time.multiplier` 0.1674 (37 or 38 ticks a gap), the DayLength 4 tick spacing. Whether vanilla's decay under a real DayLength 4 equals the multiplier's is inference. Both are game-time scaled, and the per-minute fall matched at the two clocks.
+
+#### C2 — the burst and the round-robin [T108.5]
+
+The minute was driven from `EveryOneMinute`, with the `OnTick` drain left on.
+- **Burst** (both players, one event): 145 ms over 59 events and 118 player-runs. That is **1228.8 µs per player-run** and 2457.6 µs per event, max 6 ms. The per-event histogram: 1 ms ×11, 2 ×28, 3 ×8, 4 ×8, ≥5 ×4.
+- **Round-robin `B.burstRR(5)`:** ceil(2/5) = 1 player an event, 105 ms over 61 events. That is **1721.3 µs per event** (= per player-run), max 4 ms. With N = 2 each player ran every second minute, so each run integrated about 2 game minutes.
+- **The tick spike (extrapolation, labelled).** These assume a constant per-player cost of 1.23 ms (C2) to 1.58 ms (A), and a 100 ms tick:
+  - a full burst costs 24.6–31.7 ms per event at 20 players (25–32 % of one tick) and 49–63 ms at 40 (half a tick or more), once every game minute;
+  - the round-robin at m = 5 runs ceil(N/5) players: 4 at 20 players, 4.9–6.9 ms (1.23–1.72 ms each); 8 at 40, 9.8–13.8 ms.
+  - The per-run cost at m = 5 (each run integrating 5 minutes) is assumed flat by B's reading, not measured.
+
+#### The all-in cost of no per-tick work, per player per game minute (arithmetic on readings)
+
+The terms:
+- the S1 writer, Lua side: 11 µs (#3373);
+- vanilla's updaters, which run when no hook is registered: 1.0–10.6 µs per update (#3386), × 6.27 ticks (DayLength 1) = 6–66 µs, or × 37.46 (DayLength 4) = 37–397 µs;
+- the minute work: 1583 µs (A's `__work`), divided by the round-robin period m. B's flat per-run cost supports dividing the per-run cost by m.
+
+| design | DayLength 1 | DayLength 4 |
+|---|---|---|
+| no per-tick work, m = 1 | 1600–1660 µs | 1631–1991 µs |
+| no per-tick work, round-robin m = 5 | 334–394 µs | 365–725 µs |
+| the takeover (for scale): 19.33 µs/tick (#3353) × ticks + the minute | 121 + 1583 = 1704 µs | 724 + 1583 = 2307 µs |
+
+Per tick at DayLength 1 (÷ 6.27), m = 1 gives about 255–265 µs per player per tick: 5.1–5.3 ms per tick at 20 players, 10.2–10.6 ms at 40. Most of that is the minute's Lua, whichever clock drives it. At m = 5 it is 53–63 µs per player per tick (1.1–1.3 ms at 20 players). At DayLength 4 (÷ 37.46), m = 1 is 44–53 µs and m = 5 is 10–19 µs per player per tick.
+
+So rule 6's design costs less than the takeover at both day lengths: it drops the handler and pays vanilla's updaters instead. Its own risk is the burst. A full burst at 20–40 players spends a quarter to a half of one tick once a minute. The round-robin, or a wall-cycle share (Appendix C, S3.2), spreads it.
+
+### Plan 11 tasks this changes
+
+- **Decision 1 (no per-tick work):** the once-a-minute write is measured.
+  - TEMPERATURE holds within 0.04 °C.
+  - PANIC falls 1.12 a game minute, linear, so a floor flickers a moodle only within 1.12 above 6, 30, 65 or 80.
+  - The burst must be spread: round-robin or wall cycle.
+- **The cost rows (Task 13, S2.4's table):** re-base m on 1583 µs in play, not 377.
+- **The performance target:** Nutrients' Lua (51 % of the minute) and Metabolism (21 %). Java caching (P4) is not triggered.
+
+### Concerns
+
+1. The plan's PANIC target of 0.5 was on the wrong scale (0–100), so the sawtooth at a realistic target is arithmetic on the measured decay, not a reading. A follow-up hold at a target near 10 or 20 would take one short session.
+2. P4's trigger is "not triggered" by ruling 3's estimate. By the in-session upper bound of 2.2 µs per NR.call-routed call, weight sits at about half (37 of 71 µs) and strength at 40 %, both small; at +1 sd of the bound's step (2.9 µs a call) weight is about 49 and strength about 37 of 71, so strength crosses half too. P4 stays not triggered by rule 3's letter. That is the controller's call.
+3. The live DayLength change did not take, so C4 used `time.multiplier`. The DayLength 4 figures are at the DayLength 4 tick spacing, not under the DayLength 4 option.
+4. A's per-step figures are 1 ms truncation totals with binomial noise (sd 1.0 to 7.7 ms a step over 240 runs, the table under Per step): 70 % of bus's 2 ms and 100 % of fast's 1 ms, 26 % of reconcile's and kinetics' 14 ms, 23 % of strength's and weight's 17 ms, 17 % of effects' 29 ms, 9 % of metabolism's 80 ms, 3 % of nutrients' 192 ms and 2 % of `__run`'s 374 ms. D2's bus, fast, effects and kinetics are below the resolution.
+5. The call counter's wrapper adds one Lua call to every NR.call, in every phase including D. D's 333–430 µs agrees with #3354's 345–395, so the overhead is within noise.
+6. The meals, walk and sleep in A are load, not graded. Both eats queued with `validStart` true; admin read asleep at minute 95; HUNGER fell between the nut reads after the second meal.
+
+## Appendix H. P2 — running the slow minute less often
+
+Its provisional rows T109.1–T109.5 are #3395–#3399.
+
+## P2 — Running the slow minute less often (memo section draft; rows T109.1–T109.5)
+
+**Question.** Can the slow minute run every k game minutes instead of every one, with negligible drift?
+
+**Answer: not under ruling 4's band. The largest safe k is 1.**
+- **The method.** The golden trace's scenario was re-run offline (`testing/spikes/coarse_minute.py`, commit 0453181) with the slow minute (`h.minute()` then `h.tick(25)`) fired only on minutes m with m % k == 0, for k = 2, 5, 10, 15 and 30. The world age, the engine step, every event and every snapshot keep their own minute. Every k divides 30 and 240, so each snapshot follows a fired minute.
+- **The sanity check.** k = 1 reproduces `golden/trace-1.0.0.json` byte for byte (sha256 df7806d8…daa9e8b3). Two full runs gave byte-identical outputs. Ticking 25 frames on every minute and ticking only on the fired minutes gave byte-identical traces at every k, because the drain's queue is empty between fired minutes [T109.1]. The choice of off-minute ticks therefore does not matter here; the outputs use no off-minute ticks, the coarse-`EveryOneMinute` shape.
+- **The verdict.** No k from 2 to 30 is safe [T109.2]:
+
+| k | continuous leaves outside the band (of ~9600) | discrete-state mismatches | safe |
+|---|---|---|---|
+| 2 | 1130 | 5 | no |
+| 5 | 5543 | 13 | no |
+| 10 | 6092 | 26 | no |
+| 15 | 5906 | 35 | no |
+| 30 | 6618 | 45 (+406 structural leaves) | no |
+
+- **Why k = 2, the first unsafe k, fails** [T109.3]:
+  - *Discrete state:* g4's effects key is one band lower in slot 9, the insulin band (6 against 5), at its departure snapshot (minute 150). Its effects epoch is one rebuild behind from then on.
+  - *Continuous fields outside the band* (105 fields), in four groups:
+    - First-sight timestamps: `firstSeen`, `bornAge`, `lastFallAge`, `acute.winStartH`. Each is one minute late, because the first fired minute is minute 2. Each is constant over the k = 1 run, so its range is 0 and any drift fails.
+    - The closed day's intake `body.inDayClosed`: 0.22 to 1.69 kcal off, about 1.2–1.9 % of the value. It is set once per day, so its range over the run is 0.
+    - `fluids.sweatLmin`: it doubles, by construction (below).
+    - The nutrient pools' `p` values near 1 (vitA, zinc, vitB6, riboflavin, thiamine, calcium and others). Their ranges over the run are 1e-5 to 1e-4, so drifts of 1e-5 fail.
+  - 385 of k = 2's 1130 failing leaves drift by 1e-3 or less. Measured against each field's range over all players instead (a secondary reading), 114 leaves still fail.
+  - *With the first sight aligned.* A diagnostic run also fires minute 1, so every k starts from k = 1's first sight. k = 2 still fails: 489 leaves in 85 fields, plus one discrete flag (g4's effects push still pending at its departure) [T109.3].
+- **The drift grows with k** [T109.4]. Largest drifts against k = 1, over six players and eight snapshots:
+
+| field (range over k = 1) | k = 2 | k = 5 | k = 10 | k = 15 | k = 30 |
+|---|---|---|---|---|---|
+| stamped stomach fill (0.552) | 0.0052 | 0.021 | 0.048 | 0.063 | 0.25 |
+| fat mass, kg (9.67) | 0.00086 | 0.0034 | 0.0076 | 0.012 | 0.024 |
+| water pool, g (3435) | 30 | 121 | 270 | 416 | 853 |
+
+  - The fat mass and the water pool drift roughly in proportion to k − 1. Most of that is the first-sight lag (the player is first seen at minute k, so k − 1 minutes go unintegrated) and the departure lag. Aligned, the fat mass's drift falls to 0.00015, 0.0006, 0.0012, 0.0016 and 0.0016 kg (summary, the aligned headline table).
+- **A naming finding.** `fluids.sweatLmin` stores the step's sweat litres (the rate × dtM / 60), not a per-minute rate. Under a coarse minute it reads k times the per-minute value. No reader uses it [T109.5].
+
+**What a coarse minute does to the player** (inference from the mod's code and the readings above; none of it was measured live):
+- **Hunger moves in steps of k minutes.** Hunger is the view of `record.stomachFill`, which Kinetics stamps once per slow minute. The takeover's per-tick write (or the hybrid's writer) reads that stamp, so HUNGER holds flat for k minutes and then jumps. The stamped fill drifts up to 0.0052 at k = 2 and 0.048 at k = 10 [T109.4].
+- **The bus push gap stretches.** Effects marks the mirror dirty at the end of a player's minute. The bus's flush is the first step in the pipeline's order, so the push goes out at the next fired minute, k minutes later. A change caused just after a fired minute therefore reaches the client up to 2k − 1 game minutes late, against up to 1 minute now. The `effects.dirty` flags left set at snapshots under every k > 1 show the pending pushes.
+- **The moodles lag.** The client's moodles read the mirror, so they inherit the push lag. Mod-driven targets (panic, temperature) jump at a fired minute: at k ≥ 5 one snapshot already shows `panicTarget` 1.875 apart, and at k ≥ 10 (k ≥ 15 aligned) `tempTarget` 37.075 apart (summary, the headline tables).
+- **First sight and departure.** A joining player's record, body and stomach are created at the first fired minute, up to k − 1 minutes after the join. At k ≥ 10 the scenario's minute-10 meals arrived before first sight. They took the intake's own path: `store.get` creates the record and the stomach is seeded full (`NR_Server_Intake.lua:425`). At a departure, the minutes between the last fired minute and the departure are integrated only when the player returns within the 60-minute clamp.
+- **The day close** lands at the first fired minute after the day boundary. In this scenario every k divides minute 90, so the close's timing was not tested. `inDayClosed` differs from step size alone: the stomach's emptying and absorption over one k-minute step do not equal k one-minute steps.
+
+**The cost saving** (arithmetic on #3354; P1's per-step figure supersedes it when it lands):
+- One player's slow minute costs about 377 µs (#3354, the mean of 390, 395 and 345). That is a lower bound: it was measured at an unchanged world age.
+- Divided by k, the per-player cost per game minute is 188.3, 75.3, 37.7, 25.1 and 12.6 µs at k = 2, 5, 10, 15 and 30.
+- This assumes a call integrating k minutes costs what a call integrating one costs. The steps are closed-form in dtM, so that is plausible, but it is unmeasured.
+- Under the S2 table's wall-cycle share, the per-tick peak (57.0 µs including the handler) does not fall with k: a fired minute still runs one player's whole minute. Only the average falls.
+
+**The coupling with Decision 2.**
+- Under options (a) and (c), S has its home in the takeover's per-tick step. A coarse minute does not touch S there.
+- Under the hybrid (Decision 1 (b) or (c)), S steps once per slow minute. Appendix D bounds that lag at one minute: 5.8e-4 hunger idle and 1.2e-3 exercising. A coarse minute would multiply the lag by k. **Inference by linear scaling, unmeasured:** about 5.8e-3 idle and 1.2e-2 exercising at k = 10.
+- So a coarse minute and the hybrid's once-a-minute S compound.
+- Option (b) feels it through the stamped fill, which steps every k minutes (above).
+
+### The recomputed verdict under a fairer band
+
+The review (claude-opus-5-5) re-hashed the k = 2 and k = 5 outputs, found the harness right, and recomputed the verdict with the first sight aligned, an absolute band for constant leaves and a per-field range.
+- **k = 2:** 75 leaves in 19 fields, and no band or grade flip once the first sight is aligned. What remains is one-minute back-dating: the minute-50 drinks, g6's sleep onset, the meal back-dating into the day close, g3's pools, `dmod` and `solAddH`, with g4's effects push pending at its departure. The strict count is 1130 leaves and 5 discrete mismatches; the per-field range gives 114. k = 2 is unsafe only on transient artefacts and the first-sight lag.
+- **k = 5 (aligned):** 1309 leaves in 154 fields and 8 discrete mismatches, and two player-visible differences. g4's insulin band 6 is never shown before its minute-150 departure: the edge is crossed at minute 148, after the last fired minute 145. g6's caffeine band goes 0 to 1 at minute 150 (caffeine 50.84 against 48.74 mg), back-dated 4 minutes early.
+- **The b/9 flip at k = 2 is the 0.6 edge crossed a minute late.** Slot 9 is the insulin band (K.effects.B.iu); iu is 0.599394 against 0.603771 (re-derived by the review, not in the outputs) at minute 148, and minute 149 never runs before g4 leaves. It is a one-minute back-dating, not a lasting difference. The effects epoch stays one rebuild behind at minutes 180, 210 and 240 (summary lines 229-231).
+- **Back-dating.** A dose that lands between fired minutes is integrated over the whole step, so its effect begins at the step's start. Asleep and moving are sampled at the step's end, so a state held for part of a step is applied to all of it. Both grow with k.
+- **The departure clip.** The minutes between a player's last fired minute and a departure are integrated only if the player returns within the 60-minute clamp; at larger k the clip is up to k - 1 minutes of the player's last state.
+- **A missed death at k >= 15.** `printed_count` is 24 at k = 1 and 23 at k = 15 and k = 30 (summary lines 1193 and 1566): g3 dies at minute 100 and respawns at minute 101, between fired minutes, so a coarse minute never sees the death. The count was kept out of the verdict as telemetry, and this is a state event it hides.
+
+### dt-correctness findings for Plan 11
+
+No kernel assumes dt = 1: the fluids are dt-correct and the exponentials are exact. What grows with k is in the pipeline and in a few kernel lines.
+- **Event back-dating and end-of-step sampling are pipeline artefacts** that grow with k: `NR_Server_Nutrients.lua:371-376` and `:387` (events land on the step), `NR_Kernel_Acute.lua:448-451` (asleep and moving sampled at the step's end).
+- **exEma** (`NR_Kernel_Acute.lua:529`) and **coldH** (`NR_Kernel_Acute.lua:544`) decay the old value exactly but add the step's inflow undecayed, so they carry a bias of about +dtM/2; the exact form is r * tau * (1 - e^(-dt/tau)).
+- **cafMean** (`NR_Kernel_Acute.lua:251`) is explicit Euler; it is fine while dtH is far below 168.
+- **fluids.sweatLmin** (`NR_Kernel_Fluids.lua:177`, `:190`) holds the step's litres, so it reads k times a per-minute rate (T109.5).
+- **The bruise roll** (`NR_Server_Effects.lua:440`) is one Bernoulli per step at E.bruise * dtM, so it undercounts at large k.
+
+**What this does not settle.**
+- It is one scenario of 240 minutes with eight snapshots, so a field's range over the run is often degenerate.
+- Ruling 4's band is strict on near-constant leaves. A looser band (a field-wide range, or the value-relative drift) would still fail k = 2 on the effects key and on 114 leaves. Choosing a band is Angus's call; this study reports and does not tune.
+- Untested here: a day boundary that falls between fired minutes, and a fast clock's one event per tick (#3348) combined with a coarse minute.
+
+**Page sentences for the controller** (owner `docs/areas/testing-your-mod.md#walls`, one per row):
+- T109.1: "The golden trace's scenario re-run with the slow minute fired every k game minutes reproduces the golden byte for byte at k = 1, and the off-minute ticks do not change it [T109.1]."
+- T109.2: "No coarse minute from 2 to 30 game minutes passes the drift band: every one changes discrete state and moves hundreds to thousands of leaves outside 1 % of their range [T109.2]."
+- T109.3: "At k = 2 the effects key already differs (g4's insulin band one lower at its departure), and aligning the first sight does not remove the failure [T109.3]."
+- T109.4: "The drift grows with k: the stamped stomach fill by up to 0.0052 at k = 2 and 0.25 at k = 30 [T109.4]."
+- T109.5: "`fluids.sweatLmin` is the step's sweat litres, not a per-minute rate, so a coarse minute multiplies it by k [T109.5]."

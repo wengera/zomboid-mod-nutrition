@@ -166,6 +166,7 @@ The server's packet dispatch runs a packet's handler only when the authorization
 Nothing announces the change to Lua, because the engine has no event for it ([Walls and bounds](#walls)) [#2451/C/C-only].
 A mod that cached a value therefore keeps the old one until it reads again, and a captured sub-table is the one reference the apply refreshes in place [#2451/C/C-only] [#2445/C/C-only].
 A server `SandboxOptions:set` changes the option object but not `SandboxVars`, so a mod that polls `SandboxVars` never sees it [#2887/M/n=1].
+Setting `DayLength` to 4 on a running dedicated server through `SandboxOptions:set` read back 4 but left the clock at 6.47 ticks a game minute over the next 10 s, while a `time.multiplier` of 0.1674 gave 37 or 38 ticks between consecutive minute events. [#3394/M/n=1]
 A server Lua assignment into the nested `SandboxVars` leaf reaches a mod that polls it [#2914/M/n=1].
 A `SandboxVars` leaf assigned on the server is read live by a per-tick reader within seconds [#2969/M/n=1].
 Whether the Lua mirror follows an admin push on a live server is the measurement [Open](#open) names.
