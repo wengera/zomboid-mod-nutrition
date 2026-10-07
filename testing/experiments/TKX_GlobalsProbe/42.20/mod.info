@@ -1,0 +1,5 @@
+name=TKX Globals Probe
+id=TKX_GlobalsProbe
+description=Plan 10 Task S1 experiment: zero the ZomboidGlobals hunger, thirst and fatigue rise rates before ZomboidGlobals.Load copies them (the thirst keys at file scope, the hunger and fatigue keys in the server's OnGameBoot), then write HUNGER 0.3, THIRST 0.2 and FATIGUE 0.1 to every online player once a game minute on the server, recording the value read before and after each write. Test profiles only.
+modversion=1.0
+versionMin=42.0.0

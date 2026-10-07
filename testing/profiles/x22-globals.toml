@@ -1,0 +1,38 @@
+# testing/profiles/x22-globals.toml - Plan 10 Task S1 (run x221): the zeroed-drains alternative to the takeover.
+# PZTestKit + TKX_GlobalsProbe only (NOT NutritionRevamp: the questions are about vanilla's own update with the
+# ZomboidGlobals rise rates zeroed). The probe zeroes ThirstIncrease and ThirstSleepingIncrease at file scope and
+# HungerIncrease, HungerIncreaseWhileAsleep, HungerIncreaseWhenExercise and FatigueIncrease in the server's
+# OnGameBoot (one instruction before ZomboidGlobals.Load), and writes HUNGER 0.3, THIRST 0.2, FATIGUE 0.1 to every
+# online player once a game minute on the server. Fixture `two`, both clients (`admin` -debug, then `bob` release),
+# Nutrition false (the design precondition, ruling T18-1), DayLength 1 (a game minute is 0.625 s at speed 1), sleep
+# allowed and needed (so the server's fatigue reset does not run, #2723, and phase D's sleep is real).
+# The driver is testing/experiments/x221_globals.py.
+# The verify rows are load gates only: the probe's version string on the server and on both clients. The route's
+# readings (TKX_G.fileScope, bootSet, the drift) are measurements and are never verify rows.
+fixture = "two"
+description = "PZTestKit + TKX_GlobalsProbe, fixture two, admin and bob, Nutrition off, DayLength 1, sleep on - the zeroed ZomboidGlobals rise rates and a per-minute server write of hunger, thirst and fatigue."
+clients = ["admin", "bob"]
+run = { hold = 20 }
+verify = [
+  { side = "server", cmd = "lua.global", args = "TKX_G.version", expect = '"value": "1"' },
+  { side = "client", cmd = "lua.global", args = "TKX_G.version", expect = '"value": "1"' },
+  { side = "client:bob", cmd = "lua.global", args = "TKX_G.version", expect = '"value": "1"' },
+]
+
+[[mods]]
+id = "PZTestKit"
+
+[[mods]]
+id = "TKX_GlobalsProbe"
+path = "testing/experiments/TKX_GlobalsProbe"
+
+[server]
+SleepAllowed = true
+SleepNeeded = true
+
+[client]
+timeout = 180
+
+[sandbox]
+Nutrition = false            # the design precondition (ruling T18-1): vanilla nutrition update off
+DayLength = 1                # a game day is 15 real minutes; a game minute 0.625 s
