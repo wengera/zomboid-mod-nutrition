@@ -1,0 +1,2057 @@
+{
+ "run_id": "x201-20261006-215125",
+ "session": "Plan 9 Task 4, live 1: the staged 1.0.0 build on fixture two -- the server and client self-reports, bob's join with no checksum line, the staged bytes against the repository's, the version on all three sides; one boot of x20-release",
+ "users": [
+  "admin",
+  "bob"
+ ],
+ "profile": {
+  "name": "x20-release",
+  "path": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\profiles\\x20-release.toml",
+  "fixture": "two",
+  "description": "PZTestKit + the staged NutritionRevamp 1.0.0 build on fixture two, admin (debug) and bob (release), Nutrition off, DayLength 1 - the Plan 9 release boot.",
+  "mods": [
+   "PZTestKit",
+   "NutritionRevamp"
+  ],
+  "sources": {
+   "PZTestKit": "C:\\Users\\Angus\\repos\\project_zomboid\\testing\\PZTestKit\\PZTestKit",
+   "NutritionRevamp": "C:\\Users\\Angus\\repos\\project_zomboid\\release\\NutritionRevamp\\Contents\\mods\\NutritionRevamp"
+  },
+  "skip": [],
+  "workshop_items": {},
+  "sandbox": {
+   "Nutrition": false,
+   "DayLength": 1
+  },
+  "users": [
+   "admin",
+   "bob"
+  ]
+ },
+ "fixture": {
+  "name": "two",
+  "provision_run": "prov-20261006-182552",
+  "clients": {
+   "admin": {
+    "debug": true
+   },
+   "bob": {
+    "debug": false
+   }
+  }
+ },
+ "argv": [],
+ "commit": "c3265f9",
+ "mod_commit": "1a8e207",
+ "mod_dirty": false,
+ "release_tool_commit": "3f2607d",
+ "harness_lua_commit": "fadf698",
+ "harness_lua_dirty": false,
+ "harness_py_commit": "78ba25b",
+ "doctor_clean": true,
+ "doctor": [
+  "ok   PZ java processes: none",
+  "ok   ports 27261/27262/27015: free",
+  "ok   fixture 'default' present (build 42.20.4, 10.9 MB)",
+  "ok   workshop index: 233 mods",
+  "ok   pytest available"
+ ],
+ "meta": {
+  "staged_mod": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "staged_manifest": "release/NutritionRevamp/MANIFEST.json",
+  "staging_command": "python tools/release_pack.py stage mod/NutritionRevamp --out release",
+  "staged_manifest_sha256": "0e0c69e1eaa58214bafd892d582a96238f579b11042b9837737050728bd52beb"
+ },
+ "constants": {
+  "PROFILE": "x20-release",
+  "PREFIX": "x201",
+  "SESSION": "Plan 9 Task 4, live 1: the staged 1.0.0 build on fixture two -- the server and client self-reports, bob's join with no checksum line, the staged bytes against the repository's, the version on all three sides; one boot of x20-release",
+  "ARTIFACT": "release.json",
+  "MANIFEST_NAME": "MANIFEST.json",
+  "BOB": "client:bob",
+  "ADMIN": "client:admin",
+  "SRV": "server",
+  "CLIENT_SIDES": [
+   "client:bob",
+   "client:admin"
+  ],
+  "MOD_DIR": "mod/NutritionRevamp",
+  "STAGE_ROOT": "release/NutritionRevamp",
+  "STAGE_MOD": "release/NutritionRevamp/Contents/mods/NutritionRevamp",
+  "LUA_DIR": "testing/PZTestKit/PZTestKit/42/media/lua",
+  "NR": "NutritionRevamp",
+  "MOD_ID": "NutritionRevamp",
+  "SENTINEL": "Base.Acorn",
+  "SENTINEL_KCAL": 109.71,
+  "EXPECT_VERSION": "1.0.0",
+  "EXPECT_BUILD": "42.20.4",
+  "SELF_SRV_RX": "NutritionRevamp v1\\.0\\.0 build \\S+ side=server .*",
+  "SELF_CLI_RX": "NutritionRevamp v1\\.0\\.0 build \\S+ side=client .*",
+  "PAIR_RX": "(\\w+)=(\\S+)",
+  "CONN_RX": "Connected new client|players: first sight of |\\[NutritionRevamp\\] players: \\w+ left",
+  "CHECKSUM_RX": "checksum",
+  "CHECKSUM_BAD_RX": "mismatch|differ|kick|disconnect|fail",
+  "LOG_RX": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+  "LOG_LIMIT": 200,
+  "ECHO_RX": "PZTK: ",
+  "MOD_LINE_RX": "\\[NutritionRevamp\\]",
+  "MOD_ERR_RX": "NR_[A-Z][A-Za-z_]*\\.lua|NR_Client|NR_Kernel|NR_Server|failed:",
+  "SRV_PRED": {
+   "side": "server",
+   "mode": "takeover",
+   "itemPass": "true",
+   "legacyMirror": "on",
+   "frameworks": "n/a",
+   "nutritionOn": "false",
+   "log": "2"
+  },
+  "CLI_PRED": {
+   "side": "client",
+   "mode": "takeover",
+   "itemPass": "true",
+   "frameworks": "none",
+   "log": "2"
+  }
+ },
+ "predictions": {
+  "D": {
+   "staged files with a repo twin": "all",
+   "pairs equal": "all",
+   "repo files missing from the stage": 0,
+   "manifest sha256 equal to the staged file": "all",
+   "deployed copies equal to the stage": "server, admin, bob"
+  },
+  "S0": {
+   "both_ready": true,
+   "verify": "every row ok",
+   "players": [
+    "admin",
+    "bob"
+   ]
+  },
+  "E": {
+   "version": {
+    "bob": "1.0.0",
+    "admin": "1.0.0",
+    "server": "1.0.0"
+   },
+   "build": {
+    "bob": "42.20.4",
+    "admin": "42.20.4",
+    "server": "42.20.4"
+   }
+  },
+  "F": {
+   "server itemPassActive type": "function",
+   "Base.Acorn Calories": "109.71 +- 0.01 on bob, admin, server"
+  },
+  "Z": {
+   "mod_error": "none",
+   "admin_lua_error": false
+  },
+  "A": {
+   "server self-report lines": 1,
+   "pairs": {
+    "side": "server",
+    "mode": "takeover",
+    "itemPass": "true",
+    "legacyMirror": "on",
+    "frameworks": "n/a",
+    "nutritionOn": "false",
+    "log": "2"
+   },
+   "hook/limitations": "recorded, not graded"
+  },
+  "B": {
+   "client self-report lines": {
+    "bob": 1,
+    "admin": 1
+   },
+   "pairs": {
+    "side": "client",
+    "mode": "takeover",
+    "itemPass": "true",
+    "frameworks": "none",
+    "log": "2"
+   }
+  },
+  "C": {
+   "connected lines": ">= 2",
+   "first sight of bob": ">= 1",
+   "checksum bad lines": {
+    "server": 0,
+    "bob": 0
+   },
+   "bob ready": true,
+   "bob in players": true
+  }
+ },
+ "deviations": [
+  "Phases A, B and C are read off the server log and the client consoles after teardown (the self-report lines print once, at OnServerStarted and OnGameStart, before any probe can run); their verdicts are graded there.",
+  "Phase F reads the script item's Calories through the harness's item.script getter route; the mod's own sentinel reads a fresh instance's Food.getCalories (#2680), so the two routes are not the same read.",
+  "The driver runs the layout lint itself (pzt.harness.lint_paths, the gate pzt run applies) because it builds the session through make_server rather than pzt run."
+ ],
+ "world_changes": {
+  "restored": "fixture two restored into the run dir (server and both client caches)",
+  "left_in_place": []
+ },
+ "steps": [
+  {
+   "step": "S0_players",
+   "side": "server",
+   "cmd": "players",
+   "args": "",
+   "phase": "S0",
+   "wall_before": 114.666,
+   "wall_after": 115.424,
+   "epoch_ms_before": 1791337999682,
+   "epoch_ms_after": 1791338000441,
+   "took": 0.758,
+   "ack": [
+    "admin",
+    "bob"
+   ],
+   "ack_shape": "list"
+  },
+  {
+   "step": "E_bob_ver",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "phase": "E",
+   "wall_before": 115.429,
+   "wall_after": 115.688,
+   "epoch_ms_before": 1791338000446,
+   "epoch_ms_after": 1791338000705,
+   "took": 0.259,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "step": "E_bob_build",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.build",
+   "phase": "E",
+   "wall_before": 115.688,
+   "wall_after": 116.198,
+   "epoch_ms_before": 1791338000705,
+   "epoch_ms_after": 1791338001215,
+   "took": 0.51,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.build",
+    "type": "string",
+    "resolved": true,
+    "value": "42.20.4"
+   }
+  },
+  {
+   "step": "E_admin_ver",
+   "side": "client:admin",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "phase": "E",
+   "wall_before": 116.198,
+   "wall_after": 116.451,
+   "epoch_ms_before": 1791338001215,
+   "epoch_ms_after": 1791338001468,
+   "took": 0.253,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "step": "E_admin_build",
+   "side": "client:admin",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.build",
+   "phase": "E",
+   "wall_before": 116.451,
+   "wall_after": 116.959,
+   "epoch_ms_before": 1791338001468,
+   "epoch_ms_after": 1791338001976,
+   "took": 0.508,
+   "ack": {
+    "side": "client",
+    "name": "NutritionRevamp.build",
+    "type": "string",
+    "resolved": true,
+    "value": "42.20.4"
+   }
+  },
+  {
+   "step": "E_server_ver",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "phase": "E",
+   "wall_before": 116.959,
+   "wall_after": 117.219,
+   "epoch_ms_before": 1791338001976,
+   "epoch_ms_after": 1791338002236,
+   "took": 0.26,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "step": "E_server_build",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.build",
+   "phase": "E",
+   "wall_before": 117.219,
+   "wall_after": 117.977,
+   "epoch_ms_before": 1791338002236,
+   "epoch_ms_after": 1791338002994,
+   "took": 0.758,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.build",
+    "type": "string",
+    "resolved": true,
+    "value": "42.20.4"
+   }
+  },
+  {
+   "step": "F_srv_ipa",
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.itemPassActive",
+   "phase": "F",
+   "wall_before": 117.979,
+   "wall_after": 118.487,
+   "epoch_ms_before": 1791338002995,
+   "epoch_ms_after": 1791338003504,
+   "took": 0.508,
+   "ack": {
+    "side": "server",
+    "name": "NutritionRevamp.itemPassActive",
+    "type": "function",
+    "resolved": true,
+    "value": "function"
+   }
+  },
+  {
+   "step": "F_bob_acorn",
+   "side": "client:bob",
+   "cmd": "item.script",
+   "args": "Base.Acorn",
+   "phase": "F",
+   "wall_before": 118.487,
+   "wall_after": 118.743,
+   "epoch_ms_before": 1791338003504,
+   "epoch_ms_after": 1791338003760,
+   "took": 0.256,
+   "ack": {
+    "fullType": "Base.Acorn",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -10,
+    "ThirstChange": 0,
+    "DaysFresh": 180,
+    "DaysTotallyRotten": 365,
+    "IsCookable": true,
+    "MinutesToCook": 10,
+    "MinutesToBurn": 30
+   }
+  },
+  {
+   "step": "F_admin_acorn",
+   "side": "client:admin",
+   "cmd": "item.script",
+   "args": "Base.Acorn",
+   "phase": "F",
+   "wall_before": 118.743,
+   "wall_after": 119.247,
+   "epoch_ms_before": 1791338003760,
+   "epoch_ms_after": 1791338004263,
+   "took": 0.504,
+   "ack": {
+    "fullType": "Base.Acorn",
+    "via": "getItem",
+    "side": "client",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -10,
+    "ThirstChange": 0,
+    "DaysFresh": 180,
+    "DaysTotallyRotten": 365,
+    "IsCookable": true,
+    "MinutesToCook": 10,
+    "MinutesToBurn": 30
+   }
+  },
+  {
+   "step": "F_server_acorn",
+   "side": "server",
+   "cmd": "item.script",
+   "args": "Base.Acorn",
+   "phase": "F",
+   "wall_before": 119.247,
+   "wall_after": 119.754,
+   "epoch_ms_before": 1791338004263,
+   "epoch_ms_after": 1791338004771,
+   "took": 0.507,
+   "ack": {
+    "fullType": "Base.Acorn",
+    "via": "getItem",
+    "side": "server",
+    "access": {
+     "HungerChange": "get",
+     "ThirstChange": "get",
+     "DaysFresh": "get",
+     "DaysTotallyRotten": "get",
+     "IsCookable": "is",
+     "MinutesToCook": "get",
+     "MinutesToBurn": "get"
+    },
+    "HungerChange": -10,
+    "ThirstChange": 0,
+    "DaysFresh": 180,
+    "DaysTotallyRotten": 365,
+    "IsCookable": true,
+    "MinutesToCook": 10,
+    "MinutesToBurn": 30
+   }
+  }
+ ],
+ "notes": [],
+ "phases": {
+  "D": {
+   "manifest_sha256": "0e0c69e1eaa58214bafd892d582a96238f579b11042b9837737050728bd52beb",
+   "manifest_copy_sha256": "0e0c69e1eaa58214bafd892d582a96238f579b11042b9837737050728bd52beb",
+   "files": {
+    "42.20.4/media/sandbox-options.txt": {
+     "staged": "0766bddaecbdb2e2847bc12c3641ccba368f1ba11672f45b95a3c13cc9d6a581",
+     "repo": "0766bddaecbdb2e2847bc12c3641ccba368f1ba11672f45b95a3c13cc9d6a581",
+     "equal": true,
+     "manifest": "0766bddaecbdb2e2847bc12c3641ccba368f1ba11672f45b95a3c13cc9d6a581",
+     "manifest_equal": true
+    },
+    "42.20.4/mod.info": {
+     "staged": "7a29bdc7ad69e1b68255804a34c8f6e1d7eea873188f8bd474c25184231a33e8",
+     "repo": "7a29bdc7ad69e1b68255804a34c8f6e1d7eea873188f8bd474c25184231a33e8",
+     "equal": true,
+     "manifest": "7a29bdc7ad69e1b68255804a34c8f6e1d7eea873188f8bd474c25184231a33e8",
+     "manifest_equal": true
+    },
+    "CHANGELOG.md": {
+     "staged": "986bbffa21c66ca3b6988b595b1e9288a48b4145efe8a39e1a2ff920054afe21",
+     "repo": "986bbffa21c66ca3b6988b595b1e9288a48b4145efe8a39e1a2ff920054afe21",
+     "equal": true,
+     "manifest": "986bbffa21c66ca3b6988b595b1e9288a48b4145efe8a39e1a2ff920054afe21",
+     "manifest_equal": true
+    },
+    "COMPATIBILITY.md": {
+     "staged": "6afd81ef6c5ebbd1f4d6eb0c606e02f8ab5189b175e6f374920caa0016e857d1",
+     "repo": "6afd81ef6c5ebbd1f4d6eb0c606e02f8ab5189b175e6f374920caa0016e857d1",
+     "equal": true,
+     "manifest": "6afd81ef6c5ebbd1f4d6eb0c606e02f8ab5189b175e6f374920caa0016e857d1",
+     "manifest_equal": true
+    },
+    "README.md": {
+     "staged": "117bf1fe5003fbf7348952f51e0c9009895f0c04d4ba35dfd3ba09f5e25cccab",
+     "repo": "117bf1fe5003fbf7348952f51e0c9009895f0c04d4ba35dfd3ba09f5e25cccab",
+     "equal": true,
+     "manifest": "117bf1fe5003fbf7348952f51e0c9009895f0c04d4ba35dfd3ba09f5e25cccab",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Effects.lua": {
+     "staged": "32fac872d612368762f6b79a00319ace4e1547822045471aabf3ed20e46af2e9",
+     "repo": "32fac872d612368762f6b79a00319ace4e1547822045471aabf3ed20e46af2e9",
+     "equal": true,
+     "manifest": "32fac872d612368762f6b79a00319ace4e1547822045471aabf3ed20e46af2e9",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Mirror.lua": {
+     "staged": "9237e77fc9949dd878089b73bc5f8fad625c9eaad8e766c04a663c4a35673a05",
+     "repo": "9237e77fc9949dd878089b73bc5f8fad625c9eaad8e766c04a663c4a35673a05",
+     "equal": true,
+     "manifest": "9237e77fc9949dd878089b73bc5f8fad625c9eaad8e766c04a663c4a35673a05",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_ModOptions.lua": {
+     "staged": "7e263b5540391f04fa72e1d9ea48ed2a92d8b96b782e6e16a8b6b5ba778058a3",
+     "repo": "7e263b5540391f04fa72e1d9ea48ed2a92d8b96b782e6e16a8b6b5ba778058a3",
+     "equal": true,
+     "manifest": "7e263b5540391f04fa72e1d9ea48ed2a92d8b96b782e6e16a8b6b5ba778058a3",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Moodles.lua": {
+     "staged": "29cbd2caf2bd10a05601351904924ba32577825984641b92315846dd1c636341",
+     "repo": "29cbd2caf2bd10a05601351904924ba32577825984641b92315846dd1c636341",
+     "equal": true,
+     "manifest": "29cbd2caf2bd10a05601351904924ba32577825984641b92315846dd1c636341",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Options.lua": {
+     "staged": "f28200d749b0a64647fa6b11c94fcadc90443acf9ddcaf2e1048fe74ff003ccc",
+     "repo": "f28200d749b0a64647fa6b11c94fcadc90443acf9ddcaf2e1048fe74ff003ccc",
+     "equal": true,
+     "manifest": "f28200d749b0a64647fa6b11c94fcadc90443acf9ddcaf2e1048fe74ff003ccc",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Panel.lua": {
+     "staged": "bc8b0a78b93f5cc21254c66280b470a1eae5912c22090403224cc36654a14369",
+     "repo": "bc8b0a78b93f5cc21254c66280b470a1eae5912c22090403224cc36654a14369",
+     "equal": true,
+     "manifest": "bc8b0a78b93f5cc21254c66280b470a1eae5912c22090403224cc36654a14369",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Tab.lua": {
+     "staged": "72bb7c1907fa6ae865ecfb134c43804cc9a9033c4de41ad55685e41020a8e29a",
+     "repo": "72bb7c1907fa6ae865ecfb134c43804cc9a9033c4de41ad55685e41020a8e29a",
+     "equal": true,
+     "manifest": "72bb7c1907fa6ae865ecfb134c43804cc9a9033c4de41ad55685e41020a8e29a",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_Tooltip.lua": {
+     "staged": "2a6e82c3ad6ea4b7b39dbd44be02c22e5aa63c099094646c9dfd71c59804b8cd",
+     "repo": "2a6e82c3ad6ea4b7b39dbd44be02c22e5aa63c099094646c9dfd71c59804b8cd",
+     "equal": true,
+     "manifest": "2a6e82c3ad6ea4b7b39dbd44be02c22e5aa63c099094646c9dfd71c59804b8cd",
+     "manifest_equal": true
+    },
+    "common/media/lua/client/NR_Client_View.lua": {
+     "staged": "bbca01dd3bcc023466b8ada4c3541a18febde6eb657a54fbc92ca2e73e297185",
+     "repo": "bbca01dd3bcc023466b8ada4c3541a18febde6eb657a54fbc92ca2e73e297185",
+     "equal": true,
+     "manifest": "bbca01dd3bcc023466b8ada4c3541a18febde6eb657a54fbc92ca2e73e297185",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Bench.lua": {
+     "staged": "f8a73e55af4a876f920b4a26aa7e90a0329d7f8824f33854b299bd30511481a3",
+     "repo": "f8a73e55af4a876f920b4a26aa7e90a0329d7f8824f33854b299bd30511481a3",
+     "equal": true,
+     "manifest": "f8a73e55af4a876f920b4a26aa7e90a0329d7f8824f33854b299bd30511481a3",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Bus.lua": {
+     "staged": "25c4f25a5abb4611550a3ee611c702a7790a20e1e92e2b47ae2e536761716a8e",
+     "repo": "25c4f25a5abb4611550a3ee611c702a7790a20e1e92e2b47ae2e536761716a8e",
+     "equal": true,
+     "manifest": "25c4f25a5abb4611550a3ee611c702a7790a20e1e92e2b47ae2e536761716a8e",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Effects.lua": {
+     "staged": "3b7bfbed1f13c4a7eb46b62ca8b974d87055cb2d8b77edc4322cfa20955e7cac",
+     "repo": "3b7bfbed1f13c4a7eb46b62ca8b974d87055cb2d8b77edc4322cfa20955e7cac",
+     "equal": true,
+     "manifest": "3b7bfbed1f13c4a7eb46b62ca8b974d87055cb2d8b77edc4322cfa20955e7cac",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Fast.lua": {
+     "staged": "6775df1650652948ce89ecce4c584ebd289b516456886efa475032acfef81e37",
+     "repo": "6775df1650652948ce89ecce4c584ebd289b516456886efa475032acfef81e37",
+     "equal": true,
+     "manifest": "6775df1650652948ce89ecce4c584ebd289b516456886efa475032acfef81e37",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Intake.lua": {
+     "staged": "d51c594023c70a2873f14f03cc31a2227c42c9023630de612bc0d32106b86a7c",
+     "repo": "d51c594023c70a2873f14f03cc31a2227c42c9023630de612bc0d32106b86a7c",
+     "equal": true,
+     "manifest": "d51c594023c70a2873f14f03cc31a2227c42c9023630de612bc0d32106b86a7c",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Kinetics.lua": {
+     "staged": "2812daf84fef9b54188803bdcbffcb372d051bd3c65b012f3d1de96322e9b75f",
+     "repo": "2812daf84fef9b54188803bdcbffcb372d051bd3c65b012f3d1de96322e9b75f",
+     "equal": true,
+     "manifest": "2812daf84fef9b54188803bdcbffcb372d051bd3c65b012f3d1de96322e9b75f",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Metabolism.lua": {
+     "staged": "62b244fafeee80dc9f5a3bcae0f8ec044138457df0519e8c5049a53d03d954d8",
+     "repo": "62b244fafeee80dc9f5a3bcae0f8ec044138457df0519e8c5049a53d03d954d8",
+     "equal": true,
+     "manifest": "62b244fafeee80dc9f5a3bcae0f8ec044138457df0519e8c5049a53d03d954d8",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Nutrients.lua": {
+     "staged": "24c927408a7aace01295ba89ae808a39cdf1337fe56d231791ed337b26c53398",
+     "repo": "24c927408a7aace01295ba89ae808a39cdf1337fe56d231791ed337b26c53398",
+     "equal": true,
+     "manifest": "24c927408a7aace01295ba89ae808a39cdf1337fe56d231791ed337b26c53398",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Options.lua": {
+     "staged": "de9d53a45f6745dbe7bdff25236f1e43523f9d8029010f408d18dcf5397615d7",
+     "repo": "de9d53a45f6745dbe7bdff25236f1e43523f9d8029010f408d18dcf5397615d7",
+     "equal": true,
+     "manifest": "de9d53a45f6745dbe7bdff25236f1e43523f9d8029010f408d18dcf5397615d7",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Players.lua": {
+     "staged": "9004781d24e6da2030810537c081c54c09588fc5a2ecf37c867f213a085c92b8",
+     "repo": "9004781d24e6da2030810537c081c54c09588fc5a2ecf37c867f213a085c92b8",
+     "equal": true,
+     "manifest": "9004781d24e6da2030810537c081c54c09588fc5a2ecf37c867f213a085c92b8",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Reconcile.lua": {
+     "staged": "6b4411f79439110dc2b258af9ce718e1e78027ef35eab13aa5bcb0fe4b0d4a52",
+     "repo": "6b4411f79439110dc2b258af9ce718e1e78027ef35eab13aa5bcb0fe4b0d4a52",
+     "equal": true,
+     "manifest": "6b4411f79439110dc2b258af9ce718e1e78027ef35eab13aa5bcb0fe4b0d4a52",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Store.lua": {
+     "staged": "6c71767950ad50edcab3b9c42bfcad7b4bb61355e182aa819fbd5738d7e77f6c",
+     "repo": "6c71767950ad50edcab3b9c42bfcad7b4bb61355e182aa819fbd5738d7e77f6c",
+     "equal": true,
+     "manifest": "6c71767950ad50edcab3b9c42bfcad7b4bb61355e182aa819fbd5738d7e77f6c",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Strength.lua": {
+     "staged": "4298a30659a5012a075c526ac91a7a53aa4a402f124cee4b22907e7608ef07e4",
+     "repo": "4298a30659a5012a075c526ac91a7a53aa4a402f124cee4b22907e7608ef07e4",
+     "equal": true,
+     "manifest": "4298a30659a5012a075c526ac91a7a53aa4a402f124cee4b22907e7608ef07e4",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Training.lua": {
+     "staged": "59f3705a5c479bf17bd57ad06179bcfd0765bc48c03410152311db71bdd8a799",
+     "repo": "59f3705a5c479bf17bd57ad06179bcfd0765bc48c03410152311db71bdd8a799",
+     "equal": true,
+     "manifest": "59f3705a5c479bf17bd57ad06179bcfd0765bc48c03410152311db71bdd8a799",
+     "manifest_equal": true
+    },
+    "common/media/lua/server/NR_Server_Weight.lua": {
+     "staged": "2c071c9b60927f8e58eaeb7ef2aa18c35b771b79e2653889325e9618698a6b42",
+     "repo": "2c071c9b60927f8e58eaeb7ef2aa18c35b771b79e2653889325e9618698a6b42",
+     "equal": true,
+     "manifest": "2c071c9b60927f8e58eaeb7ef2aa18c35b771b79e2653889325e9618698a6b42",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Core.lua": {
+     "staged": "a4a60710ac000611bc89ee58ec36f82f34e7f0e2c882f14ee25f811bf1e77f3d",
+     "repo": "a4a60710ac000611bc89ee58ec36f82f34e7f0e2c882f14ee25f811bf1e77f3d",
+     "equal": true,
+     "manifest": "a4a60710ac000611bc89ee58ec36f82f34e7f0e2c882f14ee25f811bf1e77f3d",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Data_Effects.lua": {
+     "staged": "3630630e1b31ebf5e8cee1ce57af7c80853088141b5a4e84a213c0563a25c1eb",
+     "repo": "3630630e1b31ebf5e8cee1ce57af7c80853088141b5a4e84a213c0563a25c1eb",
+     "equal": true,
+     "manifest": "3630630e1b31ebf5e8cee1ce57af7c80853088141b5a4e84a213c0563a25c1eb",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Data_Infer.lua": {
+     "staged": "95fcccf69e2a53080971a2b884349cf941a5b468b3198203f79dab0bf40d72d3",
+     "repo": "95fcccf69e2a53080971a2b884349cf941a5b468b3198203f79dab0bf40d72d3",
+     "equal": true,
+     "manifest": "95fcccf69e2a53080971a2b884349cf941a5b468b3198203f79dab0bf40d72d3",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Data_Nutrients.lua": {
+     "staged": "3a30f82828e945eeae24bc55a0a1e57046931563cd9fc6ea00b43a9e8d04963a",
+     "repo": "3a30f82828e945eeae24bc55a0a1e57046931563cd9fc6ea00b43a9e8d04963a",
+     "equal": true,
+     "manifest": "3a30f82828e945eeae24bc55a0a1e57046931563cd9fc6ea00b43a9e8d04963a",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Data_Records.lua": {
+     "staged": "ba31e50431737489929e5e89ae16a0aafd6954d64581232f2144b22e05e32136",
+     "repo": "ba31e50431737489929e5e89ae16a0aafd6954d64581232f2144b22e05e32136",
+     "equal": true,
+     "manifest": "ba31e50431737489929e5e89ae16a0aafd6954d64581232f2144b22e05e32136",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel.lua": {
+     "staged": "c656e21a20fc75c5f81fec147569b4924ff1a7043672df4887284c2ea2899819",
+     "repo": "c656e21a20fc75c5f81fec147569b4924ff1a7043672df4887284c2ea2899819",
+     "equal": true,
+     "manifest": "c656e21a20fc75c5f81fec147569b4924ff1a7043672df4887284c2ea2899819",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Acute.lua": {
+     "staged": "53b0f5732dc2255b69c7bb582ac6a1dac7f6eae05e11d170ab6d0284c02690e6",
+     "repo": "53b0f5732dc2255b69c7bb582ac6a1dac7f6eae05e11d170ab6d0284c02690e6",
+     "equal": true,
+     "manifest": "53b0f5732dc2255b69c7bb582ac6a1dac7f6eae05e11d170ab6d0284c02690e6",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Aerobic.lua": {
+     "staged": "6bced20ed2ee63f9377cf478f429993f8315ba1e0840ad1fd06b5a6215093164",
+     "repo": "6bced20ed2ee63f9377cf478f429993f8315ba1e0840ad1fd06b5a6215093164",
+     "equal": true,
+     "manifest": "6bced20ed2ee63f9377cf478f429993f8315ba1e0840ad1fd06b5a6215093164",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Body.lua": {
+     "staged": "44457694192036ffb1f223ac80c80434ddc3b01524af3e7c92c1b40ac2573f18",
+     "repo": "44457694192036ffb1f223ac80c80434ddc3b01524af3e7c92c1b40ac2573f18",
+     "equal": true,
+     "manifest": "44457694192036ffb1f223ac80c80434ddc3b01524af3e7c92c1b40ac2573f18",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Effects.lua": {
+     "staged": "bad24fbd1c8e6cb6d31913141edef130774b1058d24afc26f09d584cff8dcfa5",
+     "repo": "bad24fbd1c8e6cb6d31913141edef130774b1058d24afc26f09d584cff8dcfa5",
+     "equal": true,
+     "manifest": "bad24fbd1c8e6cb6d31913141edef130774b1058d24afc26f09d584cff8dcfa5",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Energy.lua": {
+     "staged": "5f53c981d921ad6c048721cec2a768cc59f59e955880347971a0c8ba111de5cb",
+     "repo": "5f53c981d921ad6c048721cec2a768cc59f59e955880347971a0c8ba111de5cb",
+     "equal": true,
+     "manifest": "5f53c981d921ad6c048721cec2a768cc59f59e955880347971a0c8ba111de5cb",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Fast.lua": {
+     "staged": "3c7f38a1088e9113949a666d24c907d8fc41d1b6c26224c317cf45554f172f9b",
+     "repo": "3c7f38a1088e9113949a666d24c907d8fc41d1b6c26224c317cf45554f172f9b",
+     "equal": true,
+     "manifest": "3c7f38a1088e9113949a666d24c907d8fc41d1b6c26224c317cf45554f172f9b",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Fluids.lua": {
+     "staged": "19786428ed2d1147defd5c8fa178839c99688a6f1f09406fb7b0b0e12bee98e8",
+     "repo": "19786428ed2d1147defd5c8fa178839c99688a6f1f09406fb7b0b0e12bee98e8",
+     "equal": true,
+     "manifest": "19786428ed2d1147defd5c8fa178839c99688a6f1f09406fb7b0b0e12bee98e8",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Interact.lua": {
+     "staged": "7319c4d9a65a4f6f87a1995e2462e632af9fb7ad75bb78bc0267470d51612a77",
+     "repo": "7319c4d9a65a4f6f87a1995e2462e632af9fb7ad75bb78bc0267470d51612a77",
+     "equal": true,
+     "manifest": "7319c4d9a65a4f6f87a1995e2462e632af9fb7ad75bb78bc0267470d51612a77",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Mirror.lua": {
+     "staged": "d2dc629d637271ddab3de4339189683c3e1dd8570875810d796a1455268ec1b4",
+     "repo": "d2dc629d637271ddab3de4339189683c3e1dd8570875810d796a1455268ec1b4",
+     "equal": true,
+     "manifest": "d2dc629d637271ddab3de4339189683c3e1dd8570875810d796a1455268ec1b4",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Nutrients.lua": {
+     "staged": "2198c60ed51feea947a56ed7d38002d9004d507c849ccc4c8eef1b38d8577468",
+     "repo": "2198c60ed51feea947a56ed7d38002d9004d507c849ccc4c8eef1b38d8577468",
+     "equal": true,
+     "manifest": "2198c60ed51feea947a56ed7d38002d9004d507c849ccc4c8eef1b38d8577468",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Partition.lua": {
+     "staged": "8c6666ad0bb47aca1a6376a74aceecaf1003b5c971b83fdede10223a25e90813",
+     "repo": "8c6666ad0bb47aca1a6376a74aceecaf1003b5c971b83fdede10223a25e90813",
+     "equal": true,
+     "manifest": "8c6666ad0bb47aca1a6376a74aceecaf1003b5c971b83fdede10223a25e90813",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Reconcile.lua": {
+     "staged": "130461c069d6f5d6b21b290c6e201df0b053b5f257c22747e466afbd740afe72",
+     "repo": "130461c069d6f5d6b21b290c6e201df0b053b5f257c22747e466afbd740afe72",
+     "equal": true,
+     "manifest": "130461c069d6f5d6b21b290c6e201df0b053b5f257c22747e466afbd740afe72",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Retention.lua": {
+     "staged": "5e37142ffb3a32760f7b2d17c3007924ef6affa8a527c95eed5ff51fed062c13",
+     "repo": "5e37142ffb3a32760f7b2d17c3007924ef6affa8a527c95eed5ff51fed062c13",
+     "equal": true,
+     "manifest": "5e37142ffb3a32760f7b2d17c3007924ef6affa8a527c95eed5ff51fed062c13",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Stomach.lua": {
+     "staged": "73e4e0bc157a5a0f87e0e31ca484aecbea3ac1d08d0b9dca8700d9f75ea5fbba",
+     "repo": "73e4e0bc157a5a0f87e0e31ca484aecbea3ac1d08d0b9dca8700d9f75ea5fbba",
+     "equal": true,
+     "manifest": "73e4e0bc157a5a0f87e0e31ca484aecbea3ac1d08d0b9dca8700d9f75ea5fbba",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Store.lua": {
+     "staged": "58899d030383678ab81f4b3223312c072345a91e5cc69d48c57af9c4163b8ded",
+     "repo": "58899d030383678ab81f4b3223312c072345a91e5cc69d48c57af9c4163b8ded",
+     "equal": true,
+     "manifest": "58899d030383678ab81f4b3223312c072345a91e5cc69d48c57af9c4163b8ded",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Strength.lua": {
+     "staged": "642e4248e00a33a80356ad4e1c6bfa4bb23c1e276ec4f61307def1f41341f717",
+     "repo": "642e4248e00a33a80356ad4e1c6bfa4bb23c1e276ec4f61307def1f41341f717",
+     "equal": true,
+     "manifest": "642e4248e00a33a80356ad4e1c6bfa4bb23c1e276ec4f61307def1f41341f717",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Training.lua": {
+     "staged": "070afd1e759d7bc50f3a31a47e01d4ecb0f70845a392fed41b5836b624cb1b1e",
+     "repo": "070afd1e759d7bc50f3a31a47e01d4ecb0f70845a392fed41b5836b624cb1b1e",
+     "equal": true,
+     "manifest": "070afd1e759d7bc50f3a31a47e01d4ecb0f70845a392fed41b5836b624cb1b1e",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_Vector.lua": {
+     "staged": "07cdf424881e13c420775eb1b85cbde0b1ece7065723b62c5065d359c023e87d",
+     "repo": "07cdf424881e13c420775eb1b85cbde0b1ece7065723b62c5065d359c023e87d",
+     "equal": true,
+     "manifest": "07cdf424881e13c420775eb1b85cbde0b1ece7065723b62c5065d359c023e87d",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/NR_Kernel_View.lua": {
+     "staged": "3315e6a43df9b5bdd6ac4600e2d888b6f0ea976e34f3720ec8d8108cea282620",
+     "repo": "3315e6a43df9b5bdd6ac4600e2d888b6f0ea976e34f3720ec8d8108cea282620",
+     "equal": true,
+     "manifest": "3315e6a43df9b5bdd6ac4600e2d888b6f0ea976e34f3720ec8d8108cea282620",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/Translate/EN/IG_UI.json": {
+     "staged": "038c90ee3d9344f52079e62c397f77a28570bf458eef4aac059b8b97addcd3ce",
+     "repo": "038c90ee3d9344f52079e62c397f77a28570bf458eef4aac059b8b97addcd3ce",
+     "equal": true,
+     "manifest": "038c90ee3d9344f52079e62c397f77a28570bf458eef4aac059b8b97addcd3ce",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/Translate/EN/Moodles.json": {
+     "staged": "5c1e0cf7d9479b68f62308ba87ddc8b6951f01ea1cafa5d1e2d97e23e987d874",
+     "repo": "5c1e0cf7d9479b68f62308ba87ddc8b6951f01ea1cafa5d1e2d97e23e987d874",
+     "equal": true,
+     "manifest": "5c1e0cf7d9479b68f62308ba87ddc8b6951f01ea1cafa5d1e2d97e23e987d874",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/Translate/EN/Sandbox.json": {
+     "staged": "19e8e553b33f315078936c427cd3903782fab3d9fd29a8ea7a30c97b8b4d608c",
+     "repo": "19e8e553b33f315078936c427cd3903782fab3d9fd29a8ea7a30c97b8b4d608c",
+     "equal": true,
+     "manifest": "19e8e553b33f315078936c427cd3903782fab3d9fd29a8ea7a30c97b8b4d608c",
+     "manifest_equal": true
+    },
+    "common/media/lua/shared/Translate/EN/UI.json": {
+     "staged": "2a5fe97ee0cc3e6868cf5773ed348915cd48ad2f6aa9e7766f935a29afccadce",
+     "repo": "2a5fe97ee0cc3e6868cf5773ed348915cd48ad2f6aa9e7766f935a29afccadce",
+     "equal": true,
+     "manifest": "2a5fe97ee0cc3e6868cf5773ed348915cd48ad2f6aa9e7766f935a29afccadce",
+     "manifest_equal": true
+    },
+    "common/media/scripts/NR_ItemPass_Food.txt": {
+     "staged": "7836a50e635ce4cbf761ec397c24d5aadc0f66f794f099c10f7acf27db3ee4e7",
+     "repo": "7836a50e635ce4cbf761ec397c24d5aadc0f66f794f099c10f7acf27db3ee4e7",
+     "equal": true,
+     "manifest": "7836a50e635ce4cbf761ec397c24d5aadc0f66f794f099c10f7acf27db3ee4e7",
+     "manifest_equal": true
+    },
+    "common/media/ui/NutritionRevamp/deficiency.png": {
+     "staged": "dc843ded1b2fd2bb66706df06149b0c6cda734b6a2027c99bdcd933f9fa0fa56",
+     "repo": "dc843ded1b2fd2bb66706df06149b0c6cda734b6a2027c99bdcd933f9fa0fa56",
+     "equal": true,
+     "manifest": "dc843ded1b2fd2bb66706df06149b0c6cda734b6a2027c99bdcd933f9fa0fa56",
+     "manifest_equal": true
+    },
+    "common/media/ui/NutritionRevamp/energy.png": {
+     "staged": "295dd7ec0377f46be634856f6c3adddc0d9ebb47f7c0700692238229a85cdc1b",
+     "repo": "295dd7ec0377f46be634856f6c3adddc0d9ebb47f7c0700692238229a85cdc1b",
+     "equal": true,
+     "manifest": "295dd7ec0377f46be634856f6c3adddc0d9ebb47f7c0700692238229a85cdc1b",
+     "manifest_equal": true
+    },
+    "common/media/ui/NutritionRevamp/excess.png": {
+     "staged": "5541fcfaee17e90100228654cccacb2c644727eb6c5a8cabed08ba5a7375304f",
+     "repo": "5541fcfaee17e90100228654cccacb2c644727eb6c5a8cabed08ba5a7375304f",
+     "equal": true,
+     "manifest": "5541fcfaee17e90100228654cccacb2c644727eb6c5a8cabed08ba5a7375304f",
+     "manifest_equal": true
+    },
+    "common/media/ui/NutritionRevamp/hydration.png": {
+     "staged": "7465d5480a424fa4d2d0ea159866ff487a069b175e153749fb198aa6107da917",
+     "repo": "7465d5480a424fa4d2d0ea159866ff487a069b175e153749fb198aa6107da917",
+     "equal": true,
+     "manifest": "7465d5480a424fa4d2d0ea159866ff487a069b175e153749fb198aa6107da917",
+     "manifest_equal": true
+    },
+    "common/media/ui/NutritionRevamp/sleep.png": {
+     "staged": "9d62626dbccc4d024e83ab7f2012e0e311209757f7cf0f9b64f013997b8e7e80",
+     "repo": "9d62626dbccc4d024e83ab7f2012e0e311209757f7cf0f9b64f013997b8e7e80",
+     "equal": true,
+     "manifest": "9d62626dbccc4d024e83ab7f2012e0e311209757f7cf0f9b64f013997b8e7e80",
+     "manifest_equal": true
+    },
+    "common/media/ui/NutritionRevamp/stimulant.png": {
+     "staged": "1d1a9e5043ae8cd11f8c36a3d8d2d69bc5e469f9a0fc37cf664b8d3b8c6f7e22",
+     "repo": "1d1a9e5043ae8cd11f8c36a3d8d2d69bc5e469f9a0fc37cf664b8d3b8c6f7e22",
+     "equal": true,
+     "manifest": "1d1a9e5043ae8cd11f8c36a3d8d2d69bc5e469f9a0fc37cf664b8d3b8c6f7e22",
+     "manifest_equal": true
+    }
+   },
+   "staged_count": 65,
+   "repo_count": 65,
+   "equal_count": 65,
+   "unequal": [],
+   "repo_only": [],
+   "manifest_count": 65,
+   "manifest_equal_count": 65,
+   "manifest_only": [],
+   "deployed": {
+    "clients/admin/mods/NutritionRevamp": {
+     "count": 65,
+     "equal_count": 65,
+     "missing": [],
+     "extra": []
+    },
+    "clients/bob/mods/NutritionRevamp": {
+     "count": 65,
+     "equal_count": 65,
+     "missing": [],
+     "extra": []
+    },
+    "server/mods/NutritionRevamp": {
+     "count": 65,
+     "equal_count": 65,
+     "missing": [],
+     "extra": []
+    }
+   }
+  },
+  "S0": {
+   "ready": [
+    {
+     "t": 34.7,
+     "phase": "client_launch",
+     "user": "admin",
+     "restored": true
+    },
+    {
+     "t": 73.0,
+     "phase": "client_ready",
+     "took": 37.9,
+     "user": "admin"
+    },
+    {
+     "t": 73.1,
+     "phase": "client_launch",
+     "user": "bob",
+     "restored": true
+    },
+    {
+     "t": 113.9,
+     "phase": "client_ready",
+     "took": 40.3,
+     "user": "bob"
+    }
+   ],
+   "players": {
+    "wall": 114.666,
+    "wall_after": 115.424,
+    "side": "server",
+    "raw": [
+     "admin",
+     "bob"
+    ]
+   },
+   "seen": {
+    "bob": {
+     "in_game": 37.8,
+     "ready": 40.3
+    },
+    "admin": {
+     "in_game": 35.3,
+     "ready": 37.9
+    }
+   }
+  },
+  "E": {
+   "bob": {
+    "version": {
+     "name": "NutritionRevamp.version",
+     "side": "client:bob",
+     "wall": 115.429,
+     "wall_after": 115.688,
+     "resolved": true,
+     "type": "string",
+     "value": "1.0.0"
+    },
+    "build": {
+     "name": "NutritionRevamp.build",
+     "side": "client:bob",
+     "wall": 115.688,
+     "wall_after": 116.198,
+     "resolved": true,
+     "type": "string",
+     "value": "42.20.4"
+    }
+   },
+   "admin": {
+    "version": {
+     "name": "NutritionRevamp.version",
+     "side": "client:admin",
+     "wall": 116.198,
+     "wall_after": 116.451,
+     "resolved": true,
+     "type": "string",
+     "value": "1.0.0"
+    },
+    "build": {
+     "name": "NutritionRevamp.build",
+     "side": "client:admin",
+     "wall": 116.451,
+     "wall_after": 116.959,
+     "resolved": true,
+     "type": "string",
+     "value": "42.20.4"
+    }
+   },
+   "server": {
+    "version": {
+     "name": "NutritionRevamp.version",
+     "side": "server",
+     "wall": 116.959,
+     "wall_after": 117.219,
+     "resolved": true,
+     "type": "string",
+     "value": "1.0.0"
+    },
+    "build": {
+     "name": "NutritionRevamp.build",
+     "side": "server",
+     "wall": 117.219,
+     "wall_after": 117.977,
+     "resolved": true,
+     "type": "string",
+     "value": "42.20.4"
+    }
+   }
+  },
+  "F": {
+   "server_itemPassActive": {
+    "name": "NutritionRevamp.itemPassActive",
+    "side": "server",
+    "wall": 117.979,
+    "wall_after": 118.487,
+    "resolved": true,
+    "type": "function",
+    "value": "function"
+   },
+   "acorn": {
+    "bob": {
+     "fullType": "Base.Acorn",
+     "via": "getItem",
+     "side": "client",
+     "access": {
+      "HungerChange": "get",
+      "ThirstChange": "get",
+      "DaysFresh": "get",
+      "DaysTotallyRotten": "get",
+      "IsCookable": "is",
+      "MinutesToCook": "get",
+      "MinutesToBurn": "get"
+     },
+     "HungerChange": -10,
+     "ThirstChange": 0,
+     "DaysFresh": 180,
+     "DaysTotallyRotten": 365,
+     "IsCookable": true,
+     "MinutesToCook": 10,
+     "MinutesToBurn": 30,
+     "wall": 118.487,
+     "wall_after": 118.743
+    },
+    "admin": {
+     "fullType": "Base.Acorn",
+     "via": "getItem",
+     "side": "client",
+     "access": {
+      "HungerChange": "get",
+      "ThirstChange": "get",
+      "DaysFresh": "get",
+      "DaysTotallyRotten": "get",
+      "IsCookable": "is",
+      "MinutesToCook": "get",
+      "MinutesToBurn": "get"
+     },
+     "HungerChange": -10,
+     "ThirstChange": 0,
+     "DaysFresh": 180,
+     "DaysTotallyRotten": 365,
+     "IsCookable": true,
+     "MinutesToCook": 10,
+     "MinutesToBurn": 30,
+     "wall": 118.743,
+     "wall_after": 119.247
+    },
+    "server": {
+     "fullType": "Base.Acorn",
+     "via": "getItem",
+     "side": "server",
+     "access": {
+      "HungerChange": "get",
+      "ThirstChange": "get",
+      "DaysFresh": "get",
+      "DaysTotallyRotten": "get",
+      "IsCookable": "is",
+      "MinutesToCook": "get",
+      "MinutesToBurn": "get"
+     },
+     "HungerChange": -10,
+     "ThirstChange": 0,
+     "DaysFresh": 180,
+     "DaysTotallyRotten": 365,
+     "IsCookable": true,
+     "MinutesToCook": 10,
+     "MinutesToBurn": 30,
+     "wall": 119.247,
+     "wall_after": 119.754
+    }
+   }
+  },
+  "Z": {
+   "server_mod_error_lines": [],
+   "admin_parked": false,
+   "seen": {
+    "bob": {
+     "in_game": 37.8,
+     "ready": 40.3
+    },
+    "admin": {
+     "in_game": 35.3,
+     "ready": 37.9
+    }
+   }
+  },
+  "A": {
+   "line_count": 1,
+   "line": "LOG  : Lua          f:0 st:1,680,667,893> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=server mode=takeover itemPass=true legacyMirror=on frameworks=n/a hook=true limitations=9 nutritionOn=false log=2",
+   "pairs": {
+    "version": "1.0.0",
+    "build": "42.20.4",
+    "side": "server",
+    "mode": "takeover",
+    "itemPass": "true",
+    "legacyMirror": "on",
+    "frameworks": "n/a",
+    "hook": "true",
+    "limitations": "9",
+    "nutritionOn": "false",
+    "log": "2"
+   }
+  },
+  "B": {
+   "bob": {
+    "line_count": 1,
+    "line": "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2",
+    "pairs": {
+     "version": "1.0.0",
+     "build": "42.20.4",
+     "side": "client",
+     "mode": "takeover",
+     "itemPass": "true",
+     "frameworks": "none",
+     "log": "2"
+    }
+   },
+   "admin": {
+    "line_count": 1,
+    "line": "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2",
+    "pairs": {
+     "version": "1.0.0",
+     "build": "42.20.4",
+     "side": "client",
+     "mode": "takeover",
+     "itemPass": "true",
+     "frameworks": "none",
+     "log": "2"
+    }
+   }
+  },
+  "C": {
+   "conn_lines": [
+    "LOG  : Network      f:102 st:1,680,679,368> Connected new client 1004304397575415151 ID # 0",
+    "LOG  : Lua          f:356 st:1,680,704,900> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Network      f:541 st:1,680,723,340> Connected new client 1053843993514415756 ID # 4",
+    "LOG  : Lua          f:762 st:1,680,745,362> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:850 st:1,680,754,156> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:871 st:1,680,756,257> [NutritionRevamp] players: bob left"
+   ],
+   "server_checksum_lines": [
+    "LOG  : General      f:0 st:1,680,635,449>     Checksum: Warning",
+    "LOG  : General      f:0 st:1,680,640,619> scriptChecksum: 93e43c2fc2ea0f3850cad0a2445ba456",
+    "LOG  : Lua          f:0 st:1,680,664,503> luaChecksum: efff216ed826b2dd7dbada7d2ab2712c"
+   ],
+   "bob_checksum_lines": [
+    "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum",
+    "LOG  : General      f:0 st:0> client: DoLuaChecksum start",
+    "LOG  : General      f:0 st:0> client: DoLuaChecksum end"
+   ]
+  }
+ },
+ "phase_errors": {},
+ "phase_walls": {
+  "D": {
+   "start": 0.842,
+   "end": 0.855
+  },
+  "S0": {
+   "start": 114.665,
+   "end": 115.424
+  },
+  "E": {
+   "start": 115.429,
+   "end": 117.977
+  },
+  "F": {
+   "start": 117.979,
+   "end": 119.754
+  },
+  "Z": {
+   "start": 119.756,
+   "end": 119.756
+  }
+ },
+ "verdicts": {
+  "D": {
+   "phase": "D",
+   "predicted": {
+    "staged files with a repo twin": "all",
+    "pairs equal": "all",
+    "repo files missing from the stage": 0,
+    "manifest sha256 equal to the staged file": "all",
+    "deployed copies equal to the stage": "server, admin, bob"
+   },
+   "falsifier": "a staged file differing from the repository's, a repository file not staged, a manifest hash off, a deployed copy differing",
+   "observed": {
+    "staged_count": 65,
+    "repo_count": 65,
+    "equal_count": 65,
+    "unequal": [],
+    "repo_only": [],
+    "manifest_count": 65,
+    "manifest_equal_count": 65,
+    "manifest_only": [],
+    "deployed": {
+     "clients/admin/mods/NutritionRevamp": {
+      "count": 65,
+      "equal_count": 65
+     },
+     "clients/bob/mods/NutritionRevamp": {
+      "count": 65,
+      "equal_count": 65
+     },
+     "server/mods/NutritionRevamp": {
+      "count": 65,
+      "equal_count": 65
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 133.073
+  },
+  "S0": {
+   "phase": "S0",
+   "predicted": {
+    "both_ready": true,
+    "verify": "every row ok",
+    "players": [
+     "admin",
+     "bob"
+    ]
+   },
+   "falsifier": "a client not ready, a verify row failed, a user absent from the players list",
+   "observed": {
+    "ready": {
+     "admin": true,
+     "bob": true
+    },
+    "verify_ok": [
+     true,
+     true,
+     true
+    ],
+    "players_has": {
+     "admin": true,
+     "bob": true
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 133.073
+  },
+  "E": {
+   "phase": "E",
+   "predicted": {
+    "version": {
+     "bob": "1.0.0",
+     "admin": "1.0.0",
+     "server": "1.0.0"
+    },
+    "build": {
+     "bob": "42.20.4",
+     "admin": "42.20.4",
+     "server": "42.20.4"
+    }
+   },
+   "falsifier": "a side reading another version or build",
+   "observed": {
+    "version": {
+     "bob": "1.0.0",
+     "admin": "1.0.0",
+     "server": "1.0.0"
+    },
+    "build": {
+     "bob": "42.20.4",
+     "admin": "42.20.4",
+     "server": "42.20.4"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 133.073
+  },
+  "F": {
+   "phase": "F",
+   "predicted": {
+    "server itemPassActive type": "function",
+    "Base.Acorn Calories": "109.71 +- 0.01 on bob, admin, server"
+   },
+   "falsifier": "the function absent, a side reading the vanilla 55.0 or another value",
+   "observed": {
+    "server_itemPassActive_type": "function",
+    "acorn_calories": {
+     "bob": null,
+     "admin": null,
+     "server": null
+    },
+    "acorn_access": {
+     "bob": {
+      "HungerChange": "get",
+      "ThirstChange": "get",
+      "DaysFresh": "get",
+      "DaysTotallyRotten": "get",
+      "IsCookable": "is",
+      "MinutesToCook": "get",
+      "MinutesToBurn": "get"
+     },
+     "admin": {
+      "HungerChange": "get",
+      "ThirstChange": "get",
+      "DaysFresh": "get",
+      "DaysTotallyRotten": "get",
+      "IsCookable": "is",
+      "MinutesToCook": "get",
+      "MinutesToBurn": "get"
+     },
+     "server": {
+      "HungerChange": "get",
+      "ThirstChange": "get",
+      "DaysFresh": "get",
+      "DaysTotallyRotten": "get",
+      "IsCookable": "is",
+      "MinutesToCook": "get",
+      "MinutesToBurn": "get"
+     }
+    }
+   },
+   "verdict": "unmeasured",
+   "wall": 133.073
+  },
+  "Z": {
+   "phase": "Z",
+   "predicted": {
+    "mod_error": "none",
+    "admin_lua_error": false
+   },
+   "falsifier": "a mod error line, admin parked",
+   "observed": {
+    "server_mod_error_lines": [],
+    "admin_lua_error": false
+   },
+   "verdict": "as_predicted",
+   "wall": 133.073
+  },
+  "A": {
+   "phase": "A",
+   "predicted": {
+    "server self-report lines": 1,
+    "pairs": {
+     "side": "server",
+     "mode": "takeover",
+     "itemPass": "true",
+     "legacyMirror": "on",
+     "frameworks": "n/a",
+     "nutritionOn": "false",
+     "log": "2"
+    },
+    "hook/limitations": "recorded, not graded"
+   },
+   "falsifier": "itemPass not true, a flag other than the defaults, a second or no line",
+   "observed": {
+    "line_count": 1,
+    "pairs": {
+     "build": "42.20.4",
+     "frameworks": "n/a",
+     "hook": "true",
+     "itemPass": "true",
+     "legacyMirror": "on",
+     "limitations": "9",
+     "log": "2",
+     "mode": "takeover",
+     "nutritionOn": "false",
+     "side": "server",
+     "version": "1.0.0"
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 133.074
+  },
+  "B": {
+   "phase": "B",
+   "predicted": {
+    "client self-report lines": {
+     "bob": 1,
+     "admin": 1
+    },
+    "pairs": {
+     "side": "client",
+     "mode": "takeover",
+     "itemPass": "true",
+     "frameworks": "none",
+     "log": "2"
+    }
+   },
+   "falsifier": "itemPass not true on a client, a framework detected, a missing or doubled line",
+   "observed": {
+    "line_count": {
+     "bob": 1,
+     "admin": 1
+    },
+    "pairs": {
+     "bob": {
+      "build": "42.20.4",
+      "frameworks": "none",
+      "itemPass": "true",
+      "log": "2",
+      "mode": "takeover",
+      "side": "client",
+      "version": "1.0.0"
+     },
+     "admin": {
+      "build": "42.20.4",
+      "frameworks": "none",
+      "itemPass": "true",
+      "log": "2",
+      "mode": "takeover",
+      "side": "client",
+      "version": "1.0.0"
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 133.074
+  },
+  "C": {
+   "phase": "C",
+   "predicted": {
+    "connected lines": ">= 2",
+    "first sight of bob": ">= 1",
+    "checksum bad lines": {
+     "server": 0,
+     "bob": 0
+    },
+    "bob ready": true,
+    "bob in players": true
+   },
+   "falsifier": "a checksum mismatch or kick line, bob never connected or never first-seen",
+   "observed": {
+    "connected_lines": 2,
+    "first_sight_bob": 1,
+    "checksum_bad": {
+     "server": 0,
+     "bob": 0
+    },
+    "checksum_lines": {
+     "server": 3,
+     "bob": 3
+    },
+    "bob_ready": true,
+    "bob_in_players": true,
+    "join_walls": {
+     "admin": {
+      "client_launch": 34.7,
+      "client_ready": 73.0,
+      "ready_took": 37.9,
+      "launch_to_ready_s": 38.3
+     },
+     "bob": {
+      "client_launch": 73.1,
+      "client_ready": 113.9,
+      "ready_took": 40.3,
+      "launch_to_ready_s": 40.8
+     }
+    }
+   },
+   "verdict": "as_predicted",
+   "wall": 133.075
+  }
+ },
+ "mod_error_checks": [],
+ "lint_errors": [],
+ "timeline": [
+  {
+   "t": 34.7,
+   "phase": "server_started"
+  },
+  {
+   "t": 34.7,
+   "phase": "client_launch",
+   "user": "admin",
+   "restored": true
+  },
+  {
+   "t": 73.0,
+   "phase": "client_ready",
+   "took": 37.9,
+   "user": "admin"
+  },
+  {
+   "t": 73.1,
+   "phase": "client_launch",
+   "user": "bob",
+   "restored": true
+  },
+  {
+   "t": 113.9,
+   "phase": "client_ready",
+   "took": 40.3,
+   "user": "bob"
+  },
+  {
+   "t": 113.9,
+   "phase": "session_ready"
+  },
+  {
+   "t": 114.1,
+   "phase": "verify",
+   "side": "server",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"server\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 114.4,
+   "phase": "verify",
+   "side": "client",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 114.7,
+   "phase": "verify",
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "ok": true,
+   "got": "{\"side\": \"client\", \"name\": \"NutritionRevamp.version\", \"type\": \"string\", \"resolved\": true, \"value\": \""
+  },
+  {
+   "t": 122.3,
+   "phase": "client_quit",
+   "user": "admin",
+   "rc": 0
+  },
+  {
+   "t": 124.8,
+   "phase": "client_quit",
+   "user": "bob",
+   "rc": 0
+  },
+  {
+   "t": 132.4,
+   "phase": "server_stopped",
+   "rc": 0,
+   "errors": 0
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "D",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "S0",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "E",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "F",
+   "verdict": "unmeasured"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "Z",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "A",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "B",
+   "verdict": "as_predicted"
+  },
+  {
+   "t": 133.1,
+   "phase": "verdict",
+   "name": "C",
+   "verdict": "as_predicted"
+  }
+ ],
+ "server_launch_wall": 1.932,
+ "server_started_wall": 34.658,
+ "session_ready_wall": 113.882,
+ "build": "42.20.4",
+ "boot": {
+  "server_launch_to_started_s": 32.7,
+  "client_markers_s": {
+   "admin": {
+    "in_game": 35.3,
+    "ready": 37.9
+   },
+   "bob": {
+    "in_game": 37.8,
+    "ready": 40.3
+   }
+  },
+  "client_debug": {
+   "admin": true,
+   "bob": false
+  },
+  "server_started_wall": 34.658,
+  "session_ready_wall": 113.882
+ },
+ "verify": [
+  {
+   "side": "server",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"resolved\": true",
+   "ok": true,
+   "got": {
+    "side": "server",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  },
+  {
+   "side": "client:bob",
+   "cmd": "lua.global",
+   "args": "NutritionRevamp.version",
+   "expect": "\"value\": \"1.0.0\"",
+   "ok": true,
+   "got": {
+    "side": "client",
+    "name": "NutritionRevamp.version",
+    "type": "string",
+    "resolved": true,
+    "value": "1.0.0"
+   }
+  }
+ ],
+ "mods_not_found": {
+  "server": [],
+  "admin": [],
+  "bob": []
+ },
+ "server_errors": [],
+ "server_error_count": 0,
+ "admin_lua_error": false,
+ "client_seen": {
+  "admin": {
+   "in_game": 35.3,
+   "ready": 37.9
+  },
+  "bob": {
+   "in_game": 37.8,
+   "ready": 40.3
+  }
+ },
+ "server_t_started": 32.7,
+ "logs": {
+  "patterns": {
+   "self_server": "NutritionRevamp v1\\.0\\.0 build \\S+ side=server .*",
+   "self_client": "NutritionRevamp v1\\.0\\.0 build \\S+ side=client .*",
+   "conn": "Connected new client|players: first sight of |\\[NutritionRevamp\\] players: \\w+ left",
+   "checksum": "checksum",
+   "checksum_bad": "mismatch|differ|kick|disconnect|fail",
+   "log": "NR_|NutritionRevamp|LuaError|STACK TRACE|lua error|attempted index|tried to call nil|Exception",
+   "mod": "\\[NutritionRevamp\\]",
+   "echo_excluded": "PZTK: "
+  },
+  "limits": {
+   "log": 200
+  },
+  "clients": {
+   "admin": {
+    "lines": [
+     "LOG  : Mod          f:0> loading NutritionRevamp",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\admin\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2"
+    ],
+    "echo_lines_excluded": 3,
+    "mod_lines": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2"
+    ],
+    "self_report_lines": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2"
+    ],
+    "self_report_echo_excluded": 0,
+    "checksum_lines": [
+     "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum",
+     "LOG  : General      f:0 st:0> client: DoLuaChecksum start",
+     "LOG  : General      f:0 st:0> client: DoLuaChecksum end"
+    ],
+    "checksum_echo_excluded": 0,
+    "checksum_bad_lines": []
+   },
+   "bob": {
+    "lines": [
+     "LOG  : Mod          f:0> loading NutritionRevamp",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+     "LOG  : Mod          f:0 st:0> loading NutritionRevamp",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+     "LOG  : Mod          f:0 st:0> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "ERROR: General      f:0 st:0> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+     "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\clients\\bob\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+     "Stack trace:",
+     "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+     "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatPacketException",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2"
+    ],
+    "echo_lines_excluded": 3,
+    "mod_lines": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2"
+    ],
+    "self_report_lines": [
+     "LOG  : Lua          f:0 st:0> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=client mode=takeover itemPass=true frameworks=none log=2"
+    ],
+    "self_report_echo_excluded": 0,
+    "checksum_lines": [
+     "LOG  : Lua          f:0 st:0> WARN:MISSING in SettingsTable: AntiCheatChecksum",
+     "LOG  : General      f:0 st:0> client: DoLuaChecksum start",
+     "LOG  : General      f:0 st:0> client: DoLuaChecksum end"
+    ],
+    "checksum_echo_excluded": 0,
+    "checksum_bad_lines": []
+   }
+  },
+  "server": {
+   "lines": [
+    "LOG  : Mod          f:0 st:1,680,639,021> loading NutritionRevamp",
+    "LOG  : Mod          f:0 st:1,680,639,023> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ig_ui.json",
+    "LOG  : Mod          f:0 st:1,680,639,023> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/moodles.json",
+    "LOG  : Mod          f:0 st:1,680,639,023> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/sandbox.json",
+    "LOG  : Mod          f:0 st:1,680,639,024> mod \"NutritionRevamp\" overrides media/lua/shared/translate/en/ui.json",
+    "ERROR: General      f:0 st:1,680,650,150> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\PZTestKit\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,150> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\PZTestKit\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,151> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\PZTestKit\\42\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,151> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\PZTestKit\\42\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,152> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\NutritionRevamp\\common\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,153> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\NutritionRevamp\\common\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,153> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\NutritionRevamp\\42.20.4\\media\\AnimSets at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "ERROR: General      f:0 st:1,680,650,154> AdvancedAnimator$1.visitFileFailed> Exception thrown",
+    "java.nio.file.NoSuchFileException: C:\\Users\\Angus\\repos\\project_zomboid\\testing\\runs\\x201-20261006-215125\\server\\mods\\NutritionRevamp\\42.20.4\\media\\actiongroups at WindowsException.translateToIOException(null:-1).",
+    "Stack trace:",
+    "java.base/sun.nio.fs.WindowsException.translateToIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "java.base/sun.nio.fs.WindowsException.rethrowAsIOException(Unknown Source)",
+    "LOG  : Lua          f:0 st:1,680,664,446> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:1,680,664,446> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:1,680,664,447> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:1,680,664,447> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "ERROR: WorldGen     f:0 st:1,680,664,911> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderW at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderW",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,680,664,912> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderS at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderS",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,680,664,912> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderE at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderE",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,680,664,912> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: ladderN at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: ladderN",
+    "Stack trace:",
+    "ERROR: WorldGen     f:0 st:1,680,664,913> IsoPropertyType.lookupOrDefaultStr> Exception thrown",
+    "zombie.core.properties.IsoPropertyType$IsoPropertyTypeNotFoundException: Property Name not found: WindowShape at IsoPropertyType.lookup(IsoPropertyType.java:272). Message: Property Name not found: WindowShape",
+    "Stack trace:",
+    "LOG  : Lua          f:0 st:1,680,666,013> [NutritionRevamp] store attached (new world: true)",
+    "LOG  : Lua          f:0 st:1,680,667,892> [NutritionRevamp] fast: takeover handler registered",
+    "LOG  : Lua          f:0 st:1,680,667,892> [NutritionRevamp] intake: wrappers true drink true world true",
+    "LOG  : Lua          f:0 st:1,680,667,893> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+    "LOG  : Lua          f:0 st:1,680,667,893> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=server mode=takeover itemPass=true legacyMirror=on frameworks=n/a hook=true limitations=9 nutritionOn=false log=2",
+    "LOG  : Lua          f:356 st:1,680,704,900> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:762 st:1,680,745,362> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:850 st:1,680,754,156> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:871 st:1,680,756,257> [NutritionRevamp] players: bob left"
+   ],
+   "echo_lines_excluded": 4,
+   "mod_lines": [
+    "LOG  : Lua          f:0 st:1,680,664,446> [NutritionRevamp] intake: ISEatFoodAction.complete wrapped",
+    "LOG  : Lua          f:0 st:1,680,664,446> [NutritionRevamp] intake: ISEatFoodAction.serverStop wrapped",
+    "LOG  : Lua          f:0 st:1,680,664,447> [NutritionRevamp] intake: ISDrinkFluidAction.updateEat wrapped",
+    "LOG  : Lua          f:0 st:1,680,664,447> [NutritionRevamp] intake: ISTakeWaterAction.transferFluid wrapped",
+    "LOG  : Lua          f:0 st:1,680,666,013> [NutritionRevamp] store attached (new world: true)",
+    "LOG  : Lua          f:0 st:1,680,667,892> [NutritionRevamp] fast: takeover handler registered",
+    "LOG  : Lua          f:0 st:1,680,667,892> [NutritionRevamp] intake: wrappers true drink true world true",
+    "LOG  : Lua          f:0 st:1,680,667,893> [NutritionRevamp] nutrients: SleepAllowed=false SleepNeeded=false: the sleep state freezes at rested",
+    "LOG  : Lua          f:0 st:1,680,667,893> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=server mode=takeover itemPass=true legacyMirror=on frameworks=n/a hook=true limitations=9 nutritionOn=false log=2",
+    "LOG  : Lua          f:356 st:1,680,704,900> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Lua          f:762 st:1,680,745,362> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:850 st:1,680,754,156> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:871 st:1,680,756,257> [NutritionRevamp] players: bob left"
+   ],
+   "self_report_lines": [
+    "LOG  : Lua          f:0 st:1,680,667,893> [NutritionRevamp] NutritionRevamp v1.0.0 build 42.20.4 side=server mode=takeover itemPass=true legacyMirror=on frameworks=n/a hook=true limitations=9 nutritionOn=false log=2"
+   ],
+   "self_report_echo_excluded": 0,
+   "conn_lines": [
+    "LOG  : Network      f:102 st:1,680,679,368> Connected new client 1004304397575415151 ID # 0",
+    "LOG  : Lua          f:356 st:1,680,704,900> [NutritionRevamp] players: first sight of admin",
+    "LOG  : Network      f:541 st:1,680,723,340> Connected new client 1053843993514415756 ID # 4",
+    "LOG  : Lua          f:762 st:1,680,745,362> [NutritionRevamp] players: first sight of bob",
+    "LOG  : Lua          f:850 st:1,680,754,156> [NutritionRevamp] players: admin left",
+    "LOG  : Lua          f:871 st:1,680,756,257> [NutritionRevamp] players: bob left"
+   ],
+   "conn_echo_excluded": 0,
+   "checksum_lines": [
+    "LOG  : General      f:0 st:1,680,635,449>     Checksum: Warning",
+    "LOG  : General      f:0 st:1,680,640,619> scriptChecksum: 93e43c2fc2ea0f3850cad0a2445ba456",
+    "LOG  : Lua          f:0 st:1,680,664,503> luaChecksum: efff216ed826b2dd7dbada7d2ab2712c"
+   ],
+   "checksum_echo_excluded": 0,
+   "checksum_bad_lines": []
+  }
+ },
+ "join_walls": {
+  "admin": {
+   "client_launch": 34.7,
+   "client_ready": 73.0,
+   "ready_took": 37.9,
+   "launch_to_ready_s": 38.3
+  },
+  "bob": {
+   "client_launch": 73.1,
+   "client_ready": 113.9,
+   "ready_took": 40.3,
+   "launch_to_ready_s": 40.8
+  }
+ },
+ "wall_seconds": 133.1
+}

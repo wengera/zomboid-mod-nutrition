@@ -567,3 +567,14 @@ x193-20261006-201004,verdicts.A.observed.setpath.after,0.05,The driver's own wri
 x193-20261006-201004,verdicts.A.observed.setpath.requested,0.05,The driver's own requested value; not a reading.,cite `verdicts.A.observed.setpath.before` or the record's later read
 x193-20261006-201004,verdicts.D.observed.target,150.41702270507812,The driver's own write (the store read plus its RISE_KCAL); not a reading.,cite `verdicts.D.observed.store_before` and the landing in `verdicts.D.observed.lastIntake`
 x193-20261006-201004,verdicts.D.observed.set_reply,the written store,The driver's own write read back in the set reply; not a reading.,cite `verdicts.D.observed.store_before` and the landing in `verdicts.D.observed.lastIntake`
+x201-20261006-215125,predictions,the driver's PRED table,Written before the run; not a reading.,cite `verdicts.<phase>.observed`
+x201-20261006-215125,constants,the driver's constants,"Settings and patterns of the driver, not readings.",
+x201-20261006-215125,deviations,the driver's list,Written before the run; not readings.,
+x201-20261006-215125,world_changes,the driver's text,Written before the run; not readings.,
+x201-20261006-215125,meta.staged_mod,the staged folder's path,The driver's own constant; not a reading.,
+x201-20261006-215125,meta.staged_manifest,the manifest's path,The driver's own constant; not a reading.,
+x201-20261006-215125,meta.staging_command,the staging command,The driver's own text; not a reading.,
+x201-20261006-215125,verdicts.*.predicted,the driver's predictions,Copies of `predictions` beside each grade; not readings.,cite `verdicts.<phase>.observed`
+x201-20261006-215125,verdicts.F.observed.acorn_calories,null on each side,The item.script reply carries no Calories key; null is an absent key and not a reading of the pass.,cite the self-reports' itemPass in `verdicts.A.observed.pairs` and `verdicts.B.observed.pairs`
+x201-20261006-215125,verdicts.F.verdict,unmeasured,The pass's calories were not read through the script getter route.,cite `verdicts.F.observed.server_itemPassActive_type` for the function only
+x201-20261006-215125,verdicts.C.observed.checksum_lines,3 and 3,"Counts of every line holding checksum, the boot's own prints included.",cite `verdicts.C.observed.checksum_bad`
